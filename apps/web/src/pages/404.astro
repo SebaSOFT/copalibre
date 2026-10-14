@@ -23,7 +23,9 @@ const homeUrl = getLocaleHomePath(locale);
 >
   <div id="static-not-found" class="cl-not-found">
     <Card as="section" className="cl-not-found__card">
-      <p class="cl-not-found__numeral" aria-hidden="true">404</p>
+      <p class="cl-not-found__numeral" aria-hidden="true">
+        404
+      </p>
       <h1 class="cl-not-found__heading">{intl.formatMessage(messages.notFoundHeading)}</h1>
       <p class="cl-not-found__body">{intl.formatMessage(messages.notFoundBody)}</p>
       <Button href={homeUrl}>{intl.formatMessage(messages.notFoundHomeLink)}</Button>

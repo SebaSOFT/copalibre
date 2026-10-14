@@ -129,170 +129,166 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
     data-discipline={backdropDiscipline}
     data-has-discipline={String(Boolean(selectedDisciplineBackground))}
   >
-    {
-      selectedDisciplineBackground && (
-        <img
-          class="tv-launcher__discipline"
-          data-discipline-image
-          data-active={background === 'discipline' ? 'true' : 'false'}
-          src={selectedDisciplineBackground.url}
-          alt=""
-          aria-hidden="true"
-          style={`opacity:${selectedDisciplineBackground.opacity}`}
-        />
-      )
-    }
+    {selectedDisciplineBackground && (
+      <img
+        class="tv-launcher__discipline"
+        data-discipline-image
+        data-active={background === 'discipline' ? 'true' : 'false'}
+        src={selectedDisciplineBackground.url}
+        alt=""
+        aria-hidden="true"
+        style={`opacity:${selectedDisciplineBackground.opacity}`}
+      />
+    )}
     <div class="tv-launcher__backdrop" aria-hidden="true"></div>
     <section class="tv-launcher__panel cl-chamfer" aria-labelledby="tv-launcher-title">
-      <h1 id="tv-launcher-title" data-i18n="title">{t.title}</h1>
-      <p class="tv-launcher__intro" data-i18n="intro">{t.intro}</p>
-      {
-        organizations.length === 0 ? (
-          <p role="status" data-i18n={loadFailed ? 'loadError' : 'emptyOrganizations'}>
-            {loadFailed ? t.loadError : t.emptyOrganizations}
-          </p>
-        ) : (
-          <form
-            class="tv-launcher__form"
-            data-match-options={encodeURIComponent(JSON.stringify(matchChoices))}
+      <h1 id="tv-launcher-title" data-i18n="title">
+        {t.title}
+      </h1>
+      <p class="tv-launcher__intro" data-i18n="intro">
+        {t.intro}
+      </p>
+      {organizations.length === 0 ? (
+        <p role="status" data-i18n={loadFailed ? 'loadError' : 'emptyOrganizations'}>
+          {loadFailed ? t.loadError : t.emptyOrganizations}
+        </p>
+      ) : (
+        <form
+          class="tv-launcher__form"
+          data-match-options={encodeURIComponent(JSON.stringify(matchChoices))}
+        >
+          <label>
+            <span data-i18n="organization">{t.organization}</span>
+            <select
+              class="cl-chamfer cl-chamfer--control"
+              name="organization"
+              data-launcher-organization
+            >
+              {organizations.map((org) => (
+                <option value={org.alias} selected={org.alias === selectedOrganization?.alias}>
+                  {org.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span data-i18n="tournament">{t.tournament}</span>
+            <select
+              class="cl-chamfer cl-chamfer--control"
+              name="tournament"
+              data-launcher-tournament
+            >
+              {tournaments.map((tournament) => (
+                <option
+                  value={tournament.alias}
+                  selected={tournament.alias === selectedTournament?.alias}
+                >
+                  {tournament.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span data-i18n="view">{t.view}</span>
+            <select class="cl-chamfer cl-chamfer--control" name="view" data-launcher-view>
+              {VIEWS.map((item) => (
+                <option value={item} selected={item === view} data-i18n={VIEW_LABEL[item]}>
+                  {t[VIEW_LABEL[item]]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div class="tv-launcher__match-fields" data-match-fields hidden={!matchFieldsShown}>
+            <label>
+              <span data-i18n="stage">{t.stage}</span>
+              <select class="cl-chamfer cl-chamfer--control" data-launcher-stage>
+                {stages.map((item) => (
+                  <option value={item.stage} selected={item.stage === initialStage}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span data-i18n="match">{t.match}</span>
+              <select class="cl-chamfer cl-chamfer--control" data-launcher-match>
+                {view === 'overlay' && courts.length > 0 && (
+                  <optgroup label={t.courtGroup} data-i18n="courtGroup">
+                    {courts.map((venue) => (
+                      <option
+                        value={`${COURT_VALUE_PREFIX}${venue}`}
+                        selected={venue === initialCourt && initialMatch === undefined}
+                      >
+                        {venue}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {matchGroups.map((group) => (
+                  <optgroup label={group.heading}>
+                    {group.options.map((item) => (
+                      <option value={item.match} selected={item.match === initialMatch}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p
+            role="status"
+            class="tv-launcher__notice"
+            data-i18n="noMatches"
+            data-no-matches
+            hidden={!noMatchesShown}
           >
-            <label>
-              <span data-i18n="organization">{t.organization}</span>
-              <select
-                class="cl-chamfer cl-chamfer--control"
-                name="organization"
-                data-launcher-organization
-              >
-                {organizations.map((org) => (
-                  <option value={org.alias} selected={org.alias === selectedOrganization?.alias}>
-                    {org.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span data-i18n="tournament">{t.tournament}</span>
-              <select
-                class="cl-chamfer cl-chamfer--control"
-                name="tournament"
-                data-launcher-tournament
-              >
-                {tournaments.map((tournament) => (
-                  <option
-                    value={tournament.alias}
-                    selected={tournament.alias === selectedTournament?.alias}
-                  >
-                    {tournament.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span data-i18n="view">{t.view}</span>
-              <select class="cl-chamfer cl-chamfer--control" name="view" data-launcher-view>
-                {VIEWS.map((item) => (
-                  <option value={item} selected={item === view} data-i18n={VIEW_LABEL[item]}>
-                    {t[VIEW_LABEL[item]]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div class="tv-launcher__match-fields" data-match-fields hidden={!matchFieldsShown}>
-              <label>
-                <span data-i18n="stage">{t.stage}</span>
-                <select class="cl-chamfer cl-chamfer--control" data-launcher-stage>
-                  {stages.map((item) => (
-                    <option value={item.stage} selected={item.stage === initialStage}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span data-i18n="match">{t.match}</span>
-                <select class="cl-chamfer cl-chamfer--control" data-launcher-match>
-                  {view === 'overlay' && courts.length > 0 && (
-                    <optgroup label={t.courtGroup} data-i18n="courtGroup">
-                      {courts.map((venue) => (
-                        <option
-                          value={`${COURT_VALUE_PREFIX}${venue}`}
-                          selected={venue === initialCourt && initialMatch === undefined}
-                        >
-                          {venue}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                  {matchGroups.map((group) => (
-                    <optgroup label={group.heading}>
-                      {group.options.map((item) => (
-                        <option value={item.match} selected={item.match === initialMatch}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <p
-              role="status"
-              class="tv-launcher__notice"
-              data-i18n="noMatches"
-              data-no-matches
-              hidden={!noMatchesShown}
-            >
-              {t.noMatches}
+            {t.noMatches}
+          </p>
+          <label>
+            <span data-i18n="background">{t.background}</span>
+            <select class="cl-chamfer cl-chamfer--control" name="bg" data-launcher-background>
+              {(['discipline', 'neutral', 'chroma', 'football', 'court'] as const).map((item) => (
+                <option value={item} selected={item === background} data-i18n={item}>
+                  {t[item]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span data-i18n="language">{t.language}</span>
+            <select class="cl-chamfer cl-chamfer--control" name="lang" data-launcher-language>
+              {(['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const).map((item) => (
+                <option value={item} selected={item === language}>
+                  {item.toUpperCase()}
+                </option>
+              ))}
+            </select>
+          </label>
+          {loadFailed && (
+            <p role="status" class="tv-launcher__notice" data-i18n="loadError">
+              {t.loadError}
             </p>
-            <label>
-              <span data-i18n="background">{t.background}</span>
-              <select class="cl-chamfer cl-chamfer--control" name="bg" data-launcher-background>
-                {(['discipline', 'neutral', 'chroma', 'football', 'court'] as const).map((item) => (
-                  <option value={item} selected={item === background} data-i18n={item}>
-                    {t[item]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span data-i18n="language">{t.language}</span>
-              <select class="cl-chamfer cl-chamfer--control" name="lang" data-launcher-language>
-                {(['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const).map((item) => (
-                  <option value={item} selected={item === language}>
-                    {item.toUpperCase()}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {loadFailed && (
-              <p role="status" class="tv-launcher__notice" data-i18n="loadError">
-                {t.loadError}
-              </p>
-            )}
-            {selectedOrganization && tournaments.length === 0 && !loadFailed && (
-              <p role="status" class="tv-launcher__notice" data-i18n="unavailable">
-                {t.unavailable}
-              </p>
-            )}
+          )}
+          {selectedOrganization && tournaments.length === 0 && !loadFailed && (
+            <p role="status" class="tv-launcher__notice" data-i18n="unavailable">
+              {t.unavailable}
+            </p>
+          )}
+          <a class="tv-launcher__launch cl-chamfer cl-chamfer--control" data-launcher-link href="#">
+            <span data-i18n="launch">{t.launch}</span>
+            <span aria-hidden="true">↗</span>
+          </a>
+          {selectedOrganization && (
             <a
-              class="tv-launcher__launch cl-chamfer cl-chamfer--control"
-              data-launcher-link
-              href="#"
+              class="tv-launcher__public"
+              href={`/${encodeURIComponent(selectedOrganization.alias)}`}
             >
-              <span data-i18n="launch">{t.launch}</span>
-              <span aria-hidden="true">↗</span>
+              <span data-i18n="publicSite">{t.publicSite}</span> ↗
             </a>
-            {selectedOrganization && (
-              <a
-                class="tv-launcher__public"
-                href={`/${encodeURIComponent(selectedOrganization.alias)}`}
-              >
-                <span data-i18n="publicSite">{t.publicSite}</span> ↗
-              </a>
-            )}
-          </form>
-        )
-      }
+          )}
+        </form>
+      )}
     </section>
   </main>
 </TvLayout>

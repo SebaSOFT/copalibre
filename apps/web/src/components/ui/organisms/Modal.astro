@@ -47,14 +47,14 @@ const descriptionId = `${id}-description`;
   open={open || undefined}
 >
   <header class="cl-modal__header">
-    <h2 class="cl-modal__title" id={titleId}>{title}</h2>
-    {
-      description ? (
-        <p class="cl-modal__description" id={descriptionId}>
-          {description}
-        </p>
-      ) : null
-    }
+    <h2 class="cl-modal__title" id={titleId}>
+      {title}
+    </h2>
+    {description ? (
+      <p class="cl-modal__description" id={descriptionId}>
+        {description}
+      </p>
+    ) : null}
     <button
       aria-label={closeLabel}
       class="cl-focusable cl-modal__close"

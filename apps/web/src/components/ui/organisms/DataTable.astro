@@ -79,50 +79,46 @@ const modifiers = [
     {caption ? <caption class="cl-data-table__caption">{caption}</caption> : null}
     <thead>
       <tr>
-        {
-          columns.map((column: DataTableColumn) => (
-            <th aria-sort={column.ariaSort} scope="col">
-              {column.header}
-            </th>
-          ))
-        }
+        {columns.map((column: DataTableColumn) => (
+          <th aria-sort={column.ariaSort} scope="col">
+            {column.header}
+          </th>
+        ))}
       </tr>
     </thead>
-    {
-      bodies.map((body) => (
-        <tbody>
-          {body.heading ? (
-            <tr class="cl-data-table__section">
-              <th colspan={columns.length} scope="rowgroup">
-                {body.heading}
-              </th>
-            </tr>
-          ) : null}
-          {body.rows.map((row) => (
-            <tr>
-              {columns.map((column: DataTableColumn) => {
-                const text = column.render(row) as string;
-                const address = column.href?.(row);
-                const instant = column.datetime?.(row);
-                const short = column.abbreviation?.(row);
-                const body = instant ? <time datetime={instant}>{text}</time> : text;
-                const content = short ? (
-                  <>
-                    <span class="cl-data-table__full">{body}</span>
-                    <abbr class="cl-data-table__short" title={text}>
-                      {short}
-                    </abbr>
-                  </>
-                ) : (
-                  body
-                );
-                return <td>{address ? <a href={address}>{content}</a> : content}</td>;
-              })}
-            </tr>
-          ))}
-        </tbody>
-      ))
-    }
+    {bodies.map((body) => (
+      <tbody>
+        {body.heading ? (
+          <tr class="cl-data-table__section">
+            <th colspan={columns.length} scope="rowgroup">
+              {body.heading}
+            </th>
+          </tr>
+        ) : null}
+        {body.rows.map((row) => (
+          <tr>
+            {columns.map((column: DataTableColumn) => {
+              const text = column.render(row) as string;
+              const address = column.href?.(row);
+              const instant = column.datetime?.(row);
+              const short = column.abbreviation?.(row);
+              const body = instant ? <time datetime={instant}>{text}</time> : text;
+              const content = short ? (
+                <>
+                  <span class="cl-data-table__full">{body}</span>
+                  <abbr class="cl-data-table__short" title={text}>
+                    {short}
+                  </abbr>
+                </>
+              ) : (
+                body
+              );
+              return <td>{address ? <a href={address}>{content}</a> : content}</td>;
+            })}
+          </tr>
+        ))}
+      </tbody>
+    ))}
   </table>
   {rowCount === 0 && emptyMessage ? <p class="cl-data-table__empty">{emptyMessage}</p> : null}
 </div>

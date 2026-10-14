@@ -21,16 +21,14 @@ const emblemSrc =
 <section class="cl-tournament-hero" aria-label={tournamentName}>
   <div class="cl-tournament-hero__content">
     <div class="cl-tournament-hero__header">
-      {
-        emblemSrc && (
-          <EmblemImage
-            alt={labels.emblemAlt}
-            placeholderAlt={labels.emblemPlaceholderAlt}
-            size={56}
-            src={emblemSrc}
-          />
-        )
-      }
+      {emblemSrc && (
+        <EmblemImage
+          alt={labels.emblemAlt}
+          placeholderAlt={labels.emblemPlaceholderAlt}
+          size={56}
+          src={emblemSrc}
+        />
+      )}
       <div class="cl-tournament-hero__titles">
         <p>{model.organizationName}</p>
         <h1>{tournamentName}</h1>

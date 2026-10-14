@@ -34,9 +34,7 @@ const localePrefix = getLocalePrefix(locale);
         <h1 class="cl-home-hero__title">{intl.formatMessage(messages.homeHeroTitle)}</h1>
         <p class="cl-home-hero__subtitle">{intl.formatMessage(messages.homeHeroSubtitle)}</p>
       </div>
-      <p class="cl-home-hero__description">
-        {intl.formatMessage(messages.homeHeroDescription)}
-      </p>
+      <p class="cl-home-hero__description">{intl.formatMessage(messages.homeHeroDescription)}</p>
       <div class="cl-home-hero__badges" role="list">
         <Badge>{intl.formatMessage(messages.homeBadgeFreeSoftware)}</Badge>
         <Badge>{intl.formatMessage(messages.homeBadgeSovereign)}</Badge>
@@ -44,78 +42,74 @@ const localePrefix = getLocalePrefix(locale);
       </div>
     </header>
 
-    {
-      organizations.length === 0 ? (
-        <section
-          class="cl-home-empty-hub cl-tactical-grid"
-          aria-label={intl.formatMessage(messages.homeEmptyHeading)}
-        >
-          <div class="cl-home-empty-hub__intro">
-            <h2 class="cl-home-empty-hub__heading">
-              {intl.formatMessage(messages.homeEmptyHeading)}
-            </h2>
-            <p class="cl-home-empty-hub__lead">{intl.formatMessage(messages.homeEmptyLead)}</p>
-          </div>
+    {organizations.length === 0 ? (
+      <section
+        class="cl-home-empty-hub cl-tactical-grid"
+        aria-label={intl.formatMessage(messages.homeEmptyHeading)}
+      >
+        <div class="cl-home-empty-hub__intro">
+          <h2 class="cl-home-empty-hub__heading">
+            {intl.formatMessage(messages.homeEmptyHeading)}
+          </h2>
+          <p class="cl-home-empty-hub__lead">{intl.formatMessage(messages.homeEmptyLead)}</p>
+        </div>
 
-          <div class="cl-home-orientation-grid">
-            <Card as="article" className="cl-orientation-card">
-              <h3 class="cl-orientation-card__title">
-                {intl.formatMessage(messages.homeOperatorCardTitle)}
-              </h3>
-              <p class="cl-orientation-card__body">
-                {intl.formatMessage(messages.homeOperatorCardBody)}
-              </p>
-              <div class="cl-orientation-card__action">
-                <Button href="/control/" variant="primary">
-                  {intl.formatMessage(messages.homeOperatorCta)}
-                </Button>
+        <div class="cl-home-orientation-grid">
+          <Card as="article" className="cl-orientation-card">
+            <h3 class="cl-orientation-card__title">
+              {intl.formatMessage(messages.homeOperatorCardTitle)}
+            </h3>
+            <p class="cl-orientation-card__body">
+              {intl.formatMessage(messages.homeOperatorCardBody)}
+            </p>
+            <div class="cl-orientation-card__action">
+              <Button href="/control/" variant="primary">
+                {intl.formatMessage(messages.homeOperatorCta)}
+              </Button>
+            </div>
+          </Card>
+
+          <Card as="article" className="cl-orientation-card">
+            <h3 class="cl-orientation-card__title">
+              {intl.formatMessage(messages.homeDocsCardTitle)}
+            </h3>
+            <p class="cl-orientation-card__body">{intl.formatMessage(messages.homeDocsCardBody)}</p>
+            <div class="cl-orientation-card__action">
+              <Button href="/help/" variant="secondary">
+                {intl.formatMessage(messages.homeDocsCta)}
+              </Button>
+            </div>
+          </Card>
+        </div>
+
+        <div class="cl-home-spectator-notice">
+          <p>{intl.formatMessage(messages.homeEmptySpectatorNotice)}</p>
+        </div>
+      </section>
+    ) : (
+      <section
+        class="cl-org-directory"
+        aria-label={intl.formatMessage(messages.homeOrganizationsLabel)}
+      >
+        <h2>{intl.formatMessage(messages.homeOrganizationsLabel)}</h2>
+        <div class="cl-org-grid">
+          {organizations.map((org) => (
+            <a href={`${localePrefix}/${encodeURIComponent(org.alias)}`} class="cl-org-card">
+              <EmblemImage
+                src={org.emblemObjectId ? organizationEmblemUrl(org.alias) : undefined}
+                alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: org.name })}
+                placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                size={48}
+              />
+              <div class="cl-org-info">
+                <span class="cl-org-name">{org.name}</span>
+                <span class="cl-org-alias">{`/${org.alias}`}</span>
               </div>
-            </Card>
-
-            <Card as="article" className="cl-orientation-card">
-              <h3 class="cl-orientation-card__title">
-                {intl.formatMessage(messages.homeDocsCardTitle)}
-              </h3>
-              <p class="cl-orientation-card__body">
-                {intl.formatMessage(messages.homeDocsCardBody)}
-              </p>
-              <div class="cl-orientation-card__action">
-                <Button href="/help/" variant="secondary">
-                  {intl.formatMessage(messages.homeDocsCta)}
-                </Button>
-              </div>
-            </Card>
-          </div>
-
-          <div class="cl-home-spectator-notice">
-            <p>{intl.formatMessage(messages.homeEmptySpectatorNotice)}</p>
-          </div>
-        </section>
-      ) : (
-        <section
-          class="cl-org-directory"
-          aria-label={intl.formatMessage(messages.homeOrganizationsLabel)}
-        >
-          <h2>{intl.formatMessage(messages.homeOrganizationsLabel)}</h2>
-          <div class="cl-org-grid">
-            {organizations.map((org) => (
-              <a href={`${localePrefix}/${encodeURIComponent(org.alias)}`} class="cl-org-card">
-                <EmblemImage
-                  src={org.emblemObjectId ? organizationEmblemUrl(org.alias) : undefined}
-                  alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: org.name })}
-                  placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
-                  size={48}
-                />
-                <div class="cl-org-info">
-                  <span class="cl-org-name">{org.name}</span>
-                  <span class="cl-org-alias">{`/${org.alias}`}</span>
-                </div>
-              </a>
-            ))}
-          </div>
-        </section>
-      )
-    }
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
   </div>
 </PublicLayout>
 

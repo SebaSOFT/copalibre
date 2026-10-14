@@ -133,91 +133,89 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
 
 <div class="cl-match-schedule">
   {stages.length === 0 && <p class="cl-empty-state">{emptyLabel}</p>}
-  {
-    stages.map((stage) => {
-      const StageHeading = heading(0);
-      const ZoneHeading = heading(1);
-      const GroupHeading = heading(2);
-      const named = stages.length > 1;
-      const body = (
-        <>
-          {stage.zones.map((zone, zoneIndex) => (
-            <section class="cl-match-schedule__zone" data-zone={zoneKey(zone, zoneIndex)}>
-              {stage.zones.length > 1 && zone.name && <ZoneHeading>{zone.name}</ZoneHeading>}
-              {zone.kind === 'bracket' ? (
-                <BracketView
-                  intl={intl}
-                  localePrefix={localePrefix}
-                  matches={zone.matches}
-                  organizationAlias={organizationAlias}
-                  stageNumber={stage.stageNumber}
-                  tournamentAlias={tournamentAlias}
-                />
-              ) : (
-                zone.groups.map((group) => (
-                  <div class="cl-match-schedule__group">
-                    {zone.groups.length > 1 && group.name && (
-                      <GroupHeading>{group.name}</GroupHeading>
-                    )}
-                    {presentation === 'rows' ? (
-                      <DataTable
-                        ariaLabel={scopeOf(
-                          stages.length > 1 ? stageLabel(stage) : undefined,
-                          zone.name,
-                          group.name,
+  {stages.map((stage) => {
+    const StageHeading = heading(0);
+    const ZoneHeading = heading(1);
+    const GroupHeading = heading(2);
+    const named = stages.length > 1;
+    const body = (
+      <>
+        {stage.zones.map((zone, zoneIndex) => (
+          <section class="cl-match-schedule__zone" data-zone={zoneKey(zone, zoneIndex)}>
+            {stage.zones.length > 1 && zone.name && <ZoneHeading>{zone.name}</ZoneHeading>}
+            {zone.kind === 'bracket' ? (
+              <BracketView
+                intl={intl}
+                localePrefix={localePrefix}
+                matches={zone.matches}
+                organizationAlias={organizationAlias}
+                stageNumber={stage.stageNumber}
+                tournamentAlias={tournamentAlias}
+              />
+            ) : (
+              zone.groups.map((group) => (
+                <div class="cl-match-schedule__group">
+                  {zone.groups.length > 1 && group.name && (
+                    <GroupHeading>{group.name}</GroupHeading>
+                  )}
+                  {presentation === 'rows' ? (
+                    <DataTable
+                      ariaLabel={scopeOf(
+                        stages.length > 1 ? stageLabel(stage) : undefined,
+                        zone.name,
+                        group.name,
+                      )}
+                      columns={columns}
+                      compact
+                      rows={[]}
+                      sections={sectionsOf(group.rounds)}
+                    />
+                  ) : (
+                    group.rounds.map((one) => (
+                      <section>
+                        {group.rounds.length > 1 && (
+                          <h6 class="cl-match-schedule__round">{roundLabel(one.round)}</h6>
                         )}
-                        columns={columns}
-                        compact
-                        rows={[]}
-                        sections={sectionsOf(group.rounds)}
-                      />
-                    ) : (
-                      group.rounds.map((one) => (
-                        <section>
-                          {group.rounds.length > 1 && (
-                            <h6 class="cl-match-schedule__round">{roundLabel(one.round)}</h6>
-                          )}
-                          <div
-                            class={
-                              presentation === 'compact-cards'
-                                ? 'cl-matches-view__grid cl-matches-view__grid--compact'
-                                : 'cl-matches-view__grid'
-                            }
-                          >
-                            {one.matches.map((match) => (
-                              <MatchCard
-                                client:load
-                                compact={presentation === 'compact-cards'}
-                                labels={cardLabels}
-                                locale={intl.locale}
-                                match={match}
-                                reportUrl={reportOf(match.stageNumber, match.matchNumber)}
-                              />
-                            ))}
-                          </div>
-                        </section>
-                      ))
-                    )}
-                  </div>
-                ))
-              )}
-            </section>
-          ))}
-        </>
-      );
-      return collapsible && named ? (
-        <details class="cl-match-schedule__stage" open={stage.stageNumber === openStage}>
-          <summary>{stageLabel(stage)}</summary>
-          {body}
-        </details>
-      ) : (
-        <section class="cl-match-schedule__stage" data-stage={stage.stageNumber}>
-          {named && <StageHeading>{stageLabel(stage)}</StageHeading>}
-          {body}
-        </section>
-      );
-    })
-  }
+                        <div
+                          class={
+                            presentation === 'compact-cards'
+                              ? 'cl-matches-view__grid cl-matches-view__grid--compact'
+                              : 'cl-matches-view__grid'
+                          }
+                        >
+                          {one.matches.map((match) => (
+                            <MatchCard
+                              client:load
+                              compact={presentation === 'compact-cards'}
+                              labels={cardLabels}
+                              locale={intl.locale}
+                              match={match}
+                              reportUrl={reportOf(match.stageNumber, match.matchNumber)}
+                            />
+                          ))}
+                        </div>
+                      </section>
+                    ))
+                  )}
+                </div>
+              ))
+            )}
+          </section>
+        ))}
+      </>
+    );
+    return collapsible && named ? (
+      <details class="cl-match-schedule__stage" open={stage.stageNumber === openStage}>
+        <summary>{stageLabel(stage)}</summary>
+        {body}
+      </details>
+    ) : (
+      <section class="cl-match-schedule__stage" data-stage={stage.stageNumber}>
+        {named && <StageHeading>{stageLabel(stage)}</StageHeading>}
+        {body}
+      </section>
+    );
+  })}
 </div>
 
 <script>

@@ -69,13 +69,11 @@ const captionOf = (match: (typeof layout.nodes)[number]['match']): string | unde
   data-density={density}
   style={`width: ${layout.width}px; height: ${layout.height + HEAD}px;`}
 >
-  {
-    /*
+  {/*
         Nodes and links on two layers of one fixed-size box, the links as polylines from the right
         edge of a match to the left edge of the one it feeds. A solid line carries a winner, a dashed
         one a loser, so nothing leans on colour, and it all prints as drawn.
-      */
-  }
+      */}
   <svg
     aria-hidden="true"
     class="cl-bracket-stage__links"
@@ -84,89 +82,83 @@ const captionOf = (match: (typeof layout.nodes)[number]['match']): string | unde
     width={layout.width}
   >
     <g transform={`translate(0 ${HEAD})`}>
-      {
-        layout.connectors.map((connector) => (
-          <polyline
-            class:list={[
-              'cl-bracket-link',
-              connector.kind === 'loser-of' && 'cl-bracket-link--loser',
-            ]}
-            data-link-from={connector.fromMatchId}
-            data-link-to={connector.toMatchId}
-            points={connector.points.map((point) => `${point.x},${point.y}`).join(' ')}
-          />
-        ))
-      }
+      {layout.connectors.map((connector) => (
+        <polyline
+          class:list={[
+            'cl-bracket-link',
+            connector.kind === 'loser-of' && 'cl-bracket-link--loser',
+          ]}
+          data-link-from={connector.fromMatchId}
+          data-link-to={connector.toMatchId}
+          points={connector.points.map((point) => `${point.x},${point.y}`).join(' ')}
+        />
+      ))}
     </g>
   </svg>
-  {
-    layout.bands.length > 1 &&
-      layout.bands.map((band) => (
-        <h3 class="cl-bracket-stage__band" style={`left: ${band.x}px; top: ${HEAD - 100}px;`}>
-          {bracketBranchLabel(intl, band.branch)}
+  {layout.bands.length > 1 &&
+    layout.bands.map((band) => (
+      <h3 class="cl-bracket-stage__band" style={`left: ${band.x}px; top: ${HEAD - 100}px;`}>
+        {bracketBranchLabel(intl, band.branch)}
+      </h3>
+    ))}
+  {placedRounds.map(({ round, nodes, heads }) => (
+    <section
+      aria-label={intl.formatMessage(messages.bracketRoundAriaLabel, {
+        branch: round.branch,
+        round: round.roundNumber,
+      })}
+      class="cl-bracket-stage__round"
+    >
+      {heads.map((head) => (
+        <h3
+          class="cl-bracket-stage__round-label"
+          style={`left: ${head.x}px; top: ${(bandTop.get(round.branch) ?? 0) + HEAD - 56}px; width: ${head.width}px;`}
+        >
+          {intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}
         </h3>
-      ))
-  }
-  {
-    placedRounds.map(({ round, nodes, heads }) => (
-      <section
-        aria-label={intl.formatMessage(messages.bracketRoundAriaLabel, {
-          branch: round.branch,
-          round: round.roundNumber,
-        })}
-        class="cl-bracket-stage__round"
-      >
-        {heads.map((head) => (
-          <h3
-            class="cl-bracket-stage__round-label"
-            style={`left: ${head.x}px; top: ${(bandTop.get(round.branch) ?? 0) + HEAD - 56}px; width: ${head.width}px;`}
+      ))}
+      {nodes.map((node) => {
+        const caption = captionOf(node.match);
+        const focused = highlightMatchNumber === node.match.matchNumber;
+        return (
+          <div
+            aria-current={focused ? 'true' : undefined}
+            data-journey-match={density === 'full' ? bracketMatchId(node.match) : undefined}
+            class:list={[
+              'cl-bracket-stage__node',
+              championship?.matchNumber === node.match.matchNumber &&
+                championship?.branch === node.match.branch &&
+                'cl-bracket-stage__node--championship',
+              focused && 'cl-bracket-stage__node--focused',
+            ]}
+            style={`left: ${node.x}px; top: ${node.y + HEAD}px; width: ${node.width}px; height: ${node.height}px;`}
           >
-            {intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}
-          </h3>
-        ))}
-        {nodes.map((node) => {
-          const caption = captionOf(node.match);
-          const focused = highlightMatchNumber === node.match.matchNumber;
-          return (
-            <div
-              aria-current={focused ? 'true' : undefined}
-              data-journey-match={density === 'full' ? bracketMatchId(node.match) : undefined}
-              class:list={[
-                'cl-bracket-stage__node',
-                championship?.matchNumber === node.match.matchNumber &&
-                  championship?.branch === node.match.branch &&
-                  'cl-bracket-stage__node--championship',
-                focused && 'cl-bracket-stage__node--focused',
-              ]}
-              style={`left: ${node.x}px; top: ${node.y + HEAD}px; width: ${node.width}px; height: ${node.height}px;`}
-            >
-              {caption !== undefined && <p class="cl-bracket-stage__caption">{caption}</p>}
-              {density === 'compact' ? (
-                <MatchNodeCompact
-                  intl={intl}
-                  localePrefix={localePrefix}
-                  match={node.match}
-                  organizationAlias={organizationAlias}
-                  stageNumber={stageNumber}
-                  tournamentAlias={tournamentAlias}
-                />
-              ) : (
-                <MatchNode
-                  highlightEntrants
-                  intl={intl}
-                  localePrefix={localePrefix}
-                  match={node.match}
-                  organizationAlias={organizationAlias}
-                  stageNumber={stageNumber}
-                  tournamentAlias={tournamentAlias}
-                />
-              )}
-            </div>
-          );
-        })}
-      </section>
-    ))
-  }
+            {caption !== undefined && <p class="cl-bracket-stage__caption">{caption}</p>}
+            {density === 'compact' ? (
+              <MatchNodeCompact
+                intl={intl}
+                localePrefix={localePrefix}
+                match={node.match}
+                organizationAlias={organizationAlias}
+                stageNumber={stageNumber}
+                tournamentAlias={tournamentAlias}
+              />
+            ) : (
+              <MatchNode
+                highlightEntrants
+                intl={intl}
+                localePrefix={localePrefix}
+                match={node.match}
+                organizationAlias={organizationAlias}
+                stageNumber={stageNumber}
+                tournamentAlias={tournamentAlias}
+              />
+            )}
+          </div>
+        );
+      })}
+    </section>
+  ))}
 </div>
 
 <style>

@@ -99,36 +99,34 @@ const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.liveP
   <h2>{intl.formatMessage(messages.livePageUpcomingHeading)}</h2>
   {upcomingMatches.length === 0 && <p>{intl.formatMessage(messages.livePageNoUpcoming)}</p>}
   <div class="cl-match-card-grid">
-    {
-      upcomingMatches.map((match) => {
-        const Wrapper = match.matchNumber === undefined ? 'div' : 'a';
-        return (
-          <Wrapper
-            href={
-              match.matchNumber === undefined
-                ? undefined
-                : reportPath(match.stageNumber, match.matchNumber)
-            }
-          >
-            <Card as="article">
-              <StateBadge state="upcoming" intl={intl} />
-              <CardTitle>
-                {match.home.name} {intl.formatMessage(messages.tickerVersus)} {match.away.name}
-              </CardTitle>
-              {match.startsAt && !Number.isNaN(Date.parse(match.startsAt)) && (
-                <CardDescription>
-                  <ResponsiveTimestamp
-                    locale={resolvedLocale}
-                    referenceDate={referenceDate}
-                    timestamp={match.startsAt}
-                  />
-                </CardDescription>
-              )}
-            </Card>
-          </Wrapper>
-        );
-      })
-    }
+    {upcomingMatches.map((match) => {
+      const Wrapper = match.matchNumber === undefined ? 'div' : 'a';
+      return (
+        <Wrapper
+          href={
+            match.matchNumber === undefined
+              ? undefined
+              : reportPath(match.stageNumber, match.matchNumber)
+          }
+        >
+          <Card as="article">
+            <StateBadge state="upcoming" intl={intl} />
+            <CardTitle>
+              {match.home.name} {intl.formatMessage(messages.tickerVersus)} {match.away.name}
+            </CardTitle>
+            {match.startsAt && !Number.isNaN(Date.parse(match.startsAt)) && (
+              <CardDescription>
+                <ResponsiveTimestamp
+                  locale={resolvedLocale}
+                  referenceDate={referenceDate}
+                  timestamp={match.startsAt}
+                />
+              </CardDescription>
+            )}
+          </Card>
+        </Wrapper>
+      );
+    })}
   </div>
 
   <StandingsTable

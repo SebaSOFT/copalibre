@@ -19,9 +19,7 @@ const { model, locale, statusLabel } = Astro.props;
 
 <header class="cl-match-hero">
   <div class="cl-match-hero__meta">
-    <Badge className={`cl-badge--${model.status.toLowerCase()}`}>
-      {statusLabel}
-    </Badge>
+    <Badge className={`cl-badge--${model.status.toLowerCase()}`}>{statusLabel}</Badge>
   </div>
 
   <h1 class="cl-scoreboard">
@@ -36,16 +34,14 @@ const { model, locale, statusLabel } = Astro.props;
     </div>
   </h1>
 
-  {
-    model.scheduledAt ? (
-      <p class="cl-match-venue">
-        <ResponsiveTimestamp locale={locale} timestamp={model.scheduledAt} />
-        {model.venueName ? ` · ${model.venueName}` : ''}
-      </p>
-    ) : model.status === 'upcoming' ? (
-      <p class="cl-match-venue cl-text-muted">Schedule not yet available.</p>
-    ) : null
-  }
+  {model.scheduledAt ? (
+    <p class="cl-match-venue">
+      <ResponsiveTimestamp locale={locale} timestamp={model.scheduledAt} />
+      {model.venueName ? ` · ${model.venueName}` : ''}
+    </p>
+  ) : model.status === 'upcoming' ? (
+    <p class="cl-match-venue cl-text-muted">Schedule not yet available.</p>
+  ) : null}
 </header>
 
 <style>

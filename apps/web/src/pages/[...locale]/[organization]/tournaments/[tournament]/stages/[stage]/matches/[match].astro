@@ -115,19 +115,17 @@ const structuredData = {
   <article class="cl-match-page">
     <MatchHero locale={intl.locale} model={model} statusLabel={statusLabels[model.status]} />
 
-    {
-      bracketMatches.length > 0 && (
-        <MatchBracketContext
-          currentMatchNumber={matchNumber}
-          intl={intl}
-          localePrefix={localePrefix}
-          matches={bracketMatches}
-          organizationAlias={organization!}
-          stageNumber={stageNumber}
-          tournamentAlias={tournament!}
-        />
-      )
-    }
+    {bracketMatches.length > 0 && (
+      <MatchBracketContext
+        currentMatchNumber={matchNumber}
+        intl={intl}
+        localePrefix={localePrefix}
+        matches={bracketMatches}
+        organizationAlias={organization!}
+        stageNumber={stageNumber}
+        tournamentAlias={tournament!}
+      />
+    )}
 
     <div class="cl-match-details">
       <MatchOfficials model={model} intl={intl} />

@@ -48,17 +48,15 @@ const {
     {showCount && <span class="cl-section-count">({tournaments.length})</span>}
   </div>
   <div class={`cl-tournaments-grid ${gridClass}`.trim()}>
-    {
-      tournaments.map((t) => (
-        <TournamentCard
-          tournament={t}
-          organizationAlias={organizationAlias}
-          localePrefix={localePrefix}
-          intl={intl}
-          featured={featured}
-        />
-      ))
-    }
+    {tournaments.map((t) => (
+      <TournamentCard
+        tournament={t}
+        organizationAlias={organizationAlias}
+        localePrefix={localePrefix}
+        intl={intl}
+        featured={featured}
+      />
+    ))}
   </div>
 </section>
 

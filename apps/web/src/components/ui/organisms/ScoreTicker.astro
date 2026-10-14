@@ -66,64 +66,62 @@ const {
   aria-label={label}
   role="region"
 >
-  {
-    items.length === 0 ? (
-      <p class="cl-ticker__notice">{emptyLabel}</p>
-    ) : (
-      <>
-        {stale && staleLabel && (
-          <p class="cl-ticker__notice cl-ticker__notice--stale" role="status">
-            {staleLabel}
-          </p>
+  {items.length === 0 ? (
+    <p class="cl-ticker__notice">{emptyLabel}</p>
+  ) : (
+    <>
+      {stale && staleLabel && (
+        <p class="cl-ticker__notice cl-ticker__notice--stale" role="status">
+          {staleLabel}
+        </p>
+      )}
+      <div class="cl-ticker__track" data-ticker-track>
+        {[0, 1].map((copy) =>
+          items.map((item) => (
+            <div
+              class="cl-ticker__item"
+              aria-hidden={copy === 1 ? 'true' : undefined}
+              data-match-id={item.matchId}
+              data-home-entrant-id={item.homeEntrantId}
+              data-away-entrant-id={item.awayEntrantId}
+              data-home-score={item.homeScore}
+              data-away-score={item.awayScore}
+              data-match-state={item.matchState}
+            >
+              <Badge className={`cl-badge--${item.tone}`}>{item.badge}</Badge>
+              <span class="cl-ticker__subject">{item.subject}</span>
+              <span class="cl-ticker__figure">{item.figure}</span>
+              {item.opponent && <span class="cl-ticker__subject">{item.opponent}</span>}
+              {/* Only where the discipline declares one; nothing here derives it. */}
+              {item.overtime && <span class="cl-ticker__overtime">{item.overtime}</span>}
+              {item.meta && <span class="cl-ticker__meta">({item.meta})</span>}
+              <span class="cl-ticker__sep" aria-hidden="true">
+                ///
+              </span>
+            </div>
+          )),
         )}
-        <div class="cl-ticker__track" data-ticker-track>
-          {[0, 1].map((copy) =>
-            items.map((item) => (
-              <div
-                class="cl-ticker__item"
-                aria-hidden={copy === 1 ? 'true' : undefined}
-                data-match-id={item.matchId}
-                data-home-entrant-id={item.homeEntrantId}
-                data-away-entrant-id={item.awayEntrantId}
-                data-home-score={item.homeScore}
-                data-away-score={item.awayScore}
-                data-match-state={item.matchState}
-              >
-                <Badge className={`cl-badge--${item.tone}`}>{item.badge}</Badge>
-                <span class="cl-ticker__subject">{item.subject}</span>
-                <span class="cl-ticker__figure">{item.figure}</span>
-                {item.opponent && <span class="cl-ticker__subject">{item.opponent}</span>}
-                {/* Only where the discipline declares one; nothing here derives it. */}
-                {item.overtime && <span class="cl-ticker__overtime">{item.overtime}</span>}
-                {item.meta && <span class="cl-ticker__meta">({item.meta})</span>}
-                <span class="cl-ticker__sep" aria-hidden="true">
-                  ///
-                </span>
-              </div>
-            )),
-          )}
-        </div>
-        {/*
+      </div>
+      {/*
           Hidden until the script that gives it meaning has run. A pause button
           that does nothing without JavaScript is a broken control on the one
           surface that has to keep working without it — so it arrives with the
           behaviour or it does not arrive.
         */}
-        <button
-          class="cl-ticker__pause cl-focusable"
-          type="button"
-          hidden
-          data-ticker-pause
-          data-pause-label={pauseLabel}
-          data-resume-label={resumeLabel}
-          aria-label={pauseLabel}
-          aria-pressed="false"
-        >
-          <span aria-hidden="true">⏸</span>
-        </button>
-      </>
-    )
-  }
+      <button
+        class="cl-ticker__pause cl-focusable"
+        type="button"
+        hidden
+        data-ticker-pause
+        data-pause-label={pauseLabel}
+        data-resume-label={resumeLabel}
+        aria-label={pauseLabel}
+        aria-pressed="false"
+      >
+        <span aria-hidden="true">⏸</span>
+      </button>
+    </>
+  )}
 </div>
 
 <script>

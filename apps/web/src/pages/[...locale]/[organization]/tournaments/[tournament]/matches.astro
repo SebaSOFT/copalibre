@@ -177,29 +177,27 @@ const trail = publicTrail(trailBase, [
     buildUrl={buildUrl}
   />
 
-  {
-    view === 'cards' && (
-      <nav
-        class="cl-pill-group"
-        aria-label={intl.formatMessage(messages.matchesViewDensityToggleAriaLabel)}
+  {view === 'cards' && (
+    <nav
+      class="cl-pill-group"
+      aria-label={intl.formatMessage(messages.matchesViewDensityToggleAriaLabel)}
+    >
+      <a
+        class="cl-pill cl-focusable"
+        href={buildUrl({ compact: false })}
+        aria-current={compact ? undefined : 'true'}
       >
-        <a
-          class="cl-pill cl-focusable"
-          href={buildUrl({ compact: false })}
-          aria-current={compact ? undefined : 'true'}
-        >
-          {intl.formatMessage(messages.matchesViewDetailedToggle)}
-        </a>
-        <a
-          class="cl-pill cl-focusable"
-          href={buildUrl({ compact: true })}
-          aria-current={compact ? 'true' : undefined}
-        >
-          {intl.formatMessage(messages.matchesViewCompactToggle)}
-        </a>
-      </nav>
-    )
-  }
+        {intl.formatMessage(messages.matchesViewDetailedToggle)}
+      </a>
+      <a
+        class="cl-pill cl-focusable"
+        href={buildUrl({ compact: true })}
+        aria-current={compact ? 'true' : undefined}
+      >
+        {intl.formatMessage(messages.matchesViewCompactToggle)}
+      </a>
+    </nav>
+  )}
 
   <MatchSchedule
     emptyLabel={labels.empty}

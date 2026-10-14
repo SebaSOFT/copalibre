@@ -200,15 +200,13 @@ const trail = publicTrail(trailBase, []);
     stages={completion.stages}
     labels={completionLabels}
   />
-  {
-    shouldShowChampionPodium(model) && model.winners && (
-      <ChampionPodium
-        winners={withPodiumEmblems(organization!, model.winners)}
-        intl={intl}
-        prominent={true}
-      />
-    )
-  }
+  {shouldShowChampionPodium(model) && model.winners && (
+    <ChampionPodium
+      winners={withPodiumEmblems(organization!, model.winners)}
+      intl={intl}
+      prominent={true}
+    />
+  )}
   <BroadcastStatusPanel
     model={model}
     statusText={intl.formatMessage(messages.broadcastStatusDisconnected)}

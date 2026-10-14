@@ -19,22 +19,20 @@ const { model, intl } = Astro.props;
   <h2 id="officials-heading" class="cl-section-title">
     {intl.formatMessage(messages.matchOfficialsHeading)}
   </h2>
-  {
-    !model.schedulePublished && model.status === 'upcoming' ? (
-      <p class="cl-text-muted">{intl.formatMessage(messages.matchOfficialsScheduleNotPublished)}</p>
-    ) : model.officials.length === 0 ? (
-      <p class="cl-text-muted">{intl.formatMessage(messages.matchOfficialsNoneAssigned)}</p>
-    ) : (
-      <ul class="cl-officials-list">
-        {model.officials.map((official) => (
-          <li>
-            <span class="cl-official-name">{official.name}</span> —{' '}
-            <span class="cl-official-roles">{official.roleLabels.join(', ')}</span>
-          </li>
-        ))}
-      </ul>
-    )
-  }
+  {!model.schedulePublished && model.status === 'upcoming' ? (
+    <p class="cl-text-muted">{intl.formatMessage(messages.matchOfficialsScheduleNotPublished)}</p>
+  ) : model.officials.length === 0 ? (
+    <p class="cl-text-muted">{intl.formatMessage(messages.matchOfficialsNoneAssigned)}</p>
+  ) : (
+    <ul class="cl-officials-list">
+      {model.officials.map((official) => (
+        <li>
+          <span class="cl-official-name">{official.name}</span> —{' '}
+          <span class="cl-official-roles">{official.roleLabels.join(', ')}</span>
+        </li>
+      ))}
+    </ul>
+  )}
 </section>
 
 <style>
@@ -76,8 +74,8 @@ const { model, intl } = Astro.props;
     gap: 0.5rem;
     font-size: 0.875rem;
     /* Bounds the tile to the reference viewport instead of letting an
-       unhyphenatable role name (`assistant-referee`) push it past 188px
-. */
+         unhyphenatable role name (`assistant-referee`) push it past 188px
+  . */
     max-width: 100%;
   }
 
