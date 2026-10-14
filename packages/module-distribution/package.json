@@ -31,6 +31,6 @@
     "@types/semver": "^7.8.0",
     "jest": "^30.5.2",
     "ts-jest": "^29.4.14",
-    "typescript": "^5"
+    "typescript": "^6.0.3"
   }
 }
