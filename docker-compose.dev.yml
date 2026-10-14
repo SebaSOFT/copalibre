@@ -62,7 +62,7 @@ services:
   # mapped to host 9000 so existing `COPALIBRE_OBJECT_STORAGE_URL=http://
   # localhost:9000` settings keep working unchanged.
   object-storage:
-    image: dxflrs/garage:v1.1.0
+    image: dxflrs/garage:v1.3.1
     environment:
       GARAGE_RPC_SECRET: c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
     ports:
@@ -105,7 +105,7 @@ services:
     build:
       context: .
       dockerfile_inline: |
-        FROM dxflrs/garage:v1.1.0 AS garage
+        FROM dxflrs/garage:v1.3.1 AS garage
         FROM alpine:3.21
         COPY --from=garage /garage /usr/local/bin/garage
     network_mode: 'service:object-storage'
