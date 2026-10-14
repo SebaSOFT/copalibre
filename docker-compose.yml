@@ -37,13 +37,13 @@ x-application-service: &application-service
 
 services:
   postgres:
-    image: postgres:17
+    image: postgres:18
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-copalibre}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-copalibre}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
       interval: 5s
@@ -236,7 +236,7 @@ services:
         condition: service_healthy
 
   database-tools:
-    image: postgres:17
+    image: postgres:18
     entrypoint: []
     environment:
       PGHOST: postgres

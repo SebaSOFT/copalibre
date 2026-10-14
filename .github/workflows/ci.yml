@@ -770,7 +770,7 @@ jobs:
     if: needs.detect-changes.outputs.frontend_only != 'true'
     services:
       postgres:
-        image: mirror.gcr.io/library/postgres:17
+        image: mirror.gcr.io/library/postgres:18
         env:
           POSTGRES_USER: copalibre
           POSTGRES_PASSWORD: copalibre_ci_only
@@ -812,7 +812,7 @@ jobs:
     if: needs.detect-changes.outputs.frontend_only != 'true'
     services:
       postgres:
-        image: mirror.gcr.io/library/postgres:17
+        image: mirror.gcr.io/library/postgres:18
         env:
           POSTGRES_USER: copalibre
           POSTGRES_PASSWORD: copalibre_ci_only

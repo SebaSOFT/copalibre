@@ -103,7 +103,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:17
+          image: postgres:18
           env:
             - { name: POSTGRES_USER, value: copalibre }
             - { name: POSTGRES_PASSWORD, value: copalibre_validate_only }

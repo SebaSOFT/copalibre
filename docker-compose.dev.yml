@@ -31,7 +31,7 @@ x-application-build: &application-build
 
 services:
   postgres:
-    image: postgres:17
+    image: postgres:18
     environment:
       POSTGRES_USER: copalibre
       POSTGRES_PASSWORD: copalibre_dev_only
@@ -39,7 +39,7 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - postgres-dev-data:/var/lib/postgresql/data
+      - postgres-dev-data:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U copalibre -d copalibre']
       interval: 5s
