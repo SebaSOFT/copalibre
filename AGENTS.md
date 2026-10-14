@@ -354,14 +354,15 @@ for the full skill instructions; this section is the quick-reference cheat sheet
 
 ### feature-delivery skill
 
-- SebaSOFT's cross-project shipping protocol (`.claude/skills/feature-delivery/SKILL.md`): investigate
-  with CodeGraph first, plan with OpenSpec, one change per branch, verify locally before opening a PR,
-  wait for explicit human merge approval (never self-merge), then archive the change and promote its spec
-  deltas.
-  Concrete per-project specifics (branch naming, gate suite, promotion mechanics) live in this file's
+- **Protocol**: SebaSOFT's cross-project shipping protocol (`~/.agents/skills/feature-delivery/SKILL.md`, mirrored into
+  `.claude/skills/`, `.codex/skills/`, and `.gemini/config/skills/`): investigate with CodeGraph first, plan
+  with OpenSpec, one change per branch (`change/00NN-slug`), verify locally before opening a PR, wait for explicit human merge
+  approval (never self-merge), then archive the change and promote its spec deltas.
+- **Prerequisites & Tooling**: Verifies presence of a token saver (`rtk` or `ponytail`), CodeGraph MCP, and OpenSpec CLI (`openspec`), suggesting them if missing.
+- **Project Specifics**: Branch naming, gate suite, and promotion mechanics live in this file's
   ["Feature Delivery Pipeline"](#feature-delivery-pipeline) section below — the skill explicitly defers to
   that.
-- Key behavioral rules worth remembering: design docs get an explicit Non-Goals list; prefer extending an
+- **Key Behavioral Rules**: Design docs get an explicit Non-Goals list; prefer extending an
   existing declarative mechanism over inventing a new domain primitive; ask (`AskUserQuestion`) only for
   genuine product/privacy/scope decisions, never for things answerable by reading code; one OpenSpec
   change per branch/PR, never batched.
