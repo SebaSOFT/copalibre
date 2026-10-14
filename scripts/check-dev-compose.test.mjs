@@ -94,7 +94,7 @@ test('actual docker-compose.dev.yml passes validation', () => {
 test('actual docker-compose.dev.yml uses Garage and no longer references MinIO or mc', () => {
   const filePath = new URL('../docker-compose.dev.yml', import.meta.url);
   const content = readFileSync(filePath, 'utf8');
-  assert.match(content, /dxflrs\/garage:v1\.1\.0/);
+  assert.match(content, /dxflrs\/garage:v1\.3\.1/);
   assert.doesNotMatch(content, /quay\.io\/minio/);
   assert.doesNotMatch(content, /image:\s*minio/i);
 });
