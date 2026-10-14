@@ -48,7 +48,7 @@ services:
     profiles: ['infrastructure', 'containerized']
 
   mailpit:
-    image: axllent/mailpit:v1.27
+    image: axllent/mailpit:v1.31
     ports:
       - '8025:8025'
       - '1025:1025'
