@@ -15,16 +15,14 @@ const legend = resultLegend(labels);
 <section aria-labelledby="legend-heading">
   <h2 id="legend-heading">{heading}</h2>
   <ul class="cl-result-legend">
-    {
-      legend.map((state) => (
-        <li>
-          <Badge className={state.className}>
-            <span aria-hidden="true">{state.icon}</span>
-            <span class="cl-result-legend__label">{state.label}</span>
-          </Badge>
-        </li>
-      ))
-    }
+    {legend.map((state) => (
+      <li>
+        <Badge className={state.className}>
+          <span aria-hidden="true">{state.icon}</span>
+          <span class="cl-result-legend__label">{state.label}</span>
+        </Badge>
+      </li>
+    ))}
   </ul>
 </section>
 

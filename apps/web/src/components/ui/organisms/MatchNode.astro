@@ -54,91 +54,85 @@ const legScores =
 
 <Wrapper href={highlight ? undefined : reportUrl}>
   <Card as="article" data-match={node.matchNumber}>
-    {
-      highlight ? (
-        <a href={reportUrl}>
-          <StateBadge state={node.state} intl={intl} />
-        </a>
-      ) : (
+    {highlight ? (
+      <a href={reportUrl}>
         <StateBadge state={node.state} intl={intl} />
-      )
-    }
+      </a>
+    ) : (
+      <StateBadge state={node.state} intl={intl} />
+    )}
     <ol>
-      {
-        node.slots.map((slot) => (
-          <li
-            class:list={[
-              slot.pending ? 'cl-slot--pending' : 'cl-slot',
-              slot.winner && 'cl-slot--winner',
-            ]}
-          >
-            {/* Named, never blank: a blank cell reads as a bug, "Ganador del 3"
+      {node.slots.map((slot) => (
+        <li
+          class:list={[
+            slot.pending ? 'cl-slot--pending' : 'cl-slot',
+            slot.winner && 'cl-slot--winner',
+          ]}
+        >
+          {/* Named, never blank: a blank cell reads as a bug, "Ganador del 3"
                 tells a spectator what has to happen first. */}
-            {slot.fullName === undefined ? (
-              <span>{slot.label}</span>
-            ) : (
-              <>
-                {organizationAlias && (
-                  <EmblemImage
-                    alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: slot.fullName })}
-                    placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
-                    bare
-                    size={20}
-                    src={
-                      slot.clubId && slot.emblemObjectId
-                        ? clubEmblemUrl(organizationAlias, slot.clubId)
-                        : undefined
-                    }
-                  />
-                )}
-                {highlight && slot.entrantId !== undefined ? (
-                  <>
-                    <span data-journey-fallback>
-                      <EntrantName client:load fullName={slot.fullName} />
-                    </span>
-                    <Button
-                      hidden
-                      aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
-                        entrant: slot.fullName,
-                      })}
-                      aria-pressed="false"
-                      class="cl-journey-name"
-                      data-entrant-id={slot.entrantId}
-                      title={slot.fullName}
-                      variant="secondary"
-                    >
-                      {slot.fullName}
-                    </Button>
-                  </>
-                ) : (
-                  <EntrantName client:load fullName={slot.fullName} />
-                )}
-              </>
-            )}
-            {slot.resultReason && (
-              // A walkover 0-10 must not read like an actual 10-goal win — the
-              // reason a result looks the way it does is shown, not just the
-              // number.
-              <Badge>{reasonLabels[slot.resultReason]}</Badge>
-            )}
-            <span class="cl-stat-tile__value">{slot.score ?? '—'}</span>
-          </li>
-        ))
-      }
+          {slot.fullName === undefined ? (
+            <span>{slot.label}</span>
+          ) : (
+            <>
+              {organizationAlias && (
+                <EmblemImage
+                  alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: slot.fullName })}
+                  placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                  bare
+                  size={20}
+                  src={
+                    slot.clubId && slot.emblemObjectId
+                      ? clubEmblemUrl(organizationAlias, slot.clubId)
+                      : undefined
+                  }
+                />
+              )}
+              {highlight && slot.entrantId !== undefined ? (
+                <>
+                  <span data-journey-fallback>
+                    <EntrantName client:load fullName={slot.fullName} />
+                  </span>
+                  <Button
+                    hidden
+                    aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
+                      entrant: slot.fullName,
+                    })}
+                    aria-pressed="false"
+                    class="cl-journey-name"
+                    data-entrant-id={slot.entrantId}
+                    title={slot.fullName}
+                    variant="secondary"
+                  >
+                    {slot.fullName}
+                  </Button>
+                </>
+              ) : (
+                <EntrantName client:load fullName={slot.fullName} />
+              )}
+            </>
+          )}
+          {slot.resultReason && (
+            // A walkover 0-10 must not read like an actual 10-goal win — the
+            // reason a result looks the way it does is shown, not just the
+            // number.
+            <Badge>{reasonLabels[slot.resultReason]}</Badge>
+          )}
+          <span class="cl-stat-tile__value">{slot.score ?? '—'}</span>
+        </li>
+      ))}
     </ol>
-    {
-      series !== undefined && seriesInput !== undefined && (
-        <SeriesStateBar
-          {...seriesStateBarLabels(intl, seriesInput, {
-            aggregateScores:
-              series.resolutionClass === 'aggregate' ? series.aggregateScores : undefined,
-            awayName: node.slots[1]?.fullName ?? node.slots[1]?.label,
-            homeName: node.slots[0]?.fullName ?? node.slots[0]?.label,
-            winner: series.winner,
-          })}
-        />
-      )
-    }
+    {series !== undefined && seriesInput !== undefined && (
+      <SeriesStateBar
+        {...seriesStateBarLabels(intl, seriesInput, {
+          aggregateScores:
+            series.resolutionClass === 'aggregate' ? series.aggregateScores : undefined,
+          awayName: node.slots[1]?.fullName ?? node.slots[1]?.label,
+          homeName: node.slots[0]?.fullName ?? node.slots[0]?.label,
+          winner: series.winner,
+        })}
+      />
+    )}
     {
       /* Each leg's own score alongside the aggregate: a 1-0 and a 1-2 that sums to 2-2 is a
          different story from a 0-0 and a 2-2, and the aggregate alone hides which it was. */

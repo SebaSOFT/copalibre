@@ -43,7 +43,7 @@ TV kiosks) to the `web` service (port 4321). Edge reverse proxy and web proxy ma
 prefixes and subpaths, ensuring queries such as `/organizations?mine=true` are not forwarded to web SSR.
 Individual microservices (`api`, `events`, `web`, `web-ssr`) SHALL NOT require external port exposure in production mode.
 When the optional object storage adapter is enabled, it SHALL be provided by a lightweight Garage container
-(`dxflrs/garage:v1.1.0`), and SHALL NOT require secondary auxiliary containers for bucket provisioning.
+(`dxflrs/garage:v1.3.1`), and SHALL NOT require secondary auxiliary containers for bucket provisioning.
 
 #### Scenario: One-command install
 - **WHEN** an operator with Docker installed runs the documented Compose-up command against a fresh

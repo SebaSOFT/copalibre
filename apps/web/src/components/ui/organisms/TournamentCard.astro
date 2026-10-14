@@ -37,11 +37,9 @@ const winners = tournament.winners ?? [];
 >
   <header class="cl-card-header">
     <div class="cl-card-meta">
-      {
-        tournament.discipline.name && (
-          <span class="cl-discipline-badge">{tournament.discipline.name}</span>
-        )
-      }
+      {tournament.discipline.name && (
+        <span class="cl-discipline-badge">{tournament.discipline.name}</span>
+      )}
       <span
         class:list={[
           'cl-status-badge',
@@ -60,9 +58,9 @@ const winners = tournament.winners ?? [];
     </div>
 
     <h3 class="cl-tournament-name">
-      <a href={tournamentUrl} class="cl-tournament-link" title={tournament.name}
-        >{tournament.name}</a
-      >
+      <a href={tournamentUrl} class="cl-tournament-link" title={tournament.name}>
+        {tournament.name}
+      </a>
     </h3>
   </header>
 
@@ -73,13 +71,11 @@ const winners = tournament.winners ?? [];
       <Button href={tournamentUrl} variant="primary">
         {intl.formatMessage(messages.tournamentsViewDetails)}
       </Button>
-      {
-        isLive && (
-          <Button href={liveUrl} variant="secondary">
-            {intl.formatMessage(messages.livePageTitle)} &rarr;
-          </Button>
-        )
-      }
+      {isLive && (
+        <Button href={liveUrl} variant="secondary">
+          {intl.formatMessage(messages.livePageTitle)} &rarr;
+        </Button>
+      )}
     </div>
   </footer>
 </article>

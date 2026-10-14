@@ -55,50 +55,48 @@ const MEDAL_CLASS = {
 };
 ---
 
-{
-  winners.length > 0 && (
-    <section
-      class:list={['cl-podium-container', { 'cl-podium-prominent': prominent }]}
-      aria-label={intl.formatMessage(messages.tournamentsFinishedHeading)}
-    >
-      {winners.map((zone) => (
-        <div class="cl-zone-podium cl-chamfer">
-          {zone.zoneName && <div class="cl-zone-title">{zone.zoneName}</div>}
-          <div class="cl-podium-grid">
-            {spotsOf(zone).map((spot) => (
-              <div
-                class:list={['cl-podium-spot', `cl-${spot.key}-spot`]}
-                data-entrant-id={spot.entrant.entrantId}
-              >
-                <div class={`cl-medal-badge ${MEDAL_CLASS[spot.key]}`} aria-hidden="true">
-                  {spot.place}
-                </div>
-                <EmblemImage
-                  alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: spot.entrant.name })}
-                  placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
-                  size={40}
-                  src={spot.entrant.emblemSrc}
-                />
-                <div class="cl-entrant-info">
-                  <span class="cl-podium-label">{spot.label}</span>
-                  <span class="cl-entrant-name" title={spot.entrant.name}>
-                    {spot.entrant.name}
-                    {spot.entrant.abbreviation && (
-                      <span class="cl-entrant-abbr" title={spot.entrant.name}>
-                        {' '}
-                        ({spot.entrant.abbreviation})
-                      </span>
-                    )}
-                  </span>
-                </div>
+{winners.length > 0 && (
+  <section
+    class:list={['cl-podium-container', { 'cl-podium-prominent': prominent }]}
+    aria-label={intl.formatMessage(messages.tournamentsFinishedHeading)}
+  >
+    {winners.map((zone) => (
+      <div class="cl-zone-podium cl-chamfer">
+        {zone.zoneName && <div class="cl-zone-title">{zone.zoneName}</div>}
+        <div class="cl-podium-grid">
+          {spotsOf(zone).map((spot) => (
+            <div
+              class:list={['cl-podium-spot', `cl-${spot.key}-spot`]}
+              data-entrant-id={spot.entrant.entrantId}
+            >
+              <div class={`cl-medal-badge ${MEDAL_CLASS[spot.key]}`} aria-hidden="true">
+                {spot.place}
               </div>
-            ))}
-          </div>
+              <EmblemImage
+                alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: spot.entrant.name })}
+                placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                size={40}
+                src={spot.entrant.emblemSrc}
+              />
+              <div class="cl-entrant-info">
+                <span class="cl-podium-label">{spot.label}</span>
+                <span class="cl-entrant-name" title={spot.entrant.name}>
+                  {spot.entrant.name}
+                  {spot.entrant.abbreviation && (
+                    <span class="cl-entrant-abbr" title={spot.entrant.name}>
+                      {' '}
+                      ({spot.entrant.abbreviation})
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
-    </section>
-  )
-}
+      </div>
+    ))}
+  </section>
+)}
 
 <style>
   .cl-podium-container {

@@ -137,7 +137,7 @@ spec:
     spec:
       containers:
         - name: object-storage
-          image: dxflrs/garage:v1.1.0
+          image: dxflrs/garage:v1.3.1
           env:
             - { name: GARAGE_RPC_SECRET, value: ${GARAGE_RPC_SECRET} }
           ports:

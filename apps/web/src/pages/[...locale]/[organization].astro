@@ -84,86 +84,82 @@ const structuredData = listData
   noindex={!listData}
   structuredData={structuredData}
 >
-  {
-    !listData && (
-      <div class="cl-org-container">
-        <div class="cl-empty-state">
-          <p>{intl.formatMessage(messages.orgPageNotFoundBody)}</p>
-        </div>
+  {!listData && (
+    <div class="cl-org-container">
+      <div class="cl-empty-state">
+        <p>{intl.formatMessage(messages.orgPageNotFoundBody)}</p>
       </div>
-    )
-  }
-  {
-    listData && (
-      <div class="cl-org-container">
-        <OrganizationHeader
-          organizationAlias={listData.organizationAlias}
-          organizationName={listData.organizationName}
-          emblemSrc={organizationEmblemSrc}
+    </div>
+  )}
+  {listData && (
+    <div class="cl-org-container">
+      <OrganizationHeader
+        organizationAlias={listData.organizationAlias}
+        organizationName={listData.organizationName}
+        emblemSrc={organizationEmblemSrc}
+        intl={intl}
+      />
+
+      {listData.tournaments.length === 0 && (
+        <div class="cl-empty-state">
+          <p>{intl.formatMessage(messages.tournamentsEmpty)}</p>
+        </div>
+      )}
+
+      {liveTournaments.length > 0 && (
+        <TournamentSection
+          headingId="heading-live"
+          heading={intl.formatMessage(messages.tournamentsLiveHeading)}
+          tournaments={liveTournaments}
+          organizationAlias={organization!}
+          localePrefix={localePrefix}
+          intl={intl}
+          showLiveDot={true}
+          sectionClass="cl-section-live"
+          gridClass="cl-grid-live"
+        />
+      )}
+
+      {featured.length > 0 && (
+        <TournamentSection
+          headingId="heading-featured"
+          heading={intl.formatMessage(messages.orgPageFeaturedHeading)}
+          tournaments={featured}
+          organizationAlias={organization!}
+          localePrefix={localePrefix}
+          intl={intl}
+          showCount={false}
+          featured={true}
+          sectionClass="cl-section-featured"
+          gridClass="cl-grid-featured"
+        />
+      )}
+
+      {upcomingTournaments.length > 0 && (
+        <TournamentSection
+          headingId="heading-upcoming"
+          heading={intl.formatMessage(messages.tournamentsUpcomingHeading)}
+          tournaments={upcomingTournaments}
+          organizationAlias={organization!}
+          localePrefix={localePrefix}
           intl={intl}
         />
+      )}
 
-        {listData.tournaments.length === 0 && (
-          <div class="cl-empty-state">
-            <p>{intl.formatMessage(messages.tournamentsEmpty)}</p>
-          </div>
-        )}
+      {finishedTournaments.length > 0 && (
+        <TournamentSection
+          headingId="heading-finished"
+          heading={intl.formatMessage(messages.tournamentsFinishedHeading)}
+          tournaments={finishedTournaments}
+          organizationAlias={organization!}
+          localePrefix={localePrefix}
+          intl={intl}
+        />
+      )}
 
-        {liveTournaments.length > 0 && (
-          <TournamentSection
-            headingId="heading-live"
-            heading={intl.formatMessage(messages.tournamentsLiveHeading)}
-            tournaments={liveTournaments}
-            organizationAlias={organization!}
-            localePrefix={localePrefix}
-            intl={intl}
-            showLiveDot={true}
-            sectionClass="cl-section-live"
-            gridClass="cl-grid-live"
-          />
-        )}
-
-        {featured.length > 0 && (
-          <TournamentSection
-            headingId="heading-featured"
-            heading={intl.formatMessage(messages.orgPageFeaturedHeading)}
-            tournaments={featured}
-            organizationAlias={organization!}
-            localePrefix={localePrefix}
-            intl={intl}
-            showCount={false}
-            featured={true}
-            sectionClass="cl-section-featured"
-            gridClass="cl-grid-featured"
-          />
-        )}
-
-        {upcomingTournaments.length > 0 && (
-          <TournamentSection
-            headingId="heading-upcoming"
-            heading={intl.formatMessage(messages.tournamentsUpcomingHeading)}
-            tournaments={upcomingTournaments}
-            organizationAlias={organization!}
-            localePrefix={localePrefix}
-            intl={intl}
-          />
-        )}
-
-        {finishedTournaments.length > 0 && (
-          <TournamentSection
-            headingId="heading-finished"
-            heading={intl.formatMessage(messages.tournamentsFinishedHeading)}
-            tournaments={finishedTournaments}
-            organizationAlias={organization!}
-            localePrefix={localePrefix}
-            intl={intl}
-          />
-        )}
-
-        <OrganizationClubs clubs={orgClubs} intl={intl} />
-      </div>
-    )
-  }
+      <OrganizationClubs clubs={orgClubs} intl={intl} />
+    </div>
+  )}
 </PublicLayout>
 
 <style>

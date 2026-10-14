@@ -58,8 +58,7 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
   `${bracketBranchLabel(intl, round.branch)} · ${intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}`;
 ---
 
-{
-  /*
+{/*
   Rounds, not a tree. A tree only describes single elimination; the losers'
   bracket takes entrants from two places and the grand final may be replayed.
 
@@ -68,8 +67,7 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
   below that width the textual round-and-branch view carries the same seeds,
   sources and outcomes instead. The stylesheet decides which is showing, so the
   choice survives with JavaScript unavailable.
-*/
-}
+*/}
 <section aria-label={intl.formatMessage(messages.bracketStageAriaLabel)} class="cl-bracket-stage">
   <script
     is:inline
@@ -77,40 +75,36 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
     data-journey-matches
     set:html={JSON.stringify(Astro.props.matches).replace(/</g, '\\u003c')}
   />
-  <p hidden data-journey-hint>{intl.formatMessage(messages.bracketHighlightHint)}</p>
-  {
-    legend.length > 0 && (
-      <OutcomeLegend entries={legend} label={intl.formatMessage(messages.bracketLegendLabel)} />
-    )
-  }
+  <p hidden data-journey-hint>
+    {intl.formatMessage(messages.bracketHighlightHint)}
+  </p>
+  {legend.length > 0 && (
+    <OutcomeLegend entries={legend} label={intl.formatMessage(messages.bracketLegendLabel)} />
+  )}
 
-  {
-    /*
+  {/*
     The same bracket twice, each at a density: cards with emblems and highlight controls where
     there is room, abbreviations and scores where there is not. The stylesheet shows one.
-  */
-  }
-  {
-    (['full', 'compact'] as const).map((density) => (
-      <div
-        aria-label={intl.formatMessage(messages.bracketScrollAriaLabel)}
-        class={`cl-bracket-stage__scroll cl-bracket-stage__scroll--${density}`}
-        role="group"
-        tabindex="0"
-      >
-        <BracketGraph
-          density={density}
-          highlightMatchNumber={highlightMatchNumber}
-          intl={intl}
-          localePrefix={localePrefix}
-          matches={Astro.props.matches}
-          organizationAlias={organizationAlias}
-          stageNumber={stageNumber}
-          tournamentAlias={tournamentAlias}
-        />
-      </div>
-    ))
-  }
+  */}
+  {(['full', 'compact'] as const).map((density) => (
+    <div
+      aria-label={intl.formatMessage(messages.bracketScrollAriaLabel)}
+      class={`cl-bracket-stage__scroll cl-bracket-stage__scroll--${density}`}
+      role="group"
+      tabindex="0"
+    >
+      <BracketGraph
+        density={density}
+        highlightMatchNumber={highlightMatchNumber}
+        intl={intl}
+        localePrefix={localePrefix}
+        matches={Astro.props.matches}
+        organizationAlias={organizationAlias}
+        stageNumber={stageNumber}
+        tournamentAlias={tournamentAlias}
+      />
+    </div>
+  ))}
 
   <PlacementGames
     games={placementGames}
@@ -122,64 +116,60 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
     tournamentAlias={tournamentAlias}
   />
 
-  {
-    /*
+  {/*
     The same stage in words. Every slot names where it comes from — an entrant,
     a seed, or the match it is waiting on — so nothing is lost by reading this
     instead of the graph.
-  */
-  }
+  */}
   <div class="cl-bracket-stage__outline">
     <h3>{intl.formatMessage(messages.bracketOutlineHeading)}</h3>
-    {
-      rounds.map((round) => (
-        <section class="cl-bracket-stage__outline-branch">
-          <h4>{roundLabel(round)}</h4>
-          <ol class="cl-bracket-stage__outline-list">
-            {round.matches.map((match) => {
-              const outcomes = nodeOutcomes(match);
-              return (
-                <li data-journey-match={bracketMatchId(match)}>
-                  {match.role !== undefined && (
-                    <strong>{bracketRoleLabel(intl, match.role)}: </strong>
-                  )}
-                  {match.slots.map((slot, index) => (
-                    <>
-                      {index > 0 && ' — '}
-                      {slot.kind === 'entrant' && slot.entrantId !== undefined ? (
-                        <>
-                          <span data-journey-fallback>{describeSlot(slot)}</span>
-                          <Button
-                            hidden
-                            aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
-                              entrant: slot.name,
-                            })}
-                            aria-pressed="false"
-                            class="cl-journey-name"
-                            data-entrant-id={slot.entrantId}
-                            variant="secondary"
-                          >
-                            {slot.name}
-                          </Button>
-                        </>
-                      ) : (
-                        <span>{describeSlot(slot)}</span>
-                      )}
-                      {match.scores?.[index] !== undefined && (
-                        <span class="cl-row__figure cl-tabular-nums"> {match.scores[index]}</span>
-                      )}
-                      {outcomes[index] !== undefined && (
-                        <span> ({outcomeLabels[outcomes[index]!]})</span>
-                      )}
-                    </>
-                  ))}
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-      ))
-    }
+    {rounds.map((round) => (
+      <section class="cl-bracket-stage__outline-branch">
+        <h4>{roundLabel(round)}</h4>
+        <ol class="cl-bracket-stage__outline-list">
+          {round.matches.map((match) => {
+            const outcomes = nodeOutcomes(match);
+            return (
+              <li data-journey-match={bracketMatchId(match)}>
+                {match.role !== undefined && (
+                  <strong>{bracketRoleLabel(intl, match.role)}: </strong>
+                )}
+                {match.slots.map((slot, index) => (
+                  <>
+                    {index > 0 && ' — '}
+                    {slot.kind === 'entrant' && slot.entrantId !== undefined ? (
+                      <>
+                        <span data-journey-fallback>{describeSlot(slot)}</span>
+                        <Button
+                          hidden
+                          aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
+                            entrant: slot.name,
+                          })}
+                          aria-pressed="false"
+                          class="cl-journey-name"
+                          data-entrant-id={slot.entrantId}
+                          variant="secondary"
+                        >
+                          {slot.name}
+                        </Button>
+                      </>
+                    ) : (
+                      <span>{describeSlot(slot)}</span>
+                    )}
+                    {match.scores?.[index] !== undefined && (
+                      <span class="cl-row__figure cl-tabular-nums"> {match.scores[index]}</span>
+                    )}
+                    {outcomes[index] !== undefined && (
+                      <span> ({outcomeLabels[outcomes[index]!]})</span>
+                    )}
+                  </>
+                ))}
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+    ))}
   </div>
 </section>
 

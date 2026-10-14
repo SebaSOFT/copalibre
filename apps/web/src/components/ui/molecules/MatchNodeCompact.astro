@@ -50,16 +50,16 @@ const spoken = `${sides[0]?.name ?? ''} ${sides[0]?.score ?? '—'} – ${sides[
     localePrefix,
   })}
 >
-  <span aria-hidden="true" class="cl-match-compact__state">{node.badge.icon}</span>
+  <span aria-hidden="true" class="cl-match-compact__state">
+    {node.badge.icon}
+  </span>
   <ol aria-hidden="true">
-    {
-      sides.map((side) => (
-        <li class:list={[side.winner && 'cl-match-compact__winner']}>
-          <span class="cl-match-compact__name">{side.short}</span>
-          <span class="cl-match-compact__score cl-tabular-nums">{side.score ?? '—'}</span>
-        </li>
-      ))
-    }
+    {sides.map((side) => (
+      <li class:list={[side.winner && 'cl-match-compact__winner']}>
+        <span class="cl-match-compact__name">{side.short}</span>
+        <span class="cl-match-compact__score cl-tabular-nums">{side.score ?? '—'}</span>
+      </li>
+    ))}
   </ol>
 </a>
 

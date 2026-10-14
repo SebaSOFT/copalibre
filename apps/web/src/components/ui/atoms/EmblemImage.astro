@@ -23,15 +23,13 @@ const { src, alt, placeholderAlt, size = 48, bare = false } = Astro.props;
   class:list={['cl-image-frame', 'cl-emblem-frame', bare && 'cl-emblem-frame--bare']}
   style={`width: ${size}px`}
 >
-  {
-    src && (
-      <img
-        src={src}
-        alt={alt}
-        onerror="this.style.display = 'none'; this.nextElementSibling.style.display = '';"
-      />
-    )
-  }
+  {src && (
+    <img
+      src={src}
+      alt={alt}
+      onerror="this.style.display = 'none'; this.nextElementSibling.style.display = '';"
+    />
+  )}
   <svg
     class="cl-emblem-placeholder"
     role="img"
@@ -44,7 +42,8 @@ const { src, alt, placeholderAlt, size = 48, bare = false } = Astro.props;
       d="M8 6h32l-4 4v14c0 12-8 18-12 20-4-2-12-8-12-20V10z"
       fill="none"
       stroke="currentColor"
-      stroke-width="2"></path>
+      stroke-width="2"
+    ></path>
   </svg>
 </div>
 

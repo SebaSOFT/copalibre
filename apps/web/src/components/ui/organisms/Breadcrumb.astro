@@ -23,30 +23,28 @@ const ellipsisHref = range === undefined ? undefined : items[range.to]?.href;
 
 <nav class="cl-breadcrumb" aria-label={ariaLabel}>
   <ol>
-    {
-      items.map((item, index) => (
-        <>
-          {range !== undefined && index === range.from && ellipsisHref !== undefined && (
-            <li class="cl-crumb cl-crumb--ellipsis">
-              <a href={ellipsisHref} aria-label={collapsedLabel} title={collapsedLabel}>
-                …
-              </a>
-            </li>
-          )}
-          <li class:list={['cl-crumb', { 'cl-crumb--collapsible': isCollapsed(index) }]}>
-            {item.href !== undefined && index < items.length - 1 ? (
-              <a href={item.href} title={item.label}>
-                {item.label}
-              </a>
-            ) : (
-              <span aria-current="page" title={item.label}>
-                {item.label}
-              </span>
-            )}
+    {items.map((item, index) => (
+      <>
+        {range !== undefined && index === range.from && ellipsisHref !== undefined && (
+          <li class="cl-crumb cl-crumb--ellipsis">
+            <a href={ellipsisHref} aria-label={collapsedLabel} title={collapsedLabel}>
+              …
+            </a>
           </li>
-        </>
-      ))
-    }
+        )}
+        <li class:list={['cl-crumb', { 'cl-crumb--collapsible': isCollapsed(index) }]}>
+          {item.href !== undefined && index < items.length - 1 ? (
+            <a href={item.href} title={item.label}>
+              {item.label}
+            </a>
+          ) : (
+            <span aria-current="page" title={item.label}>
+              {item.label}
+            </span>
+          )}
+        </li>
+      </>
+    ))}
   </ol>
 </nav>
 

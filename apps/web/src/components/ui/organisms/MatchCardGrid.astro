@@ -22,63 +22,59 @@ const kickoffFormatter = new Intl.DateTimeFormat(intl.locale, {
 });
 ---
 
-{
-  /*
+{/*
   Rendered server-side and complete. A ticker that needs JavaScript to say the
   score is a ticker that says nothing on a venue TV behind a hotel proxy.
-*/
-}
+*/}
 <section aria-labelledby="match-grid-heading">
   <h2 id="match-grid-heading">{intl.formatMessage(messages.matchGridHeading)}</h2>
   {model.matches.length === 0 && <p>{intl.formatMessage(messages.matchGridEmpty)}</p>}
   <ul class={compact ? 'cl-match-card-grid cl-match-card-grid--compact' : 'cl-match-card-grid'}>
-    {
-      model.matches.map((match, index) => {
-        const cardMatch: MatchCardData = {
-          matchId: match.matchId ?? `${match.stageNumber}-${index}`,
-          matchNumber: match.matchNumber ?? 0,
-          stageNumber: match.stageNumber,
-          state: match.state,
-          homeName: match.home.name,
-          homeAbbreviation: match.home.abbreviation,
-          homeScore: match.home.score,
-          awayName: match.away.name,
-          awayAbbreviation: match.away.abbreviation,
-          awayScore: match.away.score,
-          ...(match.startsAt
-            ? {
-                scheduledAt: match.startsAt,
-                scheduledAtLabel: kickoffFormatter.format(new Date(match.startsAt)),
-              }
-            : {}),
-        };
-        const cardContent = (
-          <MatchCard
-            client:load
-            compact={compact}
-            match={cardMatch}
-            labels={labels}
-            locale={intl.locale}
-            band={index % 2 === 0 ? 'panel' : 'base'}
-          />
-        );
+    {model.matches.map((match, index) => {
+      const cardMatch: MatchCardData = {
+        matchId: match.matchId ?? `${match.stageNumber}-${index}`,
+        matchNumber: match.matchNumber ?? 0,
+        stageNumber: match.stageNumber,
+        state: match.state,
+        homeName: match.home.name,
+        homeAbbreviation: match.home.abbreviation,
+        homeScore: match.home.score,
+        awayName: match.away.name,
+        awayAbbreviation: match.away.abbreviation,
+        awayScore: match.away.score,
+        ...(match.startsAt
+          ? {
+              scheduledAt: match.startsAt,
+              scheduledAtLabel: kickoffFormatter.format(new Date(match.startsAt)),
+            }
+          : {}),
+      };
+      const cardContent = (
+        <MatchCard
+          client:load
+          compact={compact}
+          match={cardMatch}
+          labels={labels}
+          locale={intl.locale}
+          band={index % 2 === 0 ? 'panel' : 'base'}
+        />
+      );
 
-        return (
-          <li>
-            {match.matchNumber === undefined ? (
-              cardContent
-            ) : (
-              <a
-                class="cl-match-card-link"
-                href={`${localePrefix}${model.canonicalPath}/stages/${match.stageNumber}/matches/${match.matchNumber}`}
-              >
-                {cardContent}
-              </a>
-            )}
-          </li>
-        );
-      })
-    }
+      return (
+        <li>
+          {match.matchNumber === undefined ? (
+            cardContent
+          ) : (
+            <a
+              class="cl-match-card-link"
+              href={`${localePrefix}${model.canonicalPath}/stages/${match.stageNumber}/matches/${match.matchNumber}`}
+            >
+              {cardContent}
+            </a>
+          )}
+        </li>
+      );
+    })}
   </ul>
 </section>
 

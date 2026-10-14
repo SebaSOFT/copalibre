@@ -20,33 +20,31 @@ const { model, intl } = Astro.props;
   <h2 id="timeline-heading" class="cl-section-title">
     {intl.formatMessage(messages.matchTimelineHeading)}
   </h2>
-  {
-    model.timeline.length === 0 ? (
-      <p class="cl-text-muted">{intl.formatMessage(messages.matchTimelineEmpty)}</p>
-    ) : (
-      <ol class="cl-timeline-list">
-        {model.timeline.map((group) => (
-          <li
-            class="cl-timeline-item"
-            data-workflow-group={group.kind === 'workflow' ? 'true' : undefined}
-          >
-            {group.events.map((event) => (
-              <div class="cl-timeline-entry">
-                <ResponsiveTimestamp
-                  client:load
-                  timestamp={event.occurredAt}
-                  locale={intl.locale}
-                  className="cl-timeline-time"
-                />
-                <span class="cl-timeline-label">{event.label}</span>
-                {event.actor ? <span class="cl-timeline-actor">· {event.actor}</span> : null}
-              </div>
-            ))}
-          </li>
-        ))}
-      </ol>
-    )
-  }
+  {model.timeline.length === 0 ? (
+    <p class="cl-text-muted">{intl.formatMessage(messages.matchTimelineEmpty)}</p>
+  ) : (
+    <ol class="cl-timeline-list">
+      {model.timeline.map((group) => (
+        <li
+          class="cl-timeline-item"
+          data-workflow-group={group.kind === 'workflow' ? 'true' : undefined}
+        >
+          {group.events.map((event) => (
+            <div class="cl-timeline-entry">
+              <ResponsiveTimestamp
+                client:load
+                timestamp={event.occurredAt}
+                locale={intl.locale}
+                className="cl-timeline-time"
+              />
+              <span class="cl-timeline-label">{event.label}</span>
+              {event.actor ? <span class="cl-timeline-actor">· {event.actor}</span> : null}
+            </div>
+          ))}
+        </li>
+      ))}
+    </ol>
+  )}
 </section>
 
 <style>
