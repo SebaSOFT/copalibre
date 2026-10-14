@@ -33,31 +33,27 @@ const monogram = clubMonogram(label);
   data-club-filter={filter}
   title={club ? label : undefined}
 >
-  {
-    active && (
-      <span class="cl-club-chip__check" aria-hidden="true">
-        ✓
+  {active && (
+    <span class="cl-club-chip__check" aria-hidden="true">
+      ✓
+    </span>
+  )}
+  {club && (
+    <span class="cl-club-chip__plate" aria-hidden="true">
+      {emblemSrc && (
+        <img
+          class="cl-club-chip__emblem"
+          src={emblemSrc}
+          alt=""
+          loading="lazy"
+          onerror="this.hidden = true; this.nextElementSibling.hidden = false;"
+        />
+      )}
+      <span class="cl-club-chip__monogram" hidden={emblemSrc !== undefined}>
+        {monogram}
       </span>
-    )
-  }
-  {
-    club && (
-      <span class="cl-club-chip__plate" aria-hidden="true">
-        {emblemSrc && (
-          <img
-            class="cl-club-chip__emblem"
-            src={emblemSrc}
-            alt=""
-            loading="lazy"
-            onerror="this.hidden = true; this.nextElementSibling.hidden = false;"
-          />
-        )}
-        <span class="cl-club-chip__monogram" hidden={emblemSrc !== undefined}>
-          {monogram}
-        </span>
-      </span>
-    )
-  }
+    </span>
+  )}
   <span class="cl-club-chip__name">{label}</span>
 </a>
 

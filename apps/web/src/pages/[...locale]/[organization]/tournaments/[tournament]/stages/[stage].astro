@@ -149,95 +149,21 @@ const trail = publicTrail(trailBase, [
       {intl.formatMessage(messages.matchesViewSeeAll)}
     </a>
   </p>
-  {
-    layoutMode === 'zones' ? (
-      <>
-        <nav aria-label={intl.formatMessage(messages.bracketZoneJumpAriaLabel)}>
-          <ul class="cl-bracket-zone-jump">
-            {bracketData.zones.map((zone, index) => (
-              <li>
-                <a href={`#cl-bracket-zone-${index}`}>{zone.zoneName}</a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        {bracketData.zones.map((zone, index) => (
-          <section aria-labelledby={`cl-bracket-zone-${index}`}>
-            <h2 id={`cl-bracket-zone-${index}`}>{zone.zoneName}</h2>
-            {zoneLayouts[index] === 'bracket' ? (
-              <BracketView
-                intl={intl}
-                localePrefix={localePrefix}
-                matches={zone.matches}
-                organizationAlias={organization!}
-                stageNumber={stageNumber}
-                tournamentAlias={tournament!}
-              />
-            ) : (
-              <>
-                <div class="cl-matches-view__grid">
-                  {stageMatches
-                    .filter((match) => match.zoneName === zone.zoneName)
-                    .map((match) => (
-                      <MatchCard
-                        client:load
-                        locale={intl.locale}
-                        match={match}
-                        labels={labels}
-                        reportUrl={matchReportUrl({
-                          organizationAlias: organization!,
-                          tournamentAlias: tournament!,
-                          stageNumber: match.stageNumber,
-                          matchNumber: match.matchNumber,
-                          localePrefix,
-                        })}
-                      />
-                    ))}
-                </div>
-                {zoneProjection(zone.zoneName) && (
-                  <StandingsTable
-                    activeClubId={activeClubId}
-                    canonicalPath={stagePath}
-                    clubs={model.clubs}
-                    intl={intl}
-                    layout={groupPhaseLayout}
-                    organizationAlias={organization}
-                    projection={zoneProjection(zone.zoneName)}
-                    tournamentAlias={tournament}
-                  />
-                )}
-              </>
-            )}
-          </section>
-        ))}
-        {zoneLayouts.includes('bracket') && (
-          <ResultLegend
-            heading={intl.formatMessage(messages.legendHeading)}
-            labels={resultStateLabels(intl)}
-          />
-        )}
-      </>
-    ) : layoutMode === 'bracket' ? (
-      <>
-        {bracketData.zones.length > 1 && (
-          <nav aria-label={intl.formatMessage(messages.bracketZoneJumpAriaLabel)}>
-            <ul class="cl-bracket-zone-jump">
-              {bracketData.zones.map((zone, index) => (
-                <li>
-                  <a href={`#cl-bracket-zone-${index}`}>
-                    {zone.zoneName ??
-                      intl.formatMessage(messages.bracketRoundHeading, { round: index + 1 })}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        )}
-        {bracketData.zones.map((zone, index) => (
-          <section aria-labelledby={zone.zoneName ? `cl-bracket-zone-${index}` : undefined}>
-            {bracketData.zones.length > 1 && (
-              <h2 id={`cl-bracket-zone-${index}`}>{zone.zoneName}</h2>
-            )}
+  {layoutMode === 'zones' ? (
+    <>
+      <nav aria-label={intl.formatMessage(messages.bracketZoneJumpAriaLabel)}>
+        <ul class="cl-bracket-zone-jump">
+          {bracketData.zones.map((zone, index) => (
+            <li>
+              <a href={`#cl-bracket-zone-${index}`}>{zone.zoneName}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      {bracketData.zones.map((zone, index) => (
+        <section aria-labelledby={`cl-bracket-zone-${index}`}>
+          <h2 id={`cl-bracket-zone-${index}`}>{zone.zoneName}</h2>
+          {zoneLayouts[index] === 'bracket' ? (
             <BracketView
               intl={intl}
               localePrefix={localePrefix}
@@ -246,47 +172,115 @@ const trail = publicTrail(trailBase, [
               stageNumber={stageNumber}
               tournamentAlias={tournament!}
             />
-          </section>
-        ))}
+          ) : (
+            <>
+              <div class="cl-matches-view__grid">
+                {stageMatches
+                  .filter((match) => match.zoneName === zone.zoneName)
+                  .map((match) => (
+                    <MatchCard
+                      client:load
+                      locale={intl.locale}
+                      match={match}
+                      labels={labels}
+                      reportUrl={matchReportUrl({
+                        organizationAlias: organization!,
+                        tournamentAlias: tournament!,
+                        stageNumber: match.stageNumber,
+                        matchNumber: match.matchNumber,
+                        localePrefix,
+                      })}
+                    />
+                  ))}
+              </div>
+              {zoneProjection(zone.zoneName) && (
+                <StandingsTable
+                  activeClubId={activeClubId}
+                  canonicalPath={stagePath}
+                  clubs={model.clubs}
+                  intl={intl}
+                  layout={groupPhaseLayout}
+                  organizationAlias={organization}
+                  projection={zoneProjection(zone.zoneName)}
+                  tournamentAlias={tournament}
+                />
+              )}
+            </>
+          )}
+        </section>
+      ))}
+      {zoneLayouts.includes('bracket') && (
         <ResultLegend
           heading={intl.formatMessage(messages.legendHeading)}
           labels={resultStateLabels(intl)}
         />
-      </>
-    ) : (
-      <div class="cl-matches-view__grid">
-        {stageMatches.map((match) => (
-          <MatchCard
-            client:load
-            locale={intl.locale}
-            match={match}
-            labels={labels}
-            reportUrl={matchReportUrl({
-              organizationAlias: organization!,
-              tournamentAlias: tournament!,
-              stageNumber: match.stageNumber,
-              matchNumber: match.matchNumber,
-              localePrefix,
-            })}
+      )}
+    </>
+  ) : layoutMode === 'bracket' ? (
+    <>
+      {bracketData.zones.length > 1 && (
+        <nav aria-label={intl.formatMessage(messages.bracketZoneJumpAriaLabel)}>
+          <ul class="cl-bracket-zone-jump">
+            {bracketData.zones.map((zone, index) => (
+              <li>
+                <a href={`#cl-bracket-zone-${index}`}>
+                  {zone.zoneName ??
+                    intl.formatMessage(messages.bracketRoundHeading, { round: index + 1 })}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+      {bracketData.zones.map((zone, index) => (
+        <section aria-labelledby={zone.zoneName ? `cl-bracket-zone-${index}` : undefined}>
+          {bracketData.zones.length > 1 && <h2 id={`cl-bracket-zone-${index}`}>{zone.zoneName}</h2>}
+          <BracketView
+            intl={intl}
+            localePrefix={localePrefix}
+            matches={zone.matches}
+            organizationAlias={organization!}
+            stageNumber={stageNumber}
+            tournamentAlias={tournament!}
           />
-        ))}
-      </div>
-    )
-  }
-  {
-    standingsProjection && layoutMode !== 'zones' && (
-      <StandingsTable
-        activeClubId={activeClubId}
-        canonicalPath={stagePath}
-        clubs={model.clubs}
-        intl={intl}
-        layout={groupPhaseLayout}
-        organizationAlias={organization}
-        projection={standingsProjection}
-        tournamentAlias={tournament}
+        </section>
+      ))}
+      <ResultLegend
+        heading={intl.formatMessage(messages.legendHeading)}
+        labels={resultStateLabels(intl)}
       />
-    )
-  }
+    </>
+  ) : (
+    <div class="cl-matches-view__grid">
+      {stageMatches.map((match) => (
+        <MatchCard
+          client:load
+          locale={intl.locale}
+          match={match}
+          labels={labels}
+          reportUrl={matchReportUrl({
+            organizationAlias: organization!,
+            tournamentAlias: tournament!,
+            stageNumber: match.stageNumber,
+            matchNumber: match.matchNumber,
+            localePrefix,
+          })}
+        />
+      ))}
+    </div>
+  )}
+  {standingsProjection && layoutMode !== 'zones' && (
+    <StandingsTable
+      activeClubId={activeClubId}
+      canonicalPath={stagePath}
+      clubs={model.clubs}
+      intl={intl}
+      layout={groupPhaseLayout}
+      organizationAlias={organization}
+      projection={standingsProjection}
+      tournamentAlias={tournament}
+    />
+  )}
 </PublicLayout>
 
 <style>

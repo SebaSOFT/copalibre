@@ -69,7 +69,9 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
     <link rel="canonical" href={canonicalUrl} />
-    {alternates.map((alt) => <link rel="alternate" hreflang={alt.hreflang} href={alt.href} />)}
+    {alternates.map((alt) => (
+      <link rel="alternate" hreflang={alt.hreflang} href={alt.href} />
+    ))}
     <meta property="og:title" content={title} />
     {description && <meta property="og:description" content={description} />}
     <meta property="og:type" content={ogType} />
@@ -79,39 +81,32 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
     <meta name="twitter:title" content={title} />
     {description && <meta name="twitter:description" content={description} />}
     {resolvedOgImage && <meta name="twitter:image" content={resolvedOgImage} />}
-    {
-      structuredData && (
-        <script is:inline type="application/ld+json" set:html={serializeJsonLd(structuredData)} />
-      )
-    }
+    {structuredData && (
+      <script is:inline type="application/ld+json" set:html={serializeJsonLd(structuredData)} />
+    )}
     {/* Defence in depth: a non-public route that somehow renders says so itself. */}
     {noindex && <meta name="robots" content="noindex, nofollow" />}
   </head>
   <body>
-    {
-      background ? (
-        <img
-          class="cl-discipline-background"
-          src={background.url}
-          alt=""
-          aria-hidden="true"
-          decoding="async"
-          style={`opacity: ${background.opacity}; --discipline-backdrop-blur: ${background.blurPx ?? 0}px;`}
-        />
-      ) : (
-        /*
-         * A discipline that ships no imagery gets a deliberate neutral ground,
-         * not the bare base surface — and never another discipline's picture.
-         */
-        <div
-          class="cl-discipline-background cl-discipline-background--neutral"
-          aria-hidden="true"
-        />
-      )
-    }
-    <a class="cl-skip-link cl-focusable" href="#main"
-      >{intl.formatMessage(messages.layoutSkipToContent)}</a
-    >
+    {background ? (
+      <img
+        class="cl-discipline-background"
+        src={background.url}
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+        style={`opacity: ${background.opacity}; --discipline-backdrop-blur: ${background.blurPx ?? 0}px;`}
+      />
+    ) : (
+      /*
+       * A discipline that ships no imagery gets a deliberate neutral ground,
+       * not the bare base surface — and never another discipline's picture.
+       */
+      <div class="cl-discipline-background cl-discipline-background--neutral" aria-hidden="true" />
+    )}
+    <a class="cl-skip-link cl-focusable" href="#main">
+      {intl.formatMessage(messages.layoutSkipToContent)}
+    </a>
     <PublicHeader intl={intl} localeOptions={localeOptions} />
     <main id="main">
       <slot />

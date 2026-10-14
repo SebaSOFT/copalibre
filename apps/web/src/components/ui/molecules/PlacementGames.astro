@@ -38,62 +38,60 @@ const groups = games.reduce<{ role: string; games: BracketMatch[] }[]>((acc, gam
 }, []);
 ---
 
-{
-  games.length > 0 && (
-    <section class="cl-placement-games" aria-labelledby="placement-games-heading">
-      <h3 id="placement-games-heading">{bracketBranchLabel(intl, 'placement')}</h3>
-      {groups.map((group) => (
-        <div class="cl-placement-games__group">
-          <h4 class="cl-placement-games__role">
-            {group.role === ''
-              ? bracketBranchLabel(intl, 'placement')
-              : bracketRoleLabel(intl, group.role)}
-          </h4>
-          <ul class="cl-placement-games__list">
-            {group.games.map((game) => {
-              const [home, away] = game.slots;
-              const [homeScore, awayScore] = game.scores ?? [];
-              const homeName = home ? nameOf(home) : '—';
-              const awayName = away ? nameOf(away) : '—';
-              const score =
-                homeScore !== undefined && awayScore !== undefined
-                  ? `${homeScore} – ${awayScore}`
-                  : '—';
-              const current = game.matchNumber === highlightMatchNumber;
-              return (
-                <li
-                  aria-current={current ? 'true' : undefined}
-                  class:list={[
-                    'cl-placement-games__game',
-                    current && 'cl-placement-games__game--current',
-                  ]}
+{games.length > 0 && (
+  <section class="cl-placement-games" aria-labelledby="placement-games-heading">
+    <h3 id="placement-games-heading">{bracketBranchLabel(intl, 'placement')}</h3>
+    {groups.map((group) => (
+      <div class="cl-placement-games__group">
+        <h4 class="cl-placement-games__role">
+          {group.role === ''
+            ? bracketBranchLabel(intl, 'placement')
+            : bracketRoleLabel(intl, group.role)}
+        </h4>
+        <ul class="cl-placement-games__list">
+          {group.games.map((game) => {
+            const [home, away] = game.slots;
+            const [homeScore, awayScore] = game.scores ?? [];
+            const homeName = home ? nameOf(home) : '—';
+            const awayName = away ? nameOf(away) : '—';
+            const score =
+              homeScore !== undefined && awayScore !== undefined
+                ? `${homeScore} – ${awayScore}`
+                : '—';
+            const current = game.matchNumber === highlightMatchNumber;
+            return (
+              <li
+                aria-current={current ? 'true' : undefined}
+                class:list={[
+                  'cl-placement-games__game',
+                  current && 'cl-placement-games__game--current',
+                ]}
+              >
+                <span class="cl-placement-games__side cl-placement-games__side--home">
+                  {homeName}
+                </span>
+                <a
+                  aria-label={`${homeName} ${score} ${awayName}`}
+                  class="cl-placement-games__score cl-tabular-nums cl-focusable"
+                  href={matchReportUrl({
+                    organizationAlias,
+                    tournamentAlias,
+                    stageNumber,
+                    matchNumber: game.matchNumber,
+                    localePrefix,
+                  })}
                 >
-                  <span class="cl-placement-games__side cl-placement-games__side--home">
-                    {homeName}
-                  </span>
-                  <a
-                    aria-label={`${homeName} ${score} ${awayName}`}
-                    class="cl-placement-games__score cl-tabular-nums cl-focusable"
-                    href={matchReportUrl({
-                      organizationAlias,
-                      tournamentAlias,
-                      stageNumber,
-                      matchNumber: game.matchNumber,
-                      localePrefix,
-                    })}
-                  >
-                    {score}
-                  </a>
-                  <span class="cl-placement-games__side">{awayName}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ))}
-    </section>
-  )
-}
+                  {score}
+                </a>
+                <span class="cl-placement-games__side">{awayName}</span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    ))}
+  </section>
+)}
 
 <style>
   .cl-placement-games {

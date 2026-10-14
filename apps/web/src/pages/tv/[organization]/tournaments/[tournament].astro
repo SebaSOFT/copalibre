@@ -278,46 +278,44 @@ const tickerItems =
     scale="tv"
     staleLabel={tickerChrome.stale}
   />
-  {
-    showMultiCourtGrid ? (
-      <TvMultiCourtGrid
-        client:load
-        initial={dashboard}
-        streamPath={streamPath}
-        venueNameByMatchId={venueNameByMatchId}
-        gridSize={gridSize}
-        resultStateLabels={tvMultiCourtGridLabels(intl).resultState}
-        noMatchesLabel={tvMultiCourtGridLabels(intl).noMatches}
-        ariaLabel={tvMultiCourtGridLabels(intl).ariaLabel}
-      />
-    ) : (
-      <TvDashboard
-        client:load
-        presentation={presentation}
-        initialView={initialView}
-        initial={dashboard}
-        initialBracket={initialBracket}
-        matchList={matchList}
-        court={court}
-        venueNameByMatchId={venueNameByMatchId}
-        seriesByMatchId={seriesByMatchId}
-        streamPath={streamPath}
-        branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
-        tournamentName={tournamentName}
-        organizationName={organizationName}
-        organizationAlias={organizationAlias}
-        tournamentAlias={tournamentAlias}
-        clubs={clubs}
-        winners={winnerZones}
-        standings={standings}
-        topPerformers={topPerformers}
-        performerProjection={performerProjection}
-        labels={tvStatisticsLabels(intl)}
-        dashboardLabels={tvDashboardLabels(intl)}
-        language={language}
-        timeZone={organizationTimeZone}
-        lastMatchAt={lastMatchAt(overviewMatches)}
-      />
-    )
-  }
+  {showMultiCourtGrid ? (
+    <TvMultiCourtGrid
+      client:load
+      initial={dashboard}
+      streamPath={streamPath}
+      venueNameByMatchId={venueNameByMatchId}
+      gridSize={gridSize}
+      resultStateLabels={tvMultiCourtGridLabels(intl).resultState}
+      noMatchesLabel={tvMultiCourtGridLabels(intl).noMatches}
+      ariaLabel={tvMultiCourtGridLabels(intl).ariaLabel}
+    />
+  ) : (
+    <TvDashboard
+      client:load
+      presentation={presentation}
+      initialView={initialView}
+      initial={dashboard}
+      initialBracket={initialBracket}
+      matchList={matchList}
+      court={court}
+      venueNameByMatchId={venueNameByMatchId}
+      seriesByMatchId={seriesByMatchId}
+      streamPath={streamPath}
+      branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
+      tournamentName={tournamentName}
+      organizationName={organizationName}
+      organizationAlias={organizationAlias}
+      tournamentAlias={tournamentAlias}
+      clubs={clubs}
+      winners={winnerZones}
+      standings={standings}
+      topPerformers={topPerformers}
+      performerProjection={performerProjection}
+      labels={tvStatisticsLabels(intl)}
+      dashboardLabels={tvDashboardLabels(intl)}
+      language={language}
+      timeZone={organizationTimeZone}
+      lastMatchAt={lastMatchAt(overviewMatches)}
+    />
+  )}
 </TvLayout>

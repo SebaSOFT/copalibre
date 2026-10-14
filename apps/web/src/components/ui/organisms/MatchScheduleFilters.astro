@@ -76,83 +76,77 @@ const {
 } = Astro.props;
 ---
 
-{
-  stages.length > 1 && (
-    <div class="cl-filter-row">
-      <span class="cl-filter-row__title">{labels.titles.stage}</span>
-      <nav class="cl-pill-group" aria-label={labels.stageFilterAriaLabel}>
+{stages.length > 1 && (
+  <div class="cl-filter-row">
+    <span class="cl-filter-row__title">{labels.titles.stage}</span>
+    <nav class="cl-pill-group" aria-label={labels.stageFilterAriaLabel}>
+      <a
+        class="cl-pill cl-focusable"
+        href={buildUrl({ stageNumber: undefined, zone: undefined, group: undefined })}
+        aria-current={activeStageNumber === undefined ? 'true' : undefined}
+      >
+        {labels.filters.all}
+      </a>
+      {stages.map((stage) => (
         <a
           class="cl-pill cl-focusable"
-          href={buildUrl({ stageNumber: undefined, zone: undefined, group: undefined })}
-          aria-current={activeStageNumber === undefined ? 'true' : undefined}
+          href={buildUrl({ stageNumber: stage.stageNumber, zone: undefined, group: undefined })}
+          aria-current={activeStageNumber === stage.stageNumber ? 'true' : undefined}
         >
-          {labels.filters.all}
+          {stage.stageName}
         </a>
-        {stages.map((stage) => (
-          <a
-            class="cl-pill cl-focusable"
-            href={buildUrl({ stageNumber: stage.stageNumber, zone: undefined, group: undefined })}
-            aria-current={activeStageNumber === stage.stageNumber ? 'true' : undefined}
-          >
-            {stage.stageName}
-          </a>
-        ))}
-      </nav>
-    </div>
-  )
-}
+      ))}
+    </nav>
+  </div>
+)}
 
-{
-  zones.length > 1 && (
-    <div class="cl-filter-row">
-      <span class="cl-filter-row__title">{labels.titles.zone}</span>
-      <nav class="cl-pill-group" aria-label={labels.zoneFilterAriaLabel}>
+{zones.length > 1 && (
+  <div class="cl-filter-row">
+    <span class="cl-filter-row__title">{labels.titles.zone}</span>
+    <nav class="cl-pill-group" aria-label={labels.zoneFilterAriaLabel}>
+      <a
+        class="cl-pill cl-focusable"
+        href={buildUrl({ zone: undefined, group: undefined })}
+        aria-current={activeZone === undefined ? 'true' : undefined}
+      >
+        {labels.filters.all}
+      </a>
+      {zones.map((zone) => (
         <a
           class="cl-pill cl-focusable"
-          href={buildUrl({ zone: undefined, group: undefined })}
-          aria-current={activeZone === undefined ? 'true' : undefined}
+          href={buildUrl({ zone, group: undefined })}
+          aria-current={activeZone === zone ? 'true' : undefined}
         >
-          {labels.filters.all}
+          {zone}
         </a>
-        {zones.map((zone) => (
-          <a
-            class="cl-pill cl-focusable"
-            href={buildUrl({ zone, group: undefined })}
-            aria-current={activeZone === zone ? 'true' : undefined}
-          >
-            {zone}
-          </a>
-        ))}
-      </nav>
-    </div>
-  )
-}
+      ))}
+    </nav>
+  </div>
+)}
 
-{
-  groups.length > 1 && (
-    <div class="cl-filter-row">
-      <span class="cl-filter-row__title">{labels.titles.group}</span>
-      <nav class="cl-pill-group" aria-label={labels.groupFilterAriaLabel}>
+{groups.length > 1 && (
+  <div class="cl-filter-row">
+    <span class="cl-filter-row__title">{labels.titles.group}</span>
+    <nav class="cl-pill-group" aria-label={labels.groupFilterAriaLabel}>
+      <a
+        class="cl-pill cl-focusable"
+        href={buildUrl({ group: undefined })}
+        aria-current={activeGroup === undefined ? 'true' : undefined}
+      >
+        {labels.filters.all}
+      </a>
+      {groups.map((group) => (
         <a
           class="cl-pill cl-focusable"
-          href={buildUrl({ group: undefined })}
-          aria-current={activeGroup === undefined ? 'true' : undefined}
+          href={buildUrl({ group })}
+          aria-current={activeGroup === group ? 'true' : undefined}
         >
-          {labels.filters.all}
+          {group}
         </a>
-        {groups.map((group) => (
-          <a
-            class="cl-pill cl-focusable"
-            href={buildUrl({ group })}
-            aria-current={activeGroup === group ? 'true' : undefined}
-          >
-            {group}
-          </a>
-        ))}
-      </nav>
-    </div>
-  )
-}
+      ))}
+    </nav>
+  </div>
+)}
 
 <div class="cl-filter-row">
   <span class="cl-filter-row__title">{labels.titles.state}</span>
@@ -188,29 +182,27 @@ const {
   </nav>
 </div>
 
-{
-  offerView && (
-    <div class="cl-filter-row">
-      <span class="cl-filter-row__title">{labels.titles.view}</span>
-      <nav class="cl-pill-group" aria-label={labels.viewFilterAriaLabel}>
-        <a
-          class="cl-pill cl-focusable"
-          href={buildUrl({ view: 'rows' })}
-          aria-current={view === 'rows' ? 'true' : undefined}
-        >
-          {labels.viewOptions.rows}
-        </a>
-        <a
-          class="cl-pill cl-focusable"
-          href={buildUrl({ view: 'cards' })}
-          aria-current={view === 'cards' ? 'true' : undefined}
-        >
-          {labels.viewOptions.cards}
-        </a>
-      </nav>
-    </div>
-  )
-}
+{offerView && (
+  <div class="cl-filter-row">
+    <span class="cl-filter-row__title">{labels.titles.view}</span>
+    <nav class="cl-pill-group" aria-label={labels.viewFilterAriaLabel}>
+      <a
+        class="cl-pill cl-focusable"
+        href={buildUrl({ view: 'rows' })}
+        aria-current={view === 'rows' ? 'true' : undefined}
+      >
+        {labels.viewOptions.rows}
+      </a>
+      <a
+        class="cl-pill cl-focusable"
+        href={buildUrl({ view: 'cards' })}
+        aria-current={view === 'cards' ? 'true' : undefined}
+      >
+        {labels.viewOptions.cards}
+      </a>
+    </nav>
+  </div>
+)}
 
 <style>
   .cl-filter-row {

@@ -23,17 +23,17 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "@types/semver": "^7.7.1",
+    "@types/semver": "^7.8.0",
     "jest": "^30.5.2",
-    "ts-jest": "^29.4.12"
+    "ts-jest": "^29.4.14"
   },
   "dependencies": {
     "@copalibre/object-storage": "workspace:^",
     "ajv": "^8.20.0",
-    "csv-parse": "^7.0.2",
-    "csv-stringify": "^6.8.2",
+    "csv-parse": "^7.0.3",
+    "csv-stringify": "^6.9.0",
     "semver": "^7.8.5",
-    "uuid": "^14"
+    "uuid": "^14.0.3"
   },
   "type": "module"
 }

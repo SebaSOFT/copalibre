@@ -69,57 +69,51 @@ const languageName = (code: string): string => {
 
     <nav aria-label={navLabel} class="cl-public-header__nav" id="cl-public-nav">
       <ul class="cl-public-header__links">
-        {
-          links.map((link) => (
-            <li>
-              <a class="cl-public-header__link cl-focusable" href={link.href}>
-                {link.label}
-              </a>
-            </li>
-          ))
-        }
+        {links.map((link) => (
+          <li>
+            <a class="cl-public-header__link cl-focusable" href={link.href}>
+              {link.label}
+            </a>
+          </li>
+        ))}
       </ul>
-      {
-        /*
+      {/*
         No repeated action here. The reference puts one in its drawer because
         its drawer covers the row; this one displaces the page instead, so the
         row — and the action in it — stays on screen the whole time. A second
         link with the same text and destination, visible simultaneously, would
         be a duplicate rather than a convenience.
-      */
-      }
+      */}
     </nav>
 
     <div class="cl-public-header__actions">
-      {
-        localeOptions.length > 1 && (
-          <details class="cl-public-header__locale">
-            <summary
-              aria-label={intl.formatMessage(messages.headerLanguage)}
-              class="cl-chamfer cl-chamfer--control cl-focusable"
-            >
-              <span aria-hidden="true" class="cl-public-header__translation-mark" />
-              <span>{locale.toUpperCase()}</span>
-              <span aria-hidden="true">⌄</span>
-            </summary>
-            <ul class="cl-public-header__locale-list cl-chamfer cl-chamfer--control">
-              {localeOptions.map((option) => (
-                <li>
-                  <a
-                    aria-current={option.locale === locale ? 'true' : undefined}
-                    class="cl-public-header__link cl-focusable"
-                    href={swapLocale(currentPathname, option.locale)}
-                    hreflang={option.locale}
-                    lang={option.locale}
-                  >
-                    {languageName(option.locale)}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )
-      }
+      {localeOptions.length > 1 && (
+        <details class="cl-public-header__locale">
+          <summary
+            aria-label={intl.formatMessage(messages.headerLanguage)}
+            class="cl-chamfer cl-chamfer--control cl-focusable"
+          >
+            <span aria-hidden="true" class="cl-public-header__translation-mark" />
+            <span>{locale.toUpperCase()}</span>
+            <span aria-hidden="true">⌄</span>
+          </summary>
+          <ul class="cl-public-header__locale-list cl-chamfer cl-chamfer--control">
+            {localeOptions.map((option) => (
+              <li>
+                <a
+                  aria-current={option.locale === locale ? 'true' : undefined}
+                  class="cl-public-header__link cl-focusable"
+                  href={swapLocale(currentPathname, option.locale)}
+                  hreflang={option.locale}
+                  lang={option.locale}
+                >
+                  {languageName(option.locale)}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
 
       <a
         class="cl-public-header__cta cl-btn cl-btn--primary cl-chamfer cl-chamfer--control cl-focusable"
@@ -128,13 +122,11 @@ const languageName = (code: string): string => {
         {controlLabel}
       </a>
 
-      {
-        /*
+      {/*
         Hidden until the script that gives it meaning has run — see the note at
         the top of this file. `hidden` rather than a class, so a browser that
         never runs the script leaves it out of the tab order too.
-      */
-      }
+      */}
       <button
         aria-controls="cl-public-nav"
         aria-expanded="true"

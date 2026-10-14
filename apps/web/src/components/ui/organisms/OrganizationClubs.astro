@@ -28,32 +28,30 @@ const { clubs, intl } = Astro.props;
     </h2>
     <span class="cl-section-count">({clubs.length})</span>
   </div>
-  {
-    clubs.length === 0 ? (
-      <div class="cl-empty-state">
-        <p>{intl.formatMessage(messages.orgPageNoClubs)}</p>
-      </div>
-    ) : (
-      <div class="cl-club-grid">
-        {clubs.map((club) => (
-          <div class="cl-club-card">
-            <EmblemImage
-              alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: club.name })}
-              placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
-              size={48}
-              src={club.emblemSrc}
-            />
-            <div class="cl-club-info">
-              <span class="cl-club-name" title={club.name}>
-                {club.name}
-              </span>
-              {club.alias && <span class="cl-club-abbr">{club.alias}</span>}
-            </div>
+  {clubs.length === 0 ? (
+    <div class="cl-empty-state">
+      <p>{intl.formatMessage(messages.orgPageNoClubs)}</p>
+    </div>
+  ) : (
+    <div class="cl-club-grid">
+      {clubs.map((club) => (
+        <div class="cl-club-card">
+          <EmblemImage
+            alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: club.name })}
+            placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+            size={48}
+            src={club.emblemSrc}
+          />
+          <div class="cl-club-info">
+            <span class="cl-club-name" title={club.name}>
+              {club.name}
+            </span>
+            {club.alias && <span class="cl-club-abbr">{club.alias}</span>}
           </div>
-        ))}
-      </div>
-    )
-  }
+        </div>
+      ))}
+    </div>
+  )}
 </section>
 
 <style>

@@ -200,23 +200,19 @@ const disciplineBackdrop =
   </head>
 </html>
 <body>
-  {
-    disciplineBackdrop && (
-      <img
-        class="tv-backdrop"
-        src={disciplineBackdrop.url}
-        alt=""
-        aria-hidden="true"
-        decoding="async"
-        style={`opacity: ${disciplineBackdrop.opacity};`}
-      />
-    )
-  }
-  {
-    background === 'football' && (
-      <div aria-hidden="true" class="tv-backdrop tv-backdrop--football" />
-    )
-  }
+  {disciplineBackdrop && (
+    <img
+      class="tv-backdrop"
+      src={disciplineBackdrop.url}
+      alt=""
+      aria-hidden="true"
+      decoding="async"
+      style={`opacity: ${disciplineBackdrop.opacity};`}
+    />
+  )}
+  {background === 'football' && (
+    <div aria-hidden="true" class="tv-backdrop tv-backdrop--football" />
+  )}
   {background === 'court' && <div aria-hidden="true" class="tv-backdrop tv-backdrop--court" />}
   <div id="tv-root">
     <slot />
