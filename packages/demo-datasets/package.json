@@ -22,15 +22,15 @@
     "@imgly/background-removal": "1.7.0",
     "ajv": "^8.20.0",
     "cheerio": "^1.2.0",
-    "esbuild": "^0.28.0",
-    "onnxruntime-web": "1.21.0",
-    "playwright-core": "1.63.0",
+    "esbuild": "^0.28.2",
+    "onnxruntime-web": "1.30.0",
+    "playwright-core": "1.64.0",
     "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "jest": "^30.5.2",
-    "ts-jest": "^29.4.12",
+    "ts-jest": "^29.4.14",
     "typescript": "^5"
   }
 }

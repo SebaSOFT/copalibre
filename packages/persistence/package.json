@@ -16,15 +16,15 @@
     "@copalibre/domain": "workspace:^",
     "@copalibre/routing": "workspace:^",
     "kysely": "^0.29",
-    "pg": "^8.22.0"
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
     "@types/jest": "^30.0.0",
-    "@types/pg": "^8.20.0",
-    "better-sqlite3": "^13.0.2",
+    "@types/pg": "^8.23.1",
+    "better-sqlite3": "^13.0.3",
     "jest": "^30.5.2",
-    "ts-jest": "^29.4.12"
+    "ts-jest": "^29.4.14"
   },
   "type": "module"
 }
