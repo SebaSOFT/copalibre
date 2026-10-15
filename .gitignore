@@ -115,8 +115,16 @@ tmp/
 # an installer drops into it have to be ignored one by one.
 .github/agents/
 .github/hooks/
-.github/skills/
+# OpenSpec: track specs baseline and config; ignore proposals, archive, and residuals
+.openspec-target
 openspec/changes/*
+!openspec/changes/.gitkeep
+openspec/changes/archive/*
+!openspec/changes/archive/.gitkeep
+openspec/archive/
+!openspec/specs/
+!openspec/config.yaml
+
 apps/web/public/openapi/
 apps/web/public/vendor/
 apps/web/public/authoring/
