@@ -2,7 +2,7 @@
 
 ## Scope and Structure
 
-CopaLibre is a Yarn 4 TypeScript monorepo for tournament operations. Run commands from this directory. Applications live in `apps/` (`api`, `web`, `events`, workers); reusable domain and infrastructure code lives in `packages/`; operational decisions and implementation plans live in `openspec/`.
+CopaLibre is a Yarn 4 TypeScript monorepo for tournament operations. It targets Node 26, as `.nvmrc`, the `Dockerfile` and CI all pin; run `nvm use` in a fresh shell. Run commands from this directory. Applications live in `apps/` (`api`, `web`, `events`, workers); reusable domain and infrastructure code lives in `packages/`; operational decisions and implementation plans live in `openspec/`.
 
 Read the active OpenSpec change before editing. Use `openspec validate <change> --strict` after updating its artifacts. Completed changes are synced and archived only after implementation and verification are complete.
 
@@ -37,7 +37,7 @@ rtk err yarn typecheck            # grouped tsc errors; silent when clean
 rtk test yarn test                # last 5 lines: the pass/fail summary
 rtk test yarn test:integration
 rtk test yarn test:e2e
-rtk proxy yarn <script>           # unfiltered, when filtered output looks wrong
+rtk bypass yarn <script>          # unfiltered, when filtered output looks wrong (`rtk proxy` is a deprecated alias)
 ```
 
 **Coverage is the exception — never wrap it.** `rtk test` prints only the final 5 lines, and Jest prints its threshold verdict _above_ the `Test Suites:` summary, so a coverage failure is invisible through that window (and through any `tail -5`). Jest still exits 0 locally, so the failure surfaces only as CI's "Unit tests" job. Grep for the verdict explicitly:
@@ -212,7 +212,7 @@ Yarn must use the conventional `node-modules` linker with the global cache. Do n
 
 Use TypeScript with Prettier and ESLint. Follow existing two-space indentation, single quotes, semicolons, camelCase values, PascalCase components/classes, and nearby file naming conventions. Keep domain code framework-free: `packages/domain` and `packages/rules` must not import NestJS or Fastify.
 
-Before editing an existing source file, use CodeGraph to locate the relevant symbol and read the exact current block, including imports and decorators. Prefer CodeGraph over grep, find, or sed for exploring or locating code generally, not only immediately before an edit — one `codegraph_explore` call typically returns verbatim source, call paths, and blast radius together, at a fraction of the round-trips a grep/read loop costs. Fall back to grep/find/sed only for what CodeGraph genuinely cannot answer. After every patch, inspect its focused `git diff` before compiling or testing; do not rely on a partial patch context to infer surrounding code.
+Before editing an existing source file, use CodeGraph to locate the relevant symbol and read the exact current block, including imports and decorators. Prefer CodeGraph over grep, find, or sed for exploring or locating code generally, not only immediately before an edit — its symbol, call-graph and impact tools return verbatim source, call paths, and blast radius at a fraction of the round-trips a grep/read loop costs (see ["CodeGraph"](#codegraph-mcp-server-codegraph-server---mcp) for the tool names). Fall back to grep/find/sed only for what CodeGraph genuinely cannot answer. After every patch, inspect its focused `git diff` before compiling or testing; do not rely on a partial patch context to infer surrounding code.
 
 Before adding a new domain primitive or abstraction, check whether an existing declarative mechanism already generalizes to the need — an `EventEffect`/`TargetAttribution` variant, a `ColumnSource` kind, an `ActorGranularity`/`CompetitionGranularity` value, an `EventWorkflow` branch. This codebase's mechanisms are frequently more general than any one discipline currently exercises; extending one at a setting it already supports is usually the right-sized change, not a new type.
 
@@ -308,23 +308,35 @@ Tracked content never cites an OpenSpec change by number or numbered directory n
 
 ## Tooling Reference
 
-Concrete usage notes for the tools this project's workflow depends on. See `.claude/skills/*/SKILL.md`
-for the full skill instructions; this section is the quick-reference cheat sheet.
+Concrete usage notes for the tools this project's workflow depends on. Skills are user-level, not
+vendored in this repo (`.claude/` is git-ignored): the canonical copies live in `~/.agents/skills/<name>/SKILL.md`
+and each harness reaches them through its own user-level skills directory (for Claude Code,
+`~/.claude/skills/`). This section is the quick-reference cheat sheet.
 
-### CodeGraph (MCP: `codegraph_explore`, CLI: `codegraph explore "..."`)
+### CodeGraph (MCP server: `codegraph-server --mcp`)
 
-- `.codegraph/codegraph.db` is a pre-built SQLite index of every symbol/edge/file in this monorepo
-  (30+ languages, TS/JS included). It lags file writes by ~1s via a watcher.
-- One tool, `codegraph_explore`. Pass either symbol/file names or a natural-language question. Returns
-  verbatim line-numbered source (safe to `Edit` from directly, same shape as `Read`), the call graph
-  between the returned symbols (including dynamic-dispatch hops like callbacks/JSX that grep misses),
-  and a blast-radius summary of callers/tests.
-- Use it **before** Read/Grep/Find for "how does X work," "where is X defined," locating a symbol before
-  editing, or checking what depends on something before changing it. Fall back to grep/find/Read only for
-  what CodeGraph can't answer (e.g. a known line range in a file you already have open).
-- A `UserPromptSubmit` hook auto-surfaces matching indexed symbols for each prompt — treat those as
-  already-read context and query `codegraph_explore` once with the relevant names rather than re-deriving
-  them by hand.
+CodeGraph indexes every symbol, edge and file of this monorepo (TS/JS included) and serves them as MCP
+tools. The tool surface depends on the server build, so check which `codegraph_*` tools the harness
+actually exposes before assuming a name.
+
+- **`codegraph-server` (Rust, 0.21+)** exposes a family of tools, not one: `codegraph_symbol_search`
+  (locate a symbol), `codegraph_get_edit_context` / `codegraph_get_detailed_symbol` (exact source of a
+  symbol, with callers/callees), `codegraph_get_callers` / `codegraph_get_callees` /
+  `codegraph_get_call_graph` (call paths), `codegraph_analyze_impact` (blast radius before a change),
+  `codegraph_find_related_tests`, `codegraph_get_module_summary` (directory overview),
+  `codegraph_get_dependency_graph`, and `codegraph_find_circular_deps`. Paths passed to these tools must be
+  absolute. The `--profile core|graph|memory` flag narrows the surface; the default exposes everything.
+  The index is held by the server, so no `.codegraph/` directory has to exist in the checkout.
+- **Builds that expose a single `codegraph_explore` tool** (CLI: `codegraph explore "..."`, SQLite index at
+  `.codegraph/codegraph.db`) take symbol/file names or a natural-language question and return verbatim
+  line-numbered source, the call graph between the returned symbols and a blast-radius summary in one call.
+- Either way, use CodeGraph **before** Read/Grep/Find for "how does X work," "where is X defined,"
+  locating a symbol before editing, or checking what depends on something before changing it. Fall back to
+  grep/find/Read only for what CodeGraph can't answer (e.g. a known line range in a file you already have
+  open). The index lags file writes by about a second, so re-query after a patch rather than trusting an
+  earlier answer.
+- If the harness wires a `UserPromptSubmit` hook that surfaces matching indexed symbols, treat those as
+  already-read context instead of re-deriving them by hand. Not every harness configures one.
 
 ### rtk (Rust Token Killer)
 
@@ -336,9 +348,9 @@ for the full skill instructions; this section is the quick-reference cheat sheet
   It has no `yarn` subcommand, so this repo's Yarn-script gates are **not** rewritten; see
   ["Running the gate suite without flooding context"](#running-the-gate-suite-without-flooding-context).
 - Useful direct invocations: `rtk gain` (savings analytics), `rtk gain --history`, `rtk discover` (finds
-  missed savings opportunities in session history), `rtk proxy <cmd>` (bypass filtering to debug a raw
-  command that looks wrong when filtered), `rtk err` / `rtk test` (show only failures/warnings from a
-  command's output).
+  missed savings opportunities in session history), `rtk bypass <cmd>` (run without filtering, to debug a
+  raw command that looks wrong when filtered; `rtk proxy` is a deprecated alias), `rtk err` / `rtk test`
+  (show only failures/warnings from a command's output).
 - Verify a working install with `rtk --version` and `rtk gain`; `rtk gain` failing (vs. "command not
   found") usually means a name-colliding `rtk` (Rust Type Kit) is on `PATH` instead.
 
@@ -354,8 +366,8 @@ for the full skill instructions; this section is the quick-reference cheat sheet
 
 ### feature-delivery skill
 
-- **Protocol**: SebaSOFT's cross-project shipping protocol (`~/.agents/skills/feature-delivery/SKILL.md`, mirrored into
-  `.claude/skills/`, `.codex/skills/`, and `.gemini/config/skills/`): investigate with CodeGraph first, plan
+- **Protocol**: SebaSOFT's cross-project shipping protocol (`~/.agents/skills/feature-delivery/SKILL.md`,
+  exposed to each harness through its user-level skills directory): investigate with CodeGraph first, plan
   with OpenSpec, one change per branch (`change/00NN-slug`), verify locally before opening a PR, wait for explicit human merge
   approval (never self-merge), then archive the change and promote its spec deltas.
 - **Prerequisites & Tooling**: Verifies presence of a token saver (`rtk` or `ponytail`), CodeGraph MCP, and OpenSpec CLI (`openspec`), suggesting them if missing.
@@ -371,11 +383,12 @@ for the full skill instructions; this section is the quick-reference cheat sheet
 
 - `openspec/` holds `changes/` (in-flight proposals) and `specs/` (accepted baseline), configured via
   `openspec/config.yaml`.
-- Core commands used in this repo's cycle: `openspec change show <id>`, `openspec validate <id>
+- Core commands used in this repo's cycle: `openspec show <id>`, `openspec validate <id>
 --strict` (required before considering a proposal or its updates done), `openspec archive <id> --yes`
-  (after merge), `openspec spec show/list/validate`, `openspec list` (active changes), `openspec view`
-  (interactive dashboard), `openspec status <change>` (artifact completion), `openspec context` (working
-  context for the resolved root).
+  (after merge), `openspec list` (active changes) and `openspec list --specs`, `openspec validate --specs`
+  (accepted baseline), `openspec view` (interactive dashboard), `openspec status <change>` (artifact
+  completion), `openspec context` (working context for the resolved root). The `openspec spec …` and
+  `openspec change …` subcommands are deprecated in favor of these verb-first forms.
 - The dedicated skills (`openspec-propose`, `openspec-apply-change`, `openspec-explore`,
   `openspec-update-change`, `openspec-sync-specs`, `openspec-archive-change`, and their `opsx:*`
   equivalents) wrap these commands for the propose → implement → archive/promote lifecycle described in
