@@ -124,7 +124,7 @@ Tournament and organization activity is announced by email through the provider 
 
 - A new tournament and a new club go to the organization's administrators.
 - A new registration, and a club submitting its squad, go to the organization's administrators and to the tournament administrators of that tournament. The person who caused the event is not emailed.
-- Emails use the organization's primary language, carry its emblem and name in the header, and are signed by Copa Libre with a link to [copalibre.app](https://copalibre.app).
+- Emails use the organization's primary language, carry its emblem and name in the header, and are signed by Copa Libre with a link to [www.copalibre.app](https://www.copalibre.app).
 - CSV imports and `copalibre dev demo` send no email.
 - The same email is never sent twice to the same recipient. If a provider times out before confirming, that email is not retried, so one may be missed rather than duplicated.
 - An operator can see how many emails may have been missed: the worker counts every delivery attempt by outcome (sent, already sent, refused, unknown) in its `/jobs/metrics` response under `emailDelivery`, and logs each unknown outcome without the recipient's address. A non-zero `unknown` is worth an alert; the counts start from zero when the worker restarts.
