@@ -104,6 +104,8 @@ tmp/
 .claude/
 .gemini/
 .opencode/
+.superpowers/
+docs/superpowers/
 # Impeccable keeps team-shared and per-developer state side by side: `config.json`
 # carries the committed detector suppressions and build-path default, `design.json`
 # is DESIGN.md's sidecar and is regenerated with it. Everything else here is local —
