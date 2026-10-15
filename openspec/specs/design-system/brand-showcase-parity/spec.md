@@ -1,7 +1,7 @@
 # design-system/brand-showcase-parity Specification
 
 ## Purpose
-Provides signature visual identity components, tactical coordinate grid styling, ambient glow tokens, and showcase cards matching the `copalibre.app` tournament operations showcase, bringing the live implementation into parity with the advertised brand.
+Provides signature visual identity components, tactical coordinate grid styling, ambient glow tokens, and showcase cards matching the `www.copalibre.app` tournament operations showcase, bringing the live implementation into parity with the advertised brand.
 
 ## Requirements
 
