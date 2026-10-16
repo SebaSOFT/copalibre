@@ -1,3 +1,4 @@
+import type { PreviousPlacement } from './reschedule.js';
 import type { MatchCardData } from './matches-view.js';
 import { presentState, type ResultStateLabels } from './result-state.js';
 
@@ -11,6 +12,10 @@ export const TV_MATCH_ROWS_PER_PAGE = 12;
  * as JSON, so it carries words, never a formatter.
  */
 export interface TvMatchEntry {
+  readonly scheduleVersion?: number;
+  readonly scheduledAt?: string;
+  readonly venueName?: string;
+  readonly rescheduledFrom?: PreviousPlacement | null;
   readonly key: string;
   /** Where the match belongs and when: `Grupo A · Ronda 2`. */
   readonly scope: string;
@@ -33,6 +38,10 @@ export function tvMatchEntriesOf(
     });
     return {
       key: row.matchId,
+      ...(row.scheduleVersion === undefined ? {} : { scheduleVersion: row.scheduleVersion }),
+      ...(row.scheduledAt === undefined ? {} : { scheduledAt: row.scheduledAt }),
+      ...(row.venueName === undefined ? {} : { venueName: row.venueName }),
+      ...(row.rescheduledFrom === undefined ? {} : { rescheduledFrom: row.rescheduledFrom }),
       scope: [where, row.round === undefined ? undefined : `${labels.round} ${row.round}`]
         .filter((part): part is string => part !== undefined)
         .join(' · '),

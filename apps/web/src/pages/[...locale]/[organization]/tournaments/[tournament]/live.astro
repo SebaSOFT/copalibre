@@ -1,4 +1,5 @@
 ---
+import { rescheduledStatement } from '../../../../../lib/reschedule.ts';
 import Breadcrumb from '../../../../../components/ui/organisms/Breadcrumb.astro';
 import { publicTrail, trailBaseOf } from '../../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../../layouts/PublicLayout.astro';
@@ -109,8 +110,25 @@ const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.liveP
               : reportPath(match.stageNumber, match.matchNumber)
           }
         >
-          <Card as="article">
+          <Card
+            as="article"
+            data-match={match.matchId}
+            data-schedule-version={match.scheduleVersion ?? 0}
+          >
             <StateBadge state="upcoming" intl={intl} />
+            {match.rescheduledFrom && (
+              <CardDescription>
+                {rescheduledStatement(
+                  match.rescheduledFrom,
+                  match.venueName,
+                  intl.locale,
+                  intl.formatMessage(messages.matchRescheduled, {
+                    time: '{time}',
+                    venue: '{venue}',
+                  }),
+                )}
+              </CardDescription>
+            )}
             <CardTitle>
               {match.home.name} {intl.formatMessage(messages.tickerVersus)} {match.away.name}
             </CardTitle>
@@ -141,3 +159,8 @@ const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.liveP
     labels={resultStateLabels(intl)}
   />
 </PublicLayout>
+
+<script>
+  import { mountPublicSchedule } from '../../../../../lib/public-schedule-live.ts';
+  mountPublicSchedule();
+</script>

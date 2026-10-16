@@ -11842,7 +11842,7 @@
   "info": {
     "title": "CopaLibre API",
     "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
-    "version": "7.1.0",
+    "version": "7.2.0",
     "contact": {}
   },
   "tags": [],
@@ -12932,6 +12932,43 @@
           "seasons"
         ]
       },
+      "PublicScheduleVenueResponse": {
+        "type": "object",
+        "properties": {
+          "alias": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "alias",
+          "name"
+        ]
+      },
+      "PublicPreviousPlacementResponse": {
+        "type": "object",
+        "properties": {
+          "startsAt": {
+            "type": "number",
+            "description": "Unix epoch milliseconds"
+          },
+          "venue": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicScheduleVenueResponse"
+              }
+            ]
+          }
+        },
+        "required": [
+          "startsAt",
+          "venue"
+        ]
+      },
       "PublicMatchesViewEventResponse": {
         "type": "object",
         "properties": {
@@ -13069,6 +13106,19 @@
       "ControlMatchesViewMatchResponse": {
         "type": "object",
         "properties": {
+          "scheduleVersion": {
+            "type": "number",
+            "description": "Independent published schedule replay version"
+          },
+          "rescheduledFrom": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicPreviousPlacementResponse"
+              }
+            ]
+          },
           "matchId": {
             "type": "string",
             "format": "uuid"
@@ -17788,6 +17838,22 @@
       "PublicOverviewMatchResponse": {
         "type": "object",
         "properties": {
+          "venueName": {
+            "type": "string"
+          },
+          "scheduleVersion": {
+            "type": "number",
+            "description": "Independent published schedule replay version"
+          },
+          "rescheduledFrom": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicPreviousPlacementResponse"
+              }
+            ]
+          },
           "matchId": {
             "type": "string",
             "format": "uuid"
@@ -18187,6 +18253,19 @@
       "PublicMatchReportResponse": {
         "type": "object",
         "properties": {
+          "scheduleVersion": {
+            "type": "number",
+            "description": "Independent published schedule replay version"
+          },
+          "rescheduledFrom": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicPreviousPlacementResponse"
+              }
+            ]
+          },
           "organizationAlias": {
             "type": "string"
           },
@@ -18356,6 +18435,26 @@
       "PublicLiveMatchResponse": {
         "type": "object",
         "properties": {
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "venueName": {
+            "type": "string"
+          },
+          "scheduleVersion": {
+            "type": "number",
+            "description": "Independent published schedule replay version"
+          },
+          "rescheduledFrom": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicPreviousPlacementResponse"
+              }
+            ]
+          },
           "matchId": {
             "type": "string",
             "format": "uuid"
@@ -18597,6 +18696,19 @@
       "PublicMatchesViewMatchResponse": {
         "type": "object",
         "properties": {
+          "scheduleVersion": {
+            "type": "number",
+            "description": "Independent published schedule replay version"
+          },
+          "rescheduledFrom": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicPreviousPlacementResponse"
+              }
+            ]
+          },
           "matchId": {
             "type": "string",
             "format": "uuid"

@@ -4,6 +4,7 @@
  * reads exactly as the site did before this change.
  */
 export const messages: Record<string, string> = {
+  'publicWeb.match.rescheduled': 'Reprogramado · antes {time}{venue}',
   'publicWeb.bracket.highlightEntrant': 'Resaltar recorrido de {entrant}',
   'publicWeb.bracket.highlightHint':
     'Seleccioná un participante para seguir su recorrido. Seleccioná de nuevo o presioná Escape para quitar el resaltado. Los partidos futuros muestran su posible recorrido si gana.',

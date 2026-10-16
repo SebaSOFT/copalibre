@@ -30,6 +30,7 @@ import type {
 import type { Kysely, Transaction } from 'kysely';
 import { InvariantViolationError, NotFoundError } from '../errors.js';
 import { newId } from '../ids.js';
+import { ProjectionStore } from '../relay/projection-store.js';
 import {
   toFixture,
   toGroup,
@@ -1655,7 +1656,10 @@ export class CompetitionRepository {
         stream: `match:${m.match_id}`,
         entityId: m.match_id,
         eventType: 'match.anulled',
-        projectionVersion: 1,
+        projectionVersion: await new ProjectionStore(uow.tx).nextVersion(uow, {
+          projectionType: 'match-schedule',
+          entityId: m.match_id,
+        }),
         payload: {
           matchId: m.match_id,
           fixtureId: input.fixtureId,

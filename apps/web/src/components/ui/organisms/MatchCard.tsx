@@ -1,3 +1,4 @@
+import { rescheduledStatement } from '../../../lib/reschedule.js';
 import { Badge } from '../atoms/Badge.js';
 import { Card } from '../atoms/Card.js';
 import { EntrantName } from '../atoms/EntrantName.js';
@@ -55,6 +56,10 @@ export function MatchCard({
   band,
   compact = false,
 }: MatchCardProps): React.JSX.Element {
+  const rescheduled =
+    match.state === 'upcoming'
+      ? rescheduledStatement(match.rescheduledFrom, match.venueName, locale, labels.rescheduled)
+      : '';
   const badge = presentState(match.state, labels.state);
   const scopeLine = [match.zoneName, match.groupName]
     .filter((part) => part !== undefined)
@@ -81,6 +86,7 @@ export function MatchCard({
         as="article"
         className="cl-match-card cl-match-card--compact"
         data-match={match.matchId}
+        data-schedule-version={match.scheduleVersion ?? 0}
       >
         <span
           aria-label={badge.label}
@@ -90,7 +96,10 @@ export function MatchCard({
         >
           <span className="cl-visually-hidden">{badge.label}</span>
         </span>
-        <span className="cl-match-card__compact-content">{content}</span>
+        <span className="cl-match-card__compact-content">
+          {content}
+          {rescheduled && <span className="cl-match-card__venue">{rescheduled}</span>}
+        </span>
       </Card>
     );
 
@@ -102,6 +111,7 @@ export function MatchCard({
       as="article"
       className={`cl-match-card${band === undefined ? '' : band === 'base' ? ' cl-band--base' : ' cl-band'}`}
       data-match={match.matchId}
+      data-schedule-version={match.scheduleVersion ?? 0}
     >
       <div className="cl-match-card__header">
         <Badge className={badge.className}>
@@ -118,6 +128,11 @@ export function MatchCard({
         )}
       </div>
 
+      {rescheduled && (
+        <p className="cl-match-card__venue" role="status">
+          {rescheduled}
+        </p>
+      )}
       <ol className="cl-match-card__sides">
         <li className="cl-match-card__side">
           <EntrantName fullName={match.homeName ?? 'TBD'} abbreviation={match.homeAbbreviation} />

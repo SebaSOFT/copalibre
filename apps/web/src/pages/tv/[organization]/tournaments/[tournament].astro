@@ -24,7 +24,11 @@ import type { TopPerformer } from '../../../../lib/tv-statistics.ts';
 import type { TvWinnerZone } from '../../../../components/tv/tv-types.ts';
 import { winnerZonesOf } from '../../../../lib/tv-winners.ts';
 import { buildTickerItems } from '../../../../lib/ticker-items.ts';
-import { dashboardFromOverview, lastMatchAt } from '../../../../lib/tv-dashboard-source.ts';
+import {
+  dashboardFromOverview,
+  overlayLive,
+  lastMatchAt,
+} from '../../../../lib/tv-dashboard-source.ts';
 import {
   publicIntl,
   tickerChromeLabels,
@@ -110,7 +114,7 @@ try {
     }
 
     if (live && live.matches.length > 0) {
-      dashboard = mapLiveResponse(live);
+      dashboard = overlayLive(dashboardFromOverview(mappedOverview.matches), mapLiveResponse(live));
     } else if (mappedOverview.matches.length > 0) {
       dashboard = dashboardFromOverview(mappedOverview.matches);
     } else if (organizationAlias === 'liga-mendocina') {
@@ -280,6 +284,11 @@ const tickerItems =
   />
   {showMultiCourtGrid ? (
     <TvMultiCourtGrid
+      locale={language}
+      rescheduledLabel={intl.formatMessage(messages.matchRescheduled, {
+        time: '{time}',
+        venue: '{venue}',
+      })}
       client:load
       initial={dashboard}
       streamPath={streamPath}

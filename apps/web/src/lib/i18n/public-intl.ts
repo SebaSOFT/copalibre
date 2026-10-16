@@ -146,6 +146,10 @@ export function tvStatisticsLabels(intl: IntlShape) {
 /** `TvDashboard.tsx`'s own chrome — separate from `tvStatisticsLabels`'s derived-stat labels. */
 export function tvDashboardLabels(intl: IntlShape) {
   return {
+    rescheduled: intl.formatMessage(messages.matchRescheduled, {
+      time: '{time}',
+      venue: '{venue}',
+    }),
     resultState: resultStateLabels(intl),
     noMatchesScheduled: intl.formatMessage(messages.tvDashboardNoMatchesScheduled),
     standingsUnavailable: intl.formatMessage(messages.tvDashboardStandingsUnavailable),
@@ -210,6 +214,7 @@ export function resultReasonLabels(intl: IntlShape): ResultReasonLabels {
  * same way and the component itself stays free of any i18n import.
  */
 export interface MatchCardLabels {
+  readonly rescheduled?: string;
   readonly state: ResultStateLabels;
   readonly filters: {
     readonly all: string;
@@ -248,6 +253,10 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
   // `formatMessage` path, just without supplying the real per-match value
   // yet. `MatchCard.tsx` fills it in later via `applyTemplate`.
   return {
+    rescheduled: intl.formatMessage(messages.matchRescheduled, {
+      time: '{time}',
+      venue: '{venue}',
+    }),
     state: resultStateLabels(intl),
     filters: {
       all: intl.formatMessage(messages.matchesViewFilterAll),

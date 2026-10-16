@@ -113,7 +113,15 @@ const structuredData = {
     collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
   />
   <article class="cl-match-page">
-    <MatchHero locale={intl.locale} model={model} statusLabel={statusLabels[model.status]} />
+    <MatchHero
+      rescheduledLabel={intl.formatMessage(messages.matchRescheduled, {
+        time: '{time}',
+        venue: '{venue}',
+      })}
+      locale={intl.locale}
+      model={model}
+      statusLabel={statusLabels[model.status]}
+    />
 
     {bracketMatches.length > 0 && (
       <MatchBracketContext
@@ -155,3 +163,8 @@ const structuredData = {
     gap: var(--cl-space-6);
   }
 </style>
+
+<script>
+  import { mountPublicSchedule } from '../../../../../../../../lib/public-schedule-live.ts';
+  mountPublicSchedule();
+</script>

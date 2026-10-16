@@ -149,20 +149,20 @@ export class EventStreamReader {
    */
   async entitiesOf(tournamentId: string): Promise<readonly string[]> {
     const { rows } = await sql<{ entity_id: string }>`
-      select ${tournamentId}::text as entity_id
+      select cast(${tournamentId} as text) as entity_id
       union
-      select season_id::text from seasons where tournament_id = ${tournamentId}
+      select cast(season_id as text) from seasons where tournament_id = ${tournamentId}
       union
-      select stage_id::text from stages
+      select cast(stage_id as text) from stages
         where season_id in (select season_id from seasons where tournament_id = ${tournamentId})
       union
-      select fixture_id::text from fixtures
+      select cast(fixture_id as text) from fixtures
         where stage_id in (
           select stage_id from stages
           where season_id in (select season_id from seasons where tournament_id = ${tournamentId})
         )
       union
-      select match_id::text from matches
+      select cast(match_id as text) from matches
         where fixture_id in (
           select fixture_id from fixtures where stage_id in (
             select stage_id from stages

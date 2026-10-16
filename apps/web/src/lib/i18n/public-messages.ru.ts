@@ -4,6 +4,7 @@
  * (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'publicWeb.match.rescheduled': 'Перенесён · ранее {time}{venue}',
   'publicWeb.bracket.highlightEntrant': 'Выделить путь участника {entrant}',
   'publicWeb.bracket.highlightHint':
     'Выберите участника, чтобы увидеть его путь. Нажмите повторно или Escape для сброса. Будущие матчи показывают возможный путь при победах.',

@@ -1,3 +1,4 @@
+import type { PreviousPlacement } from './reschedule.js';
 import type { EventEnvelope } from '@copalibre/realtime';
 import { decide, type ResultState } from './result-state.js';
 
@@ -33,6 +34,10 @@ export interface LiveSegment {
 
 export interface LiveMatch {
   readonly matchId: string;
+  readonly scheduleVersion?: number;
+  readonly scheduledAt?: string;
+  readonly venueName?: string;
+  readonly rescheduledFrom?: PreviousPlacement | null;
   readonly stageNumber: number;
   readonly matchNumber: number;
   /** The match's 1-based position in its stage; absent from a source that does not know it. */
@@ -54,6 +59,8 @@ export interface LiveMatch {
 }
 
 export interface LiveDashboard {
+  /** Retained after a removal so replay cannot restore a withdrawn or anulled match. */
+  readonly scheduleVersions?: Readonly<Record<string, number>>;
   readonly matches: readonly LiveMatch[];
   readonly standingsVersion: number;
   /** False once a stream connects; the page says so rather than pretending. */
@@ -70,6 +77,9 @@ export interface LiveDashboard {
  */
 export function applyEvent(dashboard: LiveDashboard, event: EventEnvelope): LiveDashboard {
   switch (event.eventType) {
+    case 'match.rescheduled':
+    case 'match.anulled':
+      return patchSchedule(dashboard, event);
     case 'match.event-recorded':
     case 'match.started':
     case 'match.finalized':
@@ -119,6 +129,7 @@ function patch(match: LiveMatch, event: EventEnvelope): LiveMatch {
     ...match,
     projectionVersion: event.projectionVersion,
     state,
+    ...(event.eventType === 'match.started' ? { rescheduledFrom: null } : {}),
     clockSeconds,
     sides: outcome
       ? sides.map((side, index) => ({ ...side, state: index === 0 ? outcome.home : outcome.away }))
@@ -164,4 +175,35 @@ function readScores(
     if (typeof entrantId === 'string' && typeof value === 'number') scores[entrantId] = value;
   }
   return Object.keys(scores).length > 0 ? scores : undefined;
+}
+
+function patchSchedule(dashboard: LiveDashboard, event: EventEnvelope): LiveDashboard {
+  const matchId = event.payload.matchId;
+  if (typeof matchId !== 'string') return dashboard;
+  const match = dashboard.matches.find((entry) => entry.matchId === matchId);
+  const version = Math.max(dashboard.scheduleVersions?.[matchId] ?? 0, match?.scheduleVersion ?? 0);
+  if (event.projectionVersion <= version) return dashboard;
+  const removed = event.eventType === 'match.anulled' || event.payload.withdrawn === true;
+  const venue = event.payload.venue as PreviousPlacement['venue'] | undefined;
+  const previous = event.payload.previous as PreviousPlacement | null | undefined;
+  return {
+    ...dashboard,
+    scheduleVersions: { ...dashboard.scheduleVersions, [matchId]: event.projectionVersion },
+    matches: removed
+      ? dashboard.matches.filter((entry) => entry.matchId !== matchId)
+      : dashboard.matches.map((entry) =>
+          entry.matchId !== matchId
+            ? entry
+            : {
+                ...entry,
+                scheduleVersion: event.projectionVersion,
+                scheduledAt:
+                  typeof event.payload.startsAt === 'number'
+                    ? new Date(event.payload.startsAt).toISOString()
+                    : undefined,
+                venueName: venue?.name,
+                rescheduledFrom: entry.state === 'upcoming' ? (previous ?? null) : null,
+              },
+        ),
+  };
 }

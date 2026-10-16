@@ -209,3 +209,8 @@ const trail = publicTrail(trailBase, [
     tournamentAlias={tournament!}
   />
 </PublicLayout>
+
+<script>
+  import { mountPublicSchedule } from '../../../../../lib/public-schedule-live.ts';
+  mountPublicSchedule();
+</script>

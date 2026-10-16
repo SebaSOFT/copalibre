@@ -96,6 +96,7 @@ function assignmentFrom(
  */
 export function ScheduleBuilderTemplate({
   affectedPublishedMatches,
+  concurrentNotice,
   committable,
   conflicts,
   drafts,
@@ -117,6 +118,7 @@ export function ScheduleBuilderTemplate({
   venues,
 }: {
   readonly affectedPublishedMatches: readonly string[];
+  readonly concurrentNotice?: string;
   readonly committable: boolean;
   readonly conflicts: readonly ScheduleConflictDto[];
   readonly drafts: Readonly<Record<string, DraftAssignment>>;
@@ -307,6 +309,7 @@ export function ScheduleBuilderTemplate({
 
   const listingNode = (
     <div className="cl-screen-sections">
+      {concurrentNotice && <Alert tone="warning">{concurrentNotice}</Alert>}
       {fixtures.length === 0 && (
         <p className="cl-card__description">
           <FormattedMessage {...messages.scheduleBuilderNoFixtures} />

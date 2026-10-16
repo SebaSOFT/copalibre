@@ -32,7 +32,31 @@ export class PublicStandingsRowResponse {
   zoneName?: string;
 }
 
+export class PublicScheduleVenueResponse {
+  @ApiProperty()
+  alias!: string;
+
+  @ApiProperty()
+  name!: string;
+}
+
+export class PublicPreviousPlacementResponse {
+  @ApiProperty({ description: 'Unix epoch milliseconds' })
+  startsAt!: number;
+
+  @ApiProperty({ type: PublicScheduleVenueResponse, nullable: true })
+  venue!: PublicScheduleVenueResponse | null;
+}
+
 export class PublicOverviewMatchResponse {
+  @ApiPropertyOptional()
+  venueName?: string;
+  @ApiPropertyOptional({ description: 'Independent published schedule replay version' })
+  scheduleVersion?: number;
+
+  @ApiPropertyOptional({ type: PublicPreviousPlacementResponse, nullable: true })
+  rescheduledFrom?: PublicPreviousPlacementResponse | null;
+
   @ApiProperty({ format: 'uuid' })
   matchId!: string;
 
@@ -229,6 +253,17 @@ export class PublicSegmentSummaryResponse {
 }
 
 export class PublicLiveMatchResponse {
+  @ApiPropertyOptional({ format: 'date-time' })
+  scheduledAt?: string;
+
+  @ApiPropertyOptional()
+  venueName?: string;
+  @ApiPropertyOptional({ description: 'Independent published schedule replay version' })
+  scheduleVersion?: number;
+
+  @ApiPropertyOptional({ type: PublicPreviousPlacementResponse, nullable: true })
+  rescheduledFrom?: PublicPreviousPlacementResponse | null;
+
   @ApiProperty({ format: 'uuid' })
   matchId!: string;
 
@@ -369,6 +404,12 @@ export class PublicMatchEventResponse {
 }
 
 export class PublicMatchReportResponse {
+  @ApiPropertyOptional({ description: 'Independent published schedule replay version' })
+  scheduleVersion?: number;
+
+  @ApiPropertyOptional({ type: PublicPreviousPlacementResponse, nullable: true })
+  rescheduledFrom?: PublicPreviousPlacementResponse | null;
+
   @ApiProperty()
   organizationAlias!: string;
 
@@ -928,6 +969,12 @@ export class PublicMatchesViewEventResponse {
 }
 
 export class PublicMatchesViewMatchResponse {
+  @ApiPropertyOptional({ description: 'Independent published schedule replay version' })
+  scheduleVersion?: number;
+
+  @ApiPropertyOptional({ type: PublicPreviousPlacementResponse, nullable: true })
+  rescheduledFrom?: PublicPreviousPlacementResponse | null;
+
   @ApiProperty({ format: 'uuid' })
   matchId!: string;
 

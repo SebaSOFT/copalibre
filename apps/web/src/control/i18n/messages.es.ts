@@ -4,6 +4,7 @@
  * `primaryLanguage: "es"` sees no behavior change from this refactor.
  */
 export const messages: Record<string, string> = {
+  'control.schedule.concurrentChange': '{actor} reprogramó {match}. Vista previa actualizada.',
   'control.bracket.highlightEntrant': 'Resaltar recorrido de {entrant}',
   'control.bracket.highlightHint':
     'Seleccioná un participante para seguir su recorrido. Seleccioná de nuevo o presioná Escape para quitar el resaltado. Los partidos futuros muestran su posible recorrido si gana.',

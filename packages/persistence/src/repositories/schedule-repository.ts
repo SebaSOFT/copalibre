@@ -21,6 +21,7 @@ import {
 import type { Kysely } from 'kysely';
 import { InvariantViolationError, NotFoundError, ScheduleReasonRequiredError } from '../errors.js';
 import { newId } from '../ids.js';
+import { ProjectionStore } from '../relay/projection-store.js';
 import {
   toOfficial,
   toResourceAssignment,
@@ -778,6 +779,16 @@ export class ScheduleRepository {
 
     const withdrawnIds = withdrawals.map((w) => w.matchId);
     const matchIds = [...input.assignments.map((a) => a.matchId), ...withdrawnIds];
+    // Serialize publications of the same match before reading its previous placement.
+    // The match lock also orders a publication against start and series anulling.
+    await lockRowsForMutation(
+      this.db,
+      uow.tx
+        .selectFrom('matches')
+        .select('match_id')
+        .where('match_id', 'in', matchIds)
+        .orderBy('match_id'),
+    ).execute();
     await this.refuseNotRequired(uow.tx, matchIds);
     await this.refuseUnplacedWithdrawals(uow.tx, withdrawnIds);
 
@@ -902,6 +913,12 @@ export class ScheduleRepository {
       });
     }
 
+    const publishedChanges = new Set(changed);
+    for (const assignment of input.assignments) {
+      if (!current.get(assignment.matchId)?.published) publishedChanges.add(assignment.matchId);
+    }
+    await this.publishPlacementEvents(uow, input, context, current, [...publishedChanges]);
+
     await uow.recordAudit({
       organizationId: input.organizationId,
       entityType: 'organization',
@@ -932,6 +949,76 @@ export class ScheduleRepository {
     });
 
     return input.assignments;
+  }
+
+  private async publishPlacementEvents(
+    uow: UnitOfWork,
+    input: ScheduleBatch & AuditContext,
+    context: ScheduleContext,
+    current: ReadonlyMap<string, CurrentPlacement>,
+    matchIds: readonly string[],
+  ): Promise<void> {
+    if (matchIds.length === 0) return;
+    const matches = await uow.tx
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .select(['matches.match_id', 'fixtures.stage_id'])
+      .where('matches.match_id', 'in', [...matchIds])
+      .execute();
+    const stages = new Map(matches.map((match) => [match.match_id, match.stage_id]));
+    const subject = input.actor.startsWith('user:') ? input.actor.slice(5) : undefined;
+    const actor = subject
+      ? await uow.tx
+          .selectFrom('identity_principals')
+          .select('name')
+          .where(
+            /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(subject)
+              ? 'principal_id'
+              : 'oidc_subject_id',
+            '=',
+            subject,
+          )
+          .executeTakeFirst()
+      : undefined;
+    const venueOf = (venueId: string) => {
+      const venue = context.venues.get(venueId);
+      return venue ? { alias: venue.alias, name: venue.name } : null;
+    };
+    for (const matchId of matchIds) {
+      const assignment = input.assignments.find((entry) => entry.matchId === matchId);
+      const slot = assignment ? context.slots.get(assignment.slotId) : undefined;
+      const prior = current.get(matchId);
+      const previous = prior?.published
+        ? { startsAt: prior.startsAt, venue: venueOf(prior.venueId) }
+        : null;
+      const projectionVersion = await new ProjectionStore(uow.tx).nextVersion(uow, {
+        projectionType: 'match-schedule',
+        entityId: matchId,
+      });
+      await uow.publishEvent({
+        organizationId: input.organizationId,
+        stream: `match:${matchId}`,
+        entityId: matchId,
+        eventType: 'match.rescheduled',
+        projectionVersion,
+        payload: {
+          matchId,
+          stageId: stages.get(matchId),
+          startsAt: slot?.window.startsAt ?? null,
+          estimatedEnd: slot
+            ? slot.window.startsAt +
+              (context.occupancyMinutesByMatch?.get(matchId) ?? slot.window.durationMinutes) *
+                60_000
+            : null,
+          venue: slot ? venueOf(slot.venueId) : null,
+          withdrawn: assignment === undefined,
+          previous,
+          actor: input.actor,
+          actorName: actor?.name ?? input.actor,
+          officialIds: [...(assignment?.officialIds ?? [])],
+        },
+      });
+    }
   }
 
   /** A match anulled by a series decision has a history, not a plan. */

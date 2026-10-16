@@ -2,6 +2,7 @@
 import type { IntlShape } from 'react-intl';
 import BracketView from './BracketView.astro';
 import DataTable, { type DataTableColumn, type DataTableSection } from './DataTable.astro';
+import { rescheduledStatement } from '../../../lib/reschedule.ts';
 import { MatchCard } from './MatchCard.tsx';
 import { matchReportUrl } from '../../../lib/bracket.ts';
 import type { MatchCardData } from '../../../lib/matches-view.ts';
@@ -74,7 +75,19 @@ const columns: readonly DataTableColumn[] = [
     header: intl.formatMessage(messages.scheduleColumnKickoff),
     render: (row) => {
       const { scheduledAt } = row as MatchCardData;
-      return scheduledAt ? kickoff.format(new Date(scheduledAt)) : '—';
+      const match = row as MatchCardData;
+      const previous =
+        match.state === 'upcoming'
+          ? rescheduledStatement(
+              match.rescheduledFrom,
+              match.venueName,
+              intl.locale,
+              cardLabels.rescheduled,
+            )
+          : '';
+      return [scheduledAt ? kickoff.format(new Date(scheduledAt)) : '—', previous]
+        .filter(Boolean)
+        .join(' · ');
     },
     datetime: (row) => (row as MatchCardData).scheduledAt,
   },

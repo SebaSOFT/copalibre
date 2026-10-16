@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { RealtimeClient } from '@copalibre/realtime';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
 import { useIntl } from 'react-intl';
 import {
@@ -80,6 +81,12 @@ export function ScheduleBuilderPage({
   const [recentReasons, setRecentReasons] = useState<readonly string[]>([]);
   const [committable, setCommittable] = useState(false);
   const [previewed, setPreviewed] = useState(false);
+  const [concurrentNotice, setConcurrentNotice] = useState<string>();
+  const currentDraft = useRef(drafts);
+  const previewGeneration = useRef(0);
+  useEffect(() => {
+    currentDraft.current = drafts;
+  }, [drafts]);
 
   const reload = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -127,11 +134,92 @@ export function ScheduleBuilderPage({
     void Promise.resolve().then(() => reload());
   }, [reload]);
 
+  useEffect(() => {
+    const stream = api.controlStream?.(organizationAlias);
+    if (!stream || !stageId) return;
+    let active = true;
+    const client = new RealtimeClient(stream);
+    const versions = new Map<string, number>();
+    const repreview = async (): Promise<void> => {
+      const generation = ++previewGeneration.current;
+      setPreviewed(false);
+      setCommittable(false);
+      const batch = Object.entries(currentDraft.current).flatMap<ScheduleAssignmentDto>(
+        ([matchId, draft]) =>
+          draft.withdraw
+            ? [{ matchId, withdraw: true as const }]
+            : draft.slotId
+              ? [{ matchId, slotId: draft.slotId, officialIds: draft.officialIds }]
+              : [],
+      );
+      if (!api.previewSchedule || batch.length === 0) return;
+      try {
+        const result = await api.previewSchedule(organizationAlias, tournamentAlias, stageId, {
+          assignments: batch,
+        });
+        if (!active || generation !== previewGeneration.current) return;
+        setConflicts(result.conflicts);
+        setAffectedPublishedMatches(result.affectedPublishedMatches);
+        setReasonRequiredMatches(result.reasonRequiredMatches ?? []);
+        setFreedSlotIds(result.freedSlotIds ?? []);
+        setCommittable(result.committable);
+        setPreviewed(true);
+      } catch (error) {
+        if (active) pushError(error);
+      }
+    };
+    void client.connect({
+      onEvent: (event) => {
+        if (event.eventType !== 'match.rescheduled' || event.payload.stageId !== stageId) return;
+        const matchId = event.payload.matchId;
+        if (typeof matchId !== 'string' || event.projectionVersion <= (versions.get(matchId) ?? 0))
+          return;
+        versions.set(matchId, event.projectionVersion);
+        const actor = event.payload.actor;
+        const token = stream.accessToken?.();
+        let ownActor: string | undefined;
+        try {
+          const part = token?.split('.')[1];
+          if (part)
+            ownActor = `user:${(JSON.parse(atob(part.replace(/-/g, '+').replace(/_/g, '/'))) as { sub?: string }).sub}`;
+        } catch {
+          /* No readable subject: keep the server's authoritative change visible. */
+        }
+        if (actor === ownActor) return;
+        const fixture = fixtures.find(
+          (entry) =>
+            entry.matchId === matchId || entry.matches?.some((match) => match.matchId === matchId),
+        );
+        if (!fixture) return;
+        const game = intl.formatMessage(messages.scheduleBuilderSeriesGame, {
+          number: fixture.matches?.find((entry) => entry.matchId === matchId)?.number ?? 1,
+          span: fixture.series?.span ?? 1,
+        });
+        const match = [fixture.homeEntrantId, fixture.awayEntrantId, game]
+          .filter(Boolean)
+          .join(' · ');
+        setConcurrentNotice(
+          intl.formatMessage(messages.scheduleConcurrentChange, {
+            match,
+            actor: String(event.payload.actorName ?? actor ?? ''),
+          }),
+        );
+        void repreview();
+      },
+      onProjectionRequired: () => void repreview(),
+    });
+    return () => {
+      active = false;
+      client.close();
+    };
+  }, [api, organizationAlias, tournamentAlias, stageId, fixtures, intl, pushError]);
+
   function setDraft(matchId: string, patch: Partial<DraftAssignment>): void {
     setDrafts((current) => ({
       ...current,
       [matchId]: { ...(current[matchId] ?? EMPTY_DRAFT), ...patch },
     }));
+    previewGeneration.current += 1;
     setPreviewed(false);
   }
 
@@ -146,10 +234,12 @@ export function ScheduleBuilderPage({
 
   async function preview(batch: readonly ScheduleAssignmentDto[]): Promise<void> {
     if (!api.previewSchedule || stageId === undefined || batch.length === 0) return;
+    const generation = ++previewGeneration.current;
     try {
       const result = await api.previewSchedule(organizationAlias, tournamentAlias, stageId, {
         assignments: batch,
       });
+      if (generation !== previewGeneration.current) return;
       setConflicts(result.conflicts);
       setAffectedPublishedMatches(result.affectedPublishedMatches);
       setReasonRequiredMatches(result.reasonRequiredMatches ?? []);
@@ -195,6 +285,7 @@ export function ScheduleBuilderPage({
 
   return (
     <ScheduleBuilderTemplate
+      concurrentNotice={concurrentNotice}
       affectedPublishedMatches={affectedPublishedMatches}
       committable={committable}
       conflicts={conflicts}

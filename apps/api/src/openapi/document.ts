@@ -33,7 +33,7 @@ import type { OpenAPIObject } from '@nestjs/swagger';
  * requires a `stages` array declaring every stage up front, replacing the single
  * top-level `format`/`series` fields.
  */
-export const OPENAPI_VERSION = '7.1.0';
+export const OPENAPI_VERSION = '7.2.0';
 
 export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()

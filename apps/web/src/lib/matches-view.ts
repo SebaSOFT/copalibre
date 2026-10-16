@@ -1,3 +1,4 @@
+import type { PreviousPlacement } from './reschedule.js';
 import type { ResultState } from './result-state.js';
 import type { PublicSeriesState } from './series.js';
 
@@ -8,6 +9,9 @@ import type { PublicSeriesState } from './series.js';
  * event, zone/position) the bracket's own card never has.
  */
 export interface MatchCardData {
+  readonly scheduleVersion?: number;
+  readonly venueName?: string;
+  readonly rescheduledFrom?: PreviousPlacement | null;
   readonly matchId: string;
   readonly stageNumber: number;
   readonly matchNumber: number;
@@ -20,7 +24,6 @@ export interface MatchCardData {
   readonly awayAbbreviation?: string;
   readonly awayScore?: number;
   readonly clockSeconds?: number;
-  readonly venueName?: string;
   /**
    * Raw ISO instant, rendered client-side via `ResponsiveTimestamp` so "today"
    * is the viewer's calendar day, not the server's.

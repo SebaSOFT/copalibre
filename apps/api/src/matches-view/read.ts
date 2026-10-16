@@ -18,6 +18,7 @@ import {
   type Tournament,
 } from '@copalibre/domain';
 import { readStandings } from '../standings/read.js';
+import { readPublicScheduleChanges, type PublicPlacement } from './schedule.js';
 import { readStageSeriesByPosition, type PublicSeriesState } from '../controllers/stage-series.js';
 import { elapsedSecondsOf } from '../controllers/segment-clock.js';
 
@@ -29,6 +30,8 @@ import { elapsedSecondsOf } from '../controllers/segment-clock.js';
  */
 export interface MatchesViewRow {
   readonly matchId: string;
+  readonly scheduleVersion?: number;
+  readonly rescheduledFrom?: PublicPlacement | null;
   readonly stageNumber: number;
   readonly matchNumber: number;
   readonly round: number;
@@ -127,6 +130,10 @@ async function readStageMatchesView(
   );
 
   const zoneNamesByGroup = await zoneAndGroupNamesByGroupId(db, stage.stageId);
+  const scheduleChanges = await readPublicScheduleChanges(
+    db,
+    records.map((record) => record.matchId),
+  );
 
   const entrantIds = new Set<string>();
   for (const record of records) {
@@ -191,6 +198,7 @@ async function readStageMatchesView(
 
       return {
         matchId: record.matchId,
+        ...scheduleChanges.get(record.matchId),
         stageNumber: stage.number,
         matchNumber: matchOrdinals.get(record.matchId) ?? 1,
         round: record.round,
