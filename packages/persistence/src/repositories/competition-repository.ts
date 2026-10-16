@@ -44,6 +44,7 @@ import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 import type { PersistedFixtureNode } from '../fixture-graph.js';
 import type { AuditContext } from './enrollment-repository.js';
+import { lockRowsForMutation } from '../row-lock.js';
 
 export interface PersistedDraw<T> {
   readonly assignment: GroupAssignment;
@@ -1326,8 +1327,8 @@ export class CompetitionRepository {
     return row?.zone_id;
   }
 
-  async listFixturesOfStage(stageId: string): Promise<readonly Fixture[]> {
-    const rows = await this.db
+  async listFixturesOfStage(stageId: string, uow?: UnitOfWork): Promise<readonly Fixture[]> {
+    const rows = await (uow?.tx ?? this.db)
       .selectFrom('fixtures')
       .selectAll()
       .where('stage_id', '=', stageId)
@@ -1454,6 +1455,103 @@ export class CompetitionRepository {
       payload: { stageId: input.stageId, fixtureCount: fixtures.length },
     });
 
+    return fixtures;
+  }
+
+  /** Publishes a complete stage draw, including stages mixing elimination and legacy formats. */
+  async publishFixturePlans(
+    uow: UnitOfWork,
+    input: {
+      readonly stageId: string;
+      readonly plans: readonly {
+        readonly zoneId?: string;
+        readonly nodes?: readonly PersistedFixtureNode[];
+        readonly fixtures?: readonly {
+          readonly round: number;
+          readonly homeEntrantId?: string;
+          readonly awayEntrantId?: string;
+        }[];
+        readonly matchCount?: number;
+      }[];
+    } & AuditContext,
+  ): Promise<readonly Fixture[]> {
+    if (
+      input.plans.length === 0 ||
+      input.plans.some((plan) => (plan.nodes?.length ?? plan.fixtures?.length ?? 0) === 0)
+    ) {
+      throw new InvariantViolationError('A stage draw must contain non-empty fixture plans', {
+        stageId: input.stageId,
+      });
+    }
+    await lockRowsForMutation(
+      this.db,
+      uow.tx.selectFrom('stages').select('stage_id').where('stage_id', '=', input.stageId),
+    ).executeTakeFirstOrThrow();
+    const previous = await lockRowsForMutation(
+      this.db,
+      uow.tx
+        .selectFrom('matches')
+        .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+        .select(['matches.match_id', 'matches.status', 'matches.result'])
+        .where('fixtures.stage_id', '=', input.stageId)
+        .orderBy('matches.match_id'),
+    ).execute();
+    if (previous.some((match) => match.status !== 'scheduled' || match.result !== null)) {
+      throw new InvariantViolationError(
+        'Cannot replace fixtures once a match has started or recorded results',
+        { stageId: input.stageId },
+      );
+    }
+    const fixtureIds = uow.tx
+      .selectFrom('fixtures')
+      .select('fixture_id')
+      .where('stage_id', '=', input.stageId);
+    await uow.tx.deleteFrom('matches').where('fixture_id', 'in', fixtureIds).execute();
+    await uow.tx.deleteFrom('fixtures').where('stage_id', '=', input.stageId).execute();
+    const fixtures: Fixture[] = [];
+    // Materialize implicit groups for every zone before the first fixture makes structure immutable.
+    for (const plan of input.plans) await this.resolveFixtureScope(uow, input, plan);
+    // Legacy writes run before graph writes, preserving their prohibition on writing graph entrants.
+    const legacy = input.plans.flatMap((plan) =>
+      (plan.fixtures ?? []).map((fixture) => ({
+        ...fixture,
+        ...(plan.zoneId === undefined ? {} : { zoneId: plan.zoneId }),
+        ...(plan.matchCount === undefined ? {} : { matchCount: plan.matchCount }),
+      })),
+    );
+    if (legacy.length > 0)
+      fixtures.push(...(await this.createFixtures(uow, { ...input, fixtures: legacy })));
+    for (const plan of input.plans) {
+      if (plan.nodes === undefined) continue;
+      const scope = await this.resolveFixtureScope(uow, input, plan);
+      fixtures.push(
+        ...(await this.createFixtureGraph(uow, {
+          ...input,
+          zoneId: scope.zoneId,
+          nodes: plan.nodes,
+        })),
+      );
+    }
+    if (previous.length > 0) {
+      await uow.recordAudit({
+        organizationId: input.organizationId,
+        entityType: 'stage',
+        entityId: input.stageId,
+        action: 'fixtures.regenerated',
+        actor: input.actor,
+        authorizationContext: input.authorizationContext,
+        previousState: { matchIds: previous.map((match) => match.match_id) },
+        resultingState: { fixtureCount: fixtures.length },
+      });
+      await uow.publishEvent({
+        organizationId: input.organizationId,
+        stream: `stage:${input.stageId}`,
+        entityId: input.stageId,
+        eventType: 'fixtures.regenerated',
+        projectionVersion: 1,
+        payload: { stageId: input.stageId, fixtureCount: fixtures.length },
+      });
+    }
     return fixtures;
   }
 

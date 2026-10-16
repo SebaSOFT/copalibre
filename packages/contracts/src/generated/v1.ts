@@ -3424,6 +3424,11 @@ export interface components {
             explanation: string;
         };
         ControlMatchesViewMatchResponse: {
+            nodeKey?: string;
+            branch?: string;
+            label?: string;
+            homeSource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
+            awaySource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
             /** @description Independent published schedule replay version */
             scheduleVersion?: number;
             rescheduledFrom?: components["schemas"]["PublicPreviousPlacementResponse"] | null;
@@ -4259,6 +4264,11 @@ export interface components {
             abbreviation?: string;
         };
         MatchConsoleResponse: {
+            nodeKey?: string;
+            branch?: string;
+            label?: string;
+            homeSource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
+            awaySource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
             /** Format: uuid */
             matchId: string;
             /** @description The match's stage number, for a bracket-context panel */
@@ -4449,7 +4459,16 @@ export interface components {
              */
             sourceReportId?: string;
         };
+        ReResolvedMatchSideDto: {
+            /** Format: uuid */
+            matchId: string;
+            /** @enum {string} */
+            side: "home" | "away";
+            currentEntrantId: string | null;
+            resultingEntrantId: string | null;
+        };
         BlockedPropagationDto: {
+            matches?: components["schemas"]["ReResolvedMatchSideDto"][];
             /** Format: uuid */
             stageId: string;
             /** @description Why nothing downstream was rebuilt */
@@ -4474,6 +4493,7 @@ export interface components {
             becomingScheduled: number[];
         };
         CorrectionPreviewResponse: {
+            reResolved?: components["schemas"]["ReResolvedMatchSideDto"][];
             /** @description Entrants whose recorded numbers move */
             changedEntrantIds: string[];
             /** @description Present when a started downstream stage is deliberately not rebuilt */
@@ -4687,6 +4707,7 @@ export interface components {
             outcome: "winner" | "loser";
         };
         BracketSlotResponse: {
+            source?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
             /**
              * @description Where this side comes from
              * @enum {string}
@@ -4707,6 +4728,11 @@ export interface components {
             resultReason?: "played" | "administrative-loss" | "walkover" | "forfeit-abandonment" | "disqualified" | "did-not-finish";
         };
         BracketMatchResponse: {
+            nodeKey?: string;
+            branch?: string;
+            label?: string;
+            homeSource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
+            awaySource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
             /**
              * @description Deterministic engine id, e.g. WB-R2-M1
              * @example WB-R2-M1
@@ -4752,6 +4778,8 @@ export interface components {
             matches: components["schemas"]["BracketMatchResponse"][];
         };
         SeedingResponse: {
+            /** @description Published match assignments released by rebuilding this stage */
+            releasedAssignments: number;
             /** Format: uuid */
             stageId: string;
             /** @enum {string} */
@@ -4934,6 +4962,11 @@ export interface components {
             anulledMatchNumbers: number[];
         };
         FixtureResponse: {
+            nodeKey?: string;
+            branch?: string;
+            label?: string;
+            homeSource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
+            awaySource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
             /** Format: uuid */
             fixtureId: string;
             /**
@@ -4950,6 +4983,14 @@ export interface components {
             homeEntrantId?: string;
             /** Format: uuid */
             awayEntrantId?: string;
+            /** @description Resolved display name of the home entrant */
+            homeName?: string;
+            /** @description Persisted abbreviation of the home entrant */
+            homeAbbreviation?: string;
+            /** @description Resolved display name of the away entrant */
+            awayName?: string;
+            /** @description Persisted abbreviation of the away entrant */
+            awayAbbreviation?: string;
             /** @description Every match of this fixture in play order; exactly one unless it is a series */
             matches: components["schemas"]["FixtureMatchResponse"][];
             series?: components["schemas"]["FixtureSeriesResponse"];
@@ -5308,6 +5349,11 @@ export interface components {
             key: string;
         };
         PublicOverviewMatchResponse: {
+            nodeKey?: string;
+            branch?: string;
+            label?: string;
+            homeSource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
+            awaySource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
             venueName?: string;
             /** @description Independent published schedule replay version */
             scheduleVersion?: number;
@@ -5446,6 +5492,11 @@ export interface components {
             scores?: number[];
         };
         PublicMatchReportResponse: {
+            nodeKey?: string;
+            branch?: string;
+            label?: string;
+            homeSource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
+            awaySource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
             /** @description Independent published schedule replay version */
             scheduleVersion?: number;
             rescheduledFrom?: components["schemas"]["PublicPreviousPlacementResponse"] | null;
@@ -5499,6 +5550,11 @@ export interface components {
             remainingSeconds: number;
         };
         PublicLiveMatchResponse: {
+            nodeKey?: string;
+            branch?: string;
+            label?: string;
+            homeSource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
+            awaySource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
             /** Format: date-time */
             scheduledAt?: string;
             venueName?: string;
@@ -5527,6 +5583,7 @@ export interface components {
             matches: components["schemas"]["PublicLiveMatchResponse"][];
         };
         PublicBracketSlotResponse: {
+            source?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
             /**
              * @description Where this side comes from
              * @enum {string}
@@ -5556,6 +5613,11 @@ export interface components {
             resultReason?: "played" | "administrative-loss" | "walkover" | "forfeit-abandonment" | "disqualified" | "did-not-finish";
         };
         PublicBracketMatchResponse: {
+            nodeKey?: string;
+            branch?: string;
+            label?: string;
+            homeSource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
+            awaySource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
             matchId: string;
             /** @enum {string} */
             bracket: "winner" | "loser" | "consolation";
@@ -5592,6 +5654,11 @@ export interface components {
             zones: components["schemas"]["PublicBracketZoneResponse"][];
         };
         PublicMatchesViewMatchResponse: {
+            nodeKey?: string;
+            branch?: string;
+            label?: string;
+            homeSource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
+            awaySource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
             /** @description Independent published schedule replay version */
             scheduleVersion?: number;
             rescheduledFrom?: components["schemas"]["PublicPreviousPlacementResponse"] | null;
@@ -6502,6 +6569,51 @@ export interface components {
             bands?: {
                 [key: string]: components["schemas"]["QualifiedEntrantResponse"][];
             };
+        };
+        EntrantFixtureSideSourceDto: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "EntrantFixtureSideSourceDto";
+            /** Format: uuid */
+            entrantId: string;
+        };
+        WinnerFixtureSideSourceDto: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "WinnerFixtureSideSourceDto";
+            nodeKey: string;
+            /** Format: uuid */
+            matchId: string;
+            round: number;
+            position: number;
+            label?: string;
+        };
+        LoserFixtureSideSourceDto: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "LoserFixtureSideSourceDto";
+            nodeKey: string;
+            /** Format: uuid */
+            matchId: string;
+            round: number;
+            position: number;
+            label?: string;
+        };
+        QualifierFixtureSideSourceDto: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "QualifierFixtureSideSourceDto";
+            /** Format: uuid */
+            promotionPlanId: string;
+            position: number;
         };
     };
     responses: never;

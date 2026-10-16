@@ -36,8 +36,10 @@ function seriesFixture(
     fixtureId: 'fixture-1',
     matchId: 'match-1',
     round: 1,
-    homeEntrantId: 'Godoy Cruz',
-    awayEntrantId: 'Independiente Rivadavia',
+    homeEntrantId: '0199b000-0000-7000-8000-000000000001',
+    homeName: 'Godoy Cruz',
+    awayEntrantId: '0199b000-0000-7000-8000-000000000002',
+    awayName: 'Independiente Rivadavia',
     matches: matches.map((match) => ({
       matchId: `match-${match.number}`,
       number: match.number,
@@ -133,8 +135,10 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
             fixtureId: 'fixture-1',
             matchId: 'match-1',
             round: 1,
-            homeEntrantId: 'Godoy Cruz',
-            awayEntrantId: 'Independiente Rivadavia',
+            homeEntrantId: '0199b000-0000-7000-8000-000000000001',
+            homeName: 'Godoy Cruz',
+            awayEntrantId: '0199b000-0000-7000-8000-000000000002',
+            awayName: 'Independiente Rivadavia',
           },
         ],
       }),
@@ -149,6 +153,72 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('ScheduleBuilderPage', () => {
+  it.each([false, true])(
+    'never substitutes opaque ids for missing names (undecided: %s)',
+    async (undecided) => {
+      const { container } = render(
+        withIntl(
+          <ScheduleBuilderPage
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            stageNumber={1}
+            client={stubClient({
+              getStageFixtures: async () => ({
+                stageId: 'stage-1',
+                fixtures: [
+                  {
+                    fixtureId: 'fixture-1',
+                    matchId: 'match-1',
+                    round: 1,
+                    ...(undecided ? {} : { homeEntrantId: '0199b000-0000-7000-8000-000000000001' }),
+                    awayEntrantId: '0199b000-0000-7000-8000-000000000002',
+                    awayName: 'María López',
+                    awayAbbreviation: 'ML',
+                  },
+                ],
+              }),
+            })}
+          />,
+        ),
+      );
+      await screen.findByLabelText('Start time — TBD vs María López');
+      expect(screen.getAllByText('María López').length).toBeGreaterThan(0);
+      expect(container.textContent).not.toMatch(/0199b000-/);
+    },
+  );
+
+  it('renders a named home entrant and fully undecided future fixtures without exposing ids', async () => {
+    const { container } = render(
+      withIntl(
+        <ScheduleBuilderPage
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+          stageNumber={1}
+          client={stubClient({
+            getStageFixtures: async () => ({
+              stageId: 'stage-1',
+              fixtures: [
+                {
+                  fixtureId: 'fixture-1',
+                  matchId: 'match-1',
+                  round: 1,
+                  homeEntrantId: '0199b000-0000-7000-8000-000000000001',
+                  homeName: 'Andrea Gómez',
+                  homeAbbreviation: 'AG',
+                  awayEntrantId: '0199b000-0000-7000-8000-000000000002',
+                },
+                { fixtureId: 'fixture-2', matchId: 'match-2', round: 2 },
+              ],
+            }),
+          })}
+        />,
+      ),
+    );
+    await screen.findByLabelText('Start time — Andrea Gómez vs TBD');
+    expect(screen.getByLabelText('Start time — TBD vs TBD')).toBeTruthy();
+    expect(container.textContent).not.toMatch(/0199b000-/);
+  });
+
   it('renders within ListScreenLayout structure and displays fixtures and calendar view', async () => {
     const { container } = render(
       withIntl(
@@ -167,6 +237,11 @@ describe('ScheduleBuilderPage', () => {
     expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
     expect(screen.getAllByText(/Godoy Cruz/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Independiente Rivadavia/i).length).toBeGreaterThan(0);
+    expect(container.textContent).not.toMatch(/0199b000-/);
+    expect(screen.getAllByTestId('entrant-name').length).toBeGreaterThan(0);
+    expect(
+      screen.getByLabelText('Start time — Godoy Cruz vs Independiente Rivadavia'),
+    ).toBeTruthy();
   });
 
   it('links its breadcrumb back to the stage hub', async () => {

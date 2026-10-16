@@ -1,3 +1,4 @@
+import { EntrantName } from '../../../components/ui/atoms/EntrantName.js';
 import { useCallback, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
@@ -153,6 +154,24 @@ export function ScheduleBuilderTemplate({
 
   const groups = useMemo(() => builderGroups(fixtures), [fixtures]);
 
+  const entrantNames = useMemo(() => {
+    const names = new Map<string, { fullName: string; abbreviation?: string }>();
+    for (const fixture of fixtures) {
+      if (fixture.homeEntrantId !== undefined && fixture.homeName !== undefined)
+        names.set(fixture.homeEntrantId, {
+          fullName: fixture.homeName,
+          abbreviation: fixture.homeAbbreviation,
+        });
+      if (fixture.awayEntrantId !== undefined && fixture.awayName !== undefined)
+        names.set(fixture.awayEntrantId, {
+          fullName: fixture.awayName,
+          abbreviation: fixture.awayAbbreviation,
+        });
+    }
+    return names;
+  }, [fixtures]);
+  const unknownName = intl.formatMessage(messages.matchesViewResultStateTbd);
+
   const allSlots = useMemo(() => {
     return schedules.flatMap((s) =>
       s.slots.map((slot) => ({ ...slot, slotMinutes: s.slotMinutes })),
@@ -181,7 +200,7 @@ export function ScheduleBuilderTemplate({
   const rowLabelOf = useMemo(() => {
     const labels = new Map<string, string>();
     for (const group of groups) {
-      const cross = `${group.homeEntrantId ?? '—'} vs ${group.awayEntrantId ?? '—'}`;
+      const cross = `${entrantNames.get(group.homeEntrantId ?? '')?.fullName ?? unknownName} vs ${entrantNames.get(group.awayEntrantId ?? '')?.fullName ?? unknownName}`;
       for (const row of group.rows) {
         labels.set(
           row.matchId,
@@ -195,7 +214,7 @@ export function ScheduleBuilderTemplate({
       }
     }
     return labels;
-  }, [groups, intl]);
+  }, [groups, intl, entrantNames, unknownName]);
 
   const entrantIds = [
     ...new Set(groups.flatMap((group) => [group.homeEntrantId, group.awayEntrantId])),
@@ -223,7 +242,7 @@ export function ScheduleBuilderTemplate({
     const draft = draftFor(matchId);
     return {
       matchId,
-      label: rowLabelOf.get(matchId) ?? matchId,
+      label: rowLabelOf.get(matchId) ?? unknownName,
       change:
         draft.withdraw === true
           ? intl.formatMessage(messages.reasonPromptWithdrawnChange, { from })
@@ -255,7 +274,28 @@ export function ScheduleBuilderTemplate({
 
   /** The cross a series' rows are grouped under, so five rows never read as five matches. */
   function crossLabel(group: (typeof groups)[number]): string {
-    return `${group.homeEntrantId ?? '—'} vs ${group.awayEntrantId ?? '—'}`;
+    return `${entrantNames.get(group.homeEntrantId ?? '')?.fullName ?? unknownName} vs ${entrantNames.get(group.awayEntrantId ?? '')?.fullName ?? unknownName}`;
+  }
+
+  function entrantNode(entrantId: string | undefined): React.JSX.Element {
+    const identity = entrantNames.get(entrantId ?? '');
+    return (
+      <EntrantName
+        inline
+        fullName={identity?.fullName ?? unknownName}
+        abbreviation={identity?.abbreviation}
+      />
+    );
+  }
+
+  function crossNode(group: (typeof groups)[number]): React.JSX.Element {
+    return (
+      <>
+        {entrantNode(group.homeEntrantId)}
+        {' vs '}
+        {entrantNode(group.awayEntrantId)}
+      </>
+    );
   }
 
   /**
@@ -336,7 +376,7 @@ export function ScheduleBuilderTemplate({
                       values={{ round: group.round }}
                     />
                     {' — '}
-                    {crossLabel(group)}
+                    {crossNode(group)}
                   </h3>
                   {group.series && (
                     <p className="cl-card__description">
@@ -372,7 +412,7 @@ export function ScheduleBuilderTemplate({
                                 values={{ number: row.number, span: group.series.span }}
                               />
                             ) : (
-                              crossLabel(group)
+                              crossNode(group)
                             )}
                           </span>
                           {contingencyNode(row)}
@@ -426,7 +466,7 @@ export function ScheduleBuilderTemplate({
             <div className="cl-card__content">
               {groups.map((group) => (
                 <section key={group.fixtureId} aria-label={crossLabel(group)}>
-                  <h3 className="cl-card__title">{crossLabel(group)}</h3>
+                  <h3 className="cl-card__title">{crossNode(group)}</h3>
                   {group.series && (
                     <p className="cl-card__description">
                       <FormattedMessage
@@ -589,7 +629,8 @@ export function ScheduleBuilderTemplate({
                 .filter((entrantId) => !scheduledEntrantIds.has(entrantId))
                 .map((entrantId) => (
                   <p key={entrantId} className="cl-card__description">
-                    {entrantId} — <FormattedMessage {...messages.scheduleBuilderDayOff} />
+                    {entrantNode(entrantId)} —{' '}
+                    <FormattedMessage {...messages.scheduleBuilderDayOff} />
                   </p>
                 ))}
             </div>

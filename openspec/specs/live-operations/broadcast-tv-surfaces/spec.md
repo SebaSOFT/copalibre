@@ -575,3 +575,26 @@ The overlay SHALL name the segment in play with the viewer's language's ordinal 
 #### Scenario: A plain match is unchanged
 - **WHEN** the match is neither in a series nor played in sets
 - **THEN** the overlay renders as before
+
+### Requirement: TV surfaces apply a reschedule on its event
+
+TV kiosk and multi-court surfaces SHALL apply a received reschedule event immediately rather than at
+their next poll, showing the match leave its previous place and arrive at its new one, with its previous
+time stated in text. Under a reduced-motion preference the change SHALL be instantaneous, with the same
+text.
+
+#### Scenario: A kiosk shows the move as it happens
+
+- **WHEN** a kiosk shows today's matches and a listed match is moved to another court
+- **THEN** the kiosk shows the match travelling to its new court and time within a second of the event,
+  stating its previous time
+
+#### Scenario: Reduced motion keeps the information
+
+- **WHEN** the kiosk runs with a reduced-motion preference and a listed match is moved
+- **THEN** the match appears at its new place with no animation, and its previous time is still stated
+
+#### Scenario: Polling remains the safety net
+
+- **WHEN** a kiosk misses an event and its replay window has expired
+- **THEN** the next poll shows the current placement and rescheduled statement

@@ -3,6 +3,11 @@ import { IsArray, IsInt, IsOptional, IsString, ValidateNested } from 'class-vali
 import { Type } from 'class-transformer';
 import { PublicSeriesStateResponse } from './public-tournament.dto.js';
 import { BracketSlotSourceResponse } from './bracket-slot-source.dto.js';
+import {
+  FixtureSourcesResponse,
+  fixtureSideSourceSchema,
+  type FixtureSideSourceDto,
+} from './fixture-side-source.dto.js';
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 
@@ -92,6 +97,8 @@ export class SeedAssignmentResponse {
 }
 
 export class BracketSlotResponse {
+  @ApiPropertyOptional(fixtureSideSourceSchema)
+  source?: FixtureSideSourceDto;
   @ApiProperty({
     description: 'Where this side comes from',
     enum: ['entrant', 'bye', 'winner-of', 'loser-of'],
@@ -129,7 +136,7 @@ export class BracketSlotResponse {
   resultReason?: string;
 }
 
-export class BracketMatchResponse {
+export class BracketMatchResponse extends FixtureSourcesResponse {
   @ApiProperty({ description: 'Deterministic engine id, e.g. WB-R2-M1', example: 'WB-R2-M1' })
   matchId!: string;
 
@@ -198,6 +205,12 @@ export class SeedingZoneResponse {
 }
 
 export class SeedingResponse {
+  @ApiProperty({
+    description: 'Published match assignments released by rebuilding this stage',
+    minimum: 0,
+  })
+  releasedAssignments!: number;
+
   @ApiProperty({ format: 'uuid' })
   stageId!: string;
 

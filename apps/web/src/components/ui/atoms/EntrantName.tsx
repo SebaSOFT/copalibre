@@ -8,10 +8,13 @@ export function EntrantName({
   fullName,
   abbreviation,
   className,
+  inline = false,
 }: {
   readonly fullName: string;
   readonly abbreviation?: string;
   readonly className?: string;
+  /** Flow within surrounding text, inheriting its font, size and emphasis. */
+  readonly inline?: boolean;
 }): React.JSX.Element {
   const ref = useRef<HTMLSpanElement>(null);
   const [compact, setCompact] = useState(false);
@@ -28,7 +31,7 @@ export function EntrantName({
 
   return (
     <span
-      className={`cl-entrant-name ${className ?? ''}`.trim()}
+      className={`cl-entrant-name ${inline ? 'cl-entrant-name--inline' : ''} ${className ?? ''}`.trim()}
       data-testid="entrant-name"
       ref={ref}
       title={compact ? undefined : fullName}

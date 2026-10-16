@@ -1013,6 +1013,10 @@ export interface FixtureResponse {
   readonly round: number;
   readonly homeEntrantId?: string;
   readonly awayEntrantId?: string;
+  readonly homeName?: string;
+  readonly homeAbbreviation?: string;
+  readonly awayName?: string;
+  readonly awayAbbreviation?: string;
   /** Every match of this fixture in play order; exactly one unless it declares a series. */
   readonly matches?: readonly FixtureMatchResponse[];
   readonly series?: FixtureSeriesResponse;

@@ -16,6 +16,14 @@ class ResizeObserverMock {
 }
 
 describe('EntrantName', () => {
+  it('supports inline names and consumer classes without imposing typography', () => {
+    render(<EntrantName inline className="consumer" fullName="Casa de Italia" />);
+    const name = screen.getByTestId('entrant-name');
+    expect(name.classList.contains('cl-entrant-name--inline')).toBe(true);
+    expect(name.classList.contains('consumer')).toBe(true);
+    expect(name.getAttribute('style')).toBeNull();
+  });
+
   beforeEach(() => {
     ResizeObserverMock.widths = { client: 40, scroll: 120 };
     Object.assign(globalThis, { ResizeObserver: ResizeObserverMock });

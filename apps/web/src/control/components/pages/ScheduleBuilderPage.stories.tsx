@@ -38,6 +38,8 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
                   round: 1,
                   homeEntrantId: ids.first,
                   awayEntrantId: ids.second,
+                  homeName: 'Meridian Seven',
+                  awayName: 'Atlas Eight',
                 },
               ],
         }),

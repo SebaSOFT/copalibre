@@ -176,3 +176,15 @@ in-progress match.
 
 - **WHEN** an organizer views a match in progress in the builder
 - **THEN** no withdrawal or move action is offered for it
+
+### Requirement: The builder reflects a change published by someone else
+
+While the schedule builder is open, a published change to a match it shows, made by another operator,
+SHALL be reported in the builder naming the match and the operator. The builder's current preview SHALL
+be re-evaluated against the new state before the organizer can publish.
+
+#### Scenario: Two operators edit the same day
+
+- **WHEN** operator A has an unpublished batch moving a match, and operator B publishes a move of another
+  match into the slot A's batch uses
+- **THEN** A's builder reports B's change and shows the resulting conflict before A can publish

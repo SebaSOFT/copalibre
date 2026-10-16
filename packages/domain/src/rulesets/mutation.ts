@@ -44,6 +44,22 @@ export function evaluateMutation(
   fieldPath: string,
   context: MutationContext,
 ): Result<MutationDecision, MutationBlockedError> {
+  // Placement play changes the engine's structure independently of the discipline's rules.
+  if (fieldPath === 'placementPlay' || /^zones\.[^.]+\.placementPlay$/.test(fieldPath)) {
+    if (context.hasRecordedResults) {
+      return err(
+        new MutationBlockedError(
+          `Field "${fieldPath}" is blocked after results; use the audited correction workflow`,
+          { fieldPath },
+        ),
+      );
+    }
+    return ok({
+      allowed: true,
+      mutationClass: 'requires_rebuild',
+      invalidates: context.generatedFixtures ?? [],
+    });
+  }
   const policy = policies[fieldPath];
   if (!policy) {
     return err(new MutationBlockedError(`No field policy declares "${fieldPath}"`, { fieldPath }));

@@ -312,22 +312,23 @@ describe('seeding generates fixtures per zone (integration)', () => {
     const inZone = (zoneNumber: number) =>
       fixtures.filter((fixture) => fixture.zone_number === zoneNumber);
 
-    // 4 entrants open a knockout with 2 first-round duels; 6 play a 15-match round robin.
-    expect(inZone(1)).toHaveLength(2);
-    expect(inZone(2)).toHaveLength(2);
+    // Every knockout node exists from publication, including the undecided final.
+    expect(inZone(1)).toHaveLength(3);
+    expect(inZone(2)).toHaveLength(3);
     expect(inZone(3)).toHaveLength(15);
     expect(Math.max(...inZone(3).map((fixture) => fixture.round))).toBe(5);
-    expect(Math.max(...inZone(2).map((fixture) => fixture.round))).toBe(1);
+    expect(Math.max(...inZone(2).map((fixture) => fixture.round))).toBe(2);
 
     // Only the zone declaring a best-of-three materializes three matches per fixture.
-    expect(inZone(1).map((fixture) => fixture.matches)).toEqual([3, 3]);
-    expect(inZone(2).map((fixture) => fixture.matches)).toEqual([1, 1]);
+    expect(inZone(1).map((fixture) => fixture.matches)).toEqual([3, 3, 3]);
+    expect(inZone(2).map((fixture) => fixture.matches)).toEqual([1, 1, 1]);
     expect(inZone(3).every((fixture) => fixture.matches === 1)).toBe(true);
 
     // No fixture pairs entrants of different zones.
     const nameOf = new Map([...entrants].map(([name, entrantId]) => [entrantId, name]));
     for (const fixture of fixtures) {
       for (const side of [fixture.home_entrant_id, fixture.away_entrant_id]) {
+        if (side === null) continue;
         expect(zoneOf(nameOf.get(side as string) as string)).toBe(fixture.zone_number);
       }
     }
@@ -348,7 +349,7 @@ describe('seeding generates fixtures per zone (integration)', () => {
       payload: seedPayload([...names].reverse()),
     });
     expect(reseeded.statusCode).toBe(200);
-    expect(await fixturesOf(stageId)).toHaveLength(19);
+    expect(await fixturesOf(stageId)).toHaveLength(21);
   });
 
   it('serves each zone of the mixed stage in its own format, and ranks only the league zone', async () => {

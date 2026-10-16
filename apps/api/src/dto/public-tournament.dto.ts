@@ -2,6 +2,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { BracketSlotSourceResponse } from './bracket-slot-source.dto.js';
 import { TableCellResponse, TableColumnResponse } from './table-projections.dto.js';
 import type { LocalizedLabel } from '@copalibre/domain';
+import {
+  FixtureSourcesResponse,
+  fixtureSideSourceSchema,
+  type FixtureSideSourceDto,
+} from './fixture-side-source.dto.js';
 
 export class PublicStandingsRowResponse {
   @ApiProperty()
@@ -48,7 +53,7 @@ export class PublicPreviousPlacementResponse {
   venue!: PublicScheduleVenueResponse | null;
 }
 
-export class PublicOverviewMatchResponse {
+export class PublicOverviewMatchResponse extends FixtureSourcesResponse {
   @ApiPropertyOptional()
   venueName?: string;
   @ApiPropertyOptional({ description: 'Independent published schedule replay version' })
@@ -252,7 +257,7 @@ export class PublicSegmentSummaryResponse {
   scores?: number[];
 }
 
-export class PublicLiveMatchResponse {
+export class PublicLiveMatchResponse extends FixtureSourcesResponse {
   @ApiPropertyOptional({ format: 'date-time' })
   scheduledAt?: string;
 
@@ -403,7 +408,7 @@ export class PublicMatchEventResponse {
   payload!: Record<string, unknown>;
 }
 
-export class PublicMatchReportResponse {
+export class PublicMatchReportResponse extends FixtureSourcesResponse {
   @ApiPropertyOptional({ description: 'Independent published schedule replay version' })
   scheduleVersion?: number;
 
@@ -501,6 +506,8 @@ export class PublicMatchReportResponse {
 }
 
 export class PublicBracketSlotResponse {
+  @ApiPropertyOptional(fixtureSideSourceSchema)
+  source?: FixtureSideSourceDto;
   @ApiProperty({
     description: 'Where this side comes from',
     enum: ['entrant', 'bye', 'winner-of', 'loser-of'],
@@ -629,7 +636,7 @@ export class PublicSeriesStateResponse {
   explanation!: string;
 }
 
-export class PublicBracketMatchResponse {
+export class PublicBracketMatchResponse extends FixtureSourcesResponse {
   @ApiProperty()
   matchId!: string;
 
@@ -968,7 +975,7 @@ export class PublicMatchesViewEventResponse {
   occurredAt!: string;
 }
 
-export class PublicMatchesViewMatchResponse {
+export class PublicMatchesViewMatchResponse extends FixtureSourcesResponse {
   @ApiPropertyOptional({ description: 'Independent published schedule replay version' })
   scheduleVersion?: number;
 

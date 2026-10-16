@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { SCHEDULE_REASON_PRESETS } from '@copalibre/domain';
+import { FixtureSourcesResponse } from './fixture-side-source.dto.js';
 import {
   Equals,
   IsArray,
@@ -359,7 +360,7 @@ export class FixtureSeriesResponse {
  * assigns a time and venue to. Distinct from the bracket graph's own node
  * ids, which are never persisted.
  */
-export class FixtureResponse {
+export class FixtureResponse extends FixtureSourcesResponse {
   @ApiProperty({ format: 'uuid' })
   fixtureId!: string;
 
@@ -377,6 +378,18 @@ export class FixtureResponse {
 
   @ApiPropertyOptional({ format: 'uuid' })
   awayEntrantId?: string;
+
+  @ApiPropertyOptional({ description: 'Resolved display name of the home entrant' })
+  homeName?: string;
+
+  @ApiPropertyOptional({ description: 'Persisted abbreviation of the home entrant' })
+  homeAbbreviation?: string;
+
+  @ApiPropertyOptional({ description: 'Resolved display name of the away entrant' })
+  awayName?: string;
+
+  @ApiPropertyOptional({ description: 'Persisted abbreviation of the away entrant' })
+  awayAbbreviation?: string;
 
   @ApiProperty({
     type: [FixtureMatchResponse],

@@ -253,3 +253,21 @@ The public live dashboard SHALL compose owned UI library components for standing
 #### Scenario: Upcoming matches display localized kickoff times
 - **WHEN** the live dashboard lists upcoming fixtures
 - **THEN** each scheduled time is formatted using the visitor's resolved locale and localized message descriptors, never a raw ISO 8601 string or hardcoded English separators
+
+### Requirement: Public live surfaces apply a reschedule without a reload
+
+While connected, the live dashboard, the matches view and the match page SHALL apply a received
+reschedule event: the match moves to its new start and venue, gains its rescheduled statement, or leaves
+the schedule when withdrawn or not-required. An event older than the version a surface already holds
+SHALL be ignored.
+
+#### Scenario: An open page moves the match
+
+- **WHEN** a spectator has the matches view open and the organizer publishes a move of a listed match
+- **THEN** the match appears at its new time and venue with its rescheduled statement, without a reload
+
+#### Scenario: A replayed event does not undo a newer one
+
+- **WHEN** a reconnecting page replays an older reschedule event for a match it already shows at a newer
+  placement
+- **THEN** the page keeps the newer placement

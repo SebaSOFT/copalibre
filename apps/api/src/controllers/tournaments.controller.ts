@@ -1544,6 +1544,9 @@ function controlMatchResponseOf(
 
   return {
     matchId: row.matchId,
+    ...(row.nodeKey === undefined ? {} : { nodeKey: row.nodeKey }),
+    ...(row.homeSource === undefined ? {} : { homeSource: row.homeSource }),
+    ...(row.awaySource === undefined ? {} : { awaySource: row.awaySource }),
     stageNumber: row.stageNumber,
     matchNumber: row.matchNumber,
     round: row.round,

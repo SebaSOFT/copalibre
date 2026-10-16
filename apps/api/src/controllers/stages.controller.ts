@@ -52,6 +52,7 @@ import {
 import {
   CompetitionRecordRepository,
   CompetitionRepository,
+  EnrollmentRepository,
   InvariantViolationError,
   StageReadModel,
   TournamentRepository,
@@ -77,6 +78,7 @@ import {
 import { StageFixturesResponse } from '../dto/schedule.dto.js';
 import { resolveTournament } from './standings.controller.js';
 import { chooseRoundZone, inZone, isDynamicRoundFormat } from './stage-rounds.js';
+import { readFixtureSources } from './fixture-sources.js';
 import {
   guaranteedMatchCount,
   readSeriesResolver,
@@ -996,6 +998,12 @@ export class StagesController {
 
     const fixtures = await competition.listFixturesOfStage(stage.stageId);
     const matches = await competition.listMatchesForStage(stage.stageId);
+    const fixtureSources = await readFixtureSources(this.db, stage.stageId);
+    const entrantNames = await new EnrollmentRepository(this.db).resolveEntrantNames(
+      [
+        ...new Set(fixtures.flatMap((fixture) => [fixture.homeEntrantId, fixture.awayEntrantId])),
+      ].filter((id): id is string => id !== undefined),
+    );
     // Each fixture resolves against its own zone's declaration.
     const seriesOf = await readSeriesResolver(this.db, {
       tournamentId: tournament.tournamentId,
@@ -1035,9 +1043,22 @@ export class StagesController {
         return {
           fixtureId: fixture.fixtureId,
           matchId: own[0]?.matchId ?? fixture.fixtureId,
+          ...fixtureSources.get(own[0]?.matchId ?? ''),
           round: fixture.round,
           ...(fixture.homeEntrantId === undefined ? {} : { homeEntrantId: fixture.homeEntrantId }),
           ...(fixture.awayEntrantId === undefined ? {} : { awayEntrantId: fixture.awayEntrantId }),
+          ...(fixture.homeEntrantId === undefined
+            ? {}
+            : {
+                homeName: entrantNames.get(fixture.homeEntrantId)?.name,
+                homeAbbreviation: entrantNames.get(fixture.homeEntrantId)?.abbreviation,
+              }),
+          ...(fixture.awayEntrantId === undefined
+            ? {}
+            : {
+                awayName: entrantNames.get(fixture.awayEntrantId)?.name,
+                awayAbbreviation: entrantNames.get(fixture.awayEntrantId)?.abbreviation,
+              }),
           matches: own.map((match) => {
             const releasedSlotId = releasedSlots.get(match.matchId);
             return {
@@ -1127,6 +1148,23 @@ export class StagesController {
     }
     const zone = choice.kind === 'zone' ? choice.zone : undefined;
     const format = zone === undefined ? stage.format : effectiveFormat(zone, stage);
+    const fixtures = inZone(await competition.listFixturesOfStage(stage.stageId), zone);
+    if (fixtures.length > 0) {
+      const nodes = await this.db
+        .selectFrom('fixtures')
+        .select('node_key')
+        .where(
+          'fixture_id',
+          'in',
+          fixtures.map((fixture) => fixture.fixtureId),
+        )
+        .execute();
+      if (nodes.every((node) => node.node_key !== null)) {
+        throw new ConflictException('Later rounds already exist in the persisted fixture graph', {
+          errorCode: 'stage-graph-persisted',
+        });
+      }
+    }
     if (!isDynamicRoundFormat(format)) {
       // Refused for the zone asked about; a sibling playing a dynamic format is unaffected.
       throw new ConflictException(
@@ -1137,7 +1175,6 @@ export class StagesController {
       );
     }
 
-    const fixtures = inZone(await competition.listFixturesOfStage(stage.stageId), zone);
     if (fixtures.length === 0) {
       throw new ConflictException('Stage has no initial fixtures generated', {
         errorCode: 'stage-no-fixtures',

@@ -195,7 +195,11 @@ export function ScheduleBuilderPage({
           number: fixture.matches?.find((entry) => entry.matchId === matchId)?.number ?? 1,
           span: fixture.series?.span ?? 1,
         });
-        const match = [fixture.homeEntrantId, fixture.awayEntrantId, game]
+        const match = [
+          fixture.homeName ?? intl.formatMessage(messages.matchesViewResultStateTbd),
+          fixture.awayName ?? intl.formatMessage(messages.matchesViewResultStateTbd),
+          game,
+        ]
           .filter(Boolean)
           .join(' · ');
         setConcurrentNotice(
