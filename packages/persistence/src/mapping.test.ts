@@ -156,6 +156,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       archived_at: null,
       emblem_object_id: null,
       featured: false,
+      minimum_rest_minutes: null,
     };
     expect(toTournament(row)).toEqual({
       tournamentId: 't-1',
@@ -167,6 +168,9 @@ describe('snake_case row → camelCase domain mapping', () => {
       status: 'draft',
       featured: false,
     });
+    expect(toTournament({ ...row, minimum_rest_minutes: 120 }).minimumRestMinutes).toBe(120);
+    // SQLite stores a boolean as an integer.
+    expect(toTournament({ ...row, featured: 1 as unknown as boolean }).featured).toBe(true);
   });
 
   it('maps nullable columns to undefined, never null', () => {
@@ -413,6 +417,7 @@ describe('mapping edge cases', () => {
       archived_at: null,
       emblem_object_id: null,
       featured: false,
+      minimum_rest_minutes: null,
     };
     expect(toTournament(row).rulesetId).toBe('rs-1');
     expect(toTournament({ ...row, archived_at: CREATED }).archivedAt).toBe(

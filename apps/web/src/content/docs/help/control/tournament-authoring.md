@@ -49,3 +49,11 @@ draft → published → started → finished → archived. Each step is an expli
 screen, never something this screen does for you. Once **started**, the discipline and the
 tournament profile freeze at the version they had at that moment — a tournament in progress never
 changes its rules midway through.
+
+## Minimum rest between matches
+
+A created tournament's **Settings** screen sets the minimum rest, in minutes, between the end of one
+of an entrant's matches and the start of their next. It is checked every time this tournament's
+matches are previewed or published in the [schedule builder](/help/control/schedule); a placement
+leaving less rest is a conflict naming both matches. Leave it empty to apply no rest rule. Changing it
+moves no match — it applies from the next preview on.

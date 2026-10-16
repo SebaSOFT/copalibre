@@ -325,6 +325,14 @@ export class TournamentSettingsResponse {
       'page. Independent of whether it is live.',
   })
   featured!: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      "Minimum minutes between the end of one of an entrant's matches and the start of their " +
+      'next, checked whenever matches are scheduled. Absent declares no rest rule.',
+    example: 120,
+  })
+  minimumRestMinutes?: number;
 }
 
 /** A partial edit — every field is optional, so only the fields the operator actually changed are sent. */
@@ -368,6 +376,20 @@ export class TournamentSettingsRequest {
     description: 'Optional instant when checked-in team memberships stop being editable.',
   })
   checkInClosesAt?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+    description:
+      "Minimum minutes between an entrant's matches, read by every schedule preview and publish. " +
+      '`null` clears it. A scheduling rule, not a ruleset override: always `safe`, and it moves ' +
+      'no placement.',
+    example: 120,
+  })
+  minimumRestMinutes?: number | null;
 }
 
 /**

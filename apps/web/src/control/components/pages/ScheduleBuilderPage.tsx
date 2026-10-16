@@ -9,6 +9,7 @@ import {
   type ScheduleAssignmentDto,
   type ScheduleConflictDto,
   type ScheduleDetailResponse,
+  type ScheduleReasonDto,
   type VenueResponse,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
@@ -73,6 +74,10 @@ export function ScheduleBuilderPage({
   const [loadError, setLoadError] = useState<string | undefined>(undefined);
   const [conflicts, setConflicts] = useState<readonly ScheduleConflictDto[]>([]);
   const [affectedPublishedMatches, setAffectedPublishedMatches] = useState<readonly string[]>([]);
+  const [reasonRequiredMatches, setReasonRequiredMatches] = useState<readonly string[]>([]);
+  const [freedSlotIds, setFreedSlotIds] = useState<readonly string[]>([]);
+  const [placements, setPlacements] = useState<Readonly<Record<string, string>>>({});
+  const [recentReasons, setRecentReasons] = useState<readonly string[]>([]);
   const [committable, setCommittable] = useState(false);
   const [previewed, setPreviewed] = useState(false);
 
@@ -98,13 +103,16 @@ export function ScheduleBuilderPage({
         fixturesResponse.stageId,
       );
       const nextDrafts: Record<string, DraftAssignment> = {};
+      const nextPlacements: Record<string, string> = {};
       for (const assignment of schedule?.assignments ?? []) {
         nextDrafts[assignment.matchId] = {
           slotId: assignment.slotId,
           officialIds: assignment.officialIds ?? [],
         };
+        nextPlacements[assignment.matchId] = assignment.slotId;
       }
       setDrafts(nextDrafts);
+      setPlacements(nextPlacements);
       setPreviewed(false);
       setConflicts([]);
       setLoadError(undefined);
@@ -144,18 +152,32 @@ export function ScheduleBuilderPage({
       });
       setConflicts(result.conflicts);
       setAffectedPublishedMatches(result.affectedPublishedMatches);
+      setReasonRequiredMatches(result.reasonRequiredMatches ?? []);
+      setFreedSlotIds(result.freedSlotIds ?? []);
       setCommittable(result.committable);
       setPreviewed(true);
+      // The reason prompt offers the organization's own recent wording; it is a nicety, so a
+      // failed read leaves the presets alone rather than failing the preview.
+      if ((result.reasonRequiredMatches ?? []).length > 0 && api.recentScheduleReasons) {
+        void api
+          .recentScheduleReasons(organizationAlias)
+          .then((response) => setRecentReasons(response.reasons))
+          .catch(() => setRecentReasons([]));
+      }
     } catch (error) {
       pushError(error);
     }
   }
 
-  async function publish(batch: readonly ScheduleAssignmentDto[]): Promise<void> {
+  async function publish(
+    batch: readonly ScheduleAssignmentDto[],
+    reason?: ScheduleReasonDto,
+  ): Promise<void> {
     if (!api.publishSchedule || stageId === undefined || batch.length === 0) return;
     try {
       await api.publishSchedule(organizationAlias, tournamentAlias, stageId, {
         assignments: batch,
+        ...(reason === undefined ? {} : { reason }),
       });
       push({ severity: 'success', message: intl.formatMessage(messages.scheduleBuilderPublished) });
       void reload();
@@ -178,13 +200,17 @@ export function ScheduleBuilderPage({
       conflicts={conflicts}
       drafts={drafts}
       fixtures={fixtures}
+      freedSlotIds={freedSlotIds}
       officials={officials}
       onPreview={(batch) => void preview(batch)}
-      onPublish={(batch) => void publish(batch)}
+      onPublish={(batch, reason) => void publish(batch, reason)}
       onSetDraft={setDraft}
       onToggleOfficial={toggleOfficial}
       organizationAlias={organizationAlias}
+      placements={placements}
       previewed={previewed}
+      reasonRequiredMatches={reasonRequiredMatches}
+      recentReasons={recentReasons}
       schedules={schedules}
       stageNumber={stageNumber}
       tournamentAlias={tournamentAlias}

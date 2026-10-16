@@ -781,7 +781,7 @@ export class TournamentRepository {
       readonly authorizationContext: string;
     },
   ): Promise<Tournament> {
-    const current = await this.findById(input.tournamentId);
+    const current = await this.findInTransaction(uow, input.tournamentId);
     if (!current || current.organizationId !== input.organizationId) {
       throw new NotFoundError(`Tournament ${input.tournamentId} does not exist`, {
         tournamentId: input.tournamentId,
@@ -807,6 +807,60 @@ export class TournamentRepository {
       authorizationContext: input.authorizationContext,
       previousState: { featured: current.featured },
       resultingState: { featured: updated.featured },
+    });
+
+    return updated;
+  }
+
+  /**
+   * Sets or clears the tournament's minimum rest between an entrant's matches. A scheduling
+   * rule read at the next preview or publish: it moves no placement, so it is always safe.
+   */
+  async setMinimumRest(
+    uow: UnitOfWork,
+    input: {
+      readonly tournamentId: string;
+      readonly organizationId: string;
+      /** `null` clears the rule. */
+      readonly minimumRestMinutes: number | null;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<Tournament> {
+    const minutes = input.minimumRestMinutes;
+    if (minutes !== null && (!Number.isInteger(minutes) || minutes < 0)) {
+      throw new InvariantViolationError(
+        'A minimum rest is a whole, non-negative number of minutes',
+        {
+          minimumRestMinutes: minutes,
+        },
+      );
+    }
+    const current = await this.findInTransaction(uow, input.tournamentId);
+    if (!current || current.organizationId !== input.organizationId) {
+      throw new NotFoundError(`Tournament ${input.tournamentId} does not exist`, {
+        tournamentId: input.tournamentId,
+      });
+    }
+
+    const row = await uow.tx
+      .updateTable('tournaments')
+      .set({ minimum_rest_minutes: minutes })
+      .where('tournament_id', '=', input.tournamentId)
+      .where('organization_id', '=', input.organizationId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    const updated = toTournament(row);
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'tournament',
+      entityId: input.tournamentId,
+      action: 'tournament.minimum_rest_updated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { minimumRestMinutes: current.minimumRestMinutes ?? null },
+      resultingState: { minimumRestMinutes: updated.minimumRestMinutes ?? null },
     });
 
     return updated;
@@ -886,6 +940,19 @@ export class TournamentRepository {
       .orderBy('created_at', 'desc')
       .execute();
     return rows.map(toTournament);
+  }
+
+  /** Reads inside the caller's transaction, so a tournament created in it is found. */
+  private async findInTransaction(
+    uow: UnitOfWork,
+    tournamentId: string,
+  ): Promise<Tournament | undefined> {
+    const row = await uow.tx
+      .selectFrom('tournaments')
+      .selectAll()
+      .where('tournament_id', '=', tournamentId)
+      .executeTakeFirst();
+    return row ? toTournament(row) : undefined;
   }
 
   async findById(tournamentId: string): Promise<Tournament | undefined> {

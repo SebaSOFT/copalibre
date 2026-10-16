@@ -43,3 +43,11 @@ pubblicato → avviato → concluso → archiviato. Ogni passaggio è una decisi
 schermata, mai qualcosa che questa schermata fa per te. Una volta **avviato**, la disciplina e il
 profilo torneo si congelano alla versione che avevano in quel momento — un torneo in corso non
 cambia mai le sue regole a metà strada.
+
+## Riposo minimo tra le partite
+
+La schermata **Impostazioni** di un torneo creato fissa il riposo minimo, in minuti, tra la fine di
+una partita di un partecipante e l’inizio della successiva. Viene verificato ogni volta che le partite
+di questo torneo vengono visualizzate in anteprima o pubblicate nel [pianificatore](/help/control/schedule);
+una collocazione che lascia meno riposo è un conflitto che nomina entrambe le partite. Lascia vuoto per
+non applicare alcuna regola. Modificarlo non sposta alcuna partita: vale dalla prossima anteprima.

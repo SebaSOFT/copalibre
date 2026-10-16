@@ -37,6 +37,11 @@ export interface Tournament {
    * curated, and a tournament can be either, both, or neither.
    */
   readonly featured: boolean;
+  /**
+   * Minimum minutes between the end of one of an entrant's matches and the start of their next,
+   * checked whenever matches are scheduled. Absent declares no rest rule.
+   */
+  readonly minimumRestMinutes?: number;
 }
 
 /** A started tournament's modules are frozen; see canChangeModuleVersion. */

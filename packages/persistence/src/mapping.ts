@@ -163,7 +163,11 @@ export function toTournament(row: TournamentRow): Tournament {
     ...(row.emblem_object_id === null || row.emblem_object_id === undefined
       ? {}
       : { emblemObjectId: row.emblem_object_id }),
-    featured: row.featured ?? false,
+    // SQLite has no boolean column: it hands back 0 or 1.
+    featured: Boolean(row.featured),
+    ...(row.minimum_rest_minutes === null || row.minimum_rest_minutes === undefined
+      ? {}
+      : { minimumRestMinutes: row.minimum_rest_minutes }),
   };
 }
 

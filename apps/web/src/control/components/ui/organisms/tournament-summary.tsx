@@ -37,6 +37,8 @@ export interface TournamentSummaryFacts {
   readonly checkInClosesAt?: string;
   readonly region?: string;
   readonly capacity?: number;
+  /** Minimum minutes between an entrant's matches, checked when matches are scheduled. */
+  readonly minimumRestMinutes?: number;
 }
 
 export interface TournamentSummaryProps {
@@ -129,6 +131,13 @@ export function TournamentSummary({
               <p>
                 {intl.formatMessage(messages.tournamentSummaryCapacity, {
                   capacity: facts.capacity,
+                })}
+              </p>
+            )}
+            {facts.minimumRestMinutes !== undefined && (
+              <p>
+                {intl.formatMessage(messages.tournamentSummaryMinimumRest, {
+                  minutes: facts.minimumRestMinutes,
                 })}
               </p>
             )}

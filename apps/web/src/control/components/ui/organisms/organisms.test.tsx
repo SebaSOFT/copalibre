@@ -3,6 +3,7 @@ import { jest } from '@jest/globals';
 import { DataTable } from './data-table.js';
 import { Modal } from './modal.js';
 import { DropdownMenu } from './dropdown-menu.js';
+import { Combobox } from '../atoms/combobox.js';
 
 interface Row {
   readonly id: string;
@@ -100,6 +101,31 @@ describe('Modal', () => {
       </Modal>,
     );
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape', code: 'Escape' });
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('lets an open combobox take the first Escape, and closes on the next', () => {
+    const onOpenChange = jest.fn();
+    render(
+      <Modal closeLabel="Close" onOpenChange={onOpenChange} open title="Motivo">
+        <Combobox
+          aria-label="Motivo"
+          id="reason"
+          onValueChange={() => {}}
+          options={[{ value: 'weather', label: 'Clima' }]}
+          value=""
+        />
+      </Modal>,
+    );
+    const field = screen.getByRole('combobox');
+    fireEvent.focus(field);
+    expect(field.getAttribute('aria-expanded')).toBe('true');
+
+    fireEvent.keyDown(field, { key: 'Escape', code: 'Escape' });
+    expect(field.getAttribute('aria-expanded')).toBe('false');
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(field, { key: 'Escape', code: 'Escape' });
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 

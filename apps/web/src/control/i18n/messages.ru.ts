@@ -1460,4 +1460,49 @@ export const messages: Record<string, string> = {
   'control.platform.diagnostics.uptime': 'Время работы: {hours}ч {minutes}м',
   'control.platform.diagnostics.version': 'Версия {version}',
   'control.platform.diagnostics.loading': 'Загрузка диагностики платформы…',
+  'control.settings.minimumRestLabel': 'Минимальный отдых между матчами (минуты)',
+  'control.settings.minimumRestHelp':
+    'Проверяется при каждом планировании матчей турнира: следующий матч участника должен начинаться не раньше этого времени после окончания предыдущего. Оставьте пустым, чтобы не применять правило. Изменение не переносит ни один матч.',
+  'control.tournamentSummary.minimumRest':
+    'Минимальный отдых между матчами участника: {minutes} мин',
+  'control.scheduleBuilder.withdraw': 'Снять со слота',
+  'control.scheduleBuilder.keepPlacement': 'Оставить в слоте',
+  'control.scheduleBuilder.withdrawn': 'Снят — после публикации у матча не будет времени',
+  'control.scheduleBuilder.freedSlotsHeading': 'Слоты, которые освобождает пакет',
+  'control.scheduleBuilder.liveLocked': 'Идёт — матч нельзя перенести или снять, пока он играется',
+  'control.scheduleBuilder.concludedLocked':
+    'Сыгран — его время уже история; используйте процедуру исправления',
+  'control.reasonPrompt.title': 'Почему меняются эти опубликованные матчи?',
+  'control.reasonPrompt.description':
+    'Участники и зрители уже видели это время. Укажите одну причину для пакета или отметьте матч как исключение со своей причиной.',
+  'control.reasonPrompt.batchLabel': 'Причина для пакета',
+  'control.reasonPrompt.placeholder': 'Выберите причину или введите свою',
+  'control.reasonPrompt.exceptionToggle': 'Другая причина',
+  'control.reasonPrompt.exceptionLabel': 'Причина для {match}',
+  'control.reasonPrompt.selectRow': 'Выбрать {match}',
+  'control.reasonPrompt.markSelected': 'Отметить выбранные как исключение',
+  'control.reasonPrompt.sharedLabel':
+    'Причина для {count, plural, one {# выбранного матча} few {# выбранных матчей} many {# выбранных матчей} other {# выбранных матчей}}',
+  'control.reasonPrompt.summary':
+    '{total, plural, one {# матч} few {# матча} many {# матчей} other {# матча}} · {batch} с причиной пакета · {exceptions, plural, one {# исключение} few {# исключения} many {# исключений} other {# исключения}}',
+  'control.reasonPrompt.uncovered':
+    '{count, plural, one {# матчу нужна причина} few {# матчам нужна причина} many {# матчам нужна причина} other {# матчам нужна причина}}',
+  'control.reasonPrompt.keyboardHint':
+    '↑/↓ переход между матчами · Пробел — выбрать · E — исключение · Enter — опубликовать · Esc — закрыть',
+  'control.reasonPrompt.change': '{from} → {to}',
+  'control.reasonPrompt.withdrawnChange': '{from} → снят',
+  'control.reasonPrompt.publish': 'Опубликовать изменения',
+  'control.reasonPrompt.cancel': 'Вернуться к планировщику',
+  'control.reasonPrompt.close': 'Закрыть',
+  'control.reasonPrompt.presetsGroup': 'Частые причины',
+  'control.reasonPrompt.recentGroup': 'Недавние',
+  'control.reasonPrompt.exceptionBadge': 'Исключение',
+  'control.scheduleReason.venueUnavailable': 'Площадка недоступна',
+  'control.scheduleReason.weather': 'Погода',
+  'control.scheduleReason.entrantRequest': 'Просьба участника',
+  'control.scheduleReason.officialsUnavailable': 'Судьи недоступны',
+  'control.scheduleReason.priorMatchOverran': 'Предыдущий матч затянулся',
+  'control.scheduleReason.broadcast': 'Расписание трансляции',
+  'control.scheduleReason.dataCorrection': 'Исправление ошибки',
+  'control.scheduleReason.other': 'Другое',
 };

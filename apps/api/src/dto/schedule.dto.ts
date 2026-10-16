@@ -1,6 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { SCHEDULE_REASON_PRESETS } from '@copalibre/domain';
+import {
+  Equals,
+  IsArray,
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 
 /**
  * Scheduling wire shapes.
@@ -26,14 +37,56 @@ export class TimeWindowDto {
   durationMinutes!: number;
 }
 
+/** Why a published placement changes: a preset code with its rendered text, or typed text. */
+export class ScheduleReasonDto {
+  @ApiPropertyOptional({
+    enum: SCHEDULE_REASON_PRESETS,
+    description: 'The preset this reason was picked from; absent for a typed reason',
+  })
+  @IsOptional()
+  @IsIn(SCHEDULE_REASON_PRESETS)
+  code?: string;
+
+  @ApiProperty({
+    description: 'The reason as the organizer saw it, in their language',
+    example: 'Court 1 without lights',
+  })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(500)
+  text!: string;
+}
+
+/**
+ * One batch entry: a placement (`slotId`, optionally `officialIds`) or a withdrawal
+ * (`withdraw: true`, no `slotId`). Both commit atomically with the rest of the batch.
+ */
 export class ScheduleAssignmentDto {
   @ApiProperty({ format: 'uuid' })
   @IsString()
   matchId!: string;
 
-  @ApiProperty({ format: 'uuid' })
+  @ApiPropertyOptional({ format: 'uuid', description: 'The slot to place the match in' })
+  @IsOptional()
   @IsString()
-  slotId!: string;
+  slotId?: string;
+
+  @ApiPropertyOptional({
+    enum: [true],
+    description: 'Withdraws the match from its slot instead of placing it',
+  })
+  @IsOptional()
+  @Equals(true)
+  withdraw?: true;
+
+  @ApiPropertyOptional({
+    type: ScheduleReasonDto,
+    description: "This match's own exception reason, overriding the batch reason",
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ScheduleReasonDto)
+  reason?: ScheduleReasonDto;
 
   @ApiPropertyOptional({
     type: [String],
@@ -86,7 +139,24 @@ export class ScheduleRequest {
   @Type(() => ScheduleAssignmentDto)
   assignments!: ScheduleAssignmentDto[];
 
-  @ApiPropertyOptional({ type: RestRuleDto })
+  @ApiPropertyOptional({
+    type: ScheduleReasonDto,
+    description:
+      'Applies to every changed or withdrawn published match without its own reason. A batch ' +
+      'changing a published placement is refused unless each such match is covered.',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ScheduleReasonDto)
+  reason?: ScheduleReasonDto;
+
+  @ApiPropertyOptional({
+    type: RestRuleDto,
+    deprecated: true,
+    description:
+      'Deprecated and ignored: the minimum rest is the tournament setting ' +
+      '`minimumRestMinutes`, applied by every preview and publish.',
+  })
   @IsOptional()
   @ValidateNested()
   @Type(() => RestRuleDto)
@@ -95,7 +165,13 @@ export class ScheduleRequest {
 
 export class ScheduleConflictDto {
   @ApiProperty({
-    enum: ['venue-double-booked', 'official-double-booked', 'rest-rule', 'match-finalized'],
+    enum: [
+      'venue-double-booked',
+      'official-double-booked',
+      'rest-rule',
+      'match-finalized',
+      'match-in-progress',
+    ],
     description: 'Which rule the schedule breaks',
   })
   kind!: string;
@@ -128,6 +204,78 @@ export class SchedulePreviewResponse {
     description: 'Already-published matches this batch would move',
   })
   affectedPublishedMatches!: string[];
+
+  @ApiProperty({
+    type: [String],
+    format: 'uuid',
+    description: 'Published matches the batch changes or withdraws: each needs a reason',
+  })
+  reasonRequiredMatches!: string[];
+
+  @ApiProperty({ type: [String], format: 'uuid', description: 'Matches the batch withdraws' })
+  withdrawn!: string[];
+
+  @ApiProperty({
+    type: [String],
+    format: 'uuid',
+    description: 'Slots those withdrawals free',
+  })
+  freedSlotIds!: string[];
+}
+
+export class RecentScheduleReasonsResponse {
+  @ApiProperty({
+    type: [String],
+    description: "The organization's most recent distinct typed reasons, newest first",
+  })
+  reasons!: string[];
+}
+
+export class OrganizationScheduleEntryResponse {
+  @ApiProperty({ format: 'uuid' })
+  matchId!: string;
+
+  @ApiProperty({ enum: ['scheduled', 'in-progress', 'finalized', 'forfeited'] })
+  status!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  tournamentId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  stageId!: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  zoneId?: string;
+
+  @ApiProperty({ example: 1 })
+  round!: number;
+
+  @ApiProperty({ type: [String], format: 'uuid', description: 'Known entrants, home first' })
+  entrantIds!: string[];
+
+  @ApiProperty({ format: 'uuid' })
+  slotId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  venueId!: string;
+
+  @ApiProperty({ description: 'Start, epoch milliseconds' })
+  startsAt!: number;
+
+  @ApiProperty({
+    description:
+      "Start plus the discipline's estimated regulation length (the slot length when it has " +
+      'none), epoch milliseconds',
+  })
+  estimatedEnd!: number;
+
+  @ApiProperty()
+  published!: boolean;
+}
+
+export class OrganizationScheduleResponse {
+  @ApiProperty({ type: [OrganizationScheduleEntryResponse] })
+  assignments!: OrganizationScheduleEntryResponse[];
 }
 
 export class ScheduleResponse {

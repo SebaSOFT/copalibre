@@ -750,7 +750,7 @@ export interface paths {
         put?: never;
         /**
          * Publish a schedule batch
-         * @description All or nothing: one conflicting assignment rejects the batch, so no partially-applied schedule is ever visible. Conflicts are reported the way the preview reports them.
+         * @description All or nothing: one conflicting assignment rejects the batch, so no partially-applied schedule is ever visible. Conflicts are reported the way the preview reports them. Changing or withdrawing a published placement needs a reason (the batch reason or the entry's own); a batch leaving one uncovered is refused with `schedule-reason-required`, listing the matches. The minimum rest is read from the tournament; a request `restRule` is ignored.
          */
         post: operations["SchedulesController_publish"];
         delete?: never;
@@ -773,6 +773,46 @@ export interface paths {
          * @description Runs the identical conflict detection the commit runs, against the identical state, and reports instead of writing — including which already-published matches the batch would move.
          */
         post: operations["SchedulesController_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read an organization's schedule across its tournaments
+         * @description Assignments whose start falls in `[from, to)` (epoch milliseconds, at most 31 days), optionally narrowed to a tournament, stage or venue, each with its estimated end.
+         */
+        get: operations["OrganizationScheduleController_read"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/schedule/reasons/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Recent typed reasons for published schedule changes
+         * @description The organization's ten most recent distinct typed reasons, newest first. Preset reasons are not repeated here: the builder offers those from its own translated list.
+         */
+        get: operations["OrganizationScheduleController_recentReasons"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3589,6 +3629,11 @@ export interface components {
             emblemObjectId?: string;
             /** @description Whether the organizer has flagged this tournament as featured on the organization’s public page. Independent of whether it is live. */
             featured: boolean;
+            /**
+             * @description Minimum minutes between the end of one of an entrant's matches and the start of their next, checked whenever matches are scheduled. Absent declares no rest rule.
+             * @example 120
+             */
+            minimumRestMinutes?: number;
         };
         TournamentSettingsRequest: {
             /** @example Copa Verano (corregida) */
@@ -3610,6 +3655,11 @@ export interface components {
              * @description Optional instant when checked-in team memberships stop being editable.
              */
             checkInClosesAt?: string;
+            /**
+             * @description Minimum minutes between an entrant's matches, read by every schedule preview and publish. `null` clears it. A scheduling rule, not a ruleset override: always `safe`, and it moves no placement.
+             * @example 120
+             */
+            minimumRestMinutes?: number | null;
         };
         SeriesMutationFieldPreview: {
             /** @example series.span */
@@ -3975,11 +4025,33 @@ export interface components {
         ScheduleResponse: {
             assignments: components["schemas"]["ScheduleAssignmentResponse"][];
         };
+        ScheduleReasonDto: {
+            /**
+             * @description The preset this reason was picked from; absent for a typed reason
+             * @enum {string}
+             */
+            code?: "venue-unavailable" | "weather" | "entrant-request" | "officials-unavailable" | "prior-match-overran" | "broadcast" | "data-correction" | "other";
+            /**
+             * @description The reason as the organizer saw it, in their language
+             * @example Court 1 without lights
+             */
+            text: string;
+        };
         ScheduleAssignmentDto: {
             /** Format: uuid */
             matchId: string;
-            /** Format: uuid */
-            slotId: string;
+            /**
+             * Format: uuid
+             * @description The slot to place the match in
+             */
+            slotId?: string;
+            /**
+             * @description Withdraws the match from its slot instead of placing it
+             * @enum {boolean}
+             */
+            withdraw?: true;
+            /** @description This match's own exception reason, overriding the batch reason */
+            reason?: components["schemas"]["ScheduleReasonDto"];
             /** @description Officials assigned to the match */
             officialIds?: string[];
         };
@@ -3992,6 +4064,12 @@ export interface components {
         };
         ScheduleRequest: {
             assignments: components["schemas"]["ScheduleAssignmentDto"][];
+            /** @description Applies to every changed or withdrawn published match without its own reason. A batch changing a published placement is refused unless each such match is covered. */
+            reason?: components["schemas"]["ScheduleReasonDto"];
+            /**
+             * @deprecated
+             * @description Deprecated and ignored: the minimum rest is the tournament setting `minimumRestMinutes`, applied by every preview and publish.
+             */
             restRule?: components["schemas"]["RestRuleDto"];
         };
         ScheduleConflictDto: {
@@ -3999,7 +4077,7 @@ export interface components {
              * @description Which rule the schedule breaks
              * @enum {string}
              */
-            kind: "venue-double-booked" | "official-double-booked" | "rest-rule" | "match-finalized";
+            kind: "venue-double-booked" | "official-double-booked" | "rest-rule" | "match-finalized" | "match-in-progress";
             /** Format: uuid */
             matchId: string;
             /**
@@ -4018,6 +4096,44 @@ export interface components {
             conflicts: components["schemas"]["ScheduleConflictDto"][];
             /** @description Already-published matches this batch would move */
             affectedPublishedMatches: string[];
+            /** @description Published matches the batch changes or withdraws: each needs a reason */
+            reasonRequiredMatches: string[];
+            /** @description Matches the batch withdraws */
+            withdrawn: string[];
+            /** @description Slots those withdrawals free */
+            freedSlotIds: string[];
+        };
+        OrganizationScheduleEntryResponse: {
+            /** Format: uuid */
+            matchId: string;
+            /** @enum {string} */
+            status: "scheduled" | "in-progress" | "finalized" | "forfeited";
+            /** Format: uuid */
+            tournamentId: string;
+            /** Format: uuid */
+            stageId: string;
+            /** Format: uuid */
+            zoneId?: string;
+            /** @example 1 */
+            round: number;
+            /** @description Known entrants, home first */
+            entrantIds: string[];
+            /** Format: uuid */
+            slotId: string;
+            /** Format: uuid */
+            venueId: string;
+            /** @description Start, epoch milliseconds */
+            startsAt: number;
+            /** @description Start plus the discipline's estimated regulation length (the slot length when it has none), epoch milliseconds */
+            estimatedEnd: number;
+            published: boolean;
+        };
+        OrganizationScheduleResponse: {
+            assignments: components["schemas"]["OrganizationScheduleEntryResponse"][];
+        };
+        RecentScheduleReasonsResponse: {
+            /** @description The organization's most recent distinct typed reasons, newest first */
+            reasons: string[];
         };
         MatchStateResponse: {
             /** Format: uuid */
@@ -8099,6 +8215,91 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SchedulePreviewResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    OrganizationScheduleController_read: {
+        parameters: {
+            query: {
+                /** @description Venue id */
+                venue?: unknown;
+                /** @description Stage id */
+                stage?: unknown;
+                /** @description Tournament id */
+                tournament?: unknown;
+                /** @description Range end (exclusive), epoch milliseconds */
+                to: number;
+                /** @description Range start, epoch milliseconds */
+                from: number;
+            };
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationScheduleResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    OrganizationScheduleController_recentReasons: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecentScheduleReasonsResponse"];
                 };
             };
             401: {

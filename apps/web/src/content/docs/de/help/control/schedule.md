@@ -32,6 +32,39 @@ ein doppelt gebuchter Austragungsort oder Offizieller, eine Verletzung der Ruher
 betroffenen Begegnungen sowie jede bereits veröffentlichte Begegnung, die der Stapel verschieben würde.
 Die Veröffentlichung ist atomar: Jede Zuweisung im Stapel tritt gemeinsam in Kraft, oder keine.
 
+## Wie lange ein Spiel sein Zeitfenster belegt
+
+Ein angesetztes Spiel belegt den Beginn seines Zeitfensters plus seine **geschätzte Dauer**: die
+reguläre Spielzeit der Disziplin (zum Beispiel zwei Halbzeiten zu 25 Minuten, also 50 Minuten), mit
+der turniereigenen Zahl der Spielabschnitte. Eine Disziplin ohne reguläre Spielzeit (etwa in Sätzen
+gespielt) belegt das ganze Zeitfenster. Die Spielstätte bleibt zusätzlich für den Wechsel zwischen
+zwei Spielen reserviert. Kurze Zeitfenster verdecken also nie einen Konflikt: Zwei 50-Minuten-Spiele
+im Abstand von fünfzehn Minuten auf demselben Platz sind ein Spielstättenkonflikt.
+
+Die Ruheregel stammt aus den [Einstellungen](/help/control/tournament-authoring) des Turniers: die
+Mindestpause zwischen dem Ende eines Spiels eines Teilnehmers und dem Beginn seines nächsten. Ein
+Turnier ohne Angabe wendet keine Ruheregel an.
+
+## Ein veröffentlichtes Spiel zu ändern braucht einen Grund
+
+Ein bereits **veröffentlichtes** Spiel zu verschieben, neu zu besetzen oder herauszunehmen fragt vor
+dem Veröffentlichen nach dem Grund. Der Dialog listet jedes geänderte veröffentlichte Spiel mit alter
+und neuer Zeit und Spielstätte. Geben Sie einen Grund für den ganzen Stapel an — wählen Sie einen
+häufigen, einen zuletzt verwendeten oder geben Sie Ihren eigenen ein — oder markieren Sie ein Spiel
+als Ausnahme mit eigenem Grund (die Schaltfläche „Anderer Grund“ der Zeile, oder mehrere Zeilen
+auswählen und gemeinsam markieren). Veröffentlichen bleibt deaktiviert, bis jedes aufgeführte Spiel
+abgedeckt ist. Vorheriges Zeitfenster, Spielstätte, Beginn und Offizielle bleiben mit Grund, Person
+und Zeitpunkt erhalten. Ein Stapel erster Ansetzungen wird ohne Nachfrage veröffentlicht.
+
+Mit der Tastatur: ↑/↓ wechseln zwischen Spielen, die Leertaste wählt aus, E markiert eine Ausnahme,
+Enter veröffentlicht und Esc schließt: zuerst die offene Vorschlagsliste, dann den Dialog.
+
+## Ein Spiel aus seinem Zeitfenster nehmen
+
+„Aus dem Zeitfenster nehmen“ entfernt ein angesetztes Spiel im Rahmen des Stapels aus seinem
+Zeitfenster: Die Vorschau zeigt es ohne Termin und listet die freiwerdenden Zeitfenster, damit ein
+anderes Spiel in derselben Veröffentlichung eines davon übernehmen kann.
+
 ## Was Sie hier nicht tun können
 
 Das Umplanen einer bereits abgeschlossenen Begegnung wird abgelehnt: Ihr Zeitplan ist jetzt ein

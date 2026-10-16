@@ -1,6 +1,7 @@
 import { DomainError } from '../errors.js';
 import { UuidV7 } from '../identifiers/uuid-v7.js';
 import { err, ok, type Result } from '../result.js';
+import { epochOfWallClockOrNext, wallClockOf } from './zoned-time.js';
 
 export interface Schedule {
   readonly scheduleId: string;
@@ -49,10 +50,20 @@ export function generateScheduleSlots(
     'scheduleId' | 'startsAt' | 'endsAt' | 'slotMinutes' | 'turnaroundMinutes' | 'venueIds'
   >,
   idGenerator: () => string = () => UuidV7.generate().value,
+  /**
+   * The organization's IANA zone. Slots step in its local wall-clock minutes, so a schedule
+   * crossing a daylight-saving change keeps every slot's local start time; omitted, they step
+   * in plain instants, which is the same thing in a zone without daylight saving.
+   */
+  timeZone?: string,
 ): readonly ScheduleSlot[] {
+  const toWall = (epoch: number) => (timeZone === undefined ? epoch : wallClockOf(epoch, timeZone));
+  const fromWall = (wall: number) =>
+    timeZone === undefined ? wall : epochOfWallClockOrNext(wall, timeZone);
+  const firstWall = toWall(schedule.startsAt);
   const count = computeSlotCountPerVenue(
-    schedule.startsAt,
-    schedule.endsAt,
+    firstWall,
+    toWall(schedule.endsAt),
     schedule.slotMinutes,
     schedule.turnaroundMinutes,
   );
@@ -64,7 +75,7 @@ export function generateScheduleSlots(
   const slots: ScheduleSlot[] = [];
 
   for (let i = 0; i < count; i++) {
-    const slotStartsAt = schedule.startsAt + i * stepMs;
+    const slotStartsAt = fromWall(firstWall + i * stepMs);
     for (const venueId of schedule.venueIds) {
       slots.push({
         slotId: idGenerator(),

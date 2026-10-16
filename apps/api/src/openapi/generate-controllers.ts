@@ -13,6 +13,7 @@ import {
   EntrantsController,
   RegistrationsController,
 } from '../controllers/registrations.controller.js';
+import { OrganizationScheduleController } from '../controllers/organization-schedule.controller.js';
 import { SchedulesController } from '../controllers/schedules.controller.js';
 import { SeedingController } from '../controllers/seeding.controller.js';
 import { StagesController } from '../controllers/stages.controller.js';
@@ -75,6 +76,7 @@ export const OPENAPI_CONTROLLERS = [
   EntrantsController,
   DisciplinesController,
   SchedulesController,
+  OrganizationScheduleController,
   MatchControlController,
   DataImportExportController,
   DataExportController,

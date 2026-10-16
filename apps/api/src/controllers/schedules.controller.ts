@@ -1,5 +1,9 @@
 import { Body, Controller, Get, Inject, Param, Post, Req } from '@nestjs/common';
-import { BadRequestException, NotFoundException } from '../http/error-contract.js';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiForbiddenResponse,
@@ -9,12 +13,15 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
+  InvariantViolationError,
   ScheduleConflictError,
+  ScheduleReasonRequiredError,
   ScheduleRepository,
   TournamentRepository,
   withTransaction,
   type Database,
   type ScheduleAssignmentDetail,
+  type ScheduleBatch,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
@@ -93,16 +100,19 @@ export class SchedulesController {
       },
     });
 
-    const preview = await new ScheduleRepository(this.db).previewSchedule({
-      organizationId: tournament.organizationId,
-      assignments: body.assignments,
-      ...(body.restRule ? { restRule: body.restRule } : {}),
-    });
+    const preview = await SchedulesController.refusingInvariants(() =>
+      new ScheduleRepository(this.db).previewSchedule(
+        SchedulesController.batchOf(tournament.organizationId, body),
+      ),
+    );
 
     return {
       committable: preview.committable,
       conflicts: preview.conflicts.map((conflict) => ({ ...conflict })),
       affectedPublishedMatches: [...preview.affectedPublishedMatches],
+      reasonRequiredMatches: [...preview.reasonRequiredMatches],
+      withdrawn: [...preview.withdrawn],
+      freedSlotIds: [...preview.freedSlotIds],
     };
   }
 
@@ -114,7 +124,11 @@ export class SchedulesController {
     summary: 'Publish a schedule batch',
     description:
       'All or nothing: one conflicting assignment rejects the batch, so no partially-applied ' +
-      'schedule is ever visible. Conflicts are reported the way the preview reports them.',
+      'schedule is ever visible. Conflicts are reported the way the preview reports them. ' +
+      'Changing or withdrawing a published placement needs a reason (the batch reason or the ' +
+      "entry's own); a batch leaving one uncovered is refused with `schedule-reason-required`, " +
+      'listing the matches. The minimum rest is read from the tournament; a request ' +
+      '`restRule` is ignored.',
   })
   @ApiOkResponse({ type: ScheduleResponse })
   @ApiUnauthorizedResponse({ type: ProblemResponse })
@@ -138,15 +152,16 @@ export class SchedulesController {
     });
 
     const schedules = new ScheduleRepository(this.db);
+    const batch = SchedulesController.batchOf(tournament.organizationId, body);
     try {
-      await withTransaction(this.db, (uow) =>
-        schedules.publishSchedule(uow, {
-          organizationId: tournament.organizationId,
-          assignments: body.assignments,
-          ...(body.restRule ? { restRule: body.restRule } : {}),
-          actor: `user:${subject?.subjectId ?? 'unknown'}`,
-          authorizationContext: (subject?.scopes ?? []).join(' '),
-        }),
+      await SchedulesController.refusingInvariants(() =>
+        withTransaction(this.db, (uow) =>
+          schedules.publishSchedule(uow, {
+            ...batch,
+            actor: `user:${subject?.subjectId ?? 'unknown'}`,
+            authorizationContext: (subject?.scopes ?? []).join(' '),
+          }),
+        ),
       );
       const assignments = await schedules.listScheduleDetailsForStage(stageId);
       return { assignments: assignments.map(SchedulesController.toDto) };
@@ -160,6 +175,72 @@ export class SchedulesController {
             conflicts: cause.conflicts,
           },
           { errorCode: 'schedule-bad-request' },
+        );
+      }
+      if (cause instanceof ScheduleReasonRequiredError) {
+        throw new BadRequestException(
+          { message: cause.message, uncoveredMatchIds: [...cause.matchIds] },
+          { errorCode: 'schedule-reason-required' },
+        );
+      }
+      throw cause;
+    }
+  }
+
+  /**
+   * The wire batch as the repository takes it. An entry is a placement or a withdrawal, never
+   * both and never neither; the request `restRule` is dropped, because the tournament's stored
+   * rule is the only one that applies.
+   */
+  private static batchOf(organizationId: string, body: ScheduleRequest): ScheduleBatch {
+    const malformed = body.assignments.filter(
+      (entry) => (entry.withdraw === true) === (entry.slotId !== undefined),
+    );
+    if (malformed.length > 0) {
+      throw new BadRequestException(
+        {
+          message:
+            'Each entry either places a match in a slot or withdraws it, not both or neither',
+          matchIds: malformed.map((entry) => entry.matchId),
+        },
+        { errorCode: 'schedule-bad-request' },
+      );
+    }
+    const reasonOf = (reason: ScheduleRequest['reason']) =>
+      reason === undefined
+        ? {}
+        : {
+            reason: {
+              ...(reason.code === undefined ? {} : { code: reason.code }),
+              text: reason.text,
+            },
+          };
+    return {
+      organizationId,
+      assignments: body.assignments
+        .filter((entry) => entry.withdraw !== true)
+        .map((entry) => ({
+          matchId: entry.matchId,
+          slotId: entry.slotId as string,
+          ...(entry.officialIds === undefined ? {} : { officialIds: entry.officialIds }),
+          ...reasonOf(entry.reason),
+        })),
+      withdrawals: body.assignments
+        .filter((entry) => entry.withdraw === true)
+        .map((entry) => ({ matchId: entry.matchId, ...reasonOf(entry.reason) })),
+      ...reasonOf(body.reason),
+    };
+  }
+
+  /** A batch naming a not-required or unplaced match is the caller's conflict, not a fault. */
+  private static async refusingInvariants<T>(run: () => Promise<T>): Promise<T> {
+    try {
+      return await run();
+    } catch (cause) {
+      if (cause instanceof InvariantViolationError) {
+        throw new ConflictException(
+          { message: cause.message, ...(cause.details ?? {}) },
+          { errorCode: 'schedule-conflict' },
         );
       }
       throw cause;

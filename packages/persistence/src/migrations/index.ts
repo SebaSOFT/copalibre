@@ -50,6 +50,7 @@ import { stageGroupConfiguration } from './0039-stage-group-configuration.js';
 import { zoneFormat } from './0040-zone-format.js';
 import { fixtureRole } from './0041-fixture-role.js';
 import { fixtureGraphSources } from './0042-fixture-graph-sources.js';
+import { scheduleIntegrity } from './0043-schedule-integrity.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -100,6 +101,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0040-zone-format': zoneFormat,
   '0041-fixture-role': fixtureRole,
   '0042-fixture-graph-sources': fixtureGraphSources,
+  '0043-schedule-integrity': scheduleIntegrity,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

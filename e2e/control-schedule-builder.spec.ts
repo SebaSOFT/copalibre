@@ -32,6 +32,25 @@ interface ScheduleAssignment {
   readonly officialIds?: readonly string[];
 }
 
+interface ScheduleReason {
+  readonly code?: string;
+  readonly text: string;
+}
+
+/** A batch entry as the builder sends it: a placement, or a withdrawal. */
+interface BatchEntry {
+  readonly matchId: string;
+  readonly slotId?: string;
+  readonly withdraw?: true;
+  readonly officialIds?: readonly string[];
+  readonly reason?: ScheduleReason;
+}
+
+interface BatchBody {
+  readonly assignments: readonly BatchEntry[];
+  readonly reason?: ScheduleReason;
+}
+
 /**
  * A slot is the placeable unit — a venue and a time already reserved — since scheduling moved
  * to match grain. The builder picks one, rather than typing a start time and a duration.
@@ -45,6 +64,11 @@ const SCHEDULES = [
     slots: [
       { slotId: 'slot-1', venueId: 'venue-1', startsAt: '2026-08-01T14:00:00.000Z', matchCount: 0 },
       { slotId: 'slot-2', venueId: 'venue-1', startsAt: '2026-08-01T16:00:00.000Z', matchCount: 0 },
+      { slotId: 'slot-3', venueId: 'venue-1', startsAt: '2026-08-01T18:00:00.000Z', matchCount: 0 },
+      { slotId: 'slot-4', venueId: 'venue-1', startsAt: '2026-08-01T20:00:00.000Z', matchCount: 0 },
+      { slotId: 'slot-5', venueId: 'venue-2', startsAt: '2026-08-01T15:00:00.000Z', matchCount: 0 },
+      { slotId: 'slot-6', venueId: 'venue-2', startsAt: '2026-08-01T17:00:00.000Z', matchCount: 0 },
+      { slotId: 'slot-7', venueId: 'venue-2', startsAt: '2026-08-01T19:00:00.000Z', matchCount: 0 },
     ],
   },
 ];
@@ -52,10 +76,12 @@ const SCHEDULES = [
 let venues: VenueRecord[] = [];
 let officials: OfficialRecord[] = [];
 let published: ScheduleAssignment[] = [];
+let minimumRestMinutes: number | undefined;
+let publishedBodies: BatchBody[] = [];
 let nextVenueId = 1;
 let nextOfficialId = 1;
 
-const fixtures = [
+const BASE_FIXTURES = [
   {
     fixtureId: 'fixture-1',
     matchId: 'match-1',
@@ -73,6 +99,58 @@ const fixtures = [
     matches: [{ matchId: 'match-2', number: 1, status: 'scheduled' }],
   },
 ];
+
+/** A third and a fourth cross: the fourth shares entrant-a with the first, so rest can bite. */
+const MORE_FIXTURES = [
+  {
+    fixtureId: 'fixture-3',
+    matchId: 'match-3',
+    round: 2,
+    homeEntrantId: 'entrant-e',
+    awayEntrantId: 'entrant-f',
+    matches: [{ matchId: 'match-3', number: 1, status: 'scheduled' }],
+  },
+  {
+    fixtureId: 'fixture-4',
+    matchId: 'match-4',
+    round: 2,
+    homeEntrantId: 'entrant-a',
+    awayEntrantId: 'entrant-c',
+    matches: [{ matchId: 'match-4', number: 1, status: 'scheduled' }],
+  },
+];
+
+let fixtures = [...BASE_FIXTURES];
+
+const slotStart = (slotId: string | undefined) =>
+  Date.parse(SCHEDULES[0]?.slots.find((one) => one.slotId === slotId)?.startsAt ?? '');
+
+/** The tournament's stored rest rule, measured from a one-hour match's end. */
+function restConflicts(assignments: readonly ScheduleAssignment[]): readonly { detail: string }[] {
+  if (minimumRestMinutes === undefined) return [];
+  const entrantsOf = (matchId: string) => {
+    const fixture = fixtures.find((one) => one.matchId === matchId);
+    return [fixture?.homeEntrantId, fixture?.awayEntrantId];
+  };
+  const placed = [
+    ...published.filter((one) => !assignments.some((a) => a.matchId === one.matchId)),
+    ...assignments,
+  ];
+  const conflicts: { detail: string }[] = [];
+  for (const [index, a] of placed.entries()) {
+    for (const b of placed.slice(index + 1)) {
+      const shared = entrantsOf(a.matchId).filter((id) => entrantsOf(b.matchId).includes(id));
+      if (shared.length === 0) continue;
+      const gap = Math.abs(slotStart(a.slotId) - slotStart(b.slotId)) / 60_000 - 60;
+      if (gap < minimumRestMinutes) {
+        conflicts.push({
+          detail: `Entrant "${shared[0]}" gets ${gap} minute(s) between "${a.matchId}" and "${b.matchId}"; ${minimumRestMinutes} are required`,
+        });
+      }
+    }
+  }
+  return conflicts;
+}
 
 /** Two matches placed in one slot at a single-capacity venue is exactly one conflict. */
 function detectConflicts(
@@ -96,6 +174,9 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
   venues = [];
   officials = [];
   published = [];
+  fixtures = [...BASE_FIXTURES];
+  minimumRestMinutes = undefined;
+  publishedBodies = [];
   nextVenueId = 1;
   nextOfficialId = 1;
 
@@ -164,23 +245,33 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
           );
         }
         if (url === `${scheduleBase}/preview` && method === 'POST') {
-          const body = JSON.parse(String(init?.body)) as {
-            assignments: readonly ScheduleAssignment[];
-          };
           return Response.json(
             await (
               window as unknown as { __preview: (body: unknown) => Promise<unknown> }
-            ).__preview(body.assignments),
+            ).__preview(JSON.parse(String(init?.body))),
           );
         }
         if (url === scheduleBase && method === 'POST') {
-          const body = JSON.parse(String(init?.body)) as {
-            assignments: readonly ScheduleAssignment[];
-          };
           return Response.json(
             await (
               window as unknown as { __publish: (body: unknown) => Promise<unknown> }
-            ).__publish(body.assignments),
+            ).__publish(JSON.parse(String(init?.body))),
+          );
+        }
+        if (url === `/organizations/${orgAlias}/schedule/reasons/recent` && method === 'GET') {
+          return Response.json({ reasons: ['Cancha 1 sin luz'] });
+        }
+        const settingsUrl = `/organizations/${orgAlias}/tournaments/${tournamentAlias}/settings`;
+        if (url === settingsUrl && method === 'GET') {
+          return Response.json(
+            await (window as unknown as { __settings: () => Promise<unknown> }).__settings(),
+          );
+        }
+        if (url === settingsUrl && method === 'PUT') {
+          return Response.json(
+            await (
+              window as unknown as { __saveSettings: (body: unknown) => Promise<unknown> }
+            ).__saveSettings(JSON.parse(String(init?.body))),
           );
         }
 
@@ -229,13 +320,64 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
   await page.exposeFunction('__schedules', () => SCHEDULES);
   await page.exposeFunction('__fixtures', () => ({ stageId: STAGE_ID, fixtures }));
   await page.exposeFunction('__schedule', () => ({ assignments: published }));
-  await page.exposeFunction('__preview', (assignments: readonly ScheduleAssignment[]) => {
-    const conflicts = detectConflicts(assignments);
-    return { committable: conflicts.length === 0, conflicts, affectedPublishedMatches: [] };
+  await page.exposeFunction('__preview', (body: BatchBody) => {
+    const placements = body.assignments.filter(
+      (entry): entry is ScheduleAssignment => entry.withdraw !== true,
+    );
+    const withdrawn = body.assignments
+      .filter((entry) => entry.withdraw === true)
+      .map((e) => e.matchId);
+    const conflicts = [...detectConflicts(placements), ...restConflicts(placements)];
+    const moved = placements
+      .filter((entry) => {
+        const prior = published.find((one) => one.matchId === entry.matchId);
+        return prior !== undefined && prior.slotId !== entry.slotId;
+      })
+      .map((entry) => entry.matchId);
+    return {
+      committable: conflicts.length === 0,
+      conflicts,
+      affectedPublishedMatches: [...moved, ...withdrawn],
+      reasonRequiredMatches: [...moved, ...withdrawn],
+      withdrawn,
+      freedSlotIds: published.filter((one) => withdrawn.includes(one.matchId)).map((o) => o.slotId),
+    };
   });
-  await page.exposeFunction('__publish', (assignments: readonly ScheduleAssignment[]) => {
-    published = [...assignments];
+  await page.exposeFunction('__publish', (body: BatchBody) => {
+    publishedBodies = [...publishedBodies, body];
+    const withdrawn = body.assignments
+      .filter((entry) => entry.withdraw === true)
+      .map((e) => e.matchId);
+    const placements = body.assignments.filter(
+      (entry): entry is ScheduleAssignment => entry.withdraw !== true,
+    );
+    published = [
+      ...published.filter(
+        (one) =>
+          !withdrawn.includes(one.matchId) && !placements.some((p) => p.matchId === one.matchId),
+      ),
+      ...placements.map(({ matchId, slotId, officialIds }) => ({
+        matchId,
+        slotId,
+        ...(officialIds === undefined ? {} : { officialIds }),
+      })),
+    ];
     return { assignments: published };
+  });
+  await page.exposeFunction('__settings', () => ({
+    name: 'Apertura 2026',
+    featured: false,
+    ...(minimumRestMinutes === undefined ? {} : { minimumRestMinutes }),
+  }));
+  await page.exposeFunction('__saveSettings', (body: { minimumRestMinutes?: number | null }) => {
+    if (body.minimumRestMinutes !== undefined) {
+      minimumRestMinutes = body.minimumRestMinutes ?? undefined;
+    }
+    return {
+      name: 'Apertura 2026',
+      featured: false,
+      ...(minimumRestMinutes === undefined ? {} : { minimumRestMinutes }),
+    };
   });
 }
 
@@ -311,4 +453,117 @@ test('a conflicting batch shows the conflict and blocks publish until resolved',
   await expect(page.getByText('Conflictos')).toBeVisible();
   await expect(page.getByText(/hosts 1 fixture\(s\) at once/)).toBeVisible();
   await expect(page.getByText('Publicar')).toBeDisabled();
+});
+
+test('stores a minimum rest, asks a reason for published moves from the keyboard, and withdraws a match', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+  fixtures = [...BASE_FIXTURES, ...MORE_FIXTURES];
+  venues = [
+    {
+      venueId: 'venue-1',
+      organizationId: 'org-1',
+      alias: 'cancha-1',
+      name: 'Cancha 1',
+      concurrentCapacity: 1,
+    },
+    {
+      venueId: 'venue-2',
+      organizationId: 'org-1',
+      alias: 'cancha-2',
+      name: 'Cancha 2',
+      concurrentCapacity: 1,
+    },
+  ];
+  published = [
+    { matchId: 'match-1', slotId: 'slot-1' },
+    { matchId: 'match-2', slotId: 'slot-2' },
+    { matchId: 'match-3', slotId: 'slot-3' },
+  ];
+
+  const settingsTarget = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/settings`;
+  await seedLoginTransaction(page, settingsTarget);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${settingsTarget}`);
+  await page.getByLabel('Descanso mínimo entre partidos (minutos)').fill('120');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.getByText('Configuración guardada.')).toBeVisible();
+  expect(minimumRestMinutes).toBe(120);
+
+  const scheduleTarget = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/stages/1/schedule`;
+  await seedLoginTransaction(page, scheduleTarget);
+  await page.goto(loginCallbackUrl()).catch((error: Error) => {
+    if (!error.message.includes('is interrupted by another navigation')) throw error;
+  });
+  await page.waitForURL(`**${scheduleTarget}`);
+  await expect(page.getByText('Ronda 1').first()).toBeVisible();
+
+  // entrant-a plays match-1 at 14:00; match-4 at 15:00 leaves no rest at all.
+  await page.getByLabel('Hora de inicio — entrant-a vs entrant-c').selectOption('slot-5');
+  await page.getByText('Previsualizar').click();
+  await expect(page.getByText(/120 are required/).first()).toBeVisible();
+  await page.getByLabel('Hora de inicio — entrant-a vs entrant-c').selectOption('');
+
+  // Three published matches move; the batch needs a reason before it publishes.
+  await page.getByLabel('Hora de inicio — entrant-a vs entrant-b').selectOption('slot-4');
+  await page.getByLabel('Hora de inicio — entrant-c vs entrant-d').selectOption('slot-6');
+  await page.getByLabel('Hora de inicio — entrant-e vs entrant-f').selectOption('slot-7');
+  await page.getByText('Previsualizar').click();
+  await page.getByRole('button', { name: 'Publicar', exact: true }).click();
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  const batchReason = dialog.getByLabel('Motivo del lote');
+  await expect(batchReason).toBeFocused();
+  await page.keyboard.type('Cancha 1 sin luz');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('e');
+  await expect(dialog.getByLabel('Motivo de entrant-c vs entrant-d')).toBeFocused();
+  await page.keyboard.type('Pedido de un');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(
+    dialog.getByText('3 partidos · 2 con el motivo del lote · 1 excepción'),
+  ).toBeVisible();
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.screenshot({
+    path: 'docs/assets/screenshots/control-schedule-reason-prompt-desktop.png',
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: 'docs/assets/screenshots/control-schedule-reason-prompt-mobile.png',
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Horario publicado.')).toBeVisible();
+
+  const moved = publishedBodies.at(-1);
+  expect(moved?.reason).toEqual({ text: 'Cancha 1 sin luz' });
+  expect(moved?.assignments.find((entry) => entry.matchId === 'match-2')?.reason).toEqual({
+    code: 'entrant-request',
+    text: 'Pedido de un participante',
+  });
+  expect(moved?.assignments.find((entry) => entry.matchId === 'match-1')?.reason).toBeUndefined();
+
+  // Withdrawing a published match frees its slot in the preview and needs a reason too.
+  await page.getByRole('button', { name: 'Retirar del horario — entrant-e vs entrant-f' }).click();
+  await page.getByText('Previsualizar').click();
+  await expect(page.getByText('Horarios que libera este lote')).toBeVisible();
+  await page.getByRole('button', { name: 'Publicar', exact: true }).click();
+  await page.keyboard.type('Clima');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  // The first publish's toast may still be showing; the newest one is this publish's.
+  await expect(page.getByText('Horario publicado.').last()).toBeVisible();
+  expect(publishedBodies.at(-1)?.assignments).toContainEqual({
+    matchId: 'match-3',
+    withdraw: true,
+  });
+  expect(publishedBodies.at(-1)?.reason).toEqual({ code: 'weather', text: 'Clima' });
+  expect(published.map((one) => one.matchId)).not.toContain('match-3');
 });

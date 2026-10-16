@@ -22,6 +22,7 @@ export { newId } from './ids.js';
 export {
   PersistenceError,
   InvariantViolationError,
+  ScheduleReasonRequiredError,
   SchemaVersionMismatchError,
   NotFoundError,
 } from './errors.js';
@@ -146,6 +147,12 @@ export {
   ScheduleRepository,
   type SchedulePreview,
   type ScheduleAssignmentDetail,
+  type ScheduleBatch,
+  type SchedulePlacement,
+  type SchedulePlacementHistory,
+  type ScheduleReason,
+  type ScheduleWithdrawal,
+  type OrganizationScheduleEntry,
 } from './repositories/schedule-repository.js';
 export { MatchAssignmentRepository } from './repositories/match-assignment-repository.js';
 export {

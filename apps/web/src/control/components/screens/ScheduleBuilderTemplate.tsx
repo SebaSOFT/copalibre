@@ -1,10 +1,12 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   type FixtureResponse,
   type OfficialResponse,
   type ScheduleAssignmentDto,
   type ScheduleConflictDto,
+  type ScheduleReasonDto,
+  type ScheduleReasonPreset,
   type ScheduleDetailResponse,
   type VenueResponse,
 } from '../../lib/api-client.js';
@@ -21,13 +23,33 @@ import { Checkbox } from '../ui/atoms/checkbox.js';
 import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
 import { Alert } from '../ui/atoms/alert.js';
+import {
+  ScheduleReasonPrompt,
+  type ReasonPromptResult,
+} from '../ui/organisms/schedule-reason-prompt.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 
 export interface DraftAssignment {
   readonly slotId: string;
   readonly officialIds: readonly string[];
+  /** Take the match out of the slot it holds when the batch publishes. */
+  readonly withdraw?: boolean;
 }
+
+/** A match being played, or already played, keeps its time and place: no move, no withdrawal. */
+const LOCKED_STATUSES: ReadonlySet<BuilderRow['status']> = new Set(['in-progress', 'finalized']);
+
+const PRESET_LABELS: Record<ScheduleReasonPreset, typeof messages.scheduleReasonOther> = {
+  'venue-unavailable': messages.scheduleReasonVenueUnavailable,
+  weather: messages.scheduleReasonWeather,
+  'entrant-request': messages.scheduleReasonEntrantRequest,
+  'officials-unavailable': messages.scheduleReasonOfficialsUnavailable,
+  'prior-match-overran': messages.scheduleReasonPriorMatchOverran,
+  broadcast: messages.scheduleReasonBroadcast,
+  'data-correction': messages.scheduleReasonDataCorrection,
+  other: messages.scheduleReasonOther,
+};
 
 const EMPTY_DRAFT: DraftAssignment = {
   slotId: '',
@@ -43,10 +65,20 @@ const CONTINGENCY_LABELS: Record<
   'no-longer-required': messages.scheduleBuilderContingencyNotRequired,
 };
 
+/** The prompt's reason on the wire: a code only when it is one of the known presets. */
+function apiReasonOf(reason: { readonly code?: string; readonly text: string }): ScheduleReasonDto {
+  const code = reason.code;
+  return code !== undefined && code in PRESET_LABELS
+    ? { code: code as ScheduleReasonPreset, text: reason.text }
+    : { text: reason.text };
+}
+
 function assignmentFrom(
   matchId: string,
   draft: DraftAssignment,
+  holdsSlot: boolean,
 ): ScheduleAssignmentDto | undefined {
+  if (draft.withdraw === true) return holdsSlot ? { matchId, withdraw: true } : undefined;
   if (draft.slotId === '') return undefined;
   return {
     matchId,
@@ -68,13 +100,17 @@ export function ScheduleBuilderTemplate({
   conflicts,
   drafts,
   fixtures,
+  freedSlotIds = [],
   officials,
   onPreview,
   onPublish,
   onToggleOfficial,
   onSetDraft,
   organizationAlias,
+  placements = {},
   previewed,
+  reasonRequiredMatches = [],
+  recentReasons = [],
   schedules,
   stageNumber,
   tournamentAlias,
@@ -85,9 +121,17 @@ export function ScheduleBuilderTemplate({
   readonly conflicts: readonly ScheduleConflictDto[];
   readonly drafts: Readonly<Record<string, DraftAssignment>>;
   readonly fixtures: readonly FixtureResponse[];
+  /** Slots the previewed batch frees by withdrawing their matches. */
+  readonly freedSlotIds?: readonly string[];
   readonly officials: readonly OfficialResponse[];
   readonly onPreview: (batch: readonly ScheduleAssignmentDto[]) => void;
-  readonly onPublish: (batch: readonly ScheduleAssignmentDto[]) => void;
+  /** `reason` covers every changed published match its entry does not already cover. */
+  readonly onPublish: (batch: readonly ScheduleAssignmentDto[], reason?: ScheduleReasonDto) => void;
+  /** Where each match stands on the server now: its slot, as last published. */
+  readonly placements?: Readonly<Record<string, string>>;
+  /** Published matches the previewed batch changes or withdraws: each needs a reason. */
+  readonly reasonRequiredMatches?: readonly string[];
+  readonly recentReasons?: readonly string[];
   readonly onSetDraft: (matchId: string, patch: Partial<DraftAssignment>) => void;
   readonly onToggleOfficial: (matchId: string, officialId: string) => void;
   readonly organizationAlias: string;
@@ -98,6 +142,7 @@ export function ScheduleBuilderTemplate({
   readonly venues: readonly VenueResponse[];
 }): React.JSX.Element {
   const intl = useIntl();
+  const [promptOpen, setPromptOpen] = useState(false);
 
   const draftFor = useCallback(
     (matchId: string): DraftAssignment => drafts[matchId] ?? EMPTY_DRAFT,
@@ -123,11 +168,32 @@ export function ScheduleBuilderTemplate({
     () =>
       groups
         .flatMap((group) => group.rows)
-        .filter((row) => row.status !== 'not-required')
-        .map((row) => assignmentFrom(row.matchId, draftFor(row.matchId)))
+        .filter((row) => row.status !== 'not-required' && !LOCKED_STATUSES.has(row.status))
+        .map((row) =>
+          assignmentFrom(row.matchId, draftFor(row.matchId), placements[row.matchId] !== undefined),
+        )
         .filter((assignment): assignment is ScheduleAssignmentDto => assignment !== undefined),
-    [groups, draftFor],
+    [groups, draftFor, placements],
   );
+
+  const rowLabelOf = useMemo(() => {
+    const labels = new Map<string, string>();
+    for (const group of groups) {
+      const cross = `${group.homeEntrantId ?? '—'} vs ${group.awayEntrantId ?? '—'}`;
+      for (const row of group.rows) {
+        labels.set(
+          row.matchId,
+          group.series
+            ? `${cross} — ${intl.formatMessage(messages.scheduleBuilderSeriesGame, {
+                number: row.number,
+                span: group.series.span,
+              })}`
+            : cross,
+        );
+      }
+    }
+    return labels;
+  }, [groups, intl]);
 
   const entrantIds = [
     ...new Set(groups.flatMap((group) => [group.homeEntrantId, group.awayEntrantId])),
@@ -148,6 +214,42 @@ export function ScheduleBuilderTemplate({
   }
 
   const releases = pendingReleases(groups, (matchId) => draftFor(matchId).slotId);
+
+  const promptRows = reasonRequiredMatches.map((matchId) => {
+    const from =
+      describeSlot(placements[matchId]) ?? intl.formatMessage(messages.scheduleBuilderUnassigned);
+    const draft = draftFor(matchId);
+    return {
+      matchId,
+      label: rowLabelOf.get(matchId) ?? matchId,
+      change:
+        draft.withdraw === true
+          ? intl.formatMessage(messages.reasonPromptWithdrawnChange, { from })
+          : intl.formatMessage(messages.reasonPromptChange, {
+              from,
+              to:
+                describeSlot(draft.slotId) ??
+                intl.formatMessage(messages.scheduleBuilderUnassigned),
+            }),
+    };
+  });
+
+  /** A batch moving published matches asks why first; first placements publish directly. */
+  function requestPublish(): void {
+    if (reasonRequiredMatches.length > 0) setPromptOpen(true);
+    else onPublish(batch);
+  }
+
+  function publishWithReasons(result: ReasonPromptResult): void {
+    setPromptOpen(false);
+    onPublish(
+      batch.map((entry) => {
+        const own = result.exceptions[entry.matchId];
+        return own === undefined ? entry : { ...entry, reason: apiReasonOf(own) };
+      }),
+      result.batch === undefined ? undefined : apiReasonOf(result.batch),
+    );
+  }
 
   /** The cross a series' rows are grouped under, so five rows never read as five matches. */
   function crossLabel(group: (typeof groups)[number]): string {
@@ -248,7 +350,9 @@ export function ScheduleBuilderTemplate({
                   <ul>
                     {group.rows.map((row) => {
                       const draft = draftFor(row.matchId);
-                      const assignedSlot = slotById.get(draft.slotId);
+                      // A withdrawal shows as unscheduled before it publishes, freeing its slot.
+                      const assignedSlot =
+                        draft.withdraw === true ? undefined : slotById.get(draft.slotId);
                       const venue = assignedSlot
                         ? venues.find((c) => c.venueId === assignedSlot.venueId)
                         : undefined;
@@ -358,6 +462,35 @@ export function ScheduleBuilderTemplate({
                         </p>
                       );
                     }
+                    // A live or played match keeps its time and place: the record is not a plan.
+                    if (LOCKED_STATUSES.has(row.status)) {
+                      return (
+                        <p key={row.matchId} className="cl-card__description">
+                          {rowLabel} —{' '}
+                          <FormattedMessage
+                            {...(row.status === 'in-progress'
+                              ? messages.scheduleBuilderLiveLocked
+                              : messages.scheduleBuilderConcludedLocked)}
+                          />
+                        </p>
+                      );
+                    }
+                    if (draft.withdraw === true) {
+                      return (
+                        <div key={row.matchId} className="cl-schedule-builder__assignment-row">
+                          <p className="cl-card__description">
+                            {rowLabel} — <FormattedMessage {...messages.scheduleBuilderWithdrawn} />
+                          </p>
+                          <Button
+                            onClick={() => onSetDraft(row.matchId, { withdraw: false })}
+                            type="button"
+                            variant="secondary"
+                          >
+                            <FormattedMessage {...messages.scheduleBuilderKeepPlacement} />
+                          </Button>
+                        </div>
+                      );
+                    }
                     return (
                       <div key={row.matchId} className="cl-schedule-builder__assignment-row">
                         <Field
@@ -390,6 +523,17 @@ export function ScheduleBuilderTemplate({
                         </Field>
 
                         {contingencyNode(row)}
+
+                        {placements[row.matchId] !== undefined && (
+                          <Button
+                            aria-label={`${intl.formatMessage(messages.scheduleBuilderWithdraw)} — ${rowLabel}`}
+                            onClick={() => onSetDraft(row.matchId, { withdraw: true })}
+                            type="button"
+                            variant="secondary"
+                          >
+                            <FormattedMessage {...messages.scheduleBuilderWithdraw} />
+                          </Button>
+                        )}
 
                         <fieldset className="cl-role-user">
                           <legend className="cl-label">
@@ -460,7 +604,7 @@ export function ScheduleBuilderTemplate({
                 </Button>
                 <Button
                   disabled={!previewed || !committable || batch.length === 0}
-                  onClick={() => onPublish(batch)}
+                  onClick={requestPublish}
                   type="button"
                 >
                   <FormattedMessage {...messages.scheduleBuilderPublish} />
@@ -487,8 +631,33 @@ export function ScheduleBuilderTemplate({
                   <FormattedMessage {...messages.scheduleBuilderAffectedPublishedHeading} />
                 </Alert>
               )}
+
+              {previewed && freedSlotIds.length > 0 && (
+                <div>
+                  <h3 className="cl-card__title">
+                    <FormattedMessage {...messages.scheduleBuilderFreedSlotsHeading} />
+                  </h3>
+                  <ul>
+                    {freedSlotIds.map((slotId) => (
+                      <li key={slotId}>{describeSlot(slotId) ?? slotId}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </Card>
+
+          <ScheduleReasonPrompt
+            onOpenChange={setPromptOpen}
+            onPublish={publishWithReasons}
+            open={promptOpen}
+            presets={(Object.keys(PRESET_LABELS) as ScheduleReasonPreset[]).map((code) => ({
+              code,
+              label: intl.formatMessage(PRESET_LABELS[code]),
+            }))}
+            recent={recentReasons}
+            rows={promptRows}
+          />
         </>
       )}
     </div>

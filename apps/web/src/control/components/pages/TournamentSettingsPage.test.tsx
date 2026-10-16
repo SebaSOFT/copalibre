@@ -263,6 +263,64 @@ describe('TournamentSettingsPage', () => {
     );
   });
 
+  it('sets the minimum rest, states it in the summary, and clears it with null', async () => {
+    const updateTournamentSettings = jest.fn<
+      NonNullable<ControlApiClient['updateTournamentSettings']>
+    >(() => Promise.resolve({ name: 'Copa Verano', featured: false }));
+    const { unmount } = render(
+      withIntl(
+        <TournamentSettingsPage
+          client={stubClient({
+            fetchTournamentSettings: () =>
+              Promise.resolve({ name: 'Copa Verano', featured: false, minimumRestMinutes: 120 }),
+            updateTournamentSettings,
+          })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await screen.findByDisplayValue('Copa Verano');
+    expect(
+      screen.getByText("Minimum rest between an entrant's matches: 120 minutes"),
+    ).toBeDefined();
+    const field = screen.getByLabelText('Minimum rest between matches (minutes)');
+    expect(field).toHaveProperty('value', '120');
+    expect(
+      screen.getByText(/Checked whenever this tournament's matches are scheduled/),
+    ).toBeDefined();
+
+    fireEvent.change(field, { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(updateTournamentSettings).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', {
+        minimumRestMinutes: null,
+      }),
+    );
+    unmount();
+
+    render(
+      withIntl(
+        <TournamentSettingsPage
+          client={stubClient({ updateTournamentSettings })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+    await screen.findByDisplayValue('Copa Verano');
+    fireEvent.change(screen.getByLabelText('Minimum rest between matches (minutes)'), {
+      target: { value: '90' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(updateTournamentSettings).toHaveBeenLastCalledWith('liga-mendocina', 'apertura-2026', {
+        minimumRestMinutes: 90,
+      }),
+    );
+  });
+
   it('clearing capacity back to empty omits it from the saved request', async () => {
     const updateTournamentSettings = jest.fn<
       NonNullable<ControlApiClient['updateTournamentSettings']>

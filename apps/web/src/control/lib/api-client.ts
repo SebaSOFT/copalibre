@@ -686,6 +686,10 @@ export interface ControlApiClient {
     stageId: string,
     request: ScheduleRequest,
   ) => Promise<ScheduleResponse>;
+  /** The organization's most recent distinct typed reasons for published schedule changes. */
+  readonly recentScheduleReasons?: (
+    organizationAlias: string,
+  ) => Promise<RecentScheduleReasonsResponse>;
   /** Authenticated control stream configuration for organization events and audit feed. */
   readonly controlStream?: (organizationAlias: string) => MatchConsoleStream;
   /** Authenticated stream configuration; events never carry console details. */
@@ -902,11 +906,38 @@ export interface TimeWindowDto {
   readonly durationMinutes: number;
 }
 
-export interface ScheduleAssignmentDto {
-  readonly matchId: string;
-  readonly slotId: string;
-  readonly officialIds?: readonly string[];
+/** Why a published placement changes: a preset code with the text it rendered, or typed text. */
+export interface ScheduleReasonDto {
+  readonly code?: ScheduleReasonPreset;
+  readonly text: string;
 }
+
+export type ScheduleReasonPreset =
+  | 'venue-unavailable'
+  | 'weather'
+  | 'entrant-request'
+  | 'officials-unavailable'
+  | 'prior-match-overran'
+  | 'broadcast'
+  | 'data-correction'
+  | 'other';
+
+/** A placement (`slotId`) or a withdrawal (`withdraw: true`), committed with the whole batch. */
+export type ScheduleAssignmentDto =
+  | {
+      readonly matchId: string;
+      readonly slotId: string;
+      readonly officialIds?: readonly string[];
+      readonly withdraw?: never;
+      readonly reason?: ScheduleReasonDto;
+    }
+  | {
+      readonly matchId: string;
+      readonly withdraw: true;
+      readonly slotId?: never;
+      readonly officialIds?: never;
+      readonly reason?: ScheduleReasonDto;
+    };
 
 export interface ScheduleAssignmentResponse {
   readonly matchId: string;
@@ -923,6 +954,9 @@ export interface RestRuleDto {
 
 export interface ScheduleRequest {
   readonly assignments: readonly ScheduleAssignmentDto[];
+  /** Covers every changed published match without its own `reason`. */
+  readonly reason?: ScheduleReasonDto;
+  /** @deprecated Ignored by the API: the tournament's `minimumRestMinutes` applies. */
   readonly restRule?: RestRuleDto;
 }
 
@@ -938,6 +972,14 @@ export interface SchedulePreviewResponse {
   readonly committable: boolean;
   readonly conflicts: readonly ScheduleConflictDto[];
   readonly affectedPublishedMatches: readonly string[];
+  /** Published matches the batch changes or withdraws; each needs a reason to publish. */
+  readonly reasonRequiredMatches?: readonly string[];
+  readonly withdrawn?: readonly string[];
+  readonly freedSlotIds?: readonly string[];
+}
+
+export interface RecentScheduleReasonsResponse {
+  readonly reasons: readonly string[];
 }
 
 export interface ScheduleResponse {
@@ -1291,9 +1333,16 @@ export interface TournamentSettingsResponse {
   readonly emblemObjectId?: string;
   /** Organizer-set: shown in the public organization page's featured block. */
   readonly featured: boolean;
+  /** Minimum minutes between an entrant's matches; absent declares no rest rule. */
+  readonly minimumRestMinutes?: number;
 }
 
-export type TournamentSettingsRequest = Partial<TournamentSettingsResponse>;
+export type TournamentSettingsRequest = Partial<
+  Omit<TournamentSettingsResponse, 'minimumRestMinutes'>
+> & {
+  /** `null` clears the rule. */
+  readonly minimumRestMinutes?: number | null;
+};
 
 /** Dot-path → value for a tournament ruleset's override fields. */
 export interface RulesetOverridesResponse {
@@ -3155,6 +3204,13 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageId)}/schedule`,
         { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    recentScheduleReasons: (organizationAlias) =>
+      requestJson<RecentScheduleReasonsResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/schedule/reasons/recent`,
+        { token: input.accessToken?.() },
       ),
   };
 }

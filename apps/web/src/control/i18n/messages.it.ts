@@ -1467,4 +1467,50 @@ export const messages: Record<string, string> = {
   'control.platform.diagnostics.uptime': 'Tempo di attività: {hours}h {minutes}m',
   'control.platform.diagnostics.version': 'Versione {version}',
   'control.platform.diagnostics.loading': 'Caricamento diagnostica della piattaforma…',
+  'control.settings.minimumRestLabel': 'Riposo minimo tra le partite (minuti)',
+  'control.settings.minimumRestHelp':
+    'Verificato ogni volta che si programmano le partite di questo torneo: la partita successiva di un partecipante deve iniziare almeno questo tempo dopo la fine della precedente. Lascia vuoto per nessuna regola. Modificarlo non sposta alcuna partita.',
+  'control.tournamentSummary.minimumRest':
+    'Riposo minimo tra le partite di un partecipante: {minutes} minuti',
+  'control.scheduleBuilder.withdraw': 'Ritira dallo slot',
+  'control.scheduleBuilder.keepPlacement': 'Mantieni nello slot',
+  'control.scheduleBuilder.withdrawn': 'Ritirata — non avrà orario una volta pubblicata',
+  'control.scheduleBuilder.freedSlotsHeading': 'Slot liberati da questo lotto',
+  'control.scheduleBuilder.liveLocked':
+    'In corso — non può essere spostata né ritirata mentre si gioca',
+  'control.scheduleBuilder.concludedLocked':
+    'Giocata — l’orario è un dato storico; usa la procedura di correzione',
+  'control.reasonPrompt.title': 'Perché cambiano queste partite pubblicate?',
+  'control.reasonPrompt.description':
+    'Partecipanti e pubblico hanno già visto questi orari. Indica un motivo per il lotto o segna una partita come eccezione con un motivo proprio.',
+  'control.reasonPrompt.batchLabel': 'Motivo del lotto',
+  'control.reasonPrompt.placeholder': 'Scegli un motivo o scrivilo',
+  'control.reasonPrompt.exceptionToggle': 'Motivo diverso',
+  'control.reasonPrompt.exceptionLabel': 'Motivo per {match}',
+  'control.reasonPrompt.selectRow': 'Seleziona {match}',
+  'control.reasonPrompt.markSelected': 'Segna selezionate come eccezione',
+  'control.reasonPrompt.sharedLabel':
+    'Motivo {count, plural, one {della partita selezionata} other {delle # partite selezionate}}',
+  'control.reasonPrompt.summary':
+    '{total, plural, one {# partita} other {# partite}} · {batch} con il motivo del lotto · {exceptions, plural, one {# eccezione} other {# eccezioni}}',
+  'control.reasonPrompt.uncovered':
+    '{count, plural, one {# partita richiede ancora un motivo} other {# partite richiedono ancora un motivo}}',
+  'control.reasonPrompt.keyboardHint':
+    '↑/↓ spostati tra le partite · Spazio seleziona · E segna un’eccezione · Invio pubblica · Esc chiude',
+  'control.reasonPrompt.change': '{from} → {to}',
+  'control.reasonPrompt.withdrawnChange': '{from} → ritirata',
+  'control.reasonPrompt.publish': 'Pubblica le modifiche',
+  'control.reasonPrompt.cancel': 'Torna al pianificatore',
+  'control.reasonPrompt.close': 'Chiudi',
+  'control.reasonPrompt.presetsGroup': 'Motivi comuni',
+  'control.reasonPrompt.recentGroup': 'Usati di recente',
+  'control.reasonPrompt.exceptionBadge': 'Eccezione',
+  'control.scheduleReason.venueUnavailable': 'Impianto non disponibile',
+  'control.scheduleReason.weather': 'Meteo',
+  'control.scheduleReason.entrantRequest': 'Richiesta di un partecipante',
+  'control.scheduleReason.officialsUnavailable': 'Ufficiali di gara non disponibili',
+  'control.scheduleReason.priorMatchOverran': 'Una partita precedente si è prolungata',
+  'control.scheduleReason.broadcast': 'Palinsesto televisivo',
+  'control.scheduleReason.dataCorrection': 'Correzione di un errore',
+  'control.scheduleReason.other': 'Altro',
 };

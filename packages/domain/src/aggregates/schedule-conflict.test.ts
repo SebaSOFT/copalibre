@@ -233,6 +233,10 @@ describe('official double-booking', () => {
   });
 });
 
+/** The same tournament rule on every match these tests place. */
+const restOf = (minutes: number) =>
+  new Map(['m1', 'm2', 'm3'].map((matchId) => [matchId, minutes] as const));
+
 describe('rest rules', () => {
   const entrants = new Map([
     ['m1', ['alfa', 'bravo']],
@@ -250,7 +254,7 @@ describe('rest rules', () => {
           ['court-1', venue('court-1')],
           ['court-2', venue('court-2')],
         ]),
-        restRule: { minimumMinutes: 30 },
+        restMinutesByMatch: restOf(30),
       }),
     );
 
@@ -266,7 +270,7 @@ describe('rest rules', () => {
         context({
           existing: [{ matchId: 'm1', slotId: 'slot-court-1-0' }],
           entrantsByMatch: entrants,
-          restRule: { minimumMinutes: 30 },
+          restMinutesByMatch: restOf(30),
         }),
       ),
     ).toEqual([]);
@@ -282,7 +286,7 @@ describe('rest rules', () => {
           ['court-1', venue('court-1')],
           ['court-2', venue('court-2')],
         ]),
-        restRule: { minimumMinutes: 30 },
+        restMinutesByMatch: restOf(30),
       }),
     );
 
@@ -300,7 +304,7 @@ describe('rest rules', () => {
             ['court-1', venue('court-1')],
             ['court-2', venue('court-2')],
           ]),
-          restRule: { minimumMinutes: 120 },
+          restMinutesByMatch: restOf(120),
         }),
       ),
     ).toEqual([]);
@@ -327,7 +331,7 @@ describe('finalized-match protection', () => {
   it('refuses to reschedule a match that has already finalized', () => {
     const conflicts = detectConflicts(
       [{ matchId: 'm1', slotId: 'slot-court-1-30' }],
-      context({ finalizedMatchIds: new Set(['m1']) }),
+      context({ lockedMatches: new Map([['m1', 'finalized']]) }),
     );
 
     expect(conflicts).toHaveLength(1);
@@ -344,9 +348,157 @@ describe('finalized-match protection', () => {
     expect(
       detectConflicts(
         [{ matchId: 'm1', slotId: 'slot-court-1-0' }],
-        context({ finalizedMatchIds: new Set(['m2']) }),
+        context({ lockedMatches: new Map([['m2', 'finalized']]) }),
       ),
     ).toEqual([]);
+  });
+});
+
+describe('occupancy windows', () => {
+  /** 15-minute slots, as in a demo grid, every quarter hour on one court. */
+  const quarterSlots = new Map<string, SlotInfo>(
+    [0, 15, 30, 45, 60, 75, 90].map((minutes) => [
+      `q-${minutes}`,
+      slot(`q-${minutes}`, 'court-1', minutes, 15),
+    ]),
+  );
+
+  it('rejects a venue clash short slots would hide, because the match occupies its estimate', () => {
+    const conflicts = detectConflicts(
+      [{ matchId: 'm2', slotId: 'q-15' }],
+      context({
+        slots: quarterSlots,
+        existing: [{ matchId: 'm1', slotId: 'q-0' }],
+        occupancyMinutesByMatch: new Map([
+          ['m1', 50],
+          ['m2', 50],
+        ]),
+      }),
+    );
+    expect(conflicts).toEqual([
+      expect.objectContaining({ kind: 'venue-double-booked', conflictsWithMatchId: 'm1' }),
+    ]);
+  });
+
+  it('holds the venue for the changeover after the match', () => {
+    const occupancy = new Map([
+      ['m1', 50],
+      ['m2', 50],
+    ]);
+    const placeAt = (slotId: string, changeoverMinutes: number) =>
+      detectConflicts(
+        [{ matchId: 'm2', slotId }],
+        context({
+          slots: new Map(
+            [...quarterSlots].map(([id, info]) => [id, { ...info, changeoverMinutes }]),
+          ),
+          existing: [{ matchId: 'm1', slotId: 'q-0' }],
+          occupancyMinutesByMatch: occupancy,
+        }),
+      );
+    expect(placeAt('q-60', 0)).toEqual([]);
+    expect(placeAt('q-60', 15)).toEqual([expect.objectContaining({ kind: 'venue-double-booked' })]);
+    expect(placeAt('q-75', 15)).toEqual([]);
+  });
+
+  it('measures rest from the estimated end, not the slot end', () => {
+    // 09:00 start, 50-minute estimate, 60 minutes of rest required, next at 10:30: 40 minutes.
+    const conflicts = detectConflicts(
+      [{ matchId: 'm2', slotId: 'slot-court-2-80' }],
+      context({
+        slots: new Map([
+          ['slot-court-1-0', slot('slot-court-1-0', 'court-1', 0, 120)],
+          ['slot-court-2-80', slot('slot-court-2-80', 'court-2', 90, 120)],
+        ]),
+        existing: [{ matchId: 'm1', slotId: 'slot-court-1-0' }],
+        entrantsByMatch: new Map([
+          ['m1', ['alfa', 'bravo']],
+          ['m2', ['alfa', 'charlie']],
+        ]),
+        venues: new Map([
+          ['court-1', venue('court-1')],
+          ['court-2', venue('court-2')],
+        ]),
+        occupancyMinutesByMatch: new Map([
+          ['m1', 50],
+          ['m2', 50],
+        ]),
+        restMinutesByMatch: restOf(60),
+      }),
+    );
+    expect(conflicts).toEqual([expect.objectContaining({ kind: 'rest-rule', resourceId: 'alfa' })]);
+    expect(conflicts[0]?.detail).toContain('40 minute(s)');
+  });
+
+  it('falls back to the slot length when a match has no estimate', () => {
+    const conflicts = detectConflicts(
+      [{ matchId: 'm2', slotId: 'slot-court-1-90' }],
+      context({
+        slots: new Map([
+          ['slot-court-1-0', slot('slot-court-1-0', 'court-1', 0, 120)],
+          ['slot-court-1-90', slot('slot-court-1-90', 'court-1', 90, 120)],
+        ]),
+        existing: [{ matchId: 'm1', slotId: 'slot-court-1-0' }],
+      }),
+    );
+    expect(conflicts).toEqual([expect.objectContaining({ kind: 'venue-double-booked' })]);
+  });
+
+  it('applies the stricter of two tournaments rules', () => {
+    const conflicts = detectConflicts(
+      [{ matchId: 'm2', slotId: 'slot-court-2-80' }],
+      context({
+        existing: [{ matchId: 'm1', slotId: 'slot-court-1-0' }],
+        entrantsByMatch: new Map([
+          ['m1', ['alfa']],
+          ['m2', ['alfa']],
+        ]),
+        venues: new Map([
+          ['court-1', venue('court-1')],
+          ['court-2', venue('court-2')],
+        ]),
+        // 20 minutes separate them: the second tournament's 30 is what refuses it.
+        restMinutesByMatch: new Map([
+          ['m1', 10],
+          ['m2', 30],
+        ]),
+      }),
+    );
+    expect(conflicts).toEqual([expect.objectContaining({ kind: 'rest-rule' })]);
+    expect(conflicts[0]?.detail).toContain('30 are required');
+  });
+});
+
+describe('in-progress protection', () => {
+  it('refuses to move a match in progress', () => {
+    const conflicts = detectConflicts(
+      [{ matchId: 'm1', slotId: 'slot-court-1-30' }],
+      context({ lockedMatches: new Map([['m1', 'in-progress']]) }),
+    );
+    expect(conflicts).toEqual([
+      expect.objectContaining({ kind: 'match-in-progress', matchId: 'm1', resourceId: 'm1' }),
+    ]);
+  });
+});
+
+describe('withdrawals', () => {
+  it('frees the withdrawn match slot for another placement in the same batch', () => {
+    expect(
+      detectConflicts(
+        [{ matchId: 'm2', slotId: 'slot-court-1-0' }],
+        context({ existing: [{ matchId: 'm1', slotId: 'slot-court-1-0' }] }),
+        ['m1'],
+      ),
+    ).toEqual([]);
+  });
+
+  it.each([
+    ['finalized', 'match-finalized'],
+    ['in-progress', 'match-in-progress'],
+  ] as const)('refuses to withdraw a %s match', (lock, kind) => {
+    expect(
+      detectConflicts([], context({ lockedMatches: new Map([['m1', lock]]) }), ['m1']),
+    ).toEqual([expect.objectContaining({ kind, matchId: 'm1' })]);
   });
 });
 
