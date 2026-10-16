@@ -17,8 +17,8 @@ const resolveZone: ZoneEntrantResolver = resolvePersistedNodes;
 /** The zone's series declaration, by the same zone → stage → ruleset precedence as every reader. */
 const zoneSeriesOf =
   (db: Kysely<Database>): ZoneSeriesLookup =>
-  (zone) =>
-    readStageSeries(db, zone);
+  (zone, uow) =>
+    readStageSeries(uow?.tx ?? db, zone);
 
 /**
  * The single place production code builds the persisted-entrant writer. Every result path that

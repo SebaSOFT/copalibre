@@ -1053,8 +1053,8 @@ describe('stage creation routes (integration)', () => {
     });
   });
 
-  describe('Single-elimination dynamic round progression (POST .../rounds/next)', () => {
-    it('progresses single-elimination from round 1 to round 2 through API and reports real champion', async () => {
+  describe('Legacy single-elimination dynamic round progression (POST .../rounds/next)', () => {
+    it('progresses legacy single-elimination from round 1 to round 2 through API and reports real champion', async () => {
       // 1. Create a 4-entrant single-elimination stage
       const created = await request({
         method: 'POST',
@@ -1069,13 +1069,20 @@ describe('stage creation routes (integration)', () => {
       // 2. Initial seeding
       const preview = await request({ method: 'GET', url: seedingUrl, token: 'organizer' });
       expect(preview.statusCode).toBe(200);
-      const publish = await request({
-        method: 'POST',
-        url: seedingUrl,
-        token: 'organizer',
-        payload: { seeds: preview.json().seeds },
-      });
-      expect(publish.statusCode).toBe(200);
+      // Preserve the legacy write path: new seeding publishes the complete persisted graph.
+      const seedIds = preview.json().seeds.map((seed: { entrantId: string }) => seed.entrantId);
+      await withTransaction(scratch.db, (uow) =>
+        new CompetitionRepository(scratch.db).createFixtures(uow, {
+          stageId,
+          organizationId,
+          ...AUDIT,
+          fixtures: [0, 2].map((index) => ({
+            round: 1,
+            homeEntrantId: seedIds[index],
+            awayEntrantId: seedIds[index + 1],
+          })),
+        }),
+      );
 
       // 3. Trying to advance before completing round 1 returns 409
       const nextBeforeComplete = await request({

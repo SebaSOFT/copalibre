@@ -105,6 +105,13 @@ import {
 } from './stage-series.js';
 import { DATABASE } from '../database.token.js';
 import { elapsedSecondsOf } from './segment-clock.js';
+import {
+  afterOutcomeChange,
+  blockedPropagationOf,
+  matchSideChanges,
+} from '../after-outcome-change.js';
+import { assertSidesDecided } from '../assert-sides-decided.js';
+import { readFixtureSources } from './fixture-sources.js';
 
 /**
  * Running a match.
@@ -272,6 +279,10 @@ export class MatchControlController {
       match: { organizationId: tournament.organizationId, matchId, stageId },
     });
 
+    if (command === 'start' || command === 'finalize') {
+      await withTransaction(this.db, (uow) => assertSidesDecided(this.db, uow, matchId));
+    }
+
     const segments = await competition.listSegments(matchId);
     // The segment the operator named, not merely whichever is running: after a
     // pause nothing is running, so resolving the target by "currently active"
@@ -317,6 +328,8 @@ export class MatchControlController {
 
     try {
       await withTransaction(this.db, async (uow) => {
+        if (command === 'start' || command === 'finalize')
+          await assertSidesDecided(this.db, uow, matchId);
         await competition.applyCommand(uow, {
           matchId,
           command,
@@ -402,6 +415,7 @@ export class MatchControlController {
             tournamentId: tournament.tournamentId,
             ...audit,
           });
+          await afterOutcomeChange(this.db, uow, matchId, audit);
 
           await idempotency.record(uow, {
             idempotencyKey: idempotencyKey ?? '',
@@ -943,12 +957,18 @@ export class MatchControlController {
       });
     }
     if (match.status !== 'in-progress') {
-      throw new BadRequestException(
-        `Match "${matchId}" is ${match.status}; events are recorded while it is in progress`,
-        { errorCode: 'match-control-bad-request' },
-      );
+      const node = await this.db
+        .selectFrom('fixtures')
+        .select('node_key')
+        .where('fixture_id', '=', match.fixtureId)
+        .executeTakeFirst();
+      if (node?.node_key == null) {
+        throw new BadRequestException(
+          `Match "${matchId}" is ${match.status}; events are recorded while it is in progress`,
+          { errorCode: 'match-control-bad-request' },
+        );
+      }
     }
-
     const stageId = await this.stageOf(matchId);
     const granted = enforceMatchCommand({
       plane: 'admin-control',
@@ -966,6 +986,14 @@ export class MatchControlController {
       capability: 'match.record-event',
       match: { organizationId: tournament.organizationId, matchId, stageId },
     });
+
+    await withTransaction(this.db, (uow) => assertSidesDecided(this.db, uow, matchId));
+    if (match.status !== 'in-progress') {
+      throw new BadRequestException(
+        `Match "${matchId}" is ${match.status}; events are recorded while it is in progress`,
+        { errorCode: 'match-control-bad-request' },
+      );
+    }
 
     const segments = await competition.listSegments(matchId);
     const segment = segments.find((candidate) => candidate.segmentId === body.segmentId);
@@ -1131,6 +1159,7 @@ export class MatchControlController {
     // relay will deliver. Evaluating afterwards would leave a window where the
     // fact exists and the alert it should have raised does not.
     const { recorded, notifications } = await withTransaction(this.db, async (uow) => {
+      await assertSidesDecided(this.db, uow, matchId);
       const audit = {
         organizationId: tournament.organizationId,
         actor: request.subject?.subjectId ?? 'unknown',
@@ -1564,6 +1593,7 @@ export class MatchControlController {
     }));
 
     const eventCount = await withTransaction(this.db, async (uow) => {
+      await assertSidesDecided(this.db, uow, matchId);
       for (const roster of rostersByEntrant) {
         await competition.setMatchRoster(uow, {
           matchId,
@@ -1663,6 +1693,14 @@ export class MatchControlController {
         payload: { matchId, status: 'finalized' },
       });
 
+      await this.anullSurplusOf(uow, {
+        matchId,
+        stageId,
+        tournamentId: tournament.tournamentId,
+        ...audit,
+      });
+      await afterOutcomeChange(this.db, uow, matchId, audit);
+
       return body.events.length;
     });
 
@@ -1689,7 +1727,7 @@ export class MatchControlController {
     @Body() body: CorrectionRequestDto,
     @Req() request: RequestWithSubject,
   ): Promise<CorrectionPreviewResponse> {
-    const { plan } = await this.planCorrectionFor(
+    const { plan, propagation } = await this.planCorrectionFor(
       organizationAlias,
       tournamentAlias,
       matchId,
@@ -1700,6 +1738,7 @@ export class MatchControlController {
 
     return {
       changedEntrantIds: [...plan.changedEntrantIds],
+      ...(propagation?.persisted ? { reResolved: matchSideChanges(propagation.reResolved) } : {}),
       ...(plan.blockedPropagation ? { blockedPropagation: { ...plan.blockedPropagation } } : {}),
       ...(series === undefined
         ? {}
@@ -1786,7 +1825,7 @@ export class MatchControlController {
     @Body() body: CorrectionRequestDto,
     @Req() request: RequestWithSubject,
   ): Promise<CorrectionPreviewResponse> {
-    const { plan, organizationId, granted } = await this.planCorrectionFor(
+    const { plan, organizationId, tournamentId, granted } = await this.planCorrectionFor(
       organizationAlias,
       tournamentAlias,
       matchId,
@@ -1800,13 +1839,25 @@ export class MatchControlController {
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(matchId);
 
-    await withTransaction(this.db, async (uow) => {
+    const stageId = await this.stageOf(matchId);
+    const audit = {
+      organizationId,
+      actor: request.subject?.subjectId ?? 'unknown',
+      authorizationContext: `capability:${granted.capability} via ${granted.grantedBy}`,
+    };
+    const committed = await withTransaction(this.db, async (uow) => {
+      // Lock the graph and refresh the preview in this transaction before the correction audit.
+      const current = await afterOutcomeChange(this.db, uow, matchId, audit, {
+        dryRun: true,
+        replacement: { matchId, result: plan.replacement },
+      });
+      const blockedPropagation = blockedPropagationOf(plan.blockedPropagation, current, stageId);
       await competition.supersedeResult(uow, {
         matchId,
         result: plan.replacement,
         reason: plan.reason,
         ...(plan.sourceReportId === undefined ? {} : { sourceReportId: plan.sourceReportId }),
-        ...(plan.blockedPropagation ? { blockedPropagation: plan.blockedPropagation } : {}),
+        ...(blockedPropagation ? { blockedPropagation } : {}),
         organizationId,
         actor: request.subject?.subjectId ?? 'unknown',
         authorizationContext: `capability:${granted.capability} via ${granted.grantedBy}`,
@@ -1824,11 +1875,26 @@ export class MatchControlController {
           authorizationContext: `capability:${granted.capability} via ${granted.grantedBy}`,
         });
       }
+      if (match) {
+        await this.anullSurplusOf(uow, {
+          matchId,
+          stageId,
+          tournamentId,
+          ...audit,
+        });
+      }
+      const propagation = await afterOutcomeChange(this.db, uow, matchId, audit);
+      return { propagation, blockedPropagation };
     });
 
     return {
       changedEntrantIds: [...plan.changedEntrantIds],
-      ...(plan.blockedPropagation ? { blockedPropagation: { ...plan.blockedPropagation } } : {}),
+      ...(committed.propagation?.persisted
+        ? { reResolved: matchSideChanges(committed.propagation.reResolved) }
+        : {}),
+      ...(committed.blockedPropagation
+        ? { blockedPropagation: { ...committed.blockedPropagation } }
+        : {}),
       ...(series === undefined
         ? {}
         : {
@@ -1950,7 +2016,32 @@ export class MatchControlController {
       throw new BadRequestException(planned.error.message, {
         errorCode: 'match-control-bad-request',
       });
-    return { plan: planned.value, organizationId: tournament.organizationId, granted };
+    const propagation = await withTransaction(this.db, (uow) =>
+      afterOutcomeChange(
+        this.db,
+        uow,
+        matchId,
+        {
+          organizationId: tournament.organizationId,
+          actor: request.subject?.subjectId ?? 'unknown',
+          authorizationContext: `capability:${granted.capability} via ${granted.grantedBy}`,
+        },
+        { dryRun: true, replacement: { matchId, result: planned.value.replacement } },
+      ),
+    );
+    const blockedPropagation = blockedPropagationOf(
+      planned.value.blockedPropagation,
+      propagation,
+      stageId,
+    );
+    const plan = { ...planned.value, ...(blockedPropagation ? { blockedPropagation } : {}) };
+    return {
+      plan,
+      organizationId: tournament.organizationId,
+      tournamentId: tournament.tournamentId,
+      granted,
+      propagation,
+    };
   }
 
   /**
@@ -1977,14 +2068,14 @@ export class MatchControlController {
     const match = await competition.findMatch(input.matchId, uow);
     if (!match) return;
 
-    const declaration = await readStageSeries(this.db, {
+    const declaration = await readStageSeries(uow.tx, {
       tournamentId: input.tournamentId,
       stageId: input.stageId,
       zoneId: await competition.findFixtureZoneId(match.fixtureId, uow),
     });
     if (declaration === undefined) return;
 
-    const fixtures = await competition.listFixturesOfStage(input.stageId);
+    const fixtures = await competition.listFixturesOfStage(input.stageId, uow);
     const fixture = fixtures.find((candidate) => candidate.fixtureId === match.fixtureId);
     if (!fixture) return;
 
@@ -2092,7 +2183,7 @@ export class MatchControlController {
       this.db
         .selectFrom('matches')
         .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
-        .select(['fixtures.home_entrant_id', 'fixtures.away_entrant_id'])
+        .select(['fixtures.home_entrant_id', 'fixtures.away_entrant_id', 'fixtures.node_key'])
         .where('matches.match_id', '=', matchId)
         .executeTakeFirst(),
       new ProjectionStore(this.db).versionOf('match-console', matchId),
@@ -2128,6 +2219,9 @@ export class MatchControlController {
     return {
       matchId,
       stageNumber: stage.number,
+      ...(fixture?.node_key == null
+        ? {}
+        : (await readFixtureSources(this.db, stageId)).get(matchId)),
       status: match.status,
       result: (match.result as Record<string, unknown> | undefined) ?? null,
       liveScores: [...foldLiveScores(descriptor, events, entrantIds)],

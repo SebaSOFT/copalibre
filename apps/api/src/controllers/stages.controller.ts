@@ -77,6 +77,7 @@ import {
 import { StageFixturesResponse } from '../dto/schedule.dto.js';
 import { resolveTournament } from './standings.controller.js';
 import { chooseRoundZone, inZone, isDynamicRoundFormat } from './stage-rounds.js';
+import { readFixtureSources } from './fixture-sources.js';
 import {
   guaranteedMatchCount,
   readSeriesResolver,
@@ -996,6 +997,7 @@ export class StagesController {
 
     const fixtures = await competition.listFixturesOfStage(stage.stageId);
     const matches = await competition.listMatchesForStage(stage.stageId);
+    const fixtureSources = await readFixtureSources(this.db, stage.stageId);
     // Each fixture resolves against its own zone's declaration.
     const seriesOf = await readSeriesResolver(this.db, {
       tournamentId: tournament.tournamentId,
@@ -1035,6 +1037,7 @@ export class StagesController {
         return {
           fixtureId: fixture.fixtureId,
           matchId: own[0]?.matchId ?? fixture.fixtureId,
+          ...fixtureSources.get(own[0]?.matchId ?? ''),
           round: fixture.round,
           ...(fixture.homeEntrantId === undefined ? {} : { homeEntrantId: fixture.homeEntrantId }),
           ...(fixture.awayEntrantId === undefined ? {} : { awayEntrantId: fixture.awayEntrantId }),
@@ -1127,6 +1130,23 @@ export class StagesController {
     }
     const zone = choice.kind === 'zone' ? choice.zone : undefined;
     const format = zone === undefined ? stage.format : effectiveFormat(zone, stage);
+    const fixtures = inZone(await competition.listFixturesOfStage(stage.stageId), zone);
+    if (fixtures.length > 0) {
+      const nodes = await this.db
+        .selectFrom('fixtures')
+        .select('node_key')
+        .where(
+          'fixture_id',
+          'in',
+          fixtures.map((fixture) => fixture.fixtureId),
+        )
+        .execute();
+      if (nodes.every((node) => node.node_key !== null)) {
+        throw new ConflictException('Later rounds already exist in the persisted fixture graph', {
+          errorCode: 'stage-graph-persisted',
+        });
+      }
+    }
     if (!isDynamicRoundFormat(format)) {
       // Refused for the zone asked about; a sibling playing a dynamic format is unaffected.
       throw new ConflictException(
@@ -1137,7 +1157,6 @@ export class StagesController {
       );
     }
 
-    const fixtures = inZone(await competition.listFixturesOfStage(stage.stageId), zone);
     if (fixtures.length === 0) {
       throw new ConflictException('Stage has no initial fixtures generated', {
         errorCode: 'stage-no-fixtures',

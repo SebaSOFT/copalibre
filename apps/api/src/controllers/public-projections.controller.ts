@@ -43,8 +43,13 @@ import {
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
 import { resolveStageZones } from './bracket-zones.js';
 import { bracketLinks, graphRecordsOf, placementMatchOf } from './bracket-placements.js';
+import { persistedBracketMatches } from './persisted-bracket.js';
+import { readFixtureSources, readTournamentFixtureSources } from './fixture-sources.js';
 import { readStageSeriesByPosition, seriesResponseOf } from './stage-series.js';
-import { reconstructChampionshipFixture } from './tournament-winner-resolution.js';
+import {
+  persistedChampionshipFixture,
+  reconstructChampionshipFixture,
+} from './tournament-winner-resolution.js';
 import { segmentedTableResponse, tableResponse } from './table-projections.controller.js';
 import { eventLabelFields, rosterRolesOf } from './public-match-labels.js';
 import { segmentSummariesOf } from './public-segments.js';
@@ -208,13 +213,17 @@ export async function resolveTournamentWinners(
         const readModel = new StageReadModel(db);
         const record = await readModel.stageRecord(terminalStage.stageId, undefined, zone.zoneId);
         const fixtures = await readModel.matches(terminalStage.stageId, undefined, zone.zoneId);
-        const generated = generateFixtures({
-          format: zoneFormat as Parameters<typeof generateFixtures>[0]['format'],
-          entrants: (record?.entrantIds ?? []).map((entrantId, index) => ({
-            entrantId,
-            seed: index + 1,
-          })),
-        });
+        const persisted =
+          fixtures.length > 0 && fixtures.every((fixture) => fixture.node !== undefined);
+        const generated = persisted
+          ? undefined
+          : generateFixtures({
+              format: zoneFormat as Parameters<typeof generateFixtures>[0]['format'],
+              entrants: (record?.entrantIds ?? []).map((entrantId, index) => ({
+                entrantId,
+                seed: index + 1,
+              })),
+            });
         const winnersByFixtureId = new Map(
           (record?.outcomes ?? [])
             .filter(
@@ -222,13 +231,15 @@ export async function resolveTournamentWinners(
             )
             .map((outcome) => [outcome.fixtureId as string, outcome.winnerEntrantId as string]),
         );
-        const resolved = generated.ok
-          ? reconstructChampionshipFixture({
-              graph: generated.value,
-              records: fixtures,
-              winnerByFixtureId: winnersByFixtureId,
-            })
-          : undefined;
+        const resolved = persisted
+          ? persistedChampionshipFixture(zoneFormat, fixtures, winnersByFixtureId)
+          : generated?.ok
+            ? reconstructChampionshipFixture({
+                graph: generated.value,
+                records: fixtures,
+                winnerByFixtureId: winnersByFixtureId,
+              })
+            : undefined;
 
         if (resolved) {
           const podiumDetails = await enrollmentRepo.resolveEntrantPodiumDetails([
@@ -432,6 +443,7 @@ export class PublicProjectionsController {
       tournament.tournamentId,
     );
     const ordinalByMatchId = await this.stageOrdinalsOf(tournament.tournamentId);
+    const fixtureSources = await readTournamentFixtureSources(this.db, tournament.tournamentId);
     const scheduleChanges = await readPublicScheduleChanges(
       this.db,
       matches.map((match) => match.matchId),
@@ -530,6 +542,7 @@ export class PublicProjectionsController {
         : { disciplineImages: descriptor.images.map((reference) => ({ ...reference })) }),
       matches: matches.map((m) => ({
         matchId: m.matchId,
+        ...fixtureSources.get(m.matchId),
         ...scheduleChanges.get(m.matchId),
         matchNumber: m.matchNumber,
         ...(ordinalByMatchId.has(m.matchId)
@@ -605,6 +618,8 @@ export class PublicProjectionsController {
       throw new NotFoundException(`No match ${matchNumberValue} in stage ${stageNumberValue}`, {
         errorCode: 'public-projection-not-found',
       });
+
+    const fixtureSources = await readFixtureSources(this.db, stage.stageId);
 
     const match = await this.db
       .selectFrom('matches')
@@ -732,6 +747,7 @@ export class PublicProjectionsController {
         ? {}
         : { venueName: schedule.venue_name }),
       ...(await readPublicScheduleChanges(this.db, [match.match_id])).get(match.match_id),
+      ...fixtureSources.get(match.match_id),
       schedulePublished: schedule?.published ?? false,
       officials: officials.map((official) => ({
         name: official.display_name,
@@ -799,6 +815,7 @@ export class PublicProjectionsController {
       tournament.tournamentId,
     );
     const liveMatches = matches.filter((m) => m.status === 'in-progress');
+    const fixtureSources = await readTournamentFixtureSources(this.db, tournament.tournamentId);
     const ordinalByMatchId = await this.stageOrdinalsOf(tournament.tournamentId);
     const scheduleChanges = await readPublicScheduleChanges(
       this.db,
@@ -867,6 +884,7 @@ export class PublicProjectionsController {
     return {
       matches: liveMatches.map((m, index) => ({
         matchId: m.matchId,
+        ...fixtureSources.get(m.matchId),
         ...scheduleChanges.get(m.matchId),
         stageNumber: m.stageNumber,
         matchNumber: m.matchNumber ?? m.round,
@@ -945,6 +963,47 @@ export class PublicProjectionsController {
     const zoneResponses = await Promise.all(
       zones.map(async (zone) => {
         const zoneRecords = await readModel.matches(stage.stageId, undefined, zone.zoneId);
+        if (zoneRecords.length > 0 && zoneRecords.every((record) => record.node !== undefined)) {
+          const series = await readStageSeriesByPosition(this.db, {
+            tournamentId: tournament.tournamentId,
+            stageId: stage.stageId,
+            zoneId: zone.zoneId,
+            records: zoneRecords,
+          });
+          const details = await enrollmentRepo.resolveEntrantPodiumDetails(
+            zoneRecords.flatMap((record) =>
+              [record.homeEntrantId, record.awayEntrantId].filter(
+                (id): id is string => id !== undefined,
+              ),
+            ),
+          );
+          return {
+            ...zone,
+            format: effectiveFormat(zone, stage),
+            matches: persistedBracketMatches(zoneRecords, (record) => {
+              const state = series.get(record.fixtureId);
+              return state === undefined ? undefined : seriesResponseOf(state);
+            }).map(({ persistedMatchId, ...match }) => ({
+              ...match,
+              matchNumber: ordinalByMatchId.get(persistedMatchId ?? ''),
+              slots: match.slots.map((slot) => {
+                const identity =
+                  slot.entrantId === undefined ? undefined : details.get(slot.entrantId);
+                return {
+                  ...slot,
+                  ...(identity === undefined
+                    ? {}
+                    : {
+                        name: identity.name,
+                        abbreviation: identity.abbreviation,
+                        clubId: identity.clubId,
+                        emblemObjectId: identity.emblemObjectId,
+                      }),
+                };
+              }),
+            })),
+          };
+        }
         // Placement games sit beside the generated graph, not on it.
         const stageMatchesMapped = graphRecordsOf(zoneRecords);
         const record = await readModel.stageRecord(stage.stageId, undefined, zone.zoneId);
@@ -1103,6 +1162,9 @@ export class PublicProjectionsController {
     return {
       matches: rows.map((row) => ({
         matchId: row.matchId,
+        nodeKey: row.nodeKey,
+        homeSource: row.homeSource,
+        awaySource: row.awaySource,
         scheduleVersion: row.scheduleVersion,
         rescheduledFrom: row.rescheduledFrom,
         stageNumber: row.stageNumber,

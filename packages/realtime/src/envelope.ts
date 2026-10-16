@@ -85,6 +85,7 @@ export const PUBLIC_EVENT_FIELDS: Readonly<Record<string, readonly string[]>> = 
     'previous',
   ],
   'match.anulled': ['matchId', 'status'],
+  'fixture.entrant-resolved': ['matchId', 'side', 'entrantId'],
   'stage.started': ['stageId', 'startedAt'],
   'stage.finished': ['stageId', 'finishedAt'],
 };

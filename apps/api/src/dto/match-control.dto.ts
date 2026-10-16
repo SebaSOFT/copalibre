@@ -12,6 +12,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import type { LocalizedLabel, ResultReason } from '@copalibre/domain';
+import { FixtureSourcesResponse } from './fixture-side-source.dto.js';
 
 /**
  * Match-control wire shapes.
@@ -209,7 +210,7 @@ export class ConsoleEntrantResponse {
 }
 
 /** The protected read model a live-match console uses to render and recover. */
-export class MatchConsoleResponse {
+export class MatchConsoleResponse extends FixtureSourcesResponse {
   @ApiProperty({ format: 'uuid' })
   matchId!: string;
 
@@ -645,7 +646,16 @@ export class CorrectionRequestDto {
   sourceReportId?: string;
 }
 
+export class ReResolvedMatchSideDto {
+  @ApiProperty({ format: 'uuid' }) matchId!: string;
+  @ApiProperty({ enum: ['home', 'away'] }) side!: 'home' | 'away';
+  @ApiProperty({ type: String, nullable: true }) currentEntrantId!: string | null;
+  @ApiProperty({ type: String, nullable: true }) resultingEntrantId!: string | null;
+}
+
 export class BlockedPropagationDto {
+  @ApiPropertyOptional({ type: [ReResolvedMatchSideDto] })
+  matches?: ReResolvedMatchSideDto[];
   @ApiProperty({ format: 'uuid' })
   stageId!: string;
 
@@ -701,6 +711,8 @@ export class SeriesCorrectionPreview {
 }
 
 export class CorrectionPreviewResponse {
+  @ApiPropertyOptional({ type: [ReResolvedMatchSideDto] })
+  reResolved?: ReResolvedMatchSideDto[];
   @ApiProperty({ type: [String], description: 'Entrants whose recorded numbers move' })
   changedEntrantIds!: string[];
 

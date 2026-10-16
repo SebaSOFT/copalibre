@@ -16,6 +16,7 @@ import type { AuditContext } from './repositories/enrollment-repository.js';
 import { lockRowsForMutation } from './row-lock.js';
 import type { Database } from './schema.js';
 import type { UnitOfWork } from './transaction.js';
+import { ProjectionStore } from './relay/projection-store.js';
 
 /** Why a whole contingent node was revived, named in each `match.reinstated` audit record. */
 const CONTINGENCY_REINSTATED = 'bracket reset no longer known to be unneeded';
@@ -23,12 +24,22 @@ const CONTINGENCY_REINSTATED = 'bracket reset no longer known to be unneeded';
 /** Statuses whose stored result the advancement walk counts. */
 const COUNTED_STATUSES: ReadonlySet<string> = new Set(['finalized', 'forfeited']);
 
+export interface EntrantSideChange {
+  readonly fixtureId: string;
+  readonly matchIds: readonly string[];
+  readonly side: 'home' | 'away';
+  readonly currentEntrantId: string | null;
+  readonly resultingEntrantId: string | null;
+}
+
 export interface ZoneEntrantResolutionOutcome {
   /** False for a legacy zone, which this use case never writes. */
   readonly persisted: boolean;
   readonly changedSides: number;
   readonly anulledMatchIds: readonly string[];
   readonly reinstatedMatchIds: readonly string[];
+  readonly blockedPropagation?: readonly EntrantSideChange[];
+  readonly reResolved?: readonly EntrantSideChange[];
 }
 
 type FixtureSide = 'home' | 'away';
@@ -61,6 +72,10 @@ export class ZoneEntrantResolution {
     uow: UnitOfWork,
     zoneId: string,
     audit: AuditContext,
+    options: {
+      readonly dryRun?: boolean;
+      readonly replacement?: { readonly matchId: string; readonly result: unknown };
+    } = {},
   ): Promise<ZoneEntrantResolutionOutcome> {
     const zone = await uow.tx
       .selectFrom('zones')
@@ -81,7 +96,7 @@ export class ZoneEntrantResolution {
       return { persisted: false, ...unchanged };
     }
 
-    const matches = await uow.tx
+    const storedMatches = await uow.tx
       .selectFrom('matches')
       .select(['match_id', 'fixture_id', 'number', 'status', 'result'])
       .where(
@@ -91,6 +106,11 @@ export class ZoneEntrantResolution {
       )
       .orderBy('number')
       .execute();
+    const matches = storedMatches.map((match) =>
+      match.match_id === options.replacement?.matchId
+        ? { ...match, result: options.replacement.result, status: 'finalized' }
+        : match,
+    );
     const matchesOf = (fixtureId: string) => matches.filter((m) => m.fixture_id === fixtureId);
 
     const nodes = fixtures.map((row) => nodeOf(row, matchesOf(row.fixture_id).length));
@@ -103,11 +123,14 @@ export class ZoneEntrantResolution {
       }),
     ) satisfies PersistedNodeOutcome[];
     const series = nodes.some((node) => node.seriesSpan > 1)
-      ? await this.seriesOf({
-          tournamentId: zone.tournament_id,
-          stageId: zone.stage_id,
-          zoneId,
-        })
+      ? await this.seriesOf(
+          {
+            tournamentId: zone.tournament_id,
+            stageId: zone.stage_id,
+            zoneId,
+          },
+          uow,
+        )
       : undefined;
 
     const resolutions = this.resolve({
@@ -119,11 +142,18 @@ export class ZoneEntrantResolution {
     let changedSides = 0;
     const anulledMatchIds: string[] = [];
     const reinstatedMatchIds: string[] = [];
+    const blockedPropagation: NonNullable<
+      ZoneEntrantResolutionOutcome['blockedPropagation']
+    >[number][] = [];
+    const reResolved: EntrantSideChange[] = [];
     const fixtureByKey = new Map(fixtures.map((row) => [row.node_key as string, row]));
     for (const resolution of resolutions) {
       const fixture = fixtureByKey.get(resolution.nodeKey);
       if (!fixture) continue;
       const own = matchesOf(fixture.fixture_id);
+      const progressed = own.some(
+        (match) => match.status !== 'scheduled' && match.status !== 'not-required',
+      );
       const sides: readonly [FixtureSide, string | null, ResolvedFixtureSide][] = [
         ['home', fixture.home_entrant_id, resolution.sides[0]],
         ['away', fixture.away_entrant_id, resolution.sides[1]],
@@ -131,17 +161,39 @@ export class ZoneEntrantResolution {
       for (const [side, previous, resolved] of sides) {
         const entrantId = resolved.state === 'entrant' ? resolved.entrantId : null;
         if (entrantId === previous) continue;
-        await this.writeSide(uow, audit, {
+        // Participants belong to the fixture and every game shares them. Changing even a
+        // scheduled game's side would rewrite its already-started siblings as well.
+        if (progressed) {
+          blockedPropagation.push({
+            fixtureId: fixture.fixture_id,
+            matchIds: own.map((match) => match.match_id),
+            side,
+            currentEntrantId: previous,
+            resultingEntrantId: entrantId,
+          });
+          continue;
+        }
+        reResolved.push({
           fixtureId: fixture.fixture_id,
-          nodeKey: resolution.nodeKey,
           matchIds: own.map((match) => match.match_id),
           side,
-          previous,
-          entrantId,
+          currentEntrantId: previous,
+          resultingEntrantId: entrantId,
         });
+        if (!options.dryRun)
+          await this.writeSide(uow, audit, {
+            fixtureId: fixture.fixture_id,
+            nodeKey: resolution.nodeKey,
+            matchIds: own.map((match) => match.match_id),
+            side,
+            previous,
+            entrantId,
+          });
         changedSides += 1;
       }
 
+      if (progressed) continue;
+      if (options.dryRun) continue;
       if (resolution.contingency === 'not-required') {
         const anulled = await this.competition.anullSurplusMatches(uow, {
           ...audit,
@@ -166,7 +218,14 @@ export class ZoneEntrantResolution {
       }
     }
 
-    return { persisted: true, changedSides, anulledMatchIds, reinstatedMatchIds };
+    return {
+      persisted: true,
+      changedSides,
+      anulledMatchIds,
+      reinstatedMatchIds,
+      blockedPropagation,
+      reResolved,
+    };
   }
 
   /** One side's new entrant, audited and published under every match of the fixture. */
@@ -194,6 +253,10 @@ export class ZoneEntrantResolution {
 
     for (const matchId of change.matchIds) {
       const state = { fixtureId: change.fixtureId, nodeKey: change.nodeKey, side: change.side };
+      const projectionVersion = await new ProjectionStore(this.db).nextVersion(uow, {
+        projectionType: 'fixture-entrants',
+        entityId: matchId,
+      });
       await uow.recordAudit({
         organizationId: audit.organizationId,
         entityType: 'match',
@@ -209,7 +272,7 @@ export class ZoneEntrantResolution {
         stream: `match:${matchId}`,
         entityId: matchId,
         eventType: 'fixture.entrant-resolved',
-        projectionVersion: 1,
+        projectionVersion,
         payload: {
           matchId,
           ...state,

@@ -11842,7 +11842,7 @@
   "info": {
     "title": "CopaLibre API",
     "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
-    "version": "7.2.0",
+    "version": "7.3.0",
     "contact": {}
   },
   "tags": [],
@@ -13106,6 +13106,53 @@
       "ControlMatchesViewMatchResponse": {
         "type": "object",
         "properties": {
+          "nodeKey": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "homeSource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
+          "awaySource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
           "scheduleVersion": {
             "type": "number",
             "description": "Independent published schedule replay version"
@@ -15108,6 +15155,53 @@
       "MatchConsoleResponse": {
         "type": "object",
         "properties": {
+          "nodeKey": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "homeSource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
+          "awaySource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
           "matchId": {
             "type": "string",
             "format": "uuid"
@@ -15612,9 +15706,45 @@
           "sides"
         ]
       },
+      "ReResolvedMatchSideDto": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "home",
+              "away"
+            ]
+          },
+          "currentEntrantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "resultingEntrantId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "matchId",
+          "side",
+          "currentEntrantId",
+          "resultingEntrantId"
+        ]
+      },
       "BlockedPropagationDto": {
         "type": "object",
         "properties": {
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReResolvedMatchSideDto"
+            }
+          },
           "stageId": {
             "type": "string",
             "format": "uuid"
@@ -15683,6 +15813,12 @@
       "CorrectionPreviewResponse": {
         "type": "object",
         "properties": {
+          "reResolved": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReResolvedMatchSideDto"
+            }
+          },
           "changedEntrantIds": {
             "description": "Entrants whose recorded numbers move",
             "type": "array",
@@ -16268,6 +16404,25 @@
       "BracketSlotResponse": {
         "type": "object",
         "properties": {
+          "source": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
           "kind": {
             "type": "string",
             "description": "Where this side comes from",
@@ -16318,6 +16473,53 @@
       "BracketMatchResponse": {
         "type": "object",
         "properties": {
+          "nodeKey": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "homeSource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
+          "awaySource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
           "matchId": {
             "type": "string",
             "description": "Deterministic engine id, e.g. WB-R2-M1",
@@ -16419,6 +16621,11 @@
       "SeedingResponse": {
         "type": "object",
         "properties": {
+          "releasedAssignments": {
+            "type": "number",
+            "description": "Published match assignments released by rebuilding this stage",
+            "minimum": 0
+          },
           "stageId": {
             "type": "string",
             "format": "uuid"
@@ -16462,6 +16669,7 @@
           }
         },
         "required": [
+          "releasedAssignments",
           "stageId",
           "format",
           "seeds",
@@ -16834,6 +17042,53 @@
       "FixtureResponse": {
         "type": "object",
         "properties": {
+          "nodeKey": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "homeSource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
+          "awaySource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
           "fixtureId": {
             "type": "string",
             "format": "uuid"
@@ -17838,6 +18093,53 @@
       "PublicOverviewMatchResponse": {
         "type": "object",
         "properties": {
+          "nodeKey": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "homeSource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
+          "awaySource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
           "venueName": {
             "type": "string"
           },
@@ -18253,6 +18555,53 @@
       "PublicMatchReportResponse": {
         "type": "object",
         "properties": {
+          "nodeKey": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "homeSource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
+          "awaySource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
           "scheduleVersion": {
             "type": "number",
             "description": "Independent published schedule replay version"
@@ -18435,6 +18784,53 @@
       "PublicLiveMatchResponse": {
         "type": "object",
         "properties": {
+          "nodeKey": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "homeSource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
+          "awaySource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
           "scheduledAt": {
             "type": "string",
             "format": "date-time"
@@ -18526,6 +18922,25 @@
       "PublicBracketSlotResponse": {
         "type": "object",
         "properties": {
+          "source": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
           "kind": {
             "type": "string",
             "description": "Where this side comes from",
@@ -18591,6 +19006,53 @@
       "PublicBracketMatchResponse": {
         "type": "object",
         "properties": {
+          "nodeKey": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "homeSource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
+          "awaySource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
           "matchId": {
             "type": "string"
           },
@@ -18696,6 +19158,53 @@
       "PublicMatchesViewMatchResponse": {
         "type": "object",
         "properties": {
+          "nodeKey": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "homeSource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
+          "awaySource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntrantFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/WinnerFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/LoserFixtureSideSourceDto"
+              },
+              {
+                "$ref": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
           "scheduleVersion": {
             "type": "number",
             "description": "Independent published schedule replay version"
@@ -21009,6 +21518,116 @@
           "zoneNumber",
           "zoneId",
           "combined"
+        ]
+      },
+      "EntrantFixtureSideSourceDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "entrant"
+            ]
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "kind",
+          "entrantId"
+        ]
+      },
+      "WinnerFixtureSideSourceDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "winner-of"
+            ]
+          },
+          "nodeKey": {
+            "type": "string"
+          },
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "round": {
+            "type": "number"
+          },
+          "position": {
+            "type": "number"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "nodeKey",
+          "matchId",
+          "round",
+          "position"
+        ]
+      },
+      "LoserFixtureSideSourceDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "loser-of"
+            ]
+          },
+          "nodeKey": {
+            "type": "string"
+          },
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "round": {
+            "type": "number"
+          },
+          "position": {
+            "type": "number"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "nodeKey",
+          "matchId",
+          "round",
+          "position"
+        ]
+      },
+      "QualifierFixtureSideSourceDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "qualifier"
+            ]
+          },
+          "promotionPlanId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "promotionPlanId",
+          "position"
         ]
       }
     }

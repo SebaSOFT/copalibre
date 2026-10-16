@@ -18,6 +18,7 @@ export {
   type RealtimeSummary,
 } from './realtime-replicas.js';
 export { newId } from './ids.js';
+export { lockRowsForMutation } from './row-lock.js';
 
 export {
   PersistenceError,

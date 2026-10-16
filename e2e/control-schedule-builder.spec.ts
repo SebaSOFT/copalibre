@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { fork, execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { fileURLToPath } from 'node:url';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -121,6 +124,116 @@ const MORE_FIXTURES = [
 ];
 
 let fixtures = [...BASE_FIXTURES];
+
+test('publishes an undecided eight-entrant final through the real API and retains it after reload', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  // This API-only TypeScript build never writes the web server's build directory.
+  await promisify(execFile)('yarn', ['workspace', '@copalibre/api', 'build']);
+  const child = fork(
+    fileURLToPath(new URL('./support/persisted-bracket-api.mjs', import.meta.url)),
+    {
+      execArgv: ['--import', 'tsx'],
+      env: { ...process.env, COPALIBRE_TEST_DIALECT: 'sqlite' },
+      stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+    },
+  );
+  let errors = '';
+  child.stderr?.on('data', (chunk) => {
+    errors += String(chunk);
+  });
+  try {
+    const api = await new Promise<{ url: string; stageId: string; matchId: string }>(
+      (resolve, reject) => {
+        child.once('message', (message) =>
+          resolve(message as { url: string; stageId: string; matchId: string }),
+        );
+        child.once('error', reject);
+        child.once('exit', (code) => reject(new Error(`Fixture API exited ${code}: ${errors}`)));
+      },
+    );
+    await page.exposeFunction(
+      '__realBracketApi',
+      async (path: string, method: string, body?: string) => {
+        const response = await fetch(`${api.url}${path}`, {
+          method,
+          ...(body === undefined ? {} : { body }),
+          headers: { authorization: 'Bearer organizer-org1', 'content-type': 'application/json' },
+        });
+        return { status: response.status, body: await response.text() };
+      },
+    );
+    await page.addInitScript(
+      ({ tokenEndpoint }) => {
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = async (input, init) => {
+          const path = String(input);
+          if (path === tokenEndpoint)
+            return Response.json({ access_token: 'organizer-org1', expires_in: 3600 });
+          if (!path.startsWith('/organizations/')) return originalFetch(input, init);
+          const response = await (
+            window as unknown as {
+              __realBracketApi: (
+                path: string,
+                method: string,
+                body?: string,
+              ) => Promise<{ status: number; body: string }>;
+            }
+          ).__realBracketApi(
+            path,
+            init?.method ?? 'GET',
+            init?.body === undefined ? undefined : String(init.body),
+          );
+          return new Response(response.body, {
+            status: response.status,
+            headers: { 'content-type': 'application/json' },
+          });
+        };
+      },
+      { tokenEndpoint: TOKEN_ENDPOINT },
+    );
+    const target = '/control/liga-orbital/tournaments/undecided-cup/stages/1/schedule';
+    await seedLoginTransaction(page, target);
+    await page.goto(loginCallbackUrl());
+    await page.waitForURL(`**${target}`);
+    await expect(page.getByText('Ronda 3').first()).toBeVisible();
+    // Until source labels arrive, the final remains selectable by its real match row.
+    const time = page.getByLabel(/^Hora de inicio/).last();
+    await time.selectOption({ index: 1 });
+    await page.getByRole('button', { name: 'Previsualizar', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Publicar', exact: true })).toBeEnabled();
+    await page.getByRole('button', { name: 'Publicar', exact: true }).click();
+    await expect(page.getByText('Horario publicado.')).toBeVisible();
+    const stored = await fetch(
+      `${api.url}/organizations/liga-orbital/tournaments/undecided-cup/stages/${api.stageId}/schedule`,
+    );
+    expect((await stored.json()).assignments).toEqual([
+      expect.objectContaining({ matchId: api.matchId, slotId: expect.any(String) }),
+    ]);
+    await page.reload();
+    await expect(page.getByLabel(/^Hora de inicio/).last()).not.toHaveValue('');
+    for (const [name, width, height] of [
+      ['desktop', 1440, 900],
+      ['mobile', 390, 844],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await page
+        .getByLabel(/^Hora de inicio/)
+        .last()
+        .scrollIntoViewIfNeeded();
+      await page.screenshot({
+        path: `docs/assets/screenshots/control-undecided-final-${name}.png`,
+      });
+    }
+  } finally {
+    if (child.connected) child.send('close');
+    await new Promise<void>((resolve) => {
+      child.once('exit', () => resolve());
+      if (child.exitCode !== null) resolve();
+    });
+  }
+});
 
 const slotStart = (slotId: string | undefined) =>
   Date.parse(SCHEDULES[0]?.slots.find((one) => one.slotId === slotId)?.startsAt ?? '');

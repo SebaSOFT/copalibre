@@ -1,6 +1,7 @@
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { INestApplication } from '@nestjs/common';
 import type { OpenAPIObject } from '@nestjs/swagger';
+import { FIXTURE_SIDE_SOURCE_MODELS } from '../dto/fixture-side-source.dto.js';
 
 /**
  * The OpenAPI artifact is generated from the decorated controllers so the spec
@@ -33,7 +34,7 @@ import type { OpenAPIObject } from '@nestjs/swagger';
  * requires a `stages` array declaring every stage up front, replacing the single
  * top-level `format`/`series` fields.
  */
-export const OPENAPI_VERSION = '7.2.0';
+export const OPENAPI_VERSION = '7.3.0';
 
 export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()
@@ -67,5 +68,5 @@ export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
     )
     .build();
 
-  return SwaggerModule.createDocument(app, config);
+  return SwaggerModule.createDocument(app, config, { extraModels: FIXTURE_SIDE_SOURCE_MODELS });
 }

@@ -21,6 +21,8 @@ import { readStandings } from '../standings/read.js';
 import { readPublicScheduleChanges, type PublicPlacement } from './schedule.js';
 import { readStageSeriesByPosition, type PublicSeriesState } from '../controllers/stage-series.js';
 import { elapsedSecondsOf } from '../controllers/segment-clock.js';
+import { readFixtureSources } from '../controllers/fixture-sources.js';
+import type { FixtureSourcesResponse } from '../dto/fixture-side-source.dto.js';
 
 /**
  * A stage/zone/group/series-agnostic flat list of matches — the shared read
@@ -28,7 +30,7 @@ import { elapsedSecondsOf } from '../controllers/segment-clock.js';
  * is present only for the internal caller (control-web) to build a full trace
  * from when the viewer is authorized; the public mapper never reads it.
  */
-export interface MatchesViewRow {
+export interface MatchesViewRow extends FixtureSourcesResponse {
   readonly matchId: string;
   readonly scheduleVersion?: number;
   readonly rescheduledFrom?: PublicPlacement | null;
@@ -109,6 +111,7 @@ async function readStageMatchesView(
   const readModel = new StageReadModel(db);
   const records = await readModel.matches(stage.stageId, onlyGroupId);
   if (records.length === 0) return [];
+  const fixtureSources = await readFixtureSources(db, stage.stageId);
 
   // The ordinal must come from the stage's full, unscoped match list — a
   // group-filtered `records` here would assign a different ordinal to the
@@ -179,7 +182,9 @@ async function readStageMatchesView(
       const groupId = groupIdByFixture.get(record.fixtureId);
       const zoneNames = groupId === undefined ? undefined : zoneNamesByGroup.get(groupId);
       const standings = standingsByGroup.get(groupId);
-      const series = seriesByPosition.get(`${record.round}:${record.position}`);
+      const series =
+        seriesByPosition.get(record.fixtureId) ??
+        seriesByPosition.get(`${record.round}:${record.position}`);
       const scores = record.scores;
       const status = publicMatchStatus(record.status);
 
@@ -198,6 +203,7 @@ async function readStageMatchesView(
 
       return {
         matchId: record.matchId,
+        ...fixtureSources.get(record.matchId),
         ...scheduleChanges.get(record.matchId),
         stageNumber: stage.number,
         matchNumber: matchOrdinals.get(record.matchId) ?? 1,

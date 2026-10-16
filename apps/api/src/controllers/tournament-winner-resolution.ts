@@ -18,6 +18,41 @@ export interface ChampionshipFixture {
   readonly runnerUpEntrantId?: string;
 }
 
+/** Stored topology identifies the championship independently of classification games or seed order. */
+export function persistedChampionshipFixture(
+  format: string,
+  records: readonly StageMatchRecord[],
+  winnerByFixtureId: ReadonlyMap<string, string>,
+): ChampionshipFixture | undefined {
+  const finals = records.filter((record) =>
+    format === 'double-elimination'
+      ? record.node?.bracket === 'grand-final'
+      : record.node?.bracket === 'winners',
+  );
+  const terminalRound = Math.max(0, ...finals.map((record) => record.round));
+  const candidates = finals.filter((record) => record.round === terminalRound);
+  let fixture = candidates.length === 1 ? candidates[0] : undefined;
+  if (format === 'double-elimination') {
+    const reset = finals.find((record) => record.node?.contingency === 'bracket-reset');
+    const first = finals.find((record) => record.node?.contingency === undefined);
+    if (!first || !winnerByFixtureId.has(first.fixtureId)) return undefined;
+    fixture = winnerByFixtureId.get(first.fixtureId) === first.homeEntrantId ? first : reset;
+  }
+  if (!fixture || fixture.homeEntrantId === undefined || fixture.awayEntrantId === undefined)
+    return undefined;
+  const winner = winnerByFixtureId.get(fixture.fixtureId);
+  if (winner === fixture.homeEntrantId || winner === fixture.awayEntrantId)
+    return {
+      fixture,
+      championEntrantIds: [winner],
+      runnerUpEntrantId:
+        winner === fixture.homeEntrantId ? fixture.awayEntrantId : fixture.homeEntrantId,
+    };
+  if (format === 'single-elimination' && isTiedFinal(fixture))
+    return { fixture, championEntrantIds: [fixture.homeEntrantId, fixture.awayEntrantId] };
+  return undefined;
+}
+
 /** Reconstructs which persisted fixture occupies the generated championship path. */
 export function reconstructChampionshipFixture(input: {
   readonly graph: FixtureGraph;

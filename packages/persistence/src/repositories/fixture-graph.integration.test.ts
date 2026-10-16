@@ -405,6 +405,88 @@ describe('persisted fixture graph (integration)', () => {
     });
   });
 
+  it('previews a correction through the writer resolver without changing facts or emitting events', async () => {
+    const seeded = await seedZone('copa-grafo-preview');
+    await createGraph(seeded.stage.stageId, seeded.zone.zoneId, bracketOf(seeded));
+    const { resolve } = stubResolver({ contingency: undefined });
+    const resolution = resolutionWith(resolve);
+    await run(resolution, seeded.zone.zoneId);
+    const [semi] = await matchesOfNode(seeded.zone.zoneId, 'sf-1');
+    if (!semi) throw new Error('Expected a semi-final');
+    await finalize(semi.match_id, seeded.a, seeded.d);
+    await run(resolution, seeded.zone.zoneId);
+    const before = await fixtureOf(seeded.zone.zoneId, 'final');
+    const eventsBefore = (await new OutboxReader(scratch.db).pending(10_000)).length;
+    const preview = await withTransaction(scratch.db, (uow) =>
+      resolution.run(
+        uow,
+        seeded.zone.zoneId,
+        { organizationId, ...AUDIT },
+        {
+          dryRun: true,
+          replacement: {
+            matchId: semi.match_id,
+            result: JSON.parse(finalizeIn(seeded.d, seeded.a).result) as unknown,
+          },
+        },
+      ),
+    );
+    expect(preview.changedSides).toBe(1);
+    expect(await fixtureOf(seeded.zone.zoneId, 'final')).toEqual(before);
+    expect((await new OutboxReader(scratch.db).pending(10_000)).length).toBe(eventsBefore);
+    await finalize(semi.match_id, seeded.d, seeded.a);
+    const committed = await run(resolution, seeded.zone.zoneId);
+    expect(committed.reResolved).toEqual(preview.reResolved);
+    expect(await fixtureOf(seeded.zone.zoneId, 'final')).toMatchObject({
+      home_entrant_id: seeded.d,
+    });
+  });
+
+  it.each(['in-progress', 'finalized', 'forfeited'])(
+    'protects all games of a fixture when one is %s',
+    async (status) => {
+      const seeded = await seedZone(`copa-grafo-protegido-${status}`);
+      const nodes = bracketOf(seeded).map((node) =>
+        node.nodeKey === 'final' ? { ...node, seriesSpan: 3 } : node,
+      );
+      await createGraph(seeded.stage.stageId, seeded.zone.zoneId, nodes);
+      const { resolve } = stubResolver({ contingency: undefined });
+      const resolution = resolutionWith(resolve, { span: 3, resolutionClass: 'best-of' });
+      await run(resolution, seeded.zone.zoneId);
+      const [semi] = await matchesOfNode(seeded.zone.zoneId, 'sf-1');
+      if (!semi) throw new Error('Expected a semi-final match');
+      await finalize(semi.match_id, seeded.a, seeded.d);
+      await run(resolution, seeded.zone.zoneId);
+      const finalGames = await matchesOfNode(seeded.zone.zoneId, 'final');
+      const firstFinal = finalGames[0];
+      if (!firstFinal) throw new Error('Expected the final series');
+      const before = await fixtureOf(seeded.zone.zoneId, 'final');
+      const audits = await new AuditReader(scratch.db).historyFor('match', firstFinal.match_id);
+      await scratch.db
+        .updateTable('matches')
+        .set({ status })
+        .where('match_id', '=', firstFinal.match_id)
+        .execute();
+      await finalize(semi.match_id, seeded.d, seeded.a);
+      const result = await run(resolution, seeded.zone.zoneId);
+      expect(result.changedSides).toBe(0);
+      expect(result.blockedPropagation).toEqual([
+        {
+          fixtureId: before.fixture_id,
+          matchIds: finalGames.map((match) => match.match_id),
+          side: 'home',
+          currentEntrantId: seeded.a,
+          resultingEntrantId: seeded.d,
+        },
+      ]);
+      expect(await fixtureOf(seeded.zone.zoneId, 'final')).toEqual(before);
+      expect(
+        await new AuditReader(scratch.db).historyFor('match', firstFinal.match_id),
+      ).toHaveLength(audits.length);
+      expect(finalGames).toHaveLength(3);
+    },
+  );
+
   it('passes outcomes keyed by node and match number, and the zone series only when a node spans several matches', async () => {
     const seeded = await seedZone('copa-grafo-claves');
     await createGraph(seeded.stage.stageId, seeded.zone.zoneId, bracketOf(seeded, 3));

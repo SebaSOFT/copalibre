@@ -1,4 +1,5 @@
 import type { RecordedOutcome, SeriesDeclaration } from '@copalibre/domain';
+import type { UnitOfWork } from './transaction.js';
 
 /** JSON-compatible source persisted for one side of a fixture graph node. */
 export type FixtureGraphSlotSource =
@@ -62,11 +63,14 @@ export type ZoneEntrantResolver = (
 ) => readonly PersistedFixtureResolution[];
 
 /** The series declaration governing one zone, as the composition root reads it. */
-export type ZoneSeriesLookup = (zone: {
-  readonly tournamentId: string;
-  readonly stageId: string;
-  readonly zoneId: string;
-}) => Promise<SeriesDeclaration | undefined>;
+export type ZoneSeriesLookup = (
+  zone: {
+    readonly tournamentId: string;
+    readonly stageId: string;
+    readonly zoneId: string;
+  },
+  uow?: UnitOfWork,
+) => Promise<SeriesDeclaration | undefined>;
 
 /**
  * Whether a zone's fixtures are a persisted graph: every one of them carries a node key. A zone
