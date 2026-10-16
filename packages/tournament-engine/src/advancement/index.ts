@@ -1,6 +1,6 @@
 import type { RecordedOutcome, SeriesDeclaration } from '@copalibre/domain';
 import { resolveSeries } from '@copalibre/domain';
-import { PlacementAdvancementError } from '../errors.js';
+import { PersistedGraphError, PlacementAdvancementError } from '../errors.js';
 import { isDuelMatch, type DuelMatch, type FixtureGraph, type SlotSource } from '../types.js';
 
 /**
@@ -58,24 +58,109 @@ export interface PersistedGraphResolution {
 
 export type QualifierEntrants = ReadonlyMap<string, ReadonlyMap<number, string>>;
 
+/**
+ * One recorded outcome of a persisted node, named by the node and the match's number within it.
+ * `outcome.matchId` stays the stored match's own id; the engine never reads it.
+ */
+export interface PersistedNodeOutcome {
+  readonly nodeKey: string;
+  readonly matchNumber: number;
+  readonly outcome: RecordedOutcome;
+}
+
+export interface PersistedZoneInput {
+  readonly nodes: readonly PersistedFixtureNode[];
+  readonly outcomes: readonly PersistedNodeOutcome[];
+  /** The zone's series declaration. Required as soon as one node spans several matches. */
+  readonly series?: SeriesDeclaration;
+  readonly qualifierEntrants?: QualifierEntrants;
+}
+
+/**
+ * The engine's id for match `matchNumber` of a persisted node: the node key for a single match,
+ * `<nodeKey>-<n>` within a series. The only place that convention is spelled out.
+ */
+export function persistedMatchId(nodeKey: string, matchNumber: number, seriesSpan: number): string {
+  return seriesSpan > 1 ? `${nodeKey}-${matchNumber}` : nodeKey;
+}
+
+/** The declaration a series node resolves by, refusing one the engine would have to guess at. */
+function seriesDeclarationOf(
+  node: PersistedFixtureNode,
+  series: SeriesDeclaration | undefined,
+): SeriesDeclaration | undefined {
+  if (node.seriesSpan <= 1) return undefined;
+  if (series === undefined) {
+    throw new PersistedGraphError('A persisted series node needs the zone series declaration', {
+      nodeKey: node.nodeKey,
+      seriesSpan: node.seriesSpan,
+    });
+  }
+  if (series.resolutionClass === undefined) {
+    throw new PersistedGraphError('A scripted series cannot resolve a persisted graph', {
+      nodeKey: node.nodeKey,
+    });
+  }
+  if (series.span !== node.seriesSpan) {
+    throw new PersistedGraphError('A persisted series node spans a different number of matches', {
+      nodeKey: node.nodeKey,
+      seriesSpan: node.seriesSpan,
+      declaredSpan: series.span,
+    });
+  }
+  return series;
+}
+
+/** Maps node-keyed outcomes onto engine match ids, refusing ids that collide or name no match. */
+function engineOutcomesOf(input: PersistedZoneInput): readonly RecordedOutcome[] {
+  const derived = new Set<string>();
+  for (const node of input.nodes) {
+    for (let matchNumber = 1; matchNumber <= node.seriesSpan; matchNumber += 1) {
+      const matchId = persistedMatchId(node.nodeKey, matchNumber, node.seriesSpan);
+      if (derived.has(matchId)) {
+        throw new PersistedGraphError('Persisted node keys derive colliding match ids', {
+          nodeKey: node.nodeKey,
+          matchId,
+        });
+      }
+      derived.add(matchId);
+    }
+  }
+  const nodeByKey = new Map(input.nodes.map((node) => [node.nodeKey, node]));
+  return input.outcomes.map(({ nodeKey, matchNumber, outcome }) => {
+    const node = nodeByKey.get(nodeKey);
+    if (
+      !node ||
+      !Number.isInteger(matchNumber) ||
+      matchNumber < 1 ||
+      matchNumber > node.seriesSpan
+    ) {
+      throw new PersistedGraphError('An outcome names no match of the persisted graph', {
+        nodeKey,
+        matchNumber,
+      });
+    }
+    return { ...outcome, matchId: persistedMatchId(nodeKey, matchNumber, node.seriesSpan) };
+  });
+}
+
 /** Resolves persisted fixture nodes through the same recursive walk as generated graphs. */
 export function resolvePersistedNodes(
-  nodes: readonly PersistedFixtureNode[],
-  outcomes: readonly RecordedOutcome[],
-  qualifierEntrants: QualifierEntrants = new Map(),
+  input: PersistedZoneInput,
 ): readonly PersistedGraphResolution[] {
+  const { nodes, qualifierEntrants = new Map() } = input;
+  const outcomes = engineOutcomesOf(input);
   const side = (source: SlotSource): SlotSource => {
     if (source.kind !== 'qualifier') return source;
     const entrantId = qualifierEntrants.get(source.promotionPlanId)?.get(source.position);
     return entrantId === undefined ? source : { kind: 'entrant', entrantId, seed: source.position };
   };
   const matches: DuelMatch[] = nodes.flatMap((node) => {
-    const series: SeriesDeclaration | undefined =
-      node.seriesSpan > 1 ? { span: node.seriesSpan, resolutionClass: 'best-of' } : undefined;
+    const series = seriesDeclarationOf(node, input.series);
     return Array.from({ length: node.seriesSpan }, (_unused, index) => {
       const matchNumber = index + 1;
       return {
-        id: node.seriesSpan > 1 ? `${node.nodeKey}-${matchNumber}` : node.nodeKey,
+        id: persistedMatchId(node.nodeKey, matchNumber, node.seriesSpan),
         shape: 'duel' as const,
         bracket: node.bracket,
         round: node.round,
@@ -84,16 +169,8 @@ export function resolvePersistedNodes(
         ...(node.label === undefined ? {} : { label: node.label }),
         slotA: side(node.sides[0]),
         slotB: side(node.sides[1]),
-        ...(series === undefined
-          ? {}
-          : {
-              series,
-              matchNumber,
-              ...(node.contingency ? { conditional: node.contingency } : {}),
-            }),
-        ...(series !== undefined || node.contingency === undefined
-          ? {}
-          : { conditional: node.contingency }),
+        ...(series === undefined ? {} : { series, matchNumber }),
+        ...(node.contingency === undefined ? {} : { conditional: node.contingency }),
       };
     });
   });
@@ -111,76 +188,88 @@ export function resolvePersistedNodes(
     rounds: [],
   };
   const resolved = resolveAdvancement(graph, outcomes);
-  const outcomeById = new Map(outcomes.map((outcome) => [outcome.matchId, outcome]));
+  const resolvedById = new Map(resolved.map((match) => [match.matchId, match]));
+  const firstMatchOf = (node: PersistedFixtureNode) =>
+    resolvedById.get(persistedMatchId(node.nodeKey, 1, node.seriesSpan));
 
   return nodes.map((node) => {
-    const baseMatchId = node.seriesSpan > 1 ? `${node.nodeKey}-1` : node.nodeKey;
-    const resolvedMatch = resolved.find((match) => match.matchId === baseMatchId);
+    const resolvedMatch = firstMatchOf(node);
     const resolvedSides: readonly [ResolvedSlot, ResolvedSlot] = resolvedMatch
       ? [resolvedMatch.slotA, resolvedMatch.slotB]
       : [{ state: 'pending' }, { state: 'pending' }];
-    let contingency: PersistedGraphResolution['contingency'];
-    if (node.contingency === 'bracket-reset') {
-      const firstFinal = nodes.find(
-        (candidate) => candidate.bracket === 'grand-final' && candidate.round === node.round - 1,
-      );
-      if (!firstFinal) {
-        contingency = 'pending';
-      } else {
-        const firstFinalSides = resolved.find(
-          (match) =>
-            match.matchId ===
-            (firstFinal.seriesSpan > 1 ? `${firstFinal.nodeKey}-1` : firstFinal.nodeKey),
-        );
-        const firstFinalOutcomes = Array.from({ length: firstFinal.seriesSpan }, (_unused, index) =>
-          outcomeById.get(
-            firstFinal.seriesSpan > 1 ? `${firstFinal.nodeKey}-${index + 1}` : firstFinal.nodeKey,
-          ),
-        );
-        if (
-          firstFinalSides?.slotA.state !== 'entrant' ||
-          firstFinalSides.slotB.state !== 'entrant'
-        ) {
-          contingency = 'pending';
-        } else {
-          const result = resolveSeries({
-            declaration: {
-              span: firstFinal.seriesSpan,
-              resolutionClass: 'best-of',
-            },
-            sides: [firstFinalSides.slotA.entrantId, firstFinalSides.slotB.entrantId],
-            matches: firstFinalOutcomes.map((outcome, index) =>
-              outcome === undefined
-                ? { number: index + 1, status: 'scheduled' as const }
-                : {
-                    number: index + 1,
-                    status: 'finalized' as const,
-                    result: {
-                      winnerEntrantId: outcome.winnerEntrantId,
-                      sides: outcome.sides.map((entry) => ({
-                        entrantId: entry.entrantId,
-                        statistics: entry.statistics,
-                      })),
-                      recordedAt: '',
-                    },
-                  },
-            ),
-          });
-          contingency =
-            result.status !== 'decided'
-              ? 'pending'
-              : result.winnerEntrantId === firstFinalSides.slotA.entrantId
-                ? 'not-required'
-                : 'required';
-        }
-      }
-    }
+    const contingency =
+      node.contingency === 'bracket-reset'
+        ? resetContingency(node, input, firstMatchOf)
+        : undefined;
     return {
       nodeKey: node.nodeKey,
       sides: resolvedSides,
       ...(contingency === undefined ? {} : { contingency }),
     };
   });
+}
+
+/**
+ * A bracket reset is needed only when the losers-bracket champion (side B) wins the first grand
+ * final, decided by the same series declaration as every other node of the zone.
+ */
+function resetContingency(
+  reset: PersistedFixtureNode,
+  input: PersistedZoneInput,
+  firstMatchOf: (node: PersistedFixtureNode) => ResolvedMatch | undefined,
+): NonNullable<PersistedGraphResolution['contingency']> {
+  const firstFinal = input.nodes.find(
+    (candidate) => candidate.bracket === 'grand-final' && candidate.round === reset.round - 1,
+  );
+  const sides = firstFinal === undefined ? undefined : firstMatchOf(firstFinal);
+  if (!firstFinal || sides?.slotA.state !== 'entrant' || sides.slotB.state !== 'entrant') {
+    return 'pending';
+  }
+  const outcomeByNumber = new Map(
+    input.outcomes
+      .filter((entry) => entry.nodeKey === firstFinal.nodeKey)
+      .map((entry) => [entry.matchNumber, entry.outcome]),
+  );
+  const declaration = seriesDeclarationOf(firstFinal, input.series);
+  const winnerEntrantId =
+    declaration === undefined
+      ? outcomeByNumber.get(1)?.winnerEntrantId
+      : decidedSeriesWinner(
+          declaration,
+          [sides.slotA.entrantId, sides.slotB.entrantId],
+          outcomeByNumber,
+        );
+  if (winnerEntrantId === undefined) return 'pending';
+  return winnerEntrantId === sides.slotA.entrantId ? 'not-required' : 'required';
+}
+
+function decidedSeriesWinner(
+  declaration: SeriesDeclaration,
+  sides: readonly [string, string],
+  outcomeByNumber: ReadonlyMap<number, RecordedOutcome>,
+): string | undefined {
+  const result = resolveSeries({
+    declaration,
+    sides,
+    matches: Array.from({ length: declaration.span }, (_unused, index) => {
+      const outcome = outcomeByNumber.get(index + 1);
+      return outcome === undefined
+        ? { number: index + 1, status: 'scheduled' as const }
+        : {
+            number: index + 1,
+            status: 'finalized' as const,
+            result: {
+              winnerEntrantId: outcome.winnerEntrantId,
+              sides: outcome.sides.map((entry) => ({
+                entrantId: entry.entrantId,
+                statistics: entry.statistics,
+              })),
+              recordedAt: '',
+            },
+          };
+    }),
+  });
+  return result.status === 'decided' ? result.winnerEntrantId : undefined;
 }
 
 /**

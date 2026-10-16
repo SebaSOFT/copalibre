@@ -419,6 +419,14 @@ export interface FixturesTable {
   round: number;
   /** A placement game's part in its zone (`place-3`, `places-5-8`); null for the generated graph's own matches. */
   role: string | null;
+  node_key: string | null;
+  bracket: string | null;
+  position: number | null;
+  branch: string | null;
+  label: string | null;
+  home_source: JSONColumnType<Record<string, unknown>> | null;
+  away_source: JSONColumnType<Record<string, unknown>> | null;
+  contingency: string | null;
   home_entrant_id: string | null;
   away_entrant_id: string | null;
   created_at: Timestamp;

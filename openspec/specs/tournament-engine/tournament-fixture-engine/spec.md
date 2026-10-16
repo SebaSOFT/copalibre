@@ -433,3 +433,54 @@ Generating the next round of a Swiss or single-elimination stage SHALL pair only
 - **WHEN** the next round is requested for a zone whose effective format is round-robin
 - **THEN** the request is refused naming the zone
 - **AND** the stage's other zones are unaffected
+
+### Requirement: Single elimination may declare placement play
+Single-elimination generation SHALL accept an optional placement declaration: none (the default), a
+third-place game, or every place. A third-place game takes both semi-final losers. Every place also
+classifies each eliminated round's losers through their own bracket fed by `loser-of` edges.
+Placement nodes SHALL carry a branch and a placement label, and SHALL be deterministic.
+
+#### Scenario: A third-place game is fed by the semi-final losers
+- **WHEN** an eight-entrant single-elimination graph declaring a third-place game is generated
+- **THEN** it contains a node labelled third place whose sides are the losers of semi-finals 1 and 2
+
+#### Scenario: Every place classifies the quarter-final losers
+- **WHEN** an eight-entrant single-elimination graph declaring every place is generated
+- **THEN** besides the main bracket and the third-place game, it contains nodes for places 5 to 8 fed by
+  the quarter-final losers, a fifth-place node fed by their winners and a seventh-place node fed by their
+  losers
+
+#### Scenario: No declaration is unchanged
+- **WHEN** a single-elimination graph is generated without a placement declaration
+- **THEN** it is identical, node for node, to the graph generated before this requirement existed
+
+#### Scenario: Placement generation is deterministic
+- **WHEN** the same entrants and declaration are generated twice
+- **THEN** both graphs have identical node ids, edges and labels
+
+### Requirement: Advancement resolves over persisted nodes as it does over a regenerated graph
+Given persisted nodes (each with a node key, its sides' sources, a series span and any contingency)
+and recorded outcomes, the engine SHALL resolve every side to the same entrant, or to undecided, that
+advancement over the regenerated graph resolves it to. A qualifier source SHALL stay undecided until
+an entrant is supplied for it. A contingent bracket reset that is not needed SHALL be reported
+not-required.
+
+#### Scenario: Parity with regenerated advancement
+- **WHEN** a single- or double-elimination graph with recorded outcomes is resolved both from its
+  persisted nodes and from its regenerated graph
+- **THEN** every side resolves to the same entrant or to undecided in both
+
+#### Scenario: A series resolves its downstream side once decided
+- **WHEN** persisted best-of-three nodes are resolved after the first match of a semi-final is won
+- **THEN** the final's side fed by that semi-final is still undecided, and becomes the series winner once
+  the series is decided
+
+#### Scenario: An unneeded reset is reported not-required
+- **WHEN** a double-elimination graph's first grand final is won by the winners-bracket finalist
+- **THEN** the resolver reports the bracket-reset node as not-required
+
+#### Scenario: A qualifier side stays undecided
+- **WHEN** a node whose side is sourced from a qualifier position is resolved with no entrant supplied
+  for it
+- **THEN** that side is undecided, and resolving with an entrant supplied for that position yields that
+  entrant

@@ -31,6 +31,7 @@ export {
   PlacementAdvancementError,
   CyclicFixtureGraphError,
   InvalidCustomBracketError,
+  PersistedGraphError,
 } from './errors.js';
 export {
   previewStageTransition,
@@ -158,6 +159,7 @@ export {
   type TableProjection,
 } from './statistics/table-projection.js';
 export {
+  persistedMatchId,
   resolvePersistedNodes,
   resolveAdvancement,
   advanceEntrants,
@@ -167,6 +169,8 @@ export {
   type ResolvedMatch,
   type PersistedFixtureNode,
   type PersistedGraphResolution,
+  type PersistedNodeOutcome,
+  type PersistedZoneInput,
   type QualifierEntrants,
 } from './advancement/index.js';
 export {

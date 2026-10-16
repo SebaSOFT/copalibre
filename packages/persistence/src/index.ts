@@ -126,6 +126,23 @@ export {
 } from './repositories/enrollment-repository.js';
 export { CompetitionRepository } from './repositories/competition-repository.js';
 export {
+  isPersistedGraph,
+  type FixtureGraphBracket,
+  type FixtureGraphSlotSource,
+  type PersistedFixtureNode,
+  type PersistedFixtureResolution,
+  type PersistedNodeOutcome,
+  type QualifierEntrants,
+  type ResolvedFixtureSide,
+  type ZoneEntrantResolver,
+  type ZoneResolutionInput,
+  type ZoneSeriesLookup,
+} from './fixture-graph.js';
+export {
+  ZoneEntrantResolution,
+  type ZoneEntrantResolutionOutcome,
+} from './zone-entrant-resolution.js';
+export {
   ScheduleRepository,
   type SchedulePreview,
   type ScheduleAssignmentDetail,

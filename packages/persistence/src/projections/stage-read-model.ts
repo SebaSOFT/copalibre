@@ -5,6 +5,7 @@ import {
   type TournamentFormat,
 } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
+import { isPersistedGraph, sourceOf, type FixtureGraphSlotSource } from '../fixture-graph.js';
 import type { Database } from '../schema.js';
 
 /**
@@ -45,6 +46,17 @@ export interface StageSeriesMatchRecord {
   readonly resultReasons?: readonly (ResultReason | undefined)[];
 }
 
+/** The stored identity of a persisted graph's node; absent on every legacy fixture. */
+export interface StageGraphNodeRecord {
+  readonly nodeKey: string;
+  readonly bracket: string;
+  readonly branch?: string;
+  readonly label?: string;
+  /** Home then away: each side's source, kept after its entrant is known. */
+  readonly sources: readonly [FixtureGraphSlotSource, FixtureGraphSlotSource];
+  readonly contingency?: string;
+}
+
 export interface StageMatchRecord {
   /** The fixture's first match — its only one unless the fixture declares a series. */
   readonly matchId: string;
@@ -52,8 +64,10 @@ export interface StageMatchRecord {
   readonly round: number;
   /** A placement game's part in its zone (`place-3`); absent for the generated graph's own matches. */
   readonly role?: string;
-  /** 1-based position within the round, in fixture order. */
+  /** 1-based position within the round: stored for a persisted graph, fixture order otherwise. */
   readonly position: number;
+  /** Present only for a fixture of a persisted graph (`isPersistedGraph`). */
+  readonly node?: StageGraphNodeRecord;
   readonly status: string;
   readonly homeEntrantId?: string;
   readonly awayEntrantId?: string;
@@ -131,8 +145,17 @@ export class StageReadModel {
       .leftJoin('matches', 'matches.fixture_id', 'fixtures.fixture_id')
       .select([
         'fixtures.fixture_id',
+        'fixtures.zone_id',
         'fixtures.round',
         'fixtures.role',
+        'fixtures.node_key',
+        'fixtures.bracket',
+        'fixtures.position',
+        'fixtures.branch',
+        'fixtures.label',
+        'fixtures.home_source',
+        'fixtures.away_source',
+        'fixtures.contingency',
         'fixtures.home_entrant_id',
         'fixtures.away_entrant_id',
         'fixtures.created_at',
@@ -156,11 +179,25 @@ export class StageReadModel {
       byFixture.set(row.fixture_id, [...(byFixture.get(row.fixture_id) ?? []), row]);
     }
 
+    // A zone is a persisted graph only when every one of its fixtures carries a node key.
+    const keysByZone = new Map<string | null, { nodeKey: string | null }[]>();
+    for (const fixtureRows of byFixture.values()) {
+      const first = fixtureRows[0] as (typeof rows)[number];
+      keysByZone.set(first.zone_id, [
+        ...(keysByZone.get(first.zone_id) ?? []),
+        { nodeKey: first.node_key },
+      ]);
+    }
+    const persistedZones = new Set(
+      [...keysByZone].filter(([, keys]) => isPersistedGraph(keys)).map(([zoneId]) => zoneId),
+    );
+
     const positions = new Map<number, number>();
     return [...byFixture.values()].map((fixtureRows) => {
       const first = fixtureRows[0] as (typeof rows)[number];
-      const position = (positions.get(first.round) ?? 0) + 1;
-      positions.set(first.round, position);
+      const node = persistedZones.has(first.zone_id) ? graphNodeOf(first) : undefined;
+      const position = node ? (first.position as number) : (positions.get(first.round) ?? 0) + 1;
+      if (!node) positions.set(first.round, position);
 
       const games = fixtureRows
         .filter((row) => row.match_id !== null)
@@ -177,6 +214,7 @@ export class StageReadModel {
         round: first.round,
         ...(first.role === null ? {} : { role: first.role }),
         position,
+        ...(node === undefined ? {} : { node }),
         status: first.status ?? 'scheduled',
         ...(first.home_entrant_id === null ? {} : { homeEntrantId: first.home_entrant_id }),
         ...(first.away_entrant_id === null ? {} : { awayEntrantId: first.away_entrant_id }),
@@ -271,4 +309,23 @@ export function stageMatchOrdinals(
   records: readonly StageMatchRecord[],
 ): ReadonlyMap<string, number> {
   return new Map(records.map((record, index) => [record.matchId, index + 1]));
+}
+
+function graphNodeOf(row: {
+  readonly node_key: string | null;
+  readonly bracket: string | null;
+  readonly branch: string | null;
+  readonly label: string | null;
+  readonly home_source: unknown;
+  readonly away_source: unknown;
+  readonly contingency: string | null;
+}): StageGraphNodeRecord {
+  return {
+    nodeKey: row.node_key as string,
+    bracket: row.bracket as string,
+    ...(row.branch === null ? {} : { branch: row.branch }),
+    ...(row.label === null ? {} : { label: row.label }),
+    sources: [sourceOf(row.home_source), sourceOf(row.away_source)],
+    ...(row.contingency === null ? {} : { contingency: row.contingency }),
+  };
 }
