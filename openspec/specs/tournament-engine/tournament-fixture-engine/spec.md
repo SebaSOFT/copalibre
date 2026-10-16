@@ -73,7 +73,9 @@ Given a recorded match result, the engine SHALL deterministically compute which 
 fixture(s) unlock, correctly for each of the six MVP formats' advancement rules. Where a fixture is
 settled by a series, the advancement edge SHALL read the series resolution rather than any single
 match result, so a `winner-of` edge is populated once — when the series is decided — and not by the
-first match of it.
+first match of it. Where the stage's graph is persisted, every path that changes an outcome SHALL
+populate the persisted fixture's side in the same transaction, through the audited resolution that
+recomputes it from structure and recorded outcomes.
 
 #### Scenario: Round-robin advancement recomputes standings, not fixtures
 - **WHEN** a round-robin match result is recorded
@@ -92,6 +94,15 @@ first match of it.
 - **WHEN** a best-of-five series becomes decided
 - **THEN** the downstream fixture's slot is populated with the series winner exactly once, and the
   later anulling of the unplayed matches populates nothing further
+
+#### Scenario: Every outcome path populates the persisted side
+- **WHEN** a quarter-final of a persisted bracket is decided through finalize, bulk load, a series
+  decision or a correction
+- **THEN** in that same transaction the semi-final side it feeds reports the resulting entrant, with an
+  audit record and an outbox event
+
+Future outcome writers, including a dedicated forfeit endpoint or CSV result importer, SHALL use the
+same transactional resolution hook. A static guard SHALL reject unrouted repository outcome writers.
 
 ### Requirement: Fixture regeneration respects mutation classification
 Any operation that would alter already-generated fixtures SHALL be classified `safe`,
@@ -567,3 +578,79 @@ resolution class. It SHALL refuse, rather than guess, a series node without a us
 - **WHEN** a persisted node spans several matches and the zone declares no series, a scripted series,
   or a span different from the node's
 - **THEN** resolution fails with an error naming the node and writes nothing
+
+### Requirement: Generating an elimination stage persists its whole graph
+
+Generating a single- or double-elimination stage or zone SHALL persist every node of its graph as a
+fixture holding its matches (its whole series span), not only the nodes whose entrants are known. A node
+that is structurally a bye SHALL NOT become a fixture. Every persisted match SHALL have its own
+identifier from generation onwards.
+
+#### Scenario: An eight-entrant bracket persists seven fixtures
+
+- **WHEN** a single-elimination stage of eight entrants is generated
+- **THEN** seven fixtures exist (four quarter-finals, two semi-finals, one final), each holding one match
+  with its own identifier, and the semi-finals and the final have both sides undecided
+
+#### Scenario: A bye does not become a fixture
+
+- **WHEN** a single-elimination stage of six entrants is generated
+- **THEN** the two first-round byes are not fixtures, and each second-round fixture fed by a bye names the
+  seeded entrant on that side from generation onwards
+
+#### Scenario: A series span is materialized on undecided nodes too
+
+- **WHEN** a stage declaring best-of-three series is generated
+- **THEN** every fixture, including the undecided final, holds three matches numbered in play order
+
+### Requirement: A stage declares its placement play
+
+A single-elimination stage or zone SHALL declare its placement play in its configuration: none, a
+third-place game, or every place. Generation SHALL persist the declared placement nodes like any other
+node. Changing the declaration SHALL be classified `requires_rebuild`, and SHALL be blocked once a result
+exists.
+
+#### Scenario: A declared third-place game is persisted and schedulable
+
+- **WHEN** a stage declaring a third-place game is generated
+- **THEN** a fixture labelled third place exists, sourced from both semi-final losers, and its match can
+  be placed in a slot
+
+#### Scenario: Changing placement play after results is blocked
+
+- **WHEN** an organizer changes a stage's placement play after one of its results is recorded
+- **THEN** the change is rejected as `blocked_after_results`
+
+### Requirement: A double-elimination bracket reset is a contingent node
+
+A generated double-elimination stage SHALL persist its bracket-reset final as a contingent fixture. When
+the winners-bracket finalist wins the first grand final, the reset match SHALL become not-required, and
+any slot it held SHALL be released in the same transaction.
+
+#### Scenario: An unneeded reset frees its slot
+
+- **WHEN** the winners-bracket finalist wins the first grand final and the reset match is placed in a
+  published slot
+- **THEN** the reset match becomes not-required and its slot is free in the same commit
+
+#### Scenario: A needed reset becomes decided
+
+- **WHEN** the losers-bracket finalist wins the first grand final
+- **THEN** the reset match's sides resolve to the two finalists and it remains scheduled
+
+### Requirement: Next round is refused for a stage whose graph is persisted
+
+A request for the next round SHALL be refused for a zone whose elimination graph was persisted at
+generation, stating that its later rounds already exist. Swiss zones, and elimination zones generated
+before graphs were persisted, SHALL keep their current next-round behaviour.
+
+#### Scenario: A persisted bracket refuses next round
+
+- **WHEN** the next round is requested for a single-elimination zone generated with its whole graph
+- **THEN** the request is refused, stating that the zone's later rounds already exist, and nothing is
+  generated
+
+#### Scenario: A Swiss zone is unaffected
+
+- **WHEN** the next round is requested for a Swiss zone whose current round is complete
+- **THEN** the round is generated exactly as before

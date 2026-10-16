@@ -365,3 +365,44 @@ match, tournament, stage, zone, round, entrants, venue, start, estimated end and
 
 - **WHEN** a principal without schedule authority in the organization requests its schedule
 - **THEN** the request is refused
+
+### Requirement: An undecided match is schedulable
+
+A match with one or both sides undecided SHALL be placed in a slot, assigned officials, previewed and
+published exactly like a decided match, with the venue-capacity and official conflict checks applied.
+At placement, the rest rule SHALL be evaluated only for the entrants the match already has.
+
+#### Scenario: A final with no entrants is published in its slot
+
+- **WHEN** an organizer places a final whose two sides are undecided in a slot and publishes the batch
+- **THEN** the assignment is published, and reading it back reports the final's slot, venue and window
+
+#### Scenario: Venue capacity still applies
+
+- **WHEN** an undecided match is placed in a slot whose venue is already at capacity
+- **THEN** the assignment is rejected as a venue conflict naming both matches
+
+#### Scenario: The rest rule ignores an undecided side
+
+- **WHEN** a semi-final with one decided and one undecided side is placed shortly after the decided
+  entrant's previous match
+- **THEN** the rest rule is evaluated for the decided entrant only, and the undecided side produces no
+  conflict
+
+### Requirement: Resolved scheduling identities
+
+The existing stage fixtures response SHALL include known entrants' display names and persisted
+abbreviations for teams and individual participants. Scheduling SHALL render known names through
+the shared EntrantName atom, inheriting typography from each consumer. Entrant IDs SHALL remain
+wire identities and SHALL NOT be substituted for missing display names in visible or accessible text.
+
+#### Scenario: Known entrants in a bracket schedule
+
+- **WHEN** an organizer reads a schedule with known entrants and undecided future fixtures
+- **THEN** known sides and day-off entries show their names through the shared atom
+- **AND** accessible controls and concurrent-change notices identify matches by names rather than UUIDs
+
+#### Scenario: Missing identity
+
+- **WHEN** a fixture side has no resolved display name
+- **THEN** scheduling shows the localized undecided fallback and never the opaque entrant ID

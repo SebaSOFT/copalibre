@@ -464,3 +464,23 @@ translated one, and no language would have approved it.
 
 - **WHEN** the active discipline declares a prompted secondary field but no label for it
 - **THEN** the chip shows the field's key, and no label is derived from that key
+
+### Requirement: The match-control API refuses to operate a match with an undecided side
+
+The match-control API SHALL refuse to start a match, record an event in it, or record its result while
+any of its sides is undecided, naming the undecided side's source. This is a record-integrity refusal:
+an event or result would name an entrant that is not playing.
+
+#### Scenario: Starting an undecided final is refused
+
+- **WHEN** an operator attempts to start a final whose sides are "winner of semi-final 1" and "winner of
+  semi-final 2", and semi-final 2 is undecided
+- **THEN** the request is refused, naming "winner of semi-final 2" as undecided, and nothing changes
+
+#### Scenario: Recording a result for an undecided match is refused
+
+- **WHEN** a result is submitted for a match with an undecided side, through the console or bulk load
+- **THEN** it is refused, naming the undecided side, and no result is recorded
+
+Any future outcome endpoint, including a dedicated forfeit endpoint or CSV result importer, SHALL
+apply this same guard before writing. The current CSV participant importer is outside this scope.
