@@ -313,3 +313,30 @@ The tournament overview SHALL show the same grouped schedule with each stage col
 #### Scenario: Nothing opens when everything is played
 - **WHEN** every match is final
 - **THEN** every stage is collapsed and opens with one click, so the standings stay within reach
+
+### Requirement: A rescheduled match states its previous placement until it starts
+
+A match whose published placement changed SHALL show its current start and venue, and a "rescheduled"
+statement naming its previous start, and its previous venue when that changed, until the match starts.
+The statement SHALL render without JavaScript, SHALL be in the organization's language, and SHALL NOT rely
+on color alone.
+
+#### Scenario: A moved match says where it was
+
+- **WHEN** a spectator opens the matches view after a match moved from 14:30 to 18:00
+- **THEN** the card shows 18:00 and reads that it was rescheduled from 14:30
+
+#### Scenario: A venue change is named too
+
+- **WHEN** a match moved from Court 1 to Court 2 at the same time
+- **THEN** the card names Court 2 and reads that it was moved from Court 1
+
+#### Scenario: The statement ends when the match starts
+
+- **WHEN** the rescheduled match starts
+- **THEN** its card no longer shows the rescheduled statement
+
+#### Scenario: A first placement is not a reschedule
+
+- **WHEN** a match is placed for the first time
+- **THEN** its card shows no rescheduled statement
