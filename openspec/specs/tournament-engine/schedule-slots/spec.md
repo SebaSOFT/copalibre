@@ -101,3 +101,22 @@ overlapping schedules put matches at the same venue at the same moment.
 - **WHEN** a match is placed in a slot of one schedule while the same venue already holds its full
   capacity at that moment through a slot of a different, overlapping schedule
 - **THEN** the assignment is rejected as a venue conflict naming the matches involved
+
+### Requirement: Slot start times follow the organization's wall clock
+
+A schedule's slots SHALL be generated in steps of the organization's local wall-clock time, so each
+slot keeps its intended local start time when the range crosses a daylight-saving change. The number of
+slots per venue SHALL still follow the slot length and changeover rule.
+
+#### Scenario: A schedule across a daylight-saving change keeps its local times
+
+- **WHEN** an organization in a zone that changes its clocks overnight declares a schedule running from
+  09:00 local on the day before the change to 15:00 local on the day after, with two-hour slots and no
+  changeover
+- **THEN** every slot after the change still starts on an odd local hour (09:00, 11:00, 13:00), not one
+  hour off
+
+#### Scenario: A zone without daylight saving is unchanged
+
+- **WHEN** an organization in a zone without daylight saving creates a schedule
+- **THEN** its slots are identical to those generated before this requirement existed
