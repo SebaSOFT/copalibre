@@ -16,7 +16,11 @@ import {
 import { selectStageLayout } from '../../../../../../../../lib/bracket.ts';
 import { humanizeCode } from '../../../../../../../../lib/descriptor-label.ts';
 import { messages } from '../../../../../../../../lib/i18n/public-messages.en.ts';
-import { publicIntl, resultStateLabels } from '../../../../../../../../lib/i18n/public-intl.ts';
+import {
+  publicIntl,
+  resultStateLabels,
+  sideSourceLabels,
+} from '../../../../../../../../lib/i18n/public-intl.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 
 export const prerender = false;
@@ -47,13 +51,6 @@ const officialRoleMessages = {
   'table-official': messages.matchOfficialRoleTableOfficial,
   observer: messages.matchOfficialRoleObserver,
 } as const;
-const model = buildMatchReport(response, {
-  locale: resolvedLocale,
-  officialRoleLabel: (code) =>
-    code in officialRoleMessages
-      ? intl.formatMessage(officialRoleMessages[code as keyof typeof officialRoleMessages])
-      : humanizeCode(code),
-});
 
 // Gated on the stage's own format, already known from `response.stageFormat` — a round-robin/
 // league/placement match report issues no second request at all (a report is requested far more often per stage than a bracket changes).
@@ -70,6 +67,16 @@ if (selectStageLayout(response.stageFormat) === 'bracket') {
     bracketMatches = ownZone?.matches ?? [];
   }
 }
+
+const model = buildMatchReport(response, {
+  locale: resolvedLocale,
+  sideSource: sideSourceLabels(intl),
+  sourceFinalRound: bracketMatches[0]?.sourceFinalRound,
+  officialRoleLabel: (code) =>
+    code in officialRoleMessages
+      ? intl.formatMessage(officialRoleMessages[code as keyof typeof officialRoleMessages])
+      : humanizeCode(code),
+});
 
 const trailBase = trailBaseOf({
   organizationAlias: organization!,

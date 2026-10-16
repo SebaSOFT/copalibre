@@ -1,3 +1,4 @@
+import type { SideSourceMessages } from '../../lib/side-source.js';
 import type { ResultStateLabels } from '../../lib/result-state.js';
 
 /**
@@ -12,6 +13,7 @@ export interface TvClubItem {
 }
 
 export interface TvDashboardLabels {
+  readonly sideSource: SideSourceMessages;
   readonly rescheduled?: string;
   readonly resultState: ResultStateLabels;
   readonly noMatchesScheduled: string;

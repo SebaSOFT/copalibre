@@ -1,9 +1,11 @@
 import { render, screen } from '@testing-library/react';
+import { publicIntl, sideSourceLabels } from '../../../lib/i18n/public-intl.js';
 import { MatchCard, resolveCompactEntrant } from './MatchCard.js';
-import type { MatchCardData } from '../../../lib/matches-view.js';
+import { withSourceDepth, type MatchCardData } from '../../../lib/matches-view.js';
 import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
 
 const labels: MatchCardLabels = {
+  sideSource: sideSourceLabels(publicIntl('en')),
   state: {
     live: 'LIVE',
     upcoming: 'UPCOMING',
@@ -218,6 +220,70 @@ describe('MatchCard', () => {
     );
     const timestamp = container.querySelector('time.cl-responsive-timestamp');
     expect(timestamp?.textContent).toContain(expectedMonth);
+  });
+});
+
+describe('MatchCard undecided sides', () => {
+  const semi = (position: number): MatchCardData =>
+    baseMatch({ matchId: `sf${position}`, nodeKey: `SE-R2-M${position}`, round: 2 });
+  const final = baseMatch({
+    matchId: 'final',
+    nodeKey: 'SE-R3-M1',
+    round: 3,
+    homeName: undefined,
+    awayName: undefined,
+    homeSource: { kind: 'winner-of', nodeKey: 'SE-R2-M1', round: 2, position: 1 },
+    awaySource: { kind: 'winner-of', nodeKey: 'SE-R2-M2', round: 2, position: 2 },
+  });
+
+  it('names each undecided side by its source, marked beyond colour', () => {
+    const [, , card] = withSourceDepth([semi(1), semi(2), final]);
+    if (!card) throw new Error('missing final');
+    const { container } = render(<MatchCard match={card} labels={labels} locale="en" />);
+
+    expect(screen.getByText('Winner of Semi-final 1')).toBeDefined();
+    expect(screen.getByText('Winner of Semi-final 2')).toBeDefined();
+    expect(container.querySelectorAll('.cl-entrant-name--pending')).toHaveLength(2);
+    expect(screen.queryByText('TBD')).toBeNull();
+  });
+
+  it('shows the entrant on a decided side while the other still names its source', () => {
+    const [, , card] = withSourceDepth([semi(1), semi(2), { ...final, homeName: 'Norte' }]);
+    if (!card) throw new Error('missing final');
+    const { container } = render(<MatchCard match={card} labels={labels} locale="en" />);
+
+    expect(screen.getByText('Norte')).toBeDefined();
+    expect(screen.getByText('Winner of Semi-final 2')).toBeDefined();
+    expect(container.querySelectorAll('.cl-entrant-name--pending')).toHaveLength(1);
+  });
+
+  it('labels a placement game by the places it settles', () => {
+    const [, , third] = withSourceDepth([
+      semi(1),
+      semi(2),
+      baseMatch({
+        matchId: 'third',
+        nodeKey: 'placement-3',
+        homeName: undefined,
+        awayName: undefined,
+        homeSource: { kind: 'loser-of', nodeKey: 'SE-R2-M1', round: 2, position: 1 },
+        awaySource: { kind: 'loser-of', nodeKey: 'SE-R2-M2', round: 2, position: 2 },
+      }),
+    ]);
+    if (!third) throw new Error('missing third-place game');
+    render(<MatchCard match={{ ...third, sourceFinalRound: 3 }} labels={labels} locale="en" />);
+
+    expect(screen.getByText('Place 3')).toBeDefined();
+    expect(screen.getByText('Loser of Semi-final 1')).toBeDefined();
+    expect(screen.getByText('Loser of Semi-final 2')).toBeDefined();
+  });
+
+  it('uses the compact source form in the ticker presentation', () => {
+    const [, , card] = withSourceDepth([semi(1), semi(2), final]);
+    if (!card) throw new Error('missing final');
+    render(<MatchCard compact match={card} labels={labels} locale="en" />);
+
+    expect(screen.getByText(/W SF1 vs W SF2/)).toBeDefined();
   });
 });
 

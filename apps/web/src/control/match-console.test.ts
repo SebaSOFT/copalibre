@@ -1,5 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
+import { publicIntl, sideSourceLabels } from '../lib/i18n/public-intl.js';
 import {
+  awaitingSourceText,
   currentEpochMilliseconds,
   descriptionFor,
   formatClock,
@@ -8,6 +10,7 @@ import {
   newIdempotencyKey,
   segmentLabel,
   sentOffPersonIds,
+  undecidedSidesOf,
 } from './lib/match-console.js';
 import type {
   ConsoleEventDefinition,
@@ -223,5 +226,44 @@ describe('memberByNumber', () => {
 
   it('returns undefined for an empty digit buffer', () => {
     expect(memberByNumber(rosters, '')).toBeUndefined();
+  });
+});
+
+describe('undecidedSidesOf', () => {
+  const winnerOf = (position: number) => ({
+    kind: 'winner-of' as const,
+    nodeKey: `SE-R1-M${position}`,
+    round: 1,
+    position,
+  });
+
+  it('lists each side whose source has no positioned entrant yet', () => {
+    expect(undecidedSidesOf({ homeSource: winnerOf(1), awaySource: winnerOf(2) })).toEqual([
+      { side: 'home', source: winnerOf(1) },
+      { side: 'away', source: winnerOf(2) },
+    ]);
+    expect(
+      undecidedSidesOf({ homeSource: winnerOf(1), awaySource: winnerOf(2), awayEntrantId: 'b' }),
+    ).toEqual([{ side: 'home', source: winnerOf(1) }]);
+  });
+
+  it('never awaits a decided, seeded or legacy side', () => {
+    expect(undecidedSidesOf({})).toEqual([]);
+    expect(
+      undecidedSidesOf({
+        homeSource: { kind: 'entrant', entrantId: 'a' },
+        awaySource: winnerOf(2),
+        homeEntrantId: 'a',
+        awayEntrantId: 'b',
+      }),
+    ).toEqual([]);
+  });
+
+  it('words the awaited source with the shared formatter', () => {
+    const labels = sideSourceLabels(publicIntl('es'));
+    expect(awaitingSourceText({ ...winnerOf(2), nodeKey: 'SE-R1-M2' }, labels, 2)).toBe(
+      'Esperando Ganador de Semifinal 2',
+    );
+    expect(awaitingSourceText(winnerOf(2), labels)).toBe('Esperando Ganador de Ronda 1, partido 2');
   });
 });

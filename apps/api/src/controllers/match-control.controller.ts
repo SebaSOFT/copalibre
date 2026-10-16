@@ -2296,6 +2296,8 @@ export class MatchControlController {
           ? {}
           : { abbreviation: teamAbbreviationByEntrant.get(entrantId) }),
       })),
+      ...(fixture?.home_entrant_id == null ? {} : { homeEntrantId: fixture.home_entrant_id }),
+      ...(fixture?.away_entrant_id == null ? {} : { awayEntrantId: fixture.away_entrant_id }),
       capabilities,
       projectionVersion: version?.version ?? 0,
     };

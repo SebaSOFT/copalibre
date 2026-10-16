@@ -6,6 +6,7 @@ import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-proje
 import type { SupportedLanguage } from '@copalibre/domain';
 import { RealtimeClient } from '@copalibre/realtime';
 import {
+  acceptEntrantResolution,
   applyEvent,
   markConnected,
   type LiveDashboard,
@@ -187,6 +188,7 @@ export function TvDashboard({
   const scheduleVersions = useRef(
     new Map((matchList ?? []).map((entry) => [entry.key, entry.scheduleVersion ?? 0])),
   );
+  const entrantVersions = useRef(new Map<string, number>());
   const [rail, setRail] = useState<{
     readonly tab: 'standings' | 'performers' | 'facts' | 'bracket' | 'fixtures';
     readonly page: number;
@@ -260,7 +262,11 @@ export function TvDashboard({
               state: match.status,
               series: match.series as PublicSeriesState | undefined,
             })),
-            { state: dashboardLabels.resultState, round: dashboardLabels.bracketRound },
+            {
+              state: dashboardLabels.resultState,
+              round: dashboardLabels.bracketRound,
+              sideSource: dashboardLabels.sideSource,
+            },
           );
           setScheduledMatches((current) =>
             entries.flatMap((entry) => {
@@ -294,6 +300,7 @@ export function TvDashboard({
     tournamentAlias,
     dashboardLabels.resultState,
     dashboardLabels.bracketRound,
+    dashboardLabels.sideSource,
   ]);
 
   useEffect(() => {
@@ -324,6 +331,10 @@ export function TvDashboard({
     void client.connect({
       onOpen: () => setDashboard((current) => markConnected(current)),
       onEvent: (event) => {
+        if (event.eventType === 'fixture.entrant-resolved') {
+          if (acceptEntrantResolution(entrantVersions.current, event)) void refreshProjection();
+          return;
+        }
         if (event.eventType === 'match.rescheduled' || event.eventType === 'match.anulled') {
           const matchId = event.payload.matchId;
           if (

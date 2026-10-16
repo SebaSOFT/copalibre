@@ -1,3 +1,4 @@
+import { formatPlacement, formatSideSource, sourceMatchLabel } from '../../../lib/side-source.js';
 import { rescheduledStatement } from '../../../lib/reschedule.js';
 import { Badge } from '../atoms/Badge.js';
 import { Card } from '../atoms/Card.js';
@@ -56,12 +57,30 @@ export function MatchCard({
   band,
   compact = false,
 }: MatchCardProps): React.JSX.Element {
+  const homeSource = formatSideSource(
+    match.homeSource,
+    labels.sideSource,
+    match.homeSource === undefined
+      ? undefined
+      : sourceMatchLabel(match.homeSource, labels.sideSource, match.sourceFinalRound),
+  );
+  const awaySource = formatSideSource(
+    match.awaySource,
+    labels.sideSource,
+    match.awaySource === undefined
+      ? undefined
+      : sourceMatchLabel(match.awaySource, labels.sideSource, match.sourceFinalRound),
+  );
   const rescheduled =
     match.state === 'upcoming'
       ? rescheduledStatement(match.rescheduledFrom, match.venueName, locale, labels.rescheduled)
       : '';
   const badge = presentState(match.state, labels.state);
-  const scopeLine = [match.zoneName, match.groupName]
+  const scopeLine = [
+    match.zoneName,
+    match.groupName,
+    match.placement === undefined ? undefined : formatPlacement(match.placement, labels.sideSource),
+  ]
     .filter((part) => part !== undefined)
     .join(' · ');
   const hasFullTrace =
@@ -70,8 +89,14 @@ export function MatchCard({
 
   if (compact) {
     const versus = labels.versus ?? 'vs';
-    const homeAbbr = resolveCompactEntrant(match.homeAbbreviation, match.homeName);
-    const awayAbbr = resolveCompactEntrant(match.awayAbbreviation, match.awayName);
+    const homeAbbr =
+      match.homeName === undefined
+        ? homeSource.short
+        : resolveCompactEntrant(match.homeAbbreviation, match.homeName);
+    const awayAbbr =
+      match.awayName === undefined
+        ? awaySource.short
+        : resolveCompactEntrant(match.awayAbbreviation, match.awayName);
     const hasScores = match.homeScore !== undefined && match.awayScore !== undefined;
     const timeStr =
       !hasScores && match.scheduledAt !== undefined
@@ -135,7 +160,11 @@ export function MatchCard({
       )}
       <ol className="cl-match-card__sides">
         <li className="cl-match-card__side">
-          <EntrantName fullName={match.homeName ?? 'TBD'} abbreviation={match.homeAbbreviation} />
+          <EntrantName
+            pending={match.homeName === undefined}
+            fullName={match.homeName ?? homeSource.long}
+            abbreviation={match.homeName === undefined ? homeSource.short : match.homeAbbreviation}
+          />
           {match.homePosition !== undefined && (
             <Badge
               className="cl-badge--rank"
@@ -147,7 +176,11 @@ export function MatchCard({
           <span className="cl-stat-tile__value cl-tabular-nums">{match.homeScore ?? '—'}</span>
         </li>
         <li className="cl-match-card__side">
-          <EntrantName fullName={match.awayName ?? 'TBD'} abbreviation={match.awayAbbreviation} />
+          <EntrantName
+            pending={match.awayName === undefined}
+            fullName={match.awayName ?? awaySource.long}
+            abbreviation={match.awayName === undefined ? awaySource.short : match.awayAbbreviation}
+          />
           {match.awayPosition !== undefined && (
             <Badge
               className="cl-badge--rank"

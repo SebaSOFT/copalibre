@@ -3,7 +3,7 @@ import { useIntl } from 'react-intl';
 import type { TournamentCompletionResponse } from '@copalibre/contracts';
 import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import type { MatchCardData } from '../../../lib/matches-view.js';
+import { withSourceDepth, type MatchCardData } from '../../../lib/matches-view.js';
 import { matchCardLabelsFromControlIntl } from '../../lib/matches-view-labels.js';
 import { MatchesViewTemplate } from '../screens/MatchesViewTemplate.js';
 
@@ -83,7 +83,7 @@ export function MatchesViewPage({
       .fetchMatchesView?.(organizationAlias, tournamentAlias, { ...scope, state })
       .then((response) => {
         if (!live) return;
-        setMatches(response.matches);
+        setMatches(withSourceDepth(response.matches));
         setStatus('ready');
       })
       .catch(() => {

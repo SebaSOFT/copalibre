@@ -16,6 +16,7 @@ import {
   type SlotSource,
 } from './bracket.js';
 import type { ResultStateLabels } from './result-state.js';
+import { publicIntl, sideSourceLabels } from './i18n/public-intl.js';
 
 const labels: ResultStateLabels = {
   final: 'Final',
@@ -27,55 +28,44 @@ const labels: ResultStateLabels = {
   loser: 'Perdedor',
   cancelled: 'Cancelado',
 };
+const sources = sideSourceLabels(publicIntl('es'));
 
 describe('describeSlot', () => {
   it('describes entrant slot by name', () => {
     const slot: SlotSource = { kind: 'entrant', name: 'Talleres', abbreviation: 'TAL' };
-    expect(describeSlot(slot)).toBe('Talleres');
+    expect(describeSlot(slot, sources)).toBe('Talleres');
   });
 
-  it('describes winner-of slot with positive matchNumber', () => {
-    const slot: SlotSource = { kind: 'winner-of', matchNumber: 4 };
-    expect(describeSlot(slot)).toBe('Ganador del 4');
-  });
-
-  it('describes winner-of slot with matchId and strips branch prefixes', () => {
-    expect(describeSlot({ kind: 'winner-of', matchId: 'SE-3' })).toBe('Ganador de 3');
-    expect(describeSlot({ kind: 'winner-of', matchId: 'WB-10' })).toBe('Ganador de 10');
-    expect(describeSlot({ kind: 'winner-of', matchId: 'LB-5' })).toBe('Ganador de 5');
-    expect(describeSlot({ kind: 'winner-of', matchId: 'final-match' })).toBe(
-      'Ganador de final-match',
+  it('names the referenced match by its number when no graph position is known', () => {
+    expect(describeSlot({ kind: 'winner-of', matchNumber: 4 }, sources)).toBe(
+      'Ganador de Partido 4',
+    );
+    expect(describeSlot({ kind: 'loser-of', matchNumber: 2 }, sources)).toBe(
+      'Perdedor de Partido 2',
     );
   });
 
-  it('describes winner-of fallback as Por definir when no matchNumber or matchId is valid', () => {
-    expect(describeSlot({ kind: 'winner-of', matchId: '—' })).toBe('Por definir');
-    expect(describeSlot({ kind: 'winner-of', matchNumber: 0 })).toBe('Por definir');
-    expect(describeSlot({ kind: 'winner-of', matchNumber: Number.NaN })).toBe('Por definir');
-    expect(describeSlot({ kind: 'winner-of' })).toBe('Por definir');
+  it('names elimination rounds from the stage depth', () => {
+    const semi: SlotSource = { kind: 'winner-of', nodeKey: 'SE-R2-M1' };
+    expect(describeSlot(semi, sources, 3)).toBe('Ganador de Semifinal 1');
+    expect(describeSlot({ ...semi, kind: 'loser-of' }, sources, 3)).toBe('Perdedor de Semifinal 1');
+    expect(describeSlot(semi, sources)).toBe('Ganador de Ronda 2, partido 1');
   });
 
-  it('describes loser-of slot with positive matchNumber', () => {
-    const slot: SlotSource = { kind: 'loser-of', matchNumber: 2 };
-    expect(describeSlot(slot)).toBe('Perdedor del 2');
-  });
-
-  it('describes loser-of slot with matchId and strips branch prefixes', () => {
-    expect(describeSlot({ kind: 'loser-of', matchId: 'WB-1' })).toBe('Perdedor de 1');
-    expect(describeSlot({ kind: 'loser-of', matchId: 'LB-2' })).toBe('Perdedor de 2');
-    expect(describeSlot({ kind: 'loser-of', matchId: 'SE-8' })).toBe('Perdedor de 8');
-    expect(describeSlot({ kind: 'loser-of', matchId: 'semi' })).toBe('Perdedor de semi');
-  });
-
-  it('describes loser-of fallback as Por definir when no matchNumber or matchId is valid', () => {
-    expect(describeSlot({ kind: 'loser-of', matchId: '—' })).toBe('Por definir');
-    expect(describeSlot({ kind: 'loser-of', matchNumber: 0 })).toBe('Por definir');
-    expect(describeSlot({ kind: 'loser-of', matchNumber: Number.NaN })).toBe('Por definir');
-    expect(describeSlot({ kind: 'loser-of' })).toBe('Por definir');
+  it('falls back to the undecided label when the source names no match', () => {
+    for (const slot of [
+      { kind: 'winner-of', matchId: '—' },
+      { kind: 'winner-of', matchId: 'SE-3' },
+      { kind: 'winner-of', matchNumber: 0 },
+      { kind: 'loser-of', matchNumber: Number.NaN },
+      { kind: 'loser-of' },
+    ] satisfies SlotSource[]) {
+      expect(describeSlot(slot, sources)).toBe('Participante por definir');
+    }
   });
 
   it('describes seed slot', () => {
-    expect(describeSlot({ kind: 'seed', seed: 1 })).toBe('Sembrado 1');
+    expect(describeSlot({ kind: 'seed', seed: 1 }, sources)).toBe('Cabeza de serie 1');
   });
 });
 
@@ -169,7 +159,7 @@ describe('toNode', () => {
       ],
     };
 
-    const node = toNode(match, labels);
+    const node = toNode(match, labels, sources);
     expect(node.matchNumber).toBe(1);
     expect(node.state).toBe('final');
     expect(node.slots).toHaveLength(2);
@@ -199,7 +189,7 @@ describe('toNode', () => {
     ];
     const base = { matchNumber: 3, roundNumber: 1, branch: 'winners', slots: entrants };
     const winnersOf = (match: BracketMatch): readonly (boolean | undefined)[] =>
-      toNode(match, labels).slots.map((slot) => slot.winner);
+      toNode(match, labels, sources).slots.map((slot) => slot.winner);
 
     expect(winnersOf({ ...base, state: 'final', scores: [2, 2] })).toEqual([undefined, undefined]);
     expect(winnersOf({ ...base, state: 'live', scores: [2, 1] })).toEqual([undefined, undefined]);
@@ -214,16 +204,17 @@ describe('toNode', () => {
       state: 'upcoming',
       slots: [
         { kind: 'winner-of', matchNumber: 1 },
-        { kind: 'winner-of', matchId: 'SE-2' },
+        { kind: 'winner-of', nodeKey: 'SE-R1-M2' },
       ],
     };
 
-    const node = toNode(match, labels);
+    const node = toNode(match, labels, sources);
     expect(node.matchNumber).toBe(2);
     expect(node.slots[0]?.pending).toBe(true);
     expect(node.slots[0]?.state).toBe('tbd');
-    expect(node.slots[0]?.label).toBe('Ganador del 1');
-    expect(node.slots[1]?.label).toBe('Ganador de 2');
+    expect(node.slots[0]?.label).toBe('Ganador de Partido 1');
+    expect(node.slots[0]?.abbreviation).toBe('G P1');
+    expect(node.slots[1]?.label).toBe('Ganador de Ronda 1, partido 2');
   });
 });
 

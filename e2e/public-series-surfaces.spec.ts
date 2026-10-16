@@ -165,7 +165,7 @@ test('7.3: shows the series bar, the running score, a pending cross and an aggre
   // Nothing has advanced out of the undecided cross: the round-two cross still names its
   // dependency rather than an entrant.
   const downstream = page.getByRole('region', { name: 'winner — round 2' });
-  await expect(downstream.getByText('Ganador del 1')).toBeVisible();
+  await expect(downstream.getByText('Winner of Match 1')).toBeVisible();
   await expect(downstream.getByText('Talleres')).toHaveCount(0);
 });
 

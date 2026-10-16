@@ -745,9 +745,13 @@ test.describe('B2: public tournament page', () => {
     await expect(page.locator('article[data-match="1"]').getByText('Independiente')).toBeVisible();
     await expect(page.locator('article[data-match="1"]').getByText('1')).toBeVisible();
 
-    // Unresolved slot shows clean text "Ganador del 1", never "Ganador del NaN"
-    await expect(page.locator('article[data-match="2"]').getByText('Ganador del 1')).toBeVisible();
-    await expect(page.locator('article[data-match="2"]').getByText('Ganador del 3')).toBeVisible();
+    // Unresolved slot names its source cleanly, never a NaN match number
+    await expect(
+      page.locator('article[data-match="2"]').getByText('Winner of Match 1'),
+    ).toBeVisible();
+    await expect(
+      page.locator('article[data-match="2"]').getByText('Winner of Match 3'),
+    ).toBeVisible();
 
     // Entire stage body must never contain "NaN"
     await expect(page.locator('body')).not.toContainText('NaN');

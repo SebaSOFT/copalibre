@@ -892,7 +892,7 @@ describe('public-api-client', () => {
       };
       const result = mapBracketResponse(response as Parameters<typeof mapBracketResponse>[0]);
       expect(zoneAt(result, 0).matches[1]?.slots).toEqual([
-        { kind: 'winner-of', matchId: 'WB-R1-M2', matchNumber: 2 },
+        { kind: 'winner-of', matchId: 'WB-R1-M2', matchNumber: 2, round: 1, position: 2 },
         { kind: 'loser-of', matchId: '3', matchNumber: 3 },
       ]);
     });
@@ -955,12 +955,16 @@ describe('public-api-client', () => {
         kind: 'winner-of',
         matchId: 'z1-m1',
         matchNumber: 1,
+        round: 1,
+        position: 1,
       });
       expect(zoneAt(result, 1).zoneName).toBe('Copa de Plata');
       expect(zoneAt(result, 1).matches[1]?.slots[0]).toEqual({
         kind: 'winner-of',
         matchId: 'z2-m1',
         matchNumber: 1,
+        round: 1,
+        position: 1,
       });
     });
   });

@@ -163,7 +163,13 @@ export async function clearAll(): Promise<void> {
 
 export type DrainOutcome =
   | { readonly kind: 'sent'; readonly id: string }
-  | { readonly kind: 'refused'; readonly id: string; readonly reason: string }
+  | {
+      readonly kind: 'refused';
+      readonly id: string;
+      readonly reason: string;
+      /** The server's stable code, so a caller can word a known refusal in the operator's language. */
+      readonly errorCode?: string;
+    }
   | { readonly kind: 'network-failure'; readonly id: string };
 
 /**
@@ -189,7 +195,13 @@ export async function drainQueue(
       if (isRefusal(error)) {
         const reason = error instanceof Error ? error.message : 'Refused';
         await markRefused(mutation.id, reason);
-        outcomes.push({ kind: 'refused', id: mutation.id, reason });
+        const errorCode = error instanceof ControlApiError ? error.errorCode : undefined;
+        outcomes.push({
+          kind: 'refused',
+          id: mutation.id,
+          reason,
+          ...(errorCode === undefined ? {} : { errorCode }),
+        });
         continue;
       }
       outcomes.push({ kind: 'network-failure', id: mutation.id });

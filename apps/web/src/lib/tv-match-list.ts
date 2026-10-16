@@ -1,5 +1,12 @@
 import type { PreviousPlacement } from './reschedule.js';
-import type { MatchCardData } from './matches-view.js';
+import { withSourceDepth, type MatchCardData } from './matches-view.js';
+import {
+  formatPlacement,
+  formatSideSource,
+  sourceMatchLabel,
+  type SideSource,
+  type SideSourceMessages,
+} from './side-source.js';
 import { presentState, type ResultStateLabels } from './result-state.js';
 
 /** Matches per row on a broadcast-size frame. */
@@ -20,34 +27,72 @@ export interface TvMatchEntry {
   /** Where the match belongs and when: `Grupo A · Ronda 2`. */
   readonly scope: string;
   readonly stateLabel: string;
-  readonly home: { readonly label: string; readonly name: string; readonly score?: number };
-  readonly away: { readonly label: string; readonly name: string; readonly score?: number };
+  readonly home: {
+    readonly label: string;
+    readonly name: string;
+    readonly pending?: boolean;
+    readonly score?: number;
+  };
+  readonly away: {
+    readonly label: string;
+    readonly name: string;
+    readonly pending?: boolean;
+    readonly score?: number;
+  };
 }
 
 /** The matches-view rows as list entries, in the order the API returned them. */
 export function tvMatchEntriesOf(
   rows: readonly MatchCardData[],
-  labels: { readonly state: ResultStateLabels; readonly round: string },
+  labels: {
+    readonly state: ResultStateLabels;
+    readonly round: string;
+    readonly sideSource: SideSourceMessages;
+  },
 ): readonly TvMatchEntry[] {
-  return rows.map((row): TvMatchEntry => {
+  return withSourceDepth(rows).map((row): TvMatchEntry => {
     const where = row.groupName ?? row.zoneName;
-    const side = (name: string | undefined, abbreviation: string | undefined, score?: number) => ({
-      label: abbreviation ?? name ?? '—',
-      name: name ?? '—',
-      ...(score === undefined ? {} : { score }),
-    });
+    const side = (
+      name: string | undefined,
+      abbreviation: string | undefined,
+      score: number | undefined,
+      source: SideSource | undefined,
+    ) => {
+      const pending = name === undefined;
+      const formatted = formatSideSource(
+        source,
+        labels.sideSource,
+        source === undefined
+          ? undefined
+          : sourceMatchLabel(source, labels.sideSource, row.sourceFinalRound),
+      );
+      return {
+        label: pending ? formatted.short : (abbreviation ?? name),
+        name: name ?? formatted.long,
+        pending,
+        ...(score === undefined ? {} : { score }),
+      };
+    };
     return {
       key: row.matchId,
       ...(row.scheduleVersion === undefined ? {} : { scheduleVersion: row.scheduleVersion }),
       ...(row.scheduledAt === undefined ? {} : { scheduledAt: row.scheduledAt }),
       ...(row.venueName === undefined ? {} : { venueName: row.venueName }),
       ...(row.rescheduledFrom === undefined ? {} : { rescheduledFrom: row.rescheduledFrom }),
-      scope: [where, row.round === undefined ? undefined : `${labels.round} ${row.round}`]
+      // A placement game is named by the places it settles, as on the public cards.
+      scope: [
+        where,
+        row.placement !== undefined
+          ? formatPlacement(row.placement, labels.sideSource)
+          : row.round === undefined
+            ? undefined
+            : `${labels.round} ${row.round}`,
+      ]
         .filter((part): part is string => part !== undefined)
         .join(' · '),
       stateLabel: presentState(row.state, labels.state).label,
-      home: side(row.homeName, row.homeAbbreviation, row.homeScore),
-      away: side(row.awayName, row.awayAbbreviation, row.awayScore),
+      home: side(row.homeName, row.homeAbbreviation, row.homeScore, row.homeSource),
+      away: side(row.awayName, row.awayAbbreviation, row.awayScore, row.awaySource),
     };
   });
 }

@@ -1,3 +1,4 @@
+import { EntrantName } from '../../../ui/atoms/EntrantName.js';
 import { rescheduledStatement } from '../../../../lib/reschedule.js';
 import { applyTemplate } from '../../../../lib/matches-view.js';
 import type { TvMatchEntry } from '../../../../lib/tv-match-list.js';
@@ -55,13 +56,23 @@ export function TvMatchList({
             >
               <span className="tv-match-list__round">{placement}</span>
               <span aria-hidden="true" className="tv-match-list__side tv-match-list__side--home">
-                {entry.home.label}
+                <EntrantName
+                  compact
+                  pending={entry.home.pending}
+                  fullName={entry.home.name}
+                  abbreviation={entry.home.label}
+                />
               </span>
               <span aria-hidden="true" className="tv-match-list__score">
                 {score(entry.home.score)} : {score(entry.away.score)}
               </span>
               <span aria-hidden="true" className="tv-match-list__side tv-match-list__side--away">
-                {entry.away.label}
+                <EntrantName
+                  compact
+                  pending={entry.away.pending}
+                  fullName={entry.away.name}
+                  abbreviation={entry.away.label}
+                />
               </span>
               {rescheduled && <span className="tv-match-list__rescheduled">{rescheduled}</span>}
             </li>

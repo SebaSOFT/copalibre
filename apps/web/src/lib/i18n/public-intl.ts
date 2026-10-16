@@ -1,3 +1,4 @@
+import type { SideSourceMessages } from '../side-source.js';
 import { createIntl, createIntlCache, type IntlShape } from 'react-intl';
 import type { SupportedLanguage } from '@copalibre/domain';
 import { messages as esMessages } from './public-messages.es.js';
@@ -146,6 +147,7 @@ export function tvStatisticsLabels(intl: IntlShape) {
 /** `TvDashboard.tsx`'s own chrome — separate from `tvStatisticsLabels`'s derived-stat labels. */
 export function tvDashboardLabels(intl: IntlShape) {
   return {
+    sideSource: sideSourceLabels(intl),
     rescheduled: intl.formatMessage(messages.matchRescheduled, {
       time: '{time}',
       venue: '{venue}',
@@ -214,6 +216,7 @@ export function resultReasonLabels(intl: IntlShape): ResultReasonLabels {
  * same way and the component itself stays free of any i18n import.
  */
 export interface MatchCardLabels {
+  readonly sideSource: SideSourceMessages;
   readonly rescheduled?: string;
   readonly state: ResultStateLabels;
   readonly filters: {
@@ -253,6 +256,7 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
   // `formatMessage` path, just without supplying the real per-match value
   // yet. `MatchCard.tsx` fills it in later via `applyTemplate`.
   return {
+    sideSource: sideSourceLabels(intl),
     rescheduled: intl.formatMessage(messages.matchRescheduled, {
       time: '{time}',
       venue: '{venue}',
@@ -543,4 +547,40 @@ export function bracketRoleLabel(intl: IntlShape, role: string): string {
     default:
       return parsed.code;
   }
+}
+
+/** Plain templates shared by server-rendered and client-rendered side sources. */
+export function sideSourceLabels(intl: IntlShape): SideSourceMessages {
+  return {
+    winner: intl.formatMessage(messages.sideSourceWinner, { match: '{match}' }),
+    loser: intl.formatMessage(messages.sideSourceLoser, { match: '{match}' }),
+    winnerShort: intl.formatMessage(messages.sideSourceWinnerShort, { match: '{match}' }),
+    loserShort: intl.formatMessage(messages.sideSourceLoserShort, { match: '{match}' }),
+    awaiting: intl.formatMessage(messages.sideSourceAwaiting, { source: '{source}' }),
+    round: intl.formatMessage(messages.sideSourceRound, {
+      round: '{round}',
+      position: '{position}',
+    }),
+    roundShort: intl.formatMessage(messages.sideSourceRoundShort, {
+      round: '{round}',
+      position: '{position}',
+    }),
+    match: intl.formatMessage(messages.sideSourceMatch, { position: '{position}' }),
+    matchShort: intl.formatMessage(messages.sideSourceMatchShort, { position: '{position}' }),
+    final: intl.formatMessage(messages.sideSourceFinal),
+    finalShort: intl.formatMessage(messages.sideSourceFinalShort),
+    semiFinal: intl.formatMessage(messages.sideSourceSemiFinal, { position: '{position}' }),
+    semiFinalShort: intl.formatMessage(messages.sideSourceSemiFinalShort, {
+      position: '{position}',
+    }),
+    quarterFinal: intl.formatMessage(messages.sideSourceQuarterFinal, { position: '{position}' }),
+    quarterFinalShort: intl.formatMessage(messages.sideSourceQuarterFinalShort, {
+      position: '{position}',
+    }),
+    place: intl.formatMessage(messages.sideSourcePlace, { place: '{place}' }),
+    places: intl.formatMessage(messages.sideSourcePlaces, { from: '{from}', to: '{to}' }),
+    unknown: intl.formatMessage(messages.sideSourceUnknown),
+    seed: intl.formatMessage(messages.sideSourceSeed, { seed: '{seed}' }),
+    bye: intl.formatMessage(messages.sideSourceBye),
+  };
 }

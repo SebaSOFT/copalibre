@@ -4,6 +4,26 @@
  * `primaryLanguage: "es"` sees no behavior change from this refactor.
  */
 export const messages: Record<string, string> = {
+  'control.sideSource.winner': 'Ganador de {match}',
+  'control.sideSource.loser': 'Perdedor de {match}',
+  'control.sideSource.winnerShort': 'G {match}',
+  'control.sideSource.loserShort': 'P {match}',
+  'control.sideSource.awaiting': 'Esperando {source}',
+  'control.sideSource.round': 'Ronda {round}, partido {position}',
+  'control.sideSource.roundShort': 'R{round}·{position}',
+  'control.sideSource.match': 'Partido {position}',
+  'control.sideSource.matchShort': 'P{position}',
+  'control.sideSource.final': 'Final',
+  'control.sideSource.finalShort': 'F',
+  'control.sideSource.semiFinal': 'Semifinal {position}',
+  'control.sideSource.semiFinalShort': 'SF{position}',
+  'control.sideSource.quarterFinal': 'Cuartos de final {position}',
+  'control.sideSource.quarterFinalShort': 'CF{position}',
+  'control.sideSource.place': 'Puesto {place}',
+  'control.sideSource.places': 'Puestos {from}–{to}',
+  'control.sideSource.unknown': 'Participante por definir',
+  'control.sideSource.seed': 'Cabeza de serie {seed}',
+  'control.sideSource.bye': 'Libre',
   'control.schedule.concurrentChange': '{actor} reprogramó {match}. Vista previa actualizada.',
   'control.bracket.highlightEntrant': 'Resaltar recorrido de {entrant}',
   'control.bracket.highlightHint':

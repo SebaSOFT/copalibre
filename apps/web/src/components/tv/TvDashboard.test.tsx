@@ -647,6 +647,59 @@ describe('TvDashboard broadcast alert dispatch', () => {
     });
   }
 
+  it('re-reads the projection once per newer entrant resolution, never for a replayed one', async () => {
+    let capturedHandlers: RealtimeHandlers | undefined;
+    connectSpy = jest
+      .spyOn(RealtimeClient.prototype, 'connect')
+      .mockImplementation(async (handlers) => {
+        capturedHandlers = handlers;
+        return { attempts: 1, stopped: 'aborted' as const };
+      });
+    const requested: string[] = [];
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async (url: string) => {
+        requested.push(url);
+        return new Response(JSON.stringify({ matches: [] }), {
+          headers: { 'content-type': 'application/json' },
+        });
+      },
+    });
+
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={pinnedDashboard}
+        streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+        organizationAlias="liga-argentina"
+        tournamentAlias="apertura-2026"
+        presentation="lower"
+        pollIntervalMs={0}
+      />,
+    );
+    const resolved = (projectionVersion: number) => ({
+      eventId: `ev-resolved-${projectionVersion}`,
+      organizationId: 'org-1',
+      stream: 'match:m-final',
+      entityId: 'm-final',
+      eventType: 'fixture.entrant-resolved',
+      projectionVersion,
+      createdAt: '2026-01-01T18:20:00.000Z',
+      payload: { matchId: 'm-final', side: 'away', entrantId: 'entrant-away' },
+    });
+    const before = requested.length;
+    await act(async () => {
+      capturedHandlers?.onEvent(resolved(2));
+      capturedHandlers?.onEvent(resolved(2));
+      capturedHandlers?.onEvent(resolved(1));
+      await jest.advanceTimersByTimeAsync(0);
+    });
+
+    expect(requested.slice(before).filter((url) => url.endsWith('/matches-view'))).toHaveLength(1);
+  });
+
   it('enqueues a scoring alert, with the resolved actor, when a live event changes the score', async () => {
     let capturedHandlers: RealtimeHandlers | undefined;
     connectSpy = jest

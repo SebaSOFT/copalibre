@@ -354,8 +354,11 @@ test('renders both halves of a double-elimination bracket with named placeholder
   await expect(canvas.locator('[data-bracket="grand-final"]')).toHaveCount(1);
 
   // A slot nobody has qualified for names what has to happen first.
-  await expect(canvas.getByText('Perdedor del WB-R1-M1')).toBeVisible();
-  await expect(canvas.getByText('Ganador del LB-R1-M1')).toBeVisible();
+  await expect(canvas.getByText('Perdedor de Ronda 1, partido 1')).toBeVisible();
+  // Winners- and losers-bracket rounds share wording, so the grand final's own seat is asserted.
+  await expect(
+    canvas.locator('[data-match="GF-R1-M1"]').getByText('Ganador de Ronda 1, partido 1'),
+  ).toBeVisible();
   await expect(canvas.getByText('BO5').first()).toBeVisible();
 });
 

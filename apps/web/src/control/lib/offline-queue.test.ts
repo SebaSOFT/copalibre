@@ -192,6 +192,26 @@ describe('drainQueue sequential semantics', () => {
     expect(pending[0]).toMatchObject({ id: 'key-1', status: 'refused' });
   });
 
+  it('carries the server error code of a refusal, so the console can word it', async () => {
+    const client = stubClient({
+      adjustMatchClock: jest
+        .fn<MatchConsoleApiClient['adjustMatchClock']>()
+        .mockRejectedValueOnce(
+          new ControlApiError(409, 'Match side is undecided', 'match-side-undecided'),
+        ),
+    });
+    await enqueue(CLOCK_ACTION, 'key-1', 1_000);
+
+    expect(await drainQueue(client, 'match-1')).toEqual([
+      {
+        kind: 'refused',
+        id: 'key-1',
+        reason: 'Match side is undecided',
+        errorCode: 'match-side-undecided',
+      },
+    ]);
+  });
+
   it('a network-level failure pauses the whole drain, leaving the remainder untouched', async () => {
     const client = stubClient({
       adjustMatchClock: jest

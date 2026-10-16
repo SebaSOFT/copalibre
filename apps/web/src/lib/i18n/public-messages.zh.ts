@@ -4,6 +4,26 @@
  * choice): ship now, native-speaker review later.
  */
 export const messages: Record<string, string> = {
+  'publicWeb.sideSource.winner': '{match}的胜者',
+  'publicWeb.sideSource.loser': '{match}的负者',
+  'publicWeb.sideSource.winnerShort': '胜 {match}',
+  'publicWeb.sideSource.loserShort': '负 {match}',
+  'publicWeb.sideSource.awaiting': '等待{source}',
+  'publicWeb.sideSource.round': '第{round}轮第{position}场',
+  'publicWeb.sideSource.roundShort': 'R{round}·{position}',
+  'publicWeb.sideSource.match': '第{position}场',
+  'publicWeb.sideSource.matchShort': 'M{position}',
+  'publicWeb.sideSource.final': '决赛',
+  'publicWeb.sideSource.finalShort': '决',
+  'publicWeb.sideSource.semiFinal': '半决赛第{position}场',
+  'publicWeb.sideSource.semiFinalShort': '半{position}',
+  'publicWeb.sideSource.quarterFinal': '四分之一决赛第{position}场',
+  'publicWeb.sideSource.quarterFinalShort': '四{position}',
+  'publicWeb.sideSource.place': '第{place}名',
+  'publicWeb.sideSource.places': '第{from}–{to}名',
+  'publicWeb.sideSource.unknown': '参赛者待定',
+  'publicWeb.sideSource.seed': '种子{seed}',
+  'publicWeb.sideSource.bye': '轮空',
   'publicWeb.match.rescheduled': '已改期 · 原定 {time}{venue}',
   'publicWeb.bracket.highlightEntrant': '突出显示{entrant}的晋级路线',
   'publicWeb.bracket.highlightHint':

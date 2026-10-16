@@ -4293,6 +4293,16 @@ export interface components {
             eligibleStaffIds: string[];
             /** @description Entrants contesting this match, with the identity the console renders */
             entrants: components["schemas"]["ConsoleEntrantResponse"][];
+            /**
+             * Format: uuid
+             * @description Entrant on the home side; absent while that side is undecided
+             */
+            homeEntrantId?: string;
+            /**
+             * Format: uuid
+             * @description Entrant on the away side; absent while that side is undecided
+             */
+            awayEntrantId?: string;
             /** @description Capabilities granted to this subject for this match */
             capabilities: string[];
             /** @description Monotonic server-issued projection version */

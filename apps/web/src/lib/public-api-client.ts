@@ -22,7 +22,7 @@ import type { LiveDashboard } from './live-state.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 export { mapBracketResponse } from './bracket-projection.js';
 export type { BracketZone } from './bracket-projection.js';
-import type { MatchCardData } from './matches-view.js';
+import { withSourceDepth, type MatchCardData } from './matches-view.js';
 import type { PublicSeriesState } from './series.js';
 
 export const requestApiStorage = new AsyncLocalStorage<{ apiBaseUrl?: string }>();
@@ -316,31 +316,38 @@ export function mapMatchesViewResponse(response: PublicMatchesViewResponse): {
   readonly matches: readonly MatchCardData[];
 } {
   return {
-    matches: response.matches.map((m) => ({
-      matchId: m.matchId,
-      scheduleVersion: m.scheduleVersion,
-      rescheduledFrom: m.rescheduledFrom,
-      stageNumber: m.stageNumber,
-      matchNumber: m.matchNumber,
-      round: m.round,
-      state: m.status as MatchState,
-      homeName: m.homeName,
-      homeAbbreviation: m.homeAbbreviation,
-      homeScore: m.homeScore,
-      awayName: m.awayName,
-      awayAbbreviation: m.awayAbbreviation,
-      awayScore: m.awayScore,
-      clockSeconds: m.clockSeconds,
-      venueName: m.venueName,
-      scheduledAt: m.scheduledAt,
-      latestEvent: m.latestEvent,
-      zoneName: m.zoneName,
-      groupName: m.groupName,
-      homePosition: m.homePosition,
-      awayPosition: m.awayPosition,
-      series: m.series as PublicSeriesState | undefined,
-      decidingFactor: m.decidingFactor,
-    })),
+    matches: withSourceDepth(
+      response.matches.map((m) => ({
+        nodeKey: m.nodeKey,
+        branch: m.branch,
+        label: m.label,
+        homeSource: m.homeSource,
+        awaySource: m.awaySource,
+        matchId: m.matchId,
+        scheduleVersion: m.scheduleVersion,
+        rescheduledFrom: m.rescheduledFrom,
+        stageNumber: m.stageNumber,
+        matchNumber: m.matchNumber,
+        round: m.round,
+        state: m.status as MatchState,
+        homeName: m.homeName,
+        homeAbbreviation: m.homeAbbreviation,
+        homeScore: m.homeScore,
+        awayName: m.awayName,
+        awayAbbreviation: m.awayAbbreviation,
+        awayScore: m.awayScore,
+        clockSeconds: m.clockSeconds,
+        venueName: m.venueName,
+        scheduledAt: m.scheduledAt,
+        latestEvent: m.latestEvent,
+        zoneName: m.zoneName,
+        groupName: m.groupName,
+        homePosition: m.homePosition,
+        awayPosition: m.awayPosition,
+        series: m.series as PublicSeriesState | undefined,
+        decidingFactor: m.decidingFactor,
+      })),
+    ),
   };
 }
 

@@ -109,3 +109,20 @@ naming the match, so public surfaces stop showing it in its former slot.
 - **WHEN** a best-of-five is decided in three and its fourth and fifth games become not-required
 - **THEN** a public subscriber receives an event for each of those two matches, and receives no other
   payload field than the match and its new status
+
+### Requirement: A side resolution reaches its tournament's public stream
+
+When the audited resolution sets or changes the entrant of a persisted side, the event it publishes SHALL
+be filed under that side's match, so it reaches the match's tournament stream. Its public form SHALL carry
+only the match, the side and the entrant.
+
+#### Scenario: A finalized quarter-final announces its semi-final side
+
+- **WHEN** a quarter-final of tournament A is finalized and its semi-final side resolves
+- **THEN** tournament A's public stream receives one event naming the semi-final match, the side and the
+  winning entrant, and no other field
+
+#### Scenario: Another tournament hears nothing
+
+- **WHEN** that resolution happens
+- **THEN** tournament B's public stream receives nothing for it

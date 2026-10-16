@@ -14,6 +14,7 @@ import { toSeriesInput } from '../../../lib/series.ts';
 import {
   resultReasonLabels,
   resultStateLabels,
+  sideSourceLabels,
   seriesStateBarLabels,
 } from '../../../lib/i18n/public-intl.ts';
 
@@ -27,7 +28,7 @@ interface Props {
   readonly highlightEntrants?: boolean;
 }
 const { intl, organizationAlias, tournamentAlias, stageNumber, localePrefix = '' } = Astro.props;
-const node = toNode(Astro.props.match, resultStateLabels(intl));
+const node = toNode(Astro.props.match, resultStateLabels(intl), sideSourceLabels(intl));
 const highlight = Astro.props.highlightEntrants === true;
 const Wrapper = highlight ? 'div' : 'a';
 const reasonLabels = resultReasonLabels(intl);
@@ -72,7 +73,12 @@ const legScores =
           {/* Named, never blank: a blank cell reads as a bug, "Ganador del 3"
                 tells a spectator what has to happen first. */}
           {slot.fullName === undefined ? (
-            <span>{slot.label}</span>
+            <EntrantName
+              client:load
+              pending
+              fullName={slot.label}
+              abbreviation={slot.abbreviation}
+            />
           ) : (
             <>
               {organizationAlias && (

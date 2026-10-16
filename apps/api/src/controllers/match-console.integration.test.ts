@@ -316,6 +316,10 @@ describe('live match console (integration)', () => {
       { entrantId: entrantIds[0], name: 'Norte' },
       { entrantId: entrantIds[1], name: 'Sur' },
     ]);
+    expect(consoleRead.json()).toMatchObject({
+      homeEntrantId: entrantIds[0],
+      awayEntrantId: entrantIds[1],
+    });
   });
 
   it('labels the goal’s assist field, which reaches the console through a statistic effect', async () => {

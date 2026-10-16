@@ -1,3 +1,4 @@
+import { formatSideSource, sourceMatchLabel, type SideSourceMessages } from './side-source.js';
 import type { ResultReason } from '@copalibre/domain';
 import { decide, presentState, type ResultState, type ResultStateLabels } from './result-state.js';
 import type { BracketOutcome } from '../components/ui/molecules/OutcomeLegend.js';
@@ -24,8 +25,22 @@ export type SlotSource =
       /** Where this entrant came from, so a played match stays linked to the ones that fed it. */
       readonly from?: { readonly matchId: string; readonly outcome: 'winner' | 'loser' };
     }
-  | { readonly kind: 'winner-of'; readonly matchNumber?: number; readonly matchId?: string }
-  | { readonly kind: 'loser-of'; readonly matchNumber?: number; readonly matchId?: string }
+  | {
+      readonly kind: 'winner-of';
+      readonly matchNumber?: number;
+      readonly matchId?: string;
+      readonly nodeKey?: string;
+      readonly round?: number;
+      readonly position?: number;
+    }
+  | {
+      readonly kind: 'loser-of';
+      readonly matchNumber?: number;
+      readonly matchId?: string;
+      readonly nodeKey?: string;
+      readonly round?: number;
+      readonly position?: number;
+    }
   | { readonly kind: 'seed'; readonly seed: number };
 
 export type StageLayout = 'bracket' | 'grid';
@@ -77,6 +92,8 @@ export function bracketZonesOf<
 }
 
 export interface BracketMatch {
+  readonly nodeKey?: string;
+  readonly sourceFinalRound?: number;
   readonly matchId?: string;
   readonly matchNumber: number;
   readonly roundNumber: number;
@@ -154,7 +171,11 @@ export function toRounds(matches: readonly BracketMatch[]): readonly BracketRoun
  * indistinguishable from a bug, while a named dependency tells a spectator what
  * has to happen before their team plays.
  */
-export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNodeView {
+export function toNode(
+  match: BracketMatch,
+  labels: ResultStateLabels,
+  sources: SideSourceMessages,
+): MatchNodeView {
   const scored = (match.scores ?? []).filter((score): score is number => score !== undefined);
   const top = Math.max(...scored);
   const decided =
@@ -168,7 +189,7 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
       const resultReason = match.resultReasons?.[index];
       const pending = slot.kind !== 'entrant';
       return {
-        label: describeSlot(slot),
+        label: describeSlot(slot, sources, match.sourceFinalRound),
         ...(slot.kind === 'entrant'
           ? {
               fullName: slot.name,
@@ -177,7 +198,13 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
               ...(slot.clubId === undefined ? {} : { clubId: slot.clubId }),
               ...(slot.emblemObjectId === undefined ? {} : { emblemObjectId: slot.emblemObjectId }),
             }
-          : {}),
+          : {
+              abbreviation: formatSideSource(
+                slot,
+                sources,
+                sourceMatchLabel(slot, sources, match.sourceFinalRound),
+              ).short,
+            }),
         ...(score === undefined ? {} : { score }),
         ...(resultReason === undefined || resultReason === 'played' ? {} : { resultReason }),
         state: pending ? 'tbd' : match.state,
@@ -188,49 +215,15 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
   };
 }
 
-/**
- * Not extracted to the message catalog — same shape as the control
- * panel's own deferred `describeSlot` (`apps/web/src/control/lib/bracket-
- * canvas.ts`): pure geometry computation with a dynamic match/
- * seed number and no `intl` in scope at the call site, a genuinely different
- * pattern from this module's other extractions; tracked as a follow-up
- * alongside that one rather than solved differently here.
- */
-export function describeSlot(slot: SlotSource): string {
-  switch (slot.kind) {
-    case 'entrant':
-      return slot.name;
-    case 'winner-of': {
-      if (
-        typeof slot.matchNumber === 'number' &&
-        !Number.isNaN(slot.matchNumber) &&
-        slot.matchNumber > 0
-      ) {
-        return `Ganador del ${slot.matchNumber}`;
-      }
-      if (slot.matchId && slot.matchId !== '—') {
-        const clean = slot.matchId.replace(/^SE-|^WB-|^LB-/, '');
-        return `Ganador de ${clean}`;
-      }
-      return 'Por definir';
-    }
-    case 'loser-of': {
-      if (
-        typeof slot.matchNumber === 'number' &&
-        !Number.isNaN(slot.matchNumber) &&
-        slot.matchNumber > 0
-      ) {
-        return `Perdedor del ${slot.matchNumber}`;
-      }
-      if (slot.matchId && slot.matchId !== '—') {
-        const clean = slot.matchId.replace(/^SE-|^WB-|^LB-/, '');
-        return `Perdedor de ${clean}`;
-      }
-      return 'Por definir';
-    }
-    case 'seed':
-      return `Sembrado ${slot.seed}`;
-  }
+/** A source is formatted once across public, operator and broadcast presentations. */
+export function describeSlot(
+  slot: SlotSource,
+  messages: SideSourceMessages,
+  finalRound?: number,
+): string {
+  return slot.kind === 'entrant'
+    ? slot.name
+    : formatSideSource(slot, messages, sourceMatchLabel(slot, messages, finalRound)).long;
 }
 
 /** Whether every entrant of a match is known; a grand final rarely is, early. */

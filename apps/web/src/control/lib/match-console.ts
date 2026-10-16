@@ -5,6 +5,13 @@
  */
 
 import { v7 as uuidv7 } from 'uuid';
+import { applyTemplate } from '../../lib/matches-view.js';
+import {
+  formatSideSource,
+  sourceMatchLabel,
+  type SideSource,
+  type SideSourceMessages,
+} from '../../lib/side-source.js';
 import type {
   ConsoleEventDefinition,
   ConsoleMatchEvent,
@@ -79,6 +86,43 @@ export function isEventPermitted(
     );
   }
   return true;
+}
+
+export interface UndecidedSide {
+  readonly side: 'home' | 'away';
+  readonly source: SideSource;
+}
+
+/**
+ * The sides still waiting on another match. A source keeps its `winner-of` kind after resolving,
+ * so only a source with no positioned entrant is undecided; a legacy match carries no sources and
+ * is never awaiting anything.
+ */
+export function undecidedSidesOf(
+  projection: Pick<
+    MatchConsoleResponse,
+    'homeSource' | 'awaySource' | 'homeEntrantId' | 'awayEntrantId'
+  >,
+): readonly UndecidedSide[] {
+  const sides = [
+    { side: 'home', source: projection.homeSource, entrantId: projection.homeEntrantId },
+    { side: 'away', source: projection.awaySource, entrantId: projection.awayEntrantId },
+  ] as const;
+  return sides.flatMap(({ side, source, entrantId }) =>
+    source === undefined || source.kind === 'entrant' || entrantId !== undefined
+      ? []
+      : [{ side, source }],
+  );
+}
+
+/** "Awaiting the winner of semi-final 2", worded by the same formatter every surface uses. */
+export function awaitingSourceText(
+  source: SideSource,
+  messages: SideSourceMessages,
+  finalRound?: number,
+): string {
+  const text = formatSideSource(source, messages, sourceMatchLabel(source, messages, finalRound));
+  return applyTemplate(messages.awaiting, { source: text.long });
 }
 
 /** Persons a `red-card` event was recorded against — greyed out, not selectable. */

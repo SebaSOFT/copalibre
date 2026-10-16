@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import type { MatchCardData } from './matches-view.js';
 import type { ResultStateLabels } from './result-state.js';
+import { publicIntl, sideSourceLabels } from './i18n/public-intl.js';
 import { pageTvMatches, tvMatchEntriesOf, type TvMatchEntry } from './tv-match-list.js';
 
 const state: ResultStateLabels = {
@@ -32,13 +33,18 @@ const row = (overrides: Partial<MatchCardData> = {}): MatchCardData => ({
 });
 
 describe('tvMatchEntriesOf', () => {
-  const labels = { state, round: 'Round' };
+  const labels = { state, round: 'Round', sideSource: sideSourceLabels(publicIntl('en')) };
 
   it('shows the abbreviations and keeps the full names for the accessible name', () => {
     const [entry] = tvMatchEntriesOf([row()], labels);
 
-    expect(entry?.home).toEqual({ label: 'LOM', name: 'Lomas de Rivadavia', score: 1 });
-    expect(entry?.away).toEqual({ label: 'HIS', name: 'Club Hispano', score: 2 });
+    expect(entry?.home).toEqual({
+      label: 'LOM',
+      name: 'Lomas de Rivadavia',
+      pending: false,
+      score: 1,
+    });
+    expect(entry?.away).toEqual({ label: 'HIS', name: 'Club Hispano', pending: false, score: 2 });
     expect(entry?.stateLabel).toBe('FINAL');
   });
 
@@ -52,14 +58,53 @@ describe('tvMatchEntriesOf', () => {
     ).toBe('Round 2');
   });
 
-  it('falls back to the name when no abbreviation was chosen, and to a dash for an unknown side', () => {
+  it('falls back to the name when no abbreviation was chosen, and to the source for an undecided side', () => {
     const [entry] = tvMatchEntriesOf(
       [row({ homeAbbreviation: undefined, awayName: undefined, awayAbbreviation: undefined })],
       labels,
     );
 
     expect(entry?.home.label).toBe('Lomas de Rivadavia');
-    expect(entry?.away.label).toBe('—');
+    expect(entry?.away).toMatchObject({
+      label: 'Awaiting participant',
+      name: 'Awaiting participant',
+      pending: true,
+    });
+  });
+
+  it('names a placement game by the places it settles', () => {
+    const [third] = tvMatchEntriesOf(
+      [row({ nodeKey: 'placement-3', round: 1, groupName: undefined, zoneName: undefined })],
+      labels,
+    );
+    expect(third?.scope).toBe('Place 3');
+  });
+
+  it('names an undecided side by its source, with the stage depth naming the round', () => {
+    const [semi, final] = tvMatchEntriesOf(
+      [
+        row({ nodeKey: 'SE-R2-M1', round: 2, zoneName: 'Playoffs', groupName: undefined }),
+        row({
+          matchId: 'm2',
+          nodeKey: 'SE-R3-M1',
+          round: 3,
+          zoneName: 'Playoffs',
+          groupName: undefined,
+          awayName: undefined,
+          awayAbbreviation: undefined,
+          awaySource: { kind: 'winner-of', nodeKey: 'SE-R2-M2', round: 2, position: 2 },
+        }),
+      ],
+      labels,
+    );
+
+    expect(semi?.away.pending).toBe(false);
+    expect(semi?.scope).toBe('Playoffs · Round 2');
+    expect(final?.away).toMatchObject({
+      label: 'W SF2',
+      name: 'Winner of Semi-final 2',
+      pending: true,
+    });
   });
 
   it('leaves the score out of a side that has none', () => {

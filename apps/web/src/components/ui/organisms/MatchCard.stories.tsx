@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MatchCard } from './MatchCard.js';
 import { matchCardLabels, publicIntl } from '../../../lib/i18n/public-intl.js';
-import type { MatchCardData } from '../../../lib/matches-view.js';
+import { withSourceDepth, type MatchCardData } from '../../../lib/matches-view.js';
+import { referenceUndecidedMatches } from '../../../lib/reference-fixtures.js';
 import type { SupportedLanguage } from '../../../lib/language-preference.js';
 
 /**
@@ -222,6 +223,56 @@ export const Rescheduled: Story = {
           },
         }}
       />
+    );
+  },
+};
+
+/**
+ * A cup's programme before it is played out: a decided semi-final, a live one, a final with one
+ * side seated and one still named by its source, and a third-place game labelled by the place it
+ * settles. Every undecided side is text plus a glyph, never colour alone.
+ */
+export const UndecidedMatrix: Story = {
+  render: (_args, context) => {
+    const locale = context.globals.locale as SupportedLanguage;
+    return (
+      <>
+        {withSourceDepth(referenceUndecidedMatches()).map((match) => (
+          <MatchCard key={match.matchId} labels={labelsFor(locale)} locale={locale} match={match} />
+        ))}
+      </>
+    );
+  },
+};
+
+/** The ticker form keeps the localized compact source ("G SF2"), never an ellipsis alone. */
+export const UndecidedCompact: Story = {
+  render: (_args, context) => {
+    const locale = context.globals.locale as SupportedLanguage;
+    return (
+      <>
+        {withSourceDepth(referenceUndecidedMatches()).map((match) => (
+          <MatchCard
+            compact
+            key={match.matchId}
+            labels={labelsFor(locale)}
+            locale={locale}
+            match={match}
+          />
+        ))}
+      </>
+    );
+  },
+};
+
+/** German at the 188px floor: the long source gives way to its compact form, not to a cut. */
+export const UndecidedGermanAt188: Story = {
+  render: () => {
+    const [, , final] = withSourceDepth(referenceUndecidedMatches());
+    return (
+      <div style={{ maxWidth: '188px' }}>
+        {final && <MatchCard labels={labelsFor('de')} locale="de" match={final} />}
+      </div>
     );
   },
 };

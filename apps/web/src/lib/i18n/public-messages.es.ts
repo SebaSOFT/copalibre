@@ -4,6 +4,26 @@
  * reads exactly as the site did before this change.
  */
 export const messages: Record<string, string> = {
+  'publicWeb.sideSource.winner': 'Ganador de {match}',
+  'publicWeb.sideSource.loser': 'Perdedor de {match}',
+  'publicWeb.sideSource.winnerShort': 'G {match}',
+  'publicWeb.sideSource.loserShort': 'P {match}',
+  'publicWeb.sideSource.awaiting': 'Esperando {source}',
+  'publicWeb.sideSource.round': 'Ronda {round}, partido {position}',
+  'publicWeb.sideSource.roundShort': 'R{round}·{position}',
+  'publicWeb.sideSource.match': 'Partido {position}',
+  'publicWeb.sideSource.matchShort': 'P{position}',
+  'publicWeb.sideSource.final': 'Final',
+  'publicWeb.sideSource.finalShort': 'F',
+  'publicWeb.sideSource.semiFinal': 'Semifinal {position}',
+  'publicWeb.sideSource.semiFinalShort': 'SF{position}',
+  'publicWeb.sideSource.quarterFinal': 'Cuartos de final {position}',
+  'publicWeb.sideSource.quarterFinalShort': 'CF{position}',
+  'publicWeb.sideSource.place': 'Puesto {place}',
+  'publicWeb.sideSource.places': 'Puestos {from}–{to}',
+  'publicWeb.sideSource.unknown': 'Participante por definir',
+  'publicWeb.sideSource.seed': 'Cabeza de serie {seed}',
+  'publicWeb.sideSource.bye': 'Libre',
   'publicWeb.match.rescheduled': 'Reprogramado · antes {time}{venue}',
   'publicWeb.bracket.highlightEntrant': 'Resaltar recorrido de {entrant}',
   'publicWeb.bracket.highlightHint':
