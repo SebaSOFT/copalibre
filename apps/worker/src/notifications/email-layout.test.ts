@@ -48,11 +48,20 @@ describe('email layout', () => {
     expect(text.startsWith('Copa Libre\n')).toBe(true);
   });
 
-  it('signs every email with the Copa Libre logo and a fixed copalibre.app link', () => {
+  it('signs every email with the Copa Libre logo and a fixed www.copalibre.app link', () => {
     const { html, text } = renderEmail(config, content);
     expect(html).toContain('src="https://liga.example/copalibre-logo.png"');
-    expect(html).toContain('href="https://copalibre.app"');
-    expect(text.trimEnd().endsWith('https://copalibre.app')).toBe(true);
+    expect(html).toContain('href="https://www.copalibre.app"');
+    expect(text.trimEnd().endsWith('https://www.copalibre.app')).toBe(true);
+  });
+
+  it('shows the canonical host as the signature link text, so following it needs no redirect', () => {
+    const { html } = renderEmail(config, content);
+    expect(html).toContain(
+      'href="https://www.copalibre.app" style="color:#5b6b7a;">www.copalibre.app</a>',
+    );
+    expect(html).not.toContain('https://copalibre.app');
+    expect(html).not.toContain('>copalibre.app<');
   });
 
   it('gives every image alternative text', () => {

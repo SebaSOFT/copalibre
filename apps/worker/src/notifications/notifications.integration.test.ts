@@ -264,7 +264,7 @@ describe('email notifications through the relay (integration)', () => {
     expect(first?.html).toContain('>Liga &lt;Cuyana&gt;</span>');
     expect(first?.html).toContain('href="https://liga.example/es/liga"');
     expect(first?.html).toContain('https://liga.example/control/liga/clubs');
-    expect(first?.html).toContain('https://copalibre.app');
+    expect(first?.html).toContain('https://www.copalibre.app');
   });
 
   it('writes in English for an English-language organization', async () => {

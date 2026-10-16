@@ -20,7 +20,8 @@ export interface EmailContent {
   readonly action?: { readonly label: string; readonly url: string };
 }
 
-const PRODUCT_URL = 'https://copalibre.app';
+const PRODUCT_URL = 'https://www.copalibre.app';
+const PRODUCT_HOST = new URL(PRODUCT_URL).host;
 const LOGO_PATH = '/copalibre-logo.png';
 
 /**
@@ -29,7 +30,7 @@ const LOGO_PATH = '/copalibre-logo.png';
  * `alt` text, so the message reads the same where a client blocks remote images.
  *
  * The header and body links use the installation's `COPALIBRE_APP_URL`; the signature link is always
- * `copalibre.app`, because it signs the product rather than the installation.
+ * `www.copalibre.app`, because it signs the product rather than the installation.
  */
 export function renderEmail(config: EmailDeliveryConfig, content: EmailContent): EmailMessage {
   const copy = emailCopy(content.language);
@@ -77,7 +78,7 @@ export function renderEmail(config: EmailDeliveryConfig, content: EmailContent):
     `${action}</td></tr>` +
     `<tr><td style="padding:16px 24px;border-top:1px solid #d8dee4;font-size:12px;color:#5b6b7a;">` +
     `<img src="${escapeHtml(logoUrl)}" alt="Copa Libre" width="24" height="24" style="vertical-align:middle;border:0;margin-right:8px;" />` +
-    `${escapeHtml(copy.sentBy)} · <a href="${PRODUCT_URL}" style="color:#5b6b7a;">copalibre.app</a></td></tr>` +
+    `${escapeHtml(copy.sentBy)} · <a href="${PRODUCT_URL}" style="color:#5b6b7a;">${PRODUCT_HOST}</a></td></tr>` +
     `</table></body></html>`;
 
   return { to: content.to, subject: content.subject, text, html };

@@ -36,7 +36,7 @@ transactional outbox (lifecycle email notifications):
 The actor is not emailed about their own action, and an address held through several assignments gets
 one email. Every email, including invitations and password resets, renders in the organization's
 primary language (English for a password reset, which has no organization) with the organization's
-emblem and name in the header and a Copa Libre signature linking to `https://copalibre.app`. A club
+emblem and name in the header and a Copa Libre signature linking to `https://www.copalibre.app`. A club
 submitting its squad sends one email, for `entrant.squad-submitted`. CSV imports and `copalibre dev
 demo` mark their events `origin: 'import'` and send none.
 
