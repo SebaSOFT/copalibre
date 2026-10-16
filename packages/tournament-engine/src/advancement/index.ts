@@ -1,4 +1,4 @@
-import type { RecordedOutcome } from '@copalibre/domain';
+import type { RecordedOutcome, SeriesDeclaration } from '@copalibre/domain';
 import { resolveSeries } from '@copalibre/domain';
 import { PlacementAdvancementError } from '../errors.js';
 import { isDuelMatch, type DuelMatch, type FixtureGraph, type SlotSource } from '../types.js';
@@ -35,6 +35,152 @@ export interface ResolvedMatch {
   /** Set when an outcome exists, or when a bye decides it without being played. */
   readonly winnerEntrantId?: string;
   readonly decidedByBye: boolean;
+}
+
+export interface PersistedFixtureNode {
+  readonly nodeKey: string;
+  readonly bracket: DuelMatch['bracket'];
+  readonly round: number;
+  readonly position: number;
+  readonly branch?: string;
+  readonly label?: string;
+  readonly sides: readonly [SlotSource, SlotSource];
+  /** Number of persisted matches in this fixture; 1 represents a single match. */
+  readonly seriesSpan: number;
+  readonly contingency?: 'bracket-reset';
+}
+
+export interface PersistedGraphResolution {
+  readonly nodeKey: string;
+  readonly sides: readonly [ResolvedSlot, ResolvedSlot];
+  readonly contingency?: 'required' | 'not-required' | 'pending';
+}
+
+export type QualifierEntrants = ReadonlyMap<string, ReadonlyMap<number, string>>;
+
+/** Resolves persisted fixture nodes through the same recursive walk as generated graphs. */
+export function resolvePersistedNodes(
+  nodes: readonly PersistedFixtureNode[],
+  outcomes: readonly RecordedOutcome[],
+  qualifierEntrants: QualifierEntrants = new Map(),
+): readonly PersistedGraphResolution[] {
+  const side = (source: SlotSource): SlotSource => {
+    if (source.kind !== 'qualifier') return source;
+    const entrantId = qualifierEntrants.get(source.promotionPlanId)?.get(source.position);
+    return entrantId === undefined ? source : { kind: 'entrant', entrantId, seed: source.position };
+  };
+  const matches: DuelMatch[] = nodes.flatMap((node) => {
+    const series: SeriesDeclaration | undefined =
+      node.seriesSpan > 1 ? { span: node.seriesSpan, resolutionClass: 'best-of' } : undefined;
+    return Array.from({ length: node.seriesSpan }, (_unused, index) => {
+      const matchNumber = index + 1;
+      return {
+        id: node.seriesSpan > 1 ? `${node.nodeKey}-${matchNumber}` : node.nodeKey,
+        shape: 'duel' as const,
+        bracket: node.bracket,
+        round: node.round,
+        position: node.position,
+        ...(node.branch === undefined ? {} : { branch: node.branch }),
+        ...(node.label === undefined ? {} : { label: node.label }),
+        slotA: side(node.sides[0]),
+        slotB: side(node.sides[1]),
+        ...(series === undefined
+          ? {}
+          : {
+              series,
+              matchNumber,
+              ...(node.contingency ? { conditional: node.contingency } : {}),
+            }),
+        ...(series !== undefined || node.contingency === undefined
+          ? {}
+          : { conditional: node.contingency }),
+      };
+    });
+  });
+  const format = nodes.some((node) => node.bracket === 'losers' || node.bracket === 'grand-final')
+    ? 'double-elimination'
+    : 'single-elimination';
+  const graph: FixtureGraph = {
+    format,
+    entrantCount: new Set(
+      nodes.flatMap((node) =>
+        node.sides.flatMap((source) => (source.kind === 'entrant' ? [source.entrantId] : [])),
+      ),
+    ).size,
+    matches,
+    rounds: [],
+  };
+  const resolved = resolveAdvancement(graph, outcomes);
+  const outcomeById = new Map(outcomes.map((outcome) => [outcome.matchId, outcome]));
+
+  return nodes.map((node) => {
+    const baseMatchId = node.seriesSpan > 1 ? `${node.nodeKey}-1` : node.nodeKey;
+    const resolvedMatch = resolved.find((match) => match.matchId === baseMatchId);
+    const resolvedSides: readonly [ResolvedSlot, ResolvedSlot] = resolvedMatch
+      ? [resolvedMatch.slotA, resolvedMatch.slotB]
+      : [{ state: 'pending' }, { state: 'pending' }];
+    let contingency: PersistedGraphResolution['contingency'];
+    if (node.contingency === 'bracket-reset') {
+      const firstFinal = nodes.find(
+        (candidate) => candidate.bracket === 'grand-final' && candidate.round === node.round - 1,
+      );
+      if (!firstFinal) {
+        contingency = 'pending';
+      } else {
+        const firstFinalSides = resolved.find(
+          (match) =>
+            match.matchId ===
+            (firstFinal.seriesSpan > 1 ? `${firstFinal.nodeKey}-1` : firstFinal.nodeKey),
+        );
+        const firstFinalOutcomes = Array.from({ length: firstFinal.seriesSpan }, (_unused, index) =>
+          outcomeById.get(
+            firstFinal.seriesSpan > 1 ? `${firstFinal.nodeKey}-${index + 1}` : firstFinal.nodeKey,
+          ),
+        );
+        if (
+          firstFinalSides?.slotA.state !== 'entrant' ||
+          firstFinalSides.slotB.state !== 'entrant'
+        ) {
+          contingency = 'pending';
+        } else {
+          const result = resolveSeries({
+            declaration: {
+              span: firstFinal.seriesSpan,
+              resolutionClass: 'best-of',
+            },
+            sides: [firstFinalSides.slotA.entrantId, firstFinalSides.slotB.entrantId],
+            matches: firstFinalOutcomes.map((outcome, index) =>
+              outcome === undefined
+                ? { number: index + 1, status: 'scheduled' as const }
+                : {
+                    number: index + 1,
+                    status: 'finalized' as const,
+                    result: {
+                      winnerEntrantId: outcome.winnerEntrantId,
+                      sides: outcome.sides.map((entry) => ({
+                        entrantId: entry.entrantId,
+                        statistics: entry.statistics,
+                      })),
+                      recordedAt: '',
+                    },
+                  },
+            ),
+          });
+          contingency =
+            result.status !== 'decided'
+              ? 'pending'
+              : result.winnerEntrantId === firstFinalSides.slotA.entrantId
+                ? 'not-required'
+                : 'required';
+        }
+      }
+    }
+    return {
+      nodeKey: node.nodeKey,
+      sides: resolvedSides,
+      ...(contingency === undefined ? {} : { contingency }),
+    };
+  });
 }
 
 /**
@@ -141,6 +287,7 @@ export function resolveAdvancement(
       }
       return { state: 'empty' };
     }
+    if (slot.kind === 'qualifier') return { state: 'pending' };
     if (stack.has(slot.matchId)) return { state: 'pending' }; // malformed cycle
 
     const singleMatch = byId.get(slot.matchId);

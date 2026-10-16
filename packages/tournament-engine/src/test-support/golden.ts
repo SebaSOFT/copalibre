@@ -42,9 +42,16 @@ export function summarise(
   }[],
 ): readonly string[] {
   const show = (slot: unknown): string => {
-    const s = slot as { kind: string; entrantId?: string; matchId?: string };
+    const s = slot as {
+      kind: string;
+      entrantId?: string;
+      matchId?: string;
+      promotionPlanId?: string;
+      position?: number;
+    };
     if (s.kind === 'entrant') return s.entrantId ?? '?';
     if (s.kind === 'bye') return 'BYE';
+    if (s.kind === 'qualifier') return `Q(${s.promotionPlanId ?? '?'}:${s.position ?? '?'})`;
     return `${s.kind === 'winner-of' ? 'W' : 'L'}(${s.matchId})`;
   };
   return matches.map((m) =>

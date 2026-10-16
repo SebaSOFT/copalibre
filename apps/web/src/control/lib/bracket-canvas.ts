@@ -19,7 +19,7 @@ import {
 } from '../../lib/bracket-layout.js';
 
 export type CanvasSeriesState = components['schemas']['PublicSeriesStateResponse'];
-export type CanvasSlotKind = 'entrant' | 'bye' | 'winner-of' | 'loser-of';
+export type CanvasSlotKind = 'entrant' | 'bye' | 'winner-of' | 'loser-of' | 'pending';
 
 /** Adapt control's structural ids to the shared journey algorithm. */
 export function canvasEntrantPath(
@@ -40,7 +40,7 @@ export function canvasEntrantPath(
       slots: match.slots.map((slot) =>
         slot.kind === 'entrant'
           ? { kind: 'entrant', entrantId: slot.entrantId, name: slot.entrantId ?? '' }
-          : slot.kind === 'bye'
+          : slot.kind === 'bye' || slot.kind === 'pending'
             ? { kind: 'seed', seed: 0 }
             : { kind: slot.kind, matchId: slot.matchId },
       ),
@@ -176,6 +176,8 @@ export function describeSlot(slot: CanvasSlot): string {
       return `Ganador del ${slot.matchId ?? '—'}`;
     case 'loser-of':
       return `Perdedor del ${slot.matchId ?? '—'}`;
+    case 'pending':
+      return 'Pendiente';
   }
 }
 
