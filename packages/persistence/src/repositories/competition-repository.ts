@@ -41,6 +41,7 @@ import {
 } from '../mapping.js';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
+import type { PersistedFixtureNode } from '../fixture-graph.js';
 import type { AuditContext } from './enrollment-repository.js';
 
 export interface PersistedDraw<T> {
@@ -884,6 +885,120 @@ export class CompetitionRepository {
     return { zoneId, groupId: group.groupId };
   }
 
+  private async assertLegacyFixtureWritesAllowed(
+    uow: UnitOfWork,
+    stageId: string,
+    zoneIds?: readonly string[],
+  ): Promise<void> {
+    let query = uow.tx
+      .selectFrom('fixtures')
+      .select(['fixture_id', 'zone_id'])
+      .where('stage_id', '=', stageId)
+      .where('node_key', 'is not', null);
+    if (zoneIds !== undefined) query = query.where('zone_id', 'in', [...zoneIds]);
+    const persisted = await query.executeTakeFirst();
+    if (persisted) {
+      throw new InvariantViolationError(
+        'Legacy fixture writes cannot modify a persisted fixture graph',
+        { stageId, zoneId: persisted.zone_id },
+      );
+    }
+  }
+
+  private async insertFixtureGraph(
+    uow: UnitOfWork,
+    input: {
+      readonly stageId: string;
+      readonly zoneId: string;
+      readonly nodes: readonly PersistedFixtureNode[];
+    } & AuditContext,
+  ): Promise<readonly Fixture[]> {
+    const nodeKeys = new Set<string>();
+    for (const node of input.nodes) {
+      if (nodeKeys.has(node.nodeKey)) {
+        throw new InvariantViolationError('Fixture graph node keys must be unique', {
+          nodeKey: node.nodeKey,
+        });
+      }
+      if (!Number.isInteger(node.seriesSpan) || node.seriesSpan < 1) {
+        throw new InvariantViolationError('Fixture graph series span must be a positive integer', {
+          nodeKey: node.nodeKey,
+          seriesSpan: node.seriesSpan,
+        });
+      }
+      nodeKeys.add(node.nodeKey);
+    }
+    // Edges name node keys, never fixture ids, so each must name a node of this same graph.
+    for (const node of input.nodes) {
+      for (const side of node.sides) {
+        if ('matchId' in side && !nodeKeys.has(side.matchId)) {
+          throw new InvariantViolationError('Fixture graph edge names an unknown node', {
+            nodeKey: node.nodeKey,
+            source: side,
+          });
+        }
+      }
+    }
+
+    const scope = await this.resolveFixtureScope(uow, input, { zoneId: input.zoneId });
+    const nodeByKey = new Map(input.nodes.map((node) => [node.nodeKey, node]));
+
+    const rows = await uow.tx
+      .insertInto('fixtures')
+      .values(
+        input.nodes.map((node) => ({
+          fixture_id: newId(),
+          stage_id: input.stageId,
+          zone_id: scope.zoneId,
+          group_id: scope.groupId,
+          round: node.round,
+          role: null,
+          node_key: node.nodeKey,
+          bracket: node.bracket,
+          position: node.position,
+          branch: node.branch ?? null,
+          label: node.label ?? null,
+          home_source: JSON.stringify(node.sides[0]),
+          away_source: JSON.stringify(node.sides[1]),
+          contingency: node.contingency ?? null,
+          home_entrant_id: null,
+          away_entrant_id: null,
+          created_at: new Date(),
+        })),
+      )
+      .returningAll()
+      .execute();
+    const fixtures = rows.map(toFixture);
+    // `RETURNING` order is not guaranteed (SQLite), so rows are matched to nodes by key.
+    const matchRows = rows.flatMap((row) => {
+      const node = row.node_key === null ? undefined : nodeByKey.get(row.node_key);
+      if (!node) return [];
+      return Array.from({ length: node.seriesSpan }, (_, index) => ({
+        match_id: newId(),
+        fixture_id: row.fixture_id,
+        number: index + 1,
+        status: 'scheduled' as const,
+        result: null,
+        created_at: new Date(),
+      }));
+    });
+    if (matchRows.length > 0) {
+      await uow.tx.insertInto('matches').values(matchRows).execute();
+      for (const match of matchRows) {
+        await uow.recordAudit({
+          organizationId: input.organizationId,
+          entityType: 'match',
+          entityId: match.match_id,
+          action: 'match.created',
+          actor: input.actor,
+          authorizationContext: input.authorizationContext,
+          resultingState: { ...toMatch(match) },
+        });
+      }
+    }
+    return fixtures;
+  }
+
   /**
    * A stage in a competition that has one edition.
    *
@@ -1108,6 +1223,11 @@ export class CompetitionRepository {
         ...(await this.resolveFixtureScope(uow, input, fixture)),
       });
     }
+    await this.assertLegacyFixtureWritesAllowed(
+      uow,
+      input.stageId,
+      scopedFixtures.map((fixture) => fixture.zoneId),
+    );
     const rows = await uow.tx
       .insertInto('fixtures')
       .values(
@@ -1242,6 +1362,8 @@ export class CompetitionRepository {
       });
     }
 
+    await this.assertLegacyFixtureWritesAllowed(uow, input.stageId);
+
     const attached = await uow.tx
       .selectFrom('matches')
       .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
@@ -1331,6 +1453,130 @@ export class CompetitionRepository {
       payload: { stageId: input.stageId, fixtureCount: fixtures.length },
     });
 
+    return fixtures;
+  }
+
+  /** Persists every node and its complete series span for one zone. */
+  async createFixtureGraph(
+    uow: UnitOfWork,
+    input: {
+      readonly stageId: string;
+      readonly zoneId: string;
+      readonly nodes: readonly PersistedFixtureNode[];
+    } & AuditContext,
+  ): Promise<readonly Fixture[]> {
+    if (input.nodes.length === 0) {
+      throw new InvariantViolationError('Cannot create an empty fixture graph', {
+        stageId: input.stageId,
+        zoneId: input.zoneId,
+      });
+    }
+
+    const existing = await uow.tx
+      .selectFrom('fixtures')
+      .select('fixture_id')
+      .where('stage_id', '=', input.stageId)
+      .where('zone_id', '=', input.zoneId)
+      .executeTakeFirst();
+    if (existing) {
+      throw new InvariantViolationError('Fixture graph already exists for this zone', {
+        stageId: input.stageId,
+        zoneId: input.zoneId,
+      });
+    }
+
+    const fixtures = await this.insertFixtureGraph(uow, input);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'stage',
+      entityId: input.stageId,
+      action: 'fixtures.generated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { fixtureCount: fixtures.length, zoneId: input.zoneId },
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `stage:${input.stageId}`,
+      entityId: input.stageId,
+      eventType: 'fixtures.generated',
+      projectionVersion: 1,
+      payload: { stageId: input.stageId, fixtureCount: fixtures.length },
+    });
+    return fixtures;
+  }
+
+  /** Replaces one zone's complete graph only while none of its matches progressed. */
+  async replaceFixtureGraph(
+    uow: UnitOfWork,
+    input: {
+      readonly stageId: string;
+      readonly zoneId: string;
+      readonly nodes: readonly PersistedFixtureNode[];
+    } & AuditContext,
+  ): Promise<readonly Fixture[]> {
+    if (input.nodes.length === 0) {
+      throw new InvariantViolationError('Cannot replace a fixture graph with an empty graph', {
+        stageId: input.stageId,
+        zoneId: input.zoneId,
+      });
+    }
+
+    const attached = await uow.tx
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .select('matches.match_id')
+      .where('fixtures.stage_id', '=', input.stageId)
+      .where('fixtures.zone_id', '=', input.zoneId)
+      .where((eb) =>
+        eb.or([eb('matches.status', '!=', 'scheduled'), eb('matches.result', 'is not', null)]),
+      )
+      .executeTakeFirst();
+    if (attached) {
+      throw new InvariantViolationError(
+        'Cannot replace fixtures once a match has started or recorded results',
+        { stageId: input.stageId, zoneId: input.zoneId },
+      );
+    }
+
+    const previous = await uow.tx
+      .selectFrom('fixtures')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where('stage_id', '=', input.stageId)
+      .where('zone_id', '=', input.zoneId)
+      .executeTakeFirstOrThrow();
+    const zoneFixtureIds = uow.tx
+      .selectFrom('fixtures')
+      .select('fixture_id')
+      .where('stage_id', '=', input.stageId)
+      .where('zone_id', '=', input.zoneId);
+
+    await uow.tx.deleteFrom('matches').where('fixture_id', 'in', zoneFixtureIds).execute();
+    await uow.tx
+      .deleteFrom('fixtures')
+      .where('stage_id', '=', input.stageId)
+      .where('zone_id', '=', input.zoneId)
+      .execute();
+
+    const fixtures = await this.insertFixtureGraph(uow, input);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'stage',
+      entityId: input.stageId,
+      action: 'fixtures.regenerated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { fixtureCount: previous.count, zoneId: input.zoneId },
+      resultingState: { fixtureCount: fixtures.length, zoneId: input.zoneId },
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `stage:${input.stageId}`,
+      entityId: input.stageId,
+      eventType: 'fixtures.regenerated',
+      projectionVersion: 1,
+      payload: { stageId: input.stageId, fixtureCount: fixtures.length },
+    });
     return fixtures;
   }
 

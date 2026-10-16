@@ -1,6 +1,6 @@
 import { generateFixtures } from '../fixtures/index.js';
-import type { RecordedOutcome } from '@copalibre/domain';
-import { PlacementAdvancementError } from '../errors.js';
+import type { RecordedOutcome, SeriesDeclaration } from '@copalibre/domain';
+import { PersistedGraphError, PlacementAdvancementError } from '../errors.js';
 import { entrantsInGraph } from '../standings/index.js';
 import {
   isDuelMatch,
@@ -12,11 +12,14 @@ import {
   type SlotSource,
 } from '../types.js';
 import {
+  persistedMatchId,
   playableMatches,
   resolveAdvancement,
   resolvePersistedNodes,
   unlockedByFinalization,
   type PersistedFixtureNode,
+  type PersistedGraphResolution,
+  type PersistedNodeOutcome,
 } from './index.js';
 
 const entrants = (n: number) =>
@@ -172,6 +175,75 @@ describe('resolveAdvancement', () => {
   });
 });
 
+/** Re-keys generated-graph outcomes by node and match number, as persistence passes them. */
+function nodeOutcomesOf(
+  nodes: readonly PersistedFixtureNode[],
+  outcomes: readonly RecordedOutcome[],
+): readonly PersistedNodeOutcome[] {
+  const byEngineId = new Map<string, { nodeKey: string; matchNumber: number }>();
+  for (const node of nodes) {
+    for (let matchNumber = 1; matchNumber <= node.seriesSpan; matchNumber += 1) {
+      byEngineId.set(persistedMatchId(node.nodeKey, matchNumber, node.seriesSpan), {
+        nodeKey: node.nodeKey,
+        matchNumber,
+      });
+    }
+  }
+  return outcomes.map((outcome) => {
+    const key = byEngineId.get(outcome.matchId);
+    if (!key) throw new Error(`no persisted node for ${outcome.matchId}`);
+    return { ...key, outcome: { ...outcome, matchId: `uuid-${outcome.matchId}` } };
+  });
+}
+
+const scored = (
+  nodeKey: string,
+  matchNumber: number,
+  [a, aScore]: readonly [string, number],
+  [b, bScore]: readonly [string, number],
+): PersistedNodeOutcome => ({
+  nodeKey,
+  matchNumber,
+  outcome: {
+    matchId: `uuid-${nodeKey}-${matchNumber}`,
+    fixtureId: `fixture-${nodeKey}`,
+    ...(aScore === bScore ? {} : { winnerEntrantId: aScore > bScore ? a : b }),
+    sides: [
+      { entrantId: a, statistics: { score: aScore } },
+      { entrantId: b, statistics: { score: bScore } },
+    ],
+  },
+});
+
+/** A two-node bracket: `tie` (a series between e1 and e2) feeds side A of `final`. */
+const tieIntoFinal = (seriesSpan: number): readonly PersistedFixtureNode[] => [
+  {
+    nodeKey: 'tie',
+    bracket: 'winners',
+    round: 1,
+    position: 1,
+    sides: [
+      { kind: 'entrant', entrantId: 'e1', seed: 1 },
+      { kind: 'entrant', entrantId: 'e2', seed: 2 },
+    ],
+    seriesSpan,
+  },
+  {
+    nodeKey: 'final',
+    bracket: 'winners',
+    round: 2,
+    position: 1,
+    sides: [
+      { kind: 'winner-of', matchId: 'tie' },
+      { kind: 'entrant', entrantId: 'e3', seed: 3 },
+    ],
+    seriesSpan: 1,
+  },
+];
+
+const finalSideA = (resolutions: readonly PersistedGraphResolution[]) =>
+  resolutions.find((resolution) => resolution.nodeKey === 'final')?.sides[0];
+
 describe('resolvePersistedNodes parity', () => {
   it.each([
     ['single-elimination', 4],
@@ -184,11 +256,13 @@ describe('resolvePersistedNodes parity', () => {
       format === 'double-elimination'
         ? [win('WB-R1-M1', 'e1', 'e4'), win('WB-R1-M2', 'e2', 'e3')]
         : [win('SE-R1-M1', 'e1', 'e4')];
+    const nodes = persistedNodesOf(fixtureGraph);
     const generated = resolveAdvancement(fixtureGraph, outcomes);
-    const persisted = resolvePersistedNodes(persistedNodesOf(fixtureGraph), outcomes);
-    for (const node of persistedNodesOf(fixtureGraph)) {
-      const matchId = node.seriesSpan > 1 ? `${node.nodeKey}-1` : node.nodeKey;
-      const expected = generated.find((match) => match.matchId === matchId);
+    const persisted = resolvePersistedNodes({ nodes, outcomes: nodeOutcomesOf(nodes, outcomes) });
+    for (const node of nodes) {
+      const expected = generated.find(
+        (match) => match.matchId === persistedMatchId(node.nodeKey, 1, node.seriesSpan),
+      );
       const actual = persisted.find((resolution) => resolution.nodeKey === node.nodeKey);
       expect(actual?.sides).toEqual([expected?.slotA, expected?.slotB]);
     }
@@ -198,35 +272,37 @@ describe('resolvePersistedNodes parity', () => {
     ['best-of-3', 3],
     ['best-of-5', 5],
   ] as const)('keeps %s advancement pending until series decision', (_label, span) => {
+    const series = { span, resolutionClass: 'best-of' } as const;
     const result = generateFixtures({
       format: 'single-elimination',
       entrants: entrants(4),
-      series: { span, resolutionClass: 'best-of' },
+      series,
     });
     if (!result.ok) throw result.error;
     const fixtureGraph = result.value;
     const nodes = persistedNodesOf(fixtureGraph);
+    const resolve = (outcomes: readonly RecordedOutcome[]) =>
+      resolvePersistedNodes({ nodes, outcomes: nodeOutcomesOf(nodes, outcomes), series });
+    const sidesOf = (resolutions: readonly PersistedGraphResolution[]) =>
+      resolutions.find((node) => node.nodeKey === 'SE-R2-M1')?.sides;
+    const generatedSidesOf = (outcomes: readonly RecordedOutcome[]) => {
+      const match = resolveAdvancement(fixtureGraph, outcomes).find(
+        (candidate) => candidate.matchId === 'SE-R2-M1-1',
+      );
+      return [match?.slotA, match?.slotB];
+    };
+
     const partialOutcomes = [win('SE-R1-M1-1', 'e1', 'e4')];
-    const partial = resolvePersistedNodes(nodes, partialOutcomes);
-    const generatedPartial = resolveAdvancement(fixtureGraph, partialOutcomes);
-    expect(partial.find((node) => node.nodeKey === 'SE-R2-M1')?.sides).toEqual([
-      generatedPartial.find((match) => match.matchId === 'SE-R2-M1-1')?.slotA,
-      generatedPartial.find((match) => match.matchId === 'SE-R2-M1-1')?.slotB,
-    ]);
-    expect(partial.find((node) => node.nodeKey === 'SE-R2-M1')?.sides[0].state).toBe('pending');
+    const partial = resolve(partialOutcomes);
+    expect(sidesOf(partial)).toEqual(generatedSidesOf(partialOutcomes));
+    expect(sidesOf(partial)?.[0].state).toBe('pending');
+
     const decidedOutcomes = Array.from({ length: Math.ceil(span / 2) }, (_unused, index) =>
       win(`SE-R1-M1-${index + 1}`, 'e1', 'e4'),
     );
-    const decided = resolvePersistedNodes(nodes, decidedOutcomes);
-    const generatedDecided = resolveAdvancement(fixtureGraph, decidedOutcomes);
-    expect(decided.find((node) => node.nodeKey === 'SE-R2-M1')?.sides).toEqual([
-      generatedDecided.find((match) => match.matchId === 'SE-R2-M1-1')?.slotA,
-      generatedDecided.find((match) => match.matchId === 'SE-R2-M1-1')?.slotB,
-    ]);
-    expect(decided.find((node) => node.nodeKey === 'SE-R2-M1')?.sides[0]).toEqual({
-      state: 'entrant',
-      entrantId: 'e1',
-    });
+    const decided = resolve(decidedOutcomes);
+    expect(sidesOf(decided)).toEqual(generatedSidesOf(decidedOutcomes));
+    expect(sidesOf(decided)?.[0]).toEqual({ state: 'entrant', entrantId: 'e1' });
   });
 
   it('routes third-place sides from series losers after each semi-final is decided', () => {
@@ -262,9 +338,15 @@ describe('resolvePersistedNodes parity', () => {
         seriesSpan: 1,
       },
     ];
-    expect(resolvePersistedNodes(nodes, [])[0]?.sides[0]).toEqual({ state: 'pending' });
+    expect(resolvePersistedNodes({ nodes, outcomes: [] })[0]?.sides[0]).toEqual({
+      state: 'pending',
+    });
     expect(
-      resolvePersistedNodes(nodes, [], new Map([['plan-a', new Map([[2, 'e2']])]]))[0]?.sides[0],
+      resolvePersistedNodes({
+        nodes,
+        outcomes: [],
+        qualifierEntrants: new Map([['plan-a', new Map([[2, 'e2']])]]),
+      })[0]?.sides[0],
     ).toEqual({ state: 'entrant', entrantId: 'e2' });
   });
 
@@ -282,7 +364,7 @@ describe('resolvePersistedNodes parity', () => {
       win('GF-R1-M1', winner, winner === 'e1' ? 'e2' : 'e1'),
     ];
     const nodes = persistedNodesOf(fixtureGraph);
-    const reset = resolvePersistedNodes(nodes, outcomes).find(
+    const reset = resolvePersistedNodes({ nodes, outcomes: nodeOutcomesOf(nodes, outcomes) }).find(
       (node) => node.nodeKey === 'GF-R2-M1',
     );
     expect(reset?.contingency).toBe(expected);
@@ -290,6 +372,109 @@ describe('resolvePersistedNodes parity', () => {
       (match) => match.matchId === 'GF-R2-M1',
     );
     expect(reset?.sides).toEqual([generatedReset?.slotA, generatedReset?.slotB]);
+  });
+});
+
+describe('resolvePersistedNodes series declarations', () => {
+  it('keys outcomes by node and match number, never by the stored match id', () => {
+    const resolutions = resolvePersistedNodes({
+      nodes: tieIntoFinal(3),
+      outcomes: [scored('tie', 1, ['e1', 2], ['e2', 0]), scored('tie', 2, ['e1', 1], ['e2', 0])],
+      series: { span: 3, resolutionClass: 'best-of' },
+    });
+    expect(finalSideA(resolutions)).toEqual({ state: 'entrant', entrantId: 'e1' });
+  });
+
+  it('keeps a series pending while only its first match is finalized', () => {
+    const resolutions = resolvePersistedNodes({
+      nodes: tieIntoFinal(3),
+      outcomes: [scored('tie', 1, ['e1', 2], ['e2', 0])],
+      series: { span: 3, resolutionClass: 'best-of' },
+    });
+    expect(finalSideA(resolutions)).toEqual({ state: 'pending' });
+  });
+
+  it('advances the aggregate winner of a two-legged tie split one leg each', () => {
+    const resolutions = resolvePersistedNodes({
+      nodes: tieIntoFinal(2),
+      outcomes: [scored('tie', 1, ['e1', 3], ['e2', 0]), scored('tie', 2, ['e2', 1], ['e1', 0])],
+      series: { span: 2, resolutionClass: 'aggregate' },
+    });
+    expect(finalSideA(resolutions)).toEqual({ state: 'entrant', entrantId: 'e1' });
+  });
+
+  it('decides a bracket reset by the declared series class', () => {
+    const nodes: PersistedFixtureNode[] = [
+      {
+        nodeKey: 'gf',
+        bracket: 'grand-final',
+        round: 1,
+        position: 1,
+        sides: [
+          { kind: 'entrant', entrantId: 'e1', seed: 1 },
+          { kind: 'entrant', entrantId: 'e2', seed: 2 },
+        ],
+        seriesSpan: 2,
+      },
+      {
+        nodeKey: 'reset',
+        bracket: 'grand-final',
+        round: 2,
+        position: 1,
+        sides: [
+          { kind: 'winner-of', matchId: 'gf' },
+          { kind: 'loser-of', matchId: 'gf' },
+        ],
+        seriesSpan: 2,
+        contingency: 'bracket-reset',
+      },
+    ];
+    const reset = resolvePersistedNodes({
+      nodes,
+      outcomes: [scored('gf', 1, ['e1', 0], ['e2', 1]), scored('gf', 2, ['e1', 4], ['e2', 0])],
+      series: { span: 2, resolutionClass: 'aggregate' },
+    }).find((node) => node.nodeKey === 'reset');
+    expect(reset?.contingency).toBe('not-required');
+  });
+
+  it.each([
+    ['no declaration', undefined],
+    ['a scripted declaration', { span: 3, resolutionScript: { kind: 'noop' } }],
+    ['a different span', { span: 5, resolutionClass: 'best-of' }],
+  ] as const)('refuses a series node with %s', (_label, series) => {
+    expect(() =>
+      resolvePersistedNodes({
+        nodes: tieIntoFinal(3),
+        outcomes: [],
+        ...(series === undefined ? {} : { series: series as SeriesDeclaration }),
+      }),
+    ).toThrow(PersistedGraphError);
+  });
+
+  it('refuses node keys whose derived match ids collide', () => {
+    const [tie, final] = tieIntoFinal(3) as [PersistedFixtureNode, PersistedFixtureNode];
+    expect(() =>
+      resolvePersistedNodes({
+        nodes: [tie, { ...final, nodeKey: 'tie-1' }],
+        outcomes: [],
+        series: { span: 3, resolutionClass: 'best-of' },
+      }),
+    ).toThrow(PersistedGraphError);
+  });
+
+  it('refuses an outcome that names no stored match', () => {
+    expect(() =>
+      resolvePersistedNodes({
+        nodes: tieIntoFinal(3),
+        outcomes: [scored('tie', 4, ['e1', 1], ['e2', 0])],
+        series: { span: 3, resolutionClass: 'best-of' },
+      }),
+    ).toThrow(PersistedGraphError);
+  });
+
+  it('names a single match by its node key and a series match by its number', () => {
+    expect(persistedMatchId('final', 1, 1)).toBe('final');
+    expect(persistedMatchId('final', 2, 3)).toBe('final-2');
   });
 });
 

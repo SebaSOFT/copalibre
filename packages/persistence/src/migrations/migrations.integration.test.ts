@@ -10,6 +10,7 @@ import {
 } from './index.js';
 import { rosterTerminology } from './0004-roster-terminology.js';
 import { resultReasonBackfill } from './0016-result-reason-backfill.js';
+import { fixtureGraphSources } from './0042-fixture-graph-sources.js';
 
 interface LegacyRosterSchema {
   match_lineups: {
@@ -25,6 +26,25 @@ interface MinimalMatchesSchema {
     readonly match_id: string;
     result: string | null;
   };
+}
+
+interface MinimalFixtureGraphSchema {
+  fixtures: {
+    readonly fixture_id: string;
+    readonly stage_id: string;
+    readonly zone_id: string | null;
+    readonly round: number;
+    readonly home_entrant_id: string | null;
+    readonly away_entrant_id: string | null;
+    readonly created_at: string;
+  };
+  matches: {
+    readonly match_id: string;
+    readonly fixture_id: string;
+    readonly result: string | null;
+  };
+  match_schedule_assignments: { readonly match_id: string };
+  match_schedule_officials: { readonly match_id: string };
 }
 
 describe('migrations (integration)', () => {
@@ -213,8 +233,29 @@ describe('migrations (integration)', () => {
     );
 
     expect(afterUpTables.find((table) => table.name === 'fixtures')?.columns).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: 'role', isNullable: true })]),
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'role', isNullable: true }),
+        expect.objectContaining({ name: 'node_key', isNullable: true }),
+        expect.objectContaining({ name: 'bracket', isNullable: true }),
+        expect.objectContaining({ name: 'position', isNullable: true }),
+        expect.objectContaining({ name: 'branch', isNullable: true }),
+        expect.objectContaining({ name: 'label', isNullable: true }),
+        expect.objectContaining({ name: 'home_source', isNullable: true }),
+        expect.objectContaining({ name: 'away_source', isNullable: true }),
+        expect.objectContaining({ name: 'contingency', isNullable: true }),
+      ]),
     );
+
+    const fixtureGraphSourcesDown = await migrateDownOneStep(scratch.db);
+    expect(fixtureGraphSourcesDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0041-fixture-role');
+    const afterFixtureGraphSourcesDown = await scratch.db.introspection.getTables();
+    expect(
+      afterFixtureGraphSourcesDown.find((table) => table.name === 'fixtures')?.columns,
+    ).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'role' })]));
+    expect(
+      afterFixtureGraphSourcesDown.find((table) => table.name === 'fixtures')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'node_key' })]));
 
     const fixtureRoleDown = await migrateDownOneStep(scratch.db);
     expect(fixtureRoleDown.error).toBeUndefined();
@@ -642,6 +683,103 @@ describe('migrations (integration)', () => {
     for (const table of ['organizations', 'tournaments', 'audit_log', 'outbox_events']) {
       expect(afterInitialDown).not.toContain(table);
     }
+  });
+
+  it('0042 adds graph metadata without backfill and removes only unresolved persisted nodes on down', async () => {
+    const graphDb = scratch.db as unknown as Kysely<MinimalFixtureGraphSchema>;
+    await graphDb.schema
+      .createTable('fixtures')
+      .addColumn('fixture_id', 'text', (column) => column.primaryKey())
+      .addColumn('stage_id', 'text', (column) => column.notNull())
+      .addColumn('zone_id', 'text')
+      .addColumn('round', 'integer', (column) => column.notNull())
+      .addColumn('home_entrant_id', 'text')
+      .addColumn('away_entrant_id', 'text')
+      .addColumn('created_at', 'text', (column) => column.notNull())
+      .execute();
+    await graphDb.schema
+      .createTable('matches')
+      .addColumn('match_id', 'text', (column) => column.primaryKey())
+      .addColumn('fixture_id', 'text', (column) => column.notNull())
+      .addColumn('result', 'jsonb')
+      .execute();
+    for (const table of ['match_schedule_assignments', 'match_schedule_officials'] as const) {
+      await graphDb.schema
+        .createTable(table)
+        .addColumn('match_id', 'text', (column) => column.notNull())
+        .execute();
+    }
+
+    await graphDb
+      .insertInto('fixtures')
+      .values([
+        {
+          fixture_id: 'legacy',
+          stage_id: 'stage',
+          zone_id: 'zone',
+          round: 1,
+          home_entrant_id: 'home',
+          away_entrant_id: 'away',
+          created_at: new Date().toISOString(),
+        },
+        {
+          fixture_id: 'persisted-resolved',
+          stage_id: 'stage',
+          zone_id: 'zone',
+          round: 1,
+          home_entrant_id: 'home',
+          away_entrant_id: 'away',
+          created_at: new Date().toISOString(),
+        },
+        {
+          fixture_id: 'persisted-unresolved',
+          stage_id: 'stage',
+          zone_id: 'zone',
+          round: 2,
+          home_entrant_id: null,
+          away_entrant_id: 'away',
+          created_at: new Date().toISOString(),
+        },
+      ])
+      .execute();
+
+    await fixtureGraphSources.up?.(graphDb);
+    await sql`UPDATE fixtures SET node_key = 'resolved' WHERE fixture_id = 'persisted-resolved'`.execute(
+      graphDb,
+    );
+    await sql`UPDATE fixtures SET node_key = 'unresolved' WHERE fixture_id = 'persisted-unresolved'`.execute(
+      graphDb,
+    );
+    await graphDb
+      .insertInto('matches')
+      .values([
+        { match_id: 'resolved-match', fixture_id: 'persisted-resolved', result: null },
+        { match_id: 'unresolved-match', fixture_id: 'persisted-unresolved', result: null },
+      ])
+      .execute();
+    await graphDb
+      .insertInto('match_schedule_assignments')
+      .values({ match_id: 'unresolved-match' })
+      .execute();
+    await graphDb
+      .insertInto('match_schedule_officials')
+      .values({ match_id: 'unresolved-match' })
+      .execute();
+
+    await fixtureGraphSources.down?.(graphDb);
+
+    const fixtures = await graphDb.selectFrom('fixtures').select('fixture_id').execute();
+    expect(fixtures.map((fixture) => fixture.fixture_id)).toEqual(
+      expect.arrayContaining(['legacy', 'persisted-resolved']),
+    );
+    expect(fixtures).toHaveLength(2);
+    await expect(graphDb.selectFrom('matches').selectAll().execute()).resolves.toHaveLength(1);
+    await expect(
+      graphDb.selectFrom('match_schedule_assignments').selectAll().execute(),
+    ).resolves.toHaveLength(0);
+    await expect(
+      graphDb.selectFrom('match_schedule_officials').selectAll().execute(),
+    ).resolves.toHaveLength(0);
   });
 
   it('0029 accepts club-admin as an organization role and creates installation_role_assignments', async () => {

@@ -112,6 +112,7 @@ export const AUDIT_ACTIONS = [
   // Fixtures and matches
   'fixtures.generated',
   'fixtures.regenerated',
+  'fixture.entrant-resolved',
   'match.created',
   'match.anulled',
   'match.reinstated',
