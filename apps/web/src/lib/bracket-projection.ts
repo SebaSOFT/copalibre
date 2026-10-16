@@ -1,3 +1,4 @@
+import { finalRoundOf } from './side-source.js';
 import type { PublicBracketResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import type { ResultReason } from '@copalibre/domain';
 import type { BracketMatch, SlotSource } from './bracket.js';
@@ -16,6 +17,7 @@ export interface BracketZone {
 function mapBracketZoneMatches(
   matches: PublicBracketResponse['zones'][number]['matches'],
 ): readonly BracketMatch[] {
+  const finalRound = finalRoundOf(matches);
   // Sources are scoped to one zone; positions from another zone can collide.
   const sourcePositions = new Map(matches.map((match) => [match.matchId, match.position]));
   const sourceNumber = (matchId?: string): number | undefined => {
@@ -26,6 +28,8 @@ function mapBracketZoneMatches(
   };
   return matches.map((m) => ({
     matchId: m.matchId,
+    nodeKey: m.nodeKey,
+    sourceFinalRound: finalRound,
     matchNumber: m.matchNumber ?? m.position,
     roundNumber: m.round,
     position: m.position,
@@ -38,10 +42,21 @@ function mapBracketZoneMatches(
         : m.status) as MatchState,
     scores: m.slots.map((s) => s.score),
     resultReasons: m.slots.map((s) => s.resultReason as ResultReason | undefined),
-    slots: m.slots.map((s): SlotSource => {
+    slots: m.slots.map((s, index): SlotSource => {
       if (s.kind === 'winner-of' || s.kind === 'loser-of') {
         const matchNumber = sourceNumber(s.matchId);
+        const persisted = index === 0 ? m.homeSource : m.awaySource;
+        // A persisted source names its feeder; a legacy slot borrows the feeder's own position.
+        const source =
+          persisted?.kind === 'winner-of' || persisted?.kind === 'loser-of'
+            ? persisted
+            : s.matchId === undefined
+              ? undefined
+              : matches.find((match) => match.matchId === s.matchId);
         return {
+          ...(source?.nodeKey === undefined ? {} : { nodeKey: source.nodeKey }),
+          ...(source?.round === undefined ? {} : { round: source.round }),
+          ...(source?.position === undefined ? {} : { position: source.position }),
           kind: s.kind,
           matchId: s.matchId,
           ...(matchNumber === undefined ? {} : { matchNumber }),

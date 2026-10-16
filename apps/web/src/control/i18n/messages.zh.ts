@@ -4,6 +4,26 @@
  * ship now, native-speaker review later.
  */
 export const messages: Record<string, string> = {
+  'control.sideSource.winner': '{match}的胜者',
+  'control.sideSource.loser': '{match}的负者',
+  'control.sideSource.winnerShort': '胜 {match}',
+  'control.sideSource.loserShort': '负 {match}',
+  'control.sideSource.awaiting': '等待{source}',
+  'control.sideSource.round': '第{round}轮第{position}场',
+  'control.sideSource.roundShort': 'R{round}·{position}',
+  'control.sideSource.match': '第{position}场',
+  'control.sideSource.matchShort': 'M{position}',
+  'control.sideSource.final': '决赛',
+  'control.sideSource.finalShort': '决',
+  'control.sideSource.semiFinal': '半决赛第{position}场',
+  'control.sideSource.semiFinalShort': '半{position}',
+  'control.sideSource.quarterFinal': '四分之一决赛第{position}场',
+  'control.sideSource.quarterFinalShort': '四{position}',
+  'control.sideSource.place': '第{place}名',
+  'control.sideSource.places': '第{from}–{to}名',
+  'control.sideSource.unknown': '参赛者待定',
+  'control.sideSource.seed': '种子{seed}',
+  'control.sideSource.bye': '轮空',
   'control.schedule.concurrentChange': '{actor}已重新安排{match}。预览已更新。',
   'control.bracket.highlightEntrant': '突出显示{entrant}的晋级路线',
   'control.bracket.highlightHint':

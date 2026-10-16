@@ -1,7 +1,8 @@
 ---
+import { EntrantName } from '../atoms/EntrantName.tsx';
 import type { IntlShape } from 'react-intl';
 import { matchReportUrl, toNode, type BracketMatch } from '../../../lib/bracket.ts';
-import { resultStateLabels } from '../../../lib/i18n/public-intl.ts';
+import { resultStateLabels, sideSourceLabels } from '../../../lib/i18n/public-intl.ts';
 
 /**
  * A bracket card for a narrow screen: each side's abbreviation and score, a mark for the state,
@@ -24,13 +25,14 @@ const {
   stageNumber,
   localePrefix = '',
 } = Astro.props;
-const node = toNode(match, resultStateLabels(intl));
+const node = toNode(match, resultStateLabels(intl), sideSourceLabels(intl));
 const sides = node.slots.map((slot, index) => ({
   short:
     slot.fullName === undefined
-      ? '—'
+      ? (slot.abbreviation ?? slot.label)
       : (slot.abbreviation ?? Array.from(slot.fullName).slice(0, 3).join('').toLocaleUpperCase()),
   name: slot.fullName ?? slot.label,
+  pending: slot.pending,
   score: slot.score,
   winner: slot.winner === true,
   index,
@@ -56,7 +58,13 @@ const spoken = `${sides[0]?.name ?? ''} ${sides[0]?.score ?? '—'} – ${sides[
   <ol aria-hidden="true">
     {sides.map((side) => (
       <li class:list={[side.winner && 'cl-match-compact__winner']}>
-        <span class="cl-match-compact__name">{side.short}</span>
+        <EntrantName
+          className="cl-match-compact__name"
+          compact
+          pending={side.pending}
+          fullName={side.name}
+          abbreviation={side.short}
+        />
         <span class="cl-match-compact__score cl-tabular-nums">{side.score ?? '—'}</span>
       </li>
     ))}

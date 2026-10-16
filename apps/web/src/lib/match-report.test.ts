@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import type { PublicMatchReportResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import { buildMatchReport } from './match-report.js';
+import { publicIntl, sideSourceLabels } from './i18n/public-intl.js';
 
 const report = (): PublicMatchReportResponse => ({
   organizationAlias: 'liga-orbital',
@@ -61,6 +62,27 @@ describe('buildMatchReport', () => {
     expect(model.timeline[0]?.events.map((event) => event.label)).toEqual(['Foul', 'Missed shot']);
     expect(model.timeline[0]?.events[1]?.actor).toBe('#9 Ada');
     expect(model.timeline[1]).toMatchObject({ kind: 'single' });
+  });
+
+  it('names an undecided side by its source, or as unknown without the catalogue', () => {
+    const undecided = {
+      ...report(),
+      status: 'upcoming',
+      awayName: undefined,
+      awaySource: { kind: 'loser-of', nodeKey: 'SE-R1-M2', matchId: 'm', round: 1, position: 2 },
+    } as PublicMatchReportResponse;
+
+    expect(
+      buildMatchReport(undecided, { sideSource: sideSourceLabels(publicIntl('es')) }).away.name,
+    ).toBe('Perdedor de Ronda 1, partido 2');
+    expect(
+      buildMatchReport(undecided, {
+        sideSource: sideSourceLabels(publicIntl('en')),
+        sourceFinalRound: 2,
+      }).away.name,
+    ).toBe('Loser of Semi-final 2');
+    expect(buildMatchReport(undecided).away.name).toBe('TBD');
+    expect(buildMatchReport(undecided).home.name).toBe('Comets');
   });
 
   it('keeps empty upcoming roster and timeline sections explicit in the model', () => {

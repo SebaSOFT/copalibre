@@ -11,6 +11,44 @@ import { defineMessages } from '../../lib/i18n/define-messages.ts';
  * {...messages.someKey} />` directly.
  */
 export const messages = defineMessages({
+  sideSourceWinner: { id: 'control.sideSource.winner', defaultMessage: 'Winner of {match}' },
+  sideSourceLoser: { id: 'control.sideSource.loser', defaultMessage: 'Loser of {match}' },
+  sideSourceWinnerShort: { id: 'control.sideSource.winnerShort', defaultMessage: 'W {match}' },
+  sideSourceLoserShort: { id: 'control.sideSource.loserShort', defaultMessage: 'L {match}' },
+  sideSourceAwaiting: { id: 'control.sideSource.awaiting', defaultMessage: 'Awaiting {source}' },
+  sideSourceRound: {
+    id: 'control.sideSource.round',
+    defaultMessage: 'Round {round}, match {position}',
+  },
+  sideSourceRoundShort: {
+    id: 'control.sideSource.roundShort',
+    defaultMessage: 'R{round}·{position}',
+  },
+  sideSourceMatch: { id: 'control.sideSource.match', defaultMessage: 'Match {position}' },
+  sideSourceMatchShort: { id: 'control.sideSource.matchShort', defaultMessage: 'M{position}' },
+  sideSourceFinal: { id: 'control.sideSource.final', defaultMessage: 'Final' },
+  sideSourceFinalShort: { id: 'control.sideSource.finalShort', defaultMessage: 'F' },
+  sideSourceSemiFinal: {
+    id: 'control.sideSource.semiFinal',
+    defaultMessage: 'Semi-final {position}',
+  },
+  sideSourceSemiFinalShort: {
+    id: 'control.sideSource.semiFinalShort',
+    defaultMessage: 'SF{position}',
+  },
+  sideSourceQuarterFinal: {
+    id: 'control.sideSource.quarterFinal',
+    defaultMessage: 'Quarter-final {position}',
+  },
+  sideSourceQuarterFinalShort: {
+    id: 'control.sideSource.quarterFinalShort',
+    defaultMessage: 'QF{position}',
+  },
+  sideSourcePlace: { id: 'control.sideSource.place', defaultMessage: 'Place {place}' },
+  sideSourcePlaces: { id: 'control.sideSource.places', defaultMessage: 'Places {from}–{to}' },
+  sideSourceUnknown: { id: 'control.sideSource.unknown', defaultMessage: 'Awaiting participant' },
+  sideSourceSeed: { id: 'control.sideSource.seed', defaultMessage: 'Seed {seed}' },
+  sideSourceBye: { id: 'control.sideSource.bye', defaultMessage: 'Bye' },
   scheduleConcurrentChange: {
     id: 'control.schedule.concurrentChange',
     defaultMessage: '{match} was rescheduled by {actor}. Preview updated.',

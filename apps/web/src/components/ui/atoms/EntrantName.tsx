@@ -1,20 +1,27 @@
+import { resultStateGlyph } from '../../../lib/result-state.js';
 import { useEffect, useRef, useState } from 'react';
 
 /**
  * Keeps a tournament entrant identifiable in narrow surfaces without inventing
- * another label: only the persisted abbreviation may replace the full name.
+ * another label: resolved entrants use persisted abbreviations; pending sources
+ * use the localized compact wording their caller supplies.
  */
 export function EntrantName({
   fullName,
   abbreviation,
   className,
   inline = false,
+  pending = false,
+  compact: preferCompact = false,
 }: {
   readonly fullName: string;
   readonly abbreviation?: string;
   readonly className?: string;
   /** Flow within surrounding text, inheriting its font, size and emphasis. */
   readonly inline?: boolean;
+  readonly pending?: boolean;
+  /** Explicit dense presentations remain meaningful before hydration. */
+  readonly compact?: boolean;
 }): React.JSX.Element {
   const ref = useRef<HTMLSpanElement>(null);
   const [compact, setCompact] = useState(false);
@@ -31,12 +38,17 @@ export function EntrantName({
 
   return (
     <span
-      className={`cl-entrant-name ${inline ? 'cl-entrant-name--inline' : ''} ${className ?? ''}`.trim()}
+      className={`cl-entrant-name ${inline ? 'cl-entrant-name--inline' : ''} ${pending ? 'cl-entrant-name--pending' : ''} ${className ?? ''}`.trim()}
       data-testid="entrant-name"
       ref={ref}
-      title={compact ? undefined : fullName}
+      title={compact || preferCompact ? undefined : fullName}
     >
-      {compact && abbreviation !== undefined ? (
+      {pending && (
+        <>
+          <span aria-hidden="true">{resultStateGlyph('upcoming')}</span>{' '}
+        </>
+      )}
+      {(compact || preferCompact) && abbreviation !== undefined ? (
         <abbr title={fullName}>{abbreviation}</abbr>
       ) : (
         fullName

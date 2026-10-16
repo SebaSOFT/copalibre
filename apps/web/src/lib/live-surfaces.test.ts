@@ -10,8 +10,11 @@ import {
   toSeriesInput,
   type PublicSeriesState,
 } from './series.js';
-import { applyEvent, applyEvents, markConnected } from './live-state.js';
+import { acceptEntrantResolution, applyEvent, applyEvents, markConnected } from './live-state.js';
 import { sampleDashboard } from './live-sample.js';
+import { publicIntl, sideSourceLabels } from './i18n/public-intl.js';
+
+const SOURCES = sideSourceLabels(publicIntl('es'));
 
 /** Matches `public-messages.en.ts`'s `defaultMessage` values exactly. */
 const LABELS: ResultStateLabels = {
@@ -65,19 +68,25 @@ describe('a bracket that is not a tree', () => {
 
   it('names an unresolved slot instead of leaving it blank', () => {
     // A blank cell reads as a bug; "Ganador del 2" says what has to happen.
-    expect(describeSlot({ kind: 'winner-of', matchNumber: 2 })).toBe('Ganador del 2');
-    expect(describeSlot({ kind: 'loser-of', matchNumber: 1 })).toBe('Perdedor del 1');
-    expect(describeSlot({ kind: 'seed', seed: 4 })).toBe('Sembrado 4');
-    expect(describeSlot({ kind: 'entrant', name: 'Casa de Italia', abbreviation: 'C I' })).toBe(
+    expect(describeSlot({ kind: 'winner-of', matchNumber: 2 }, SOURCES)).toBe(
+      'Ganador de Partido 2',
+    );
+    expect(describeSlot({ kind: 'loser-of', matchNumber: 1 }, SOURCES)).toBe(
+      'Perdedor de Partido 1',
+    );
+    expect(describeSlot({ kind: 'seed', seed: 4 }, SOURCES)).toBe('Cabeza de serie 4');
+    expect(
+      describeSlot({ kind: 'entrant', name: 'Casa de Italia', abbreviation: 'C I' }, SOURCES),
+    ).toBe('Casa de Italia');
+    expect(describeSlot({ kind: 'entrant', name: 'Casa de Italia' }, SOURCES)).toBe(
       'Casa de Italia',
     );
-    expect(describeSlot({ kind: 'entrant', name: 'Casa de Italia' })).toBe('Casa de Italia');
   });
 
   it('renders the grand final as pending while the semifinals are unresolved', () => {
     const final = matches.find((match) => match.branch === 'final');
     if (!final) throw new Error('the sample bracket has no grand final');
-    const node = toNode(final, LABELS);
+    const node = toNode(final, LABELS, SOURCES);
 
     expect(isResolved(final)).toBe(false);
     expect(node.slots.every((slot) => slot.pending)).toBe(true);
@@ -88,7 +97,7 @@ describe('a bracket that is not a tree', () => {
     const match = matches.find((candidate) => candidate.branch === 'winners');
     if (!match) throw new Error('the sample bracket has no winners match');
 
-    expect(toNode(match, LABELS).slots[0]).toMatchObject({
+    expect(toNode(match, LABELS, SOURCES).slots[0]).toMatchObject({
       fullName: 'Talleres de Mendoza',
       abbreviation: 'TLL A',
     });
@@ -97,7 +106,7 @@ describe('a bracket that is not a tree', () => {
   it('carries scores onto a decided node', () => {
     const [decided] = matches;
     if (!decided) throw new Error('the sample bracket is empty');
-    const node = toNode(decided, LABELS);
+    const node = toNode(decided, LABELS, SOURCES);
 
     expect(node.slots[0]?.score).toBe(3);
     expect(node.slots[0]?.pending).toBe(false);
@@ -106,7 +115,7 @@ describe('a bracket that is not a tree', () => {
   it('carries an unusual resultReason onto a slot and omits played/absent ones', () => {
     const [decided] = matches;
     if (!decided) throw new Error('the sample bracket is empty');
-    const node = toNode({ ...decided, resultReasons: ['walkover', 'played'] }, LABELS);
+    const node = toNode({ ...decided, resultReasons: ['walkover', 'played'] }, LABELS, SOURCES);
 
     expect(node.slots[0]?.resultReason).toBe('walkover');
     expect(node.slots[1]?.resultReason).toBeUndefined();
@@ -115,7 +124,7 @@ describe('a bracket that is not a tree', () => {
   it('omits resultReason entirely when the match declares none', () => {
     const [decided] = matches;
     if (!decided) throw new Error('the sample bracket is empty');
-    const node = toNode(decided, LABELS);
+    const node = toNode(decided, LABELS, SOURCES);
 
     expect(node.slots[0]?.resultReason).toBeUndefined();
   });
@@ -481,5 +490,37 @@ describe('when the stream never connects', () => {
 
     expect(connected.usingLastKnown).toBe(false);
     expect(markConnected(connected)).toBe(connected);
+  });
+});
+
+describe('an undecided side resolves live', () => {
+  const resolution = (matchId: unknown, projectionVersion: number): EventEnvelope => ({
+    eventId: `resolved-${projectionVersion}`,
+    organizationId: 'org',
+    stream: 'match:final',
+    entityId: 'final',
+    eventType: 'fixture.entrant-resolved',
+    projectionVersion,
+    createdAt: new Date(0).toISOString(),
+    payload: { matchId, side: 'home', entrantId: 'norte' },
+  });
+
+  it('accepts each newer resolution once and never a replayed or older one', () => {
+    const versions = new Map<string, number>();
+    expect(acceptEntrantResolution(versions, resolution('final', 1))).toBe(true);
+    expect(acceptEntrantResolution(versions, resolution('final', 1))).toBe(false);
+    expect(acceptEntrantResolution(versions, resolution('final', 0))).toBe(false);
+    expect(acceptEntrantResolution(versions, resolution('semi', 1))).toBe(true);
+    expect(acceptEntrantResolution(versions, resolution('final', 2))).toBe(true);
+    expect(versions.get('final')).toBe(2);
+  });
+
+  it('ignores other events and a resolution without a match', () => {
+    const versions = new Map<string, number>();
+    expect(
+      acceptEntrantResolution(versions, { ...resolution('final', 3), eventType: 'match.started' }),
+    ).toBe(false);
+    expect(acceptEntrantResolution(versions, resolution(undefined, 3))).toBe(false);
+    expect(versions.size).toBe(0);
   });
 });

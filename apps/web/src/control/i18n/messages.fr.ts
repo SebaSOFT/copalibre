@@ -4,6 +4,26 @@
  * separate, later pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'control.sideSource.winner': 'Vainqueur de {match}',
+  'control.sideSource.loser': 'Perdant de {match}',
+  'control.sideSource.winnerShort': 'V {match}',
+  'control.sideSource.loserShort': 'P {match}',
+  'control.sideSource.awaiting': 'En attente de {source}',
+  'control.sideSource.round': 'Tour {round}, match {position}',
+  'control.sideSource.roundShort': 'T{round}·{position}',
+  'control.sideSource.match': 'Match {position}',
+  'control.sideSource.matchShort': 'M{position}',
+  'control.sideSource.final': 'Finale',
+  'control.sideSource.finalShort': 'F',
+  'control.sideSource.semiFinal': 'Demi-finale {position}',
+  'control.sideSource.semiFinalShort': 'DF{position}',
+  'control.sideSource.quarterFinal': 'Quart de finale {position}',
+  'control.sideSource.quarterFinalShort': 'QF{position}',
+  'control.sideSource.place': 'Place {place}',
+  'control.sideSource.places': 'Places {from}–{to}',
+  'control.sideSource.unknown': 'Participant à déterminer',
+  'control.sideSource.seed': 'Tête de série {seed}',
+  'control.sideSource.bye': 'Exempt',
   'control.schedule.concurrentChange': '{actor} a reprogrammé {match}. Aperçu actualisé.',
   'control.bracket.highlightEntrant': 'Mettre en évidence le parcours de {entrant}',
   'control.bracket.highlightHint':

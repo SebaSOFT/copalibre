@@ -1,7 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { TvMatchList } from './TvMatchList.js';
 import { publicIntl, tvDashboardLabels } from '../../../../lib/i18n/public-intl.js';
-import { pageTvMatches, type TvMatchEntry } from '../../../../lib/tv-match-list.js';
+import {
+  pageTvMatches,
+  tvMatchEntriesOf,
+  type TvMatchEntry,
+} from '../../../../lib/tv-match-list.js';
+import { referenceUndecidedMatches } from '../../../../lib/reference-fixtures.js';
 
 const CLUBS = [
   ['LOM', 'Lomas de Rivadavia'],
@@ -42,3 +47,16 @@ export const FirstPage: Story = {};
 
 /** The last page holds what is left, and the pager says so. */
 export const LastPage: Story = { args: { page: 1 } };
+
+/** Undecided sides read their compact source over every TV background, never a dash. */
+export const UndecidedSides: Story = {
+  args: {
+    pages: pageTvMatches(
+      tvMatchEntriesOf(referenceUndecidedMatches(), {
+        state: tvDashboardLabels(publicIntl('es')).resultState,
+        round: tvDashboardLabels(publicIntl('es')).bracketRound,
+        sideSource: tvDashboardLabels(publicIntl('es')).sideSource,
+      }),
+    ),
+  },
+};

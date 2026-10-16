@@ -1,9 +1,11 @@
 import { render, screen } from '@testing-library/react';
+import { publicIntl, sideSourceLabels } from '../../../../lib/i18n/public-intl.js';
 import { TvBracketView } from './TvBracketView.js';
 import type { BracketZone } from '../../../../lib/bracket-projection.js';
 import type { TvDashboardLabels } from '../../tv-types.js';
 
 const labels: TvDashboardLabels = {
+  sideSource: sideSourceLabels(publicIntl('es')),
   resultState: {
     final: 'Final',
     live: 'En vivo',
@@ -94,8 +96,8 @@ describe('TvBracketView', () => {
 
   it('names an unresolved slot by its source match rather than leaving it blank', () => {
     render(<TvBracketView labels={labels} zones={zones()} />);
-    expect(screen.getByText('Ganador del 1')).toBeDefined();
-    expect(screen.getByText('Ganador del 3')).toBeDefined();
+    expect(screen.getByText('G P1').getAttribute('title')).toBe('Ganador de Partido 1');
+    expect(screen.getByText('G P3').getAttribute('title')).toBe('Ganador de Partido 3');
   });
 
   it('composes the control chamfer on every matchup card', () => {

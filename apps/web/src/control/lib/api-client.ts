@@ -13,6 +13,7 @@ import type { RegistrationStatus } from './review.js';
 import type { StandingsData } from './standings.js';
 import type { DisciplineOption, TournamentProfileOption } from './wizard.js';
 import type { MatchCardData } from '../../lib/matches-view.js';
+import type { SideSource } from '../../lib/side-source.js';
 import { renewSessionOnce } from '../session/silent-renewal.js';
 
 export interface ControlApiClient {
@@ -1980,6 +1981,13 @@ export interface MatchConsoleResponse {
   readonly rosterRoles: readonly ConsoleRosterRole[];
   readonly eligibleStaffIds: readonly string[];
   readonly entrants: readonly ConsoleEntrant[];
+  /** Persisted graph sources; present only on bracket-graph matches. */
+  readonly nodeKey?: string;
+  readonly homeSource?: SideSource;
+  readonly awaySource?: SideSource;
+  /** Side-positioned entrant ids; absent while that side is undecided. */
+  readonly homeEntrantId?: string;
+  readonly awayEntrantId?: string;
   readonly capabilities: readonly MatchCapability[];
   readonly projectionVersion: number;
 }

@@ -103,6 +103,22 @@ export function applyEvents(
   return events.reduce(applyEvent, dashboard);
 }
 
+/**
+ * Whether an entrant resolution is newer than the last one a surface applied for its match, and
+ * records it when so. Resolutions carry their own `fixture-entrants` counter, never comparable with
+ * the match or schedule projection versions, so a replayed older resolution cannot revert a side.
+ */
+export function acceptEntrantResolution(
+  versions: Map<string, number>,
+  event: EventEnvelope,
+): boolean {
+  const matchId = event.payload.matchId;
+  if (event.eventType !== 'fixture.entrant-resolved' || typeof matchId !== 'string') return false;
+  if (event.projectionVersion <= (versions.get(matchId) ?? 0)) return false;
+  versions.set(matchId, event.projectionVersion);
+  return true;
+}
+
 /** The page is live once a stream has delivered anything at all. */
 export function markConnected(dashboard: LiveDashboard): LiveDashboard {
   return dashboard.usingLastKnown ? { ...dashboard, usingLastKnown: false } : dashboard;

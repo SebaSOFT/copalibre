@@ -12,10 +12,15 @@ import {
 } from '../../lib/api-client.js';
 import type { CanvasMatch } from '../../lib/bracket-canvas.js';
 import {
+  awaitingSourceText,
   currentEpochMilliseconds,
   descriptionFor,
   newIdempotencyKey,
+  undecidedSidesOf,
 } from '../../lib/match-console.js';
+import { sideSourceLabelsFromControlIntl } from '../../lib/matches-view-labels.js';
+import { acceptEntrantResolution } from '../../../lib/live-state.js';
+import { finalRoundOf } from '../../../lib/side-source.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import {
   drainQueue,
@@ -88,10 +93,18 @@ export function MatchConsolePage({
   const projectionVersion = useRef(0);
   const finalizationInFlight = useRef(false);
   const drainingRef = useRef(false);
+  const entrantVersions = useRef(new Map<string, number>());
+  // Read when a queued action is refused, so its message names rounds as the awaiting card does.
+  const finalRound = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    finalRound.current = finalRoundOf(
+      (bracketMatches ?? []).map((match) => ({ nodeKey: match.matchId, round: match.round })),
+    );
+  }, [bracketMatches]);
   const redriveRequestedRef = useRef(false);
 
   const reload = useCallback(
-    (): Promise<void> =>
+    (): Promise<MatchConsoleResponse | undefined> =>
       api
         .fetchMatchConsole(organizationAlias, tournamentAlias, matchId)
         .then((loaded) => {
@@ -99,13 +112,15 @@ export function MatchConsolePage({
           projectionVersion.current = loaded.projectionVersion;
           setStatus({ kind: 'ready' });
           setStale(false);
+          return loaded;
         })
-        .catch(() =>
+        .catch(() => {
           setStatus({
             kind: 'error',
             message: intl.formatMessage(messages.matchConsoleLoadFailed),
-          }),
-        ),
+          });
+          return undefined;
+        }),
     [api, matchId, organizationAlias, tournamentAlias, intl],
   );
 
@@ -169,13 +184,29 @@ export function MatchConsolePage({
         }
         const refused = outcomes.find((outcome) => outcome.kind === 'refused');
         if (refused && refused.kind === 'refused') {
-          setStatus({ kind: 'error', message: refused.reason });
+          // A side that was never decided refuses a replayed action; the console states what it
+          // awaits in the same words as its awaiting state, never as a raw server refusal.
+          const awaiting =
+            refused.errorCode === 'match-side-undecided'
+              ? undecidedSidesOf((await reload()) ?? {})[0]
+              : undefined;
+          setStatus({
+            kind: 'error',
+            message:
+              awaiting === undefined
+                ? refused.reason
+                : awaitingSourceText(
+                    awaiting.source,
+                    sideSourceLabelsFromControlIntl(intl),
+                    finalRound.current,
+                  ),
+          });
         }
       } while (redriveRequestedRef.current);
     } finally {
       drainingRef.current = false;
     }
-  }, [api, matchId, reload, refreshPendingMutations]);
+  }, [api, intl, matchId, reload, refreshPendingMutations]);
 
   // Refresh-survivability: reopening the console for this match
   // reloads whatever was already queued and resumes draining it. Nested
@@ -228,6 +259,13 @@ export function MatchConsolePage({
     });
     void realtime.connect({
       onEvent: (event) => {
+        if (
+          event.payload.matchId === matchId &&
+          acceptEntrantResolution(entrantVersions.current, event)
+        ) {
+          void reload();
+          return;
+        }
         if (
           event.eventType === 'match.console-projection' &&
           event.entityId === matchId &&

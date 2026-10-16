@@ -1,3 +1,4 @@
+import type { SideSourceMessages } from '../../lib/side-source.js';
 import type { IntlShape } from 'react-intl';
 import type { MatchCardLabels } from '../../lib/i18n/public-intl.js';
 import { messages } from '../i18n/messages.en.js';
@@ -10,6 +11,7 @@ import { messages } from '../i18n/messages.en.js';
  */
 export function matchCardLabelsFromControlIntl(intl: IntlShape): MatchCardLabels {
   return {
+    sideSource: sideSourceLabelsFromControlIntl(intl),
     state: {
       live: intl.formatMessage(messages.matchesViewResultStateLive),
       upcoming: intl.formatMessage(messages.matchesViewResultStateUpcoming),
@@ -64,5 +66,41 @@ export function matchCardLabelsFromControlIntl(intl: IntlShape): MatchCardLabels
       away: '{away}',
     }),
     versus: intl.formatMessage(messages.matchesViewVersus),
+  };
+}
+
+/** Plain templates shared by server-rendered and client-rendered side sources. */
+export function sideSourceLabelsFromControlIntl(intl: IntlShape): SideSourceMessages {
+  return {
+    winner: intl.formatMessage(messages.sideSourceWinner, { match: '{match}' }),
+    loser: intl.formatMessage(messages.sideSourceLoser, { match: '{match}' }),
+    winnerShort: intl.formatMessage(messages.sideSourceWinnerShort, { match: '{match}' }),
+    loserShort: intl.formatMessage(messages.sideSourceLoserShort, { match: '{match}' }),
+    awaiting: intl.formatMessage(messages.sideSourceAwaiting, { source: '{source}' }),
+    round: intl.formatMessage(messages.sideSourceRound, {
+      round: '{round}',
+      position: '{position}',
+    }),
+    roundShort: intl.formatMessage(messages.sideSourceRoundShort, {
+      round: '{round}',
+      position: '{position}',
+    }),
+    match: intl.formatMessage(messages.sideSourceMatch, { position: '{position}' }),
+    matchShort: intl.formatMessage(messages.sideSourceMatchShort, { position: '{position}' }),
+    final: intl.formatMessage(messages.sideSourceFinal),
+    finalShort: intl.formatMessage(messages.sideSourceFinalShort),
+    semiFinal: intl.formatMessage(messages.sideSourceSemiFinal, { position: '{position}' }),
+    semiFinalShort: intl.formatMessage(messages.sideSourceSemiFinalShort, {
+      position: '{position}',
+    }),
+    quarterFinal: intl.formatMessage(messages.sideSourceQuarterFinal, { position: '{position}' }),
+    quarterFinalShort: intl.formatMessage(messages.sideSourceQuarterFinalShort, {
+      position: '{position}',
+    }),
+    place: intl.formatMessage(messages.sideSourcePlace, { place: '{place}' }),
+    places: intl.formatMessage(messages.sideSourcePlaces, { from: '{from}', to: '{to}' }),
+    unknown: intl.formatMessage(messages.sideSourceUnknown),
+    seed: intl.formatMessage(messages.sideSourceSeed, { seed: '{seed}' }),
+    bye: intl.formatMessage(messages.sideSourceBye),
   };
 }

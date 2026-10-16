@@ -1,3 +1,4 @@
+import type { SideSource } from '../../lib/side-source.js';
 /**
  * Bracket canvas geometry.
  *
@@ -81,7 +82,8 @@ export { DEFAULT_GEOMETRY, snap };
 export type { Connector };
 
 export interface LaidOutSlot {
-  readonly label: string;
+  /** What feeds this seat; the canvas words it per locale at render time. */
+  readonly source: SideSource;
   readonly entrantId?: string;
   readonly score?: number;
   /** True while the participant is not known: rendered as a placeholder. */
@@ -146,7 +148,12 @@ export function layoutBracket(
         width: node.width,
         height: node.height,
         slots: match.slots.map((slot, slotIndex) => ({
-          label: describeSlot(slot),
+          source: {
+            ...slot,
+            nodeKey: slot.matchId,
+            round: slot.matchId === undefined ? undefined : byId.get(slot.matchId)?.round,
+            position: slot.matchId === undefined ? undefined : byId.get(slot.matchId)?.position,
+          },
           ...(slot.entrantId === undefined ? {} : { entrantId: slot.entrantId }),
           ...(slot.score === undefined ? {} : { score: slot.score }),
           pending: slot.kind !== 'entrant',
@@ -158,27 +165,6 @@ export function layoutBracket(
     width: placed.width,
     height: placed.height,
   };
-}
-
-/**
- * A slot's label.
- *
- * "Ganador del WB-R1-M2", never blank. A blank cell reads as a bug; a named
- * dependency tells an operator what has to happen before that seat is filled.
- */
-export function describeSlot(slot: CanvasSlot): string {
-  switch (slot.kind) {
-    case 'entrant':
-      return slot.entrantId ?? 'TBD';
-    case 'bye':
-      return 'Libre';
-    case 'winner-of':
-      return `Ganador del ${slot.matchId ?? '—'}`;
-    case 'loser-of':
-      return `Perdedor del ${slot.matchId ?? '—'}`;
-    case 'pending':
-      return 'Pendiente';
-  }
 }
 
 /** Zoom stops, so the control is a set of steps rather than a free float. */

@@ -72,3 +72,23 @@ it('does not connect on a page without a tournament', () => {
   cleanup = mountPublicSchedule();
   expect(RealtimeClient.prototype.connect).not.toHaveBeenCalled();
 });
+it('re-reads the schedule when an undecided side resolves, never for an older resolution', async () => {
+  const fetch = jest
+    .fn<typeof globalThis.fetch>()
+    .mockResolvedValue(new Response('<div class="cl-match-schedule">Norte vs Sur</div>'));
+  Object.defineProperty(globalThis, 'fetch', { value: fetch, configurable: true });
+  cleanup = mountPublicSchedule();
+  const resolved = (version: number): EventEnvelope => ({
+    ...change(version, { side: 'away', entrantId: 'sur' }),
+    eventType: 'fixture.entrant-resolved',
+  });
+  // Its own counter: version 1 is new even though the card's schedule version is 2.
+  handlers.onEvent(resolved(1));
+  await settle();
+  expect(document.querySelector('.cl-match-schedule')?.textContent).toBe('Norte vs Sur');
+  handlers.onEvent(resolved(1));
+  handlers.onEvent(resolved(0));
+  expect(fetch).toHaveBeenCalledTimes(1);
+  handlers.onEvent(resolved(2));
+  expect(fetch).toHaveBeenCalledTimes(2);
+});

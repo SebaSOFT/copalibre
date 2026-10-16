@@ -1,5 +1,6 @@
 import type { PublicMatchReportResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import { descriptorLabel, humanizeCode } from './descriptor-label.ts';
+import { formatSideSource, sourceMatchLabel, type SideSourceMessages } from './side-source.ts';
 
 export interface MatchReportTimelineEvent {
   readonly eventId: string;
@@ -29,6 +30,10 @@ export interface MatchReportOptions {
   readonly locale?: string;
   /** Names a platform official role (`referee`, `assistant`, …) in the page language. */
   readonly officialRoleLabel?: (code: string) => string;
+  /** Words an undecided side by its source; without it the side reads as an unknown entrant. */
+  readonly sideSource?: SideSourceMessages;
+  /** The stage's single-elimination depth, so a source names "Semi-final 2" as every surface does. */
+  readonly sourceFinalRound?: number;
 }
 
 export interface MatchReportModel {
@@ -68,6 +73,16 @@ export function buildMatchReport(
   options: MatchReportOptions = {},
 ): MatchReportModel {
   const locale = options.locale ?? 'en';
+  const sideName = (source: PublicMatchReportResponse['homeSource']): string =>
+    options.sideSource === undefined
+      ? 'TBD'
+      : formatSideSource(
+          source,
+          options.sideSource,
+          source === undefined
+            ? undefined
+            : sourceMatchLabel(source, options.sideSource, options.sourceFinalRound),
+        ).long;
   const officialRoleLabel = options.officialRoleLabel ?? humanizeCode;
   const roleDeclarations = new Map(
     (response.rosterRoles ?? []).map((role) => [role.code, role.label]),
@@ -110,13 +125,13 @@ export function buildMatchReport(
     round: response.round,
     status: response.status,
     home: {
-      name: response.homeName ?? 'TBD',
+      name: response.homeName ?? sideName(response.homeSource),
       abbreviation: response.homeAbbreviation,
       score: response.homeScore,
       roster: response.rosters.home.map(withRoleLabels),
     },
     away: {
-      name: response.awayName ?? 'TBD',
+      name: response.awayName ?? sideName(response.awaySource),
       abbreviation: response.awayAbbreviation,
       score: response.awayScore,
       roster: response.rosters.away.map(withRoleLabels),

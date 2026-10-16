@@ -13,6 +13,44 @@ import { defineMessages } from './define-messages.ts';
  * string as a plain prop instead of importing this catalog itself.
  */
 export const messages = defineMessages({
+  sideSourceWinner: { id: 'publicWeb.sideSource.winner', defaultMessage: 'Winner of {match}' },
+  sideSourceLoser: { id: 'publicWeb.sideSource.loser', defaultMessage: 'Loser of {match}' },
+  sideSourceWinnerShort: { id: 'publicWeb.sideSource.winnerShort', defaultMessage: 'W {match}' },
+  sideSourceLoserShort: { id: 'publicWeb.sideSource.loserShort', defaultMessage: 'L {match}' },
+  sideSourceAwaiting: { id: 'publicWeb.sideSource.awaiting', defaultMessage: 'Awaiting {source}' },
+  sideSourceRound: {
+    id: 'publicWeb.sideSource.round',
+    defaultMessage: 'Round {round}, match {position}',
+  },
+  sideSourceRoundShort: {
+    id: 'publicWeb.sideSource.roundShort',
+    defaultMessage: 'R{round}·{position}',
+  },
+  sideSourceMatch: { id: 'publicWeb.sideSource.match', defaultMessage: 'Match {position}' },
+  sideSourceMatchShort: { id: 'publicWeb.sideSource.matchShort', defaultMessage: 'M{position}' },
+  sideSourceFinal: { id: 'publicWeb.sideSource.final', defaultMessage: 'Final' },
+  sideSourceFinalShort: { id: 'publicWeb.sideSource.finalShort', defaultMessage: 'F' },
+  sideSourceSemiFinal: {
+    id: 'publicWeb.sideSource.semiFinal',
+    defaultMessage: 'Semi-final {position}',
+  },
+  sideSourceSemiFinalShort: {
+    id: 'publicWeb.sideSource.semiFinalShort',
+    defaultMessage: 'SF{position}',
+  },
+  sideSourceQuarterFinal: {
+    id: 'publicWeb.sideSource.quarterFinal',
+    defaultMessage: 'Quarter-final {position}',
+  },
+  sideSourceQuarterFinalShort: {
+    id: 'publicWeb.sideSource.quarterFinalShort',
+    defaultMessage: 'QF{position}',
+  },
+  sideSourcePlace: { id: 'publicWeb.sideSource.place', defaultMessage: 'Place {place}' },
+  sideSourcePlaces: { id: 'publicWeb.sideSource.places', defaultMessage: 'Places {from}–{to}' },
+  sideSourceUnknown: { id: 'publicWeb.sideSource.unknown', defaultMessage: 'Awaiting participant' },
+  sideSourceSeed: { id: 'publicWeb.sideSource.seed', defaultMessage: 'Seed {seed}' },
+  sideSourceBye: { id: 'publicWeb.sideSource.bye', defaultMessage: 'Bye' },
   matchRescheduled: {
     id: 'publicWeb.match.rescheduled',
     defaultMessage: 'Rescheduled · was {time}{venue}',

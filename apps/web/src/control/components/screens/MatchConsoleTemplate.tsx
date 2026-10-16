@@ -10,12 +10,16 @@ import type {
   SegmentClockCommand,
 } from '../../lib/api-client.js';
 import {
+  awaitingSourceText,
   currentEpochMilliseconds,
   formatClock,
   isEventPermitted,
   segmentLabel,
   sentOffPersonIds,
+  undecidedSidesOf,
 } from '../../lib/match-console.js';
+import { sideSourceLabelsFromControlIntl } from '../../lib/matches-view-labels.js';
+import { finalRoundOf } from '../../../lib/side-source.js';
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { describeQueuedAction, type QueuedMutation } from '../../lib/offline-queue.js';
 import { Button } from '../ui/atoms/button.js';
@@ -684,6 +688,25 @@ export function MatchConsoleTemplate({
     </>
   );
 
+  // A side still waiting on another match leaves nothing to operate: the console says what it is
+  // waiting for instead of offering a start, an event or a result the server would refuse.
+  const undecided = undecidedSidesOf(projection);
+  const sourceLabels = sideSourceLabelsFromControlIntl(intl);
+  const finalRound = finalRoundOf(
+    (bracketMatches ?? []).map((match) => ({ nodeKey: match.matchId, round: match.round })),
+  );
+  const awaitingNode = (
+    <Card className="cl-chamfer cl-chamfer--control">
+      <div className="cl-card__content" role="status">
+        {undecided.map(({ side, source }) => (
+          <p className="cl-card__description" data-awaiting-side={side} key={side}>
+            {awaitingSourceText(source, sourceLabels, finalRound)}
+          </p>
+        ))}
+      </div>
+    </Card>
+  );
+
   const railNode = (
     <>
       <Card className="cl-chamfer cl-chamfer--control">
@@ -833,7 +856,7 @@ export function MatchConsoleTemplate({
     <MatchConsoleLayout
       alerts={alertsNode}
       breadcrumb={breadcrumbNode}
-      primary={primaryNode}
+      primary={undecided.length > 0 ? awaitingNode : primaryNode}
       primaryLabel={intl.formatMessage(messages.matchConsoleControls)}
       rail={railNode}
       railLabel={intl.formatMessage(messages.matchConsoleLedgerAndStatus)}

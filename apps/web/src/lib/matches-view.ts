@@ -1,3 +1,4 @@
+import { placementOf, type Placement, type SideSource } from './side-source.js';
 import type { PreviousPlacement } from './reschedule.js';
 import type { ResultState } from './result-state.js';
 import type { PublicSeriesState } from './series.js';
@@ -9,6 +10,14 @@ import type { PublicSeriesState } from './series.js';
  * event, zone/position) the bracket's own card never has.
  */
 export interface MatchCardData {
+  readonly nodeKey?: string;
+  readonly branch?: string;
+  readonly label?: string;
+  readonly homeSource?: SideSource;
+  readonly awaySource?: SideSource;
+  readonly sourceFinalRound?: number;
+  /** The places this game settles, when it is a placement game. */
+  readonly placement?: Placement;
   readonly scheduleVersion?: number;
   readonly venueName?: string;
   readonly rescheduledFrom?: PreviousPlacement | null;
@@ -111,4 +120,28 @@ export function applyTemplate(
   return template.replace(/\{(\w+)\}/g, (match, key: string) =>
     key in values ? String(values[key]) : match,
   );
+}
+
+/**
+ * Single-elimination depth within each stage/zone and each placement game's places, shared by
+ * every matches-view consumer.
+ */
+export function withSourceDepth<Match extends MatchCardData>(
+  matches: readonly Match[],
+): readonly Match[] {
+  const depths = new Map<string, number>();
+  const keyOf = (match: Match): string => JSON.stringify([match.stageNumber, match.zoneName]);
+  for (const match of matches) {
+    if (match.nodeKey?.startsWith('SE-') && match.round !== undefined)
+      depths.set(keyOf(match), Math.max(depths.get(keyOf(match)) ?? 0, match.round));
+  }
+  const keys = matches.map((match) => match.nodeKey);
+  return matches.map((match) => {
+    const placement = placementOf(match.nodeKey, keys);
+    return {
+      ...match,
+      sourceFinalRound: depths.get(keyOf(match)),
+      ...(placement === undefined ? {} : { placement }),
+    };
+  });
 }

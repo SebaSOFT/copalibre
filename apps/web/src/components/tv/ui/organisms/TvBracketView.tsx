@@ -1,3 +1,5 @@
+import { EntrantName } from '../../../ui/atoms/EntrantName.js';
+import { formatPlacementSource } from '../../../../lib/side-source.js';
 import { toNode, toRounds } from '../../../../lib/bracket.js';
 import type { BracketZone } from '../../../../lib/bracket-projection.js';
 import type { TvDashboardLabels } from '../../tv-types.js';
@@ -21,7 +23,7 @@ export function TvBracketView({
               </h4>
               <div className="tv-bracket__matches">
                 {round.matches.map((match) => {
-                  const node = toNode(match, labels.resultState);
+                  const node = toNode(match, labels.resultState, labels.sideSource);
                   return (
                     <article
                       aria-label={`${labels.bracketMatch} ${match.matchNumber}`}
@@ -30,7 +32,9 @@ export function TvBracketView({
                     >
                       <div className="tv-bracket-card__header">
                         <span>
-                          {labels.bracketMatch} {match.matchNumber}
+                          {match.role
+                            ? formatPlacementSource(match.role, labels.sideSource)
+                            : `${labels.bracketMatch} ${match.matchNumber}`}
                         </span>
                         <span>{node.badge.label}</span>
                       </div>
@@ -39,9 +43,13 @@ export function TvBracketView({
                           className="tv-bracket-card__slot"
                           key={`${index}-${slot.entrantId ?? slot.label}`}
                         >
-                          <span className="tv-bracket-card__name" title={slot.label}>
-                            {slot.abbreviation ?? slot.label}
-                          </span>
+                          <EntrantName
+                            className="tv-bracket-card__name"
+                            compact
+                            pending={slot.pending}
+                            fullName={slot.label}
+                            abbreviation={slot.abbreviation}
+                          />
                           {slot.score !== undefined && (
                             <strong className="tv-bracket-card__score">{slot.score}</strong>
                           )}

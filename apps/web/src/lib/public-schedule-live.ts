@@ -1,5 +1,6 @@
 import { RealtimeClient, type EventEnvelope } from '@copalibre/realtime';
 import { publicStreamPath } from '@copalibre/routing';
+import { acceptEntrantResolution } from './live-state.js';
 
 /** Refresh only the schedule's server-rendered fragments; the document and stream stay open. */
 export function mountPublicSchedule(): () => void {
@@ -9,6 +10,7 @@ export function mountPublicSchedule(): () => void {
   const tournamentAlias = path[tournamentIndex + 1];
   if (!organizationAlias || !tournamentAlias) return () => undefined;
   const versions = new Map<string, number>();
+  const entrantVersions = new Map<string, number>();
   for (const card of document.querySelectorAll<HTMLElement>('[data-match]')) {
     if (card.dataset.match)
       versions.set(card.dataset.match, Number(card.dataset.scheduleVersion ?? 0));
@@ -51,6 +53,8 @@ export function mountPublicSchedule(): () => void {
     onEvent: (event) => {
       if (['match.rescheduled', 'match.anulled', 'match.started'].includes(event.eventType))
         void refresh(event);
+      // A source label gives way to its entrant; the fragment is re-read, never patched by guess.
+      else if (acceptEntrantResolution(entrantVersions, event)) void refresh();
     },
     onProjectionRequired: () => void refresh(),
   });

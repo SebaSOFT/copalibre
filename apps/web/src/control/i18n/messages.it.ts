@@ -4,6 +4,26 @@
  * separate, later pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'control.sideSource.winner': 'Vincitore di {match}',
+  'control.sideSource.loser': 'Perdente di {match}',
+  'control.sideSource.winnerShort': 'V {match}',
+  'control.sideSource.loserShort': 'P {match}',
+  'control.sideSource.awaiting': 'In attesa di {source}',
+  'control.sideSource.round': 'Turno {round}, incontro {position}',
+  'control.sideSource.roundShort': 'T{round}·{position}',
+  'control.sideSource.match': 'Incontro {position}',
+  'control.sideSource.matchShort': 'I{position}',
+  'control.sideSource.final': 'Finale',
+  'control.sideSource.finalShort': 'F',
+  'control.sideSource.semiFinal': 'Semifinale {position}',
+  'control.sideSource.semiFinalShort': 'SF{position}',
+  'control.sideSource.quarterFinal': 'Quarto di finale {position}',
+  'control.sideSource.quarterFinalShort': 'QF{position}',
+  'control.sideSource.place': 'Posizione {place}',
+  'control.sideSource.places': 'Posizioni {from}–{to}',
+  'control.sideSource.unknown': 'Partecipante da definire',
+  'control.sideSource.seed': 'Testa di serie {seed}',
+  'control.sideSource.bye': 'Riposo',
   'control.schedule.concurrentChange': '{actor} ha riprogrammato {match}. Anteprima aggiornata.',
   'control.bracket.highlightEntrant': 'Evidenzia il percorso di {entrant}',
   'control.bracket.highlightHint':

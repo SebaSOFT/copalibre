@@ -6,6 +6,26 @@
  * two — `react-intl`'s `Intl.PluralRules` selects the right branch for `ru`.
  */
 export const messages: Record<string, string> = {
+  'control.sideSource.winner': 'Победитель: {match}',
+  'control.sideSource.loser': 'Проигравший: {match}',
+  'control.sideSource.winnerShort': 'П {match}',
+  'control.sideSource.loserShort': 'Пр {match}',
+  'control.sideSource.awaiting': 'Ожидается: {source}',
+  'control.sideSource.round': 'Раунд {round}, матч {position}',
+  'control.sideSource.roundShort': 'Р{round}·{position}',
+  'control.sideSource.match': 'Матч {position}',
+  'control.sideSource.matchShort': 'М{position}',
+  'control.sideSource.final': 'Финал',
+  'control.sideSource.finalShort': 'Ф',
+  'control.sideSource.semiFinal': 'Полуфинал {position}',
+  'control.sideSource.semiFinalShort': 'ПФ{position}',
+  'control.sideSource.quarterFinal': 'Четвертьфинал {position}',
+  'control.sideSource.quarterFinalShort': 'ЧФ{position}',
+  'control.sideSource.place': 'Место {place}',
+  'control.sideSource.places': 'Места {from}–{to}',
+  'control.sideSource.unknown': 'Участник не определён',
+  'control.sideSource.seed': 'Посев {seed}',
+  'control.sideSource.bye': 'Без игры',
   'control.schedule.concurrentChange': '{actor} перенёс {match}. Предпросмотр обновлён.',
   'control.bracket.highlightEntrant': 'Выделить путь участника {entrant}',
   'control.bracket.highlightHint':

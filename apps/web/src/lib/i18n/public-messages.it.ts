@@ -4,6 +4,26 @@
  * (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'publicWeb.sideSource.winner': 'Vincitore di {match}',
+  'publicWeb.sideSource.loser': 'Perdente di {match}',
+  'publicWeb.sideSource.winnerShort': 'V {match}',
+  'publicWeb.sideSource.loserShort': 'P {match}',
+  'publicWeb.sideSource.awaiting': 'In attesa di {source}',
+  'publicWeb.sideSource.round': 'Turno {round}, incontro {position}',
+  'publicWeb.sideSource.roundShort': 'T{round}·{position}',
+  'publicWeb.sideSource.match': 'Incontro {position}',
+  'publicWeb.sideSource.matchShort': 'I{position}',
+  'publicWeb.sideSource.final': 'Finale',
+  'publicWeb.sideSource.finalShort': 'F',
+  'publicWeb.sideSource.semiFinal': 'Semifinale {position}',
+  'publicWeb.sideSource.semiFinalShort': 'SF{position}',
+  'publicWeb.sideSource.quarterFinal': 'Quarto di finale {position}',
+  'publicWeb.sideSource.quarterFinalShort': 'QF{position}',
+  'publicWeb.sideSource.place': 'Posizione {place}',
+  'publicWeb.sideSource.places': 'Posizioni {from}–{to}',
+  'publicWeb.sideSource.unknown': 'Partecipante da definire',
+  'publicWeb.sideSource.seed': 'Testa di serie {seed}',
+  'publicWeb.sideSource.bye': 'Riposo',
   'publicWeb.match.rescheduled': 'Riprogrammato · prima {time}{venue}',
   'publicWeb.bracket.highlightEntrant': 'Evidenzia il percorso di {entrant}',
   'publicWeb.bracket.highlightHint':

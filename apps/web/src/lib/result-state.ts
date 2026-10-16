@@ -83,3 +83,8 @@ export function decide(
   if (home === away) return { home: 'final', away: 'final' };
   return home > away ? { home: 'winner', away: 'loser' } : { home: 'loser', away: 'winner' };
 }
+
+/** The existing state glyph, for an atom that carries its own text label. */
+export function resultStateGlyph(state: ResultState): string {
+  return ICON[state];
+}

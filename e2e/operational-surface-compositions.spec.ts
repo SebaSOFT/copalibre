@@ -410,7 +410,9 @@ test.describe('Standings and bracket in a browser', () => {
     await expect(page.locator('.cl-bracket-stage__scroll').first()).toBeHidden();
     await expect(page.locator('.cl-bracket-stage__scroll').last()).toBeHidden();
     // The sources a pending cross is waiting on are named, not blank.
-    await expect(page.locator('.cl-bracket-stage__outline')).toContainText('Ganador');
+    await expect(page.locator('.cl-bracket-stage__outline')).toContainText(
+      'Winner of Round 1, match 1',
+    );
   });
 });
 

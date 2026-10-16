@@ -151,7 +151,7 @@ test('kiosk shows possession and timed-penalty indicators, and the published bra
   const card = page.locator('.tv-bracket-card').first();
   await expect(card).toBeVisible();
   await expect(page.getByText('Zona A')).toBeVisible();
-  await expect(page.getByText('Ganador del 1')).toBeVisible();
+  await expect(page.getByTitle('Winner of Round 1, match 1', { exact: true })).toBeVisible();
   const cardClasses = await card.getAttribute('class');
   expect(cardClasses).toContain('cl-chamfer');
   expect(cardClasses).toContain('cl-chamfer--control');

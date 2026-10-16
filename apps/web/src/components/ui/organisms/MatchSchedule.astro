@@ -5,6 +5,7 @@ import DataTable, { type DataTableColumn, type DataTableSection } from './DataTa
 import { rescheduledStatement } from '../../../lib/reschedule.ts';
 import { MatchCard } from './MatchCard.tsx';
 import { matchReportUrl } from '../../../lib/bracket.ts';
+import { formatSideSource, sourceMatchLabel, type SourceText } from '../../../lib/side-source.ts';
 import type { MatchCardData } from '../../../lib/matches-view.ts';
 import type { ScheduleStage, ScheduleZone } from '../../../lib/match-schedule.ts';
 import { presentState } from '../../../lib/result-state.ts';
@@ -69,6 +70,20 @@ const reportOf = (stage: number, match: number): string =>
     localePrefix,
   });
 
+// An undecided side names its source, in the same words as the cards and the bracket.
+const sideOf = (match: MatchCardData, side: 'home' | 'away'): SourceText | undefined => {
+  const name = side === 'home' ? match.homeName : match.awayName;
+  if (name !== undefined) return undefined;
+  const source = side === 'home' ? match.homeSource : match.awaySource;
+  return formatSideSource(
+    source,
+    cardLabels.sideSource,
+    source === undefined
+      ? undefined
+      : sourceMatchLabel(source, cardLabels.sideSource, match.sourceFinalRound),
+  );
+};
+
 const columns: readonly DataTableColumn[] = [
   {
     key: 'kickoff',
@@ -94,8 +109,10 @@ const columns: readonly DataTableColumn[] = [
   {
     key: 'home',
     header: intl.formatMessage(messages.scheduleColumnHome),
-    render: (row) => (row as MatchCardData).homeName ?? '—',
-    abbreviation: (row) => (row as MatchCardData).homeAbbreviation,
+    render: (row) =>
+      (row as MatchCardData).homeName ?? sideOf(row as MatchCardData, 'home')?.long ?? '—',
+    abbreviation: (row) =>
+      (row as MatchCardData).homeAbbreviation ?? sideOf(row as MatchCardData, 'home')?.short,
   },
   {
     key: 'score',
@@ -114,8 +131,10 @@ const columns: readonly DataTableColumn[] = [
   {
     key: 'away',
     header: intl.formatMessage(messages.scheduleColumnAway),
-    render: (row) => (row as MatchCardData).awayName ?? '—',
-    abbreviation: (row) => (row as MatchCardData).awayAbbreviation,
+    render: (row) =>
+      (row as MatchCardData).awayName ?? sideOf(row as MatchCardData, 'away')?.long ?? '—',
+    abbreviation: (row) =>
+      (row as MatchCardData).awayAbbreviation ?? sideOf(row as MatchCardData, 'away')?.short,
   },
   {
     key: 'state',
