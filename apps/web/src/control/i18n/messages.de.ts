@@ -1478,4 +1478,50 @@ export const messages: Record<string, string> = {
   'control.platform.diagnostics.uptime': 'Betriebszeit: {hours}h {minutes}m',
   'control.platform.diagnostics.version': 'Version {version}',
   'control.platform.diagnostics.loading': 'Plattformdiagnose wird geladen…',
+  'control.settings.minimumRestLabel': 'Mindestpause zwischen Spielen (Minuten)',
+  'control.settings.minimumRestHelp':
+    'Wird bei jeder Ansetzung der Spiele dieses Turniers geprüft: Das nächste Spiel eines Teilnehmers muss mindestens so lange nach dem Ende des vorherigen beginnen. Leer lassen für keine Regel. Eine Änderung verschiebt kein Spiel.',
+  'control.tournamentSummary.minimumRest':
+    'Mindestpause zwischen den Spielen eines Teilnehmers: {minutes} Minuten',
+  'control.scheduleBuilder.withdraw': 'Aus dem Zeitfenster nehmen',
+  'control.scheduleBuilder.keepPlacement': 'Im Zeitfenster lassen',
+  'control.scheduleBuilder.withdrawn': 'Herausgenommen – nach dem Veröffentlichen ohne Termin',
+  'control.scheduleBuilder.freedSlotsHeading': 'Zeitfenster, die dieser Stapel freigibt',
+  'control.scheduleBuilder.liveLocked':
+    'Läuft – kann während des Spiels weder verschoben noch herausgenommen werden',
+  'control.scheduleBuilder.concludedLocked':
+    'Gespielt – der Termin ist Teil der Historie; nutzen Sie den Korrekturablauf',
+  'control.reasonPrompt.title': 'Warum ändern sich diese veröffentlichten Spiele?',
+  'control.reasonPrompt.description':
+    'Teilnehmer und Publikum kennen diese Zeiten bereits. Geben Sie einen Grund für den Stapel an oder markieren Sie ein Spiel als Ausnahme mit eigenem Grund.',
+  'control.reasonPrompt.batchLabel': 'Grund für diesen Stapel',
+  'control.reasonPrompt.placeholder': 'Grund wählen oder eingeben',
+  'control.reasonPrompt.exceptionToggle': 'Anderer Grund',
+  'control.reasonPrompt.exceptionLabel': 'Grund für {match}',
+  'control.reasonPrompt.selectRow': '{match} auswählen',
+  'control.reasonPrompt.markSelected': 'Auswahl als Ausnahme markieren',
+  'control.reasonPrompt.sharedLabel':
+    'Grund für {count, plural, one {das ausgewählte Spiel} other {die # ausgewählten Spiele}}',
+  'control.reasonPrompt.summary':
+    '{total, plural, one {# Spiel} other {# Spiele}} · {batch} mit Stapelgrund · {exceptions, plural, one {# Ausnahme} other {# Ausnahmen}}',
+  'control.reasonPrompt.uncovered':
+    '{count, plural, one {# Spiel braucht noch einen Grund} other {# Spiele brauchen noch einen Grund}}',
+  'control.reasonPrompt.keyboardHint':
+    '↑/↓ zwischen Spielen wechseln · Leertaste wählt aus · E markiert eine Ausnahme · Enter veröffentlicht · Esc schließt',
+  'control.reasonPrompt.change': '{from} → {to}',
+  'control.reasonPrompt.withdrawnChange': '{from} → herausgenommen',
+  'control.reasonPrompt.publish': 'Änderungen veröffentlichen',
+  'control.reasonPrompt.cancel': 'Zurück zur Planung',
+  'control.reasonPrompt.close': 'Schließen',
+  'control.reasonPrompt.presetsGroup': 'Häufige Gründe',
+  'control.reasonPrompt.recentGroup': 'Zuletzt verwendet',
+  'control.reasonPrompt.exceptionBadge': 'Ausnahme',
+  'control.scheduleReason.venueUnavailable': 'Spielstätte nicht verfügbar',
+  'control.scheduleReason.weather': 'Wetter',
+  'control.scheduleReason.entrantRequest': 'Wunsch eines Teilnehmers',
+  'control.scheduleReason.officialsUnavailable': 'Offizielle nicht verfügbar',
+  'control.scheduleReason.priorMatchOverran': 'Ein vorheriges Spiel hat überzogen',
+  'control.scheduleReason.broadcast': 'Übertragungsplan',
+  'control.scheduleReason.dataCorrection': 'Korrektur eines Fehlers',
+  'control.scheduleReason.other': 'Sonstiges',
 };

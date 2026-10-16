@@ -4,6 +4,7 @@ import {
   validateSchedule,
   type Schedule,
 } from './schedule.js';
+import { localToEpoch } from './zoned-time.js';
 
 describe('schedule grid generator', () => {
   const BASE_TIME = 1_700_000_000_000;
@@ -131,5 +132,50 @@ describe('schedule grid generator', () => {
       const result = validateSchedule({ ...validSchedule, venueIds: [] });
       expect(result.ok).toBe(false);
     });
+  });
+});
+
+describe('wall-clock slot generation', () => {
+  const localHour = (epoch: number, timeZone: string) =>
+    Number(
+      new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', hourCycle: 'h23' }).format(
+        new Date(epoch),
+      ),
+    );
+
+  it('keeps local start times across a daylight-saving change', () => {
+    // Madrid moves its clocks forward overnight into 2026-03-29.
+    const timeZone = 'Europe/Madrid';
+    const slots = generateScheduleSlots(
+      {
+        scheduleId: 'sched-dst',
+        startsAt: localToEpoch('2026-03-28T09:00', timeZone),
+        endsAt: localToEpoch('2026-03-29T15:00', timeZone),
+        slotMinutes: 120,
+        turnaroundMinutes: 0,
+        venueIds: ['court-1'],
+      },
+      () => 'slot',
+      timeZone,
+    );
+    const hours = slots.map((slot) => localHour(slot.startsAt, timeZone));
+    expect(hours.every((hour) => hour % 2 === 1)).toBe(true);
+    expect(hours.slice(-3)).toEqual([9, 11, 13]);
+  });
+
+  it('is unchanged in a zone without daylight saving', () => {
+    const schedule = {
+      scheduleId: 'sched-ba',
+      startsAt: localToEpoch('2026-03-28T09:00', 'America/Argentina/Buenos_Aires'),
+      endsAt: localToEpoch('2026-03-29T15:00', 'America/Argentina/Buenos_Aires'),
+      slotMinutes: 90,
+      turnaroundMinutes: 15,
+      venueIds: ['court-1', 'court-2'],
+    };
+    let id = 0;
+    const ids = () => `slot-${(id += 1)}`;
+    const zoned = generateScheduleSlots(schedule, ids, 'America/Argentina/Buenos_Aires');
+    id = 0;
+    expect(zoned).toEqual(generateScheduleSlots(schedule, ids));
   });
 });

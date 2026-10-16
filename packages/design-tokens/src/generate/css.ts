@@ -626,6 +626,24 @@ function components(): string {
     // styled trigger while Tab/keyboard/AT users still reach it directly
     // (replacing the earlier overlay).
     '.cl-select-wrapper { position: relative; display: inline-block; width: 100%; }',
+    // `Combobox`: a text field whose suggestions narrow as one types. The list
+    // reads like an open `Select` panel so the two never look like different
+    // controls; the active option carries the same live rail.
+    '.cl-combobox { position: relative; display: grid; min-width: 0; }',
+    '.cl-combobox__list { position: absolute; inset-inline: 0; top: 100%; z-index: 50; margin: 0; padding: var(--cl-space-1) 0; list-style: none; max-height: 14rem; overflow-y: auto; background: var(--cl-surface-panel); border: 1px solid var(--cl-border-strong); font-family: var(--cl-font-mono); }',
+    '.cl-combobox__option { padding: var(--cl-space-2) var(--cl-space-3); border-inline-start: 2px solid transparent; cursor: pointer; overflow-wrap: anywhere; }',
+    '.cl-combobox__option[data-active="true"] { background: var(--cl-surface-raised); border-inline-start-color: var(--cl-state-live); color: var(--cl-state-live); font-weight: var(--cl-weight-bold); }',
+    '.cl-combobox__group { padding: var(--cl-space-1) var(--cl-space-3); color: var(--cl-text-muted); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: var(--cl-tracking-wider); }',
+    // `ScheduleReasonPrompt`: one row per changed published match; a focused
+    // or selected row shows it without relying on colour alone.
+    '.cl-reason-prompt__body { display: grid; gap: var(--cl-space-3); min-width: 0; }',
+    '.cl-reason-prompt__rows { display: grid; gap: var(--cl-space-2); margin: 0; padding: 0; list-style: none; }',
+    '.cl-reason-prompt__row { display: grid; gap: var(--cl-space-2); padding: var(--cl-space-2) var(--cl-space-3); border: 1px solid var(--cl-border-muted); border-inline-start-width: 3px; min-width: 0; }',
+    '.cl-reason-prompt__row[aria-selected="true"] { border-inline-start-color: var(--cl-state-live); background: var(--cl-surface-row); }',
+    '.cl-reason-prompt__row-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-2); min-width: 0; }',
+    '.cl-reason-prompt__change { color: var(--cl-text-secondary); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-sm); overflow-wrap: anywhere; }',
+    '.cl-reason-prompt__summary { margin: 0; font-family: var(--cl-font-mono); font-size: var(--cl-font-size-sm); }',
+    '.cl-reason-prompt__hint { margin: 0; color: var(--cl-text-muted); font-size: var(--cl-font-size-xs); }',
     '.cl-select-native { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; pointer-events: none; }',
     '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); }',
     '',

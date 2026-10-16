@@ -478,9 +478,22 @@ export {
   classifyScheduleMutation,
   type ScheduleMutationContext,
 } from './aggregates/schedule-mutation.js';
+export { estimatedMatchMinutes } from './aggregates/match-duration.js';
+export {
+  isScheduleReasonPreset,
+  SCHEDULE_REASON_PRESETS,
+  type ScheduleReasonPreset,
+} from './aggregates/schedule-reason.js';
+export {
+  epochOfWallClock,
+  epochOfWallClockOrNext,
+  localToEpoch,
+  wallClockOf,
+} from './aggregates/zoned-time.js';
 export {
   detectConflicts,
   describeWindow,
+  occupancyOf,
   ScheduleConflictError,
   type ConflictKind,
   type ScheduleConflict,

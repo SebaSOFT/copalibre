@@ -253,6 +253,8 @@ export interface TournamentsTable {
   emblem_object_id: string | null;
   /** Organizer-set "this one matters" flag for the public organization page. */
   featured: ColumnType<boolean, boolean | undefined, boolean>;
+  /** Minimum minutes between an entrant's matches; null declares no rest rule. */
+  minimum_rest_minutes: ColumnType<number | null, number | null | undefined, number | null>;
 }
 
 /**
@@ -483,6 +485,24 @@ export interface MatchScheduleAssignmentsTable {
   slot_id: string;
   published: boolean;
   created_at: Timestamp;
+}
+
+/** One change to a published placement: where the match was, why it moved, and who moved it. */
+export interface MatchScheduleHistoryTable {
+  history_id: string;
+  match_id: string;
+  prior_slot_id: string;
+  /** Epoch milliseconds. Read back as a string by pg's bigint mapping. */
+  prior_starts_at: string | number;
+  prior_venue_id: string;
+  prior_official_ids: JSONColumnType<readonly string[]>;
+  /** Null when the change withdrew the match from its slot. */
+  resulting_slot_id: string | null;
+  /** A preset reason's code; null for a typed reason. */
+  reason_code: string | null;
+  reason: string;
+  actor: string;
+  changed_at: ColumnType<Date, Date | string | undefined, never>;
 }
 
 export interface MatchScheduleOfficialsTable {
@@ -952,6 +972,7 @@ export interface Database {
   schedule_slots: ScheduleSlotsTable;
   match_schedule_assignments: MatchScheduleAssignmentsTable;
   match_schedule_officials: MatchScheduleOfficialsTable;
+  match_schedule_history: MatchScheduleHistoryTable;
   seasons: SeasonsTable;
   stages: StagesTable;
   zones: ZonesTable;

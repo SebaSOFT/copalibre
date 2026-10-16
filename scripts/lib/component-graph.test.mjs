@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count after the shared bracket layout (362/1383)', () => {
+test('the graph resolves the current node/edge count after the schedule reason prompt (364/1392)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 362);
-  assert.equal(graph.edges.length, 1383);
+  assert.equal(graph.nodes.size, 364);
+  assert.equal(graph.edges.length, 1392);
 });
 
 test('a type-only import is not counted as a render', () => {

@@ -4327,4 +4327,158 @@ export const messages = defineMessages({
     id: 'control.platform.diagnostics.loading',
     defaultMessage: 'Loading platform diagnostics…',
   },
+  settingsMinimumRestLabel: {
+    id: 'control.settings.minimumRestLabel',
+    defaultMessage: 'Minimum rest between matches (minutes)',
+  },
+  settingsMinimumRestHelp: {
+    id: 'control.settings.minimumRestHelp',
+    defaultMessage:
+      "Checked whenever this tournament's matches are scheduled: an entrant's next match must start at least this long after their previous one ends. Leave it empty for no rule. Changing it moves no match.",
+  },
+  tournamentSummaryMinimumRest: {
+    id: 'control.tournamentSummary.minimumRest',
+    defaultMessage: "Minimum rest between an entrant's matches: {minutes} minutes",
+  },
+  scheduleBuilderWithdraw: {
+    id: 'control.scheduleBuilder.withdraw',
+    defaultMessage: 'Withdraw from slot',
+  },
+  scheduleBuilderKeepPlacement: {
+    id: 'control.scheduleBuilder.keepPlacement',
+    defaultMessage: 'Keep in slot',
+  },
+  scheduleBuilderWithdrawn: {
+    id: 'control.scheduleBuilder.withdrawn',
+    defaultMessage: 'Withdrawn — it will have no scheduled time once published',
+  },
+  scheduleBuilderFreedSlotsHeading: {
+    id: 'control.scheduleBuilder.freedSlotsHeading',
+    defaultMessage: 'Slots this batch frees',
+  },
+  scheduleBuilderLiveLocked: {
+    id: 'control.scheduleBuilder.liveLocked',
+    defaultMessage: 'In progress — it cannot be moved or withdrawn while it is played',
+  },
+  scheduleBuilderConcludedLocked: {
+    id: 'control.scheduleBuilder.concludedLocked',
+    defaultMessage: 'Played — its schedule is a record; use the correction workflow',
+  },
+  reasonPromptTitle: {
+    id: 'control.reasonPrompt.title',
+    defaultMessage: 'Why are these published matches changing?',
+  },
+  reasonPromptDescription: {
+    id: 'control.reasonPrompt.description',
+    defaultMessage:
+      'Entrants and spectators already saw these times. Give one reason for the batch, or mark a match as an exception with its own reason.',
+  },
+  reasonPromptBatchLabel: {
+    id: 'control.reasonPrompt.batchLabel',
+    defaultMessage: 'Reason for this batch',
+  },
+  reasonPromptPlaceholder: {
+    id: 'control.reasonPrompt.placeholder',
+    defaultMessage: 'Pick a reason or type one',
+  },
+  reasonPromptExceptionToggle: {
+    id: 'control.reasonPrompt.exceptionToggle',
+    defaultMessage: 'Different reason',
+  },
+  reasonPromptExceptionLabel: {
+    id: 'control.reasonPrompt.exceptionLabel',
+    defaultMessage: 'Reason for {match}',
+  },
+  reasonPromptSelectRow: {
+    id: 'control.reasonPrompt.selectRow',
+    defaultMessage: 'Select {match}',
+  },
+  reasonPromptMarkSelected: {
+    id: 'control.reasonPrompt.markSelected',
+    defaultMessage: 'Mark selected as exception',
+  },
+  reasonPromptSharedLabel: {
+    id: 'control.reasonPrompt.sharedLabel',
+    defaultMessage:
+      'Reason for the {count, plural, one {selected match} other {# selected matches}}',
+  },
+  reasonPromptSummary: {
+    id: 'control.reasonPrompt.summary',
+    defaultMessage:
+      '{total, plural, one {# match} other {# matches}} · {batch} with batch reason · {exceptions, plural, one {# exception} other {# exceptions}}',
+  },
+  reasonPromptUncovered: {
+    id: 'control.reasonPrompt.uncovered',
+    defaultMessage:
+      '{count, plural, one {# match still needs a reason} other {# matches still need a reason}}',
+  },
+  reasonPromptKeyboardHint: {
+    id: 'control.reasonPrompt.keyboardHint',
+    defaultMessage:
+      '↑/↓ move between matches · Space selects · E marks an exception · Enter publishes · Esc closes',
+  },
+  reasonPromptChange: {
+    id: 'control.reasonPrompt.change',
+    defaultMessage: '{from} → {to}',
+  },
+  reasonPromptWithdrawnChange: {
+    id: 'control.reasonPrompt.withdrawnChange',
+    defaultMessage: '{from} → withdrawn',
+  },
+  reasonPromptPublish: {
+    id: 'control.reasonPrompt.publish',
+    defaultMessage: 'Publish changes',
+  },
+  reasonPromptCancel: {
+    id: 'control.reasonPrompt.cancel',
+    defaultMessage: 'Back to the builder',
+  },
+  reasonPromptClose: {
+    id: 'control.reasonPrompt.close',
+    defaultMessage: 'Close',
+  },
+  reasonPromptPresetsGroup: {
+    id: 'control.reasonPrompt.presetsGroup',
+    defaultMessage: 'Common reasons',
+  },
+  reasonPromptRecentGroup: {
+    id: 'control.reasonPrompt.recentGroup',
+    defaultMessage: 'Recently used',
+  },
+  reasonPromptExceptionBadge: {
+    id: 'control.reasonPrompt.exceptionBadge',
+    defaultMessage: 'Exception',
+  },
+  scheduleReasonVenueUnavailable: {
+    id: 'control.scheduleReason.venueUnavailable',
+    defaultMessage: 'Venue unavailable',
+  },
+  scheduleReasonWeather: {
+    id: 'control.scheduleReason.weather',
+    defaultMessage: 'Weather',
+  },
+  scheduleReasonEntrantRequest: {
+    id: 'control.scheduleReason.entrantRequest',
+    defaultMessage: 'Requested by an entrant',
+  },
+  scheduleReasonOfficialsUnavailable: {
+    id: 'control.scheduleReason.officialsUnavailable',
+    defaultMessage: 'Officials unavailable',
+  },
+  scheduleReasonPriorMatchOverran: {
+    id: 'control.scheduleReason.priorMatchOverran',
+    defaultMessage: 'A previous match ran long',
+  },
+  scheduleReasonBroadcast: {
+    id: 'control.scheduleReason.broadcast',
+    defaultMessage: 'Broadcast schedule',
+  },
+  scheduleReasonDataCorrection: {
+    id: 'control.scheduleReason.dataCorrection',
+    defaultMessage: 'Correcting a mistake',
+  },
+  scheduleReasonOther: {
+    id: 'control.scheduleReason.other',
+    defaultMessage: 'Other',
+  },
 });

@@ -30,6 +30,36 @@ venue or official, a rest-rule violation — naming the matches involved, and na
 match the batch would move. Publishing is atomic: every assignment in the batch takes effect together, or
 none do.
 
+## How long a match holds its slot
+
+A placed match occupies its slot's start plus its **estimated duration**: the discipline's regulation
+(for example two 25-minute halves, 50 minutes), with the tournament's own segment count applied. A
+discipline without a timed regulation (played to sets, for instance) occupies the slot's full length.
+The venue also stays held for the schedule's changeover after the match. Short slots therefore never
+hide a clash: two 50-minute matches fifteen minutes apart at one court are a venue conflict.
+
+The rest rule comes from the tournament's [settings](/help/control/tournament-authoring): the minimum
+rest between the end of an entrant's match and the start of their next. A tournament that declares
+none applies no rest rule.
+
+## Changing a published match needs a reason
+
+Moving, re-officiating or withdrawing a match that is already **published** asks why before it
+publishes. The prompt lists every changed published match with its old and new time and venue. Give
+one reason for the whole batch — pick a common reason, one you used recently, or type your own — or
+mark a match as an exception with its own reason (the row's "Different reason" toggle, or select
+several rows and mark them together). Publishing stays disabled until every listed match is covered.
+The previous slot, venue, start and officials are kept with the reason, the person and the time. A
+batch of first placements publishes without asking.
+
+From the keyboard: ↑/↓ move between matches, Space selects, E marks an exception, Enter publishes and
+Esc closes: first the open suggestion list, then the dialog.
+
+## Withdrawing a match from its slot
+
+"Withdraw from slot" takes a placed match out of its slot as part of the batch: the preview shows it
+unscheduled and lists the slots the batch frees, so another match can take one in the same publish.
+
 ## What you cannot do here
 
 Rescheduling a match that has already finished is refused: its schedule is a record now, not a plan, and

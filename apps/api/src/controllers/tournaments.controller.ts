@@ -709,6 +709,7 @@ export class TournamentsController {
       ruleset?.overrides ?? {},
       tournament.featured,
       tournament.emblemObjectId,
+      tournament.minimumRestMinutes,
     );
   }
 
@@ -771,6 +772,9 @@ export class TournamentsController {
     const fields: SeriesMutationFieldPreview[] = [];
     if (body.name !== undefined) {
       fields.push({ field: 'name', mutationClass: 'safe' });
+    }
+    if (body.minimumRestMinutes !== undefined) {
+      fields.push({ field: 'minimumRestMinutes', mutationClass: 'safe' });
     }
     for (const [field, nextValue] of this.proposedRegistrationFields(body)) {
       const decision = evaluateMutation(descriptor.fieldPolicies, field, {
@@ -889,6 +893,11 @@ export class TournamentsController {
     // through the descriptor's field policies, which classify ruleset overrides
     // and have no opinion about a portal presentation flag.
     const finalFeatured = body.featured ?? tournament.featured;
+    // A scheduling rule, applied like `featured`: the next preview reads it, nothing moves now.
+    const finalMinimumRest =
+      body.minimumRestMinutes === undefined
+        ? tournament.minimumRestMinutes
+        : (body.minimumRestMinutes ?? undefined);
     try {
       return await withTransaction(this.db, async (uow) => {
         if (body.name !== undefined) {
@@ -905,6 +914,18 @@ export class TournamentsController {
             tournamentId: tournament.tournamentId,
             organizationId: tournament.organizationId,
             featured: body.featured,
+            actor,
+            authorizationContext,
+          });
+        }
+        if (
+          body.minimumRestMinutes !== undefined &&
+          (body.minimumRestMinutes ?? undefined) !== tournament.minimumRestMinutes
+        ) {
+          await tournaments.setMinimumRest(uow, {
+            tournamentId: tournament.tournamentId,
+            organizationId: tournament.organizationId,
+            minimumRestMinutes: body.minimumRestMinutes,
             actor,
             authorizationContext,
           });
@@ -933,6 +954,7 @@ export class TournamentsController {
           nextOverrides,
           finalFeatured,
           tournament.emblemObjectId,
+          finalMinimumRest,
         );
       });
     } catch (error) {
@@ -961,10 +983,12 @@ export class TournamentsController {
     overrides: Readonly<Record<string, unknown>>,
     featured: boolean,
     emblemObjectId?: string,
+    minimumRestMinutes?: number,
   ): TournamentSettingsResponse {
     return {
       name,
       featured,
+      ...(minimumRestMinutes === undefined ? {} : { minimumRestMinutes }),
       ...(typeof overrides['registration.region'] === 'string'
         ? { region: overrides['registration.region'] }
         : {}),

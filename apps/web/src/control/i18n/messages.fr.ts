@@ -1473,4 +1473,50 @@ export const messages: Record<string, string> = {
   'control.platform.diagnostics.uptime': 'Temps de fonctionnement : {hours}h {minutes}m',
   'control.platform.diagnostics.version': 'Version {version}',
   'control.platform.diagnostics.loading': 'Chargement des diagnostics de la plateforme…',
+  'control.settings.minimumRestLabel': 'Repos minimum entre les matchs (minutes)',
+  'control.settings.minimumRestHelp':
+    'Vérifié à chaque programmation des matchs de ce tournoi : le match suivant d’un participant doit commencer au moins ce délai après la fin du précédent. Laissez vide pour n’appliquer aucune règle. Le modifier ne déplace aucun match.',
+  'control.tournamentSummary.minimumRest':
+    'Repos minimum entre les matchs d’un participant : {minutes} minutes',
+  'control.scheduleBuilder.withdraw': 'Retirer du créneau',
+  'control.scheduleBuilder.keepPlacement': 'Garder dans le créneau',
+  'control.scheduleBuilder.withdrawn': 'Retiré — il n’aura plus d’horaire une fois publié',
+  'control.scheduleBuilder.freedSlotsHeading': 'Créneaux libérés par ce lot',
+  'control.scheduleBuilder.liveLocked':
+    'En cours — il ne peut être ni déplacé ni retiré pendant qu’il se joue',
+  'control.scheduleBuilder.concludedLocked':
+    'Joué — son horaire est un fait ; utilisez le processus de correction',
+  'control.reasonPrompt.title': 'Pourquoi ces matchs publiés changent-ils ?',
+  'control.reasonPrompt.description':
+    'Participants et spectateurs ont déjà vu ces horaires. Donnez un motif pour le lot, ou marquez un match comme exception avec son propre motif.',
+  'control.reasonPrompt.batchLabel': 'Motif du lot',
+  'control.reasonPrompt.placeholder': 'Choisissez un motif ou saisissez-le',
+  'control.reasonPrompt.exceptionToggle': 'Autre motif',
+  'control.reasonPrompt.exceptionLabel': 'Motif pour {match}',
+  'control.reasonPrompt.selectRow': 'Sélectionner {match}',
+  'control.reasonPrompt.markSelected': 'Marquer la sélection comme exception',
+  'control.reasonPrompt.sharedLabel':
+    'Motif {count, plural, one {du match sélectionné} other {des # matchs sélectionnés}}',
+  'control.reasonPrompt.summary':
+    '{total, plural, one {# match} other {# matchs}} · {batch} avec le motif du lot · {exceptions, plural, one {# exception} other {# exceptions}}',
+  'control.reasonPrompt.uncovered':
+    '{count, plural, one {# match attend encore un motif} other {# matchs attendent encore un motif}}',
+  'control.reasonPrompt.keyboardHint':
+    '↑/↓ changer de match · Espace sélectionne · E marque une exception · Entrée publie · Échap ferme',
+  'control.reasonPrompt.change': '{from} → {to}',
+  'control.reasonPrompt.withdrawnChange': '{from} → retiré',
+  'control.reasonPrompt.publish': 'Publier les modifications',
+  'control.reasonPrompt.cancel': 'Retour au planificateur',
+  'control.reasonPrompt.close': 'Fermer',
+  'control.reasonPrompt.presetsGroup': 'Motifs courants',
+  'control.reasonPrompt.recentGroup': 'Utilisés récemment',
+  'control.reasonPrompt.exceptionBadge': 'Exception',
+  'control.scheduleReason.venueUnavailable': 'Lieu indisponible',
+  'control.scheduleReason.weather': 'Météo',
+  'control.scheduleReason.entrantRequest': 'Demande d’un participant',
+  'control.scheduleReason.officialsUnavailable': 'Officiels indisponibles',
+  'control.scheduleReason.priorMatchOverran': 'Un match précédent a débordé',
+  'control.scheduleReason.broadcast': 'Programme de diffusion',
+  'control.scheduleReason.dataCorrection': 'Correction d’une erreur',
+  'control.scheduleReason.other': 'Autre',
 };

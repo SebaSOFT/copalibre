@@ -43,3 +43,11 @@ Entwurf → veröffentlicht → gestartet → beendet → archiviert. Jeder Schr
 Entscheidung auf einem anderen Bildschirm, niemals etwas, das dieser Bildschirm für Sie erledigt.
 Sobald **gestartet**, werden Disziplin und Turnierprofil auf der Version eingefroren, die sie zu
 diesem Zeitpunkt hatten — ein laufendes Turnier ändert seine Regeln niemals auf halbem Weg.
+
+## Mindestpause zwischen Spielen
+
+Der Bildschirm **Einstellungen** eines angelegten Turniers legt die Mindestpause in Minuten zwischen
+dem Ende eines Spiels eines Teilnehmers und dem Beginn seines nächsten fest. Sie wird bei jeder
+Vorschau und Veröffentlichung der Spiele dieses Turniers in der [Spielplanung](/help/control/schedule)
+geprüft; eine Ansetzung mit weniger Pause ist ein Konflikt, der beide Spiele nennt. Leer lassen, um
+keine Regel anzuwenden. Eine Änderung verschiebt kein Spiel – sie gilt ab der nächsten Vorschau.

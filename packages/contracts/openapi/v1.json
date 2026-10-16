@@ -2838,7 +2838,7 @@
         ]
       },
       "post": {
-        "description": "All or nothing: one conflicting assignment rejects the batch, so no partially-applied schedule is ever visible. Conflicts are reported the way the preview reports them.",
+        "description": "All or nothing: one conflicting assignment rejects the batch, so no partially-applied schedule is ever visible. Conflicts are reported the way the preview reports them. Changing or withdrawing a published placement needs a reason (the batch reason or the entry's own); a batch leaving one uncovered is refused with `schedule-reason-required`, listing the matches. The minimum rest is read from the tournament; a request `restRule` is ignored.",
         "operationId": "SchedulesController_publish",
         "parameters": [
           {
@@ -2997,6 +2997,159 @@
           }
         ],
         "summary": "Dry-run a schedule batch",
+        "tags": [
+          "schedules"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/schedule": {
+      "get": {
+        "description": "Assignments whose start falls in `[from, to)` (epoch milliseconds, at most 31 days), optionally narrowed to a tournament, stage or venue, each with its estimated end.",
+        "operationId": "OrganizationScheduleController_read",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "venue",
+            "required": false,
+            "in": "query",
+            "description": "Venue id",
+            "schema": {}
+          },
+          {
+            "name": "stage",
+            "required": false,
+            "in": "query",
+            "description": "Stage id",
+            "schema": {}
+          },
+          {
+            "name": "tournament",
+            "required": false,
+            "in": "query",
+            "description": "Tournament id",
+            "schema": {}
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "description": "Range end (exclusive), epoch milliseconds",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "description": "Range start, epoch milliseconds",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationScheduleResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read an organization's schedule across its tournaments",
+        "tags": [
+          "schedules"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/schedule/reasons/recent": {
+      "get": {
+        "description": "The organization's ten most recent distinct typed reasons, newest first. Preset reasons are not repeated here: the builder offers those from its own translated list.",
+        "operationId": "OrganizationScheduleController_recentReasons",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentScheduleReasonsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Recent typed reasons for published schedule changes",
         "tags": [
           "schedules"
         ]
@@ -11689,7 +11842,7 @@
   "info": {
     "title": "CopaLibre API",
     "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
-    "version": "7.0.0",
+    "version": "7.1.0",
     "contact": {}
   },
   "tags": [],
@@ -13322,6 +13475,11 @@
           "featured": {
             "type": "boolean",
             "description": "Whether the organizer has flagged this tournament as featured on the organization’s public page. Independent of whether it is live."
+          },
+          "minimumRestMinutes": {
+            "type": "number",
+            "description": "Minimum minutes between the end of one of an entrant's matches and the start of their next, checked whenever matches are scheduled. Absent declares no rest rule.",
+            "example": 120
           }
         },
         "required": [
@@ -13354,6 +13512,12 @@
             "type": "string",
             "format": "date-time",
             "description": "Optional instant when checked-in team memberships stop being editable."
+          },
+          "minimumRestMinutes": {
+            "type": "number",
+            "nullable": true,
+            "description": "Minimum minutes between an entrant's matches, read by every schedule preview and publish. `null` clears it. A scheduling rule, not a ruleset override: always `safe`, and it moves no placement.",
+            "example": 120
           }
         }
       },
@@ -14294,6 +14458,33 @@
           "assignments"
         ]
       },
+      "ScheduleReasonDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "venue-unavailable",
+              "weather",
+              "entrant-request",
+              "officials-unavailable",
+              "prior-match-overran",
+              "broadcast",
+              "data-correction",
+              "other"
+            ],
+            "description": "The preset this reason was picked from; absent for a typed reason"
+          },
+          "text": {
+            "type": "string",
+            "description": "The reason as the organizer saw it, in their language",
+            "example": "Court 1 without lights"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
       "ScheduleAssignmentDto": {
         "type": "object",
         "properties": {
@@ -14303,7 +14494,23 @@
           },
           "slotId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "The slot to place the match in"
+          },
+          "withdraw": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Withdraws the match from its slot instead of placing it"
+          },
+          "reason": {
+            "description": "This match's own exception reason, overriding the batch reason",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScheduleReasonDto"
+              }
+            ]
           },
           "officialIds": {
             "description": "Officials assigned to the match",
@@ -14315,8 +14522,7 @@
           }
         },
         "required": [
-          "matchId",
-          "slotId"
+          "matchId"
         ]
       },
       "RestRuleDto": {
@@ -14341,8 +14547,22 @@
               "$ref": "#/components/schemas/ScheduleAssignmentDto"
             }
           },
+          "reason": {
+            "description": "Applies to every changed or withdrawn published match without its own reason. A batch changing a published placement is refused unless each such match is covered.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScheduleReasonDto"
+              }
+            ]
+          },
           "restRule": {
-            "$ref": "#/components/schemas/RestRuleDto"
+            "deprecated": true,
+            "description": "Deprecated and ignored: the minimum rest is the tournament setting `minimumRestMinutes`, applied by every preview and publish.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RestRuleDto"
+              }
+            ]
           }
         },
         "required": [
@@ -14358,7 +14578,8 @@
               "venue-double-booked",
               "official-double-booked",
               "rest-rule",
-              "match-finalized"
+              "match-finalized",
+              "match-in-progress"
             ],
             "description": "Which rule the schedule breaks"
           },
@@ -14408,12 +14629,142 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "reasonRequiredMatches": {
+            "description": "Published matches the batch changes or withdraws: each needs a reason",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "withdrawn": {
+            "description": "Matches the batch withdraws",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "freedSlotIds": {
+            "description": "Slots those withdrawals free",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         },
         "required": [
           "committable",
           "conflicts",
-          "affectedPublishedMatches"
+          "affectedPublishedMatches",
+          "reasonRequiredMatches",
+          "withdrawn",
+          "freedSlotIds"
+        ]
+      },
+      "OrganizationScheduleEntryResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "in-progress",
+              "finalized",
+              "forfeited"
+            ]
+          },
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "zoneId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "round": {
+            "type": "number",
+            "example": 1
+          },
+          "entrantIds": {
+            "description": "Known entrants, home first",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "venueId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "number",
+            "description": "Start, epoch milliseconds"
+          },
+          "estimatedEnd": {
+            "type": "number",
+            "description": "Start plus the discipline's estimated regulation length (the slot length when it has none), epoch milliseconds"
+          },
+          "published": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "matchId",
+          "status",
+          "tournamentId",
+          "stageId",
+          "round",
+          "entrantIds",
+          "slotId",
+          "venueId",
+          "startsAt",
+          "estimatedEnd",
+          "published"
+        ]
+      },
+      "OrganizationScheduleResponse": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationScheduleEntryResponse"
+            }
+          }
+        },
+        "required": [
+          "assignments"
+        ]
+      },
+      "RecentScheduleReasonsResponse": {
+        "type": "object",
+        "properties": {
+          "reasons": {
+            "description": "The organization's most recent distinct typed reasons, newest first",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "reasons"
         ]
       },
       "MatchStateResponse": {

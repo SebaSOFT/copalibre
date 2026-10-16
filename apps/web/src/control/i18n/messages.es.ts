@@ -1461,4 +1461,49 @@ export const messages: Record<string, string> = {
   'control.platform.diagnostics.uptime': 'Tiempo activo: {hours}h {minutes}m',
   'control.platform.diagnostics.version': 'Versión {version}',
   'control.platform.diagnostics.loading': 'Cargando diagnósticos de plataforma…',
+  'control.settings.minimumRestLabel': 'Descanso mínimo entre partidos (minutos)',
+  'control.settings.minimumRestHelp':
+    'Se controla cada vez que se programan partidos de este torneo: el siguiente partido de un participante debe empezar al menos este tiempo después de que termine el anterior. Dejalo vacío para no aplicar ninguna regla. Cambiarlo no mueve ningún partido.',
+  'control.tournamentSummary.minimumRest':
+    'Descanso mínimo entre partidos de un participante: {minutes} minutos',
+  'control.scheduleBuilder.withdraw': 'Retirar del horario',
+  'control.scheduleBuilder.keepPlacement': 'Mantener en el horario',
+  'control.scheduleBuilder.withdrawn': 'Retirado: no tendrá horario una vez publicado',
+  'control.scheduleBuilder.freedSlotsHeading': 'Horarios que libera este lote',
+  'control.scheduleBuilder.liveLocked': 'En juego: no se puede mover ni retirar mientras se juega',
+  'control.scheduleBuilder.concludedLocked':
+    'Jugado: su horario es un registro; usá el flujo de corrección',
+  'control.reasonPrompt.title': '¿Por qué cambian estos partidos publicados?',
+  'control.reasonPrompt.description':
+    'Participantes y público ya vieron estos horarios. Indicá un motivo para todo el lote o marcá un partido como excepción con su propio motivo.',
+  'control.reasonPrompt.batchLabel': 'Motivo del lote',
+  'control.reasonPrompt.placeholder': 'Elegí un motivo o escribilo',
+  'control.reasonPrompt.exceptionToggle': 'Otro motivo',
+  'control.reasonPrompt.exceptionLabel': 'Motivo de {match}',
+  'control.reasonPrompt.selectRow': 'Seleccionar {match}',
+  'control.reasonPrompt.markSelected': 'Marcar seleccionados como excepción',
+  'control.reasonPrompt.sharedLabel':
+    'Motivo {count, plural, one {del partido seleccionado} other {de los # partidos seleccionados}}',
+  'control.reasonPrompt.summary':
+    '{total, plural, one {# partido} other {# partidos}} · {batch} con el motivo del lote · {exceptions, plural, one {# excepción} other {# excepciones}}',
+  'control.reasonPrompt.uncovered':
+    '{count, plural, one {Falta el motivo de # partido} other {Falta el motivo de # partidos}}',
+  'control.reasonPrompt.keyboardHint':
+    '↑/↓ moverse entre partidos · Espacio selecciona · E marca una excepción · Enter publica · Esc cierra',
+  'control.reasonPrompt.change': '{from} → {to}',
+  'control.reasonPrompt.withdrawnChange': '{from} → retirado',
+  'control.reasonPrompt.publish': 'Publicar cambios',
+  'control.reasonPrompt.cancel': 'Volver al planificador',
+  'control.reasonPrompt.close': 'Cerrar',
+  'control.reasonPrompt.presetsGroup': 'Motivos habituales',
+  'control.reasonPrompt.recentGroup': 'Usados recientemente',
+  'control.reasonPrompt.exceptionBadge': 'Excepción',
+  'control.scheduleReason.venueUnavailable': 'Cancha no disponible',
+  'control.scheduleReason.weather': 'Clima',
+  'control.scheduleReason.entrantRequest': 'Pedido de un participante',
+  'control.scheduleReason.officialsUnavailable': 'Árbitros no disponibles',
+  'control.scheduleReason.priorMatchOverran': 'Un partido anterior se extendió',
+  'control.scheduleReason.broadcast': 'Grilla de transmisión',
+  'control.scheduleReason.dataCorrection': 'Corrección de un error',
+  'control.scheduleReason.other': 'Otro',
 };

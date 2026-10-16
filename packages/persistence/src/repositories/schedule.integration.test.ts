@@ -177,7 +177,7 @@ describe('scheduling (integration)', () => {
 
       const slots = await schedules.listScheduleSlots(schedule.scheduleId, uow);
 
-      return { stage, fixtures, matches, entrants, venue, referee, schedule, slots };
+      return { tournament, stage, fixtures, matches, entrants, venue, referee, schedule, slots };
     });
   }
 
@@ -499,6 +499,7 @@ describe('scheduling (integration)', () => {
       schedules.publishSchedule(uow, {
         organizationId,
         assignments: [{ matchId, slotId: item(slots, 1).slotId }],
+        reason: { text: 'Court 1 without lights' },
         ...AUDIT,
       }),
     );
@@ -526,11 +527,19 @@ describe('scheduling (integration)', () => {
     await expect(schedules.listScheduleForStage(stage.stageId)).resolves.toHaveLength(3);
   });
 
-  it('enforces a rest rule across matches an entrant plays in', async () => {
-    const { matches, slots } = await seedStage('copa-descanso');
+  it('enforces the tournament rest rule across matches an entrant plays in', async () => {
+    const { tournament, matches, slots } = await seedStage('copa-descanso');
+    await withTransaction(scratch.db, (uow) =>
+      new TournamentRepository(scratch.db).setMinimumRest(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        minimumRestMinutes: 30,
+        ...AUDIT,
+      }),
+    );
 
     // Matches 0 and 2 share entrant Alfa. Slots 0 (14:00-15:00) and 1 (15:15-16:15) have a 15m turnaround.
-    // Rest rule requires minimum 30 minutes.
+    // The tournament requires a minimum of 30 minutes.
     await expect(
       withTransaction(scratch.db, (uow) =>
         schedules.publishSchedule(uow, {
@@ -539,7 +548,6 @@ describe('scheduling (integration)', () => {
             { matchId: item(matches, 0).matchId, slotId: item(slots, 0).slotId },
             { matchId: item(matches, 2).matchId, slotId: item(slots, 1).slotId },
           ],
-          restRule: { minimumMinutes: 30 },
           ...AUDIT,
         }),
       ),

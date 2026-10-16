@@ -84,6 +84,7 @@ export const AUDIT_ACTIONS = [
   'tournament.renamed',
   'tournament.emblem_updated',
   'tournament.featured_updated',
+  'tournament.minimum_rest_updated',
   'ruleset.versioned',
   'ruleset.compiled',
   'stage-configuration.created',
@@ -155,6 +156,8 @@ export const AUDIT_ACTIONS = [
   'schedule.updated',
   'schedule.deleted',
   'schedule.published',
+  'schedule.placement-changed',
+  'schedule.placement-withdrawn',
 
   // Display tokens
   'display-token.issued',

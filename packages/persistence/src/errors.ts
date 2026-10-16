@@ -25,3 +25,18 @@ export class SchemaVersionMismatchError extends PersistenceError {
 export class NotFoundError extends PersistenceError {
   readonly code = 'NOT_FOUND';
 }
+
+/**
+ * A schedule batch changes or withdraws published placements without a reason that covers
+ * each of them: neither the batch reason nor the match's own exception reason.
+ */
+export class ScheduleReasonRequiredError extends PersistenceError {
+  readonly code = 'SCHEDULE_REASON_REQUIRED';
+
+  constructor(readonly matchIds: readonly string[]) {
+    super(
+      `A reason is required to change ${matchIds.length} published placement(s): ${matchIds.join(', ')}`,
+      { matchIds },
+    );
+  }
+}

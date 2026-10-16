@@ -211,6 +211,187 @@ describe('ScheduleBuilderPage', () => {
     await screen.findByText('Schedule published.');
   });
 
+  it('asks a reason before publishing a moved published match, and sends it', async () => {
+    const twoSlots: readonly ScheduleDetailResponse[] = [
+      {
+        ...(oneSchedule[0] as ScheduleDetailResponse),
+        slots: [
+          ...(oneSchedule[0] as ScheduleDetailResponse).slots,
+          {
+            slotId: 'slot-2',
+            scheduleId: 'schedule-1',
+            venueId: 'venue-1',
+            startsAt: Date.UTC(2026, 7, 1, 15, 15),
+            matchCount: 0,
+          },
+        ],
+      },
+    ];
+    const previewSchedule = jest.fn<NonNullable<ControlApiClient['previewSchedule']>>(async () => ({
+      committable: true,
+      conflicts: [],
+      affectedPublishedMatches: ['match-1'],
+      reasonRequiredMatches: ['match-1'],
+    }));
+    const publishSchedule = jest.fn<NonNullable<ControlApiClient['publishSchedule']>>(async () => ({
+      assignments: [],
+    }));
+    const recentScheduleReasons = jest.fn<NonNullable<ControlApiClient['recentScheduleReasons']>>(
+      async () => ({ reasons: ['Cancha 1 sin luz'] }),
+    );
+    const client = stubClient({
+      getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
+      getSchedule: () =>
+        Promise.resolve({
+          assignments: [
+            {
+              matchId: 'match-1',
+              fixtureId: 'fixture-1',
+              slotId: 'slot-1',
+              venueId: 'venue-1',
+              window: { startsAt: Date.UTC(2026, 7, 1, 14, 0), durationMinutes: 60 },
+            },
+          ],
+        }),
+      listVenues: () => Promise.resolve(oneVenue),
+      listSchedules: () => Promise.resolve(twoSlots),
+      previewSchedule,
+      publishSchedule,
+      recentScheduleReasons,
+    });
+    render(
+      withIntl(
+        <ScheduleBuilderPage
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    await screen.findAllByText(/Round 1/);
+    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
+      target: { value: 'slot-2' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Preview'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Publish'));
+    });
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.textContent).toContain('entrant-a vs entrant-b');
+    const publishChanges = screen.getByRole('button', { name: 'Publish changes' });
+    expect(publishChanges).toHaveProperty('disabled', true);
+    expect(recentScheduleReasons).toHaveBeenCalledWith('liga-mendocina');
+
+    fireEvent.change(screen.getByLabelText('Reason for this batch'), {
+      target: { value: 'Weather' },
+    });
+    expect(publishChanges).toHaveProperty('disabled', false);
+    await act(async () => {
+      fireEvent.click(publishChanges);
+    });
+    expect(publishSchedule).toHaveBeenCalledWith('liga-mendocina', 'apertura', STAGE_ID, {
+      assignments: [{ matchId: 'match-1', slotId: 'slot-2' }],
+      reason: { code: 'weather', text: 'Weather' },
+    });
+  });
+
+  it('withdraws a placed match in the batch and lists the slot it frees', async () => {
+    const previewSchedule = jest.fn<NonNullable<ControlApiClient['previewSchedule']>>(async () => ({
+      committable: true,
+      conflicts: [],
+      affectedPublishedMatches: ['match-1'],
+      reasonRequiredMatches: ['match-1'],
+      withdrawn: ['match-1'],
+      freedSlotIds: ['slot-1'],
+    }));
+    const client = stubClient({
+      getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
+      getSchedule: () =>
+        Promise.resolve({
+          assignments: [
+            {
+              matchId: 'match-1',
+              fixtureId: 'fixture-1',
+              slotId: 'slot-1',
+              venueId: 'venue-1',
+              window: { startsAt: Date.UTC(2026, 7, 1, 14, 0), durationMinutes: 60 },
+            },
+          ],
+        }),
+      listVenues: () => Promise.resolve(oneVenue),
+      listSchedules: () => Promise.resolve(oneSchedule),
+      previewSchedule,
+    });
+    render(
+      withIntl(
+        <ScheduleBuilderPage
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: /Withdraw from slot/ }));
+    expect(screen.getByText(/Withdrawn — it will have no scheduled time/)).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByText('Preview'));
+    });
+    expect(previewSchedule).toHaveBeenCalledWith('liga-mendocina', 'apertura', STAGE_ID, {
+      assignments: [{ matchId: 'match-1', withdraw: true }],
+    });
+    expect(screen.getByText('Slots this batch frees')).toBeTruthy();
+  });
+
+  it('offers no move or withdrawal for a match in progress', async () => {
+    const client = stubClient({
+      getStageFixtures: () =>
+        Promise.resolve({
+          stageId: STAGE_ID,
+          fixtures: [
+            {
+              ...(oneFixture[0] as FixtureResponse),
+              matches: [{ matchId: 'match-1', number: 1, status: 'in-progress' }],
+            },
+          ],
+        }),
+      getSchedule: () =>
+        Promise.resolve({
+          assignments: [
+            {
+              matchId: 'match-1',
+              fixtureId: 'fixture-1',
+              slotId: 'slot-1',
+              venueId: 'venue-1',
+              window: { startsAt: Date.UTC(2026, 7, 1, 14, 0), durationMinutes: 60 },
+            },
+          ],
+        }),
+      listVenues: () => Promise.resolve(oneVenue),
+      listSchedules: () => Promise.resolve(oneSchedule),
+    });
+    render(
+      withIntl(
+        <ScheduleBuilderPage
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    await screen.findByText(/In progress — it cannot be moved or withdrawn/);
+    expect(screen.queryByRole('button', { name: /Withdraw from slot/ })).toBeNull();
+    expect(screen.queryByLabelText(/Start time — entrant-a vs entrant-b/)).toBeNull();
+  });
+
   it('shows a conflict and leaves publish disabled', async () => {
     const client = stubClient({
       getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: twoFixtures }),

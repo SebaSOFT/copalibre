@@ -79,3 +79,33 @@ export const WithConflict: Story = {
     ],
   },
 };
+
+/** A published match withdrawn in the draft: unscheduled in the preview, its slot listed as freed. */
+export const WithdrawalPreview: Story = {
+  args: {
+    previewed: true,
+    committable: true,
+    placements: { [ids.match]: ids.first },
+    drafts: { [ids.match]: { slotId: ids.first, officialIds: [], withdraw: true } },
+    freedSlotIds: [ids.first],
+    reasonRequiredMatches: [ids.match],
+  },
+};
+
+/** A match being played offers neither a move nor a withdrawal. */
+export const LiveMatchLocked: Story = {
+  args: {
+    placements: { [ids.match]: ids.first },
+    drafts: { [ids.match]: { slotId: ids.first, officialIds: [] } },
+    fixtures: [
+      {
+        fixtureId: ids.match,
+        matchId: ids.match,
+        round: 1,
+        homeEntrantId: ids.first,
+        awayEntrantId: ids.second,
+        matches: [{ matchId: ids.match, number: 1, status: 'in-progress' }],
+      },
+    ],
+  },
+};

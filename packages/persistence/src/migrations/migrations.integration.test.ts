@@ -246,6 +246,26 @@ describe('migrations (integration)', () => {
       ]),
     );
 
+    expect(afterUp).toContain('match_schedule_history');
+    expect(afterUpTables.find((table) => table.name === 'tournaments')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'minimum_rest_minutes', isNullable: true }),
+      ]),
+    );
+
+    const scheduleIntegrityDown = await migrateDownOneStep(scratch.db);
+    expect(scheduleIntegrityDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0042-fixture-graph-sources');
+    const afterScheduleIntegrityDown = await scratch.db.introspection.getTables();
+    expect(afterScheduleIntegrityDown.map((table) => table.name)).not.toContain(
+      'match_schedule_history',
+    );
+    expect(
+      afterScheduleIntegrityDown.find((table) => table.name === 'tournaments')?.columns,
+    ).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'minimum_rest_minutes' })]),
+    );
+
     const fixtureGraphSourcesDown = await migrateDownOneStep(scratch.db);
     expect(fixtureGraphSourcesDown.error).toBeUndefined();
     await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0041-fixture-role');

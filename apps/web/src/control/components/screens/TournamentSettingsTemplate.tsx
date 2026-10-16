@@ -34,6 +34,7 @@ const FIELD_LABEL: Record<string, string> = {
   'registration.region': 'region',
   'registration.capacity': 'capacity',
   'registration.checkInClosesAt': 'checkInClosesAt',
+  minimumRestMinutes: 'minimumRestMinutes',
 };
 
 /**
@@ -80,6 +81,9 @@ export function TournamentSettingsTemplate({
   );
   const [checkInClosesAt, setCheckInClosesAt] = useState(settings.checkInClosesAt ?? '');
   const [featured, setFeatured] = useState(settings.featured);
+  const storedRest =
+    settings.minimumRestMinutes === undefined ? '' : String(settings.minimumRestMinutes);
+  const [minimumRest, setMinimumRest] = useState(storedRest);
   const [preview, setPreview] = useState<readonly MutationFieldPreview[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -100,6 +104,10 @@ export function TournamentSettingsTemplate({
         ? {}
         : { checkInClosesAt: checkInClosesAt.trim() === '' ? undefined : checkInClosesAt }),
       ...(featured === settings.featured ? {} : { featured }),
+      // Cleared sends `null`: the rule is removed, not left as it was.
+      ...(minimumRest === storedRest
+        ? {}
+        : { minimumRestMinutes: minimumRest.trim() === '' ? null : Number(minimumRest) }),
     };
   }
 
@@ -125,6 +133,7 @@ export function TournamentSettingsTemplate({
               region: settings.region,
               capacity: settings.capacity,
               checkInClosesAt: settings.checkInClosesAt,
+              minimumRestMinutes: settings.minimumRestMinutes,
               publicRegistration: asBoolean(
                 fieldValueAt(mergedRulesetConfig, 'registration.publicOpen'),
               ),
@@ -275,6 +284,23 @@ export function TournamentSettingsTemplate({
                 onChange={(event) => setCheckInClosesAt(event.target.value)}
                 type="datetime-local"
                 value={checkInClosesAt}
+              />
+            </Field>
+            {/* A scheduling rule, not a ruleset override: always safe, and it moves no match. */}
+            <Field
+              helpText={intl.formatMessage(messages.settingsMinimumRestHelp)}
+              id="settings-minimum-rest"
+              label={intl.formatMessage(messages.settingsMinimumRestLabel)}
+            >
+              <Input
+                aria-describedby="settings-minimum-rest-help"
+                id="settings-minimum-rest"
+                inputMode="numeric"
+                min={0}
+                onChange={(event) => setMinimumRest(event.target.value)}
+                step={5}
+                type="number"
+                value={minimumRest}
               />
             </Field>
             {/* Not a registration field and not mutation-classified: featured is
