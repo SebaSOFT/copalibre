@@ -30,6 +30,7 @@ export function pruneEmptyMatches(matches: readonly DuelMatch[]): readonly DuelM
   const slotIsEmpty = (slot: SlotSource, seen: ReadonlySet<string> = new Set()): boolean => {
     if (slot.kind === 'bye') return true;
     if (slot.kind === 'entrant') return false;
+    if (slot.kind === 'qualifier') return false;
     if (seen.has(slot.matchId)) return true; // malformed cycle: treat as empty
     const match = byId.get(slot.matchId);
     if (!match) return true;

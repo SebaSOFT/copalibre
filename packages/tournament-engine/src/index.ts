@@ -158,12 +158,16 @@ export {
   type TableProjection,
 } from './statistics/table-projection.js';
 export {
+  resolvePersistedNodes,
   resolveAdvancement,
   advanceEntrants,
   unlockedByFinalization,
   playableMatches,
   type ResolvedSlot,
   type ResolvedMatch,
+  type PersistedFixtureNode,
+  type PersistedGraphResolution,
+  type QualifierEntrants,
 } from './advancement/index.js';
 export {
   classifyEngineMutation,

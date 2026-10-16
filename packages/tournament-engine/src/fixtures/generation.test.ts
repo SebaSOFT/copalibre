@@ -143,6 +143,74 @@ describe('single elimination', () => {
     // 5 entrants in an 8-slot bracket: seeds 1, 2 and 3 receive byes.
     expect(byeOpponents.sort((a, b) => a - b)).toEqual([1, 2, 3]);
   });
+
+  it.each([4, 6, 8, 16])('adds one third-place game for %i entrants', (n) => {
+    const result = generateFixtures({
+      format: 'single-elimination',
+      entrants: entrants(n),
+      placementPlay: 'third-place',
+    });
+    if (!result.ok) throw result.error;
+    const placement = result.value.matches.filter((match) => match.bracket === 'placement');
+    expect(placement).toHaveLength(1);
+    const thirdPlace = placement[0];
+    expect(thirdPlace).toMatchObject({ id: 'placement-3', label: '3rd place' });
+    if (thirdPlace && isDuelMatch(thirdPlace)) {
+      expect([thirdPlace.slotA.kind, thirdPlace.slotB.kind]).toEqual(['loser-of', 'loser-of']);
+    }
+  });
+
+  it.each([
+    [4, 1, ['placement-3']],
+    [6, 2, ['placement-3', 'placement-5']],
+    [8, 5, ['placement-3', 'PL5-R1-M1', 'PL5-R1-M2', 'placement-5', 'placement-7']],
+    [16, 17, ['placement-3', 'PL5-R1-M1', 'PL5-R1-M2', 'PL9-R1-M1']],
+  ])(
+    'classifies eliminated rounds recursively for %i entrants',
+    (n, expectedCount, expectedIds) => {
+      const result = generateFixtures({
+        format: 'single-elimination',
+        entrants: entrants(n),
+        placementPlay: 'all-places',
+      });
+      if (!result.ok) throw result.error;
+      const replay = generateFixtures({
+        format: 'single-elimination',
+        entrants: entrants(n),
+        placementPlay: 'all-places',
+      });
+      if (!replay.ok) throw replay.error;
+      expect(replay.value.matches).toEqual(result.value.matches);
+      const placement = result.value.matches.filter((match) => match.bracket === 'placement');
+      const ids = placement.map((match) => match.id);
+      expect(placement).toHaveLength(expectedCount);
+      expect(ids).toEqual(expect.arrayContaining(expectedIds));
+      expect(new Set(ids).size).toBe(ids.length);
+      expect(placement.every((match) => match.label !== undefined)).toBe(true);
+    },
+  );
+
+  it('leaves the default and explicit none output identical', () => {
+    const defaultGraph = generateFixtures({ format: 'single-elimination', entrants: entrants(8) });
+    const explicitNone = generateFixtures({
+      format: 'single-elimination',
+      entrants: entrants(8),
+      placementPlay: 'none',
+    });
+    if (!defaultGraph.ok) throw defaultGraph.error;
+    if (!explicitNone.ok) throw explicitNone.error;
+    expect(explicitNone.value.matches).toEqual(defaultGraph.value.matches);
+  });
+
+  it('rejects placement play for other formats', () => {
+    const result = generateFixtures({
+      format: 'double-elimination',
+      entrants: entrants(4),
+      placementPlay: 'third-place',
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBeInstanceOf(UnsupportedFormatError);
+  });
 });
 
 describe('double elimination', () => {
@@ -188,6 +256,7 @@ describe('double elimination', () => {
       ): boolean => {
         if (slot.kind === 'bye') return true;
         if (slot.kind === 'entrant') return false;
+        if (slot.kind === 'qualifier') return false;
         if (seen.has(slot.matchId)) return true;
         const source = byId.get(slot.matchId);
         if (!source) return true;

@@ -655,7 +655,7 @@ The repository and its associated public documentation (`docs/self-hosting.md` a
 - **THEN** the documented Compose architecture and references describe the real multi-service structure (`postgres`, `migrate`, `api`, `events`, `web`, `worker`, `scheduler`, `gateway`) and real published gateway ingress port (8080) rather than a non-existent single-container SQLite service.
 
 #### Scenario: Canonical installer redirect behavior
-- **WHEN** an operator executes `curl -fsSL https://copalibre.app/install.sh | bash`
+- **WHEN** an operator executes `curl -fsSL https://www.copalibre.app/install.sh | bash`
 - **THEN** the endpoint resolves or delegates to the official release installer script from GitHub Releases (`https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh`), installing the standalone `copalibre` binary without failure.
 
 #### Scenario: Truthful CLI commands and terminal examples
@@ -684,7 +684,7 @@ configuration. Loading demo data with `copalibre dev demo` SHALL NOT send email.
 ### Requirement: Public self-hosting documentation describes notification email behaviour
 The public self-hosting documentation SHALL state which lifecycle events send email, who receives it, that
 the language is the organization's primary language, that every email carries the organization header and
-the Copa Libre signature linking to `copalibre.app`, that imports and demo loading send no email, and that
+the Copa Libre signature linking to `www.copalibre.app`, that imports and demo loading send no email, and that
 a delivery whose outcome is unknown is not retried.
 
 #### Scenario: Documentation matches behaviour

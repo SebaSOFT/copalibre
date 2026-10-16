@@ -18,7 +18,8 @@ import type { FixtureGraph, GenerateFixturesInput, GeneratedMatch } from '../typ
 import { buildDoubleElimination } from './double-elimination.js';
 import { buildPlacementStage } from './placement.js';
 import { buildRoundRobin } from './round-robin.js';
-import { buildEliminationTree } from './single-elimination.js';
+import { buildEliminationTree, buildPlacementPlay } from './single-elimination.js';
+import { pruneEmptyMatches } from './prune.js';
 import { generateBracketGroups } from './bracket-groups.js';
 import { generateGauntlet } from './gauntlet.js';
 import { generateSwissRound1 } from './swiss.js';
@@ -26,7 +27,13 @@ import { generateCustomBracketFixtures } from './custom-bracket.js';
 import { generateFFABracketFixtures } from './ffa-bracket.js';
 import { generateFFALeagueFixtures } from './ffa-league.js';
 
-export { buildEliminationTree, seedSlotOrder, nextPowerOfTwo } from './single-elimination.js';
+export {
+  buildEliminationTree,
+  buildPlacementPlay,
+  seedSlotOrder,
+  nextPowerOfTwo,
+  type PlacementPlay,
+} from './single-elimination.js';
 export { buildDoubleElimination } from './double-elimination.js';
 export { buildRoundRobin } from './round-robin.js';
 export { buildPlacementStage, roundSeed, type PlacementOptions } from './placement.js';
@@ -87,6 +94,14 @@ export function generateFixtures(
     }
   }
 
+  if (input.placementPlay !== undefined && input.format !== 'single-elimination') {
+    return err(
+      new UnsupportedFormatError('Placement play is only supported for single elimination', {
+        format: input.format,
+      }),
+    );
+  }
+
   const entrantsToValidate =
     input.entrants.length === 0 &&
     input.ffaLeague?.divisions &&
@@ -120,8 +135,12 @@ function buildFor(
   input: GenerateFixturesInput,
 ): readonly GeneratedMatch[] {
   switch (format) {
-    case 'single-elimination':
-      return buildEliminationTree(input.entrants, 'SE', 'winners', input.series).matches;
+    case 'single-elimination': {
+      const main = buildEliminationTree(input.entrants, 'SE', 'winners', input.series).matches;
+      return input.placementPlay === undefined || input.placementPlay === 'none'
+        ? main
+        : pruneEmptyMatches(buildPlacementPlay(main, input.entrants.length, input.placementPlay));
+    }
     case 'double-elimination':
       return buildDoubleElimination(input.entrants, input.series).matches;
     case 'round-robin':
