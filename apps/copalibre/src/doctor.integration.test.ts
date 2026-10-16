@@ -3,6 +3,10 @@ import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  createMigratedDatabase,
+  type ScratchDatabase,
+} from '../../../packages/persistence/src/test-support/scratch-database.js';
 import { renderBanner } from './banner.js';
 
 const SOURCE_DIRECTORY = dirname(fileURLToPath(import.meta.url));
@@ -92,21 +96,25 @@ describe('copalibre doctor command (integration)', () => {
   /**
    * `--fix` piped through a child process's stdout/stderr has no TTY —
    * exactly the "operator ran this from a script or CI job" case
-   * in which `doctor` must never mutate data. The real `DATABASE_URL` is required to reach the repair step
-   * at all; without it `--fix` is a silent no-op, which is not what this
-   * test is verifying.
+   * in which `doctor` must never mutate data. A reachable, migrated database is required to reach
+   * the repair step at all: without `DATABASE_URL` `--fix` is a silent no-op, and against an
+   * unmigrated one the integrity probe fails first. The suite provisions its own scratch database
+   * so neither depends on what the shared one happens to hold.
    */
   it('reports that --fix requires a TTY and applies nothing when stdin is piped', async () => {
     const dataDirectory = await mkdtemp(resolve(tmpdir(), 'copalibre-doctor-'));
+    let scratch: ScratchDatabase | undefined;
     try {
+      scratch = await createMigratedDatabase('doctor_fix');
       const result = await runDoctorProcess(
         dataDirectory,
-        { DATABASE_URL: process.env.DATABASE_URL },
+        { DATABASE_URL: scratch.connectionString },
         ['doctor', '--fix'],
       );
       expect(result.stdout).toContain('--fix requires an interactive terminal (TTY)');
       expect(result.stdout).toContain('no repairs were applied');
     } finally {
+      await scratch?.drop();
       await rm(dataDirectory, { force: true, recursive: true });
     }
   });
