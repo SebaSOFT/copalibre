@@ -367,7 +367,10 @@ describe('persisted bracket activation through HTTP', () => {
     expect(console.json()).toMatchObject({
       homeSource: { kind: 'winner-of' },
       awaySource: { kind: 'winner-of' },
+      entrants: [],
     });
+    expect(console.json().homeEntrantId).toBeUndefined();
+    expect(console.json().awayEntrantId).toBeUndefined();
     const [home, away] = cup.entrantIds;
     if (!home || !away) throw new Error('Missing entrants');
     for (const [path, payload] of [
@@ -410,6 +413,17 @@ describe('persisted bracket activation through HTTP', () => {
       }
       const final = (await fixtureRows(cup.stageId)).find((row) => row.round === 2);
       expect([final?.home_entrant_id, final?.away_entrant_id]).toContain(semi.homeEntrantId);
+      // The console positions the one decided side, so it can name the source still awaited.
+      const finalGame = cup.matches.find((match) => match.fixtureId === final?.fixture_id);
+      if (!finalGame) throw new Error('Missing final');
+      const finalConsole = (
+        await request('GET', `${matchBase(cup.alias, finalGame.matchId)}/console`)
+      ).json();
+      expect(finalConsole.entrants).toHaveLength(1);
+      expect([finalConsole.homeEntrantId, finalConsole.awayEntrantId]).toEqual([
+        final?.home_entrant_id ?? undefined,
+        final?.away_entrant_id ?? undefined,
+      ]);
       const reader = new EventStreamReader(harness.scratch.db);
       const events = await reader.after({
         organizationId: harness.organizationId,

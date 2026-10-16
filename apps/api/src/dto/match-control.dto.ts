@@ -271,6 +271,18 @@ export class MatchConsoleResponse extends FixtureSourcesResponse {
   })
   entrants!: ConsoleEntrantResponse[];
 
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Entrant on the home side; absent while that side is undecided',
+  })
+  homeEntrantId?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Entrant on the away side; absent while that side is undecided',
+  })
+  awayEntrantId?: string;
+
   @ApiProperty({
     type: [String],
     description: 'Capabilities granted to this subject for this match',
