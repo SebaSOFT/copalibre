@@ -340,3 +340,32 @@ on color alone.
 
 - **WHEN** a match is placed for the first time
 - **THEN** its card shows no rescheduled statement
+
+### Requirement: An undecided side names its source
+
+A match card SHALL show an undecided side as its source, in the organization's language: the winner or
+loser of a named match, or a placement label. It SHALL NOT be blank or a generic placeholder. A decided
+side SHALL show its entrant. The wording SHALL be discipline-agnostic, SHALL NOT rely on color alone,
+and SHALL render without JavaScript.
+
+#### Scenario: An undecided semi-final names its feeders
+
+- **WHEN** a spectator views a published semi-final whose quarter-finals are unplayed
+- **THEN** its card reads "Winner of Quarter-final 1" against "Winner of Quarter-final 2" in the
+  organization's language, with the slot's date, time and venue
+
+#### Scenario: A resolved side shows the entrant
+
+- **WHEN** one feeder of a semi-final is decided
+- **THEN** that side shows the winning entrant and the other side still names its source
+
+#### Scenario: A placement game names what it settles
+
+- **WHEN** a spectator views an unplayed third-place game whose semi-finals are unplayed
+- **THEN** the card is labelled third place and its sides read "Loser of Semi-final 1" and "Loser of
+  Semi-final 2"
+
+#### Scenario: The source renders without JavaScript
+
+- **WHEN** the matches view is loaded with JavaScript disabled
+- **THEN** every undecided side shows its source text
