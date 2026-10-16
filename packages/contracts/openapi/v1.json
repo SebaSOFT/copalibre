@@ -17111,6 +17111,22 @@
             "type": "string",
             "format": "uuid"
           },
+          "homeName": {
+            "type": "string",
+            "description": "Resolved display name of the home entrant"
+          },
+          "homeAbbreviation": {
+            "type": "string",
+            "description": "Persisted abbreviation of the home entrant"
+          },
+          "awayName": {
+            "type": "string",
+            "description": "Resolved display name of the away entrant"
+          },
+          "awayAbbreviation": {
+            "type": "string",
+            "description": "Persisted abbreviation of the away entrant"
+          },
           "matches": {
             "description": "Every match of this fixture in play order; exactly one unless it is a series",
             "type": "array",

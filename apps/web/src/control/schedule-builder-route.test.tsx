@@ -22,7 +22,9 @@ const oneFixture: readonly FixtureResponse[] = [
     matchId: 'match-1',
     round: 1,
     homeEntrantId: 'entrant-a',
+    homeName: 'Club Alfa',
     awayEntrantId: 'entrant-b',
+    awayName: 'Club Bravo',
   },
 ];
 
@@ -33,7 +35,9 @@ const twoFixtures: readonly FixtureResponse[] = [
     matchId: 'match-2',
     round: 1,
     homeEntrantId: 'entrant-c',
+    homeName: 'Club Cóndor',
     awayEntrantId: 'entrant-d',
+    awayName: 'Club Delta',
   },
 ];
 
@@ -195,7 +199,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
+    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
       target: { value: 'slot-1' },
     });
 
@@ -271,7 +275,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
+    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
       target: { value: 'slot-2' },
     });
     await act(async () => {
@@ -282,7 +286,7 @@ describe('ScheduleBuilderPage', () => {
     });
 
     const dialog = await screen.findByRole('dialog');
-    expect(dialog.textContent).toContain('entrant-a vs entrant-b');
+    expect(dialog.textContent).toContain('Club Alfa vs Club Bravo');
     const publishChanges = screen.getByRole('button', { name: 'Publish changes' });
     expect(publishChanges).toHaveProperty('disabled', true);
     expect(recentScheduleReasons).toHaveBeenCalledWith('liga-mendocina');
@@ -389,7 +393,7 @@ describe('ScheduleBuilderPage', () => {
 
     await screen.findByText(/In progress — it cannot be moved or withdrawn/);
     expect(screen.queryByRole('button', { name: /Withdraw from slot/ })).toBeNull();
-    expect(screen.queryByLabelText(/Start time — entrant-a vs entrant-b/)).toBeNull();
+    expect(screen.queryByLabelText(/Start time — Club Alfa vs Club Bravo/)).toBeNull();
   });
 
   it('shows a conflict and leaves publish disabled', async () => {
@@ -424,7 +428,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
+    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
       target: { value: 'slot-1' },
     });
 
@@ -468,7 +472,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
+    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
       target: { value: 'slot-1' },
     });
     await act(async () => {
@@ -500,7 +504,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
+    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
       target: { value: 'slot-1' },
     });
     await act(async () => {
@@ -560,7 +564,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
+    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
       target: { value: 'slot-1' },
     });
     await act(async () => {
@@ -589,7 +593,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
+    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
       target: { value: 'slot-1' },
     });
     await act(async () => {
@@ -620,7 +624,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
+    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
       target: { value: 'slot-1' },
     });
     await act(async () => {

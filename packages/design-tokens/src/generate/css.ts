@@ -1242,6 +1242,7 @@ function components(): string {
     // width — an atom owns all of its own styling, so this is a class, not
     // the inline style object the layout primitives exist to replace.
     '.cl-entrant-name { display: block; min-width: 0; }',
+    '.cl-entrant-name--inline { display: inline-block; max-width: 100%; vertical-align: bottom; }',
     '',
     "/* The matches-view card — shared by MatchCard.tsx on both public-web and control-web, so it lives here rather than in either surface's own page-scoped styles. */",
     '.cl-match-card { display: grid; gap: var(--cl-space-3); min-width: 0; }',

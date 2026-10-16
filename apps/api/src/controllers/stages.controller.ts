@@ -52,6 +52,7 @@ import {
 import {
   CompetitionRecordRepository,
   CompetitionRepository,
+  EnrollmentRepository,
   InvariantViolationError,
   StageReadModel,
   TournamentRepository,
@@ -998,6 +999,11 @@ export class StagesController {
     const fixtures = await competition.listFixturesOfStage(stage.stageId);
     const matches = await competition.listMatchesForStage(stage.stageId);
     const fixtureSources = await readFixtureSources(this.db, stage.stageId);
+    const entrantNames = await new EnrollmentRepository(this.db).resolveEntrantNames(
+      [
+        ...new Set(fixtures.flatMap((fixture) => [fixture.homeEntrantId, fixture.awayEntrantId])),
+      ].filter((id): id is string => id !== undefined),
+    );
     // Each fixture resolves against its own zone's declaration.
     const seriesOf = await readSeriesResolver(this.db, {
       tournamentId: tournament.tournamentId,
@@ -1041,6 +1047,18 @@ export class StagesController {
           round: fixture.round,
           ...(fixture.homeEntrantId === undefined ? {} : { homeEntrantId: fixture.homeEntrantId }),
           ...(fixture.awayEntrantId === undefined ? {} : { awayEntrantId: fixture.awayEntrantId }),
+          ...(fixture.homeEntrantId === undefined
+            ? {}
+            : {
+                homeName: entrantNames.get(fixture.homeEntrantId)?.name,
+                homeAbbreviation: entrantNames.get(fixture.homeEntrantId)?.abbreviation,
+              }),
+          ...(fixture.awayEntrantId === undefined
+            ? {}
+            : {
+                awayName: entrantNames.get(fixture.awayEntrantId)?.name,
+                awayAbbreviation: entrantNames.get(fixture.awayEntrantId)?.abbreviation,
+              }),
           matches: own.map((match) => {
             const releasedSlotId = releasedSlots.get(match.matchId);
             return {

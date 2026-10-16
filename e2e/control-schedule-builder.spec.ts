@@ -90,7 +90,9 @@ const BASE_FIXTURES = [
     matchId: 'match-1',
     round: 1,
     homeEntrantId: 'entrant-a',
+    homeName: 'Club Alfa',
     awayEntrantId: 'entrant-b',
+    awayName: 'Club Bravo',
     matches: [{ matchId: 'match-1', number: 1, status: 'scheduled' }],
   },
   {
@@ -98,7 +100,9 @@ const BASE_FIXTURES = [
     matchId: 'match-2',
     round: 1,
     homeEntrantId: 'entrant-c',
+    homeName: 'Club Cóndor',
     awayEntrantId: 'entrant-d',
+    awayName: 'Club Delta',
     matches: [{ matchId: 'match-2', number: 1, status: 'scheduled' }],
   },
 ];
@@ -110,7 +114,9 @@ const MORE_FIXTURES = [
     matchId: 'match-3',
     round: 2,
     homeEntrantId: 'entrant-e',
+    homeName: 'Club Estrella',
     awayEntrantId: 'entrant-f',
+    awayName: 'Club Faro',
     matches: [{ matchId: 'match-3', number: 1, status: 'scheduled' }],
   },
   {
@@ -118,7 +124,9 @@ const MORE_FIXTURES = [
     matchId: 'match-4',
     round: 2,
     homeEntrantId: 'entrant-a',
+    homeName: 'Club Alfa',
     awayEntrantId: 'entrant-c',
+    awayName: 'Club Cóndor',
     matches: [{ matchId: 'match-4', number: 1, status: 'scheduled' }],
   },
 ];
@@ -198,6 +206,12 @@ test('publishes an undecided eight-entrant final through the real API and retain
     await page.goto(loginCallbackUrl());
     await page.waitForURL(`**${target}`);
     await expect(page.getByText('Ronda 3').first()).toBeVisible();
+    await expect(
+      page.getByTestId('entrant-name').filter({ hasText: 'Club 1' }).first(),
+    ).toBeVisible();
+    expect(await page.locator('main').innerText()).not.toMatch(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+    );
     // Until source labels arrive, the final remains selectable by its real match row.
     const time = page.getByLabel(/^Hora de inicio/).last();
     await time.selectOption({ index: 1 });
@@ -218,10 +232,23 @@ test('publishes an undecided eight-entrant final through the real API and retain
       ['mobile', 390, 844],
     ] as const) {
       await page.setViewportSize({ width, height });
+      const typography = await page.getByTestId('entrant-name').evaluateAll((names) =>
+        names.every((name) => {
+          const own = getComputedStyle(name);
+          if (name.parentElement === null) return false;
+          const parent = getComputedStyle(name.parentElement);
+          return (
+            own.fontFamily === parent.fontFamily &&
+            own.fontSize === parent.fontSize &&
+            own.fontWeight === parent.fontWeight
+          );
+        }),
+      );
+      expect(typography).toBe(true);
       await page
         .getByLabel(/^Hora de inicio/)
         .last()
-        .scrollIntoViewIfNeeded();
+        .evaluate((element) => element.scrollIntoView({ block: 'center' }));
       await page.screenshot({
         path: `docs/assets/screenshots/control-undecided-final-${name}.png`,
       });
@@ -522,7 +549,7 @@ test('creates a venue and an official, assigns a fixture, previews, and publishe
   await page.waitForURL(`**${scheduleTarget}`);
 
   await expect(page.getByText('Ronda 1').first()).toBeVisible();
-  await page.getByLabel('Hora de inicio — entrant-a vs entrant-b').selectOption('slot-1');
+  await page.getByLabel('Hora de inicio — Club Alfa vs Club Bravo').selectOption('slot-1');
 
   await page.getByText('Previsualizar').click();
   await expect(page.getByText('Publicar')).toBeEnabled();
@@ -559,8 +586,8 @@ test('a conflicting batch shows the conflict and blocks publish until resolved',
   await expect(page.getByText('Ronda 1').first()).toBeVisible();
 
   // Both matches into the same slot at a venue that can host only one.
-  await page.getByLabel('Hora de inicio — entrant-a vs entrant-b').selectOption('slot-1');
-  await page.getByLabel('Hora de inicio — entrant-c vs entrant-d').selectOption('slot-1');
+  await page.getByLabel('Hora de inicio — Club Alfa vs Club Bravo').selectOption('slot-1');
+  await page.getByLabel('Hora de inicio — Club Cóndor vs Club Delta').selectOption('slot-1');
 
   await page.getByText('Previsualizar').click();
   await expect(page.getByText('Conflictos')).toBeVisible();
@@ -613,15 +640,15 @@ test('stores a minimum rest, asks a reason for published moves from the keyboard
   await expect(page.getByText('Ronda 1').first()).toBeVisible();
 
   // entrant-a plays match-1 at 14:00; match-4 at 15:00 leaves no rest at all.
-  await page.getByLabel('Hora de inicio — entrant-a vs entrant-c').selectOption('slot-5');
+  await page.getByLabel('Hora de inicio — Club Alfa vs Club Cóndor').selectOption('slot-5');
   await page.getByText('Previsualizar').click();
   await expect(page.getByText(/120 are required/).first()).toBeVisible();
-  await page.getByLabel('Hora de inicio — entrant-a vs entrant-c').selectOption('');
+  await page.getByLabel('Hora de inicio — Club Alfa vs Club Cóndor').selectOption('');
 
   // Three published matches move; the batch needs a reason before it publishes.
-  await page.getByLabel('Hora de inicio — entrant-a vs entrant-b').selectOption('slot-4');
-  await page.getByLabel('Hora de inicio — entrant-c vs entrant-d').selectOption('slot-6');
-  await page.getByLabel('Hora de inicio — entrant-e vs entrant-f').selectOption('slot-7');
+  await page.getByLabel('Hora de inicio — Club Alfa vs Club Bravo').selectOption('slot-4');
+  await page.getByLabel('Hora de inicio — Club Cóndor vs Club Delta').selectOption('slot-6');
+  await page.getByLabel('Hora de inicio — Club Estrella vs Club Faro').selectOption('slot-7');
   await page.getByText('Previsualizar').click();
   await page.getByRole('button', { name: 'Publicar', exact: true }).click();
 
@@ -633,7 +660,7 @@ test('stores a minimum rest, asks a reason for published moves from the keyboard
   await page.keyboard.press('Tab');
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('e');
-  await expect(dialog.getByLabel('Motivo de entrant-c vs entrant-d')).toBeFocused();
+  await expect(dialog.getByLabel('Motivo de Club Cóndor vs Club Delta')).toBeFocused();
   await page.keyboard.type('Pedido de un');
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
@@ -663,7 +690,9 @@ test('stores a minimum rest, asks a reason for published moves from the keyboard
   expect(moved?.assignments.find((entry) => entry.matchId === 'match-1')?.reason).toBeUndefined();
 
   // Withdrawing a published match frees its slot in the preview and needs a reason too.
-  await page.getByRole('button', { name: 'Retirar del horario — entrant-e vs entrant-f' }).click();
+  await page
+    .getByRole('button', { name: 'Retirar del horario — Club Estrella vs Club Faro' })
+    .click();
   await page.getByText('Previsualizar').click();
   await expect(page.getByText('Horarios que libera este lote')).toBeVisible();
   await page.getByRole('button', { name: 'Publicar', exact: true }).click();

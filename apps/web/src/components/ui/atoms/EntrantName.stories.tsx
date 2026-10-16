@@ -8,6 +8,7 @@ const meta = {
   argTypes: {
     fullName: { control: 'text' },
     abbreviation: { control: 'text' },
+    inline: { control: 'boolean' },
   },
 } satisfies Meta<typeof EntrantName>;
 
@@ -54,4 +55,19 @@ export const WidthDriven: Story = {
  */
 export const NoAbbreviation: Story = {
   args: { fullName: 'Club sin abreviatura registrada', abbreviation: undefined },
+};
+
+/** Inline names inherit the heading or body typography of their consumer. */
+export const Inline: Story = {
+  args: { inline: true },
+  render: (args) => (
+    <>
+      <h3 className="cl-card__title">
+        <EntrantName {...args} />
+      </h3>
+      <p className="cl-card__description">
+        <EntrantName {...args} />
+      </p>
+    </>
+  ),
 };

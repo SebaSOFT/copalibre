@@ -4,6 +4,7 @@ import {
   EnrollmentRepository,
   EventStreamReader,
   MatchAssignmentRepository,
+  PersonRepository,
   ScheduleRepository,
   TournamentRepository,
   newId,
@@ -54,6 +55,7 @@ describe('persisted bracket activation through HTTP', () => {
       format?: 'single-elimination' | 'double-elimination' | 'swiss';
       appoint?: boolean;
       legacy?: boolean;
+      individual?: boolean;
     } = {},
   ) {
     const { db } = harness.scratch;
@@ -65,7 +67,7 @@ describe('persisted bracket activation through HTTP', () => {
       version: '1.0.0',
       name: 'Bracket test',
       attribution: { author: 'CopaLibre', licence: 'AGPL-3.0-only' },
-      participantTypes: ['team'],
+      participantTypes: [options.individual ? 'person' : 'team'],
       rosterConstraints: { minPlayers: 1, maxPlayers: 11 },
       segmentTypes: [],
       eventDefinitions: [],
@@ -100,10 +102,25 @@ describe('persisted bracket activation through HTTP', () => {
         ...audit,
       });
       for (let n = 0; n < (options.count ?? 4); n += 1) {
-        const team = await enrollment.createTeam(uow, { name: `Team ${n + 1}`, ...audit });
+        const entrantRef = options.individual
+          ? {
+              kind: 'person' as const,
+              personId: (
+                await new PersonRepository(uow.tx).register(uow, {
+                  displayName: `Player ${n + 1}`,
+                  ...audit,
+                })
+              ).person.personId,
+            }
+          : {
+              kind: 'team' as const,
+              teamId: (await enrollment.createTeam(uow, { name: `Team ${n + 1}`, ...audit }))
+                .teamId,
+            };
         const entrant = await enrollment.registerEntrant(uow, {
           tournamentId: tournament.tournamentId,
-          entrantRef: { kind: 'team', teamId: team.teamId },
+          entrantRef,
+          abbreviation: `E${n + 1}`,
           ...audit,
         });
         await enrollment.setEntrantStatus(uow, {
@@ -251,11 +268,47 @@ describe('persisted bracket activation through HTTP', () => {
         );
       expect(final.homeSource).toMatchObject({ kind: 'winner-of', round: 2 });
       expect(cup.matches.some((match) => match.matchId === final.homeSource.matchId)).toBe(true);
+      const stageFixtures = await request('GET', `${cup.base}/fixtures`);
+      expect(stageFixtures.statusCode).toBe(200);
+      const known = stageFixtures
+        .json()
+        .fixtures.filter(
+          (fixture: { homeEntrantId?: string }) => fixture.homeEntrantId !== undefined,
+        );
+      expect(known).toHaveLength(4);
+      for (const fixture of known) {
+        expect(fixture.homeName).toMatch(/^Team [1-8]$/);
+        expect(fixture.awayName).toMatch(/^Team [1-8]$/);
+        expect(fixture.homeName).not.toBe(fixture.homeEntrantId);
+      }
+      const pending = stageFixtures
+        .json()
+        .fixtures.find((fixture: { round: number }) => fixture.round === 3);
+      expect(pending.homeName).toBeUndefined();
+      expect(pending.awayName).toBeUndefined();
       const next = await request('POST', `${cup.base}/rounds/next`);
       expect(next.statusCode).toBe(409);
       expect(next.json().errorCode).toBe('stage-graph-persisted');
     },
   );
+
+  it('resolves individual names and persisted abbreviations through the fixtures endpoint', async () => {
+    const cup = await setup({ individual: true });
+    const response = await request('GET', `${cup.base}/fixtures`);
+    expect(response.statusCode).toBe(200);
+    const known = response
+      .json()
+      .fixtures.filter(
+        (fixture: { homeEntrantId?: string }) => fixture.homeEntrantId !== undefined,
+      );
+    expect(known).toHaveLength(2);
+    for (const fixture of known) {
+      expect(fixture.homeName).toMatch(/^Player [1-4]$/);
+      expect(fixture.awayName).toMatch(/^Player [1-4]$/);
+      expect(fixture.homeAbbreviation).toBe(fixture.homeName.replace('Player ', 'E'));
+      expect(fixture.awayAbbreviation).toBe(fixture.awayName.replace('Player ', 'E'));
+    }
+  });
 
   it('persists no bye fixture for six entrants', async () => {
     const cup = await setup({ count: 6 });

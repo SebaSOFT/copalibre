@@ -379,6 +379,18 @@ export class FixtureResponse extends FixtureSourcesResponse {
   @ApiPropertyOptional({ format: 'uuid' })
   awayEntrantId?: string;
 
+  @ApiPropertyOptional({ description: 'Resolved display name of the home entrant' })
+  homeName?: string;
+
+  @ApiPropertyOptional({ description: 'Persisted abbreviation of the home entrant' })
+  homeAbbreviation?: string;
+
+  @ApiPropertyOptional({ description: 'Resolved display name of the away entrant' })
+  awayName?: string;
+
+  @ApiPropertyOptional({ description: 'Persisted abbreviation of the away entrant' })
+  awayAbbreviation?: string;
+
   @ApiProperty({
     type: [FixtureMatchResponse],
     description: 'Every match of this fixture in play order; exactly one unless it is a series',

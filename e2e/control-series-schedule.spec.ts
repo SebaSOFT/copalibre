@@ -69,7 +69,9 @@ function fixturesResponse(
         matchId: 'match-1',
         round: 1,
         homeEntrantId: 'Godoy Cruz',
+        homeName: 'Godoy Cruz',
         awayEntrantId: 'Independiente Rivadavia',
+        awayName: 'Independiente Rivadavia',
         matches: games.map((game) => ({
           matchId: `match-${game.number}`,
           number: game.number,

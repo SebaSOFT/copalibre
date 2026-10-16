@@ -4983,6 +4983,14 @@ export interface components {
             homeEntrantId?: string;
             /** Format: uuid */
             awayEntrantId?: string;
+            /** @description Resolved display name of the home entrant */
+            homeName?: string;
+            /** @description Persisted abbreviation of the home entrant */
+            homeAbbreviation?: string;
+            /** @description Resolved display name of the away entrant */
+            awayName?: string;
+            /** @description Persisted abbreviation of the away entrant */
+            awayAbbreviation?: string;
             /** @description Every match of this fixture in play order; exactly one unless it is a series */
             matches: components["schemas"]["FixtureMatchResponse"][];
             series?: components["schemas"]["FixtureSeriesResponse"];
