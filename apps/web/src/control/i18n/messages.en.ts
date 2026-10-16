@@ -11,6 +11,10 @@ import { defineMessages } from '../../lib/i18n/define-messages.ts';
  * {...messages.someKey} />` directly.
  */
 export const messages = defineMessages({
+  scheduleConcurrentChange: {
+    id: 'control.schedule.concurrentChange',
+    defaultMessage: '{match} was rescheduled by {actor}. Preview updated.',
+  },
   bracketHighlightEntrant: {
     id: 'control.bracket.highlightEntrant',
     defaultMessage: 'Highlight path for {entrant}',

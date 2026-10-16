@@ -75,7 +75,16 @@ export const PUBLIC_EVENT_FIELDS: Readonly<Record<string, readonly string[]>> = 
     'clockSeconds',
   ],
   'standings.recalculated': ['stageId', 'rows'],
-  'schedule.published': ['stageId', 'fixtures'],
+  'match.rescheduled': [
+    'matchId',
+    'stageId',
+    'startsAt',
+    'estimatedEnd',
+    'venue',
+    'withdrawn',
+    'previous',
+  ],
+  'match.anulled': ['matchId', 'status'],
   'stage.started': ['stageId', 'startedAt'],
   'stage.finished': ['stageId', 'finishedAt'],
 };

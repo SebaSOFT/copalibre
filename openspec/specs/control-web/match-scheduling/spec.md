@@ -120,3 +120,59 @@ required, naming the slot it had occupied, rather than disappearing from the vie
 - **WHEN** a series decision would remove the assignments of its remaining games
 - **THEN** the organizer sees which slots would be freed, and at which venues and times, before the
   removal is committed
+
+### Requirement: The builder asks for a reason when it changes a published placement
+
+When a batch moves or withdraws a published match, the builder SHALL ask for one batch reason before
+publishing, listing those matches. Each listed match SHALL be markable as an exception with one action,
+revealing its own reason; several marked matches SHALL take one exception reason together. A batch of
+first placements SHALL publish without asking.
+
+#### Scenario: Moving a published match asks why
+
+- **WHEN** an organizer moves a published match to another slot and publishes
+- **THEN** the builder asks for a reason, naming that match, and publishes only once one is given
+
+#### Scenario: Marking an exception takes one action
+
+- **WHEN** the reason prompt lists three moved matches and the organizer marks one as an exception
+- **THEN** that match shows its own reason field, already focused, while the other two keep the batch
+  reason
+
+#### Scenario: Several exceptions share one reason
+
+- **WHEN** the organizer marks two of five listed matches as exceptions together
+- **THEN** one reason entered for that selection applies to both
+
+#### Scenario: A reason is picked or typed
+
+- **WHEN** the organizer focuses a reason field
+- **THEN** it offers the preset reasons and the organization's recent reasons, filtered as they type,
+  and accepts free text when nothing fits
+
+#### Scenario: The prompt works from the keyboard
+
+- **WHEN** the organizer uses only the keyboard in the reason prompt
+- **THEN** they can move through the listed matches, toggle an exception, choose or type a reason and
+  publish, with focus always visible
+
+#### Scenario: First placements publish directly
+
+- **WHEN** an organizer places only unplaced matches and publishes
+- **THEN** the builder publishes without asking for a reason
+
+### Requirement: The builder can withdraw a match from its slot
+
+The schedule builder SHALL let an organizer withdraw a placed match from its slot as part of a batch,
+showing the withdrawal in the preview, and SHALL NOT offer withdrawal for a concluded, not-required or
+in-progress match.
+
+#### Scenario: Withdrawing frees the slot in the preview
+
+- **WHEN** an organizer withdraws a placed match
+- **THEN** the preview shows the match as unscheduled and its slot as free before anything is published
+
+#### Scenario: A live match offers no withdrawal
+
+- **WHEN** an organizer views a match in progress in the builder
+- **THEN** no withdrawal or move action is offered for it

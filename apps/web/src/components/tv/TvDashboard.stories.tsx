@@ -1,3 +1,4 @@
+import type { SupportedLanguage } from '@copalibre/domain';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { TvDashboard } from './TvDashboard.js';
 import { publicIntl, tvDashboardLabels, tvStatisticsLabels } from '../../lib/i18n/public-intl.js';
@@ -51,5 +52,38 @@ export const NothingLive: Story = {
         tournamentName="Copa Primavera"
       />
     );
+  },
+};
+
+export const Rescheduled: Story = {
+  render: (args, context) => {
+    const language = (context.globals.locale ?? 'en') as SupportedLanguage;
+    const intl = publicIntl(language);
+    return (
+      <TvDashboard
+        {...args}
+        language={language}
+        labels={tvStatisticsLabels(intl)}
+        dashboardLabels={tvDashboardLabels(intl)}
+      />
+    );
+  },
+  args: {
+    initialView: 'matches',
+    matchList: [
+      {
+        key: 'm-1',
+        scope: 'Liga · 1',
+        stateLabel: 'UPCOMING',
+        home: { label: 'CAI', name: 'Club Atlético Independiente' },
+        away: { label: 'DSJ', name: 'Deportivo San Juan' },
+        scheduledAt: '2026-11-07T18:30:00.000Z',
+        venueName: 'Cancha 2',
+        rescheduledFrom: {
+          startsAt: Date.UTC(2026, 10, 7, 14, 30),
+          venue: { alias: 'cancha-1', name: 'Cancha 1' },
+        },
+      },
+    ],
   },
 };

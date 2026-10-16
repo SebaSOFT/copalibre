@@ -1,3 +1,4 @@
+import type { PreviousPlacement } from './reschedule.js';
 import { publicPath, publicStreamPath, type RouteInput } from '@copalibre/routing';
 import { IMPLICIT_SEASON_NAME } from '@copalibre/domain';
 
@@ -11,6 +12,9 @@ import { IMPLICIT_SEASON_NAME } from '@copalibre/domain';
 export type MatchState = 'live' | 'upcoming' | 'final' | 'disputed';
 
 export interface OverviewMatch {
+  readonly scheduleVersion?: number;
+  readonly venueName?: string;
+  readonly rescheduledFrom?: PreviousPlacement | null;
   /** Absent in synthetic fixtures that have not yet been persisted as matches. */
   readonly matchId?: string;
   /** Absent while a generated fixture has not become a persisted match. */

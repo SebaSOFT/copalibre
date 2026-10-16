@@ -201,3 +201,27 @@ export const ToBeDecided: Story = {
     />
   ),
 };
+
+export const Rescheduled: Story = {
+  render: (_args, context) => {
+    const locale = context.globals.locale as SupportedLanguage;
+    return (
+      <MatchCard
+        labels={labelsFor(locale)}
+        locale={locale}
+        match={{
+          ...BASE,
+          state: 'upcoming',
+          homeScore: undefined,
+          awayScore: undefined,
+          clockSeconds: undefined,
+          scheduledAt: '2026-11-07T18:30:00.000Z',
+          rescheduledFrom: {
+            startsAt: Date.UTC(2026, 10, 7, 14, 30),
+            venue: { alias: 'cancha-1', name: 'Cancha 1' },
+          },
+        }}
+      />
+    );
+  },
+};

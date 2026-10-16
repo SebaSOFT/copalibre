@@ -238,6 +238,9 @@ export function mapOverviewResponse(
     }),
     matches: response.matches.map((m: PublicOverviewMatchResponse) => ({
       matchId: m.matchId,
+      scheduleVersion: m.scheduleVersion,
+      rescheduledFrom: m.rescheduledFrom,
+      venueName: m.venueName,
       matchNumber: m.matchNumber,
       ...(m.stageOrdinal === undefined ? {} : { stageOrdinal: m.stageOrdinal }),
       stageNumber: m.stageNumber,
@@ -282,6 +285,10 @@ export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
       const state = publicMatchState(m.state);
       return {
         matchId: m.matchId,
+        scheduleVersion: m.scheduleVersion,
+        rescheduledFrom: m.rescheduledFrom,
+        scheduledAt: m.scheduledAt,
+        venueName: m.venueName,
         stageNumber: m.stageNumber,
         matchNumber: m.matchNumber,
         ...(m.stageOrdinal === undefined ? {} : { stageOrdinal: m.stageOrdinal }),
@@ -311,6 +318,8 @@ export function mapMatchesViewResponse(response: PublicMatchesViewResponse): {
   return {
     matches: response.matches.map((m) => ({
       matchId: m.matchId,
+      scheduleVersion: m.scheduleVersion,
+      rescheduledFrom: m.rescheduledFrom,
       stageNumber: m.stageNumber,
       matchNumber: m.matchNumber,
       round: m.round,

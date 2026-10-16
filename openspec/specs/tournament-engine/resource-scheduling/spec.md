@@ -73,7 +73,7 @@ Schedule changes SHALL be classified `safe`, `requires_rebuild`, or `blocked_aft
 domain's mutation model, and the system SHALL enforce that classification. Classification is evaluated
 against the match being rescheduled, so one concluded match never blocks the rescheduling of another. A
 match anulled by a series decision SHALL be treated as concluded for this purpose: its schedule is
-history, not a plan.
+history, not a plan. A match in progress SHALL NOT be moved or withdrawn.
 
 #### Scenario: Rescheduling a completed match is blocked
 - **WHEN** an operator attempts to move a match that has already concluded to a different slot
@@ -87,6 +87,10 @@ history, not a plan.
 #### Scenario: Rescheduling a not-required match is blocked
 - **WHEN** an operator attempts to move a match anulled by a series decision into another slot
 - **THEN** the system rejects the change, naming the series result that anulled it
+
+#### Scenario: A match in progress cannot be moved
+- **WHEN** an operator attempts to move or withdraw a match whose status is in progress
+- **THEN** the batch is refused, naming the match, and nothing changes
 
 ### Requirement: A venue carries a validated alias
 
@@ -237,3 +241,127 @@ The resources management screen SHALL compose owned design-system primitives wit
 #### Scenario: Selection controls use owned primitives
 - **WHEN** an operator selects venues for a schedule or assigns roles to an official
 - **THEN** all options are rendered using owned Checkbox primitives with visible focus states and accessible labels
+
+### Requirement: A tournament declares its minimum rest between an entrant's matches
+
+A tournament SHALL be able to declare an optional minimum rest, in minutes, between the end of one of an
+entrant's matches and the start of their next. Conflict detection SHALL read it from the tournament
+rather than from the request. A tournament declaring none SHALL apply no rest rule. Changing it SHALL be
+classified `safe`, and SHALL move no placement.
+
+#### Scenario: The stored rule is applied
+
+- **WHEN** a tournament declares a 120-minute minimum rest and an entrant is placed 90 minutes after
+  their previous match ends
+- **THEN** the batch is rejected with a rest-rule conflict naming both matches
+
+#### Scenario: No declared rule, no rest conflict
+
+- **WHEN** a tournament declares no minimum rest and an entrant is placed in back-to-back slots
+- **THEN** no rest-rule conflict is reported
+
+#### Scenario: A rule sent in the request is ignored
+
+- **WHEN** a preview or publish request still carries a rest rule in its body
+- **THEN** the tournament's stored rule is applied instead, and the response is otherwise unchanged
+
+### Requirement: A placed match occupies its estimated duration
+
+A placed match SHALL occupy, for conflict detection, its slot's start plus its estimated duration: the
+regulation length of its discipline's timed segments, with the tournament ruleset's overrides applied.
+When no estimate exists, it SHALL occupy its slot's length. A venue SHALL additionally be held for the
+schedule's changeover after the match.
+
+#### Scenario: Short slots do not hide a venue clash
+
+- **WHEN** a schedule has 15-minute slots, the discipline's regulation is two 25-minute halves, and two
+  matches are placed at one single-capacity venue 15 minutes apart
+- **THEN** the second placement is rejected as a venue conflict, because the first match occupies 50
+  minutes
+
+#### Scenario: Rest is measured from the match's end
+
+- **WHEN** an entrant's first match starts at 09:00 with a 50-minute estimate, the minimum rest is 60
+  minutes, and their next match is placed at 10:30
+- **THEN** a rest-rule conflict is reported, because only 40 minutes separate the estimated end from the
+  next start
+
+#### Scenario: An untimed discipline falls back to the slot
+
+- **WHEN** a match of a discipline played to sets, with no timed segment, is placed in a 120-minute slot
+- **THEN** it occupies 120 minutes for conflict detection
+
+### Requirement: A match can be withdrawn from its slot
+
+A schedule batch SHALL be able to withdraw a match from its slot, atomically with the batch's other
+placements. A withdrawn match SHALL have no scheduled time on any surface. Withdrawing a concluded,
+not-required or in-progress match SHALL be refused.
+
+#### Scenario: A withdrawal publishes with the batch
+
+- **WHEN** a batch withdraws one match and places another in the slot it freed
+- **THEN** both take effect together, and the withdrawn match reports no scheduled time
+
+#### Scenario: Withdrawing a finalized match is refused
+
+- **WHEN** a batch tries to withdraw a finalized match
+- **THEN** the whole batch is refused as `blocked_after_results`
+
+### Requirement: A change to a published placement keeps its history and reason
+
+Changing or withdrawing a published placement SHALL require a reason: the batch's reason, or that
+match's own exception reason when given. It SHALL record, in the same transaction, the prior placement
+(slot, venue, start and officials) with actor, time, the reason that applies and resulting state, in an
+append-only history and in the audit trail. A first placement SHALL need no reason.
+
+#### Scenario: Moving a published match records where it was
+
+- **WHEN** a published match is moved from 14:30 at Court 1 to 18:00 at Court 2 with the reason
+  "venue unavailable"
+- **THEN** the history holds the 14:30 Court 1 placement, the actor, the time and the reason, and the
+  audit record carries the prior and resulting placement
+
+#### Scenario: A published change without a reason is refused
+
+- **WHEN** a batch moves a published match and supplies no reason
+- **THEN** the batch is refused, naming the published matches that need a reason, and nothing changes
+
+#### Scenario: An exception reason overrides the batch reason for its match
+
+- **WHEN** a batch moves three published matches with the batch reason "Court 1 without lights" and one of
+  them carries its own reason "requested by the visiting club"
+- **THEN** two history rows record "Court 1 without lights" and the third records "requested by the
+  visiting club"
+
+#### Scenario: Exceptions alone can cover the batch
+
+- **WHEN** every changed published match in a batch carries its own reason and the batch reason is empty
+- **THEN** the batch is accepted
+
+#### Scenario: A preset reason is stored with its code
+
+- **WHEN** a reason is chosen from the preset list rather than typed
+- **THEN** the history stores the preset's code along with its text, so it can be rendered in any of the
+  eight languages
+
+#### Scenario: A first placement needs no reason
+
+- **WHEN** an unplaced match is placed and published
+- **THEN** no reason is required and no history row is written
+
+### Requirement: An organization's schedule is readable across tournaments
+
+An authorized principal SHALL be able to read an organization's assignments over a time range, across
+its tournaments, optionally filtered by tournament, stage or venue. Each assignment SHALL report its
+match, tournament, stage, zone, round, entrants, venue, start, estimated end and whether it is published.
+
+#### Scenario: Two tournaments sharing a venue are read together
+
+- **WHEN** an organizer reads the organization's schedule for a weekend in which two tournaments use the
+  same venue
+- **THEN** both tournaments' assignments are returned with their tournament and estimated end
+
+#### Scenario: Unauthorized reads are refused
+
+- **WHEN** a principal without schedule authority in the organization requests its schedule
+- **THEN** the request is refused

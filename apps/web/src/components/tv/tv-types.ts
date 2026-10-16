@@ -12,6 +12,7 @@ export interface TvClubItem {
 }
 
 export interface TvDashboardLabels {
+  readonly rescheduled?: string;
   readonly resultState: ResultStateLabels;
   readonly noMatchesScheduled: string;
   readonly standingsUnavailable: string;

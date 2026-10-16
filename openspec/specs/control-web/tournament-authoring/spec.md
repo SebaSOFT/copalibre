@@ -635,3 +635,20 @@ The tournament setup wizard SHALL let an operator declare, per stage, an ordered
 #### Scenario: The profile wizard does not offer zones
 - **WHEN** an operator authors a tournament profile
 - **THEN** the stage editor shows no zone section
+
+### Requirement: Tournament settings declare a minimum rest between matches
+
+The tournament settings screen SHALL let an authorized organizer set or clear the tournament's minimum
+rest between an entrant's matches, in minutes, with a plain-language explanation that it is checked when
+matches are scheduled. Saving it SHALL move no match.
+
+#### Scenario: Setting the minimum rest
+
+- **WHEN** an organizer sets the minimum rest to 120 minutes and saves
+- **THEN** the setting is stored, the tournament summary states it, and the next schedule preview applies
+  it
+
+#### Scenario: Clearing the minimum rest
+
+- **WHEN** an organizer clears the minimum rest and saves
+- **THEN** the tournament applies no rest rule from then on

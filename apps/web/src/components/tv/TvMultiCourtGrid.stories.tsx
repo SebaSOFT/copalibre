@@ -1,5 +1,10 @@
+import type { SupportedLanguage } from '@copalibre/domain';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { publicIntl, tvMultiCourtGridLabels } from '../../lib/i18n/public-intl.js';
+import {
+  publicIntl,
+  tvMultiCourtGridLabels,
+  tvDashboardLabels,
+} from '../../lib/i18n/public-intl.js';
 import type { LiveDashboard, LiveMatch } from '../../lib/live-state.js';
 import { TvMultiCourtGrid } from './TvMultiCourtGrid.js';
 
@@ -90,4 +95,36 @@ export const SixCourts: Story = {
 
 export const NoLiveMatches: Story = {
   args: { gridSize: 'auto', initial: dashboard([]) },
+};
+
+export const Rescheduled: Story = {
+  render: (args, context) => {
+    const locale = (context.globals.locale ?? 'en') as SupportedLanguage;
+    const intl = publicIntl(locale);
+    return (
+      <TvMultiCourtGrid
+        {...args}
+        locale={locale}
+        rescheduledLabel={tvDashboardLabels(intl).rescheduled}
+        resultStateLabels={tvMultiCourtGridLabels(intl).resultState}
+      />
+    );
+  },
+  args: {
+    gridSize: 2,
+    locale: 'es',
+    rescheduledLabel: tvDashboardLabels(publicIntl('es')).rescheduled,
+    initial: dashboard([
+      liveMatch({
+        matchId: 'match-1',
+        state: 'upcoming',
+        scheduledAt: '2026-11-07T18:30:00.000Z',
+        venueName: 'Cancha 2',
+        rescheduledFrom: {
+          startsAt: Date.UTC(2026, 10, 7, 14, 30),
+          venue: { alias: 'cancha-1', name: 'Cancha 1' },
+        },
+      }),
+    ]),
+  },
 };

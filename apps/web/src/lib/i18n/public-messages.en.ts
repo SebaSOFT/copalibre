@@ -13,6 +13,10 @@ import { defineMessages } from './define-messages.ts';
  * string as a plain prop instead of importing this catalog itself.
  */
 export const messages = defineMessages({
+  matchRescheduled: {
+    id: 'publicWeb.match.rescheduled',
+    defaultMessage: 'Rescheduled · was {time}{venue}',
+  },
   bracketHighlightEntrant: {
     id: 'publicWeb.bracket.highlightEntrant',
     defaultMessage: 'Highlight path for {entrant}',

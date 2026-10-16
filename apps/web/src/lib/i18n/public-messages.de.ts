@@ -4,6 +4,7 @@
  * (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'publicWeb.match.rescheduled': 'Neu angesetzt · zuvor {time}{venue}',
   'publicWeb.bracket.highlightEntrant': 'Weg von {entrant} hervorheben',
   'publicWeb.bracket.highlightHint':
     'Wählen Sie einen Teilnehmer, um seinen Weg zu verfolgen. Erneut auswählen oder Escape drücken, um die Markierung aufzuheben. Zukünftige Spiele zeigen den möglichen Weg bei weiteren Siegen.',

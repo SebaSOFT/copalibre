@@ -4,6 +4,7 @@
  * pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'publicWeb.match.rescheduled': 'Reagendado · antes {time}{venue}',
   'publicWeb.bracket.highlightEntrant': 'Destacar percurso de {entrant}',
   'publicWeb.bracket.highlightHint':
     'Selecione um participante para seguir seu percurso. Selecione novamente ou pressione Escape para limpar. As partidas futuras mostram o possível percurso de vitórias.',

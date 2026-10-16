@@ -1,3 +1,5 @@
+import { rescheduledStatement } from '../../lib/reschedule.js';
+import { measureSchedule, animateSchedule } from '../../lib/schedule-travel.js';
 import { useEffect, useRef, useState } from 'react';
 import { RealtimeClient } from '@copalibre/realtime';
 import {
@@ -16,6 +18,8 @@ export type CourtGridSize = 2 | 4 | 6;
 
 export interface TvMultiCourtGridProps {
   readonly initial: LiveDashboard;
+  readonly locale?: string;
+  readonly rescheduledLabel?: string;
   readonly streamPath: string;
   /** `matchId -> "Cancha 1"` — resolved once at page load from the matches-view endpoint, the only public projection that already carries a venue name per match. */
   readonly venueNameByMatchId: Readonly<Record<string, string>>;
@@ -57,6 +61,8 @@ function totalScore(match: LiveMatch): number {
  */
 export function TvMultiCourtGrid({
   initial,
+  locale = 'en',
+  rescheduledLabel,
   streamPath,
   venueNameByMatchId,
   gridSize = 'auto',
@@ -87,7 +93,17 @@ export function TvMultiCourtGrid({
     dashboardRef.current = dashboard;
   }, [dashboard]);
 
-  const liveMatches = dashboard.matches.filter((match) => match.state === 'live');
+  const liveMatches = dashboard.matches
+    .filter(
+      (match) =>
+        match.state === 'live' || (match.state === 'upcoming' && match.scheduledAt !== undefined),
+    )
+    .sort(
+      (a, b) =>
+        (a.venueName ?? venueNameByMatchId[a.matchId] ?? '').localeCompare(
+          b.venueName ?? venueNameByMatchId[b.matchId] ?? '',
+        ) || (a.scheduledAt ?? '').localeCompare(b.scheduledAt ?? ''),
+    );
   const activeGridSize = resolveGridSize(gridSize, liveMatches.length);
   const visibleMatches = paginate(liveMatches, activeGridSize, pageIndex);
 
@@ -109,7 +125,10 @@ export function TvMultiCourtGrid({
         // A pure recompute, not a reactive effect on the state it produces —
         // the diff that decides which cards pulse happens once, right where
         // the change that causes it actually arrives.
+        const positions = event.eventType === 'match.rescheduled' ? measureSchedule() : undefined;
         const next = applyEvent(dashboardRef.current, event);
+        dashboardRef.current = next;
+        if (positions) requestAnimationFrame(() => animateSchedule(positions));
         setDashboard(next);
 
         const changed = new Set<string>();
@@ -160,9 +179,11 @@ export function TvMultiCourtGrid({
         <CourtCard
           key={match.matchId}
           match={match}
+          locale={locale}
+          rescheduledLabel={rescheduledLabel}
           pulsing={pulsingMatchIds.has(match.matchId)}
           resultStateLabels={resultStateLabels}
-          venueName={venueNameByMatchId[match.matchId]}
+          venueName={match.venueName ?? venueNameByMatchId[match.matchId]}
         />
       ))}
     </div>
@@ -171,11 +192,15 @@ export function TvMultiCourtGrid({
 
 function CourtCard({
   match,
+  locale,
+  rescheduledLabel,
   venueName,
   pulsing,
   resultStateLabels,
 }: {
   readonly match: LiveMatch;
+  readonly locale: string;
+  readonly rescheduledLabel?: string;
   readonly venueName: string | undefined;
   readonly pulsing: boolean;
   readonly resultStateLabels: ResultStateLabels;
@@ -184,8 +209,17 @@ function CourtCard({
   const [home, away] = match.sides;
 
   return (
-    <article className="tv-court-card cl-chamfer" data-testid={`tv-court-card-${match.matchId}`}>
+    <article
+      data-schedule-match={match.matchId}
+      className="tv-court-card cl-chamfer"
+      data-testid={`tv-court-card-${match.matchId}`}
+    >
       {venueName !== undefined && <span className="tv-court-card__venue">{venueName}</span>}
+      {match.rescheduledFrom && (
+        <p className="tv-court-card__venue">
+          {rescheduledStatement(match.rescheduledFrom, venueName, locale, rescheduledLabel)}
+        </p>
+      )}
       <div
         className={
           pulsing ? 'tv-court-card__score tv-court-card__score--pulse' : 'tv-court-card__score'

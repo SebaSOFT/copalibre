@@ -4,6 +4,7 @@
  * separate, later pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'control.schedule.concurrentChange': '{actor} a reprogrammé {match}. Aperçu actualisé.',
   'control.bracket.highlightEntrant': 'Mettre en évidence le parcours de {entrant}',
   'control.bracket.highlightHint':
     'Sélectionnez un participant pour suivre son parcours. Sélectionnez-le à nouveau ou appuyez sur Échap pour effacer. Les matchs futurs montrent son parcours possible en cas de victoire.',

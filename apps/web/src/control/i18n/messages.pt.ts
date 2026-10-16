@@ -4,6 +4,7 @@
  * separate, later pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'control.schedule.concurrentChange': '{actor} reagendou {match}. Prévia atualizada.',
   'control.bracket.highlightEntrant': 'Destacar percurso de {entrant}',
   'control.bracket.highlightHint':
     'Selecione um participante para seguir seu percurso. Selecione novamente ou pressione Escape para limpar. As partidas futuras mostram o possível percurso de vitórias.',

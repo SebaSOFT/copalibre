@@ -3,6 +3,7 @@
  * Extracted from the match report page: the
  * badge/scoreboard/venue header, unchanged in markup and styling.
  */
+import { rescheduledStatement } from '../../../lib/reschedule.ts';
 import { Badge } from '../atoms/Badge.tsx';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
 import type { MatchReportModel } from '../../../lib/match-report.ts';
@@ -12,9 +13,14 @@ export interface Props {
   readonly locale: string;
   /** The match state in the page language. The stage/round/match position lives in the breadcrumb. */
   readonly statusLabel: string;
+  readonly rescheduledLabel?: string;
 }
 
-const { model, locale, statusLabel } = Astro.props;
+const { model, locale, statusLabel, rescheduledLabel } = Astro.props;
+const rescheduled =
+  model.status === 'upcoming'
+    ? rescheduledStatement(model.rescheduledFrom, model.venueName, locale, rescheduledLabel)
+    : '';
 ---
 
 <header class="cl-match-hero">
@@ -42,6 +48,11 @@ const { model, locale, statusLabel } = Astro.props;
   ) : model.status === 'upcoming' ? (
     <p class="cl-match-venue cl-text-muted">Schedule not yet available.</p>
   ) : null}
+  {rescheduled && (
+    <p class="cl-match-venue" role="status">
+      {rescheduled}
+    </p>
+  )}
 </header>
 
 <style>

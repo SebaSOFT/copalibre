@@ -1397,7 +1397,7 @@
 
 .tv-match-list__entry {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 1vmin;
   min-width: 0;
@@ -1412,6 +1412,12 @@
   color: var(--tv-text-muted);
   font-size: 0.8em;
   text-transform: uppercase;
+}
+
+.tv-match-list__rescheduled {
+  grid-column: 1 / -1;
+  color: var(--tv-text-primary);
+  overflow-wrap: anywhere;
 }
 
 .tv-match-list__side {

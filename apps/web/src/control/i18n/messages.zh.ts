@@ -4,6 +4,7 @@
  * ship now, native-speaker review later.
  */
 export const messages: Record<string, string> = {
+  'control.schedule.concurrentChange': '{actor}已重新安排{match}。预览已更新。',
   'control.bracket.highlightEntrant': '突出显示{entrant}的晋级路线',
   'control.bracket.highlightHint':
     '选择参赛者查看其路线。再次选择或按 Escape 清除。未来比赛显示继续获胜时的可能路线。',

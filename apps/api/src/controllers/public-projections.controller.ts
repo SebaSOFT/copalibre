@@ -31,6 +31,7 @@ import { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
 import { readStandings, readStandingsByZone } from '../standings/read.js';
 import { readMatchesView } from '../matches-view/read.js';
+import { readPublicScheduleChanges } from '../matches-view/schedule.js';
 import {
   listEffectiveTableLayouts,
   readPlayerStatisticsDrilldown,
@@ -431,6 +432,10 @@ export class PublicProjectionsController {
       tournament.tournamentId,
     );
     const ordinalByMatchId = await this.stageOrdinalsOf(tournament.tournamentId);
+    const scheduleChanges = await readPublicScheduleChanges(
+      this.db,
+      matches.map((match) => match.matchId),
+    );
 
     const entrantIds = new Set<string>();
     for (const match of matches) {
@@ -525,6 +530,7 @@ export class PublicProjectionsController {
         : { disciplineImages: descriptor.images.map((reference) => ({ ...reference })) }),
       matches: matches.map((m) => ({
         matchId: m.matchId,
+        ...scheduleChanges.get(m.matchId),
         matchNumber: m.matchNumber,
         ...(ordinalByMatchId.has(m.matchId)
           ? { stageOrdinal: ordinalByMatchId.get(m.matchId) }
@@ -540,7 +546,7 @@ export class PublicProjectionsController {
         awayAbbreviation: m.awayEntrantId ? names.get(m.awayEntrantId)?.abbreviation : undefined,
         homeScore: m.scores?.[0],
         awayScore: m.scores?.[1],
-        scheduledAt: m.scheduledAt,
+        scheduledAt: scheduleChanges.get(m.matchId)?.scheduledAt,
       })),
       standingsPreview,
       standingsGrain,
@@ -725,6 +731,7 @@ export class PublicProjectionsController {
       ...(schedule?.venue_name === null || schedule?.venue_name === undefined
         ? {}
         : { venueName: schedule.venue_name }),
+      ...(await readPublicScheduleChanges(this.db, [match.match_id])).get(match.match_id),
       schedulePublished: schedule?.published ?? false,
       officials: officials.map((official) => ({
         name: official.display_name,
@@ -793,6 +800,10 @@ export class PublicProjectionsController {
     );
     const liveMatches = matches.filter((m) => m.status === 'in-progress');
     const ordinalByMatchId = await this.stageOrdinalsOf(tournament.tournamentId);
+    const scheduleChanges = await readPublicScheduleChanges(
+      this.db,
+      matches.map((match) => match.matchId),
+    );
 
     const entrantIds = new Set<string>();
     for (const match of liveMatches) {
@@ -856,6 +867,7 @@ export class PublicProjectionsController {
     return {
       matches: liveMatches.map((m, index) => ({
         matchId: m.matchId,
+        ...scheduleChanges.get(m.matchId),
         stageNumber: m.stageNumber,
         matchNumber: m.matchNumber ?? m.round,
         ...(ordinalByMatchId.has(m.matchId)
@@ -1091,6 +1103,8 @@ export class PublicProjectionsController {
     return {
       matches: rows.map((row) => ({
         matchId: row.matchId,
+        scheduleVersion: row.scheduleVersion,
+        rescheduledFrom: row.rescheduledFrom,
         stageNumber: row.stageNumber,
         matchNumber: row.matchNumber,
         round: row.round,

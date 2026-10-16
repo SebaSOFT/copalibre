@@ -3353,6 +3353,15 @@ export interface components {
             ruleset: components["schemas"]["TournamentConfigurationRulesetResponse"];
             seasons: components["schemas"]["TournamentConfigurationSeasonResponse"][];
         };
+        PublicScheduleVenueResponse: {
+            alias: string;
+            name: string;
+        };
+        PublicPreviousPlacementResponse: {
+            /** @description Unix epoch milliseconds */
+            startsAt: number;
+            venue: components["schemas"]["PublicScheduleVenueResponse"] | null;
+        };
         PublicMatchesViewEventResponse: {
             /** @description The event's own discipline-declared label */
             label: string;
@@ -3415,6 +3424,9 @@ export interface components {
             explanation: string;
         };
         ControlMatchesViewMatchResponse: {
+            /** @description Independent published schedule replay version */
+            scheduleVersion?: number;
+            rescheduledFrom?: components["schemas"]["PublicPreviousPlacementResponse"] | null;
             /** Format: uuid */
             matchId: string;
             stageNumber: number;
@@ -5296,6 +5308,10 @@ export interface components {
             key: string;
         };
         PublicOverviewMatchResponse: {
+            venueName?: string;
+            /** @description Independent published schedule replay version */
+            scheduleVersion?: number;
+            rescheduledFrom?: components["schemas"]["PublicPreviousPlacementResponse"] | null;
             /** Format: uuid */
             matchId: string;
             /** @description The match number as persisted: a per-fixture series-game index */
@@ -5430,6 +5446,9 @@ export interface components {
             scores?: number[];
         };
         PublicMatchReportResponse: {
+            /** @description Independent published schedule replay version */
+            scheduleVersion?: number;
+            rescheduledFrom?: components["schemas"]["PublicPreviousPlacementResponse"] | null;
             organizationAlias: string;
             organizationName: string;
             tournamentAlias: string;
@@ -5480,6 +5499,12 @@ export interface components {
             remainingSeconds: number;
         };
         PublicLiveMatchResponse: {
+            /** Format: date-time */
+            scheduledAt?: string;
+            venueName?: string;
+            /** @description Independent published schedule replay version */
+            scheduleVersion?: number;
+            rescheduledFrom?: components["schemas"]["PublicPreviousPlacementResponse"] | null;
             /** Format: uuid */
             matchId: string;
             stageNumber: number;
@@ -5567,6 +5592,9 @@ export interface components {
             zones: components["schemas"]["PublicBracketZoneResponse"][];
         };
         PublicMatchesViewMatchResponse: {
+            /** @description Independent published schedule replay version */
+            scheduleVersion?: number;
+            rescheduledFrom?: components["schemas"]["PublicPreviousPlacementResponse"] | null;
             /** Format: uuid */
             matchId: string;
             stageNumber: number;

@@ -1,3 +1,6 @@
+import type { PublicMatchesViewResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import { measureSchedule, animateSchedule } from '../../lib/schedule-travel.js';
+import type { PreviousPlacement } from '../../lib/reschedule.js';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 import type { SupportedLanguage } from '@copalibre/domain';
@@ -17,7 +20,7 @@ import { presentState } from '../../lib/result-state.js';
 import { applyTemplate, formatClock } from '../../lib/matches-view.js';
 import { formatTimestamp } from '../../lib/format-timestamp.js';
 import { findPinnedMatch, type PinnedMatchRef } from '../../lib/tv-dashboard-source.js';
-import { pageTvMatches, type TvMatchEntry } from '../../lib/tv-match-list.js';
+import { pageTvMatches, tvMatchEntriesOf, type TvMatchEntry } from '../../lib/tv-match-list.js';
 import { resolveTvBranding, tvStateColor, type TvBranding } from '../../lib/tv-branding.js';
 import type { StandingsRowView } from '../../lib/overview.js';
 import {
@@ -180,6 +183,10 @@ export function TvDashboard({
   initialView,
 }: TvDashboardProps): React.JSX.Element {
   const [dashboard, setDashboard] = useState<LiveDashboard>(initial);
+  const [scheduledMatches, setScheduledMatches] = useState(matchList ?? []);
+  const scheduleVersions = useRef(
+    new Map((matchList ?? []).map((entry) => [entry.key, entry.scheduleVersion ?? 0])),
+  );
   const [rail, setRail] = useState<{
     readonly tab: 'standings' | 'performers' | 'facts' | 'bracket' | 'fixtures';
     readonly page: number;
@@ -237,10 +244,38 @@ export function TvDashboard({
   const refreshProjection = useCallback(async (): Promise<readonly LiveMatch[] | undefined> => {
     if (!organizationAlias || !tournamentAlias) return undefined;
     try {
-      const res = await fetch(
-        `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/live`,
+      const base = `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}`;
+      const [res, scheduleResponse] = await Promise.all(
+        ['live', 'matches-view'].map((path) => fetch(`${base}/${path}`)),
       );
-      if (res.ok) {
+      if (scheduleResponse?.ok) {
+        const snapshot = (await scheduleResponse.json()) as PublicMatchesViewResponse;
+        if (
+          Array.isArray(snapshot.matches) &&
+          snapshot.matches.every((match) => typeof match.status === 'string')
+        ) {
+          const entries = tvMatchEntriesOf(
+            snapshot.matches.map((match) => ({
+              ...match,
+              state: match.status,
+              series: match.series as PublicSeriesState | undefined,
+            })),
+            { state: dashboardLabels.resultState, round: dashboardLabels.bracketRound },
+          );
+          setScheduledMatches((current) =>
+            entries.flatMap((entry) => {
+              const version = scheduleVersions.current.get(entry.key) ?? 0;
+              if ((entry.scheduleVersion ?? 0) < version) {
+                const held = current.find((match) => match.key === entry.key);
+                return held ? [held] : [];
+              }
+              scheduleVersions.current.set(entry.key, entry.scheduleVersion ?? 0);
+              return [entry];
+            }),
+          );
+        }
+      }
+      if (res?.ok) {
         const liveData = await res.json();
         if (liveData && Array.isArray(liveData.matches)) {
           setDashboard((current) => ({
@@ -254,7 +289,12 @@ export function TvDashboard({
       // Degrade silently; do not reload page
     }
     return undefined;
-  }, [organizationAlias, tournamentAlias]);
+  }, [
+    organizationAlias,
+    tournamentAlias,
+    dashboardLabels.resultState,
+    dashboardLabels.bracketRound,
+  ]);
 
   useEffect(() => {
     if (pollIntervalMs <= 0) return;
@@ -284,6 +324,49 @@ export function TvDashboard({
     void client.connect({
       onOpen: () => setDashboard((current) => markConnected(current)),
       onEvent: (event) => {
+        if (event.eventType === 'match.rescheduled' || event.eventType === 'match.anulled') {
+          const matchId = event.payload.matchId;
+          if (
+            typeof matchId !== 'string' ||
+            event.projectionVersion <= (scheduleVersions.current.get(matchId) ?? 0)
+          )
+            return;
+          scheduleVersions.current.set(matchId, event.projectionVersion);
+          const positions = measureSchedule();
+          setScheduledMatches((entries) => {
+            if (event.eventType === 'match.anulled' || event.payload.withdrawn === true)
+              return entries.filter((entry) => entry.key !== matchId);
+            const source = entries.some((entry) => entry.key === matchId)
+              ? entries
+              : [...entries, ...(matchList?.filter((entry) => entry.key === matchId) ?? [])];
+            return source
+              .map((entry) =>
+                entry.key !== matchId
+                  ? entry
+                  : {
+                      ...entry,
+                      scheduleVersion: event.projectionVersion,
+                      scheduledAt:
+                        typeof event.payload.startsAt === 'number'
+                          ? new Date(event.payload.startsAt).toISOString()
+                          : undefined,
+                      venueName: (event.payload.venue as PreviousPlacement['venue'])?.name,
+                      rescheduledFrom: (event.payload.previous as PreviousPlacement | null) ?? null,
+                    },
+              )
+              .sort((a, b) => (a.scheduledAt ?? '').localeCompare(b.scheduledAt ?? ''));
+          });
+          requestAnimationFrame(() => animateSchedule(positions));
+          setDashboard((current) => applyEvent(current, event));
+          return;
+        }
+        if (event.eventType === 'match.started') {
+          setScheduledMatches((entries) =>
+            entries.map((entry) =>
+              entry.key === event.payload.matchId ? { ...entry, rescheduledFrom: null } : entry,
+            ),
+          );
+        }
         setDashboard((current) => applyEvent(current, event));
         const before =
           pinnedRef === undefined
@@ -342,7 +425,7 @@ export function TvDashboard({
   // 5. Automatic Carousel Rotation (respects prefers-reduced-motion)
   // A fixed `standings` view has nothing to rotate; a fixed `matches` view only pages its list; the
   // rotating dashboard pages the list too before it moves to the next section.
-  const matchPages = useMemo(() => pageTvMatches(matchList ?? []), [matchList]);
+  const matchPages = useMemo(() => pageTvMatches(scheduledMatches), [scheduledMatches]);
   useEffect(() => {
     if (initialView === 'standings') return;
     // Paging a list is how a screen with no input reaches its later pages, not decoration, so a
@@ -418,7 +501,9 @@ export function TvDashboard({
   const courtMatch =
     court === undefined
       ? undefined
-      : liveMatches.find((match) => venueNameByMatchId?.[match.matchId] === court);
+      : liveMatches.find(
+          (match) => (match.venueName ?? venueNameByMatchId?.[match.matchId]) === court,
+        );
   const spotlightMatch =
     pinnedRef !== undefined
       ? pinnedMatch
@@ -791,7 +876,12 @@ export function TvDashboard({
                 <TvBracketView labels={dashboardLabels} zones={visibleBracket.zones} />
               )}
               {activeTab === 'fixtures' && matchPages.length > 0 && (
-                <TvMatchList labels={dashboardLabels} page={rail.page} pages={matchPages} />
+                <TvMatchList
+                  locale={language}
+                  labels={dashboardLabels}
+                  page={rail.page}
+                  pages={matchPages}
+                />
               )}
             </div>
           </aside>

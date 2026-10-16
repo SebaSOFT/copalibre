@@ -33,6 +33,9 @@ const kickoffFormatter = new Intl.DateTimeFormat(intl.locale, {
     {model.matches.map((match, index) => {
       const cardMatch: MatchCardData = {
         matchId: match.matchId ?? `${match.stageNumber}-${index}`,
+        scheduleVersion: match.scheduleVersion,
+        rescheduledFrom: match.rescheduledFrom,
+        venueName: match.venueName,
         matchNumber: match.matchNumber ?? 0,
         stageNumber: match.stageNumber,
         state: match.state,

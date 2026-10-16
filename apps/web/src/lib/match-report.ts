@@ -32,6 +32,7 @@ export interface MatchReportOptions {
 }
 
 export interface MatchReportModel {
+  readonly rescheduledFrom?: PublicMatchReportResponse['rescheduledFrom'];
   readonly organizationName: string;
   readonly tournamentName: string;
   readonly stageNumber: number;
@@ -101,6 +102,7 @@ export function buildMatchReport(
   }
 
   return {
+    rescheduledFrom: response.rescheduledFrom,
     organizationName: response.organizationName,
     tournamentName: response.tournamentName,
     stageNumber: response.stageNumber,

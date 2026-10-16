@@ -14,6 +14,10 @@ export function dashboardFromOverview(matches: readonly OverviewMatch[]): LiveDa
     matches: matches.map((m, idx) => ({
       matchId:
         m.matchId ?? `overview-${m.stageNumber}-${m.stageOrdinal ?? m.matchNumber ?? idx + 1}`,
+      scheduleVersion: m.scheduleVersion,
+      scheduledAt: m.startsAt || undefined,
+      venueName: m.venueName,
+      rescheduledFrom: m.rescheduledFrom,
       stageNumber: m.stageNumber,
       matchNumber: m.matchNumber ?? idx + 1,
       ...(m.stageOrdinal === undefined ? {} : { stageOrdinal: m.stageOrdinal }),
