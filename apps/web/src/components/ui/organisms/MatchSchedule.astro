@@ -232,13 +232,13 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
 </div>
 
 <script>
-  // The server prints each kick-off in UTC; the viewer reads it in their own time zone.
+  // Table kick-offs use the viewer's time zone. Cards own their timestamp formatting.
   const format = new Intl.DateTimeFormat(document.documentElement.lang || undefined, {
     dateStyle: 'medium',
     timeStyle: 'short',
   });
   for (const time of document.querySelectorAll<HTMLTimeElement>(
-    '.cl-match-schedule time[datetime]',
+    '.cl-match-schedule td time[datetime]',
   )) {
     const instant = new Date(time.dateTime);
     if (!Number.isNaN(instant.getTime())) time.textContent = format.format(instant);
