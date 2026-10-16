@@ -76,7 +76,7 @@ Every email the worker sends, lifecycle, invitation and password reset, SHALL re
 The header SHALL show the organization's emblem, name and a link to its public page under
 `COPALIBRE_APP_URL`; with no emblem it SHALL show the name only; with no organization, as in a password
 reset, it SHALL show the Copa Libre mark only. The footer SHALL show the Copa Libre logo and a link to
-`https://copalibre.app`, regardless of the installation's `COPALIBRE_APP_URL`. Every image SHALL have
+`https://www.copalibre.app`, regardless of the installation's `COPALIBRE_APP_URL`. Every image SHALL have
 alternative text, and a plain-text part SHALL always be sent. Action links in the body SHALL use
 `COPALIBRE_APP_URL`.
 
@@ -90,7 +90,11 @@ alternative text, and a plain-text part SHALL always be sent. Action links in th
 
 #### Scenario: Footer signature is the same on every installation
 - **WHEN** any email is rendered on a self-hosted installation with its own `COPALIBRE_APP_URL`
-- **THEN** the footer links to `https://copalibre.app` and the body's action link points to that installation
+- **THEN** the footer links to `https://www.copalibre.app` and the body's action link points to that installation
+
+#### Scenario: Footer link targets the canonical host
+- **WHEN** any email is rendered
+- **THEN** the footer link's address and its visible text name `www.copalibre.app`, not the apex `copalibre.app`, so following it needs no redirect
 
 #### Scenario: Password reset has no organization
 - **WHEN** a password-reset email is rendered
