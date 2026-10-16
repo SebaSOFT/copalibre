@@ -484,3 +484,86 @@ not-required.
   for it
 - **THEN** that side is undecided, and resolving with an entrant supplied for that position yields that
   entrant
+
+### Requirement: A persisted graph stores each node's identity, position and side sources
+
+A persisted elimination graph SHALL store, for every node, its node key, bracket, round, position,
+branch, label and contingency, and for each side its source: a seeded entrant, the winner or loser of
+another node (by node key), or a qualifier position. A side SHALL report its entrant once known and
+SHALL keep its source after that.
+
+#### Scenario: Position is stored, not inferred
+
+- **WHEN** a persisted graph's fixtures are read back in any order
+- **THEN** each reports the node key, round and position it was persisted with
+
+#### Scenario: An undecided side reports its source
+
+- **WHEN** a persisted semi-final fed by quarter-finals 1 and 2 is read before either is decided
+- **THEN** its sides report "winner of quarter-final 1" and "winner of quarter-final 2" and no entrant
+
+#### Scenario: A decided side keeps its source
+
+- **WHEN** quarter-final 1 is decided, the zone is resolved, and the semi-final is read
+- **THEN** that side reports the winning entrant and still reports that it came from quarter-final 1
+
+#### Scenario: A zone without node keys reads as before
+
+- **WHEN** a zone generated before graphs were persisted is read
+- **THEN** its fixtures report the positions and entrants they reported before this requirement existed
+
+### Requirement: Persisted entrants are written only by the audited resolution
+
+The entrants of a persisted graph SHALL be written only by a resolution that recomputes them from
+structure and recorded outcomes. It SHALL lock the zone, write only the sides whose entrant changed,
+record each change with prior and resulting entrant in the audit trail with an outbox event, and mark
+an unneeded contingent node not-required, releasing its slot in the same transaction.
+
+#### Scenario: Resolution writes only what changed
+
+- **WHEN** a zone is resolved twice with no outcome recorded in between
+- **THEN** the second resolution writes nothing and records no audit entry
+
+#### Scenario: A change is audited with its prior state
+
+- **WHEN** a resolution changes a semi-final side from undecided to an entrant
+- **THEN** an audit record names the semi-final match, the side, the prior state (undecided) and the
+  resulting entrant, and an outbox event is published in the same transaction
+
+#### Scenario: Concurrent results both resolve
+
+- **WHEN** both quarter-finals feeding one semi-final are finalized concurrently, each followed by a
+  resolution of the zone
+- **THEN** after both commit, the semi-final reports both winners
+
+#### Scenario: An unneeded reset frees its slot
+
+- **WHEN** a resolution finds that a persisted bracket-reset match is not needed while it holds a slot
+- **THEN** the match becomes not-required and its slot assignment is released in the same transaction
+
+### Requirement: A persisted series is resolved by its declared resolution class
+
+The resolution of a persisted graph SHALL group each node's matches by node and match number, never
+by a match identifier format, and SHALL decide a series node with the zone's declared series
+resolution class. It SHALL refuse, rather than guess, a series node without a usable declaration.
+
+#### Scenario: A best-of-three series decides its node
+
+- **WHEN** both of a persisted best-of-three final's first two matches are won by the same entrant
+- **THEN** a node fed by "winner of the final" reports that entrant
+
+#### Scenario: An aggregate tie advances the aggregate winner
+
+- **WHEN** a persisted two-legged aggregate tie ends 3-0 and 0-1 for the same pair of entrants
+- **THEN** the entrant ahead 3-1 on aggregate is the winner of that node
+
+#### Scenario: An unplayed series match keeps the series pending
+
+- **WHEN** only the first match of a persisted best-of-three node is finalized
+- **THEN** a node fed by its winner reports that side as pending
+
+#### Scenario: A series without a usable declaration is refused
+
+- **WHEN** a persisted node spans several matches and the zone declares no series, a scripted series,
+  or a span different from the node's
+- **THEN** resolution fails with an error naming the node and writes nothing
