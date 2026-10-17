@@ -30,6 +30,10 @@ import {
   LIFECYCLE_EMAIL_EVENTS,
   lifecycleEmailHandlers,
 } from './notifications/lifecycle-handlers.js';
+import {
+  RESCHEDULE_EMAIL_EVENT,
+  rescheduleEmailHandler,
+} from './notifications/reschedule-handler.js';
 import { objectProcessingHandler } from './jobs/object-processing-handler.js';
 import { reportEvidenceValidationHandler } from './jobs/report-evidence-handler.js';
 import { RelayService } from './relay.service.js';
@@ -71,6 +75,7 @@ const providers: Provider[] = [
       const invitation = invitationEmailHandler(emailConfig, email);
       const passwordReset = passwordResetEmailHandler(emailConfig, email);
       const lifecycle = lifecycleEmailHandlers(emailConfig, email);
+      const reschedule = rescheduleEmailHandler(emailConfig, email);
       const evidence = reportEvidenceValidationHandler({ db });
       const objectProcessing = objectProcessingHandler({
         db,
@@ -84,7 +89,8 @@ const providers: Provider[] = [
         .register('organization.invite.requested', invitation)
         .register('password-reset-requested', passwordReset)
         .register(EVIDENCE_VALIDATION_REQUESTED_EVENT, evidence)
-        .register(OBJECT_PROCESSING_REQUESTED_EVENT, objectProcessing);
+        .register(OBJECT_PROCESSING_REQUESTED_EVENT, objectProcessing)
+        .register(RESCHEDULE_EMAIL_EVENT, reschedule);
       for (const eventType of LIFECYCLE_EMAIL_EVENTS) {
         dispatcher.register(eventType, lifecycle[eventType]);
       }

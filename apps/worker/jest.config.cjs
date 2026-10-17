@@ -24,6 +24,7 @@ module.exports = {
     '!src/notifications/lifecycle-handlers.ts',
     '!src/notifications/organization.ts',
     '!src/notifications/recipients.ts',
+    '!src/notifications/reschedule-handler.ts',
     // Every line of it is a database call in a transaction; the integration
     // suite runs it against real PostgreSQL, where it can actually fail.
     '!src/jobs/statistics-handler.ts',
