@@ -1,7 +1,12 @@
 ---
 import type { IntlShape } from 'react-intl';
-import { matchReportUrl, type BracketMatch } from '../../../lib/bracket.ts';
-import { bracketBranchLabel, bracketRoleLabel } from '../../../lib/i18n/public-intl.ts';
+import { describeSlot, matchReportUrl, type BracketMatch } from '../../../lib/bracket.ts';
+import { placementGroupRole } from '../../../lib/bracket-role.ts';
+import {
+  bracketBranchLabel,
+  bracketRoleLabel,
+  sideSourceLabels,
+} from '../../../lib/i18n/public-intl.ts';
 
 /**
  * The games a bracket does not draw: third place, fifth and seventh place, the round that sorts the
@@ -27,12 +32,15 @@ const {
   highlightMatchNumber,
 } = Astro.props;
 
-const nameOf = (slot: BracketMatch['slots'][number]): string =>
-  slot.kind === 'entrant' ? slot.name : '—';
+const sources = sideSourceLabels(intl);
+/** An undecided side names the game it waits on, as every other surface does. */
+const nameOf = (slot: BracketMatch['slots'][number], game: BracketMatch): string =>
+  describeSlot(slot, sources, game.sourceFinalRound);
+// One group per role, in the order roles first appear, so a round of several games stays together.
 const groups = games.reduce<{ role: string; games: BracketMatch[] }[]>((acc, game) => {
   const role = game.role ?? '';
-  const last = acc.at(-1);
-  if (last?.role === role) last.games.push(game);
+  const existing = acc.find((group) => group.role === role);
+  if (existing) existing.games.push(game);
   else acc.push({ role, games: [game] });
   return acc;
 }, []);
@@ -46,14 +54,20 @@ const groups = games.reduce<{ role: string; games: BracketMatch[] }[]>((acc, gam
         <h4 class="cl-placement-games__role">
           {group.role === ''
             ? bracketBranchLabel(intl, 'placement')
-            : bracketRoleLabel(intl, group.role)}
+            : bracketRoleLabel(
+                intl,
+                placementGroupRole(
+                  group.role,
+                  games.filter((game) => game.role === group.role).length,
+                ),
+              )}
         </h4>
         <ul class="cl-placement-games__list">
           {group.games.map((game) => {
             const [home, away] = game.slots;
             const [homeScore, awayScore] = game.scores ?? [];
-            const homeName = home ? nameOf(home) : '—';
-            const awayName = away ? nameOf(away) : '—';
+            const homeName = home ? nameOf(home, game) : '—';
+            const awayName = away ? nameOf(away, game) : '—';
             const score =
               homeScore !== undefined && awayScore !== undefined
                 ? `${homeScore} – ${awayScore}`

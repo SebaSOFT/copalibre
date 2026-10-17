@@ -134,19 +134,35 @@ describePostgres('demo dataset loading (integration)', () => {
     await expect(count('clubs')).resolves.toBe(24);
     await expect(count('entrants')).resolves.toBe(24);
     await expect(count('fixtures')).resolves.toBe(72);
-    // The cups' placement games (third, fifth and seventh place, and the 5th–8th rounds) carry the
-    // role their round label published, so the bracket can draw them beside the generated graph.
-    const roles = await scratch.db
+    // Each cup is a persisted bracket keyed like the engine's eight-entrant, every-place graph.
+    const nodes = await scratch.db
       .selectFrom('fixtures')
-      .select(['role', (eb) => eb.fn.countAll<string>().as('total')])
-      .where('role', 'is not', null)
-      .groupBy('role')
+      .select(['node_key', (eb) => eb.fn.countAll<string>().as('total')])
+      .where('node_key', 'is not', null)
+      .groupBy('node_key')
       .execute();
-    expect(Object.fromEntries(roles.map((row) => [row.role, Number(row.total)]))).toEqual({
-      'place-3': 3,
-      'place-5': 3,
-      'place-7': 3,
-      'places-5-8': 6,
+    expect(Object.fromEntries(nodes.map((row) => [row.node_key, Number(row.total)]))).toEqual(
+      Object.fromEntries(
+        [
+          'SE-R1-M1',
+          'SE-R1-M2',
+          'SE-R1-M3',
+          'SE-R1-M4',
+          'SE-R2-M1',
+          'SE-R2-M2',
+          'SE-R3-M1',
+          'PL5-R1-M1',
+          'PL5-R1-M2',
+          'placement-3',
+          'placement-5',
+          'placement-7',
+        ].map((key) => [key, 3]),
+      ),
+    );
+    expect(report.shaping).toMatchObject({
+      firstGameDay: '2025-11-02',
+      qualificationConfirmed: true,
+      undecidedFixtures: 0,
     });
     await expect(count('match_events')).resolves.toBe(report.counts.goalEvents);
     const finalized = await scratch.db
@@ -214,7 +230,148 @@ describePostgres('demo dataset loading (integration)', () => {
       })
       .filter((winner) => winner !== undefined);
     const decisive = dataset.games.filter((game) => game.homeGoals !== game.awayGoals).length;
-    expect(winners).toHaveLength(decisive);
+    // Three drawn cup games fed a later one, so their winner is whoever played on (design D7).
+    expect(winners).toHaveLength(decisive + 3);
+  });
+
+  /** Every fixture as stored: its game's published teams by entrant id, and its stored result. */
+  async function fixturesByGame() {
+    const rows = await scratch.db
+      .selectFrom('fixtures')
+      .innerJoin('matches', 'matches.fixture_id', 'fixtures.fixture_id')
+      .select([
+        'fixtures.node_key',
+        'fixtures.zone_id',
+        'fixtures.home_entrant_id',
+        'fixtures.away_entrant_id',
+        'fixtures.home_source',
+        'matches.status',
+        'matches.match_id',
+      ])
+      .execute();
+    return rows;
+  }
+
+  async function entrantOf(teamAlias: string): Promise<string> {
+    const row = await scratch.db
+      .selectFrom('entrants')
+      .innerJoin('teams', 'teams.team_id', 'entrants.team_id')
+      .select('entrants.entrant_id')
+      .where('teams.alias', '=', teamAlias)
+      .executeTakeFirstOrThrow();
+    return row.entrant_id;
+  }
+
+  it('seats every published entrant through the confirmed qualification and the bracket', async () => {
+    await installRinkHockey();
+    await loadFromDisk();
+    const rows = await fixturesByGame();
+    expect(rows).toHaveLength(72);
+    expect(rows.every((row) => row.home_entrant_id !== null && row.away_entrant_id !== null)).toBe(
+      true,
+    );
+    const pairs = new Set(rows.map((row) => `${row.home_entrant_id}|${row.away_entrant_id}`));
+    for (const game of dataset.games) {
+      expect(
+        pairs.has(`${await entrantOf(game.homeTeamAlias)}|${await entrantOf(game.awayTeamAlias)}`),
+      ).toBe(true);
+    }
+    const plan = await scratch.db
+      .selectFrom('promotion_plans')
+      .select(['confirmed_resolution'])
+      .executeTakeFirstOrThrow();
+    expect(plan.confirmed_resolution).not.toBeNull();
+  });
+
+  it('moves the first game day to an anchor and leaves everything after the cutoff to play', async () => {
+    await installRinkHockey();
+    // 17 October 2026 is the first game day; the groups end on day 3 (4 November 2025 became
+    // 19 October 2026). The cutoff falls at noon of day 2, in Buenos Aires (UTC-3).
+    const report = await loadDemoDatasetByAlias(scratch.db, storage, ALIAS, undefined, undefined, {
+      anchor: { kind: 'date', date: '2026-10-17' },
+      playedUntil: { kind: 'instant', at: Date.parse('2026-10-18T12:00:00-03:00') },
+    });
+    expect(report.shaping).toMatchObject({
+      firstGameDay: '2026-10-17',
+      playedUntil: '2026-10-18T15:00:00.000Z',
+      qualificationConfirmed: false,
+      undecidedFixtures: 36,
+    });
+    const slots = await scratch.db
+      .selectFrom('match_schedule_assignments')
+      .innerJoin('schedule_slots', 'schedule_slots.slot_id', 'match_schedule_assignments.slot_id')
+      .select('schedule_slots.starts_at')
+      .execute();
+    expect(slots).toHaveLength(72);
+    const earliest = Math.min(...slots.map((slot) => Number(slot.starts_at)));
+    expect(new Date(earliest).toISOString().slice(0, 10)).toBe('2026-10-17');
+
+    const rows = await fixturesByGame();
+    const finalized = rows.filter((row) => row.status === 'finalized');
+    expect(finalized).toHaveLength(report.counts.matchesFinalized);
+    expect(report.counts.matchesFinalized).toBeGreaterThan(0);
+    expect(report.counts.matchesFinalized).toBeLessThan(36);
+    // Every cup game is undecided, its quarter-final sides naming qualifier positions.
+    const cupRows = rows.filter((row) => row.node_key !== null);
+    expect(cupRows).toHaveLength(36);
+    expect(cupRows.every((row) => row.home_entrant_id === null && row.status === 'scheduled')).toBe(
+      true,
+    );
+    const quarter = cupRows.find((row) => row.node_key === 'SE-R1-M1');
+    const source =
+      typeof quarter?.home_source === 'string'
+        ? JSON.parse(quarter.home_source)
+        : quarter?.home_source;
+    expect(source).toMatchObject({ kind: 'qualifier', position: expect.any(Number) });
+    await expect(count('match_events')).resolves.toBeLessThan(
+      dataset.games.reduce((n, game) => n + game.events.length, 0),
+    );
+  });
+
+  it('confirms the qualification once the groups are played and fills only what was decided', async () => {
+    await installRinkHockey();
+    // Copa Bronce's quarter-finals: two on 5 November at 09:00 and 11:00, two on 6 November at
+    // 09:00. A cutoff at 13:00 on 5 November leaves the second semi-final's feeders unplayed.
+    const report = await loadDemoDatasetByAlias(scratch.db, storage, ALIAS, undefined, undefined, {
+      playedUntil: { kind: 'instant', at: Date.parse('2025-11-05T13:00:00-03:00') },
+    });
+    expect(report.shaping).toMatchObject({
+      firstGameDay: '2025-11-02',
+      qualificationConfirmed: true,
+    });
+    const rows = await fixturesByGame();
+    const bronce = await scratch.db
+      .selectFrom('zones')
+      .select('zone_id')
+      .where('name', '=', 'Copa Bronce')
+      .executeTakeFirstOrThrow();
+    const node = (key: string) =>
+      rows.find((row) => row.zone_id === bronce.zone_id && row.node_key === key);
+    // Quarter-finals are seated once qualification is confirmed, played or not.
+    expect(node('SE-R1-M2')).toMatchObject({ status: 'scheduled' });
+    expect(node('SE-R1-M2')?.home_entrant_id).not.toBeNull();
+    // SE-R1-M1 (Olimpia–Corazonistas, 09:00) is played; SE-R1-M2 (Atlético Unión–Súper Patín) is
+    // not: the semi-final it feeds has Olimpia on one side and the other side still to decide.
+    expect(node('SE-R1-M1')?.status).toBe('finalized');
+    expect(node('SE-R2-M1')).toMatchObject({
+      home_entrant_id: await entrantOf('olimpia-patin-club'),
+      away_entrant_id: null,
+    });
+    expect(node('PL5-R1-M1')).toMatchObject({
+      home_entrant_id: await entrantOf('corazonistas-bogota'),
+      away_entrant_id: null,
+    });
+    expect(node('SE-R3-M1')).toMatchObject({ home_entrant_id: null, away_entrant_id: null });
+    expect(report.shaping?.undecidedFixtures).toBeGreaterThan(0);
+  });
+
+  it('reports a skipped load that was given flags as not applying them', async () => {
+    await installRinkHockey();
+    await loadFromDisk();
+    const again = await loadDemoDatasetByAlias(scratch.db, storage, ALIAS, undefined, undefined, {
+      anchor: { kind: 'today' },
+    });
+    expect(again).toMatchObject({ status: 'skipped', flagsIgnored: true });
   });
 
   it('is idempotent: a second load reports skipped and writes nothing', async () => {

@@ -188,3 +188,26 @@ be re-evaluated against the new state before the organizer can publish.
 - **WHEN** operator A has an unpublished batch moving a match, and operator B publishes a move of another
   match into the slot A's batch uses
 - **THEN** A's builder reports B's change and shows the resulting conflict before A can publish
+
+### Requirement: The builder words every schedule conflict in the organization's language
+
+The schedule builder SHALL state each conflict it shows, from a preview, a refused publish or the current
+schedule, in the operator's language from the conflict's kind, the matches involved and the venue,
+official or entrant concerned. It SHALL NOT display the API's diagnostic text, which is English and may
+carry identifiers.
+
+#### Scenario: A previewed rest conflict reads in Spanish
+
+- **WHEN** an organizer working in Spanish previews a batch that leaves a team too little rest
+- **THEN** the builder states the conflict in Spanish, naming the team and both matches, with no
+  identifier and no English text
+
+#### Scenario: A refused publish lists its conflicts the same way
+
+- **WHEN** a publish is refused because the schedule changed since the preview and now conflicts
+- **THEN** the builder lists the conflicts in the operator's language, as a preview would
+
+#### Scenario: A locked match is named in words
+
+- **WHEN** a batch tries to move a match that is finalized or in progress
+- **THEN** the builder says that match can no longer be moved and why, in the operator's language

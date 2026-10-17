@@ -93,6 +93,44 @@ describe('copalibre dev demo', () => {
     });
   });
 
+  it('forwards --anchor and --played-until to the seed application verbatim', async () => {
+    await withDirectory(async () => {
+      const run = jest.fn<ProcessRunner['run']>(async () => 0);
+      const capture = jest.fn<NonNullable<ProcessRunner['capture']>>(async () => STACK_UP);
+      const out = output();
+      try {
+        await expect(
+          runCli(
+            [
+              'dev',
+              'demo',
+              'panamericano-clubes-2025',
+              '--anchor',
+              'today',
+              '--played-until',
+              'now',
+            ],
+            {},
+            { run, capture },
+          ),
+        ).resolves.toBe(0);
+      } finally {
+        out.restore();
+      }
+      expect(run.mock.calls[0]?.[1]).toEqual([
+        'workspace',
+        '@copalibre/seed',
+        'start',
+        'demo',
+        'panamericano-clubes-2025',
+        '--anchor',
+        'today',
+        '--played-until',
+        'now',
+      ]);
+    });
+  });
+
   it('prefers values the caller already set', async () => {
     await withDirectory(async () => {
       const run = jest.fn<ProcessRunner['run']>(async () => 0);

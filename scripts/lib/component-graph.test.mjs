@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count after next-stage generation ahead (372/1465)', () => {
+test('the graph resolves the current node/edge count after placement roles from the engine (372/1466)', () => {
   const graph = buildGraph(webSrc);
   assert.equal(graph.nodes.size, 372);
-  assert.equal(graph.edges.length, 1465);
+  assert.equal(graph.edges.length, 1466);
 });
 
 test('a type-only import is not counted as a render', () => {

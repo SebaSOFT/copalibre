@@ -112,7 +112,9 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   {
     name: 'dev',
     summary: 'Run a development environment (containerized or hybrid)',
-    usage: 'copalibre dev [--hybrid]\n       copalibre dev demo [--list] [<dataset>]',
+    usage:
+      'copalibre dev [--hybrid]\n' +
+      '       copalibre dev demo [--list] [<dataset>] [--anchor <YYYY-MM-DD|today>] [--played-until <ISO-8601|now>]',
     flags: [
       {
         flag: '--hybrid',
@@ -121,6 +123,15 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
       {
         flag: 'demo [--list] [<dataset>]',
         description: 'Load a demo dataset into the running development stack, or list the datasets',
+      },
+      {
+        flag: 'demo --anchor <YYYY-MM-DD|today>',
+        description: "Move the dataset's first game day to that date, keeping local times",
+      },
+      {
+        flag: 'demo --played-until <ISO-8601|now>',
+        description:
+          'Play only the games finished by then; later games stay scheduled, cup sides undecided',
       },
     ],
   },
