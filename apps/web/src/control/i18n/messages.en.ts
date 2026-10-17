@@ -4686,20 +4686,32 @@ export const messages = defineMessages({
     defaultMessage:
       'Each placement was valid when published, and nothing was moved. Move a match, preview and publish to resolve a conflict.',
   },
-  scheduleBuilderArisenRest: {
-    id: 'control.scheduleBuilder.arisenRest',
+  scheduleBuilderConflictRest: {
+    id: 'control.scheduleBuilder.conflictRest',
     defaultMessage: '{entrant} lacks the required rest between {match} and {other}',
   },
-  scheduleBuilderArisenVenue: {
-    id: 'control.scheduleBuilder.arisenVenue',
+  scheduleBuilderConflictVenue: {
+    id: 'control.scheduleBuilder.conflictVenue',
     defaultMessage: 'The venue is over capacity for {match} and {other}',
   },
-  scheduleBuilderArisenOfficial: {
-    id: 'control.scheduleBuilder.arisenOfficial',
+  scheduleBuilderConflictOfficial: {
+    id: 'control.scheduleBuilder.conflictOfficial',
     defaultMessage: 'An official is booked for both {match} and {other}',
   },
   scheduleBuilderOtherMatch: {
     id: 'control.scheduleBuilder.otherMatch',
     defaultMessage: 'a match outside this stage',
+  },
+  scheduleBuilderConflictFinalized: {
+    id: 'control.scheduleBuilder.conflictFinalized',
+    defaultMessage: '{match} is finalized: its schedule is a record and can no longer change',
+  },
+  scheduleBuilderConflictInProgress: {
+    id: 'control.scheduleBuilder.conflictInProgress',
+    defaultMessage: '{match} is being played: it cannot be moved or withdrawn now',
+  },
+  scheduleBuilderPublishRefused: {
+    id: 'control.scheduleBuilder.publishRefused',
+    defaultMessage: 'The schedule was not published: it now has conflicts, listed below.',
   },
 });

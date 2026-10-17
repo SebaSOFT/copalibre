@@ -436,7 +436,11 @@ describe('ScheduleBuilderPage', () => {
       fireEvent.click(screen.getByText('Preview'));
     });
 
-    await screen.findByText('Venue "venue-1" hosts 1 fixture(s) at once');
+    await screen.findByText(
+      'The venue is over capacity for Club Alfa vs Club Bravo and Club Cóndor vs Club Delta',
+    );
+    // The API's English diagnostic, with its identifiers, is never shown.
+    expect(screen.queryByText(/hosts 1 fixture/)).toBeNull();
     expect((screen.getByText('Publish') as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -479,7 +483,68 @@ describe('ScheduleBuilderPage', () => {
       fireEvent.click(screen.getByText('Preview'));
     });
 
-    await screen.findByText(/has already been finalized/);
+    await screen.findByText(
+      'Club Alfa vs Club Bravo is finalized: its schedule is a record and can no longer change',
+    );
+    expect(screen.queryByText(/fixture-1/)).toBeNull();
+    expect((screen.getByText('Publish') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('lists the conflicts of a refused publish in words, not the server’s message', async () => {
+    const publishSchedule = jest.fn<NonNullable<ControlApiClient['publishSchedule']>>(() =>
+      Promise.reject(
+        new ControlApiError(
+          400,
+          'The schedule has 1 conflict(s): Entrant "entrant-a" …',
+          'schedule-bad-request',
+          [
+            {
+              kind: 'match-in-progress',
+              matchId: 'match-1',
+              conflictsWithMatchId: 'match-1',
+              resourceId: 'match-1',
+            },
+          ],
+        ),
+      ),
+    );
+    const client = stubClient({
+      getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
+      getSchedule: () => Promise.resolve({ assignments: [] }),
+      listSchedules: () => Promise.resolve(oneSchedule),
+      previewSchedule: () =>
+        Promise.resolve({ committable: true, conflicts: [], affectedPublishedMatches: [] }),
+      publishSchedule,
+    });
+    render(
+      withIntl(
+        <ScheduleBuilderPage
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    await screen.findAllByText(/Round 1/);
+    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
+      target: { value: 'slot-1' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Preview'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Publish'));
+    });
+
+    await screen.findByText('The schedule was not published: it now has conflicts, listed below.');
+    expect(
+      screen.getByText(
+        'Club Alfa vs Club Bravo is being played: it cannot be moved or withdrawn now',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/entrant-a/)).toBeNull();
     expect((screen.getByText('Publish') as HTMLButtonElement).disabled).toBe(true);
   });
 

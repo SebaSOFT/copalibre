@@ -979,7 +979,8 @@ export interface ScheduleConflictDto {
   readonly matchId: string;
   readonly conflictsWithMatchId: string;
   readonly resourceId: string;
-  readonly detail: string;
+  /** The API's English diagnostic; never shown to an operator, who reads the worded conflict. */
+  readonly detail?: string;
 }
 
 export interface SchedulePreviewResponse {
@@ -3490,6 +3491,8 @@ export class ControlApiError extends Error {
     readonly status: number,
     message: string,
     readonly errorCode?: string,
+    /** The schedule conflicts a refused publish carries, so they can be worded, not quoted. */
+    readonly conflicts?: readonly ScheduleConflictDto[],
   ) {
     super(message);
     this.name = 'ControlApiError';
@@ -3498,25 +3501,34 @@ export class ControlApiError extends Error {
 
 export async function controlApiErrorFromResponse(response: Response): Promise<ControlApiError> {
   const reason = await reasonOf(response);
-  return new ControlApiError(response.status, reason.message, reason.errorCode);
+  return new ControlApiError(response.status, reason.message, reason.errorCode, reason.conflicts);
 }
 
-async function reasonOf(
-  response: Response,
-): Promise<{ readonly message: string; readonly errorCode?: string }> {
+async function reasonOf(response: Response): Promise<{
+  readonly message: string;
+  readonly errorCode?: string;
+  readonly conflicts?: readonly ScheduleConflictDto[];
+}> {
   try {
     const body: unknown = await response.json();
     if (typeof body === 'object' && body !== null && 'message' in body) {
-      const candidate = body as { message?: unknown; errorCode?: unknown };
+      const candidate = body as { message?: unknown; errorCode?: unknown; conflicts?: unknown };
       const errorCode =
         typeof candidate.errorCode === 'string' && candidate.errorCode.length > 0
           ? candidate.errorCode
           : undefined;
+      const conflicts = Array.isArray(candidate.conflicts)
+        ? candidate.conflicts.filter(isScheduleConflict)
+        : undefined;
+      const extra = {
+        ...(errorCode ? { errorCode } : {}),
+        ...(conflicts && conflicts.length > 0 ? { conflicts } : {}),
+      };
       if (typeof candidate.message === 'string' && candidate.message.length > 0) {
-        return { message: candidate.message, ...(errorCode ? { errorCode } : {}) };
+        return { message: candidate.message, ...extra };
       }
       if (Array.isArray(candidate.message) && typeof candidate.message[0] === 'string') {
-        return { message: candidate.message[0], ...(errorCode ? { errorCode } : {}) };
+        return { message: candidate.message[0], ...extra };
       }
     }
   } catch {
@@ -3530,4 +3542,12 @@ async function reasonOf(
   // rare edge case; hardcoding it plainly here is safer than risking that
   // bundling failure again for a string almost nobody sees.
   return { message: `The request failed with ${response.status}` };
+}
+
+function isScheduleConflict(value: unknown): value is ScheduleConflictDto {
+  if (typeof value !== 'object' || value === null) return false;
+  const conflict = value as Record<string, unknown>;
+  return ['kind', 'matchId', 'conflictsWithMatchId', 'resourceId'].every(
+    (field) => typeof conflict[field] === 'string',
+  );
 }
