@@ -406,3 +406,38 @@ wire identities and SHALL NOT be substituted for missing display names in visibl
 
 - **WHEN** a fixture side has no resolved display name
 - **THEN** scheduling shows the localized undecided fallback and never the opaque entrant ID
+
+### Requirement: A published schedule reports its current conflicts
+
+Reading a stage's schedule SHALL return the conflicts that exist among published assignments at that
+moment: venue over capacity, official double-booked, and rest-rule violations. It SHALL use the same
+detection that preview and publish use. A conflict that arose after publication SHALL be reported
+without moving, unpublishing or refusing any assignment.
+
+#### Scenario: A rest conflict appears when a side resolves
+
+- **WHEN** a semi-final side resolves to an entrant whose quarter-final finished sooner than the
+  configured rest period before the semi-final's slot
+- **THEN** the schedule read reports a rest-rule conflict naming both matches, and both placements are
+  unchanged
+
+#### Scenario: A clean schedule reports nothing
+
+- **WHEN** every published assignment satisfies venue capacity, official availability and rest
+- **THEN** the schedule read reports no conflicts
+
+#### Scenario: Republishing a fix clears the conflict
+
+- **WHEN** the organizer moves the semi-final to a later slot through an ordinary preview and publish
+- **THEN** the schedule read no longer reports that conflict
+
+### Requirement: A conflict arising from resolution is announced
+
+When a resolution or a qualification confirmation makes a new conflict real among published
+assignments, the system SHALL emit one outbox event naming the conflict and the matches involved, in the
+same transaction as the resolution.
+
+#### Scenario: The control panel is told
+
+- **WHEN** a finalized quarter-final makes a rest conflict real for its semi-final
+- **THEN** an outbox event naming the rest conflict and both matches is published in the same transaction
