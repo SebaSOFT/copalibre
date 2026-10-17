@@ -30,7 +30,6 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
-  IMPLICIT_ZONE_NAME,
   effectiveFormat,
   isPlacementFormat,
   validateSeriesDeclaration,
@@ -41,19 +40,15 @@ import {
   type Zone,
 } from '@copalibre/domain';
 import {
-  computeAccounting,
   drawGroups,
   drawZones,
-  evaluateGroupPromotion,
   QualificationError,
-  validatePromotionPlan,
   type PromotionPlan,
 } from '@copalibre/tournament-engine';
 import {
   CompetitionRepository,
   EnrollmentRepository,
   InvariantViolationError,
-  StageReadModel,
   TournamentRepository,
   withTransaction,
   type Database,
@@ -86,8 +81,13 @@ import {
   ZoneResponse,
 } from '../dto/zones-groups.dto.js';
 import { resolveTournament } from './standings.controller.js';
-import { standingsPipeline } from '../standings/pipeline.js';
-import { ownZoneSeriesOf, readStageSeries, zoneSeriesOverrides } from './stage-series.js';
+import { generatedAheadFrom } from './stage-qualifiers.js';
+import {
+  evaluateStoredPromotion,
+  promotionPlanFromUnknown,
+  validateStoredPromotionPlan,
+} from './promotion-plans.js';
+import { ownZoneSeriesOf, zoneSeriesOverrides } from './stage-series.js';
 
 @ApiTags('zones and groups')
 @Controller('organizations/:organizationAlias/tournaments/:tournamentAlias/stages/:stageNumber')
@@ -693,16 +693,31 @@ export class ZonesGroupsController {
     const zone = await this.zone(context.stage.stageId, zoneNumber);
     const nextStage = await this.stageOf(context.tournamentId, body.nextStageNumber);
     const plan = promotionPlanFromRequest(zone.zoneId, nextStage.stage.stageId, body);
+    const competition = new CompetitionRepository(this.db);
+    const existing = await competition.findPromotionPlan(zone.zoneId);
+    // Positions of a stage generated ahead are this plan's; re-routing them under played matches
+    // would move entrants out of games already decided.
+    const ahead =
+      existing === undefined
+        ? { generated: false, progressed: false }
+        : await generatedAheadFrom(this.db, existing.nextStageId, existing.promotionPlanId);
+    if (ahead.progressed) {
+      throw new ConflictException(
+        'This plan generated a stage that already has results; its positions cannot change',
+        { errorCode: 'zone-group-conflict' },
+      );
+    }
     try {
       await this.validatePromotionPlan(context.stage.stageId, plan);
-      return await withTransaction(this.db, (uow) =>
-        new CompetitionRepository(this.db).createPromotionPlan(uow, {
+      const saved = await withTransaction(this.db, (uow) =>
+        competition.createPromotionPlan(uow, {
           zoneId: zone.zoneId,
           nextStageId: nextStage.stage.stageId,
           plan: plan as unknown as Record<string, unknown>,
           ...context.audit,
         }),
       );
+      return ahead.generated ? { ...saved, mutationClass: 'requires_rebuild' } : saved;
     } catch (error) {
       throwPromotionPlanError(error);
     }
@@ -812,9 +827,7 @@ export class ZonesGroupsController {
 
   /**
    * Shared by `previewPromotion` (one zone, the caller already knows) and
-   * `promotionPlansTargetingStage` (many zones discovered by reverse
-   * lookup) — `sourceStageId` is the zone's OWN stage, which is `stageNumber`
-   * in the URL for the former but resolved per-zone for the latter.
+   * `promotionPlansTargetingStage` (many zones discovered by reverse lookup).
    */
   private async computePromotionPreview(
     tournamentId: string,
@@ -823,50 +836,13 @@ export class ZonesGroupsController {
     zone: { readonly zoneId: string; readonly number: number },
     saved: { readonly nextStageId: string; readonly plan: Record<string, unknown> },
   ): Promise<PromotionPreviewResponse> {
-    const competition = new CompetitionRepository(this.db);
-    const plan = promotionPlanFromStored(zone.zoneId, saved.nextStageId, saved.plan);
-    const groups = await competition.listGroupsOfZone(zone.zoneId);
-    const records = await Promise.all(
-      groups.map(async (group) => ({
-        group,
-        record: await new StageReadModel(this.db).stageRecord(sourceStageId, group.groupId),
-      })),
-    );
-    const descriptor = await new TournamentRepository(this.db).findDescriptor(
-      tournament.disciplineRef.descriptorId,
-      tournament.disciplineRef.version,
-    );
-    if (!descriptor)
-      throw new NotFoundException('Tournament discipline is not installed', {
-        errorCode: 'zone-group-not-found',
-      });
-    const groupRecords = records.flatMap(({ group, record }) =>
-      record === undefined ? [] : [{ group, record }],
-    );
-    if (groupRecords.length !== records.length) {
-      throw new NotFoundException(`No source group records for zone ${zone.number}`, {
-        errorCode: 'zone-group-not-found',
-      });
-    }
-    const seriesDeclaration = await readStageSeries(this.db, {
+    const outcome = await evaluateStoredPromotion(this.db, {
       tournamentId,
-      stageId: sourceStageId,
-      zoneId: zone.zoneId,
+      tournament,
+      sourceStageId,
+      zone,
+      saved,
     });
-    const groupAccountings = new Map(
-      groupRecords.map((entry) => [
-        entry.group.groupId,
-        computeAccounting(descriptor, entry.record.entrantIds, entry.record.outcomes, undefined, {
-          seriesDeclaration,
-        }),
-      ]),
-    );
-    const groupNumbers = new Map(
-      groupRecords.map((entry) => [entry.group.groupId, entry.group.number]),
-    );
-    const pipeline = standingsPipeline(descriptor, groupRecords[0]?.record.overrides ?? {});
-    await this.validatePromotionPlan(sourceStageId, plan, groupAccountings);
-    const outcome = evaluateGroupPromotion(plan, groupAccountings, pipeline, groupNumbers);
     return {
       combined: [...outcome.combined],
       ...(outcome.bands === undefined
@@ -1020,32 +996,8 @@ export class ZonesGroupsController {
     return group;
   }
 
-  private async validatePromotionPlan(
-    sourceStageId: string,
-    plan: PromotionPlan,
-    accountings?: ReadonlyMap<string, readonly { readonly entrantId: string }[]>,
-  ): Promise<void> {
-    const competition = new CompetitionRepository(this.db);
-    const sourceGroups = await competition.listGroupsOfZone(plan.zoneId);
-    const destinationZones = await competition.listZonesOfStage(plan.nextStageId);
-    const records = await Promise.all(
-      sourceGroups.map(async (group) => ({
-        group,
-        record: await new StageReadModel(this.db).stageRecord(sourceStageId, group.groupId),
-      })),
-    );
-    validatePromotionPlan(
-      plan,
-      records.map((entry) => ({
-        groupId: entry.group.groupId,
-        number: entry.group.number,
-        entrantCount:
-          accountings?.get(entry.group.groupId)?.length ?? entry.record?.entrantIds.length ?? 0,
-      })),
-      destinationZones.length === 0
-        ? [IMPLICIT_ZONE_NAME]
-        : destinationZones.map((zone) => zone.name),
-    );
+  private async validatePromotionPlan(sourceStageId: string, plan: PromotionPlan): Promise<void> {
+    await validateStoredPromotionPlan(this.db, sourceStageId, plan);
   }
 }
 
@@ -1086,104 +1038,6 @@ function promotionPlanFromRequest(
     perGroupAdvance: body.perGroupAdvance,
     combination: body.combination,
     ...(body.bands === undefined ? {} : { bands: body.bands }),
-  });
-}
-
-function promotionPlanFromStored(
-  zoneId: string,
-  nextStageId: string,
-  stored: Record<string, unknown>,
-): PromotionPlan {
-  const value = typeof stored === 'string' ? parseStoredPlan(stored) : stored;
-  return promotionPlanFromUnknown(zoneId, nextStageId, value);
-}
-
-function promotionPlanFromUnknown(
-  zoneId: string,
-  nextStageId: string,
-  value: Record<string, unknown>,
-): PromotionPlan {
-  const advance = value.perGroupAdvance;
-  const combination = value.combination;
-  if (
-    !(
-      (typeof advance === 'number' && Number.isInteger(advance)) ||
-      (isRecord(advance) && Object.values(advance).every((count) => typeof count === 'number'))
-    ) ||
-    !isRecord(combination) ||
-    typeof combination.mode !== 'string'
-  ) {
-    throw new BadRequestException('Promotion plan has an invalid shape', {
-      errorCode: 'zone-group-bad-request',
-    });
-  }
-
-  const parsedCombination =
-    combination.mode === 'ranked' && isRecord(combination.pipeline)
-      ? {
-          mode: 'ranked' as const,
-          pipeline: combination.pipeline as PromotionPlan['combination'] extends {
-            readonly mode: 'ranked';
-            readonly pipeline: infer Pipeline;
-          }
-            ? Pipeline
-            : never,
-        }
-      : combination.mode === 'manual' && Array.isArray(combination.order)
-        ? {
-            mode: 'manual' as const,
-            order: combination.order.filter(
-              (entrantId): entrantId is string => typeof entrantId === 'string',
-            ),
-          }
-        : combination.mode === 'group-order'
-          ? { mode: 'group-order' as const }
-          : undefined;
-  if (!parsedCombination)
-    throw new BadRequestException('Promotion plan has an invalid combination', {
-      errorCode: 'zone-group-bad-request',
-    });
-
-  const bands = value.bands;
-  if (
-    bands !== undefined &&
-    (!Array.isArray(bands) ||
-      !bands.every(
-        (band) =>
-          isRecord(band) && typeof band.zoneRef === 'string' && typeof band.count === 'number',
-      ))
-  ) {
-    throw new BadRequestException('Promotion plan has invalid destination bands', {
-      errorCode: 'zone-group-bad-request',
-    });
-  }
-
-  return {
-    zoneId,
-    nextStageId,
-    perGroupAdvance: advance as PromotionPlan['perGroupAdvance'],
-    combination: parsedCombination as PromotionPlan['combination'],
-    ...(bands === undefined
-      ? {}
-      : {
-          bands: bands as readonly { readonly zoneRef: string; readonly count: number }[],
-        }),
-  };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function parseStoredPlan(value: string): Record<string, unknown> {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (isRecord(parsed)) return parsed;
-  } catch {
-    // Converted to the same client-safe invalid-plan response below.
-  }
-  throw new BadRequestException('Stored promotion plan has an invalid shape', {
-    errorCode: 'zone-group-bad-request',
   });
 }
 

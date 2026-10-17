@@ -5285,6 +5285,191 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/qualification/preview": {
+      "post": {
+        "operationId": "QualificationController_preview",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QualificationPreviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview who each qualifier position of a stage resolves to, without writing",
+        "tags": [
+          "zones and groups"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/qualification/confirm": {
+      "post": {
+        "description": "Re-evaluates every plan inside one transaction, stores each confirmed position → entrant map, and resolves every qualifier side through the audited entrant writer. Refused while the prior stage is incomplete, while a cut line is tied, or when `expected` no longer matches the standings.",
+        "operationId": "QualificationController_confirm",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmQualificationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmQualificationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirm the qualification of a stage generated ahead",
+        "tags": [
+          "zones and groups"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages": {
       "get": {
         "description": "Number, name and format for every stage, plus whether each already holds a generated fixture — an organizer’s stage list carries no more sensitivity than its zone list.",
@@ -11842,7 +12027,7 @@
   "info": {
     "title": "CopaLibre API",
     "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
-    "version": "7.4.0",
+    "version": "7.5.0",
     "contact": {}
   },
   "tags": [],
@@ -15820,6 +16005,51 @@
           "becomingScheduled"
         ]
       },
+      "StaleQualificationPositionDto": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "number"
+          },
+          "confirmedEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resultingEntrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Who the corrected standings put here; absent when a tie leaves it open"
+          }
+        },
+        "required": [
+          "position",
+          "confirmedEntrantId"
+        ]
+      },
+      "StaleQualificationDto": {
+        "type": "object",
+        "properties": {
+          "stageNumber": {
+            "type": "number",
+            "description": "The stage whose qualification was confirmed"
+          },
+          "promotionPlanId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "positions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaleQualificationPositionDto"
+            }
+          }
+        },
+        "required": [
+          "stageNumber",
+          "promotionPlanId",
+          "positions"
+        ]
+      },
       "CorrectionPreviewResponse": {
         "type": "object",
         "properties": {
@@ -15851,6 +16081,13 @@
                 "$ref": "#/components/schemas/SeriesCorrectionPreview"
               }
             ]
+          },
+          "staleQualifications": {
+            "description": "Confirmed qualifications this correction would no longer match. Nothing changes on its own: the qualification must be confirmed again.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaleQualificationDto"
+            }
           }
         },
         "required": [
@@ -16628,6 +16865,90 @@
           "matches"
         ]
       },
+      "QualifierLabelDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "group-rank",
+              "cohort",
+              "number"
+            ]
+          },
+          "rank": {
+            "type": "number",
+            "description": "Place within the group, for group-rank and cohort"
+          },
+          "groupNumber": {
+            "type": "number"
+          },
+          "groupName": {
+            "type": "string",
+            "description": "The group as the organizer named it"
+          },
+          "order": {
+            "type": "number",
+            "description": "1-based order within the same-rank cohort"
+          },
+          "number": {
+            "type": "number",
+            "description": "The position number, for manual combination"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "QualifierSeedResponse": {
+        "type": "object",
+        "properties": {
+          "promotionPlanId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "type": "number",
+            "description": "1-based position in the plan's whole combined list"
+          },
+          "qualifierLabel": {
+            "$ref": "#/components/schemas/QualifierLabelDto"
+          }
+        },
+        "required": [
+          "promotionPlanId",
+          "position",
+          "qualifierLabel"
+        ]
+      },
+      "SeedingQualifierZoneResponse": {
+        "type": "object",
+        "properties": {
+          "zoneId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Absent for an un-zoned stage"
+          },
+          "zoneName": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string",
+            "description": "The zone’s effective format"
+          },
+          "seeds": {
+            "description": "Seed k is the k-th entry: the order the zone is generated ahead in",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QualifierSeedResponse"
+            }
+          }
+        },
+        "required": [
+          "format",
+          "seeds"
+        ]
+      },
       "SeedingResponse": {
         "type": "object",
         "properties": {
@@ -16676,6 +16997,13 @@
             "example": {
               "01890000-0000-7000-8000-000000000001": "Club Atlético Huracán"
             }
+          },
+          "qualifiers": {
+            "description": "Qualifier positions the promotion plans targeting this stage route to each zone. Present when any plan targets the stage; the stage can then be generated ahead of its prior stage.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeedingQualifierZoneResponse"
+            }
           }
         },
         "required": [
@@ -16690,6 +17018,10 @@
       "PublishSeedingRequest": {
         "type": "object",
         "properties": {
+          "ahead": {
+            "type": "boolean",
+            "description": "Generate the stage ahead from the promotion plans targeting it: every first-round side is a qualifier position and stays undecided until the qualification is confirmed. `seeds` is ignored."
+          },
           "seeds": {
             "description": "The full seed order, not a delta — a partial order is an ambiguous bracket",
             "type": "array",
@@ -16734,6 +17066,231 @@
           "reason",
           "invalidates",
           "persisted"
+        ]
+      },
+      "QualificationPositionResponse": {
+        "type": "object",
+        "properties": {
+          "promotionPlanId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "type": "number",
+            "description": "1-based position in the plan's whole combined list"
+          },
+          "qualifierLabel": {
+            "$ref": "#/components/schemas/QualifierLabelDto"
+          },
+          "zoneId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The destination zone, when declared"
+          },
+          "zoneName": {
+            "type": "string"
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The entrant the current standings put here; absent while the stage is open"
+          },
+          "confirmedEntrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The entrant confirmed here, if any"
+          }
+        },
+        "required": [
+          "promotionPlanId",
+          "position",
+          "qualifierLabel"
+        ]
+      },
+      "QualificationIncompleteMatchResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "round": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string"
+          },
+          "homeEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "awayEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "matchId",
+          "round",
+          "status"
+        ]
+      },
+      "QualificationTieResponse": {
+        "type": "object",
+        "properties": {
+          "promotionPlanId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entrantIds": {
+            "description": "The tied entrants, in no meaningful order",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "positions": {
+            "description": "Qualifier positions the tie leaves undecided",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "groupName": {
+            "type": "string",
+            "description": "The group whose cut line is tied"
+          }
+        },
+        "required": [
+          "promotionPlanId",
+          "entrantIds",
+          "positions"
+        ]
+      },
+      "QualificationPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "incomplete",
+              "tied",
+              "ready",
+              "confirmed",
+              "stale"
+            ],
+            "description": "`incomplete`: the prior stage has unresolved matches. `tied`: a cut line is unresolved. `ready`: confirmable. `confirmed`: the stored confirmation matches the standings. `stale`: a stored confirmation no longer matches them and needs re-confirming."
+          },
+          "positions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QualificationPositionResponse"
+            }
+          },
+          "incomplete": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QualificationIncompleteMatchResponse"
+            }
+          },
+          "tie": {
+            "$ref": "#/components/schemas/QualificationTieResponse"
+          },
+          "names": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Display names of every entrant the response names, keyed by entrant id"
+          }
+        },
+        "required": [
+          "state",
+          "positions",
+          "incomplete",
+          "names"
+        ]
+      },
+      "ExpectedQualificationPositionRequest": {
+        "type": "object",
+        "properties": {
+          "promotionPlanId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "type": "number"
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "promotionPlanId",
+          "position",
+          "entrantId"
+        ]
+      },
+      "ConfirmQualificationRequest": {
+        "type": "object",
+        "properties": {
+          "expected": {
+            "description": "The positions the organizer reviewed. When given, confirmation is refused if the standings moved since, so what is confirmed is exactly what was previewed.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExpectedQualificationPositionRequest"
+            }
+          }
+        }
+      },
+      "ConfirmQualificationResponse": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "incomplete",
+              "tied",
+              "ready",
+              "confirmed",
+              "stale"
+            ],
+            "description": "`incomplete`: the prior stage has unresolved matches. `tied`: a cut line is unresolved. `ready`: confirmable. `confirmed`: the stored confirmation matches the standings. `stale`: a stored confirmation no longer matches them and needs re-confirming."
+          },
+          "positions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QualificationPositionResponse"
+            }
+          },
+          "incomplete": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QualificationIncompleteMatchResponse"
+            }
+          },
+          "tie": {
+            "$ref": "#/components/schemas/QualificationTieResponse"
+          },
+          "names": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Display names of every entrant the response names, keyed by entrant id"
+          },
+          "changedSides": {
+            "type": "number",
+            "description": "Fixture sides that received their entrant"
+          }
+        },
+        "required": [
+          "state",
+          "positions",
+          "incomplete",
+          "names",
+          "changedSides"
         ]
       },
       "StageResponse": {
@@ -21450,6 +22007,13 @@
           "plan": {
             "type": "object",
             "additionalProperties": true
+          },
+          "mutationClass": {
+            "type": "string",
+            "enum": [
+              "requires_rebuild"
+            ],
+            "description": "Set when the target stage was generated ahead from this plan: its qualifier positions may no longer match, so the stage must be generated again before it is confirmed"
           }
         },
         "required": [
@@ -21647,7 +22211,11 @@
             "format": "uuid"
           },
           "position": {
-            "type": "number"
+            "type": "number",
+            "description": "1-based position in the plan's whole combined list"
+          },
+          "qualifierLabel": {
+            "$ref": "#/components/schemas/QualifierLabelDto"
           }
         },
         "required": [

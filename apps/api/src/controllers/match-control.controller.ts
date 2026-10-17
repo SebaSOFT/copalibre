@@ -112,6 +112,7 @@ import {
 } from '../after-outcome-change.js';
 import { assertSidesDecided } from '../assert-sides-decided.js';
 import { readFixtureSources } from './fixture-sources.js';
+import { staleConfirmationsAfter } from './qualification.js';
 
 /**
  * Running a match.
@@ -1735,6 +1736,12 @@ export class MatchControlController {
       request,
     );
     const series = await this.seriesOutlookFor(organizationAlias, tournamentAlias, matchId, body);
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    const staleQualifications = await staleConfirmationsAfter(this.db, tournament, {
+      matchId,
+      stageId: await this.stageOf(matchId),
+      replacement: plan.replacement,
+    });
 
     return {
       changedEntrantIds: [...plan.changedEntrantIds],
@@ -1748,6 +1755,14 @@ export class MatchControlController {
               becomingNotRequired: [...series.becomingNotRequired],
               becomingScheduled: [...series.becomingScheduled],
             },
+          }),
+      ...(staleQualifications.length === 0
+        ? {}
+        : {
+            staleQualifications: staleQualifications.map((stale) => ({
+              ...stale,
+              positions: stale.positions.map((position) => ({ ...position })),
+            })),
           }),
     };
   }

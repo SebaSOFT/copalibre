@@ -722,6 +722,24 @@ export class SeriesCorrectionPreview {
   becomingScheduled!: number[];
 }
 
+export class StaleQualificationPositionDto {
+  @ApiProperty() position!: number;
+  @ApiProperty({ format: 'uuid' }) confirmedEntrantId!: string;
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Who the corrected standings put here; absent when a tie leaves it open',
+  })
+  resultingEntrantId?: string;
+}
+
+export class StaleQualificationDto {
+  @ApiProperty({ description: 'The stage whose qualification was confirmed' })
+  stageNumber!: number;
+  @ApiProperty({ format: 'uuid' }) promotionPlanId!: string;
+  @ApiProperty({ type: [StaleQualificationPositionDto] })
+  positions!: StaleQualificationPositionDto[];
+}
+
 export class CorrectionPreviewResponse {
   @ApiPropertyOptional({ type: [ReResolvedMatchSideDto] })
   reResolved?: ReResolvedMatchSideDto[];
@@ -739,6 +757,14 @@ export class CorrectionPreviewResponse {
     description: 'Present only when the corrected match belongs to a series',
   })
   series?: SeriesCorrectionPreview;
+
+  @ApiPropertyOptional({
+    type: [StaleQualificationDto],
+    description:
+      'Confirmed qualifications this correction would no longer match. Nothing changes on its ' +
+      'own: the qualification must be confirmed again.',
+  })
+  staleQualifications?: StaleQualificationDto[];
 }
 
 export class CorrectionEntryDto {

@@ -1305,6 +1305,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/qualification/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview who each qualifier position of a stage resolves to, without writing */
+        post: operations["QualificationController_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/qualification/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm the qualification of a stage generated ahead
+         * @description Re-evaluates every plan inside one transaction, stores each confirmed position → entrant map, and resolves every qualifier side through the audited entrant writer. Refused while the prior stage is incomplete, while a cut line is tied, or when `expected` no longer matches the standings.
+         */
+        post: operations["QualificationController_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages": {
         parameters: {
             query?: never;
@@ -4502,6 +4539,23 @@ export interface components {
             /** @description Games that would return from not-required to scheduled. Each comes back holding no slot: the one it had was released when the series settled. */
             becomingScheduled: number[];
         };
+        StaleQualificationPositionDto: {
+            position: number;
+            /** Format: uuid */
+            confirmedEntrantId: string;
+            /**
+             * Format: uuid
+             * @description Who the corrected standings put here; absent when a tie leaves it open
+             */
+            resultingEntrantId?: string;
+        };
+        StaleQualificationDto: {
+            /** @description The stage whose qualification was confirmed */
+            stageNumber: number;
+            /** Format: uuid */
+            promotionPlanId: string;
+            positions: components["schemas"]["StaleQualificationPositionDto"][];
+        };
         CorrectionPreviewResponse: {
             reResolved?: components["schemas"]["ReResolvedMatchSideDto"][];
             /** @description Entrants whose recorded numbers move */
@@ -4510,6 +4564,8 @@ export interface components {
             blockedPropagation?: components["schemas"]["BlockedPropagationDto"];
             /** @description Present only when the corrected match belongs to a series */
             series?: components["schemas"]["SeriesCorrectionPreview"];
+            /** @description Confirmed qualifications this correction would no longer match. Nothing changes on its own: the qualification must be confirmed again. */
+            staleQualifications?: components["schemas"]["StaleQualificationDto"][];
         };
         CorrectionEntryDto: {
             occurredAt: string;
@@ -4787,6 +4843,38 @@ export interface components {
             format: string;
             matches: components["schemas"]["BracketMatchResponse"][];
         };
+        QualifierLabelDto: {
+            /** @enum {string} */
+            kind: "group-rank" | "cohort" | "number";
+            /** @description Place within the group, for group-rank and cohort */
+            rank?: number;
+            groupNumber?: number;
+            /** @description The group as the organizer named it */
+            groupName?: string;
+            /** @description 1-based order within the same-rank cohort */
+            order?: number;
+            /** @description The position number, for manual combination */
+            number?: number;
+        };
+        QualifierSeedResponse: {
+            /** Format: uuid */
+            promotionPlanId: string;
+            /** @description 1-based position in the plan's whole combined list */
+            position: number;
+            qualifierLabel: components["schemas"]["QualifierLabelDto"];
+        };
+        SeedingQualifierZoneResponse: {
+            /**
+             * Format: uuid
+             * @description Absent for an un-zoned stage
+             */
+            zoneId?: string;
+            zoneName?: string;
+            /** @description The zone’s effective format */
+            format: string;
+            /** @description Seed k is the k-th entry: the order the zone is generated ahead in */
+            seeds: components["schemas"]["QualifierSeedResponse"][];
+        };
         SeedingResponse: {
             /** @description Published match assignments released by rebuilding this stage */
             releasedAssignments: number;
@@ -4809,8 +4897,12 @@ export interface components {
             names?: {
                 [key: string]: string;
             };
+            /** @description Qualifier positions the promotion plans targeting this stage route to each zone. Present when any plan targets the stage; the stage can then be generated ahead of its prior stage. */
+            qualifiers?: components["schemas"]["SeedingQualifierZoneResponse"][];
         };
         PublishSeedingRequest: {
+            /** @description Generate the stage ahead from the promotion plans targeting it: every first-round side is a qualifier position and stays undecided until the qualification is confirmed. `seeds` is ignored. */
+            ahead?: boolean;
             /** @description The full seed order, not a delta — a partial order is an ambiguous bracket */
             seeds: components["schemas"]["SeedAssignmentResponse"][];
         };
@@ -4823,6 +4915,90 @@ export interface components {
             invalidates: string[];
             /** @description True once the new seed order and fixture graph are durably persisted. Always true for a 200 response — a publish that could not persist refuses with 409 instead of returning a partial success. */
             persisted: boolean;
+        };
+        QualificationPositionResponse: {
+            /** Format: uuid */
+            promotionPlanId: string;
+            /** @description 1-based position in the plan's whole combined list */
+            position: number;
+            qualifierLabel: components["schemas"]["QualifierLabelDto"];
+            /**
+             * Format: uuid
+             * @description The destination zone, when declared
+             */
+            zoneId?: string;
+            zoneName?: string;
+            /**
+             * Format: uuid
+             * @description The entrant the current standings put here; absent while the stage is open
+             */
+            entrantId?: string;
+            /**
+             * Format: uuid
+             * @description The entrant confirmed here, if any
+             */
+            confirmedEntrantId?: string;
+        };
+        QualificationIncompleteMatchResponse: {
+            /** Format: uuid */
+            matchId: string;
+            round: number;
+            status: string;
+            /** Format: uuid */
+            homeEntrantId?: string;
+            /** Format: uuid */
+            awayEntrantId?: string;
+        };
+        QualificationTieResponse: {
+            /** Format: uuid */
+            promotionPlanId: string;
+            /** @description The tied entrants, in no meaningful order */
+            entrantIds: string[];
+            /** @description Qualifier positions the tie leaves undecided */
+            positions: number[];
+            /** @description The group whose cut line is tied */
+            groupName?: string;
+        };
+        QualificationPreviewResponse: {
+            /**
+             * @description `incomplete`: the prior stage has unresolved matches. `tied`: a cut line is unresolved. `ready`: confirmable. `confirmed`: the stored confirmation matches the standings. `stale`: a stored confirmation no longer matches them and needs re-confirming.
+             * @enum {string}
+             */
+            state: "incomplete" | "tied" | "ready" | "confirmed" | "stale";
+            positions: components["schemas"]["QualificationPositionResponse"][];
+            incomplete: components["schemas"]["QualificationIncompleteMatchResponse"][];
+            tie?: components["schemas"]["QualificationTieResponse"];
+            /** @description Display names of every entrant the response names, keyed by entrant id */
+            names: {
+                [key: string]: string;
+            };
+        };
+        ExpectedQualificationPositionRequest: {
+            /** Format: uuid */
+            promotionPlanId: string;
+            position: number;
+            /** Format: uuid */
+            entrantId: string;
+        };
+        ConfirmQualificationRequest: {
+            /** @description The positions the organizer reviewed. When given, confirmation is refused if the standings moved since, so what is confirmed is exactly what was previewed. */
+            expected?: components["schemas"]["ExpectedQualificationPositionRequest"][];
+        };
+        ConfirmQualificationResponse: {
+            /**
+             * @description `incomplete`: the prior stage has unresolved matches. `tied`: a cut line is unresolved. `ready`: confirmable. `confirmed`: the stored confirmation matches the standings. `stale`: a stored confirmation no longer matches them and needs re-confirming.
+             * @enum {string}
+             */
+            state: "incomplete" | "tied" | "ready" | "confirmed" | "stale";
+            positions: components["schemas"]["QualificationPositionResponse"][];
+            incomplete: components["schemas"]["QualificationIncompleteMatchResponse"][];
+            tie?: components["schemas"]["QualificationTieResponse"];
+            /** @description Display names of every entrant the response names, keyed by entrant id */
+            names: {
+                [key: string]: string;
+            };
+            /** @description Fixture sides that received their entrant */
+            changedSides: number;
         };
         StageResponse: {
             /** Format: uuid */
@@ -6552,6 +6728,11 @@ export interface components {
             plan: {
                 [key: string]: unknown;
             };
+            /**
+             * @description Set when the target stage was generated ahead from this plan: its qualifier positions may no longer match, so the stage must be generated again before it is confirmed
+             * @enum {string}
+             */
+            mutationClass?: "requires_rebuild";
         };
         QualifiedEntrantResponse: {
             /** Format: uuid */
@@ -6623,7 +6804,9 @@ export interface components {
             kind: "QualifierFixtureSideSourceDto";
             /** Format: uuid */
             promotionPlanId: string;
+            /** @description 1-based position in the plan's whole combined list */
             position: number;
+            qualifierLabel?: components["schemas"]["QualifierLabelDto"];
         };
     };
     responses: never;
@@ -9532,6 +9715,112 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SeedingClassificationResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    QualificationController_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QualificationPreviewResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    QualificationController_confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmQualificationRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfirmQualificationResponse"];
                 };
             };
             401: {

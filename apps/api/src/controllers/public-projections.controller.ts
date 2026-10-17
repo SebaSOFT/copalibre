@@ -44,7 +44,11 @@ import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js
 import { resolveStageZones } from './bracket-zones.js';
 import { bracketLinks, graphRecordsOf, placementMatchOf } from './bracket-placements.js';
 import { persistedBracketMatches } from './persisted-bracket.js';
-import { readFixtureSources, readTournamentFixtureSources } from './fixture-sources.js';
+import {
+  qualifierLabelsForRecords,
+  readFixtureSources,
+  readTournamentFixtureSources,
+} from './fixture-sources.js';
 import { readStageSeriesByPosition, seriesResponseOf } from './stage-series.js';
 import {
   persistedChampionshipFixture,
@@ -980,10 +984,15 @@ export class PublicProjectionsController {
           return {
             ...zone,
             format: effectiveFormat(zone, stage),
-            matches: persistedBracketMatches(zoneRecords, (record) => {
-              const state = series.get(record.fixtureId);
-              return state === undefined ? undefined : seriesResponseOf(state);
-            }).map(({ persistedMatchId, ...match }) => ({
+            matches: persistedBracketMatches(
+              zoneRecords,
+              (record) => {
+                const state = series.get(record.fixtureId);
+                return state === undefined ? undefined : seriesResponseOf(state);
+              },
+              undefined,
+              await qualifierLabelsForRecords(this.db, zoneRecords),
+            ).map(({ persistedMatchId, ...match }) => ({
               ...match,
               matchNumber: ordinalByMatchId.get(persistedMatchId ?? ''),
               slots: match.slots.map((slot) => {

@@ -1,10 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PublicSeriesStateResponse } from './public-tournament.dto.js';
 import { BracketSlotSourceResponse } from './bracket-slot-source.dto.js';
 import {
   FixtureSourcesResponse,
+  QualifierLabelDto,
   fixtureSideSourceSchema,
   type FixtureSideSourceDto,
 } from './fixture-side-source.dto.js';
@@ -204,6 +205,26 @@ export class SeedingZoneResponse {
   matches!: BracketMatchResponse[];
 }
 
+export class QualifierSeedResponse {
+  @ApiProperty({ format: 'uuid' }) promotionPlanId!: string;
+  @ApiProperty({ description: "1-based position in the plan's whole combined list" })
+  position!: number;
+  @ApiProperty({ type: QualifierLabelDto }) qualifierLabel!: QualifierLabelDto;
+}
+
+export class SeedingQualifierZoneResponse {
+  @ApiPropertyOptional({ format: 'uuid', description: 'Absent for an un-zoned stage' })
+  zoneId?: string;
+  @ApiPropertyOptional() zoneName?: string;
+  @ApiProperty({ description: 'The zone’s effective format' }) format!: string;
+  @ApiProperty({
+    type: QualifierSeedResponse,
+    isArray: true,
+    description: 'Seed k is the k-th entry: the order the zone is generated ahead in',
+  })
+  seeds!: QualifierSeedResponse[];
+}
+
 export class SeedingResponse {
   @ApiProperty({
     description: 'Published match assignments released by rebuilding this stage',
@@ -241,9 +262,28 @@ export class SeedingResponse {
     example: { '01890000-0000-7000-8000-000000000001': 'Club Atlético Huracán' },
   })
   names?: Record<string, string>;
+
+  @ApiPropertyOptional({
+    type: SeedingQualifierZoneResponse,
+    isArray: true,
+    description:
+      'Qualifier positions the promotion plans targeting this stage route to each zone. Present ' +
+      'when any plan targets the stage; the stage can then be generated ahead of its prior stage.',
+  })
+  qualifiers?: SeedingQualifierZoneResponse[];
 }
 
 export class PublishSeedingRequest {
+  @ApiPropertyOptional({
+    description:
+      'Generate the stage ahead from the promotion plans targeting it: every first-round side is ' +
+      'a qualifier position and stays undecided until the qualification is confirmed. `seeds` is ' +
+      'ignored.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  ahead?: boolean;
+
   @ApiProperty({
     type: SeedAssignmentResponse,
     isArray: true,
