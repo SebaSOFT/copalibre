@@ -506,7 +506,7 @@ async function loadInto(
       ...(officialIds.length === 0 ? {} : { officialIds }),
     };
   });
-  await schedules.publishSchedule(uow, { assignments, ...audit });
+  await schedules.publishSchedule(uow, { assignments, origin: 'import', ...audit });
 
   // --- results: the same repository sequence as the API's bulk-load (design D5) ----
   say('recording results');

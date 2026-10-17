@@ -1578,9 +1578,15 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.arisenHeading': 'Conflictos surgidos después de publicar',
   'control.scheduleBuilder.arisenDescription':
     'Cada asignación era válida al publicarse y no se movió nada. Para resolver un conflicto, mové un partido, previsualizá y publicá.',
-  'control.scheduleBuilder.arisenRest':
+  'control.scheduleBuilder.conflictRest':
     '{entrant} no tiene el descanso exigido entre {match} y {other}',
-  'control.scheduleBuilder.arisenVenue': 'La cancha supera su capacidad con {match} y {other}',
-  'control.scheduleBuilder.arisenOfficial': 'Un oficial está asignado a {match} y a {other}',
+  'control.scheduleBuilder.conflictVenue': 'La cancha supera su capacidad con {match} y {other}',
+  'control.scheduleBuilder.conflictOfficial': 'Un oficial está asignado a {match} y a {other}',
   'control.scheduleBuilder.otherMatch': 'un partido fuera de esta fase',
+  'control.scheduleBuilder.conflictFinalized':
+    '{match} está finalizado: su horario es un registro y ya no puede cambiar',
+  'control.scheduleBuilder.conflictInProgress':
+    '{match} se está jugando: no se puede mover ni retirar ahora',
+  'control.scheduleBuilder.publishRefused':
+    'El horario no se publicó: ahora tiene conflictos, que se listan abajo.',
 };

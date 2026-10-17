@@ -1576,8 +1576,14 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.arisenHeading': 'Конфликты, возникшие после публикации',
   'control.scheduleBuilder.arisenDescription':
     'Каждое размещение было допустимым при публикации, и ничего не перенесено. Чтобы устранить конфликт, перенесите матч, проверьте и опубликуйте.',
-  'control.scheduleBuilder.arisenRest': 'У {entrant} недостаточно отдыха между {match} и {other}',
-  'control.scheduleBuilder.arisenVenue': 'Площадка перегружена: {match} и {other}',
-  'control.scheduleBuilder.arisenOfficial': 'Судья назначен и на {match}, и на {other}',
+  'control.scheduleBuilder.conflictRest': 'У {entrant} недостаточно отдыха между {match} и {other}',
+  'control.scheduleBuilder.conflictVenue': 'Площадка перегружена: {match} и {other}',
+  'control.scheduleBuilder.conflictOfficial': 'Судья назначен и на {match}, и на {other}',
   'control.scheduleBuilder.otherMatch': 'матч вне этого этапа',
+  'control.scheduleBuilder.conflictFinalized':
+    '{match} завершён: его время зафиксировано и больше не может меняться',
+  'control.scheduleBuilder.conflictInProgress':
+    '{match} идёт сейчас: его нельзя перенести или снять',
+  'control.scheduleBuilder.publishRefused':
+    'Расписание не опубликовано: в нём есть конфликты, они перечислены ниже.',
 };

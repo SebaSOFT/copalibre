@@ -261,22 +261,32 @@ export function ScheduleBuilderTemplate({
     };
   });
 
-  /** A current conflict in the organizer's language, naming the matches it involves. */
-  function describeArisen(conflict: ScheduleConflictDto): string {
+  /**
+   * A conflict in the operator's language, from its kind, its matches and the resource involved.
+   * The API's `detail` is an English diagnostic carrying identifiers and is never shown.
+   */
+  function describeConflict(conflict: ScheduleConflictDto): string {
     const nameOf = (matchId: string) =>
       rowLabelOf.get(matchId) ?? intl.formatMessage(messages.scheduleBuilderOtherMatch);
     const values = {
       match: nameOf(conflict.matchId),
       other: nameOf(conflict.conflictsWithMatchId),
     };
-    if (conflict.kind === 'rest-rule')
-      return intl.formatMessage(messages.scheduleBuilderArisenRest, {
-        ...values,
-        entrant: entrantNames.get(conflict.resourceId)?.fullName ?? unknownName,
-      });
-    if (conflict.kind === 'official-double-booked')
-      return intl.formatMessage(messages.scheduleBuilderArisenOfficial, values);
-    return intl.formatMessage(messages.scheduleBuilderArisenVenue, values);
+    switch (conflict.kind) {
+      case 'rest-rule':
+        return intl.formatMessage(messages.scheduleBuilderConflictRest, {
+          ...values,
+          entrant: entrantNames.get(conflict.resourceId)?.fullName ?? unknownName,
+        });
+      case 'official-double-booked':
+        return intl.formatMessage(messages.scheduleBuilderConflictOfficial, values);
+      case 'match-finalized':
+        return intl.formatMessage(messages.scheduleBuilderConflictFinalized, values);
+      case 'match-in-progress':
+        return intl.formatMessage(messages.scheduleBuilderConflictInProgress, values);
+      default:
+        return intl.formatMessage(messages.scheduleBuilderConflictVenue, values);
+    }
   }
 
   /** A batch moving published matches asks why first; first placements publish directly. */
@@ -694,7 +704,7 @@ export function ScheduleBuilderTemplate({
                       <li
                         key={`${conflict.kind}:${conflict.matchId}:${conflict.conflictsWithMatchId}:${conflict.resourceId}`}
                       >
-                        {describeArisen(conflict)}
+                        {describeConflict(conflict)}
                       </li>
                     ))}
                   </ul>
@@ -708,7 +718,7 @@ export function ScheduleBuilderTemplate({
                   </h3>
                   <ul>
                     {conflicts.map((conflict, index) => (
-                      <li key={index}>{conflict.detail}</li>
+                      <li key={index}>{describeConflict(conflict)}</li>
                     ))}
                   </ul>
                 </div>

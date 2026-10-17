@@ -30,6 +30,7 @@ import {
   toVenue,
 } from '../mapping.js';
 import { lockRowsForMutation } from '../row-lock.js';
+import type { EventOrigin } from '../outbox.js';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 import type { AuditContext } from './enrollment-repository.js';
@@ -57,6 +58,11 @@ export interface ScheduleBatch {
   readonly withdrawals?: readonly ScheduleWithdrawal[];
   /** Applies to every changed published match without its own reason. */
   readonly reason?: ScheduleReason;
+  /**
+   * Where the batch comes from when it is not an organizer's own publish: `import` for demo
+   * loading and bulk imports, which notify nobody.
+   */
+  readonly origin?: EventOrigin;
 }
 
 export interface SchedulePreview {
@@ -999,10 +1005,59 @@ export class ScheduleRepository {
         organizationId: input.organizationId,
         matches: input.assignments.length,
         withdrawn: withdrawnIds.length,
+        batchId: newId(),
+        actor: input.actor,
+        ...(input.origin === undefined ? {} : { origin: input.origin }),
+        changes: await this.publishedChanges(uow, input, context, current, changed, reasonFor),
       },
     });
 
     return input.assignments;
+  }
+
+  /**
+   * Each published placement the batch changed or withdrew, with where it was, where it is now and
+   * the reason that applies to it: its own exception, else the batch reason. First placements are
+   * not changes, so a batch that only places matches lists none.
+   */
+  private async publishedChanges(
+    uow: UnitOfWork,
+    input: ScheduleBatch,
+    context: ScheduleContext,
+    current: ReadonlyMap<string, CurrentPlacement>,
+    changed: readonly string[],
+    reasonFor: (matchId: string) => ScheduleReason | undefined,
+  ): Promise<readonly Record<string, unknown>[]> {
+    if (changed.length === 0) return [];
+    const tournaments = await uow.tx
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .innerJoin('stages', 'stages.stage_id', 'fixtures.stage_id')
+      .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
+      .select(['matches.match_id', 'seasons.tournament_id'])
+      .where('matches.match_id', 'in', [...changed])
+      .execute();
+    const placementOf = (venueId: string, startsAt: number) => {
+      const venue = context.venues.get(venueId);
+      return { startsAt, venue: venue ? { alias: venue.alias, name: venue.name } : null };
+    };
+    return changed.map((matchId) => {
+      const prior = current.get(matchId) as CurrentPlacement;
+      const resulting = input.assignments.find((entry) => entry.matchId === matchId);
+      const slot = resulting ? context.slots.get(resulting.slotId) : undefined;
+      const reason = reasonFor(matchId);
+      return {
+        matchId,
+        tournamentId: tournaments.find((row) => row.match_id === matchId)?.tournament_id ?? null,
+        previous: placementOf(prior.venueId, prior.startsAt),
+        next: slot ? placementOf(slot.venueId, slot.window.startsAt) : null,
+        withdrawn: resulting === undefined,
+        reason: {
+          ...(reason?.code === undefined ? {} : { code: reason.code }),
+          text: reason?.text.trim() ?? '',
+        },
+      };
+    });
   }
 
   private async publishPlacementEvents(

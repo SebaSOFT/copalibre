@@ -1585,9 +1585,16 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.arisenHeading': 'Conflitti emersi dopo la pubblicazione',
   'control.scheduleBuilder.arisenDescription':
     'Ogni assegnazione era valida alla pubblicazione e nulla è stato spostato. Per risolvere un conflitto, sposta una partita, visualizza l’anteprima e pubblica.',
-  'control.scheduleBuilder.arisenRest':
+  'control.scheduleBuilder.conflictRest':
     '{entrant} non ha il riposo richiesto tra {match} e {other}',
-  'control.scheduleBuilder.arisenVenue': 'L’impianto supera la capienza con {match} e {other}',
-  'control.scheduleBuilder.arisenOfficial': 'Un ufficiale è assegnato sia a {match} sia a {other}',
+  'control.scheduleBuilder.conflictVenue': 'L’impianto supera la capienza con {match} e {other}',
+  'control.scheduleBuilder.conflictOfficial':
+    'Un ufficiale è assegnato sia a {match} sia a {other}',
   'control.scheduleBuilder.otherMatch': 'una partita fuori da questa fase',
+  'control.scheduleBuilder.conflictFinalized':
+    '{match} è conclusa: il suo orario è ormai un dato e non può più cambiare',
+  'control.scheduleBuilder.conflictInProgress':
+    '{match} è in corso: non può essere spostata né ritirata ora',
+  'control.scheduleBuilder.publishRefused':
+    'Il calendario non è stato pubblicato: ora presenta conflitti, elencati qui sotto.',
 };

@@ -389,7 +389,15 @@ const slotStart = (slotId: string | undefined) =>
   Date.parse(SCHEDULES[0]?.slots.find((one) => one.slotId === slotId)?.startsAt ?? '');
 
 /** The tournament's stored rest rule, measured from a one-hour match's end. */
-function restConflicts(assignments: readonly ScheduleAssignment[]): readonly { detail: string }[] {
+interface MockConflict {
+  readonly kind: string;
+  readonly matchId: string;
+  readonly conflictsWithMatchId: string;
+  readonly resourceId: string;
+  readonly detail: string;
+}
+
+function restConflicts(assignments: readonly ScheduleAssignment[]): readonly MockConflict[] {
   if (minimumRestMinutes === undefined) return [];
   const entrantsOf = (matchId: string) => {
     const fixture = fixtures.find((one) => one.matchId === matchId);
@@ -399,7 +407,7 @@ function restConflicts(assignments: readonly ScheduleAssignment[]): readonly { d
     ...published.filter((one) => !assignments.some((a) => a.matchId === one.matchId)),
     ...assignments,
   ];
-  const conflicts: { detail: string }[] = [];
+  const conflicts: MockConflict[] = [];
   for (const [index, a] of placed.entries()) {
     for (const b of placed.slice(index + 1)) {
       const shared = entrantsOf(a.matchId).filter((id) => entrantsOf(b.matchId).includes(id));
@@ -407,6 +415,10 @@ function restConflicts(assignments: readonly ScheduleAssignment[]): readonly { d
       const gap = Math.abs(slotStart(a.slotId) - slotStart(b.slotId)) / 60_000 - 60;
       if (gap < minimumRestMinutes) {
         conflicts.push({
+          kind: 'rest-rule',
+          matchId: a.matchId,
+          conflictsWithMatchId: b.matchId,
+          resourceId: String(shared[0]),
           detail: `Entrant "${shared[0]}" gets ${gap} minute(s) between "${a.matchId}" and "${b.matchId}"; ${minimumRestMinutes} are required`,
         });
       }
@@ -416,17 +428,21 @@ function restConflicts(assignments: readonly ScheduleAssignment[]): readonly { d
 }
 
 /** Two matches placed in one slot at a single-capacity venue is exactly one conflict. */
-function detectConflicts(
-  assignments: readonly ScheduleAssignment[],
-): readonly { readonly detail: string }[] {
-  const conflicts: { detail: string }[] = [];
+function detectConflicts(assignments: readonly ScheduleAssignment[]): readonly MockConflict[] {
+  const conflicts: MockConflict[] = [];
   for (const [index, a] of assignments.entries()) {
     for (const b of assignments.slice(index + 1)) {
       if (a.slotId !== b.slotId) continue;
       const slot = SCHEDULES[0]?.slots.find((one) => one.slotId === a.slotId);
       const venue = venues.find((one) => one.venueId === slot?.venueId);
       if ((venue?.concurrentCapacity ?? 1) < 2) {
-        conflicts.push({ detail: `Venue "${slot?.venueId}" hosts 1 fixture(s) at once` });
+        conflicts.push({
+          kind: 'venue-double-booked',
+          matchId: a.matchId,
+          conflictsWithMatchId: b.matchId,
+          resourceId: String(slot?.venueId),
+          detail: `Venue "${slot?.venueId}" hosts 1 fixture(s) at once`,
+        });
       }
     }
   }
@@ -714,7 +730,9 @@ test('a conflicting batch shows the conflict and blocks publish until resolved',
 
   await page.getByText('Previsualizar').click();
   await expect(page.getByText('Conflictos')).toBeVisible();
-  await expect(page.getByText(/hosts 1 fixture\(s\) at once/)).toBeVisible();
+  await expect(page.getByText(/^La cancha supera su capacidad con Club/)).toBeVisible();
+  // The API's English diagnostic never reaches the operator.
+  await expect(page.getByText(/hosts 1 fixture/)).toHaveCount(0);
   await expect(page.getByText('Publicar')).toBeDisabled();
 });
 
@@ -765,7 +783,10 @@ test('stores a minimum rest, asks a reason for published moves from the keyboard
   // entrant-a plays match-1 at 14:00; match-4 at 15:00 leaves no rest at all.
   await page.getByLabel('Hora de inicio — Club Alfa vs Club Cóndor').selectOption('slot-5');
   await page.getByText('Previsualizar').click();
-  await expect(page.getByText(/120 are required/).first()).toBeVisible();
+  await expect(
+    page.getByText(/^Club Alfa no tiene el descanso exigido entre/).first(),
+  ).toBeVisible();
+  await expect(page.getByText(/are required/)).toHaveCount(0);
   await page.getByLabel('Hora de inicio — Club Alfa vs Club Cóndor').selectOption('');
 
   // Three published matches move; the batch needs a reason before it publishes.

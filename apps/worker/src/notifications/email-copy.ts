@@ -1,5 +1,17 @@
 import type { SupportedLanguage } from '@copalibre/domain';
 
+/** The reason presets the schedule builder offers, `other` aside: its typed text is the reason. */
+export const SCHEDULE_PRESET_REASONS = [
+  'venue-unavailable',
+  'weather',
+  'entrant-request',
+  'officials-unavailable',
+  'prior-match-overran',
+  'broadcast',
+  'data-correction',
+] as const;
+export type SchedulePresetReason = (typeof SCHEDULE_PRESET_REASONS)[number];
+
 /**
  * Every string an email can carry, for each supported language.
  *
@@ -52,6 +64,25 @@ export interface EmailCopy {
     readonly expires: (at: string) => string;
     readonly ignore: string;
   };
+  readonly reschedule: {
+    readonly subject: (tournament: string) => string;
+    /** When one email covers matches of several tournaments. */
+    readonly subjectSeveral: string;
+    readonly heading: string;
+    readonly intro: (count: number) => string;
+    readonly reason: (reason: string) => string;
+    readonly moved: (match: string, from: string, to: string) => string;
+    readonly withdrawn: (match: string, from: string) => string;
+    /** A placement: when, and where. */
+    readonly at: (when: string, venue: string) => string;
+    readonly more: (count: number) => string;
+    readonly noReason: string;
+    /** A side not decided yet, in a match label. */
+    readonly undecided: string;
+    /** Preset reason codes, worded as the control panel offers them. */
+    readonly presets: Readonly<Record<SchedulePresetReason, string>>;
+    readonly action: string;
+  };
 }
 
 const en: EmailCopy = {
@@ -95,6 +126,30 @@ const en: EmailCopy = {
     action: 'Reset your password',
     expires: (at) => `This link expires at ${at}.`,
     ignore: 'If you did not request this, you can ignore this email.',
+  },
+  reschedule: {
+    subject: (tournament) => `Schedule changed: ${tournament}`,
+    subjectSeveral: 'Schedule changed',
+    heading: 'Matches rescheduled',
+    intro: (count) =>
+      count === 1 ? 'One of your matches changed.' : `${count} of your matches changed.`,
+    reason: (reason) => `Reason: ${reason}`,
+    moved: (match, from, to) => `${match}: ${from} → ${to}`,
+    withdrawn: (match, from) => `${match}: ${from}, withdrawn from the schedule`,
+    at: (when, venue) => `${when} at ${venue}`,
+    more: (count) => `…and ${count} more in the programme.`,
+    noReason: 'No reason given',
+    undecided: 'To be decided',
+    presets: {
+      'venue-unavailable': 'Venue unavailable',
+      weather: 'Weather',
+      'entrant-request': 'Requested by an entrant',
+      'officials-unavailable': 'Officials unavailable',
+      'prior-match-overran': 'A previous match ran long',
+      broadcast: 'Broadcast schedule',
+      'data-correction': 'Correcting a mistake',
+    },
+    action: 'Open the programme',
   },
 };
 
@@ -140,6 +195,30 @@ const es: EmailCopy = {
     expires: (at) => `Este enlace vence el ${at}.`,
     ignore: 'Si no lo pediste, podés ignorar este correo.',
   },
+  reschedule: {
+    subject: (tournament) => `Cambió el horario: ${tournament}`,
+    subjectSeveral: 'Cambió el horario',
+    heading: 'Partidos reprogramados',
+    intro: (count) =>
+      count === 1 ? 'Cambió uno de tus partidos.' : `Cambiaron ${count} de tus partidos.`,
+    reason: (reason) => `Motivo: ${reason}`,
+    moved: (match, from, to) => `${match}: ${from} → ${to}`,
+    withdrawn: (match, from) => `${match}: ${from}, retirado del horario`,
+    at: (when, venue) => `${when} en ${venue}`,
+    more: (count) => `…y ${count} más en el programa.`,
+    noReason: 'Sin motivo indicado',
+    undecided: 'A definir',
+    presets: {
+      'venue-unavailable': 'Cancha no disponible',
+      weather: 'Clima',
+      'entrant-request': 'Pedido de un participante',
+      'officials-unavailable': 'Árbitros no disponibles',
+      'prior-match-overran': 'Un partido anterior se extendió',
+      broadcast: 'Grilla de transmisión',
+      'data-correction': 'Corrección de un error',
+    },
+    action: 'Ver el programa',
+  },
 };
 
 const fr: EmailCopy = {
@@ -183,6 +262,30 @@ const fr: EmailCopy = {
     action: 'Réinitialiser le mot de passe',
     expires: (at) => `Ce lien expire le ${at}.`,
     ignore: 'Si vous n’êtes pas à l’origine de cette demande, ignorez ce message.',
+  },
+  reschedule: {
+    subject: (tournament) => `Horaire modifié : ${tournament}`,
+    subjectSeveral: 'Horaire modifié',
+    heading: 'Matchs reprogrammés',
+    intro: (count) =>
+      count === 1 ? 'Un de vos matchs a changé.' : `${count} de vos matchs ont changé.`,
+    reason: (reason) => `Motif : ${reason}`,
+    moved: (match, from, to) => `${match} : ${from} → ${to}`,
+    withdrawn: (match, from) => `${match} : ${from}, retiré du calendrier`,
+    at: (when, venue) => `${when} à ${venue}`,
+    more: (count) => `…et ${count} de plus dans le programme.`,
+    noReason: 'Aucun motif indiqué',
+    undecided: 'À déterminer',
+    presets: {
+      'venue-unavailable': 'Lieu indisponible',
+      weather: 'Météo',
+      'entrant-request': 'Demande d’un participant',
+      'officials-unavailable': 'Officiels indisponibles',
+      'prior-match-overran': 'Un match précédent a débordé',
+      broadcast: 'Programme de diffusion',
+      'data-correction': 'Correction d’une erreur',
+    },
+    action: 'Voir le programme',
   },
 };
 
@@ -228,6 +331,30 @@ const pt: EmailCopy = {
     expires: (at) => `Este link expira em ${at}.`,
     ignore: 'Se você não solicitou, ignore este e-mail.',
   },
+  reschedule: {
+    subject: (tournament) => `Horário alterado: ${tournament}`,
+    subjectSeveral: 'Horário alterado',
+    heading: 'Partidas reagendadas',
+    intro: (count) =>
+      count === 1 ? 'Uma das suas partidas mudou.' : `${count} das suas partidas mudaram.`,
+    reason: (reason) => `Motivo: ${reason}`,
+    moved: (match, from, to) => `${match}: ${from} → ${to}`,
+    withdrawn: (match, from) => `${match}: ${from}, retirada do horário`,
+    at: (when, venue) => `${when} em ${venue}`,
+    more: (count) => `…e mais ${count} na programação.`,
+    noReason: 'Nenhum motivo informado',
+    undecided: 'A definir',
+    presets: {
+      'venue-unavailable': 'Local indisponível',
+      weather: 'Clima',
+      'entrant-request': 'Pedido de um participante',
+      'officials-unavailable': 'Arbitragem indisponível',
+      'prior-match-overran': 'Uma partida anterior se estendeu',
+      broadcast: 'Grade de transmissão',
+      'data-correction': 'Correção de um erro',
+    },
+    action: 'Ver a programação',
+  },
 };
 
 const it: EmailCopy = {
@@ -271,6 +398,32 @@ const it: EmailCopy = {
     action: 'Reimposta la password',
     expires: (at) => `Questo link scade il ${at}.`,
     ignore: 'Se non l’hai richiesto, puoi ignorare questa email.',
+  },
+  reschedule: {
+    subject: (tournament) => `Orario modificato: ${tournament}`,
+    subjectSeveral: 'Orario modificato',
+    heading: 'Partite riprogrammate',
+    intro: (count) =>
+      count === 1
+        ? 'Una delle tue partite è cambiata.'
+        : `${count} delle tue partite sono cambiate.`,
+    reason: (reason) => `Motivo: ${reason}`,
+    moved: (match, from, to) => `${match}: ${from} → ${to}`,
+    withdrawn: (match, from) => `${match}: ${from}, ritirata dal calendario`,
+    at: (when, venue) => `${when} presso ${venue}`,
+    more: (count) => `…e altre ${count} nel programma.`,
+    noReason: 'Nessun motivo indicato',
+    undecided: 'Da definire',
+    presets: {
+      'venue-unavailable': 'Impianto non disponibile',
+      weather: 'Meteo',
+      'entrant-request': 'Richiesta di un partecipante',
+      'officials-unavailable': 'Ufficiali di gara non disponibili',
+      'prior-match-overran': 'Una partita precedente si è prolungata',
+      broadcast: 'Palinsesto televisivo',
+      'data-correction': 'Correzione di un errore',
+    },
+    action: 'Apri il programma',
   },
 };
 
@@ -316,6 +469,30 @@ const de: EmailCopy = {
     expires: (at) => `Dieser Link läuft am ${at} ab.`,
     ignore: 'Wenn Sie das nicht angefordert haben, können Sie diese E-Mail ignorieren.',
   },
+  reschedule: {
+    subject: (tournament) => `Termin geändert: ${tournament}`,
+    subjectSeveral: 'Termine geändert',
+    heading: 'Spiele verlegt',
+    intro: (count) =>
+      count === 1 ? 'Eines Ihrer Spiele wurde geändert.' : `${count} Ihrer Spiele wurden geändert.`,
+    reason: (reason) => `Grund: ${reason}`,
+    moved: (match, from, to) => `${match}: ${from} → ${to}`,
+    withdrawn: (match, from) => `${match}: ${from}, aus dem Spielplan genommen`,
+    at: (when, venue) => `${when} in ${venue}`,
+    more: (count) => `…und ${count} weitere im Spielplan.`,
+    noReason: 'Kein Grund angegeben',
+    undecided: 'Noch offen',
+    presets: {
+      'venue-unavailable': 'Spielstätte nicht verfügbar',
+      weather: 'Wetter',
+      'entrant-request': 'Wunsch eines Teilnehmers',
+      'officials-unavailable': 'Offizielle nicht verfügbar',
+      'prior-match-overran': 'Ein vorheriges Spiel hat überzogen',
+      broadcast: 'Übertragungsplan',
+      'data-correction': 'Korrektur eines Fehlers',
+    },
+    action: 'Spielplan öffnen',
+  },
 };
 
 const ru: EmailCopy = {
@@ -360,6 +537,30 @@ const ru: EmailCopy = {
     expires: (at) => `Ссылка действует до ${at}.`,
     ignore: 'Если вы не запрашивали это, проигнорируйте письмо.',
   },
+  reschedule: {
+    subject: (tournament) => `Расписание изменено: ${tournament}`,
+    subjectSeveral: 'Расписание изменено',
+    heading: 'Матчи перенесены',
+    intro: (count) =>
+      count === 1 ? 'Изменился один из ваших матчей.' : `Изменились ваши матчи: ${count}.`,
+    reason: (reason) => `Причина: ${reason}`,
+    moved: (match, from, to) => `${match}: ${from} → ${to}`,
+    withdrawn: (match, from) => `${match}: ${from}, снят с расписания`,
+    at: (when, venue) => `${when}, ${venue}`,
+    more: (count) => `…и ещё ${count} в программе.`,
+    noReason: 'Причина не указана',
+    undecided: 'Не определён',
+    presets: {
+      'venue-unavailable': 'Площадка недоступна',
+      weather: 'Погода',
+      'entrant-request': 'Просьба участника',
+      'officials-unavailable': 'Судьи недоступны',
+      'prior-match-overran': 'Предыдущий матч затянулся',
+      broadcast: 'Расписание трансляции',
+      'data-correction': 'Исправление ошибки',
+    },
+    action: 'Открыть программу',
+  },
 };
 
 const zh: EmailCopy = {
@@ -403,6 +604,29 @@ const zh: EmailCopy = {
     action: '重置密码',
     expires: (at) => `此链接将于 ${at} 过期。`,
     ignore: '如果这不是您的操作，请忽略此邮件。',
+  },
+  reschedule: {
+    subject: (tournament) => `赛程变更：${tournament}`,
+    subjectSeveral: '赛程变更',
+    heading: '比赛已改期',
+    intro: (count) => (count === 1 ? '您的一场比赛有变动。' : `您的 ${count} 场比赛有变动。`),
+    reason: (reason) => `原因：${reason}`,
+    moved: (match, from, to) => `${match}：${from} → ${to}`,
+    withdrawn: (match, from) => `${match}：${from}，已撤出赛程`,
+    at: (when, venue) => `${when}，${venue}`,
+    more: (count) => `……另有 ${count} 场，见赛程。`,
+    noReason: '未注明原因',
+    undecided: '待定',
+    presets: {
+      'venue-unavailable': '场地不可用',
+      weather: '天气',
+      'entrant-request': '参赛者请求',
+      'officials-unavailable': '裁判不可用',
+      'prior-match-overran': '前一场比赛超时',
+      broadcast: '转播安排',
+      'data-correction': '更正错误',
+    },
+    action: '查看赛程',
   },
 };
 

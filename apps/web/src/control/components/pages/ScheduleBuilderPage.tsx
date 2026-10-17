@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
 import { useIntl } from 'react-intl';
 import {
+  ControlApiError,
   createControlApiClient,
   type ControlApiClient,
   type FixtureResponse,
@@ -290,6 +291,18 @@ export function ScheduleBuilderPage({
       push({ severity: 'success', message: intl.formatMessage(messages.scheduleBuilderPublished) });
       void reload();
     } catch (error) {
+      // Refused for conflicts that arose since the preview: list them, worded, as a preview would.
+      if (error instanceof ControlApiError && error.conflicts !== undefined) {
+        previewGeneration.current += 1;
+        setConflicts(error.conflicts);
+        setCommittable(false);
+        setPreviewed(true);
+        push({
+          severity: 'error',
+          message: intl.formatMessage(messages.scheduleBuilderPublishRefused),
+        });
+        return;
+      }
       pushError(error);
     }
   }

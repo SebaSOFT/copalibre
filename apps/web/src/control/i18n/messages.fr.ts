@@ -1592,9 +1592,15 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.arisenHeading': 'Conflits apparus après la publication',
   'control.scheduleBuilder.arisenDescription':
     'Chaque placement était valide à sa publication et rien n’a été déplacé. Pour résoudre un conflit, déplacez un match, prévisualisez et publiez.',
-  'control.scheduleBuilder.arisenRest':
+  'control.scheduleBuilder.conflictRest':
     '{entrant} n’a pas le repos requis entre {match} et {other}',
-  'control.scheduleBuilder.arisenVenue': 'Le site dépasse sa capacité avec {match} et {other}',
-  'control.scheduleBuilder.arisenOfficial': 'Un officiel est affecté à {match} et à {other}',
+  'control.scheduleBuilder.conflictVenue': 'Le site dépasse sa capacité avec {match} et {other}',
+  'control.scheduleBuilder.conflictOfficial': 'Un officiel est affecté à {match} et à {other}',
   'control.scheduleBuilder.otherMatch': 'un match hors de cette phase',
+  'control.scheduleBuilder.conflictFinalized':
+    '{match} est terminé : son horaire est un fait établi et ne peut plus changer',
+  'control.scheduleBuilder.conflictInProgress':
+    '{match} est en cours : il ne peut être ni déplacé ni retiré maintenant',
+  'control.scheduleBuilder.publishRefused':
+    'L’horaire n’a pas été publié : il présente désormais des conflits, listés ci-dessous.',
 };
