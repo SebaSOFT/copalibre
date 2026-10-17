@@ -766,6 +766,60 @@ export class ScheduleRepository {
     };
   }
 
+  /**
+   * The conflicts that exist now among published assignments, involving the given matches. The
+   * same detector as preview and publish, run with the scope's own placements as the batch, so
+   * each clash is compared against every other placement in the organization exactly once.
+   */
+  async currentConflicts(
+    organizationId: string,
+    matchIds: readonly string[],
+    uow?: UnitOfWork,
+  ): Promise<readonly ScheduleConflict[]> {
+    if (matchIds.length === 0) return [];
+    return conflictsAmongPublished(await this.contextFor(organizationId, uow), new Set(matchIds));
+  }
+
+  /** {@link currentConflicts} for every placed match of a stage. */
+  async currentConflictsForStage(
+    organizationId: string,
+    stageId: string,
+  ): Promise<readonly ScheduleConflict[]> {
+    const placed = await this.listScheduleForStage(stageId);
+    return this.currentConflicts(
+      organizationId,
+      placed.map((assignment) => assignment.matchId),
+    );
+  }
+
+  /**
+   * The conflicts a change of entrants made real: present among the changed matches' published
+   * placements now, and absent under the entrants they had before. Venues and officials do not
+   * move with entrants, so only rest conflicts can arise this way, but every kind is compared.
+   */
+  async conflictsArisenFrom(
+    uow: UnitOfWork,
+    organizationId: string,
+    changes: readonly {
+      readonly matchId: string;
+      readonly previousEntrantIds: readonly string[];
+    }[],
+  ): Promise<readonly ScheduleConflict[]> {
+    if (changes.length === 0) return [];
+    const context = await this.contextFor(organizationId, uow);
+    const placed = new Set(context.existing.map((assignment) => assignment.matchId));
+    const scope = new Set(changes.map((change) => change.matchId).filter((id) => placed.has(id)));
+    if (scope.size === 0) return [];
+    const before = new Map(context.entrantsByMatch);
+    for (const change of changes) before.set(change.matchId, change.previousEntrantIds);
+    const prior = new Set(
+      conflictsAmongPublished({ ...context, entrantsByMatch: before }, scope).map(conflictKey),
+    );
+    return conflictsAmongPublished(context, scope).filter(
+      (conflict) => !prior.has(conflictKey(conflict)),
+    );
+  }
+
   async publishSchedule(
     uow: UnitOfWork,
     input: ScheduleBatch & AuditContext,
@@ -1592,4 +1646,22 @@ function assertVenueAlias(value: string): void {
   if (!alias.ok) {
     throw new InvariantViolationError(alias.error.message, { alias: value });
   }
+}
+
+/**
+ * Conflicts among published placements involving `scope`. A finalized or running match is a
+ * record, not a proposal, so the locks that refuse moving one are not conflicts here.
+ */
+export function conflictsAmongPublished(
+  context: ScheduleContext,
+  scope: ReadonlySet<string>,
+): readonly ScheduleConflict[] {
+  const proposed = context.existing.filter((assignment) => scope.has(assignment.matchId));
+  return detectConflicts(proposed, { ...context, lockedMatches: new Map() });
+}
+
+/** One conflict's identity, whichever of its two matches it is reported from. */
+export function conflictKey(conflict: ScheduleConflict): string {
+  const pair = [conflict.matchId, conflict.conflictsWithMatchId].sort().join('|');
+  return `${conflict.kind}|${pair}|${conflict.resourceId}`;
 }
