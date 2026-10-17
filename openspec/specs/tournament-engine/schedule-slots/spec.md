@@ -1,7 +1,10 @@
 # tournament-engine/schedule-slots Specification
 
 ## Purpose
-TBD - created by archiving the schedule at match grain change. Update Purpose after archive.
+Defines where and when matches can be placed: an organization-owned schedule cuts a time range into
+slots over its venues, each slot taking its start from the organization's wall clock and its length
+and place from the schedule, holding as many matches as its venue allows, and fixed in shape while
+it holds matches.
 
 ## Requirements
 
