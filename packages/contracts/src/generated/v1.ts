@@ -4076,8 +4076,28 @@ export interface components {
             /** @description Officials assigned to the match */
             officialIds?: string[];
         };
+        ScheduleConflictDto: {
+            /**
+             * @description Which rule the schedule breaks
+             * @enum {string}
+             */
+            kind: "venue-double-booked" | "official-double-booked" | "rest-rule" | "match-finalized" | "match-in-progress";
+            /** Format: uuid */
+            matchId: string;
+            /**
+             * Format: uuid
+             * @description The match it clashes with
+             */
+            conflictsWithMatchId: string;
+            /** @description Venue, official or entrant the clash is about */
+            resourceId: string;
+            /** @description Human-readable explanation an operator can act on */
+            detail: string;
+        };
         ScheduleResponse: {
             assignments: components["schemas"]["ScheduleAssignmentResponse"][];
+            /** @description Conflicts that exist now among published placements involving this stage, by the same detection preview and publish use. One that arose after publication, for example when a side resolved, is reported here and nothing is moved. */
+            conflicts: components["schemas"]["ScheduleConflictDto"][];
         };
         ScheduleReasonDto: {
             /**
@@ -4125,24 +4145,6 @@ export interface components {
              * @description Deprecated and ignored: the minimum rest is the tournament setting `minimumRestMinutes`, applied by every preview and publish.
              */
             restRule?: components["schemas"]["RestRuleDto"];
-        };
-        ScheduleConflictDto: {
-            /**
-             * @description Which rule the schedule breaks
-             * @enum {string}
-             */
-            kind: "venue-double-booked" | "official-double-booked" | "rest-rule" | "match-finalized" | "match-in-progress";
-            /** Format: uuid */
-            matchId: string;
-            /**
-             * Format: uuid
-             * @description The match it clashes with
-             */
-            conflictsWithMatchId: string;
-            /** @description Venue, official or entrant the clash is about */
-            resourceId: string;
-            /** @description Human-readable explanation an operator can act on */
-            detail: string;
         };
         SchedulePreviewResponse: {
             /** @description Whether the batch would publish as it stands */

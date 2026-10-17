@@ -13,6 +13,7 @@ import {
   type ZoneSeriesLookup,
 } from './fixture-graph.js';
 import { CompetitionRepository } from './repositories/competition-repository.js';
+import { ScheduleRepository } from './repositories/schedule-repository.js';
 import type { AuditContext } from './repositories/enrollment-repository.js';
 import { lockRowsForMutation } from './row-lock.js';
 import type { Database } from './schema.js';
@@ -151,6 +152,7 @@ export class ZoneEntrantResolution {
     >[number][] = [];
     const reResolved: EntrantSideChange[] = [];
     const fixtureByKey = new Map(fixtures.map((row) => [row.node_key as string, row]));
+    const entrantChanges: { matchId: string; previousEntrantIds: readonly string[] }[] = [];
     for (const resolution of resolutions) {
       const fixture = fixtureByKey.get(resolution.nodeKey);
       if (!fixture) continue;
@@ -184,6 +186,15 @@ export class ZoneEntrantResolution {
           currentEntrantId: previous,
           resultingEntrantId: entrantId,
         });
+        if (!options.dryRun) {
+          const previousEntrantIds = [fixture.home_entrant_id, fixture.away_entrant_id].filter(
+            (entrantId): entrantId is string => entrantId !== null,
+          );
+          for (const match of own) {
+            if (!entrantChanges.some((change) => change.matchId === match.match_id))
+              entrantChanges.push({ matchId: match.match_id, previousEntrantIds });
+          }
+        }
         if (!options.dryRun)
           await this.writeSide(uow, audit, {
             fixtureId: fixture.fixture_id,
@@ -222,6 +233,8 @@ export class ZoneEntrantResolution {
       }
     }
 
+    if (!options.dryRun) await this.announceArisenConflicts(uow, audit, entrantChanges);
+
     return {
       persisted: true,
       changedSides,
@@ -230,6 +243,42 @@ export class ZoneEntrantResolution {
       blockedPropagation,
       reResolved,
     };
+  }
+
+  /**
+   * One `schedule.conflict-arose` event for each conflict the new entrants made real among
+   * published placements. Each placement was valid when published, so nothing is moved or
+   * refused: the organizer decides, through an ordinary preview and publish.
+   */
+  private async announceArisenConflicts(
+    uow: UnitOfWork,
+    audit: AuditContext,
+    changes: readonly {
+      readonly matchId: string;
+      readonly previousEntrantIds: readonly string[];
+    }[],
+  ): Promise<void> {
+    const arisen = await new ScheduleRepository(this.db).conflictsArisenFrom(
+      uow,
+      audit.organizationId,
+      changes,
+    );
+    for (const conflict of arisen) {
+      await uow.publishEvent({
+        organizationId: audit.organizationId,
+        stream: `organization:${audit.organizationId}`,
+        entityId: conflict.matchId,
+        eventType: 'schedule.conflict-arose',
+        projectionVersion: 1,
+        payload: {
+          kind: conflict.kind,
+          matchId: conflict.matchId,
+          conflictsWithMatchId: conflict.conflictsWithMatchId,
+          resourceId: conflict.resourceId,
+          detail: conflict.detail,
+        },
+      });
+    }
   }
 
   /** One side's new entrant, audited and published under every match of the fixture. */

@@ -1573,4 +1573,11 @@ export const messages: Record<string, string> = {
   'control.qualification.seedingLink': 'Назад к посеву',
   'control.promotion.planRequiresRebuild':
     'Этап {stage} создан заранее по этому плану. Создайте его снова, чтобы позиции совпали до подтверждения.',
+  'control.scheduleBuilder.arisenHeading': 'Конфликты, возникшие после публикации',
+  'control.scheduleBuilder.arisenDescription':
+    'Каждое размещение было допустимым при публикации, и ничего не перенесено. Чтобы устранить конфликт, перенесите матч, проверьте и опубликуйте.',
+  'control.scheduleBuilder.arisenRest': 'У {entrant} недостаточно отдыха между {match} и {other}',
+  'control.scheduleBuilder.arisenVenue': 'Площадка перегружена: {match} и {other}',
+  'control.scheduleBuilder.arisenOfficial': 'Судья назначен и на {match}, и на {other}',
+  'control.scheduleBuilder.otherMatch': 'матч вне этого этапа',
 };

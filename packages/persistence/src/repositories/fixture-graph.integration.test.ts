@@ -490,6 +490,79 @@ describe('persisted fixture graph (integration)', () => {
     expect(changed?.confirmedResolution).toBeUndefined();
   });
 
+  it('announces a rest conflict a resolution makes real among published placements, once', async () => {
+    const seeded = await seedZone('copa-grafo-descanso');
+    await createGraph(seeded.stage.stageId, seeded.zone.zoneId, bracketOf(seeded));
+    const schedules = new ScheduleRepository(scratch.db);
+    const [sf1] = await matchesOfNode(seeded.zone.zoneId, 'sf-1');
+    const [final] = await matchesOfNode(seeded.zone.zoneId, 'final');
+    await withTransaction(scratch.db, async (uow) => {
+      await new TournamentRepository(scratch.db).setMinimumRest(uow, {
+        tournamentId: seeded.tournament.tournamentId,
+        organizationId,
+        minimumRestMinutes: 120,
+        ...AUDIT,
+      });
+      const venue = await schedules.createVenue(uow, {
+        organizationId,
+        alias: `cancha-${newId()}`,
+        name: 'Cancha',
+        concurrentCapacity: 2,
+        ...AUDIT,
+      });
+      const schedule = await schedules.createSchedule(uow, {
+        organizationId,
+        name: 'Llave',
+        startsAt: BASE,
+        endsAt: BASE + 4 * 60 * 60_000,
+        slotMinutes: 60,
+        turnaroundMinutes: 0,
+        venueIds: [venue.venueId],
+        ...AUDIT,
+      });
+      const [early, later] = await schedules.listScheduleSlots(schedule.scheduleId, uow);
+      // The final is undecided, so its rest is not checked yet and the placement publishes.
+      await schedules.publishSchedule(uow, {
+        organizationId,
+        assignments: [
+          { matchId: sf1?.match_id as string, slotId: early?.slotId as string },
+          { matchId: final?.match_id as string, slotId: later?.slotId as string },
+        ],
+        ...AUDIT,
+      });
+    });
+    const resolution = resolutionWith(stubResolver({ contingency: undefined }).resolve);
+    await run(resolution, seeded.zone.zoneId);
+
+    const arisen = async () =>
+      (await new OutboxReader(scratch.db).pending(10_000)).filter(
+        (event) =>
+          event.eventType === 'schedule.conflict-arose' && event.entityId === final?.match_id,
+      );
+    expect(await arisen()).toEqual([]);
+
+    await finalize(sf1?.match_id as string, seeded.a, seeded.d);
+    await run(resolution, seeded.zone.zoneId);
+    const events = await arisen();
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      stream: `organization:${organizationId}`,
+      payload: {
+        kind: 'rest-rule',
+        matchId: final?.match_id,
+        conflictsWithMatchId: sf1?.match_id,
+        resourceId: seeded.a,
+      },
+    });
+    await expect(
+      schedules.currentConflictsForStage(organizationId, seeded.stage.stageId),
+    ).resolves.toEqual([expect.objectContaining({ kind: 'rest-rule' })]);
+
+    // Resolving again changes nothing, so nothing is announced again.
+    await run(resolution, seeded.zone.zoneId);
+    expect(await arisen()).toHaveLength(1);
+  });
+
   it('previews a correction through the writer resolver without changing facts or emitting events', async () => {
     const seeded = await seedZone('copa-grafo-preview');
     await createGraph(seeded.stage.stageId, seeded.zone.zoneId, bracketOf(seeded));

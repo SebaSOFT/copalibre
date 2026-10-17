@@ -1573,4 +1573,12 @@ export const messages: Record<string, string> = {
   'control.qualification.seedingLink': 'Voltar ao chaveamento',
   'control.promotion.planRequiresRebuild':
     'A fase {stage} foi gerada antecipadamente com este plano. Gere-a de novo para que as posições coincidam antes de confirmar.',
+  'control.scheduleBuilder.arisenHeading': 'Conflitos surgidos depois da publicação',
+  'control.scheduleBuilder.arisenDescription':
+    'Cada alocação era válida quando publicada e nada foi movido. Para resolver um conflito, mova uma partida, visualize e publique.',
+  'control.scheduleBuilder.arisenRest':
+    '{entrant} não tem o descanso exigido entre {match} e {other}',
+  'control.scheduleBuilder.arisenVenue': 'O local excede a capacidade com {match} e {other}',
+  'control.scheduleBuilder.arisenOfficial': 'Um oficial está escalado para {match} e {other}',
+  'control.scheduleBuilder.otherMatch': 'uma partida fora desta fase',
 };

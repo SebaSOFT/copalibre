@@ -109,3 +109,38 @@ export const LiveMatchLocked: Story = {
     ],
   },
 };
+
+/** A semi-final's side resolved after publication into too little rest: reported, nothing moved. */
+export const ConflictArisenAfterPublication: Story = {
+  args: {
+    fixtures: [
+      {
+        fixtureId: ids.match,
+        matchId: ids.match,
+        round: 1,
+        homeEntrantId: ids.first,
+        homeName: 'Club Atlético San Martín',
+        awayEntrantId: ids.second,
+        awayName: 'Deportivo Cuyo',
+      },
+      {
+        fixtureId: ids.matchTwo,
+        matchId: ids.matchTwo,
+        round: 2,
+        homeEntrantId: ids.first,
+        homeName: 'Club Atlético San Martín',
+        awayEntrantId: ids.third,
+        awayName: 'Sportivo Desamparados',
+      },
+    ],
+    currentConflicts: [
+      {
+        kind: 'rest-rule',
+        matchId: ids.matchTwo,
+        conflictsWithMatchId: ids.match,
+        resourceId: ids.first,
+        detail: 'Entrant gets 0 minute(s) between the two matches; 60 are required',
+      },
+    ],
+  },
+};

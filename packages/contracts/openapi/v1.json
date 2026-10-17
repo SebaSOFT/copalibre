@@ -12027,7 +12027,7 @@
   "info": {
     "title": "CopaLibre API",
     "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
-    "version": "7.5.0",
+    "version": "7.6.0",
     "contact": {}
   },
   "tags": [],
@@ -14726,6 +14726,46 @@
           "window"
         ]
       },
+      "ScheduleConflictDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "venue-double-booked",
+              "official-double-booked",
+              "rest-rule",
+              "match-finalized",
+              "match-in-progress"
+            ],
+            "description": "Which rule the schedule breaks"
+          },
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "conflictsWithMatchId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The match it clashes with"
+          },
+          "resourceId": {
+            "type": "string",
+            "description": "Venue, official or entrant the clash is about"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Human-readable explanation an operator can act on"
+          }
+        },
+        "required": [
+          "kind",
+          "matchId",
+          "conflictsWithMatchId",
+          "resourceId",
+          "detail"
+        ]
+      },
       "ScheduleResponse": {
         "type": "object",
         "properties": {
@@ -14734,10 +14774,18 @@
             "items": {
               "$ref": "#/components/schemas/ScheduleAssignmentResponse"
             }
+          },
+          "conflicts": {
+            "description": "Conflicts that exist now among published placements involving this stage, by the same detection preview and publish use. One that arose after publication, for example when a side resolved, is reported here and nothing is moved.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleConflictDto"
+            }
           }
         },
         "required": [
-          "assignments"
+          "assignments",
+          "conflicts"
         ]
       },
       "ScheduleReasonDto": {
@@ -14849,46 +14897,6 @@
         },
         "required": [
           "assignments"
-        ]
-      },
-      "ScheduleConflictDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "type": "string",
-            "enum": [
-              "venue-double-booked",
-              "official-double-booked",
-              "rest-rule",
-              "match-finalized",
-              "match-in-progress"
-            ],
-            "description": "Which rule the schedule breaks"
-          },
-          "matchId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "conflictsWithMatchId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "The match it clashes with"
-          },
-          "resourceId": {
-            "type": "string",
-            "description": "Venue, official or entrant the clash is about"
-          },
-          "detail": {
-            "type": "string",
-            "description": "Human-readable explanation an operator can act on"
-          }
-        },
-        "required": [
-          "kind",
-          "matchId",
-          "conflictsWithMatchId",
-          "resourceId",
-          "detail"
         ]
       },
       "SchedulePreviewResponse": {

@@ -262,6 +262,129 @@ test('publishes an undecided eight-entrant final through the real API and retain
   }
 });
 
+/** The real API launcher in `scenario`, with the page's API calls routed to it. */
+async function realApi(page: import('@playwright/test').Page, scenario: string) {
+  await promisify(execFile)('yarn', ['workspace', '@copalibre/api', 'build']);
+  const child = fork(
+    fileURLToPath(new URL('./support/persisted-bracket-api.mjs', import.meta.url)),
+    {
+      execArgv: ['--import', 'tsx'],
+      env: {
+        ...process.env,
+        COPALIBRE_TEST_DIALECT: 'sqlite',
+        PERSISTED_BRACKET_SCENARIO: scenario,
+      },
+      stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+    },
+  );
+  let errors = '';
+  child.stderr?.on('data', (chunk) => {
+    errors += String(chunk);
+  });
+  const api = await new Promise<{ url: string; stageId: string }>((resolve, reject) => {
+    child.once('message', (message) => resolve(message as { url: string; stageId: string }));
+    child.once('error', reject);
+    child.once('exit', (code) => reject(new Error(`Fixture API exited ${code}: ${errors}`)));
+  });
+  await page.exposeFunction(
+    '__realBracketApi',
+    async (path: string, method: string, body?: string) => {
+      const response = await fetch(`${api.url}${path}`, {
+        method,
+        ...(body === undefined ? {} : { body }),
+        headers: { authorization: 'Bearer organizer-org1', 'content-type': 'application/json' },
+      });
+      return { status: response.status, body: await response.text() };
+    },
+  );
+  await page.addInitScript(
+    ({ tokenEndpoint }) => {
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = async (input, init) => {
+        const path = String(input);
+        if (path === tokenEndpoint)
+          return Response.json({ access_token: 'organizer-org1', expires_in: 3600 });
+        if (!path.startsWith('/organizations/')) return originalFetch(input, init);
+        const response = await (
+          window as unknown as {
+            __realBracketApi: (
+              path: string,
+              method: string,
+              body?: string,
+            ) => Promise<{ status: number; body: string }>;
+          }
+        ).__realBracketApi(
+          path,
+          init?.method ?? 'GET',
+          init?.body === undefined ? undefined : String(init.body),
+        );
+        return new Response(response.body, {
+          status: response.status,
+          headers: { 'content-type': 'application/json' },
+        });
+      };
+    },
+    { tokenEndpoint: TOKEN_ENDPOINT },
+  );
+  return {
+    api,
+    send: (message: string) =>
+      new Promise<void>((resolve) => {
+        child.once('message', () => resolve());
+        child.send(message);
+      }),
+    close: async () => {
+      if (child.connected) child.send('close');
+      await new Promise<void>((resolve) => {
+        child.once('exit', () => resolve());
+        if (child.exitCode !== null) resolve();
+      });
+    },
+  };
+}
+
+test('reports a rest conflict a quarter-final result makes real, without moving either match', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const real = await realApi(page, 'arisen-conflict');
+  try {
+    const target = '/control/liga-orbital/tournaments/undecided-cup/stages/1/schedule';
+    await seedLoginTransaction(page, target);
+    await page.goto(loginCallbackUrl());
+    await page.waitForURL(`**${target}`);
+    await expect(page.getByText('Ronda 1').first()).toBeVisible();
+    await expect(page.getByText('Conflictos surgidos después de publicar')).toHaveCount(0);
+
+    // The quarter-final is played; its winner now owes the semi-final an hour of rest.
+    await real.send('finalize-quarter');
+    await page.reload();
+    const arisen = page.locator('[data-arisen-conflicts]');
+    await expect(arisen.getByText('Conflictos surgidos después de publicar')).toBeVisible();
+    await expect(arisen.getByText(/^Club 1 no tiene el descanso exigido entre/)).toBeVisible();
+    const stored = await (
+      await fetch(
+        `${real.api.url}/organizations/liga-orbital/tournaments/undecided-cup/stages/${real.api.stageId}/schedule`,
+      )
+    ).json();
+    expect(stored.assignments).toHaveLength(2);
+    expect(stored.conflicts).toEqual([expect.objectContaining({ kind: 'rest-rule' })]);
+
+    for (const [name, width, height] of [
+      ['desktop', 1440, 900],
+      ['mobile', 390, 844],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await arisen.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+      await page.screenshot({
+        path: `docs/assets/screenshots/control-schedule-arisen-conflict-${name}.png`,
+      });
+    }
+  } finally {
+    await real.close();
+  }
+});
+
 const slotStart = (slotId: string | undefined) =>
   Date.parse(SCHEDULES[0]?.slots.find((one) => one.slotId === slotId)?.startsAt ?? '');
 

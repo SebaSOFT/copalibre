@@ -13,7 +13,7 @@ import { withTransaction } from '../transaction.js';
 import { CompetitionRepository } from './competition-repository.js';
 import { EnrollmentRepository } from './enrollment-repository.js';
 import { OrganizationRepository } from './organization-repository.js';
-import { ScheduleRepository } from './schedule-repository.js';
+import { ScheduleRepository, conflictKey } from './schedule-repository.js';
 import { TournamentRepository } from './tournament-repository.js';
 
 /**
@@ -420,6 +420,106 @@ describe('schedule integrity (integration)', () => {
         ],
       }),
     ).resolves.toHaveLength(2);
+  });
+
+  it('reads the conflicts that exist now exactly as publish would detect them', async () => {
+    const cup = await seedTournament('copa-conflictos-vigentes');
+    const grid = await seedGrid('vigentes', Date.UTC(2026, 10, 20, 14), 60);
+    const [first, , third] = cup.matches as [string, string, string, string];
+    await publish({
+      assignments: [
+        { matchId: first, slotId: grid.at(1, 0) },
+        { matchId: third, slotId: grid.at(2, 60) },
+      ],
+    });
+    await expect(
+      schedules.currentConflictsForStage(organizationId, cup.stage.stageId),
+    ).resolves.toEqual([]);
+
+    // The rule tightens after publication: the placements stay, and the read reports the clash.
+    await withTransaction(scratch.db, (uow) =>
+      new TournamentRepository(scratch.db).setMinimumRest(uow, {
+        tournamentId: cup.tournament.tournamentId,
+        organizationId,
+        minimumRestMinutes: 120,
+        ...AUDIT,
+      }),
+    );
+    const current = await schedules.currentConflictsForStage(organizationId, cup.stage.stageId);
+    expect(current).toEqual([
+      expect.objectContaining({ kind: 'rest-rule', matchId: first, conflictsWithMatchId: third }),
+    ]);
+    const preview = await schedules.previewSchedule({
+      organizationId,
+      assignments: [
+        { matchId: first, slotId: grid.at(1, 0) },
+        { matchId: third, slotId: grid.at(2, 60) },
+      ],
+    });
+    expect(current.map(conflictKey)).toEqual(preview.conflicts.map(conflictKey));
+    expect((await schedules.listScheduleForStage(cup.stage.stageId)).map((a) => a.slotId)).toEqual(
+      expect.arrayContaining([grid.at(1, 0), grid.at(2, 60)]),
+    );
+
+    // A finalized match is a record, not a conflict of its own.
+    await setStatus(first, 'finalized');
+    await expect(
+      schedules.currentConflictsForStage(organizationId, cup.stage.stageId),
+    ).resolves.toEqual([expect.objectContaining({ kind: 'rest-rule' })]);
+  });
+
+  it('names only the conflicts a change of entrants made real', async () => {
+    const cup = await seedTournament('copa-conflictos-surgidos', 120);
+    const grid = await seedGrid('surgidos', Date.UTC(2026, 10, 21, 14), 60);
+    const [first, second] = cup.matches as [string, string, string, string];
+    // Alfa–Bravo then Charlie–Delta an hour later: nobody shares a match yet.
+    await publish({
+      assignments: [
+        { matchId: first, slotId: grid.at(1, 0) },
+        { matchId: second, slotId: grid.at(2, 60) },
+      ],
+    });
+    const fixture = await scratch.db
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .select(['fixtures.fixture_id', 'fixtures.home_entrant_id', 'fixtures.away_entrant_id'])
+      .where('matches.match_id', '=', second)
+      .executeTakeFirstOrThrow();
+    const alfa = (
+      await scratch.db
+        .selectFrom('matches')
+        .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+        .select('fixtures.home_entrant_id')
+        .where('matches.match_id', '=', first)
+        .executeTakeFirstOrThrow()
+    ).home_entrant_id as string;
+    const previousEntrantIds = [fixture.home_entrant_id, fixture.away_entrant_id] as string[];
+
+    // Alfa takes Charlie's seat, as a resolution would write it.
+    await scratch.db
+      .updateTable('fixtures')
+      .set({ home_entrant_id: alfa })
+      .where('fixture_id', '=', fixture.fixture_id)
+      .execute();
+    const arisen = await withTransaction(scratch.db, (uow) =>
+      schedules.conflictsArisenFrom(uow, organizationId, [{ matchId: second, previousEntrantIds }]),
+    );
+    expect(arisen).toEqual([
+      expect.objectContaining({
+        kind: 'rest-rule',
+        matchId: second,
+        conflictsWithMatchId: first,
+        resourceId: alfa,
+      }),
+    ]);
+    // Already real before this change: nothing new to announce.
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        schedules.conflictsArisenFrom(uow, organizationId, [
+          { matchId: second, previousEntrantIds: [alfa, previousEntrantIds[1] as string] },
+        ]),
+      ),
+    ).resolves.toEqual([]);
   });
 
   it('offers the organization recent typed reasons, newest first, without presets', async () => {

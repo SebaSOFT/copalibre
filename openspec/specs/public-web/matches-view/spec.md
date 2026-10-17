@@ -369,3 +369,19 @@ and SHALL render without JavaScript.
 
 - **WHEN** the matches view is loaded with JavaScript disabled
 - **THEN** every undecided side shows its source text
+
+### Requirement: A qualifier side names its position
+
+A match card SHALL show an undecided qualifier-sourced side by its position's label, in the
+organization's language: a rank and a group, a cohort rank and order, or a qualifier number. It SHALL
+render without JavaScript, and SHALL NOT rely on color alone.
+
+#### Scenario: A qualifier side names its group position
+
+- **WHEN** a spectator views a cup quarter-final generated ahead from a group-then-rank plan
+- **THEN** its sides read, for example, "1st Group A" and "2nd Group B"
+
+#### Scenario: A ranked qualifier names its cohort
+
+- **WHEN** a spectator views a cup quarter-final whose side is the second-best runner-up of a ranked plan
+- **THEN** that side reads "2nd best runner-up" in the organization's language
