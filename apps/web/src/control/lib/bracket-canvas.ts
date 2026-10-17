@@ -20,7 +20,7 @@ import {
 } from '../../lib/bracket-layout.js';
 
 export type CanvasSeriesState = components['schemas']['PublicSeriesStateResponse'];
-export type CanvasSlotKind = 'entrant' | 'bye' | 'winner-of' | 'loser-of' | 'pending';
+export type CanvasSlotKind = 'entrant' | 'bye' | 'winner-of' | 'loser-of' | 'qualifier' | 'pending';
 
 /** Adapt control's structural ids to the shared journey algorithm. */
 export function canvasEntrantPath(
@@ -41,7 +41,7 @@ export function canvasEntrantPath(
       slots: match.slots.map((slot) =>
         slot.kind === 'entrant'
           ? { kind: 'entrant', entrantId: slot.entrantId, name: slot.entrantId ?? '' }
-          : slot.kind === 'bye' || slot.kind === 'pending'
+          : slot.kind === 'bye' || slot.kind === 'pending' || slot.kind === 'qualifier'
             ? { kind: 'seed', seed: 0 }
             : { kind: slot.kind, matchId: slot.matchId },
       ),
@@ -58,6 +58,8 @@ export interface CanvasSlot {
   /** Where a filled slot's entrant came from, so a played match stays linked to its sources. */
   readonly from?: { readonly matchId: string; readonly outcome: 'winner' | 'loser' };
   readonly score?: number;
+  /** The persisted source, which alone carries a qualifier position and its label. */
+  readonly source?: SideSource;
 }
 
 export interface CanvasMatch {
@@ -148,12 +150,16 @@ export function layoutBracket(
         width: node.width,
         height: node.height,
         slots: match.slots.map((slot, slotIndex) => ({
-          source: {
-            ...slot,
-            nodeKey: slot.matchId,
-            round: slot.matchId === undefined ? undefined : byId.get(slot.matchId)?.round,
-            position: slot.matchId === undefined ? undefined : byId.get(slot.matchId)?.position,
-          },
+          source:
+            slot.kind === 'qualifier' && slot.source !== undefined
+              ? slot.source
+              : {
+                  ...slot,
+                  nodeKey: slot.matchId,
+                  round: slot.matchId === undefined ? undefined : byId.get(slot.matchId)?.round,
+                  position:
+                    slot.matchId === undefined ? undefined : byId.get(slot.matchId)?.position,
+                },
           ...(slot.entrantId === undefined ? {} : { entrantId: slot.entrantId }),
           ...(slot.score === undefined ? {} : { score: slot.score }),
           pending: slot.kind !== 'entrant',

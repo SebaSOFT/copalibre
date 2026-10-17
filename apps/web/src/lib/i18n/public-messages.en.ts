@@ -51,6 +51,50 @@ export const messages = defineMessages({
   sideSourceUnknown: { id: 'publicWeb.sideSource.unknown', defaultMessage: 'Awaiting participant' },
   sideSourceSeed: { id: 'publicWeb.sideSource.seed', defaultMessage: 'Seed {seed}' },
   sideSourceBye: { id: 'publicWeb.sideSource.bye', defaultMessage: 'Bye' },
+  sideSourceQualifierGroup: {
+    id: 'publicWeb.sideSource.qualifierGroup',
+    defaultMessage: '{rank} {group}',
+  },
+  sideSourceQualifierGroupNumber: {
+    id: 'publicWeb.sideSource.qualifierGroupNumber',
+    defaultMessage: 'Group {number}',
+  },
+  sideSourceQualifierBest: {
+    id: 'publicWeb.sideSource.qualifierBest',
+    defaultMessage: 'Best {rank}',
+  },
+  sideSourceQualifierNthBest: {
+    id: 'publicWeb.sideSource.qualifierNthBest',
+    defaultMessage: '{order} best {rank}',
+  },
+  sideSourceQualifierRunnerUp: {
+    id: 'publicWeb.sideSource.qualifierRunnerUp',
+    defaultMessage: 'runner-up',
+  },
+  sideSourceQualifier: {
+    id: 'publicWeb.sideSource.qualifier',
+    defaultMessage: 'Qualifier {number}',
+  },
+  sideSourceQualifierShort: {
+    id: 'publicWeb.sideSource.qualifierShort',
+    defaultMessage: 'Q{number}',
+  },
+  sideSourceOrdinal1: {
+    id: 'publicWeb.sideSource.ordinal1',
+    defaultMessage: '1st',
+  },
+  sideSourceOrdinal2: {
+    id: 'publicWeb.sideSource.ordinal2',
+    defaultMessage: '2nd',
+  },
+  sideSourceOrdinal3: {
+    id: 'publicWeb.sideSource.ordinal3',
+    defaultMessage: '3rd',
+  },
+  sideSourceOrdinalOther: {
+    id: 'publicWeb.sideSource.ordinalOther',
+    defaultMessage: '{n}th',
+  },
   matchRescheduled: {
     id: 'publicWeb.match.rescheduled',
     defaultMessage: 'Rescheduled · was {time}{venue}',

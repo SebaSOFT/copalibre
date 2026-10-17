@@ -17,6 +17,7 @@ import { ZoneGroupPage } from './pages/ZoneGroupPage.js';
 import { TournamentHubPage } from './pages/TournamentHubPage.js';
 import { StageHubPage } from './pages/StageHubPage.js';
 import { PromotionPlanPage } from './pages/PromotionPlanPage.js';
+import { QualificationPage } from './pages/QualificationPage.js';
 import { PreferencesPage } from './pages/PreferencesPage.js';
 import { ClubManagementPage } from './pages/ClubManagementPage.js';
 import { VenueManagementPage } from './pages/VenueManagementPage.js';
@@ -588,6 +589,29 @@ export function PromotionPlanControlRoute({
         stageNumber={stageNumber}
         tournamentAlias={tournamentAlias}
         zoneNumber={zoneNumber}
+      />
+    </ControlShell>
+  );
+}
+
+export function QualificationControlRoute({
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="qualification" organizationAlias={organizationAlias}>
+      <QualificationPage
+        client={client}
+        organizationAlias={organizationAlias}
+        stageNumber={stageNumber}
+        tournamentAlias={tournamentAlias}
       />
     </ControlShell>
   );

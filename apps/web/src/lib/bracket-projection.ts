@@ -62,6 +62,17 @@ function mapBracketZoneMatches(
           ...(matchNumber === undefined ? {} : { matchNumber }),
         };
       }
+      const persisted = index === 0 ? m.homeSource : m.awaySource;
+      if (s.entrantId === undefined && persisted?.kind === 'qualifier') {
+        return {
+          kind: 'qualifier',
+          promotionPlanId: persisted.promotionPlanId,
+          position: persisted.position,
+          ...(persisted.qualifierLabel === undefined
+            ? {}
+            : { qualifierLabel: persisted.qualifierLabel }),
+        };
+      }
       return {
         kind: 'entrant',
         entrantId: s.entrantId,

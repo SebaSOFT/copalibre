@@ -49,6 +49,50 @@ export const messages = defineMessages({
   sideSourceUnknown: { id: 'control.sideSource.unknown', defaultMessage: 'Awaiting participant' },
   sideSourceSeed: { id: 'control.sideSource.seed', defaultMessage: 'Seed {seed}' },
   sideSourceBye: { id: 'control.sideSource.bye', defaultMessage: 'Bye' },
+  sideSourceQualifierGroup: {
+    id: 'control.sideSource.qualifierGroup',
+    defaultMessage: '{rank} {group}',
+  },
+  sideSourceQualifierGroupNumber: {
+    id: 'control.sideSource.qualifierGroupNumber',
+    defaultMessage: 'Group {number}',
+  },
+  sideSourceQualifierBest: {
+    id: 'control.sideSource.qualifierBest',
+    defaultMessage: 'Best {rank}',
+  },
+  sideSourceQualifierNthBest: {
+    id: 'control.sideSource.qualifierNthBest',
+    defaultMessage: '{order} best {rank}',
+  },
+  sideSourceQualifierRunnerUp: {
+    id: 'control.sideSource.qualifierRunnerUp',
+    defaultMessage: 'runner-up',
+  },
+  sideSourceQualifier: {
+    id: 'control.sideSource.qualifier',
+    defaultMessage: 'Qualifier {number}',
+  },
+  sideSourceQualifierShort: {
+    id: 'control.sideSource.qualifierShort',
+    defaultMessage: 'Q{number}',
+  },
+  sideSourceOrdinal1: {
+    id: 'control.sideSource.ordinal1',
+    defaultMessage: '1st',
+  },
+  sideSourceOrdinal2: {
+    id: 'control.sideSource.ordinal2',
+    defaultMessage: '2nd',
+  },
+  sideSourceOrdinal3: {
+    id: 'control.sideSource.ordinal3',
+    defaultMessage: '3rd',
+  },
+  sideSourceOrdinalOther: {
+    id: 'control.sideSource.ordinalOther',
+    defaultMessage: '{n}th',
+  },
   scheduleConcurrentChange: {
     id: 'control.schedule.concurrentChange',
     defaultMessage: '{match} was rescheduled by {actor}. Preview updated.',
@@ -4522,5 +4566,115 @@ export const messages = defineMessages({
   scheduleReasonOther: {
     id: 'control.scheduleReason.other',
     defaultMessage: 'Other',
+  },
+  seedingAheadTitle: {
+    id: 'control.seeding.ahead.title',
+    defaultMessage: 'Generate ahead',
+  },
+  seedingAheadDescription: {
+    id: 'control.seeding.ahead.description',
+    defaultMessage:
+      'A reviewed promotion plan routes qualifiers to this stage. Generate its bracket now with qualifier positions; entrants are confirmed once the prior stage completes.',
+  },
+  seedingAheadGenerate: {
+    id: 'control.seeding.ahead.generate',
+    defaultMessage: 'Generate ahead',
+  },
+  seedingAheadGenerated: {
+    id: 'control.seeding.ahead.generated',
+    defaultMessage: 'Generated ahead. Confirm the qualification once the prior stage completes.',
+  },
+  seedingAheadPreview: {
+    id: 'control.seeding.ahead.preview',
+    defaultMessage: 'Bracket preview',
+  },
+  seedingAheadConfirmLink: {
+    id: 'control.seeding.ahead.confirmLink',
+    defaultMessage: 'Confirm qualification',
+  },
+  qualificationTitle: {
+    id: 'control.qualification.title',
+    defaultMessage: 'Qualification',
+  },
+  qualificationLoading: {
+    id: 'control.qualification.loading',
+    defaultMessage: 'Loading qualification…',
+  },
+  qualificationLoadFailed: {
+    id: 'control.qualification.loadFailed',
+    defaultMessage: 'Could not load the qualification.',
+  },
+  qualificationEmpty: {
+    id: 'control.qualification.empty',
+    defaultMessage: 'No promotion plan routes qualifiers to this stage.',
+  },
+  qualificationIncomplete: {
+    id: 'control.qualification.incomplete',
+    defaultMessage:
+      '{count, plural, one {# match of the prior stage is} other {# matches of the prior stage are}} still unresolved. Entrants can be confirmed once it completes.',
+  },
+  qualificationNotStarted: {
+    id: 'control.qualification.notStarted',
+    defaultMessage:
+      'The prior stage has no matches yet. Entrants can be confirmed once it completes.',
+  },
+  qualificationTie: {
+    id: 'control.qualification.tie',
+    defaultMessage:
+      '{entrants} are tied at the cut line{group, select, none {} other { of {group}}} for {positions}. Resolve the tie before confirming.',
+  },
+  qualificationStale: {
+    id: 'control.qualification.stale',
+    defaultMessage: 'A result changed after the confirmation. Re-confirm needed.',
+  },
+  qualificationConfirmed: {
+    id: 'control.qualification.confirmed',
+    defaultMessage: 'Qualification confirmed. Every qualifier side shows its entrant.',
+  },
+  qualificationReady: {
+    id: 'control.qualification.ready',
+    defaultMessage: 'Review each position, then confirm. Every side is filled in one step.',
+  },
+  qualificationPositionColumn: {
+    id: 'control.qualification.positionColumn',
+    defaultMessage: 'Position',
+  },
+  qualificationZoneColumn: {
+    id: 'control.qualification.zoneColumn',
+    defaultMessage: 'Zone',
+  },
+  qualificationEntrantColumn: {
+    id: 'control.qualification.entrantColumn',
+    defaultMessage: 'Entrant',
+  },
+  qualificationConfirmedColumn: {
+    id: 'control.qualification.confirmedColumn',
+    defaultMessage: 'Confirmed',
+  },
+  qualificationConfirm: {
+    id: 'control.qualification.confirm',
+    defaultMessage: 'Confirm qualification',
+  },
+  qualificationReconfirm: {
+    id: 'control.qualification.reconfirm',
+    defaultMessage: 'Re-confirm qualification',
+  },
+  qualificationConfirmSucceeded: {
+    id: 'control.qualification.confirmSucceeded',
+    defaultMessage:
+      'Qualification confirmed: {count, plural, one {# side} other {# sides}} filled.',
+  },
+  qualificationPreviewMoved: {
+    id: 'control.qualification.previewMoved',
+    defaultMessage: 'The standings changed since this preview. Review it again before confirming.',
+  },
+  qualificationSeedingLink: {
+    id: 'control.qualification.seedingLink',
+    defaultMessage: 'Back to seeding',
+  },
+  promotionPlanRequiresRebuild: {
+    id: 'control.promotion.planRequiresRebuild',
+    defaultMessage:
+      'Stage {stage} was generated ahead from this plan. Generate it again so its positions match before confirming.',
   },
 });

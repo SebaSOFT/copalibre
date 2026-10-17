@@ -102,5 +102,24 @@ export function sideSourceLabelsFromControlIntl(intl: IntlShape): SideSourceMess
     unknown: intl.formatMessage(messages.sideSourceUnknown),
     seed: intl.formatMessage(messages.sideSourceSeed, { seed: '{seed}' }),
     bye: intl.formatMessage(messages.sideSourceBye),
+    qualifierGroup: intl.formatMessage(messages.sideSourceQualifierGroup, {
+      rank: '{rank}',
+      group: '{group}',
+    }),
+    qualifierGroupNumber: intl.formatMessage(messages.sideSourceQualifierGroupNumber, {
+      number: '{number}',
+    }),
+    qualifierBest: intl.formatMessage(messages.sideSourceQualifierBest, { rank: '{rank}' }),
+    qualifierNthBest: intl.formatMessage(messages.sideSourceQualifierNthBest, {
+      order: '{order}',
+      rank: '{rank}',
+    }),
+    qualifierRunnerUp: intl.formatMessage(messages.sideSourceQualifierRunnerUp),
+    qualifier: intl.formatMessage(messages.sideSourceQualifier, { number: '{number}' }),
+    qualifierShort: intl.formatMessage(messages.sideSourceQualifierShort, { number: '{number}' }),
+    ordinal1: intl.formatMessage(messages.sideSourceOrdinal1),
+    ordinal2: intl.formatMessage(messages.sideSourceOrdinal2),
+    ordinal3: intl.formatMessage(messages.sideSourceOrdinal3),
+    ordinalOther: intl.formatMessage(messages.sideSourceOrdinalOther, { n: '{n}' }),
   };
 }

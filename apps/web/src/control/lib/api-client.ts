@@ -13,7 +13,7 @@ import type { RegistrationStatus } from './review.js';
 import type { StandingsData } from './standings.js';
 import type { DisciplineOption, TournamentProfileOption } from './wizard.js';
 import type { MatchCardData } from '../../lib/matches-view.js';
-import type { SideSource } from '../../lib/side-source.js';
+import type { QualifierLabel, SideSource } from '../../lib/side-source.js';
 import { renewSessionOnce } from '../session/silent-renewal.js';
 
 export interface ControlApiClient {
@@ -414,6 +414,19 @@ export interface ControlApiClient {
     stageNumber: number,
     zoneNumber: number,
   ) => Promise<PromotionPreviewResponse>;
+  /** Who each qualifier position of a stage generated ahead resolves to; writes nothing. */
+  readonly previewQualification?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+  ) => Promise<QualificationPreviewResponse>;
+  /** Confirms the previewed qualification; refused if the standings moved since `expected`. */
+  readonly confirmQualification?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    request: ConfirmQualificationRequest,
+  ) => Promise<ConfirmQualificationResponse>;
   /** Reverse lookup: prior-stage zones whose stored plan targets this stage, already resolved. */
   readonly fetchPromotionPlansTargetingStage?: (
     organizationAlias: string,
@@ -1257,10 +1270,73 @@ export interface SeedingResponse {
   readonly zones: readonly SeedingZoneResponse[];
   readonly hasRecordedResults: boolean;
   readonly names?: Readonly<Record<string, string>>;
+  /** Qualifier positions promotion plans route to each zone; present when any plan targets it. */
+  readonly qualifiers?: readonly SeedingQualifierZoneResponse[];
+}
+
+export interface QualifierSeedResponse {
+  readonly promotionPlanId: string;
+  readonly position: number;
+  readonly qualifierLabel: QualifierLabel;
+}
+
+/** A destination zone of a stage that can be generated ahead: seed `k` is the `k`-th entry. */
+export interface SeedingQualifierZoneResponse {
+  readonly zoneId?: string;
+  readonly zoneName?: string;
+  readonly format: string;
+  readonly seeds: readonly QualifierSeedResponse[];
 }
 
 export interface PublishSeedingRequest {
-  readonly seeds: readonly { readonly seed: number; readonly entrantId: string }[];
+  readonly seeds?: readonly { readonly seed: number; readonly entrantId: string }[];
+  /** Generate the stage ahead from the promotion plans targeting it; `seeds` is ignored. */
+  readonly ahead?: boolean;
+}
+
+export interface QualificationPositionResponse {
+  readonly promotionPlanId: string;
+  readonly position: number;
+  readonly qualifierLabel: QualifierLabel;
+  readonly zoneId?: string;
+  readonly zoneName?: string;
+  readonly entrantId?: string;
+  readonly confirmedEntrantId?: string;
+}
+
+export interface QualificationIncompleteMatchResponse {
+  readonly matchId: string;
+  readonly round: number;
+  readonly status: string;
+  readonly homeEntrantId?: string;
+  readonly awayEntrantId?: string;
+}
+
+export interface QualificationTieResponse {
+  readonly promotionPlanId: string;
+  readonly entrantIds: readonly string[];
+  readonly positions: readonly number[];
+  readonly groupName?: string;
+}
+
+export interface QualificationPreviewResponse {
+  readonly state: 'incomplete' | 'tied' | 'ready' | 'confirmed' | 'stale';
+  readonly positions: readonly QualificationPositionResponse[];
+  readonly incomplete: readonly QualificationIncompleteMatchResponse[];
+  readonly tie?: QualificationTieResponse;
+  readonly names: Readonly<Record<string, string>>;
+}
+
+export interface ConfirmQualificationRequest {
+  readonly expected?: readonly {
+    readonly promotionPlanId: string;
+    readonly position: number;
+    readonly entrantId: string;
+  }[];
+}
+
+export interface ConfirmQualificationResponse extends QualificationPreviewResponse {
+  readonly changedSides: number;
 }
 
 export interface SeedingClassificationResponse {
@@ -1471,6 +1547,8 @@ export interface PromotionPlanResponse {
   readonly zoneId: string;
   readonly nextStageId: string;
   readonly plan: Readonly<Record<string, unknown>>;
+  /** Set when the target stage was generated ahead from this plan and must be generated again. */
+  readonly mutationClass?: 'requires_rebuild';
 }
 
 export interface QualifiedEntrantResponse {
@@ -2677,6 +2755,20 @@ export function createControlApiClient(input: {
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/promotion-preview`,
         { token: input.accessToken?.() },
+      ),
+
+    previewQualification: (organizationAlias, tournamentAlias, stageNumber) =>
+      requestJson<QualificationPreviewResponse>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/qualification/preview`,
+        { method: 'POST', token: input.accessToken?.() },
+      ),
+
+    confirmQualification: (organizationAlias, tournamentAlias, stageNumber, body) =>
+      requestJson<ConfirmQualificationResponse>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/qualification/confirm`,
+        { method: 'POST', body, token: input.accessToken?.() },
       ),
 
     fetchPromotionPlansTargetingStage: (organizationAlias, tournamentAlias, stageNumber) =>

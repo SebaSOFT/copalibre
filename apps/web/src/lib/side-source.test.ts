@@ -1,5 +1,6 @@
 import { publicIntl, sideSourceLabels } from './i18n/public-intl.js';
 import {
+  formatQualifier,
   formatSideSource,
   sourceMatchLabel,
   formatPlacementSource,
@@ -110,4 +111,82 @@ it('reads the places a placement game settles from structural keys', () => {
   const labels = sideSourceLabels(publicIntl('de'));
   expect(formatPlacement({ from: 3 }, labels)).toContain('3');
   expect(formatPlacement({ from: 5, to: 8 }, labels)).toContain('5–8');
+});
+
+describe('qualifier positions', () => {
+  const groupRank = (rank: number, groupName?: string) => ({
+    kind: 'qualifier' as const,
+    position: rank,
+    qualifierLabel: {
+      kind: 'group-rank' as const,
+      rank,
+      groupNumber: 1,
+      ...(groupName === undefined ? {} : { groupName }),
+    },
+  });
+  const cohort = (rank: number, order: number) => ({
+    kind: 'qualifier' as const,
+    position: 5,
+    qualifierLabel: { kind: 'cohort' as const, rank, order },
+  });
+
+  it('reads a group position, a ranked cohort and a manual number in English', () => {
+    const labels = sideSourceLabels(publicIntl('en'));
+    expect(formatSideSource(groupRank(1, 'Group A'), labels)).toEqual({
+      long: '1st Group A',
+      short: '1A',
+    });
+    expect(formatSideSource(groupRank(2, 'Group B'), labels).long).toBe('2nd Group B');
+    expect(formatSideSource(groupRank(3), labels).long).toBe('3rd Group 1');
+    expect(formatSideSource(cohort(1, 1), labels).long).toBe('Best 1st');
+    expect(formatSideSource(cohort(2, 2), labels).long).toBe('2nd best runner-up');
+    expect(formatSideSource(cohort(4, 3), labels).long).toBe('3rd best 4th');
+    expect(formatSideSource(cohort(2, 2), labels).short).toBe('Q5');
+    expect(
+      formatSideSource(
+        { kind: 'qualifier', position: 5, qualifierLabel: { kind: 'number', number: 5 } },
+        labels,
+      ),
+    ).toEqual({ long: 'Qualifier 5', short: 'Q5' });
+  });
+
+  it('falls back to the position number without a label, and to unknown without either', () => {
+    const labels = sideSourceLabels(publicIntl('en'));
+    expect(formatQualifier({ kind: 'qualifier', position: 7 }, labels).long).toBe('Qualifier 7');
+    expect(formatQualifier({ kind: 'qualifier' }, labels).long).toBe(labels.unknown);
+  });
+
+  it('keeps the compact form short when a group name ends in no letter', () => {
+    const labels = sideSourceLabels(publicIntl('en'));
+    expect(formatSideSource(groupRank(1, 'Zona Norte'), labels).short).toBe('Q1');
+  });
+
+  it.each(locales)('names every qualifier kind without placeholders in %s', (locale) => {
+    const labels = sideSourceLabels(publicIntl(locale));
+    for (const source of [
+      groupRank(1, 'Grupo A'),
+      groupRank(12),
+      cohort(1, 1),
+      cohort(2, 2),
+      cohort(5, 4),
+      { kind: 'qualifier' as const, position: 9 },
+    ]) {
+      const text = formatSideSource(source, labels);
+      expect(text.long).not.toMatch(/[{}]/);
+      expect(text.short).not.toMatch(/[{}]/);
+      expect(text.long.length).toBeGreaterThan(0);
+    }
+    expect(formatSideSource(groupRank(1, 'Grupo A'), labels).long).toContain('Grupo A');
+    expect(formatSideSource(cohort(2, 2), labels).long).not.toBe(
+      formatSideSource(cohort(2, 1), labels).long,
+    );
+  });
+
+  it('reads the Spanish and German forms an organizer sees', () => {
+    const es = sideSourceLabels(publicIntl('es'));
+    expect(formatSideSource(groupRank(1, 'Grupo A'), es).long).toBe('1.° Grupo A');
+    expect(formatSideSource(cohort(2, 2), es).long).toBe('2.° mejor segundo');
+    const de = sideSourceLabels(publicIntl('de'));
+    expect(formatSideSource(groupRank(2, 'Gruppe B'), de).long).toBe('2. Gruppe B');
+  });
 });

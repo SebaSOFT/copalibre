@@ -24,6 +24,17 @@ export const messages: Record<string, string> = {
   'control.sideSource.unknown': 'Participante por definir',
   'control.sideSource.seed': 'Cabeza de serie {seed}',
   'control.sideSource.bye': 'Libre',
+  'control.sideSource.qualifierGroup': '{rank} {group}',
+  'control.sideSource.qualifierGroupNumber': 'Grupo {number}',
+  'control.sideSource.qualifierBest': 'Mejor {rank}',
+  'control.sideSource.qualifierNthBest': '{order} mejor {rank}',
+  'control.sideSource.qualifierRunnerUp': 'segundo',
+  'control.sideSource.qualifier': 'Clasificado {number}',
+  'control.sideSource.qualifierShort': 'C{number}',
+  'control.sideSource.ordinal1': '1.°',
+  'control.sideSource.ordinal2': '2.°',
+  'control.sideSource.ordinal3': '3.°',
+  'control.sideSource.ordinalOther': '{n}.°',
   'control.schedule.concurrentChange': '{actor} reprogramó {match}. Vista previa actualizada.',
   'control.bracket.highlightEntrant': 'Resaltar recorrido de {entrant}',
   'control.bracket.highlightHint':
@@ -1527,4 +1538,41 @@ export const messages: Record<string, string> = {
   'control.scheduleReason.broadcast': 'Grilla de transmisión',
   'control.scheduleReason.dataCorrection': 'Corrección de un error',
   'control.scheduleReason.other': 'Otro',
+  'control.seeding.ahead.title': 'Generar por adelantado',
+  'control.seeding.ahead.description':
+    'Un plan de clasificación revisado envía clasificados a esta fase. Generá ahora su llave con las posiciones de clasificación; los participantes se confirman cuando termine la fase anterior.',
+  'control.seeding.ahead.generate': 'Generar por adelantado',
+  'control.seeding.ahead.generated':
+    'Generada por adelantado. Confirmá la clasificación cuando termine la fase anterior.',
+  'control.seeding.ahead.preview': 'Vista previa de la llave',
+  'control.seeding.ahead.confirmLink': 'Confirmar clasificación',
+  'control.qualification.title': 'Clasificación',
+  'control.qualification.loading': 'Cargando clasificación…',
+  'control.qualification.loadFailed': 'No se pudo cargar la clasificación.',
+  'control.qualification.empty': 'Ningún plan de clasificación envía clasificados a esta fase.',
+  'control.qualification.incomplete':
+    '{count, plural, one {# partido de la fase anterior sigue} other {# partidos de la fase anterior siguen}} sin resolver. Los participantes se confirman cuando termine.',
+  'control.qualification.notStarted':
+    'La fase anterior todavía no tiene partidos. Los participantes se confirman cuando termine.',
+  'control.qualification.tie':
+    '{entrants} están empatados en la línea de corte{group, select, none {} other { de {group}}} por {positions}. Resolvé el empate antes de confirmar.',
+  'control.qualification.stale':
+    'Un resultado cambió después de la confirmación. Hay que volver a confirmar.',
+  'control.qualification.confirmed':
+    'Clasificación confirmada. Cada lugar de clasificación muestra su participante.',
+  'control.qualification.ready':
+    'Revisá cada posición y confirmá. Todos los lugares se completan en un solo paso.',
+  'control.qualification.positionColumn': 'Posición',
+  'control.qualification.zoneColumn': 'Zona',
+  'control.qualification.entrantColumn': 'Participante',
+  'control.qualification.confirmedColumn': 'Confirmado',
+  'control.qualification.confirm': 'Confirmar clasificación',
+  'control.qualification.reconfirm': 'Volver a confirmar',
+  'control.qualification.confirmSucceeded':
+    'Clasificación confirmada: {count, plural, one {# lugar completado} other {# lugares completados}}.',
+  'control.qualification.previewMoved':
+    'Las posiciones cambiaron desde esta vista previa. Revisala de nuevo antes de confirmar.',
+  'control.qualification.seedingLink': 'Volver a la siembra',
+  'control.promotion.planRequiresRebuild':
+    'La fase {stage} se generó por adelantado con este plan. Volvé a generarla para que sus posiciones coincidan antes de confirmar.',
 };

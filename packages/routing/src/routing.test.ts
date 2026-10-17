@@ -360,6 +360,15 @@ describe('parseControlPath', () => {
       },
     ],
     [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/2/qualification',
+      {
+        screen: 'qualification',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 2,
+      },
+    ],
+    [
       '/control/liga-mendocina/tournaments/apertura-2026/stages/1/zones/2/promotion',
       {
         screen: 'promotionPlan',

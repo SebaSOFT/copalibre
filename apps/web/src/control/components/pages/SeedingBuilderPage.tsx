@@ -7,6 +7,7 @@ import {
   type SeedingResponse,
 } from '../../lib/api-client.js';
 import type { SeedAssignment } from '../../lib/seeding.js';
+import { isGeneratedAhead } from '../../lib/generate-ahead.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import { SeedingBuilderTemplate } from '../screens/SeedingBuilderTemplate.js';
 import { Button } from '../ui/atoms/button.js';
@@ -271,6 +272,27 @@ export function SeedingBuilderPage({
         />
       }
       hasRecordedResults={seeding.hasRecordedResults}
+      {...(seeding.qualifiers === undefined || seeding.qualifiers.length === 0
+        ? {}
+        : {
+            ahead: {
+              zones: seeding.qualifiers,
+              generated: isGeneratedAhead(seeding.zones),
+              onGenerate: () =>
+                api
+                  .publishSeeding(organizationAlias, tournamentAlias, stageNumber, { ahead: true })
+                  .then((result) => {
+                    if (!result.persisted) return;
+                    push({ severity: 'success', message: result.reason });
+                    return api
+                      .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
+                      .then(setSeeding);
+                  })
+                  .catch((error: unknown) => {
+                    pushError(error);
+                  }),
+            },
+          })}
       zones={seeding.zones}
       names={seeding.names ?? {}}
       onPublish={(seeds) =>
