@@ -9,15 +9,11 @@ same folded figures, column definitions, and presentation values as public playe
 ### Requirement: A declared player-ranking layout can be projected for one player
 
 The system SHALL read an effective person-granularity player-ranking layout for a named player in
-one tournament and return a tournament-total row plus one row for each finalized match in which the
-player is recorded on a match roster, ordered chronologically by stage and match number. The
-tournament-total row SHALL expose every non-rank declared column — collector, composite, and
-computed — with the same raw values, formatted values, computed expressions, composite values, and
-zero-value display rules as the corresponding leaderboard. Each match row SHALL expose only the
-layout's collector-kind columns, computed from that match's own figures; composite and computed
-columns are aggregate ratios or expressions that depend on more than one match and SHALL NOT appear
-on a match row. Ranking filters and rank position SHALL NOT suppress or alter a named player's
-statistic rows.
+one tournament and return a tournament-total row plus one row per finalized match in which the
+player is on a match roster, ordered by stage and match number. The total row SHALL expose every
+non-rank column as the leaderboard does; a match row SHALL expose only collector columns, from that
+match's own figures. Ranking filters and rank position SHALL NOT suppress or alter a named player's
+rows.
 
 #### Scenario: A player’s tournament total agrees with the leaderboard
 - **WHEN** a player appears in a tournament-wide player-ranking layout and their profile requests
@@ -35,6 +31,18 @@ statistic rows.
 - **WHEN** a person is not named in any finalized match roster of the requested tournament
 - **THEN** the drilldown returns no tournament-total or match statistic rows, even if the person
   has organization-level career history
+
+#### Scenario: The total row matches the leaderboard
+
+- **WHEN** the total row is read
+- **THEN** its collector, composite and computed columns carry the same raw values, formatted
+  values, computed expressions, composite values and zero-value display rules as the leaderboard
+
+#### Scenario: Why match rows omit ratios
+
+- **WHEN** a match row is read
+- **THEN** composite and computed columns do not appear, because they are aggregate ratios or
+  expressions depending on more than one match
 
 ### Requirement: Player statistic drilldowns remain within declared public scope
 

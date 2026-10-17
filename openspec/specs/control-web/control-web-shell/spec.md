@@ -30,11 +30,9 @@ Every authenticated API request and authenticated SSE connection SHALL send the 
 ### Requirement: Authorization Code with PKCE completes to a working session
 
 The control application's `/control/callback` route SHALL exchange the identity provider's returned
-authorization code for an access token directly with the provider's token endpoint (no client secret —
-PKCE is the public-client substitute), verify the callback's `state` against the value stored when the
-flow began, and write the resulting token into the in-memory session store used by every authenticated
-request — so completing the identity provider's login screen results in a usable, authenticated control
-panel, not a dead end.
+authorization code for an access token directly with the provider's token endpoint, with no client
+secret, verify the callback's `state` against the value stored when the flow began, and write the
+resulting token into the in-memory session store used by every authenticated request.
 
 #### Scenario: A successful callback establishes a working session
 
@@ -55,6 +53,16 @@ panel, not a dead end.
 - **WHEN** the identity provider redirects back with an `error` parameter instead of a `code`
 - **THEN** the control application shows the operator that authorization failed rather than attempting
   a token exchange or silently doing nothing
+
+#### Scenario: Login ends in a usable panel
+
+- **WHEN** an operator completes the identity provider's login screen
+- **THEN** the control panel is authenticated and usable, not a dead end
+
+#### Scenario: PKCE replaces the client secret
+
+- **WHEN** the callback exchanges the code
+- **THEN** no client secret is sent: PKCE stands in for it, as the public client's substitute
 
 ### Requirement: Every authenticated request carries the session's access token
 
@@ -86,16 +94,12 @@ return the operator to their original destination after a successful callback.
 - **THEN** they land on the screen they originally requested, not a generic default
 
 ### Requirement: Owned component layer, not Chakra UI
-The control application SHALL use the owned shadcn/ui-style component source and Radix Primitives for
-its interactive UI, and SHALL NOT include Chakra UI as a production dependency. This owned layer SHALL
-span all five Atomic Design tiers — atoms, molecules, organisms, templates under
-`apps/web/src/control/components/ui/`, and the page/route components that consume them — not only
-badge/button/card; any Control-web screen, present at the time this requirement changes or added at any
-later point, SHALL compose its form controls, tabular listings, cards, modals, and operation feedback
-from this owned layer rather than defining a new one-off inline style object for a pattern the layer
-already covers. The organization dashboard (`Dashboard.tsx`) SHALL compose inside `ControlShell.tsx`
-(or inherit its `.cl-control__nav` navigation chrome), guaranteeing consistent typography, active states,
-and no unstyled browser default hyperlinks.
+
+The control application SHALL use the owned shadcn/ui-style component source and Radix Primitives
+for its interactive UI, and SHALL NOT include Chakra UI as a production dependency. This owned layer
+SHALL span all five Atomic Design tiers, and every Control-web screen, present or later, SHALL
+compose the patterns it covers from it rather than defining a one-off inline style. The organization
+dashboard SHALL compose inside `ControlShell.tsx` or inherit its navigation chrome.
 
 #### Scenario: No Chakra dependency in production build
 - **WHEN** the control application's production dependency list is inspected
@@ -117,6 +121,23 @@ and no unstyled browser default hyperlinks.
 - **WHEN** an administrator views the organization dashboard
 - **THEN** the sidebar navigation displays styled uppercase labels with active state highlights and no raw blue unstyled browser links.
 
+#### Scenario: The tiers the layer spans
+
+- **WHEN** a component is added to the control application
+- **THEN** it belongs to the atoms, molecules, organisms or templates under
+  `apps/web/src/control/components/ui/`, or is a page/route component consuming them
+
+#### Scenario: What a screen composes from the layer
+
+- **WHEN** a screen needs form controls, tabular listings, cards, modals or operation feedback
+- **THEN** it takes them from the owned layer
+
+#### Scenario: The dashboard looks like every other screen
+
+- **WHEN** the organization dashboard (`Dashboard.tsx`) renders
+- **THEN** its typography and active states match the shell's `.cl-control__nav` chrome and no link
+  is an unstyled browser default
+
 ### Requirement: Third-party notice inventory stays current
 Every copied shadcn/ui component file or direct Radix dependency added to the control application
 SHALL have a corresponding entry in `THIRD_PARTY_NOTICES.md` preserving its MIT copyright/permission
@@ -128,13 +149,10 @@ notice.
 
 ### Requirement: Control-panel interface strings are extracted and language-switchable
 
-Every user-facing control-panel string (labels, buttons, validation messages, status words) SHALL be
-sourced from a message catalog keyed by a stable ID, never hardcoded inline, so a screen's interface
-language can change without touching its logic. The active language SHALL resolve via the platform's
-client-side language-preference order: an explicit stored preference, then a supported browser
-language, then English — with an explicit switcher available to change the stored preference.
-Organizer-entered content (tournament names, participant names, organization names) is never
-translated by this mechanism.
+Every user-facing control-panel string SHALL be sourced from a message catalog keyed by a stable ID,
+never hardcoded inline. The active language SHALL resolve through the platform's client-side
+language-preference order, with an explicit switcher available to change the stored preference.
+Organizer-entered content is never translated by this mechanism.
 
 #### Scenario: Selecting a language changes control-panel chrome without changing content
 
@@ -152,6 +170,23 @@ translated by this mechanism.
 
 - **WHEN** the control panel renders a date or time value
 - **THEN** it formats using the active interface language, never a hardcoded locale tag
+
+#### Scenario: What counts as interface text
+
+- **WHEN** a control-panel screen renders labels, buttons, validation messages or status words
+- **THEN** each comes from the catalog, so the interface language can change without touching the
+  screen's logic
+
+#### Scenario: The preference order
+
+- **WHEN** no other signal applies
+- **THEN** the language resolves from an explicit stored preference, then a supported browser
+  language, then English
+
+#### Scenario: Organizer content stays as written
+
+- **WHEN** a screen shows a tournament, participant or organization name
+- **THEN** it is shown as entered, whatever the interface language
 
 ### Requirement: Control-panel chrome is available in all eight supported interface languages
 
@@ -300,10 +335,10 @@ The primary sidebar navigation SHALL remain fully reachable at mobile viewport w
   hamburger menu or drawer), and no section SHALL be clipped off-screen with no way to reach it
 
 ### Requirement: Composable Canonical Table Molecule
-The system SHALL provide a canonical table molecule conforming to the reference visual specification, supporting optional composable sub-widgets:
-1. Optional Header: Title, monospace descriptor subtitle (`Reglamento: [Discipline] (DisciplineDescriptor vX.Y.Z)`), and verification status badge (`• POSICIONES VERIFICADAS`).
-2. Table Core: Compact row height (~44px), floating sticky column headers, signed colored goal difference cells (`+` green, `-` red), highlighted cyan points, and optional `TIEBREAKER STATUS` badges.
-3. Optional Footer: Sequential tiebreaker pipeline flowchart with the triggered criterion highlighted in cyan, and an audit proof code (`Prueba de Auditoría #...`).
+
+The system SHALL provide a canonical table molecule conforming to the reference visual
+specification, with an optional header, a table core, and an optional footer, each composable on its
+own.
 
 #### Scenario: Table with full tiebreaker explainability
 - **WHEN** rendering verified group standings
@@ -312,6 +347,25 @@ The system SHALL provide a canonical table molecule conforming to the reference 
 #### Scenario: Table without tiebreaker context (e.g. player rankings)
 - **WHEN** rendering a table that does not involve group tiebreakers (e.g. player goals)
 - **THEN** the table renders the canonical card frame, floating headers, and compact rows, cleanly omitting the tiebreaker status badges and flowchart footer.
+
+#### Scenario: The optional header
+
+- **WHEN** a table shows its header
+- **THEN** it carries a title, a monospace descriptor subtitle (`Reglamento: [Discipline]
+  (DisciplineDescriptor vX.Y.Z)`), and a verification status badge (`• POSICIONES VERIFICADAS`)
+
+#### Scenario: The table core
+
+- **WHEN** a table renders its rows
+- **THEN** rows are compact (~44px) under floating sticky column headers, goal difference cells are
+  signed and colored (`+` green, `-` red), points are highlighted cyan, and an optional `TIEBREAKER
+  STATUS` badge may appear
+
+#### Scenario: The optional footer
+
+- **WHEN** a table shows its footer
+- **THEN** it carries the sequential tiebreaker pipeline flowchart with the triggered criterion
+  highlighted in cyan, and an audit proof code (`Prueba de Auditoría #...`)
 
 ### Requirement: Interactive Column Headers with Descriptions and Tri-State Bidirectional Ordering
 Column headers in the canonical table molecule SHALL support:

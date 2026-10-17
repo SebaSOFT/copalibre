@@ -69,13 +69,12 @@ engine, showing each tiebreak parameter's value and the first comparator that re
 - **THEN** the standing includes a trace entry naming the specific comparator that broke the tie and the compared values
 
 ### Requirement: Advancement is deterministic and format-aware
-Given a recorded match result, the engine SHALL deterministically compute which downstream
-fixture(s) unlock, correctly for each of the six MVP formats' advancement rules. Where a fixture is
-settled by a series, the advancement edge SHALL read the series resolution rather than any single
-match result, so a `winner-of` edge is populated once — when the series is decided — and not by the
-first match of it. Where the stage's graph is persisted, every path that changes an outcome SHALL
-populate the persisted fixture's side in the same transaction, through the audited resolution that
-recomputes it from structure and recorded outcomes.
+
+Given a recorded match result, the engine SHALL deterministically compute which downstream fixtures
+unlock, for each of the six MVP formats. A fixture settled by a series SHALL advance on the series
+resolution, populating a `winner-of` edge once, when the series is decided. Where the stage's graph
+is persisted, every path that changes an outcome SHALL populate the persisted side in the same
+transaction, through the audited resolution that recomputes it from structure and recorded outcomes.
 
 #### Scenario: Round-robin advancement recomputes standings, not fixtures
 - **WHEN** a round-robin match result is recorded
@@ -163,13 +162,12 @@ The engine SHALL NOT advertise a stage format it cannot generate.
   coverage in the test suite
 
 ### Requirement: A stage can be created from a tournament's accepted registrations
+
 The engine SHALL provide an operation that creates a stage in a tournament, drawing its default
-entrant pool from the tournament's currently `accepted` registrations. Stage number and name SHALL
-default when not supplied (the next sequential stage number in the tournament, and a name derived
-from it); the stage's format SHALL default to the tournament's own configured format when not
-supplied, and any explicitly supplied format SHALL be validated against the tournament's discipline
-descriptor exactly as tournament creation validates it. The operation SHALL refuse to create a stage
-whose number already exists in the tournament.
+entrant pool from the tournament's `accepted` registrations. Number, name and format SHALL default
+when not supplied, and a supplied format SHALL be validated against the discipline descriptor as
+tournament creation validates it. The operation SHALL refuse a stage number that already exists in
+the tournament.
 
 #### Scenario: Stage created with defaults
 - **WHEN** an operator creates a stage for a tournament with accepted registrations and supplies
@@ -191,6 +189,12 @@ whose number already exists in the tournament.
 - **WHEN** a stage is created
 - **THEN** it exists with no matches yet, and generating its bracket is a separate, subsequent
   operation
+
+#### Scenario: The defaults
+
+- **WHEN** a stage is created without number, name or format
+- **THEN** it takes the next sequential stage number, a name derived from it, and the tournament's
+  own configured format
 
 ### Requirement: A stage with no generated fixtures resolves its entrant pool from accepted registrations
 Any operation that reads or writes a stage's seed order SHALL resolve the stage's entrant pool from
@@ -284,12 +288,10 @@ format rather than in place of one.
   and the bracket structure is the one that format already generates
 
 ### Requirement: Bracket Groups (GSL Dual Tournament) Format Support
-The engine SHALL support the `bracket-groups` duel format, generating an independent dual-tournament or single-elimination mini-bracket for each group in a stage. In the default 4-entrant GSL configuration, each group SHALL generate exactly 5 matches with declarative advancement edges:
-1. Match 1 (Opening A): Seed #1 vs Seed #4.
-2. Match 2 (Opening B): Seed #2 vs Seed #3.
-3. Match 3 (Winners' Match): Winner of Match 1 vs Winner of Match 2 $\to$ Winner qualifies as Seed #1.
-4. Match 4 (Elimination Match): Loser of Match 1 vs Loser of Match 2 $\to$ Loser is eliminated in 4th place.
-5. Match 5 (Decider Match): Loser of Match 3 vs Winner of Match 4 $\to$ Winner qualifies as Seed #2; loser is eliminated in 3rd place.
+
+The engine SHALL support the `bracket-groups` duel format, generating an independent dual-tournament
+or single-elimination mini-bracket for each group in a stage. In the default 4-entrant GSL
+configuration, each group SHALL generate exactly 5 matches with declarative advancement edges.
 
 #### Scenario: GSL dual-tournament bracket generation
 - **GIVEN** a stage with 4 seeded entrants selecting format `bracket-groups`
@@ -302,6 +304,14 @@ The engine SHALL support the `bracket-groups` duel format, generating an indepen
 - **WHEN** fixtures are generated
 - **THEN** 4 independent 5-match brackets are generated (total 20 matches)
 - **AND** the top 2 finishers from each group (total 8 entrants) qualify into the subsequent playoff stage
+
+#### Scenario: The five GSL matches
+
+- **WHEN** a 4-entrant group is generated
+- **THEN** Match 1 (Opening A) is seed 1 against seed 4; Match 2 (Opening B) seed 2 against seed 3;
+  Match 3 (Winners') the winners of 1 and 2, its winner qualifying as seed 1; Match 4 (Elimination)
+  the losers of 1 and 2, its loser eliminated in 4th place; Match 5 (Decider) the loser of 3 against
+  the winner of 4, its winner qualifying as seed 2 and its loser eliminated in 3rd place
 
 ### Requirement: Gauntlet (Stepladder) Format Support
 The engine SHALL support the `gauntlet` duel format, generating a linear chain of $N-1$ matches for $N$ seeded participants ($2 \le N \le 32$). Match 1 SHALL join Seed $N$ and Seed $N-1$; each subsequent Match $i$ ($2 \le i \le N-1$) SHALL join the winner of Match $i-1$ with Seed $N-i$.
@@ -384,7 +394,12 @@ The engine SHALL support the `ffa-league` placement format, generating a multi-r
 - **AND** standings compute cumulative placement and performance points independently per division across all 5 rounds
 
 ### Requirement: Heterogeneous Zone Fixture Generation and Standings Accounting
-Seeding and fixture generation SHALL build one fixture graph per zone from that zone's effective format and series declaration, and persist each fixture with its zone and group scope. A stage whose zones have differing formats SHALL produce knockout brackets for elimination formats and round-robin matrices for league formats, with rounds numbered 1-based within each zone so zones may have different round counts. No fixture or advancement edge SHALL cross a zone boundary. A stage without declared zones SHALL generate exactly the fixtures it generated before this change. Points-based standings SHALL be projected only for zones whose effective format produces tables.
+
+Seeding and fixture generation SHALL build one fixture graph per zone from that zone's effective
+format and series declaration, persisting each fixture with its zone and group scope, and numbering
+rounds from 1 within each zone. No fixture or advancement edge SHALL cross a zone boundary. A stage
+without declared zones SHALL generate exactly the fixtures it did before. Points-based standings
+SHALL be projected only for zones whose effective format produces tables.
 
 #### Scenario: Stage generates knockout fixtures for some zones and round-robin for others
 - **WHEN** seeding publishes a stage where Zone 1 and Zone 2 are `single-elimination` and Zone 3 is `round-robin`
@@ -410,8 +425,19 @@ Seeding and fixture generation SHALL build one fixture graph per zone from that 
 - **THEN** the rows are those of the zones whose effective format produces a table, each zone ranked on its own
 - **AND** no entrant of a bracket zone appears in them
 
+#### Scenario: Formats per zone
+
+- **WHEN** a stage's zones play differing formats
+- **THEN** elimination zones produce knockout brackets and league zones round-robin matrices, each
+  with its own round count
+
 ### Requirement: Dynamic round generation is scoped to one zone
-Generating the next round of a Swiss or single-elimination stage SHALL pair only the entrants of the targeted zone, SHALL derive the current round and the completion check from that zone's fixtures alone, SHALL feed Swiss pairing only that zone's results, and SHALL persist the new fixtures with that zone's identity. A stage with more than one zone SHALL require the request to name the zone by its number; a stage with one zone or none SHALL behave as it did before. A zone whose effective format does not support dynamic rounds SHALL be refused without affecting other zones. No fixture SHALL pair entrants of different zones.
+
+Generating the next round of a Swiss or single-elimination stage SHALL use only the targeted zone's
+entrants, fixtures and results, and SHALL persist the new fixtures with that zone's identity. A
+stage with more than one zone SHALL require the request to name the zone by number; a stage with one
+zone or none SHALL behave as before. A zone whose format has no dynamic rounds SHALL be refused
+alone. No fixture SHALL pair entrants of different zones.
 
 #### Scenario: Two Swiss zones advance independently
 - **WHEN** zone A has finished round 2 and zone B has finished round 1, and the next round is requested for zone B
@@ -444,6 +470,12 @@ Generating the next round of a Swiss or single-elimination stage SHALL pair only
 - **WHEN** the next round is requested for a zone whose effective format is round-robin
 - **THEN** the request is refused naming the zone
 - **AND** the stage's other zones are unaffected
+
+#### Scenario: What the zone scopes
+
+- **WHEN** the next round is generated for a zone
+- **THEN** it pairs only that zone's entrants, derives the current round and its completion check
+  from that zone's fixtures, and feeds Swiss pairing only that zone's results
 
 ### Requirement: Single elimination may declare placement play
 Single-elimination generation SHALL accept an optional placement declaration: none (the default), a

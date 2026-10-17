@@ -31,12 +31,12 @@ client-side.
 - **THEN** the slot renders a TBD/pending placeholder rather than an empty or misleading state
 
 ### Requirement: Seed configuration changes follow mutation classification
-Publishing a seed configuration change through this builder SHALL apply the mutation-class rules
-(`safe` / `requires_rebuild` / `blocked_after_results`) defined for tournament configuration. A
-publish classified `safe` or `requires_rebuild` SHALL persist the new seed order for the stage and
-regenerate its fixtures from that order, so the persisted state matches what the builder displayed
-as published. Publishing SHALL block the change with an explanatory message if results already
-exist and the change is classified `blocked_after_results`.
+
+Publishing a seed configuration change through this builder SHALL apply the tournament configuration
+mutation-class rules (`safe` / `requires_rebuild` / `blocked_after_results`). A `safe` or
+`requires_rebuild` publish SHALL persist the new seed order and regenerate the stage's fixtures from
+it, so the persisted state matches what the builder displayed. A `blocked_after_results` change
+SHALL be blocked with an explanatory message.
 
 #### Scenario: Reseeding after results is blocked
 - **WHEN** an operator attempts to change seed assignments after match results already exist for the
@@ -80,12 +80,12 @@ persistence-layer access.
   for that round, never `NaN` or any other malformed placeholder
 
 ### Requirement: Bracket canvas links to a match's control screen
-Each bracket canvas node representing a persisted match SHALL link to that match's control screen
-(the live match console when a console session exists for it, otherwise the load-match-data screen),
-resolved by the match's persisted identifier rather than the tournament engine's structural label. A
-node with no persisted match yet SHALL render with no link, in the same TBD/pending presentation the
-existing "Bracket canvas renders engine-generated structure" requirement already defines — it SHALL
-NOT link to a placeholder or guessed destination.
+
+Each bracket canvas node representing a persisted match SHALL link to that match's control screen,
+resolved by the match's persisted identifier rather than the engine's structural label. A node with
+no persisted match yet SHALL render with no link, in the pending presentation the "Bracket canvas
+renders engine-generated structure" requirement defines, and SHALL NOT link to a placeholder or
+guessed destination.
 
 #### Scenario: An operator opens a resolved match from the canvas
 - **WHEN** an operator activates a bracket canvas node whose match has been generated as a real
@@ -102,6 +102,12 @@ NOT link to a placeholder or guessed destination.
 - **WHEN** a bracket canvas node is linkable
 - **THEN** it exposes a focus-visible, keyboard-activatable target at least 44px in its constrained
   axis, consistent with every other interactive control in the design system
+
+#### Scenario: Which control screen a node opens
+
+- **WHEN** an operator activates a persisted node
+- **THEN** it opens the live match console when a console session exists for the match, otherwise
+  the load-match-data screen
 
 ### Requirement: Bracket canvas can render focused on one match
 The bracket canvas SHALL support rendering with a single named match visually emphasized and scrolled

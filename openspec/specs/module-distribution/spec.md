@@ -20,12 +20,12 @@ A module SHALL be a directory containing a manifest declaring its kind (`discipl
 - **THEN** it is rejected as not a valid module
 
 ### Requirement: Installation names a module, not a location
+
 The CLI SHALL install a module by alias and version, resolved against the project's curated module
-repository, and an operator SHALL NOT need to know where a module is hosted to install it. If an exact
-Git tag is absent from the curated upstream repository but the module's manifest and artifact version
-are present in the canonical default branch, the module resolution mechanism SHALL resolve and install
-the satisfying version using manifest verification fallback, recording a non-blocking diagnostic note
-rather than aborting with a Git tag resolution failure.
+repository, and an operator SHALL NOT need to know where a module is hosted to install it. When an
+exact Git tag is absent but the module's manifest and artifact version are present on the canonical
+default branch, resolution SHALL install the satisfying version through manifest verification, with
+a non-blocking diagnostic note rather than a tag resolution failure.
 
 #### Scenario: A published module installs by name
 - **WHEN** an operator runs the module-add command with a module alias
@@ -78,13 +78,12 @@ different attribution.
   and the installed module is left untouched
 
 ### Requirement: Validation is identical at import and in review
+
 The same validation SHALL run when importing a module and when a pull request proposes one: manifest
 and artifact schema, registry references, ruleset compilation, and asset limits. A discipline's
-background image assets SHALL be validated as JPEG only, with a maximum dimension of 2560×1440
-(1440p), a maximum file size of 2 MiB per file, and a count between 1 and 10. Each descriptor image
-reference SHALL use the deterministic `modules/<alias>/<version>/<asset-path>` key and correspond
-one-to-one with a manifest asset whose kind is `background`; other existing asset kinds retain their
-own declared validation policy.
+background images SHALL be JPEG, at most 2560×1440 and 2 MiB each, 1 to 10 of them, each referenced
+by its deterministic `modules/<alias>/<version>/<asset-path>` key and matched one-to-one with a
+`background` manifest asset.
 
 #### Scenario: A pull request proposing an uncompilable descriptor fails review
 - **WHEN** a proposed discipline parses but produces an invalid effective ruleset
@@ -113,6 +112,11 @@ own declared validation policy.
 - **WHEN** a discipline's `images` contains a key without a corresponding `background` manifest asset,
   or the manifest declares a background absent from `images`
 - **THEN** validation fails identifying the unmatched key or asset before any upload or database write
+
+#### Scenario: Other asset kinds keep their own policy
+
+- **WHEN** a module declares an asset of a kind other than `background`
+- **THEN** it is validated by that kind's own declared policy
 
 ### Requirement: Core version compatibility is declared and enforced
 A module SHALL declare the CopaLibre versions it supports as a semver range, and installation SHALL

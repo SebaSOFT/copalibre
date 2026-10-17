@@ -257,6 +257,7 @@ Before creating or updating a PR, you MUST guarantee the CI will pass by running
 - `yarn test:e2e` (for frontend)
 - `yarn workspace @copalibre/design-tokens scan:forbidden` and `yarn workspace @copalibre/design-tokens check:integrity` (the `forbidden-token-scan` job runs both). The `--cl-*` custom-property namespace is reserved for declared design tokens, so name a component-local property without that prefix.
 - `node scripts/check-change-number-references.mjs`, and every `node --test` suite under `scripts/`, `scripts/lib/` and `apps/web/scripts/`
+- `openspec validate --specs --strict` (the `enterprise-readiness-doc-lint` job runs it): the accepted spec baseline stays strictly valid. Keep a requirement's statement to its normative sentences (under 500 characters) and put examples and cases in scenarios
 
 Running `yarn test:e2e` rewrites some tracked screenshots under `docs/assets/screenshots` (the `tv-mixed-stage-*` and `control-series-progress-*` families). Restore them with `git checkout` before committing unless the change meant to refresh them.
 

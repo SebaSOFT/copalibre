@@ -8,22 +8,12 @@ that already exist, so extending CopaLibre to a new sport does not require hand-
 ## Requirements
 
 ### Requirement: A discipline can be authored without writing a document by hand
-The control panel SHALL offer a guided surface that authors a complete discipline descriptor —
-participant types, roster constraints, segment types, statistics and their aggregation modes, event
-definitions, available formats, scoring inputs and the win condition — and produces a document that
-passes the same validation an installed module passes.
 
-Every decision the surface presents SHALL be explained on the terms the authoring-decision contract
-already requires: what the choice causes during a competition, not what it is named. A builder that asks
-unexplained questions is a document editor with more steps, and the operator who needs the builder is
-precisely the one who cannot answer an unexplained question.
-
-Authoring SHALL be installation-level authority: a discipline changes what every organization in the
-installation can run.
-
-An unresolved problem SHALL appear once, not duplicated between the builder's own summary of
-unresolved problems and an individual field's inline error for that same problem — a field already
-showing its own error for a problem SHALL NOT have that same problem repeated in the summary.
+The control panel SHALL offer a guided surface that authors a complete discipline descriptor and
+produces a document that passes the same validation an installed module passes. Every decision it
+presents SHALL be explained by what the choice causes during a competition. Authoring SHALL be
+installation-level authority. An unresolved problem SHALL appear once: a field already showing its
+own error SHALL NOT have that problem repeated in the summary of unresolved problems.
 
 #### Scenario: An administrator authors a discipline end to end
 - **WHEN** a super administrator completes the discipline builder for a sport not in the catalogue
@@ -50,14 +40,30 @@ showing its own error for a problem SHALL NOT have that same problem repeated in
 - **THEN** the builder's summary of unresolved problems does not also list that same reason, though it
   still lists any unresolved problem no visible field currently surfaces
 
+#### Scenario: Every part of a descriptor is authored
+
+- **WHEN** an administrator uses the builder
+- **THEN** it covers participant types, roster constraints, segment types, statistics and their
+  aggregation modes, event definitions, available formats, scoring inputs and the win condition
+
+#### Scenario: Explanations follow the authoring-decision contract
+
+- **WHEN** the builder presents a decision
+- **THEN** it is explained on the terms the authoring-decision contract requires, not by its name
+  alone, because the operator who needs the builder cannot answer an unexplained question
+
+#### Scenario: A discipline reaches every organization
+
+- **WHEN** an administrator installs an authored discipline
+- **THEN** every organization in the installation can run it, which is why authoring needs
+  installation authority
+
 ### Requirement: A tournament profile can be authored against an installed discipline
-The control panel SHALL offer a guided surface that authors a tournament profile — its stages, each
-stage's format, each stage's default seeding/allocation mode, and how each stage qualifies into the
-next — against a discipline already installed, and SHALL refuse a stage whose format that discipline
-does not declare. A stage's declared allocation default SHALL be one of automatic, manual, or
-weighted (with a direction and attribute when weighted), and SHALL be optional: a stage declaring
-none behaves as it did before this capability existed, leaving seeding entirely to the operator when
-a tournament is later instantiated from the profile.
+
+The control panel SHALL offer a guided surface that authors a tournament profile against a
+discipline already installed, and SHALL refuse a stage whose format that discipline does not
+declare. A stage's declared allocation default SHALL be one of automatic, manual, or weighted (with
+a direction and attribute when weighted), and SHALL be optional.
 
 #### Scenario: A multi-stage profile is authored
 - **WHEN** an administrator authors a profile declaring a group stage feeding a knockout stage
@@ -78,6 +84,19 @@ a tournament is later instantiated from the profile.
 - **WHEN** an administrator authors a stage without setting an allocation
 - **THEN** the stage is stored with no allocation declared, identical to a profile authored before
   this capability existed
+
+#### Scenario: A profile covers each stage end to end
+
+- **WHEN** an operator authors a profile
+- **THEN** it declares its stages, each stage's format, each stage's default seeding/allocation
+  mode, and how each stage qualifies into the next
+
+#### Scenario: No declared allocation leaves seeding to the operator
+
+- **WHEN** a profile stage declares no allocation default and a tournament is instantiated from the
+  profile
+- **THEN** that stage behaves as before this capability existed, leaving seeding entirely to the
+  operator
 
 ### Requirement: An authored module carries its authorship, description and translations
 The authoring surface SHALL capture a module's author, licence and attribution, a description of what

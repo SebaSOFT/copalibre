@@ -10,11 +10,9 @@ already-accepted `tournament-engine/resource-scheduling` backend capability.
 ### Requirement: A schedule builder assigns venue, time, and officials to a stage's fixtures
 
 The control panel SHALL provide a schedule-builder screen, scoped to one stage, showing that stage's
-matches alongside the organization's schedules. An organizer SHALL be able to place a match in a slot of
-a schedule and assign it officials by hand, reading the slot's venue and time rather than typing them.
-The builder SHALL preview the assignment batch — showing every conflict and every already-published match
-the batch would affect — before anything is published, and SHALL publish only on an explicit action,
-atomically, exactly as the underlying schedule API already guarantees.
+matches alongside the organization's schedules. An organizer SHALL be able to place a match in a
+slot of a schedule and assign it officials by hand. The builder SHALL preview the assignment batch
+before anything is published, and SHALL publish only on an explicit action, atomically.
 
 #### Scenario: An organizer assigns a fixture a time and venue
 - **WHEN** an organizer selects a schedule and places a match in one of its free slots
@@ -39,6 +37,17 @@ atomically, exactly as the underlying schedule API already guarantees.
 #### Scenario: A full slot offers no further placement
 - **WHEN** a slot already holds as many matches as its venue's concurrent capacity allows
 - **THEN** the builder states that the slot is full rather than accepting a placement the API would refuse
+
+#### Scenario: A placement reads its venue and time from the slot
+
+- **WHEN** an organizer places a match in a slot
+- **THEN** the match takes that slot's venue and start time, and the organizer types neither
+
+#### Scenario: The preview names the published matches a batch affects
+
+- **WHEN** an organizer previews a batch that moves or withdraws already-published matches
+- **THEN** the preview lists every conflict and every already-published match the batch would
+  affect, before anything is published
 
 ### Requirement: The list view states an unscheduled entrant's absence explicitly
 

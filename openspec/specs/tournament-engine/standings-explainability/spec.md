@@ -22,14 +22,10 @@ mistaken for a table that has lost four matches' worth of data.
 - **THEN** the column counting played units is labelled as counting series, not matches
 
 ### Requirement: A standings table states the unit its rows are counted in
-A standings table computed for a stage that declares a series SHALL state, in text, whether its rows
-count one result per series or one result per played match. The statement SHALL be present in the
-rendered output rather than left to a reader to infer from the numbers, and SHALL be present on every
-surface the table appears on.
 
-A table for a stage that declares no series SHALL state nothing: there is only one unit a single-match
-stage can be counted in, and a badge announcing it would be noise on every table the product has ever
-rendered.
+A standings table computed for a stage that declares a series SHALL state, in text, whether its rows
+count one result per series or one result per played match, in the rendered output of every surface
+the table appears on. A table for a stage that declares no series SHALL state nothing.
 
 #### Scenario: A series-grain table says so
 - **WHEN** an operator or a spectator views the standings of a stage whose series declares series-grain
@@ -50,6 +46,16 @@ rendered.
 - **WHEN** a public standings table for a series stage is rendered with JavaScript disabled and in
   grayscale
 - **THEN** the grain statement is present in the server-rendered HTML and legible from its text alone
+
+#### Scenario: The unit is stated, not inferred
+
+- **WHEN** a reader looks at a series-stage table
+- **THEN** the unit is written out rather than left to be inferred from the numbers
+
+#### Scenario: Why a single-match stage says nothing
+
+- **WHEN** a stage declares no series
+- **THEN** it has only one unit to be counted in, so a statement would be noise on every table
 
 ### Requirement: Expandable tiebreaker resolution trace
 Each standings row involved in a resolved tie SHALL expand to show a rule-by-rule tiebreaker
@@ -111,7 +117,11 @@ The system SHALL evaluate declared `TableLayoutDefinition` rules dynamically aga
 - **THEN** tied goal scorers are ordered secondarily by goals-per-match and tertiarily by fewest penalty goals
 
 ### Requirement: Head-to-Head (H2H) and Match-Losses Tiebreak Scoping
-The system SHALL support declaring an evaluation scope (`overall`, `head-to-head`, or `match-losses`) on each tiebreak parameter in a tournament profile or ruleset pipeline. When evaluating a parameter scoped to `head-to-head`, the engine SHALL calculate accounting metrics strictly from recorded match outcomes played among the mutually tied participants. When evaluating a parameter scoped to `match-losses`, the engine SHALL calculate accounting metrics strictly from matches each tied participant lost.
+
+The system SHALL support declaring an evaluation scope (`overall`, `head-to-head`, or
+`match-losses`) on each tiebreak parameter in a tournament profile or ruleset pipeline. A
+`head-to-head` parameter SHALL be computed only from outcomes among the mutually tied participants,
+and a `match-losses` parameter only from matches each tied participant lost.
 
 #### Scenario: Head-to-Head points resolves a tie among equal overall points
 - **GIVEN** Entrant A and Entrant B have identical overall points in a round-robin group
@@ -194,12 +204,11 @@ The system SHALL support manual tiebreak point assignments and deterministic see
 
 ### Requirement: Discipline-declared tiebreak application
 
-A discipline descriptor's declared `defaults.tiebreakers` order SHALL be applied by the standings
-pipeline for that discipline without requiring an organizer to separately configure a stage-level
-override under a differently-named field-policy key. A declared comparator MAY use a compound ratio
-of two statistic codes declared by that discipline. The pipeline SHALL evaluate each operand from the
-entrant's accumulated stage totals, honor the declared direction and zero-denominator policy, and
-include the ratio comparator in the engine's explanation trace at its configured position.
+The standings pipeline SHALL apply a discipline descriptor's declared `defaults.tiebreakers` order
+without an organizer configuring a stage-level override under another key. A comparator MAY be a
+ratio of two statistic codes the discipline declares; the pipeline SHALL evaluate each operand from
+the entrant's stage totals, honor the declared direction and zero-denominator policy, and include it
+in the explanation trace at its configured position.
 
 #### Scenario: A community discipline with no operator-configured standings override
 

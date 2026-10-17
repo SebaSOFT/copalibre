@@ -88,10 +88,12 @@ without requiring a manual page reload, while remaining fully correct and comple
   immediately
 
 ### Requirement: Hierarchical Zone Presentation for Heterogeneous Stages
-The public stage overview view (`/stages/[stage]`) SHALL present a hierarchical layout with distinct sections for each zone of the stage. Each zone section SHALL resolve and render the visual presentation component matching that zone's effective format:
-- Elimination formats (`single-elimination`, `double-elimination`, `gauntlet`, `bracket-groups`, `custom-bracket`) SHALL render an interactive bracket tree.
-- Round-robin and league formats (`round-robin`, `league`, `round-robin-single-leg`, `round-robin-home-away`, `swiss`, `ffa-league`) SHALL render a matches grid accompanied by that zone's standings table.
-The stage header SHALL provide quick navigation anchors or tabs allowing spectators to jump between zones.
+
+The public stage overview view (`/stages/[stage]`) SHALL present a distinct section for each zone of
+the stage, each rendering the presentation component matching that zone's effective format: an
+interactive bracket tree for an elimination format, and a matches grid with that zone's standings
+table for a round-robin or league format. The stage header SHALL provide quick navigation anchors or
+tabs allowing spectators to jump between zones.
 
 #### Scenario: Stage renders bracket tree for elimination zones and standings table for round-robin zones
 - **WHEN** a spectator visits a stage containing Zone 1 (single-elimination), Zone 2 (single-elimination), and Zone 3 (round-robin)
@@ -102,6 +104,18 @@ The stage header SHALL provide quick navigation anchors or tabs allowing spectat
 #### Scenario: TV dashboard highlights zone format accurately
 - **WHEN** the TV display kiosk presents matches or rankings for a zone
 - **THEN** it renders the layout component (bracket view or standings ticker) corresponding to that specific zone's effective format
+
+#### Scenario: Elimination formats render a bracket tree
+
+- **WHEN** a zone's effective format is `single-elimination`, `double-elimination`, `gauntlet`,
+  `bracket-groups` or `custom-bracket`
+- **THEN** its section renders an interactive bracket tree
+
+#### Scenario: Round-robin and league formats render matches and standings
+
+- **WHEN** a zone's effective format is `round-robin`, `league`, `round-robin-single-leg`,
+  `round-robin-home-away`, `swiss` or `ffa-league`
+- **THEN** its section renders a matches grid accompanied by that zone's standings table
 
 ### Requirement: Tournament progress is shown per stage, zone and group
 The tournament page's progress card SHALL show an overall bar and one bar per stage, and for a stage with zones or groups one bar per zone or group, each labelled with its name and its played and total counts. Every bar SHALL have a text alternative and SHALL NOT convey state by colour alone. The card SHALL size to its content and SHALL NOT span the page width when it has little to show.

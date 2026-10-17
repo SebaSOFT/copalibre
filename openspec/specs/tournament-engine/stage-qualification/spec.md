@@ -100,10 +100,9 @@ without generating or committing the next stage's fixtures.
 ### Requirement: Group promotion combines several groups' cuts into one ordered list
 
 When a zone's stage is split into groups, a promotion plan SHALL declare how many entrants advance
-from each group — a single count applying to every group, or a distinct count per group — and how
-entrants promoted from different groups combine into one ordered list for the next stage's seeding.
-The combination SHALL be one of: a declared comparator pipeline ranking same-finishing-position
-cohorts against each other, explicit operator placement, or simple group-then-rank order. A group's
+from each group and how entrants promoted from different groups combine into one ordered list for
+the next stage's seeding. The combination SHALL be one of: a declared comparator pipeline ranking
+same-finishing-position cohorts, explicit operator placement, or group-then-rank order. A group's
 own cut SHALL resolve before its entrants are eligible for cross-group combination.
 
 #### Scenario: Groups of different sizes promote different counts
@@ -132,6 +131,11 @@ own cut SHALL resolve before its entrants are eligible for cross-group combinati
 - **WHEN** a promotion plan's combination resolves and declares no bands
 - **THEN** the resulting ordered list is usable directly as the next stage's one implicit zone's
   automatic-allocation qualification order, with no additional transformation
+
+#### Scenario: One count for every group
+
+- **WHEN** a promotion plan declares a single count
+- **THEN** that count applies to every group; a plan may instead declare a distinct count per group
 
 ### Requirement: A promotion plan may route its combined list to several zones of the next stage
 

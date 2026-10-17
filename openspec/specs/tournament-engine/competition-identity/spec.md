@@ -172,11 +172,8 @@ rather than a broken image or an empty gap.
 ### Requirement: An entrant carries a tournament-scoped, guaranteed-distinct abbreviation
 
 An entrant SHALL be able to carry a short label, in the same format as a club's or team's own
-abbreviation, distinct from every other entrant's label within the same tournament. This is a separate
-guarantee from a club's or team's own abbreviation, which remains organizer-chosen and
-collision-tolerant exactly as before — an entrant's label is what a tournament-scoped surface (a group
-table, a bracket cell, a match header) shows, and it is resolved automatically, as a default, only when
-nothing usable was explicitly supplied.
+abbreviation, distinct from every other entrant's label within the same tournament. It is resolved
+automatically, as a default, only when nothing usable was explicitly supplied.
 
 #### Scenario: An unambiguous name resolves automatically on registration
 - **WHEN** a team registers for a tournament and no other registered entrant's label would collide
@@ -214,6 +211,17 @@ nothing usable was explicitly supplied.
 #### Scenario: The same label is legal across different tournaments
 - **WHEN** two entrants in two different tournaments carry the identical label
 - **THEN** neither registration nor label change is affected by the other tournament's usage
+
+#### Scenario: A club's own abbreviation stays collision-tolerant
+
+- **WHEN** two clubs or teams carry the same organizer-chosen abbreviation
+- **THEN** that remains allowed, exactly as before: only entrant labels within one tournament must
+  differ
+
+#### Scenario: Tournament-scoped surfaces show the entrant's label
+
+- **WHEN** a group table, a bracket cell or a match header shows an entrant
+- **THEN** it shows the entrant's tournament-scoped label
 
 ### Requirement: A person may declare a birth date, exposed publicly only as a computed age
 

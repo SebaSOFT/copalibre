@@ -8,13 +8,9 @@ Defines the five-tier atomic-composition contract (atom, molecule, organism, tem
 
 ### Requirement: Every rendered file belongs to exactly one declared tier
 
-Every file under the application's rendering roots SHALL belong to exactly one declared tier — atom,
-molecule, organism, template, page, or layout — or to a declared non-tier category: a router, a
-context provider or composition root, a test or story module, a fixture, or a registry. A file
-belonging to no tier and no declared category SHALL be a violation.
-
-The tier of a file SHALL be decided by its directory, not by a list a person maintains, so that a
-newly added component is governed without the rule being edited.
+Every file under the application's rendering roots SHALL belong to exactly one declared tier or to a
+declared non-tier category, and a file belonging to neither SHALL be a violation. A file's tier
+SHALL be decided by its directory, not by a list a person maintains.
 
 #### Scenario: A component in no tier directory is reported
 
@@ -27,6 +23,17 @@ newly added component is governed without the rule being edited.
 - **WHEN** the broadcast overlay's components are checked
 - **THEN** they are held to the same tier membership rule as the operator and public surfaces, with
   no surface-specific exemption
+
+#### Scenario: The tiers and categories
+
+- **WHEN** a file is classified
+- **THEN** its tier is atom, molecule, organism, template, page or layout, or its category is a
+  router, a context provider or composition root, a test or story module, a fixture, or a registry
+
+#### Scenario: A new component is governed at once
+
+- **WHEN** a component is added in a tier directory
+- **THEN** the rule governs it without being edited
 
 ### Requirement: Dependencies point downward through the tiers
 
@@ -49,13 +56,10 @@ reaches from one surface's library into another's SHALL be a violation.
 
 ### Requirement: Layout is composed from primitives, never written inline
 
-The library SHALL provide layout primitives that arrange their children — a vertical stack, a
-horizontal row, a grid, and a padded box — accepting spacing, alignment and column counts as steps on
-the token scale rather than as lengths.
-
-No file outside the layout-primitive directory SHALL declare an inline style carrying a layout
-property — display, gap, flex or grid placement, alignment, justification, margin, padding, or
-explicit width and height. A component that needs an arrangement SHALL compose a primitive.
+The library SHALL provide layout primitives that arrange their children, accepting spacing,
+alignment and column counts as steps on the token scale rather than as lengths. No file outside the
+layout-primitive directory SHALL declare an inline style carrying a layout property, and a component
+that needs an arrangement SHALL compose a primitive.
 
 #### Scenario: Inline flex layout is reported
 
@@ -67,6 +71,17 @@ explicit width and height. A component that needs an arrangement SHALL compose a
 - **WHEN** a layout primitive is given a spacing step
 - **THEN** the rendered spacing resolves to a value from the shared token source, and the primitive
   accepts no raw length
+
+#### Scenario: The primitives
+
+- **WHEN** a component arranges children
+- **THEN** it composes a vertical stack, a horizontal row, a grid, or a padded box
+
+#### Scenario: What counts as a layout property
+
+- **WHEN** an inline style is checked
+- **THEN** display, gap, flex or grid placement, alignment, justification, margin, padding, and
+  explicit width and height are layout properties
 
 ### Requirement: Style values resolve to the shared token source
 
@@ -140,13 +155,10 @@ index exists so that fact is visible rather than implied.
 
 ### Requirement: Every element the library owns is governed on every surface
 
-The set of governed raw elements SHALL cover every element the library provides an owner for,
-including form structure — the form element, its labels, and its grouping elements — and the parts of
-a table outside the table owner. An element for which no owner exists SHALL NOT be governed, and an
-element that has an owner and is nonetheless ungoverned SHALL be a gap in the rule rather than a
-permitted use.
-
-Where a surface's rendering technology has no owner for an element, that gap SHALL be closed by
+The governed raw elements SHALL cover every element the library provides an owner for, including
+form structure and the parts of a table outside the table owner. An element with no owner SHALL NOT
+be governed, and an owned element left ungoverned SHALL be a gap in the rule, not a permitted use.
+Where a surface's rendering technology lacks an owner for an element, the gap SHALL be closed by
 adding the owner rather than by exempting the surface.
 
 #### Scenario: A raw label is reported once the field owner exists
@@ -159,6 +171,12 @@ adding the owner rather than by exempting the surface.
 - **WHEN** a server-rendered surface renders tabular data
 - **THEN** it composes the server-renderable table owner, and a raw table element on that surface is
   reported
+
+#### Scenario: Form structure
+
+- **WHEN** a form is rendered
+- **THEN** the form element, its labels and its grouping elements are governed once owners for them
+  exist
 
 ### Requirement: A component's name states its tier and its role
 
@@ -180,16 +198,8 @@ predict a component's tier from its name.
 
 ### Requirement: At most one atom owns a given governed raw element
 
-Within a surface's atom tier, at most one atom SHALL render a given governed raw element — the
-input, select, textarea, button, table, or dialog the library provides an owner for. A second atom
-rendering the same governed element SHALL be a violation, reported the same way a raw use outside the
-atom tier is reported.
-
-The directory rule that exempts an atom tier from the raw-element check exists so the file defining a
-primitive may use the element it governs; it does not by itself limit that tier to one definition per
-element. A second atom reimplementing a governed element from its raw form — rather than composing
-the atom that already owns it — bypasses the library from inside the directory meant to prevent that,
-and is invisible to a check that only looks for raw elements outside owned directories.
+Within a surface's atom tier, at most one atom SHALL render a given governed raw element, and a
+second atom rendering it SHALL be a violation reported like a raw use outside the atom tier.
 
 #### Scenario: A second atom reimplementing a governed element is reported
 
@@ -206,19 +216,24 @@ and is invisible to a check that only looks for raw elements outside owned direc
 - **THEN** the composition check reports no violation, because one atom still owns the element and
   the specialization is a caller passing it a prop
 
+#### Scenario: The governed elements
+
+- **WHEN** an atom renders a raw element
+- **THEN** the input, select, textarea, button, table and dialog the library owns are governed
+
+#### Scenario: Why the atom tier is not a free pass
+
+- **WHEN** a second atom reimplements a governed element from its raw form
+- **THEN** it is reported: the tier's exemption lets the defining file use its element, not a second
+  definition bypass the library from inside the directory meant to prevent that
+
 ### Requirement: The contract is enforced automatically with a ratcheting register
 
-The composition rules SHALL be enforced by an automated check that runs in continuous integration,
-resolving the application's imports into a graph and deciding each rule structurally rather than by
-matching lines. Every report SHALL name a file and a line.
-
-Violations present when a rule is introduced MAY be recorded in a register keyed by path with a
-count. A new violation in a recorded file SHALL fail; a violation in an unrecorded file SHALL fail;
-and a count that has improved SHALL fail until the recorded number is lowered, so debt cannot grow
-back silently. An entry SHALL be deleted when its count reaches zero.
-
-The register for composition violations SHALL be separate from the register for component-ownership
-violations, so that a lowered count in one cannot conceal a regression in the other.
+The composition rules SHALL be enforced in continuous integration by a check that resolves imports
+into a graph and decides each rule structurally, every report naming a file and a line. Pre-existing
+violations MAY be recorded in a register of counts by path: a new violation SHALL fail, an improved
+but unrecorded count SHALL fail, and an entry SHALL be deleted at zero. This register SHALL be
+separate from the component-ownership register.
 
 #### Scenario: A recorded file gaining a violation fails
 
@@ -236,19 +251,22 @@ violations, so that a lowered count in one cannot conceal a regression in the ot
 - **THEN** the check still reports its violations, because the rules are decided over the resolved
   graph rather than over individual lines
 
+#### Scenario: Debt cannot grow back silently
+
+- **WHEN** a recorded count improves
+- **THEN** the build fails until the recorded number is lowered
+
+#### Scenario: Why two registers
+
+- **WHEN** a count drops in one register while the other regresses
+- **THEN** the regression still fails, because one cannot conceal the other
+
 ### Requirement: Interface text reaches a surface through the catalogues, never as a literal
 
 No rendered component SHALL contain interface text as a literal. Every string a person reads SHALL
-resolve through a message descriptor, and every descriptor SHALL state its default in the source
-language the catalogues are authored from.
-
-A descriptor SHALL resolve in every supported catalogue. A descriptor present in the source
-catalogue and absent from another SHALL be a violation rather than a silent fallback, because a
-fallback renders the source language to a reader who selected a different one.
-
-Transient states — loading, empty, and error text — SHALL be held to this rule identically. These are
-the strings most often written as literals and least often reviewed, and they are what a reader sees
-at the moment a surface is least able to explain itself.
+resolve through a message descriptor that states its default in the source language and resolves in
+every supported catalogue; a descriptor missing from a catalogue SHALL be a violation, not a silent
+fallback. Loading, empty and error text SHALL be held to this rule identically.
 
 #### Scenario: A literal string in a rendered component is reported
 
@@ -265,6 +283,17 @@ at the moment a surface is least able to explain itself.
 - **WHEN** a message descriptor resolves in the source catalogue and is absent from another supported
   catalogue
 - **THEN** the check fails, naming the descriptor and the catalogue missing it
+
+#### Scenario: Why a fallback is a violation
+
+- **WHEN** a descriptor is missing from a catalogue
+- **THEN** falling back would render the source language to a reader who selected another
+
+#### Scenario: Why transient text is held to the rule
+
+- **WHEN** a surface shows loading, empty or error text
+- **THEN** it is the text most often written as a literal and least reviewed, shown when a surface
+  is least able to explain itself
 
 ### Requirement: A presentation labels a value from the record, never from a fixed string
 
@@ -289,16 +318,11 @@ what was altered without knowing the shape of the payload.
 
 ### Requirement: Ornament obeys the design system's stated bans and resolves to named tokens
 
-A component SHALL NOT apply an ornamental glow, a resting shadow, or a second accent colour where the
-design system bans them. A visual treatment SHALL resolve to a named semantic token rather than
-reaching a colour primitive or writing a literal value at the point of use.
-
-A recurring decorative treatment — an accent rail along a component's edge, for instance — SHALL be a
-named class in the generated stylesheet rather than an inline declaration repeated per component, so
-that the system can be changed in one place and so a scanner can see it.
-
-A deliberate exception SHALL be recorded with its reason, and SHALL NOT be achieved by writing the
-value somewhere the check does not look.
+A component SHALL NOT apply an ornamental glow, a resting shadow, or a second accent colour where
+the design system bans them, and a visual treatment SHALL resolve to a named semantic token. A
+recurring decorative treatment SHALL be a named class in the generated stylesheet. A deliberate
+exception SHALL be recorded with its reason, and SHALL NOT be achieved by writing the value where
+the check does not look.
 
 #### Scenario: A glow used as a resting indicator is reported
 
@@ -310,15 +334,22 @@ value somewhere the check does not look.
 - **WHEN** several components render an accent border along one edge
 - **THEN** each composes the same named class, and no component declares that border inline
 
+#### Scenario: No primitive or literal at the point of use
+
+- **WHEN** a component colours something
+- **THEN** it uses a semantic token, never a colour primitive or a literal value
+
+#### Scenario: Why a named class
+
+- **WHEN** an accent rail runs along a component's edge
+- **THEN** it is one named class, so the system changes in one place and a scanner can see it
+
 ### Requirement: Content reflows or scrolls at the declared narrow floor, never disappears
 
 At the narrowest width the design system declares, every value a surface renders SHALL remain
 reachable. Content MAY reflow, wrap, or scroll within its own bounded and labelled region; it SHALL
-NOT be clipped out of view with no indication that anything is missing, and the page body SHALL NOT
-scroll sideways to reveal it.
-
-A component with a fixed width SHALL be verified against the ancestors that clip it, since a fixed
-width inside a clipping ancestor is what turns a reflow problem into a disappearance.
+NOT be clipped out of view without indication, and the page body SHALL NOT scroll sideways. A
+fixed-width component SHALL be verified against the ancestors that clip it.
 
 #### Scenario: A public result stays readable at the narrow floor
 
@@ -330,6 +361,11 @@ width inside a clipping ancestor is what turns a reflow problem into a disappear
 
 - **WHEN** a table is wider than the narrow floor allows
 - **THEN** the table scrolls inside its own labelled region and the page body does not move sideways
+
+#### Scenario: Why clipping ancestors matter
+
+- **WHEN** a fixed-width component sits inside a clipping ancestor
+- **THEN** a reflow problem becomes a disappearance, which is why it is checked
 
 ### Requirement: A debt register entry names a file that exists
 
@@ -353,19 +389,10 @@ list of names nobody can retire.
 
 ### Requirement: A page is exempt from visual review because it holds no presentation
 
-A page SHALL NOT require a story or a preview of its own. A page that satisfies this contract holds
-no presentation to review: its markup is the template it composes, and reviewing the template
-reviews the page.
-
-This exemption SHALL be conditional on the contract holding, not granted by file type. A page
-carrying presentation — its own markup beyond composing a template and a layout, its own stylesheet,
-or its own arrangement of organisms — SHALL be reported by the composition check, because such a page
-is neither reviewable nor exempt. The exemption and the rule that earns it are the same rule.
-
-Every component in a library tier SHALL be reviewable through the renderer that ships it. A component
-whose rendering technology the workbench cannot host SHALL be reviewable through a preview seam that
-renders the production component through the production renderer; re-creating its markup in another
-technology SHALL NOT satisfy this, because an imitation only agrees with itself.
+A page SHALL NOT require a story or preview of its own, conditional on holding no presentation; a
+page carrying presentation SHALL be reported by the composition check. Every library component SHALL
+be reviewable through the renderer that ships it, through a preview seam where the workbench cannot
+host that renderer; re-creating its markup in another technology SHALL NOT satisfy this.
 
 #### Scenario: A thin page needs no story
 
@@ -385,6 +412,22 @@ technology SHALL NOT satisfy this, because an imitation only agrees with itself.
 - **THEN** it is reachable through the preview seam, rendered by the renderer that ships it, and a
   library component with neither a story nor a preview entry is reported
 
+#### Scenario: Why a thin page needs no review
+
+- **WHEN** a page composes only a template and a layout
+- **THEN** its markup is the template, so reviewing the template reviews the page
+
+#### Scenario: What counts as presentation
+
+- **WHEN** a page has its own markup beyond composing a template and a layout, its own stylesheet,
+  or its own arrangement of organisms
+- **THEN** it holds presentation and is neither reviewable nor exempt
+
+#### Scenario: Why an imitation does not count
+
+- **WHEN** a component is re-created in another technology for review
+- **THEN** it only agrees with itself, so it does not make the production component reviewable
+
 ### Requirement: Page components delegate layout to templates without leading siblings
 A component in the page tier (`apps/web/src/control/components/pages/`) SHALL delegate the entire visual hierarchy to its template and SHALL NOT render leading sibling elements or structural containers outside the template. The layout header (breadcrumb and `<h1>` title) defined by the template SHALL remain the primary landmark at the top of the page content region.
 
@@ -393,9 +436,11 @@ A component in the page tier (`apps/web/src/control/components/pages/`) SHALL de
 - **THEN** the atomic composition check fails, identifying the offending page and enforcing template-first return
 
 ### Requirement: Alerts are actionable, tone-consistent, and dismissable
-An `Alert` component or notice block SHALL only be displayed when user attention or decision is required, such as non-transient errors, critical warnings, or necessary operational choices. An optimal, completed, or zero-item condition (such as "all items resolved" or "no pending candidates") SHALL NOT render inside an `Alert` or occupy persistent prominence above active workflows.
 
-Alerts with `info` and `warning` tones SHALL support dismissal via an accessible dismiss control, allowing operators to acknowledge and clear them from the view. Alerts with `destructive` tone SHALL remain persistent until the underlying failure is resolved or retried.
+An `Alert` or notice block SHALL only be displayed when user attention or decision is required. An
+optimal, completed, or zero-item condition SHALL NOT render inside an `Alert` or occupy persistent
+prominence above active workflows. `info` and `warning` alerts SHALL be dismissable through an
+accessible control; `destructive` alerts SHALL remain until the failure is resolved or retried.
 
 #### Scenario: Zero-item optimal state renders quietly
 - **WHEN** an auxiliary review list (such as missing abbreviations) contains zero pending items
@@ -412,3 +457,9 @@ Alerts with `info` and `warning` tones SHALL support dismissal via an accessible
 #### Scenario: Warning tone uses dedicated token styling
 - **WHEN** an alert is rendered with tone `warning`
 - **THEN** it applies class `.cl-inline-alert--warning` with border color `var(--cl-state-warning)`
+
+#### Scenario: What requires attention
+
+- **WHEN** an alert is considered
+- **THEN** non-transient errors, critical warnings and necessary operational choices qualify; "all
+  items resolved" or "no pending candidates" do not

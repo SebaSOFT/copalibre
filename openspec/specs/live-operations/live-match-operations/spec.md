@@ -76,14 +76,10 @@ The match operations system SHALL maintain active on-field participation state f
 ### Requirement: A match roster is an authorized, audited, revisable write per entrant
 
 The system SHALL provide an authorized write that records one entrant's roster for one match, as an
-ordered set of members each carrying the person, a shirt number, the roster roles the discipline
-declares, and a starter-or-bench on-field state. The write SHALL be authorized by the `match.select-roster`
-capability, SHALL replace any prior selection for that same match and entrant rather than accumulating,
-and SHALL be audited on every write with its prior and resulting state.
-
-Member identity fields that duplicate a person's own record — display name and nationality — SHALL be
-snapshotted at selection time rather than resolved on read, so a later change to the person never
-rewrites a played match's roster.
+ordered set of members. The write SHALL be authorized by the `match.select-roster` capability, SHALL
+replace any prior selection for that same match and entrant rather than accumulating, and SHALL be
+audited on every write with its prior and resulting state. A member's display name and nationality
+SHALL be snapshotted at selection time rather than resolved on read.
 
 #### Scenario: Selecting a roster for one side
 - **WHEN** a subject holding `match.select-roster` submits a roster for one entrant of a match
@@ -116,6 +112,17 @@ rewrites a played match's roster.
   declared roster constraints describe
 - **THEN** the write is accepted, because the platform enforces only record integrity and what this
   organizer configured, never what a sport usually requires
+
+#### Scenario: A member carries its match details
+
+- **WHEN** a member is recorded
+- **THEN** it carries the person, a shirt number, the roster roles the discipline declares, and a
+  starter-or-bench on-field state
+
+#### Scenario: A later change to the person leaves a played roster alone
+
+- **WHEN** a rostered person's display name or nationality changes after selection
+- **THEN** the match roster keeps the values snapshotted when it was selected
 
 ### Requirement: Recorded-event person eligibility derives from the selected roster
 
@@ -185,4 +192,3 @@ without requiring direct database access.
   through the supported API path
 - **THEN** the request SHALL succeed, using either an explicit, grantable assignment or the admin's
   organization-scoped authority, rather than being refused with no path to remedy it
-

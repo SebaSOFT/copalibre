@@ -220,13 +220,12 @@ console attribution controls and its own declared payload schema.
   attribution; descriptor decides only its own independently declared payload and effects
 
 ### Requirement: A discipline may declare what its fields and options mean
-A discipline descriptor MAY declare, for each field, statistic, format, event definition and closed-set
-option it introduces, a short description of what that declaration causes during a competition. The
-description SHALL be optional: a descriptor that declares none SHALL remain valid and SHALL behave
-identically to one authored before descriptions existed.
 
-A declared description SHALL be carried with the declaration wherever the descriptor is read, so a
-surface rendering the field never has to source the explanation from anywhere else.
+A discipline descriptor MAY declare, for each field, statistic, format, event definition and
+closed-set option it introduces, a short description of what that declaration causes during a
+competition. The description SHALL be optional: a descriptor that declares none SHALL remain valid
+and SHALL behave identically to one authored before descriptions existed. A declared description
+SHALL be carried with the declaration wherever the descriptor is read.
 
 #### Scenario: A descriptor declaring descriptions validates
 - **WHEN** a discipline descriptor declares a description on a statistic and on each option of a closed

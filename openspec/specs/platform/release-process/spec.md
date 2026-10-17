@@ -22,12 +22,9 @@ in the same release images.
 
 ### Requirement: Merging to main is how a release is cut
 
-A release SHALL be cut by opening a pull request from `develop` into `main` and merging it once its CI
-is green — no separate manual release step, tag creation, or image publish command is required of the
-maintainer beyond bumping the version before opening that pull request. When the version carries a
-pre-release suffix (any string containing a hyphen after the numeric core, e.g. `0.6.0-preview`), the
-release SHALL still be cut the same way, but SHALL be marked as a pre-release rather than a stable
-release throughout.
+A release SHALL be cut by opening a pull request from `develop` into `main` and merging it once its
+CI is green, with no maintainer step beyond bumping the version before opening that pull request. A
+pre-release version SHALL be released the same way and marked as a pre-release throughout.
 
 #### Scenario: Merging a version-bumped develop into main publishes a release
 
@@ -48,6 +45,16 @@ release throughout.
 - **WHEN** a version containing a pre-release suffix (e.g. `0.6.0-preview`) is released
 - **THEN** the created GitHub Release is marked as a pre-release (`gh release create ... --prerelease`),
   not a stable release
+
+#### Scenario: No separate release step
+
+- **WHEN** a maintainer releases a bumped version
+- **THEN** no manual tag creation, release step or image publish command is required
+
+#### Scenario: What makes a pre-release
+
+- **WHEN** a version carries a hyphen after its numeric core, for example `0.6.0-preview`
+- **THEN** it is treated as a pre-release
 
 ### Requirement: Release images are published to GHCR
 
@@ -93,7 +100,12 @@ Release preparation SHALL review the changelog, product version references, inst
 - **AND** translated upgrade procedures preserve persistent data and honor installation version checks
 
 ### Requirement: A fresh dependency security audit gates release publication
-Before creating a new release tag or publishing release images, the release workflow SHALL audit all direct and transitive dependencies from every workspace against current package registry security advisories and GitHub Dependabot advisories. An unreviewed open advisory SHALL stop the workflow before any release artifact is published. An explicitly registered unpatched advisory MAY pass only while its upstream fix remains unavailable; once a fix is available, the locked package versions and root resolutions SHALL meet the published patched floor.
+
+Before creating a release tag or publishing release images, the release workflow SHALL audit every
+workspace's direct and transitive dependencies against current registry and GitHub Dependabot
+advisories. An unreviewed open advisory SHALL stop the workflow before any release artifact is
+published. A registered unpatched advisory MAY pass only while its fix is unavailable; once one is,
+the locked versions and root resolutions SHALL meet the patched floor.
 
 #### Scenario: Vulnerable dependency blocks release publication
 - **WHEN** the release workflow is preparing a version that does not have an existing release tag

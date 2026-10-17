@@ -248,6 +248,9 @@ jobs:
       # Tracked content never cites a git-ignored OpenSpec change by number.
       - run: node --test scripts/check-change-number-references.test.mjs
       - run: node scripts/check-change-number-references.mjs
+      # The accepted OpenSpec baseline passes strict validation, so a requirement that grows past
+      # the length limit or a placeholder Purpose fails here rather than joining a backlog.
+      - run: npx --yes @fission-ai/openspec@1.14.1 validate --specs --strict --no-interactive
       # Interface text that never entered a message catalogue.
       # Blocking, not informational: known findings are recorded in the script's
       # own debt register, so this only fails on a literal nobody has seen yet.

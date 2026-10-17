@@ -85,14 +85,12 @@ rulesets, and per-match materialised outcomes and standings.
   or roll back together
 
 ### Requirement: A refused attempt is recorded, not only a completed change
+
 An operation refused on authorization, lifecycle state or mutation classification SHALL record who
 attempted it, what they attempted, and why it was refused, in the same audit trail as the operations
-that succeed.
-
-A refusal record SHALL be written whether or not the caller receives an explanatory message, and its
-absence SHALL be a defect rather than an accepted normal. Recording a refusal SHALL NOT change the
-refusal: an operation that would be refused is still refused, and a failure while recording SHALL NOT
-convert a refusal into a different outcome.
+that succeed. A refusal record SHALL be written whether or not the caller receives an explanatory
+message, and its absence SHALL be a defect. Recording a refusal SHALL NOT change the refusal, and a
+failure while recording SHALL NOT convert a refusal into a different outcome.
 
 #### Scenario: A blocked mutation records who attempted it
 - **WHEN** an operator attempts a change classified `blocked_after_results` and is refused
@@ -112,6 +110,11 @@ convert a refusal into a different outcome.
 - **WHEN** writing a refusal record fails
 - **THEN** the original refusal is still returned to the caller unchanged, and the failure to record is
   reported through the installation's own error reporting rather than to the caller
+
+#### Scenario: A silent refusal is still recorded
+
+- **WHEN** an operation is refused without an explanatory message to the caller
+- **THEN** a refusal record is written all the same
 
 ### Requirement: Sensitive reads are recorded
 Bulk extraction of data and reads of personal data SHALL record actor, scope and time. Ordinary
