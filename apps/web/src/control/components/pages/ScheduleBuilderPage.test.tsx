@@ -219,6 +219,71 @@ describe('ScheduleBuilderPage', () => {
     expect(container.textContent).not.toMatch(/0199b000-/);
   });
 
+  it('reports a conflict that arose after publication in words, moving nothing', async () => {
+    const godoyCruz = '0199b000-0000-7000-8000-000000000001';
+    const fixture = (fixtureId: string, matchId: string, round: number, away: string) => ({
+      fixtureId,
+      matchId,
+      round,
+      homeEntrantId: godoyCruz,
+      homeName: 'Godoy Cruz',
+      awayEntrantId: `0199b000-0000-7000-8000-00000000000${round + 1}`,
+      awayName: away,
+    });
+    render(
+      withIntl(
+        <ScheduleBuilderPage
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+          stageNumber={1}
+          client={stubClient({
+            getStageFixtures: async () => ({
+              stageId: 'stage-1',
+              fixtures: [
+                fixture('fixture-qf', 'match-qf', 1, 'Independiente Rivadavia'),
+                fixture('fixture-sf', 'match-sf', 2, 'Gimnasia'),
+              ],
+            }),
+            getSchedule: async () => ({
+              assignments: [],
+              conflicts: [
+                {
+                  kind: 'rest-rule',
+                  matchId: 'match-sf',
+                  conflictsWithMatchId: 'match-qf',
+                  resourceId: godoyCruz,
+                  detail: 'raw English detail',
+                },
+                {
+                  kind: 'venue-double-booked',
+                  matchId: 'match-sf',
+                  conflictsWithMatchId: 'match-elsewhere',
+                  resourceId: 'venue-1',
+                  detail: 'raw English detail',
+                },
+              ],
+            }),
+          })}
+        />,
+      ),
+    );
+
+    const heading = await screen.findByText('Conflicts that arose after publication');
+    const arisen = heading.closest('[data-arisen-conflicts]');
+    expect(arisen?.getAttribute('role')).toBe('status');
+    expect(
+      screen.getByText(
+        'Godoy Cruz lacks the required rest between Godoy Cruz vs Gimnasia and Godoy Cruz vs Independiente Rivadavia',
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        'The venue is over capacity for Godoy Cruz vs Gimnasia and a match outside this stage',
+      ),
+    ).toBeTruthy();
+    expect(arisen?.textContent).not.toContain('raw English detail');
+  });
+
   it('renders within ListScreenLayout structure and displays fixtures and calendar view', async () => {
     const { container } = render(
       withIntl(

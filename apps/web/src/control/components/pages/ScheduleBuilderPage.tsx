@@ -74,6 +74,7 @@ export function ScheduleBuilderPage({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | undefined>(undefined);
   const [conflicts, setConflicts] = useState<readonly ScheduleConflictDto[]>([]);
+  const [currentConflicts, setCurrentConflicts] = useState<readonly ScheduleConflictDto[]>([]);
   const [affectedPublishedMatches, setAffectedPublishedMatches] = useState<readonly string[]>([]);
   const [reasonRequiredMatches, setReasonRequiredMatches] = useState<readonly string[]>([]);
   const [freedSlotIds, setFreedSlotIds] = useState<readonly string[]>([]);
@@ -120,6 +121,7 @@ export function ScheduleBuilderPage({
       }
       setDrafts(nextDrafts);
       setPlacements(nextPlacements);
+      setCurrentConflicts(schedule?.conflicts ?? []);
       setPreviewed(false);
       setConflicts([]);
       setLoadError(undefined);
@@ -170,6 +172,18 @@ export function ScheduleBuilderPage({
     };
     void client.connect({
       onEvent: (event) => {
+        // A result resolved a side into a clash with a published placement: re-read what is real now.
+        if (event.eventType === 'schedule.conflict-arose') {
+          void api
+            .getSchedule?.(organizationAlias, tournamentAlias, stageId)
+            .then((schedule) => {
+              if (active) setCurrentConflicts(schedule?.conflicts ?? []);
+            })
+            .catch(() => {
+              // The next full read reports them; a missed refresh is not worth a banner.
+            });
+          return;
+        }
         if (event.eventType !== 'match.rescheduled' || event.payload.stageId !== stageId) return;
         const matchId = event.payload.matchId;
         if (typeof matchId !== 'string' || event.projectionVersion <= (versions.get(matchId) ?? 0))
@@ -293,6 +307,7 @@ export function ScheduleBuilderPage({
       affectedPublishedMatches={affectedPublishedMatches}
       committable={committable}
       conflicts={conflicts}
+      currentConflicts={currentConflicts}
       drafts={drafts}
       fixtures={fixtures}
       freedSlotIds={freedSlotIds}

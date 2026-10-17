@@ -1575,4 +1575,12 @@ export const messages: Record<string, string> = {
   'control.qualification.seedingLink': 'Volver a la siembra',
   'control.promotion.planRequiresRebuild':
     'La fase {stage} se generó por adelantado con este plan. Volvé a generarla para que sus posiciones coincidan antes de confirmar.',
+  'control.scheduleBuilder.arisenHeading': 'Conflictos surgidos después de publicar',
+  'control.scheduleBuilder.arisenDescription':
+    'Cada asignación era válida al publicarse y no se movió nada. Para resolver un conflicto, mové un partido, previsualizá y publicá.',
+  'control.scheduleBuilder.arisenRest':
+    '{entrant} no tiene el descanso exigido entre {match} y {other}',
+  'control.scheduleBuilder.arisenVenue': 'La cancha supera su capacidad con {match} y {other}',
+  'control.scheduleBuilder.arisenOfficial': 'Un oficial está asignado a {match} y a {other}',
+  'control.scheduleBuilder.otherMatch': 'un partido fuera de esta fase',
 };

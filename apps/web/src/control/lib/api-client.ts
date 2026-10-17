@@ -998,6 +998,8 @@ export interface RecentScheduleReasonsResponse {
 
 export interface ScheduleResponse {
   readonly assignments: readonly ScheduleAssignmentResponse[];
+  /** Conflicts that exist now among published placements, including ones that arose later. */
+  readonly conflicts?: readonly ScheduleConflictDto[];
 }
 
 export interface FixtureMatchResponse {

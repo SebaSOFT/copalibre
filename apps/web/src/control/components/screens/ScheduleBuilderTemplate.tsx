@@ -100,6 +100,7 @@ export function ScheduleBuilderTemplate({
   concurrentNotice,
   committable,
   conflicts,
+  currentConflicts = [],
   drafts,
   fixtures,
   freedSlotIds = [],
@@ -122,6 +123,11 @@ export function ScheduleBuilderTemplate({
   readonly concurrentNotice?: string;
   readonly committable: boolean;
   readonly conflicts: readonly ScheduleConflictDto[];
+  /**
+   * Conflicts among published placements as they stand now. Each was valid when published; one
+   * here arose afterwards, typically when a result resolved a side into a clash.
+   */
+  readonly currentConflicts?: readonly ScheduleConflictDto[];
   readonly drafts: Readonly<Record<string, DraftAssignment>>;
   readonly fixtures: readonly FixtureResponse[];
   /** Slots the previewed batch frees by withdrawing their matches. */
@@ -254,6 +260,24 @@ export function ScheduleBuilderTemplate({
             }),
     };
   });
+
+  /** A current conflict in the organizer's language, naming the matches it involves. */
+  function describeArisen(conflict: ScheduleConflictDto): string {
+    const nameOf = (matchId: string) =>
+      rowLabelOf.get(matchId) ?? intl.formatMessage(messages.scheduleBuilderOtherMatch);
+    const values = {
+      match: nameOf(conflict.matchId),
+      other: nameOf(conflict.conflictsWithMatchId),
+    };
+    if (conflict.kind === 'rest-rule')
+      return intl.formatMessage(messages.scheduleBuilderArisenRest, {
+        ...values,
+        entrant: entrantNames.get(conflict.resourceId)?.fullName ?? unknownName,
+      });
+    if (conflict.kind === 'official-double-booked')
+      return intl.formatMessage(messages.scheduleBuilderArisenOfficial, values);
+    return intl.formatMessage(messages.scheduleBuilderArisenVenue, values);
+  }
 
   /** A batch moving published matches asks why first; first placements publish directly. */
   function requestPublish(): void {
@@ -657,6 +681,26 @@ export function ScheduleBuilderTemplate({
             </header>
 
             <div className="cl-card__content">
+              {currentConflicts.length > 0 && (
+                <div data-arisen-conflicts="" role="status">
+                  <h3 className="cl-card__title">
+                    <FormattedMessage {...messages.scheduleBuilderArisenHeading} />
+                  </h3>
+                  <p className="cl-card__description">
+                    <FormattedMessage {...messages.scheduleBuilderArisenDescription} />
+                  </p>
+                  <ul>
+                    {currentConflicts.map((conflict) => (
+                      <li
+                        key={`${conflict.kind}:${conflict.matchId}:${conflict.conflictsWithMatchId}:${conflict.resourceId}`}
+                      >
+                        {describeArisen(conflict)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {conflicts.length > 0 && (
                 <div role="alert">
                   <h3 className="cl-card__title">

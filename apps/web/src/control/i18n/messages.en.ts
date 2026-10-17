@@ -4677,4 +4677,29 @@ export const messages = defineMessages({
     defaultMessage:
       'Stage {stage} was generated ahead from this plan. Generate it again so its positions match before confirming.',
   },
+  scheduleBuilderArisenHeading: {
+    id: 'control.scheduleBuilder.arisenHeading',
+    defaultMessage: 'Conflicts that arose after publication',
+  },
+  scheduleBuilderArisenDescription: {
+    id: 'control.scheduleBuilder.arisenDescription',
+    defaultMessage:
+      'Each placement was valid when published, and nothing was moved. Move a match, preview and publish to resolve a conflict.',
+  },
+  scheduleBuilderArisenRest: {
+    id: 'control.scheduleBuilder.arisenRest',
+    defaultMessage: '{entrant} lacks the required rest between {match} and {other}',
+  },
+  scheduleBuilderArisenVenue: {
+    id: 'control.scheduleBuilder.arisenVenue',
+    defaultMessage: 'The venue is over capacity for {match} and {other}',
+  },
+  scheduleBuilderArisenOfficial: {
+    id: 'control.scheduleBuilder.arisenOfficial',
+    defaultMessage: 'An official is booked for both {match} and {other}',
+  },
+  scheduleBuilderOtherMatch: {
+    id: 'control.scheduleBuilder.otherMatch',
+    defaultMessage: 'a match outside this stage',
+  },
 });

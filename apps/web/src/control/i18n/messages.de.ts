@@ -1593,4 +1593,13 @@ export const messages: Record<string, string> = {
   'control.qualification.seedingLink': 'Zurück zur Setzliste',
   'control.promotion.planRequiresRebuild':
     'Phase {stage} wurde mit diesem Plan vorab erzeugt. Erzeugen Sie sie erneut, damit die Positionen vor der Bestätigung übereinstimmen.',
+  'control.scheduleBuilder.arisenHeading': 'Nach der Veröffentlichung entstandene Konflikte',
+  'control.scheduleBuilder.arisenDescription':
+    'Jede Zuweisung war bei der Veröffentlichung gültig, und nichts wurde verschoben. Um einen Konflikt zu lösen, verschieben Sie ein Spiel, prüfen die Vorschau und veröffentlichen.',
+  'control.scheduleBuilder.arisenRest':
+    '{entrant} hat zwischen {match} und {other} nicht die vorgeschriebene Pause',
+  'control.scheduleBuilder.arisenVenue': 'Die Spielstätte ist mit {match} und {other} überbelegt',
+  'control.scheduleBuilder.arisenOfficial':
+    'Ein Offizieller ist für {match} und {other} eingeteilt',
+  'control.scheduleBuilder.otherMatch': 'ein Spiel außerhalb dieser Phase',
 };

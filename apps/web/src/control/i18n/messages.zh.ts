@@ -1491,4 +1491,11 @@ export const messages: Record<string, string> = {
   'control.qualification.seedingLink': '返回种子排位',
   'control.promotion.planRequiresRebuild':
     '第 {stage} 阶段已按此方案提前生成。确认前请重新生成，使位次一致。',
+  'control.scheduleBuilder.arisenHeading': '发布后出现的冲突',
+  'control.scheduleBuilder.arisenDescription':
+    '每项安排在发布时都有效，系统未做任何移动。如需解决冲突，请移动比赛、预览并发布。',
+  'control.scheduleBuilder.arisenRest': '{entrant} 在 {match} 与 {other} 之间休息不足',
+  'control.scheduleBuilder.arisenVenue': '场地容量不足：{match} 与 {other}',
+  'control.scheduleBuilder.arisenOfficial': '同一名裁判同时被安排到 {match} 与 {other}',
+  'control.scheduleBuilder.otherMatch': '本阶段以外的一场比赛',
 };
