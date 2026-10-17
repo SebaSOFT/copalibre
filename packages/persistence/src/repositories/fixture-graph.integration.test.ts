@@ -80,6 +80,12 @@ function stubResolver(state: { contingency: PersistedFixtureResolution['continge
     const sideOf = (source: FixtureGraphSlotSource): ResolvedFixtureSide => {
       if (source.kind === 'entrant') return { state: 'entrant', entrantId: source.entrantId };
       if (source.kind === 'bye') return { state: 'empty' };
+      if (source.kind === 'qualifier') {
+        const entrantId = input.qualifierEntrants
+          ?.get(source.promotionPlanId)
+          ?.get(source.position);
+        return entrantId === undefined ? { state: 'pending' } : { state: 'entrant', entrantId };
+      }
       if (source.kind !== 'winner-of' && source.kind !== 'loser-of') return { state: 'pending' };
       const outcome = input.outcomes.find(
         (entry) => entry.nodeKey === source.matchId && entry.matchNumber === 1,
@@ -403,6 +409,85 @@ describe('persisted fixture graph (integration)', () => {
       previousEntrantId: null,
       entrantId: seeded.a,
     });
+  });
+
+  it('resolves qualifier sides only from a confirmed plan, and a changed plan clears it', async () => {
+    const seeded = await seedZone('copa-grafo-clasificados');
+    const plan = await withTransaction(scratch.db, async (uow) => {
+      const source = await competition.createZone(uow, {
+        stageId: seeded.stage.stageId,
+        number: 2,
+        name: 'Grupos',
+        organizationId,
+        ...AUDIT,
+      });
+      return competition.createPromotionPlan(uow, {
+        zoneId: source.zoneId,
+        nextStageId: seeded.stage.stageId,
+        plan: { perGroupAdvance: 2, combination: { mode: 'group-order' } },
+        organizationId,
+        ...AUDIT,
+      });
+    });
+    const qualifier = (position: number): FixtureGraphSlotSource => ({
+      kind: 'qualifier',
+      promotionPlanId: plan.promotionPlanId,
+      position,
+    });
+    await createGraph(seeded.stage.stageId, seeded.zone.zoneId, [
+      {
+        nodeKey: 'sf-1',
+        bracket: 'winners',
+        round: 1,
+        position: 1,
+        sides: [qualifier(1), qualifier(4)],
+        seriesSpan: 1,
+      },
+      {
+        nodeKey: 'sf-2',
+        bracket: 'winners',
+        round: 1,
+        position: 2,
+        sides: [qualifier(2), qualifier(3)],
+        seriesSpan: 1,
+      },
+    ]);
+    const { resolve, calls } = stubResolver({ contingency: undefined });
+    const resolution = resolutionWith(resolve);
+
+    await expect(run(resolution, seeded.zone.zoneId)).resolves.toMatchObject({ changedSides: 0 });
+    expect(calls.at(-1)?.qualifierEntrants).toBeUndefined();
+
+    await withTransaction(scratch.db, (uow) =>
+      competition.confirmPromotionPlan(uow, {
+        promotionPlanId: plan.promotionPlanId,
+        resolution: { '1': seeded.a, '2': seeded.b, '3': seeded.c, '4': seeded.d },
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    await expect(run(resolution, seeded.zone.zoneId)).resolves.toMatchObject({ changedSides: 4 });
+    expect(await fixtureOf(seeded.zone.zoneId, 'sf-1')).toMatchObject({
+      home_entrant_id: seeded.a,
+      away_entrant_id: seeded.d,
+    });
+    await expect(competition.findPromotionPlan(plan.zoneId)).resolves.toMatchObject({
+      confirmedResolution: { '1': seeded.a, '4': seeded.d },
+    });
+    const history = await new AuditReader(scratch.db).historyFor('zone', plan.zoneId);
+    expect(history.map((entry) => entry.action)).toContain('promotion-plan.confirmed');
+
+    await withTransaction(scratch.db, (uow) =>
+      competition.createPromotionPlan(uow, {
+        zoneId: plan.zoneId,
+        nextStageId: seeded.stage.stageId,
+        plan: { perGroupAdvance: 1, combination: { mode: 'group-order' } },
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    const changed = await competition.findPromotionPlan(plan.zoneId);
+    expect(changed?.confirmedResolution).toBeUndefined();
   });
 
   it('previews a correction through the writer resolver without changing facts or emitting events', async () => {

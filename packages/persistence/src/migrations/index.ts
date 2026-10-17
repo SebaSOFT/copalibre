@@ -51,6 +51,7 @@ import { zoneFormat } from './0040-zone-format.js';
 import { fixtureRole } from './0041-fixture-role.js';
 import { fixtureGraphSources } from './0042-fixture-graph-sources.js';
 import { scheduleIntegrity } from './0043-schedule-integrity.js';
+import { promotionPlanConfirmation } from './0044-promotion-plan-confirmation.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -102,6 +103,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0041-fixture-role': fixtureRole,
   '0042-fixture-graph-sources': fixtureGraphSources,
   '0043-schedule-integrity': scheduleIntegrity,
+  '0044-promotion-plan-confirmation': promotionPlanConfirmation,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

@@ -71,6 +71,14 @@ export {
   type GroupPromotionOutcome,
 } from './qualification/promotion.js';
 export {
+  qualifierLabels,
+  qualifierPositionsByZone,
+  withQualifierSources,
+  type QualifierLabel,
+  type QualifierPlanGroup,
+  type QualifierSeed,
+} from './qualification/qualifier-positions.js';
+export {
   allocateSeeds,
   drawGroups,
   drawZones,

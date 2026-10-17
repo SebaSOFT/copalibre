@@ -511,6 +511,8 @@ export class CompetitionRepository {
         conflict.column('zone_id').doUpdateSet({
           next_stage_id: input.nextStageId,
           plan: JSON.stringify(input.plan),
+          // A confirmation answers the plan it was made under; a changed plan needs a new one.
+          confirmed_resolution: null,
         }),
       )
       .returningAll()
@@ -538,6 +540,7 @@ export class CompetitionRepository {
         readonly zoneId: string;
         readonly nextStageId: string;
         readonly plan: Record<string, unknown>;
+        readonly confirmedResolution?: Readonly<Record<string, string>>;
       }
     | undefined
   > {
@@ -546,14 +549,7 @@ export class CompetitionRepository {
       .selectAll()
       .where('zone_id', '=', zoneId)
       .executeTakeFirst();
-    return row === undefined
-      ? undefined
-      : {
-          promotionPlanId: row.promotion_plan_id,
-          zoneId: row.zone_id,
-          nextStageId: row.next_stage_id,
-          plan: row.plan as Record<string, unknown>,
-        };
+    return row === undefined ? undefined : promotionPlanOf(row);
   }
 
   /** Every stored promotion plan whose `nextStageId` targets the given stage. */
@@ -563,6 +559,7 @@ export class CompetitionRepository {
       readonly zoneId: string;
       readonly nextStageId: string;
       readonly plan: Record<string, unknown>;
+      readonly confirmedResolution?: Readonly<Record<string, string>>;
     }[]
   > {
     const rows = await this.db
@@ -570,12 +567,49 @@ export class CompetitionRepository {
       .selectAll()
       .where('next_stage_id', '=', nextStageId)
       .execute();
-    return rows.map((row) => ({
-      promotionPlanId: row.promotion_plan_id,
-      zoneId: row.zone_id,
-      nextStageId: row.next_stage_id,
-      plan: row.plan as Record<string, unknown>,
-    }));
+    return rows.map(promotionPlanOf);
+  }
+
+  /**
+   * Stores the qualifier position → entrant map an organizer confirmed for a plan, audited. The
+   * caller resolves the target zones in the same transaction; this only records the fact.
+   */
+  async confirmPromotionPlan(
+    uow: UnitOfWork,
+    input: {
+      readonly promotionPlanId: string;
+      readonly resolution: Readonly<Record<string, string>>;
+    } & AuditContext,
+  ): Promise<void> {
+    const previous = await lockRowsForMutation(
+      this.db,
+      uow.tx
+        .selectFrom('promotion_plans')
+        .select(['promotion_plan_id', 'zone_id', 'confirmed_resolution'])
+        .where('promotion_plan_id', '=', input.promotionPlanId),
+    ).executeTakeFirst();
+    if (!previous) {
+      throw new NotFoundError(`Promotion plan ${input.promotionPlanId} not found`, {
+        promotionPlanId: input.promotionPlanId,
+      });
+    }
+    await uow.tx
+      .updateTable('promotion_plans')
+      .set({ confirmed_resolution: JSON.stringify(input.resolution) })
+      .where('promotion_plan_id', '=', input.promotionPlanId)
+      .execute();
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'zone',
+      entityId: previous.zone_id,
+      action: 'promotion-plan.confirmed',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: {
+        confirmedResolution: storedResolutionOf(previous.confirmed_resolution) ?? null,
+      },
+      resultingState: { confirmedResolution: input.resolution },
+    });
   }
 
   async currentOrImplicitGroup(
@@ -2733,4 +2767,38 @@ export class CompetitionRepository {
     ]);
     return foldTournamentCompletion(counts, segments);
   }
+}
+
+function promotionPlanOf(row: {
+  readonly promotion_plan_id: string;
+  readonly zone_id: string;
+  readonly next_stage_id: string;
+  readonly plan: unknown;
+  readonly confirmed_resolution: unknown;
+}): {
+  readonly promotionPlanId: string;
+  readonly zoneId: string;
+  readonly nextStageId: string;
+  readonly plan: Record<string, unknown>;
+  readonly confirmedResolution?: Readonly<Record<string, string>>;
+} {
+  const confirmedResolution = storedResolutionOf(row.confirmed_resolution);
+  return {
+    promotionPlanId: row.promotion_plan_id,
+    zoneId: row.zone_id,
+    nextStageId: row.next_stage_id,
+    plan: row.plan as Record<string, unknown>,
+    ...(confirmedResolution === undefined ? {} : { confirmedResolution }),
+  };
+}
+
+/** SQLite hands JSON back as text; PostgreSQL as a parsed value. */
+function storedResolutionOf(value: unknown): Readonly<Record<string, string>> | undefined {
+  const parsed: unknown = typeof value === 'string' ? JSON.parse(value) : value;
+  if (parsed === null || typeof parsed !== 'object') return undefined;
+  return Object.fromEntries(
+    Object.entries(parsed as Record<string, unknown>).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    ),
+  );
 }

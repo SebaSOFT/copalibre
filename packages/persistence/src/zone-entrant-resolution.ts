@@ -7,6 +7,7 @@ import {
   type FixtureGraphBracket,
   type PersistedFixtureNode,
   type PersistedNodeOutcome,
+  type QualifierEntrants,
   type ResolvedFixtureSide,
   type ZoneEntrantResolver,
   type ZoneSeriesLookup,
@@ -133,10 +134,13 @@ export class ZoneEntrantResolution {
         )
       : undefined;
 
+    const qualifierEntrants = await confirmedQualifierEntrants(uow, nodes);
+
     const resolutions = this.resolve({
       nodes,
       outcomes,
       ...(series === undefined ? {} : { series }),
+      ...(qualifierEntrants.size === 0 ? {} : { qualifierEntrants }),
     });
 
     let changedSides = 0;
@@ -309,6 +313,44 @@ function nodeOf(
     seriesSpan,
     ...(row.contingency === 'bracket-reset' ? { contingency: 'bracket-reset' as const } : {}),
   };
+}
+
+/**
+ * The confirmed position → entrant map of every plan the zone's qualifier sides name. A plan never
+ * confirmed contributes nothing, so its sides stay pending however far its source stage has got.
+ */
+async function confirmedQualifierEntrants(
+  uow: UnitOfWork,
+  nodes: readonly PersistedFixtureNode[],
+): Promise<QualifierEntrants> {
+  const planIds = [
+    ...new Set(
+      nodes.flatMap((node) =>
+        node.sides.flatMap((side) => (side.kind === 'qualifier' ? [side.promotionPlanId] : [])),
+      ),
+    ),
+  ];
+  if (planIds.length === 0) return new Map();
+  const rows = await uow.tx
+    .selectFrom('promotion_plans')
+    .select(['promotion_plan_id', 'confirmed_resolution'])
+    .where('promotion_plan_id', 'in', planIds)
+    .execute();
+  return new Map(
+    rows.flatMap((row) => {
+      const stored: unknown =
+        typeof row.confirmed_resolution === 'string'
+          ? JSON.parse(row.confirmed_resolution)
+          : row.confirmed_resolution;
+      if (stored === null || typeof stored !== 'object') return [];
+      const positions = new Map(
+        Object.entries(stored as Record<string, unknown>).flatMap(([position, entrantId]) =>
+          typeof entrantId === 'string' ? [[Number(position), entrantId] as const] : [],
+        ),
+      );
+      return [[row.promotion_plan_id, positions] as const];
+    }),
+  );
 }
 
 /** The outcome a stored match contributes to advancement, or none while it is not counted. */

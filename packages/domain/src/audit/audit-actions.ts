@@ -105,6 +105,7 @@ export const AUDIT_ACTIONS = [
   'groups.drawn',
   'groups.manually-assigned',
   'promotion-plan.saved',
+  'promotion-plan.confirmed',
   'stage.created',
   'stage.renamed',
   'stage.format-changed',
