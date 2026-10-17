@@ -10,6 +10,7 @@
     { "path": "../../packages/domain/tsconfig.json" },
     { "path": "../../packages/module-catalogue/tsconfig.json" },
     { "path": "../../packages/object-storage/tsconfig.json" },
-    { "path": "../../packages/persistence/tsconfig.json" }
+    { "path": "../../packages/persistence/tsconfig.json" },
+    { "path": "../../packages/tournament-engine/tsconfig.json" }
   ]
 }

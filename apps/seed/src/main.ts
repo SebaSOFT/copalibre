@@ -30,14 +30,33 @@ async function main(): Promise<number> {
         command.alias,
         undefined,
         (message) => process.stdout.write(`  ${message}\n`),
+        {
+          ...(command.anchor === undefined ? {} : { anchor: command.anchor }),
+          ...(command.playedUntil === undefined ? {} : { playedUntil: command.playedUntil }),
+        },
       );
       process.stdout.write(`${report.status}: demo dataset ${report.dataset}\n`);
+      if (report.flagsIgnored) {
+        process.stdout.write(
+          '  --anchor and --played-until were not applied: the dataset is already loaded. Reset the ' +
+            'development stack (docker compose -f docker-compose.dev.yml down -v) to load it again.\n',
+        );
+      }
       if (report.status === 'installed') {
-        const { counts } = report;
+        const { counts, shaping } = report;
         process.stdout.write(
           `  ${counts.clubs} clubs, ${counts.players} players, ${counts.fixtures} games ` +
             `(${counts.goalEvents} goals), ${counts.venues} venues, ${counts.emblems} emblems\n`,
         );
+        if (shaping) {
+          process.stdout.write(
+            `  first game day ${shaping.firstGameDay}` +
+              (shaping.playedUntil === undefined ? '' : `, played until ${shaping.playedUntil}`) +
+              `: ${counts.matchesFinalized} of ${counts.fixtures} games played, qualification ` +
+              `${shaping.qualificationConfirmed ? 'confirmed' : 'not confirmed'}, ` +
+              `${shaping.undecidedFixtures} fixtures with sides to be decided\n`,
+          );
+        }
       }
       return 0;
     }

@@ -24,14 +24,21 @@ import {
   ProjectionStore,
   ScheduleRepository,
   TournamentRepository,
+  ZoneEntrantResolution,
   newId,
   withTransaction,
   type Database,
   type UnitOfWork,
+  type ZoneEntrantResolver,
 } from '@copalibre/persistence';
+import { resolvePersistedNodes } from '@copalibre/tournament-engine';
 import type { Kysely } from 'kysely';
-import { placementRole } from './placement-role.js';
-import { localToEpoch } from './zoned-time.js';
+import type { DemoAnchor, DemoCutoff } from './arguments.js';
+import { CupGraphError, inferCupGraph, type InferredCup } from './cup-graph.js';
+import { daysBetween, localDateOf, localToEpoch, shiftLocalDate } from './zoned-time.js';
+
+/** The engine's persisted-graph resolution, bound to persistence's port as the API binds it. */
+const resolveZone: ZoneEntrantResolver = resolvePersistedNodes;
 
 /** What a demo load did, for the operator and for tests. */
 export interface DemoLoadReport {
@@ -50,6 +57,19 @@ export interface DemoLoadReport {
     readonly scheduledMatches: number;
     readonly emblems: number;
   };
+  /** How the load was shaped in time and progress; present when it installed. */
+  readonly shaping?: {
+    /** The first game day as loaded, in the organization's time zone. */
+    readonly firstGameDay: string;
+    /** The cutoff instant, when one was given. */
+    readonly playedUntil?: string;
+    /** Whether the cups' qualification was confirmed, which needs every group game played. */
+    readonly qualificationConfirmed: boolean;
+    /** Fixtures with a side still to be decided. */
+    readonly undecidedFixtures: number;
+  };
+  /** Set on a skipped load that was given --anchor or --played-until: they were not applied. */
+  readonly flagsIgnored?: boolean;
 }
 
 /** The dataset cannot be loaded as it stands: invalid, or its prerequisites are not installed. */
@@ -83,6 +103,12 @@ export interface LoadDemoOptions {
   readonly readAsset: (relativePath: string) => Promise<Buffer>;
   /** Told when each phase of the load starts, for the operator. */
   readonly onProgress?: (message: string) => void;
+  /** Where the first game day lands; the published dates without one. */
+  readonly anchor?: DemoAnchor;
+  /** Up to when games are played; every game without one. */
+  readonly playedUntil?: DemoCutoff;
+  /** The clock `today` and `now` read; the wall clock by default. */
+  readonly now?: () => number;
 }
 
 /**
@@ -115,7 +141,15 @@ export async function loadDemoDataset(
       dataset.organization.alias,
       dataset.tournament.alias,
     );
-    if (present) return { dataset: dataset.alias, status: 'skipped', counts: EMPTY_COUNTS };
+    if (present)
+      return {
+        dataset: dataset.alias,
+        status: 'skipped',
+        counts: EMPTY_COUNTS,
+        ...(options.anchor === undefined && options.playedUntil === undefined
+          ? {}
+          : { flagsIgnored: true }),
+      };
     throw new DemoDatasetError(
       `The organization "${dataset.organization.alias}" exists without the tournament ` +
         `"${dataset.tournament.alias}". Reset the development database (docker compose down -v) and load again.`,
@@ -140,6 +174,7 @@ export async function loadDemoDatasetByAlias(
   alias: string,
   root?: string,
   onProgress?: (message: string) => void,
+  shaping: Pick<LoadDemoOptions, 'anchor' | 'playedUntil' | 'now'> = {},
 ): Promise<DemoLoadReport> {
   const directory = datasetDirectory(alias, root);
   const issues = await validateDatasetDirectory(directory);
@@ -153,6 +188,7 @@ export async function loadDemoDatasetByAlias(
     dataset,
     readAsset: (relativePath) => readFile(path.join(directory, relativePath)),
     ...(onProgress === undefined ? {} : { onProgress }),
+    ...shaping,
   });
 }
 
@@ -410,33 +446,88 @@ async function loadInto(
     a.key.localeCompare(b.key, 'en', { numeric: true }),
   );
   const isCup = (game: DemoGame): boolean => zoneIdByPhase.has(game.phaseAlias);
-  const fixtureSpec = (game: DemoGame) => ({
-    round: game.roundNumber,
-    ...(isCup(game) && placementRole(game.round) !== undefined
-      ? { role: placementRole(game.round) as string }
-      : {}),
-    homeEntrantId: entrantByTeam.get(game.homeTeamAlias) as string,
-    awayEntrantId: entrantByTeam.get(game.awayTeamAlias) as string,
-    ...(isCup(game)
-      ? { zoneId: zoneIdByPhase.get(game.phaseAlias) as string }
-      : { groupId: groupIdByPhase.get(game.phaseAlias) as string }),
-  });
   const matchIdByGame = new Map<string, string>();
-  for (const [stage, stageGames] of [
-    [groupsStage, games.filter((game) => !isCup(game))],
-    [cupsStage, games.filter(isCup)],
-  ] as const) {
-    const fixtures = await competition.createFixtures(uow, {
-      stageId: stage.stageId,
-      fixtures: stageGames.map(fixtureSpec),
-      ...audit,
-    });
-    const matches = await competition.listMatchesForStage(stage.stageId, uow);
-    for (const [index, game] of stageGames.entries()) {
-      const fixture = fixtures[index];
-      const match = matches.find((candidate) => candidate.fixtureId === fixture?.fixtureId);
-      if (!match) throw new DemoDatasetError(`No match was created for ${game.key}`);
-      matchIdByGame.set(game.key, match.matchId);
+
+  const groupGames = games.filter((game) => !isCup(game));
+  const groupFixtures = await competition.createFixtures(uow, {
+    stageId: groupsStage.stageId,
+    fixtures: groupGames.map((game) => ({
+      round: game.roundNumber,
+      homeEntrantId: entrantByTeam.get(game.homeTeamAlias) as string,
+      awayEntrantId: entrantByTeam.get(game.awayTeamAlias) as string,
+      groupId: groupIdByPhase.get(game.phaseAlias) as string,
+    })),
+    ...audit,
+  });
+  const groupMatches = await competition.listMatchesForStage(groupsStage.stageId, uow);
+  for (const [index, game] of groupGames.entries()) {
+    const match = groupMatches.find(
+      (candidate) => candidate.fixtureId === groupFixtures[index]?.fixtureId,
+    );
+    if (!match) throw new DemoDatasetError(`No match was created for ${game.key}`);
+    matchIdByGame.set(game.key, match.matchId);
+  }
+
+  // Cups are persisted brackets (design D4): later sides are edges to the game their entrant came
+  // from, and first-round sides are qualifier positions of one manual plan from the groups.
+  const cups: { readonly zoneId: string; readonly cup: InferredCup }[] = [];
+  for (const phase of cupPhases) {
+    try {
+      cups.push({
+        zoneId: zoneIdByPhase.get(phase.alias) as string,
+        cup: inferCupGraph(games.filter((game) => game.phaseAlias === phase.alias)),
+      });
+    } catch (error) {
+      if (error instanceof CupGraphError)
+        throw new DemoDatasetError(`${phase.alias}: ${error.message}`);
+      throw error;
+    }
+  }
+  const qualifierOrder = cups.flatMap(({ cup }) =>
+    cup.seats.map((alias) => entrantByTeam.get(alias) as string),
+  );
+  const plan = await competition.createPromotionPlan(uow, {
+    zoneId: groupsZone.zoneId,
+    nextStageId: cupsStage.stageId,
+    plan: {
+      perGroupAdvance: Object.fromEntries(
+        groupPhases.map((phase, index) => [index + 1, phase.teamAliases.length]),
+      ),
+      combination: { mode: 'manual', order: qualifierOrder },
+      bands: cupPhases.map((phase, index) => ({
+        zoneRef: phase.name,
+        count: cups[index]?.cup.seats.length ?? 0,
+      })),
+    },
+    ...audit,
+  });
+  // One publish for every cup, as seeding does: it materializes each zone's implicit group before
+  // the first fixture makes the stage's structure immutable.
+  let offset = 0;
+  const plans = cups.map(({ zoneId, cup }) => {
+    const base = offset;
+    offset += cup.seats.length;
+    return {
+      zoneId,
+      nodes: cup.nodes((seat) => ({
+        kind: 'qualifier' as const,
+        promotionPlanId: plan.promotionPlanId,
+        position: base + seat,
+      })),
+    };
+  });
+  await competition.publishFixturePlans(uow, { stageId: cupsStage.stageId, plans, ...audit });
+  for (const { zoneId, cup } of cups) {
+    const created = await tx
+      .selectFrom('fixtures')
+      .innerJoin('matches', 'matches.fixture_id', 'fixtures.fixture_id')
+      .select(['fixtures.node_key', 'matches.match_id'])
+      .where('fixtures.zone_id', '=', zoneId)
+      .execute();
+    for (const [gameKey, nodeKey] of cup.nodeKeyByGame) {
+      const match = created.find((row) => row.node_key === nodeKey);
+      if (!match) throw new DemoDatasetError(`No match was created for ${gameKey}`);
+      matchIdByGame.set(gameKey, match.match_id);
     }
   }
 
@@ -470,7 +561,27 @@ async function loadInto(
     }
   }
 
-  const kickoff = (game: DemoGame): number => localToEpoch(game.scheduledAt, timeZone);
+  // Dates move by whole calendar days on the wall-clock string (design D1); `today` and `now` read
+  // one clock (design D2).
+  const clock = options.now ?? Date.now;
+  const publishedFirstDay = games.map((game) => game.scheduledAt.slice(0, 10)).sort()[0] as string;
+  const firstGameDay =
+    options.anchor === undefined
+      ? publishedFirstDay
+      : options.anchor.kind === 'today'
+        ? localDateOf(clock(), timeZone)
+        : options.anchor.date;
+  const dayOffset = daysBetween(publishedFirstDay, firstGameDay);
+  const kickoff = (game: DemoGame): number =>
+    localToEpoch(shiftLocalDate(game.scheduledAt, dayOffset), timeZone);
+  const cutoff =
+    options.playedUntil === undefined
+      ? Number.POSITIVE_INFINITY
+      : options.playedUntil.kind === 'now'
+        ? clock()
+        : options.playedUntil.at;
+  // A game is played when its nominal finish is at or before the cutoff (design D3).
+  const played = (game: DemoGame): boolean => kickoff(game) + 2 * HALF_SECONDS * 1000 <= cutoff;
   const first = Math.min(...games.map(kickoff));
   const last = Math.max(...games.map(kickoff));
   const schedule = await schedules.createSchedule(uow, {
@@ -526,7 +637,8 @@ async function loadInto(
       : 'goal';
   };
   let goalEvents = 0;
-  for (const game of games) {
+  let matchesFinalized = 0;
+  const play = async (game: DemoGame, drawWinner?: string): Promise<void> => {
     const matchId = matchIdByGame.get(game.key) as string;
     const entrantIds = [
       entrantByTeam.get(game.homeTeamAlias) as string,
@@ -622,7 +734,9 @@ async function loadInto(
           },
         ],
         ...(game.homeGoals === game.awayGoals
-          ? {}
+          ? drawWinner === undefined
+            ? {}
+            : { winnerEntrantId: drawWinner }
           : { winnerEntrantId: game.homeGoals > game.awayGoals ? homeEntrant : awayEntrant }),
         recordedAt: new Date(kickoffAt + 2 * HALF_SECONDS * 1000).toISOString(),
       },
@@ -640,6 +754,52 @@ async function loadInto(
       projectionVersion,
       payload: { matchId, status: 'finalized' },
     });
+    matchesFinalized += 1;
+  };
+
+  for (const game of groupGames) {
+    if (played(game)) await play(game);
+  }
+
+  // Qualification is confirmed, as an organizer would, only once every group game is played; the
+  // cups then fill through the same writer a recorded result uses (design D4).
+  const resolution = new ZoneEntrantResolution(tx, resolveZone, async () => undefined);
+  const qualificationConfirmed = groupGames.every(played);
+  if (qualificationConfirmed) {
+    await competition.confirmPromotionPlan(uow, {
+      promotionPlanId: plan.promotionPlanId,
+      resolution: Object.fromEntries(
+        qualifierOrder.map((entrantId, index) => [String(index + 1), entrantId]),
+      ),
+      ...audit,
+    });
+    for (const { zoneId } of cups) await resolution.run(uow, zoneId, audit);
+  }
+  const cupGames = games
+    .filter(isCup)
+    .sort((a, b) => kickoff(a) - kickoff(b) || a.key.localeCompare(b.key, 'en', { numeric: true }));
+  for (const game of cupGames) {
+    if (!played(game)) continue;
+    const fixture = await tx
+      .selectFrom('fixtures')
+      .innerJoin('matches', 'matches.fixture_id', 'fixtures.fixture_id')
+      .select(['fixtures.zone_id', 'fixtures.home_entrant_id', 'fixtures.away_entrant_id'])
+      .where('matches.match_id', '=', matchIdByGame.get(game.key) as string)
+      .executeTakeFirstOrThrow();
+    // A side the bracket has not decided yet cannot be played.
+    if (fixture.home_entrant_id === null || fixture.away_entrant_id === null) continue;
+    if (
+      fixture.home_entrant_id !== entrantByTeam.get(game.homeTeamAlias) ||
+      fixture.away_entrant_id !== entrantByTeam.get(game.awayTeamAlias)
+    ) {
+      throw new DemoDatasetError(
+        `${game.key}: the bracket seated other entrants than the dataset publishes`,
+      );
+    }
+    const cup = cups.find((entry) => entry.zoneId === fixture.zone_id);
+    const drawWinner = cup?.cup.drawWinners.get(game.key);
+    await play(game, drawWinner === undefined ? undefined : entrantByTeam.get(drawWinner));
+    await resolution.run(uow, fixture.zone_id as string, audit);
   }
 
   await tournamentRepository.publish(uow, {
@@ -658,12 +818,29 @@ async function loadInto(
       entrants: entrantByTeam.size,
       stages: 2,
       fixtures: games.length,
-      matchesFinalized: games.length,
+      matchesFinalized,
       goalEvents,
       venues: dataset.venues.length,
       officials: officialIdByName.size,
       scheduledMatches: assignments.length,
       emblems: dataset.clubs.length + 1 + (dataset.organization.emblem === undefined ? 0 : 1),
+    },
+    shaping: {
+      firstGameDay,
+      ...(Number.isFinite(cutoff) ? { playedUntil: new Date(cutoff).toISOString() } : {}),
+      qualificationConfirmed,
+      undecidedFixtures: Number(
+        (
+          await tx
+            .selectFrom('fixtures')
+            .select((eb) => eb.fn.countAll<string | number>().as('n'))
+            .where('stage_id', 'in', [groupsStage.stageId, cupsStage.stageId])
+            .where((eb) =>
+              eb.or([eb('home_entrant_id', 'is', null), eb('away_entrant_id', 'is', null)]),
+            )
+            .executeTakeFirstOrThrow()
+        ).n,
+      ),
     },
   };
 }

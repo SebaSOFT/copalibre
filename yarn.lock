@@ -1816,6 +1816,7 @@ __metadata:
     "@copalibre/module-catalogue": "workspace:^"
     "@copalibre/object-storage": "workspace:^"
     "@copalibre/persistence": "workspace:^"
+    "@copalibre/tournament-engine": "workspace:^"
     "@types/jest": "npm:^30.0.0"
     jest: "npm:^30.5.2"
     kysely: "npm:^0.29"
