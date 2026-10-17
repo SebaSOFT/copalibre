@@ -155,3 +155,34 @@ The control panel's zone management SHALL let an operator override a zone's form
 #### Scenario: Overrides locked after fixtures exist
 - **WHEN** the stage already holds fixtures
 - **THEN** the zone override controls are disabled and say why
+
+### Requirement: The seeding builder can generate a next stage ahead
+
+When a reviewed promotion plan routes to a stage whose prior stage is incomplete, the seeding builder
+SHALL offer to generate the stage ahead with qualifier positions instead of entrants. It SHALL show
+each position's label before publishing, and SHALL state that entrants will be confirmed once the prior
+stage completes.
+
+#### Scenario: Generating cups ahead from the builder
+
+- **WHEN** an organizer opens a cup stage's seeding builder while its groups are still playing, and a
+  reviewed promotion plan routes to it
+- **THEN** the builder offers to generate ahead, previews the bracket with qualifier labels, and
+  publishes only on an explicit action
+
+### Requirement: Qualification is confirmed from the control panel
+
+The control panel SHALL offer a qualification confirmation for a stage generated ahead. It SHALL show
+the preview of each qualifier position's entrant, any unresolved cut-line tie with the entrants
+involved, and SHALL commit only on an explicit confirmation.
+
+#### Scenario: Confirming the cups after the groups
+
+- **WHEN** an organizer opens the confirmation for the cup stage after the last group game is finalized
+- **THEN** the screen lists each cup position with its resolved entrant and a confirm action, and the
+  cups show their entrants once it is confirmed
+
+#### Scenario: A tie is shown instead of a confirm action
+
+- **WHEN** a cut-line tie is unresolved
+- **THEN** the screen names the tied entrants and the position, and offers no confirm action

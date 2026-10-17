@@ -73,12 +73,20 @@ A qualification cut SHALL be computed from aggregated stage standings.
 
 ### Requirement: Stage completion gates next-stage generation
 The next stage's fixtures SHALL NOT be generated until the prior stage is marked complete and its
-qualification output is resolved.
+qualification output is resolved, unless they are generated ahead from a reviewed promotion plan with
+qualifier-sourced sides. In that case the prior stage's completion and a resolved qualification gate
+the resolution of those sides, not the generation of the structure.
 
 #### Scenario: Next stage blocked on incomplete prior stage
 - **WHEN** an operator attempts to generate the next stage's fixtures while the prior stage still has
   unresolved matches
 - **THEN** the system rejects the request and identifies which matches remain unresolved
+
+#### Scenario: Structure ahead, entrants gated
+- **WHEN** an operator generates the next stage ahead from a reviewed promotion plan while the prior
+  stage still has unresolved matches
+- **THEN** the structure is generated with undecided qualifier-sourced sides, and resolving them is
+  refused until the prior stage is complete, identifying which matches remain unresolved
 
 ### Requirement: Advancement preview without commitment
 An operator SHALL be able to preview which entrants would currently qualify from an in-progress stage
@@ -208,3 +216,71 @@ one entrant of that tournament — it SHALL NOT be a platform-wide or cross-tour
 - **WHEN** a tournament has no entrants loaded
 - **THEN** the known entrant-attribute keys list is empty, and weighted allocation cannot be
   completed until at least one attribute exists
+
+### Requirement: A next stage can be generated ahead from a reviewed promotion plan
+
+An organizer SHALL be able to generate a next stage's single- or double-elimination structure before
+the prior stage completes, from a reviewed promotion plan routing to it. Each first-round side SHALL be
+sourced from a qualifier position (its place in the list the plan routes to that zone) and SHALL stay
+undecided. The generated matches are schedulable at once.
+
+#### Scenario: Cup quarter-finals exist while groups are still playing
+
+- **WHEN** an organizer generates a cup stage from a reviewed promotion plan while group games remain
+  unplayed
+- **THEN** the cup's quarter-finals exist with sides naming their qualifier positions and no entrant,
+  and can be placed in slots
+
+#### Scenario: Generation ahead needs a reviewed plan
+
+- **WHEN** an organizer generates a next stage ahead of completion without a reviewed promotion plan
+  routing to it
+- **THEN** the request is refused, naming the missing plan
+
+### Requirement: A qualifier position is labelled by the plan's combination
+
+A qualifier position SHALL carry label parts derived from its plan's combination: under group-then-rank,
+a rank and a group; under ranked combination, a cohort rank and an order within that cohort; under
+manual combination, the position number. The labels SHALL be computable before any standing exists.
+
+#### Scenario: Group-then-rank names the group
+
+- **WHEN** a plan combines group-then-rank and routes "1st of Group A" to a cup's first position
+- **THEN** that position's label parts are rank 1 and Group A
+
+#### Scenario: Ranked combination names the cohort
+
+- **WHEN** a plan ranks same-position cohorts and routes the second-best runner-up to a cup position
+- **THEN** that position's label parts are cohort rank 2 and order 2 within the cohort
+
+### Requirement: Next-stage entrants resolve only on explicit confirmation
+
+Resolving qualifier-sourced sides SHALL require an explicit action by an authorized organizer. It SHALL
+preview each position's entrant, SHALL be refused while the prior stage is incomplete or a tie at a cut
+line is unresolved, and SHALL commit every resolution together, audited, with an outbox event.
+
+#### Scenario: Completing a stage does not fill the next one by itself
+
+- **WHEN** the last group game is finalized
+- **THEN** the cup quarter-finals remain undecided until an organizer confirms the qualification
+
+#### Scenario: Confirmation previews before it commits
+
+- **WHEN** an organizer requests the qualification preview for a completed stage
+- **THEN** the preview lists each qualifier position with the entrant it resolves to, and nothing changes
+
+#### Scenario: An unresolved tie blocks confirmation
+
+- **WHEN** two entrants are tied at a cut line under the configured tiebreaks
+- **THEN** confirmation is refused, naming the tied entrants and the position in dispute
+
+#### Scenario: Confirmation resolves every side at once
+
+- **WHEN** an organizer confirms the qualification of a completed stage
+- **THEN** every qualifier-sourced side of the next stage reports its entrant in the same commit, each
+  keeps its qualifier source, and unstarted downstream matches keep their slots
+
+#### Scenario: Confirmation needs authority
+
+- **WHEN** a principal without the capability that promotion plan review requires attempts to confirm
+- **THEN** the request is refused and nothing changes
