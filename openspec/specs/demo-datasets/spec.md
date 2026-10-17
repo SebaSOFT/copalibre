@@ -39,9 +39,15 @@ the `rink-hockey` discipline.
 
 #### Scenario: Structure matches the source
 
-- **WHEN** the dataset is loaded
+- **WHEN** the dataset is loaded without a cutoff
 - **THEN** the tournament has six groups whose members total 24 entrants, three cup stages, and 72
   fixtures with recorded results
+
+#### Scenario: Structure survives a cutoff
+
+- **WHEN** the dataset is loaded with a cutoff
+- **THEN** the tournament still has six groups totalling 24 entrants, three cup stages and 72 fixtures,
+  each assigned to its slot, and only the games played before the cutoff have recorded results
 
 #### Scenario: Emblems are present
 
@@ -181,14 +187,22 @@ responses SHALL NOT be committed.
 ### Requirement: A development command loads a dataset
 
 The `copalibre` CLI SHALL provide a development command that loads a named demo dataset into the
-running development stack, and that lists the datasets available. The command SHALL refuse to run when
-the development infrastructure is not reachable and SHALL refuse non-development targets, so it cannot
-load demo data into an installation.
+running development stack, and that lists the datasets available. The command SHALL accept an anchor
+date (`--anchor`) and a cutoff (`--played-until`) and pass them to the load unchanged. The command
+SHALL refuse to run when the development infrastructure is not reachable and SHALL refuse
+non-development targets, so it cannot load demo data into an installation.
 
 #### Scenario: Load into the dev stack
 
 - **WHEN** a developer runs `copalibre dev demo panamericano-clubes-2025` with the development stack up
 - **THEN** the dataset is loaded, and the emblems it uploaded are served by the running API
+
+#### Scenario: Load a tournament happening now
+
+- **WHEN** a developer runs `copalibre dev demo panamericano-clubes-2025 --anchor today --played-until now`
+  with the development stack up
+- **THEN** the dataset is loaded starting today, with the games that already finished played and the
+  rest scheduled
 
 #### Scenario: Listing
 
@@ -221,3 +235,107 @@ The Panamericano dataset SHALL include an organization emblem image, SHALL decla
 #### Scenario: Loading stays idempotent
 - **WHEN** the dataset is loaded twice
 - **THEN** the organization has one emblem
+
+### Requirement: A demo dataset can be anchored to a chosen date
+
+A demo load SHALL accept an anchor date, either a calendar date or `today`. The dataset's first game
+day moves to that date. Every game keeps its local kickoff time and its distance in days from the
+first game day, both read in the dataset organization's time zone, so day gaps and a daylight-saving
+change are preserved. `today` SHALL mean the current date in that time zone. Without an anchor, games
+keep their published dates.
+
+#### Scenario: The first game day lands on the anchor
+
+- **WHEN** `panamericano-clubes-2025` is loaded anchored to `2026-10-17`
+- **THEN** the games published for 2 November 2025 are scheduled on 17 October 2026 at their published
+  local times, and the games published for 8 November 2025 are scheduled on 23 October 2026
+
+#### Scenario: Today is the organization's date
+
+- **WHEN** a dataset is loaded anchored to `today` at an instant when it is already the next day in UTC
+  but still the current day in the organization's time zone
+- **THEN** the first game day is the organization's current local date, not the UTC date
+
+#### Scenario: No anchor keeps the published dates
+
+- **WHEN** a dataset is loaded without an anchor
+- **THEN** every game is scheduled at its published local date and time
+
+#### Scenario: A malformed anchor is refused before writing
+
+- **WHEN** the anchor is neither `today` nor a valid `YYYY-MM-DD` date
+- **THEN** the command exits non-zero, names the value it could not read, and writes nothing
+
+### Requirement: A demo dataset can be played only up to a cutoff
+
+A demo load SHALL accept a cutoff, either an ISO-8601 instant or `now`. A game counts as played only
+when its nominal finish is at or before the cutoff. A played game loads with its result, events and
+match roster. Every other game SHALL keep its published slot and officials, and SHALL have no result,
+no events and no match roster. Without a cutoff, every game is played.
+
+#### Scenario: Games after the cutoff are left to play
+
+- **WHEN** a dataset anchored to `today` is loaded with a cutoff of `now` in the middle of its
+  second game day
+- **THEN** the games that finished before now have results and events, and every later game is
+  scheduled in its slot, published, with its officials and without a result
+
+#### Scenario: A game still in progress at the cutoff is not played
+
+- **WHEN** a game kicked off before the cutoff but its nominal finish is after it
+- **THEN** the game has no result, so it can be started from the live console rather than appearing
+  finalized with a recorded time in the future
+
+#### Scenario: No cutoff plays every game
+
+- **WHEN** a dataset is loaded without a cutoff
+- **THEN** every game has its published result, exactly as before this requirement existed
+
+#### Scenario: A malformed cutoff is refused before writing
+
+- **WHEN** the cutoff is neither `now` nor a valid ISO-8601 instant
+- **THEN** the command exits non-zero, names the value it could not read, and writes nothing
+
+### Requirement: A demo cup loads as a persisted bracket fed by a confirmed qualification
+
+Each cup of a demo dataset SHALL load as a persisted fixture graph. Every quarter-final side SHALL be a
+qualifier position of a promotion plan from the groups, and every later side a `winner-of` or
+`loser-of` edge to the game its entrant came from. The qualification SHALL be confirmed only when every
+group game is played, and later sides SHALL resolve through the same writer a recorded result uses. A
+drawn cup game that fed a later one SHALL record as its winner the entrant who played on.
+
+#### Scenario: Cup quarter-finals are undecided while groups are unfinished
+
+- **WHEN** the cutoff falls before the last group game finishes
+- **THEN** every cup's quarter-finals load assigned to their published slots, each side naming its
+  qualifier position and no entrant, and the qualification is not confirmed
+
+#### Scenario: A semi-final waits on its own quarter-finals only
+
+- **WHEN** the cutoff falls after every group game and after one quarter-final of the Copa Oro but
+  before the other quarter-final feeding the same semi-final
+- **THEN** that semi-final has the first quarter-final's winner on one side and the other side still
+  undecided, naming the quarter-final it waits on
+
+#### Scenario: A full load reproduces the published brackets
+
+- **WHEN** the dataset is loaded without a cutoff
+- **THEN** every cup game has the published entrants and score, and the brackets read the same as the
+  published ones
+
+#### Scenario: A drawn quarter-final advances who played on
+
+- **WHEN** a quarter-final was drawn and one of its entrants played the semi-final it feeds
+- **THEN** that entrant is recorded as the quarter-final's winner and appears in the semi-final
+
+### Requirement: The load report states how the dataset was shaped
+
+The load report SHALL state the anchor date applied, the cutoff, the number of matches finalized,
+and the number of fixtures loaded with undecided entrants. A load without either flag SHALL report
+the published dates and every match finalized.
+
+#### Scenario: The report names the shaping
+
+- **WHEN** a dataset is loaded with an anchor and a cutoff
+- **THEN** the report prints the first game day, the cutoff, how many matches were finalized, whether
+  the qualification was confirmed, and how many fixtures have undecided entrants
