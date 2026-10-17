@@ -173,3 +173,53 @@ When a club submits through the club portal, the administrators SHALL receive th
 #### Scenario: A registration made by an administrator still sends its notice
 - **WHEN** an entrant is registered by an administrator rather than through the club portal
 - **THEN** the registration notice is sent as before
+
+### Requirement: A published reschedule notifies the clubs and tournament admins involved
+
+When a published batch changes or withdraws previously published placements, the worker SHALL send each
+recipient one email for the batch, listing that recipient's affected matches with previous and new start
+and venue, grouped under the reason that applies to each. Recipients are active `club-admin` assignments of the clubs whose teams
+play an affected match, and active `tournament-admin` assignments of its tournament, excluding the actor.
+
+#### Scenario: Both clubs of a moved match are told
+
+- **WHEN** an organizer moves a published match between two clubs' teams from 14:30 to 18:00, giving the
+  reason "venue unavailable"
+- **THEN** each club's admin receives one email naming the match, 14:30 and 18:00 and the reason, in the
+  organization's primary language
+
+#### Scenario: One email per batch, not per match
+
+- **WHEN** one batch moves three matches of the same club's team
+- **THEN** that club's admin receives one email listing all three matches
+
+#### Scenario: Exceptions are grouped under their own reason
+
+- **WHEN** a batch moves two of a club's matches for "Court 1 without lights" and a third, as an
+  exception, for "requested by the visiting club"
+- **THEN** that club's email lists the first two under one reason and the third under the other
+
+#### Scenario: A preset reason is written in the email's language
+
+- **WHEN** a match was moved with the preset reason "weather"
+- **THEN** the email states that reason in the organization's primary language
+
+#### Scenario: Unaffected clubs are not told
+
+- **WHEN** a batch moves only matches between clubs A and B
+- **THEN** the admin of club C receives nothing
+
+#### Scenario: A first placement sends nothing
+
+- **WHEN** a batch only places matches for the first time
+- **THEN** no reschedule email is sent
+
+#### Scenario: Demo loading and imports stay silent
+
+- **WHEN** a schedule is published by demo loading or a bulk import
+- **THEN** no reschedule email is sent
+
+#### Scenario: The actor is not told of their own change
+
+- **WHEN** a tournament admin who also holds a club-admin assignment moves a match of their own club
+- **THEN** that person receives no email for the batch
