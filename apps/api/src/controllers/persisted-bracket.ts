@@ -1,6 +1,7 @@
 import type { StageMatchRecord } from '@copalibre/persistence';
 import type { BracketMatchResponse } from '../dto/standings.dto.js';
 import type { PublicSeriesStateResponse } from '../dto/public-tournament.dto.js';
+import type { QualifierLabelDto } from '../dto/fixture-side-source.dto.js';
 import { fixtureSourcesOf } from './fixture-sources.js';
 
 /** A persisted zone's bracket comes from its records, including classification branches. */
@@ -8,11 +9,12 @@ export function persistedBracketMatches(
   records: readonly StageMatchRecord[],
   seriesOf: (record: StageMatchRecord) => PublicSeriesStateResponse | undefined,
   matchFormat?: string,
+  qualifierLabels?: ReadonlyMap<string, readonly QualifierLabelDto[]>,
 ): BracketMatchResponse[] {
   return records.map((record) => {
     const node = record.node;
     if (!node) throw new Error('Expected a persisted graph node');
-    const sources = fixtureSourcesOf(record, records);
+    const sources = fixtureSourcesOf(record, records, qualifierLabels);
     const series = seriesOf(record);
     return {
       ...sources,

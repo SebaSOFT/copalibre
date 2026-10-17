@@ -24,6 +24,17 @@ export const messages: Record<string, string> = {
   'control.sideSource.unknown': 'Partecipante da definire',
   'control.sideSource.seed': 'Testa di serie {seed}',
   'control.sideSource.bye': 'Riposo',
+  'control.sideSource.qualifierGroup': '{rank} {group}',
+  'control.sideSource.qualifierGroupNumber': 'Girone {number}',
+  'control.sideSource.qualifierBest': 'Miglior {rank}',
+  'control.sideSource.qualifierNthBest': '{order} miglior {rank}',
+  'control.sideSource.qualifierRunnerUp': 'seconda',
+  'control.sideSource.qualifier': 'Qualificata {number}',
+  'control.sideSource.qualifierShort': 'Q{number}',
+  'control.sideSource.ordinal1': '1°',
+  'control.sideSource.ordinal2': '2°',
+  'control.sideSource.ordinal3': '3°',
+  'control.sideSource.ordinalOther': '{n}°',
   'control.schedule.concurrentChange': '{actor} ha riprogrammato {match}. Anteprima aggiornata.',
   'control.bracket.highlightEntrant': 'Evidenzia il percorso di {entrant}',
   'control.bracket.highlightHint':
@@ -1534,4 +1545,41 @@ export const messages: Record<string, string> = {
   'control.scheduleReason.broadcast': 'Palinsesto televisivo',
   'control.scheduleReason.dataCorrection': 'Correzione di un errore',
   'control.scheduleReason.other': 'Altro',
+  'control.seeding.ahead.title': 'Genera in anticipo',
+  'control.seeding.ahead.description':
+    'Un piano di qualificazione verificato invia le qualificate a questa fase. Genera ora il tabellone con le posizioni di qualificazione; le partecipanti vengono confermate al termine della fase precedente.',
+  'control.seeding.ahead.generate': 'Genera in anticipo',
+  'control.seeding.ahead.generated':
+    'Generata in anticipo. Conferma la qualificazione al termine della fase precedente.',
+  'control.seeding.ahead.preview': 'Anteprima del tabellone',
+  'control.seeding.ahead.confirmLink': 'Conferma qualificazione',
+  'control.qualification.title': 'Qualificazione',
+  'control.qualification.loading': 'Caricamento della qualificazione…',
+  'control.qualification.loadFailed': 'Impossibile caricare la qualificazione.',
+  'control.qualification.empty': 'Nessun piano di qualificazione invia qualificate a questa fase.',
+  'control.qualification.incomplete':
+    '{count, plural, one {# partita della fase precedente è} other {# partite della fase precedente sono}} ancora da definire. Le partecipanti si confermano al suo termine.',
+  'control.qualification.notStarted':
+    'La fase precedente non ha ancora partite. Le partecipanti si confermano al suo termine.',
+  'control.qualification.tie':
+    '{entrants} sono a pari merito sulla linea di taglio{group, select, none {} other { di {group}}} per {positions}. Risolvi la parità prima di confermare.',
+  'control.qualification.stale':
+    'Un risultato è cambiato dopo la conferma. Serve una nuova conferma.',
+  'control.qualification.confirmed':
+    'Qualificazione confermata. Ogni posto di qualificazione mostra la sua partecipante.',
+  'control.qualification.ready':
+    'Controlla ogni posizione, poi conferma. Tutti i posti vengono assegnati in un solo passaggio.',
+  'control.qualification.positionColumn': 'Posizione',
+  'control.qualification.zoneColumn': 'Zona',
+  'control.qualification.entrantColumn': 'Partecipante',
+  'control.qualification.confirmedColumn': 'Confermato',
+  'control.qualification.confirm': 'Conferma qualificazione',
+  'control.qualification.reconfirm': 'Conferma di nuovo',
+  'control.qualification.confirmSucceeded':
+    'Qualificazione confermata: {count, plural, one {# posto assegnato} other {# posti assegnati}}.',
+  'control.qualification.previewMoved':
+    'La classifica è cambiata da questa anteprima. Controllala di nuovo prima di confermare.',
+  'control.qualification.seedingLink': 'Torna al sorteggio',
+  'control.promotion.planRequiresRebuild':
+    'La fase {stage} è stata generata in anticipo con questo piano. Generala di nuovo perché le posizioni coincidano prima di confermare.',
 };

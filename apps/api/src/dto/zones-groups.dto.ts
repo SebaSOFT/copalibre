@@ -336,6 +336,14 @@ export class PromotionPlanResponse {
 
   @ApiProperty({ type: 'object', additionalProperties: true })
   plan!: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    enum: ['requires_rebuild'],
+    description:
+      'Set when the target stage was generated ahead from this plan: its qualifier positions may ' +
+      'no longer match, so the stage must be generated again before it is confirmed',
+  })
+  mutationClass?: 'requires_rebuild';
 }
 
 export class QualifiedEntrantResponse {

@@ -10,6 +10,18 @@ export interface SideSource {
   readonly round?: number;
   readonly position?: number;
   readonly seed?: number;
+  /** How a qualifier position reads before anyone qualifies; absent on every other kind. */
+  readonly qualifierLabel?: QualifierLabel;
+}
+
+/** Label parts of a qualifier position, as the API derives them from the promotion plan. */
+export interface QualifierLabel {
+  readonly kind: 'group-rank' | 'cohort' | 'number';
+  readonly rank?: number;
+  readonly groupNumber?: number;
+  readonly groupName?: string;
+  readonly order?: number;
+  readonly number?: number;
 }
 
 export const SIDE_SOURCE_KEYS = [
@@ -33,6 +45,17 @@ export const SIDE_SOURCE_KEYS = [
   'unknown',
   'seed',
   'bye',
+  'qualifierGroup',
+  'qualifierGroupNumber',
+  'qualifierBest',
+  'qualifierNthBest',
+  'qualifierRunnerUp',
+  'qualifier',
+  'qualifierShort',
+  'ordinal1',
+  'ordinal2',
+  'ordinal3',
+  'ordinalOther',
 ] as const;
 export type SideSourceMessages = Readonly<Record<(typeof SIDE_SOURCE_KEYS)[number], string>>;
 export interface SourceText {
@@ -129,6 +152,56 @@ export function sourceMatchLabel(
   };
 }
 
+/** A small ordinal from the catalogue: three irregular forms, then one template for the rest. */
+function ordinalOf(value: number, messages: SideSourceMessages): string {
+  if (value === 1) return messages.ordinal1;
+  if (value === 2) return messages.ordinal2;
+  if (value === 3) return messages.ordinal3;
+  return applyTemplate(messages.ordinalOther, { n: value });
+}
+
+/**
+ * A qualifier position by its plan's label: "1st Group A" under group-then-rank, "2nd best
+ * runner-up" under ranked combination, "Qualifier 5" under manual. The compact form is the rank
+ * and the group's letter when the group name ends in one ("1A"), else the position number.
+ */
+export function formatQualifier(source: SideSource, messages: SideSourceMessages): SourceText {
+  const label = source.qualifierLabel;
+  const position = source.position ?? label?.number;
+  const numbered = applyTemplate(messages.qualifierShort, { number: position ?? '' }).trim();
+  if (label?.kind === 'group-rank' && label.rank !== undefined) {
+    const group =
+      label.groupName ??
+      applyTemplate(messages.qualifierGroupNumber, { number: label.groupNumber ?? '' });
+    const letter = /(?:^|\s)(\S{1,2})$/.exec(label.groupName ?? '')?.[1];
+    return {
+      long: applyTemplate(messages.qualifierGroup, {
+        rank: ordinalOf(label.rank, messages),
+        group,
+      }).trim(),
+      short: letter === undefined ? numbered : `${label.rank}${letter}`,
+    };
+  }
+  if (label?.kind === 'cohort' && label.rank !== undefined && label.order !== undefined) {
+    const rank = label.rank === 2 ? messages.qualifierRunnerUp : ordinalOf(label.rank, messages);
+    return {
+      long: (label.order === 1
+        ? applyTemplate(messages.qualifierBest, { rank })
+        : applyTemplate(messages.qualifierNthBest, {
+            order: ordinalOf(label.order, messages),
+            rank,
+          })
+      ).trim(),
+      short: numbered,
+    };
+  }
+  if (position === undefined) return { long: messages.unknown, short: messages.unknown };
+  return {
+    long: applyTemplate(messages.qualifier, { number: position }).trim(),
+    short: numbered,
+  };
+}
+
 /** Pure, framework-free formatting; every word and compact form comes from the caller's catalogue. */
 export function formatSideSource(
   source: SideSource | undefined,
@@ -150,6 +223,7 @@ export function formatSideSource(
       ),
     };
   }
+  if (source?.kind === 'qualifier') return formatQualifier(source, messages);
   const text =
     source?.kind === 'seed'
       ? applyTemplate(messages.seed, { seed: source.seed ?? '' })

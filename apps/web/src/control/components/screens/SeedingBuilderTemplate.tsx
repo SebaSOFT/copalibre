@@ -11,6 +11,9 @@ import { mutationFeedback } from '../../lib/mutation-feedback.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { Card } from '../ui/atoms/card.js';
+import { GenerateAheadPanel } from '../ui/organisms/generate-ahead-panel.js';
+import type { SeedingQualifierZoneResponse } from '../../lib/api-client.js';
+import { aheadPreviewMatches } from '../../lib/generate-ahead.js';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -58,6 +61,7 @@ export function SeedingBuilderTemplate({
   onPublish,
   random,
   configurationSection,
+  ahead,
 }: {
   readonly organizationAlias: string;
   /**
@@ -80,6 +84,15 @@ export function SeedingBuilderTemplate({
   readonly onPublish?: (seeds: readonly SeedAssignment[]) => Promise<void> | void;
   readonly random?: () => number;
   readonly configurationSection?: React.ReactNode;
+  /**
+   * Present when promotion plans route qualifiers to this stage: the stage can then be generated
+   * ahead of its prior stage, with qualifier positions instead of entrants.
+   */
+  readonly ahead?: {
+    readonly zones: readonly SeedingQualifierZoneResponse[];
+    readonly generated: boolean;
+    readonly onGenerate?: () => Promise<void> | void;
+  };
 }): React.JSX.Element {
   const intl = useIntl();
   const [history, setHistory] = useState(() => initHistory<readonly SeedAssignment[]>(seeds));
@@ -234,6 +247,36 @@ export function SeedingBuilderTemplate({
           </div>
         </Card>
       </div>
+
+      {ahead !== undefined && (
+        <GenerateAheadPanel
+          confirmHref={
+            tournamentAlias === undefined || stageNumber === undefined
+              ? undefined
+              : `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/qualification`
+          }
+          confirmLabel={intl.formatMessage(messages.seedingAheadConfirmLink)}
+          description={intl.formatMessage(messages.seedingAheadDescription)}
+          disabled={hasRecordedResults}
+          generateLabel={intl.formatMessage(messages.seedingAheadGenerate)}
+          generated={ahead.generated}
+          generatedMessage={intl.formatMessage(messages.seedingAheadGenerated)}
+          onGenerate={ahead.onGenerate}
+          previewHeading={intl.formatMessage(messages.seedingAheadPreview)}
+          title={intl.formatMessage(messages.seedingAheadTitle)}
+        >
+          {ahead.zones.map((zone, index) => (
+            <div key={zone.zoneId ?? index}>
+              {ahead.zones.length > 1 && zone.zoneName !== undefined && <h4>{zone.zoneName}</h4>}
+              <BracketCanvas
+                matches={aheadPreviewMatches(zone)}
+                onZoomChange={setZoom}
+                zoom={zoom}
+              />
+            </div>
+          ))}
+        </GenerateAheadPanel>
+      )}
 
       {configurationSection}
 

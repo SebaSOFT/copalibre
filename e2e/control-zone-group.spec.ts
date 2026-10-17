@@ -1,4 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { createServer, type Server } from 'node:http';
+import type { Page } from '@playwright/test';
+import { expect, test } from './fixtures.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -516,4 +518,260 @@ test('overrides one zone’s format and series, labels it, and returns it to the
     'PUT zone 3 {"series":{"span":3,"resolutionClass":"best-of"}}',
     'PUT zone 3 {"format":null}',
   ]);
+});
+
+/**
+ * A cup generated ahead of its groups: the builder previews and generates it with qualifier
+ * positions, the public programme names each side by its position, the confirmation waits for the
+ * groups, and confirming seats every entrant at once.
+ */
+test.describe('generate a cup ahead and confirm its qualifiers', () => {
+  const PLAN = '0199c000-0000-7000-8000-0000000000c1';
+  const label = (rank: number, group: 'A' | 'B') => ({
+    kind: 'group-rank',
+    rank,
+    groupNumber: group === 'A' ? 1 : 2,
+    groupName: `Grupo ${group}`,
+  });
+  const seeds = [
+    [1, 1, 'A'],
+    [2, 2, 'A'],
+    [3, 1, 'B'],
+    [4, 2, 'B'],
+  ].map(([position, rank, group]) => ({
+    promotionPlanId: PLAN,
+    position: position as number,
+    qualifierLabel: label(rank as number, group as 'A' | 'B'),
+  }));
+  const clubs = ['Deportivo Norte', 'Atlético Sur', 'Unión Oeste', 'Sportivo Este'];
+  let confirmed = false;
+  let server: Server;
+
+  /** The two semi-finals as the public programme reads them: seed 1 meets seed 4. */
+  const semiRows = () =>
+    [
+      [1, 0, 3],
+      [2, 1, 2],
+    ].map(([position, home, away]) => ({
+      matchId: `0199c000-0000-7000-8000-00000000010${position}`,
+      nodeKey: `SE-R1-M${position}`,
+      stageNumber: 2,
+      matchNumber: position,
+      round: 1,
+      status: 'upcoming',
+      homeSource: { kind: 'qualifier', ...seeds[home as number] },
+      awaySource: { kind: 'qualifier', ...seeds[away as number] },
+      ...(confirmed
+        ? {
+            homeEntrantId: `entrant-${home}`,
+            homeName: clubs[home as number],
+            awayEntrantId: `entrant-${away}`,
+            awayName: clubs[away as number],
+          }
+        : {}),
+      scheduledAt: new Date(Date.UTC(2026, 10, 21, 18 + (position as number))).toISOString(),
+      venueName: 'Estadio Malvinas Argentinas',
+    }));
+
+  test.beforeAll(async ({ workerPort }) => {
+    server = createServer((req, res) => {
+      res.setHeader('content-type', 'application/json');
+      const url = new URL(req.url ?? '/', 'http://localhost');
+      const send = (body: unknown) => res.end(JSON.stringify(body));
+      if (url.pathname === `${TOURNAMENT}/overview`)
+        send({
+          organizationAlias: ORG,
+          organizationName: 'Liga Mendocina',
+          organizationTimeZone: 'America/Argentina/Mendoza',
+          tournamentAlias: TOURNAMENT_ALIAS,
+          tournamentName: 'Apertura 2026',
+          seasonName: '2026',
+          matches: [],
+          clubs: [],
+          ruleset: {},
+        });
+      else if (url.pathname === `${TOURNAMENT}/matches-view`) send({ matches: semiRows() });
+      else if (url.pathname === `${TOURNAMENT}/live`) send({ matches: [] });
+      else {
+        res.statusCode = 404;
+        res.end('{}');
+      }
+    });
+    await new Promise<void>((resolve) => server.listen(workerPort, '127.0.0.1', resolve));
+  });
+  test.afterAll(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  async function mockAhead(page: Page): Promise<void> {
+    await page.addInitScript(
+      ({ stage2, tokenEndpoint, seeds, clubs }) => {
+        const GENERATED = 'e2e-ahead-generated';
+        const FINISHED = 'e2e-groups-finished';
+        const CONFIRMED = 'e2e-qualification-confirmed';
+        const names = Object.fromEntries(clubs.map((name, index) => [`entrant-${index}`, name]));
+        const preview = () => {
+          const finished = sessionStorage.getItem(FINISHED) !== null;
+          const done = sessionStorage.getItem(CONFIRMED) !== null;
+          return {
+            state: !finished ? 'incomplete' : done ? 'confirmed' : 'ready',
+            positions: seeds.map((seed, index) => ({
+              ...seed,
+              ...(finished ? { entrantId: `entrant-${index}` } : {}),
+              ...(done ? { confirmedEntrantId: `entrant-${index}` } : {}),
+            })),
+            incomplete: finished
+              ? []
+              : [{ matchId: 'group-final-a', round: 3, status: 'scheduled' }],
+            names,
+          };
+        };
+        const qualifierSlot = (index: number) => ({
+          kind: 'qualifier',
+          source: { kind: 'qualifier', ...seeds[index] },
+        });
+
+        window.fetch = async (input, init) => {
+          const url = String(input);
+          const method = init?.method ?? 'GET';
+          if (url === tokenEndpoint) {
+            return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
+          }
+          if (url === `${stage2}/seeding` && method === 'GET') {
+            const generated = sessionStorage.getItem(GENERATED) !== null;
+            return Response.json({
+              stageId: 'stage-2',
+              format: 'single-elimination',
+              seeds: [],
+              zones: generated
+                ? [
+                    {
+                      matches: [
+                        [1, 0, 3],
+                        [2, 1, 2],
+                      ].map(([position, home, away]) => ({
+                        matchId: `SE-R1-M${position}`,
+                        bracket: 'winners',
+                        round: 1,
+                        position,
+                        status: 'scheduled',
+                        slots: [qualifierSlot(home), qualifierSlot(away)],
+                      })),
+                    },
+                  ]
+                : [],
+              hasRecordedResults: false,
+              qualifiers: [{ format: 'single-elimination', seeds }],
+            });
+          }
+          if (url === `${stage2}/seeding` && method === 'POST') {
+            sessionStorage.setItem(GENERATED, String(init?.body));
+            return Response.json({
+              mutationClass: 'safe',
+              reason: 'Copa generada por adelantado',
+              invalidates: [],
+              persisted: true,
+            });
+          }
+          if (url === `${stage2}/promotion-plans`) return Response.json([]);
+          if (url === `${stage2}/qualification/preview` && method === 'POST') {
+            return Response.json(preview());
+          }
+          if (url === `${stage2}/qualification/confirm` && method === 'POST') {
+            sessionStorage.setItem(CONFIRMED, String(init?.body));
+            return Response.json({ ...preview(), changedSides: 4 });
+          }
+          return new Response('Not found', { status: 404 });
+        };
+      },
+      { stage2: STAGE_2, tokenEndpoint: TOKEN_ENDPOINT, seeds, clubs },
+    );
+  }
+
+  async function open(page: Page, target: string): Promise<void> {
+    await seedLoginTransaction(page, target);
+    await page.goto(loginCallbackUrl()).catch((error: Error) => {
+      if (!error.message.includes('is interrupted by another navigation')) throw error;
+    });
+    await page.waitForURL(`**${target}`);
+  }
+
+  test('generates the cup ahead, names its sides by position, and seats them on confirmation', async ({
+    page,
+  }) => {
+    confirmed = false;
+    await mockAhead(page);
+    await open(page, `/control/${ORG}/tournaments/${TOURNAMENT_ALIAS}/stages/2/seeding`);
+
+    // The builder previews the cross-overs the plan decides before anything is written.
+    const panel = page.getByRole('region', { name: 'Generar por adelantado' });
+    await expect(panel.getByText('1.° Grupo A').first()).toBeVisible();
+    await expect(panel.getByText('2.° Grupo B').first()).toBeVisible();
+    expect(await page.evaluate(() => sessionStorage.getItem('e2e-ahead-generated'))).toBeNull();
+    await panel.getByRole('button', { name: 'Generar por adelantado' }).click();
+    await expect(page.getByText('Copa generada por adelantado')).toBeVisible();
+    expect(
+      JSON.parse(
+        (await page.evaluate(() => sessionStorage.getItem('e2e-ahead-generated'))) ?? '{}',
+      ),
+    ).toEqual({ ahead: true });
+
+    // The public programme names each side by its qualifier position, with scripting or without.
+    const publicPage = await page.context().newPage();
+    await publicPage.goto(`/${ORG}/tournaments/${TOURNAMENT_ALIAS}/matches?view=cards`);
+    const semi = publicPage.locator('[data-match="0199c000-0000-7000-8000-000000000101"]');
+    await expect(
+      semi.getByText('1st Grupo A', { exact: true }).or(semi.getByTitle('1st Grupo A')).first(),
+    ).toBeVisible();
+    await expect(
+      semi.getByText('2nd Grupo B', { exact: true }).or(semi.getByTitle('2nd Grupo B')).first(),
+    ).toBeVisible();
+    await publicPage.setViewportSize({ width: 1440, height: 900 });
+    await publicPage.screenshot({
+      path: 'docs/assets/screenshots/next-stage-ahead-public-desktop.png',
+    });
+    await publicPage.setViewportSize({ width: 390, height: 844 });
+    await publicPage.screenshot({
+      path: 'docs/assets/screenshots/next-stage-ahead-public-mobile.png',
+    });
+    await publicPage.close();
+
+    // While a group game remains, the confirmation says why and offers nothing to confirm.
+    await page.getByRole('link', { name: 'Confirmar clasificación' }).click();
+    await page.waitForURL('**/stages/2/qualification');
+    await expect(page.getByText(/1 partido de la fase anterior sigue sin resolver/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Confirmar clasificación' })).toHaveCount(0);
+
+    // The groups finish; the screen lists who each position resolves to.
+    await page.evaluate(() => sessionStorage.setItem('e2e-groups-finished', '1'));
+    await open(page, `/control/${ORG}/tournaments/${TOURNAMENT_ALIAS}/stages/2/qualification`);
+    const table = page.getByRole('table');
+    await expect(table.getByText('1.° Grupo A')).toBeVisible();
+    await expect(page.locator('[data-qualification-entrant="1"]')).toHaveText('Deportivo Norte');
+    await expect(page.locator('[data-qualification-entrant="4"]')).toHaveText('Sportivo Este');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.screenshot({ path: 'docs/assets/screenshots/next-stage-ahead-qualification.png' });
+
+    await page.getByRole('button', { name: 'Confirmar clasificación' }).click();
+    await expect(page.getByText('Clasificación confirmada: 4 lugares completados.')).toBeVisible();
+    const sent = JSON.parse(
+      (await page.evaluate(() => sessionStorage.getItem('e2e-qualification-confirmed'))) ?? '{}',
+    ) as { expected: { position: number; entrantId: string }[] };
+    expect(sent.expected.map(({ position, entrantId }) => [position, entrantId])).toEqual([
+      [1, 'entrant-0'],
+      [2, 'entrant-1'],
+      [3, 'entrant-2'],
+      [4, 'entrant-3'],
+    ]);
+
+    // The public programme now seats the cup's entrants.
+    confirmed = true;
+    const after = await page.context().newPage();
+    await after.goto(`/${ORG}/tournaments/${TOURNAMENT_ALIAS}/matches?view=cards`);
+    const seated = after.locator('[data-match="0199c000-0000-7000-8000-000000000101"]');
+    await expect(seated.getByText('Deportivo Norte')).toBeVisible();
+    await expect(seated.getByText('Sportivo Este')).toBeVisible();
+    await expect(seated.getByText('1st Grupo A', { exact: true })).toHaveCount(0);
+    await after.close();
+  });
 });

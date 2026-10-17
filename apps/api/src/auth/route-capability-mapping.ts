@@ -117,6 +117,8 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'ZonesGroupsController.previewZones': 'org.manage-zones-groups',
   'ZonesGroupsController.promotionPlansTargetingStage': 'org.manage-zones-groups',
   'ZonesGroupsController.savePromotionPlan': 'org.manage-zones-groups',
+  'QualificationController.preview': 'org.manage-zones-groups',
+  'QualificationController.confirm': 'org.manage-zones-groups',
 
   // org.manage-schedule
   'SchedulesController.preview': 'org.manage-schedule',

@@ -400,6 +400,8 @@ export interface PromotionPlansTable {
   zone_id: string;
   next_stage_id: string;
   plan: JSONColumnType<Record<string, unknown>>;
+  /** Confirmed qualifier position → entrant id, keyed by the position as a string. */
+  confirmed_resolution: JSONColumnType<Record<string, string>> | null;
   created_at: Timestamp;
 }
 

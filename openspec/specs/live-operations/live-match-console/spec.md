@@ -484,3 +484,20 @@ an event or result would name an entrant that is not playing.
 
 Any future outcome endpoint, including a dedicated forfeit endpoint or CSV result importer, SHALL
 apply this same guard before writing. The current CSV participant importer is outside this scope.
+
+### Requirement: The console shows a match awaiting its entrants
+
+When the console opens a match with an undecided side, it SHALL state, in text, which source the match
+is awaiting, and SHALL offer no start, event or result control until every side is decided.
+
+#### Scenario: The console states what the match is waiting for
+
+- **WHEN** an operator opens the console of a final whose second semi-final is undecided
+- **THEN** the console reads that the final is awaiting the winner of semi-final 2, and shows no start,
+  event or result control
+
+#### Scenario: Controls appear once the sides are decided
+
+- **WHEN** the awaited semi-final is decided while the console is open
+- **THEN** after the console's projection refreshes, the final shows both entrants and its normal
+  controls

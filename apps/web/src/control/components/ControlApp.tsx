@@ -18,6 +18,7 @@ import {
   PlatformAdministrationControlRoute,
   PreferencesControlRoute,
   PromotionPlanControlRoute,
+  QualificationControlRoute,
   RegistrationReviewControlRoute,
   TournamentSettingsControlRoute,
   TournamentRulesetControlRoute,
@@ -335,6 +336,13 @@ const ROUTE_COMPONENT_BY_SCREEN: ScreenComponents = {
       tournamentAlias={route.tournamentAlias}
     />
   ),
+  qualification: (route) => (
+    <QualificationControlRoute
+      organizationAlias={route.organizationAlias}
+      stageNumber={route.stageNumber}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
   promotionPlan: (route) => (
     <PromotionPlanControlRoute
       organizationAlias={route.organizationAlias}
@@ -412,6 +420,7 @@ const TITLE_BY_SCREEN: TitleByScreen = {
   standings: (route) => `Standings — ${route.tournamentAlias}`,
   zoneGroups: (route) => `Zones and groups — ${route.tournamentAlias}`,
   promotionPlan: (route) => `Promotion plan — ${route.tournamentAlias}`,
+  qualification: (route) => `Qualification — ${route.tournamentAlias}`,
   schedule: (route) => `Schedule — ${route.tournamentAlias}`,
   login: () => 'Sign in — CopaLibre',
   'forgot-password': () => 'Recover password — CopaLibre',

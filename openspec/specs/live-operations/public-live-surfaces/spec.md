@@ -271,3 +271,20 @@ SHALL be ignored.
 - **WHEN** a reconnecting page replays an older reschedule event for a match it already shows at a newer
   placement
 - **THEN** the page keeps the newer placement
+
+### Requirement: An undecided side resolves live on public surfaces
+
+While connected, public live surfaces and TV SHALL replace an undecided side's source label with its
+entrant when the resolution event for that match arrives, without a reload. An event older than the
+version a surface already holds SHALL be ignored.
+
+#### Scenario: A semi-final learns its finalist
+
+- **WHEN** a spectator has the matches view open on a semi-final reading "Winner of Quarter-final 1", and
+  that quarter-final is finalized
+- **THEN** the semi-final's side shows the winning entrant without a reload
+
+#### Scenario: A replay does not revert a resolution
+
+- **WHEN** a reconnecting page replays events up to before the resolution and then the resolution itself
+- **THEN** the side ends showing the entrant, never reverting to its source label afterwards

@@ -143,19 +143,33 @@ export function PromotionPlanPage({
   ): Promise<void> {
     if (!api.savePromotionPlan) return;
     try {
-      await api.savePromotionPlan(organizationAlias, tournamentAlias, stageNumber, zoneNumber, {
-        nextStageNumber: Number(nextStageNumber),
-        perGroupAdvance: Number(perGroupAdvance),
-        combination: { mode: 'group-order' },
-        ...(bands.length > 0
-          ? {
-              bands: bands
-                .filter((row) => row.zoneRef.trim() !== '' && row.count.trim() !== '')
-                .map((row) => ({ zoneRef: row.zoneRef.trim(), count: Number(row.count) })),
-            }
-          : {}),
-      });
+      const saved = await api.savePromotionPlan(
+        organizationAlias,
+        tournamentAlias,
+        stageNumber,
+        zoneNumber,
+        {
+          nextStageNumber: Number(nextStageNumber),
+          perGroupAdvance: Number(perGroupAdvance),
+          combination: { mode: 'group-order' },
+          ...(bands.length > 0
+            ? {
+                bands: bands
+                  .filter((row) => row.zoneRef.trim() !== '' && row.count.trim() !== '')
+                  .map((row) => ({ zoneRef: row.zoneRef.trim(), count: Number(row.count) })),
+              }
+            : {}),
+        },
+      );
       push({ severity: 'success', message: intl.formatMessage(messages.promotionPlanSaved) });
+      if (saved.mutationClass === 'requires_rebuild') {
+        push({
+          severity: 'info',
+          message: intl.formatMessage(messages.promotionPlanRequiresRebuild, {
+            stage: Number(nextStageNumber),
+          }),
+        });
+      }
       if (api.fetchPromotionPreview) {
         try {
           const loaded = await api.fetchPromotionPreview(

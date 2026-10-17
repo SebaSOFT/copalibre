@@ -26,6 +26,17 @@ export const messages: Record<string, string> = {
   'control.sideSource.unknown': 'Участник не определён',
   'control.sideSource.seed': 'Посев {seed}',
   'control.sideSource.bye': 'Без игры',
+  'control.sideSource.qualifierGroup': '{rank} место, {group}',
+  'control.sideSource.qualifierGroupNumber': 'Группа {number}',
+  'control.sideSource.qualifierBest': 'Лучшее {rank} место',
+  'control.sideSource.qualifierNthBest': '{order} лучшее {rank} место',
+  'control.sideSource.qualifierRunnerUp': '2-е',
+  'control.sideSource.qualifier': 'Квалификант {number}',
+  'control.sideSource.qualifierShort': 'К{number}',
+  'control.sideSource.ordinal1': '1-е',
+  'control.sideSource.ordinal2': '2-е',
+  'control.sideSource.ordinal3': '3-е',
+  'control.sideSource.ordinalOther': '{n}-е',
   'control.schedule.concurrentChange': '{actor} перенёс {match}. Предпросмотр обновлён.',
   'control.bracket.highlightEntrant': 'Выделить путь участника {entrant}',
   'control.bracket.highlightHint':
@@ -1526,4 +1537,40 @@ export const messages: Record<string, string> = {
   'control.scheduleReason.broadcast': 'Расписание трансляции',
   'control.scheduleReason.dataCorrection': 'Исправление ошибки',
   'control.scheduleReason.other': 'Другое',
+  'control.seeding.ahead.title': 'Создать заранее',
+  'control.seeding.ahead.description':
+    'Проверенный план выхода направляет квалификантов в этот этап. Создайте сетку сейчас с позициями квалификации; участники подтверждаются после завершения предыдущего этапа.',
+  'control.seeding.ahead.generate': 'Создать заранее',
+  'control.seeding.ahead.generated':
+    'Создано заранее. Подтвердите квалификацию после завершения предыдущего этапа.',
+  'control.seeding.ahead.preview': 'Предпросмотр сетки',
+  'control.seeding.ahead.confirmLink': 'Подтвердить квалификацию',
+  'control.qualification.title': 'Квалификация',
+  'control.qualification.loading': 'Загрузка квалификации…',
+  'control.qualification.loadFailed': 'Не удалось загрузить квалификацию.',
+  'control.qualification.empty': 'Ни один план выхода не направляет квалификантов в этот этап.',
+  'control.qualification.incomplete':
+    '{count, plural, one {# матч предыдущего этапа ещё не завершён} few {# матча предыдущего этапа ещё не завершены} many {# матчей предыдущего этапа ещё не завершены} other {# матча предыдущего этапа ещё не завершены}}. Участников можно подтвердить после его окончания.',
+  'control.qualification.notStarted':
+    'В предыдущем этапе ещё нет матчей. Участников можно подтвердить после его окончания.',
+  'control.qualification.tie':
+    '{entrants} делят место на линии отсечения{group, select, none {} other { в {group}}} за {positions}. Разрешите равенство до подтверждения.',
+  'control.qualification.stale':
+    'Результат изменился после подтверждения. Требуется повторное подтверждение.',
+  'control.qualification.confirmed':
+    'Квалификация подтверждена. Каждая позиция показывает своего участника.',
+  'control.qualification.ready':
+    'Проверьте каждую позицию и подтвердите. Все места заполняются за один шаг.',
+  'control.qualification.positionColumn': 'Позиция',
+  'control.qualification.zoneColumn': 'Зона',
+  'control.qualification.entrantColumn': 'Участник',
+  'control.qualification.confirmedColumn': 'Подтверждено',
+  'control.qualification.confirm': 'Подтвердить квалификацию',
+  'control.qualification.reconfirm': 'Подтвердить повторно',
+  'control.qualification.confirmSucceeded': 'Квалификация подтверждена: заполнено мест — {count}.',
+  'control.qualification.previewMoved':
+    'Таблица изменилась после этого предпросмотра. Проверьте её снова перед подтверждением.',
+  'control.qualification.seedingLink': 'Назад к посеву',
+  'control.promotion.planRequiresRebuild':
+    'Этап {stage} создан заранее по этому плану. Создайте его снова, чтобы позиции совпали до подтверждения.',
 };

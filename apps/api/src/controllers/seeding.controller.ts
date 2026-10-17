@@ -27,11 +27,13 @@ import {
 import { effectiveFormat, type TournamentFormat } from '@copalibre/domain';
 import {
   AllocationError,
+  QualificationError,
   allocateSeeds,
   classifyEngineMutation,
   generateFixtures,
   isDuelMatch,
   slotsOf,
+  withQualifierSources,
   type FixtureGraph,
   type GeneratedMatch,
 } from '@copalibre/tournament-engine';
@@ -55,6 +57,7 @@ import {
   BracketMatchResponse,
   PublishSeedingRequest,
   SeedingClassificationResponse,
+  SeedingQualifierZoneResponse,
   SeedingResponse,
 } from '../dto/standings.dto.js';
 import { resolveTournament } from './standings.controller.js';
@@ -72,6 +75,13 @@ import { DATABASE } from '../database.token.js';
 import { persistedFixtureNodes, placementPlayOf } from './persisted-fixture-plan.js';
 import { zoneEntrantResolution } from '../zone-entrant-resolution.js';
 import { persistedBracketMatches } from './persisted-bracket.js';
+import { qualifierLabelsForRecords } from './fixture-sources.js';
+import {
+  QualifierRoutingError,
+  stageQualifierPlans,
+  stageQualifierZones,
+  type StageQualifierZone,
+} from './stage-qualifiers.js';
 
 /**
  * Seeding and the bracket the engine builds from it.
@@ -146,6 +156,7 @@ export class SeedingController {
                 return state === undefined ? undefined : seriesResponseOf(state);
               },
               matchFormat,
+              await qualifierLabelsForRecords(this.db, zoneRecords),
             ),
           };
         }
@@ -198,6 +209,7 @@ export class SeedingController {
         };
       }),
     );
+    const qualifiers = await this.qualifiersOf(stageId, record.format);
     const resolvedNamesMap = await new EnrollmentRepository(this.db).resolveEntrantNames(
       record.entrantIds,
     );
@@ -225,7 +237,28 @@ export class SeedingController {
       zones: zoneResponses,
       hasRecordedResults: record.hasRecordedResults,
       names,
+      ...(qualifiers === undefined ? {} : { qualifiers: qualifiers.map(qualifierZoneResponse) }),
     };
+  }
+
+  /**
+   * The qualifier seeds promotion plans route into the stage, or none when no plan targets it. A
+   * plan whose routing no longer fits the stage's zones reads as none here; generating ahead
+   * reports why.
+   */
+  private async qualifiersOf(
+    stageId: string,
+    format: string,
+  ): Promise<readonly StageQualifierZone[] | undefined> {
+    try {
+      const plans = await stageQualifierPlans(this.db, stageId);
+      if (plans.length === 0) return undefined;
+      return await stageQualifierZones(this.db, { stageId, format }, plans);
+    } catch (error) {
+      if (error instanceof QualifierRoutingError || error instanceof QualificationError)
+        return undefined;
+      throw error;
+    }
   }
 
   /**
@@ -297,6 +330,15 @@ export class SeedingController {
       stageNumber,
       request,
     );
+
+    const audit = {
+      organizationId,
+      actor: actorOf(request),
+      authorizationContext: authorizationContextOf(request),
+    };
+    if (body.ahead === true) {
+      return this.publishAhead(stageNumber, { stageId, tournamentId, record }, audit);
+    }
 
     const seeds = body.seeds ?? [];
     if (seeds.length === 0) {
@@ -382,14 +424,123 @@ export class SeedingController {
       });
     }
 
+    await this.persistPlans(stageId, plans, audit);
+
+    return {
+      mutationClass: classification.mutationClass,
+      reason: classification.reason,
+      invalidates: [...classification.invalidates],
+      persisted: true,
+    };
+  }
+
+  /**
+   * Generates every destination zone's elimination structure from the qualifier positions the
+   * promotion plans route to it, before the prior stage completes. Seed `k` is the zone's `k`-th
+   * qualifier position, so the bracket's seed-slot order applies unchanged. The sides stay
+   * undecided until an organizer confirms the qualification.
+   */
+  private async publishAhead(
+    stageNumber: number,
+    stage: {
+      readonly stageId: string;
+      readonly tournamentId: string;
+      readonly record: {
+        readonly format: string;
+        readonly overrides: Readonly<Record<string, unknown>>;
+        readonly hasRecordedResults: boolean;
+        readonly hasGeneratedFixtures: boolean;
+      };
+    },
+    audit: {
+      readonly organizationId: string;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<SeedingClassificationResponse> {
+    const { stageId, tournamentId, record } = stage;
+    let zones: readonly StageQualifierZone[];
+    try {
+      const qualifierPlans = await stageQualifierPlans(this.db, stageId);
+      if (qualifierPlans.length === 0) {
+        throw new UnprocessableEntityException(
+          `No reviewed promotion plan routes to stage ${stageNumber}; save one before generating it ahead`,
+          { errorCode: 'seeding-promotion-plan-missing' },
+        );
+      }
+      zones = await stageQualifierZones(
+        this.db,
+        { stageId, format: record.format },
+        qualifierPlans,
+      );
+    } catch (error) {
+      if (error instanceof QualifierRoutingError || error instanceof QualificationError)
+        throw new UnprocessableEntityException(error.message, {
+          errorCode: 'seeding-unprocessable-entity',
+        });
+      throw error;
+    }
+    const unsupported = zones.find(
+      (zone) => zone.format !== 'single-elimination' && zone.format !== 'double-elimination',
+    );
+    if (unsupported !== undefined) {
+      throw new UnprocessableEntityException(
+        `Only single- and double-elimination zones can be generated ahead; ${unsupported.zoneName ?? 'the stage'} plays ${unsupported.format}`,
+        { errorCode: 'seeding-unprocessable-entity' },
+      );
+    }
+
+    const classification = classifyEngineMutation(
+      { kind: 'seeding' },
+      {
+        hasRecordedResults: record.hasRecordedResults,
+        hasGeneratedFixtures: record.hasGeneratedFixtures,
+      },
+    );
+    if (classification.mutationClass === 'blocked_after_results') {
+      throw new ConflictException(classification.reason, { errorCode: 'seeding-conflict' });
+    }
+
+    const plans: { zoneId?: string; nodes: readonly PersistedFixtureNode[] }[] = [];
+    for (const zone of zones) {
+      const declaration = await readStageSeries(this.db, {
+        tournamentId,
+        stageId,
+        zoneId: zone.zoneId,
+      });
+      const placeholders = zone.seeds.map((_, index) => `qualifier-${index + 1}`);
+      const graph = withQualifierSources(
+        this.graphOf(zone.format, placeholders, placementPlayOf(record.overrides, zone.zoneId)),
+        zone.seeds,
+      );
+      plans.push({
+        ...(zone.zoneId === undefined ? {} : { zoneId: zone.zoneId }),
+        nodes: persistedFixtureNodes(graph, declaration?.span ?? 1),
+      });
+    }
+    await this.persistPlans(stageId, plans, audit);
+
+    return {
+      mutationClass: classification.mutationClass,
+      reason: classification.reason,
+      invalidates: [...classification.invalidates],
+      persisted: true,
+    };
+  }
+
+  /** Replaces the stage's fixtures and resolves every zone they land in, in one transaction. */
+  private async persistPlans(
+    stageId: string,
+    plans: Parameters<CompetitionRepository['publishFixturePlans']>[1]['plans'],
+    audit: {
+      readonly organizationId: string;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<void> {
     const competition = new CompetitionRepository(this.db);
     try {
       await withTransaction(this.db, async (uow) => {
-        const audit = {
-          organizationId,
-          actor: actorOf(request),
-          authorizationContext: authorizationContextOf(request),
-        };
         const created = await competition.publishFixturePlans(uow, { stageId, plans, ...audit });
         const zoneIds = new Set(
           created.flatMap((fixture) => (fixture.zoneId ? [fixture.zoneId] : [])),
@@ -401,13 +552,6 @@ export class SeedingController {
         throw new ConflictException(error.message, { errorCode: 'seeding-conflict' });
       throw error;
     }
-
-    return {
-      mutationClass: classification.mutationClass,
-      reason: classification.reason,
-      invalidates: [...classification.invalidates],
-      persisted: true,
-    };
   }
 
   /** The stage's zones with the entrants drawn into each, in the shape the fixture planner reads. */
@@ -509,6 +653,15 @@ export class SeedingController {
       record: effectiveRecord,
     };
   }
+}
+
+function qualifierZoneResponse(zone: StageQualifierZone): SeedingQualifierZoneResponse {
+  return {
+    ...(zone.zoneId === undefined ? {} : { zoneId: zone.zoneId }),
+    ...(zone.zoneName === undefined ? {} : { zoneName: zone.zoneName }),
+    format: zone.format,
+    seeds: zone.seeds.map((seed) => ({ ...seed })),
+  };
 }
 
 /** The tournament's currently accepted registrations, in registration order. */

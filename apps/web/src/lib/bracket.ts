@@ -1,4 +1,9 @@
-import { formatSideSource, sourceMatchLabel, type SideSourceMessages } from './side-source.js';
+import {
+  formatSideSource,
+  sourceMatchLabel,
+  type QualifierLabel,
+  type SideSourceMessages,
+} from './side-source.js';
 import type { ResultReason } from '@copalibre/domain';
 import { decide, presentState, type ResultState, type ResultStateLabels } from './result-state.js';
 import type { BracketOutcome } from '../components/ui/molecules/OutcomeLegend.js';
@@ -41,7 +46,13 @@ export type SlotSource =
       readonly round?: number;
       readonly position?: number;
     }
-  | { readonly kind: 'seed'; readonly seed: number };
+  | { readonly kind: 'seed'; readonly seed: number }
+  | {
+      readonly kind: 'qualifier';
+      readonly promotionPlanId?: string;
+      readonly position?: number;
+      readonly qualifierLabel?: QualifierLabel;
+    };
 
 export type StageLayout = 'bracket' | 'grid';
 

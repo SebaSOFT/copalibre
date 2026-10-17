@@ -111,6 +111,13 @@ export type ControlRoute =
       readonly stageNumber: number;
     }
   | {
+      /** Confirming who qualified into a stage generated ahead. */
+      readonly screen: 'qualification';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+      readonly stageNumber: number;
+    }
+  | {
       /** A zone's promotion-plan configuration and review. */
       readonly screen: 'promotionPlan';
       readonly organizationAlias: string;
@@ -286,9 +293,10 @@ const ORG_SCOPED_ROUTES: readonly {
 
 /** The screen each `/stages/{n}/{suffix}` suffix names. */
 const STAGE_SUFFIX_SCREENS: Readonly<
-  Record<string, 'seeding' | 'standings' | 'zoneGroups' | 'schedule'>
+  Record<string, 'seeding' | 'standings' | 'zoneGroups' | 'schedule' | 'qualification'>
 > = {
   seeding: 'seeding',
+  qualification: 'qualification',
   standings: 'standings',
   zones: 'zoneGroups',
   schedule: 'schedule',

@@ -253,6 +253,22 @@ describe('migrations (integration)', () => {
       ]),
     );
 
+    expect(afterUpTables.find((table) => table.name === 'promotion_plans')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'confirmed_resolution', isNullable: true }),
+      ]),
+    );
+
+    const promotionPlanConfirmationDown = await migrateDownOneStep(scratch.db);
+    expect(promotionPlanConfirmationDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0043-schedule-integrity');
+    expect(
+      (await scratch.db.introspection.getTables()).find((table) => table.name === 'promotion_plans')
+        ?.columns,
+    ).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'confirmed_resolution' })]),
+    );
+
     const scheduleIntegrityDown = await migrateDownOneStep(scratch.db);
     expect(scheduleIntegrityDown.error).toBeUndefined();
     await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0042-fixture-graph-sources');

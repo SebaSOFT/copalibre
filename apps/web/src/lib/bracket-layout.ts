@@ -8,7 +8,7 @@
  * target, so a bracket needs no script to be drawn and prints as drawn.
  */
 
-export type LayoutSlotKind = 'entrant' | 'bye' | 'winner-of' | 'loser-of' | 'pending';
+export type LayoutSlotKind = 'entrant' | 'bye' | 'winner-of' | 'loser-of' | 'qualifier' | 'pending';
 
 export interface LayoutSlot {
   readonly kind: LayoutSlotKind;

@@ -24,6 +24,17 @@ export const messages: Record<string, string> = {
   'control.sideSource.unknown': 'Teilnehmer noch offen',
   'control.sideSource.seed': 'Setzplatz {seed}',
   'control.sideSource.bye': 'Freilos',
+  'control.sideSource.qualifierGroup': '{rank} {group}',
+  'control.sideSource.qualifierGroupNumber': 'Gruppe {number}',
+  'control.sideSource.qualifierBest': 'Bester {rank}',
+  'control.sideSource.qualifierNthBest': '{order} bester {rank}',
+  'control.sideSource.qualifierRunnerUp': 'Zweiter',
+  'control.sideSource.qualifier': 'Qualifikant {number}',
+  'control.sideSource.qualifierShort': 'Q{number}',
+  'control.sideSource.ordinal1': '1.',
+  'control.sideSource.ordinal2': '2.',
+  'control.sideSource.ordinal3': '3.',
+  'control.sideSource.ordinalOther': '{n}.',
   'control.schedule.concurrentChange': '{actor} hat {match} neu angesetzt. Vorschau aktualisiert.',
   'control.bracket.highlightEntrant': 'Weg von {entrant} hervorheben',
   'control.bracket.highlightHint':
@@ -1545,4 +1556,41 @@ export const messages: Record<string, string> = {
   'control.scheduleReason.broadcast': 'Übertragungsplan',
   'control.scheduleReason.dataCorrection': 'Korrektur eines Fehlers',
   'control.scheduleReason.other': 'Sonstiges',
+  'control.seeding.ahead.title': 'Vorab erzeugen',
+  'control.seeding.ahead.description':
+    'Ein geprüfter Aufstiegsplan leitet Qualifikanten in diese Phase. Erzeugen Sie den Turnierbaum jetzt mit Qualifikationsplätzen; die Teilnehmer werden bestätigt, sobald die vorige Phase abgeschlossen ist.',
+  'control.seeding.ahead.generate': 'Vorab erzeugen',
+  'control.seeding.ahead.generated':
+    'Vorab erzeugt. Bestätigen Sie die Qualifikation, sobald die vorige Phase abgeschlossen ist.',
+  'control.seeding.ahead.preview': 'Vorschau des Turnierbaums',
+  'control.seeding.ahead.confirmLink': 'Qualifikation bestätigen',
+  'control.qualification.title': 'Qualifikation',
+  'control.qualification.loading': 'Qualifikation wird geladen …',
+  'control.qualification.loadFailed': 'Die Qualifikation konnte nicht geladen werden.',
+  'control.qualification.empty': 'Kein Aufstiegsplan leitet Qualifikanten in diese Phase.',
+  'control.qualification.incomplete':
+    '{count, plural, one {# Spiel der vorigen Phase ist} other {# Spiele der vorigen Phase sind}} noch offen. Die Teilnehmer werden bestätigt, sobald sie abgeschlossen ist.',
+  'control.qualification.notStarted':
+    'Die vorige Phase hat noch keine Spiele. Die Teilnehmer werden bestätigt, sobald sie abgeschlossen ist.',
+  'control.qualification.tie':
+    '{entrants} sind an der Qualifikationsgrenze{group, select, none {} other { von {group}}} für {positions} gleichauf. Lösen Sie den Gleichstand vor der Bestätigung auf.',
+  'control.qualification.stale':
+    'Ein Ergebnis hat sich nach der Bestätigung geändert. Erneute Bestätigung nötig.',
+  'control.qualification.confirmed':
+    'Qualifikation bestätigt. Jeder Qualifikationsplatz zeigt seinen Teilnehmer.',
+  'control.qualification.ready':
+    'Prüfen Sie jede Position und bestätigen Sie dann. Alle Plätze werden in einem Schritt besetzt.',
+  'control.qualification.positionColumn': 'Position',
+  'control.qualification.zoneColumn': 'Zone',
+  'control.qualification.entrantColumn': 'Teilnehmer',
+  'control.qualification.confirmedColumn': 'Bestätigt',
+  'control.qualification.confirm': 'Qualifikation bestätigen',
+  'control.qualification.reconfirm': 'Erneut bestätigen',
+  'control.qualification.confirmSucceeded':
+    'Qualifikation bestätigt: {count, plural, one {# Platz besetzt} other {# Plätze besetzt}}.',
+  'control.qualification.previewMoved':
+    'Die Tabelle hat sich seit dieser Vorschau geändert. Prüfen Sie sie vor der Bestätigung erneut.',
+  'control.qualification.seedingLink': 'Zurück zur Setzliste',
+  'control.promotion.planRequiresRebuild':
+    'Phase {stage} wurde mit diesem Plan vorab erzeugt. Erzeugen Sie sie erneut, damit die Positionen vor der Bestätigung übereinstimmen.',
 };
