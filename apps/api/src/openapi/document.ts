@@ -34,7 +34,7 @@ import { FIXTURE_SIDE_SOURCE_MODELS } from '../dto/fixture-side-source.dto.js';
  * requires a `stages` array declaring every stage up front, replacing the single
  * top-level `format`/`series` fields.
  */
-export const OPENAPI_VERSION = '7.5.0';
+export const OPENAPI_VERSION = '7.6.0';
 
 export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()

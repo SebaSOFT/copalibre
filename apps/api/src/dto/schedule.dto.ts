@@ -282,6 +282,15 @@ export class OrganizationScheduleResponse {
 export class ScheduleResponse {
   @ApiProperty({ type: [ScheduleAssignmentResponse] })
   assignments!: ScheduleAssignmentResponse[];
+
+  @ApiProperty({
+    type: [ScheduleConflictDto],
+    description:
+      'Conflicts that exist now among published placements involving this stage, by the same ' +
+      'detection preview and publish use. One that arose after publication, for example when a ' +
+      'side resolved, is reported here and nothing is moved.',
+  })
+  conflicts!: ScheduleConflictDto[];
 }
 
 /**

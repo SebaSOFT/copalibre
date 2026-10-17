@@ -4,6 +4,7 @@ import {
   EnrollmentRepository,
   EventStreamReader,
   MatchAssignmentRepository,
+  OutboxReader,
   PersonRepository,
   ScheduleRepository,
   TournamentRepository,
@@ -12,6 +13,7 @@ import {
 } from '@copalibre/persistence';
 import { MatchControlController } from './match-control.controller.js';
 import { PublicProjectionsController } from './public-projections.controller.js';
+import { SchedulesController } from './schedules.controller.js';
 import { SeedingController } from './seeding.controller.js';
 import { StagesController } from './stages.controller.js';
 import { buildTestApp } from './test-support/integration-harness.js';
@@ -40,6 +42,7 @@ describe('persisted bracket activation through HTTP', () => {
       StagesController,
       MatchControlController,
       PublicProjectionsController,
+      SchedulesController,
     ]);
   });
   afterAll(async () => {
@@ -640,5 +643,164 @@ describe('persisted bracket activation through HTTP', () => {
     const overview = await request('GET', `${tournamentBase(cup.alias)}/overview`);
     expect(overview.statusCode).toBe(200);
     expect(overview.json().winners[0].champion.entrantId).toBe(champion);
+  });
+
+  /** A court with `count` consecutive two-hour slots from a fixed kickoff. */
+  async function courtFor(alias: string, count: number, capacity = 1) {
+    const schedules = new ScheduleRepository(harness.scratch.db);
+    const audit = { ...AUDIT, organizationId: harness.organizationId };
+    return withTransaction(harness.scratch.db, async (uow) => {
+      const venue = await schedules.createVenue(uow, {
+        ...audit,
+        alias,
+        name: 'Court',
+        concurrentCapacity: capacity,
+      });
+      const startsAt = Date.UTC(2026, 11, 5, 9);
+      const schedule = await schedules.createSchedule(uow, {
+        ...audit,
+        name: alias,
+        startsAt,
+        endsAt: startsAt + count * 2 * 60 * 60_000,
+        slotMinutes: 120,
+        turnaroundMinutes: 0,
+        venueIds: [venue.venueId],
+      });
+      return schedules.listScheduleSlots(schedule.scheduleId, uow);
+    });
+  }
+
+  it('reports a rest conflict a quarter-final result makes real, announces it, and clears it once moved', async () => {
+    const cup = await setup({ count: 8 });
+    await harness.scratch.db
+      .updateTable('tournaments')
+      .set({ minimum_rest_minutes: 60 })
+      .where('tournament_id', '=', cup.tournamentId)
+      .execute();
+    const rows = await fixtureRows(cup.stageId);
+    const quarterRow = rows.find((row) => row.node_key === 'SE-R1-M1');
+    const semiRow = rows.find((row) => row.node_key === 'SE-R2-M1');
+    const quarter = cup.fixtures.find((fixture) => fixture.fixtureId === quarterRow?.fixture_id);
+    const quarterMatch = cup.matches.find((match) => match.fixtureId === quarterRow?.fixture_id);
+    const semiMatch = cup.matches.find((match) => match.fixtureId === semiRow?.fixture_id);
+    if (!quarter || !semiMatch || !quarterMatch) throw new Error('Missing bracket games');
+    const slots = await courtFor(`court-${newId()}`, 4);
+    const schedules = new ScheduleRepository(harness.scratch.db);
+    const audit = { ...AUDIT, organizationId: harness.organizationId };
+    // The semi-final is undecided, so its rest is not checked and it publishes right after.
+    await withTransaction(harness.scratch.db, (uow) =>
+      schedules.publishSchedule(uow, {
+        ...audit,
+        assignments: [
+          { matchId: quarterMatch.matchId, slotId: slots[0]?.slotId as string },
+          { matchId: semiMatch.matchId, slotId: slots[1]?.slotId as string },
+        ],
+      }),
+    );
+    const schedulePath = `${tournamentBase(cup.alias)}/stages/${cup.stageId}/schedule`;
+    const clean = await request('GET', schedulePath);
+    expect(clean.statusCode).toBe(200);
+    expect(clean.json().conflicts).toEqual([]);
+
+    await play(
+      cup.alias,
+      quarterMatch.matchId,
+      quarter.homeEntrantId as string,
+      quarter.awayEntrantId as string,
+    );
+
+    const read = await request('GET', schedulePath);
+    const [conflict, ...others] = read.json().conflicts as {
+      kind: string;
+      matchId: string;
+      conflictsWithMatchId: string;
+      resourceId: string;
+    }[];
+    expect(others).toEqual([]);
+    expect(conflict).toMatchObject({ kind: 'rest-rule', resourceId: quarter.homeEntrantId });
+    expect([conflict?.matchId, conflict?.conflictsWithMatchId].sort()).toEqual(
+      [quarterMatch.matchId, semiMatch.matchId].sort(),
+    );
+    // Reported, not enforced: both placements stand.
+    expect(
+      read
+        .json()
+        .assignments.map((entry: { slotId: string }) => entry.slotId)
+        .sort(),
+    ).toEqual([slots[0]?.slotId, slots[1]?.slotId].sort());
+    const announced = (await new OutboxReader(harness.scratch.db).pending(10_000)).filter(
+      (event) =>
+        event.eventType === 'schedule.conflict-arose' && event.entityId === semiMatch.matchId,
+    );
+    expect(announced).toHaveLength(1);
+    expect(announced[0]?.payload).toMatchObject({
+      kind: 'rest-rule',
+      conflictsWithMatchId: quarterMatch.matchId,
+      resourceId: quarter.homeEntrantId,
+    });
+
+    await withTransaction(harness.scratch.db, (uow) =>
+      schedules.publishSchedule(uow, {
+        ...audit,
+        reason: { text: 'Más descanso para el ganador del cuarto' },
+        assignments: [{ matchId: semiMatch.matchId, slotId: slots[2]?.slotId as string }],
+      }),
+    );
+    expect((await request('GET', schedulePath)).json().conflicts).toEqual([]);
+  });
+
+  it('reads current conflicts within the preview time of the same placements on a large organization', async () => {
+    // A second tournament, so the organization holds over 300 matches whatever ran before.
+    await setup({ count: 64, appoint: false });
+    const cup = await setup({ count: 256, appoint: false });
+    const firstRound = cup.fixtures.filter((fixture) => fixture.round === 1);
+    const placed = cup.matches.filter((match) =>
+      firstRound.some((fixture) => fixture.fixtureId === match.fixtureId),
+    );
+    const slots = await courtFor(`arena-${newId()}`, 2, placed.length);
+    const assignments = placed.map((match) => ({
+      matchId: match.matchId,
+      slotId: slots[0]?.slotId as string,
+    }));
+    const schedules = new ScheduleRepository(harness.scratch.db);
+    await withTransaction(harness.scratch.db, (uow) =>
+      schedules.publishSchedule(uow, {
+        ...AUDIT,
+        organizationId: harness.organizationId,
+        assignments,
+      }),
+    );
+    expect(
+      Number(
+        (
+          await harness.scratch.db
+            .selectFrom('matches')
+            .select(({ fn }) => fn.countAll().as('count'))
+            .executeTakeFirstOrThrow()
+        ).count,
+      ),
+    ).toBeGreaterThanOrEqual(300);
+
+    const timed = async (work: () => Promise<unknown>) => {
+      const started = performance.now();
+      await work();
+      return performance.now() - started;
+    };
+    const preview = await timed(() =>
+      schedules.previewSchedule({ organizationId: harness.organizationId, assignments }),
+    );
+    let read = 0;
+    const response = await (async () => {
+      let result: Awaited<ReturnType<typeof request>> | undefined;
+      read = await timed(async () => {
+        result = await request(
+          'GET',
+          `${tournamentBase(cup.alias)}/stages/${cup.stageId}/schedule`,
+        );
+      });
+      return result;
+    })();
+    expect(response?.json().conflicts).toEqual([]);
+    expect(read).toBeLessThan(Math.max(3 * preview, preview + 500));
   });
 });

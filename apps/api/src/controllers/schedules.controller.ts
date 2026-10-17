@@ -65,9 +65,22 @@ export class SchedulesController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageId') stageId: string,
   ): Promise<ScheduleResponse> {
-    await this.resolveTournament(organizationAlias, tournamentAlias);
-    const assignments = await new ScheduleRepository(this.db).listScheduleDetailsForStage(stageId);
-    return { assignments: assignments.map(SchedulesController.toDto) };
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    return this.stageSchedule(tournament.organizationId, stageId);
+  }
+
+  /** The stage's placements and the conflicts among them that exist now. */
+  private async stageSchedule(organizationId: string, stageId: string): Promise<ScheduleResponse> {
+    const schedules = new ScheduleRepository(this.db);
+    const assignments = await schedules.listScheduleDetailsForStage(stageId);
+    const conflicts = await schedules.currentConflicts(
+      organizationId,
+      assignments.map((assignment) => assignment.matchId),
+    );
+    return {
+      assignments: assignments.map(SchedulesController.toDto),
+      conflicts: conflicts.map((conflict) => ({ ...conflict })),
+    };
   }
 
   @Post('preview')
@@ -163,8 +176,7 @@ export class SchedulesController {
           }),
         ),
       );
-      const assignments = await schedules.listScheduleDetailsForStage(stageId);
-      return { assignments: assignments.map(SchedulesController.toDto) };
+      return await this.stageSchedule(tournament.organizationId, stageId);
     } catch (cause) {
       // A conflicting schedule is the caller's mistake, not a server fault, and
       // the reply carries the same detail the preview would have shown.
