@@ -39,6 +39,28 @@ public pages work at `/panamericano-demo/tournaments/panamericano-clubes-2025`.
 
 3. `copalibre dev demo panamericano-clubes-2025`. `copalibre dev demo --list` shows what is available.
 
+### A tournament happening now
+
+`--anchor <YYYY-MM-DD|today>` moves the dataset's first game day to that date. Every game keeps its
+local kickoff time and its distance in days from the first game day, in the organization's time zone
+(`today` is today there). `--played-until <ISO-8601|now>` plays only the games whose nominal finish
+(kickoff plus two 25-minute halves, the rink-hockey length) is at or before the cutoff; every other game
+stays published in its slot with its officials, and has no result, events or match roster. The two
+combine:
+
+```sh
+copalibre dev demo panamericano-clubes-2025 --anchor today --played-until now
+```
+
+With a cutoff before the last group game, the qualification is not confirmed, so every cup
+quarter-final side names its qualifier position and nothing more; confirm it from the control panel's
+qualification screen once you play the remaining group games. With a cutoff inside the cups, each
+later side waits on exactly the game that feeds it. The load prints the first game day, the cutoff,
+how many games were played, whether the qualification was confirmed and how many fixtures have sides
+to decide. A dataset already loaded is skipped, flags included: reset the stack to load it again with
+other flags. A game still running at the cutoff is left unplayed, so it can be started from the live
+console.
+
 Loading is one transaction, so a failure leaves nothing behind, and it is safe to repeat: a dataset that
 is already loaded is reported as `skipped`. There is no wipe option; to start over,
 `docker compose -f docker-compose.dev.yml down -v`.
@@ -56,7 +78,17 @@ seconds after the load.
   surname, so it cannot be reversed from the dataset. Anyone holding both the dataset and the source
   site can still re-link a person by club, dorsal and given name; the aim is that no real surname is
   committed, not anonymity against the source.
-- The cups' placement games (`3º puesto`, `5º puesto`, `7º puesto`, `5º al 8º puesto`) are stored with a fixture role (`place-3`, `place-5`, `place-7`, `places-5-8`) read from the published round label, which is what lets the public bracket draw them beside the generated graph. A demo loaded before that role existed has none and needs a reload (`docker compose -f docker-compose.dev.yml down -v`, then load again).
+- Each cup loads as a persisted bracket, keyed like the engine's eight-entrant graph with every place
+  played (`SE-R1-M1` … `SE-R3-M1`, `PL5-R1-M1`, `placement-3`, `placement-5`, `placement-7`). Every
+  later side is a `winner-of` or `loser-of` edge to the game its entrant came from, inferred from the
+  published results. Every quarter-final side is a position of one manual promotion plan from the
+  groups, banded to Copa Oro, Copa Plata and Copa Bronce in the published order. The loader confirms
+  that qualification once every group game is played, and the cups fill through the same writer a
+  recorded result uses. A demo loaded before this has flat cups and needs a reload
+  (`docker compose -f docker-compose.dev.yml down -v`, then load again).
+- A drawn cup game was decided by penalties, which the source does not publish. When one of its
+  entrants played on, that entrant is recorded as the winner; a drawn final or placement game stays a
+  draw, so the Copa Bronce champion is not recorded.
 - Staff (coaches and delegates) are not included.
 - Two games were played to 10-2 but officially recorded 8-2 under the regulation goal cap; the
   official score is kept and their scorers are omitted. One game has no report on the source, so it has

@@ -69,6 +69,23 @@ Corre un entorno de desarrollo, contenerizado o híbrido.
 
 - `--hybrid`: infraestructura en Docker, procesos de aplicación en el host
 
+### dev demo
+
+`copalibre dev demo [--list] [<dataset>] [--anchor <YYYY-MM-DD|today>] [--played-until <ISO-8601|now>]`
+
+Carga un conjunto de datos de demostración versionado (por ejemplo `panamericano-clubes-2025`, un
+campeonato de hockey sobre patines de 24 clubes con grupos, copas, programación, resultados y
+escudos) en el entorno de desarrollo en ejecución. Ejecutalo desde tu checkout con el entorno
+levantado (`copalibre dev`). La disciplina `rink-hockey` tiene que estar instalada; la carga nunca
+instala módulos, y un conjunto ya cargado no se toca. Los apellidos de los jugadores son generados,
+no reales.
+
+- `--list`: muestra los conjuntos disponibles y termina
+- `--anchor <YYYY-MM-DD|today>`: mueve el primer día de juego a esa fecha; cada partido conserva su hora local y su distancia en días desde el primer día. `today` es hoy en la zona horaria de la organización
+- `--played-until <ISO-8601|now>`: juega solo los partidos que terminaron hasta ese momento; el resto queda programado en su turno, y los partidos de copa cuyos participantes dependen de ellos quedan a definir. Un instante indica su desfase, por ejemplo `2026-10-18T15:00:00-03:00`
+- `copalibre dev demo panamericano-clubes-2025 --anchor today --played-until now` carga un torneo en curso
+- reiniciá los datos de demostración con `docker compose -f docker-compose.dev.yml down -v`; un conjunto ya cargado se omite, con o sin opciones
+
 ## start
 
 `copalibre start [--dev]`

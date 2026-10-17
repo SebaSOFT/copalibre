@@ -62,6 +62,18 @@ file:///var/lib/copalibre/modules-dev/<alias>` 搭配使用，可在无需源代
 
 - `--hybrid`：基础设施运行在 Docker 中，应用进程运行在主机上
 
+### dev demo
+
+`copalibre dev demo [--list] [<dataset>] [--anchor <YYYY-MM-DD|today>] [--played-until <ISO-8601|now>]`
+
+将一个已提交的演示数据集（例如 `panamericano-clubes-2025`，一个包含 24 个俱乐部的轮滑曲棍球锦标赛，含小组、杯赛、赛程、结果和队徽）加载到正在运行的开发环境中。请在开发环境启动时（`copalibre dev`）从你的 checkout 中运行。`rink-hockey` 项目必须已安装；加载从不安装模块，已加载的数据集保持不变。数据集中的球员姓氏是生成的，并非真实姓名。
+
+- `--list`：列出可用的数据集后退出
+- `--anchor <YYYY-MM-DD|today>`：把第一个比赛日移到该日期；每场比赛保留其当地时间及与第一个比赛日相隔的天数。`today` 指组织所在时区的今天
+- `--played-until <ISO-8601|now>`：只进行在该时刻之前结束的比赛；其余比赛仍按时段安排，参赛者依赖这些比赛的杯赛场次则保持待定。时刻须注明时差，例如 `2026-10-18T15:00:00-03:00`
+- `copalibre dev demo panamericano-clubes-2025 --anchor today --played-until now` 会加载一个正在进行的赛事
+- 使用 `docker compose -f docker-compose.dev.yml down -v` 重置演示数据；已加载的数据集会被跳过，带选项时也一样
+
 ## start
 
 `copalibre start [--dev]`

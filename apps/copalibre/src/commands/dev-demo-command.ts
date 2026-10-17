@@ -33,7 +33,7 @@ function isUp(service: ComposeServiceRow | undefined): boolean {
 }
 
 /**
- * `copalibre dev demo [--list] [<dataset>]`: loads a committed demo dataset into the running development stack
+ * `copalibre dev demo [--list] [<dataset>] [--anchor <date>] [--played-until <instant>]`: loads a committed demo dataset into the running development stack
  * from the host, through the seed application's `demo` subcommand. It only ever targets
  * `docker-compose.dev.yml` in a checkout, never an installation.
  */
@@ -41,6 +41,12 @@ export class DevDemoCommand extends Command<CliContext> {
   static override paths = [['dev', 'demo']];
 
   list = Option.Boolean('--list', false);
+  anchor = Option.String('--anchor', {
+    description: 'Move the first game day to a YYYY-MM-DD date, or to today',
+  });
+  playedUntil = Option.String('--played-until', {
+    description: 'Play only the games finished by an ISO-8601 instant, or by now',
+  });
   dataset = Option.String({ required: false });
 
   async execute(): Promise<number> {
@@ -71,7 +77,17 @@ export class DevDemoCommand extends Command<CliContext> {
       }
 
       await this.requireInfrastructure();
-      return this.context.processes.run('yarn', [...seed, this.dataset], environment);
+      // The seed application validates both values before connecting; they pass through verbatim.
+      return this.context.processes.run(
+        'yarn',
+        [
+          ...seed,
+          this.dataset,
+          ...(this.anchor === undefined ? [] : ['--anchor', this.anchor]),
+          ...(this.playedUntil === undefined ? [] : ['--played-until', this.playedUntil]),
+        ],
+        environment,
+      );
     });
   }
 

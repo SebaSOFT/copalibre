@@ -88,7 +88,7 @@ Runs a development environment, containerized or hybrid.
 
 ### dev demo
 
-`copalibre dev demo [--list] [<dataset>]`
+`copalibre dev demo [--list] [<dataset>] [--anchor <YYYY-MM-DD|today>] [--played-until <ISO-8601|now>]`
 
 Loads a committed demo dataset (for example `panamericano-clubes-2025`, a 24-club rink hockey
 championship with groups, cups, schedule, results and emblems) into the running development stack.
@@ -97,7 +97,16 @@ already be installed; loading never installs modules, and a dataset already load
 untouched. Player surnames in the datasets are generated, not real.
 
 - `--list`: print the available datasets and exit
-- reset the demo data with `docker compose -f docker-compose.dev.yml down -v`
+- `--anchor <YYYY-MM-DD|today>`: move the first game day to that date; every game keeps its local
+  time and its distance in days from the first game day. `today` is today in the organization's time
+  zone
+- `--played-until <ISO-8601|now>`: play only the games that finished by then; the rest stay scheduled
+  in their slots, and cup games whose entrants depend on them stay to be decided. An instant names its
+  offset, for example `2026-10-18T15:00:00-03:00`
+- `copalibre dev demo panamericano-clubes-2025 --anchor today --played-until now` loads a tournament
+  happening now
+- reset the demo data with `docker compose -f docker-compose.dev.yml down -v`; a dataset already
+  loaded is skipped, flags included
 
 ## start
 
