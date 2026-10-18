@@ -1481,7 +1481,7 @@ __metadata:
     cheerio: "npm:^1.2.0"
     esbuild: "npm:^0.28.0"
     jest: "npm:^30.5.2"
-    onnxruntime-web: "npm:1.21.0"
+    onnxruntime-web: "npm:1.30.0"
     playwright-core: "npm:1.63.0"
     sharp: "npm:^0.35.5"
     ts-jest: "npm:^29.4.12"
@@ -1763,7 +1763,7 @@ __metadata:
     jest: "npm:^30.5.2"
     jest-environment-jsdom: "npm:^30.4.1"
     jsdom: "npm:^30.0.1"
-    onnxruntime-web: "npm:1.21.0"
+    onnxruntime-web: "npm:1.30.0"
     papaparse: "npm:^5.6.0"
     react: "npm:^19.2.8"
     react-dom: "npm:^19.2.8"
@@ -14138,24 +14138,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"onnxruntime-common@npm:1.21.0":
-  version: 1.21.0
-  resolution: "onnxruntime-common@npm:1.21.0"
-  checksum: 10c0/424a83ad21b770fbf69e85f9736911ef238ea5b3ace73fa9a49fc584c98eed0a2f2fe977d2277fe725f8f6ec65d1fce3ad635c2d0a908163c6a7a03cc7478775
+"onnxruntime-common@npm:1.30.0":
+  version: 1.30.0
+  resolution: "onnxruntime-common@npm:1.30.0"
+  checksum: 10c0/cfc1bf3d14d3771922db3179ec03c0b59a799c260579c8b934d6cdbc77fd2104b3b961c1d7c626457629eed72d94acbc7d49f8805d0ed35375c4e6ad0dc5e6cc
   languageName: node
   linkType: hard
 
-"onnxruntime-web@npm:1.21.0":
-  version: 1.21.0
-  resolution: "onnxruntime-web@npm:1.21.0"
+"onnxruntime-web@npm:1.30.0":
+  version: 1.30.0
+  resolution: "onnxruntime-web@npm:1.30.0"
   dependencies:
     flatbuffers: "npm:^25.1.24"
     guid-typescript: "npm:^1.0.9"
     long: "npm:^5.2.3"
-    onnxruntime-common: "npm:1.21.0"
+    onnxruntime-common: "npm:1.30.0"
     platform: "npm:^1.3.6"
     protobufjs: "npm:^7.2.4"
-  checksum: 10c0/368436584da7aabda00804825aafaaec5f24704c9b4779fa9ddc76628e3079105405e1576b3a1158c51e26d6e2ce674eb6ac61bb05b4266dfe9e39e939c05e70
+  checksum: 10c0/10f0f9a7b76d6561db685546f42e43c70b29de386b0db9ad023fb261efa00584b154a2f8a85abf954f3aa39a0ee39871d13540a26b97892adbc0bc5e70337008
   languageName: node
   linkType: hard
 
