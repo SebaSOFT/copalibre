@@ -18,12 +18,12 @@
     "@copalibre/object-storage": "workspace:^",
     "@copalibre/persistence": "workspace:^",
     "@copalibre/tournament-engine": "workspace:^",
-    "kysely": "^0.29"
+    "kysely": "^0.29.7"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "jest": "^30.5.2",
-    "ts-jest": "^29.4.14",
+    "ts-jest": "^29.4.15",
     "typescript": "^6.0.3"
   }
 }
