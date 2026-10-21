@@ -201,6 +201,10 @@ export const messages: Record<string, string> = {
   'publicWeb.orgPage.emblemPlaceholderAlt': '未上传徽章',
   'publicWeb.orgPage.notFoundTitle': '未找到组织',
   'publicWeb.orgPage.notFoundBody': '该地址不存在任何组织。',
+  'publicWeb.devHelp.unavailableTitle': '开发环境不会生成帮助文档',
+  'publicWeb.devHelp.unavailableBody': '构建 Web 应用并启动预览服务器，即可在本地浏览帮助文档。',
+  'publicWeb.devHelp.unavailableCommand':
+    'yarn workspace @copalibre/web build && yarn workspace @copalibre/web preview',
 
   'publicWeb.matchesView.pageTitle': '比赛',
   'publicWeb.matchesView.filterAll': '全部',

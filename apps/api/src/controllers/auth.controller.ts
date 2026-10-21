@@ -1,7 +1,5 @@
 import * as argon2 from 'argon2';
-import { createHash, createPublicKey, generateKeyPairSync } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { importPKCS8, SignJWT } from 'jose';
 import {
   Body,
@@ -45,6 +43,9 @@ import { PRIVILEGED_SCOPES, RequireSelf, SUPER_ADMIN_SCOPE } from '../auth/acces
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { SharedThrottle } from '../auth/shared-throttle.decorator.js';
+import { readRefreshCookie, REFRESH_COOKIE_NAME } from '../auth/refresh-cookie.js';
+export { REFRESH_COOKIE_NAME } from '../auth/refresh-cookie.js';
+import { getLocalKeys } from '../auth/local-signing-keys.js';
 import { Throttle } from '@nestjs/throttler';
 import { DATABASE } from '../database.token.js';
 import {
@@ -70,6 +71,7 @@ import {
  */
 export const AUTH_THROTTLE_LIMIT = 5;
 export const AUTH_THROTTLE_TTL_MS = 60_000;
+export const REFRESH_THROTTLE_LIMIT = 30;
 
 /**
  * Native-login session refresh. Only native (email/password)
@@ -80,7 +82,6 @@ export const AUTH_THROTTLE_TTL_MS = 60_000;
  * rather than a `@fastify/cookie` dependency, since one cookie with fixed
  * attributes is a few lines, not a plugin's worth of surface.
  */
-export const REFRESH_COOKIE_NAME = 'copalibre_refresh_token';
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function serializeRefreshCookie(value: string, maxAgeSeconds: number): string {
@@ -93,16 +94,6 @@ function serializeRefreshCookie(value: string, maxAgeSeconds: number): string {
   ];
   if (process.env.NODE_ENV === 'production') attributes.push('Secure');
   return attributes.join('; ');
-}
-
-function readRefreshCookie(req: FastifyRequest): string | undefined {
-  const header = req.headers.cookie;
-  if (!header) return undefined;
-  for (const part of header.split(';')) {
-    const [rawName, ...rawValue] = part.trim().split('=');
-    if (rawName === REFRESH_COOKIE_NAME) return rawValue.join('=');
-  }
-  return undefined;
 }
 
 /**
@@ -260,8 +251,8 @@ export class NativeAuthController {
 
   @Post('refresh')
   @HttpCode(200)
-  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL_MS } })
-  @SharedThrottle()
+  @Throttle({ default: { limit: REFRESH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL_MS } })
+  @SharedThrottle('refresh-cookie')
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'Silently renew a native session from its refresh cookie' })
   @ApiOkResponse({ type: LoginResponse })
@@ -269,7 +260,7 @@ export class NativeAuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ): Promise<LoginResponse> {
-    const rawToken = readRefreshCookie(req);
+    const rawToken = readRefreshCookie(req.headers.cookie);
     if (!rawToken) {
       throw new UnauthorizedException('No refresh session present', {
         errorCode: 'auth-unauthorized',
@@ -323,7 +314,7 @@ export class NativeAuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ): Promise<AuthSuccessResponse> {
-    const rawToken = readRefreshCookie(req);
+    const rawToken = readRefreshCookie(req.headers.cookie);
     if (rawToken) {
       try {
         await withTransaction(this.db, (uow) =>
@@ -572,69 +563,6 @@ function toPatResponse(pat: {
   };
 }
 
-let cachedPrivateKey: string | undefined;
-let cachedJwks: { readonly keys: readonly Record<string, unknown>[] } | undefined;
-
-export function getLocalKeys(): {
-  readonly privateKey: string;
-  readonly jwks: { readonly keys: readonly Record<string, unknown>[] };
-} {
-  if (cachedPrivateKey && cachedJwks) {
-    return { privateKey: cachedPrivateKey, jwks: cachedJwks };
-  }
-
-  const cwd = process.cwd();
-  const privateKeyFile =
-    process.env.COPALIBRE_JWT_PRIVATE_KEY_FILE ??
-    (existsSync(join(cwd, 'jwt-private.pem')) ? join(cwd, 'jwt-private.pem') : undefined) ??
-    (existsSync('/var/lib/copalibre/jwt-private.pem')
-      ? '/var/lib/copalibre/jwt-private.pem'
-      : undefined);
-
-  const jwksFile =
-    process.env.COPALIBRE_JWKS_FILE ??
-    (existsSync(join(cwd, 'jwks.json')) ? join(cwd, 'jwks.json') : undefined) ??
-    (existsSync('/var/lib/copalibre/jwks.json') ? '/var/lib/copalibre/jwks.json' : undefined);
-
-  if (privateKeyFile && existsSync(privateKeyFile)) {
-    try {
-      cachedPrivateKey = readFileSync(privateKeyFile, 'utf8');
-    } catch {
-      // ignore
-    }
-  }
-
-  if (jwksFile && existsSync(jwksFile)) {
-    try {
-      cachedJwks = JSON.parse(readFileSync(jwksFile, 'utf8'));
-    } catch {
-      // ignore
-    }
-  }
-
-  if (!cachedPrivateKey || !cachedJwks) {
-    const { privateKey, publicKey } = generateKeyPairSync('rsa', {
-      modulusLength: 2048,
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-    });
-    cachedPrivateKey = cachedPrivateKey ?? privateKey;
-    const jwk = createPublicKey(publicKey).export({ format: 'jwk' });
-    cachedJwks = cachedJwks ?? {
-      keys: [
-        {
-          ...jwk,
-          kid: 'copalibre-local-key-1',
-          use: 'sig',
-          alg: 'RS256',
-        },
-      ],
-    };
-  }
-
-  return { privateKey: cachedPrivateKey, jwks: cachedJwks };
-}
-
 @ApiTags('auth')
 @Controller('.well-known')
 export class WellKnownController {
@@ -690,7 +618,7 @@ export async function issueLocalJwt(
     .setProtectedHeader({ alg: 'RS256', kid })
     .setIssuedAt()
     .setExpirationTime('1h')
-    .setIssuer(process.env.COPALIBRE_JWT_ISSUER ?? 'http://localhost:8080')
+    .setIssuer(process.env.COPALIBRE_NATIVE_JWT_ISSUER ?? 'http://localhost:8080')
     .setAudience(process.env.COPALIBRE_JWT_AUDIENCE ?? 'copalibre')
     .sign(privateKeyObj);
 }

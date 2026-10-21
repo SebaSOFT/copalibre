@@ -8,6 +8,7 @@ import {
 import { TokenVerifier, TokenVerificationError } from './token-verifier.js';
 
 const ISSUER = 'https://id.example.test/';
+const NATIVE_ISSUER = 'https://copalibre.example.test/';
 const AUDIENCE = 'copalibre-api';
 
 interface KeyMaterial {
@@ -22,10 +23,15 @@ async function makeKeys(alg = 'RS256', kid = 'key-1'): Promise<KeyMaterial> {
   return { privateKey, publicJwk, kid };
 }
 
-function verifierFor(keys: readonly JWK[], overrides?: Partial<AuthConfig>): TokenVerifier {
+function verifierFor(
+  keys: readonly JWK[],
+  overrides?: Partial<AuthConfig>,
+  nativeKeys?: readonly JWK[],
+): TokenVerifier {
   const config: AuthConfig = {
     jwksUri: 'https://id.example.test/jwks',
     issuer: ISSUER,
+    nativeIssuer: NATIVE_ISSUER,
     audience: AUDIENCE,
     jwksCacheMaxAgeMs: 60_000,
     clockToleranceSeconds: DEFAULT_CLOCK_TOLERANCE_SECONDS,
@@ -33,7 +39,11 @@ function verifierFor(keys: readonly JWK[], overrides?: Partial<AuthConfig>): Tok
   };
   // Local key set instead of a network JWKS: verification logic is what's under
   // test, not jose's HTTP fetching.
-  return new TokenVerifier(config, createLocalJWKSet({ keys: [...keys] }));
+  return new TokenVerifier(
+    config,
+    createLocalJWKSet({ keys: [...keys] }),
+    nativeKeys === undefined ? undefined : createLocalJWKSet({ keys: [...nativeKeys] }),
+  );
 }
 
 interface TokenOptions {
@@ -78,6 +88,57 @@ async function signToken(keys: KeyMaterial, options: TokenOptions = {}): Promise
 }
 
 describe('TokenVerifier', () => {
+  it('verifies native tokens with the injected local key without consulting remote JWKS', async () => {
+    const native = await makeKeys('RS256', 'copalibre-local-key-1');
+    let remoteLookups = 0;
+    const verifier = new TokenVerifier(
+      {
+        jwksUri: 'https://id.example.test/jwks',
+        issuer: ISSUER,
+        nativeIssuer: NATIVE_ISSUER,
+        audience: AUDIENCE,
+        jwksCacheMaxAgeMs: 60_000,
+        clockToleranceSeconds: DEFAULT_CLOCK_TOLERANCE_SECONDS,
+      },
+      async () => {
+        remoteLookups += 1;
+        throw new Error('remote JWKS must not be consulted for native tokens');
+      },
+      createLocalJWKSet({ keys: [native.publicJwk] }),
+    );
+    const token = await signToken(native, { issuer: NATIVE_ISSUER });
+
+    await expect(verifier.verify(token)).resolves.toMatchObject({ subjectId: 'user-1' });
+    expect(remoteLookups).toBe(0);
+  });
+
+  it('rejects a forged native kid signed by a different key', async () => {
+    const signing = await makeKeys('RS256', 'copalibre-local-key-1');
+    const local = await makeKeys('RS256', 'copalibre-local-key-1');
+    const token = await signToken(signing, { issuer: NATIVE_ISSUER });
+
+    await expect(verifierFor([], undefined, [local.publicJwk]).verify(token)).rejects.toMatchObject(
+      {
+        reason: 'bad-signature',
+      },
+    );
+  });
+
+  it('checks native issuer audience and expiry with the local key path', async () => {
+    const native = await makeKeys('RS256', 'copalibre-local-key-1');
+    const verifier = verifierFor([], undefined, [native.publicJwk]);
+    const wrongAudience = await signToken(native, {
+      issuer: NATIVE_ISSUER,
+      audience: 'wrong-audience',
+    });
+    const expired = await signToken(native, { issuer: NATIVE_ISSUER, expiresIn: '-1m' });
+
+    await expect(verifier.verify(wrongAudience)).rejects.toMatchObject({
+      reason: 'wrong-audience',
+    });
+    await expect(verifier.verify(expired)).rejects.toMatchObject({ reason: 'expired' });
+  });
+
   it('accepts a valid token and extracts the typed subject', async () => {
     const keys = await makeKeys();
     const token = await signToken(keys, {
@@ -273,6 +334,7 @@ describe('authConfigFromEnv', () => {
     expect(config).toMatchObject({
       jwksUri: complete.COPALIBRE_JWKS_URI,
       issuer: ISSUER,
+      nativeIssuer: 'http://localhost:8080',
       audience: AUDIENCE,
       clockToleranceSeconds: DEFAULT_CLOCK_TOLERANCE_SECONDS,
     });
@@ -299,12 +361,16 @@ describe('authConfigFromEnv', () => {
     expect(config.jwksCacheMaxAgeMs).toBeGreaterThan(0);
   });
 
-  it.each([['COPALIBRE_JWKS_URI'], ['COPALIBRE_JWT_ISSUER'], ['COPALIBRE_JWT_AUDIENCE']])(
-    'fails closed when %s is missing',
-    (variable) => {
-      const env: Record<string, string> = { ...complete };
-      delete env[variable];
-      expect(() => authConfigFromEnv(env)).toThrow(new RegExp(variable));
-    },
-  );
+  it('supports native-only configuration without a remote JWKS endpoint', () => {
+    const config = authConfigFromEnv({ COPALIBRE_JWT_AUDIENCE: AUDIENCE });
+    expect(config.jwksUri).toBeUndefined();
+    expect(config.issuer).toBeUndefined();
+    expect(config.nativeIssuer).toBe('http://localhost:8080');
+  });
+
+  it.each([['COPALIBRE_JWT_AUDIENCE']])('fails closed when %s is missing', (variable) => {
+    const env: Record<string, string> = { ...complete };
+    delete env[variable];
+    expect(() => authConfigFromEnv(env)).toThrow(new RegExp(variable));
+  });
 });

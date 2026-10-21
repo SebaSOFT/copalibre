@@ -133,6 +133,7 @@ describePostgres('demo dataset loading (integration)', () => {
 
     await expect(count('clubs')).resolves.toBe(24);
     await expect(count('entrants')).resolves.toBe(24);
+    await expect(count('tournament_rulesets')).resolves.toBe(1);
     await expect(count('fixtures')).resolves.toBe(72);
     // Each cup is a persisted bracket keyed like the engine's eight-entrant, every-place graph.
     const nodes = await scratch.db

@@ -3474,7 +3474,8 @@ async function requestJson<T>(
   // own 401 (e.g. a bad native login) is never this.
   if (response.status === 401 && options.token !== undefined) {
     const outcome = await renewSessionOnce();
-    if (outcome !== undefined) response = await attempt(outcome.accessToken);
+    if (outcome !== undefined && 'accessToken' in outcome)
+      response = await attempt(outcome.accessToken);
   }
 
   if (!response.ok) {

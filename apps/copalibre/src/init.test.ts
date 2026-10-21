@@ -118,6 +118,7 @@ describe('writeInstallationAssets', () => {
     expect(env).toContain('COPALIBRE_APP_URL=https://tournaments.example.com');
     expect(env).toContain('COPALIBRE_API_URL=https://tournaments.example.com');
     expect(env).toContain('COPALIBRE_JWT_ISSUER=https://tournaments.example.com');
+    expect(env).toContain('COPALIBRE_NATIVE_JWT_ISSUER=https://tournaments.example.com');
     expect(env).toContain('COPALIBRE_MODULE_SOURCE_ALLOWLIST=file:///var/lib/copalibre/modules');
   });
 

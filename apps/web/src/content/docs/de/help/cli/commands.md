@@ -296,3 +296,15 @@ Forkt `copalibre-modules`, kopiert das lokale Modul auf einen neuen Branch, ver�
 
 Startet einen lokalen Model-Context-Protocol-(MCP)-Server 체ber stdio, damit eine KI CopaLibre
 betreiben kann. Siehe die [Details zu MCP-Werkzeugen](/de/help/cli/mcp/).
+
+## organization add-admin
+
+`copalibre organization add-admin --organization <alias> --email <email>`
+
+Erstellt eine protokollierte Administratoreinladung f체r eine bestehende Organisation. Der Befehl verbindet sich direkt mit der Datenbank und darf nur in einer vertrauensw체rdigen Betriebsumgebung mit `DATABASE_URL` und `COPALIBRE_APP_URL` verwendet werden. Er erstellt weder Konto noch Passwort; die eingeladene Person legt ihr Passwort 체ber den regul채ren Einladungsprozess fest. Der Einrichtungslink wird einmal ausgegeben.
+
+## dev demo --with-admin
+
+`copalibre dev demo panamericano-clubes-2025 --with-admin <email>`
+
+Nach dem Laden des Demo-Datensatzes wird eine protokollierte Administratoreinladung f체r `panamericano-demo` erstellt und der Einrichtungslink einmal ausgegeben. Diese Option ist nur f체r das Panamericano-Demo verf체gbar.

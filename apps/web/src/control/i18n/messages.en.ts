@@ -117,6 +117,10 @@ export const messages = defineMessages({
     defaultMessage: 'Open navigation menu',
   },
   shellLanguage: { id: 'control.shell.language', defaultMessage: 'Language' },
+  shellSessionReconnecting: {
+    id: 'control.shell.sessionReconnecting',
+    defaultMessage: 'Reconnecting session… Retrying automatically.',
+  },
   shellLogout: { id: 'control.shell.logout', defaultMessage: 'Log out' },
   shellPublicOverview: {
     id: 'control.shell.publicOverview',
@@ -2069,6 +2073,7 @@ export const messages = defineMessages({
     id: 'control.settings.loadFailed',
     defaultMessage: 'Could not load the tournament settings.',
   },
+  rulesetRetry: { id: 'control.ruleset.retry', defaultMessage: 'Retry' },
   settingsNameLabel: { id: 'control.settings.nameLabel', defaultMessage: 'Name' },
   settingsRegionLabel: { id: 'control.settings.regionLabel', defaultMessage: 'Region' },
   settingsCapacityLabel: { id: 'control.settings.capacityLabel', defaultMessage: 'Capacity' },

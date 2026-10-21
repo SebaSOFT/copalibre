@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, type ExecutionContext } from '@nestjs/common';
 import {
   InjectThrottlerOptions,
   InjectThrottlerStorage,
@@ -9,6 +9,9 @@ import {
 } from '@nestjs/throttler';
 import { Reflector } from '@nestjs/core';
 import type { RequestWithSubject } from './request-context.js';
+import { AuthVerificationTokenRepository } from '@copalibre/persistence';
+import { readRefreshCookie } from './refresh-cookie.js';
+import type { SharedThrottleTracker } from './shared-throttle.decorator.js';
 import type { Database } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
@@ -30,11 +33,11 @@ export class PrincipalThrottlerGuard extends ThrottlerGuard {
   constructor(
     @InjectThrottlerOptions() options: ThrottlerModuleOptions,
     @InjectThrottlerStorage() storage: ThrottlerStorage,
-    reflector: Reflector,
-    @Inject(DATABASE) db: Kysely<Database>,
+    @Inject(Reflector) reflector: Reflector,
+    @Inject(DATABASE) private readonly db: Kysely<Database>,
   ) {
     super(options, storage, reflector);
-    this.sharedStorage = new SharedThrottlerStorage(db);
+    this.sharedStorage = new SharedThrottlerStorage(this.db);
   }
 
   protected override async getTracker(req: Record<string, unknown>): Promise<string> {
@@ -44,16 +47,18 @@ export class PrincipalThrottlerGuard extends ThrottlerGuard {
   }
 
   protected override async handleRequest(requestProps: ThrottlerRequest): Promise<boolean> {
-    const useSharedStorage =
-      this.reflector.getAllAndOverride<boolean>(SHARED_THROTTLE_KEY, [
-        requestProps.context.getHandler(),
-        requestProps.context.getClass(),
-      ]) === true;
-    if (!useSharedStorage) return super.handleRequest(requestProps);
+    const sharedTracker = this.reflector.getAllAndOverride<SharedThrottleTracker | boolean>(
+      SHARED_THROTTLE_KEY,
+      [requestProps.context.getHandler(), requestProps.context.getClass()],
+    );
+    if (!sharedTracker) return super.handleRequest(requestProps);
 
     const { context, limit, ttl, throttler, blockDuration, getTracker, generateKey } = requestProps;
     const { req, res } = this.getRequestResponse(context);
-    const tracker = await getTracker(req, context);
+    const tracker =
+      sharedTracker === 'refresh-cookie'
+        ? await this.getRefreshCookieTracker(req, getTracker, context)
+        : await getTracker(req, context);
     const throttlerName = throttler.name ?? 'default';
     const key = generateKey(context, tracker, throttlerName);
     const result = await this.sharedStorage.increment(
@@ -79,6 +84,20 @@ export class PrincipalThrottlerGuard extends ThrottlerGuard {
     res.header(`${this.headerPrefix}-Remaining${suffix}`, Math.max(0, limit - result.totalHits));
     res.header(`${this.headerPrefix}-Reset${suffix}`, result.timeToExpire);
     return true;
+  }
+
+  private async getRefreshCookieTracker(
+    req: Record<string, unknown>,
+    fallback: (req: Record<string, unknown>, context: ExecutionContext) => Promise<string> | string,
+    context: ExecutionContext,
+  ): Promise<string> {
+    const headers = (req as { headers?: { cookie?: string } }).headers;
+    const rawToken = readRefreshCookie(headers?.cookie);
+    if (!rawToken) return await fallback(req, context);
+    const principalId = await new AuthVerificationTokenRepository(
+      this.db,
+    ).findActiveSessionRefreshPrincipalId(rawToken);
+    return principalId ? `principal-${principalId}` : await fallback(req, context);
   }
 
   /**

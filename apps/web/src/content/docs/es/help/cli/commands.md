@@ -288,3 +288,15 @@ pull request.
 
 Arranca un servidor local del Model Context Protocol (MCP) sobre stdio, para que una IA pueda operar
 CopaLibre. Ver el [detalle de herramientas MCP](/es/help/cli/mcp/).
+
+## organization add-admin
+
+`copalibre organization add-admin --organization <alias> --email <email>`
+
+Crea una invitación auditada para que una persona administre una organización existente. El comando se conecta directamente a la base de datos: usalo solo desde un entorno operativo confiable con `DATABASE_URL` y `COPALIBRE_APP_URL` configuradas. No crea una cuenta ni una contraseña; la persona invitada define su contraseña mediante el flujo normal de aceptación. El enlace de acceso se muestra una sola vez.
+
+## dev demo --with-admin
+
+`copalibre dev demo panamericano-clubes-2025 --with-admin <email>`
+
+Después de cargar el conjunto de datos, crea una invitación auditada para `panamericano-demo` y muestra el enlace una sola vez. Esta opción solo está disponible para el demo Panamericano.

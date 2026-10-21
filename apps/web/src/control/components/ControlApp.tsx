@@ -126,9 +126,10 @@ export function ControlApp(): React.JSX.Element | null {
         if (expiresAtMs !== undefined) scheduleSilentRenewal(expiresAtMs);
       })
       .catch(() => {
-        // No runtime-config reachable: treated the same as an explicit
-        // strict-stateless deployment — no silent renewal, reload
-        // reauthenticates as it already does today.
+        // The safe default is strict-stateless: no renewal timer and a reload
+        // reauthenticates. Keep a missing deployment-provided config visible
+        // to developers instead of silently masking the fallback.
+        console.warn('CopaLibre runtime config unavailable; using strict-stateless sessions.');
       });
 
     return () => {

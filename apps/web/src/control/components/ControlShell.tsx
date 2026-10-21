@@ -25,9 +25,11 @@ import {
   type SupportedLanguage,
 } from '../../lib/language-preference.js';
 import { ToastProvider } from './ToastProvider.js';
+import { Alert } from './ui/atoms/alert.js';
 import { Button } from './ui/atoms/button.js';
 import { FramedImage } from './FramedImage.js';
 import { NavigationDrawer } from './ui/organisms/navigation-drawer.js';
+import { SESSION_RENEWING_STATUS_EVENT } from '../session/renewal-status.js';
 
 export function ControlShell({
   organizationAlias,
@@ -114,6 +116,15 @@ function ControlShellChrome({
     };
   }, [client, organizationAlias]);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sessionReconnecting, setSessionReconnecting] = useState(false);
+  useEffect(() => {
+    const onRenewalStatus = (event: Event): void => {
+      const detail = (event as CustomEvent<{ reconnecting?: unknown }>).detail;
+      setSessionReconnecting(detail?.reconnecting === true);
+    };
+    window.addEventListener(SESSION_RENEWING_STATUS_EVENT, onRenewalStatus);
+    return () => window.removeEventListener(SESSION_RENEWING_STATUS_EVENT, onRenewalStatus);
+  }, []);
   const logout = (): void => {
     // Only a native session has anything server-side to revoke; an OIDC
     // session's refresh mechanism belongs to the identity provider, not this
@@ -258,6 +269,11 @@ function ControlShellChrome({
         {navContent()}
       </nav>
       <main className="cl-control__main">
+        {sessionReconnecting && (
+          <Alert block live="polite" tone="warning">
+            <FormattedMessage {...messages.shellSessionReconnecting} />
+          </Alert>
+        )}
         <div className="cl-control-screen">{children}</div>
       </main>
     </div>

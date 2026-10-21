@@ -204,6 +204,11 @@ export const messages: Record<string, string> = {
   'publicWeb.orgPage.emblemPlaceholderAlt': 'Aucun emblème téléversé',
   'publicWeb.orgPage.notFoundTitle': 'Organisation introuvable',
   'publicWeb.orgPage.notFoundBody': "Aucune organisation n'existe à cette adresse.",
+  'publicWeb.devHelp.unavailableTitle': "L'aide n'est pas générée en développement",
+  'publicWeb.devHelp.unavailableBody':
+    "Construisez l'application web et lancez son serveur d'aperçu pour consulter l'aide en local.",
+  'publicWeb.devHelp.unavailableCommand':
+    'yarn workspace @copalibre/web build && yarn workspace @copalibre/web preview',
 
   'publicWeb.matchesView.pageTitle': 'Matchs',
   'publicWeb.matchesView.filterAll': 'Tous',

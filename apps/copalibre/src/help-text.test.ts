@@ -2,6 +2,7 @@ import { commandClasses } from './commands/index.js';
 import {
   COMMAND_HELP,
   MODULE_SUBCOMMAND_HELP,
+  ORGANIZATION_SUBCOMMAND_HELP,
   renderCommandHelp,
   renderTopLevelHelp,
 } from './help-text.js';
@@ -27,6 +28,16 @@ function realModuleSubcommands(): readonly string[] {
   for (const commandClass of commandClasses) {
     for (const path of commandClass.paths ?? []) {
       if (path[0] === 'module' && path[1]) names.add(path[1]);
+    }
+  }
+  return [...names];
+}
+
+function realOrganizationSubcommands(): readonly string[] {
+  const names = new Set<string>();
+  for (const commandClass of commandClasses) {
+    for (const path of commandClass.paths ?? []) {
+      if (path[0] === 'organization' && path[1]) names.add(path[1]);
     }
   }
   return [...names];
@@ -59,6 +70,12 @@ describe('MODULE_SUBCOMMAND_HELP stays in sync with the real module dispatch', (
 
   it.each(subcommands)('module subcommand "%s" has a MODULE_SUBCOMMAND_HELP entry', (name) => {
     expect(MODULE_SUBCOMMAND_HELP.some((candidate) => candidate.name === name)).toBe(true);
+  });
+});
+
+describe('ORGANIZATION_SUBCOMMAND_HELP stays in sync with the real organization dispatch', () => {
+  it.each(realOrganizationSubcommands())('organization subcommand "%s" has help', (name) => {
+    expect(ORGANIZATION_SUBCOMMAND_HELP.some((candidate) => candidate.name === name)).toBe(true);
   });
 });
 

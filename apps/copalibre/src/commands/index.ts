@@ -17,6 +17,7 @@ import { ModuleSubmitCommand } from './module-submit-command.js';
 import { ModuleValidateLocalCommand } from './module-validate-local-command.js';
 import { ModuleVerifyCommand } from './module-verify-command.js';
 import { OrganizationGetCommand } from './organization-get-command.js';
+import { OrganizationAddAdminCommand } from './organization-add-admin-command.js';
 import { RestartCommand } from './restart-command.js';
 import { RestoreCommand } from './restore-command.js';
 import { StartCommand } from './start-command.js';
@@ -56,6 +57,7 @@ export const commandClasses: readonly CommandClass<CliContext>[] = [
   ModuleValidateLocalCommand,
   ModuleSubmitCommand,
   OrganizationGetCommand,
+  OrganizationAddAdminCommand,
   TournamentListCommand,
   TournamentGetCommand,
   TournamentCreateCommand,

@@ -341,6 +341,14 @@ async function loadInto(
     origin: 'import',
   });
   const tournamentId = tournament.tournamentId;
+  await tournamentRepository.createRuleset(uow, {
+    tournamentId,
+    organizationId,
+    descriptor,
+    overrides: {},
+    actor,
+    authorizationContext: context,
+  });
   await tournamentRepository.updateEmblem(uow, {
     tournamentId,
     organizationId,

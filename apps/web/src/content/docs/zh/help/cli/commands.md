@@ -251,3 +251,15 @@ Fork `copalibre-modules`，将本地模块复制到一个新分支，推送该�
 
 启动一个本地 Model Context Protocol（MCP）服务器，使 AI 能够操作 CopaLibre。详情请参阅
 [MCP 工具详情](/zh/help/cli/mcp/)。
+
+## organization add-admin
+
+`copalibre organization add-admin --organization <alias> --email <email>`
+
+为现有组织创建可审计的管理员邀请。此命令会直接连接数据库，因此只能在可信的运维环境中使用，并配置 `DATABASE_URL` 和 `COPALIBRE_APP_URL`。命令不会创建账户或密码；受邀者通过正常邀请接受流程设置密码。设置链接只显示一次。
+
+## dev demo --with-admin
+
+`copalibre dev demo panamericano-clubes-2025 --with-admin <email>`
+
+加载演示数据后，为 `panamericano-demo` 创建可审计的管理员邀请，并仅显示一次设置链接。此选项仅适用于 Panamericano 演示数据集。

@@ -32,6 +32,18 @@ export default defineConfig({
               entrypoint: './src/preview/AstroPreview.astro',
               prerender: false,
             });
+            const locales = ['', '/es', '/fr', '/pt', '/it', '/de', '/ru', '/zh'];
+            const helpRoutes = locales.flatMap((locale) => [
+              `${locale}/help/`,
+              `${locale}/help/api-reference/`,
+            ]);
+            for (const pattern of helpRoutes) {
+              injectRoute({
+                pattern,
+                entrypoint: './src/dev/HelpUnavailable.astro',
+                prerender: false,
+              });
+            }
           }
         },
       },

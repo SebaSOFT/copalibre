@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
+import { Button } from '../ui/atoms/button.js';
 import { FormattedMessage } from 'react-intl';
 import {
   createControlApiClient,
@@ -30,22 +31,36 @@ export function TournamentRulesetPage({
       }),
     [client],
   );
-  const [ruleset, setRuleset] = useState<RulesetOverridesResponse | undefined>(undefined);
+  const [rulesetLoad, setRulesetLoad] = useState<
+    | {
+        readonly requestKey: string;
+        readonly status: 'loaded';
+        readonly ruleset: RulesetOverridesResponse;
+      }
+    | { readonly requestKey: string; readonly status: 'failed' }
+    | undefined
+  >(undefined);
   const [settings, setSettings] = useState<TournamentSettingsResponse | undefined>(undefined);
-  const [failed, setFailed] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+  const requestKey = JSON.stringify([organizationAlias, tournamentAlias, retryKey]);
 
   useEffect(() => {
     let live = true;
-    api
-      .fetchRulesetOverrides?.(organizationAlias, tournamentAlias)
+    const fetchRuleset = api.fetchRulesetOverrides?.(organizationAlias, tournamentAlias);
+    Promise.resolve(fetchRuleset)
       .then((loaded) => {
-        if (live) setRuleset(loaded);
+        if (!live) return;
+        setRulesetLoad(
+          loaded === undefined
+            ? { requestKey, status: 'failed' }
+            : { requestKey, status: 'loaded', ruleset: loaded },
+        );
       })
       .catch(() => {
-        if (live) setFailed(true);
+        if (live) setRulesetLoad({ requestKey, status: 'failed' });
       });
     // Additive context for the plain-language summary —
-    // never gates loading/failed state, which stays keyed to `ruleset` only.
+    // never gates loading/failed state, which stays keyed to the ruleset request only.
     api
       .fetchTournamentSettings?.(organizationAlias, tournamentAlias)
       .then((loaded) => {
@@ -55,22 +70,27 @@ export function TournamentRulesetPage({
     return () => {
       live = false;
     };
-  }, [api, organizationAlias, tournamentAlias]);
+  }, [api, organizationAlias, requestKey, tournamentAlias]);
 
-  if (failed) {
+  const currentRulesetLoad = rulesetLoad?.requestKey === requestKey ? rulesetLoad : undefined;
+  if (currentRulesetLoad?.status === 'failed') {
     return (
       <Alert tone="destructive">
         <FormattedMessage {...messages.settingsLoadFailed} />
+        <Button onClick={() => setRetryKey((key) => key + 1)}>
+          <FormattedMessage {...messages.rulesetRetry} />
+        </Button>
       </Alert>
     );
   }
-  if (ruleset === undefined) {
+  if (currentRulesetLoad?.status !== 'loaded') {
     return (
       <Alert tone="info">
         <FormattedMessage {...messages.settingsLoading} />
       </Alert>
     );
   }
+  const ruleset = currentRulesetLoad.ruleset;
 
   return (
     <TournamentRulesetTemplate
@@ -85,7 +105,7 @@ export function TournamentRulesetPage({
         api
           .updateRulesetOverrides?.(organizationAlias, tournamentAlias, request)
           .then((updated) => {
-            if (updated) setRuleset(updated);
+            if (updated) setRulesetLoad({ requestKey, status: 'loaded', ruleset: updated });
           }) ?? Promise.resolve()
       }
       organizationAlias={organizationAlias}

@@ -22,7 +22,10 @@ import { SUPER_ADMIN_SCOPE } from '../auth/access-requirement.js';
 import { AUTH_THROTTLE_LIMIT, AUTH_THROTTLE_TTL_MS } from './auth.controller.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
+import { OBJECT_STORAGE } from '../object-storage.token.js';
 import { NativeAuthController, PersonalAccessTokenController } from './auth.controller.js';
+import { OrganizationsController } from './organizations.controller.js';
+import { createTokenVerifierFromEnv } from '../modules/core.module.js';
 
 const TOKENS: Readonly<Record<string, AuthenticatedSubject>> = {
   'admin-token': {
@@ -277,6 +280,61 @@ describe('Auth Controllers', () => {
         .execute();
     });
 
+    it('logs in and reads the organization endpoint with no remote JWKS configured', async () => {
+      const previousJwksUri = process.env.COPALIBRE_JWKS_URI;
+      const previousNativeIssuer = process.env.COPALIBRE_NATIVE_JWT_ISSUER;
+      delete process.env.COPALIBRE_JWKS_URI;
+      process.env.COPALIBRE_NATIVE_JWT_ISSUER = 'http://localhost:8080';
+      let nativeApp: NestFastifyApplication | undefined;
+      try {
+        const verifier = await createTokenVerifierFromEnv();
+        @Module({
+          controllers: [NativeAuthController, OrganizationsController],
+          imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1_000 }])],
+          providers: [
+            { provide: DATABASE, useValue: scratch.db },
+            { provide: OBJECT_STORAGE, useValue: {} },
+            { provide: TokenVerifier, useValue: verifier },
+            { provide: APP_FILTER, useClass: ApiExceptionFilter },
+            { provide: APP_GUARD, useClass: JwtAuthGuard },
+            { provide: APP_GUARD, useClass: PrincipalThrottlerGuard },
+            Reflector,
+          ],
+        })
+        class NativeOnlyModule {}
+
+        const moduleRef = await Test.createTestingModule({ imports: [NativeOnlyModule] }).compile();
+        nativeApp = moduleRef.createNestApplication<NestFastifyApplication>(
+          new FastifyAdapter({ trustProxy: true }),
+        );
+        nativeApp.useGlobalPipes(createApiValidationPipe());
+        await nativeApp.init();
+        await nativeApp.getHttpAdapter().getInstance().ready();
+
+        const login = await nativeApp.inject({
+          method: 'POST',
+          url: '/auth/login',
+          headers: { 'x-forwarded-for': '10.9.4.1' },
+          payload: { email, password },
+        });
+        expect(login.statusCode).toBe(200);
+        const accessToken = JSON.parse(login.payload).accessToken as string;
+        const organizations = await nativeApp.inject({
+          method: 'GET',
+          url: '/organizations?mine=true',
+          headers: { authorization: `Bearer ${accessToken}` },
+        });
+        expect(organizations.statusCode).toBe(200);
+        expect(JSON.parse(organizations.payload)).toEqual([]);
+      } finally {
+        await nativeApp?.close();
+        if (previousJwksUri === undefined) delete process.env.COPALIBRE_JWKS_URI;
+        else process.env.COPALIBRE_JWKS_URI = previousJwksUri;
+        if (previousNativeIssuer === undefined) delete process.env.COPALIBRE_NATIVE_JWT_ISSUER;
+        else process.env.COPALIBRE_NATIVE_JWT_ISSUER = previousNativeIssuer;
+      }
+    });
+
     function refreshCookieFrom(response: { headers: Record<string, unknown> }): string {
       const setCookie = response.headers['set-cookie'];
       const raw = Array.isArray(setCookie) ? setCookie[0] : setCookie;
@@ -318,6 +376,44 @@ describe('Auth Controllers', () => {
       expect(JSON.parse(refreshed.payload).accessToken).toBeDefined();
       const rotatedCookie = refreshCookieFrom(refreshed);
       expect(rotatedCookie).not.toBe(cookie);
+    });
+
+    it('allows 30 refreshes per principal across cookie rotation and client IP changes, then returns 429', async () => {
+      const rateLimitEmail = 'refresh-rate-limit@example.com';
+      const rateLimitPassword = 'rate-limit-secret-password';
+      await (scratch.db as Kysely<Database>)
+        .insertInto('identity_principals')
+        .values({
+          principal_id: newId(),
+          email: rateLimitEmail,
+          password_hash: await argon2.hash(rateLimitPassword),
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .execute();
+      const login = await request({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email: rateLimitEmail, password: rateLimitPassword },
+        ip: '10.9.1.8',
+      });
+      let cookie = refreshCookieFrom(login);
+
+      for (let attempt = 0; attempt < 30; attempt++) {
+        const refreshed = await request({
+          method: 'POST',
+          url: '/auth/refresh',
+          cookie,
+          ip: `10.9.2.${attempt + 1}`,
+        });
+        expect(refreshed.statusCode).toBe(200);
+        cookie = refreshCookieFrom(refreshed);
+      }
+
+      expect(
+        (await request({ method: 'POST', url: '/auth/refresh', cookie, ip: '10.9.3.1' }))
+          .statusCode,
+      ).toBe(429);
     });
 
     it('POST /auth/refresh with no cookie returns 401', async () => {
