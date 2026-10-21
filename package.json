@@ -26,6 +26,7 @@
   },
   "packageManager": "yarn@4.18.0+sha512.fcb8716fe7cd0eece141ffc18b92193a9df9204c1ba83189c288835223fc0bbe64af473bab0d5e9927a7daeb5caf2bb07eb2787cc9338ca040ea125f2a1f2f7e",
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.64.1",
     "@types/jest": "^30.0.0",
@@ -38,6 +39,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "jest": "^30.5.2",
     "license-checker-rseidelsohn": "^5.0.1",
+    "playwright-core": "1.64.1",
     "prettier": "^3.9.10",
     "prettier-plugin-astro": "^1.1.1",
     "ts-jest": "^29.4.15",

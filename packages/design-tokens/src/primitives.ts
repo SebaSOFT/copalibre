@@ -120,6 +120,13 @@ export const BREAKPOINTS = {
   xl: '1440px',
 } as const;
 
+/** Shared icon geometry for both React components and build-time Astro SVGs. */
+export const ICON_TOKENS = {
+  size: { inline: 16, control: 20, header: 24 },
+  stroke: 1.5,
+  tablerOpticalScale: 1.1,
+} as const;
+
 /**
  * A 4px scale.
  *

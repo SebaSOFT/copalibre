@@ -15,6 +15,7 @@
  */
 import type { IntlShape } from 'react-intl';
 import Logo from '../atoms/Logo.astro';
+import Icon from '../atoms/Icon.astro';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { getLocaleHomePath } from '../../../lib/locale.ts';
 import { swapLocale } from '../../../lib/locale-routing.ts';
@@ -93,7 +94,7 @@ const languageName = (code: string): string => {
             aria-label={intl.formatMessage(messages.headerLanguage)}
             class="cl-chamfer cl-chamfer--control cl-focusable"
           >
-            <span aria-hidden="true" class="cl-public-header__translation-mark" />
+            <Icon name="language" size={16} />
             <span>{locale.toUpperCase()}</span>
             <span aria-hidden="true">⌄</span>
           </summary>
@@ -138,32 +139,8 @@ const languageName = (code: string): string => {
         hidden
         type="button"
       >
-        <svg
-          aria-hidden="true"
-          class="cl-public-header__toggle-closed"
-          fill="none"
-          height="18"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-width="2"
-          viewBox="0 0 24 24"
-          width="18"
-        >
-          <path d="M4 7h16M4 12h16M4 17h16"></path>
-        </svg>
-        <svg
-          aria-hidden="true"
-          class="cl-public-header__toggle-open"
-          fill="none"
-          height="18"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-width="2"
-          viewBox="0 0 24 24"
-          width="18"
-        >
-          <path d="M6 6l12 12M18 6L6 18"></path>
-        </svg>
+        <Icon name="menu" size={20} class="cl-public-header__toggle-closed" />
+        <Icon name="close" size={20} class="cl-public-header__toggle-open" />
       </button>
     </div>
   </div>
@@ -225,8 +202,4 @@ const languageName = (code: string): string => {
   }
 </script>
 
-<style>
-  .cl-public-header__translation-mark::before {
-    content: '文A';
-  }
-</style>
+<style></style>

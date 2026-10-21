@@ -186,6 +186,13 @@ components:
     rounded: "{rounded.none}"
     padding: "16px"
     width: "480px"
+icon:
+  size:
+    inline: "16px"
+    control: "20px"
+    header: "24px"
+  stroke: "1.5"
+  tablerOpticalScale: "1.1"
 ---
 
 # Design System: CopaLibre
@@ -642,6 +649,16 @@ Use Lucide as the primary icon set. Use Tabler only for missing glyphs and scale
 110% around its centre inside the same 16px, 20px or 24px box, so its smaller optical drawing matches
 Lucide. Use custom inline SVG only as a last fallback. Icons use a 1.5px stroke and `currentColor`.
 Reserve 16px for inline icons, 20px for controls and 24px for headers.
+Every call site requests a semantic key from `apps/web/src/lib/icon-registry.ts`; it never imports an
+icon package. React and Astro render through `apps/web/src/control/components/ui/atoms/icon.tsx` and
+`apps/web/src/components/ui/atoms/Icon.astro`, respectively, so public and TV pages keep their SVGs
+without JavaScript. Keys are `activity`, `calendar`, `check`, `club`, `clock`, `copy`, `download`,
+`event`, `export`, `external-link`, `language`, `menu`, `more`, `pause`, `play`, `retry`, `start-clock`,
+`team`, `trophy`, `upload`, `user`, `venue`, `warning`, `offline`, `close`, `zoom-in`, `zoom-out`,
+`pause-clock`, `basketball`, `football`, `tennis`, `podium`, `scoreboard`, `cards` and `unknown`.
+Unknown runtime keys resolve to a neutral custom event glyph. Decorative icons are hidden from
+assistive technology; a standalone meaningful icon has an accessible label. State always has a text or
+shape cue as well.
 
 ## Data Visualization
 

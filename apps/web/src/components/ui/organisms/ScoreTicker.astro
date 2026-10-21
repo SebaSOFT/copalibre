@@ -1,5 +1,6 @@
 ---
 import { Badge } from '../atoms/Badge.tsx';
+import Icon from '../atoms/Icon.astro';
 import type { TickerItem } from '../../../lib/ticker-items.ts';
 
 interface Props {
@@ -118,7 +119,8 @@ const {
         aria-label={pauseLabel}
         aria-pressed="false"
       >
-        <span aria-hidden="true">⏸</span>
+        <Icon name="pause-clock" size={20} class="cl-ticker__pause-icon" />
+        <Icon name="play" size={20} class="cl-ticker__resume-icon" />
       </button>
     </>
   )}
@@ -203,6 +205,15 @@ const {
 </script>
 
 <style>
+  .cl-ticker__pause :global(.cl-ticker__resume-icon) {
+    display: none;
+  }
+  .cl-ticker__pause[aria-pressed='true'] :global(.cl-ticker__pause-icon) {
+    display: none;
+  }
+  .cl-ticker__pause[aria-pressed='true'] :global(.cl-ticker__resume-icon) {
+    display: inline-block;
+  }
   .cl-ticker {
     display: flex;
     align-items: center;

@@ -19,6 +19,7 @@ import {
   type LaidOutMatch,
 } from '../lib/bracket-canvas.js';
 import { Button } from './ui/atoms/button.js';
+import { Icon } from './ui/atoms/icon.js';
 import { Badge } from './ui/atoms/badge.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
@@ -144,7 +145,7 @@ export function BracketCanvas({
           type="button"
           variant="secondary"
         >
-          −
+          <Icon name="zoom-out" />
         </Button>
         <span style={zoomLabelStyle}>{Math.round(zoom * 100)}%</span>
         <Button
@@ -153,7 +154,7 @@ export function BracketCanvas({
           type="button"
           variant="secondary"
         >
-          +
+          <Icon name="zoom-in" />
         </Button>
       </div>
 

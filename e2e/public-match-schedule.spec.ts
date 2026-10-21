@@ -192,6 +192,22 @@ test('every filter row is titled and the view choice is offered for a short scop
   ]);
 });
 
+test('public header and match-card icons are server-rendered without JavaScript', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto(`${TOURNAMENT}/matches?stageNumber=1&group=Grupo%20A&view=cards`);
+
+  const headerLanguageIcon = page.locator('.cl-public-header__locale svg.cl-icon');
+  const firstCard = page.locator('.cl-match-card').first();
+  await expect(headerLanguageIcon).toHaveCount(1);
+  await expect(firstCard).toBeVisible();
+  await expect(firstCard.locator('svg.cl-icon')).toHaveCount(1);
+
+  await context.close();
+});
+
 test('the tournament page keeps every stage one click away once all is played', async ({
   page,
 }) => {

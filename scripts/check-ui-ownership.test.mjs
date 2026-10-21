@@ -181,6 +181,34 @@ test('raw <table> triggers violation', () => {
   assert.equal(violations[0].line, 4);
 });
 
+test('icon packages may only be imported by the registry and rendering atoms', () => {
+  const violations = checkFileOwnership(
+    'control/components/MatchPage.tsx',
+    "import { Clock } from 'lucide-react';",
+  );
+  assert.equal(violations.length, 1);
+  assert.match(violations[0].message, /Icon package import/);
+  assert.deepEqual(
+    checkFileOwnership('lib/icon-registry.ts', "import { Clock } from 'lucide-react';"),
+    [],
+  );
+});
+
+test('raw SVG icons must use an Icon atom, while connector geometry remains owned', () => {
+  assert.match(
+    checkFileOwnership('control/components/MatchPage.tsx', 'return <svg><path /></svg>;')[0]
+      .message,
+    /Render icons through the owned Icon atom/,
+  );
+  assert.deepEqual(
+    checkFileOwnership(
+      'components/ui/organisms/BracketGraph.astro',
+      'return <svg><polyline /></svg>;',
+    ),
+    [],
+  );
+});
+
 test('raw table parts outside the table owner each trigger their own violation', () => {
   const code = `
     export function BadTable() {

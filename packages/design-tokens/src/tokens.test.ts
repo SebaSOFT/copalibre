@@ -3,6 +3,7 @@ import {
   COLOR_PRIMITIVES,
   CONTROL_DENSITY_SPACING,
   FONT_SIZE,
+  ICON_TOKENS,
   MOTION,
   SPACING,
   TOUCH_TARGET,
@@ -93,6 +94,14 @@ describe('the token source', () => {
       ['lg', '1024px'],
       ['xl', '1440px'],
     ]);
+  });
+
+  it('defines the icon size, stroke and Tabler optical scale', () => {
+    expect(ICON_TOKENS).toEqual({
+      size: { inline: 16, control: 20, header: 24 },
+      stroke: 1.5,
+      tablerOpticalScale: 1.1,
+    });
   });
 });
 
@@ -222,6 +231,14 @@ describe('the CSS output', () => {
     for (const [name, value] of Object.entries(BREAKPOINTS)) {
       expect(css).toContain(`--cl-breakpoint-${name}: ${value};`);
     }
+  });
+
+  it('declares the icon geometry tokens', () => {
+    for (const [name, value] of Object.entries(ICON_TOKENS.size)) {
+      expect(css).toContain(`--cl-icon-size-${name}: ${value}px;`);
+    }
+    expect(css).toContain(`--cl-icon-stroke: ${ICON_TOKENS.stroke};`);
+    expect(css).toContain(`--cl-icon-tabler-optical-scale: ${ICON_TOKENS.tablerOpticalScale};`);
   });
 
   it('points a semantic token at a primitive rather than repeating the hex', () => {
@@ -586,6 +603,12 @@ describe('the Tailwind output', () => {
 
   it('prefixes the density spacing subset', () => {
     expect(theme.densitySpacing['cl-density-row-gap']).toBe(SPACING['2']);
+  });
+
+  it('emits the shared icon geometry', () => {
+    expect(theme.iconSize).toEqual({ inline: '16px', control: '20px', header: '24px' });
+    expect(theme.iconStroke).toBe(1.5);
+    expect(theme.iconTablerOpticalScale).toBe(1.1);
   });
 });
 

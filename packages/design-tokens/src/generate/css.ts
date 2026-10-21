@@ -1,6 +1,7 @@
 import {
   BREAKPOINTS,
   FONT_SOURCE,
+  ICON_TOKENS,
   TRACKING,
   COLOR_PRIMITIVES,
   CONTROL_DENSITY_SPACING,
@@ -68,6 +69,18 @@ export function generateCss(): string {
     ...Object.entries(FONT_WEIGHTS).map(([name, value]) => `  --cl-weight-${name}: ${value};`),
     ...Object.entries(FONT_SIZE).map(([name, value]) => `  --cl-font-size-${name}: ${value};`),
     ...Object.entries(TRACKING).map(([name, value]) => `  --cl-tracking-${name}: ${value};`),
+    ...Object.entries(ICON_TOKENS.size).map(
+      ([name, value]) => `  --cl-icon-size-${name}: ${value}px;`,
+    ),
+    `  --cl-icon-stroke: ${ICON_TOKENS.stroke};`,
+    `  --cl-icon-tabler-optical-scale: ${ICON_TOKENS.tablerOpticalScale};`,
+    '',
+    '.cl-icon { display: inline-block; flex: none; vertical-align: middle; }',
+    '.cl-icon--tabler { transform: scale(var(--cl-icon-tabler-optical-scale)); transform-origin: center; }',
+    '.cl-person-photo-placeholder, .cl-club-emblem-placeholder { display: inline-flex; align-items: center; justify-content: center; color: var(--cl-text-muted); }',
+    ...[32, 48, 64, 96].map(
+      (size) => `.cl-placeholder-size-${size} { width: ${size}px; height: ${size}px; }`,
+    ),
     '',
     ...Object.entries(SPACING).map(([name, value]) => `  --cl-space-${name}: ${value};`),
     ...Object.entries(RADIUS).map(([name, value]) => `  --cl-radius-${name}: ${value};`),

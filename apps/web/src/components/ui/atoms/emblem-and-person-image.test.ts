@@ -18,9 +18,9 @@ describe('EmblemImage display atom', () => {
   });
 
   it('renders an accessible placeholder with title and fallback onerror handler', () => {
-    expect(emblemAstro).toContain('<svg');
+    expect(emblemAstro).toContain('<Icon name="club"');
     expect(emblemAstro).toContain('class="cl-emblem-placeholder"');
-    expect(emblemAstro).toContain('<title>{placeholderAlt}</title>');
+    expect(emblemAstro).toContain('aria-label={placeholderAlt}');
     expect(emblemAstro).toContain('this.nextElementSibling.style.display');
   });
 });
@@ -50,8 +50,8 @@ describe('PersonPhotoImage display atom', () => {
 
   it('renders a distinct profile placeholder with title and fallback onerror handler', () => {
     expect(personAstro).toContain('class="cl-person-photo-placeholder"');
-    expect(personAstro).toContain('viewBox="0 0 96 96"');
-    expect(personAstro).toContain('<title>{placeholderAlt}</title>');
+    expect(personAstro).toContain('<Icon name="user"');
+    expect(personAstro).toContain('aria-label={placeholderAlt}');
     expect(personAstro).toContain('this.nextElementSibling.style.display');
   });
 });
