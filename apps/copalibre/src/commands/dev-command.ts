@@ -36,6 +36,25 @@ export class DevCommand extends Command<CliContext> {
           hybrid,
         );
         if (migration !== 0) return migration;
+        const supervised = processes.runSupervised;
+        if (supervised) {
+          const roles = ['api', 'events', 'worker', 'scheduler', 'web'] as const;
+          return supervised.call(
+            processes,
+            roles.map((role) => ({
+              role,
+              command: 'yarn',
+              arguments: [
+                'workspace',
+                `@copalibre/${role}`,
+                'run',
+                'dev',
+                ...(role === 'web' ? ['--ignore-lock', '--host', '0.0.0.0', '--port', '4321'] : []),
+              ],
+            })),
+            { ...hybrid, COPALIBRE_DEV_HYBRID: 'true' },
+          );
+        }
         return processes.run(
           'yarn',
           [
@@ -75,20 +94,27 @@ export class DevCommand extends Command<CliContext> {
 
 /** The host-side environment for the dev infrastructure, defaulting every value to the dev Compose profile's own. */
 export function hybridEnvironment(environment: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const apiUrl = environment.COPALIBRE_API_URL ?? 'http://localhost:3001';
+  const nativeIssuer = environment.COPALIBRE_NATIVE_JWT_ISSUER ?? 'http://localhost:8080';
   return {
     ...environment,
     DATABASE_URL:
       environment.DATABASE_URL ??
       'postgres://copalibre:copalibre_dev_only@localhost:5432/copalibre',
     COPALIBRE_APP_URL: environment.COPALIBRE_APP_URL ?? 'http://localhost:4321',
-    COPALIBRE_API_URL: environment.COPALIBRE_API_URL ?? 'http://localhost:3001',
+    COPALIBRE_API_URL: apiUrl,
     COPALIBRE_BOOTSTRAP_TOKEN:
       environment.COPALIBRE_BOOTSTRAP_TOKEN ?? 'copalibre_dev_bootstrap_only',
-    COPALIBRE_JWKS_URI: environment.COPALIBRE_JWKS_URI ?? 'http://oidc.invalid/jwks.json',
-    COPALIBRE_JWT_ISSUER: environment.COPALIBRE_JWT_ISSUER ?? 'http://oidc.invalid',
+    COPALIBRE_JWKS_URI: environment.COPALIBRE_JWKS_URI ?? `${apiUrl}/.well-known/jwks.json`,
+    COPALIBRE_JWT_ISSUER: environment.COPALIBRE_JWT_ISSUER ?? nativeIssuer,
+    COPALIBRE_NATIVE_JWT_ISSUER: nativeIssuer,
     COPALIBRE_JWT_AUDIENCE: environment.COPALIBRE_JWT_AUDIENCE ?? 'copalibre',
     COPALIBRE_OIDC_CLIENT_ID: environment.COPALIBRE_OIDC_CLIENT_ID ?? 'copalibre-dev',
     COPALIBRE_EMAIL_PROVIDER: environment.COPALIBRE_EMAIL_PROVIDER ?? 'smtp',
+    COPALIBRE_DEV_HYBRID: environment.COPALIBRE_DEV_HYBRID ?? 'true',
+    // Astro detects agent shells and daemonizes by default. This sentinel
+    // disables that behavior so the process supervisor owns the web server.
+    ASTRO_DEV_BACKGROUND: '0',
     COPALIBRE_EMAIL_FROM: environment.COPALIBRE_EMAIL_FROM ?? 'dev@copalibre.invalid',
     COPALIBRE_SMTP_URL: environment.COPALIBRE_SMTP_URL ?? 'smtp://localhost:1025',
   };

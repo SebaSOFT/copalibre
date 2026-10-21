@@ -288,3 +288,15 @@ pull request.
 
 Запускает локальный сервер Model Context Protocol (MCP) через stdio, чтобы ИИ мог управлять
 CopaLibre. Смотрите [подробности об инструментах MCP](/ru/help/cli/mcp/).
+
+## organization add-admin
+
+`copalibre organization add-admin --organization <alias> --email <email>`
+
+Создаёт аудируемое приглашение администратора для существующей организации. Команда подключается к базе данных напрямую; запускайте её только из доверенной операторской среды с настроенными `DATABASE_URL` и `COPALIBRE_APP_URL`. Учётная запись и пароль не создаются: приглашённый задаёт пароль через обычный процесс принятия приглашения. Ссылка настройки выводится один раз.
+
+## dev demo --with-admin
+
+`copalibre dev demo panamericano-clubes-2025 --with-admin <email>`
+
+После загрузки набора данных создаёт аудируемое приглашение администратора для `panamericano-demo` и один раз выводит ссылку настройки. Опция доступна только для демо Panamericano.

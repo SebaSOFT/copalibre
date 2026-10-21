@@ -384,3 +384,15 @@ Publishes a draft tournament, making it visible and operable.
 
 Starts a local Model Context Protocol (MCP) server over stdio, so an AI can operate CopaLibre. See
 the [MCP tools detail](/help/cli/mcp/).
+
+## organization add-admin
+
+`copalibre organization add-admin --organization <alias> --email <email>`
+
+Creates an audited administrator invitation for an existing organization. This command connects directly to the database, so use it only from a trusted operator environment with `DATABASE_URL` and `COPALIBRE_APP_URL` configured. It creates no account or password; the recipient sets a password through the normal invitation flow. The setup link is printed once.
+
+## dev demo --with-admin
+
+`copalibre dev demo panamericano-clubes-2025 --with-admin <email>`
+
+After loading the demo dataset, creates an audited administrator invitation for `panamericano-demo` and prints its setup link once. This option is available only for the Panamericano demo dataset.

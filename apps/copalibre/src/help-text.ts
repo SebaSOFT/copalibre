@@ -114,7 +114,7 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     summary: 'Run a development environment (containerized or hybrid)',
     usage:
       'copalibre dev [--hybrid]\n' +
-      '       copalibre dev demo [--list] [<dataset>] [--anchor <YYYY-MM-DD|today>] [--played-until <ISO-8601|now>]',
+      '       copalibre dev demo [--list] [<dataset>] [--anchor <YYYY-MM-DD|today>] [--played-until <ISO-8601|now>] [--with-admin <email>]',
     flags: [
       {
         flag: '--hybrid',
@@ -132,6 +132,10 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
         flag: 'demo --played-until <ISO-8601|now>',
         description:
           'Play only the games finished by then; later games stay scheduled, cup sides undecided',
+      },
+      {
+        flag: 'demo --with-admin <email>',
+        description: 'Create an administrator invitation for the loaded demo organization',
       },
     ],
   },
@@ -286,8 +290,8 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   },
   {
     name: 'organization',
-    summary: 'Read an organization by alias over the API (requires copalibre login)',
-    usage: 'copalibre organization get <alias>',
+    summary: 'Read organizations or create an administrator invitation',
+    usage: 'copalibre organization <get|add-admin>',
   },
   {
     name: 'tournament',
@@ -445,6 +449,23 @@ export const TOURNAMENT_SUBCOMMAND_HELP: readonly CommandHelp[] = [
   },
 ];
 
+export const ORGANIZATION_SUBCOMMAND_HELP: readonly CommandHelp[] = [
+  {
+    name: 'get',
+    summary: 'Read an organization by alias over the API (requires copalibre login)',
+    usage: 'copalibre organization get <alias>',
+  },
+  {
+    name: 'add-admin',
+    summary: 'Create an audited administrator invitation using direct database access',
+    usage: 'copalibre organization add-admin --organization <alias> --email <email>',
+    flags: [
+      { flag: '--organization <alias>', description: 'Organization to invite an administrator to' },
+      { flag: '--email <email>', description: 'Email address that will receive the invitation' },
+    ],
+  },
+];
+
 function calculateColumnWidth(commands: readonly { readonly name: string }[]): number {
   return Math.max(22, ...commands.map((c) => c.name.length + 3));
 }
@@ -505,6 +526,21 @@ export function renderTournamentHelp(): string {
     ),
     '',
     "Run 'copalibre tournament <subcommand> --help' for details on a specific subcommand.",
+  ];
+  return `${lines.join('\n')}\n`;
+}
+
+export function renderOrganizationHelp(): string {
+  const colWidth = calculateColumnWidth(ORGANIZATION_SUBCOMMAND_HELP);
+  const lines = [
+    'Usage: copalibre organization <subcommand> [options]',
+    '',
+    'Subcommands:',
+    ...ORGANIZATION_SUBCOMMAND_HELP.map(
+      (subcommand) => `  ${subcommand.name.padEnd(colWidth)}${subcommand.summary}`,
+    ),
+    '',
+    "Run 'copalibre organization <subcommand> --help' for details on a specific subcommand.",
   ];
   return `${lines.join('\n')}\n`;
 }

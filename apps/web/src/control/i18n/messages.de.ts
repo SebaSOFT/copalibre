@@ -43,6 +43,8 @@ export const messages: Record<string, string> = {
   'control.shell.whatIsThisScreen': 'Was ist dieser Bildschirm?',
   'control.shell.openNavigation': 'Navigationsmenü öffnen',
   'control.shell.language': 'Sprache',
+  'control.shell.sessionReconnecting':
+    'Sitzung wird erneut verbunden… Automatischer neuer Versuch.',
   'control.shell.logout': 'Abmelden',
   'control.shell.publicOverview': 'Öffentliche Organisationsseite',
   'auth.publicHome': 'Zur öffentlichen Website',
@@ -710,6 +712,7 @@ export const messages: Record<string, string> = {
   'control.settings.title': 'Turniereinstellungen',
   'control.settings.loading': 'Einstellungen werden geladen…',
   'control.settings.loadFailed': 'Die Turniereinstellungen konnten nicht geladen werden.',
+  'control.ruleset.retry': 'Erneut versuchen',
   'control.settings.nameLabel': 'Name',
   'control.settings.regionLabel': 'Region',
   'control.settings.capacityLabel': 'Kapazität',

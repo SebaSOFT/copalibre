@@ -24,6 +24,7 @@ export const LOCAL_DEFAULTS = {
   COPALIBRE_BOOTSTRAP_TOKEN: 'copalibre_bootstrap_token_secret',
   COPALIBRE_JWKS_URI: 'http://api:3001/.well-known/jwks.json',
   COPALIBRE_JWT_ISSUER: 'http://localhost:8080',
+  COPALIBRE_NATIVE_JWT_ISSUER: 'http://localhost:8080',
   COPALIBRE_JWT_AUDIENCE: 'copalibre',
   COPALIBRE_OIDC_CLIENT_ID: 'copalibre-local',
   COPALIBRE_EMAIL_PROVIDER: 'smtp',
@@ -341,6 +342,7 @@ export async function writeInstallationAssets(
     overrides.COPALIBRE_APP_URL = options.appUrl;
     overrides.COPALIBRE_API_URL = options.apiUrl ?? options.appUrl;
     overrides.COPALIBRE_JWT_ISSUER = options.appUrl;
+    overrides.COPALIBRE_NATIVE_JWT_ISSUER = options.appUrl;
   } else if (options.apiUrl) {
     overrides.COPALIBRE_API_URL = options.apiUrl;
   }

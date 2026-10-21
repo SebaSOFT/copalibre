@@ -87,6 +87,33 @@ export default tseslint.config(
     },
   },
 
+  // These Nest framework classes have no emitted design-type metadata under
+  // the tsx development transform. Keep constructor injection explicit.
+  {
+    files: ['apps/api/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Literal[value=/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/]',
+          message:
+            'Raw colour literals live in @copalibre/design-tokens; use a semantic token instead.',
+        },
+        {
+          selector: 'Literal[value=/^(?:rgb|rgba|hsl|hsla)\\(/]',
+          message:
+            'Raw colour literals live in @copalibre/design-tokens; use a semantic token instead.',
+        },
+        {
+          selector:
+            'MethodDefinition[kind="constructor"] TSParameterProperty[decorators.length=0] > Identifier[typeAnnotation.typeAnnotation.typeName.name=/^(Reflector|ModuleRef|HttpAdapterHost)$/], MethodDefinition[kind="constructor"] > FunctionExpression > Identifier[typeAnnotation.typeAnnotation.typeName.name=/^(Reflector|ModuleRef|HttpAdapterHost)$/][decorators.length=0]',
+          message:
+            'Inject Reflector, ModuleRef, and HttpAdapterHost explicitly; tsx does not emit their design-type metadata.',
+        },
+      ],
+    },
+  },
+
   // packages/rules must stay strictly browser-isomorphic:
   // ControlApp.tsx and other client:* islands import @copalibre/rules
   // directly, so a Node-only built-in import doesn't fail the build — it

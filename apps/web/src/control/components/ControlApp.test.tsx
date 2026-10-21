@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ControlApp } from './ControlApp.js';
 import { navigateControl } from '../lib/control-navigation.js';
@@ -215,6 +216,24 @@ describe('ControlApp', () => {
     render(<ControlApp />);
 
     expect(screen.getByText('Pantalla no encontrada')).toBeDefined();
+  });
+
+  it('logs the safe strict-stateless fallback when runtime config is missing', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async (input: RequestInfo | URL) =>
+        String(input) === '/runtime-config.json' ? new Response('', { status: 404 }) : json([]),
+    });
+    at('/control/liga-mendocina');
+    render(<ControlApp />);
+
+    await waitFor(() =>
+      expect(warn).toHaveBeenCalledWith(
+        'CopaLibre runtime config unavailable; using strict-stateless sessions.',
+      ),
+    );
+    warn.mockRestore();
   });
 
   it('renders global platform administration for a super-admin token', async () => {

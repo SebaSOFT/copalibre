@@ -3,6 +3,17 @@
 Established with the monorepo toolchain; every later phase adds suites
 inside these conventions instead of inventing new ones.
 
+## Hybrid development stack
+
+`copalibre dev --hybrid` runs API, events, worker, scheduler and web processes on the host while
+PostgreSQL and supporting services run in Compose. The matching startup and demo-data workflow is
+documented in [DEMO-DATA.md](DEMO-DATA.md).
+
+For a module checkout, `COPALIBRE_MODULE_SOURCE_ALLOWLIST` accepts a comma-separated list of exact
+source URLs. A `copalibre module add <alias> --source <url>` request is allowed only when its URL is
+one of those entries. `COPALIBRE_VERSION` optionally overrides package metadata for compatibility
+tests; the CLI logs when this override is active. Leave it unset for the installed version.
+
 ## ES modules
 
 Every workspace is a native ES module (the ESM module migration), which imposes two rules on

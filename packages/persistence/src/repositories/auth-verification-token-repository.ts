@@ -47,6 +47,19 @@ function hashToken(raw: string): string {
 export class AuthVerificationTokenRepository {
   constructor(private readonly db: Kysely<Database>) {}
 
+  /** Resolves an active native refresh credential to its principal without consuming it. */
+  async findActiveSessionRefreshPrincipalId(rawToken: string): Promise<string | undefined> {
+    const row = await this.db
+      .selectFrom('auth_verification_tokens')
+      .select('principal_id')
+      .where('token_hash', '=', hashToken(rawToken))
+      .where('kind', '=', 'session-refresh')
+      .where('consumed_at', 'is', null)
+      .where('expires_at', '>', new Date())
+      .executeTakeFirst();
+    return row?.principal_id;
+  }
+
   /**
    * Creates a verification token and returns both the domain object and the
    * raw cleartext token (for inclusion in the email link). The cleartext is

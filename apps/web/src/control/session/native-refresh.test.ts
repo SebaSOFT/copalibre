@@ -20,13 +20,27 @@ describe('refreshNativeSession', () => {
       '/auth/refresh',
       expect.objectContaining({ method: 'POST', credentials: 'include' }),
     );
-    expect(outcome?.accessToken).toBe('fresh-jwt');
-    expect(outcome?.expiresAtMs).toBeGreaterThan(Date.now());
+    expect(outcome).toMatchObject({ accessToken: 'fresh-jwt' });
+    if (outcome && 'accessToken' in outcome)
+      expect(outcome.expiresAtMs).toBeGreaterThan(Date.now());
   });
 
   it('returns undefined when the refresh cookie is invalid or absent (401)', async () => {
     const fetchMock = jest.fn<typeof fetch>(async () => response({}, 401));
     await expect(refreshNativeSession(fetchMock)).resolves.toBeUndefined();
+  });
+
+  it('returns a retry time from Retry-After on 429', async () => {
+    const before = Date.now();
+    const fetchMock = jest.fn<typeof fetch>(
+      async () => new Response(null, { status: 429, headers: { 'Retry-After': '3' } }),
+    );
+
+    const outcome = await refreshNativeSession(fetchMock);
+
+    expect(outcome && 'retryAtMs' in outcome).toBe(true);
+    if (outcome && 'retryAtMs' in outcome)
+      expect(outcome.retryAtMs).toBeGreaterThanOrEqual(before + 2_900);
   });
 
   it('returns undefined on a malformed response body', async () => {

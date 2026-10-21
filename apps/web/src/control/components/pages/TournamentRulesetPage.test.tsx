@@ -81,6 +81,41 @@ describe('TournamentRulesetPage', () => {
     expect(await screen.findByText('Could not load the tournament settings.')).toBeDefined();
   });
 
+  it('retries loading the ruleset after the failure state', async () => {
+    let attempts = 0;
+    render(
+      withIntl(
+        <TournamentRulesetPage
+          client={stubClient({
+            fetchRulesetOverrides: () => {
+              attempts += 1;
+              return attempts === 1
+                ? Promise.reject(new Error('temporary failure'))
+                : Promise.resolve({
+                    overrides: { 'scoring.pointsPerWin': 3 },
+                    fieldPolicies: {
+                      'scoring.pointsPerWin': {
+                        permission: { kind: 'replaced' },
+                        mutationClass: 'safe',
+                        label: 'Points per win',
+                      },
+                    },
+                    disciplineDefaults: {},
+                  });
+            },
+          })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+
+    expect(await screen.findByLabelText('Points per win')).toBeDefined();
+    expect(attempts).toBe(2);
+  });
+
   it('previews a changed field and reports its classification', async () => {
     const previewRulesetOverrides = jest.fn<
       NonNullable<ControlApiClient['previewRulesetOverrides']>

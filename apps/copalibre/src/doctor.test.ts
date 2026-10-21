@@ -2,6 +2,7 @@ import { jest } from '@jest/globals';
 import {
   runDoctor,
   validateDatabase,
+  validateDevelopmentRoleHeartbeats,
   validateHostEnvironment,
   validateJwksContent,
   validateModuleAssets,
@@ -230,6 +231,37 @@ describe('copalibre doctor', () => {
       validateServicePorts({ COPALIBRE_API_PORT: '3001', COPALIBRE_EVENTS_PORT: '3001' }),
     ).toContainEqual(
       expect.objectContaining({ status: 'fail', message: expect.stringContaining('distinct') }),
+    );
+  });
+
+  it('reports worker, scheduler, and events heartbeat status for hybrid development', async () => {
+    const requestFetch = jest.fn(async (input: string | URL | Request) => {
+      const role =
+        new URL(String(input)).port === '3002'
+          ? 'events'
+          : new URL(String(input)).port === '3003'
+            ? 'worker'
+            : 'scheduler';
+      return new Response(JSON.stringify({ role, version: '1.2.6' }), { status: 200 });
+    }) as unknown as typeof fetch;
+    await expect(validateDevelopmentRoleHeartbeats({}, requestFetch)).resolves.toEqual([
+      expect.objectContaining({ name: 'dev-heartbeat:events', status: 'pass' }),
+      expect.objectContaining({ name: 'dev-heartbeat:worker', status: 'pass' }),
+      expect.objectContaining({ name: 'dev-heartbeat:scheduler', status: 'pass' }),
+    ]);
+    expect(requestFetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('fails a role heartbeat when its endpoint returns an unexpected role', async () => {
+    const requestFetch = jest.fn(
+      async () => new Response(JSON.stringify({ role: 'api', version: '1.2.6' }), { status: 200 }),
+    ) as unknown as typeof fetch;
+    await expect(validateDevelopmentRoleHeartbeats({}, requestFetch)).resolves.toContainEqual(
+      expect.objectContaining({
+        name: 'dev-heartbeat:events',
+        status: 'fail',
+        message: expect.stringContaining('Unexpected heartbeat'),
+      }),
     );
   });
 

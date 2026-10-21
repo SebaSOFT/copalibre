@@ -46,7 +46,7 @@ describe('renewSessionOnce', () => {
     const fixture = fakeBrowser();
     const outcome = await renewSessionOnce(fixture.runtime);
 
-    expect(outcome?.accessToken).toBe('fresh-jwt');
+    expect(outcome).toMatchObject({ accessToken: 'fresh-jwt' });
     expect(controlTokenStore.read()).toBe('fresh-jwt');
     expect(fixture.navigate).not.toHaveBeenCalled();
   });
@@ -67,6 +67,35 @@ describe('renewSessionOnce', () => {
     expect(fixture.navigate).toHaveBeenCalledWith(
       '/control/login?returnTo=%2Fcontrol%2Fliga-mendocina&reason=session_expired',
     );
+  });
+
+  it('keeps the session and retries after Retry-After when refresh returns 429', async () => {
+    jest.useFakeTimers();
+    recordAuthMethod('native');
+    controlTokenStore.write('still-valid-token', Date.now() + 60_000);
+    const fetchMock = jest
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status: 429, headers: { 'Retry-After': '3' } }))
+      .mockResolvedValueOnce(response({ accessToken: 'fresh-jwt', expiresIn: 3600 }));
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    const fixture = fakeBrowser();
+    try {
+      const retry = await renewSessionOnce(fixture.runtime);
+      expect(retry && 'retryAtMs' in retry).toBe(true);
+      expect(controlTokenStore.read()).toBe('still-valid-token');
+      expect(fixture.navigate).not.toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      await jest.advanceTimersByTimeAsync(2_999);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      await jest.advanceTimersByTimeAsync(1);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(controlTokenStore.read()).toBe('fresh-jwt');
+    } finally {
+      cancelScheduledRenewal();
+      jest.useRealTimers();
+    }
   });
 
   it('shares one in-flight attempt across concurrent callers rather than racing two', async () => {

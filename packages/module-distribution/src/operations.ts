@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import semver from 'semver';
 import type { DisciplineDescriptorDocument, TournamentProfileDocument } from '@copalibre/domain';
 import {
@@ -16,12 +17,25 @@ import {
 
 /**
  * Shared between `apps/copalibre`'s direct-database CLI path and `apps/api`'s
- * admin HTTP surface — each process reads its own environment's
- * `COPALIBRE_VERSION`/`COPALIBRE_MODULE_SOURCE_ALLOWLIST`, so this cannot
- * live in either app without the other duplicating it.
+ * admin HTTP surface. Both use this package's version by default; an explicit
+ * `COPALIBRE_VERSION` remains available for compatibility testing and is logged.
  */
+let loggedVersionOverride: string | undefined;
+
 export function runningCopalibreVersion(environment: NodeJS.ProcessEnv): string {
-  return environment.COPALIBRE_VERSION ?? '0.0.0';
+  const override = environment.COPALIBRE_VERSION?.trim();
+  if (override) {
+    if (loggedVersionOverride !== override) {
+      process.stderr.write(
+        `Using COPALIBRE_VERSION override for module compatibility: ${override}\n`,
+      );
+      loggedVersionOverride = override;
+    }
+    return override;
+  }
+  const packageUrl = new URL('../package.json', import.meta.url);
+  const packageMetadata = JSON.parse(readFileSync(packageUrl, 'utf8')) as { version: string };
+  return packageMetadata.version;
 }
 
 /**

@@ -5,6 +5,7 @@ import { refuseForKubernetesMode } from '../compose-target.js';
 import { runCommand } from '../command-support.js';
 import { hybridEnvironment } from './dev-command.js';
 import { parseComposePs, type ComposeServiceRow } from './status-command.js';
+import { createOrganizationAdminInvitationFromEnv } from '../organization-admin.js';
 
 const DEV_COMPOSE_FILE = 'docker-compose.dev.yml';
 
@@ -47,6 +48,9 @@ export class DevDemoCommand extends Command<CliContext> {
   playedUntil = Option.String('--played-until', {
     description: 'Play only the games finished by an ISO-8601 instant, or by now',
   });
+  withAdmin = Option.String('--with-admin', {
+    description: 'Create an administrator invitation for the loaded demo organization',
+  });
   dataset = Option.String({ required: false });
 
   async execute(): Promise<number> {
@@ -71,14 +75,18 @@ export class DevDemoCommand extends Command<CliContext> {
       };
       const seed = ['workspace', '@copalibre/seed', 'start', 'demo'];
 
-      if (this.list) return this.context.processes.run('yarn', [...seed, '--list'], environment);
+      if (this.list) {
+        if (this.withAdmin) throw new Error('--with-admin cannot be used with --list');
+        return this.context.processes.run('yarn', [...seed, '--list'], environment);
+      }
       if (!this.dataset) {
         throw new Error('name a dataset to load, or pass --list to see what is available');
       }
+      const organizationAlias = this.withAdmin ? demoOrganizationAlias(this.dataset) : undefined;
 
       await this.requireInfrastructure();
       // The seed application validates both values before connecting; they pass through verbatim.
-      return this.context.processes.run(
+      const result = await this.context.processes.run(
         'yarn',
         [
           ...seed,
@@ -88,6 +96,17 @@ export class DevDemoCommand extends Command<CliContext> {
         ],
         environment,
       );
+      if (result !== 0 || !this.withAdmin || !organizationAlias) return result;
+
+      const invitation = await createOrganizationAdminInvitationFromEnv(
+        organizationAlias,
+        this.withAdmin,
+        environment,
+      );
+      process.stdout.write(
+        `Administrator invitation created for ${this.withAdmin}. Setup link (shown once): ${invitation.setupUrl}\n`,
+      );
+      return 0;
     });
   }
 
@@ -115,4 +134,9 @@ export class DevDemoCommand extends Command<CliContext> {
       );
     }
   }
+}
+
+function demoOrganizationAlias(dataset: string): string {
+  if (dataset === 'panamericano-clubes-2025') return 'panamericano-demo';
+  throw new Error(`--with-admin is not supported for demo dataset "${dataset}"`);
 }

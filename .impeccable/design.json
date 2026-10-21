@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-21T17:43:23.000Z",
+  "generatedAt": "2026-10-21T18:49:59.000Z",
   "title": "Design System: CopaLibre",
   "extensions": {
     "colorMeta": {
@@ -467,9 +467,9 @@
       "name": "Inline Alert",
       "kind": "custom",
       "refersTo": "chrome",
-      "description": "A 4px state rail over Chrome Ink. The rail carries the colour, the text carries the meaning — never one without the other.",
-      "html": "<div class=\"ds-alert ds-alert-destructive\"><div><p class=\"ds-alert-title\">Result rejected</p><p class=\"ds-alert-body\">The reported score does not satisfy this ruleset's win condition.</p></div><button class=\"ds-alert-dismiss\" aria-label=\"Dismiss\">×</button></div>",
-      "css": ".ds-alert { display: flex; gap: 8px; padding: 12px; max-width: 420px; background: #1A2236; border-left: 4px solid #FF9C1E; color: #F2F6FB; font-family: 'Barlow', system-ui, sans-serif; } .ds-alert-destructive { border-left-color: #EF4444; } .ds-alert-title { margin: 0; font-weight: 700; } .ds-alert-body { margin: 0; color: #B8C4D8; font-size: 0.875rem; } .ds-alert-dismiss { margin-inline-start: auto; align-self: start; background: none; border: 0; color: inherit; cursor: pointer; padding: 0 4px; font-size: 1.25rem; line-height: 1; } .ds-alert-dismiss:focus-visible { outline: none; box-shadow: 0 0 0 2px #1A2236, 0 0 0 4px #00D4FF; }"
+      "description": "A persistent, polite reconnect status uses a 4px amber rail over Chrome Ink; text states what is happening and that retry is automatic.",
+      "html": "<div class=\"ds-alert ds-alert-warning\" role=\"status\" aria-live=\"polite\"><p class=\"ds-alert-body\">Reconectando la sesión… Se reintentará automáticamente.</p></div>",
+      "css": ".ds-alert { display: flex; gap: 8px; padding: 12px; max-width: 420px; background: #1A2236; border-left: 4px solid #FF9C1E; color: #F2F6FB; font-family: 'Barlow', system-ui, sans-serif; } .ds-alert-warning { border-left-color: #FF9C1E; } .ds-alert-body { margin: 0; color: #B8C4D8; font-size: 0.875rem; }"
     },
     {
       "name": "Stat Tile",

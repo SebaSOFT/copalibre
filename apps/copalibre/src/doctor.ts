@@ -92,6 +92,9 @@ export async function runDoctor(
   checks.push(await validateModuleAssets(environment, dependencies));
   checks.push(await validateObjectStorage(environment, dependencies));
   checks.push(...(await validatePersistentPath(environment, dependencies)));
+  if (isHybridDevelopmentEnvironment(environment)) {
+    checks.push(...(await validateDevelopmentRoleHeartbeats(environment, dependencies.fetch)));
+  }
   if (options.checkProxy) checks.push(await validateReverseProxy(options, dependencies));
   if (options.smoke) checks.push(...(await validateSmokeTests(environment, dependencies)));
   return { checks, ok: checks.every((check) => check.status !== 'fail') };
@@ -106,12 +109,17 @@ export function validateRequiredConfiguration(
   }
 
   try {
-    authConfigFromEnv(environment);
+    const authConfig = authConfigFromEnv(environment);
     if (!environment.COPALIBRE_OIDC_CLIENT_ID?.trim()) {
       throw new Error('COPALIBRE_OIDC_CLIENT_ID is required');
     }
     checks.push(
-      pass('oidc-config', 'OIDC JWKS, issuer, audience and browser client are configured'),
+      pass(
+        'oidc-config',
+        authConfig.jwksUri
+          ? `OIDC and native JWT verification are configured (native issuer: ${authConfig.nativeIssuer})`
+          : `Native JWT verification is configured; external OIDC is disabled (native issuer: ${authConfig.nativeIssuer})`,
+      ),
     );
   } catch (error) {
     checks.push(fail('oidc-config', errorMessage(error)));
@@ -202,6 +210,46 @@ export function validateServicePorts(environment: NodeJS.ProcessEnv): readonly D
       `Configured ports: ${ports.map(([role, port]) => `${role}=${port}`).join(', ')}`,
     ),
   ];
+}
+
+export async function validateDevelopmentRoleHeartbeats(
+  environment: NodeJS.ProcessEnv,
+  requestFetch: typeof fetch = fetch,
+): Promise<readonly DoctorCheck[]> {
+  const roles = [
+    ['events', environment.COPALIBRE_EVENTS_PORT ?? '3002'],
+    ['worker', environment.COPALIBRE_WORKER_PORT ?? '3003'],
+    ['scheduler', environment.COPALIBRE_SCHEDULER_PORT ?? '3004'],
+  ] as const;
+  return Promise.all(
+    roles.map(async ([role, port]) => {
+      const url = `http://127.0.0.1:${port}/health`;
+      try {
+        const response = await requestFetch(url, { signal: AbortSignal.timeout(1500) });
+        if (!response.ok)
+          return fail(`dev-heartbeat:${role}`, `HTTP ${response.status} from ${url}`);
+        const body = (await response.json()) as { role?: unknown; version?: unknown };
+        if (body.role !== role || typeof body.version !== 'string') {
+          return fail(`dev-heartbeat:${role}`, `Unexpected heartbeat response from ${url}`);
+        }
+        return pass(`dev-heartbeat:${role}`, `${role} heartbeat is responding (${body.version})`);
+      } catch (error) {
+        return fail(
+          `dev-heartbeat:${role}`,
+          `${role} heartbeat is unavailable: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }),
+  );
+}
+
+function isHybridDevelopmentEnvironment(environment: NodeJS.ProcessEnv): boolean {
+  if (environment.COPALIBRE_DEV_HYBRID === 'true') return true;
+  try {
+    return new URL(environment.COPALIBRE_APP_URL ?? '').port === '4321';
+  } catch {
+    return false;
+  }
 }
 
 export async function validatePublicUrls(

@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import type { ExecutionContext } from '@nestjs/common';
 import type { ThrottlerRequest } from '@nestjs/throttler';
+import { AuthVerificationTokenRepository } from '@copalibre/persistence';
 import {
   PrincipalThrottlerGuard,
   RESOURCE_THROTTLE_LIMIT,
@@ -77,6 +78,7 @@ function fakeRequestProps(
     ttl?: number;
     blockDuration?: number;
     tracker?: string;
+    cookie?: string;
   } = {},
 ) {
   const headers: Record<string, unknown> = {};
@@ -86,6 +88,7 @@ function fakeRequestProps(
     }),
   };
   const req = fakeRequest({ principalId: 'p-1' });
+  (req as { headers?: Record<string, unknown> }).headers = { cookie: overrides.cookie };
   const handler = vi.fn();
   const classRef = class Target {};
   const context = {
@@ -210,6 +213,36 @@ describe('PrincipalThrottlerGuard', () => {
       expect(result).toBe(true);
       expect(sharedIncrement).toHaveBeenCalledWith(
         'default:principal-p-1',
+        props.ttl,
+        props.limit,
+        props.blockDuration,
+        'default',
+      );
+    });
+
+    it('tracks refresh-cookie throttles by the active token principal', async () => {
+      const { guard } = createGuard({ [SHARED_THROTTLE_KEY]: 'refresh-cookie' });
+      const internals = guard as unknown as GuardInternals;
+      const lookup = vi
+        .spyOn(AuthVerificationTokenRepository.prototype, 'findActiveSessionRefreshPrincipalId')
+        .mockResolvedValue('42');
+      const sharedIncrement = vi.spyOn(internals.sharedStorage, 'increment').mockResolvedValue({
+        totalHits: 1,
+        timeToExpire: 60,
+        isBlocked: false,
+        timeToBlockExpire: 0,
+      });
+      const props = fakeRequestProps({ cookie: 'copalibre_refresh_token=opaque-refresh-value' });
+      vi.spyOn(internals, 'getRequestResponse').mockReturnValue({
+        req: props.req,
+        res: props.res,
+      });
+
+      await internals.handleRequest(props as unknown as ThrottlerRequest);
+
+      expect(lookup).toHaveBeenCalledWith('opaque-refresh-value');
+      expect(sharedIncrement).toHaveBeenCalledWith(
+        'default:principal-42',
         props.ttl,
         props.limit,
         props.blockDuration,

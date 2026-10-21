@@ -205,6 +205,11 @@ export const messages: Record<string, string> = {
   'publicWeb.orgPage.emblemPlaceholderAlt': 'Nenhum escudo enviado',
   'publicWeb.orgPage.notFoundTitle': 'Organização não encontrada',
   'publicWeb.orgPage.notFoundBody': 'Não existe nenhuma organização neste endereço.',
+  'publicWeb.devHelp.unavailableTitle': 'A ajuda não é gerada em desenvolvimento',
+  'publicWeb.devHelp.unavailableBody':
+    'Compile o app web e execute o servidor de pré-visualização para consultar a ajuda localmente.',
+  'publicWeb.devHelp.unavailableCommand':
+    'yarn workspace @copalibre/web build && yarn workspace @copalibre/web preview',
 
   'publicWeb.matchesView.pageTitle': 'Partidas',
   'publicWeb.matchesView.filterAll': 'Todas',

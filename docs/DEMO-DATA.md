@@ -39,6 +39,21 @@ public pages work at `/panamericano-demo/tournaments/panamericano-clubes-2025`.
 
 3. `copalibre dev demo panamericano-clubes-2025`. `copalibre dev demo --list` shows what is available.
 
+### Local module sources and version checks
+
+The curated module source needs no configuration. A `--source` URL for a local checkout or another
+repository must exactly match one entry in `COPALIBRE_MODULE_SOURCE_ALLOWLIST`; entries are
+comma-separated URLs. Set the variable in the host environment before running the CLI:
+
+```sh
+COPALIBRE_MODULE_SOURCE_ALLOWLIST=file:///abs/path/to/copalibre-modules \
+  copalibre module add rink-hockey --source file:///abs/path/to/copalibre-modules
+```
+
+`COPALIBRE_VERSION` is an optional compatibility-test override. Normally the CLI and module
+compatibility checks both read the installed package version. When the override is set, the CLI logs
+that it is active; unset it to check modules against the real installation version.
+
 ### A tournament happening now
 
 `--anchor <YYYY-MM-DD|today>` moves the dataset's first game day to that date. Every game keeps its

@@ -1,4 +1,10 @@
-import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose';
+import {
+  createRemoteJWKSet,
+  decodeJwt,
+  jwtVerify,
+  type JWTPayload,
+  type JWTVerifyGetKey,
+} from 'jose';
 import { ALLOWED_ALGORITHMS, type AuthConfig } from './auth-config.js';
 import type { AuthenticatedSubject } from './request-context.js';
 
@@ -13,6 +19,7 @@ import type { AuthenticatedSubject } from './request-context.js';
 
 export type TokenRejectionReason =
   | 'malformed'
+  | 'identity-provider-not-configured'
   | 'unknown-key'
   | 'bad-signature'
   | 'disallowed-algorithm'
@@ -35,28 +42,51 @@ export class TokenVerificationError extends Error {
 }
 
 export class TokenVerifier {
-  private readonly getKey: JWTVerifyGetKey;
+  private readonly getKey?: JWTVerifyGetKey;
+  private readonly nativeGetKey?: JWTVerifyGetKey;
 
   constructor(
     private readonly config: AuthConfig,
     /** Injectable in tests; production uses the remote JWKS. */
     getKey?: JWTVerifyGetKey,
+    /** API-local public key set; other processes can keep using remote JWKS. */
+    nativeGetKey?: JWTVerifyGetKey,
   ) {
+    this.nativeGetKey = nativeGetKey;
     this.getKey =
       getKey ??
-      createRemoteJWKSet(new URL(config.jwksUri), {
-        cacheMaxAge: config.jwksCacheMaxAgeMs,
-      });
+      (config.jwksUri
+        ? createRemoteJWKSet(new URL(config.jwksUri), {
+            cacheMaxAge: config.jwksCacheMaxAgeMs,
+          })
+        : undefined);
   }
 
   async verify(token: string): Promise<AuthenticatedSubject> {
+    let tokenIssuer: string | undefined;
+    try {
+      tokenIssuer = decodeJwt(token).iss;
+    } catch (cause) {
+      throw new TokenVerificationError(classify(cause), describe(cause));
+    }
+
+    const isNativeIssuer =
+      this.config.nativeIssuer !== undefined && tokenIssuer === this.config.nativeIssuer;
+    const verificationKey = isNativeIssuer ? (this.nativeGetKey ?? this.getKey) : this.getKey;
+    const expectedIssuer = isNativeIssuer ? this.config.nativeIssuer : this.config.issuer;
+    if (!verificationKey || !expectedIssuer) {
+      throw new TokenVerificationError(
+        'identity-provider-not-configured',
+        'External identity verification requires COPALIBRE_JWKS_URI and COPALIBRE_JWT_ISSUER',
+      );
+    }
     let payload: JWTPayload;
     try {
-      const result = await jwtVerify(token, this.getKey, {
+      const result = await jwtVerify(token, verificationKey, {
         // Allowlist is enforced here, so `alg: none` or an HMAC-signed token
         // is rejected before any key lookup happens.
         algorithms: [...ALLOWED_ALGORITHMS],
-        issuer: this.config.issuer,
+        issuer: expectedIssuer,
         audience: this.config.audience,
         clockTolerance: this.config.clockToleranceSeconds,
         // jose only checks exp *when present*; without this, a token that

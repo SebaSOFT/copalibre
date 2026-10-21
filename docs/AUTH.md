@@ -9,7 +9,8 @@ Established with the API auth contract (stateless API nodes, security planes) an
 
 All authenticated requests use `Authorization: Bearer <JWT>`. The API validates:
 
-- asymmetric signature against the provider's JWKS (`COPALIBRE_JWKS_URI`);
+- asymmetric signature against the configured trust source: the local signing key for native
+  sessions, or the provider's JWKS (`COPALIBRE_JWKS_URI`) for external OIDC sessions;
 - an allowlisted algorithm — `RS256/384/512`, `ES256/384`. `none` and every HMAC variant are absent
   from the allowlist, so a token cannot select its own verification scheme;
 - exact `iss` (`COPALIBRE_JWT_ISSUER`) and `aud` (`COPALIBRE_JWT_AUDIENCE`);
@@ -31,8 +32,13 @@ private key and matching public JWKS from `COPALIBRE_JWT_PRIVATE_KEY_FILE` and
 `/var/lib/copalibre`. `copalibre init` creates these files on the host; ensure the API container
 can read the matching pair through your deployment mounts. If absent, the API generates temporary
 in-memory keys, so restarts invalidate existing tokens and replicas cannot reliably share identity.
-The public keys are served at `/.well-known/jwks.json` and `/auth/jwks.json`. Native tokens use the
-same asymmetric verifier as OIDC tokens; `COPALIBRE_JWT_SECRET` is not a supported signing setting.
+The public keys are served at `/.well-known/jwks.json` and `/auth/jwks.json`. Native tokens use
+`COPALIBRE_NATIVE_JWT_ISSUER` (default `http://localhost:8080`) and are verified against the API's
+loaded local public key set. OIDC tokens use `COPALIBRE_JWT_ISSUER` and the remote JWKS. Both paths
+enforce the same algorithm allowlist, audience, expiry and clock-tolerance rules. The API checks the
+local signing key with a startup sign-and-verify probe and refuses to start if its configured key
+pair, issuer or audience cannot verify that probe. `COPALIBRE_JWT_SECRET` is not a supported signing
+setting.
 
 Key fetching, caching, and rotation are handled by `jose`'s `createRemoteJWKSet`, which re-fetches on
 an unknown `kid` — that is the key-rotation overlap the design requires, and it means a transient
@@ -41,8 +47,12 @@ JWKS outage doesn't immediately invalidate live sessions.
 **A token in the query string is ignored.** `?access_token=…` leaves the request unauthenticated on
 purpose: URLs leak into proxy logs, browser history, metrics, traces, screenshots and error reports.
 
-Configuration is required, not defaulted: the API refuses to start without all three auth variables,
-so a misconfigured deployment fails closed instead of serving everything as public.
+The audience remains required. External OIDC is enabled when `COPALIBRE_JWKS_URI` and
+`COPALIBRE_JWT_ISSUER` are configured; native-only deployments can omit both and still verify local
+sessions. The API refuses to start without the audience or a valid native signing probe, so a
+misconfigured deployment fails closed instead of serving everything as public. The native issuer
+defaults to `http://localhost:8080`; set it explicitly when native sessions use a public application
+URL. Keep it distinct from the OIDC issuer in hybrid deployments.
 
 ## Security planes
 
@@ -87,15 +97,16 @@ again. The server continues to authorize every request independently of browser 
 
 ## Environment
 
-| Variable                                | Required           | Purpose                                       |
-| --------------------------------------- | ------------------ | --------------------------------------------- |
-| `COPALIBRE_JWKS_URI`                    | yes                | JWKS endpoint for native or external identity |
-| `COPALIBRE_JWT_ISSUER`                  | yes                | Exact expected `iss`                          |
-| `COPALIBRE_JWT_AUDIENCE`                | yes                | Exact expected `aud`                          |
-| `COPALIBRE_JWT_PRIVATE_KEY_FILE`        | native deployments | Persistent RS256 private key file             |
-| `COPALIBRE_JWKS_FILE`                   | native deployments | Matching persistent public JWKS file          |
-| `COPALIBRE_JWKS_CACHE_MAX_AGE_MS`       | no (600000)        | Key cache lifetime / rotation overlap         |
-| `COPALIBRE_JWT_CLOCK_TOLERANCE_SECONDS` | no (5)             | Clock-skew tolerance                          |
+| Variable                                | Required                     | Purpose                                                 |
+| --------------------------------------- | ---------------------------- | ------------------------------------------------------- |
+| `COPALIBRE_JWKS_URI`                    | OIDC only                    | External identity provider JWKS endpoint                |
+| `COPALIBRE_JWT_ISSUER`                  | OIDC only                    | Exact external-provider `iss`                           |
+| `COPALIBRE_NATIVE_JWT_ISSUER`           | no (`http://localhost:8080`) | Exact expected `iss` for locally signed native sessions |
+| `COPALIBRE_JWT_AUDIENCE`                | yes                          | Exact expected `aud`                                    |
+| `COPALIBRE_JWT_PRIVATE_KEY_FILE`        | native deployments           | Persistent RS256 private key file                       |
+| `COPALIBRE_JWKS_FILE`                   | native deployments           | Matching persistent public JWKS file                    |
+| `COPALIBRE_JWKS_CACHE_MAX_AGE_MS`       | no (600000)                  | Key cache lifetime / rotation overlap                   |
+| `COPALIBRE_JWT_CLOCK_TOLERANCE_SECONDS` | no (5)                       | Clock-skew tolerance                                    |
 
 ## The OpenAPI artifact
 

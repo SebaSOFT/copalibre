@@ -204,6 +204,11 @@ export const messages: Record<string, string> = {
   'publicWeb.orgPage.emblemPlaceholderAlt': 'Эмблема не загружена',
   'publicWeb.orgPage.notFoundTitle': 'Организация не найдена',
   'publicWeb.orgPage.notFoundBody': 'По этому адресу организация не найдена.',
+  'publicWeb.devHelp.unavailableTitle': 'Справка не собирается в режиме разработки',
+  'publicWeb.devHelp.unavailableBody':
+    'Соберите веб-приложение и запустите сервер предпросмотра, чтобы открыть справку локально.',
+  'publicWeb.devHelp.unavailableCommand':
+    'yarn workspace @copalibre/web build && yarn workspace @copalibre/web preview',
 
   'publicWeb.matchesView.pageTitle': 'Матчи',
   'publicWeb.matchesView.filterAll': 'Все',

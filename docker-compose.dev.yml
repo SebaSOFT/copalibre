@@ -6,8 +6,9 @@ x-development-environment: &development-environment
   DATABASE_URL: postgres://copalibre:copalibre_dev_only@postgres:5432/copalibre
   COPALIBRE_APP_URL: http://localhost:4321
   COPALIBRE_BOOTSTRAP_TOKEN: copalibre_dev_bootstrap_only
-  COPALIBRE_JWKS_URI: http://oidc.invalid/jwks.json
-  COPALIBRE_JWT_ISSUER: http://oidc.invalid
+  COPALIBRE_JWKS_URI: http://api:3001/.well-known/jwks.json
+  COPALIBRE_JWT_ISSUER: http://localhost:8080
+  COPALIBRE_NATIVE_JWT_ISSUER: http://localhost:8080
   COPALIBRE_JWT_AUDIENCE: copalibre
   COPALIBRE_OIDC_CLIENT_ID: copalibre-dev
   COPALIBRE_EMAIL_PROVIDER: smtp
@@ -252,7 +253,8 @@ services:
       context: .
       target: web
     environment:
-      COPALIBRE_JWT_ISSUER: http://oidc.invalid
+      COPALIBRE_JWT_ISSUER: http://localhost:8080
+      COPALIBRE_NATIVE_JWT_ISSUER: http://localhost:8080
       COPALIBRE_OIDC_CLIENT_ID: copalibre-dev
     ports:
       - '4321:4321'

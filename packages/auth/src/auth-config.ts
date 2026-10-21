@@ -16,10 +16,12 @@ export const ALLOWED_ALGORITHMS = ['RS256', 'RS384', 'RS512', 'ES256', 'ES384'] 
 export type AllowedAlgorithm = (typeof ALLOWED_ALGORITHMS)[number];
 
 export interface AuthConfig {
-  /** JWKS endpoint of the selected identity provider. */
-  readonly jwksUri: string;
-  /** Exact expected `iss`. */
-  readonly issuer: string;
+  /** JWKS endpoint of the external identity provider, absent in native-only deployments. */
+  readonly jwksUri?: string;
+  /** Exact expected external-provider `iss`, absent in native-only deployments. */
+  readonly issuer?: string;
+  /** Exact issuer for locally signed native sessions, when configured. */
+  readonly nativeIssuer?: string;
   /** Exact expected `aud`. */
   readonly audience: string;
   /**
@@ -39,11 +41,7 @@ export function authConfigFromEnv(env: NodeJS.ProcessEnv = process.env): AuthCon
   const issuer = env.COPALIBRE_JWT_ISSUER;
   const audience = env.COPALIBRE_JWT_AUDIENCE;
 
-  const missing = [
-    ['COPALIBRE_JWKS_URI', jwksUri],
-    ['COPALIBRE_JWT_ISSUER', issuer],
-    ['COPALIBRE_JWT_AUDIENCE', audience],
-  ]
+  const missing = [['COPALIBRE_JWT_AUDIENCE', audience]]
     .filter(([, value]) => !value)
     .map(([name]) => name);
 
@@ -54,8 +52,9 @@ export function authConfigFromEnv(env: NodeJS.ProcessEnv = process.env): AuthCon
   }
 
   return {
-    jwksUri: jwksUri as string,
-    issuer: issuer as string,
+    ...(jwksUri ? { jwksUri } : {}),
+    ...(issuer ? { issuer } : {}),
+    nativeIssuer: env.COPALIBRE_NATIVE_JWT_ISSUER ?? 'http://localhost:8080',
     audience: audience as string,
     jwksCacheMaxAgeMs: readPositiveInt(
       env.COPALIBRE_JWKS_CACHE_MAX_AGE_MS,

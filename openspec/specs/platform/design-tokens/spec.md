@@ -657,3 +657,37 @@ The TV broadcast scorebug MUST place visible possession and timed-penalty marker
 #### Scenario: TV bracket matchup card
 - **WHEN** an elimination matchup is shown in the full-frame TV bracket section
 - **THEN** the card has the control chamfer treatment, including its square fallback where corner shaping is unsupported
+
+### Requirement: Design documentation states the interaction, iconography, data-visualization, motion, imagery, voice and reference rules
+
+`DESIGN.md` SHALL carry a named section for each of these:
+- surfaces and judging devices;
+- external references and the adopted layout compositions;
+- interaction states (loading, empty, error, offline);
+- iconography;
+- data visualization;
+- motion;
+- imagery;
+- voice;
+- public casing;
+- non-Latin scripts;
+- the accessibility target.
+
+A unit test SHALL fail when any of these sections is missing.
+
+#### Scenario: A regenerated design document drops a section
+
+- **WHEN** `DESIGN.md` is regenerated and the "Interaction states" section is missing
+- **THEN** the design-document unit test fails and names the missing section
+
+#### Scenario: Every rule has a home a reviewer can cite
+
+- **WHEN** a design review records a finding about an empty state, an icon, a chart colour, a motion, a
+  missing crest, a button label or a reading page's casing
+- **THEN** the finding cites the matching `DESIGN.md` section rather than a reviewer's preference
+
+#### Scenario: Deliberate brand choices are recorded as choices
+
+- **WHEN** the design document is read
+- **THEN** it states that the ink ground with a single cyan accent, tracked uppercase labels, mono data
+  labels and middle-dot meta strings are deliberate, so a generic-UI heuristic does not flag them

@@ -800,6 +800,18 @@ export const messages = defineMessages({
     id: 'publicWeb.notFound.homeLink',
     defaultMessage: 'Return to home',
   },
+  devHelpUnavailableTitle: {
+    id: 'publicWeb.devHelp.unavailableTitle',
+    defaultMessage: 'Help is not built in development',
+  },
+  devHelpUnavailableBody: {
+    id: 'publicWeb.devHelp.unavailableBody',
+    defaultMessage: 'Build the web app and run its preview server to browse the help site locally.',
+  },
+  devHelpUnavailableCommand: {
+    id: 'publicWeb.devHelp.unavailableCommand',
+    defaultMessage: 'yarn workspace @copalibre/web build && yarn workspace @copalibre/web preview',
+  },
 
   // ScoreTicker.astro / tv-statistics.ts
   tickerLabel: { id: 'publicWeb.ticker.label', defaultMessage: 'Tournament ticker' },
