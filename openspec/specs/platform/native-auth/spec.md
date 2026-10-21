@@ -173,3 +173,32 @@ behavior unchanged: no background renewal, and a page reload requires reauthenti
 - **WHEN** `runtime-config.json` has no `sessionMode` field, or a value other than
   `"pragmatic-persistent"`
 - **THEN** the client schedules no background renewal timer and attempts no renewal on a 401
+
+### Requirement: Native tokens verify against the API's own key and refresh survives rate limiting
+
+The API SHALL verify tokens carrying the native issuer with its own signing key in-process, and SHALL
+verify other issuers through the configured remote JWKS, checking audience, expiry and algorithm in
+both paths. It SHALL refuse to start when native login is enabled and a signed probe token fails
+verification. The refresh endpoint SHALL have its own rate limit, separate from login. A 429 on
+refresh SHALL make the client retry after `Retry-After` without ending the session.
+
+#### Scenario: Native login then API call
+
+- **WHEN** a user signs in with email and password and calls an organization endpoint
+- **THEN** the call succeeds, with no request to any external JWKS host
+
+#### Scenario: Forged native kid
+
+- **WHEN** a token carries the native `kid` but is signed with another key
+- **THEN** verification fails with 401
+
+#### Scenario: Refresh rate-limited
+
+- **WHEN** the refresh endpoint answers 429 with `Retry-After: 10`
+- **THEN** the control panel shows a reconnecting status, retries after 10 seconds, and does not
+  redirect to login
+
+#### Scenario: Misconfigured verifier
+
+- **WHEN** the API starts with native login enabled and the probe token fails verification
+- **THEN** the API exits with an error naming the verifier configuration
