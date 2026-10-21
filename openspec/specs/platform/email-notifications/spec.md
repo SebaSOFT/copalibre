@@ -6,13 +6,11 @@ Tell the people who run a competition when something they manage changes — a t
 ## Requirements
 
 ### Requirement: Lifecycle milestones publish transactional outbox events
-The system SHALL publish a durable outbox event, in the same transaction as the mutation that caused it,
-for each of these milestones: a tournament is created (`tournament.created`), a club is created
-(`club.created`), an entrant is registered into a tournament (`entrant.registered`), and a club submits
-the squad for a tournament entrant (`entrant.squad-submitted`). `tournament.created` and
-`entrant.registered` are existing events; this requirement SHALL extend their payloads without renaming
-or removing any existing field. Each payload SHALL carry the actor and, when the mutation was caused by
-CSV import, demo loading or a club's own submission, an `origin` value.
+
+The system SHALL publish a durable outbox event, in the same transaction as the mutation that caused
+it, for each lifecycle milestone, and SHALL extend the existing events' payloads without renaming or
+removing any field. Each payload SHALL carry the actor and, when the mutation was caused by CSV
+import, demo loading or a club's own submission, an `origin` value.
 
 #### Scenario: Tournament creation publishes its event atomically
 - **WHEN** a user creates a tournament in an organization
@@ -31,13 +29,25 @@ CSV import, demo loading or a club's own submission, an `origin` value.
 - **WHEN** any of these mutations rolls back
 - **THEN** no outbox row for it exists
 
+#### Scenario: The milestones
+
+- **WHEN** a tournament is created, a club is created, an entrant is registered, or a club submits a
+  tournament entrant's squad
+- **THEN** `tournament.created`, `club.created`, `entrant.registered` or `entrant.squad-submitted`
+  is published respectively
+
+#### Scenario: Existing events keep their fields
+
+- **WHEN** `tournament.created` or `entrant.registered` gains fields
+- **THEN** every field it already carried is still present under the same name
+
 ### Requirement: Notification audience is resolved by role and excludes the actor
-The worker SHALL resolve recipients from active organization role assignments at send time. For
-`tournament.created` and `club.created` the audience SHALL be the organization's `admin` assignments. For
-`entrant.registered` and `entrant.squad-submitted` it SHALL be the organization's `admin` assignments and
-the `tournament-admin` assignments scoped to that tournament. The worker SHALL exclude the principal that
-caused the event and SHALL collapse duplicate addresses case-insensitively, so one person holding several
-qualifying roles is one recipient. An event with no resolved recipient SHALL complete without sending.
+
+The worker SHALL resolve recipients from active organization role assignments at send time: the
+organization's `admin` assignments for `tournament.created` and `club.created`, and additionally
+that tournament's `tournament-admin` assignments for `entrant.registered` and
+`entrant.squad-submitted`. It SHALL exclude the actor and SHALL collapse duplicate addresses
+case-insensitively, and an event with no recipient SHALL complete without sending.
 
 #### Scenario: Organization admins are notified of a new club
 - **WHEN** a `club.created` event is processed for an organization with two active `admin` assignments, neither of them the actor
@@ -72,13 +82,10 @@ produce one email per record.
 - **THEN** no email is sent for any of them
 
 ### Requirement: Every email is branded with the organization and the product
-Every email the worker sends, lifecycle, invitation and password reset, SHALL render through one layout.
-The header SHALL show the organization's emblem, name and a link to its public page under
-`COPALIBRE_APP_URL`; with no emblem it SHALL show the name only; with no organization, as in a password
-reset, it SHALL show the Copa Libre mark only. The footer SHALL show the Copa Libre logo and a link to
-`https://www.copalibre.app`, regardless of the installation's `COPALIBRE_APP_URL`. Every image SHALL have
-alternative text, and a plain-text part SHALL always be sent. Action links in the body SHALL use
-`COPALIBRE_APP_URL`.
+
+Every email the worker sends SHALL render through one layout, with the organization in the header
+and the Copa Libre signature in the footer. Every image SHALL have alternative text, a plain-text
+part SHALL always be sent, and action links in the body SHALL use `COPALIBRE_APP_URL`.
 
 #### Scenario: Organization email shows emblem and name
 - **WHEN** a lifecycle email is rendered for an organization with an uploaded emblem
@@ -100,6 +107,23 @@ alternative text, and a plain-text part SHALL always be sent. Action links in th
 - **WHEN** a password-reset email is rendered
 - **THEN** the header shows the Copa Libre mark only and the reset link and expiry text are unchanged
 
+#### Scenario: Which emails share the layout
+
+- **WHEN** the worker sends a lifecycle, invitation or password-reset email
+- **THEN** each renders through the same layout
+
+#### Scenario: The header
+
+- **WHEN** an email is rendered
+- **THEN** the header shows the organization's emblem, name and a link to its public page under
+  `COPALIBRE_APP_URL`; with no emblem, the name only; with no organization, the Copa Libre mark only
+
+#### Scenario: The footer
+
+- **WHEN** an email is rendered on any installation
+- **THEN** the footer shows the Copa Libre logo and a link to `https://www.copalibre.app`, whatever
+  `COPALIBRE_APP_URL` is
+
 ### Requirement: Emails use the organization's primary language
 The worker SHALL render each email in the `primary_language` of the organization it concerns, one of the
 eight supported languages, with a message entry required for every supported language. An email with no
@@ -114,12 +138,11 @@ organization SHALL use English.
 - **THEN** it is in English
 
 ### Requirement: The same email is never sent twice to the same recipient
-For every email the worker sends, identified by its outbox event and recipient address, the system SHALL
-send at most one message to that recipient. The worker SHALL reserve the `(event, recipient)` pair
-atomically before calling the provider, and SHALL skip a recipient whose pair is already reserved. When
-the provider definitely rejects the message the reservation SHALL be released so the row can retry; when
-the outcome is uncertain, such as a timeout after the request was sent, the reservation SHALL be kept, the
-failure SHALL be logged with the event id, and the recipient SHALL NOT be retried.
+
+The system SHALL send at most one message per outbox event and recipient address. The worker SHALL
+reserve the `(event, recipient)` pair atomically before calling the provider and SHALL skip a
+reserved pair. A definite provider rejection SHALL release the reservation so the row can retry; an
+uncertain outcome SHALL keep it, SHALL be logged with the event id, and SHALL NOT be retried.
 
 #### Scenario: Retry after a partial failure
 - **WHEN** an event with three recipients sends to the first, then the provider rejects the second, and the row is retried
@@ -145,8 +168,17 @@ failure SHALL be logged with the event id, and the recipient SHALL NOT be retrie
 - **WHEN** an invitation or password-reset row is delivered twice
 - **THEN** its recipient receives one email
 
+#### Scenario: What counts as uncertain
+
+- **WHEN** a timeout occurs after the request was sent
+- **THEN** the outcome is uncertain
+
 ### Requirement: Email delivery outcomes are observable
-The worker SHALL count every email delivery attempt by outcome (sent, already sent, outcome unknown, refused) and SHALL expose those counts through the worker's metrics surface, so that an operator can see how many recipients may not have received an email. An outcome-unknown delivery SHALL be logged with the event type and a hash of the recipient, and SHALL NOT include the recipient's address. Observability SHALL NOT change the guarantee that the same email is never sent twice to the same recipient.
+
+The worker SHALL count every email delivery attempt by outcome (sent, already sent, outcome unknown,
+refused) and SHALL expose those counts through its metrics surface. An outcome-unknown delivery
+SHALL be logged with the event type and a hash of the recipient, and SHALL NOT include the address.
+Observability SHALL NOT change the guarantee that the same email is never sent twice.
 
 #### Scenario: An unknown outcome is counted and logged without the address
 - **WHEN** the provider fails in a way that leaves acceptance uncertain
@@ -161,6 +193,11 @@ The worker SHALL count every email delivery attempt by outcome (sent, already se
 #### Scenario: A duplicate attempt does not resend
 - **WHEN** the same event and recipient are attempted twice
 - **THEN** the second attempt is counted as already sent and no message is sent
+
+#### Scenario: Why the counts exist
+
+- **WHEN** an operator reads the metrics
+- **THEN** they show how many recipients may not have received an email
 
 ### Requirement: A club-portal submission is announced once
 When a club submits through the club portal, the administrators SHALL receive the squad notice and SHALL NOT also receive a registration notice for the same submission, so that one submission does not produce two emails seconds apart.

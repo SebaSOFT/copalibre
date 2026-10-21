@@ -8,14 +8,12 @@ own reliability and authorization contract distinct from the public and control 
 ## Requirements
 
 ### Requirement: Kiosk and overlay routes
-The system SHALL serve `/tv/{organization}/tournaments/{tournament}` (full rotation),
-`/tv/{organization}/tournaments/{tournament}/stages/{stage}/matches/{match}` (pinned to one match), and the same
-routes with `?mode=overlay-lower` or `?mode=overlay-full` for chroma-key/broadcast-graphic rendering,
-reusing the organization/tournament alias tuple unchanged from the public routes per the URL and
-routing contract. A bare `?mode=overlay` SHALL be treated as an alias for `?mode=overlay-lower`. These
-routes SHALL be rendered dynamically per request via server-side rendering for any published
-tournament, rather than prerendered for a hardcoded fixture list, and SHALL be proxied through the
-internal and edge reverse proxies without 404 or blank document errors.
+
+The system SHALL serve the full-rotation and pinned-match TV routes, and the same routes with
+`?mode=overlay-lower` or `?mode=overlay-full`, reusing the public routes' organization/tournament
+alias tuple. A bare `?mode=overlay` SHALL be treated as `?mode=overlay-lower`. These routes SHALL be
+rendered per request for any published tournament rather than prerendered, and SHALL be proxied
+through the internal and edge reverse proxies without 404 or blank document errors.
 
 #### Scenario: Overlay mode renders transparent
 - **WHEN** a `/tv/**` route is requested with `?mode=overlay-lower` (or bare `?mode=overlay`)
@@ -36,6 +34,18 @@ internal and edge reverse proxies without 404 or blank document errors.
 #### Scenario: Dynamic tournament kiosk rendering
 - **WHEN** an operator navigates to `/tv/{organization}/tournaments/{tournament}` for any active, published tournament
 - **THEN** the kiosk page renders the live dashboard with tournament identity, matches, and rotation schedules rather than a blank or 404 page.
+
+#### Scenario: The route shapes
+
+- **WHEN** an operator opens a TV surface
+- **THEN** full rotation is `/tv/{organization}/tournaments/{tournament}` and a pinned match is
+  `/tv/{organization}/tournaments/{tournament}/stages/{stage}/matches/{match}`, per the URL and
+  routing contract
+
+#### Scenario: Overlay modes are for broadcast graphics
+
+- **WHEN** a broadcaster composites a TV route
+- **THEN** the overlay modes render for chroma-key and broadcast-graphic use
 
 ### Requirement: Device-scoped display token
 Access to a `/tv/**` route or its underlying SSE stream SHALL be authorized by a device-scoped
@@ -351,18 +361,12 @@ The system SHALL support a multi-court grid presentation mode (`?layout=multicou
 - **THEN** the multi-court presentation rotates through groups of matches on a 20-second interval, respecting `prefers-reduced-motion` settings
 
 ### Requirement: Root TV kiosk launcher and display configuration
-The system SHALL serve an interactive kiosk launcher at `/tv` allowing operators and unattended kiosk
-displays to configure their destination screen parameters. The launcher SHALL present its controls in
-a floating configuration panel above a full-bleed viewport background layer. The launcher SHALL
-provide selectors for organization alias, active tournament, display view mode (full dashboard,
-standings table, a selected pinned match, or broadcast overlay), background style (blurred discipline
-background, neutral, chroma green, football grass, or basketball court), and interface language. When
-the operator changes the background selection, the underlying full-bleed viewport layer SHALL mutate
-in real time beneath the panel to provide progressive visual feedback. Selecting the pinned-match view
-SHALL expose stage and match selectors and SHALL require a selected match before launch. On submission,
-the launcher SHALL navigate to the fully configured TV surface URL and persist the configuration in
-client storage for automatic recovery on display reboot. Launching an overlay without an explicit
-background SHALL default to transparent output for browser-source compositing.
+
+The system SHALL serve an interactive kiosk launcher at `/tv` in a floating configuration panel
+above a full-bleed background layer, which SHALL change in real time as the background selection
+changes. Selecting the pinned-match view SHALL require a selected match before launch. On
+submission, the launcher SHALL navigate to the configured TV URL and persist the configuration for
+recovery on display reboot. An overlay launched without a background SHALL default to transparent.
 
 #### Scenario: Root TV route provides interactive kiosk launcher
 - **WHEN** a user or kiosk device visits `/tv`
@@ -389,13 +393,27 @@ background SHALL default to transparent output for browser-source compositing.
 - **THEN** the launcher opens that match's existing TV route with the chosen language, presentation,
   and background parameters
 
+#### Scenario: What the launcher configures
+
+- **WHEN** an operator opens `/tv`
+- **THEN** it offers organization alias, active tournament, view mode (full dashboard, standings
+  table, a pinned match, or broadcast overlay), background style (blurred discipline background,
+  neutral, chroma green, football grass, or basketball court), and interface language
+
+#### Scenario: The pinned view adds stage and match
+
+- **WHEN** an operator selects the pinned-match view
+- **THEN** stage and match selectors appear
+
+#### Scenario: Transparent overlays composite cleanly
+
+- **WHEN** an overlay is launched without a background
+- **THEN** its transparent output suits browser-source compositing
+
 ### Requirement: Universal background composition across all TV screens
-The TV broadcast layout SHALL decouple background rendering from specific overlay modes, allowing any TV
-screen and layout mode (full dashboard, multi-court grid, pinned match view, standings table, lower
-third, or full overlay) to be combined with any supported background style: blurred subtle discipline
-imagery (`bg=discipline`), neutral dark surface (`bg=neutral`), solid chroma key color (`bg=chroma`),
-turf green (`bg=football`), hardwood court (`bg=court`), or transparent alpha channel
-(`bg=transparent`).
+
+The TV broadcast layout SHALL decouple background rendering from overlay modes, so that any TV
+screen and layout mode can be combined with any supported background style.
 
 #### Scenario: Kiosk screen renders with selected background query
 - **WHEN** any `/tv/**` screen is requested with a `?bg=` or `?background=` parameter (e.g.
@@ -408,8 +426,20 @@ turf green (`bg=football`), hardwood court (`bg=court`), or transparent alpha ch
 - **THEN** the TV layout renders the blurred, subtle atmospheric discipline backdrop image matching the
   tournament's declared discipline
 
+#### Scenario: Every layout takes every background
+
+- **WHEN** a TV surface renders as the full dashboard, multi-court grid, pinned match, standings
+  table, lower third or full overlay
+- **THEN** it can use `bg=discipline` (blurred discipline imagery), `bg=neutral` (dark surface),
+  `bg=chroma` (solid chroma key), `bg=football` (turf green), `bg=court` (hardwood) or
+  `bg=transparent` (alpha channel)
+
 ### Requirement: TV surfaces present each zone of a mixed-format stage by its effective format
-A full-frame TV surface SHALL present a stage whose zones play different formats zone by zone: every table-producing zone SHALL appear as its own standings table headed by the zone's name, every elimination zone SHALL appear in the bracket view, and a league zone SHALL list its matches grouped by round. Rows of different zones SHALL NOT be interleaved in one table. A stage whose zones all play the stage's own format, and a stage without declared zones, SHALL render exactly as before. The lower-third overlay SHALL be unchanged.
+
+A full-frame TV surface SHALL present a stage whose zones play different formats zone by zone, each
+by its effective format, and SHALL NOT interleave rows of different zones in one table. A stage
+whose zones all play the stage's own format, and a stage without declared zones, SHALL render
+exactly as before. The lower-third overlay SHALL be unchanged.
 
 #### Scenario: Two league zones show two headed tables
 - **WHEN** the kiosk shows the standings of a stage with two table-producing zones
@@ -424,6 +454,13 @@ A full-frame TV surface SHALL present a stage whose zones play different formats
 #### Scenario: A uniform stage is unchanged
 - **WHEN** every zone plays the stage's own format, or the stage declares no zones
 - **THEN** the standings tab and bracket view render as they did before zone formats could differ
+
+#### Scenario: How each zone appears
+
+- **WHEN** a mixed-format stage is shown
+- **THEN** every table-producing zone appears as its own standings table headed by the zone's name,
+  every elimination zone appears in the bracket view, and a league zone lists its matches grouped by
+  round
 
 ### Requirement: TV club emblems resolve through the same-origin club emblem route
 A TV surface SHALL request a club's emblem from the same-origin club emblem route built from the club's identifier, SHALL NOT build image URLs from an object identifier, and SHALL show the club's monogram when the club has no emblem or the request fails.

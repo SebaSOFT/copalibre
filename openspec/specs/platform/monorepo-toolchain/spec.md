@@ -129,9 +129,13 @@ get fast feedback without the cost of the full browser and deployment verificati
 - **THEN** the end-to-end and deploy-verification jobs run regardless of branch
 
 ### Requirement: Remediate known transitive dependency security advisories
-The toolchain SHALL enforce explicit package resolutions, direct dependency constraints, and lockfile pinning to remediate known high-, medium-, and low-severity security advisories across all production, development, and transitive dependencies whenever upstream fixes are available.
 
-The repository SHALL remediate known unmitigated Dependabot alerts with available compatible patches and track GitHub closure separately until the fix reaches the default branch. Transitive packages requiring fixed versions SHALL be pinned in the root `package.json` resolutions map. When no upstream patch is available, the repository SHALL remove the vulnerable package from the affected execution path or prevent its vulnerable behavior with a tested safe boundary.
+The toolchain SHALL remediate known high-, medium- and low-severity advisories in any production,
+development or transitive dependency whenever an upstream fix exists, pinning transitive fixes in
+the root `package.json` resolutions. Unmitigated Dependabot alerts with compatible patches SHALL be
+remediated, with closure tracked until the fix reaches the default branch. With no upstream patch, a
+vulnerable package SHALL be removed from the affected path or contained behind a tested safe
+boundary.
 
 #### Scenario: Transitive fast-uri instances resolve to patched release
 - **WHEN** dependencies are installed via `yarn install --immutable`
@@ -198,6 +202,12 @@ The repository SHALL remediate known unmitigated Dependabot alerts with availabl
 - **WHEN** the change's dependency audit is reviewed against its base branch
 - **THEN** every open Dependabot PR is implemented in this change or already present in `develop`
 - **AND** every active alert and every auto-dismissed alert with a vulnerable lock entry is checked against a patched floor
+
+#### Scenario: The remediation tools
+
+- **WHEN** an advisory has an upstream fix
+- **THEN** it is remediated through explicit package resolutions, direct dependency constraints and
+  lockfile pinning
 
 ### Requirement: Node 26 runtime and container bootstrap
 The toolchain and container images SHALL target Node 26 as the active supported runtime. Because Node 26 removes Corepack from the core distribution, container build stages SHALL explicitly install Corepack globally before invoking Yarn commands.
@@ -322,7 +332,11 @@ Parallel verification SHALL retain stable required aggregate check identities. A
 
 ### Requirement: Resource improvements are measured against equivalent verification
 
-Optimization evidence SHALL report elapsed time and total job execution time separately, with runner class, queue delay, cache state, test/mode inventory, coverage outcomes, and concurrency settings. Comparisons SHALL use equivalent required verification sets and repeated baseline/candidate runs. Selected tuning SHALL reduce median elapsed time without increasing median total job time for the measured equivalent workloads. Correcting a previously unsafe skip SHALL be reported as added required verification, not as an optimization regression or a reason to omit tests.
+Optimization evidence SHALL report elapsed time and total job time separately, with the conditions
+of each run. Comparisons SHALL use equivalent required verification sets and repeated baseline and
+candidate runs. Selected tuning SHALL reduce median elapsed time without increasing median total job
+time. Correcting a previously unsafe skip SHALL be reported as added verification, not as a
+regression or a reason to omit tests.
 
 #### Scenario: Parallelism is faster but consumes more total job time
 - **WHEN** a candidate parallel configuration improves elapsed time but increases median total job time for equivalent verification
@@ -336,15 +350,19 @@ Optimization evidence SHALL report elapsed time and total job execution time sep
 - **WHEN** one run restores caches and another starts without them
 - **THEN** the evidence identifies the differing cache states rather than attributing the entire timing difference to scheduling
 
+#### Scenario: The conditions recorded
+
+- **WHEN** optimization evidence is reported
+- **THEN** it states runner class, queue delay, cache state, test and mode inventory, coverage
+  outcomes, and concurrency settings
+
 ### Requirement: Change-risk (CRAP) score reporting
 
 The repository SHALL compute a change-risk (CRAP) score for every function in every workspace with
-Jest coverage enabled, combining that function's cyclomatic complexity with its line/branch coverage
-as `CRAP(m) = complexity(m)^2 * (1 - coverage(m))^3 + complexity(m)`. A function whose score exceeds
-30 and is not present in a ratcheting debt register SHALL fail the `unit-tests-group` CI job. A function
-already present in the debt register SHALL fail the job if its recorded score increases, so existing
-debt can only shrink or hold steady, never grow. A workspace with no coverage output yet SHALL be
-skipped with a warning rather than failed.
+Jest coverage, as `complexity^2 * (1 - coverage)^3 + complexity`. A function scoring over 30 and
+absent from a ratcheting debt register SHALL fail the `unit-tests-group` CI job, and a registered
+function SHALL fail it if its recorded score increases. A workspace with no coverage output SHALL be
+skipped with a warning.
 
 #### Scenario: A new high-risk function fails CI
 - **WHEN** a pull request adds a function with cyclomatic complexity of 8 and 0% line coverage
@@ -373,14 +391,17 @@ skipped with a warning rather than failed.
   test:coverage`
 - **THEN** the same score computation, threshold, and debt-register enforcement run locally as in CI
 
+#### Scenario: Debt only shrinks
+
+- **WHEN** a registered function's score is recomputed
+- **THEN** it may fall or hold steady, never grow
+
 ### Requirement: Change-risk (CRAP) score report visibility
 
-The repository SHALL render every function's computed change-risk (CRAP) score (per the "Change-risk
-(CRAP) score reporting" requirement's formula and coverage source) as a repo-wide, top-N-by-score
-markdown table in the CI run's GitHub Actions Job Summary, regardless of whether the gate itself
-passes or fails. The complete, unabridged per-function list SHALL be available as a downloadable JSON
-build artifact for the same run. Rendering the report SHALL NOT alter the gate's pass/fail outcome,
-its exit code, or its debt register.
+The repository SHALL render every function's computed CRAP score as a repo-wide, top-N markdown
+table in the CI run's Job Summary, whether the gate passes or fails, and SHALL publish the complete
+per-function list as a downloadable JSON artifact of the same run. Rendering the report SHALL NOT
+alter the gate's outcome, exit code, or debt register.
 
 #### Scenario: Report renders on a passing run
 - **WHEN** a pull request's `unit-tests-group` job runs with no CRAP offenders
@@ -450,7 +471,12 @@ Continuous integration SHALL check direct and transitive dependencies from every
 - **THEN** CI requires an explicit entry in the verified unpatched register documenting zero runtime exposure, failing if the advisory is unreviewed or if an upstream patch has been released but not adopted
 
 ### Requirement: Transitive security remediations are attributed to direct dependencies
-The repository SHALL maintain a versioned, machine-readable register of confirmed security remediation events caused by vulnerable transitive dependencies. Each event SHALL identify the advisory, affected transitive package, remediation action, and all direct dependency package roots that lead to the affected package, with the consuming workspaces and evidence needed to verify those paths. A single event SHALL count once for each distinct direct dependency root, regardless of how many workspaces consume that root or how many duplicate paths occur beneath it. CI SHALL validate the register and publish cumulative event, advisory, and transitive-package counts grouped by direct dependency root. The report SHALL identify the historical coverage window and mark an incomplete baseline as partial; missing historical entries SHALL NOT be presented as zero incidents. This report SHALL inform maintainer decisions and SHALL NOT automatically replace dependencies or weaken the dependency audit gate.
+
+The repository SHALL keep a versioned, machine-readable register of security remediations caused by
+vulnerable transitive dependencies, each attributed to every direct dependency root leading to it
+and counted once per root. CI SHALL validate it and publish cumulative counts by root, marking an
+incomplete history as partial rather than as zero. The report SHALL inform decisions and SHALL NOT
+replace dependencies or weaken the audit gate.
 
 #### Scenario: One advisory remediation is counted once per direct root
 - **WHEN** one transitive advisory affects the same direct dependency package in multiple workspaces and through duplicate nested paths
@@ -472,8 +498,26 @@ The repository SHALL maintain a versioned, machine-readable register of confirme
 - **WHEN** the report is generated for a CI run
 - **THEN** it does not change dependency audit results or automatically modify dependency manifests, resolutions, or lockfiles
 
+#### Scenario: What an event records
+
+- **WHEN** a remediation is registered
+- **THEN** it names the advisory, the affected transitive package, the remediation action, every
+  direct dependency root leading to it, and the consuming workspaces and evidence that verify those
+  paths
+
+#### Scenario: What is counted
+
+- **WHEN** CI publishes the report
+- **THEN** it counts events, advisories and transitive packages per direct root, however many
+  workspaces consume a root or duplicate paths lie beneath it, and states the historical coverage
+  window
+
 ### Requirement: Tracked Content Carries No Change-Number Citation
-Tracked file content and tracked file names SHALL NOT cite an OpenSpec change by number or by its numbered directory name, because change directories are git-ignored and exist only on the machine that created them. Comments, docstrings, test and story names, workflow and script comments, documentation prose, configuration reasons and accepted specs SHALL describe the behavior or rationale in words. Continuous integration SHALL fail when tracked content or a tracked file name contains such a citation. The generated release history, database migration files and their sequence numbers, and lockfiles SHALL be exempt. Four-digit values that are not citations (ports, years, fixtures, version strings) SHALL NOT be reported.
+
+Tracked file content and file names SHALL NOT cite an OpenSpec change by number or by its numbered
+directory name, and SHALL describe behavior and rationale in words instead. Continuous integration
+SHALL fail on such a citation. Release history, migration files and their sequence numbers, and
+lockfiles SHALL be exempt, and four-digit values that are not citations SHALL NOT be reported.
 
 #### Scenario: A comment cites a change by number
 - **WHEN** a tracked source file contains a citation: the word "openspec" or "change" followed by a four-digit change number, a parenthesised four-digit number, or a four-digit number followed by a kebab-case change name
@@ -491,8 +535,29 @@ Tracked file content and tracked file names SHALL NOT cite an OpenSpec change by
 - **WHEN** `CHANGELOG.md`, a migration file or a lockfile contains a change number
 - **THEN** the guard does not fail
 
+#### Scenario: Why numbers are not allowed
+
+- **WHEN** a change is cited by number
+- **THEN** the citation points at a git-ignored directory that exists only on the machine that
+  created it
+
+#### Scenario: Where words are required
+
+- **WHEN** a comment, docstring, test or story name, workflow or script comment, documentation
+  prose, configuration reason or accepted spec explains a choice
+- **THEN** it describes the behavior or rationale in words
+
+#### Scenario: Values that are not citations
+
+- **WHEN** content holds a port, a year, a fixture value or a version string
+- **THEN** it is not reported
+
 ### Requirement: Tracked Content Does Not Cite A Change's Planning Artifacts
-Tracked file content SHALL NOT point at a git-ignored change's planning artifacts as the source of a rationale: a task number such as "task" followed by a dotted number, or the file names of a change's design, tasks or proposal documents used as a reference. The rationale SHALL be stated in words where it is needed. Continuous integration SHALL fail when tracked content contains such a reference. Documentation that describes the OpenSpec workflow itself, and the guard's own test fixtures, SHALL be exempt through an explicit short allowlist.
+
+Tracked file content SHALL NOT point at a git-ignored change's planning artifacts as the source of a
+rationale, and SHALL state the rationale in words where needed. Continuous integration SHALL fail on
+such a reference. Documentation of the OpenSpec workflow itself and the guard's own test fixtures
+SHALL be exempt through an explicit short allowlist.
 
 #### Scenario: A comment points at a design document
 - **WHEN** a tracked source file says a behavior is explained in a change's design document
@@ -505,6 +570,12 @@ Tracked file content SHALL NOT point at a git-ignored change's planning artifact
 #### Scenario: Workflow documentation may name the files
 - **WHEN** `AGENTS.md` or a skill describes what a change's design or tasks document is for
 - **THEN** the guard does not fail
+
+#### Scenario: What counts as such a reference
+
+- **WHEN** content cites "task" followed by a dotted number, or names a change's design, tasks or
+  proposal document as a reference
+- **THEN** it is reported
 
 ### Requirement: Slow, networked and port-bound tests declare themselves and fail for a stated reason
 A timeout that a workspace declares for its integration tests SHALL apply however the suites are run, including from the root aggregate run. A test that needs the network SHALL skip with an explicit reason when its remote is unreachable, while remaining required in continuous integration. End-to-end mock services SHALL NOT listen on ports that the local development stack publishes by default. A retry that rescues a test in continuous integration SHALL be surfaced in the run summary as a flake.

@@ -8,12 +8,11 @@ rely on color alone to communicate match or result state.
 ## Requirements
 
 ### Requirement: Live competition dashboard reflects current match state
+
 The public live dashboard SHALL show the current live match's clock, score, and series progress, and
 SHALL update this view when the public SSE channel emits a relevant event, without a full page
-reload. The dashboard's initial (pre-SSE) state SHALL be fetched server-side, per request, from the
-tournament's real current match state — never from fixture/sample data — so the page is already
-correct before any script runs, and so a live match started after the site was last built is visible
-immediately.
+reload. The dashboard's initial state SHALL be fetched server-side, per request, from the
+tournament's real current match state, never from fixture or sample data.
 
 #### Scenario: Score update arrives over SSE
 - **WHEN** the public SSE channel emits a `match.updated` event with a new score for the currently displayed live match
@@ -26,6 +25,12 @@ immediately.
 #### Scenario: Dashboard reflects a match with no live activity
 - **WHEN** the requested tournament currently has no match in progress
 - **THEN** the dashboard renders without a fabricated live match, rather than showing sample match data
+
+#### Scenario: The page is right before any script runs
+
+- **WHEN** a visitor loads the dashboard while a match is live
+- **THEN** the server-rendered page already shows its current state, including a live match started
+  after the site was last built
 
 ### Requirement: Bracket view never encodes result state by color alone
 Every winner/loser or match-state indicator in the public bracket view SHALL pair its color with a
@@ -179,13 +184,12 @@ presentation resolves through declared tokens" requirement.
   full interactive structure inline
 
 ### Requirement: A spectator can highlight one entrant's path through the bracket
-The public bracket view SHALL let a visitor activate one entrant named in it and, on activation, SHALL
-visually emphasize every match on that entrant's path (every match it occupies a slot in, plus, only
-while it remains alive, its potential winning chain of not-yet-resolved matches) while every other match
-renders at reduced emphasis. The distinction SHALL NOT rely on reduced emphasis alone: a path match
-SHALL carry an explicit marker in addition to full presentation. The bracket SHALL remain fully correct
-and complete with no entrant highlighted and with JavaScript unavailable, identically to its behavior
-before this requirement existed.
+
+The public bracket view SHALL let a visitor activate one entrant named in it and, on activation,
+SHALL visually emphasize every match on that entrant's path while every other match renders at
+reduced emphasis. The distinction SHALL NOT rely on reduced emphasis alone: a path match SHALL carry
+an explicit marker. The bracket SHALL remain fully correct and complete with no entrant highlighted
+and with JavaScript unavailable.
 
 #### Scenario: Activating an entrant highlights its path
 - **WHEN** a visitor activates an entrant named in the bracket
@@ -218,6 +222,12 @@ before this requirement existed.
 #### Scenario: Highlighting can be cleared with a keyboard
 - **WHEN** the visitor activates the selected entrant again or presses Escape within the bracket
 - **THEN** all matches return to normal emphasis and activation buttons expose their pressed state
+
+#### Scenario: The path covers played and potential matches
+
+- **WHEN** an entrant is activated
+- **THEN** its path is every match it occupies a slot in, plus, only while it remains alive, its
+  potential winning chain of not-yet-resolved matches
 
 ### Requirement: Public live dashboard renders unified match hero without duplicate cards
 The public live dashboard SHALL render active live matches through a single unified presentation tier, ensuring each in-progress match is displayed once with its state, score, and entrant names. An elapsed clock SHALL appear when the live projection supplies one. It SHALL NOT render a duplicate static card section alongside the interactive real-time island.

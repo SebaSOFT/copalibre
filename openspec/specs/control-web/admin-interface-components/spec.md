@@ -73,7 +73,12 @@ columns and rows as props and SHALL NOT itself perform data fetching.
 - **THEN** both compose the same organism component, differing only in the columns/rows supplied
 
 ### Requirement: Modal/Dialog organism
-The component library SHALL provide a `Modal`/`Dialog` organism (built on Radix Dialog) providing a focus-trapped, Escape-dismissible, backdrop-dismissible overlay consuming the component library's tokens, so no screen hand-builds its own `role="dialog"` markup. Any route that presents a dialog, drawer, or overlay SHALL use this organism with a visible, non-hidden `role="dialog"` declaration; `role="dialog"` SHALL NOT be set `aria-hidden` or hidden behind a CSS class that removes structural visibility from the accessibility tree while the dialog is open. Tab order SHALL cycle within the dialog while open and restore focus to the trigger control on close.
+
+The component library SHALL provide a `Modal`/`Dialog` organism built on Radix Dialog:
+focus-trapped, dismissible by Escape and backdrop, consuming the library's tokens. Any route
+presenting a dialog, drawer or overlay SHALL use it, with a `role="dialog"` that SHALL NOT be
+`aria-hidden` or hidden from the accessibility tree while open. Tab order SHALL cycle within the
+dialog while open and restore focus to the trigger on close.
 
 #### Scenario: Opening a modal traps keyboard focus inside it
 - **WHEN** a `Modal` is opened
@@ -95,14 +100,17 @@ The component library SHALL provide a `Modal`/`Dialog` organism (built on Radix 
 - **WHEN** a `Modal` is open and the accessibility tree is inspected
 - **THEN** the `role="dialog"` element is present and not hidden behind `aria-hidden` or a visibility-removing CSS class
 
+#### Scenario: No hand-built dialogs
+
+- **WHEN** a screen needs a dialog
+- **THEN** it uses the organism rather than its own `role="dialog"` markup
+
 ### Requirement: Toast is the standing mechanism for operation-result feedback
-The already-existing `ToastProvider`/`useToast()` mechanism SHALL be the component library's
-organism-tier standing mechanism for reporting the result of an action (success, error, info) across an
-entire screen; a screen SHALL NOT define its own inline alert/banner element duplicating that role. A
-field-level validation error — tied to one specific input the user is actively correcting — SHALL use
-the form-field molecule's error state instead of a toast; a toast SHALL be used for the result of a
-submitted or completed operation. Both mechanisms MAY be relevant on the same screen, applied to their
-distinct cases, but neither SHALL duplicate the other for the same event.
+
+The existing `ToastProvider`/`useToast()` SHALL be the library's standing mechanism for reporting
+the result of an action across a screen, and a screen SHALL NOT define its own inline alert or
+banner for that role. A field-level validation error SHALL use the form-field molecule's error state
+instead. Neither SHALL duplicate the other for the same event.
 
 #### Scenario: A submitted action's result is reported via toast, not an inline banner
 - **WHEN** a screen completes an API-backed action (e.g. inviting a user, saving a setting)
@@ -114,20 +122,20 @@ distinct cases, but neither SHALL duplicate the other for the same event.
 - **THEN** the error is shown via the form-field molecule's error state, not a toast, so the user sees
   it next to the field they need to correct
 
+#### Scenario: Which is which
+
+- **WHEN** a screen reports something
+- **THEN** the result of a submitted or completed operation (success, error, info) is a toast, and
+  an error tied to one input the user is correcting is the field's error state; both may appear on
+  one screen for their distinct cases
+
 ### Requirement: Templates compose organisms into a screen's layout
-The component library SHALL provide two distinct tiers where it previously named one, because the
-tier shipped as "templates" contains no organisms and holds no screen logic — it arranges slots.
 
-A **layout** SHALL be a content-agnostic component that places its slots into a screen's structure
-(section order, inter-section spacing) without containing business logic, formatting interface text,
-or fetching data. `ListScreenLayout` (header, toolbar, listing area, pagination slot),
-`FormScreenLayout` (header, grouped field sections, sticky footer action bar), `AuthScreenLayout` and
-`MatchConsoleLayout` are layouts, and further layouts are added as new screen shapes require them.
-
-A **template** SHALL compose organisms and molecules into one complete screen, hold that screen's
-rules and interaction state, and format its interface text. A template SHALL NOT fetch data or read
-application state; it receives both from its page. A template SHALL be named for its screen and
-SHALL carry the template suffix.
+The component library SHALL provide two distinct tiers, layouts and templates. A layout SHALL place
+its slots into a screen's structure without business logic, interface text or data fetching. A
+template SHALL compose organisms and molecules into one complete screen, hold that screen's rules
+and interaction state, and format its text, and SHALL NOT fetch data or read application state. A
+template SHALL be named for its screen with the template suffix.
 
 #### Scenario: Two listing screens share layout via the same template
 - **WHEN** a role-assignment listing screen and an installed-module listing screen are both built on
@@ -145,18 +153,31 @@ SHALL carry the template suffix.
 - **THEN** it composes organisms, holds the screen's interaction state and validation, formats its
   interface text, and contains no call to the API client and no realtime subscription
 
+#### Scenario: Why two tiers
+
+- **WHEN** the former "templates" tier is reviewed
+- **THEN** it contained no organisms and held no screen logic, only slot arrangement, which is what
+  a layout is
+
+#### Scenario: The layouts
+
+- **WHEN** a screen shape is needed
+- **THEN** `ListScreenLayout` (header, toolbar, listing area, pagination slot), `FormScreenLayout`
+  (header, grouped field sections, sticky footer action bar), `AuthScreenLayout` and
+  `MatchConsoleLayout` exist, and more are added as new shapes require
+
+#### Scenario: Where a template gets its data
+
+- **WHEN** a template renders
+- **THEN** it receives data and application state from its page
+
 ### Requirement: No data-fetching or application-state access below the organism tier
+
 Atoms, molecules, organisms, layouts, and templates SHALL NOT call the API client, subscribe to a
-realtime stream, issue a network request, or read application/session state directly; they SHALL
-receive all data and callbacks via props. Only a page component MAY hold data state or perform data
-access. A component's own strictly local UI state — a modal's open/closed state, a table's
-client-side sort, a wizard's current step — is not application state and remains permitted at the
-tier that owns the interaction.
-
-A type-only import of an API response shape SHALL NOT be a violation; naming the data a component is
-given is the contract working rather than a bypass of it.
-
-This rule SHALL be enforced by the automated composition check rather than by review alone.
+realtime stream, issue a network request, or read application or session state; they SHALL receive
+data and callbacks via props, and only a page MAY hold data state or access data. A type-only import
+of an API response shape SHALL NOT be a violation. The automated composition check SHALL enforce
+this rule.
 
 #### Scenario: A molecule receives its data via props, not a fetch of its own
 - **WHEN** the `DataEntityCard` molecule is inspected
@@ -179,16 +200,23 @@ This rule SHALL be enforced by the automated composition check rather than by re
 - **THEN** the composition check fails, requiring the screen to be split into a page that fetches and
   a template that composes
 
-### Requirement: A component never sets its own external margin
-No atom, molecule, organism, layout, or template SHALL apply its own external margin or absolute
-positioning to place itself relative to a sibling section. Spacing between sibling sections SHALL be
-applied by the layout component, or by a layout primitive the template composes — never hardcoded
-inside the reused component itself.
+#### Scenario: Local UI state is allowed
 
-The library SHALL provide layout primitives — a vertical stack, a horizontal row, a grid, and a
-padded box — that accept spacing and alignment as steps on the token scale. No component outside the
-layout-primitive directory SHALL declare an inline style carrying a layout property, because with a
-primitive available an inline arrangement is a bypass rather than the only option.
+- **WHEN** a modal tracks open or closed, a table its client-side sort, or a wizard its step
+- **THEN** that local state is not application state and stays at the tier owning the interaction
+
+#### Scenario: Why a type import is fine
+
+- **WHEN** a template names the response shape it is given
+- **THEN** that is the contract working, not a bypass
+
+### Requirement: A component never sets its own external margin
+
+No atom, molecule, organism, layout, or template SHALL apply its own external margin or absolute
+positioning to place itself relative to a sibling. Spacing between siblings SHALL come from the
+layout or a layout primitive the template composes. The library SHALL provide layout primitives
+taking spacing and alignment as token-scale steps, and no component outside their directory SHALL
+declare an inline layout style.
 
 #### Scenario: A component reused in two different spacing contexts renders identically
 - **WHEN** the same molecule is placed inside `ListScreenLayout` and, separately, inside
@@ -200,6 +228,17 @@ primitive available an inline arrangement is a bypass rather than the only optio
 - **WHEN** a screen declares an inline style setting a display mode and a gap in place of composing a
   layout primitive
 - **THEN** the composition check fails and names the primitive that replaces it
+
+#### Scenario: The primitives
+
+- **WHEN** a template arranges siblings
+- **THEN** it composes a vertical stack, a horizontal row, a grid or a padded box
+
+#### Scenario: Why inline layout is a bypass
+
+- **WHEN** a component writes an inline arrangement
+- **THEN** a primitive was available, so the inline style bypasses it rather than being the only
+  option
 
 ### Requirement: Distinct Control-web data-density visual mode, same token source
 The component library's atoms, molecules, organisms, and templates SHALL render in a denser, less
@@ -220,26 +259,12 @@ define or consume a color, font, or motion value absent from that shared token s
 - **THEN** the Control-web spacing step is smaller, per the documented data-density composition rule
 
 ### Requirement: New screens start from a template and compose from the owned library
-A Control-web screen added after this capability exists SHALL start from an existing layout when its
-shape matches (list, form, detail), SHALL be split into a page that supplies data and a template that
-composes it, and SHALL compose its form controls, tabular data, cards, modals, and operation feedback
-from the component library's atoms, molecules, and organisms. It SHALL NOT define a new one-off
-inline style object duplicating a pattern the library already provides.
 
-A component outside the owned library SHALL NOT hand-write a design-system class that an owned
-component already applies, because composing an owned component's markup by hand bypasses that
-component exactly as using a raw element does. The automated check enforcing this SHALL detect such a
-class regardless of the element carrying it. Files that already contain such classes when the rule is
-introduced MAY be recorded in an explicit, dated backlog list so the check still fails for anything
-new; each entry SHALL name a file rather than exempting a pattern, and a recorded count SHALL only be
-allowed to decrease.
-
-The set of governed elements SHALL cover every element the owned library replaces, including form
-structure — the form element, its labels, and its grouping elements — once the library owns them.
-Where the library provides a control for an element, a raw use of that element SHALL be a violation,
-and an element for which the library provides no replacement SHALL NOT be governed. An element that
-has an owned replacement and is nonetheless ungoverned is a gap in the rule, not a permitted use, and
-SHALL be closed by adding the owner rather than by exempting the surface.
+A new Control-web screen SHALL start from an existing layout when its shape matches, split into a
+page supplying data and a template composing it, and compose from the owned library without one-off
+inline styles. No component outside the library SHALL hand-write a design-system class an owned
+component applies, detected on any element. Governed elements SHALL cover all the library replaces:
+raw use SHALL be a violation, and an element without a replacement SHALL NOT be governed.
 
 #### Scenario: A new form screen uses FormScreenTemplate and the form-field molecule
 - **WHEN** a new screen renders a labeled multi-field form with validation
@@ -280,8 +305,34 @@ SHALL be closed by adding the owner rather than by exempting the surface.
 - **THEN** it composes an existing layout, its page performs the data access, its template composes the
   organisms, and it introduces no inline style object duplicating a library pattern
 
+#### Scenario: What a screen composes
+
+- **WHEN** a new screen renders form controls, tabular data, cards, modals or operation feedback
+- **THEN** each comes from the owned library
+
+#### Scenario: The backlog
+
+- **WHEN** files already contain hand-written owned classes when the rule is introduced
+- **THEN** they may be listed in an explicit, dated backlog naming files, not patterns, whose counts
+  may only decrease, and anything new still fails
+
+#### Scenario: Form structure is governed
+
+- **WHEN** the library owns the form element, its labels and grouping elements
+- **THEN** raw uses of them are violations
+
+#### Scenario: A gap closes by adding the owner
+
+- **WHEN** an element has an owned replacement but is ungoverned
+- **THEN** the gap is closed by adding the owner, not by exempting the surface
+
 ### Requirement: Template migration for remaining Control-web screens
-Every Control-web screen that shipped in the admin atomic design system SHALL use `ListScreenTemplate` or `FormScreenTemplate` when their shape matches. The 11 remaining screens identified in the admin atomic design system SHALL be migrated onto the atomic tier system and SHALL NOT hand-roll layouts, tables, cards, or alerts after this change is complete. `MatchConsoleRoute.tsx` SHALL introduce its own template and SHALL consume it rather than constructing category rows or extended-match headers directly. Migrated screens SHALL assert their template-derived DOM shape in their updated `*.test.tsx` suites.
+
+Every Control-web screen of the admin atomic design system SHALL use `ListScreenTemplate` or
+`FormScreenTemplate` when its shape matches, the 11 identified remaining screens SHALL be migrated
+and SHALL NOT hand-roll layouts, tables, cards, or alerts, and `MatchConsoleRoute.tsx` SHALL consume
+its own template. Migrated screens SHALL assert their template-derived DOM shape in their
+`*.test.tsx` suites.
 
 #### Scenario: Group A list screen loads data
 - **WHEN** `PromotionPlanRoute` loads data
@@ -294,6 +345,11 @@ Every Control-web screen that shipped in the admin atomic design system SHALL us
 #### Scenario: Migration test asserts template contract
 - **WHEN** a migrated screen's test runs
 - **THEN** the test asserts the template host element and its configured organisms, not inline grid styles
+
+#### Scenario: The console builds nothing itself
+
+- **WHEN** the match console renders
+- **THEN** its template, not the route, constructs category rows and extended-match headers
 
 ### Requirement: New atomic design templates
 The owned component layer SHALL provide templates beyond `ListScreenTemplate` and `FormScreenTemplate` when a recurring route shape exists. Any new template introduced for an owner-configured screen SHALL define only layout and spacing; content and handlers remain provided by the page/route.
@@ -327,9 +383,12 @@ All form inputs within administrative screens SHALL utilize design token classes
 - **THEN** the elements SHALL render using design tokens without native browser white backgrounds
 
 ### Requirement: Button atom implements the accepted CTA treatments
-The owned Button atom SHALL provide primary (cyan fill, dark ink text), secondary (raised neutral panel fill with a muted border and light text), and destructive (red fill or outlined red, with a destructive verb label) visual treatments resolved from `surface`/`state-live`, `surface-raised`/`border-muted`, and `state-destructive` tokens respectively, each rendering distinct default, hover, active, focus-visible, and disabled states.
 
-Every Button variant SHALL utilize the display typeface (`Barlow Condensed`), bold (700) weight, uppercase transformation, and wide letter-spacing (`var(--cl-tracking-wider)`), and SHALL carry the asymmetric beveled chamfer geometry (`corner-shape: bevel; border-radius: 0 var(--cl-radius-chamfer-control) 0 var(--cl-radius-chamfer-control)` cutting Top-Right and Bottom-Left). Primary buttons SHALL emit an ambient cyan glow (`--cl-glow-cyan`) on hover and active states. No Control-web screen SHALL render an ad hoc button style outside this atom.
+The owned Button atom SHALL provide primary, secondary and destructive treatments resolved from
+tokens, each with distinct default, hover, active, focus-visible and disabled states. Every variant
+SHALL use the display typeface in bold uppercase with wide tracking and the asymmetric beveled
+control chamfer. Primary buttons SHALL glow cyan (`--cl-glow-cyan`) on hover and active. No
+Control-web screen SHALL render an ad hoc button style.
 
 #### Scenario: Primary and secondary buttons are visually distinct
 - **WHEN** a primary and a secondary Button are rendered side by side
@@ -363,13 +422,27 @@ Every Button variant SHALL utilize the display typeface (`Barlow Condensed`), bo
 - **WHEN** a secondary or destructive Button is rendered
 - **THEN** it renders in `Barlow Condensed` uppercase with the same Top-Right and Bottom-Left beveled corners as the primary button
 
+#### Scenario: The treatments
+
+- **WHEN** a button renders
+- **THEN** primary is a cyan fill with dark ink text from `surface`/`state-live`; secondary a raised
+  neutral fill with a muted border and light text from `surface-raised`/`border-muted`; destructive
+  a red fill or red outline with a destructive verb label from `state-destructive`
+
+#### Scenario: The type and geometry
+
+- **WHEN** a button renders
+- **THEN** it uses `Barlow Condensed` at 700, uppercase, `var(--cl-tracking-wider)`, and
+  `corner-shape: bevel; border-radius: 0 var(--cl-radius-chamfer-control) 0
+  var(--cl-radius-chamfer-control)`, cutting top-right and bottom-left
+
 ### Requirement: DropdownMenu organism for a grouped set of actions
-The component library SHALL provide a `DropdownMenu` organism for presenting a set of related actions
-behind one trigger, consuming the component library's own tokens, so no screen hand-builds menu markup
-or substitutes a row of buttons for a grouped set. The organism SHALL expose its trigger and its items
-to assistive technology as a menu, SHALL open and close by keyboard as well as pointer, SHALL move
-focus through its items with the arrow keys, SHALL close on Escape, and SHALL return focus to its
-trigger on close.
+
+The component library SHALL provide a token-styled `DropdownMenu` organism for related actions
+behind one trigger, so no screen hand-builds menu markup or a row of buttons for a grouped set. It
+SHALL expose its trigger and items as a menu, SHALL open and close by keyboard and pointer, SHALL
+move focus with the arrow keys, SHALL close on Escape, and SHALL return focus to its trigger on
+close.
 
 #### Scenario: A screen groups related actions instead of listing them
 - **WHEN** a screen presents several related actions on one entity — its export formats, for example
@@ -391,18 +464,12 @@ trigger on close.
   open
 
 ### Requirement: Every component is reviewable in isolation
-The repository SHALL provide a component workbench that renders any React component of the operator,
-public and broadcast surfaces on its own, without running the application or seeding data, and SHALL
-group what it renders by the surface the component belongs to. Every owned library component SHALL be
-present in it, showing the states a reviewer has to judge — including its empty, error, and disabled
-states where it has them — so a state that is hard to reach in the running application is not thereby
-hard to review.
 
-An operator screen SHALL be renderable the same way, in the states worth judging — loaded, empty,
-error, and its mid-operation state where it has one — supplied through the injection seam the screen
-already offers rather than by running the application against real data. A screen that cannot be
-rendered without inventing data SHALL be recorded as such rather than given a fabricated fixture,
-because a story that looks correct and is not gets reviewed as though it were.
+The repository SHALL provide a component workbench rendering any React component of the operator,
+public and broadcast surfaces on its own, without the application or seeded data, grouped by
+surface, with every owned component present in the states a reviewer must judge. An operator screen
+SHALL be renderable in its worth-judging states through its existing injection seam. A screen that
+cannot render without invented data SHALL be recorded as such, not given a fabricated fixture.
 
 #### Scenario: A reviewer opens a component without running the app
 - **WHEN** a reviewer starts the workbench
@@ -429,6 +496,17 @@ because a story that looks correct and is not gets reviewed as though it were.
 #### Scenario: A screen that cannot render honestly is named rather than faked
 - **WHEN** a screen cannot be rendered without data that only a real tournament produces
 - **THEN** it is recorded with the reason instead of being given invented data
+
+#### Scenario: Which states
+
+- **WHEN** a component or screen is shown
+- **THEN** a component shows its empty, error and disabled states where it has them; a screen shows
+  loaded, empty, error, and its mid-operation state where it has one
+
+#### Scenario: Why no fabricated fixtures
+
+- **WHEN** a story would need invented data
+- **THEN** a story that looks correct and is not gets reviewed as though it were
 
 ### Requirement: A component's prop combinations are shown together, not sampled
 Every owned library component SHALL be presented both with its full set of props individually
@@ -484,13 +562,12 @@ the product's own responsive rules are written against.
   likely to fail
 
 ### Requirement: Inline alert component
-The component library SHALL provide an `Alert` atom for a message that sits in the flow of a screen,
-distinct from the toast mechanism that reports the result of an action. It SHALL declare its tone —
-informational, success, warning, or destructive — and the live-region politeness with which assistive
-technology announces it, as properties rather than leaving either to each call site. It SHALL accept
-rich content, not a single string. It SHALL render a dismiss control when, and only when, the caller
-supplies a way to dismiss it; that control SHALL carry an accessible name, and dismissing SHALL remove
-the alert from the live region. No screen SHALL hand-write alert markup or its class names.
+
+The component library SHALL provide an `Alert` atom for an in-flow message, distinct from the toast,
+declaring its tone and live-region politeness as properties, and accepting rich content. It SHALL
+render a dismiss control only when the caller supplies a way to dismiss, with an accessible name,
+and dismissing SHALL remove it from the live region. No screen SHALL hand-write alert markup or its
+class names.
 
 #### Scenario: Tone and politeness are declared, not improvised
 - **WHEN** a screen shows a failure and, elsewhere, a saved-successfully confirmation
@@ -511,6 +588,11 @@ the alert from the live region. No screen SHALL hand-write alert markup or its c
 - **WHEN** a screen reports several validation problems at once
 - **THEN** they render as a list inside the alert, rather than the alert's class being applied to a
   list element to get the same result
+
+#### Scenario: The tones
+
+- **WHEN** an alert is declared
+- **THEN** its tone is informational, success, warning or destructive
 
 ### Requirement: The library owns the patterns its screens repeat
 The component library SHALL provide a listing, a page section, a stat tile, a tag, a disclosure, and a
@@ -560,15 +642,11 @@ SHALL live in the owned Control component tiers rather than being recreated as u
 - **THEN** the treatment is provided by an owned component that resolves only declared tokens
 
 ### Requirement: A native form control in a surface file is a violation, not an exemption
-The ownership check SHALL treat a native `<input type="checkbox">`, `<input type="radio">`,
-`<input type="file">` and `<select>` in any surface file as a violation, on the same footing as the raw
-elements it already reports. No control type SHALL be skipped on the grounds that the library owns no
-replacement: where that is true the check SHALL fail until the atom exists, rather than passing
-silently and leaving the gap invisible.
 
-The debt registers and per-element allowlists for these controls SHALL be empty when this change lands,
-and the entries SHALL be deleted rather than left at zero, so a reader cannot mistake a register for
-permission.
+The ownership check SHALL report a native `<input type="checkbox">`, `<input type="radio">`, `<input
+type="file">` or `<select>` in any surface file as a violation. No control type SHALL be skipped for
+lacking an owned replacement; the check SHALL fail until the atom exists. The debt registers and
+allowlists for these controls SHALL be empty, with their entries deleted rather than left at zero.
 
 #### Scenario: A raw checkbox is added to a screen
 - **WHEN** a native checkbox input is added to any surface file
@@ -582,20 +660,17 @@ permission.
 - **WHEN** the ownership check's registers and allowlists are inspected
 - **THEN** they contain no entry for checkbox, radio, file or select controls
 
+#### Scenario: Why delete rather than zero
+
+- **WHEN** a register entry reaches zero
+- **THEN** it is deleted, so a reader cannot mistake it for permission
+
 ### Requirement: Owned file-selection atom
-The component library SHALL provide a file-selection atom that every screen accepting a file composes,
-covering: an accessible name and a keyboard-operable trigger, a visible focus indicator, the accepted
-types and size limit stated as readable text before a selection is attempted rather than only as a
-rejection afterwards, the selected filename — or the count when several are selected — displayed after
-selection, a way to clear or replace the selection, and an error state whose message is linked to the
-control for assistive technology.
 
-Drag-and-drop SHALL be an enhancement over the keyboard and pointer path, never a replacement for it: a
-file SHALL be selectable with the keyboard alone, and the drop target SHALL NOT be the only way to
-reach the control.
-
-The atom SHALL carry the same touch-target minimum and token-driven styling as the other form-control
-atoms, and SHALL NOT hardcode a colour, spacing, or radius value.
+The component library SHALL provide a token-styled file-selection atom every file-accepting screen
+composes, with the other form atoms' touch-target minimum and no hardcoded colour, spacing or
+radius. Drag-and-drop SHALL only enhance the keyboard and pointer path: a file SHALL be selectable
+by keyboard alone, and the drop target SHALL NOT be the only way to reach the control.
 
 #### Scenario: A file is selected without a pointer
 - **WHEN** an operator reaches the file-selection control by keyboard and activates it
@@ -616,6 +691,14 @@ atoms, and SHALL NOT hardcode a colour, spacing, or radius value.
 - **THEN** its name — or the count, when several were selected — is displayed, with a way to clear or
   replace the selection
 
+#### Scenario: What the atom covers
+
+- **WHEN** a screen accepts a file
+- **THEN** the atom has an accessible name and keyboard-operable trigger, a visible focus indicator,
+  the accepted types and size limit as readable text before selection, the selected filename or
+  count afterwards, a way to clear or replace the selection, and an error message linked to the
+  control
+
 ### Requirement: Owned radio-group atom
 The component library SHALL provide a radio-group atom for a single choice among a small set of visible
 options, with a group-level accessible name, arrow-key movement within the group, one tab stop for the
@@ -632,9 +715,12 @@ cue in addition to its colour.
 - **THEN** its selected state is conveyed by a mark or shape in addition to colour
 
 ### Requirement: Select atom opens its own styled popover, not the native picker
-The `<Select>` atom SHALL render its options in the styled Radix popover (`.cl-select__content`), and no invisible native `<select>` overlay SHALL intercept a pointer click meant for that popover. The native `<select>` SHALL remain in the DOM, sized off-screen and non-interactive to the pointer, so it keeps carrying the control's accessible name and its own keyboard/assistive-technology semantics unchanged.
 
-The popover panel SHALL use the same dark surface, border, and elevation as the Modal/Dialog organism (`.cl-dialog-surface`), with `.cl-chamfer--control` Top-Right and Bottom-Left beveled corners, `padding-block: var(--cl-space-1)`, and a minimum width of 10rem (never narrower than the trigger). Trigger and popover text SHALL render in `var(--cl-font-mono)`. An option MAY carry a short `badge` string, rendered trailing the label in 10px uppercase muted monospace, and shown beside the active value in the trigger. The keyboard-highlighted option SHALL render with a 2px leading `--cl-state-live` border, `--cl-surface-raised` background, and bold `--cl-state-live` text. The trigger's chevron SHALL rotate 180 degrees while the popover is open.
+The `<Select>` atom SHALL render its options in the styled Radix popover (`.cl-select__content`),
+and no invisible native `<select>` SHALL intercept a click meant for it. The native `<select>` SHALL
+stay in the DOM, off-screen and inert to the pointer, carrying the accessible name and keyboard
+semantics. The popover SHALL share the Modal surface (`.cl-dialog-surface`) with the control
+chamfer, and its trigger chevron SHALL rotate 180 degrees while open.
 
 #### Scenario: A mouse click opens the styled popover, not the native picker
 - **WHEN** an operator clicks the visible `<Select>` trigger
@@ -646,14 +732,32 @@ The popover panel SHALL use the same dark surface, border, and elevation as the 
 - **THEN** the popover row renders the badge trailing its label
 - **AND** the trigger renders the active option's badge beside its value
 
+#### Scenario: The popover's geometry and type
+
+- **WHEN** the popover opens
+- **THEN** it has top-right and bottom-left bevels (`.cl-chamfer--control`), `padding-block:
+  var(--cl-space-1)`, a minimum width of 10rem never narrower than the trigger, and
+  `var(--cl-font-mono)` text, as does the trigger
+
+#### Scenario: Option badges
+
+- **WHEN** an option carries a `badge` string
+- **THEN** it trails the label in 10px uppercase muted monospace, and beside the active value in the
+  trigger
+
+#### Scenario: The highlighted option
+
+- **WHEN** an option is keyboard-highlighted
+- **THEN** it shows a 2px leading `--cl-state-live` border, a `--cl-surface-raised` background and
+  bold `--cl-state-live` text
+
 ### Requirement: A composed container is visually distinct without a call-site decision
-A card or section composed inside another SHALL render at a distinguishable surface level without the
-composing screen applying a variant, modifier, or prop to say so, with its level following what the
-container is — content alternating against its band, chrome lifting at any depth. A screen SHALL NOT be able to produce
-a container indistinguishable from its surroundings by omitting an attribute, and SHALL NOT hand-apply
-a surface class to achieve the distinction. Broadcast content SHALL alternate only once; deeper
-content containers SHALL retain that level with boundary borders, while chrome and selection retain
-their distinct treatments.
+
+A card or section composed inside another SHALL render at a distinguishable surface level without
+the composing screen applying a variant, modifier or prop, content alternating against its band and
+chrome lifting at any depth. A screen SHALL NOT be able to produce an indistinguishable container by
+omitting an attribute, or hand-apply a surface class. Broadcast content SHALL alternate only once,
+deeper containers keeping that level with boundary borders.
 
 #### Scenario: A screen composes a panel with no extra props
 - **WHEN** a screen composes a card with a header and a body inside a section, passing no variant or
@@ -665,26 +769,18 @@ their distinct treatments.
 - **WHEN** a screen applies a surface class directly to achieve nesting contrast
 - **THEN** the ownership check reports it, as it already does for hand-written owned classes
 
+#### Scenario: Chrome and selection on broadcast
+
+- **WHEN** broadcast content nests
+- **THEN** chrome and selection keep their own distinct treatments
+
 ### Requirement: A component without a story fails the build
-Every component in the owned library SHALL have at least one story, and CI SHALL fail when one does
-not, so the workbench cannot silently fall behind the library it exists to show. The set of components
-checked SHALL be derived recursively from the library directory rather than from a maintained list, so a component
-added later is covered without the check being edited.
 
-Every React screen and route component of the operator, public and broadcast surfaces SHALL have a
-story, and the set checked SHALL likewise be derived recursively from the filesystem, including nested
-directories on all three surfaces, rather than from a register of opted-in files. Coverage SHALL NOT
-be limited to Control directories. A module that renders no interface of its own — a router, a provider, a composition
-root, a test-support helper — SHALL be excluded by a stated rule naming what makes it exempt, so an
-exclusion is a declared category rather than an omission from a list. Explicit module exclusions SHALL
-use paths relative to `apps/web/src`; matching a filename alone SHALL NOT exempt an unrelated screen.
-
-A screen that cannot be rendered without data only a real tournament produces SHALL be recorded with
-its reason rather than given a fabricated fixture, and that record SHALL be the only way a surface
-component passes without a story.
-
-Astro pages are outside this requirement until a source-rendered Astro story seam exists; the check
-SHALL NOT report them.
+Every owned library component, and every React screen and route component of the operator, public
+and broadcast surfaces, SHALL have a story, and CI SHALL fail when one does not. Both sets SHALL be
+derived recursively from the filesystem. A module rendering no interface SHALL be excluded by a
+stated rule. A screen needing real tournament data SHALL be recorded with its reason, the only way
+to pass without a story. Astro pages SHALL NOT be reported until an Astro story seam exists.
 
 #### Scenario: A new library component ships without a story
 - **WHEN** a component is added to the owned library with no accompanying story
@@ -724,17 +820,29 @@ SHALL NOT report them.
 - **WHEN** a screen without a story has the same filename as an explicitly excluded router at another path
 - **THEN** the screen still fails coverage and the router's exemption remains scoped to its own path
 
-### Requirement: TV stories support selectable preview backgrounds
-TV Storybook stories SHALL offer a shared background selector with neutral, green chroma, and named
-bundled sport-scene samples. Named chroma and sport-background example stories SHALL make those
-contexts discoverable. Samples SHALL include bright and dark sporting environments and work without
-remote image requests. The selector SHALL be keyboard-operable and coexist with language and viewport
-controls.
+#### Scenario: Coverage reaches every directory
 
-The backdrop SHALL be preview-only context behind the production TV component: transparent overlay
-regions reveal it, while opaque panels retain their actual styling. Choosing a sport scene SHALL NOT
-change the discipline, match data, rules or layout mode. Green chroma SHALL NOT replace a semantic
-state colour or introduce production chroma configuration.
+- **WHEN** a component is added in a nested directory on any of the three surfaces
+- **THEN** the check covers it, not only Control directories, without the check being edited
+
+#### Scenario: What is exempt by rule
+
+- **WHEN** a module is a router, a provider, a composition root or a test-support helper
+- **THEN** the stated rule excludes it, so an exclusion is a declared category rather than an
+  omission
+
+#### Scenario: Exclusions use paths
+
+- **WHEN** an explicit module exclusion is declared
+- **THEN** it is a path relative to `apps/web/src`, and a matching filename alone exempts nothing
+
+### Requirement: TV stories support selectable preview backgrounds
+
+TV stories SHALL offer a shared, keyboard-operable background selector, alongside the language and
+viewport controls, with neutral, green chroma and bundled sport-scene samples that need no remote
+image. The backdrop SHALL be preview-only: transparent regions reveal it and opaque panels keep
+their styling. A sport scene SHALL NOT change the discipline, data, rules or layout mode, and green
+chroma SHALL NOT replace a semantic state colour or add production chroma configuration.
 
 #### Scenario: An overlay is reviewed on green chroma
 - **WHEN** a reviewer opens the green-chroma TV example
@@ -749,6 +857,12 @@ state colour or introduce production chroma configuration.
 #### Scenario: An opaque TV panel is previewed
 - **WHEN** a sport backdrop is selected for an opaque kiosk or panel presentation
 - **THEN** its real opaque surfaces remain intact rather than becoming transparent to expose the image
+
+#### Scenario: Discoverable contexts
+
+- **WHEN** a reviewer browses the TV stories
+- **THEN** named chroma and sport-background stories show those contexts, with bright and dark
+  sporting environments among the samples
 
 ### Requirement: Owned atom for a multi-language display-string field
 The component library SHALL provide an owned single-line-input and an owned multi-line-textarea

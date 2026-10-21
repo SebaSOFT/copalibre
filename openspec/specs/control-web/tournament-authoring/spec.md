@@ -97,14 +97,12 @@ not have.
   write a ruleset by hand to reach behavior the engine already implements
 
 ### Requirement: Wizard offers explicit tournament-profile selection
-When the selected discipline and format combination has one or more compatible `TournamentProfile`
-entries in the installed catalogue, the wizard SHALL let the organizer select one explicitly (or
-proceed without one), and a selected profile's declared stages SHALL be pre-created on the resulting
-tournament. Selecting a profile SHALL show the operator a read-only preview of that profile's
-declared stages, each stage's format, and each stage's declared default allocation, before the
-tournament is created. The preview SHALL NOT be editable from the wizard; an operator wanting a
-different stage list or allocation for this one tournament proceeds without selecting a profile, or
-edits the tournament's stages after creation through the existing stage-management surface.
+
+When the selected discipline and format have compatible `TournamentProfile` entries in the
+catalogue, the wizard SHALL let the organizer select one explicitly or proceed without one, and a
+selected profile's declared stages SHALL be pre-created on the tournament. Selecting a profile SHALL
+show a read-only preview of its stages, each stage's format and declared default allocation before
+creation, and the preview SHALL NOT be editable from the wizard.
 
 #### Scenario: A multi-stage profile is offered and instantiated
 - **WHEN** an organizer selects a discipline and format for which an installed `TournamentProfile`
@@ -127,6 +125,12 @@ edits the tournament's stages after creation through the existing stage-manageme
 - **WHEN** an organizer wants a stage structure that differs from every installed profile
 - **THEN** the organizer proceeds without selecting a profile and authors the stage list directly,
   rather than being offered an in-place edit of a profile's preview
+
+#### Scenario: A different structure
+
+- **WHEN** an operator wants another stage list or allocation for this tournament
+- **THEN** they proceed without a profile, or edit the stages after creation through the
+  stage-management surface
 
 ### Requirement: The wizard offers a per-event rule-authoring step
 The tournament setup wizard SHALL offer a step where an organizer may define zero or more custom
@@ -165,16 +169,12 @@ than a generic failure.
   message rather than a generic error
 
 ### Requirement: A stage declares whether its crosses are settled by a series
-The tournament authoring surface SHALL let an operator declare, per stage, whether each cross is
-settled by a single match or by a series, and when by a series, how many matches it spans, which
-resolution class decides it, whether it is played on neutral ground, and whether it counts towards
-standings as one result per series or one result per played match. Declaring no series SHALL
-remain the default and SHALL require no operator action.
 
-The accounting grain SHALL be offered as an explicit control naming what each choice does to the
-standings table, not by its label alone. It SHALL preselect one result per played match, which is what
-an undeclared grain has always meant, so that an operator with no view is never blocked and an operator
-with one can see what they are getting. An operator declaring no series SHALL see no such control.
+The authoring surface SHALL let an operator declare, per stage, whether each cross is settled by a
+single match or a series, and for a series its parameters. Declaring no series SHALL remain the
+default and require no action. The accounting grain SHALL be an explicit control naming what each
+choice does to the standings table, preselecting one result per played match, and SHALL NOT be shown
+when no series is declared.
 
 #### Scenario: An operator declares a best-of-five play-off stage
 - **WHEN** an operator authoring a single-elimination stage declares a five-match series resolved by
@@ -208,6 +208,18 @@ with one can see what they are getting. An operator declaring no series SHALL se
 - **THEN** no accounting-grain control is shown, and the authored configuration is byte-identical to
   one produced before the control existed
 
+#### Scenario: The series parameters
+
+- **WHEN** an operator declares a series
+- **THEN** they set how many matches it spans, which resolution class decides it, whether it is
+  played on neutral ground, and whether it counts as one result per series or one per played match
+
+#### Scenario: Why the preselection
+
+- **WHEN** an operator has no view on the grain
+- **THEN** the preselected per-match grain is what an undeclared grain has always meant, so they are
+  never blocked, and an operator with a view sees what they get
+
 ### Requirement: A series declaration is refused where it cannot hold
 The authoring surface SHALL refuse a series declaration that the engine cannot generate, naming the
 reason, before the stage is stored. This is a refusal for a configuration that would be incoherent, not
@@ -238,20 +250,12 @@ before it is applied, on the same contract every other authoring edit already fo
   correction workflow
 
 ### Requirement: Every authored decision explains what it does during the competition
-Each decision an authoring surface presents — a format, a resolution class, a tiebreak comparator, a
-check-in policy, a series accounting grain, a scoring option — SHALL carry a description explaining what
-that choice causes to happen while the competition is running, not what it is called.
 
-The description SHALL be attached to the field's own declaration rather than to the control that renders
-it, so that every surface rendering the same field shows the same explanation and a second surface
-cannot drift from the first.
-
-Where a field is a closed set of options, each option SHALL carry its own description. Where a field's
-mutation policy declares that changing it becomes `requires_rebuild` or `blocked_after_results`, the
-description SHALL say so at authoring time, so an organizer learns a choice is hard to reverse before
-they make it rather than when they are refused.
-
-A field that declares no description SHALL render exactly as it does today.
+Each decision an authoring surface presents SHALL carry a description of what the choice causes
+while the competition runs, not what it is called, attached to the field's own declaration so every
+surface shows the same one. Each option of a closed set SHALL carry its own description, and a field
+whose change is `requires_rebuild` or `blocked_after_results` SHALL say so at authoring time. A
+field declaring no description SHALL render as it does today.
 
 #### Scenario: A closed-set decision explains each of its options
 - **WHEN** an organizer opens a step offering a series resolution class
@@ -275,6 +279,22 @@ A field that declares no description SHALL render exactly as it does today.
 #### Scenario: A field with no declared description is unchanged
 - **WHEN** a step renders a field whose declaration carries no description
 - **THEN** the control renders exactly as it did before descriptions existed
+
+#### Scenario: Which decisions
+
+- **WHEN** an authoring surface presents a format, resolution class, tiebreak comparator, check-in
+  policy, series accounting grain or scoring option
+- **THEN** each carries its description
+
+#### Scenario: Why attach to the declaration
+
+- **WHEN** a second surface renders the same field
+- **THEN** it shows the same explanation and cannot drift from the first
+
+#### Scenario: Why say it early
+
+- **WHEN** a choice is hard to reverse
+- **THEN** the organizer learns so before making it, rather than when refused
 
 ### Requirement: A discipline's own decisions are explained in the discipline's words
 Where a decision comes from an installed discipline module rather than from the platform, the
@@ -320,13 +340,12 @@ structural consequence.
 - **THEN** the rename applies, because a name change invalidates nothing a fixture depends on
 
 ### Requirement: A published tournament's ruleset overrides are editable and mutation-classified
-A tournament's `TournamentRuleset` overrides — every field the installed `DisciplineDescriptor` marks
-`replaced` or `merged`, excluding custom scripts which keep their existing dedicated edit path — SHALL
-be editable after publication. Each changed field SHALL be classified `safe`, `requires_rebuild`, or
-`blocked_after_results` before the edit is applied, on the same mutation-classification contract every
-other configuration edit already follows. An edit touching a `blocked_after_results` field SHALL be
-refused once the tournament has a recorded match result, directing the operator to the audited
-correction workflow instead. An edit SHALL never discard an override the request did not name.
+
+A tournament's `TournamentRuleset` overrides SHALL be editable after publication, each changed field
+classified `safe`, `requires_rebuild`, or `blocked_after_results` before it applies, under the
+mutation classification every configuration edit follows. A `blocked_after_results` edit SHALL be
+refused once a match result is recorded, directing the operator to the audited correction workflow.
+An edit SHALL never discard an override the request did not name.
 
 #### Scenario: A safe ruleset override applies without warning
 - **WHEN** an organizer edits a ruleset override field classified `safe`
@@ -343,6 +362,12 @@ correction workflow instead. An edit SHALL never discard an override the request
 #### Scenario: Editing one field leaves every other override untouched
 - **WHEN** an organizer edits a single ruleset override field
 - **THEN** every other field already present in the ruleset's overrides is unchanged in the resulting version
+
+#### Scenario: Which fields are editable
+
+- **WHEN** an operator opens the override editor
+- **THEN** every field the installed `DisciplineDescriptor` marks `replaced` or `merged` is
+  editable, except custom scripts, which keep their own edit path
 
 ### Requirement: An unseeded stage's configuration overrides are editable and mutation-classified
 A `StageConfiguration`'s overrides SHALL be editable for as long as the stage holds no generated
@@ -382,13 +407,11 @@ alongside the existing public-registration and check-in toggles. Setting it SHAL
 - **THEN** the request is rejected and the tournament's `featured` value is unchanged
 
 ### Requirement: Wizard authors every stage of a tournament in one pass
-The tournament setup wizard SHALL let an operator declare the tournament's full stage list —
-add, remove, or append a stage — rather than a single implicit stage, before creating the
-tournament. Each stage SHALL carry its own format, chosen from the formats the selected
-discipline supports. The list SHALL have no maximum stage count and a minimum of one stage.
-Stages SHALL NOT be reorderable in this pass; an operator wanting a different order removes and
-re-adds stages. Each stage's position SHALL be renumbered to a contiguous 1-based sequence after
-any add or remove, with no gap and no duplicate.
+
+The tournament setup wizard SHALL let an operator declare the full stage list before creating the
+tournament, at least one stage and no maximum, each with its own format from those the discipline
+supports. Stages SHALL NOT be reorderable in this pass, and positions SHALL be renumbered to a
+contiguous 1-based sequence after any add or remove.
 
 #### Scenario: An operator declares a three-stage tournament
 - **WHEN** an operator adds a round-robin stage, then a single-elimination stage, then a second
@@ -405,14 +428,23 @@ any add or remove, with no gap and no duplicate.
 - **THEN** the created tournament has one stage, identical to what a tournament created before
   this capability existed would have
 
+#### Scenario: Editing the list
+
+- **WHEN** an operator authors stages
+- **THEN** they add, remove or append a stage
+
+#### Scenario: A different order
+
+- **WHEN** an operator wants stages in another order
+- **THEN** they remove and re-add stages
+
 ### Requirement: Each authored stage declares its own seeding/allocation mode
-Each stage declared in the wizard SHALL let the operator choose how that stage's entrants and
-seed order will be filled: automatic (the prior stage's qualification cut), manual (the operator
-places entrants), or weighted (a numeric entrant attribute, with a direction stating whether
-higher or lower values seed first). Weighted mode's attribute SHALL be chosen from a list of the
-tournament's known entrant-attribute keys, not free text. A stage's allocation mode SHALL NOT be
-validated against its own or a prior stage's format in the wizard; an incompatible combination is
-refused at submission by the same validation the domain already applies to allocation.
+
+Each stage declared in the wizard SHALL let the operator choose how its entrants and seed order are
+filled: automatic, manual, or weighted. Weighted mode's attribute SHALL be chosen from the
+tournament's known entrant-attribute keys, not free text. An allocation mode SHALL NOT be validated
+against formats in the wizard; an incompatible combination is refused at submission by the domain's
+allocation validation.
 
 #### Scenario: An operator declares automatic allocation for a knockout stage following a group stage
 - **WHEN** an operator declares a knockout stage's allocation as automatic
@@ -436,14 +468,19 @@ refused at submission by the same validation the domain already applies to alloc
 - **THEN** the refusal is reported at submission with the domain's own reason, and the wizard does
   not pre-filter allocation choices while the operator is still authoring
 
+#### Scenario: What each mode means
+
+- **WHEN** an operator picks a mode
+- **THEN** automatic takes the prior stage's qualification cut, manual has the operator place
+  entrants, and weighted seeds by a numeric attribute with a direction stating whether higher or
+  lower values seed first
+
 ### Requirement: A ruleset override field renders a typed control, never raw JSON
+
 The ruleset-override editor SHALL render one typed control per configured field, chosen from the
-field's `FieldPolicy` and the runtime type of its value in the discipline's defaults, instead of a
-text input the operator fills with hand-typed JSON. A `boolean`-valued field SHALL render a checkbox;
-a `number`-valued field SHALL render a number input; a `string`-valued field SHALL render a text
-input, except `format`, which SHALL render a selection constrained to the installed discipline's
-declared `availableFormats`. A field whose override permission is `inherited` or `forbidden` SHALL
-NOT be offered a control at all.
+field's `FieldPolicy` and its value's runtime type in the discipline's defaults, instead of a
+hand-typed JSON input. A field whose override permission is `inherited` or `forbidden` SHALL NOT be
+offered a control.
 
 #### Scenario: A boolean field renders a checkbox
 - **WHEN** the editor renders a configured field whose current value is a boolean
@@ -458,14 +495,18 @@ NOT be offered a control at all.
 - **WHEN** the editor encounters a field whose override permission is `forbidden` or `inherited`
 - **THEN** it renders no editable control for that field
 
+#### Scenario: The controls by type
+
+- **WHEN** a field renders
+- **THEN** a `boolean` is a checkbox, a `number` a number input, a `string` a text input, and
+  `format` a selection constrained to the discipline's `availableFormats`
+
 ### Requirement: A merged field's control edits the delta it actually submits, never the resolved value
-For a field whose override permission is `merged` with strategy `union-list` or `append-list`, the
-editor SHALL present a control for the items to add on top of the field's inherited value, showing
-the inherited value as non-editable context, and SHALL submit only the added items as the field's
-override — never the full resolved list. For a field whose override permission is `merged` with
-strategy `shallow-object`, the editor SHALL present one independent, optional control per subkey the
-inherited value declares, and SHALL submit only the subkeys an operator actually changed as the
-field's override — never the whole object.
+
+For a `merged` field, the editor SHALL submit only what the operator changed: for `union-list` and
+`append-list`, the items added on top of the inherited value, shown as non-editable context; for
+`shallow-object`, the subkeys changed through one independent optional control per inherited subkey.
+It SHALL never submit the full resolved list or object.
 
 #### Scenario: A union-list field's control only submits the added items
 - **WHEN** an operator adds one item to a `union-list` field's control and saves
@@ -505,13 +546,11 @@ unrecognized, rather than being hidden or crashing the editor.
   field policy
 
 ### Requirement: The wizard offers a typed control for every discipline-declared ruleset field
-For every field the selected discipline declares an override policy for, the tournament-creation
-wizard SHALL offer a typed control chosen the same way the post-creation ruleset editor chooses one
-(by the field's override permission, merge strategy, and the runtime type of its default value) —
-except a field the wizard already captures through a dedicated control (`format` or a
-`registration.*` field), which SHALL NOT also be offered through this generic control, so no field
-is ever editable through two different wizard controls at once. A field whose override permission
-is `inherited` or `forbidden` SHALL NOT be offered a control.
+
+For every field the selected discipline declares an override policy for, the creation wizard SHALL
+offer a typed control chosen as the post-creation editor chooses one, except a field it already
+captures through a dedicated control, which SHALL NOT be offered twice. A field whose override
+permission is `inherited` or `forbidden` SHALL NOT be offered a control.
 
 #### Scenario: A discipline-specific field is configurable during creation
 - **WHEN** an organizer selects a discipline that declares an override policy for a field beyond
@@ -529,6 +568,17 @@ is `inherited` or `forbidden` SHALL NOT be offered a control.
 - **THEN** it renders no editable control for that field, matching the post-creation editor's
   behavior for the same policy
 
+#### Scenario: How the control is chosen
+
+- **WHEN** the wizard renders a field
+- **THEN** it uses the field's override permission, merge strategy and the runtime type of its
+  default value
+
+#### Scenario: The dedicated controls
+
+- **WHEN** the wizard renders `format` or a `registration.*` field
+- **THEN** only its dedicated control is offered
+
 ### Requirement: A rejected creation-time rule override fails tournament creation atomically
 If a rule override submitted at tournament-creation time is rejected by the same validation the
 post-creation ruleset editor uses (an undeclared field, a `forbidden`/`inherited` permission, or a
@@ -541,12 +591,11 @@ tournament, its stages, and its ruleset SHALL NOT be persisted in a partially-co
 - **THEN** the request fails and no tournament, stage, or ruleset record is created
 
 ### Requirement: A configured custom rule is listed in plain language, not raw registry identifiers
-The wizard's list of already-configured custom rules SHALL render each rule's condition and action
-using their vocabulary entries' phrase templates, rendered against the values and options the
-operator chose for that rule, when both the condition's (or no condition's, for "always") and the
-action's phrase templates are available. A rule whose condition or action has no phrase template
-SHALL fall back to today's `type — description` rendering for that side of the rule, never a blank
-or broken row.
+
+The wizard's list of configured custom rules SHALL render each rule's condition and action through
+their vocabulary phrase templates, filled with the operator's chosen values, when both templates are
+available. A side with no phrase template SHALL fall back to the `type — description` rendering,
+never a blank or broken row.
 
 #### Scenario: A configured rule reads as a sentence
 - **WHEN** an operator has configured a custom rule whose selected condition and action both declare
@@ -565,13 +614,19 @@ or broken row.
 - **THEN** that side of the rule's row falls back to its type identifier and description, and the
   row as a whole still renders
 
+#### Scenario: A rule with no condition
+
+- **WHEN** a rule applies always
+- **THEN** its "always" condition counts as having a template
+
 ### Requirement: Tournament wizard layout, stage format localization, and format-adaptive skeleton preview
-The tournament setup wizard SHALL render its progress metrics with proper typographic spacing, and localize all stage format identifiers across supported languages. Entrant assignment controls and schedule slot assignment rows SHALL use constrained, responsive layouts on their existing authoring screens. In the stage structure preview, the system SHALL adapt its structural presentation to the selected stage format using lightweight matchcard skeletons (`cl-match-card--skeleton`):
-- Single-elimination formats SHALL render as responsive bracket trees (llaves) showing round progression.
-- Double-elimination formats SHALL render distinct upper and lower brackets, a grand final and a conditional reset final when the lower-bracket winner wins the grand final.
-- League and round-robin formats SHALL render as wrapped matchday grids without horizontal scrollbar overflow.
-- Stages with explicit group configuration SHALL render the configured number of group cards with entrant slot skeletons; format alone SHALL NOT imply a group count.
-Ruleset fields SHALL NOT render raw JSON editors or literal "null" values, and tiebreaker criteria SHALL be presented as ordered human-readable badges.
+
+The setup wizard SHALL render progress metrics with proper spacing and localize every stage format
+identifier. Entrant assignment and schedule slot rows SHALL use constrained, responsive layouts. The
+stage structure preview SHALL adapt to the selected format with match-card skeletons
+(`cl-match-card--skeleton`), and a group count SHALL come only from explicit group configuration.
+Ruleset fields SHALL NOT show raw JSON or literal "null", and tiebreakers SHALL be ordered readable
+badges.
 
 #### Scenario: Entrant assignment and schedule slot rows remain constrained
 - **WHEN** an operator assigns entrants to zones/groups or assigns fixtures to schedule slots
@@ -601,8 +656,21 @@ Ruleset fields SHALL NOT render raw JSON editors or literal "null" values, and t
 - **WHEN** an operator reviews stage rules and tiebreakers
 - **THEN** tiebreakers display as readable badges, and unconfigured optional fields do not display raw "null" textareas or JSON editor warnings
 
+#### Scenario: The preview by format
+
+- **WHEN** a stage's preview renders
+- **THEN** single elimination is a responsive bracket tree showing round progression; double
+  elimination shows upper and lower brackets, a grand final and a conditional reset final; league
+  and round-robin are wrapped matchday grids with no horizontal overflow; explicit group
+  configuration shows that many group cards with entrant slot skeletons
+
 ### Requirement: Visual condition-action rule authoring builder
-The tournament setup wizard SHALL provide an intuitive, two-column visual GIVEN/WHEN/THEN rule builder for configuring custom stage scripts and rules. GIVEN SHALL display the discipline event supplied by the system at the `event.recorded` hook as read-only context; organizers SHALL NOT select or author trigger events. WHEN SHALL provide guided condition controls with AND composition only. THEN SHALL provide the supported action controls. The builder SHALL serialize rules into the existing validated ruleset structure.
+
+The tournament setup wizard SHALL provide a two-column visual GIVEN/WHEN/THEN builder for custom
+stage rules, serializing them into the existing validated ruleset structure. GIVEN SHALL show the
+event the system supplies at the `event.recorded` hook as read-only context, and organizers SHALL
+NOT author triggers. WHEN SHALL offer guided conditions composed with AND only. THEN SHALL offer the
+supported actions.
 
 #### Scenario: Authoring a custom rule through the visual builder
 - **WHEN** an operator creates a custom rule in Step 5 of the wizard
@@ -617,7 +685,12 @@ The tournament setup wizard SHALL provide an intuitive, two-column visual GIVEN/
 - **THEN** the rule serializes into a standard, validated tournament ruleset structure compatible with engine evaluation
 
 ### Requirement: Wizard declares each stage's zones with optional format and series
-The tournament setup wizard SHALL let an operator declare, per stage, an ordered list of zones before creating the tournament. Each zone SHALL carry a name, an optional format chosen from the formats the selected discipline supports, and an optional series declaration; a zone that declares neither SHALL inherit its stage's. The zone section SHALL be collapsed by default, so a stage with no zones reads and behaves as before. Zone names SHALL be non-empty and unique within the stage, and a zone whose effective format is a placement format SHALL NOT declare a series. The review step SHALL list each stage's zones with their effective formats. The wizard SHALL NOT assign entrants to zones.
+
+The setup wizard SHALL let an operator declare, per stage, an ordered list of zones, each with a
+name unique and non-empty within the stage, an optional format from the discipline's, and an
+optional series, inheriting the stage's when it declares neither; a placement-format zone SHALL NOT
+declare a series. The zone section SHALL be collapsed by default, the review step SHALL list zones
+with their effective formats, and the wizard SHALL NOT assign entrants to zones.
 
 #### Scenario: An operator plans two knockout zones and a league zone
 - **WHEN** an operator declares a `single-elimination` stage with three zones, "Copa Oro" and "Copa Plata" inheriting the format and "Liga" overriding it to `round-robin`, and completes the wizard
@@ -635,6 +708,11 @@ The tournament setup wizard SHALL let an operator declare, per stage, an ordered
 #### Scenario: The profile wizard does not offer zones
 - **WHEN** an operator authors a tournament profile
 - **THEN** the stage editor shows no zone section
+
+#### Scenario: Collapsed means unchanged
+
+- **WHEN** a stage declares no zones
+- **THEN** it reads and behaves as before
 
 ### Requirement: Tournament settings declare a minimum rest between matches
 

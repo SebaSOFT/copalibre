@@ -79,12 +79,10 @@ preference resolution SHALL never translate or alter organizer-entered content.
 
 ### Requirement: Client-side interface-language preference resolution order
 
-A visitor's interface language SHALL resolve, in order: (1) an explicit preference already stored for
-that browser, (2) the organization's `primaryLanguage` when the current page is scoped to a known
-organization, (3) the supported language that best matches the browser's own language list, (4) English,
-as the final fallback. The stored preference SHALL be a per-browser value (not synced to any user
-account), consistent with control and TV surfaces being permitted a simpler locale mechanism than the
-public surface's path-prefix routing.
+A visitor's interface language SHALL resolve, in order: (1) an explicit preference stored for that
+browser, (2) the organization's `primaryLanguage` on a page scoped to a known organization, (3) the
+supported language best matching the browser's language list, (4) English. The stored preference
+SHALL be a per-browser value, not synced to any user account.
 
 #### Scenario: An explicit stored preference wins over every other signal
 
@@ -108,15 +106,18 @@ public surface's path-prefix routing.
   match a supported code
 - **THEN** English is used
 
+#### Scenario: A simpler mechanism than path prefixes
+
+- **WHEN** the control panel or a TV surface resolves its language
+- **THEN** it uses this per-browser preference rather than the public surface's path-prefix routing
+
 ### Requirement: Discipline and tournament-profile display strings resolve through the supported-language contract
 
-Every discipline or tournament-profile document's display strings (a discipline or profile's `name`,
-a segment type's, event definition's, statistic's, or scoring input's `label`) SHALL be resolvable
-against the platform's `SupportedLanguage` contract, falling back to English when the requested
-language has no translation, the same fallback behavior the rest of the platform's interface
-languages already use. A document's stable `code`/`alias` identifiers are unaffected — this
-requirement governs only human-facing display strings, never a value used for effects, capability
-binding, or persisted event/statistic records.
+Every discipline or tournament-profile document's display strings SHALL be resolvable against the
+platform's `SupportedLanguage` contract, falling back to English when the requested language has no
+translation. This requirement governs only human-facing display strings, never a stable
+`code`/`alias` identifier or a value used for effects, capability binding, or persisted event or
+statistic records.
 
 #### Scenario: An operator sees a module label in their organization's primary language
 
@@ -136,6 +137,12 @@ binding, or persisted event/statistic records.
   `"label": "Yellow card"` as a plain string
 - **THEN** the document validates successfully and every viewer, regardless of interface language,
   sees "Yellow card" — identical to its behavior before this requirement
+
+#### Scenario: Which strings are display strings
+
+- **WHEN** a discipline or profile is shown
+- **THEN** its `name`, and each segment type's, event definition's, statistic's and scoring input's
+  `label`, resolve through the contract
 
 ### Requirement: API error responses carry a stable, localizable error code
 Every API error response SHALL carry a stable, machine-readable `errorCode` (kebab-case) alongside its
@@ -163,14 +170,11 @@ message on the client, never left to render an untranslated string.
 
 ### Requirement: Domain-term glossary governs translation of tournament-specific vocabulary
 
-Reference: the glossary document lives at `docs/i18n-glossary.md`.
-
-The platform SHALL maintain a single glossary of domain terms (including but not limited to `roster`,
-`seed`/`seeding`, `bracket`, `entrant`, `tiebreak`, `standings`, `zone`/`group`, `alias`, `placement`)
-that name a specific tournament-software concept rather than their generic dictionary meaning, with
-per-locale guidance on the correct rendering for each of the eight supported languages. Any translation
-review, human or LLM-assisted, SHALL check flagged strings containing a glossary term against the
-glossary's guidance before treating a translation as correct.
+The platform SHALL maintain a single glossary, `docs/i18n-glossary.md`, of domain terms that name a
+specific tournament-software concept rather than their generic meaning, with per-locale guidance for
+each of the eight supported languages. Any translation review, human or LLM-assisted, SHALL check
+flagged strings containing a glossary term against that guidance before treating a translation as
+correct.
 
 #### Scenario: A glossary term has documented per-locale guidance
 
@@ -183,6 +187,12 @@ glossary's guidance before treating a translation as correct.
 - **WHEN** a translation review (human or LLM-assisted) flags a string containing a glossary term
 - **THEN** the review's guidance for that term matches the glossary's documented guidance, rather than
   being decided independently per review
+
+#### Scenario: Terms the glossary covers
+
+- **WHEN** the glossary is consulted
+- **THEN** it covers at least `roster`, `seed`/`seeding`, `bracket`, `entrant`, `tiebreak`,
+  `standings`, `zone`/`group`, `alias` and `placement`
 
 ### Requirement: Translated content accuracy review requires human confirmation before publication
 
@@ -215,11 +225,9 @@ fluent in that locale has confirmed the specific change.
 ### Requirement: Rendered interface text is sourced from the message-catalogue system
 
 Every piece of user-facing interface text rendered by a public-web, Control-web, or TV component or
-template SHALL be sourced from the platform's message-catalogue system (`intl.formatMessage`,
-`resolveLabel`, or an equivalent catalogue lookup), never hardcoded as a literal in component or
-template source. A repository-wide scan SHALL exist to detect a literal that bypasses the catalogue
-system and report it, distinct from the translation-accuracy review, which assumes a catalogue key
-already exists and reviews only whether its translated value is correct.
+template SHALL be sourced from the platform's message-catalogue system, never hardcoded as a
+literal. A repository-wide scan SHALL exist to detect and report a literal that bypasses the
+catalogue, distinct from the translation-accuracy review.
 
 #### Scenario: A hardcoded literal is flagged
 - **WHEN** the catalogue-coverage scan runs against a component that renders a user-facing string
@@ -236,3 +244,14 @@ already exists and reviews only whether its translated value is correct.
 - **WHEN** a flagged literal is triaged as deliberately catalogue-exempt (e.g. a brand name or a code)
 - **THEN** that disposition is recorded in the report rather than the literal simply disappearing from
   future runs with no record of why
+
+#### Scenario: What counts as a catalogue lookup
+
+- **WHEN** a component renders text
+- **THEN** it comes from `intl.formatMessage`, `resolveLabel`, or an equivalent catalogue lookup
+
+#### Scenario: The two checks do different jobs
+
+- **WHEN** a string is reviewed
+- **THEN** the scan finds text with no catalogue key, while the accuracy review assumes a key exists
+  and checks only its translated value

@@ -89,11 +89,9 @@ every match to its slot, so the schedule views and the public match list show th
 
 A committed dataset SHALL NOT contain the real surname of any natural person who appears as a player
 or official. A deterministic scrambler SHALL replace each player's surname before it is written to
-any committed file and SHALL leave players' given names unchanged. Officials (referees) SHALL be
-replaced entirely, given name and surname, because the source prints their names inconsistently. The
-same source SHALL always produce the same pseudonyms, and no two distinct people on the same team
-SHALL end up with the same full name. Real club names, results, scores, dates and venues are
-retained.
+any committed file and SHALL leave players' given names unchanged. Officials SHALL be replaced
+entirely, given name and surname. The same source SHALL always produce the same pseudonyms, and no
+two distinct people on the same team SHALL end up with the same full name.
 
 #### Scenario: Given names are kept
 
@@ -129,6 +127,16 @@ retained.
 
 - **WHEN** a player is pseudonymised
 - **THEN** that player's dorsal number, nationality, team and goal and assist totals are unchanged
+
+#### Scenario: Everything but personal names is kept
+
+- **WHEN** a dataset is pseudonymised
+- **THEN** real club names, results, scores, dates and venues are retained
+
+#### Scenario: Officials are replaced because their names are unreliable
+
+- **WHEN** the source prints an official's name inconsistently
+- **THEN** the whole name is replaced rather than split into given name and surname
 
 ### Requirement: Loading is explicit and idempotent
 

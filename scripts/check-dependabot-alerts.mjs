@@ -28,15 +28,6 @@ export const KNOWN_UNPATCHED_ADVISORIES = Object.freeze({
     runtimeExposure: 'none; build-time documentation route glob filtering only',
     dismissalReason: 'not_used',
   }),
-  72: Object.freeze({
-    package: 'http-cache-semantics',
-    ghsa: 'GHSA-ch52-4w7c-c8xp',
-    upstreamIssue: 'https://github.com/kornelski/http-cache-semantics/issues/56',
-    dependencyPath:
-      'apps/web -> astro -> http-cache-semantics; root license scan -> pacote -> make-fetch-happen -> http-cache-semantics',
-    runtimeExposure: 'none; static site build caching and CI license scan only',
-    dismissalReason: 'tolerable_risk',
-  }),
   73: Object.freeze({
     package: 'sprintf-js',
     ghsa: 'GHSA-hp3w-g68c-fv3c',

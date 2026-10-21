@@ -55,13 +55,11 @@ group's matches only.
 
 ### Requirement: Promotion plan configuration and review
 
-A zone's control-web view SHALL let an operator configure a promotion plan — how many entrants
-advance from each of the zone's groups, and how the resulting per-group cuts combine into one ordered
-list (by a declared comparator pipeline, by explicit manual placement, or by simple group-then-rank
-order) — and, when the next stage declares more than one zone, which contiguous band of the combined
-list routes to which of that stage's zones. The screen SHALL display the computed, ordered candidate
-list for the operator to review before it is used; computing or displaying this list SHALL NOT, by
-itself, create or modify the next stage's seeding.
+A zone's control-web view SHALL let an operator configure a promotion plan: how many entrants
+advance from each of the zone's groups, how the per-group cuts combine into one ordered list, and,
+when the next stage declares more than one zone, which contiguous band of that list routes to which
+zone. The screen SHALL display the computed, ordered candidate list for review before it is used;
+computing or displaying it SHALL NOT, by itself, create or modify the next stage's seeding.
 
 #### Scenario: Reviewing a computed promotion list before acting
 - **WHEN** an operator opens the promotion plan screen for a zone whose groups have completed
@@ -74,14 +72,18 @@ itself, create or modify the next stage's seeding.
 - **THEN** the promotion screen shows this group's cut as unresolved and does not present a completed
   combined list until an operator resolves it
 
+#### Scenario: The combination is one of three
+
+- **WHEN** an operator chooses how cuts combine
+- **THEN** the choices are a declared comparator pipeline, explicit manual placement, or simple
+  group-then-rank order
+
 ### Requirement: Seeding builder pre-fill from a reviewed promotion plan
 
-When an operator opens the seeding builder for a stage that has no seeds drawn or manually placed yet,
-and one or more zones of a prior stage have a stored promotion plan targeting this stage, the seeding
-builder's initial seed order SHALL be pre-filled from those zones' promotion-preview results (combined
-per band, when more than one zone targets this stage). This pre-fill SHALL NOT itself persist anything;
-the operator still explicitly publishes through the seeding builder's existing workflow before any
-seed order takes effect. A stage that already has seeds SHALL NOT have them overridden by this pre-fill.
+When the seeding builder opens for a stage with no seeds drawn or placed yet, and a prior stage's
+zone has a stored promotion plan targeting it, the initial seed order SHALL be pre-filled from the
+promotion-preview results. The pre-fill SHALL NOT persist anything, and SHALL NOT override a stage
+that already has seeds.
 
 #### Scenario: A reviewed promotion plan pre-fills the next stage's seeding
 - **WHEN** an operator, having reviewed a zone's promotion plan, opens the next stage's seeding builder
@@ -94,6 +96,17 @@ seed order takes effect. A stage that already has seeds SHALL NOT have them over
 - **WHEN** an operator opens the seeding builder for a stage that already has a draw or manual
   placement recorded, and a promotion plan also targets that stage
 - **THEN** the seeding builder shows the already-recorded seed order, unaffected by the promotion plan
+
+#### Scenario: Several targeting zones combine per band
+
+- **WHEN** more than one zone of a prior stage targets the stage
+- **THEN** their promotion-preview results are combined per band into the pre-filled order
+
+#### Scenario: Publishing stays explicit
+
+- **WHEN** the seed order has been pre-filled
+- **THEN** nothing takes effect until the operator publishes through the seeding builder's existing
+  workflow
 
 ### Requirement: A zone or group can be renamed or removed before an entrant is assigned into it
 An operator SHALL be able to rename a zone or group at any time, and SHALL be able to remove one

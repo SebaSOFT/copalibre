@@ -49,17 +49,11 @@ or container queries) and Tailwind `screens` tokens from the same source.
   doctrine's screenshot acceptance gate, with no undocumented additional breakpoint
 
 ### Requirement: Broadcast Command Precision palette and typography
-The generated token set SHALL include the ink/text scale, cyan live/active tokens, amber
-upcoming/attention tokens, green positive-result tokens, red destructive/disputed/loss tokens, a
-reserved (non-core-chrome) team-accent slot, and the Barlow Condensed / Barlow / JetBrains Mono
-typography stack.
 
-A typeface the token set names SHALL also be delivered by it: naming a family in a font stack is a
-declaration of intent, not a guarantee that the face exists on the machine rendering it. The
-stylesheet that declares the families SHALL be the same artifact that loads them, so a surface cannot
-obtain one without the other. Every heading element SHALL resolve to the display family without a
-component having to ask for it, since a heading rendered in the body face is the identity silently
-not being applied.
+The generated token set SHALL include the palette roles and the Barlow Condensed / Barlow /
+JetBrains Mono typography stack. A typeface the token set names SHALL also be delivered by it,
+through the same stylesheet that declares the families, so a surface cannot obtain one without the
+other. Every heading element SHALL resolve to the display family without a component asking for it.
 
 #### Scenario: Core chrome never uses the reserved team-accent color
 - **WHEN** any core UI component token (navigation, primary buttons, system badges) is inspected
@@ -74,6 +68,23 @@ not being applied.
 - **WHEN** a page renders a bare heading element that no component class styles
 - **THEN** it resolves to the display family, rather than inheriting the body face
 
+#### Scenario: The palette roles
+
+- **WHEN** the token set is generated
+- **THEN** it includes the ink and text scale, cyan live/active, amber upcoming/attention, green
+  positive-result and red destructive/disputed/loss tokens, and a reserved team-accent slot outside
+  core chrome
+
+#### Scenario: Naming is not delivering
+
+- **WHEN** a family is named in a font stack
+- **THEN** the face is also loaded, because naming it only declares intent
+
+#### Scenario: Why headings resolve on their own
+
+- **WHEN** a heading renders in the body face
+- **THEN** the identity has silently not been applied, which is what the rule prevents
+
 ### Requirement: State badges pair color with text
 Any generated badge/status component token SHALL require a text label alongside its color, and
 SHALL NOT define a color-only state representation.
@@ -83,14 +94,12 @@ SHALL NOT define a color-only state representation.
 - **THEN** the build fails or the component renders a visible validation error, never a color-only badge
 
 ### Requirement: Badge state tones are defined tokens
-The token set SHALL define a generated token, and corresponding CSS custom property, for each named
-badge tone the product writes: `live`, `final`, `upcoming`, `stage`, `muted`, and `positive`. Each tone
-SHALL resolve consistently everywhere its class is used, independent of any page-local stylesheet, and
-SHALL follow the same color-plus-label pairing this capability already requires of every badge state
-(see "State badges pair color with text").
 
-The already generated `live` and `final` styles SHALL keep their appearance when promoted to declared
-tokens. Pages SHALL NOT define an overriding badge tone in a page-local stylesheet.
+The token set SHALL define a generated token and CSS custom property for each named badge tone the
+product writes, resolving consistently wherever its class is used, independent of any page-local
+stylesheet, and following the color-plus-label pairing "State badges pair color with text" requires.
+The `live` and `final` styles SHALL keep their appearance as declared tokens. Pages SHALL NOT define
+an overriding badge tone in a page-local stylesheet.
 
 #### Scenario: A badge tone renders identically on every surface that uses it
 - **WHEN** a component applies the `live`, `final`, `upcoming`, `stage`, `muted`, or `positive` badge
@@ -107,36 +116,18 @@ tokens. Pages SHALL NOT define an overriding badge tone in a page-local styleshe
 - **THEN** the build fails or falls back to the default badge treatment, never to an unstyled or
   browser-default appearance
 
+#### Scenario: The tones
+
+- **WHEN** the badge tokens are generated
+- **THEN** they cover `live`, `final`, `upcoming`, `stage`, `muted` and `positive`
+
 ### Requirement: Chamfered-corner motif with progressive enhancement
-The token set SHALL define one shared chamfer size, and a smaller control size, applied exclusively
-through `corner-shape` and `border-radius` without any `clip-path` fallback.
 
-The motif SHALL be a family rather than a single cut. It SHALL provide the diagonal pair — top-right
-and bottom-left — as its default, each single corner of that pair on its own, and the control-sized
-variant, so a composition can cut the corners its shape calls for instead of receiving the default
-everywhere. The default SHALL remain the diagonal pair, and top-left and bottom-right SHALL remain
-square in it.
-
-Corner geometry SHALL be expressed per corner. A browser that supports only the per-corner longhands
-SHALL receive them; a browser that supports the shorthand SHALL receive it; a browser that supports
-neither SHALL receive square corners and a fully usable component.
-
-Small square controls — a checkbox, a radio — are an exception and SHALL cut all four, because an
-asymmetric cut at that size reads as a rendering fault rather than a shape.
-
-A badge is a second stated exception: it SHALL cut one vertical pair — both left corners at the shared
-chamfer size, both right corners square. At badge proportions the diagonal pair puts its two cuts at
-opposite ends of a short label, which reads as a skewed box rather than as the motif; a vertical pair
-reads as a tag, while cutting all four would read as a pill. This is a deliberate divergence from the
-reference project, which paints badges square, and SHALL be recorded as such where the calibration is
-documented, so a later reviewer does not read it as drift.
-
-Where a component chamfers only some of its corners, that SHALL be expressed by leaving the other
-corners at a zero radius, never by authoring polygon masks.
-
-A component whose focus indicator or ambient glow is drawn outside its own box — such as a `box-shadow`
-ring or `--cl-glow-cyan` — SHALL NOT be clipped to its chamfer because `clip-path` is strictly prohibited
-for chamfer geometry. External focus rings and ambient glows stay intact across all rendering contexts.
+The token set SHALL define one shared chamfer size and a smaller control size, applied only through
+`corner-shape` and `border-radius`, per corner, never through `clip-path` or polygon masks. The
+motif SHALL be a family whose default is the diagonal pair, with each single corner of that pair and
+the control-sized variant available, and SHALL degrade from shorthand to longhands to square corners
+on a fully usable component. Small square controls and badges SHALL follow their stated exceptions.
 
 #### Scenario: Unsupported browser falls back gracefully
 - **WHEN** a browser without `corner-shape` support renders a chamfered component
@@ -163,18 +154,52 @@ for chamfer geometry. External focus rings and ambient glows stay intact across 
 - **WHEN** a component draws its focus indicator or ambient glow as a shadow outside its own box
 - **THEN** it is not clipped to the chamfer, and the indicator stays visible on every browser
 
+#### Scenario: The default and its parts
+
+- **WHEN** a composition takes the default chamfer
+- **THEN** top-right and bottom-left are cut and top-left and bottom-right stay square; a
+  composition may instead cut a single corner of that pair, or use the control-sized variant
+
+#### Scenario: Progressive enhancement
+
+- **WHEN** a browser renders a chamfered component
+- **THEN** it receives the shorthand when supported, the per-corner longhands when only those are,
+  and square corners otherwise
+
+#### Scenario: Small square controls cut all four
+
+- **WHEN** a checkbox or radio renders
+- **THEN** all four corners are cut, because an asymmetric cut at that size reads as a rendering
+  fault
+
+#### Scenario: A badge cuts one vertical pair
+
+- **WHEN** a badge renders
+- **THEN** both left corners are cut at the shared size and both right corners stay square: the
+  diagonal pair would read as a skewed box and four cuts as a pill
+
+#### Scenario: The badge divergence is recorded
+
+- **WHEN** a reviewer compares badges with the reference project, which paints them square
+- **THEN** the divergence is documented where the calibration is, so it is not read as drift
+
+#### Scenario: Partial chamfers use zero radii
+
+- **WHEN** a component chamfers only some corners
+- **THEN** the others are left at a zero radius
+
+#### Scenario: Outside rings are never clipped
+
+- **WHEN** a component draws a focus ring or ambient glow outside its box, such as a `box-shadow`
+  ring or `--cl-glow-cyan`
+- **THEN** it is not clipped to the chamfer, because `clip-path` is prohibited for chamfer geometry
+
 ### Requirement: A component's styling is reachable wherever the component renders
-Styling that a component depends on SHALL live where every surface rendering that component can load
-it — the shared token stylesheet, or a stylesheet a surface imports — and SHALL NOT live inside a
-single page or layout's own `<style>` block, scoped or global.
 
-A layout's own block is for what belongs to the page: document chrome, presentation modes, the
-backdrop. The moment it styles a class the layout's own file does not render, that styling has become
-unreachable to every other surface, and the component is correct on one page and wrong everywhere
-else. This fails quietly, because the page that owns the rule always looks right.
-
-The same rule applies to base element treatments — link colour, heading family — which belong to every
-surface and therefore to the shared stylesheet, not to whichever layout happened to need them first.
+Styling a component depends on SHALL live where every surface rendering that component can load it,
+in the shared token stylesheet or a stylesheet a surface imports, and SHALL NOT live inside a single
+page or layout's own `<style>` block, scoped or global. Base element treatments SHALL live in the
+shared stylesheet.
 
 #### Scenario: A component's rules are loadable by a second surface
 - **WHEN** a component is rendered on a surface other than the one it was written for
@@ -189,6 +214,23 @@ surface and therefore to the shared stylesheet, not to whichever layout happened
 - **WHEN** a surface renders a link or a heading
 - **THEN** it receives the same treatment as every other surface, rather than depending on which
   layout wrapped it
+
+#### Scenario: What a layout's own block is for
+
+- **WHEN** a layout styles something
+- **THEN** its block holds document chrome, presentation modes and the backdrop; styling a class its
+  own file does not render makes that styling unreachable to every other surface
+
+#### Scenario: Why the failure is quiet
+
+- **WHEN** a component is styled inside one layout
+- **THEN** the page that owns the rule always looks right, and every other page renders the
+  component wrong
+
+#### Scenario: Base treatments belong to every surface
+
+- **WHEN** link colour or heading family is styled
+- **THEN** it lives in the shared stylesheet, not in whichever layout needed it first
 
 ### Requirement: Forbidden cyberpunk-wireframe token isolation
 The generated token output SHALL NOT contain any value from the `sebasoft-app` cyberpunk-wireframe
@@ -208,13 +250,11 @@ active.
 - **THEN** every component using a motion token renders with animation/transition duration effectively removed
 
 ### Requirement: Style-guide route for visual verification
+
 The platform SHALL provide a route rendering every generated token and core component for manual and
 automated visual smoke-testing, including a labelled sample of every font-size scale step at every
-generated breakpoint. The route SHALL render the marketing-surface component set (card, badge, button
-variant, alert, stat-tile), the Control-web atom/molecule/organism set (text input, select, textarea,
-checkbox, label, form-field, `DataEntityCard`, `DataTable`, `Modal`), and one populated example of each
-Control-web template (`ListScreenTemplate`, `FormScreenTemplate`), so every tier stays verifiable from
-the same page.
+generated breakpoint, the marketing-surface and Control-web component sets, and one populated
+example of each Control-web template.
 
 #### Scenario: Style guide renders all core components
 - **WHEN** the style-guide route is loaded
@@ -233,6 +273,13 @@ the same page.
   molecule, the `DataTable` and `Modal` organisms, and one populated example of `ListScreenTemplate` and
   `FormScreenTemplate`, visibly distinguishable from the marketing-surface component set on the same
   page
+
+#### Scenario: The components rendered
+
+- **WHEN** the style guide renders
+- **THEN** it shows the card, badge, button variants, alert and stat tile; the text input, select,
+  textarea, checkbox, label, form field, `DataEntityCard`, `DataTable` and `Modal`; and
+  `ListScreenTemplate` and `FormScreenTemplate`, so every tier is verifiable from one page
 
 ### Requirement: Responsive layout compliance across every screen
 Every Control route and every Public/TV page template SHALL render without horizontal overflow at
@@ -267,12 +314,10 @@ path.
   text remains accessible, rather than overflowing its container or disappearing
 
 ### Requirement: Form-control and overlay component token contracts
-`packages/design-tokens` SHALL define component token contracts for text input, select, textarea,
-checkbox, radio, file selection, and dialog/overlay (backdrop, surface, elevation) controls — resolved
-background, text, border, and focus-ring values per interaction state (default, focus, error, disabled)
-for form controls, and backdrop/surface/elevation values for the dialog/overlay contract — matching the
-pattern `BadgeSpec`/`ButtonVariant`/`CARD_STATES` already establish for their respective components, so
-no Control-web atom or organism hand-picks a color, spacing, or shadow value outside this contract.
+
+`packages/design-tokens` SHALL define component token contracts for form controls and for the
+dialog/overlay, following the pattern `BadgeSpec`, `ButtonVariant` and `CARD_STATES` establish, so
+no Control-web atom or organism hand-picks a color, spacing, or shadow value outside them.
 
 #### Scenario: An error-state input resolves to the destructive semantic color
 - **WHEN** the text-input component token contract's error state is inspected
@@ -288,6 +333,18 @@ no Control-web atom or organism hand-picks a color, spacing, or shadow value out
 - **WHEN** the `Modal` organism's backdrop is inspected
 - **THEN** its color/opacity value resolves to the dialog/overlay component token contract, not an
   independently chosen value
+
+#### Scenario: The controls covered
+
+- **WHEN** the contracts are defined
+- **THEN** they cover text input, select, textarea, checkbox, radio, file selection, and the
+  dialog/overlay
+
+#### Scenario: What each contract resolves
+
+- **WHEN** a contract is read
+- **THEN** a form control resolves background, text, border and focus ring per state (default,
+  focus, error, disabled), and the dialog/overlay resolves backdrop, surface and elevation
 
 ### Requirement: Control-web data-density composition tokens
 `packages/design-tokens` SHALL define a documented, denser spacing-scale subset (or named density
@@ -361,28 +418,12 @@ and preserve the generated reduced-motion behavior.
 
 ### Requirement: A container resolves its own surface level, without a call-site decision
 
-A card or section SHALL resolve its surface level from what it is, with no modifier class, prop, or
-decision at the call site. A content container SHALL alternate against the level it sits on; chrome — a
-panel header, a footer, a chip, a tag, an eyebrow, an icon well — SHALL lift to the chrome level at any
-depth. The operational surface parity work calibrates those levels against the reference project; this change makes the assignment
-automatic so a screen never states it.
-
-The levels SHALL be their own semantic roles rather than reusing `surface-raised`, whose contracted
-meaning is a selected or active container: lifted chrome and a selected container SHALL NOT resolve to
-the same value, because a reader cannot then tell chrome from selection.
-
-The resolved backgrounds SHALL be visibly different; distinct token names resolving to the same
-colour SHALL NOT satisfy this requirement. Selection SHALL retain its border and explicit label or
-mark. Review SHALL use the differentiation examples in `../copalibre-app` and actual selected
-components on both dark and light bands.
-
-Broadcast content SHALL be an explicit exception to repeated alternation: the first content container
-against the broadcast base takes the alternate content level, and deeper content containers retain
-that level. Chrome SHALL retain its chrome role and selected containers their distinct state
-background. Operator and public content SHALL continue alternating normally.
-
-Every boundary between two levels SHALL carry the border cue the semantic token contract already
-requires of a panel, so two adjacent levels are separable without relying on the fill difference alone.
+A card or section SHALL resolve its surface level from what it is, with no call-site decision:
+content containers SHALL alternate against the level beneath, and chrome SHALL lift to the chrome
+level at any depth. Levels SHALL be their own, visibly different semantic roles, and lifted chrome
+and a selected container SHALL NOT resolve alike; selection SHALL keep its border and label or mark.
+Every boundary SHALL carry the panel border cue. Broadcast content SHALL stop alternating after one
+step.
 
 #### Scenario: A screen composes a panel with no extra props
 - **WHEN** a screen composes a card with a header and a body inside a section, passing no variant or
@@ -418,6 +459,35 @@ requires of a panel, so two adjacent levels are separable without relying on the
 - **THEN** a border cue marks the boundary, so the two are separable without relying on the fill
   difference alone
 
+#### Scenario: What counts as chrome
+
+- **WHEN** a panel header, footer, chip, tag, eyebrow or icon well renders
+- **THEN** it lifts to the chrome level
+
+#### Scenario: Why not `surface-raised`
+
+- **WHEN** a level is assigned
+- **THEN** it does not reuse `surface-raised`, which means a selected or active container, so a
+  reader can tell chrome from selection
+
+#### Scenario: Different names are not enough
+
+- **WHEN** two levels use distinct token names
+- **THEN** they must also resolve to visibly different colours
+
+#### Scenario: How levels are reviewed
+
+- **WHEN** levels are reviewed
+- **THEN** the review uses the differentiation examples in `../copalibre-app` and actual selected
+  components on dark and light bands
+
+#### Scenario: The broadcast exception
+
+- **WHEN** content containers nest on the broadcast base
+- **THEN** the first takes the alternate content level and deeper ones keep it; chrome keeps its
+  role, selected containers their state background, and operator and public content alternate
+  normally
+
 ### Requirement: Radio and file-selection component token contracts
 `packages/design-tokens` SHALL define component token contracts for the radio control and the
 file-selection control — resolved background, text, border, and focus-ring values per interaction state
@@ -437,23 +507,10 @@ neither atom picks a colour, spacing, or shadow value outside the contract.
 
 ### Requirement: Design documentation is verified against the token source
 
-Documentation committed to the repository that restates token values SHALL be verified against the
-token source automatically, and the verification SHALL fail on any divergence in either direction —
-a value that differs, a token present in the source and absent from the documentation, or a token
-present in the documentation and absent from the source.
-
-The visual-identity doctrine permits raw primitive values to appear in token definitions and in
-documentation. That permission is what makes documentation capable of drifting: a value corrected in
-the source propagates to the generated CSS and Tailwind output through the single-source-of-truth
-requirement, while a hand-maintained document keeps asserting the old one. A document restating an
-implementation fact is a claim, and a claim SHALL carry automated evidence rather than assertion.
-
-Verification SHALL cover the colour, typography, radius and spacing token sets. It SHALL run in the
-same suite as the token package's existing checks, so a divergence fails a pull request rather than
-being discovered by whoever next reads the document.
-
-A count of commits to the visual source directories since the document was last edited SHALL NOT be
-treated as evidence of divergence or of agreement; only a value comparison decides.
+Committed documentation restating token values SHALL be verified automatically against the token
+source for the colour, typography, radius and spacing sets, in the token package's existing suite,
+and SHALL fail on any divergence in either direction. A count of commits since the document was last
+edited SHALL NOT be treated as evidence either way; only a value comparison decides.
 
 #### Scenario: A token value changes and the documentation is not regenerated
 
@@ -475,6 +532,23 @@ treated as evidence of divergence or of agreement; only a value comparison decid
 - **WHEN** the design documentation is regenerated from the current token source with no manual edit to its token values
 - **THEN** the verification passes with no exception recorded
 
+#### Scenario: What a divergence is
+
+- **WHEN** the documentation is compared
+- **THEN** a value that differs, a token only in the source, or a token only in the documentation
+  each fail
+
+#### Scenario: Why documentation drifts
+
+- **WHEN** a value is corrected in the source
+- **THEN** the generated CSS and Tailwind output follow it while a hand-maintained document keeps
+  the old one, so a restated fact needs automated evidence
+
+#### Scenario: Divergence fails the pull request
+
+- **WHEN** documentation diverges
+- **THEN** the pull request fails rather than the next reader finding out
+
 ### Requirement: Design documentation names its normative source
 
 Committed design documentation that overlaps a specification SHALL name that specification as
@@ -491,17 +565,10 @@ with equal apparent authority leave a reader no way to tell which one binds when
 
 ### Requirement: Mechanical design checks run during editing
 
-The project SHALL run its mechanical design checks while interface code is being edited, rather than
-only at review, and SHALL record their configuration in a tracked file so the whole team runs the
-same checks.
-
-A suppression of any such check SHALL carry a written reason. A suppression identified only by rule
-id SHALL NOT be accepted, because a suppression without a recorded reason cannot be reviewed, cannot
-be re-evaluated when the code it excused has changed, and silently becomes permanent.
-
-A suppression that applies to one developer's machine rather than to the project SHALL be recorded
-separately from the tracked project configuration, so a personal exclusion never reaches the team's
-checks.
+The project SHALL run its mechanical design checks while interface code is edited, not only at
+review, with their configuration in a tracked file. A suppression SHALL carry a written reason, and
+one identified only by rule id SHALL NOT be accepted. A suppression for one developer's machine
+SHALL be recorded apart from the tracked project configuration.
 
 #### Scenario: A suppression arrives without a reason
 
@@ -512,6 +579,12 @@ checks.
 
 - **WHEN** a pull request adds or widens a design-check suppression
 - **THEN** the suppression and its reason appear in that pull request's diff
+
+#### Scenario: Why a reason is required
+
+- **WHEN** a suppression has no recorded reason
+- **THEN** it cannot be reviewed or re-evaluated when the excused code changes, and silently becomes
+  permanent
 
 ### Requirement: Verified documentation changes with its source
 

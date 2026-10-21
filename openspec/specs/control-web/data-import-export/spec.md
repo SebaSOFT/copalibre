@@ -8,13 +8,12 @@ stable-ID copy of it back out, so the platform never traps operator data behind 
 ## Requirements
 
 ### Requirement: CSV import requires reviewed confirmation before commit
+
 The system SHALL accept an uploaded CSV of at most 4 MiB, validate it through a durable worker job
-against the active discipline and tournament's declared import schema, present a row-level preview of
-validation results, and SHALL NOT commit any row until the operator explicitly confirms the reviewed
-preview. The declared schema SHALL select whether rows register a new individual entrant, register a
-new team entrant, or attach people onto an already-registered team's persistent membership; the
-system SHALL NOT infer a sport-specific shape outside that configuration. A roster is a
-match-specific player selection and SHALL NOT be imported by this capability.
+against the active discipline and tournament's declared import schema, preview row-level results,
+and SHALL NOT commit any row until the operator explicitly confirms the reviewed preview. The
+declared schema SHALL select what a row registers; the system SHALL NOT infer a sport-specific shape
+outside it, and SHALL NOT import a roster.
 
 #### Scenario: Valid rows are previewed before commit
 - **WHEN** an operator uploads a CSV with all valid rows
@@ -27,6 +26,17 @@ match-specific player selection and SHALL NOT be imported by this capability.
 #### Scenario: A roster is not an import target
 - **WHEN** an operator submits CSV columns intended to select players for a particular match
 - **THEN** validation rejects that row shape and directs roster selection to live match operations
+
+#### Scenario: The declared schema picks what a row registers
+
+- **WHEN** a tournament's import schema is declared
+- **THEN** it selects whether rows register a new individual entrant, register a new team entrant,
+  or attach people onto an already-registered team's persistent membership
+
+#### Scenario: A roster is a match selection, not an import
+
+- **WHEN** an operator looks for a roster import target
+- **THEN** none is offered: a roster is a match-specific player selection
 
 ### Requirement: Malformed input is rejected cleanly, never partially committed
 A CSV containing malformed or schema-invalid rows SHALL be rejected with row-level, actionable error
@@ -97,14 +107,12 @@ service or account.
 - **THEN** the export completes successfully
 
 ### Requirement: CSV import can add people to an already-registered team's membership
+
 The system SHALL support a CSV import target that attaches each row's person to a team named by a
-per-row team reference, so one file can populate many teams' persistent membership in one import. The
-system SHALL only attach to a team already registered as an entrant in the target tournament; it SHALL
-NOT create a team as a side effect of this target, and a row naming a team that is not already a
-registered entrant in the tournament SHALL be reported as a row-level validation error in the
-reviewed preview, not committed. Committing this target SHALL be additive: a person named in a row who
-is already a member of the row's team SHALL be left unchanged, and re-committing the same or an
-overlapping CSV SHALL NOT duplicate membership or fail.
+per-row team reference. It SHALL only attach to a team already registered as an entrant in the
+target tournament and SHALL NOT create a team as a side effect. Committing this target SHALL be
+additive: a person already a member of the row's team SHALL be left unchanged, and re-committing the
+same or an overlapping CSV SHALL NOT duplicate membership or fail.
 
 #### Scenario: A valid row attaches a person to the named team's membership
 - **WHEN** an operator commits a reviewed CSV row naming a person and a team already registered as an entrant in the tournament
@@ -121,6 +129,12 @@ overlapping CSV SHALL NOT duplicate membership or fail.
 #### Scenario: One file spans multiple teams
 - **WHEN** an operator uploads a CSV whose rows name more than one already-registered team
 - **THEN** each row's person is attached to that row's own named team, and the reviewed preview and commit apply every row's team reference independently
+
+#### Scenario: An unknown team is reported in the preview
+
+- **WHEN** a row names a team that is not a registered entrant in the tournament
+- **THEN** the row is reported as a row-level validation error in the reviewed preview and is not
+  committed
 
 ### Requirement: Tournament configuration is exportable as one JSON document
 The system SHALL export a tournament's full configuration — discipline reference, format, every stage

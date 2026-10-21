@@ -58,10 +58,9 @@ configured endpoint or filesystem profile, not only that the configured URL is r
 ### Requirement: A capability may mark an object kind as publicly servable
 
 An object-storage caller SHALL be able to expose a reference-checked read endpoint for a declared
-public object kind (e.g. a person photo, a club emblem, a discipline's background image), distinct from
-the default — every other stored object (report evidence, module assets not declared public) remains
-reachable only through its owning capability's own authorized path, never through an unauthenticated
-read. A discipline background SHALL use `GET /objects/discipline-background-image?key=...`, and that
+public object kind, distinct from the default: every other stored object remains reachable only
+through its owning capability's own authorized path, never through an unauthenticated read. A
+discipline background SHALL use `GET /objects/discipline-background-image?key=...`, and that
 endpoint SHALL serve only keys referenced by an installed discipline descriptor.
 
 #### Scenario: A publicly servable object is retrievable by reference without authentication
@@ -90,6 +89,18 @@ endpoint SHALL serve only keys referenced by an installed discipline descriptor.
   public tournament page for that discipline
 - **THEN** the image's bytes and content type are returned without authentication, the same way a club
   emblem or person photo already is
+
+#### Scenario: Declared public kinds
+
+- **WHEN** a capability declares person photos, club emblems or discipline background images as
+  public
+- **THEN** each is readable through its own reference-checked endpoint
+
+#### Scenario: An undeclared module asset stays private
+
+- **WHEN** an anonymous client requests a module asset its module did not declare public, through
+  the public-serve path
+- **THEN** the request is rejected, as report evidence is
 
 ### Requirement: Per-organization storage usage is queryable
 The system SHALL be able to report, for a given organization, the total bytes and object count of every
