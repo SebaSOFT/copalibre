@@ -93,6 +93,8 @@ npx impeccable detect
 
 Suppression justifications are recorded in `.impeccable/config.json`.
 
+**Design review rules.** `DESIGN.md` is the design contract; where a generic design heuristic disagrees with it, `DESIGN.md` wins and the review records "contract holds" instead of changing the design. Four traits are deliberate brand choices, never findings: the ink ground with a single cyan accent, tracked uppercase labels, monospace data labels, and middle-dot meta strings. Review UI work with the user-level skills `impeccable`, `ui-ux-pro-max` and `frontend-design` (installed under `~/.agents/skills/`) in addition to the detector above.
+
 ### The component workbench
 
 `yarn workspace @copalibre/web storybook` starts Storybook on port 6006 with every owned library
@@ -301,7 +303,7 @@ run` steps, through `registry-mirrors` in the daemon's configuration for `docker
 
 ## Changes and Reviews
 
-Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes: commit them under `docs/assets/screenshots` and embed them in the PR body as `https://github.com/SebaSOFT/copalibre/blob/<branch>/docs/assets/screenshots/<file>.png?raw=true`, at desktop 1440x900 (TV 1920x1080) and mobile 390x844. A change with no UI (CLI, API, CI) shows the real command output instead. Git ignore rules are authoritative: never force-add anything under `openspec/changes/`, whether active or archived. Commit only accepted specification deltas under `openspec/specs/`. Never commit `.env` files, credentials, or production connection strings.
+Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes: commit them under `docs/assets/screenshots` and embed them in the PR body as `https://github.com/SebaSOFT/copalibre/blob/<branch>/docs/assets/screenshots/<file>.png?raw=true`, at desktop 1440x900 (TV 1920x1080) and mobile 390x844, as before/after pairs of every touched screen, in Spanish, on the demo dataset (`docs/DEMO-DATA.md`). A change with no UI (CLI, API, CI) shows the real command output instead. Git ignore rules are authoritative: never force-add anything under `openspec/changes/`, whether active or archived. Commit only accepted specification deltas under `openspec/specs/`. Never commit `.env` files, credentials, or production connection strings. Never insert users, role assignments, password hashes or tokens into a database by hand, not even in development: use a supported command, and if none exists, stop and report the gap instead of working around it.
 
 Before every commit, run `node --test scripts/lib/component-graph.test.mjs`. When a change alters the web component graph, update the asserted node and edge counts and baseline description in that same commit; keep the zero-unresolved-import assertion passing.
 
@@ -394,6 +396,11 @@ actually exposes before assuming a name.
   `openspec-update-change`, `openspec-sync-specs`, `openspec-archive-change`, and their `opsx:*`
   equivalents) wrap these commands for the propose → implement → archive/promote lifecycle described in
   Feature Delivery Pipeline below.
+- A proposal is self-contained, because the agent that applies it may never have seen the conversation
+  that produced it. Restate every owner decision it relies on with its values and date. Never make a
+  proposal depend on a published artifact, a scratchpad or temporary file, an external design export,
+  or any other file outside the repository. An external article may be named as the source of a
+  decision, but its content is restated in the proposal.
 
 ### git and GitHub CLI (`git`, `gh`)
 
