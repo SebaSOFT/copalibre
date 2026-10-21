@@ -13,6 +13,120 @@ body {
   grid-template-columns: minmax(0, 1fr) minmax(0, 4fr) 3rem;
 }
 
+.cl-standings-distribution-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cl-space-2);
+}
+
+.cl-analytics-status-chart {
+  display: grid;
+  gap: var(--cl-space-3);
+}
+
+.cl-analytics-status-chart__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-3);
+}
+
+.cl-analytics-status-chart__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cl-space-2);
+}
+
+.cl-analytics-status-chart__figure {
+  display: grid;
+  gap: var(--cl-space-3);
+  margin: 0;
+  padding: var(--cl-space-4);
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-panel);
+}
+
+.cl-analytics-status-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cl-space-2) var(--cl-space-4);
+  margin: 0;
+  padding: 0;
+  color: var(--cl-text-primary);
+  list-style: none;
+}
+
+.cl-analytics-status-chart__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cl-space-2);
+}
+
+.cl-analytics-status-chart__swatch {
+  width: var(--cl-space-3);
+  height: var(--cl-space-3);
+  background: var(--series-color);
+}
+
+.cl-analytics-status-chart__plot {
+  display: grid;
+  gap: var(--cl-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-analytics-status-chart__row {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--cl-space-3);
+}
+
+.cl-analytics-status-chart__track {
+  display: block;
+  height: var(--cl-space-4);
+  overflow: hidden;
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-chrome);
+}
+
+.cl-analytics-status-chart__bar {
+  display: block;
+  width: var(--series-width);
+  height: 100%;
+  background: var(--series-color);
+}
+
+.cl-analytics-status-chart__value {
+  color: var(--cl-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 767px) {
+  .cl-analytics-status-chart__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--cl-space-1) var(--cl-space-3);
+  }
+
+  .cl-analytics-status-chart__label {
+    grid-column: 1;
+  }
+
+  .cl-analytics-status-chart__track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .cl-analytics-status-chart__value {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
 .cl-preferences-pat-form {
   margin-top: var(--cl-space-4);
 }

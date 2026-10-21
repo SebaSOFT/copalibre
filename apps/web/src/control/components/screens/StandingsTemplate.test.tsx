@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type {
   TableLayoutSummaryResponse,
   TableProjectionResponseData,
@@ -324,6 +324,28 @@ describe('StandingsTemplate', () => {
       .querySelectorAll<HTMLElement>('[aria-hidden="true"][style*="transform"]');
     const scales = [...bars].map((bar) => bar.style.transform);
     expect(scales).toEqual(['scaleX(1)', 'scaleX(0.5)']);
+  });
+
+  it('switches the distribution bars to a table with the same entrants and values', () => {
+    render(
+      withIntl(
+        <StandingsTemplate
+          activeLayoutCode={groupPhaseLayout.code}
+          layouts={[groupPhaseLayout]}
+          organizationAlias="liga-mendocina"
+          projection={projection}
+          tournamentName="Apertura"
+        />,
+      ),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show as table' }));
+    const tableRegion = screen.getByRole('region', {
+      name: /Points distribution.*Show as table/,
+    });
+    const table = within(tableRegion).getByRole('table');
+    expect(within(table).getByRole('row', { name: 'tll 6' })).toBeTruthy();
+    expect(within(table).getByRole('row', { name: 'ind 3' })).toBeTruthy();
   });
 
   it('charts nothing when the layout declares no default sort to scale against', () => {

@@ -5,6 +5,7 @@ import {
   FONT_SIZE,
   FONT_WEIGHTS,
   ICON_TOKENS,
+  CHART_TOKENS,
   MOTION,
   RADIUS,
   SPACING,
@@ -43,6 +44,9 @@ export interface TailwindTheme {
 export function generateTailwindTheme(): TailwindTheme {
   const colors: Record<string, string> = {};
   for (const [name, value] of Object.entries(COLOR_PRIMITIVES)) colors[`cl-${name}`] = value;
+  for (const name of Object.keys(CHART_TOKENS.series))
+    colors[`chart-${name}`] = `var(--cl-chart-${name})`;
+  colors['chart-other'] = 'var(--cl-chart-other)';
   for (const name of Object.keys(SEMANTIC_COLORS)) colors[name] = `var(--cl-${name})`;
   for (const name of Object.keys(BADGE_TONES))
     colors[`badge-${name}`] = `var(--cl-badge-${name}-color)`;

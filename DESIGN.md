@@ -193,6 +193,19 @@ icon:
     header: "24px"
   stroke: "1.5"
   tablerOpticalScale: "1.1"
+chart:
+  1-dark: "#796CE0"
+  1-light: "#6351CA"
+  2-dark: "#00D4FF"
+  2-light: "#0094C3"
+  3-dark: "#11A68B"
+  3-light: "#007E57"
+  4-dark: "#FF9C1E"
+  4-light: "#CF7100"
+  5-dark: "#C959A9"
+  5-light: "#B43694"
+  other-dark: "#8C9AB5"
+  other-light: "#46536B"
 ---
 
 # Design System: CopaLibre
@@ -292,8 +305,9 @@ where something is true about the state of the tournament.
 
 ### Named Rules
 
-**The One Signal Rule.** Cyan means live, active, primary, or focused — nothing else. A second accent
-introduced for decoration destroys the only cue an operator scans for across a dense screen.
+**The One Signal Rule.** Cyan means live, active, primary, or focused — nothing else outside a chart
+plot; inside a plot, it means data-series slot 2. A second accent introduced for decoration destroys
+the only cue an operator scans for across a dense screen.
 
 **The Never-Colour-Alone Rule.** Every state token declares a required non-colour companion: `state-live`
 carries a LIVE label, `state-upcoming` a scheduled time, `state-positive` a result marker,
@@ -677,8 +691,8 @@ palette's closest adjacent colour-blind pair is amber–teal at ΔE 8.0, and its
 pair is teal–cyan at ΔE 16.4. Every light slot remains at least 3:1 on white, `#F4F6FA` and the L3
 panel. On the L3 base, cyan (2.83:1) and amber (2.84:1) fall below 3:1. Reordering the fixed slots can
 also fail colour separation; magenta beside teal measures ΔE 4.9 for deutan vision. For two or more
-series, provide a legend; directly label up to four series and pair status colours with their text
-labels.
+series, provide a legend; directly label up to four series, pair status colours with their text labels,
+and offer the same values in a table view.
 
 The One Signal Rule has one scoped exception: a plot area may use these five series colours. The
 exception does not extend to chart chrome or other interface areas.

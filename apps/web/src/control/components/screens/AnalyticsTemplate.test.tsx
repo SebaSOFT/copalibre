@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { TournamentCompletionResponse } from '@copalibre/contracts';
 import type { TournamentResponse } from '../../lib/api-client.js';
 import { withIntl } from '../../i18n/test-support.js';
@@ -38,10 +38,46 @@ describe('AnalyticsTemplate', () => {
     expect(screen.getByText('liga-mendocina / Analytics')).toBeTruthy();
     expect(screen.getByText('Total tournaments')).toBeTruthy();
     expect(screen.getByText('Apertura 2026')).toBeTruthy();
-    expect(screen.getByText('Live')).toBeTruthy();
+    expect(screen.getAllByText('Live').length).toBeGreaterThan(0);
     expect(screen.getByText('5 / 8 matches')).toBeTruthy();
     expect(screen.getByRole('region', { name: 'Tournament overview' })).toBeTruthy();
     expect(document.querySelector('.cl-badge--live')).not.toBeNull();
+  });
+
+  it('charts all tournament statuses with stable palette slots and table values', () => {
+    const draft: TournamentResponse = {
+      tournamentId: '019927d0-0000-7000-8000-000000000005',
+      alias: 'draft-cup',
+      name: 'Draft Cup',
+      status: 'draft',
+    };
+    const archived: TournamentResponse = {
+      tournamentId: '019927d0-0000-7000-8000-000000000006',
+      alias: 'archived-cup',
+      name: 'Archived Cup',
+      status: 'archived',
+    };
+    render(
+      withIntl(
+        <AnalyticsTemplate
+          completionByTournament={{}}
+          loading={false}
+          organizationAlias="liga-mendocina"
+          storage={undefined}
+          tournaments={[tournament, draft, archived]}
+        />,
+      ),
+    );
+
+    expect(screen.getByRole('list', { name: 'Legend' }).children).toHaveLength(5);
+    fireEvent.click(screen.getByRole('button', { name: 'Show as table' }));
+    const chartRegion = screen.getByRole('region', {
+      name: 'Tournament status distribution: Show as table',
+    });
+    const chartTable = within(chartRegion).getByRole('table');
+    expect(within(chartTable).getByRole('row', { name: 'Live 1' })).toBeTruthy();
+    expect(within(chartTable).getByRole('row', { name: 'Draft 1' })).toBeTruthy();
+    expect(within(chartTable).getByRole('row', { name: 'Archived 1' })).toBeTruthy();
   });
 
   it('renders an empty matrix and explicit unavailable storage state', () => {
@@ -57,7 +93,7 @@ describe('AnalyticsTemplate', () => {
       ),
     );
 
-    expect(screen.getByText('No tournaments found.')).toBeTruthy();
+    expect(screen.getAllByText('No tournaments found.').length).toBeGreaterThan(0);
     expect(screen.getAllByText('0')).toHaveLength(2);
     expect(
       within(screen.getByRole('region', { name: 'Tournament overview' })).queryAllByRole('row'),
@@ -91,8 +127,8 @@ describe('AnalyticsTemplate', () => {
       ),
     );
 
-    expect(screen.getByText('Upcoming')).toBeTruthy();
-    expect(screen.getByText('Finished')).toBeTruthy();
+    expect(screen.getAllByText('Upcoming').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Finished').length).toBeGreaterThan(0);
     expect(document.querySelector('.cl-badge--upcoming')).not.toBeNull();
     expect(document.querySelector('.cl-badge--final')).not.toBeNull();
   });

@@ -3885,6 +3885,16 @@ export const messages = defineMessages({
     defaultMessage: '{count} media files',
   },
   analyticsNoData: { id: 'control.analytics.noData', defaultMessage: 'No data' },
+  analyticsStatusChart: {
+    id: 'control.analytics.statusChart',
+    defaultMessage: 'Tournament status distribution',
+  },
+  chartLegend: { id: 'control.chart.legend', defaultMessage: 'Legend' },
+  chartShowAsChart: { id: 'control.chart.showAsChart', defaultMessage: 'Show as chart' },
+  chartShowAsTable: { id: 'control.chart.showAsTable', defaultMessage: 'Show as table' },
+  chartOther: { id: 'control.chart.other', defaultMessage: 'Other' },
+  chartEntity: { id: 'control.chart.entity', defaultMessage: 'Entrant' },
+  chartValue: { id: 'control.chart.value', defaultMessage: 'Value' },
   analyticsTournamentOverview: {
     id: 'control.analytics.tournamentOverview',
     defaultMessage: 'Tournament overview',
