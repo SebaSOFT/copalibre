@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-10T00:00:00.000Z",
+  "generatedAt": "2026-10-21T17:43:23.000Z",
   "title": "Design System: CopaLibre",
   "extensions": {
     "colorMeta": {
@@ -580,7 +580,7 @@
       "Do scroll wide content inside its own box."
     ],
     "donts": [
-      "Don't introduce a second accent colour. Cyan is the only voice, and its scarcity is what makes it scannable.",
+      "Don't introduce a second accent colour. Cyan is the only voice, and its scarcity is what makes it scannable. Data-visualization plot areas are the named exception: they may use only the five declared series colours; chart chrome remains in ink and text tokens.",
       "Don't use clip-path for corner geometry. It clips the focus ring and the glow.",
       "Don't let an organizer's team accent reach state-live, state-upcoming, state-positive, state-destructive or focus-ring, or appear in core chrome — navigation, primary buttons, system badges.",
       "Don't ship a badge, chip or status mark whose only signal is its colour.",

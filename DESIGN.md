@@ -573,7 +573,8 @@ never a layer that competes with content.
 ### Don't:
 
 - **Don't** introduce a second accent colour. Cyan is the only voice, and its scarcity is what makes it
-  scannable.
+  scannable. Data-visualization plot areas are the named exception: they may use only the five declared
+  series colours; chart chrome remains in ink and text tokens.
 - **Don't** use `clip-path` for corner geometry. It clips the focus ring and the glow.
 - **Don't** let an organizer's team accent reach `state-live`, `state-upcoming`, `state-positive`,
   `state-destructive` or `focus-ring`, or appear in core chrome — navigation, primary buttons, system
@@ -588,3 +589,123 @@ never a layer that competes with content.
   them.
 - **Don't** introduce a spacing, radius, font-size, tracking or breakpoint value outside the named
   scales. A hardcoded literal at a call site is how a scale becomes an accident.
+
+## Surfaces and Devices
+
+Judge the live match console as a tablet-first, touch-first surface at 768–1024px. Its event actions
+must be reachable by finger and thumb, and common events must take one tap. Judge public pages at 375px
+and 960px or wider with equal weight. Judge TV and broadcast surfaces at 1280px and 1920px. The review
+matrix covers Spanish and German at 375px, 768px, 1024px and 1440px; use 188px and all eight interface
+languages on pages flagged by overflow detection. Review TV at both specified widths.
+
+## References
+
+Use external products and broadcasts to assess hierarchy, pace and information density only. TV
+scorebugs are compared with FIFA and UEFA broadcasts; public match centres with ESPN and FotMob; control
+surfaces with a broadcast vision mixer and Bloomberg-dense tables. Do not reproduce trade dress.
+
+The owner adopted these layout compositions as guidance for layout, spacing, hierarchy, density and
+intended user journey. Their prose descriptions are the complete source for each composition:
+
+| Surface | Adopted composition |
+| --- | --- |
+| Control foundation | Shared screen templates, a scope rail header and the organization dashboard. |
+| Tournament setup | Tournament settings and rules, wizards, zones and groups, promotion planning, seeding and image cropping. |
+| Operations and administration | Venues, schedule and officials, roles and permissions, analytics, audit trail, preferences and invitation acceptance. |
+| Public | Tournament overview, matches, stages and the not-found page. |
+| TV | Kiosk, live presentation and multi-match dashboard. |
+
+Adopted compositions never supply palette, icons, shadows, tokens or technical guidance. `DESIGN.md`
+and the token source govern every conflict. Reject fabricated system chrome such as ports, latency,
+FPS, telemetry, clusters, nodes or links to unrelated system services. Reject invented domain features,
+including disciplinary tribunals, court temperature, federation certification, VAR, cryptographic
+ledgers, storage telemetry and password entropy meters. Sport-specific widgets such as possession
+meters appear only when declared by the discipline. Text must never overlap, overflow or clip. Do not
+use bilingual headings, slash separators or scanline digit treatments.
+
+## Interaction States
+
+- **Loading:** Show opaque `ink-850` skeleton blocks shaped like the final layout. Do not shimmer; keep
+  the layout stable when data arrives.
+- **Empty:** Show an `ink-850` icon well, a heading, a one-sentence explanation and a primary action
+  that resolves the empty state.
+- **Error with prior data:** Keep the last good data visible, mark it stale and show its age. A toast
+  states what failed and offers Retry. Never render a failed refresh as an empty result.
+- **Error without prior data:** Keep the skeleton, show a Retry toast and retry automatically with
+  backoff.
+- **Offline console:** Show connection status, queued count and last sync in the header. Use amber while
+  work is queued and red only after rejection. Mark each event as queued, sent or confirmed.
+
+## Iconography
+
+Use Lucide as the primary icon set. Use Tabler only for missing glyphs and scale each Tabler glyph to
+110% around its centre inside the same 16px, 20px or 24px box, so its smaller optical drawing matches
+Lucide. Use custom inline SVG only as a last fallback. Icons use a 1.5px stroke and `currentColor`.
+Reserve 16px for inline icons, 20px for controls and 24px for headers.
+
+## Data Visualization
+
+Use this fixed plot-series order: violet `#796CE0`, cyan `#00D4FF`, teal `#11A68B`, amber `#FF9C1E`,
+magenta `#C959A9`. Fold a sixth and later series into “Other”. On light surfaces, use the corresponding
+steps violet `#6351CA`, cyan `#0094C3`, teal `#007E57`, amber `#CF7100` and magenta `#B43694`; never use
+the dark cyan or amber on a light ground. Keep chart axes, grid, labels and legend text in ink and text
+tokens. On light themes, place the plot on the panel surface, not the base, because cyan and amber fall
+below 3:1 on the base.
+
+The dark palette passes the 3:1 contrast floor and colour-separation checks. Its closest adjacent
+colour-blind pair is amber–teal at ΔE 12.9; its closest normal-vision pair is teal–cyan at ΔE 18.6.
+The accepted lightness warning is that cyan (L 0.80) and amber (L 0.78) sit above the tested 0.48–0.67
+band, so those series read heavier and can share a hue with a nearby live or upcoming badge. The light
+palette's closest adjacent colour-blind pair is amber–teal at ΔE 8.0, and its closest normal-vision
+pair is teal–cyan at ΔE 16.4. Every light slot remains at least 3:1 on white, `#F4F6FA` and the L3
+panel. On the L3 base, cyan (2.83:1) and amber (2.84:1) fall below 3:1. Reordering the fixed slots can
+also fail colour separation; magenta beside teal measures ΔE 4.9 for deutan vision. For two or more
+series, provide a legend; directly label up to four series and pair status colours with their text
+labels.
+
+The One Signal Rule has one scoped exception: a plot area may use these five series colours. The
+exception does not extend to chart chrome or other interface areas.
+
+## Motion
+
+Use a cyan-well flash for a score change for about 600ms, a one-time slide of about 200ms when a new
+event enters, and a live pulse dot beside the LIVE label. The drawer and feedback for user actions may
+also move. Under `prefers-reduced-motion`, collapse every duration to `0s`; preserve meaning through
+text, icons, borders and layout.
+
+## Imagery
+
+Contain crests in a square chamfered frame. When a crest is missing, show a monogram tile built from the
+entrant's existing abbreviation in the mono face; never derive initials while rendering. Player photos
+use a 4:5 cover crop.
+
+## Voice
+
+Button labels use a verb plus an object, such as “Publish schedule”. A success toast repeats that verb,
+such as “Schedule published”. Error messages say what failed and how to fix it, without apologizing.
+Catalogue strings use sentence case. CSS supplies uppercase styling; catalogue text stays in sentence
+case.
+
+## Public Casing
+
+Use uppercase for display and headline levels. Keep page titles, entrant names and long-form subheadings
+in sentence case on public reading pages.
+
+## Non-Latin Scripts
+
+Declare script-specific fallbacks through `unicode-range`. Use a condensed Cyrillic display face and a
+Cyrillic body face for Russian, and Noto Sans SC for Chinese. Barlow remains the Latin face.
+
+## Reading Width
+
+Do not cap prose by character count. Set a readable measure through the page container and its column
+widths; review the layout itself rather than imposing a `ch` limit.
+
+## Accessibility Target
+
+Meet WCAG 2.2 AA. Keep the existing 44px minimum interactive target rule.
+
+## Deliberate Choices
+
+These are deliberate CopaLibre brand choices, not generic-UI findings: the ink ground with one cyan
+accent, tracked uppercase labels, monospace data labels and middle-dot metadata strings.

@@ -8,6 +8,30 @@ import {
 
 const wrap = (body: string) => `---\n${body}\n---\n# Kept narrative\n`;
 const document = readFileSync(new URL('../../../DESIGN.md', import.meta.url), 'utf8');
+const requiredNarrativeSections = [
+  'Surfaces and Devices',
+  'References',
+  'Interaction States',
+  'Iconography',
+  'Data Visualization',
+  'Motion',
+  'Imagery',
+  'Voice',
+  'Public Casing',
+  'Non-Latin Scripts',
+  'Reading Width',
+  'Accessibility Target',
+  'Deliberate Choices',
+];
+
+function assertNarrativeSections(content: string, sections: string[]): void {
+  const headings = new Set(content.split(/\r?\n/));
+  const missing = sections.filter((section) => !headings.has(`## ${section}`));
+
+  if (missing.length > 0) {
+    throw new Error(`Missing DESIGN.md sections: ${missing.join(', ')}`);
+  }
+}
 
 describe('generated design frontmatter', () => {
   it('reads nested typography while preserving exact CSS quotes and hex case', () => {
@@ -95,5 +119,19 @@ describe('generated design frontmatter', () => {
     const refreshed = refreshDesignTokens(wrap('colors:\n  extra: "bad"'));
     expect(designTokenDifferences(readDesignTokens(refreshed))).toEqual([]);
     expect(refreshed).toContain('# Kept narrative');
+  });
+});
+
+describe('design narrative sections', () => {
+  it('keeps every review rule in a named DESIGN.md section', () => {
+    expect(() => assertNarrativeSections(document, requiredNarrativeSections)).not.toThrow();
+  });
+
+  it('names a missing section', () => {
+    const fixture = '# Design System\n\n## References\n';
+
+    expect(() => assertNarrativeSections(fixture, ['Interaction States'])).toThrow(
+      'Interaction States',
+    );
   });
 });
