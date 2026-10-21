@@ -59,6 +59,9 @@ Claims a neighboring product could not truthfully copy:
 
 - **Live venue operation.** Matches are operated pitch-side under time pressure. Dropped connectivity
   is an expected condition, not an error case.
+- **Judging devices.** Review the live match console tablet-first and touch-first at 768–1024px, with
+  finger input, thumb reach and one-tap event actions. Review public pages at 375px and 960px or wider
+  with equal weight. Review TV at 1280px and 1920px.
 - **Three distinct web surfaces.** The operator control panel (React); the public coverage site
   (server-rendered Astro, which must remain complete with JavaScript unavailable); and the `/tv/`
   broadcast kiosk and overlay surface, paired by device token and reviewed against neutral, green
@@ -166,3 +169,4 @@ Support keyboard operation, visible focus, non-color state cues, reduced motion,
 200% zoom — the token generator names 188px as its narrowest reference width, and German at that width
 is the worst case for nearly every component. Interactive targets must meet the platform's tokenized
 minimum size, and translated interface copy must remain complete across all eight supported languages.
+The accessibility conformance target is WCAG 2.2 AA; the house 44px target rule also applies.
