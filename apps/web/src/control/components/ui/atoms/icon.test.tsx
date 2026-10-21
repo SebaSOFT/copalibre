@@ -1,5 +1,6 @@
+import { jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
-import { Icon } from './icon.js';
+import { Icon, type IconProps } from './icon.js';
 import { ICON_REGISTRY } from '../../../../lib/icon-registry.js';
 
 describe('Icon atom', () => {
@@ -30,10 +31,21 @@ describe('Icon atom', () => {
     expect(container.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
   });
 
-  it('requires a label for a meaningful icon in development', () => {
-    expect(() => render(<Icon name="retry" decorative={false} />)).toThrow(/accessible label/);
+  it('requires a label for a meaningful icon', () => {
+    const invalidProps = { name: 'retry', decorative: false } as IconProps;
+    expect(() => render(<Icon {...invalidProps} />)).toThrow(/accessible label/);
     render(<Icon name="retry" decorative={false} label="Retry" />);
     expect(screen.getByRole('img', { name: 'Retry' })).toBeDefined();
+  });
+
+  it('requires a label for a meaningful icon in production', () => {
+    const invalidProps = { name: 'retry', decorative: false } as IconProps;
+    const restoreNodeEnv = jest.replaceProperty(process.env, 'NODE_ENV', 'production');
+    try {
+      expect(() => render(<Icon {...invalidProps} />)).toThrow(/accessible label/);
+    } finally {
+      restoreNodeEnv.restore();
+    }
   });
 
   it('resolves unknown runtime names to the custom neutral glyph', () => {

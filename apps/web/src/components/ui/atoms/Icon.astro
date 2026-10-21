@@ -36,17 +36,18 @@ import { ICON_TOKENS } from '@copalibre/design-tokens';
 import { ICON_REGISTRY, resolveIconName, type IconSize } from '../../../lib/icon-registry.js';
 import { normalizeIconSvg } from '../../../lib/icon-svg.js';
 
-interface Props {
+type IconAccessibilityProps =
+  { decorative?: true; label?: never } | { decorative: false; label: string };
+
+type Props = {
   name: string;
   size?: IconSize;
-  decorative?: boolean;
-  label?: string;
   class?: string;
-}
+} & IconAccessibilityProps;
 
 const { name, size = 20, decorative = true, label, class: className = '' } = Astro.props;
 const resolvedName = resolveIconName(name);
-if (!decorative && !label && import.meta.env.DEV) {
+if (!decorative && !label) {
   throw new Error(`Meaningful icon "${resolvedName}" requires an accessible label.`);
 }
 const entry = ICON_REGISTRY[resolvedName];

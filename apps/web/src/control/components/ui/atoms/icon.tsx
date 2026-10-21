@@ -37,15 +37,17 @@ import {
 import { ICON_TOKENS } from '@copalibre/design-tokens';
 import { ICON_REGISTRY, resolveIconName, type IconSize } from '../../../../lib/icon-registry.js';
 
-export interface IconProps extends Omit<
+type IconAccessibilityProps =
+  | { readonly decorative?: true; readonly label?: never }
+  | { readonly decorative: false; readonly label: string };
+
+export type IconProps = Omit<
   SVGProps<SVGSVGElement>,
   'aria-hidden' | 'aria-label' | 'name' | 'size'
-> {
+> & {
   readonly name: string;
   readonly size?: IconSize;
-  readonly decorative?: boolean;
-  readonly label?: string;
-}
+} & IconAccessibilityProps;
 
 export function Icon({
   name,
@@ -56,7 +58,7 @@ export function Icon({
   ...props
 }: IconProps): React.JSX.Element | null {
   const resolvedName = resolveIconName(name);
-  if (!decorative && !label && process.env.NODE_ENV !== 'production') {
+  if (!decorative && !label) {
     throw new Error(`Meaningful icon "${resolvedName}" requires an accessible label.`);
   }
 
