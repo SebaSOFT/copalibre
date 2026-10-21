@@ -50,9 +50,9 @@ export function getLocalKeys(): LocalSigningKeys {
       publicKeyEncoding: { type: 'spki', format: 'pem' },
       privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
     });
-    cachedPrivateKey = cachedPrivateKey ?? privateKey;
+    cachedPrivateKey = privateKey;
     const jwk = createPublicKey(publicKey).export({ format: 'jwk' });
-    cachedJwks = cachedJwks ?? {
+    cachedJwks = {
       keys: [
         {
           ...jwk,
