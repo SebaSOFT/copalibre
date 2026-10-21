@@ -63,6 +63,22 @@ const DIALOG_OWNER_FILES = new Set(['components/ui/organisms/Modal.astro']);
 
 const FIELDSET_OWNER_FILES = new Set(['control/components/ui/molecules/field-set.tsx']);
 
+/** Only the registry and renderer atoms may import the pinned icon packages. */
+const ICON_PACKAGE_OWNER_FILES = new Set([
+  'lib/icon-registry.ts',
+  'control/components/ui/atoms/icon.tsx',
+  'components/ui/atoms/Icon.astro',
+]);
+
+/** Raw vectors that carry a logo, data geometry, or bracket connector lines. */
+const RAW_SVG_OWNER_FILES = new Set([
+  ...ICON_PACKAGE_OWNER_FILES,
+  'components/ui/atoms/Logo.astro',
+  'control/components/ui/organisms/clock-ring.tsx',
+  'control/components/BracketCanvas.tsx',
+  'components/ui/organisms/BracketGraph.astro',
+]);
+
 export const KNOWN_RAW_ELEMENTS = new Map([
   // `StandingsTable.astro`'s and `MatchRosters.astro`'s tables: `DataTable`'s
   // `render` callback returns a plain value per cell, with no way to produce
@@ -340,6 +356,28 @@ export function checkFileOwnership(filename, content) {
   const key = filename;
   const baseName = filename.split('/').pop() ?? filename;
   const source = withoutScriptBlocks(withoutStyleBlocks(withoutComments(content)));
+
+  const iconImportPattern = /(?:from\s*|import\s*\()(['"])(lucide-[^'"]+|@tabler\/[^'"]+)\1/g;
+  let iconImport;
+  while ((iconImport = iconImportPattern.exec(source)) !== null) {
+    if (!ICON_PACKAGE_OWNER_FILES.has(key)) {
+      violations.push({
+        line: lineOf(source, iconImport.index),
+        message: `Icon package import in ${baseName} is outside the registry and Icon atoms.`,
+      });
+    }
+  }
+
+  if (!RAW_SVG_OWNER_FILES.has(key)) {
+    const svgPattern = /<svg[\s>/]/g;
+    let svg;
+    while ((svg = svgPattern.exec(source)) !== null) {
+      violations.push({
+        line: lineOf(source, svg.index),
+        message: `Raw <svg> detected in ${baseName}. Render icons through the owned Icon atom.`,
+      });
+    }
+  }
 
   for (const rule of RAW_ELEMENT_RULES) {
     if (rule.allowed?.has(key)) continue;

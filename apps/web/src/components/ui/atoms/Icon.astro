@@ -1,0 +1,132 @@
+---
+import {
+  Activity,
+  CalendarDays,
+  Check,
+  Clock,
+  Copy,
+  Download,
+  ExternalLink,
+  Languages,
+  MapPin,
+  Menu,
+  MoreHorizontal,
+  Pause,
+  Play,
+  RotateCcw,
+  Shield,
+  ShieldAlert,
+  Timer,
+  Trophy,
+  Upload,
+  UserRound,
+  Users,
+  WifiOff,
+  X,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-static';
+import football from '@tabler/icons/outline/ball-football.svg?raw';
+import basketball from '@tabler/icons/outline/ball-basketball.svg?raw';
+import tennis from '@tabler/icons/outline/ball-tennis.svg?raw';
+import podium from '@tabler/icons/outline/podium.svg?raw';
+import scoreboard from '@tabler/icons/outline/scoreboard.svg?raw';
+import cards from '@tabler/icons/outline/cards.svg?raw';
+import { ICON_TOKENS } from '@copalibre/design-tokens';
+import { ICON_REGISTRY, resolveIconName, type IconSize } from '../../../lib/icon-registry.js';
+import { normalizeIconSvg } from '../../../lib/icon-svg.js';
+
+type IconAccessibilityProps =
+  { decorative?: true; label?: never } | { decorative: false; label: string };
+
+type Props = {
+  name: string;
+  size?: IconSize;
+  class?: string;
+} & IconAccessibilityProps;
+
+const { name, size = 20, decorative = true, label, class: className = '' } = Astro.props;
+const resolvedName = resolveIconName(name);
+if (!decorative && !label) {
+  throw new Error(`Meaningful icon "${resolvedName}" requires an accessible label.`);
+}
+const entry = ICON_REGISTRY[resolvedName];
+const lucide = {
+  activity: Activity,
+  calendar: CalendarDays,
+  check: Check,
+  club: Shield,
+  clock: Clock,
+  copy: Copy,
+  download: Download,
+  event: Activity,
+  export: Download,
+  'external-link': ExternalLink,
+  language: Languages,
+  menu: Menu,
+  more: MoreHorizontal,
+  pause: Pause,
+  play: Play,
+  retry: RotateCcw,
+  'start-clock': Timer,
+  team: Users,
+  trophy: Trophy,
+  upload: Upload,
+  user: UserRound,
+  venue: MapPin,
+  warning: ShieldAlert,
+  offline: WifiOff,
+  close: X,
+  'zoom-in': ZoomIn,
+  'zoom-out': ZoomOut,
+  'pause-clock': Pause,
+};
+const tabler = { football, basketball, tennis, podium, scoreboard, cards };
+const iconMarkup =
+  entry.set === 'tabler'
+    ? tabler[entry.name as keyof typeof tabler]
+    : entry.set === 'lucide'
+      ? lucide[resolvedName as keyof typeof lucide]
+      : '';
+const svgBody =
+  entry.set === 'custom'
+    ? '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/>'
+    : typeof iconMarkup === 'string'
+      ? normalizeIconSvg(iconMarkup, ICON_TOKENS.stroke)
+      : '';
+const iconClass = `cl-icon${entry.set === 'tabler' ? ' cl-icon--tabler' : ''} ${className}`.trim();
+const iconSize =
+  size === 16
+    ? ICON_TOKENS.size.inline
+    : size === 24
+      ? ICON_TOKENS.size.header
+      : ICON_TOKENS.size.control;
+---
+
+<svg
+  aria-hidden={decorative ? 'true' : undefined}
+  aria-label={decorative ? undefined : label}
+  role={decorative ? undefined : 'img'}
+  class={iconClass}
+  width={iconSize}
+  height={iconSize}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width={ICON_TOKENS.stroke}
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  set:html={svgBody}
+/>
+
+<style>
+  .cl-icon {
+    display: inline-block;
+    flex: none;
+    vertical-align: middle;
+  }
+  .cl-icon--tabler {
+    transform: scale(var(--cl-icon-tabler-optical-scale, 1.1));
+    transform-origin: center;
+  }
+</style>

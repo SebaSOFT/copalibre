@@ -1,4 +1,6 @@
 ---
+import Icon from './Icon.astro';
+
 /**
  * An organization's or club's emblem, or a placeholder shield outline when
  * none has been uploaded (the rule: never a broken image or an empty
@@ -30,21 +32,14 @@ const { src, alt, placeholderAlt, size = 48, bare = false } = Astro.props;
       onerror="this.style.display = 'none'; this.nextElementSibling.style.display = '';"
     />
   )}
-  <svg
+  <span
+    aria-label={placeholderAlt}
     class="cl-emblem-placeholder"
     role="img"
-    viewBox="0 0 48 48"
-    xmlns="http://www.w3.org/2000/svg"
     style={src ? 'display: none' : undefined}
   >
-    <title>{placeholderAlt}</title>
-    <path
-      d="M8 6h32l-4 4v14c0 12-8 18-12 20-4-2-12-8-12-20V10z"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-    ></path>
-  </svg>
+    <Icon name="club" size={24} />
+  </span>
 </div>
 
 <style>
@@ -73,12 +68,15 @@ const { src, alt, placeholderAlt, size = 48, bare = false } = Astro.props;
     padding: 0;
   }
 
-  .cl-emblem-frame--bare svg {
+  .cl-emblem-frame--bare .cl-emblem-placeholder {
     width: 100%;
     height: 100%;
   }
 
   .cl-emblem-placeholder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     color: var(--cl-text-muted);
   }
 </style>

@@ -21,8 +21,10 @@ import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@copalibre/domain';
 import '@copalibre/design-tokens/generated/copalibre.css';
 import Button from '../components/ui/atoms/Button.astro';
 import EmblemImage from '../components/ui/atoms/EmblemImage.astro';
+import Icon from '../components/ui/atoms/Icon.astro';
 import Logo from '../components/ui/atoms/Logo.astro';
 import PersonPhotoImage from '../components/ui/atoms/PersonPhotoImage.astro';
+import { ICON_REGISTRY } from '../lib/icon-registry.js';
 import StateBadge from '../components/ui/atoms/StateBadge.astro';
 import BroadcastStatusPanel from '../components/ui/molecules/BroadcastStatusPanel.astro';
 import RulesetBriefing from '../components/ui/molecules/RulesetBriefing.astro';
@@ -113,6 +115,7 @@ const PREVIEWABLE = new Set([
   'public-header',
   // Every remaining server-rendered library component.
   'button',
+  'icon',
   'emblem-image',
   'emblem-image-matrix',
   'logo',
@@ -382,6 +385,16 @@ const [compactSample] = referenceJourneyBracket(true);
       <Button href="#">
         {intl.formatMessage({ id: 'preview.button.label', defaultMessage: 'Register' })}
       </Button>
+    )}
+    {component === 'icon' && (
+      <div class="cl-preview-iconography">
+        {Object.keys(ICON_REGISTRY).map((name) => (
+          <div class="cl-preview-iconography__item">
+            <Icon name={name} size={20} />
+            <code>{name}</code>
+          </div>
+        ))}
+      </div>
     )}
     {component === 'emblem-image' && (
       <EmblemImage
@@ -684,6 +697,19 @@ const [compactSample] = referenceJourneyBracket(true);
 </html>
 
 <style>
+  .cl-preview-iconography {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--cl-space-3);
+    padding: var(--cl-space-4);
+    background: var(--cl-color-ink-950);
+    color: var(--cl-text-primary);
+  }
+  .cl-preview-iconography__item {
+    display: flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+  }
   .cl-preview-chip-row {
     display: flex;
     flex-wrap: wrap;

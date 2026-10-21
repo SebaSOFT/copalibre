@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -292,6 +293,20 @@ test('a refused item does not block the rest of the queue from draining', async 
   await expect(
     page.getByText('Refused (record-event): This event was refused for the e2e scenario'),
   ).toBeVisible();
+});
+
+test('the control shell has no unlabeled icon-only buttons', async ({ page }) => {
+  await mockMatchConsole(page);
+  await seedLoginTransaction(
+    page,
+    `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`,
+  );
+  await page.goto(loginCallbackUrl());
+  await selectEnglish(page);
+  await page.getByRole('button', { name: 'Apply clock' }).waitFor();
+
+  const { violations } = await new AxeBuilder({ page }).withRules(['button-name']).analyze();
+  expect(violations).toEqual([]);
 });
 
 declare global {

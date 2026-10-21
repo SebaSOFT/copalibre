@@ -52,6 +52,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## Icon dependencies
+
+These packages are used as dependencies; their source is not copied into CopaLibre. Their licences
+remain with their respective projects.
+
+| Package               | Version | Licence |
+| --------------------- | ------- | ------- |
+| `lucide-static`       | 1.59.0  | ISC     |
+| `lucide-react`        | 1.59.0  | ISC     |
+| `@tabler/icons`       | 3.49.0  | MIT     |
+| `@tabler/icons-react` | 3.49.0  | MIT     |
+
 ## `packages/demo-datasets/datasets/`
 
 Demo data copied from a public results portal for use as development sample data, with player surnames and

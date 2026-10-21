@@ -4,6 +4,7 @@ import {
   CONTROL_DENSITY_SPACING,
   FONT_SIZE,
   FONT_WEIGHTS,
+  ICON_TOKENS,
   MOTION,
   RADIUS,
   SPACING,
@@ -34,6 +35,9 @@ export interface TailwindTheme {
   readonly screens: Record<string, string>;
   /** Control-web's data-density spacing subset, prefixed the same way `spacing` is. */
   readonly densitySpacing: Record<string, string>;
+  readonly iconSize: Record<string, string>;
+  readonly iconStroke: number;
+  readonly iconTablerOpticalScale: number;
 }
 
 export function generateTailwindTheme(): TailwindTheme {
@@ -67,6 +71,11 @@ export function generateTailwindTheme(): TailwindTheme {
     densitySpacing: Object.fromEntries(
       Object.entries(CONTROL_DENSITY_SPACING).map(([name, value]) => [`cl-density-${name}`, value]),
     ),
+    iconSize: Object.fromEntries(
+      Object.entries(ICON_TOKENS.size).map(([name, value]) => [name, `${value}px`]),
+    ),
+    iconStroke: ICON_TOKENS.stroke,
+    iconTablerOpticalScale: ICON_TOKENS.tablerOpticalScale,
   };
 }
 

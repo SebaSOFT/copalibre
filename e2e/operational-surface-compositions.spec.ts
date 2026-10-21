@@ -314,10 +314,14 @@ test.describe('The ticker in a browser', () => {
     const pause = page.locator('[data-ticker-pause]');
     await expect(pause).toBeVisible();
     await expect(pause).toHaveAttribute('aria-pressed', 'false');
+    await expect(pause.locator('.cl-ticker__pause-icon')).toBeVisible();
+    await expect(pause.locator('.cl-ticker__resume-icon')).toBeHidden();
 
     await pause.focus();
     await page.keyboard.press('Enter');
     await expect(pause).toHaveAttribute('aria-pressed', 'true');
+    await expect(pause.locator('.cl-ticker__pause-icon')).toBeHidden();
+    await expect(pause.locator('.cl-ticker__resume-icon')).toBeVisible();
 
     // Paused means the transport stops moving, not that the rail disappears.
     const track = page.locator('[data-ticker-track]');

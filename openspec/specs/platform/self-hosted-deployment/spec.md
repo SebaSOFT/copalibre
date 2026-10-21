@@ -858,3 +858,23 @@ a delivery whose outcome is unknown is not retried.
 #### Scenario: Doctor without a database skips the check
 - **WHEN** the database is not reachable
 - **THEN** the module-assets check is skipped with the reason
+
+### Requirement: Development and diagnostic tooling surface dead roles and support administrator recovery
+
+`copalibre dev --hybrid` SHALL exit non-zero and name the role when any process role exits.
+`copalibre doctor` SHALL report the native-token verifier configuration and the heartbeat of the
+worker, scheduler and events roles. An operator with database access SHALL be able to add an
+administrator to an existing organization through `copalibre organization add-admin`. That command
+SHALL issue an audited invitation and SHALL never set a password.
+
+#### Scenario: Worker down
+
+- **WHEN** the worker role crashes during `copalibre dev --hybrid`
+- **THEN** the command exits non-zero naming the worker, and the web server does not keep running
+  alone
+
+#### Scenario: Recover an organization without administrators
+
+- **WHEN** an operator runs `copalibre organization add-admin --organization panamericano-demo --email ops@example.org`
+- **THEN** an invitation is created and audited, and the invitee sets their own password through
+  acceptance

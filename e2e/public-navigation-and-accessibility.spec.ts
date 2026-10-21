@@ -135,10 +135,7 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     const languageTrigger = page.locator('.cl-public-header__locale summary');
     await expect(languageTrigger).toBeVisible();
     await expect(languageTrigger).toHaveClass(/cl-chamfer--control/);
-    const translationMark = languageTrigger.locator('.cl-public-header__translation-mark');
-    expect(
-      await translationMark.evaluate((element) => getComputedStyle(element, '::before').content),
-    ).toBe('"文A"');
+    await expect(languageTrigger.locator('svg.cl-icon')).toBeVisible();
     await expect(languageTrigger).toContainText('ES');
     await languageTrigger.click();
     const languagePopover = page.locator('.cl-public-header__locale-list');

@@ -2,6 +2,7 @@ import {
   COLOR_PRIMITIVES,
   FONT_SIZE,
   FONT_WEIGHTS,
+  ICON_TOKENS,
   RADIUS,
   SPACING,
   TRACKING,
@@ -21,6 +22,13 @@ export function documentedTokens(): Mapping {
   ) => ({ fontFamily, fontSize, fontWeight, lineHeight, letterSpacing });
   return {
     colors: { ...COLOR_PRIMITIVES },
+    icon: {
+      size: Object.fromEntries(
+        Object.entries(ICON_TOKENS.size).map(([name, value]) => [name, `${value}px`]),
+      ),
+      stroke: `${ICON_TOKENS.stroke}`,
+      tablerOpticalScale: `${ICON_TOKENS.tablerOpticalScale}`,
+    },
     typography: {
       display: role(TYPOGRAPHY.display, FONT_SIZE['3xl'], FONT_WEIGHTS.bold, '1.1', TRACKING.wide),
       headline: role(TYPOGRAPHY.display, FONT_SIZE.xl, FONT_WEIGHTS.semibold, '1.2', TRACKING.wide),
@@ -80,16 +88,23 @@ export function readDesignTokens(document: string): Mapping {
   }
   for (const key of Object.keys(root)) {
     if (
-      !['name', 'description', 'colors', 'typography', 'rounded', 'spacing', 'components'].includes(
-        key,
-      )
+      ![
+        'name',
+        'description',
+        'colors',
+        'icon',
+        'typography',
+        'rounded',
+        'spacing',
+        'components',
+      ].includes(key)
     ) {
       throw new Error(`DESIGN.md: unsupported group ${key}`);
     }
   }
   return Object.fromEntries(
     Object.entries(root).filter(([key]) =>
-      ['colors', 'typography', 'rounded', 'spacing'].includes(key),
+      ['colors', 'icon', 'typography', 'rounded', 'spacing'].includes(key),
     ),
   );
 }
