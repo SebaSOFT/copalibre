@@ -1,35 +1,37 @@
+import { ControlIntl } from '../i18n/ControlIntl.js';
 import type { ControlApiClient, MatchConsoleApiClient } from '../lib/api-client.js';
 import { ControlShell } from './ControlShell.js';
-import { PersonProfilePage } from './pages/PersonProfilePage.js';
-import { RegistrationReviewPage } from './pages/RegistrationReviewPage.js';
-import { ReportReviewPage } from './pages/ReportReviewPage.js';
-import { MatchesViewPage } from './pages/MatchesViewPage.js';
-import { SeedingBuilderPage } from './pages/SeedingBuilderPage.js';
-import { StandingsPage } from './pages/StandingsPage.js';
-import { TournamentAuthoringTemplate } from './screens/TournamentAuthoringTemplate.js';
-import { TournamentSettingsPage } from './pages/TournamentSettingsPage.js';
-import { TournamentRulesetPage } from './pages/TournamentRulesetPage.js';
-import { RolesPermissionsPage } from './pages/RolesPermissionsPage.js';
-import { AuditTrailPage } from './pages/AuditTrailPage.js';
-import { MatchConsolePage } from './pages/MatchConsolePage.js';
-import { LoadMatchDataPage } from './pages/LoadMatchDataPage.js';
-import { ZoneGroupPage } from './pages/ZoneGroupPage.js';
-import { TournamentHubPage } from './pages/TournamentHubPage.js';
-import { StageHubPage } from './pages/StageHubPage.js';
-import { PromotionPlanPage } from './pages/PromotionPlanPage.js';
-import { QualificationPage } from './pages/QualificationPage.js';
-import { PreferencesPage } from './pages/PreferencesPage.js';
-import { ClubManagementPage } from './pages/ClubManagementPage.js';
-import { VenueManagementPage } from './pages/VenueManagementPage.js';
-import { ScheduleBuilderPage } from './pages/ScheduleBuilderPage.js';
-import { PlatformAdministrationPage } from './pages/PlatformAdministrationPage.js';
-import { DisciplineDocumentPage } from './pages/DisciplineDocumentPage.js';
-import { LiveConsolePage } from './pages/LiveConsolePage.js';
 import { AnalyticsPage } from './pages/AnalyticsPage.js';
-import { DashboardPage } from './pages/DashboardPage.js';
+import { AuditTrailPage } from './pages/AuditTrailPage.js';
 import { BroadcasterStudioPage } from './pages/BroadcasterStudioPage.js';
+import { ClubManagementPage } from './pages/ClubManagementPage.js';
 import { ClubPortalMembersPage } from './pages/ClubPortalMembersPage.js';
 import { ClubPortalRosterPage } from './pages/ClubPortalRosterPage.js';
+import { DashboardPage } from './pages/DashboardPage.js';
+import { DisciplineDocumentPage } from './pages/DisciplineDocumentPage.js';
+import { LiveConsolePage } from './pages/LiveConsolePage.js';
+import { LoadMatchDataPage } from './pages/LoadMatchDataPage.js';
+import { MatchConsolePage } from './pages/MatchConsolePage.js';
+import { MatchesViewPage } from './pages/MatchesViewPage.js';
+import { PersonProfilePage } from './pages/PersonProfilePage.js';
+import { PlatformAdministrationPage } from './pages/PlatformAdministrationPage.js';
+import { PreferencesPage } from './pages/PreferencesPage.js';
+import { PromotionPlanPage } from './pages/PromotionPlanPage.js';
+import { QualificationPage } from './pages/QualificationPage.js';
+import { RegistrationReviewPage } from './pages/RegistrationReviewPage.js';
+import { ReportReviewPage } from './pages/ReportReviewPage.js';
+import { RolesPermissionsPage } from './pages/RolesPermissionsPage.js';
+import { ScheduleBuilderPage } from './pages/ScheduleBuilderPage.js';
+import { SeedingBuilderPage } from './pages/SeedingBuilderPage.js';
+import { StageHubPage } from './pages/StageHubPage.js';
+import { StandingsPage } from './pages/StandingsPage.js';
+import { TournamentHubPage } from './pages/TournamentHubPage.js';
+import { TournamentRulesetPage } from './pages/TournamentRulesetPage.js';
+import { TournamentSettingsPage } from './pages/TournamentSettingsPage.js';
+import { VenueManagementPage } from './pages/VenueManagementPage.js';
+import { ZoneGroupPage } from './pages/ZoneGroupPage.js';
+import { TournamentAuthoringTemplate } from './screens/TournamentAuthoringTemplate.js';
+import { ToastProvider } from './ToastProvider.js';
 
 export function TournamentsControlRoute({
   organizationAlias,
@@ -38,7 +40,13 @@ export function TournamentsControlRoute({
   readonly organizationAlias: string;
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
-  return <DashboardPage client={client} organizationAlias={organizationAlias} />;
+  return (
+    <ControlIntl>
+      <ToastProvider>
+        <DashboardPage client={client} organizationAlias={organizationAlias} />
+      </ToastProvider>
+    </ControlIntl>
+  );
 }
 
 export function OrganizationControlRoute({

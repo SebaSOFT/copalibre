@@ -52,6 +52,7 @@ import OrganizationClubs from '../components/ui/organisms/OrganizationClubs.astr
 import OrganizationHeader from '../components/ui/organisms/OrganizationHeader.astro';
 import PlayerProfileView from '../components/ui/organisms/PlayerProfileView.astro';
 import PublicHeader from '../components/ui/organisms/PublicHeader.astro';
+import EmptyState from '../components/ui/molecules/EmptyState.astro';
 import ResultLegend from '../components/ui/molecules/ResultLegend.astro';
 import ScoreTicker from '../components/ui/organisms/ScoreTicker.astro';
 import StandingsTable from '../components/ui/organisms/StandingsTable.astro';
@@ -97,6 +98,7 @@ import { buildTickerItems } from '../lib/ticker-items.ts';
  * mechanism, not the catalogue.
  */
 const PREVIEWABLE = new Set([
+  'empty-state',
   'result-legend',
   'score-ticker',
   'score-ticker-empty',
@@ -219,6 +221,15 @@ const [compactSample] = referenceJourneyBracket(true);
     </style>
   </head>
   <body class="cl-band--base" data-preview={component} data-locale={locale}>
+    {component === 'empty-state' && (
+      <EmptyState
+        icon="calendar"
+        heading={intl.formatMessage(messages.interactionNoLive)}
+        description={intl.formatMessage(messages.interactionSeeSchedule)}
+        actionLabel={intl.formatMessage(messages.interactionViewMatches)}
+        href="/liga-san-juan/tournaments/copa-premier/matches"
+      />
+    )}
     {component === 'result-legend' && (
       <ResultLegend
         heading={intl.formatMessage(messages.legendHeading)}

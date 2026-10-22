@@ -1,0 +1,39 @@
+---
+import Icon from '../atoms/Icon.astro';
+import Button from '../atoms/Button.astro';
+import '../../../styles/interaction-states.css';
+
+interface Props {
+  readonly icon: string;
+  readonly heading: string;
+  readonly description: string;
+  readonly actionLabel: string;
+  readonly href: string;
+  readonly headingLevel?: 1 | 2;
+  readonly secondaryAction?: { readonly label: string; readonly href: string };
+}
+const {
+  icon,
+  heading,
+  description,
+  actionLabel,
+  href,
+  headingLevel = 2,
+  secondaryAction,
+} = Astro.props;
+const Heading = headingLevel === 1 ? 'h1' : 'h2';
+---
+
+<section class="cl-interaction-empty-state">
+  <div aria-hidden="true" class="cl-interaction-empty-state__icon-well">
+    <Icon name={icon} />
+  </div>
+  <Heading class="cl-interaction-empty-state__heading">{heading}</Heading>
+  <p class="cl-interaction-empty-state__description">{description}</p>
+  <Button href={href}>{actionLabel}</Button>
+  {secondaryAction && (
+    <Button href={secondaryAction.href} variant="secondary">
+      {secondaryAction.label}
+    </Button>
+  )}
+</section>

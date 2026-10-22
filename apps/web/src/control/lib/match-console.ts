@@ -28,6 +28,12 @@ export function currentEpochMilliseconds(): number {
   return Date.now();
 }
 
+export function eventSyncKey(
+  event: Pick<ConsoleMatchEvent, 'definitionCode' | 'segmentId' | 'occurredAt'>,
+): string {
+  return `${event.definitionCode}\u0000${event.segmentId}\u0000${Date.parse(event.occurredAt)}`;
+}
+
 export function formatClock(seconds: number): string {
   const whole = Math.max(0, Math.floor(seconds));
   return `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;

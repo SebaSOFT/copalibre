@@ -1,3 +1,4 @@
+import { EmptyState } from '../ui/molecules/empty-state.js';
 import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { isSupportedLanguage } from '@copalibre/domain';
@@ -222,9 +223,12 @@ export function RolesPermissionsTemplate({
         }
         title={<FormattedMessage {...messages.rolesTitle} />}
         toolbar={
-          <Button onClick={() => setInviteOpen(true)} type="button">
-            <FormattedMessage {...messages.rolesAddUser} />
-          </Button>
+          assignableRoles.length > 0 &&
+          (pendingInvitations === undefined || pendingInvitations.length > 0) ? (
+            <Button onClick={() => setInviteOpen(true)} type="button">
+              <FormattedMessage {...messages.rolesAddUser} />
+            </Button>
+          ) : undefined
         }
       />
       {pendingInvitations !== undefined && (
@@ -233,9 +237,23 @@ export function RolesPermissionsTemplate({
             <FormattedMessage {...messages.rolesPendingInvitationsTitle} />
           </h2>
           {pendingInvitations.length === 0 ? (
-            <p className="cl-list-screen__empty">
-              <FormattedMessage {...messages.rolesPendingInvitationsEmpty} />
-            </p>
+            <EmptyState
+              icon="team"
+              headingLevel={3}
+              heading={intl.formatMessage(messages.rolesPendingInvitationsEmpty)}
+              description={intl.formatMessage(messages.interactionInviteDescription)}
+              {...(assignableRoles.length > 0
+                ? {
+                    action: {
+                      label: intl.formatMessage(messages.rolesAddUser),
+                      onClick: () => setInviteOpen(true),
+                    },
+                  }
+                : {
+                    reason: 'no-permission' as const,
+                    whoCanAct: intl.formatMessage(messages.interactionWhoCanInvite),
+                  })}
+            />
           ) : (
             <ul>
               {pendingInvitations.map((invitation) => (

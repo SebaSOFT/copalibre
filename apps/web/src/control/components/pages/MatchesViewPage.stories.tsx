@@ -1,3 +1,4 @@
+import { ReadStoryScope, StaleReadStory } from '../screen-story-fixtures.js';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useMemo } from 'react';
 import { useIntl } from 'react-intl';
@@ -121,6 +122,13 @@ function Screen({
   return <MatchesViewPage organizationAlias={ORG} tournamentAlias={TOURNAMENT} client={client} />;
 }
 const meta = {
+  decorators: [
+    (Story, context) => (
+      <ReadStoryScope key={`${context.id}:${String(context.args.mode)}`}>
+        <Story />
+      </ReadStoryScope>
+    ),
+  ],
   title: 'Admin/Screens/MatchesViewPage',
   component: Screen,
   args: { mode: 'loaded' },
@@ -139,3 +147,9 @@ export const FullyComplete: Story = { args: { mode: 'complete' } };
 export const MultiStageBreakdown: Story = { args: { mode: 'multiStage' } };
 export const Loading: Story = { args: { mode: 'loading' } };
 export const Failed: Story = { args: { mode: 'failed' } };
+
+export const Stale: Story = {
+  render: () => (
+    <StaleReadStory loaded={<Screen mode="loaded" />} failed={<Screen mode="failed" />} />
+  ),
+};

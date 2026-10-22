@@ -640,12 +640,60 @@ describe('TvDashboard broadcast alert dispatch', () => {
   function mockRefreshResponse(matches: LiveDashboard['matches']): void {
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
-      value: async () =>
-        new Response(JSON.stringify({ matches }), {
-          headers: { 'content-type': 'application/json' },
-        }),
+      value: async (url: string) =>
+        new Response(
+          JSON.stringify({
+            matches: url.endsWith('/matches-view')
+              ? matches.map((match) => ({ ...match, status: match.state }))
+              : matches,
+          }),
+          { headers: { 'content-type': 'application/json' } },
+        ),
     });
   }
+
+  it('marks the retained TV score stale when both refresh and live connection fail', async () => {
+    let capturedHandlers: RealtimeHandlers | undefined;
+    connectSpy = jest
+      .spyOn(RealtimeClient.prototype, 'connect')
+      .mockImplementation(async (handlers) => {
+        capturedHandlers = handlers;
+        return { attempts: 1, stopped: 'aborted' as const };
+      });
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async () => {
+        throw new Error('offline');
+      },
+    });
+
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={pinnedDashboard}
+        streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+        organizationAlias="liga-argentina"
+        tournamentAlias="apertura-2026"
+        presentation="lower"
+        pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
+        pollIntervalMs={0}
+      />,
+    );
+
+    expect(screen.queryByRole('status')).toBeNull();
+    await act(async () => {
+      capturedHandlers?.onFailure?.({ kind: 'recoverable', reason: 'offline', renewToken: false });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const lowerThird = screen.getByTestId('tv-lower-third');
+    expect(screen.getByRole('status').textContent).toBe(dashboardLabels.stale);
+    expect(lowerThird.textContent).toContain('Boca Juniors');
+    expect(lowerThird.textContent).toContain('River Plate');
+  });
 
   it('re-reads the projection once per newer entrant resolution, never for a replayed one', async () => {
     let capturedHandlers: RealtimeHandlers | undefined;

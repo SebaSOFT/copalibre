@@ -297,6 +297,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /schedule/i }));
+    await screen.findAllByText(/Godoy Cruz/i);
     expect(container.querySelector('.cl-list-screen')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__header')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
@@ -322,6 +323,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /schedule/i }));
+    await screen.findAllByText(/Godoy Cruz/i);
     expect(screen.getByRole('link', { name: 'Stage 1' }).getAttribute('href')).toBe(
       '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
     );
@@ -340,6 +342,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /schedule/i }));
+    await screen.findAllByText(/Godoy Cruz/i);
 
     // One group per cross, not one per game: five rows must read as one tie.
     expect(
@@ -363,6 +366,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /schedule/i }));
+    await screen.findAllByText(/Godoy Cruz/i);
 
     expect(screen.getAllByText(/Will be played/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Played only if the series is still undecided/i).length).toBe(4);
@@ -384,6 +388,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /schedule/i }));
+    await screen.findAllByText(/Godoy Cruz/i);
 
     expect(screen.getAllByText(/No longer required/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Had held .*Estadio Malvinas/i).length).toBeGreaterThan(0);
@@ -404,6 +409,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /schedule/i }));
+    await screen.findAllByText(/Godoy Cruz/i);
 
     expect(
       screen.getByRole('heading', { name: /Slots this series decision would free/i }),

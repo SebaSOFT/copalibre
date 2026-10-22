@@ -1,3 +1,4 @@
+import { ToastProvider } from './components/ToastProvider.js';
 import { jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
@@ -400,7 +401,9 @@ describe('MatchConsolePage event ledger', () => {
 
 /** The console's one always-visible connectivity signal; its detail opens on focus or hover. */
 function syncIndicator(): HTMLElement {
-  return screen.getByRole('status', { name: /^Sync status: / });
+  const indicator = document.querySelector<HTMLElement>('.cl-connection-status');
+  if (!indicator) throw new Error('Missing persistent connection status');
+  return indicator;
 }
 
 describe('MatchConsolePage', () => {
@@ -832,12 +835,14 @@ describe('MatchConsolePage', () => {
     await act(async () => {
       render(
         <IntlProvider defaultLocale="en" locale="es">
-          <MatchConsolePage
-            client={client({ fetchMatchConsole: async () => bilingualProjection })}
-            matchId="match-1"
-            organizationAlias="liga"
-            tournamentAlias="apertura"
-          />
+          <ToastProvider>
+            <MatchConsolePage
+              client={client({ fetchMatchConsole: async () => bilingualProjection })}
+              matchId="match-1"
+              organizationAlias="liga"
+              tournamentAlias="apertura"
+            />
+          </ToastProvider>
         </IntlProvider>,
       );
     });
@@ -1105,7 +1110,9 @@ describe('MatchConsolePage', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Gol' }));
     });
-    await waitFor(() => expect(screen.getByText('Evento rechazado por servidor')).toBeDefined());
+    await waitFor(() =>
+      expect(screen.getAllByText('Evento rechazado por servidor').length).toBeGreaterThan(0),
+    );
     expect((screen.getByLabelText('Elapsed seconds') as HTMLInputElement).disabled).toBe(false);
   });
 
@@ -1122,7 +1129,8 @@ describe('MatchConsolePage', () => {
         ),
       );
     });
-    expect(screen.getByText('Could not load the match’s authoritative state.')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeDefined();
+    expect(document.querySelector('.cl-skeleton')).not.toBeNull();
   });
 
   it('withholds invalid palette entries when no active segment or eligible actor exists', async () => {
@@ -1503,7 +1511,7 @@ describe('MatchConsolePage', () => {
 
       await waitFor(async () => expect(await listPending('match-1')).toHaveLength(1));
       fireEvent.focus(syncIndicator());
-      expect(screen.getByText('1 queued action')).toBeDefined();
+      expect(await screen.findByText('1 queued action')).toBeDefined();
       expect(screen.queryByRole('alert')).toBeNull();
       const pending = await listPending('match-1');
       expect(pending).toHaveLength(1);
@@ -1551,7 +1559,7 @@ describe('MatchConsolePage', () => {
       await waitFor(async () => expect(await listPending('match-1')).toHaveLength(0));
     });
 
-    it('shows queued count and last-synced time on demand, never fabricating a value before a real drain', async () => {
+    it('keeps queue counts and last successful sync visible in the header', async () => {
       await act(async () => {
         render(
           withIntl(
@@ -1564,33 +1572,12 @@ describe('MatchConsolePage', () => {
           ),
         );
       });
-
-      // Neither detail permanently occupies the console's layout: the icon is
-      // the only always-visible connectivity signal.
-      expect(screen.queryByText('No queued actions')).toBeNull();
-      expect(screen.queryByText('Not yet synced')).toBeNull();
-
-      fireEvent.focus(syncIndicator());
-      expect(screen.getByText('No queued actions')).toBeDefined();
-      expect(screen.getByText('Not yet synced')).toBeDefined();
-      fireEvent.blur(syncIndicator());
-
+      expect(syncIndicator().textContent).toContain('Last synced');
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Apply clock' }));
       });
-
-      const indicator = syncIndicator().parentElement as HTMLElement;
-      fireEvent.mouseEnter(indicator);
-      await waitFor(() => {
-        expect(screen.getByText('No queued actions')).toBeDefined();
-        expect(screen.queryByText('Not yet synced')).toBeNull();
-        expect(screen.getByText(/^Last synced /)).toBeDefined();
-      });
-
-      // And it closes again the moment the pointer leaves: the detail is only
-      // ever borrowed space, never permanent layout.
-      fireEvent.mouseLeave(indicator);
-      expect(screen.queryByText('No queued actions')).toBeNull();
+      await waitFor(() => expect(syncIndicator().textContent).toContain('Last synced'));
+      expect(syncIndicator().textContent).not.toContain('Not yet synced');
     });
 
     it('shows online and offline as one glanceable icon with an accessible name', async () => {
@@ -1607,15 +1594,15 @@ describe('MatchConsolePage', () => {
         );
       });
 
-      expect(syncIndicator().className).toContain('cl-sync-indicator__icon--online');
-      expect(screen.getByRole('status', { name: 'Sync status: Online' })).toBeDefined();
+      expect(syncIndicator().textContent).toContain('Online');
+      expect(syncIndicator().getAttribute('aria-live')).toBe('polite');
 
       await act(async () => {
         globalThis.dispatchEvent(new Event('offline'));
       });
 
-      expect(screen.getByRole('status', { name: 'Sync status: Offline' })).toBeDefined();
-      expect(syncIndicator().className).toContain('cl-sync-indicator__icon--offline');
+      expect(syncIndicator().textContent).toContain('Offline');
+      expect(syncIndicator().textContent).toContain('Offline');
     });
   });
 });
@@ -1772,6 +1759,8 @@ describe('MatchConsolePage awaiting its entrants', () => {
     await waitFor(() =>
       expect(screen.getAllByText('Awaiting Winner of Round 1, match 2')).toHaveLength(2),
     );
-    expect(screen.queryByText('Match side is undecided')).toBeNull();
+    expect(
+      screen.getAllByRole('alert').some((alert) => alert.textContent?.includes('Awaiting Winner')),
+    ).toBe(true);
   });
 });

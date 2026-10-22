@@ -7,6 +7,7 @@ import {
 import type { DisplayTokenResponse } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
 import { Badge } from './ui/atoms/badge.js';
+import { EmptyState, type EmptyStateAction } from './ui/molecules/empty-state.js';
 
 const BADGE_ACCENT: Readonly<Record<HeartbeatStatus, string>> = {
   online: 'cl-state--live',
@@ -25,6 +26,7 @@ const BADGE_ACCENT: Readonly<Record<HeartbeatStatus, string>> = {
 export function DeviceHeartbeat({
   devices,
   now,
+  pairAction,
 }: {
   readonly devices: readonly {
     readonly tournamentAlias: string;
@@ -32,6 +34,7 @@ export function DeviceHeartbeat({
   }[];
   /** The caller's clock — read once in an effect, never inside render. */
   readonly now: number;
+  readonly pairAction?: EmptyStateAction;
 }): React.JSX.Element {
   const intl = useIntl();
   return (
@@ -40,11 +43,18 @@ export function DeviceHeartbeat({
         <FormattedMessage {...messages.deviceHeartbeatTitle} />
       </h2>
       {devices.length === 0 && (
-        <div className="cl-empty-state">
-          <p className="cl-text-muted">
-            <FormattedMessage {...messages.deviceHeartbeatEmpty} />
-          </p>
-        </div>
+        <EmptyState
+          icon="offline"
+          headingLevel={3}
+          heading={intl.formatMessage(messages.deviceHeartbeatEmpty)}
+          description={intl.formatMessage(messages.interactionPairDescription)}
+          {...(pairAction
+            ? { action: pairAction }
+            : {
+                reason: 'no-permission' as const,
+                whoCanAct: intl.formatMessage(messages.interactionWhoCanPair),
+              })}
+        />
       )}
       <ul>
         {devices.map(({ tournamentAlias, token }) => {

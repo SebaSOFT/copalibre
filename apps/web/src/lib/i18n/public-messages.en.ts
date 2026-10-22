@@ -13,6 +13,23 @@ import { defineMessages } from './define-messages.ts';
  * string as a plain prop instead of importing this catalog itself.
  */
 export const messages = defineMessages({
+  interactionNoLive: { id: 'publicWeb.interaction.noLive', defaultMessage: 'No live matches' },
+  interactionNextKickoff: {
+    id: 'publicWeb.interaction.nextKickoff',
+    defaultMessage: 'Next match: {time}',
+  },
+  interactionSeeSchedule: {
+    id: 'publicWeb.interaction.seeSchedule',
+    defaultMessage: 'Check the schedule for upcoming matches.',
+  },
+  interactionViewMatches: {
+    id: 'publicWeb.interaction.viewMatches',
+    defaultMessage: 'View matches',
+  },
+  interactionBrowseOrganizations: {
+    id: 'publicWeb.interaction.browseOrganizations',
+    defaultMessage: 'Browse organizations',
+  },
   sideSourceWinner: { id: 'publicWeb.sideSource.winner', defaultMessage: 'Winner of {match}' },
   sideSourceLoser: { id: 'publicWeb.sideSource.loser', defaultMessage: 'Loser of {match}' },
   sideSourceWinnerShort: { id: 'publicWeb.sideSource.winnerShort', defaultMessage: 'W {match}' },

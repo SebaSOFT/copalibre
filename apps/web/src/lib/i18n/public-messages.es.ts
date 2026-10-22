@@ -4,6 +4,11 @@
  * reads exactly as the site did before this change.
  */
 export const messages: Record<string, string> = {
+  'publicWeb.interaction.noLive': 'No hay partidos en vivo',
+  'publicWeb.interaction.nextKickoff': 'Próximo partido: {time}',
+  'publicWeb.interaction.seeSchedule': 'Consultá el calendario para ver los próximos partidos.',
+  'publicWeb.interaction.viewMatches': 'Ver partidos',
+  'publicWeb.interaction.browseOrganizations': 'Ver organizaciones',
   'publicWeb.sideSource.winner': 'Ganador de {match}',
   'publicWeb.sideSource.loser': 'Perdedor de {match}',
   'publicWeb.sideSource.winnerShort': 'G {match}',

@@ -24,6 +24,9 @@ test('analytics shows organization context and tournament match progress', async
             stages: [],
           });
         }
+        if (url.endsWith('/organizations/liga-mendocina/storage-usage')) {
+          return Response.json({ totalBytes: 0, objectCount: 0 });
+        }
         if (url.includes('/organizations/liga-mendocina/tournaments')) {
           return Response.json([
             {

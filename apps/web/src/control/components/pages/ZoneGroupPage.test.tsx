@@ -58,6 +58,7 @@ describe('ZoneGroupPage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /zones and groups/i }));
+    await screen.findAllByText('Zona Campeonato');
     expect(container.querySelector('.cl-list-screen')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__header')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
@@ -77,6 +78,7 @@ describe('ZoneGroupPage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /zones and groups/i }));
+    await screen.findAllByText('Zona Campeonato');
     expect(screen.getByRole('link', { name: 'Stage 1' }).getAttribute('href')).toBe(
       '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
     );

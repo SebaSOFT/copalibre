@@ -26,12 +26,16 @@ const meta = {
     canCreateTournament: true,
     canManageDisplayTokens: true,
     devices: [],
+    failed: false,
+    loading: false,
     model,
     now: Date.now(),
     onArchive: () => undefined,
     onExport: () => undefined,
     onExportConfiguration: () => undefined,
+    onRetry: () => undefined,
     organizationAlias: ORG,
+    staleSince: undefined,
   },
 } satisfies Meta<typeof DashboardTemplate>;
 export default meta;
@@ -49,3 +53,5 @@ export const EmptyNoCreatePermission: Story = {
     model: buildDashboard({ organizationId: ids.organization, tournaments: [], activity: [] }),
   },
 };
+export const Failed: Story = { args: { failed: true } };
+export const Stale: Story = { args: { staleSince: Date.now() - 60_000 } };

@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import {
-  createControlApiClient,
-  type ControlApiClient,
-  type TournamentResponse,
-} from '../../lib/api-client.js';
+import { useMemo } from 'react';
+import { useIntl } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
+import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import { LiveConsoleTemplate } from '../screens/LiveConsoleTemplate.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 /**
  * Fetches: the active-tournament load lives here;
@@ -18,6 +17,7 @@ export function LiveConsolePage({
   readonly organizationAlias: string;
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
+  const intl = useIntl();
   const api = useMemo(
     () =>
       client ??
@@ -28,35 +28,26 @@ export function LiveConsolePage({
     [client],
   );
 
-  const [tournaments, setTournaments] = useState<readonly TournamentResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    const listTournaments = api.listActiveTournaments;
-    (listTournaments ? listTournaments(organizationAlias) : Promise.resolve([]))
-      .then((loaded) => {
-        if (!active) return;
-        setTournaments(loaded);
-        setLoading(false);
-      })
-      .catch(() => {
-        if (active) {
-          setTournaments([]);
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [api, organizationAlias]);
+  const read = useResilientRead(
+    `control-live-console:${organizationAlias}`,
+    () => {
+      const listTournaments = api.listActiveTournaments;
+      return listTournaments ? listTournaments(organizationAlias) : Promise.resolve([]);
+    },
+    {
+      thing: intl.formatMessage(messages.navLiveConsole),
+      isEmpty: (tournaments) => tournaments.length === 0,
+    },
+  );
 
   return (
     <LiveConsoleTemplate
-      loading={loading}
+      failed={read.status === 'failed-empty'}
+      loading={read.status === 'loading'}
       organizationAlias={organizationAlias}
-      tournaments={tournaments}
+      onRetry={read.retry}
+      staleSince={read.status === 'stale' ? read.staleSince : undefined}
+      tournaments={read.data ?? []}
     />
   );
 }

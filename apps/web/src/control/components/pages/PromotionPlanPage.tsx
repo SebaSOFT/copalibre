@@ -1,22 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Alert } from '../ui/atoms/alert.js';
+import { useMemo } from 'react';
 import { useIntl, type IntlShape } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
 import {
   ControlApiError,
   createControlApiClient,
   type ControlApiClient,
   type PromotionPreviewResponse,
-  type RegistrationResponse,
-  type ZoneResponse,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import { messages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
 import {
   PromotionPlanTemplate,
   type BandRow,
   type PreviewError,
 } from '../screens/PromotionPlanTemplate.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 /**
  * `promotion-plan-not-found` names specifically "this zone has
@@ -72,69 +71,43 @@ export function PromotionPlanPage({
     [client],
   );
 
-  const [zone, setZone] = useState<ZoneResponse>();
-  const [entrants, setEntrants] = useState<readonly RegistrationResponse[]>([]);
-  const [preview, setPreview] = useState<PromotionPreviewResponse>();
-  const [previewError, setPreviewError] = useState<PreviewError>();
-  const [loading, setLoading] = useState(true);
-
+  const read = useResilientRead(
+    `control-promotion:${organizationAlias}:${tournamentAlias}:${stageNumber}:${zoneNumber}`,
+    async () => {
+      const [zones, entrants] = await Promise.all([
+        api.listZones?.(organizationAlias, tournamentAlias, stageNumber) ?? Promise.resolve([]),
+        api.listRegistrations(organizationAlias, tournamentAlias, 'accepted'),
+      ]);
+      let preview: PromotionPreviewResponse | undefined;
+      let previewError: PreviewError | undefined;
+      try {
+        preview = await api.fetchPromotionPreview?.(
+          organizationAlias,
+          tournamentAlias,
+          stageNumber,
+          zoneNumber,
+        );
+      } catch (error) {
+        if (!(error instanceof ControlApiError) || error.errorCode !== 'promotion-plan-not-found')
+          throw error;
+        previewError = classifyPreviewError(error, intl);
+      }
+      return {
+        zone: zones.find((zone) => zone.number === zoneNumber),
+        entrants,
+        preview,
+        previewError,
+      };
+    },
+    { thing: intl.formatMessage(messages.promotionTitle) },
+  );
+  const { zone, entrants = [], preview, previewError } = read.data ?? {};
   function entrantLabel(entrantId: string): string {
-    const entrant = entrants.find((candidate) => candidate.entrantId === entrantId);
-    return entrant?.displayName ?? entrantId.slice(-8);
+    return (
+      entrants.find((candidate) => candidate.entrantId === entrantId)?.displayName ??
+      entrantId.slice(-8)
+    );
   }
-
-  useEffect(() => {
-    let live = true;
-    (api.listZones?.(organizationAlias, tournamentAlias, stageNumber) ?? Promise.resolve([]))
-      .then((loadedZones) => {
-        if (!live) return;
-        setZone(loadedZones.find((z) => z.number === zoneNumber));
-      })
-      .catch(() => {
-        // Ignored for initial render; save path will re-validate.
-      })
-      .finally(() => {
-        if (live) setLoading(false);
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias, tournamentAlias, stageNumber, zoneNumber]);
-
-  useEffect(() => {
-    let live = true;
-    api
-      .listRegistrations(organizationAlias, tournamentAlias, 'accepted')
-      .then((loaded) => {
-        if (live) setEntrants(loaded);
-      })
-      .catch(() => {
-        // Candidate names fall back to their id's own tail; not worth a banner.
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias, tournamentAlias]);
-
-  useEffect(() => {
-    let live = true;
-    const fetchPromotionPreview = api.fetchPromotionPreview;
-    if (!fetchPromotionPreview) return undefined;
-    fetchPromotionPreview(organizationAlias, tournamentAlias, stageNumber, zoneNumber)
-      .then((loaded) => {
-        if (!live) return;
-        setPreview(loaded);
-        setPreviewError(undefined);
-      })
-      .catch((error: unknown) => {
-        if (!live) return;
-        setPreview(undefined);
-        setPreviewError(classifyPreviewError(error, intl));
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias, tournamentAlias, stageNumber, zoneNumber, intl]);
 
   async function savePlan(
     nextStageNumber: string,
@@ -170,39 +143,26 @@ export function PromotionPlanPage({
           }),
         });
       }
-      if (api.fetchPromotionPreview) {
-        try {
-          const loaded = await api.fetchPromotionPreview(
-            organizationAlias,
-            tournamentAlias,
-            stageNumber,
-            zoneNumber,
-          );
-          setPreview(loaded);
-          setPreviewError(undefined);
-        } catch (previewErr) {
-          setPreview(undefined);
-          setPreviewError(classifyPreviewError(previewErr, intl));
-        }
-      }
+      await read.refresh();
     } catch (error) {
       pushError(error);
     }
   }
 
-  if (loading) {
-    return <Alert tone="info">{intl.formatMessage(messages.promotionLoading)}</Alert>;
-  }
+  if (read.data === undefined)
+    return <ReadState {...read} title={intl.formatMessage(messages.promotionTitle)} />;
 
   return (
-    <PromotionPlanTemplate
-      entrantLabel={entrantLabel}
-      onSave={savePlan}
-      preview={preview}
-      previewError={previewError}
-      tournamentAlias={tournamentAlias}
-      zone={zone}
-      zoneNumber={zoneNumber}
-    />
+    <ReadState {...read} title={intl.formatMessage(messages.promotionTitle)}>
+      <PromotionPlanTemplate
+        entrantLabel={entrantLabel}
+        onSave={savePlan}
+        preview={preview}
+        previewError={previewError}
+        tournamentAlias={tournamentAlias}
+        zone={zone}
+        zoneNumber={zoneNumber}
+      />
+    </ReadState>
   );
 }

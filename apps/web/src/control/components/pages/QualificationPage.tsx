@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
 import {
   ControlApiError,
   createControlApiClient,
   type ControlApiClient,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import { messages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
 import {
   QualificationTemplate,
   type QualificationScreenState,
 } from '../screens/QualificationTemplate.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 /** Refusals the screen answers by showing the fresh preview, which says why. */
 const PREVIEW_REFUSALS: ReadonlySet<string> = new Set([
@@ -45,13 +47,12 @@ export function QualificationPage({
       }),
     [client],
   );
-  const [state, setState] = useState<QualificationScreenState>({ kind: 'loading' });
   const [busy, setBusy] = useState(false);
 
   /** The screen state the current preview yields; never rejects. */
   const fetchState = useCallback(async (): Promise<QualificationScreenState> => {
     try {
-      if (!api.previewQualification) return { kind: 'failed' };
+      if (!api.previewQualification) throw new Error('Qualification preview is unavailable');
       const preview = await api.previewQualification(
         organizationAlias,
         tournamentAlias,
@@ -59,23 +60,23 @@ export function QualificationPage({
       );
       return { kind: 'loaded', preview };
     } catch (error) {
-      return error instanceof ControlApiError && error.errorCode === 'qualification-plan-missing'
-        ? { kind: 'empty' }
-        : { kind: 'failed' };
+      if (error instanceof ControlApiError && error.errorCode === 'qualification-plan-missing')
+        return { kind: 'empty' };
+      throw error;
     }
   }, [api, organizationAlias, tournamentAlias, stageNumber]);
 
-  const load = async (): Promise<void> => setState(await fetchState());
-
-  useEffect(() => {
-    let live = true;
-    void fetchState().then((next) => {
-      if (live) setState(next);
-    });
-    return () => {
-      live = false;
-    };
-  }, [fetchState]);
+  const read = useResilientRead(
+    `control-qualification:${organizationAlias}:${tournamentAlias}:${stageNumber}`,
+    fetchState,
+    {
+      thing: intl.formatMessage(messages.qualificationTitle),
+      isEmpty: (value) => value.kind === 'empty',
+    },
+  );
+  const state = read.data ?? { kind: 'loading' as const };
+  const setState = read.update;
+  const load = read.retry;
 
   async function confirm(): Promise<void> {
     if (state.kind !== 'loaded' || !api.confirmQualification) return;
@@ -121,13 +122,15 @@ export function QualificationPage({
   }
 
   return (
-    <QualificationTemplate
-      busy={busy}
-      onConfirm={confirm}
-      organizationAlias={organizationAlias}
-      stageNumber={stageNumber}
-      state={state}
-      tournamentAlias={tournamentAlias}
-    />
+    <ReadState {...read} title={intl.formatMessage(messages.qualificationTitle)}>
+      <QualificationTemplate
+        busy={busy}
+        onConfirm={confirm}
+        organizationAlias={organizationAlias}
+        stageNumber={stageNumber}
+        state={state}
+        tournamentAlias={tournamentAlias}
+      />
+    </ReadState>
   );
 }

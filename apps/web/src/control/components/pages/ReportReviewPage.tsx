@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useIntl } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
 import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
 import { type ReportRow } from '../../lib/reports.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import { ReportReviewTemplate } from '../screens/ReportReviewTemplate.js';
-
-type LoadStatus = 'loading' | 'ready' | 'failed';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 /**
  * The pending participant reports/disputes queue.
@@ -28,6 +30,7 @@ export function ReportReviewPage({
   readonly tournamentAlias: string;
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
+  const intl = useIntl();
   const api = useMemo(
     () =>
       client ??
@@ -37,25 +40,14 @@ export function ReportReviewPage({
       }),
     [client],
   );
-  const [rows, setRows] = useState<readonly ReportRow[]>([]);
-  const [status, setStatus] = useState<LoadStatus>('loading');
-
-  useEffect(() => {
-    let live = true;
-    api
-      .listPendingReports?.(organizationAlias, tournamentAlias)
-      .then((loaded) => {
-        if (!live) return;
-        setRows(loaded.map(toRow));
-        setStatus('ready');
-      })
-      .catch(() => {
-        if (live) setStatus('failed');
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias, tournamentAlias]);
+  const read = useResilientRead<readonly ReportRow[]>(
+    `control-reports:${organizationAlias}:${tournamentAlias}`,
+    async () =>
+      ((await api.listPendingReports?.(organizationAlias, tournamentAlias)) ?? []).map(toRow),
+    { thing: intl.formatMessage(messages.reportTitle) },
+  );
+  const rows = read.data ?? [];
+  const setRows = read.update;
 
   function dismiss(reportId: string, reviewNote: string): void {
     void api
@@ -66,7 +58,11 @@ export function ReportReviewPage({
       .then(() => setRows((current) => current.filter((row) => row.reportId !== reportId)));
   }
 
-  return <ReportReviewTemplate onDismiss={dismiss} rows={rows} status={status} />;
+  return (
+    <ReadState {...read} title={intl.formatMessage(messages.reportTitle)}>
+      <ReportReviewTemplate onDismiss={dismiss} rows={rows} status="ready" />
+    </ReadState>
+  );
 }
 
 function toRow(response: {

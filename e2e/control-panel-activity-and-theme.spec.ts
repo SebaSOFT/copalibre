@@ -165,6 +165,13 @@ async function setupMockApi(page: Page): Promise<void> {
         }
 
         if (
+          url.endsWith(`/tournaments/${tournamentAlias}/entrants/needing-abbreviation`) &&
+          method === 'GET'
+        ) {
+          return Response.json([]);
+        }
+
+        if (
           url.includes(
             `/tournaments/${tournamentAlias}/registrations/${teamEntrantId}/team-memberships`,
           ) &&
@@ -200,6 +207,9 @@ async function setupMockApi(page: Page): Promise<void> {
         }
 
         if (url.endsWith(`/organizations/${orgAlias}/officials`) && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url.endsWith(`/organizations/${orgAlias}/schedules`) && method === 'GET') {
           return Response.json([]);
         }
 

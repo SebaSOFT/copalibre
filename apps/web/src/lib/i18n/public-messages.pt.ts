@@ -4,6 +4,11 @@
  * pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'publicWeb.interaction.noLive': 'Nenhuma partida ao vivo',
+  'publicWeb.interaction.nextKickoff': 'Próxima partida: {time}',
+  'publicWeb.interaction.seeSchedule': 'Consulte o calendário para ver as próximas partidas.',
+  'publicWeb.interaction.viewMatches': 'Ver partidas',
+  'publicWeb.interaction.browseOrganizations': 'Ver organizações',
   'publicWeb.sideSource.winner': 'Vencedor de {match}',
   'publicWeb.sideSource.loser': 'Perdedor de {match}',
   'publicWeb.sideSource.winnerShort': 'V {match}',

@@ -34,9 +34,11 @@ export function mountLiveTicker(root: ParentNode = document): void {
   };
 
   // Shown only while the stream is down, so the page never describes its own normal state.
-  const notice = root.querySelector<HTMLElement>('[data-connection-notice]');
+  const notices = root.querySelectorAll<HTMLElement>(
+    '[data-ticker-connection-notice], [data-connection-notice]',
+  );
   const showNotice = (visible: boolean): void => {
-    if (notice) notice.hidden = !visible;
+    for (const notice of notices) notice.hidden = !visible;
   };
 
   let dashboard = buildInitialDashboard(byMatchId);

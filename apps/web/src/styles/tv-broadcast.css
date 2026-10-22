@@ -33,6 +33,13 @@
   overflow: hidden;
 }
 
+.tv-stale-mark {
+  align-self: flex-start;
+  max-width: 100%;
+  margin: 0;
+  font-size: clamp(var(--cl-font-size-xs), 1.4vmin, var(--cl-font-size-base));
+}
+
 /*
  * The shell lays its children out in a column: the score ticker above, the dashboard filling what is
  * left. Sizing the dashboard to 100% of the shell instead pushed its lower panels past the bottom

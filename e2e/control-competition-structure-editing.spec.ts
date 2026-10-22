@@ -93,10 +93,18 @@ test('renames a zone from the zone-management screen and sees the change immedia
     if (url.endsWith('/stages/1/zones') && method === 'GET') {
       return { body: [{ zoneId: 'zone-1', stageId: 'stage-1', number: 1, name: zoneName }] };
     }
+    if (url.endsWith(`/tournaments/${TOURNAMENT_ALIAS}/stages`) && method === 'GET') {
+      return {
+        body: [{ stageId: 'stage-1', seasonId: 'season-1', number: 1, name: 'Fase de grupos' }],
+      };
+    }
     if (url.includes('/registrations') && method === 'GET') {
       return { body: [] };
     }
     if (url.endsWith('/stages/1/zones/1/groups') && method === 'GET') {
+      return { body: [] };
+    }
+    if (url.endsWith('/stages/1/zones/1/entrants') && method === 'GET') {
       return { body: [] };
     }
     if (url.endsWith('/stages/1/zones/1') && method === 'PATCH') {
@@ -224,6 +232,7 @@ test('deletes an unreferenced upload from the storage-usage screen and the usage
   ];
   await page.exposeFunction('__route', (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
+    if (url === '/api/auth/pat' && method === 'GET') return { body: [] };
     if (url === `/organizations/${ORG_ALIAS}` && method === 'GET') {
       return {
         body: {

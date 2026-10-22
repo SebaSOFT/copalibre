@@ -1,12 +1,31 @@
 import { jest } from '@jest/globals';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render as testingLibraryRender,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { IntlProvider } from 'react-intl';
 import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
+import { ToastProvider } from '../ToastProvider.js';
+import { messages as spanishMessages } from '../../i18n/messages.es.js';
 import { DashboardPage } from '../pages/DashboardPage.js';
 import type {
   ControlApiClient,
   RegistrationResponse,
   TournamentResponse,
 } from '../../lib/api-client.js';
+
+function render(ui: ReactNode) {
+  return testingLibraryRender(
+    <IntlProvider locale="es" messages={spanishMessages}>
+      <ToastProvider>{ui}</ToastProvider>
+    </IntlProvider>,
+  );
+}
 
 function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   return {
@@ -150,8 +169,7 @@ describe('DashboardPage', () => {
   });
 
   it.each([
-    // Rendered through Dashboard (not withIntl), which resolves Spanish —
-    // same as every other test in this file and in control.test.tsx.
+    // The provider wrapper supplies Spanish catalogue messages as in production.
     ['published', 'PRÓXIMO'],
     ['finished', 'FINALIZADO'],
     ['archived', 'FINALIZADO'],
@@ -168,7 +186,7 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(screen.getByTestId('lifecycle').textContent).toBe(label));
   });
 
-  it('renders an empty dashboard rather than throwing when the tournament read fails', async () => {
+  it('keeps the skeleton and retry toast when the tournament read fails', async () => {
     await act(async () => {
       render(
         <DashboardPage
@@ -177,12 +195,15 @@ describe('DashboardPage', () => {
               throw new Error('network down');
             },
           })}
-          organizationAlias="liga-mendocina"
+          organizationAlias="failed-read-org"
         />,
       );
     });
 
-    await waitFor(() => expect(screen.getByText(/no tiene torneos/)).toBeDefined());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Reintentar' })).toBeDefined());
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(screen.getAllByRole('button', { name: 'Reintentar' })).toHaveLength(1);
+    expect(screen.queryByText(/no tiene torneos/)).toBeNull();
   });
 
   it('hides the Roles navigation entry once a club-admin role resolves', async () => {

@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useIntl } from 'react-intl';
-import { Alert } from '../ui/atoms/alert.js';
 import { RealtimeClient } from '@copalibre/realtime';
+import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
+import { useIntl } from 'react-intl';
+import { acceptEntrantResolution } from '../../../lib/live-state.js';
+import { finalRoundOf } from '../../../lib/side-source.js';
+import { messages } from '../../i18n/messages.en.js';
 import {
   ControlApiError,
   createControlApiClient,
@@ -15,13 +17,11 @@ import {
   awaitingSourceText,
   currentEpochMilliseconds,
   descriptionFor,
+  eventSyncKey,
   newIdempotencyKey,
   undecidedSidesOf,
 } from '../../lib/match-console.js';
 import { sideSourceLabelsFromControlIntl } from '../../lib/matches-view-labels.js';
-import { acceptEntrantResolution } from '../../../lib/live-state.js';
-import { finalRoundOf } from '../../../lib/side-source.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import {
   drainQueue,
   enqueue,
@@ -32,8 +32,10 @@ import {
   type QueuedAction,
   type QueuedMutation,
 } from '../../lib/offline-queue.js';
+import { controlTokenStore } from '../../session/token-store.js';
 import { MatchConsoleTemplate, type RecordEventContext } from '../screens/MatchConsoleTemplate.js';
-import { messages } from '../../i18n/messages.en.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 const RECONCILIATION_TIMEOUT_MS = 8_000;
 
@@ -79,18 +81,27 @@ export function MatchConsolePage({
       }),
     [client],
   );
-  const [projection, setProjection] = useState<MatchConsoleResponse>();
+  const [localProjection, setLocalProjection] = useState<{
+    matchId: string;
+    data: MatchConsoleResponse | undefined;
+  }>();
   const [status, setStatus] = useState<ConsoleStatus>({ kind: 'loading' });
   const [stale, setStale] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [finalizeIdempotencyKey, setFinalizeIdempotencyKey] = useState<string>();
   const [pendingMutations, setPendingMutations] = useState<readonly QueuedMutation[]>([]);
+  const [eventSyncStates, setEventSyncStates] = useState<
+    Readonly<
+      Record<string, { state: 'queued' | 'sent' | 'confirmed' | 'refused'; refusalReason?: string }>
+    >
+  >({});
   const [online, setOnline] = useState(() =>
     typeof navigator === 'undefined' ? true : navigator.onLine,
   );
   const [lastSyncedAt, setLastSyncedAt] = useState<number>();
   const [bracketMatches, setBracketMatches] = useState<readonly CanvasMatch[]>();
   const projectionVersion = useRef(0);
+  const eventMutationKeys = useRef(new Map<string, string>());
   const finalizationInFlight = useRef(false);
   const drainingRef = useRef(false);
   const entrantVersions = useRef(new Map<string, number>());
@@ -103,56 +114,48 @@ export function MatchConsolePage({
   }, [bracketMatches]);
   const redriveRequestedRef = useRef(false);
 
-  const reload = useCallback(
-    (): Promise<MatchConsoleResponse | undefined> =>
-      api
-        .fetchMatchConsole(organizationAlias, tournamentAlias, matchId)
-        .then((loaded) => {
-          setProjection(loaded);
-          projectionVersion.current = loaded.projectionVersion;
-          setStatus({ kind: 'ready' });
-          setStale(false);
-          return loaded;
-        })
-        .catch(() => {
-          setStatus({
-            kind: 'error',
-            message: intl.formatMessage(messages.matchConsoleLoadFailed),
-          });
-          return undefined;
-        }),
-    [api, matchId, organizationAlias, tournamentAlias, intl],
+  const read = useResilientRead(
+    `control-match-console:${organizationAlias}:${tournamentAlias}:${matchId}`,
+    () => api.fetchMatchConsole(organizationAlias, tournamentAlias, matchId),
+    {
+      thing: intl.formatMessage(messages.navLiveConsole),
+      onSuccess: (loaded) => {
+        setProjection(loaded);
+        projectionVersion.current = loaded.projectionVersion;
+        setStatus({ kind: 'ready' });
+        setStale(false);
+        setLastSyncedAt(currentEpochMilliseconds());
+      },
+    },
   );
-
-  useEffect(() => {
-    void reload();
-  }, [reload]);
-
-  // Read only, keyed on the stage number itself rather than on the whole projection, so a live
-  // score update never re-fetches a bracket that hasn't changed. Absent when `api.fetchSeeding`
-  // isn't implemented (a test double) or the stage genuinely has none yet — the panel simply
-  // doesn't render either way.
+  const reload = read.refresh;
+  const projection = localProjection?.matchId === matchId ? localProjection.data : read.data;
+  function setProjection(change: SetStateAction<MatchConsoleResponse | undefined>): void {
+    setLocalProjection((current) => ({
+      matchId,
+      data:
+        typeof change === 'function'
+          ? change(current?.matchId === matchId ? current.data : read.data)
+          : change,
+    }));
+  }
   const stageNumber = projection?.stageNumber;
-  useEffect(() => {
-    if (stageNumber === undefined || !api.fetchSeeding) return undefined;
-    let live = true;
-    api
-      .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
-      .then((seeding) => {
-        // This match's own zone only — flattening every zone's matches back together would
-        // reintroduce the cross-zone round/position collision the zone-scoped canvas exists to
-        // avoid, inside the journey-highlight/context logic instead of the
-        // canvas itself.
-        const ownZone = seeding.zones.find((zone) =>
-          zone.matches.some((m) => m.persistedMatchId === matchId),
-        );
-        if (live) setBracketMatches(ownZone?.matches ?? []);
-      })
-      .catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias, tournamentAlias, stageNumber, matchId]);
+  const bracketRead = useResilientRead(
+    `control-console-bracket:${organizationAlias}:${tournamentAlias}:${stageNumber}:${matchId}`,
+    async () => {
+      if (stageNumber === undefined || !api.fetchSeeding) return [];
+      const seeding = await api.fetchSeeding(organizationAlias, tournamentAlias, stageNumber);
+      const ownZone = seeding.zones.find((zone) =>
+        zone.matches.some((m) => m.persistedMatchId === matchId),
+      );
+      return ownZone?.matches ?? [];
+    },
+    {
+      thing: intl.formatMessage(messages.seedingTitle),
+      enabled: stageNumber !== undefined && api.fetchSeeding !== undefined,
+      onSuccess: setBracketMatches,
+    },
+  );
 
   const refreshPendingMutations = useCallback(async (): Promise<void> => {
     setPendingMutations(await listPending(matchId));
@@ -178,6 +181,19 @@ export function MatchConsolePage({
         redriveRequestedRef.current = false;
         const outcomes = await drainQueue(api, matchId);
         await refreshPendingMutations();
+        setEventSyncStates((current) => {
+          const next = { ...current };
+          for (const outcome of outcomes) {
+            const key = eventMutationKeys.current.get(outcome.id);
+            if (!key) continue;
+            if (outcome.kind === 'sent' && next[key]?.state !== 'confirmed') {
+              next[key] = { state: 'sent' };
+            } else if (outcome.kind === 'refused') {
+              next[key] = { state: 'refused', refusalReason: outcome.reason };
+            }
+          }
+          return next;
+        });
         if (outcomes.some((outcome) => outcome.kind === 'sent')) {
           setLastSyncedAt(currentEpochMilliseconds());
           await reload();
@@ -248,7 +264,9 @@ export function MatchConsolePage({
     return () => globalThis.clearTimeout(timeout);
   }, [pendingMutations.length, drain]);
 
+  const projectionLoaded = projection !== undefined;
   useEffect(() => {
+    if (!projectionLoaded) return undefined;
     const stream = api.matchConsoleStream?.(organizationAlias);
     if (!stream) return undefined;
 
@@ -266,12 +284,25 @@ export function MatchConsolePage({
           void reload();
           return;
         }
-        if (
-          event.eventType === 'match.console-projection' &&
-          event.entityId === matchId &&
-          event.projectionVersion > projectionVersion.current
-        ) {
-          void reload();
+        if (event.eventType === 'match.console-projection' && event.entityId === matchId) {
+          if (
+            event.projectionVersion <= projectionVersion.current &&
+            eventMutationKeys.current.size === 0
+          )
+            return;
+          projectionVersion.current = Math.max(projectionVersion.current, event.projectionVersion);
+          void reload().then((loaded) => {
+            if (!loaded || loaded.projectionVersion < event.projectionVersion) return;
+            const acknowledged = new Set(loaded.events.map(eventSyncKey));
+            setEventSyncStates((current) => {
+              const next = { ...current };
+              const tracked = new Set(eventMutationKeys.current.values());
+              for (const key of acknowledged) {
+                if (tracked.has(key)) next[key] = { state: 'confirmed' };
+              }
+              return next;
+            });
+          });
         }
       },
       onProjectionRequired: () => void reload(),
@@ -282,7 +313,7 @@ export function MatchConsolePage({
       onOpen: () => void drain(),
     });
     return () => realtime.close();
-  }, [api, matchId, organizationAlias, reload, drain]);
+  }, [api, matchId, organizationAlias, reload, drain, projectionLoaded]);
 
   useEffect(() => {
     if (!stale) return undefined;
@@ -296,10 +327,14 @@ export function MatchConsolePage({
   // never loses the action. `drain()` performs (and reports) the actual
   // attempt; this only ever queues, applies the optimistic patch, and then
   // asks for a drain.
-  async function mutate(action: QueuedAction, optimistic?: () => void): Promise<void> {
+  async function mutate(
+    action: QueuedAction,
+    optimistic?: () => void,
+    idempotencyKey = newIdempotencyKey(),
+  ): Promise<void> {
     setStale(true);
     optimistic?.();
-    await enqueue(action, newIdempotencyKey(), currentEpochMilliseconds());
+    await enqueue(action, idempotencyKey, currentEpochMilliseconds());
     await refreshPendingMutations();
     await drain();
   }
@@ -387,6 +422,14 @@ export function MatchConsolePage({
       ...secondaryActorPayload,
       ...(payloadDescription === undefined ? {} : { description: payloadDescription }),
     };
+    const eventKey = eventSyncKey({
+      definitionCode: definition.code,
+      segmentId: activeSegment.segmentId,
+      occurredAt: new Date(occurredAt).toISOString(),
+    });
+    const idempotencyKey = newIdempotencyKey();
+    eventMutationKeys.current.set(idempotencyKey, eventKey);
+    setEventSyncStates((current) => ({ ...current, [eventKey]: { state: 'queued' } }));
     void mutate(
       {
         kind: 'record-event',
@@ -430,6 +473,7 @@ export function MatchConsolePage({
               }
             : current,
         ),
+      idempotencyKey,
     );
   }
 
@@ -505,38 +549,41 @@ export function MatchConsolePage({
     return succeeded;
   }
 
-  if (!projection) {
-    return (
-      <Alert tone="destructive">
-        {status.kind === 'error'
-          ? status.message
-          : intl.formatMessage(messages.matchConsoleLoading)}
-      </Alert>
-    );
-  }
+  if (!projection)
+    return <ReadState {...read} title={intl.formatMessage(messages.navLiveConsole)} />;
 
   return (
-    <MatchConsoleTemplate
-      api={api}
-      bracketMatches={bracketMatches}
-      finalizing={finalizing}
-      lastSyncedAt={lastSyncedAt}
-      matchId={matchId}
-      onApplyClock={applyClock}
-      onCancelFinalize={cancelFinalize}
-      onDismissMutation={dismissMutation}
-      onFinalize={finalize}
-      onIssueClockCommand={issueClockCommand}
-      onRecordEvent={recordEvent}
-      onResolveTimer={resolveTimer}
-      onRosterSaved={() => void reload()}
-      online={online}
-      organizationAlias={organizationAlias}
-      pendingMutations={pendingMutations}
-      projection={projection}
-      stale={stale}
-      status={status}
-      tournamentAlias={tournamentAlias}
-    />
+    <ReadState
+      {...read}
+      status={
+        read.status === 'stale' || bracketRead.status === 'stale' || stale ? 'stale' : read.status
+      }
+      staleSince={read.staleSince ?? bracketRead.staleSince ?? lastSyncedAt}
+      title={intl.formatMessage(messages.navLiveConsole)}
+    >
+      <MatchConsoleTemplate
+        api={api}
+        bracketMatches={bracketMatches}
+        finalizing={finalizing}
+        eventSyncStates={eventSyncStates}
+        lastSyncedAt={lastSyncedAt}
+        matchId={matchId}
+        onApplyClock={applyClock}
+        onCancelFinalize={cancelFinalize}
+        onDismissMutation={dismissMutation}
+        onFinalize={finalize}
+        onIssueClockCommand={issueClockCommand}
+        onRecordEvent={recordEvent}
+        onResolveTimer={resolveTimer}
+        onRosterSaved={() => void reload()}
+        online={online}
+        organizationAlias={organizationAlias}
+        pendingMutations={pendingMutations}
+        projection={projection}
+        stale={stale}
+        status={status}
+        tournamentAlias={tournamentAlias}
+      />
+    </ReadState>
   );
 }

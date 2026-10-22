@@ -38,6 +38,12 @@ async function mockOrganizationApi(
             ...(emblemObjectId === undefined ? {} : { emblemObjectId }),
           });
         }
+        if (url.endsWith('/organizations/liga-mendocina/storage-usage')) {
+          return Response.json({ totalBytes: 0, objectCount: 0 });
+        }
+        if (url.endsWith('/organizations/liga-mendocina/storage-usage/objects')) {
+          return Response.json([]);
+        }
         if (url.endsWith('/organizations/liga-mendocina/emblem') && method === 'POST') {
           emblemObjectId = 'obj-1';
           window.__e2eEmblemUploadCount = (window.__e2eEmblemUploadCount ?? 0) + 1;
@@ -180,6 +186,12 @@ test('club emblem renders as visible image in control panel clubs list', async (
             timezone: 'America/Argentina/San_Juan',
           });
         }
+        if (url.endsWith('/organizations/liga-mendocina/storage-usage')) {
+          return Response.json({ totalBytes: 0, objectCount: 0 });
+        }
+        if (url.endsWith('/organizations/liga-mendocina/storage-usage/objects')) {
+          return Response.json([]);
+        }
         if (url.endsWith('/organizations/liga-mendocina/clubs')) {
           return Response.json([
             {
@@ -190,6 +202,17 @@ test('club emblem renders as visible image in control panel clubs list', async (
               emblemObjectId: 'emblem-obj-1',
             },
           ]);
+        }
+        if (url.endsWith('/organizations')) {
+          return Response.json([
+            { organizationId: 'org-1', organizationAlias: 'liga-mendocina', role: 'admin' },
+          ]);
+        }
+        if (url.endsWith('/organizations/liga-mendocina/storage-usage')) {
+          return Response.json({ totalBytes: 0, objectCount: 0 });
+        }
+        if (url.endsWith('/organizations/liga-mendocina/storage-usage/objects')) {
+          return Response.json([]);
         }
         return originalFetch(input, init);
       };

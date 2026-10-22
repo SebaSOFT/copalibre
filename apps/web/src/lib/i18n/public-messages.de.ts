@@ -4,6 +4,11 @@
  * (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'publicWeb.interaction.noLive': 'Keine Live-Spiele',
+  'publicWeb.interaction.nextKickoff': 'Nächstes Spiel: {time}',
+  'publicWeb.interaction.seeSchedule': 'Sieh im Spielplan nach den nächsten Spielen.',
+  'publicWeb.interaction.viewMatches': 'Spiele ansehen',
+  'publicWeb.interaction.browseOrganizations': 'Organisationen ansehen',
   'publicWeb.sideSource.winner': 'Sieger aus {match}',
   'publicWeb.sideSource.loser': 'Verlierer aus {match}',
   'publicWeb.sideSource.winnerShort': 'S {match}',

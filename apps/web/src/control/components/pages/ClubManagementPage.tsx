@@ -1,16 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from '../ui/atoms/alert.js';
+import { capabilitiesForRole } from '@copalibre/domain';
+import { useMemo } from 'react';
 import { useIntl } from 'react-intl';
-import { capabilitiesForRole, type OrganizationRole } from '@copalibre/domain';
+import { messages } from '../../i18n/messages.en.js';
 import {
   createControlApiClient,
   type ClubResponse,
   type ControlApiClient,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import { messages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
 import { ClubManagementTemplate } from '../screens/ClubManagementTemplate.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 /**
  * Club identity management — the first club-related component in the
@@ -42,29 +43,12 @@ export function ClubManagementPage({
     [client],
   );
 
-  const [clubs, setClubs] = useState<readonly ClubResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string>();
-  const [role, setRole] = useState<OrganizationRole | undefined>(undefined);
-
-  useEffect(() => {
-    let live = true;
-    api
-      .listMyOrganizations()
-      .then((organizations) => {
-        if (!live) return;
-        const mine = organizations.find((one) => one.organizationAlias === organizationAlias);
-        setRole(mine?.role);
-      })
-      .catch(() => {
-        // Same presentation-guard fallback as DashboardPage's own lookup: a
-        // failed role read leaves the action visible rather than blocking
-        // the screen from rendering.
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias]);
+  const rolesRead = useResilientRead(
+    `control-club-role:${organizationAlias}`,
+    () => api.listMyOrganizations(),
+    { thing: intl.formatMessage(messages.clubManagementTitle) },
+  );
+  const role = rolesRead.data?.find((one) => one.organizationAlias === organizationAlias)?.role;
 
   // Client-side guard only, same "unknown role sees everything" convention
   // as DashboardPage's own capability guards — the Club
@@ -72,35 +56,14 @@ export function ClubManagementPage({
   const canManageClubMembers =
     role === undefined || capabilitiesForRole(role).includes('org.manage-club-members');
 
-  const reload = useCallback(async (): Promise<void> => {
-    try {
-      const loaded = await (api.listClubs?.(organizationAlias) ?? Promise.resolve([]));
-      setClubs(loaded);
-      setLoadError(undefined);
-    } catch {
-      setLoadError(intl.formatMessage(messages.clubManagementLoadFailed));
-    }
-  }, [api, intl, organizationAlias]);
-
-  useEffect(() => {
-    let live = true;
-    (api.listClubs?.(organizationAlias) ?? Promise.resolve([]))
-      .then((loaded) => {
-        if (live) {
-          setClubs(loaded);
-          setLoadError(undefined);
-        }
-      })
-      .catch(() => {
-        if (live) setLoadError(intl.formatMessage(messages.clubManagementLoadFailed));
-      })
-      .finally(() => {
-        if (live) setLoading(false);
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, intl, organizationAlias]);
+  const read = useResilientRead<readonly ClubResponse[]>(
+    `control-clubs:${organizationAlias}`,
+    () => api.listClubs?.(organizationAlias) ?? Promise.resolve([]),
+    { thing: intl.formatMessage(messages.clubManagementTitle) },
+  );
+  const clubs = read.data ?? [];
+  const setClubs = read.update;
+  const reload = read.retry;
 
   async function createClub(name: string, alias: string, abbreviation: string): Promise<boolean> {
     if (!api.createClub || name.trim() === '') return false;
@@ -169,22 +132,20 @@ export function ClubManagementPage({
     }
   }
 
-  if (loading) {
-    return <Alert tone="info">{intl.formatMessage(messages.clubManagementLoading)}</Alert>;
-  }
-  if (loadError) {
-    return <Alert tone="destructive">{loadError}</Alert>;
-  }
+  if (read.data === undefined)
+    return <ReadState {...read} title={intl.formatMessage(messages.clubManagementTitle)} />;
 
   return (
-    <ClubManagementTemplate
-      api={api}
-      canManageClubMembers={canManageClubMembers}
-      clubs={clubs}
-      onCreateClub={createClub}
-      onSaveClub={saveClub}
-      onUploadClubEmblem={uploadClubEmblem}
-      organizationAlias={organizationAlias}
-    />
+    <ReadState {...read} title={intl.formatMessage(messages.clubManagementTitle)}>
+      <ClubManagementTemplate
+        api={api}
+        canManageClubMembers={canManageClubMembers}
+        clubs={clubs}
+        onCreateClub={createClub}
+        onSaveClub={saveClub}
+        onUploadClubEmblem={uploadClubEmblem}
+        organizationAlias={organizationAlias}
+      />
+    </ReadState>
   );
 }

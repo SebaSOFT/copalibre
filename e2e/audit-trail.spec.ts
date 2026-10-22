@@ -140,6 +140,7 @@ test('a role without the audit capability is refused the surface directly (7.2)'
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${controlAuditTrailPath}`);
 
-  await expect(page.getByRole('alert')).toContainText('not authorized');
+  await expect(page.getByRole('alert')).toContainText('No se pudo cargar Registro de auditoría');
+  await expect(page.getByRole('alert').getByRole('button', { name: 'Reintentar' })).toBeVisible();
   await expect(page.getByText('user:alice')).toHaveCount(0);
 });

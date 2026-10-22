@@ -27,8 +27,11 @@ describe('AnalyticsTemplate', () => {
       withIntl(
         <AnalyticsTemplate
           completionByTournament={{ [tournament.alias]: completion }}
+          failed={false}
           loading={false}
+          onRetry={() => undefined}
           organizationAlias="liga-mendocina"
+          staleSince={undefined}
           storage={undefined}
           tournaments={[tournament]}
         />,
@@ -61,8 +64,11 @@ describe('AnalyticsTemplate', () => {
       withIntl(
         <AnalyticsTemplate
           completionByTournament={{}}
+          failed={false}
           loading={false}
+          onRetry={() => undefined}
           organizationAlias="liga-mendocina"
+          staleSince={undefined}
           storage={undefined}
           tournaments={[tournament, draft, archived]}
         />,
@@ -85,8 +91,11 @@ describe('AnalyticsTemplate', () => {
       withIntl(
         <AnalyticsTemplate
           completionByTournament={{}}
+          failed={false}
           loading={false}
+          onRetry={() => undefined}
           organizationAlias="liga-mendocina"
+          staleSince={undefined}
           storage={undefined}
           tournaments={[]}
         />,
@@ -119,8 +128,11 @@ describe('AnalyticsTemplate', () => {
       withIntl(
         <AnalyticsTemplate
           completionByTournament={{}}
+          failed={false}
           loading={false}
+          onRetry={() => undefined}
           organizationAlias="liga-mendocina"
+          staleSince={undefined}
           storage={undefined}
           tournaments={[published, finished]}
         />,
@@ -138,15 +150,18 @@ describe('AnalyticsTemplate', () => {
       withIntl(
         <AnalyticsTemplate
           completionByTournament={{}}
+          failed={false}
           loading={true}
+          onRetry={() => undefined}
           organizationAlias="liga-mendocina"
+          staleSince={undefined}
           storage={undefined}
           tournaments={[]}
         />,
       ),
     );
 
-    expect(screen.getByText('Loading analytics…')).toBeTruthy();
+    expect(screen.getByText('Loading Analytics')).toBeTruthy();
     expect(screen.queryByRole('table')).toBeNull();
   });
 });

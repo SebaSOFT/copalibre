@@ -1,4 +1,5 @@
 ---
+import EmptyState from '../../components/ui/molecules/EmptyState.astro';
 import PublicLayout from '../../layouts/PublicLayout.astro';
 import OrganizationHeader from '../../components/ui/organisms/OrganizationHeader.astro';
 import TournamentSection from '../../components/ui/organisms/TournamentSection.astro';
@@ -12,7 +13,7 @@ import { withListingPodiumEmblems } from '../../lib/podium-emblems.ts';
 import { featuredTournaments } from '../../lib/organization-page.ts';
 import { publicIntl } from '../../lib/i18n/public-intl.ts';
 import { messages } from '../../lib/i18n/public-messages.en.ts';
-import { resolvePathLocale } from '../../lib/locale.ts';
+import { resolvePathLocale, getLocaleHomePath } from '../../lib/locale.ts';
 import { isReservedOrganizationAlias } from '../../lib/public-route-guards.ts';
 import type { SupportedLanguage } from '@copalibre/domain';
 import type { PublicTournamentListingItemResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
@@ -86,9 +87,18 @@ const structuredData = listData
 >
   {!listData && (
     <div class="cl-org-container">
-      <div class="cl-empty-state">
-        <p>{intl.formatMessage(messages.orgPageNotFoundBody)}</p>
-      </div>
+      <EmptyState
+        icon="team"
+        headingLevel={1}
+        heading={intl.formatMessage(messages.orgPageNotFoundTitle)}
+        description={intl.formatMessage(messages.orgPageNotFoundBody)}
+        actionLabel={intl.formatMessage(messages.interactionBrowseOrganizations)}
+        href={getLocaleHomePath(resolvedLocale)}
+        secondaryAction={{
+          label: intl.formatMessage(messages.headerNavHelp),
+          href: `${resolvedLocale === 'en' ? '' : `/${resolvedLocale}`}/help/`,
+        }}
+      />
     </div>
   )}
   {listData && (

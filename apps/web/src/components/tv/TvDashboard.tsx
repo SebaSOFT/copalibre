@@ -196,6 +196,10 @@ export function TvDashboard({
   const activeTab = rail.tab;
   const setActiveTab = (tab: typeof rail.tab): void => setRail({ tab, page: 0 });
   const [bracketData, setBracketData] = useState(initialBracket);
+  const bracketDataRef = useRef(initialBracket);
+  const [projectionStale, setProjectionStale] = useState(false);
+  const [bracketStale, setBracketStale] = useState(false);
+  const showStaleMark = projectionStale || bracketStale;
   const [currentTime, setCurrentTime] = useState<string>('');
   const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(() => {
     if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
@@ -250,12 +254,14 @@ export function TvDashboard({
       const [res, scheduleResponse] = await Promise.all(
         ['live', 'matches-view'].map((path) => fetch(`${base}/${path}`)),
       );
+      let scheduleRefreshed = false;
       if (scheduleResponse?.ok) {
         const snapshot = (await scheduleResponse.json()) as PublicMatchesViewResponse;
         if (
           Array.isArray(snapshot.matches) &&
           snapshot.matches.every((match) => typeof match.status === 'string')
         ) {
+          scheduleRefreshed = true;
           const entries = tvMatchEntriesOf(
             snapshot.matches.map((match) => ({
               ...match,
@@ -284,6 +290,7 @@ export function TvDashboard({
       if (res?.ok) {
         const liveData = await res.json();
         if (liveData && Array.isArray(liveData.matches)) {
+          setProjectionStale(!scheduleRefreshed);
           setDashboard((current) => ({
             ...current,
             matches: liveData.matches,
@@ -291,8 +298,10 @@ export function TvDashboard({
           return liveData.matches as readonly LiveMatch[];
         }
       }
+      setProjectionStale(true);
     } catch {
-      // Degrade silently; do not reload page
+      // Keep the server-rendered projection and identify it as last known.
+      setProjectionStale(true);
     }
     return undefined;
   }, [
@@ -329,7 +338,10 @@ export function TvDashboard({
     });
 
     void client.connect({
-      onOpen: () => setDashboard((current) => markConnected(current)),
+      onOpen: () => {
+        setProjectionStale(false);
+        setDashboard((current) => markConnected(current));
+      },
       onEvent: (event) => {
         if (event.eventType === 'fixture.entrant-resolved') {
           if (acceptEntrantResolution(entrantVersions.current, event)) void refreshProjection();
@@ -424,7 +436,7 @@ export function TvDashboard({
         void refreshProjection();
       },
       onFailure: () => {
-        // Silently fall back to polling on SSE failure
+        setProjectionStale(true);
         void refreshProjection();
       },
     });
@@ -541,12 +553,18 @@ export function TvDashboard({
         const response = await fetch(
           `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${bracketStage}/bracket`,
         );
-        if (!response.ok) return;
+        if (!response.ok) {
+          if (bracketDataRef.current) setBracketStale(true);
+          return;
+        }
         const mapped = mapBracketResponse((await response.json()) as PublicBracketResponse);
         const zones = bracketZonesOf(mapped);
-        setBracketData(zones.length > 0 ? { stageNumber: bracketStage, zones } : undefined);
+        const nextBracket = zones.length > 0 ? { stageNumber: bracketStage, zones } : undefined;
+        bracketDataRef.current = nextBracket;
+        setBracketData(nextBracket);
+        setBracketStale(false);
       } catch {
-        // The other TV sections retain their last-known projection.
+        if (bracketDataRef.current) setBracketStale(true);
       }
     };
     void refreshBracket();
@@ -598,6 +616,11 @@ export function TvDashboard({
   if (presentation === 'lower') {
     return (
       <div className="tv-root-container tv-lower-third" data-testid="tv-lower-third">
+        {showStaleMark && dashboardLabels.stale && (
+          <p className="cl-inline-alert cl-inline-alert--warning tv-stale-mark" role="status">
+            {dashboardLabels.stale}
+          </p>
+        )}
         {broadcastAlertBanner}
         {spotlightMatch ? (
           <div className="tv-lower-third__bug cl-chamfer">
@@ -642,6 +665,11 @@ export function TvDashboard({
 
   return (
     <div className="tv-root-container">
+      {showStaleMark && dashboardLabels.stale && (
+        <p className="cl-inline-alert cl-inline-alert--warning tv-stale-mark" role="status">
+          {dashboardLabels.stale}
+        </p>
+      )}
       {broadcastAlertBanner}
       {/* 1. Persistent Score-Bug / Status Bar */}
       {!isOverlay && (

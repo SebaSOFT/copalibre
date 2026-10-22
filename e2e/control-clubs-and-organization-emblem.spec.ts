@@ -48,6 +48,24 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
 
+        if (url === '/organizations?mine=true' && method === 'GET') {
+          return Response.json([
+            {
+              organizationId: 'org-1',
+              organizationAlias: orgAlias,
+              organizationName: 'Liga Mendocina',
+              role: 'admin',
+            },
+          ]);
+        }
+        if (url === '/api/auth/pat' && method === 'GET') return Response.json([]);
+        if (url === `/organizations/${orgAlias}/storage-usage` && method === 'GET') {
+          return Response.json({ totalBytes: 0, objectCount: 0 });
+        }
+        if (url === `/organizations/${orgAlias}/storage-usage/objects` && method === 'GET') {
+          return Response.json([]);
+        }
+
         if (url === `/organizations/${orgAlias}` && method === 'GET') {
           const org = await (
             window as unknown as { __organization: () => Promise<unknown> }

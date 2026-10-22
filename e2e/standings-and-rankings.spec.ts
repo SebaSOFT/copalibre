@@ -800,7 +800,7 @@ test.describe('B2: public tournament page', () => {
     await expect(page).not.toHaveURL(/clubId=/);
 
     // Matches / ticker is unaffected throughout.
-    await expect(page.getByRole('heading', { name: 'Matches' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Matches' }).first()).toBeVisible();
   });
 
   test('standings render a visible header row and never overflow the page at 375px', async ({

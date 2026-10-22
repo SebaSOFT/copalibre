@@ -86,13 +86,30 @@ const completion = {
 };
 
 let apiServer: Server;
+let noLiveMatches = false;
+test.beforeEach(() => {
+  noLiveMatches = false;
+});
 
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
     if (path === `${TOURNAMENT}/overview`) {
-      res.end(JSON.stringify(overview));
+      res.end(
+        JSON.stringify(
+          noLiveMatches
+            ? {
+                ...overview,
+                matches: overview.matches.map((match) => ({
+                  ...match,
+                  status: 'scheduled',
+                  scheduledAt: '2099-06-01T19:00:00.000Z',
+                })),
+              }
+            : overview,
+        ),
+      );
       return;
     }
     if (path === `${TOURNAMENT}/completion`) {
@@ -175,5 +192,34 @@ test.describe('tournament overview progress and rules', () => {
     await expect(page.locator('[data-connection-notice]')).toContainText(
       'actualizaciones en vivo no están disponibles',
     );
+  });
+});
+
+test.describe('public empty states without JavaScript', () => {
+  test.use({ javaScriptEnabled: false });
+  test('names the next kickoff and links to matches when no match is live', async ({ page }) => {
+    noLiveMatches = true;
+    await page.goto(PAGE);
+    const empty = page.locator('.cl-interaction-empty-state');
+    await expect(empty.getByRole('heading', { name: 'No hay partidos en vivo' })).toBeVisible();
+    await expect(empty).toContainText('Próximo partido:');
+    await expect(empty).toContainText('2099');
+    await expect(empty.getByRole('link', { name: 'Ver partidos' })).toHaveAttribute(
+      'href',
+      `${PAGE}/matches`,
+    );
+  });
+  test('a missing organization keeps its 404 status and offers organization and help navigation', async ({
+    page,
+  }) => {
+    const response = await page.goto('/es/organizacion-ausente');
+    expect(response?.status()).toBe(404);
+    const empty = page.locator('.cl-interaction-empty-state');
+    await expect(empty.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(empty.getByRole('link', { name: 'Ver organizaciones' })).toHaveAttribute(
+      'href',
+      '/es/',
+    );
+    await expect(empty.getByRole('link').last()).toHaveAttribute('href', /help/);
   });
 });

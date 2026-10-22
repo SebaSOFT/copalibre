@@ -130,7 +130,7 @@ describe('the pending reports and disputes queue', () => {
       ),
     );
 
-    await screen.findByText('Could not load the reports.');
+    await screen.findByText('Retry');
   });
 
   it('dismisses a report and removes it from the queue', async () => {

@@ -29,6 +29,7 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: async (input, init) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         calls.push({ url, body: init?.body ? JSON.parse(String(init.body)) : undefined });
         if (url === '/installation/super-admins') return json([]);
         if (url === '/admin/modules') return json([]);
@@ -67,7 +68,9 @@ describe('platform administration console', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Invite administrator' })),
     );
 
-    expect(calls.slice(3)).toEqual([
+    expect(
+      calls.filter((call) => call.url === '/organizations' || call.url.includes('/invitations')),
+    ).toEqual([
       {
         url: '/organizations',
         body: {
@@ -92,6 +95,7 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: async (input, init) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         const method = init?.method ?? 'GET';
         requests.push({
           url,
@@ -154,6 +158,7 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         if (url === '/admin/modules') return json([]);
         if (url === '/installation/super-admins') return json([]);
         return json({ message: 'Alias already belongs to another organization' }, 409);
@@ -176,6 +181,7 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         if (url === '/admin/modules' && (init?.method ?? 'GET') === 'GET') {
           return json([installedModule]);
         }
@@ -203,6 +209,7 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         const method = init?.method ?? 'GET';
         if (url === '/admin/modules') return json([]);
         if (url === '/installation/super-admins' && method === 'GET') return json(superAdmins);
@@ -248,19 +255,23 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         if (url === '/admin/modules') return json([]);
         if (url === '/installation/super-admins') return json({ message: 'Forbidden' }, 403);
         return json({}, 200);
       }),
     });
     render(withIntl(<PlatformAdministrationPage client={client} />));
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Forbidden'));
+    await waitFor(() =>
+      expect(screen.getByRole('alert').textContent).toContain('Retrying in 2 s.'),
+    );
   });
 
   it('drills into an organization alias to manage its users', async () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         if (url === '/admin/modules') return json([]);
         if (url === '/installation/super-admins') return json([]);
         if (url === '/organizations/liga-sur/roles') {
@@ -274,6 +285,10 @@ describe('platform administration console', () => {
             },
           ]);
         }
+        if (url.endsWith('/clubs') || url.endsWith('/tournaments') || url.endsWith('/invitations'))
+          return json([]);
+        if (url.endsWith('/roles/grantable'))
+          return json({ roles: ['admin', 'referee', 'viewer'] });
         return json({}, 200);
       }),
     });
@@ -293,6 +308,7 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         const method = init?.method ?? 'GET';
         if (url === '/admin/modules' && method === 'GET') return json([installedModule]);
         if (url === '/installation/super-admins') return json([]);
@@ -314,6 +330,7 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         const method = init?.method ?? 'GET';
         if (url === '/admin/modules' && method === 'GET') return json([installedModule]);
         if (url === '/installation/super-admins') return json([]);
@@ -354,6 +371,7 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         const method = init?.method ?? 'GET';
         if (url === '/admin/modules' && method === 'GET') return json([]);
         if (url === '/installation/super-admins') return json([]);
@@ -422,6 +440,7 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         const method = init?.method ?? 'GET';
         if (url === '/admin/modules' && method === 'GET') {
           return json([{ ...installedModule, sourceKind: 'authored' as const }]);
@@ -452,6 +471,7 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         if (url === '/admin/modules') return json([]);
         if (url === '/installation/super-admins') return json([]);
         if (url === '/disciplines') {
@@ -527,6 +547,7 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         const method = init?.method ?? 'GET';
         requests.push({
           url,
@@ -604,6 +625,7 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         if (url === '/admin/modules') return json([]);
         if (url === '/installation/super-admins') return json([]);
         if (url === '/disciplines') return json([]);
@@ -622,7 +644,8 @@ describe('platform administration console', () => {
       fireEvent.click(diagnosticsTabBtn);
     });
 
-    expect((await screen.findAllByText('Diagnostics probe timeout')).length).toBeGreaterThan(0);
+    await screen.findByRole('button', { name: 'Retry' });
+    expect(document.querySelector('.cl-skeleton')).not.toBeNull();
   });
 
   it('reports verbatim error when outbox retry fails', async () => {
@@ -654,6 +677,7 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         if (url === '/admin/modules') return json([]);
         if (url === '/installation/super-admins') return json([]);
         if (url === '/disciplines') return json([]);
@@ -706,6 +730,7 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
+        if (url === '/disciplines') return json([]);
         if (url === '/admin/modules') return json([]);
         if (url === '/installation/super-admins') return json([]);
         if (url === '/disciplines') return json([]);

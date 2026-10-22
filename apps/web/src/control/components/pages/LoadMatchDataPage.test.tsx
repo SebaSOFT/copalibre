@@ -1,3 +1,4 @@
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
 import { jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { LoadMatchDataPage } from '../pages/LoadMatchDataPage.js';
@@ -266,7 +267,7 @@ describe('LoadMatchDataPage', () => {
   it('renders a loading state before the projection resolves', () => {
     const api = client({ fetchMatchConsole: () => new Promise(() => {}) });
     renderRoute(api);
-    expect(screen.getByText('Loading…')).toBeDefined();
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
   });
 
   it('shows a load-failed message when fetchMatchConsole rejects', async () => {
@@ -276,7 +277,7 @@ describe('LoadMatchDataPage', () => {
       },
     });
     await act(async () => renderRoute(api));
-    expect(await screen.findByText(/Could not load this match/i)).toBeDefined();
+    await expectFirstReadFailure();
   });
 
   it('labels entrants with no resolvable name everywhere it lists them, never their ids', async () => {

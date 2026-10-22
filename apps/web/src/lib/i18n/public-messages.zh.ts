@@ -4,6 +4,11 @@
  * choice): ship now, native-speaker review later.
  */
 export const messages: Record<string, string> = {
+  'publicWeb.interaction.noLive': '当前没有进行中的比赛',
+  'publicWeb.interaction.nextKickoff': '下一场比赛：{time}',
+  'publicWeb.interaction.seeSchedule': '查看赛程以了解即将进行的比赛。',
+  'publicWeb.interaction.viewMatches': '查看比赛',
+  'publicWeb.interaction.browseOrganizations': '浏览组织',
   'publicWeb.sideSource.winner': '{match}的胜者',
   'publicWeb.sideSource.loser': '{match}的负者',
   'publicWeb.sideSource.winnerShort': '胜 {match}',

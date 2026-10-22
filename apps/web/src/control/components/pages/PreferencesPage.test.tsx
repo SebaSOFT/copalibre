@@ -1,3 +1,4 @@
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { jest } from '@jest/globals';
 import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -86,7 +87,7 @@ describe('PreferencesPage', () => {
       </ControlIntl>,
     );
 
-    expect(screen.getByRole('heading', { name: 'Tokens de acceso personal' })).toBeDefined();
+    expect(await screen.findByRole('heading', { name: 'Tokens de acceso personal' })).toBeDefined();
     expect(
       screen.getByText(
         'Generá tokens para acceder directamente a la API. Solo se muestran una vez.',
@@ -114,7 +115,9 @@ describe('PreferencesPage', () => {
       </ControlIntl>,
     );
 
-    fireEvent.change(screen.getByLabelText('Etiqueta del token'), { target: { value: 'New PAT' } });
+    fireEvent.change(await screen.findByLabelText('Etiqueta del token'), {
+      target: { value: 'New PAT' },
+    });
     fireEvent.change(screen.getByLabelText('Vence en (días)'), { target: { value: '60' } });
     fireEvent.click(screen.getByRole('button', { name: 'Generar token' }));
 
@@ -598,11 +601,7 @@ describe('PreferencesPage', () => {
       </ControlIntl>,
     );
 
-    await waitFor(() =>
-      expect(screen.getByRole('alert').textContent).toContain(
-        'Could not load organization settings.',
-      ),
-    );
+    await expectFirstReadFailure();
   });
 
   it('renders the formatted storage usage in MB and GB', async () => {
@@ -765,6 +764,6 @@ describe('PreferencesPage', () => {
       </ControlIntl>,
     );
 
-    expect(await screen.findByText('Could not load storage usage.')).toBeDefined();
+    await expectFirstReadFailure();
   });
 });

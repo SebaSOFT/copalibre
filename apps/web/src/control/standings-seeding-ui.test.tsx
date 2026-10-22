@@ -307,7 +307,8 @@ describe('control routes', () => {
       />,
     );
 
-    expect(await screen.findByText('No se pudieron cargar las posiciones.')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeTruthy();
+    expect(document.querySelector('.cl-skeleton')).not.toBeNull();
   });
 
   it('reports a table-layout list it could not complete', async () => {
@@ -320,7 +321,8 @@ describe('control routes', () => {
       />,
     );
 
-    expect(await screen.findByText('No se pudieron cargar las tablas.')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeTruthy();
+    expect(document.querySelector('.cl-skeleton')).not.toBeNull();
   });
 
   it('offers a group selector for a stage with more than one group and scopes the table to the selected one', async () => {
@@ -410,7 +412,7 @@ describe('control routes', () => {
       />,
     );
 
-    await screen.findByText('Sembrado');
+    await screen.findByRole('button', { name: 'Sortear no fijados' });
     // Pinned so the shuffle is a real change every run: with two entrants an
     // unpinned Math.random leaves the order alone half the time.
     const random = jest.spyOn(Math, 'random').mockReturnValue(0);
@@ -465,7 +467,7 @@ describe('control routes', () => {
       />,
     );
 
-    await screen.findByText('Sembrado');
+    await screen.findByRole('button', { name: 'Sortear no fijados' });
     const random = jest.spyOn(Math, 'random').mockReturnValue(0);
     fireEvent.click(screen.getByRole('button', { name: 'Sortear no fijados' }));
     random.mockRestore();
@@ -496,7 +498,8 @@ describe('control routes', () => {
     // English, not translated: this id has no Spanish catalogue entry yet,
     // the same `auth.*`/`invitation.*` namespace
     // gap other screens already restate in English.
-    expect(await screen.findByText('Could not load the seeding.')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeTruthy();
+    expect(document.querySelector('.cl-skeleton')).not.toBeNull();
   });
 
   it('pre-fills from a resolved promotion plan when the stage has no seeds yet', async () => {
@@ -529,7 +532,7 @@ describe('control routes', () => {
       />,
     );
 
-    await screen.findByText('Sembrado');
+    await screen.findByRole('button', { name: 'Sortear no fijados' });
     const seedList = screen.getByRole('list', { name: 'Orden de siembra' });
     const rows = within(seedList)
       .getAllByRole('listitem')
@@ -559,7 +562,7 @@ describe('control routes', () => {
       />,
     );
 
-    await screen.findByText('Sembrado');
+    await screen.findByRole('button', { name: 'Sortear no fijados' });
     const seedList = screen.getByRole('list', { name: 'Orden de siembra' });
     expect(
       within(seedList)
@@ -591,7 +594,7 @@ describe('control routes', () => {
       />,
     );
 
-    await screen.findByText('Sembrado');
+    await screen.findByRole('button', { name: 'Sortear no fijados' });
     const seedList = screen.getByRole('list', { name: 'Orden de siembra' });
     expect(within(seedList).queryAllByRole('listitem')).toEqual([]);
   });

@@ -1,22 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Alert } from '../ui/atoms/alert.js';
+import { useMemo } from 'react';
 import { useIntl } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
 import {
   createControlApiClient,
   type BulkLoadMatchDataRequest,
   type MatchConsoleApiClient,
-  type MatchConsoleResponse,
-  type RosterCandidate,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import { messages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
 import { LoadMatchDataTemplate } from '../screens/LoadMatchDataTemplate.js';
-
-type LoadStatus =
-  | { readonly kind: 'loading' }
-  | { readonly kind: 'ready' }
-  | { readonly kind: 'error'; readonly message: string };
+import { Alert } from '../ui/atoms/alert.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 /**
  * The bulk/structured entry screen: a match's roster, its full event
@@ -51,59 +46,31 @@ export function LoadMatchDataPage({
     [client],
   );
 
-  const [projection, setProjection] = useState<MatchConsoleResponse>();
-  const [status, setStatus] = useState<LoadStatus>({ kind: 'loading' });
-  const [candidatesByEntrant, setCandidatesByEntrant] = useState<
-    Map<string, readonly RosterCandidate[]>
-  >(new Map());
-
-  useEffect(() => {
-    let live = true;
-    api
-      .fetchMatchConsole(organizationAlias, tournamentAlias, matchId)
-      .then(async (loaded) => {
-        if (!live) return;
-        setProjection(loaded);
-        const entries = await Promise.all(
-          loaded.entrants.map(
-            async ({ entrantId }) =>
-              [
+  const read = useResilientRead(
+    `control-load-match:${organizationAlias}:${tournamentAlias}:${matchId}`,
+    async () => {
+      const projection = await api.fetchMatchConsole(organizationAlias, tournamentAlias, matchId);
+      const entries = await Promise.all(
+        projection.entrants.map(
+          async ({ entrantId }) =>
+            [
+              entrantId,
+              await api.fetchRosterCandidates(
+                organizationAlias,
+                tournamentAlias,
+                matchId,
                 entrantId,
-                await api.fetchRosterCandidates(
-                  organizationAlias,
-                  tournamentAlias,
-                  matchId,
-                  entrantId,
-                ),
-              ] as const,
-          ),
-        );
-        if (!live) return;
-        setCandidatesByEntrant(new Map(entries));
-        setStatus({ kind: 'ready' });
-      })
-      .catch(() =>
-        live
-          ? setStatus({
-              kind: 'error',
-              message: intl.formatMessage(messages.loadMatchDataLoadFailed),
-            })
-          : undefined,
+              ),
+            ] as const,
+        ),
       );
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias, tournamentAlias, matchId, intl]);
-
-  if (status.kind === 'loading' || !projection) {
-    return (
-      <Alert tone="destructive">
-        {status.kind === 'error'
-          ? status.message
-          : intl.formatMessage(messages.loadMatchDataLoading)}
-      </Alert>
-    );
-  }
+      return { projection, candidatesByEntrant: new Map(entries) };
+    },
+    { thing: intl.formatMessage(messages.loadMatchDataTitle) },
+  );
+  if (read.data === undefined)
+    return <ReadState {...read} title={intl.formatMessage(messages.loadMatchDataTitle)} />;
+  const { projection, candidatesByEntrant } = read.data;
 
   const hasCapability = (capability: (typeof projection.capabilities)[number]): boolean =>
     projection.capabilities.includes(capability);
@@ -146,12 +113,14 @@ export function LoadMatchDataPage({
   }
 
   return (
-    <LoadMatchDataTemplate
-      candidatesByEntrant={candidatesByEntrant}
-      matchId={matchId}
-      onSubmit={submit}
-      projection={projection}
-      tournamentAlias={tournamentAlias}
-    />
+    <ReadState {...read} title={intl.formatMessage(messages.loadMatchDataTitle)}>
+      <LoadMatchDataTemplate
+        candidatesByEntrant={candidatesByEntrant}
+        matchId={matchId}
+        onSubmit={submit}
+        projection={projection}
+        tournamentAlias={tournamentAlias}
+      />
+    </ReadState>
   );
 }

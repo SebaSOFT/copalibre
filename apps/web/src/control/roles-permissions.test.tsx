@@ -288,7 +288,8 @@ describe('roles and permissions control', () => {
       },
     });
     render(withIntl(<RolesPermissionsPage client={client} organizationAlias="liga-mendocina" />));
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Sin permisos'));
+    await screen.findByRole('button', { name: 'Retry' });
+    expect(document.querySelector('.cl-skeleton')).not.toBeNull();
   });
 
   it('deletes a role assignment through the route', async () => {
@@ -457,7 +458,7 @@ describe('roles and permissions control', () => {
     });
   });
 
-  it('falls back to showing every role when the grantable-roles fetch fails', async () => {
+  it('keeps the skeleton and retries when grantable roles fail', async () => {
     const client = controlClient({
       listOrganizationRoles: async () => rows,
       listGrantableRoles: async () => {
@@ -466,9 +467,8 @@ describe('roles and permissions control', () => {
     });
     render(withIntl(<RolesPermissionsPage client={client} organizationAlias="liga-mendocina" />));
 
-    await screen.findByText('referee@example.test');
-    const select = screen.getByLabelText('Role of referee@example.test') as HTMLSelectElement;
-    expect(select.options.length).toBeGreaterThan(3);
+    await screen.findByRole('button', { name: 'Retry' });
+    expect(document.querySelector('.cl-skeleton')).not.toBeNull();
   });
 
   it('renders pending invitations and rescinds one', async () => {

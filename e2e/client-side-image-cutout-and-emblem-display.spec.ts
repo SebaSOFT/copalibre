@@ -39,6 +39,14 @@ async function mockIdentityUploadApi(page: import('@playwright/test').Page): Pro
           });
         }
 
+        if (url === '/api/auth/pat' && method === 'GET') return Response.json([]);
+        if (url === `/organizations/${orgAlias}/storage-usage` && method === 'GET') {
+          return Response.json({ totalBytes: 0, objectCount: 0 });
+        }
+        if (url === `/organizations/${orgAlias}/storage-usage/objects` && method === 'GET') {
+          return Response.json([]);
+        }
+
         if (url === `/organizations/${orgAlias}/emblem` && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as {
             contentType: string;

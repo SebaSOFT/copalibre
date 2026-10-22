@@ -238,6 +238,12 @@ async function mockControlApi(
           const current = readCurrent();
           return Response.json({ ...current, zones: [{ matches: current.matches }] });
         }
+        if (url === `${stage}/configuration` && method === 'GET') {
+          return Response.json({ overrides: {} });
+        }
+        if (url === `${stage}/promotion-plans` && method === 'GET') {
+          return Response.json([]);
+        }
         if (url === `${tournament}/matches/persisted-wb-r1-m1/console`) {
           return Response.json(matchConsole);
         }

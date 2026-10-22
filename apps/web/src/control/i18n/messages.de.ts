@@ -4,6 +4,15 @@
  * separate, later pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'control.interaction.createToken': 'Token erstellen',
+  'control.interaction.pairTv': 'TV verbinden',
+  'control.interaction.pairDescription': 'Verbinde einen Fernseher, um Live-Ergebnisse anzuzeigen.',
+  'control.interaction.whoCanPair':
+    'Ein Organisationsadministrator kann einen Fernseher verbinden.',
+  'control.interaction.inviteDescription': 'Lade jemanden ein, diese Organisation mitzuverwalten.',
+  'control.interaction.whoCanInvite': 'Ein Organisationsadministrator kann Benutzer einladen.',
+  'control.interaction.tokenDescription':
+    'Erstelle ein Token, um über ein anderes Werkzeug auf die API zuzugreifen.',
   'control.sideSource.winner': 'Sieger aus {match}',
   'control.sideSource.loser': 'Verlierer aus {match}',
   'control.sideSource.winnerShort': 'S {match}',
@@ -215,6 +224,28 @@ export const messages: Record<string, string> = {
     '{count, plural, =0 {Keine wartenden Aktionen} one {# wartende Aktion} other {# wartende Aktionen}}',
   'control.matchConsole.lastSynced': 'Zuletzt synchronisiert {time}',
   'control.matchConsole.neverSynced': 'Noch nicht synchronisiert',
+  'control.interaction.loading': '{thing} wird geladen',
+  'control.interaction.emptyHeading': 'Noch keine Inhalte',
+  'control.interaction.emptyDescription': 'Fügen Sie zuerst das erste Element hinzu.',
+  'control.interaction.whoCanAct': 'Ein Organisationsadministrator kann Turniere erstellen.',
+  'control.interaction.stale': 'Veraltet',
+  'control.interaction.retry': 'Erneut versuchen',
+  'control.interaction.retryIn': 'Neuer Versuch in {seconds} s',
+  'control.interaction.readFailed':
+    '{thing} konnte nicht geladen werden. Neuer Versuch in {seconds} s.',
+  'control.interaction.failedEmpty': '{thing} konnte nicht geladen werden.',
+  'control.interaction.queued': 'In Warteschlange',
+  'control.interaction.sent': 'Gesendet',
+  'control.interaction.confirmed': 'Bestätigt',
+  'control.interaction.refused': 'Abgelehnt',
+  'control.interaction.online': 'Online',
+  'control.interaction.offline': 'Offline',
+  'control.interaction.lastSynced': 'Zuletzt synchronisiert {time}',
+  'control.interaction.neverSynced': 'Noch nicht synchronisiert',
+  'control.interaction.queuedCount':
+    '{count, plural, one {# Aktion in Warteschlange} other {# Aktionen in Warteschlange}}',
+  'control.interaction.refusedCount':
+    '{count, plural, one {# abgelehnte Aktion} other {# abgelehnte Aktionen}}',
   'control.matchConsole.unnamedEntrant': 'Unbenannter Teilnehmer',
   'control.matchConsole.clockCommands': 'Uhrbefehle',
   'control.matchConsole.startClock': 'Starten',

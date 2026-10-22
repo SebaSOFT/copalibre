@@ -1,3 +1,4 @@
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
 import { render, screen, waitFor } from '@testing-library/react';
 import { AuditTrailPage } from '../pages/AuditTrailPage.js';
 import { withIntl } from '../../i18n/test-support.js';
@@ -79,7 +80,7 @@ describe('AuditTrailPage', () => {
       ),
     );
 
-    await waitFor(() => screen.getByText('network down'));
+    await expectFirstReadFailure();
   });
 
   it('resolves actor IDs to user profiles when listOrganizationRoles is available', async () => {

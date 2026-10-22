@@ -304,7 +304,7 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await waitFor(() =>
-      expect(screen.getByRole('alert').textContent).toContain('Could not load clubs.'),
+      expect(screen.getByRole('alert').textContent).toContain('Retrying in 2 s.'),
     );
   });
 });

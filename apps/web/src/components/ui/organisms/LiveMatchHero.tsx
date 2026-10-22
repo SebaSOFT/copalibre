@@ -45,11 +45,16 @@ export function LiveMatchHero({
   resultStateLabels,
 }: LiveMatchHeroProps): React.JSX.Element {
   const [dashboard, setDashboard] = useState(initial);
+  const [connectionStale, setConnectionStale] = useState(false);
 
   useEffect(() => {
     const client = new RealtimeClient({ url: streamPath });
     void client.connect({
-      onOpen: () => setDashboard((current) => markConnected(current)),
+      onOpen: () => {
+        setConnectionStale(false);
+        setDashboard((current) => markConnected(current));
+      },
+      onFailure: () => setConnectionStale(true),
       onEvent: (event) => setDashboard((current) => applyEvent(current, event)),
       // The window passed; the page reloads rather than showing a partial
       // replay, which would be a score that is quietly wrong.
@@ -74,11 +79,19 @@ export function LiveMatchHero({
               />
             </CardDescription>
           )}
-          {dashboard.usingLastKnown && <p className="cl-inline-alert">{usingLastKnownText}</p>}
+          {(dashboard.usingLastKnown || connectionStale) && (
+            <p className="cl-inline-alert" role="status">
+              {usingLastKnownText}
+            </p>
+          )}
         </Card>
       ) : (
         <>
-          {dashboard.usingLastKnown && <p className="cl-inline-alert">{usingLastKnownText}</p>}
+          {(dashboard.usingLastKnown || connectionStale) && (
+            <p className="cl-inline-alert" role="status">
+              {usingLastKnownText}
+            </p>
+          )}
           {/*
            * The same grid `MatchCardGrid` lays its cards out on. Without it these
            * were one full-width card per row, which wastes most of a desktop

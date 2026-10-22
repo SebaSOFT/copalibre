@@ -4,6 +4,7 @@ import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { isSupportedLanguage, resolveLabel } from '@copalibre/domain';
 import type {
   ConsoleEventDefinition,
+  ConsoleMatchEvent,
   ConsoleSegment,
   MatchConsoleApiClient,
   MatchConsoleResponse,
@@ -39,8 +40,11 @@ import { ResponsiveTimestamp } from '../../../components/ui/atoms/ResponsiveTime
 import { JerseyGrid } from '../JerseyGrid.js';
 import { RosterSelectionStep } from '../RosterSelectionStep.js';
 import { MatchConsoleLayout } from '../ui/layouts/match-console-layout.js';
+import { ConnectionStatus } from '../ui/organisms/connection-status.js';
+import { EventSyncMark, type EventSyncState } from '../ui/molecules/event-sync-mark.js';
 import { messages } from '../../i18n/messages.en.js';
 import type { ConsoleStatus } from '../pages/MatchConsolePage.js';
+import { eventSyncKey } from '../../lib/match-console.js';
 
 /**
  * How many events stay visible with the ledger collapsed. Three is what makes
@@ -77,6 +81,7 @@ export function MatchConsoleTemplate({
   api,
   bracketMatches,
   finalizing,
+  eventSyncStates = {},
   lastSyncedAt,
   matchId,
   onApplyClock,
@@ -99,6 +104,9 @@ export function MatchConsoleTemplate({
   /** The match's stage bracket, for the "where this match sits" panel. Absent while loading. */
   readonly bracketMatches?: readonly CanvasMatch[];
   readonly finalizing: boolean;
+  readonly eventSyncStates?: Readonly<
+    Record<string, { readonly state: EventSyncState; readonly refusalReason?: string }>
+  >;
   readonly lastSyncedAt: number | undefined;
   readonly matchId: string;
   readonly onApplyClock: (segmentId: string, elapsedSeconds: number) => void;
@@ -225,14 +233,32 @@ export function MatchConsoleTemplate({
   const canControlClock = projection.capabilities.includes('match.control-clock');
   const canResolveTimer = projection.capabilities.includes('match.resolve-timer');
   const canFinalize = projection.capabilities.includes('match.finalize');
-  const displayedEvents = projection.events.filter((event) => {
+  const queuedEvents: ConsoleMatchEvent[] = pendingMutations.flatMap((mutation, index) => {
+    if (mutation.action.kind !== 'record-event') return [];
+    const request = mutation.action.request;
+    const event = {
+      eventId: `queued-${mutation.id}`,
+      definitionCode: request.definitionCode,
+      segmentId: request.segmentId,
+      sequence: projection.events.length + index + 1,
+      occurredAt: new Date(request.occurredAt).toISOString(),
+      ...(request.side === undefined ? {} : { side: request.side }),
+      ...(request.personId === undefined ? {} : { personId: request.personId }),
+      ...(request.notes === undefined ? {} : { notes: request.notes }),
+    };
+    return projection.events.some((projected) => eventSyncKey(projected) === eventSyncKey(event))
+      ? []
+      : [event];
+  });
+  const allEvents = [...projection.events, ...queuedEvents];
+  const displayedEvents = allEvents.filter((event) => {
     if (eventCategory === 'all') return true;
     return (
       projection.eventDefinitions.find((definition) => definition.code === event.definitionCode)
         ?.category === eventCategory
     );
   });
-  const newestFirst = [...displayedEvents].reverse();
+  const newestFirst = [...displayedEvents].sort((left, right) => right.sequence - left.sequence);
   const ledgerEvents = ledgerExpanded ? newestFirst : newestFirst.slice(0, LEDGER_PEEK_COUNT);
 
   const selectedSegment = projection.segments.find(
@@ -337,20 +363,22 @@ export function MatchConsoleTemplate({
     />
   );
 
-  // One glanceable icon, because "can I reach the server" is the only
-  // connectivity question this screen's operator asks mid-match. The queued
-  // count and last-synced time still matter — but as the answer to a question
-  // asked deliberately, so they are disclosed on hover or focus rather than
-  // permanently spending the space the console needs for its controls.
-  // `role="status"` names itself from `aria-label` rather than its content, so
-  // the same sentence serves twice: as the icon's accessible name, and as the
-  // live-region text a screen reader announces the moment the state flips.
   const syncStatusNode = (
-    <SyncStatusSection
-      intl={intl}
-      lastSyncedAt={lastSyncedAt}
+    <ConnectionStatus
       online={online}
-      pendingMutations={pendingMutations}
+      queuedCount={pendingMutations.filter((mutation) => mutation.status === 'pending').length}
+      refusedCount={pendingMutations.filter((mutation) => mutation.status === 'refused').length}
+      {...(lastSyncedAt === undefined
+        ? {}
+        : { lastSuccessfulSync: new Date(lastSyncedAt).toLocaleTimeString(intl.locale) })}
+      labels={{
+        online: intl.formatMessage(messages.interactionOnline),
+        offline: intl.formatMessage(messages.interactionOffline),
+        queuedCount: (count) => intl.formatMessage(messages.interactionQueuedCount, { count }),
+        refusedCount: (count) => intl.formatMessage(messages.interactionRefusedCount, { count }),
+        lastSuccessfulSync: (time) => intl.formatMessage(messages.interactionLastSynced, { time }),
+        neverSynced: intl.formatMessage(messages.interactionNeverSynced),
+      }}
     />
   );
 
@@ -785,24 +813,60 @@ export function MatchConsoleTemplate({
             ))}
           </div>
           <ol className="cl-platform-update-list">
-            {ledgerEvents.map((event) => (
-              <li key={event.eventId} className="cl-role-user">
-                <strong>
-                  {event.definitionCode} ·{' '}
-                  {segmentLabel(
-                    projection,
-                    event.segmentId,
-                    intl.formatMessage(messages.matchConsoleUnknownSegment),
-                    segmentTypeText,
+            {ledgerEvents.map((event) => {
+              const key = eventSyncKey(event);
+              const queueEntry = pendingMutations.find(
+                (mutation) =>
+                  mutation.action.kind === 'record-event' &&
+                  eventSyncKey({
+                    definitionCode: mutation.action.request.definitionCode,
+                    segmentId: mutation.action.request.segmentId,
+                    occurredAt: new Date(mutation.action.request.occurredAt).toISOString(),
+                  }) === key,
+              );
+              const explicitState = eventSyncStates[key];
+              const syncState =
+                explicitState ??
+                (queueEntry
+                  ? {
+                      state: queueEntry.status === 'refused' ? 'refused' : 'queued',
+                      ...(queueEntry.refusalReason === undefined
+                        ? {}
+                        : { refusalReason: queueEntry.refusalReason }),
+                    }
+                  : undefined);
+              return (
+                <li key={event.eventId} className="cl-role-user">
+                  <strong>
+                    {event.definitionCode} ·{' '}
+                    {segmentLabel(
+                      projection,
+                      event.segmentId,
+                      intl.formatMessage(messages.matchConsoleUnknownSegment),
+                      segmentTypeText,
+                    )}
+                    {event.segmentElapsedSeconds === undefined
+                      ? null
+                      : ` · ${formatClock(event.segmentElapsedSeconds)}`}
+                  </strong>
+                  <ResponsiveTimestamp locale={intl.locale} timestamp={event.occurredAt} />
+                  {syncState && (
+                    <EventSyncMark
+                      acknowledged={syncState.state === 'confirmed'}
+                      labels={{
+                        queued: intl.formatMessage(messages.interactionQueued),
+                        sent: intl.formatMessage(messages.interactionSent),
+                        confirmed: intl.formatMessage(messages.interactionConfirmed),
+                        refused: intl.formatMessage(messages.interactionRefused),
+                      }}
+                      refusalReason={syncState.refusalReason}
+                      state={syncState.state}
+                    />
                   )}
-                  {event.segmentElapsedSeconds === undefined
-                    ? null
-                    : ` · ${formatClock(event.segmentElapsedSeconds)}`}
-                </strong>
-                <ResponsiveTimestamp locale={intl.locale} timestamp={event.occurredAt} />
-                {event.notes ? <p className="cl-card__description">{event.notes}</p> : null}
-              </li>
-            ))}
+                  {event.notes ? <p className="cl-card__description">{event.notes}</p> : null}
+                </li>
+              );
+            })}
           </ol>
           <Field id="console-log-note" label={intl.formatMessage(messages.matchConsoleLogNote)}>
             <Textarea
@@ -941,68 +1005,6 @@ function AlertsSection({
         </ul>
       )}
     </>
-  );
-}
-
-/**
- * The one glanceable connectivity icon this screen's operator needs mid-match —
- * see its prior inline comment, preserved verbatim below. `syncDetailShown`
- * moved in from the template: nothing outside this section ever read it.
- */
-function SyncStatusSection({
-  intl,
-  lastSyncedAt,
-  online,
-  pendingMutations,
-}: {
-  readonly intl: IntlShape;
-  readonly lastSyncedAt: number | undefined;
-  readonly online: boolean;
-  readonly pendingMutations: readonly QueuedMutation[];
-}): React.JSX.Element {
-  const [syncDetailShown, setSyncDetailShown] = useState(false);
-  // `role="status"` names itself from `aria-label` rather than its content, so
-  // the same sentence serves twice: as the icon's accessible name, and as the
-  // live-region text a screen reader announces the moment the state flips.
-  const syncStateLabel = intl.formatMessage(messages.matchConsoleSyncState, {
-    state: online
-      ? intl.formatMessage(messages.matchConsoleOnline)
-      : intl.formatMessage(messages.matchConsoleOffline),
-  });
-  return (
-    <div
-      className="cl-sync-indicator"
-      onBlur={() => setSyncDetailShown(false)}
-      onFocus={() => setSyncDetailShown(true)}
-      onMouseEnter={() => setSyncDetailShown(true)}
-      onMouseLeave={() => setSyncDetailShown(false)}
-    >
-      <span
-        aria-label={syncStateLabel}
-        className={`cl-sync-indicator__icon cl-sync-indicator__icon--${online ? 'online' : 'offline'} cl-focusable`}
-        role="status"
-        tabIndex={0}
-      >
-        <span aria-hidden="true" className="cl-sync-indicator__dot" />
-        <span className="cl-visually-hidden">{syncStateLabel}</span>
-      </span>
-      {syncDetailShown && (
-        <div className="cl-sync-indicator__detail">
-          <span>
-            {intl.formatMessage(messages.matchConsoleQueuedCount, {
-              count: pendingMutations.filter((mutation) => mutation.status === 'pending').length,
-            })}
-          </span>
-          <span>
-            {lastSyncedAt === undefined
-              ? intl.formatMessage(messages.matchConsoleNeverSynced)
-              : intl.formatMessage(messages.matchConsoleLastSynced, {
-                  time: new Date(lastSyncedAt).toLocaleTimeString(intl.locale),
-                })}
-          </span>
-        </div>
-      )}
-    </div>
   );
 }
 

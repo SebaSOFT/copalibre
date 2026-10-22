@@ -67,7 +67,7 @@ async function readRequestLog(page: Page): Promise<readonly string[]> {
 
 async function mockControlApi(page: Page): Promise<void> {
   await page.addInitScript(
-    ({ tournament, stage, zone1, group1, entrants, layouts, tokenEndpoint }) => {
+    ({ tournament, stage, stage2, zone1, group1, entrants, layouts, tokenEndpoint }) => {
       const ZONES_KEY = 'e2e-zones';
       const GROUPS_KEY = 'e2e-groups-by-zone';
       const readZones = (): (typeof zone1)[] => {
@@ -102,6 +102,19 @@ async function mockControlApi(page: Page): Promise<void> {
 
         if (url === `${tournament}/registrations?status=accepted`) {
           return Response.json(entrants);
+        }
+
+        if (url === `${tournament}/stages` && method === 'GET') {
+          return Response.json([
+            { stageId: 'stage-1', seasonId: 'season-1', number: 1, name: 'Fase de grupos' },
+            { stageId: 'stage-2', seasonId: 'season-1', number: 2, name: 'Fase final' },
+          ]);
+        }
+        if (
+          (url === `${stage}/configuration` || url === `${stage2}/configuration`) &&
+          method === 'GET'
+        ) {
+          return Response.json({ overrides: {} });
         }
 
         if (url === `${stage}/zones` && method === 'GET') return Response.json(readZones());
@@ -184,6 +197,7 @@ async function mockControlApi(page: Page): Promise<void> {
     {
       tournament: TOURNAMENT,
       stage: STAGE,
+      stage2: STAGE_2,
       zone1,
       group1,
       entrants,
@@ -202,7 +216,6 @@ test('creates a second zone and group, assigns entrants manually, and reflects i
   await seedLoginTransaction(page, zonesTarget);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${zonesTarget}`);
-
   const zonesPanel = page.getByRole('region', { name: 'Zonas', exact: true });
   await expect(zonesPanel.getByText('Zona 1')).toBeVisible();
 
@@ -267,7 +280,7 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
   page,
 }) => {
   await page.addInitScript(
-    ({ stage, stage2, tokenEndpoint, zone1 }) => {
+    ({ tournament, stage, stage2, entrants, tokenEndpoint, zone1 }) => {
       const PLAN_KEY = 'e2e-promotion-plan';
       const REQUEST_LOG_KEY = 'e2e-request-log';
       const logRequest = (requestUrl: string, requestMethod: string): void => {
@@ -285,13 +298,22 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
         if (url === `${stage}/zones`) return Response.json([zone1]);
+        if (url === `${tournament}/registrations?status=accepted` && method === 'GET') {
+          return Response.json(entrants);
+        }
 
         if (url === `${stage}/zones/1/promotion-preview` && method === 'GET') {
           const saved = sessionStorage.getItem(PLAN_KEY);
           if (saved === null) {
             // Matches the real server's own message (zones-groups.controller.ts's
             // `promotionPreview` handler) for "no plan configured yet".
-            return Response.json({ message: 'No promotion plan for zone 1' }, { status: 404 });
+            return Response.json(
+              {
+                message: 'No promotion plan for zone 1',
+                errorCode: 'promotion-plan-not-found',
+              },
+              { status: 404 },
+            );
           }
           return Response.json({
             combined: [
@@ -320,6 +342,9 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
             hasRecordedResults: false,
           });
         }
+        if (url === `${stage2}/configuration` && method === 'GET') {
+          return Response.json({ overrides: {} });
+        }
         if (url === `${stage2}/promotion-plans` && method === 'GET') {
           const saved = sessionStorage.getItem(PLAN_KEY);
           if (saved === null) return Response.json([]);
@@ -338,7 +363,14 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
         return new Response('Not found', { status: 404 });
       };
     },
-    { stage: STAGE, stage2: STAGE_2, tokenEndpoint: TOKEN_ENDPOINT, zone1 },
+    {
+      tournament: TOURNAMENT,
+      stage: STAGE,
+      stage2: STAGE_2,
+      entrants,
+      tokenEndpoint: TOKEN_ENDPOINT,
+      zone1,
+    },
   );
 
   const promotionTarget = `/control/${ORG}/tournaments/${TOURNAMENT_ALIAS}/stages/1/zones/1/promotion`;
@@ -346,7 +378,9 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${promotionTarget}`);
 
-  await expect(page.getByText('No promotion plan for zone 1')).toBeVisible();
+  await expect(
+    page.getByText('Todavía no hay un plan de promoción guardado para esta zona.'),
+  ).toBeVisible();
 
   await page.getByLabel('Número de la fase siguiente').fill('2');
   await page.getByLabel(/(?:Entrantes|Participantes) que avanzan por grupo/).fill('2');
@@ -354,8 +388,8 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
 
   await expect(page.getByText('Plan guardado.')).toBeVisible();
   const review = page.getByRole('region', { name: 'Revisión — orden de candidatos calculado' });
-  await expect(review.getByText(/1\.\s*aaaaaaaa/)).toBeVisible();
-  await expect(review.getByText(/2\.\s*bbbbbbbb/)).toBeVisible();
+  await expect(review.getByText(/1\.\s*Deportivo Norte/)).toBeVisible();
+  await expect(review.getByText(/2\.\s*Atlético Sur/)).toBeVisible();
 
   // Reviewing the plan writes nothing to the next stage's seeding; the
   // seeding-builder pre-fill remains deferred.
@@ -663,6 +697,9 @@ test.describe('generate a cup ahead and confirm its qualifiers', () => {
               hasRecordedResults: false,
               qualifiers: [{ format: 'single-elimination', seeds }],
             });
+          }
+          if (url === `${stage2}/configuration` && method === 'GET') {
+            return Response.json({ overrides: {} });
           }
           if (url === `${stage2}/seeding` && method === 'POST') {
             sessionStorage.setItem(GENERATED, String(init?.body));

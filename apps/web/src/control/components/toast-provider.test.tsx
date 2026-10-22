@@ -5,6 +5,8 @@ import { IntlProvider } from 'react-intl';
 import { ToastProvider, useToast } from './ToastProvider.js';
 import { ControlApiError } from '../lib/api-client.js';
 
+const onRetry = jest.fn();
+
 function Fixture(): React.JSX.Element {
   const toast = useToast();
   return (
@@ -15,6 +17,17 @@ function Fixture(): React.JSX.Element {
       <button onClick={() => toast.push({ severity: 'info', message: 'Saved two' })}>Second</button>
       <button onClick={() => toast.push({ severity: 'error', message: 'Persistent error' })}>
         Error
+      </button>
+      <button
+        onClick={() =>
+          toast.push({
+            severity: 'error',
+            message: 'Read failed',
+            action: { label: 'Retry', onAction: onRetry },
+          })
+        }
+      >
+        Retryable error
       </button>
       <button
         onClick={() => toast.pushError(new ControlApiError(409, 'Raw detail', 'unmapped-code'))}
@@ -36,7 +49,10 @@ function renderFixture(): ReturnType<typeof render> {
 }
 
 describe('ToastProvider', () => {
-  beforeEach(() => jest.useFakeTimers());
+  beforeEach(() => {
+    jest.useFakeTimers();
+    onRetry.mockClear();
+  });
   afterEach(() => jest.useRealTimers());
 
   it('stacks newest first and dismisses each message independently', () => {
@@ -76,6 +92,16 @@ describe('ToastProvider', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Error' }));
     act(() => jest.advanceTimersByTime(60_000));
     expect(screen.getByRole('alert').textContent).toContain('Persistent error');
+  });
+
+  it('runs and dismisses an error toast action', () => {
+    renderFixture();
+    fireEvent.click(screen.getByRole('button', { name: 'Retryable error' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+    act(() => jest.advanceTimersByTime(200));
+    expect(screen.queryByText('Read failed')).toBeNull();
   });
 
   it('keeps unmapped raw data collapsed behind technical details', () => {

@@ -1,4 +1,5 @@
 ---
+import EmptyState from '../../../../components/ui/molecules/EmptyState.astro';
 import Breadcrumb from '../../../../components/ui/organisms/Breadcrumb.astro';
 import { publicTrail, trailBaseOf } from '../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../layouts/PublicLayout.astro';
@@ -146,6 +147,19 @@ const tickerItems = buildTickerItems({
 });
 
 const localePrefix = locale ? `/${locale}` : '';
+const nextKickoff = model.matches
+  .filter((match) => match.state === 'upcoming' && Date.parse(match.startsAt) >= Date.now())
+  .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))[0];
+const noLiveDescription = nextKickoff
+  ? intl.formatMessage(messages.interactionNextKickoff, {
+      time: intl.formatDate(new Date(nextKickoff.startsAt), {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: model.organizationTimeZone,
+      }),
+    })
+  : intl.formatMessage(messages.interactionSeeSchedule);
+
 const canonicalPath = `${localePrefix}${model.canonicalPath}`;
 const earliestStart = overviewData.matches
   .map((m) => m.scheduledAt)
@@ -194,6 +208,15 @@ const trail = publicTrail(trailBase, []);
     staleLabel={tickerChrome.stale}
   />
   <TournamentHero labels={tournamentHeroLabels(intl, model)} model={model} />
+  {model.liveCount === 0 && (
+    <EmptyState
+      icon="calendar"
+      heading={intl.formatMessage(messages.interactionNoLive)}
+      description={noLiveDescription}
+      actionLabel={intl.formatMessage(messages.interactionViewMatches)}
+      href={`${localePrefix}${model.canonicalPath}/matches`}
+    />
+  )}
   <CompletionFigure
     totalMatches={completion.totalMatches}
     resolvedMatches={completion.resolvedMatches}

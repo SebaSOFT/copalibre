@@ -129,7 +129,7 @@ describe('QualificationPage', () => {
 
   it('reports a preview it could not load', async () => {
     mount(stubClient({ previewQualification: () => Promise.reject(new Error('offline')) }));
-    await waitFor(() => expect(screen.getByText('Could not load the qualification.')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Retry')).toBeTruthy());
   });
 });
 

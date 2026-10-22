@@ -1,20 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from '../ui/atoms/alert.js';
+import { useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
 import {
   createControlApiClient,
   type ControlApiClient,
   type DrawAssignmentResponse,
-  type GroupResponse,
-  type RegistrationResponse,
-  type StageResponse,
   type ZoneConfigurationRequest,
   type ZoneResponse,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import { messages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
 import { ZoneGroupTemplate, type ManualPlacements } from '../screens/ZoneGroupTemplate.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 /**
  * Zone/Group management, entrant assignment, and the doorway to a zone's
@@ -47,93 +45,54 @@ export function ZoneGroupPage({
     [client],
   );
 
-  const [zones, setZones] = useState<readonly ZoneResponse[]>([]);
-  const [entrants, setEntrants] = useState<readonly RegistrationResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | undefined>(undefined);
-  const [selectedZoneNumber, setSelectedZoneNumber] = useState<number | undefined>(undefined);
-  const [groups, setGroups] = useState<readonly GroupResponse[]>([]);
-  const [zoneEntrantIds, setZoneEntrantIds] = useState<readonly string[]>([]);
-  // The stage's own format and discipline-offered formats, which a zone's override is chosen from.
-  const [stage, setStage] = useState<StageResponse | undefined>(undefined);
-
-  const reload = useCallback(async (): Promise<void> => {
-    setLoading(true);
-    try {
-      const [loadedZones, loadedEntrants, loadedStages] = await Promise.all([
+  const [selectedZoneOverride, setSelectedZoneNumber] = useState<number | undefined>(undefined);
+  const read = useResilientRead(
+    `control-zones:${organizationAlias}:${tournamentAlias}:${stageNumber}`,
+    async () => {
+      const [zones, entrants, stages] = await Promise.all([
         api.listZones?.(organizationAlias, tournamentAlias, stageNumber) ?? Promise.resolve([]),
         api.listRegistrations(organizationAlias, tournamentAlias, 'accepted'),
-        api.listStages?.(organizationAlias, tournamentAlias).catch(() => []) ?? Promise.resolve([]),
+        api.listStages?.(organizationAlias, tournamentAlias) ?? Promise.resolve([]),
       ]);
-      setZones(loadedZones);
-      setEntrants(loadedEntrants);
-      setStage(loadedStages.find((candidate) => candidate.number === stageNumber));
-      setSelectedZoneNumber((current) => current ?? loadedZones[0]?.number);
-      setLoadError(undefined);
-    } catch {
-      setLoadError(intl.formatMessage(messages.zoneGroupLoadFailed));
-    } finally {
-      setLoading(false);
-    }
-  }, [api, organizationAlias, tournamentAlias, stageNumber, intl]);
-
-  useEffect(() => {
-    let live = true;
-    Promise.all([
-      api.listZones?.(organizationAlias, tournamentAlias, stageNumber) ?? Promise.resolve([]),
-      api.listRegistrations(organizationAlias, tournamentAlias, 'accepted'),
-      api.listStages?.(organizationAlias, tournamentAlias).catch(() => []) ?? Promise.resolve([]),
-    ])
-      .then(([loadedZones, loadedEntrants, loadedStages]) => {
-        if (!live) return;
-        setZones(loadedZones);
-        setEntrants(loadedEntrants);
-        setStage(loadedStages.find((candidate) => candidate.number === stageNumber));
-        setSelectedZoneNumber((current) => current ?? loadedZones[0]?.number);
-        setLoadError(undefined);
-      })
-      .catch(() => {
-        if (live) setLoadError(intl.formatMessage(messages.zoneGroupLoadFailed));
-      })
-      .finally(() => {
-        if (live) setLoading(false);
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias, tournamentAlias, stageNumber, intl]);
-
-  useEffect(() => {
-    const load = async (): Promise<void> => {
-      if (selectedZoneNumber === undefined) {
-        setGroups([]);
-        setZoneEntrantIds([]);
-        return;
-      }
-      const [loadedGroups, loadedEntrantIds] = await Promise.all([
-        api
-          .listGroups?.(organizationAlias, tournamentAlias, stageNumber, selectedZoneNumber)
-          .catch(() => []) ?? Promise.resolve([]),
-        api
-          .fetchZoneEntrants?.(organizationAlias, tournamentAlias, stageNumber, selectedZoneNumber)
-          .catch(() => []) ?? Promise.resolve([]),
+      return {
+        zones,
+        entrants,
+        stage: stages.find((candidate) => candidate.number === stageNumber),
+      };
+    },
+    {
+      thing: intl.formatMessage(messages.zoneGroupTitle),
+      isEmpty: (data) => data.zones.length === 0,
+    },
+  );
+  const { zones = [], entrants = [], stage } = read.data ?? {};
+  const selectedZoneNumber = selectedZoneOverride ?? zones[0]?.number;
+  const setZones = (change: (zones: readonly ZoneResponse[]) => readonly ZoneResponse[]): void =>
+    read.update((current) => ({ ...current, zones: change(current.zones) }));
+  const reload = read.retry;
+  const groupsRead = useResilientRead(
+    `control-zone-groups:${organizationAlias}:${tournamentAlias}:${stageNumber}:${selectedZoneNumber ?? 'none'}`,
+    async () => {
+      if (selectedZoneNumber === undefined) return { groups: [], zoneEntrantIds: [] };
+      const [groups, zoneEntrantIds] = await Promise.all([
+        api.listGroups?.(organizationAlias, tournamentAlias, stageNumber, selectedZoneNumber) ??
+          Promise.resolve([]),
+        api.fetchZoneEntrants?.(
+          organizationAlias,
+          tournamentAlias,
+          stageNumber,
+          selectedZoneNumber,
+        ) ?? Promise.resolve([]),
       ]);
-      setGroups(loadedGroups ?? []);
-      setZoneEntrantIds(loadedEntrantIds ?? []);
-    };
-    void load();
-  }, [api, organizationAlias, tournamentAlias, stageNumber, selectedZoneNumber]);
-
-  const reloadGroups = useCallback(async (): Promise<void> => {
-    if (selectedZoneNumber === undefined) return;
-    const loaded = await api.listGroups?.(
-      organizationAlias,
-      tournamentAlias,
-      stageNumber,
-      selectedZoneNumber,
-    );
-    setGroups(loaded ?? []);
-  }, [api, organizationAlias, tournamentAlias, stageNumber, selectedZoneNumber]);
+      return { groups, zoneEntrantIds };
+    },
+    {
+      thing: intl.formatMessage(messages.zoneGroupTitle),
+      isEmpty: (data) => data.groups.length === 0,
+    },
+  );
+  const { groups = [], zoneEntrantIds = [] } = groupsRead.data ?? {};
+  const reloadGroups = groupsRead.retry;
 
   function entrantLabel(entrantId: string): string {
     const entrant = entrants.find((candidate) => candidate.entrantId === entrantId);
@@ -368,43 +327,42 @@ export function ZoneGroupPage({
     }
   }
 
-  if (loading) {
-    return <Alert tone="info">{intl.formatMessage(messages.zoneGroupLoading)}</Alert>;
-  }
-
-  if (loadError) {
-    return <Alert tone="destructive">{loadError}</Alert>;
-  }
+  if (read.data === undefined)
+    return <ReadState {...read} title={intl.formatMessage(messages.zoneGroupTitle)} />;
 
   return (
-    <ZoneGroupTemplate
-      api={api}
-      entrantLabel={entrantLabel}
-      entrants={entrants}
-      groups={groups}
-      availableFormats={stage?.availableFormats ?? []}
-      onConfigureZone={configureZone}
-      onConfirmGroupDraw={confirmGroupDraw}
-      onConfirmZoneDraw={confirmZoneDraw}
-      onCreateGroup={createGroup}
-      onCreateZone={createZone}
-      onDeleteGroup={deleteGroup}
-      onDeleteZone={deleteZone}
-      onPreviewGroupDraw={previewGroupDraw}
-      onPreviewZoneDraw={previewZoneDraw}
-      onRenameGroup={renameGroup}
-      onRenameZone={renameZone}
-      onSaveGroupManualAssignment={saveGroupManualAssignment}
-      onSaveZoneManualAssignment={saveZoneManualAssignment}
-      onSelectZone={setSelectedZoneNumber}
-      organizationAlias={organizationAlias}
-      selectedZoneNumber={selectedZoneNumber}
-      stageFormat={stage?.format}
-      stageNumber={stageNumber}
-      stageSeeded={stage?.seeded ?? false}
-      tournamentAlias={tournamentAlias}
-      zoneEntrantIds={zoneEntrantIds}
-      zones={zones}
-    />
+    <ReadState {...read} title={intl.formatMessage(messages.zoneGroupTitle)}>
+      <ReadState {...groupsRead} title={intl.formatMessage(messages.zoneGroupTitle)}>
+        <ZoneGroupTemplate
+          api={api}
+          entrantLabel={entrantLabel}
+          entrants={entrants}
+          groups={groups}
+          availableFormats={stage?.availableFormats ?? []}
+          onConfigureZone={configureZone}
+          onConfirmGroupDraw={confirmGroupDraw}
+          onConfirmZoneDraw={confirmZoneDraw}
+          onCreateGroup={createGroup}
+          onCreateZone={createZone}
+          onDeleteGroup={deleteGroup}
+          onDeleteZone={deleteZone}
+          onPreviewGroupDraw={previewGroupDraw}
+          onPreviewZoneDraw={previewZoneDraw}
+          onRenameGroup={renameGroup}
+          onRenameZone={renameZone}
+          onSaveGroupManualAssignment={saveGroupManualAssignment}
+          onSaveZoneManualAssignment={saveZoneManualAssignment}
+          onSelectZone={setSelectedZoneNumber}
+          organizationAlias={organizationAlias}
+          selectedZoneNumber={selectedZoneNumber}
+          stageFormat={stage?.format}
+          stageNumber={stageNumber}
+          stageSeeded={stage?.seeded ?? false}
+          tournamentAlias={tournamentAlias}
+          zoneEntrantIds={zoneEntrantIds}
+          zones={zones}
+        />
+      </ReadState>
+    </ReadState>
   );
 }

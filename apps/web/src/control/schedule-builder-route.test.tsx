@@ -744,7 +744,7 @@ describe('ScheduleBuilderPage', () => {
       ),
     );
 
-    await screen.findByText('Could not load this stage’s schedule.');
+    await screen.findByRole('button', { name: 'Retry' });
   });
 
   it('reports a load failure when the client has no fixtures method at all', async () => {
@@ -760,7 +760,7 @@ describe('ScheduleBuilderPage', () => {
       ),
     );
 
-    await screen.findByText('Could not load this stage’s schedule.');
+    await screen.findByRole('button', { name: 'Retry' });
   });
 
   it('shows a stage with no fixtures yet', async () => {

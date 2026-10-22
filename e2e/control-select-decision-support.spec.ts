@@ -21,7 +21,7 @@ const STAGE = `${TOURNAMENT}/stages/1`;
 
 async function mockStageApi(page: Page): Promise<void> {
   await page.addInitScript(
-    ({ tournament, stage, tokenEndpoint }) => {
+    ({ tournament, stage, organizationAlias, tokenEndpoint }) => {
       const initialStage = {
         stageId: 'stage-1',
         seasonId: 'season-1',
@@ -46,13 +46,43 @@ async function mockStageApi(page: Page): Promise<void> {
         if (url === `${tournament}/stages` && method === 'GET') {
           return Response.json([initialStage]);
         }
+        if (url === `/organizations/${organizationAlias}/roles` && method === 'GET') {
+          return Response.json([
+            {
+              assignmentId: '01800000-0000-7000-8000-000000000002',
+              principalId: '01800000-0000-7000-8000-000000000001',
+              email: 'referee@example.test',
+              role: 'referee',
+              status: 'active',
+            },
+          ]);
+        }
+        if (url === `/organizations/${organizationAlias}/invitations` && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url === `/organizations/${organizationAlias}/clubs` && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url === `/organizations/${organizationAlias}/tournaments` && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url === `/organizations/${organizationAlias}/roles/grantable` && method === 'GET') {
+          return Response.json({
+            roles: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
+          });
+        }
         if (url === stage && method === 'PATCH') {
           return Response.json(initialStage);
         }
         return new Response('Not found', { status: 404 });
       };
     },
-    { tournament: TOURNAMENT, stage: STAGE, tokenEndpoint: TOKEN_ENDPOINT },
+    {
+      tournament: TOURNAMENT,
+      stage: STAGE,
+      organizationAlias: ORG,
+      tokenEndpoint: TOKEN_ENDPOINT,
+    },
   );
 }
 
@@ -109,6 +139,17 @@ async function mockRolesApi(page: Page): Promise<void> {
         }
         if (url === '/organizations/liga-mendocina/invitations' && method === 'GET') {
           return Response.json([]);
+        }
+        if (
+          url === '/organizations/liga-mendocina/clubs' ||
+          url === '/organizations/liga-mendocina/tournaments'
+        ) {
+          return Response.json([]);
+        }
+        if (url === '/organizations/liga-mendocina/roles/grantable' && method === 'GET') {
+          return Response.json({
+            roles: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
+          });
         }
         return new Response('Not found', { status: 404 });
       };

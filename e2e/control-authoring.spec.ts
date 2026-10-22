@@ -229,6 +229,13 @@ async function mockControlApi(
         if (url === '/organizations/liga-mendocina/tournaments/apertura-2026/registrations') {
           return Response.json(registrations);
         }
+        if (
+          url ===
+            '/organizations/liga-mendocina/tournaments/apertura-2026/entrants/needing-abbreviation' &&
+          method === 'GET'
+        ) {
+          return Response.json([]);
+        }
 
         if (
           url ===

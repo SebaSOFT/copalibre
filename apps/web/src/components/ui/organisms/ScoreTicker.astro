@@ -71,8 +71,13 @@ const {
     <p class="cl-ticker__notice">{emptyLabel}</p>
   ) : (
     <>
-      {stale && staleLabel && (
-        <p class="cl-ticker__notice cl-ticker__notice--stale" role="status">
+      {staleLabel && (
+        <p
+          class="cl-ticker__notice cl-ticker__notice--stale"
+          role="status"
+          data-ticker-connection-notice
+          hidden={!stale}
+        >
           {staleLabel}
         </p>
       )}

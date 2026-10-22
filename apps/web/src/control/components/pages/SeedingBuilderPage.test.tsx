@@ -1,3 +1,4 @@
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
 import { jest } from '@jest/globals';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { SeedingBuilderPage } from '../pages/SeedingBuilderPage.js';
@@ -26,7 +27,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('SeedingBuilderPage', () => {
-  it('starts empty when the promotion-plan pre-fill lookup fails, rather than failing the whole screen', async () => {
+  it('keeps the skeleton and offers retry when the promotion-plan pre-fill lookup fails', async () => {
     render(
       withIntl(
         <SeedingBuilderPage
@@ -40,8 +41,8 @@ describe('SeedingBuilderPage', () => {
       ),
     );
 
-    await screen.findByText('Stage configuration');
-    expect(screen.getByText('This stage has no participants.')).toBeDefined();
+    await expectFirstReadFailure();
+    expect(screen.queryByText('This stage has no participants.')).toBeNull();
   });
 
   it('passes resolved entrant names from fetchSeeding to the template and renders them', async () => {

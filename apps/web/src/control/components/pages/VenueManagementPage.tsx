@@ -1,18 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from '../ui/atoms/alert.js';
+import { useMemo } from 'react';
 import { useIntl } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
 import {
   createControlApiClient,
   type ControlApiClient,
-  type OfficialResponse,
   type OfficialRole,
-  type ScheduleDetailResponse,
-  type VenueResponse,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import { messages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
 import { VenueManagementTemplate } from '../screens/VenueManagementTemplate.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 /**
  * Fetches and mutates: every call into the API
@@ -38,58 +36,24 @@ export function VenueManagementPage({
     [client],
   );
 
-  const [venues, setVenues] = useState<readonly VenueResponse[]>([]);
-  const [officials, setOfficials] = useState<readonly OfficialResponse[]>([]);
-  const [schedules, setSchedules] = useState<readonly ScheduleDetailResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const reload = useCallback(async (): Promise<void> => {
-    try {
-      const [loadedVenues, loadedOfficials, loadedSchedules] = await Promise.all([
+  const read = useResilientRead(
+    `control-resources:${organizationAlias}`,
+    async () => {
+      const [venues, officials, schedules] = await Promise.all([
         api.listVenues?.(organizationAlias) ?? Promise.resolve([]),
         api.listOfficials?.(organizationAlias) ?? Promise.resolve([]),
         api.listSchedules?.(organizationAlias) ?? Promise.resolve([]),
       ]);
-      setVenues(loadedVenues);
-      setOfficials(loadedOfficials);
-      setSchedules(loadedSchedules);
-    } catch {
-      push({
-        severity: 'error',
-        message: intl.formatMessage(messages.resourceManagementLoadFailed),
-      });
-    }
-  }, [api, intl, organizationAlias, push]);
-
-  useEffect(() => {
-    let live = true;
-    Promise.all([
-      api.listVenues?.(organizationAlias) ?? Promise.resolve([]),
-      api.listOfficials?.(organizationAlias) ?? Promise.resolve([]),
-      api.listSchedules?.(organizationAlias) ?? Promise.resolve([]),
-    ])
-      .then(([loadedVenues, loadedOfficials, loadedSchedules]) => {
-        if (live) {
-          setVenues(loadedVenues);
-          setOfficials(loadedOfficials);
-          setSchedules(loadedSchedules);
-        }
-      })
-      .catch(() => {
-        if (live) {
-          push({
-            severity: 'error',
-            message: intl.formatMessage(messages.resourceManagementLoadFailed),
-          });
-        }
-      })
-      .finally(() => {
-        if (live) setLoading(false);
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, intl, organizationAlias, push]);
+      return { venues, officials, schedules };
+    },
+    {
+      thing: intl.formatMessage(messages.resourceManagementTitle),
+      isEmpty: (data) =>
+        data.venues.length === 0 && data.officials.length === 0 && data.schedules.length === 0,
+    },
+  );
+  const { venues = [], officials = [], schedules = [] } = read.data ?? {};
+  const reload = read.retry;
 
   async function createVenue(name: string, alias: string, capacityText: string): Promise<boolean> {
     if (!api.createVenue || name.trim() === '' || alias.trim() === '') return false;
@@ -250,24 +214,25 @@ export function VenueManagementPage({
     }
   }
 
-  if (loading) {
-    return <Alert tone="info">{intl.formatMessage(messages.resourceManagementLoading)}</Alert>;
-  }
+  if (read.data === undefined)
+    return <ReadState {...read} title={intl.formatMessage(messages.resourceManagementTitle)} />;
 
   return (
-    <VenueManagementTemplate
-      api={api}
-      officials={officials}
-      onCreateOfficial={createOfficial}
-      onCreateSchedule={createSchedule}
-      onCreateVenue={createVenue}
-      onDeleteSchedule={deleteSchedule}
-      onSaveOfficial={saveOfficial}
-      onSaveSchedule={saveSchedule}
-      onSaveVenue={saveVenue}
-      organizationAlias={organizationAlias}
-      schedules={schedules}
-      venues={venues}
-    />
+    <ReadState {...read} title={intl.formatMessage(messages.resourceManagementTitle)}>
+      <VenueManagementTemplate
+        api={api}
+        officials={officials}
+        onCreateOfficial={createOfficial}
+        onCreateSchedule={createSchedule}
+        onCreateVenue={createVenue}
+        onDeleteSchedule={deleteSchedule}
+        onSaveOfficial={saveOfficial}
+        onSaveSchedule={saveSchedule}
+        onSaveVenue={saveVenue}
+        organizationAlias={organizationAlias}
+        schedules={schedules}
+        venues={venues}
+      />
+    </ReadState>
   );
 }

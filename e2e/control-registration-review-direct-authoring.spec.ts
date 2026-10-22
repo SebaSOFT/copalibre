@@ -35,6 +35,9 @@ async function mockRegistrationApi(
           ).__registrations();
           return Response.json(loaded);
         }
+        if (url.endsWith('/entrants/needing-abbreviation') && (init?.method ?? 'GET') === 'GET') {
+          return Response.json([]);
+        }
         if (url.endsWith('/registrations/persons') && init?.method === 'POST') {
           const body = JSON.parse(String(init.body)) as { displayName: string };
           const created = await (
@@ -72,27 +75,19 @@ async function mockRegistrationApi(
   });
 }
 
-test('dismisses a loading alert in the registration control screen and captures both states', async ({
-  page,
-}) => {
+test('keeps the registration screen shape while its first read is pending', async ({ page }) => {
   await mockRegistrationApi(page, [], true);
   const target = '/control/liga-mendocina/tournaments/apertura-2026/registrations';
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  const alert = page.getByRole('status');
-  await expect(alert).toContainText('Cargando inscripciones...');
+  const skeleton = page.locator('.cl-skeleton');
+  await expect(skeleton).toBeVisible();
+  await expect(skeleton).toHaveAttribute('aria-busy', 'true');
   await page.screenshot({
     fullPage: true,
-    path: 'docs/assets/screenshots/control-panel-loading-alert.png',
-  });
-
-  await alert.getByRole('button', { name: 'Descartar notificación' }).click();
-  await expect(alert).toHaveCount(0);
-  await page.screenshot({
-    fullPage: true,
-    path: 'docs/assets/screenshots/control-panel-alert-dismissed.png',
+    path: 'docs/assets/screenshots/control-panel-loading-state.png',
   });
 });
 

@@ -49,6 +49,9 @@ async function mockRegistrationApi(page: import('@playwright/test').Page): Promi
           ).__registrations();
           return Response.json(registrations);
         }
+        if (url.endsWith('/entrants/needing-abbreviation') && (init?.method ?? 'GET') === 'GET') {
+          return Response.json([]);
+        }
         if (url.endsWith(`/persons/${personId}/nationality`) && init?.method === 'PATCH') {
           const body = JSON.parse(String(init.body)) as { nationality: string | null };
           await (

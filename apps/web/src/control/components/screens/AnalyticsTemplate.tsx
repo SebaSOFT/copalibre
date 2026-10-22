@@ -1,18 +1,20 @@
-import { useIntl } from 'react-intl';
 import type { TournamentCompletionResponse } from '@copalibre/contracts';
+import { useIntl } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
 import {
   type OrganizationStorageUsageResponse,
   type TournamentResponse,
 } from '../../lib/api-client.js';
+import { formatStorageBytes } from '../pages/PreferencesPage.js';
 import { Badge } from '../ui/atoms/badge.js';
 import { Box } from '../ui/atoms/layout/box.js';
 import { Stack } from '../ui/atoms/layout/stack.js';
-import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
-import { AnalyticsStatusChart } from '../ui/organisms/analytics-status-chart.js';
-import { MetricStrip } from '../ui/molecules/metric-strip.js';
-import { formatStorageBytes } from '../pages/PreferencesPage.js';
-import { messages } from '../../i18n/messages.en.js';
+import { Skeleton } from '../ui/atoms/skeleton.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { MetricStrip } from '../ui/molecules/metric-strip.js';
+import { AnalyticsStatusChart } from '../ui/organisms/analytics-status-chart.js';
+import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
 
 interface TournamentActivityRow {
   readonly tournament: TournamentResponse;
@@ -51,14 +53,20 @@ function statusClassName(status: TournamentResponse['status']): string {
 
 /** Composes the screen from page-supplied data; it owns no fetching or state. */
 export function AnalyticsTemplate({
+  failed,
   loading,
+  onRetry,
   organizationAlias,
+  staleSince,
   storage,
   tournaments,
   completionByTournament,
 }: {
+  readonly failed: boolean;
   readonly loading: boolean;
+  readonly onRetry: () => void;
   readonly organizationAlias: string;
+  readonly staleSince: number | undefined;
   readonly storage: OrganizationStorageUsageResponse | undefined;
   readonly tournaments: readonly TournamentResponse[];
   readonly completionByTournament: Readonly<
@@ -180,8 +188,8 @@ export function AnalyticsTemplate({
         <p className="cl-card__description">{intl.formatMessage(messages.analyticsSubtitle)}</p>
       </Box>
 
-      {loading ? (
-        <p>{intl.formatMessage(messages.analyticsLoading)}</p>
+      {loading || failed ? (
+        <Skeleton label={intl.formatMessage(messages.analyticsLoading)} variant="block" />
       ) : (
         <Stack gap="6">
           <MetricStrip
@@ -218,14 +226,23 @@ export function AnalyticsTemplate({
   );
 
   return (
-    <ListScreenLayout
-      breadcrumb={
-        <span>
-          {organizationAlias} / {intl.formatMessage(messages.navAnalytics)}
-        </span>
+    <ReadState
+      status={
+        failed ? 'failed-empty' : loading ? 'loading' : staleSince !== undefined ? 'stale' : 'ready'
       }
-      listing={listingNode}
       title={intl.formatMessage(messages.navAnalytics)}
-    />
+      staleSince={staleSince}
+      retry={onRetry}
+    >
+      <ListScreenLayout
+        breadcrumb={
+          <span>
+            {organizationAlias} / {intl.formatMessage(messages.navAnalytics)}
+          </span>
+        }
+        listing={listingNode}
+        title={intl.formatMessage(messages.navAnalytics)}
+      />
+    </ReadState>
   );
 }

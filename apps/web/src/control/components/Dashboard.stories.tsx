@@ -38,8 +38,12 @@ const meta = {
   args: {
     canCreateTournament: true,
     canManageDisplayTokens: true,
+    failed: false,
+    loading: false,
     model,
+    onRetry: () => undefined,
     organizationAlias: ORG,
+    staleSince: undefined,
     client,
   },
   render: function Render(args) {

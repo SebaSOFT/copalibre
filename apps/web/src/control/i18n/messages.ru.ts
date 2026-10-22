@@ -6,6 +6,16 @@
  * two — `react-intl`'s `Intl.PluralRules` selects the right branch for `ru`.
  */
 export const messages: Record<string, string> = {
+  'control.interaction.createToken': 'Создать токен',
+  'control.interaction.pairTv': 'Подключить ТВ',
+  'control.interaction.pairDescription':
+    'Подключите телевизор для показа результатов в прямом эфире.',
+  'control.interaction.whoCanPair': 'Администратор организации может подключить телевизор.',
+  'control.interaction.inviteDescription':
+    'Пригласите кого-нибудь помочь с управлением организацией.',
+  'control.interaction.whoCanInvite': 'Администратор организации может приглашать пользователей.',
+  'control.interaction.tokenDescription':
+    'Создайте токен для доступа к API из другого инструмента.',
   'control.sideSource.winner': 'Победитель: {match}',
   'control.sideSource.loser': 'Проигравший: {match}',
   'control.sideSource.winnerShort': 'П {match}',
@@ -214,6 +224,27 @@ export const messages: Record<string, string> = {
     '{count, plural, =0 {Нет действий в очереди} one {# действие в очереди} few {# действия в очереди} many {# действий в очереди} other {# действия в очереди}}',
   'control.matchConsole.lastSynced': 'Последняя синхронизация {time}',
   'control.matchConsole.neverSynced': 'Ещё не синхронизировано',
+  'control.interaction.loading': 'Загрузка: {thing}',
+  'control.interaction.emptyHeading': 'Пока здесь ничего нет',
+  'control.interaction.emptyDescription': 'Начните с добавления первого элемента.',
+  'control.interaction.whoCanAct': 'Администратор организации может создавать турниры.',
+  'control.interaction.stale': 'Устарело',
+  'control.interaction.retry': 'Повторить',
+  'control.interaction.retryIn': 'Повтор через {seconds} с',
+  'control.interaction.readFailed': 'Не удалось загрузить: {thing}. Повтор через {seconds} с.',
+  'control.interaction.failedEmpty': 'Не удалось загрузить: {thing}.',
+  'control.interaction.queued': 'В очереди',
+  'control.interaction.sent': 'Отправлено',
+  'control.interaction.confirmed': 'Подтверждено',
+  'control.interaction.refused': 'Отклонено',
+  'control.interaction.online': 'В сети',
+  'control.interaction.offline': 'Не в сети',
+  'control.interaction.lastSynced': 'Последняя синхронизация: {time}',
+  'control.interaction.neverSynced': 'Ещё не синхронизировано',
+  'control.interaction.queuedCount':
+    '{count, plural, one {# действие в очереди} few {# действия в очереди} many {# действий в очереди} other {# действия в очереди}}',
+  'control.interaction.refusedCount':
+    '{count, plural, one {# отклонённое действие} few {# отклонённых действия} many {# отклонённых действий} other {# отклонённого действия}}',
   'control.matchConsole.unnamedEntrant': 'Участник без названия',
   'control.matchConsole.clockCommands': 'Команды таймера',
   'control.matchConsole.startClock': 'Запустить',
