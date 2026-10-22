@@ -18437,7 +18437,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:^8.3.4":
+"vite@npm:8.3.4":
   version: 8.3.4
   resolution: "vite@npm:8.3.4"
   dependencies:

@@ -77,14 +77,38 @@ export function checkManifestResolutionFloor(packageName, resolutions, firstPatc
   );
 }
 
-export function inspectOpenAlerts(alerts, known = KNOWN_UNPATCHED_ADVISORIES) {
+export function inspectOpenAlerts(
+  alerts,
+  known = KNOWN_UNPATCHED_ADVISORIES,
+  { lockText, resolutions = {} } = {},
+) {
   const failures = [];
   const reviewed = [];
+  const patchedInCheckout = [];
   for (const alert of alerts) {
     const registered = known[alert.number];
     const packageName = alert.security_vulnerability?.package?.name;
     const ghsa = alert.security_advisory?.ghsa_id;
     if (!registered) {
+      const firstPatchedVersion = alert.security_vulnerability?.first_patched_version?.identifier;
+      if (firstPatchedVersion && packageName && lockText) {
+        const versions = lockVersions(lockText, packageName);
+        if (versions.length === 0) {
+          failures.push(
+            `Dependabot alert #${alert.number} (${packageName}, ${ghsa ?? 'unknown GHSA'}) has a published fix but no locked package instance was found`,
+          );
+          continue;
+        }
+        const patchFailures = [
+          ...checkPatchedFloor(packageName, versions, firstPatchedVersion),
+          ...checkManifestResolutionFloor(packageName, resolutions, firstPatchedVersion),
+        ];
+        failures.push(...patchFailures);
+        if (patchFailures.length === 0) {
+          patchedInCheckout.push({ number: alert.number, packageName, ghsa, firstPatchedVersion });
+        }
+        continue;
+      }
       failures.push(
         `Dependabot alert #${alert.number} (${packageName ?? 'unknown package'}, ${ghsa ?? 'unknown GHSA'}) is open and has no reviewed register entry`,
       );
@@ -98,7 +122,7 @@ export function inspectOpenAlerts(alerts, known = KNOWN_UNPATCHED_ADVISORIES) {
     }
     reviewed.push({ number: alert.number, packageName, ghsa });
   }
-  return { failures, reviewed };
+  return { failures, reviewed, patchedInCheckout };
 }
 
 export function lockVersions(lockText, packageName) {
@@ -119,8 +143,11 @@ export async function checkDependabotAlerts({
   if (!token) throw new Error('Set GH_TOKEN or GITHUB_TOKEN with Dependabot alerts read access');
 
   const alerts = await listOpenAlerts(repository, token, fetchImpl);
-  const { failures, reviewed } = inspectOpenAlerts(alerts, known);
   const manifest = JSON.parse(readFileSync(new URL('package.json', ROOT), 'utf8'));
+  const { failures, reviewed, patchedInCheckout } = inspectOpenAlerts(alerts, known, {
+    lockText,
+    resolutions: manifest.resolutions ?? {},
+  });
 
   for (const [number, entry] of Object.entries(known)) {
     const advisory = await githubJson(`/advisories/${entry.ghsa}`, token, fetchImpl);
@@ -156,7 +183,11 @@ export async function checkDependabotAlerts({
   }
 
   if (failures.length > 0) throw new Error(failures.join('\n'));
-  return { openAlertCount: alerts.length, reviewedAlertCount: reviewed.length };
+  return {
+    openAlertCount: alerts.length,
+    reviewedAlertCount: reviewed.length,
+    patchedAlertCount: patchedInCheckout.length,
+  };
 }
 
 async function listOpenAlerts(repository, token, fetchImpl) {
@@ -227,7 +258,7 @@ async function main() {
   const repository = process.env.GITHUB_REPOSITORY ?? repositoryFromOrigin();
   const result = await checkDependabotAlerts({ repository, token });
   process.stdout.write(
-    `Dependabot audit passed: ${result.openAlertCount} open alerts, ${result.reviewedAlertCount} reviewed entries\n`,
+    `Dependabot audit passed: ${result.openAlertCount} open alerts, ${result.reviewedAlertCount} reviewed entries, ${result.patchedAlertCount} patched in checkout\n`,
   );
 }
 
