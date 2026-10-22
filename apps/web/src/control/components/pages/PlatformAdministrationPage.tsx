@@ -1,21 +1,22 @@
+import type { CreateOrganizationRequest } from '@copalibre/contracts';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
-import type { CreateOrganizationRequest, DiagnosticsSummary } from '@copalibre/contracts';
+import { messages } from '../../i18n/messages.en.js';
 import {
   createControlApiClient,
   type AuthoredModuleRequest,
   type AuthoredModuleValidationFailureResponse,
   type ControlApiClient,
   type InstalledModuleResponse,
-  type InstallationSuperAdminResponse,
   type ModuleVerifyResultResponse,
   type OutdatedModuleResponse,
 } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
-import { messages } from '../../i18n/messages.en.js';
-import { useToast } from '../ToastProvider.js';
 import type { DisciplineOption } from '../../lib/wizard.js';
+import { controlTokenStore } from '../../session/token-store.js';
 import { PlatformAdministrationTemplate } from '../screens/PlatformAdministrationTemplate.js';
+import { useToast } from '../ToastProvider.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 /**
  * Fetches and mutates: every call into the API
@@ -51,73 +52,51 @@ export function PlatformAdministrationPage({
     }
     return 'overview';
   });
-  const [diagnosticsSummary, setDiagnosticsSummary] = useState<DiagnosticsSummary | undefined>();
-  const [diagnosticsLoading, setDiagnosticsLoading] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('tab') === 'diagnostics';
-    }
-    return false;
-  });
-  const [diagnosticsError, setDiagnosticsError] = useState<string | undefined>();
+  const diagnosticsRead = useResilientRead(
+    'control-platform-diagnostics',
+    () => api.getDiagnosticsSummary?.() ?? Promise.resolve(undefined),
+    { thing: intl.formatMessage(messages.platformTitle), enabled: activeTab === 'diagnostics' },
+  );
+  const diagnosticsSummary = diagnosticsRead.data;
+  const diagnosticsLoading =
+    diagnosticsRead.status === 'loading' || diagnosticsRead.status === 'failed-empty';
+  const diagnosticsError = undefined;
+  const refreshDiagnostics = diagnosticsRead.refresh;
+  const loadDiagnostics = useCallback(async (): Promise<void> => {
+    await refreshDiagnostics();
+  }, [refreshDiagnostics]);
   const [autoPoll, setAutoPoll] = useState(false);
   const [retryingOutbox, setRetryingOutbox] = useState(false);
 
-  const [modules, setModules] = useState<readonly InstalledModuleResponse[]>([]);
   const [outdated, setOutdated] = useState<readonly OutdatedModuleResponse[]>([]);
   const [verification, setVerification] = useState<readonly ModuleVerifyResultResponse[]>([]);
-  const [loadingModules, setLoadingModules] = useState(true);
   const [busy, setBusy] = useState<string>();
-  const [superAdmins, setSuperAdmins] = useState<readonly InstallationSuperAdminResponse[]>([]);
-  const [loadingSuperAdmins, setLoadingSuperAdmins] = useState(true);
   const [authoringBusy, setAuthoringBusy] = useState(false);
   const [authoringFailures, setAuthoringFailures] = useState<
     readonly AuthoredModuleValidationFailureResponse[]
   >([]);
-  const [disciplineOptions, setDisciplineOptions] = useState<readonly DisciplineOption[]>([]);
-
-  useEffect(() => {
-    let active = true;
-    void api
-      .listDisciplines()
-      .then((result) => {
-        if (active) setDisciplineOptions(result);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [api]);
-
-  const loadSuperAdmins = useCallback(async () => {
-    setLoadingSuperAdmins(true);
-    try {
-      setSuperAdmins(
-        await requireApi(api.listInstallationSuperAdmins, 'listInstallationSuperAdmins')(),
-      );
-    } catch (cause) {
-      pushVerbatimError(toast, cause);
-    } finally {
-      setLoadingSuperAdmins(false);
-    }
-  }, [api, toast]);
-
-  useEffect(() => {
-    let active = true;
-    void requireApi(api.listInstallationSuperAdmins, 'listInstallationSuperAdmins')()
-      .then((result) => {
-        if (active) setSuperAdmins(result);
-      })
-      .catch((cause: unknown) => {
-        if (active) pushVerbatimError(toast, cause);
-      })
-      .finally(() => {
-        if (active) setLoadingSuperAdmins(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [api, toast]);
+  const read = useResilientRead(
+    'control-platform-overview',
+    async () => {
+      const [modules, superAdmins, disciplineOptions] = await Promise.all([
+        requireApi(api.listInstalledModules, 'listInstalledModules')(),
+        requireApi(api.listInstallationSuperAdmins, 'listInstallationSuperAdmins')(),
+        api.listDisciplines?.() ?? Promise.resolve([]),
+      ]);
+      return { modules, superAdmins, disciplineOptions };
+    },
+    {
+      thing: intl.formatMessage(messages.platformTitle),
+      isEmpty: (data) => data.modules.length === 0 && data.superAdmins.length === 0,
+    },
+  );
+  const { modules = [], superAdmins = [], disciplineOptions = [] } = read.data ?? {};
+  const setDisciplineOptions = (disciplineOptions: readonly DisciplineOption[]): void =>
+    read.update((current) => ({ ...current, disciplineOptions }));
+  const loadModules = read.retry;
+  const loadSuperAdmins = read.retry;
+  const loadingModules = read.data === undefined;
+  const loadingSuperAdmins = read.data === undefined;
 
   const createSuperAdmin = async (principalId: string): Promise<boolean> => {
     setBusy('super-admin');
@@ -150,39 +129,6 @@ export function PlatformAdministrationPage({
       setBusy(undefined);
     }
   };
-
-  const fetchModules = useCallback(async () => {
-    const list = requireApi(api.listInstalledModules, 'listInstalledModules');
-    return list();
-  }, [api]);
-
-  const loadModules = useCallback(async () => {
-    setLoadingModules(true);
-    try {
-      setModules(await fetchModules());
-    } catch (cause) {
-      pushVerbatimError(toast, cause);
-    } finally {
-      setLoadingModules(false);
-    }
-  }, [fetchModules, toast]);
-
-  useEffect(() => {
-    let active = true;
-    void fetchModules()
-      .then((result) => {
-        if (active) setModules(result);
-      })
-      .catch((cause: unknown) => {
-        if (active) pushVerbatimError(toast, cause);
-      })
-      .finally(() => {
-        if (active) setLoadingModules(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [fetchModules, toast]);
 
   const createOrganization = async (
     request: CreateOrganizationRequest,
@@ -373,27 +319,10 @@ export function PlatformAdministrationPage({
     }
   };
 
-  const loadDiagnostics = useCallback(async () => {
-    if (!api.getDiagnosticsSummary) return;
-    setDiagnosticsLoading(true);
-    setDiagnosticsError(undefined);
-    try {
-      const summary = await api.getDiagnosticsSummary();
-      setDiagnosticsSummary(summary);
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : String(cause);
-      setDiagnosticsError(message);
-      pushVerbatimError(toast, cause);
-    } finally {
-      setDiagnosticsLoading(false);
-    }
-  }, [api, toast]);
-
   useEffect(() => {
     const updateTab = () => {
       const params = new URLSearchParams(window.location.search);
       const isDiag = params.get('tab') === 'diagnostics';
-      if (isDiag) setDiagnosticsLoading(true);
       setActiveTab(isDiag ? 'diagnostics' : 'overview');
     };
     window.addEventListener('popstate', updateTab);
@@ -405,31 +334,6 @@ export function PlatformAdministrationPage({
   }, []);
 
   useEffect(() => {
-    if (activeTab !== 'diagnostics' || !api.getDiagnosticsSummary) return;
-    let live = true;
-    api
-      .getDiagnosticsSummary()
-      .then((summary) => {
-        if (!live) return;
-        setDiagnosticsSummary(summary);
-        setDiagnosticsError(undefined);
-      })
-      .catch((cause: unknown) => {
-        if (!live) return;
-        const message = cause instanceof Error ? cause.message : String(cause);
-        setDiagnosticsError(message);
-        pushVerbatimError(toast, cause);
-      })
-      .finally(() => {
-        if (!live) return;
-        setDiagnosticsLoading(false);
-      });
-    return () => {
-      live = false;
-    };
-  }, [activeTab, api, toast]);
-
-  useEffect(() => {
     if (!autoPoll || activeTab !== 'diagnostics') return;
     const interval = setInterval(() => {
       void loadDiagnostics();
@@ -438,9 +342,6 @@ export function PlatformAdministrationPage({
   }, [autoPoll, activeTab, loadDiagnostics]);
 
   const selectTab = useCallback((tab: 'overview' | 'diagnostics') => {
-    if (tab === 'diagnostics') {
-      setDiagnosticsLoading(true);
-    }
     setActiveTab(tab);
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
@@ -477,39 +378,44 @@ export function PlatformAdministrationPage({
   );
 
   return (
-    <PlatformAdministrationTemplate
-      activeTab={activeTab}
-      api={api}
-      authoringBusy={authoringBusy}
-      authoringFailures={authoringFailures}
-      autoPoll={autoPoll}
-      busy={busy}
-      diagnosticsError={diagnosticsError}
-      diagnosticsLoading={diagnosticsLoading}
-      diagnosticsSummary={diagnosticsSummary}
-      disciplineOptions={disciplineOptions}
-      loadingModules={loadingModules}
-      loadingSuperAdmins={loadingSuperAdmins}
-      modules={modules}
-      onAuthorModule={authorModule}
-      onCheckOutdated={checkOutdated}
-      onContributeModule={contributeModule}
-      onCreateOrganization={createOrganization}
-      onCreateSuperAdmin={createSuperAdmin}
-      onInstallModule={installModule}
-      onInviteAdmin={inviteOrganizationAdmin}
-      onRefreshDiagnostics={loadDiagnostics}
-      onRemoveModule={removeModule}
-      onRemoveSuperAdmin={removeSuperAdmin}
-      onRetryOutboxEvents={retryOutboxEvents}
-      onSelectTab={selectTab}
-      onToggleAutoPoll={setAutoPoll}
-      onVerifyModule={verifyModule}
-      outdated={outdated}
-      retryingOutbox={retryingOutbox}
-      superAdmins={superAdmins}
-      verification={verification}
-    />
+    <ReadState
+      {...(activeTab === 'diagnostics' ? diagnosticsRead : read)}
+      title={intl.formatMessage(messages.platformTitle)}
+    >
+      <PlatformAdministrationTemplate
+        activeTab={activeTab}
+        api={api}
+        authoringBusy={authoringBusy}
+        authoringFailures={authoringFailures}
+        autoPoll={autoPoll}
+        busy={busy}
+        diagnosticsError={diagnosticsError}
+        diagnosticsLoading={diagnosticsLoading}
+        diagnosticsSummary={diagnosticsSummary}
+        disciplineOptions={disciplineOptions}
+        loadingModules={loadingModules}
+        loadingSuperAdmins={loadingSuperAdmins}
+        modules={modules}
+        onAuthorModule={authorModule}
+        onCheckOutdated={checkOutdated}
+        onContributeModule={contributeModule}
+        onCreateOrganization={createOrganization}
+        onCreateSuperAdmin={createSuperAdmin}
+        onInstallModule={installModule}
+        onInviteAdmin={inviteOrganizationAdmin}
+        onRefreshDiagnostics={loadDiagnostics}
+        onRemoveModule={removeModule}
+        onRemoveSuperAdmin={removeSuperAdmin}
+        onRetryOutboxEvents={retryOutboxEvents}
+        onSelectTab={selectTab}
+        onToggleAutoPoll={setAutoPoll}
+        onVerifyModule={verifyModule}
+        outdated={outdated}
+        retryingOutbox={retryingOutbox}
+        superAdmins={superAdmins}
+        verification={verification}
+      />
+    </ReadState>
   );
 }
 

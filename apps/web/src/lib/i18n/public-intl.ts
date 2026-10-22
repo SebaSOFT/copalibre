@@ -147,6 +147,7 @@ export function tvStatisticsLabels(intl: IntlShape) {
 /** `TvDashboard.tsx`'s own chrome — separate from `tvStatisticsLabels`'s derived-stat labels. */
 export function tvDashboardLabels(intl: IntlShape) {
   return {
+    stale: intl.formatMessage(messages.tickerStale),
     sideSource: sideSourceLabels(intl),
     rescheduled: intl.formatMessage(messages.matchRescheduled, {
       time: '{time}',

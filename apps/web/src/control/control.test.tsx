@@ -737,7 +737,7 @@ describe('what the dashboard renders', () => {
   it('elevates the no-devices state to a structured empty-state card', () => {
     const { container } = render(withIntl(<DeviceHeartbeat devices={[]} now={Date.now()} />));
 
-    const emptyState = container.querySelector('.cl-empty-state');
+    const emptyState = container.querySelector('.cl-interaction-empty-state');
     expect(emptyState).not.toBeNull();
     expect(emptyState?.textContent).toContain('No TV devices provisioned yet.');
   });

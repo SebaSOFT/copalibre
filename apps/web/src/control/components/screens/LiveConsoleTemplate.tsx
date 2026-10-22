@@ -1,12 +1,15 @@
 import { defineMessages, useIntl } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
 import { type TournamentResponse } from '../../lib/api-client.js';
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Badge } from '../ui/atoms/badge.js';
 import { Card } from '../ui/atoms/card.js';
 import { Inline } from '../ui/atoms/layout/inline.js';
 import { Stack } from '../ui/atoms/layout/stack.js';
-import { messages } from '../../i18n/messages.en.js';
+import { Skeleton } from '../ui/atoms/skeleton.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { EmptyState } from '../ui/molecules/empty-state.js';
 
 // These two link
 // labels were hardcoded Spanish literals with no message id at all. Local
@@ -26,12 +29,18 @@ const localMessages = defineMessages({
  * screen state of its own.
  */
 export function LiveConsoleTemplate({
+  failed,
   loading,
+  onRetry,
   organizationAlias,
+  staleSince,
   tournaments,
 }: {
+  readonly failed: boolean;
   readonly loading: boolean;
+  readonly onRetry: () => void;
   readonly organizationAlias: string;
+  readonly staleSince: number | undefined;
   readonly tournaments: readonly TournamentResponse[];
 }): React.JSX.Element {
   const intl = useIntl();
@@ -42,23 +51,18 @@ export function LiveConsoleTemplate({
         {intl.formatMessage(messages.liveConsoleSubtitle)}
       </p>
 
-      {loading ? (
-        <p>{intl.formatMessage(messages.liveConsoleLoading)}</p>
+      {loading || failed ? (
+        <Skeleton label={intl.formatMessage(messages.liveConsoleLoading)} variant="block" />
       ) : tournaments.length === 0 ? (
-        <Card>
-          <div style={{ padding: 'var(--cl-space-6)', textAlign: 'center' }}>
-            <p style={{ margin: '0 0 var(--cl-space-4)', color: 'var(--cl-text-muted)' }}>
-              {intl.formatMessage(messages.liveConsoleNoActiveTournaments)}
-            </p>
-            <a
-              className="cl-btn cl-btn--primary cl-focusable"
-              href={`/control/${organizationAlias}/tournaments/new`}
-              onClick={controlLinkClick(`/control/${organizationAlias}/tournaments/new`)}
-            >
-              {intl.formatMessage(messages.liveConsoleCreateTournament)}
-            </a>
-          </div>
-        </Card>
+        <EmptyState
+          action={{
+            label: intl.formatMessage(messages.liveConsoleCreateTournament),
+            onClick: () => window.location.assign(`/control/${organizationAlias}/tournaments/new`),
+          }}
+          description={intl.formatMessage(messages.liveConsoleSubtitle)}
+          heading={intl.formatMessage(messages.liveConsoleNoActiveTournaments)}
+          icon="trophy"
+        />
       ) : (
         <Stack gap="4">
           {tournaments.map((tournament) => (
@@ -122,6 +126,15 @@ export function LiveConsoleTemplate({
   );
 
   return (
-    <ListScreenLayout listing={listingNode} title={intl.formatMessage(messages.navLiveConsole)} />
+    <ReadState
+      status={
+        failed ? 'failed-empty' : loading ? 'loading' : staleSince !== undefined ? 'stale' : 'ready'
+      }
+      title={intl.formatMessage(messages.navLiveConsole)}
+      staleSince={staleSince}
+      retry={onRetry}
+    >
+      <ListScreenLayout listing={listingNode} title={intl.formatMessage(messages.navLiveConsole)} />
+    </ReadState>
   );
 }

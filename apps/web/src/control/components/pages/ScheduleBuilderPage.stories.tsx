@@ -1,3 +1,4 @@
+import { ReadStoryScope, StaleReadStory } from '../screen-story-fixtures.js';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { userEvent, within, expect } from 'storybook/test';
 import { useMemo } from 'react';
@@ -26,6 +27,7 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
       return Promise.resolve(value);
     }
     return storyClient<ControlApiClient>({
+      controlStream: undefined,
       getStageFixtures: () =>
         read({
           stageId: ids.stage,
@@ -100,6 +102,13 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
   );
 }
 const meta = {
+  decorators: [
+    (Story, context) => (
+      <ReadStoryScope key={`${context.id}:${String(context.args.mode)}`}>
+        <Story />
+      </ReadStoryScope>
+    ),
+  ],
   title: 'Admin/Screens/ScheduleBuilderPage',
   component: Screen,
   args: { mode: 'loaded' },
@@ -125,4 +134,10 @@ export const Conflict: Story = {
     );
     await expect(canvas.findByText('Cancha Central / Meridian Seven')).resolves.toBeTruthy();
   },
+};
+
+export const Stale: Story = {
+  render: () => (
+    <StaleReadStory loaded={<Screen mode="loaded" />} failed={<Screen mode="failed" />} />
+  ),
 };

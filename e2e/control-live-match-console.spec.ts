@@ -431,7 +431,7 @@ test('guards duplicate finalization and retries a lost response with the same ke
   // exactly that silent-requeue path, the same key reused, now getting
   // through.
   // The queued count is on-demand detail behind the connectivity icon now.
-  await page.getByRole('status', { name: /^Estado de sincronización: / }).focus();
+  await page.locator('.cl-connection-status').focus();
   await expect(page.getByText('1 acción en cola')).toBeVisible();
   await page.getByRole('button', { name: 'Confirmar finalización' }).click();
   await expect(page.getByText('FINALIZED')).toBeVisible();
@@ -509,19 +509,18 @@ test('names both sides in the score header before any roster exists', async ({ p
   await expect(scoreboard).not.toContainText('entrant-b');
 });
 
-test('reduces connectivity to one icon whose detail opens on focus', async ({ page }) => {
+test('keeps connection and sync state visible in the console header', async ({ page }) => {
   await mockMatchConsole(page);
   const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  const indicator = page.getByRole('status', { name: 'Estado de sincronización: En línea' });
+  const indicator = page.locator('.cl-connection-status');
   await expect(indicator).toBeVisible();
+  await expect(indicator).toContainText('En línea');
+  await expect(indicator).toContainText('Última sincronización');
   await expect(page.getByText('Sin acciones en cola')).toHaveCount(0);
-
-  await indicator.focus();
-  await expect(page.getByText('Sin acciones en cola')).toBeVisible();
 });
 
 test('starts, pauses and ends a segment’s clock from the console', async ({ page }) => {

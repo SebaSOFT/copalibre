@@ -227,3 +227,5 @@ export const BracketJourneyChampion: Story = {
 export const BracketJourneyEliminated: Story = {
   args: { component: 'bracket-journey-eliminated', height: 640 },
 };
+
+export const EmptyState: Story = { args: { component: 'empty-state', height: 340 } };

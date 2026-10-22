@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
+import { messages as controlMessages } from '../../i18n/messages.en.js';
 import {
   createControlApiClient,
   type ControlApiClient,
@@ -9,9 +10,10 @@ import {
   type UnreferencedObjectResponse,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import { messages as controlMessages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
 import { PreferencesTemplate } from '../screens/PreferencesTemplate.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 export function formatStorageBytes(bytes: number): string {
   const ONE_MB = 1024 * 1024;
@@ -49,42 +51,76 @@ export function PreferencesPage({
   isOrganizationPage,
   organizationAlias,
   client,
+  patFetch,
 }: {
   readonly isOrganizationPage?: boolean;
   readonly organizationAlias?: string;
   readonly client?: ControlApiClient;
+  readonly patFetch?: typeof globalThis.fetch;
 }): React.JSX.Element {
-  const [tokens, setTokens] = useState<readonly PatResponse[]>([]);
-  const [newToken, setNewToken] = useState<PatCreatedResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const requestPat = patFetch ?? globalThis.fetch;
+  const intl = useIntl();
+  const { push, pushError } = useToast();
+  const api = useMemo(
+    () =>
+      client ??
+      createControlApiClient({
+        fetch: globalThis.fetch.bind(globalThis),
+        accessToken: () => controlTokenStore.read(),
+      }),
+    [client],
+  );
 
-  useEffect(() => {
-    let mounted = true;
-    const token = controlTokenStore.read();
-    void fetch('/api/auth/pat', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    }).then((res) => {
-      if (res.ok) {
-        res.json().then((data) => {
-          if (mounted) {
-            setTokens(data as PatResponse[]);
-            setLoading(false);
-          }
-        });
-      } else {
-        if (mounted) setLoading(false);
-      }
-    });
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const [newToken, setNewToken] = useState<PatCreatedResponse | null>(null);
+  const [orgNameEdit, setOrgName] = useState<string | undefined>(undefined);
+  const read = useResilientRead(
+    `control-preferences:${organizationAlias ?? 'personal'}`,
+    async () => {
+      const token = controlTokenStore.read();
+      const [response, organization, storageUsage, unreferencedObjects] = await Promise.all([
+        requestPat('/api/auth/pat', { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
+        organizationAlias === undefined ? undefined : api.getOrganization?.(organizationAlias),
+        organizationAlias === undefined ? undefined : api.getStorageUsage?.(organizationAlias),
+        organizationAlias === undefined
+          ? []
+          : (api.listUnreferencedObjects?.(organizationAlias) ?? []),
+      ]);
+      if (!response.ok) throw new Error('Personal access tokens could not be loaded');
+      const tokens = (await response.json()) as readonly PatResponse[];
+      return { tokens, organization, storageUsage, unreferencedObjects };
+    },
+    {
+      thing: intl.formatMessage(controlMessages.preferencesTitle),
+      isEmpty: (value) => value.tokens.length === 0 && value.organization === undefined,
+    },
+  );
+  const { tokens = [], organization, storageUsage, unreferencedObjects = [] } = read.data ?? {};
+  const orgName = orgNameEdit ?? organization?.name ?? '';
+  const setTokens = (change: (current: readonly PatResponse[]) => readonly PatResponse[]): void =>
+    read.update((current) => ({ ...current, tokens: change(current.tokens) }));
+  const setOrganization = (organization: OrganizationResponse): void =>
+    read.update((current) => ({ ...current, organization }));
+  const setUnreferencedObjects = (
+    change: (
+      current: readonly UnreferencedObjectResponse[],
+    ) => readonly UnreferencedObjectResponse[],
+  ): void =>
+    read.update((current) => ({
+      ...current,
+      unreferencedObjects: change(current.unreferencedObjects),
+    }));
+  const setStorageUsage = (
+    change: (
+      current: OrganizationStorageUsageResponse | undefined,
+    ) => OrganizationStorageUsageResponse | undefined,
+  ): void => read.update((current) => ({ ...current, storageUsage: change(current.storageUsage) }));
+  const reloadOrganization = read.retry;
 
   async function createPat(label: string, expiresInDays: number): Promise<boolean> {
     if (!label.trim()) return false;
 
     const token = controlTokenStore.read();
-    const res = await fetch('/api/auth/pat', {
+    const res = await requestPat('/api/auth/pat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -104,7 +140,7 @@ export function PreferencesPage({
 
   async function revokePat(tokenId: string): Promise<void> {
     const token = controlTokenStore.read();
-    const res = await fetch(`/api/auth/pat/${tokenId}`, {
+    const res = await requestPat(`/api/auth/pat/${tokenId}`, {
       method: 'DELETE',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
@@ -112,111 +148,6 @@ export function PreferencesPage({
       setTokens((current) => current.filter((t) => t.tokenId !== tokenId));
     }
   }
-
-  const intl = useIntl();
-  const { push, pushError } = useToast();
-  const api = useMemo(
-    () =>
-      client ??
-      createControlApiClient({
-        fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
-      }),
-    [client],
-  );
-
-  const [organization, setOrganization] = useState<OrganizationResponse | undefined>(undefined);
-  const [orgLoading, setOrgLoading] = useState(true);
-  const [orgLoadError, setOrgLoadError] = useState<string | undefined>(undefined);
-  const [orgName, setOrgName] = useState('');
-
-  const reloadOrganization = useCallback(async (): Promise<void> => {
-    if (organizationAlias === undefined) return;
-    setOrgLoading(true);
-    try {
-      const loaded = await api.getOrganization?.(organizationAlias);
-      setOrganization(loaded);
-      if (loaded) setOrgName(loaded.name);
-      setOrgLoadError(undefined);
-    } catch {
-      setOrgLoadError(intl.formatMessage(controlMessages.orgIdentityLoadFailed));
-    } finally {
-      setOrgLoading(false);
-    }
-  }, [api, organizationAlias, intl]);
-
-  // Mount-time load intentionally does not call `reloadOrganization` (kept
-  // for the imperative re-fetch after save/upload): its setState calls sit
-  // directly in an async/await body, which react-hooks/set-state-in-effect
-  // flags when reachable from an effect. Nesting them inside a promise
-  // chain instead keeps them out of that static reachability check — the
-  // same pattern used by ZoneGroupPage.tsx.
-  useEffect(() => {
-    if (organizationAlias === undefined) return undefined;
-    let live = true;
-    const getOrganization = api.getOrganization;
-    (getOrganization ? getOrganization(organizationAlias) : Promise.resolve(undefined))
-      .then((loaded) => {
-        if (!live) return;
-        setOrganization(loaded);
-        if (loaded) setOrgName(loaded.name);
-        setOrgLoadError(undefined);
-      })
-      .catch(() => {
-        if (live) setOrgLoadError(intl.formatMessage(controlMessages.orgIdentityLoadFailed));
-      })
-      .finally(() => {
-        if (live) setOrgLoading(false);
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias, intl]);
-
-  const [storageUsage, setStorageUsage] = useState<OrganizationStorageUsageResponse | undefined>(
-    undefined,
-  );
-  const [storageLoading, setStorageLoading] = useState(true);
-  const [storageError, setStorageError] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    if (organizationAlias === undefined) return undefined;
-    let live = true;
-    const getStorageUsage = api.getStorageUsage;
-    (getStorageUsage ? getStorageUsage(organizationAlias) : Promise.resolve(undefined))
-      .then((loaded) => {
-        if (!live) return;
-        setStorageUsage(loaded);
-        setStorageError(undefined);
-      })
-      .catch(() => {
-        if (live) setStorageError(intl.formatMessage(controlMessages.storageUsageLoadFailed));
-      })
-      .finally(() => {
-        if (live) setStorageLoading(false);
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias, intl]);
-
-  const [unreferencedObjects, setUnreferencedObjects] = useState<
-    readonly UnreferencedObjectResponse[]
-  >([]);
-
-  const reloadUnreferencedObjects = useCallback(() => {
-    if (organizationAlias === undefined || !api.listUnreferencedObjects) return;
-    api
-      .listUnreferencedObjects(organizationAlias)
-      .then(setUnreferencedObjects)
-      .catch(() => {
-        // A quiet, empty-by-default list — a failed load just leaves it empty.
-      });
-  }, [api, organizationAlias]);
-
-  useEffect(() => {
-    reloadUnreferencedObjects();
-  }, [reloadUnreferencedObjects]);
 
   async function deleteUnreferencedObject(objectId: string): Promise<void> {
     if (!api.deleteObject || organizationAlias === undefined) return;
@@ -292,29 +223,31 @@ export function PreferencesPage({
   }
 
   return (
-    <PreferencesTemplate
-      api={api}
-      isOrganizationPage={isOrganizationPage}
-      loading={loading}
-      newToken={newToken}
-      onChangeOrgName={setOrgName}
-      onCreatePat={createPat}
-      onDeleteUnreferencedObject={deleteUnreferencedObject}
-      onRevokePat={revokePat}
-      onRunStatisticsRebuild={runStatisticsRebuild}
-      onSaveOrganizationName={saveOrganizationName}
-      onUploadOrganizationEmblem={uploadOrganizationEmblem}
-      organization={organization}
-      organizationAlias={organizationAlias}
-      orgLoadError={orgLoadError}
-      orgLoading={orgLoading}
-      orgName={orgName}
-      rebuildResult={rebuildResult}
-      storageError={storageError}
-      storageLoading={storageLoading}
-      storageUsage={storageUsage}
-      tokens={tokens}
-      unreferencedObjects={unreferencedObjects}
-    />
+    <ReadState {...read} title={intl.formatMessage(controlMessages.preferencesTitle)}>
+      <PreferencesTemplate
+        api={api}
+        isOrganizationPage={isOrganizationPage}
+        loading={false}
+        newToken={newToken}
+        onChangeOrgName={setOrgName}
+        onCreatePat={createPat}
+        onDeleteUnreferencedObject={deleteUnreferencedObject}
+        onRevokePat={revokePat}
+        onRunStatisticsRebuild={runStatisticsRebuild}
+        onSaveOrganizationName={saveOrganizationName}
+        onUploadOrganizationEmblem={uploadOrganizationEmblem}
+        organization={organization}
+        organizationAlias={organizationAlias}
+        orgLoadError={undefined}
+        orgLoading={false}
+        orgName={orgName}
+        rebuildResult={rebuildResult}
+        storageError={undefined}
+        storageLoading={false}
+        storageUsage={storageUsage}
+        tokens={tokens}
+        unreferencedObjects={unreferencedObjects}
+      />
+    </ReadState>
   );
 }

@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count after shared chart palette and control chart (380/1496)', () => {
+test('the graph resolves the current node/edge count after shared interaction states and resilient read layouts (389/1575)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 380);
-  assert.equal(graph.edges.length, 1496);
+  assert.equal(graph.nodes.size, 389);
+  assert.equal(graph.edges.length, 1575);
 });
 
 test('a type-only import is not counted as a render', () => {

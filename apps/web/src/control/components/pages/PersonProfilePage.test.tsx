@@ -1,13 +1,17 @@
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { PersonProfilePage } from '../pages/PersonProfilePage.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { ControlApiClient, PersonResponse } from '../../lib/api-client.js';
+import { clearResilientReadCache } from './use-resilient-read.js';
 
 function stubClient(person: PersonResponse): ControlApiClient {
   return { getPerson: () => Promise.resolve(person) } as unknown as ControlApiClient;
 }
 
 describe('PersonProfilePage', () => {
+  beforeEach(() => clearResilientReadCache());
+
   it("shows the person's display name, flag, and natural key", async () => {
     render(
       withIntl(
@@ -77,7 +81,40 @@ describe('PersonProfilePage', () => {
       ),
     );
 
-    await waitFor(() => screen.getByText('Could not load this profile.'));
+    await expectFirstReadFailure();
+  });
+
+  it('keeps the last successful profile visible and marks it stale when a later read fails', async () => {
+    const firstRead = render(
+      withIntl(
+        <PersonProfilePage
+          client={stubClient({ personId: 'person-1', displayName: 'Elías Salomón' })}
+          organizationAlias="stale-profile-league"
+          personId="person-1"
+        />,
+      ),
+    );
+    await screen.findByText('Elías Salomón');
+    firstRead.unmount();
+
+    const { container } = render(
+      withIntl(
+        <PersonProfilePage
+          client={
+            {
+              getPerson: () => Promise.reject(new Error('network down')),
+            } as unknown as ControlApiClient
+          }
+          organizationAlias="stale-profile-league"
+          personId="person-1"
+        />,
+      ),
+    );
+
+    expect(await screen.findByText('Elías Salomón')).toBeDefined();
+    await waitFor(() =>
+      expect(container.querySelector('.cl-stale-mark')?.textContent).toContain('Stale'),
+    );
   });
 
   it('renders within ListScreenLayout structure', async () => {

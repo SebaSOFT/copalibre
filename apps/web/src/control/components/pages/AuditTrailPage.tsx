@@ -1,13 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
-import {
-  createControlApiClient,
-  type AuditRecordResponse,
-  type ControlApiClient,
-} from '../../lib/api-client.js';
+import { messages } from '../../i18n/messages.en.js';
+import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import { AuditTrailTemplate, type AuditActorProfile } from '../screens/AuditTrailTemplate.js';
-import { messages } from '../../i18n/messages.en.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 const PAGE_SIZE = 25;
 
@@ -28,93 +26,67 @@ export function AuditTrailPage({
       }),
     [client],
   );
-  const [records, setRecords] = useState<readonly AuditRecordResponse[]>([]);
-  const [actors, setActors] = useState<Readonly<Record<string, AuditActorProfile>>>({});
-  const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [actorFilter, setActorFilter] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>();
-
-  useEffect(() => {
-    if (!api.listOrganizationRoles) return;
-    let current = true;
-    void api
-      .listOrganizationRoles(organizationAlias)
-      .then((roles) => {
-        if (!current) return;
-        const map: Record<string, AuditActorProfile> = {};
-        for (const r of roles) {
-          const profile: AuditActorProfile = {
-            email: r.email,
-            role: r.role,
-            principalId: r.principalId,
-          };
-          map[r.principalId] = profile;
-          map[`user:${r.principalId}`] = profile;
-          map[r.email] = profile;
-          map[`user:${r.email}`] = profile;
-        }
-        setActors(map);
-      })
-      .catch(() => {
-        // Fall back gracefully to raw actor string if roles cannot be fetched
-      });
-    return () => {
-      current = false;
-    };
-  }, [api, organizationAlias]);
-
-  useEffect(() => {
-    if (!api.fetchAuditTrail) return;
-    let current = true;
-    void api
-      .fetchAuditTrail(organizationAlias, {
+  const rolesRead = useResilientRead(
+    `control-audit-actors:${organizationAlias}`,
+    async () => {
+      const roles = await api.listOrganizationRoles(organizationAlias);
+      const actors: Record<string, AuditActorProfile> = {};
+      for (const r of roles) {
+        const profile = { email: r.email, role: r.role, principalId: r.principalId };
+        for (const key of [r.principalId, `user:${r.principalId}`, r.email, `user:${r.email}`])
+          actors[key] = profile;
+      }
+      return actors;
+    },
+    { thing: intl.formatMessage(messages.auditTrailTitle) },
+  );
+  const read = useResilientRead(
+    `control-audit:${organizationAlias}:${offset}:${actorFilter}`,
+    () =>
+      api.fetchAuditTrail?.(organizationAlias, {
         limit: PAGE_SIZE,
         offset,
         ...(actorFilter === '' ? {} : { actor: actorFilter }),
-      })
-      .then((page) => {
-        if (!current) return;
-        setRecords(page.records);
-        setTotal(page.total);
-        setError(undefined);
-      })
-      .catch((cause: unknown) => {
-        if (!current) return;
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : intl.formatMessage(messages.auditTrailLoadFailed),
-        );
-      })
-      .finally(() => {
-        if (current) setLoading(false);
-      });
-    return () => {
-      current = false;
-    };
-  }, [api, organizationAlias, offset, actorFilter, intl]);
+      }) ?? Promise.resolve({ records: [], total: 0, limit: PAGE_SIZE, offset }),
+    {
+      thing: intl.formatMessage(messages.auditTrailTitle),
+      isEmpty: (data) => data.records.length === 0,
+    },
+  );
+  if (read.data === undefined)
+    return (
+      <ReadState
+        {...read}
+        title={intl.formatMessage(messages.auditTrailTitle)}
+        variant="table-row"
+      />
+    );
+  const { records, total } = read.data;
+  const actors = rolesRead.data ?? {};
 
   return (
-    <AuditTrailTemplate
-      organizationAlias={organizationAlias}
-      records={records}
-      actors={actors}
-      loading={loading}
-      error={error}
-      total={total}
-      limit={PAGE_SIZE}
-      offset={offset}
-      actorFilter={actorFilter}
-      onActorFilterChange={(value) => {
-        // A filtered trail keeps its own paging, independent of where the
-        // unfiltered one left off.
-        setActorFilter(value);
-        setOffset(0);
-      }}
-      onPreviousPage={() => setOffset((current) => Math.max(0, current - PAGE_SIZE))}
-      onNextPage={() => setOffset((current) => current + PAGE_SIZE)}
-    />
+    <ReadState {...read} title={intl.formatMessage(messages.auditTrailTitle)}>
+      <AuditTrailTemplate
+        organizationAlias={organizationAlias}
+        records={records}
+        actors={actors}
+        loading={false}
+        error={undefined}
+        total={total}
+        limit={PAGE_SIZE}
+        offset={offset}
+        actorFilter={actorFilter}
+        onActorFilterChange={(value) => {
+          // A filtered trail keeps its own paging, independent of where the
+          // unfiltered one left off.
+          setActorFilter(value);
+          setOffset(0);
+        }}
+        onPreviousPage={() => setOffset((current) => Math.max(0, current - PAGE_SIZE))}
+        onNextPage={() => setOffset((current) => current + PAGE_SIZE)}
+      />
+    </ReadState>
   );
 }

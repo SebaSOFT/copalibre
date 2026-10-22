@@ -1,9 +1,11 @@
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
 import { jest } from '@jest/globals';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { TournamentSettingsPage } from '../pages/TournamentSettingsPage.js';
 import { TournamentSettingsTemplate } from '../screens/TournamentSettingsTemplate.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { ControlApiClient, TournamentSettingsResponse } from '../../lib/api-client.js';
+import { clearResilientReadCache } from './use-resilient-read.js';
 
 function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   return {
@@ -19,6 +21,8 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('TournamentSettingsPage', () => {
+  beforeEach(() => clearResilientReadCache());
+
   it('loads and shows the current settings', async () => {
     render(
       withIntl(
@@ -43,12 +47,46 @@ describe('TournamentSettingsPage', () => {
             fetchTournamentSettings: () => Promise.reject(new Error('network down')),
           })}
           organizationAlias="liga-mendocina"
-          tournamentAlias="apertura-2026"
+          tournamentAlias="unavailable-tournament"
         />,
       ),
     );
 
-    expect(await screen.findByText('Could not load the tournament settings.')).toBeDefined();
+    await expectFirstReadFailure();
+  });
+
+  it('keeps the last successful settings visible and marks them stale when a later read fails', async () => {
+    const organizationAlias = 'stale-settings-league';
+    const tournamentAlias = 'stale-settings-cup';
+    const firstRead = render(
+      withIntl(
+        <TournamentSettingsPage
+          client={stubClient()}
+          organizationAlias={organizationAlias}
+          tournamentAlias={tournamentAlias}
+        />,
+      ),
+    );
+
+    await screen.findByDisplayValue('Copa Verano');
+    firstRead.unmount();
+
+    const { container } = render(
+      withIntl(
+        <TournamentSettingsPage
+          client={stubClient({
+            fetchTournamentSettings: () => Promise.reject(new Error('network down')),
+          })}
+          organizationAlias={organizationAlias}
+          tournamentAlias={tournamentAlias}
+        />,
+      ),
+    );
+
+    expect(await screen.findByDisplayValue('Copa Verano')).toBeDefined();
+    await waitFor(() =>
+      expect(container.querySelector('.cl-stale-mark')?.textContent).toContain('Stale'),
+    );
   });
 
   it('previews a proposed edit and reports its classification', async () => {
@@ -266,7 +304,15 @@ describe('TournamentSettingsPage', () => {
   it('sets the minimum rest, states it in the summary, and clears it with null', async () => {
     const updateTournamentSettings = jest.fn<
       NonNullable<ControlApiClient['updateTournamentSettings']>
-    >(() => Promise.resolve({ name: 'Copa Verano', featured: false }));
+    >(() =>
+      Promise.resolve({
+        name: 'Copa Verano',
+        region: 'South America',
+        capacity: 16,
+        featured: false,
+        minimumRestMinutes: undefined,
+      }),
+    );
     const { unmount } = render(
       withIntl(
         <TournamentSettingsPage
@@ -647,7 +693,7 @@ describe('TournamentSettingsPage', () => {
       ),
     );
 
-    expect(screen.getByText('Loading settings…')).toBeDefined();
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
   });
 
   it('handles empty response in save and upload handlers gracefully', async () => {

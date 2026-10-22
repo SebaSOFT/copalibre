@@ -47,6 +47,17 @@ async function mockRolesApi(page: Page, viewer = false): Promise<void> {
         if (url === invitationPath && method === 'GET') {
           return Response.json(pendingInvitations);
         }
+        if (url === '/organizations/liga-mendocina/clubs' && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url === '/organizations/liga-mendocina/tournaments' && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url === '/organizations/liga-mendocina/roles/grantable' && method === 'GET') {
+          return Response.json({
+            roles: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
+          });
+        }
         if (url === invitationPath && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as { email: string; role: string };
           invitedRole = body.role;
@@ -165,6 +176,7 @@ test('viewer receives server refusal instead of roles data', async ({ page }) =>
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
-  await expect(page.getByRole('alert')).toContainText('not authorized');
+  await expect(page.getByRole('alert')).toContainText('No se pudo cargar Roles y permisos');
+  await expect(page.getByRole('alert').getByRole('button', { name: 'Reintentar' })).toBeVisible();
   await expect(page.getByText('referee@example.test')).toHaveCount(0);
 });

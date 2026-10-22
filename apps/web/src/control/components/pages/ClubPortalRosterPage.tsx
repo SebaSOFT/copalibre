@@ -1,16 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
-import { Alert } from '../ui/atoms/alert.js';
+import { messages } from '../../i18n/messages.en.js';
 import {
   createControlApiClient,
-  type ClubMemberResponse,
   type ClubTeamResponse,
   type ControlApiClient,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import { messages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
 import { ClubPortalRosterTemplate } from '../screens/ClubPortalRosterTemplate.js';
+import { Alert } from '../ui/atoms/alert.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 /**
  * The Club Portal roster-submission wizard: loads the club's
@@ -41,34 +42,26 @@ export function ClubPortalRosterPage({
     [client],
   );
 
-  const [members, setMembers] = useState<readonly ClubMemberResponse[]>([]);
-  const [teams, setTeams] = useState<readonly ClubTeamResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string>();
   const [submitted, setSubmitted] = useState(false);
-
-  useEffect(() => {
-    let live = true;
-    Promise.all([
-      api.listClubMembers?.(organizationAlias, clubId) ?? Promise.resolve([]),
-      api.listClubTeams?.(organizationAlias, clubId) ?? Promise.resolve([]),
-    ])
-      .then(([loadedMembers, loadedTeams]) => {
-        if (!live) return;
-        setMembers(loadedMembers);
-        setTeams(loadedTeams);
-        setLoadError(undefined);
-      })
-      .catch(() => {
-        if (live) setLoadError(intl.formatMessage(messages.clubPortalRosterLoadFailed));
-      })
-      .finally(() => {
-        if (live) setLoading(false);
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, intl, organizationAlias, clubId]);
+  const read = useResilientRead(
+    `control-club-registration:${organizationAlias}:${clubId}`,
+    async () => {
+      const [members, teams] = await Promise.all([
+        api.listClubMembers?.(organizationAlias, clubId) ?? Promise.resolve([]),
+        api.listClubTeams?.(organizationAlias, clubId) ?? Promise.resolve([]),
+      ]);
+      return { members, teams };
+    },
+    {
+      thing: intl.formatMessage(messages.clubPortalRosterTitle),
+      isEmpty: (data) => data.members.length === 0 && data.teams.length === 0,
+    },
+  );
+  const members = read.data?.members ?? [];
+  const teams = read.data?.teams ?? [];
+  const setTeams = (
+    change: (current: readonly ClubTeamResponse[]) => readonly ClubTeamResponse[],
+  ): void => read.update((current) => ({ ...current, teams: change(current.teams) }));
 
   async function createTeam(name: string): Promise<ClubTeamResponse | undefined> {
     if (!api.createClubTeam || name.trim() === '') return undefined;
@@ -105,23 +98,21 @@ export function ClubPortalRosterPage({
     }
   }
 
-  if (loading) {
-    return <Alert tone="info">{intl.formatMessage(messages.clubPortalRosterLoading)}</Alert>;
-  }
-  if (loadError) {
-    return <Alert tone="destructive">{loadError}</Alert>;
-  }
+  if (read.data === undefined)
+    return <ReadState {...read} title={intl.formatMessage(messages.clubPortalRosterTitle)} />;
   if (submitted) {
     return <Alert tone="success">{intl.formatMessage(messages.clubPortalRosterSubmitted)}</Alert>;
   }
 
   return (
-    <ClubPortalRosterTemplate
-      api={api}
-      members={members}
-      onCreateTeam={createTeam}
-      onSubmit={submit}
-      teams={teams}
-    />
+    <ReadState {...read} title={intl.formatMessage(messages.clubPortalRosterTitle)}>
+      <ClubPortalRosterTemplate
+        api={api}
+        members={members}
+        onCreateTeam={createTeam}
+        onSubmit={submit}
+        teams={teams}
+      />
+    </ReadState>
   );
 }

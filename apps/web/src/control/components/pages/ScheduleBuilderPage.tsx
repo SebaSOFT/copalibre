@@ -1,26 +1,23 @@
 import { RealtimeClient } from '@copalibre/realtime';
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { Alert } from '../ui/atoms/alert.js';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
 import {
   ControlApiError,
   createControlApiClient,
   type ControlApiClient,
-  type FixtureResponse,
-  type OfficialResponse,
   type ScheduleAssignmentDto,
   type ScheduleConflictDto,
-  type ScheduleDetailResponse,
   type ScheduleReasonDto,
-  type VenueResponse,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import { messages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
 import {
   ScheduleBuilderTemplate,
   type DraftAssignment,
 } from '../screens/ScheduleBuilderTemplate.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 const EMPTY_DRAFT: DraftAssignment = {
   slotId: '',
@@ -66,76 +63,97 @@ export function ScheduleBuilderPage({
     [client],
   );
 
-  const [stageId, setStageId] = useState<string | undefined>(undefined);
-  const [fixtures, setFixtures] = useState<readonly FixtureResponse[]>([]);
-  const [venues, setVenues] = useState<readonly VenueResponse[]>([]);
-  const [officials, setOfficials] = useState<readonly OfficialResponse[]>([]);
-  const [schedules, setSchedules] = useState<readonly ScheduleDetailResponse[]>([]);
-  const [drafts, setDrafts] = useState<Readonly<Record<string, DraftAssignment>>>({});
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | undefined>(undefined);
+  const [draftOverride, setDrafts] = useState<Readonly<Record<string, DraftAssignment>>>();
+  const dirtyDraft = useRef(false);
   const [conflicts, setConflicts] = useState<readonly ScheduleConflictDto[]>([]);
-  const [currentConflicts, setCurrentConflicts] = useState<readonly ScheduleConflictDto[]>([]);
+  const [conflictOverride, setCurrentConflicts] = useState<readonly ScheduleConflictDto[]>();
   const [affectedPublishedMatches, setAffectedPublishedMatches] = useState<readonly string[]>([]);
   const [reasonRequiredMatches, setReasonRequiredMatches] = useState<readonly string[]>([]);
   const [freedSlotIds, setFreedSlotIds] = useState<readonly string[]>([]);
-  const [placements, setPlacements] = useState<Readonly<Record<string, string>>>({});
-  const [recentReasons, setRecentReasons] = useState<readonly string[]>([]);
   const [committable, setCommittable] = useState(false);
   const [previewed, setPreviewed] = useState(false);
   const [concurrentNotice, setConcurrentNotice] = useState<string>();
-  const currentDraft = useRef(drafts);
+  const currentDraft = useRef<Readonly<Record<string, DraftAssignment>>>({});
   const previewGeneration = useRef(0);
-  useEffect(() => {
-    currentDraft.current = drafts;
-  }, [drafts]);
 
-  const reload = useCallback(async (): Promise<void> => {
-    setLoading(true);
-    try {
-      const [fixturesResponse, loadedVenues, loadedOfficials, loadedSchedules] = await Promise.all([
+  const read = useResilientRead(
+    `control-schedule:${organizationAlias}:${tournamentAlias}:${stageNumber}`,
+    async () => {
+      const [fixturesResponse, venues, officials, schedules] = await Promise.all([
         api.getStageFixtures?.(organizationAlias, tournamentAlias, stageNumber),
         api.listVenues?.(organizationAlias) ?? Promise.resolve([]),
         api.listOfficials?.(organizationAlias) ?? Promise.resolve([]),
         api.listSchedules?.(organizationAlias) ?? Promise.resolve([]),
       ]);
-      if (!fixturesResponse) throw new Error('no fixtures client configured');
-      setStageId(fixturesResponse.stageId);
-      setFixtures(fixturesResponse.fixtures);
-      setVenues(loadedVenues);
-      setOfficials(loadedOfficials);
-      setSchedules(loadedSchedules);
-
+      if (!fixturesResponse) throw new Error('Stage fixtures are unavailable');
       const schedule = await api.getSchedule?.(
         organizationAlias,
         tournamentAlias,
         fixturesResponse.stageId,
       );
-      const nextDrafts: Record<string, DraftAssignment> = {};
-      const nextPlacements: Record<string, string> = {};
-      for (const assignment of schedule?.assignments ?? []) {
-        nextDrafts[assignment.matchId] = {
-          slotId: assignment.slotId,
-          officialIds: assignment.officialIds ?? [],
-        };
-        nextPlacements[assignment.matchId] = assignment.slotId;
-      }
-      setDrafts(nextDrafts);
-      setPlacements(nextPlacements);
-      setCurrentConflicts(schedule?.conflicts ?? []);
-      setPreviewed(false);
-      setConflicts([]);
-      setLoadError(undefined);
-    } catch {
-      setLoadError(intl.formatMessage(messages.scheduleBuilderLoadFailed));
-    } finally {
-      setLoading(false);
-    }
-  }, [api, organizationAlias, tournamentAlias, stageNumber, intl]);
-
+      return {
+        stageId: fixturesResponse.stageId,
+        fixtures: fixturesResponse.fixtures,
+        venues,
+        officials,
+        schedules,
+        schedule,
+      };
+    },
+    {
+      thing: intl.formatMessage(messages.scheduleBuilderTitle),
+      onSuccess: ({ schedule }) => {
+        setCurrentConflicts(schedule?.conflicts ?? []);
+        if (dirtyDraft.current) return;
+        setDrafts(undefined);
+        setPreviewed(false);
+        setConflicts([]);
+      },
+    },
+  );
+  const assignments = read.data?.schedule?.assignments ?? [];
+  const savedDrafts = Object.fromEntries(
+    assignments.map((assignment) => [
+      assignment.matchId,
+      {
+        slotId: assignment.slotId,
+        officialIds: assignment.officialIds ?? [],
+      },
+    ]),
+  );
+  const drafts = draftOverride ?? savedDrafts;
+  const placements = Object.fromEntries(
+    assignments.map((assignment) => [assignment.matchId, assignment.slotId]),
+  );
+  const currentConflicts = conflictOverride ?? read.data?.schedule?.conflicts ?? [];
   useEffect(() => {
-    void Promise.resolve().then(() => reload());
-  }, [reload]);
+    currentDraft.current = drafts;
+  }, [drafts]);
+  const { stageId, fixtures = [], venues = [], officials = [], schedules = [] } = read.data ?? {};
+  const reload = read.refresh;
+  const conflictsRead = useResilientRead(
+    `control-schedule-conflicts:${organizationAlias}:${tournamentAlias}:${stageId}`,
+    () =>
+      stageId === undefined
+        ? Promise.resolve(undefined)
+        : (api.getSchedule?.(organizationAlias, tournamentAlias, stageId) ??
+          Promise.resolve(undefined)),
+    {
+      thing: intl.formatMessage(messages.scheduleBuilderTitle),
+      enabled: false,
+      onSuccess: (schedule) => setCurrentConflicts(schedule?.conflicts ?? []),
+    },
+  );
+  const refreshConflicts = conflictsRead.refresh;
+  const reasonsRead = useResilientRead(
+    `control-schedule-reasons:${organizationAlias}`,
+    () => api.recentScheduleReasons?.(organizationAlias) ?? Promise.resolve({ reasons: [] }),
+    {
+      thing: intl.formatMessage(messages.scheduleBuilderTitle),
+      enabled: reasonRequiredMatches.length > 0,
+    },
+  );
+  const recentReasons = reasonsRead.data?.reasons ?? [];
 
   useEffect(() => {
     const stream = api.controlStream?.(organizationAlias);
@@ -175,14 +193,7 @@ export function ScheduleBuilderPage({
       onEvent: (event) => {
         // A result resolved a side into a clash with a published placement: re-read what is real now.
         if (event.eventType === 'schedule.conflict-arose') {
-          void api
-            .getSchedule?.(organizationAlias, tournamentAlias, stageId)
-            .then((schedule) => {
-              if (active) setCurrentConflicts(schedule?.conflicts ?? []);
-            })
-            .catch(() => {
-              // The next full read reports them; a missed refresh is not worth a banner.
-            });
+          void refreshConflicts();
           return;
         }
         if (event.eventType !== 'match.rescheduled' || event.payload.stageId !== stageId) return;
@@ -231,12 +242,22 @@ export function ScheduleBuilderPage({
       active = false;
       client.close();
     };
-  }, [api, organizationAlias, tournamentAlias, stageId, fixtures, intl, pushError]);
+  }, [
+    api,
+    organizationAlias,
+    tournamentAlias,
+    stageId,
+    fixtures,
+    intl,
+    pushError,
+    refreshConflicts,
+  ]);
 
   function setDraft(matchId: string, patch: Partial<DraftAssignment>): void {
+    dirtyDraft.current = true;
     setDrafts((current) => ({
-      ...current,
-      [matchId]: { ...(current[matchId] ?? EMPTY_DRAFT), ...patch },
+      ...(current ?? drafts),
+      [matchId]: { ...((current ?? drafts)[matchId] ?? EMPTY_DRAFT), ...patch },
     }));
     previewGeneration.current += 1;
     setPreviewed(false);
@@ -265,14 +286,6 @@ export function ScheduleBuilderPage({
       setFreedSlotIds(result.freedSlotIds ?? []);
       setCommittable(result.committable);
       setPreviewed(true);
-      // The reason prompt offers the organization's own recent wording; it is a nicety, so a
-      // failed read leaves the presets alone rather than failing the preview.
-      if ((result.reasonRequiredMatches ?? []).length > 0 && api.recentScheduleReasons) {
-        void api
-          .recentScheduleReasons(organizationAlias)
-          .then((response) => setRecentReasons(response.reasons))
-          .catch(() => setRecentReasons([]));
-      }
     } catch (error) {
       pushError(error);
     }
@@ -289,6 +302,7 @@ export function ScheduleBuilderPage({
         ...(reason === undefined ? {} : { reason }),
       });
       push({ severity: 'success', message: intl.formatMessage(messages.scheduleBuilderPublished) });
+      dirtyDraft.current = false;
       void reload();
     } catch (error) {
       // Refused for conflicts that arose since the preview: list them, worded, as a preview would.
@@ -307,37 +321,46 @@ export function ScheduleBuilderPage({
     }
   }
 
-  if (loading) {
-    return <Alert tone="info">{intl.formatMessage(messages.scheduleBuilderLoading)}</Alert>;
-  }
-  if (loadError) {
-    return <Alert tone="destructive">{loadError}</Alert>;
-  }
+  if (read.data === undefined)
+    return <ReadState {...read} title={intl.formatMessage(messages.scheduleBuilderTitle)} />;
 
   return (
-    <ScheduleBuilderTemplate
-      concurrentNotice={concurrentNotice}
-      affectedPublishedMatches={affectedPublishedMatches}
-      committable={committable}
-      conflicts={conflicts}
-      currentConflicts={currentConflicts}
-      drafts={drafts}
-      fixtures={fixtures}
-      freedSlotIds={freedSlotIds}
-      officials={officials}
-      onPreview={(batch) => void preview(batch)}
-      onPublish={(batch, reason) => void publish(batch, reason)}
-      onSetDraft={setDraft}
-      onToggleOfficial={toggleOfficial}
-      organizationAlias={organizationAlias}
-      placements={placements}
-      previewed={previewed}
-      reasonRequiredMatches={reasonRequiredMatches}
-      recentReasons={recentReasons}
-      schedules={schedules}
-      stageNumber={stageNumber}
-      tournamentAlias={tournamentAlias}
-      venues={venues}
-    />
+    <ReadState
+      {...read}
+      status={
+        read.status === 'stale' ||
+        conflictsRead.status === 'stale' ||
+        reasonsRead.status === 'stale'
+          ? 'stale'
+          : read.status
+      }
+      staleSince={read.staleSince ?? conflictsRead.staleSince ?? reasonsRead.staleSince}
+      title={intl.formatMessage(messages.scheduleBuilderTitle)}
+    >
+      <ScheduleBuilderTemplate
+        concurrentNotice={concurrentNotice}
+        affectedPublishedMatches={affectedPublishedMatches}
+        committable={committable}
+        conflicts={conflicts}
+        currentConflicts={currentConflicts}
+        drafts={drafts}
+        fixtures={fixtures}
+        freedSlotIds={freedSlotIds}
+        officials={officials}
+        onPreview={(batch) => void preview(batch)}
+        onPublish={(batch, reason) => void publish(batch, reason)}
+        onSetDraft={setDraft}
+        onToggleOfficial={toggleOfficial}
+        organizationAlias={organizationAlias}
+        placements={placements}
+        previewed={previewed}
+        reasonRequiredMatches={reasonRequiredMatches}
+        recentReasons={recentReasons}
+        schedules={schedules}
+        stageNumber={stageNumber}
+        tournamentAlias={tournamentAlias}
+        venues={venues}
+      />
+    </ReadState>
   );
 }

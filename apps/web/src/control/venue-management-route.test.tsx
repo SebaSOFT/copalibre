@@ -306,7 +306,7 @@ describe('VenueManagementPage', () => {
     const client = stubClient({ listVenues: () => Promise.reject(new Error('down')) });
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
-    await screen.findByText('Could not load venues and officials.');
+    await screen.findByText('Retry');
   });
 
   it('does nothing when the alias guard trips on venue create', async () => {

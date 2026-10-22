@@ -1,32 +1,34 @@
 import { useEffect, useState } from 'react';
+import { useIntl } from 'react-intl';
+import { messages } from '../i18n/messages.en.js';
+import { createControlApiClient, type ControlApiClient } from '../lib/api-client.js';
 import { type DashboardModel } from '../lib/dashboard.js';
-import {
-  createControlApiClient,
-  type DisplayTokenResponse,
-  type ControlApiClient,
-} from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { ControlShell } from './ControlShell.js';
+import { useResilientRead } from './pages/use-resilient-read.js';
 import { DashboardTemplate } from './screens/DashboardTemplate.js';
-
-interface DeviceEntry {
-  readonly tournamentAlias: string;
-  readonly token: DisplayTokenResponse;
-}
 
 /** A1, the organization dashboard. */
 export function Dashboard({
   canCreateTournament,
   canManageDisplayTokens,
+  failed = false,
+  loading = false,
   model,
+  onRetry = () => undefined,
   organizationAlias,
+  staleSince = undefined,
   client,
 }: {
   readonly canCreateTournament: boolean;
   readonly canManageDisplayTokens: boolean;
+  readonly failed?: boolean;
+  readonly loading?: boolean;
   readonly client?: ControlApiClient;
   readonly model: DashboardModel;
+  readonly onRetry?: () => void;
   readonly organizationAlias: string;
+  readonly staleSince?: number;
 }): React.JSX.Element {
   return (
     <ControlShell
@@ -39,8 +41,12 @@ export function Dashboard({
         canCreateTournament={canCreateTournament}
         canManageDisplayTokens={canManageDisplayTokens}
         client={client}
+        failed={failed}
+        loading={loading}
         model={model}
+        onRetry={onRetry}
         organizationAlias={organizationAlias}
+        staleSince={staleSince}
       />
     </ControlShell>
   );
@@ -55,16 +61,25 @@ export function Dashboard({
 function DashboardContent({
   canCreateTournament,
   canManageDisplayTokens,
+  failed,
+  loading,
   model,
+  onRetry,
   organizationAlias,
+  staleSince,
   client,
 }: {
   readonly canCreateTournament: boolean;
   readonly canManageDisplayTokens: boolean;
+  readonly failed: boolean;
+  readonly loading: boolean;
   readonly client?: ControlApiClient;
   readonly model: DashboardModel;
+  readonly onRetry: () => void;
   readonly organizationAlias: string;
+  readonly staleSince: number | undefined;
 }): React.JSX.Element {
+  const intl = useIntl();
   const api =
     client ??
     createControlApiClient({
@@ -97,7 +112,6 @@ function DashboardContent({
       });
   }
 
-  const [devices, setDevices] = useState<readonly DeviceEntry[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const [archivedAliases, setArchivedAliases] = useState<ReadonlySet<string>>(new Set());
 
@@ -108,28 +122,34 @@ function DashboardContent({
     });
   }
   const tournamentAliases = model.tournaments.map((card) => card.alias).join(',');
-
-  useEffect(() => {
-    let cancelled = false;
-    const refresh = () => {
-      setNow(Date.now());
-      void Promise.all(
+  const deviceRead = useResilientRead(
+    `control-dashboard-devices:${organizationAlias}:${tournamentAliases}`,
+    async () => {
+      const byTournament = await Promise.all(
         model.tournaments.map(async (card) => {
           const tokens = (await api.listDisplayTokens?.(organizationAlias, card.alias)) ?? [];
           return tokens.map((token) => ({ tournamentAlias: card.alias, token }));
         }),
-      ).then((byTournament) => {
-        if (!cancelled) setDevices(byTournament.flat());
-      });
-    };
-    refresh();
-    const interval = setInterval(refresh, 15_000);
+      );
+      return byTournament.flat();
+    },
+    {
+      thing: intl.formatMessage(messages.navDashboard),
+      isEmpty: (devices) => devices.length === 0,
+    },
+  );
+  const devices = deviceRead.data ?? [];
+  const retryDevices = deviceRead.retry;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Date.now());
+      retryDevices();
+    }, 15_000);
     return () => {
-      cancelled = true;
       clearInterval(interval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-fetches when the tournament set changes, not on every model identity change
-  }, [client, organizationAlias, tournamentAliases]);
+  }, [retryDevices, tournamentAliases]);
 
   const visibleModel: DashboardModel = { ...model, tournaments: visibleTournaments };
 
@@ -138,12 +158,16 @@ function DashboardContent({
       canCreateTournament={canCreateTournament}
       canManageDisplayTokens={canManageDisplayTokens}
       devices={devices}
+      failed={failed}
+      loading={loading}
       model={visibleModel}
       now={now}
       onArchive={archive}
       onExport={download}
       onExportConfiguration={downloadConfiguration}
+      onRetry={onRetry}
       organizationAlias={organizationAlias}
+      staleSince={staleSince ?? (deviceRead.status === 'stale' ? deviceRead.staleSince : undefined)}
     />
   );
 }

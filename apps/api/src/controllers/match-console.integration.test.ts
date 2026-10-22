@@ -825,7 +825,7 @@ describe('live match console (integration)', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('refuses a roster selection replayed after the match already finalized, exactly as a live one would be', async () => {
+  it('returns a replayed roster refusal reason unchanged to the console client', async () => {
     const response = await request(
       'PUT',
       `${base()}/rosters/${entrantIds[0]}`,
@@ -835,6 +835,12 @@ describe('live match console (integration)', () => {
     );
     expect(response.statusCode).toBe(400);
     expect(response.json().message).toContain('roster selection happens while it is in progress');
+    expect(response.json()).toMatchObject({
+      statusCode: 400,
+      message: expect.any(String),
+    });
+    const projection = await request('GET', `${base()}/console`, 'referee');
+    expect(projection.json().status).toBe('finalized');
   });
 
   async function seedRole(

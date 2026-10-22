@@ -241,7 +241,7 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   // ActivityLog.tsx's and DeviceHeartbeat.tsx's raw
   // cl-badge spans moved onto the Badge atom — both entries removed at zero.
   ['control/components/BracketCanvas.tsx', 2],
-  ['control/components/screens/LiveConsoleTemplate.tsx', 3],
+  ['control/components/screens/LiveConsoleTemplate.tsx', 2],
   ['control/components/screens/LoadMatchDataTemplate.tsx', 1],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 2],

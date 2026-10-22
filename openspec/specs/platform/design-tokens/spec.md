@@ -691,3 +691,37 @@ A unit test SHALL fail when any of these sections is missing.
 - **WHEN** the design document is read
 - **THEN** it states that the ink ground with a single cyan accent, tracked uppercase labels, mono data
   labels and middle-dot meta strings are deliberate, so a generic-UI heuristic does not flag them
+
+### Requirement: Chart plot areas use a fixed, validated data palette
+
+The token set SHALL define five chart series tokens, each with a dark and a light value, in this fixed
+order: violet, cyan, teal, amber, magenta. A sixth or later series SHALL render as a neutral "Other".
+The palette SHALL apply only inside plot areas; chart chrome SHALL use ink and text tokens. A test SHALL
+validate both sets for colour-blind and contrast separation against their surfaces.
+
+#### Scenario: Six clubs in one chart
+
+- **WHEN** a chart plots six clubs
+- **THEN** five use slots 1–5 in order, and the sixth renders in the neutral "Other" colour with a
+  legend entry
+
+#### Scenario: Palette edit breaks separation
+
+- **WHEN** a token edit moves magenta next to teal
+- **THEN** the palette validation test fails on adjacent colour-blind separation
+
+#### Scenario: Chart text never wears series colour
+
+- **WHEN** a chart renders tick labels, a legend and a tooltip
+- **THEN** their text uses text tokens, and only the legend swatch uses the series colour
+
+### Requirement: Charts always offer non-colour identification
+
+Every chart SHALL show a legend for two or more series and direct labels for four or fewer series, and
+SHALL offer a table view of the same data.
+
+#### Scenario: Two-series line chart
+
+- **WHEN** a two-series chart renders
+- **THEN** it has a legend, a direct label at each line's end, and a control that shows the same values
+  as a table

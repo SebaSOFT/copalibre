@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useIntl } from 'react-intl';
 import type { TournamentCompletionResponse } from '@copalibre/contracts';
+import { useMemo, useState } from 'react';
+import { useIntl } from 'react-intl';
+import { withSourceDepth } from '../../../lib/matches-view.js';
+import { messages } from '../../i18n/messages.en.js';
 import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
-import { withSourceDepth, type MatchCardData } from '../../../lib/matches-view.js';
 import { matchCardLabelsFromControlIntl } from '../../lib/matches-view-labels.js';
+import { controlTokenStore } from '../../session/token-store.js';
 import { MatchesViewTemplate } from '../screens/MatchesViewTemplate.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 type StateFilter = 'all' | 'live' | 'upcoming' | 'final';
 
@@ -57,51 +60,38 @@ export function MatchesViewPage({
     };
   }, []);
   const [state, setState] = useState<StateFilter>('all');
-  const [matches, setMatches] = useState<readonly MatchCardData[]>([]);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [completion, setCompletion] = useState<TournamentCompletionResponse | undefined>(undefined);
-
-  useEffect(() => {
-    let live = true;
-    api
-      .fetchCompletion?.(organizationAlias, tournamentAlias)
-      .then((response) => {
-        if (!live) return;
-        setCompletion(response);
-      })
-      .catch(() => {
-        // Completion metadata load failure leaves it undefined (unrendered)
+  const matchesKey = `control-matches-view:${organizationAlias}:${tournamentAlias}:${JSON.stringify({ ...scope, state })}`;
+  const matchesRead = useResilientRead(
+    matchesKey,
+    async () => {
+      if (!api.fetchMatchesView) throw new Error('Matches view is unavailable');
+      const response = await api.fetchMatchesView(organizationAlias, tournamentAlias, {
+        ...scope,
+        state,
       });
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias, tournamentAlias]);
-
-  useEffect(() => {
-    let live = true;
-    api
-      .fetchMatchesView?.(organizationAlias, tournamentAlias, { ...scope, state })
-      .then((response) => {
-        if (!live) return;
-        setMatches(withSourceDepth(response.matches));
-        setStatus('ready');
-      })
-      .catch(() => {
-        if (live) setStatus('error');
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias, tournamentAlias, scope, state]);
-
+      return withSourceDepth(response.matches);
+    },
+    { thing: intl.formatMessage(messages.matchesViewControlTitle) },
+  );
+  const completionKey = `control-tournament-completion:${organizationAlias}:${tournamentAlias}`;
+  const completionRead = useResilientRead<TournamentCompletionResponse | undefined>(
+    completionKey,
+    () => api.fetchCompletion?.(organizationAlias, tournamentAlias) ?? Promise.resolve(undefined),
+    { thing: intl.formatMessage(messages.matchesViewControlTitle) },
+  );
+  const matches = matchesRead.data ?? [];
   return (
-    <MatchesViewTemplate
-      completion={completion}
-      labels={labels}
-      matches={matches}
-      onSelectState={setState}
-      state={state}
-      status={status}
-    />
+    <ReadState {...matchesRead} title={intl.formatMessage(messages.matchesViewControlTitle)}>
+      <ReadState {...completionRead} title={intl.formatMessage(messages.matchesViewControlTitle)}>
+        <MatchesViewTemplate
+          completion={completionRead.data}
+          labels={labels}
+          matches={matches}
+          onSelectState={setState}
+          state={state}
+          status="ready"
+        />
+      </ReadState>
+    </ReadState>
   );
 }

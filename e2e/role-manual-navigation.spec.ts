@@ -100,6 +100,16 @@ test('a club-admin is refused a control outside their club, naming ownership (7.
             { clubId: 'club-2', organizationId: 'org-1', name: 'Casa de Italia' },
           ]);
         }
+        if (url === '/organizations?mine=true' && method === 'GET') {
+          return Response.json([
+            {
+              organizationId: 'org-1',
+              organizationAlias: 'liga-mendocina',
+              organizationName: 'Liga Mendocina',
+              role: 'club-admin',
+            },
+          ]);
+        }
         if (url === '/organizations/liga-mendocina/clubs/club-2' && method === 'PATCH') {
           return Response.json(
             { message: 'subject is not scoped to administer this club' },
@@ -135,6 +145,17 @@ test('inviting a tournament-admin requires selecting a tournament (7.4)', async 
         }
         if (url === '/organizations/liga-mendocina/roles' && method === 'GET') {
           return Response.json([]);
+        }
+        if (url === '/organizations/liga-mendocina/invitations' && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url === '/organizations/liga-mendocina/clubs' && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url === '/organizations/liga-mendocina/roles/grantable' && method === 'GET') {
+          return Response.json({
+            roles: ['admin', 'club-admin', 'tournament-admin', 'referee', 'viewer'],
+          });
         }
         if (url === '/organizations/liga-mendocina/tournaments' && method === 'GET') {
           return Response.json([

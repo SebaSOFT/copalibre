@@ -334,7 +334,7 @@ describe('the registration review route container', () => {
     expect(screen.getByText('Withdrawn')).toBeDefined();
   });
 
-  it('shows a load-failure message when registrations fail to load', async () => {
+  it('keeps the skeleton and offers retry when registrations fail to load', async () => {
     await act(async () => {
       render(
         withIntl(
@@ -351,7 +351,8 @@ describe('the registration review route container', () => {
       );
     });
 
-    expect(screen.getByText('Could not load the registrations.')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeDefined();
+    expect(document.querySelector('.cl-skeleton[aria-busy="true"]')).not.toBeNull();
   });
 
   it('shows a create-import failure message when the CSV upload is rejected', async () => {

@@ -74,11 +74,13 @@ describe('mountLiveTicker connection notice', () => {
 
   function renderWithNotice(): HTMLElement {
     renderTicker();
-    document.body.insertAdjacentHTML(
-      'beforeend',
-      '<p role="status" data-connection-notice hidden>Connection lost</p>',
-    );
-    return document.querySelector<HTMLElement>('[data-connection-notice]') as HTMLElement;
+    document
+      .querySelector('[data-ticker]')
+      ?.insertAdjacentHTML(
+        'beforeend',
+        '<p role="status" data-ticker-connection-notice hidden>Connection lost</p>',
+      );
+    return document.querySelector<HTMLElement>('[data-ticker-connection-notice]') as HTMLElement;
   }
 
   it('stays hidden while the connection is healthy', () => {
@@ -93,6 +95,7 @@ describe('mountLiveTicker connection notice', () => {
     mountLiveTicker();
     capturedHandlers?.onFailure?.(failure);
     expect(notice.hidden).toBe(false);
+    expect(document.querySelector('.cl-ticker__figure')?.textContent).toBe('1 : 1');
     capturedHandlers?.onOpen?.();
     expect(notice.hidden).toBe(true);
   });

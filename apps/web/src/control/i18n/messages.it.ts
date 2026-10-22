@@ -4,6 +4,15 @@
  * separate, later pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'control.interaction.createToken': 'Crea token',
+  'control.interaction.pairTv': 'Associa TV',
+  'control.interaction.pairDescription': 'Associa una TV per mostrare i risultati in diretta.',
+  'control.interaction.whoCanPair': 'Un amministratore dell’organizzazione può associare una TV.',
+  'control.interaction.inviteDescription':
+    'Invita qualcuno ad aiutare a gestire questa organizzazione.',
+  'control.interaction.whoCanInvite': 'Un amministratore dell’organizzazione può invitare utenti.',
+  'control.interaction.tokenDescription':
+    'Crea un token per accedere all’API da un altro strumento.',
   'control.sideSource.winner': 'Vincitore di {match}',
   'control.sideSource.loser': 'Perdente di {match}',
   'control.sideSource.winnerShort': 'V {match}',
@@ -212,6 +221,28 @@ export const messages: Record<string, string> = {
     '{count, plural, =0 {Nessuna azione in coda} one {# azione in coda} other {# azioni in coda}}',
   'control.matchConsole.lastSynced': 'Ultima sincronizzazione {time}',
   'control.matchConsole.neverSynced': 'Non ancora sincronizzato',
+  'control.interaction.loading': 'Caricamento di {thing}',
+  'control.interaction.emptyHeading': 'Ancora nessun contenuto',
+  'control.interaction.emptyDescription': 'Inizia aggiungendo il primo elemento.',
+  'control.interaction.whoCanAct': 'Un amministratore dell’organizzazione può creare tornei.',
+  'control.interaction.stale': 'Non aggiornato',
+  'control.interaction.retry': 'Riprova',
+  'control.interaction.retryIn': 'Nuovo tentativo tra {seconds} s',
+  'control.interaction.readFailed':
+    'Impossibile caricare {thing}. Nuovo tentativo tra {seconds} s.',
+  'control.interaction.failedEmpty': 'Impossibile caricare {thing}.',
+  'control.interaction.queued': 'In coda',
+  'control.interaction.sent': 'Inviato',
+  'control.interaction.confirmed': 'Confermato',
+  'control.interaction.refused': 'Rifiutato',
+  'control.interaction.online': 'Online',
+  'control.interaction.offline': 'Offline',
+  'control.interaction.lastSynced': 'Ultima sincronizzazione {time}',
+  'control.interaction.neverSynced': 'Non ancora sincronizzato',
+  'control.interaction.queuedCount':
+    '{count, plural, one {# azione in coda} other {# azioni in coda}}',
+  'control.interaction.refusedCount':
+    '{count, plural, one {# azione rifiutata} other {# azioni rifiutate}}',
   'control.matchConsole.unnamedEntrant': 'Partecipante senza nome',
   'control.matchConsole.clockCommands': 'Comandi dell’orologio',
   'control.matchConsole.startClock': 'Avvia',

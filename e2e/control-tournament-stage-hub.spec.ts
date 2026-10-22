@@ -47,6 +47,9 @@ async function mockControlApi(page: Page): Promise<void> {
         if (url === `${tournament}/stages` && method === 'GET') {
           return Response.json([readStage()]);
         }
+        if (url === `${tournament}/settings` && method === 'GET') {
+          return Response.json({ name: 'Apertura 2026', featured: false });
+        }
 
         if (url === stage && method === 'PATCH') {
           const body = JSON.parse(String(init?.body)) as { readonly name?: string };
@@ -66,6 +69,12 @@ async function mockControlApi(page: Page): Promise<void> {
             zones: [],
             hasRecordedResults: false,
           });
+        }
+        if (url === `${stage}/configuration` && method === 'GET') {
+          return Response.json({ overrides: {} });
+        }
+        if (url === `${stage}/promotion-plans` && method === 'GET') {
+          return Response.json([]);
         }
 
         return new Response('Not found', { status: 404 });

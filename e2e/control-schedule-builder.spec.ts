@@ -840,6 +840,7 @@ test('stores a minimum rest, asks a reason for published moves from the keyboard
   await page.getByText('Previsualizar').click();
   await expect(page.getByText('Horarios que libera este lote')).toBeVisible();
   await page.getByRole('button', { name: 'Publicar', exact: true }).click();
+  await page.keyboard.press('Control+A');
   await page.keyboard.type('Clima');
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');

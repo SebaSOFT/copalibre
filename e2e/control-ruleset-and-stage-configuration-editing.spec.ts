@@ -256,6 +256,9 @@ test("edits a stage's configuration override before seeding, then finds it locke
     if (url.endsWith('/stages/1/configuration') && method === 'GET') {
       return { body: { overrides: { segments: { overtimeEnabled } } } };
     }
+    if (url.endsWith('/stages/1/promotion-plans') && method === 'GET') {
+      return { body: [] };
+    }
     if (url.endsWith('/stages/1/configuration') && method === 'PUT') {
       const body = JSON.parse(String(init?.body)) as { overrides: Record<string, unknown> };
       const nextSegments = body.overrides['segments'] as { overtimeEnabled?: boolean } | undefined;

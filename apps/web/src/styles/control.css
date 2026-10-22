@@ -1,3 +1,4 @@
+@import './interaction-states.css';
 @import './entrant-path.css';
 
 html,
@@ -7,6 +8,89 @@ body {
   background: var(--cl-surface-base);
   color: var(--cl-text-primary);
   font-family: var(--cl-font-body);
+}
+
+.cl-skeleton {
+  display: block;
+  overflow: hidden;
+  background: var(--cl-surface-chrome);
+}
+
+.cl-skeleton__shape {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--cl-surface-chrome);
+}
+
+.cl-skeleton--block {
+  min-height: 6rem;
+}
+
+.cl-skeleton--line {
+  width: min(72%, 24rem);
+  min-height: 1rem;
+}
+
+.cl-skeleton--table-row {
+  min-height: 3rem;
+}
+
+.cl-stale-mark,
+.cl-event-sync-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cl-space-2);
+  width: fit-content;
+  color: var(--cl-text-secondary);
+  font-size: var(--cl-font-size-sm);
+}
+
+.cl-stale-mark {
+  padding: var(--cl-space-1) var(--cl-space-2);
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-chrome);
+}
+
+.cl-event-sync-mark[data-state='queued'] {
+  color: var(--cl-state-warning);
+}
+
+.cl-event-sync-mark[data-state='refused'] {
+  color: var(--cl-state-destructive);
+}
+
+.cl-connection-status {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cl-space-2) var(--cl-space-4);
+  padding: var(--cl-space-2) var(--cl-space-4);
+  border-bottom: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-chrome);
+  color: var(--cl-text-primary);
+}
+
+.cl-connection-status[data-tone='amber'] {
+  border-color: var(--cl-state-warning);
+  color: var(--cl-state-warning);
+}
+
+.cl-connection-status[data-tone='red'] {
+  border-color: var(--cl-state-destructive);
+  color: var(--cl-state-destructive);
+}
+
+.cl-connection-status__connection {
+  font-weight: var(--cl-weight-bold);
+}
+
+.cl-connection-status__sync {
+  margin-inline-start: auto;
+  color: var(--cl-text-muted);
 }
 
 .cl-standings-distribution-row {

@@ -646,16 +646,23 @@ use bilingual headings, slash separators or scanline digit treatments.
 
 ## Interaction States
 
-- **Loading:** Show opaque `ink-850` skeleton blocks shaped like the final layout. Do not shimmer; keep
-  the layout stable when data arrives.
+- **Loading:** The `Skeleton` atom renders opaque `ink-850` blocks, lines and table rows shaped like
+  the final layout, with `aria-busy` and hidden loading text. Do not shimmer; keep the layout stable
+  when data arrives. The `ReadState` template preserves the page heading during loading and failure.
 - **Empty:** Show an `ink-850` icon well, a heading, a one-sentence explanation and a primary action
-  that resolves the empty state.
+  that resolves the empty state. Use the `EmptyState` molecule in React and its server-rendered Astro
+  counterpart on public pages. An explicit no-permission state replaces the action with who can act.
 - **Error with prior data:** Keep the last good data visible, mark it stale and show its age. A toast
-  states what failed and offers Retry. Never render a failed refresh as an empty result.
+  states what failed and offers Retry. `StaleMark` includes a relative age; after five minutes
+  `ReadState` also offers Retry beside the retained data. Never render a failed refresh as empty.
 - **Error without prior data:** Keep the skeleton, show a Retry toast and retry automatically with
-  backoff.
+  backoff. `useResilientRead` owns the 2, 4, 8, 16, 30-second schedule, holding at 30 seconds, and
+  resets it on manual retry. Its in-memory cache is scoped to the authenticated session and resource;
+  it never persists across a document reload. Mutation results update the cached value.
 - **Offline console:** Show connection status, queued count and last sync in the header. Use amber while
-  work is queued and red only after rejection. Mark each event as queued, sent or confirmed.
+  work is queued and red only after rejection. The `ConnectionStatus` organism announces changes
+  politely. The `EventSyncMark` molecule shows queued, sent, confirmed or refused, with the server's
+  refusal reason in an alert. Confirmed requires a server acknowledgement, never an optimistic write.
 
 ## Iconography
 

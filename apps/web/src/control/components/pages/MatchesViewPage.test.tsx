@@ -1,9 +1,11 @@
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
 import { jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MatchesViewPage } from '../pages/MatchesViewPage.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { ControlApiClient } from '../../lib/api-client.js';
 import type { MatchCardData } from '../../../lib/matches-view.js';
+import { clearResilientReadCache } from './use-resilient-read.js';
 
 const match: MatchCardData = {
   matchId: 'match-1',
@@ -32,6 +34,8 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('MatchesViewPage', () => {
+  beforeEach(() => clearResilientReadCache());
+
   it('renders the fetched matches as cards, including the full trace', async () => {
     render(
       withIntl(
@@ -112,7 +116,9 @@ describe('MatchesViewPage', () => {
 
     fireEvent.click(liveButton);
 
-    expect(liveButton.getAttribute('aria-pressed')).toBe('true');
+    expect((await screen.findByRole('button', { name: 'Live' })).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
     await waitFor(() => {
       expect(fetchMatchesView).toHaveBeenLastCalledWith('liga-mendocina', 'apertura-2026', {
         state: 'live',
@@ -175,10 +181,39 @@ describe('MatchesViewPage', () => {
       ),
     );
 
-    await waitFor(() => {
-      expect(screen.getByText('Could not load matches.')).toBeDefined();
-    });
+    await expectFirstReadFailure();
     expect(document.querySelector('.cl-matches-view__grid')).toBeNull();
+  });
+
+  it('keeps the last successful matches visible and marks them stale when a later read fails', async () => {
+    const organizationAlias = 'stale-matches-league';
+    const tournamentAlias = 'stale-matches-cup';
+    const firstRead = render(
+      withIntl(
+        <MatchesViewPage
+          client={stubClient()}
+          organizationAlias={organizationAlias}
+          tournamentAlias={tournamentAlias}
+        />,
+      ),
+    );
+    await screen.findByText('Club Andes');
+    firstRead.unmount();
+
+    const { container } = render(
+      withIntl(
+        <MatchesViewPage
+          client={stubClient({ fetchMatchesView: () => Promise.reject(new Error('network down')) })}
+          organizationAlias={organizationAlias}
+          tournamentAlias={tournamentAlias}
+        />,
+      ),
+    );
+
+    expect(await screen.findByText('Club Andes')).toBeDefined();
+    await waitFor(() =>
+      expect(container.querySelector('.cl-stale-mark')?.textContent).toContain('Stale'),
+    );
   });
 
   it('fetches and renders the tournament completion summary', async () => {

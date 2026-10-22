@@ -243,7 +243,7 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     const invitationPath = `/organizations/${ORGANIZATION}/invitations`;
 
     await page.addInitScript(
-      ({ rolesPath, invitationPath, tokenEndpoint }) => {
+      ({ rolesPath, invitationPath, organizationAlias, tokenEndpoint }) => {
         window.fetch = async (input, init) => {
           const url = String(input);
           const method = init?.method ?? 'GET';
@@ -267,11 +267,34 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
           if (url === invitationPath && method === 'GET') {
             return Response.json([]);
           }
+          if (url === `/organizations/${organizationAlias}/clubs` && method === 'GET') {
+            return Response.json([]);
+          }
+          if (url === `/organizations/${organizationAlias}/tournaments` && method === 'GET') {
+            return Response.json([]);
+          }
+          if (url === `/organizations/${organizationAlias}/roles/grantable` && method === 'GET') {
+            return Response.json({
+              roles: [
+                'admin',
+                'club-admin',
+                'tournament-admin',
+                'referee',
+                'broadcaster',
+                'viewer',
+              ],
+            });
+          }
 
           return Response.json({});
         };
       },
-      { rolesPath, invitationPath, tokenEndpoint: TOKEN_ENDPOINT },
+      {
+        rolesPath,
+        invitationPath,
+        organizationAlias: ORGANIZATION,
+        tokenEndpoint: TOKEN_ENDPOINT,
+      },
     );
 
     const targetUrl = `/control/${ORGANIZATION}/roles`;

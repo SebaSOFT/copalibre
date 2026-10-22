@@ -1,3 +1,4 @@
+import { EmptyState } from '../ui/molecules/empty-state.js';
 import { useState } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -110,6 +111,7 @@ export function PreferencesTemplate({
     setRebuildConfirming(false);
   }
 
+  const activeTokens = tokens.filter((token) => !token.revoked);
   const listingNode = (
     <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto' }}>
       {organizationAlias !== undefined && (
@@ -401,50 +403,55 @@ export function PreferencesTemplate({
             <p>
               <FormattedMessage {...controlMessages.preferencesTokensLoading} />
             </p>
-          ) : tokens.length === 0 ? (
-            <p>
-              <FormattedMessage {...controlMessages.preferencesPatEmpty} />
-            </p>
+          ) : activeTokens.length === 0 ? (
+            <EmptyState
+              icon="user"
+              headingLevel={3}
+              heading={intl.formatMessage(controlMessages.preferencesPatEmpty)}
+              description={intl.formatMessage(controlMessages.interactionTokenDescription)}
+              action={{
+                label: intl.formatMessage(controlMessages.interactionCreateToken),
+                onClick: () => document.getElementById('pat-label')?.focus(),
+              }}
+            />
           ) : (
             <ul style={{ listStyle: 'none', padding: 0 }}>
-              {tokens
-                .filter((t) => !t.revoked)
-                .map((token) => (
-                  <li
-                    key={token.tokenId}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      padding: '1rem',
-                      borderBottom: '1px solid var(--cl-border-muted)',
-                    }}
-                  >
-                    <div>
-                      <strong>{token.label}</strong>
-                      <div
-                        style={{
-                          fontSize: 'var(--cl-font-size-sm)',
-                          color: 'var(--cl-text-secondary)',
-                          marginTop: '0.25rem',
-                        }}
-                      >
-                        <FormattedMessage
-                          {...controlMessages.preferencesPatExpiresAt}
-                          values={{
-                            date: new Date(token.expiresAt).toLocaleDateString(intl.locale),
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      onClick={() => void onRevokePat(token.tokenId)}
-                      type="button"
-                      variant="destructive-outline"
+              {activeTokens.map((token) => (
+                <li
+                  key={token.tokenId}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '1rem',
+                    borderBottom: '1px solid var(--cl-border-muted)',
+                  }}
+                >
+                  <div>
+                    <strong>{token.label}</strong>
+                    <div
+                      style={{
+                        fontSize: 'var(--cl-font-size-sm)',
+                        color: 'var(--cl-text-secondary)',
+                        marginTop: '0.25rem',
+                      }}
                     >
-                      <FormattedMessage {...controlMessages.preferencesPatRevoke} />
-                    </Button>
-                  </li>
-                ))}
+                      <FormattedMessage
+                        {...controlMessages.preferencesPatExpiresAt}
+                        values={{
+                          date: new Date(token.expiresAt).toLocaleDateString(intl.locale),
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => void onRevokePat(token.tokenId)}
+                    type="button"
+                    variant="destructive-outline"
+                  >
+                    <FormattedMessage {...controlMessages.preferencesPatRevoke} />
+                  </Button>
+                </li>
+              ))}
             </ul>
           )}
         </div>

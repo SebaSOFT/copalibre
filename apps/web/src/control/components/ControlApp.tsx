@@ -1,6 +1,6 @@
+import { parseControlPath, type ControlRoute } from '@copalibre/routing';
 import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { parseControlPath, type ControlRoute } from '@copalibre/routing';
 import {
   AnalyticsControlRoute,
   AuditTrailControlRoute,
@@ -20,8 +20,6 @@ import {
   PromotionPlanControlRoute,
   QualificationControlRoute,
   RegistrationReviewControlRoute,
-  TournamentSettingsControlRoute,
-  TournamentRulesetControlRoute,
   ReportReviewControlRoute,
   RolesPermissionsControlRoute,
   ScheduleControlRoute,
@@ -30,20 +28,23 @@ import {
   StandingsControlRoute,
   TournamentAuthoringControlRoute,
   TournamentHubControlRoute,
+  TournamentRulesetControlRoute,
   TournamentsControlRoute,
+  TournamentSettingsControlRoute,
   VenueManagementControlRoute,
   ZoneGroupControlRoute,
 } from './ControlRoutes.js';
 
-import { LoginRoute, ForgotPasswordRoute, ResetPasswordRoute } from './NativeAuthRoutes.js';
-import { DashboardPage } from './pages/DashboardPage.js';
+import type { SupportedLanguage } from '../../lib/language-preference.js';
+import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
+import { messages } from '../i18n/messages.en.js';
+import { createControlApiClient, type MyOrganizationResponse } from '../lib/api-client.js';
 import {
   controlLinkClick,
   loginRedirectUrl,
   navigateControl,
   useControlPath,
 } from '../lib/control-navigation.js';
-import { createControlApiClient, type MyOrganizationResponse } from '../lib/api-client.js';
 import { completeOidcLogin } from '../session/oidc-callback.js';
 import { DEFAULT_RETURN_TO } from '../session/oidc-login.js';
 import { postSilentRenewResult } from '../session/oidc-silent-renew.js';
@@ -55,9 +56,7 @@ import {
   controlTokenStore,
   recordAuthMethod,
 } from '../session/token-store.js';
-import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
-import { messages } from '../i18n/messages.en.js';
-import type { SupportedLanguage } from '../../lib/language-preference.js';
+import { ForgotPasswordRoute, LoginRoute, ResetPasswordRoute } from './NativeAuthRoutes.js';
 import { ToastProvider } from './ToastProvider.js';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/atoms/card.js';
 
@@ -218,7 +217,7 @@ const ROUTE_COMPONENT_BY_SCREEN: ScreenComponents = {
   disciplineDocument: (route) => (
     <DisciplineDocumentControlRoute disciplineAlias={route.disciplineAlias} />
   ),
-  dashboard: (route) => <DashboardPage organizationAlias={route.organizationAlias} />,
+  dashboard: (route) => <TournamentsControlRoute organizationAlias={route.organizationAlias} />,
   tournaments: (route) => <TournamentsControlRoute organizationAlias={route.organizationAlias} />,
   liveConsole: (route) => <LiveConsoleControlRoute organizationAlias={route.organizationAlias} />,
   organization: (route) => <OrganizationControlRoute organizationAlias={route.organizationAlias} />,

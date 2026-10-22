@@ -44,6 +44,7 @@ describe('PromotionPlanPage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /promotion plan/i }));
+    await screen.findByText(/ntrant-1/i);
     expect(container.querySelector('.cl-list-screen')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__header')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();

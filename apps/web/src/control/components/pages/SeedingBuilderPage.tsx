@@ -1,33 +1,22 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Alert } from '../ui/atoms/alert.js';
-import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
+import { useMemo, useState } from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
 import {
   createControlApiClient,
   type ControlApiClient,
   type SeedingResponse,
 } from '../../lib/api-client.js';
-import type { SeedAssignment } from '../../lib/seeding.js';
 import { isGeneratedAhead } from '../../lib/generate-ahead.js';
+import type { SeedAssignment } from '../../lib/seeding.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import { SeedingBuilderTemplate } from '../screens/SeedingBuilderTemplate.js';
+import { useToast } from '../ToastProvider.js';
+import { Alert } from '../ui/atoms/alert.js';
 import { Button } from '../ui/atoms/button.js';
 import { Input } from '../ui/atoms/input.js';
+import { ReadState } from '../ui/layouts/read-state.js';
 import { Field } from '../ui/molecules/field.js';
-import { useToast } from '../ToastProvider.js';
-import { messages } from '../../i18n/messages.en.js';
-
-// Every one of these
-// was a hardcoded Spanish literal, with no message id at all. Local rather
-// than in `messages.en.ts` — see `LiveConsoleTemplate.tsx`'s identical note
-// on why a local `defineMessages` block, not the shared catalogue, is the
-// right home for an id with no locale translation yet.
-const pageMessages = defineMessages({
-  loading: { id: 'control.seedingBuilder.loading', defaultMessage: 'Loading seeding…' },
-  loadFailed: {
-    id: 'control.seedingBuilder.loadFailed',
-    defaultMessage: 'Could not load the seeding.',
-  },
-});
+import { useResilientRead } from './use-resilient-read.js';
 
 /**
  * A stage's configuration override fields — the same dot-path-editing shape
@@ -173,73 +162,41 @@ export function SeedingBuilderPage({
       }),
     [client],
   );
-  const [seeding, setSeeding] = useState<SeedingResponse | undefined>(undefined);
-  const [status, setStatus] = useState(() => intl.formatMessage(pageMessages.loading));
-  const [stageOverrides, setStageOverrides] = useState<Readonly<Record<string, unknown>>>({});
-
-  useEffect(() => {
-    let live = true;
-    api
-      .fetchStageConfiguration?.(organizationAlias, tournamentAlias, stageNumber)
-      .then((loaded) => {
-        if (live) setStageOverrides(loaded?.overrides ?? {});
-      })
-      .catch(() => {
-        // A stage with no configuration yet has nothing to show — same as an empty document.
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias, tournamentAlias, stageNumber]);
-
-  useEffect(() => {
-    let live = true;
-    api
-      .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
-      .then(async (loaded) => {
-        if (!live) return loaded;
-        // Pre-fill only when nothing has been drawn or manually placed yet —
-        // a stage that already has seeds is never overridden by a
-        // promotion plan, so this only runs for the empty case, and any
-        // failure here just leaves the builder starting empty, as before.
-        if (loaded.seeds.length > 0 || !api.fetchPromotionPlansTargetingStage) return loaded;
-        try {
-          const targeting = await api.fetchPromotionPlansTargetingStage(
-            organizationAlias,
-            tournamentAlias,
-            stageNumber,
-          );
-          // Server already orders by zoneNumber; concatenating in that order
-          // is the whole "combine per zone" rule — each zone's
-          // own `combined` list is already itself in the right order.
-          const combined = targeting.flatMap((zone) => zone.combined);
-          if (combined.length === 0) return loaded;
-          return {
+  const read = useResilientRead(
+    `control-seeding:${organizationAlias}:${tournamentAlias}:${stageNumber}`,
+    async () => {
+      const [loaded, configuration] = await Promise.all([
+        api.fetchSeeding(organizationAlias, tournamentAlias, stageNumber),
+        api.fetchStageConfiguration?.(organizationAlias, tournamentAlias, stageNumber),
+      ]);
+      let seeding = loaded;
+      if (loaded.seeds.length === 0 && api.fetchPromotionPlansTargetingStage) {
+        const targeting = await api.fetchPromotionPlansTargetingStage(
+          organizationAlias,
+          tournamentAlias,
+          stageNumber,
+        );
+        const combined = targeting.flatMap((zone) => zone.combined);
+        if (combined.length > 0)
+          seeding = {
             ...loaded,
             seeds: combined.map((entrant, index) => ({
               seed: index + 1,
               entrantId: entrant.entrantId,
             })),
           };
-        } catch {
-          return loaded;
-        }
-      })
-      .then((loaded) => {
-        if (!live) return;
-        setSeeding(loaded);
-        setStatus('');
-      })
-      .catch(() => {
-        if (live) setStatus(intl.formatMessage(pageMessages.loadFailed));
-      });
-    return () => {
-      live = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intl is stable within one ControlIntl mount
-  }, [api, organizationAlias, tournamentAlias, stageNumber]);
-
-  if (seeding === undefined) return <Alert tone="info">{status}</Alert>;
+      }
+      return { seeding, stageOverrides: configuration?.overrides ?? {} };
+    },
+    { thing: intl.formatMessage(messages.seedingTitle) },
+  );
+  const setSeeding = (seeding: SeedingResponse): void =>
+    read.update((current) => ({ ...current, seeding }));
+  const setStageOverrides = (stageOverrides: Readonly<Record<string, unknown>>): void =>
+    read.update((current) => ({ ...current, stageOverrides }));
+  if (read.data === undefined)
+    return <ReadState {...read} title={intl.formatMessage(messages.seedingTitle)} />;
+  const { seeding, stageOverrides } = read.data;
 
   const assignments: readonly SeedAssignment[] = seeding.seeds.map((seed) => ({
     ...seed,
@@ -247,79 +204,83 @@ export function SeedingBuilderPage({
   }));
 
   return (
-    <SeedingBuilderTemplate
-      configurationSection={
-        <StageConfigurationSection
-          onApply={(changed) =>
-            api
-              .updateStageConfiguration?.(organizationAlias, tournamentAlias, stageNumber, {
-                overrides: changed,
-              })
-              .then((updated) => {
-                if (!updated) return;
-                setStageOverrides(updated.overrides);
-                push({
-                  severity: 'success',
-                  message: intl.formatMessage(messages.stageConfigurationSaved),
-                });
-              })
-              .catch((error: unknown) => {
-                pushError(error);
-              }) ?? Promise.resolve()
-          }
-          overrides={stageOverrides}
-          seeded={seeding.zones.some((zone) => zone.matches.length > 0)}
-        />
-      }
-      hasRecordedResults={seeding.hasRecordedResults}
-      {...(seeding.qualifiers === undefined || seeding.qualifiers.length === 0
-        ? {}
-        : {
-            ahead: {
-              zones: seeding.qualifiers,
-              generated: isGeneratedAhead(seeding.zones),
-              onGenerate: () =>
-                api
-                  .publishSeeding(organizationAlias, tournamentAlias, stageNumber, { ahead: true })
-                  .then((result) => {
-                    if (!result.persisted) return;
-                    push({ severity: 'success', message: result.reason });
-                    return api
-                      .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
-                      .then(setSeeding);
-                  })
-                  .catch((error: unknown) => {
-                    pushError(error);
-                  }),
-            },
-          })}
-      zones={seeding.zones}
-      names={seeding.names ?? {}}
-      onPublish={(seeds) =>
-        api
-          .publishSeeding(organizationAlias, tournamentAlias, stageNumber, {
-            seeds: seeds.map((seed) => ({ seed: seed.seed, entrantId: seed.entrantId })),
-          })
-          .then((result) => {
-            // `persisted` is the server's confirmation the new order and
-            // fixtures are durably saved, not only classified — re-fetch so
-            // the bracket canvas reflects what's actually on disk rather
-            // than trusting the classification response's own shape.
-            if (!result.persisted) return;
-            push({ severity: 'success', message: result.reason });
-            return api
-              .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
-              .then(setSeeding);
-          })
-          .catch((error: unknown) => {
-            pushError(error);
-          })
-      }
-      organizationAlias={organizationAlias}
-      seeds={assignments}
-      stageNumber={stageNumber}
-      tournamentAlias={tournamentAlias}
-      tournamentName={tournamentAlias}
-    />
+    <ReadState {...read} title={intl.formatMessage(messages.seedingTitle)}>
+      <SeedingBuilderTemplate
+        configurationSection={
+          <StageConfigurationSection
+            onApply={(changed) =>
+              api
+                .updateStageConfiguration?.(organizationAlias, tournamentAlias, stageNumber, {
+                  overrides: changed,
+                })
+                .then((updated) => {
+                  if (!updated) return;
+                  setStageOverrides(updated.overrides);
+                  push({
+                    severity: 'success',
+                    message: intl.formatMessage(messages.stageConfigurationSaved),
+                  });
+                })
+                .catch((error: unknown) => {
+                  pushError(error);
+                }) ?? Promise.resolve()
+            }
+            overrides={stageOverrides}
+            seeded={seeding.zones.some((zone) => zone.matches.length > 0)}
+          />
+        }
+        hasRecordedResults={seeding.hasRecordedResults}
+        {...(seeding.qualifiers === undefined || seeding.qualifiers.length === 0
+          ? {}
+          : {
+              ahead: {
+                zones: seeding.qualifiers,
+                generated: isGeneratedAhead(seeding.zones),
+                onGenerate: () =>
+                  api
+                    .publishSeeding(organizationAlias, tournamentAlias, stageNumber, {
+                      ahead: true,
+                    })
+                    .then((result) => {
+                      if (!result.persisted) return;
+                      push({ severity: 'success', message: result.reason });
+                      return api
+                        .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
+                        .then(setSeeding);
+                    })
+                    .catch((error: unknown) => {
+                      pushError(error);
+                    }),
+              },
+            })}
+        zones={seeding.zones}
+        names={seeding.names ?? {}}
+        onPublish={(seeds) =>
+          api
+            .publishSeeding(organizationAlias, tournamentAlias, stageNumber, {
+              seeds: seeds.map((seed) => ({ seed: seed.seed, entrantId: seed.entrantId })),
+            })
+            .then((result) => {
+              // `persisted` is the server's confirmation the new order and
+              // fixtures are durably saved, not only classified — re-fetch so
+              // the bracket canvas reflects what's actually on disk rather
+              // than trusting the classification response's own shape.
+              if (!result.persisted) return;
+              push({ severity: 'success', message: result.reason });
+              return api
+                .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
+                .then(setSeeding);
+            })
+            .catch((error: unknown) => {
+              pushError(error);
+            })
+        }
+        organizationAlias={organizationAlias}
+        seeds={assignments}
+        stageNumber={stageNumber}
+        tournamentAlias={tournamentAlias}
+        tournamentName={tournamentAlias}
+      />
+    </ReadState>
   );
 }

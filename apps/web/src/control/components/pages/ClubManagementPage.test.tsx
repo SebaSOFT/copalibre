@@ -1,3 +1,4 @@
+import { expectReadRetry } from './resilient-read.test-support.js';
 import { jest } from '@jest/globals';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { ClubManagementPage } from '../pages/ClubManagementPage.js';
@@ -30,6 +31,7 @@ describe('ClubManagementPage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /clubs/i }));
+    await screen.findByText('Club Atlético Huracán Las Heras');
     expect(container.querySelector('.cl-list-screen')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__header')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
@@ -140,7 +142,9 @@ describe('ClubManagementPage', () => {
     fireEvent.change(screen.getByLabelText('New club name'), { target: { value: 'Gimnasia' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add club' }));
 
-    await waitFor(() => screen.getByText('Could not load clubs.'));
+    await expectReadRetry();
+    expect(screen.getByText('Club Atlético Huracán Las Heras')).toBeDefined();
+    expect(document.querySelector('.cl-stale-mark')).not.toBeNull();
   });
 
   it('resets optimistic emblem when upload fails', async () => {

@@ -33,6 +33,9 @@ async function mockRegistrationApi(page: Page): Promise<void> {
             },
           ]);
         }
+        if (url.endsWith('/entrants/needing-abbreviation') && method === 'GET') {
+          return Response.json([]);
+        }
         if (url.endsWith(`/participants/${personId}/identity-link`) && method === 'POST') {
           hasIdentityLink = true;
           return Response.json({ principalId: 'principal-1', personId }, { status: 201 });

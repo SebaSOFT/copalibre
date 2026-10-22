@@ -32,6 +32,7 @@ const patchedFloors = {
   'ip-address': { 10: '10.7.1' },
   undici: { 6: '6.28.1', 8: '8.10.2' },
   nanoid: { 3: '3.3.18', 5: '5.1.16' },
+  vite: { 8: '8.1.6' },
 };
 
 function assertPatched(name, version, label) {
@@ -81,6 +82,7 @@ for (const [selector, name] of [
   ['source-map-js@npm:^1.0.1', 'source-map-js'],
   ['source-map-js@npm:^1.2.1', 'source-map-js'],
   ['nanoid@npm:^3.3.16', 'nanoid'],
+  ['vite@npm:^8.3.4', 'vite'],
   ['http-cache-semantics@npm:^4.1.1', 'http-cache-semantics'],
   ['hono@npm:^4.11.4', 'hono'],
   ['ip-address', 'ip-address'],

@@ -409,7 +409,7 @@ describe('ZoneGroupPage', () => {
     // createGroup
     fireEvent.change(screen.getByLabelText('New group name'), { target: { value: 'Group 2' } });
     await act(async () => {
-      fireEvent.click(screen.getByText('Add group'));
+      fireEvent.click(await screen.findByText('Add group'));
     });
     await waitFor(() => expect(screen.getAllByText('Rechazado')).toHaveLength(1));
 
@@ -564,7 +564,7 @@ describe('ZoneGroupPage', () => {
     await waitFor(() => expect(screen.getAllByText('Rechazado')).toHaveLength(2));
   });
 
-  it('tolerates a failed group/entrant fetch for the selected zone', async () => {
+  it('keeps the selected group skeleton and retries a failed group/entrant fetch for the selected zone', async () => {
     const client = stubClient({
       listZones: () => Promise.resolve(oneZone),
       listGroups: () => Promise.reject(new Error('down')),
@@ -582,9 +582,8 @@ describe('ZoneGroupPage', () => {
       ),
     );
 
-    await screen.findAllByText('Zone 1');
-    const groupsPanel = screen.getByRole('region', { name: 'Groups' });
-    await waitFor(() => expect(within(groupsPanel).queryByRole('listitem')).toBeNull());
+    await screen.findByRole('button', { name: 'Retry' });
+    expect(document.querySelector('.cl-skeleton')).not.toBeNull();
   });
 
   it('loads groups scoped to the selected zone and creates a group', async () => {
@@ -638,13 +637,13 @@ describe('ZoneGroupPage', () => {
 
     // An empty name is a no-op — the guard short-circuits before any call.
     await act(async () => {
-      fireEvent.click(screen.getByText('Add group'));
+      fireEvent.click(await screen.findByText('Add group'));
     });
     expect(createGroup).not.toHaveBeenCalled();
 
     fireEvent.change(screen.getByLabelText('New group name'), { target: { value: 'Group 2' } });
     await act(async () => {
-      fireEvent.click(screen.getByText('Add group'));
+      fireEvent.click(await screen.findByText('Add group'));
     });
 
     expect(createGroup).toHaveBeenCalledWith('liga-mendocina', 'apertura', 1, 2, {
@@ -670,7 +669,7 @@ describe('ZoneGroupPage', () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByRole('alert').textContent).toContain('Could not load zones and groups.'),
+      expect(screen.getByRole('alert').textContent).toContain('Retrying in 2 s.'),
     );
   });
 
@@ -775,7 +774,7 @@ describe('ZoneGroupPage', () => {
       ),
     );
 
-    await screen.findByText('Zones and groups');
+    await screen.findByLabelText('New zone name');
     fireEvent.change(screen.getByLabelText('New zone name'), { target: { value: 'Zone 2' } });
     await act(async () => {
       fireEvent.click(screen.getByText('Add zone'));
@@ -798,7 +797,7 @@ describe('ZoneGroupPage', () => {
       ),
     );
 
-    await screen.findByText('Zones and groups');
+    await waitFor(() => expect(document.querySelector('.cl-skeleton')).toBeNull());
     expect(screen.queryByLabelText('New zone name')).toBeNull();
 
     const zoneRegion = zoneAssignRegion();

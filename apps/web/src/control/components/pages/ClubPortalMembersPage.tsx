@@ -1,15 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useIntl } from 'react-intl';
-import { Alert } from '../ui/atoms/alert.js';
+import { messages } from '../../i18n/messages.en.js';
 import {
   createControlApiClient,
   type ClubMemberResponse,
   type ControlApiClient,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import { messages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
 import { ClubPortalMembersTemplate } from '../screens/ClubPortalMembersTemplate.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 /**
  * The Club Portal member directory: a club-admin's own scoped
@@ -38,40 +39,14 @@ export function ClubPortalMembersPage({
     [client],
   );
 
-  const [members, setMembers] = useState<readonly ClubMemberResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string>();
-
-  const reload = useCallback(async (): Promise<void> => {
-    try {
-      const loaded = await (api.listClubMembers?.(organizationAlias, clubId) ??
-        Promise.resolve([]));
-      setMembers(loaded);
-      setLoadError(undefined);
-    } catch {
-      setLoadError(intl.formatMessage(messages.clubPortalMembersLoadFailed));
-    }
-  }, [api, intl, organizationAlias, clubId]);
-
-  useEffect(() => {
-    let live = true;
-    (api.listClubMembers?.(organizationAlias, clubId) ?? Promise.resolve([]))
-      .then((loaded) => {
-        if (live) {
-          setMembers(loaded);
-          setLoadError(undefined);
-        }
-      })
-      .catch(() => {
-        if (live) setLoadError(intl.formatMessage(messages.clubPortalMembersLoadFailed));
-      })
-      .finally(() => {
-        if (live) setLoading(false);
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, intl, organizationAlias, clubId]);
+  const read = useResilientRead<readonly ClubMemberResponse[]>(
+    `control-members:${organizationAlias}:${clubId}`,
+    () => api.listClubMembers?.(organizationAlias, clubId) ?? Promise.resolve([]),
+    { thing: intl.formatMessage(messages.clubPortalMembersTitle) },
+  );
+  const members = read.data ?? [];
+  const setMembers = read.update;
+  const reload = read.retry;
 
   async function createMember(
     displayName: string,
@@ -110,19 +85,17 @@ export function ClubPortalMembersPage({
     }
   }
 
-  if (loading) {
-    return <Alert tone="info">{intl.formatMessage(messages.clubPortalMembersLoading)}</Alert>;
-  }
-  if (loadError) {
-    return <Alert tone="destructive">{loadError}</Alert>;
-  }
+  if (read.data === undefined)
+    return <ReadState {...read} title={intl.formatMessage(messages.clubPortalMembersTitle)} />;
 
   return (
-    <ClubPortalMembersTemplate
-      api={api}
-      members={members}
-      onCreateMember={createMember}
-      onSaveMember={saveMember}
-    />
+    <ReadState {...read} title={intl.formatMessage(messages.clubPortalMembersTitle)}>
+      <ClubPortalMembersTemplate
+        api={api}
+        members={members}
+        onCreateMember={createMember}
+        onSaveMember={saveMember}
+      />
+    </ReadState>
   );
 }

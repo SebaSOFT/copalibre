@@ -35,7 +35,7 @@ const emblemSrc =
       </div>
     </div>
     {/* The count is the label: "live" as a colour alone is not a state. */}
-    <Badge as="p">{labels.liveCountText}</Badge>
+    {model.liveCount > 0 && <Badge as="p">{labels.liveCountText}</Badge>}
   </div>
 </section>
 

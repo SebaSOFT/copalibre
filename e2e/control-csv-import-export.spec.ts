@@ -14,6 +14,9 @@ async function mockImportApi(page: import('@playwright/test').Page, valid: boole
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
         if (url.endsWith('/registrations')) return Response.json(registrations);
+        if (url.endsWith('/entrants/needing-abbreviation') && (init?.method ?? 'GET') === 'GET') {
+          return Response.json([]);
+        }
         if (url.endsWith('/imports') && init?.method === 'POST') {
           return Response.json({
             importId: 'import-1',

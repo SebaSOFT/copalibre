@@ -53,6 +53,22 @@ async function mockPreferencesApi(page: Page): Promise<void> {
           return new Response(null, { status: 204 });
         }
 
+        if (url.endsWith('/organizations/liga-mendocina')) {
+          return Response.json({
+            organizationId: 'org-1',
+            alias: 'liga-mendocina',
+            name: 'Liga Mendocina',
+            primaryLanguage: 'es',
+            timezone: 'America/Argentina/Buenos_Aires',
+          });
+        }
+        if (url.endsWith('/organizations/liga-mendocina/storage-usage')) {
+          return Response.json({ totalBytes: 0, objectCount: 0 });
+        }
+        if (url.endsWith('/organizations/liga-mendocina/storage-usage/objects')) {
+          return Response.json([]);
+        }
+
         return new Response('Not found', { status: 404 });
       };
     },

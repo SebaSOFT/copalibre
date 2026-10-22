@@ -1,7 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
+import { render, screen, waitFor } from '@testing-library/react';
 import { DisciplineDocumentPage } from './DisciplineDocumentPage.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { ControlApiClient } from '../../lib/api-client.js';
+import { clearResilientReadCache } from './use-resilient-read.js';
 
 function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   return {
@@ -42,6 +44,8 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('DisciplineDocumentPage', () => {
+  beforeEach(() => clearResilientReadCache());
+
   it('loads and shows the plain-language summary for the installed discipline', async () => {
     render(
       withIntl(<DisciplineDocumentPage client={stubClient()} disciplineAlias="orbital-frisbee" />),
@@ -66,6 +70,30 @@ describe('DisciplineDocumentPage', () => {
       ),
     );
 
-    expect(await screen.findByText('Could not load this discipline.')).toBeDefined();
+    await expectFirstReadFailure();
+  });
+
+  it('keeps the last successful discipline document visible and marks it stale after a failed refresh', async () => {
+    const firstRead = render(
+      withIntl(<DisciplineDocumentPage client={stubClient()} disciplineAlias="orbital-frisbee" />),
+    );
+    await screen.findByText('Segments');
+    firstRead.unmount();
+
+    const { container } = render(
+      withIntl(
+        <DisciplineDocumentPage
+          client={stubClient({
+            fetchInstalledDisciplineDocument: () => Promise.reject(new Error('network down')),
+          })}
+          disciplineAlias="orbital-frisbee"
+        />,
+      ),
+    );
+
+    expect(await screen.findByText('Segments')).toBeDefined();
+    await waitFor(() =>
+      expect(container.querySelector('.cl-stale-mark')?.textContent).toContain('Stale'),
+    );
   });
 });

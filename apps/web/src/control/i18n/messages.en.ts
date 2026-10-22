@@ -11,6 +11,28 @@ import { defineMessages } from '../../lib/i18n/define-messages.ts';
  * {...messages.someKey} />` directly.
  */
 export const messages = defineMessages({
+  interactionCreateToken: { id: 'control.interaction.createToken', defaultMessage: 'Create token' },
+  interactionPairTv: { id: 'control.interaction.pairTv', defaultMessage: 'Pair TV' },
+  interactionPairDescription: {
+    id: 'control.interaction.pairDescription',
+    defaultMessage: 'Connect a TV to display live scores.',
+  },
+  interactionWhoCanPair: {
+    id: 'control.interaction.whoCanPair',
+    defaultMessage: 'An organization admin can pair a TV.',
+  },
+  interactionInviteDescription: {
+    id: 'control.interaction.inviteDescription',
+    defaultMessage: 'Invite someone to help manage this organization.',
+  },
+  interactionWhoCanInvite: {
+    id: 'control.interaction.whoCanInvite',
+    defaultMessage: 'An organization admin can invite users.',
+  },
+  interactionTokenDescription: {
+    id: 'control.interaction.tokenDescription',
+    defaultMessage: 'Create a token to access the API from another tool.',
+  },
   sideSourceWinner: { id: 'control.sideSource.winner', defaultMessage: 'Winner of {match}' },
   sideSourceLoser: { id: 'control.sideSource.loser', defaultMessage: 'Loser of {match}' },
   sideSourceWinnerShort: { id: 'control.sideSource.winnerShort', defaultMessage: 'W {match}' },
@@ -598,6 +620,55 @@ export const messages = defineMessages({
   matchConsoleNeverSynced: {
     id: 'control.matchConsole.neverSynced',
     defaultMessage: 'Not yet synced',
+  },
+  interactionLoading: { id: 'control.interaction.loading', defaultMessage: 'Loading {thing}' },
+  interactionEmptyHeading: {
+    id: 'control.interaction.emptyHeading',
+    defaultMessage: 'Nothing here yet',
+  },
+  interactionEmptyDescription: {
+    id: 'control.interaction.emptyDescription',
+    defaultMessage: 'Start by adding the first item.',
+  },
+  interactionWhoCanAct: {
+    id: 'control.interaction.whoCanAct',
+    defaultMessage: 'An organization admin can create tournaments.',
+  },
+  interactionStale: { id: 'control.interaction.stale', defaultMessage: 'Stale' },
+  interactionRetry: { id: 'control.interaction.retry', defaultMessage: 'Retry' },
+  interactionRetryIn: {
+    id: 'control.interaction.retryIn',
+    defaultMessage: 'Retrying in {seconds} s',
+  },
+  interactionReadFailed: {
+    id: 'control.interaction.readFailed',
+    defaultMessage: "Couldn't load {thing}. Retrying in {seconds} s.",
+  },
+  interactionFailedEmpty: {
+    id: 'control.interaction.failedEmpty',
+    defaultMessage: "Couldn't load {thing}.",
+  },
+  interactionQueued: { id: 'control.interaction.queued', defaultMessage: 'Queued' },
+  interactionSent: { id: 'control.interaction.sent', defaultMessage: 'Sent' },
+  interactionConfirmed: { id: 'control.interaction.confirmed', defaultMessage: 'Confirmed' },
+  interactionRefused: { id: 'control.interaction.refused', defaultMessage: 'Refused' },
+  interactionOnline: { id: 'control.interaction.online', defaultMessage: 'Online' },
+  interactionOffline: { id: 'control.interaction.offline', defaultMessage: 'Offline' },
+  interactionLastSynced: {
+    id: 'control.interaction.lastSynced',
+    defaultMessage: 'Last synced {time}',
+  },
+  interactionNeverSynced: {
+    id: 'control.interaction.neverSynced',
+    defaultMessage: 'Not yet synced',
+  },
+  interactionQueuedCount: {
+    id: 'control.interaction.queuedCount',
+    defaultMessage: '{count, plural, one {# queued action} other {# queued actions}}',
+  },
+  interactionRefusedCount: {
+    id: 'control.interaction.refusedCount',
+    defaultMessage: '{count, plural, one {# refused action} other {# refused actions}}',
   },
   matchConsoleClockCommands: {
     id: 'control.matchConsole.clockCommands',

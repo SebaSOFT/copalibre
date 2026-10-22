@@ -27,6 +27,41 @@ export interface ReferenceIndexEntry {
 
 export const REFERENCE_INDEX: readonly ReferenceIndexEntry[] = [
   {
+    reference: 'Public actionable empty state',
+    storyId: 'Public/Astro preview — EmptyState',
+    consumers: ['components/ui/molecules/EmptyState.astro'],
+  },
+  {
+    reference: 'Resilient page read chrome',
+    storyId: 'Admin/Templates/ReadState — Stale',
+    consumers: ['control/components/pages/PreferencesPage.tsx'],
+  },
+  {
+    reference: 'Loading and data recovery states',
+    storyId: 'Admin/Atoms/Skeleton — Matrix',
+    consumers: ['control/components/pages/DashboardPage.tsx'],
+  },
+  {
+    reference: 'Actionable empty state',
+    storyId: 'Admin/Molecules/EmptyState — ReferenceNoTournaments',
+    consumers: ['control/components/screens/DashboardTemplate.tsx'],
+  },
+  {
+    reference: 'Stale data mark',
+    storyId: 'Admin/Molecules/StaleMark — ReferenceStaleData',
+    consumers: ['control/components/pages/DashboardPage.tsx'],
+  },
+  {
+    reference: 'Per-event synchronization mark',
+    storyId: 'Admin/Molecules/EventSyncMark — ReferenceEventSync',
+    consumers: ['control/components/screens/MatchConsoleTemplate.tsx'],
+  },
+  {
+    reference: 'Persistent connection status',
+    storyId: 'Admin/Organisms/ConnectionStatus — ReferenceOfflineStatus',
+    consumers: ['control/components/screens/MatchConsoleTemplate.tsx'],
+  },
+  {
     reference: 'Standings panel',
     storyId: 'Admin/Organisms/StandingsPanel — Playground',
     consumers: ['control/components/screens/StandingsTemplate.tsx'],

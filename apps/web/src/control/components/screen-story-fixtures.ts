@@ -8,6 +8,40 @@ import type { ReviewRegistrationRow } from './screens/RegistrationReviewTemplate
 import { createIntl } from 'react-intl';
 import { isSupportedLanguage } from '@copalibre/domain';
 import { CATALOGS } from '../i18n/ControlIntl.js';
+import {
+  Fragment,
+  createElement,
+  useEffect,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
+import { clearResilientReadCache } from './pages/use-resilient-read.js';
+
+/** A selected story starts a session; its own remounts still share read data. */
+export function ReadStoryScope({ children }: { readonly children: ReactNode }): ReactElement {
+  useState(() => {
+    clearResilientReadCache();
+    return true;
+  });
+  return createElement(Fragment, null, children);
+}
+
+/** Load the real page, then reopen it with its own failing narrow client. */
+export function StaleReadStory({
+  loaded,
+  failed,
+}: {
+  readonly loaded: ReactNode;
+  readonly failed: ReactNode;
+}): ReactElement {
+  const [offline, setOffline] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setOffline(true), 350);
+    return () => clearTimeout(timer);
+  }, []);
+  return createElement(Fragment, { key: offline ? 'failed' : 'loaded' }, offline ? failed : loaded);
+}
 import type { CanvasMatch } from '../lib/bracket-canvas.js';
 import type { DisciplineOption } from '../lib/wizard.js';
 import type { MatchCardData } from '../../lib/matches-view.js';

@@ -60,6 +60,75 @@ test('unknown or changed alerts fail with actionable identity details', () => {
   assert.match(result.failures[1], /#71.*expected braces\/GHSA-vfj7-8cjw-p6xm/);
 });
 
+test('open alerts with published fixes pass when current lock and root resolution are patched', () => {
+  const alert = {
+    number: 75,
+    security_vulnerability: {
+      package: { name: 'vite' },
+      first_patched_version: { identifier: '8.1.6' },
+    },
+    security_advisory: { ghsa_id: 'GHSA-698v-4r3x-3vcv' },
+  };
+  const lockText = `
+"vite@npm:^8.3.4":
+  version: 8.3.4
+  resolution: "vite@npm:8.3.4"
+`;
+  const result = inspectOpenAlerts(
+    [alert],
+    {},
+    {
+      lockText,
+      resolutions: { 'vite@npm:^8.3.4': '8.3.4' },
+    },
+  );
+
+  assert.deepEqual(result.failures, []);
+  assert.deepEqual(result.patchedInCheckout, [
+    {
+      number: 75,
+      packageName: 'vite',
+      ghsa: 'GHSA-698v-4r3x-3vcv',
+      firstPatchedVersion: '8.1.6',
+    },
+  ]);
+});
+
+test('open alerts with published fixes still fail when the current checkout is vulnerable', () => {
+  const alert = {
+    number: 75,
+    security_vulnerability: {
+      package: { name: 'vite' },
+      first_patched_version: { identifier: '8.1.6' },
+    },
+    security_advisory: { ghsa_id: 'GHSA-698v-4r3x-3vcv' },
+  };
+  const lockText = `
+"vite@npm:^8.1.5":
+  version: 8.1.5
+  resolution: "vite@npm:8.1.5"
+`;
+  const result = inspectOpenAlerts(
+    [alert],
+    {},
+    {
+      lockText,
+      resolutions: { 'vite@npm:^8.1.5': '8.1.5' },
+    },
+  );
+
+  assert.equal(result.patchedInCheckout.length, 0);
+  assert.equal(result.failures.length, 2);
+  assert.match(
+    result.failures[0],
+    /vite: locked 8\.1\.5 is below upstream patched version 8\.1\.6/,
+  );
+  assert.match(
+    result.failures[1],
+    /vite@npm:\^8\.1\.5: vite: locked 8\.1\.5 is below upstream patched version 8\.1\.6/,
+  );
+});
+
 test('patched floors reject affected lock versions until all instances are upgraded', () => {
   assert.deepEqual(checkPatchedFloor('braces', ['3.0.3'], '3.0.4'), [
     'braces: locked 3.0.3 is below upstream patched version 3.0.4; update package.json resolutions',

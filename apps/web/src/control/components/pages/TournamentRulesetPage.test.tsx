@@ -1,8 +1,10 @@
 import { jest } from '@jest/globals';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { TournamentRulesetPage } from '../pages/TournamentRulesetPage.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { ControlApiClient } from '../../lib/api-client.js';
+import { TournamentRulesetPage } from '../pages/TournamentRulesetPage.js';
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
+import { clearResilientReadCache } from './use-resilient-read.js';
 
 function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   return {
@@ -28,6 +30,8 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('TournamentRulesetPage', () => {
+  beforeEach(() => clearResilientReadCache());
+
   it('loads and shows the current override fields', async () => {
     render(
       withIntl(
@@ -78,7 +82,41 @@ describe('TournamentRulesetPage', () => {
       ),
     );
 
-    expect(await screen.findByText('Could not load the tournament settings.')).toBeDefined();
+    await expectFirstReadFailure();
+  });
+
+  it('keeps the last successful ruleset visible and marks it stale when a later read fails', async () => {
+    const organizationAlias = 'stale-ruleset-league';
+    const tournamentAlias = 'stale-ruleset-cup';
+    const firstRead = render(
+      withIntl(
+        <TournamentRulesetPage
+          client={stubClient()}
+          organizationAlias={organizationAlias}
+          tournamentAlias={tournamentAlias}
+        />,
+      ),
+    );
+
+    expect(await screen.findByLabelText('Points per win')).toBeDefined();
+    firstRead.unmount();
+
+    const { container } = render(
+      withIntl(
+        <TournamentRulesetPage
+          client={stubClient({
+            fetchRulesetOverrides: () => Promise.reject(new Error('network down')),
+          })}
+          organizationAlias={organizationAlias}
+          tournamentAlias={tournamentAlias}
+        />,
+      ),
+    );
+
+    expect(await screen.findByLabelText('Points per win')).toBeDefined();
+    await waitFor(() =>
+      expect(container.querySelector('.cl-stale-mark')?.textContent).toContain('Stale'),
+    );
   });
 
   it('retries loading the ruleset after the failure state', async () => {
@@ -110,7 +148,8 @@ describe('TournamentRulesetPage', () => {
       ),
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+    await expectFirstReadFailure();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
 
     expect(await screen.findByLabelText('Points per win')).toBeDefined();
     expect(attempts).toBe(2);

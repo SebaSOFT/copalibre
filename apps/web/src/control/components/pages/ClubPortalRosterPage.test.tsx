@@ -1,3 +1,4 @@
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
 import { jest } from '@jest/globals';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { ClubPortalRosterPage } from './ClubPortalRosterPage.js';
@@ -107,7 +108,7 @@ describe('ClubPortalRosterPage', () => {
       ),
     );
 
-    await waitFor(() => screen.getByText("Could not load the club's members and teams."));
+    await expectFirstReadFailure();
   });
 
   it('creates a new team from the form', async () => {

@@ -80,6 +80,17 @@ async function mockMatchesViewApi(page: Page): Promise<void> {
             state === 'live' ? [live] : state === 'final' ? [finalized] : [finalized, live];
           return Response.json({ matches });
         }
+        if (url.endsWith('/completion') && method === 'GET') {
+          return Response.json({
+            totalMatches: 2,
+            resolvedMatches: 1,
+            liveMatches: 1,
+            scheduledMatches: 0,
+            finalizedMatches: 1,
+            forfeitedMatches: 0,
+            stages: [],
+          });
+        }
         return new Response('Not found', { status: 404 });
       };
     },
