@@ -127,6 +127,20 @@ export const ICON_TOKENS = {
   tablerOpticalScale: 1.1,
 } as const;
 
+/** Fixed data-series order; theme variants stay inside plot areas only. */
+export const CHART_TOKENS = {
+  series: {
+    '1': { dark: '#796CE0', light: '#6351CA' },
+    '2': { dark: '#00D4FF', light: '#0094C3' },
+    '3': { dark: '#11A68B', light: '#007E57' },
+    '4': { dark: '#FF9C1E', light: '#CF7100' },
+    '5': { dark: '#C959A9', light: '#B43694' },
+  },
+  other: { dark: '#8C9AB5', light: '#46536B' },
+} as const;
+
+export type ChartTheme = keyof typeof CHART_TOKENS.other;
+
 /**
  * A 4px scale.
  *

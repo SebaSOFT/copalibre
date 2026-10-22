@@ -2,6 +2,7 @@ import {
   BREAKPOINTS,
   FONT_SOURCE,
   ICON_TOKENS,
+  CHART_TOKENS,
   TRACKING,
   COLOR_PRIMITIVES,
   CONTROL_DENSITY_SPACING,
@@ -54,6 +55,14 @@ export function generateCss(): string {
     header(),
     `:root {`,
     ...Object.entries(COLOR_PRIMITIVES).map(([name, value]) => `  --cl-color-${name}: ${value};`),
+    ...Object.entries(CHART_TOKENS.series).flatMap(([slot, colors]) => [
+      `  --cl-chart-${slot}-dark: ${colors.dark};`,
+      `  --cl-chart-${slot}-light: ${colors.light};`,
+      `  --cl-chart-${slot}: var(--cl-chart-${slot}-dark);`,
+    ]),
+    `  --cl-chart-other-dark: ${CHART_TOKENS.other.dark};`,
+    `  --cl-chart-other-light: ${CHART_TOKENS.other.light};`,
+    `  --cl-chart-other: var(--cl-chart-other-dark);`,
     '',
     ...Object.entries(SEMANTIC_COLORS).map(
       ([name, token]) => `  --cl-${name}: var(--cl-color-${token.primitive});`,
@@ -97,6 +106,13 @@ export function generateCss(): string {
     // derived from `primary`: a second copy of the channels drifts.
     `  --cl-table-column-rule: color-mix(in srgb, var(--cl-border-muted) 55%, transparent);`,
     `  --cl-glow-cyan: 0 0 20px color-mix(in srgb, var(--cl-primary) 40%, transparent);`,
+    `}`,
+    '',
+    `:root[data-theme='light'] {`,
+    ...Object.keys(CHART_TOKENS.series).map(
+      (slot) => `  --cl-chart-${slot}: var(--cl-chart-${slot}-light);`,
+    ),
+    `  --cl-chart-other: var(--cl-chart-other-light);`,
     `}`,
     '',
     reducedMotion(),

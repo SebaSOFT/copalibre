@@ -8,6 +8,7 @@ import { Badge } from '../ui/atoms/badge.js';
 import { Box } from '../ui/atoms/layout/box.js';
 import { Stack } from '../ui/atoms/layout/stack.js';
 import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
+import { AnalyticsStatusChart } from '../ui/organisms/analytics-status-chart.js';
 import { MetricStrip } from '../ui/molecules/metric-strip.js';
 import { formatStorageBytes } from '../pages/PreferencesPage.js';
 import { messages } from '../../i18n/messages.en.js';
@@ -69,6 +70,38 @@ export function AnalyticsTemplate({
   const liveCount = tournaments.filter((t) => t.status === 'started').length;
   const finishedCount = tournaments.filter((t) => t.status === 'finished').length;
   const upcomingCount = tournaments.filter((t) => t.status === 'published').length;
+  const statusSeries = [
+    {
+      key: 'started',
+      label: intl.formatMessage(messages.analyticsStatusLive),
+      value: liveCount,
+      slot: 0,
+    },
+    {
+      key: 'published',
+      label: intl.formatMessage(messages.analyticsStatusUpcoming),
+      value: upcomingCount,
+      slot: 1,
+    },
+    {
+      key: 'finished',
+      label: intl.formatMessage(messages.analyticsStatusFinished),
+      value: finishedCount,
+      slot: 2,
+    },
+    {
+      key: 'draft',
+      label: intl.formatMessage(messages.analyticsStatusDraft),
+      value: tournaments.filter((t) => t.status === 'draft').length,
+      slot: 3,
+    },
+    {
+      key: 'archived',
+      label: intl.formatMessage(messages.analyticsStatusArchived),
+      value: tournaments.filter((t) => t.status === 'archived').length,
+      slot: 4,
+    },
+  ];
 
   const columns: readonly DataTableColumn<TournamentActivityRow>[] = [
     {
@@ -154,6 +187,17 @@ export function AnalyticsTemplate({
           <MetricStrip
             ariaLabel={intl.formatMessage(messages.analyticsSubtitle)}
             metrics={metrics}
+          />
+
+          <AnalyticsStatusChart
+            chartLabel={intl.formatMessage(messages.chartShowAsChart)}
+            emptyLabel={intl.formatMessage(messages.analyticsNoTournaments)}
+            legendLabel={intl.formatMessage(messages.chartLegend)}
+            otherLabel={intl.formatMessage(messages.chartOther)}
+            series={statusSeries}
+            tableLabel={intl.formatMessage(messages.chartShowAsTable)}
+            title={intl.formatMessage(messages.analyticsStatusChart)}
+            valueLabel={intl.formatMessage(messages.analyticsTotalTournaments)}
           />
 
           <Stack gap="3">

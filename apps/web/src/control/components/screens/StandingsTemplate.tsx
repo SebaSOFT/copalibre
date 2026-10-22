@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { seriesColor } from '@copalibre/design-tokens';
 import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { EntrantName } from '../../../components/ui/atoms/EntrantName.js';
@@ -26,7 +27,7 @@ import { Button } from '../ui/atoms/button.js';
 import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
-import type { DataTableColumn } from '../ui/organisms/data-table.js';
+import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
 import { StandingsFigure, StandingsPanel } from '../ui/organisms/standings-panel.js';
 
 /**
@@ -425,57 +426,94 @@ export function PointsDistribution({
   }[];
 }): React.JSX.Element {
   const intl = useIntl();
+  const [view, setView] = useState<'chart' | 'table'>('chart');
+  const title = intl.formatMessage(messages.standingsDistributionTitle, { count: bars.length });
+  const columns: readonly DataTableColumn<(typeof bars)[number]>[] = [
+    {
+      key: 'entrant',
+      header: intl.formatMessage(messages.chartEntity),
+      render: (bar) => bar.label,
+    },
+    { key: 'value', header: intl.formatMessage(messages.chartValue), render: (bar) => bar.value },
+  ];
+
   return (
     <div
       aria-label={intl.formatMessage(messages.standingsDistributionAriaLabel)}
       className="cl-card cl-chamfer"
     >
       <header className="cl-card__header">
-        <h2 className="cl-card__title">
-          {intl.formatMessage(messages.standingsDistributionTitle, { count: bars.length })}
-        </h2>
+        <h2 className="cl-card__title">{title}</h2>
+        <div aria-label={title} className="cl-standings-distribution-controls" role="group">
+          <Button
+            aria-pressed={view === 'chart'}
+            onClick={() => setView('chart')}
+            type="button"
+            variant={view === 'chart' ? 'primary' : 'secondary'}
+          >
+            {intl.formatMessage(messages.chartShowAsChart)}
+          </Button>
+          <Button
+            aria-pressed={view === 'table'}
+            onClick={() => setView('table')}
+            type="button"
+            variant={view === 'table' ? 'primary' : 'secondary'}
+          >
+            {intl.formatMessage(messages.chartShowAsTable)}
+          </Button>
+        </div>
       </header>
       <div className="cl-card__content">
-        {bars.map((bar) => (
-          <div
-            className="cl-standings-distribution-row"
-            key={bar.actorId}
-            style={{
-              display: 'grid',
-              gap: 'var(--cl-space-3)',
-              alignItems: 'center',
-            }}
-          >
-            <span>{bar.label}</span>
-            <span
+        {view === 'table' ? (
+          <DataTable
+            ariaLabel={`${title}: ${intl.formatMessage(messages.chartShowAsTable)}`}
+            columns={columns}
+            emptyMessage={intl.formatMessage(messages.standingsDistributionEmpty)}
+            rowKey={(bar) => bar.actorId}
+            rows={bars}
+          />
+        ) : (
+          bars.map((bar) => (
+            <div
+              className="cl-standings-distribution-row"
+              key={bar.actorId}
               style={{
-                display: 'block',
-                height: 12,
-                background: 'var(--cl-surface-chrome)',
-                border: '1px solid var(--cl-border-muted)',
+                display: 'grid',
+                gap: 'var(--cl-space-3)',
+                alignItems: 'center',
               }}
             >
+              <span>{bar.label}</span>
               <span
-                aria-hidden="true"
                 style={{
                   display: 'block',
-                  height: '100%',
-                  background: 'var(--cl-state-live)',
-                  // Scaled rather than resized: animating `width` relayouts the
-                  // row on every frame, and the reduced-motion override only
-                  // reaches durations, not the cost of the property.
-                  width: '100%',
-                  transformOrigin: 'left',
-                  transform: `scaleX(${bar.widthPercent / 100})`,
-                  transition: 'transform var(--cl-motion-slow) var(--cl-motion-easing)',
+                  height: 12,
+                  background: 'var(--cl-surface-panel)',
+                  border: '1px solid var(--cl-border-muted)',
                 }}
-              />
-            </span>
-            <strong style={{ fontFamily: 'var(--cl-font-mono)', textAlign: 'right' }}>
-              {bar.value}
-            </strong>
-          </div>
-        ))}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    display: 'block',
+                    height: '100%',
+                    background: seriesColor(0, 'dark'),
+                    // Scaled rather than resized: animating `width` relayouts the
+                    // row on every frame, and the reduced-motion override only
+                    // reaches durations, not the cost of the property.
+                    width: '100%',
+                    transformOrigin: 'left',
+                    transform: `scaleX(${bar.widthPercent / 100})`,
+                    transition: 'transform var(--cl-motion-slow) var(--cl-motion-easing)',
+                  }}
+                />
+              </span>
+              <strong style={{ fontFamily: 'var(--cl-font-mono)', textAlign: 'right' }}>
+                {bar.value}
+              </strong>
+            </div>
+          ))
+        )}
         {bars.length === 0 && (
           <p className="cl-card__description">
             <FormattedMessage {...messages.standingsDistributionEmpty} />

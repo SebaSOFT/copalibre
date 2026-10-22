@@ -12,6 +12,8 @@ export {
   FONT_SIZE,
   BREAKPOINTS,
   ICON_TOKENS,
+  CHART_TOKENS,
+  type ChartTheme,
   SPACING,
   RADIUS,
   MOTION,
@@ -70,6 +72,12 @@ export {
   type ForbiddenHit,
 } from './forbidden.js';
 export { contrastRatio, relativeLuminance, CONTRAST_GATES } from './contrast.js';
+export { seriesColor } from './chart-palette.js';
+export {
+  CHART_PALETTE_THRESHOLDS,
+  validateChartPalette,
+  type ChartPaletteValidation,
+} from './chart-palette-validation.js';
 export { generateCss } from './generate/css.js';
 export {
   generateTailwindTheme,

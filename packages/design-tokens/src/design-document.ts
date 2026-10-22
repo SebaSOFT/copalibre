@@ -1,5 +1,6 @@
 import {
   COLOR_PRIMITIVES,
+  CHART_TOKENS,
   FONT_SIZE,
   FONT_WEIGHTS,
   ICON_TOKENS,
@@ -22,6 +23,16 @@ export function documentedTokens(): Mapping {
   ) => ({ fontFamily, fontSize, fontWeight, lineHeight, letterSpacing });
   return {
     colors: { ...COLOR_PRIMITIVES },
+    chart: {
+      ...Object.fromEntries(
+        Object.entries(CHART_TOKENS.series).flatMap(([slot, colors]) => [
+          [`${slot}-dark`, colors.dark],
+          [`${slot}-light`, colors.light],
+        ]),
+      ),
+      'other-dark': CHART_TOKENS.other.dark,
+      'other-light': CHART_TOKENS.other.light,
+    },
     icon: {
       size: Object.fromEntries(
         Object.entries(ICON_TOKENS.size).map(([name, value]) => [name, `${value}px`]),
@@ -92,6 +103,7 @@ export function readDesignTokens(document: string): Mapping {
         'name',
         'description',
         'colors',
+        'chart',
         'icon',
         'typography',
         'rounded',
@@ -104,7 +116,7 @@ export function readDesignTokens(document: string): Mapping {
   }
   return Object.fromEntries(
     Object.entries(root).filter(([key]) =>
-      ['colors', 'icon', 'typography', 'rounded', 'spacing'].includes(key),
+      ['colors', 'chart', 'icon', 'typography', 'rounded', 'spacing'].includes(key),
     ),
   );
 }
