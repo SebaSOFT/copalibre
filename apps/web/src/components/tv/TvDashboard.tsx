@@ -750,7 +750,7 @@ export function TvDashboard({
           >
             <div className="tv-focal-panel__header">
               <span className="tv-focal-panel__label">
-                {showRecap ? 'Recapitulativo de Campeonato' : 'Foco del Encuentro'}
+                {showRecap ? dashboardLabels.recapTitle : dashboardLabels.focalPanelTitle}
               </span>
             </div>
 
@@ -781,8 +781,10 @@ export function TvDashboard({
               /* Spotlight Match Presentation */
               <div className="tv-match-spotlight" data-testid="tv-match-spotlight">
                 <div className="tv-match-spotlight__stage">
-                  Etapa {spotlightMatch.stageNumber} · Partido{' '}
-                  {spotlightMatch.stageOrdinal ?? spotlightMatch.matchNumber}
+                  {applyTemplate(dashboardLabels.stageMatch, {
+                    stage: spotlightMatch.stageNumber,
+                    match: spotlightMatch.stageOrdinal ?? spotlightMatch.matchNumber,
+                  })}
                 </div>
                 <div className="tv-match-spotlight__vs-grid">
                   {/* Home Side — the spotlight's visual anchor */}

@@ -181,7 +181,7 @@ describe('ScheduleBuilderPage', () => {
           />,
         ),
       );
-      await screen.findByLabelText('Start time — TBD vs María López');
+      await screen.findByLabelText('Start time — To be determined vs María López');
       expect(screen.getAllByText('María López').length).toBeGreaterThan(0);
       expect(container.textContent).not.toMatch(/0199b000-/);
     },
@@ -214,8 +214,8 @@ describe('ScheduleBuilderPage', () => {
         />,
       ),
     );
-    await screen.findByLabelText('Start time — Andrea Gómez vs TBD');
-    expect(screen.getByLabelText('Start time — TBD vs TBD')).toBeTruthy();
+    await screen.findByLabelText('Start time — Andrea Gómez vs To be determined');
+    expect(screen.getByLabelText('Start time — To be determined vs To be determined')).toBeTruthy();
     expect(container.textContent).not.toMatch(/0199b000-/);
   });
 

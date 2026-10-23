@@ -214,7 +214,7 @@ export function ZoneGroupTemplate({
                       type="button"
                       variant="secondary"
                     >
-                      <FormattedMessage {...messages.zoneGroupRename} />
+                      <FormattedMessage {...messages.zoneGroupRenameZone} />
                     </Button>
                   </>
                 )}
@@ -420,7 +420,7 @@ export function ZoneGroupTemplate({
                           type="button"
                           variant="secondary"
                         >
-                          <FormattedMessage {...messages.zoneGroupRename} />
+                          <FormattedMessage {...messages.zoneGroupRenameGroup} />
                         </Button>
                       </>
                     )}

@@ -170,9 +170,9 @@ describe('DashboardPage', () => {
 
   it.each([
     // The provider wrapper supplies Spanish catalogue messages as in production.
-    ['published', 'PRÓXIMO'],
-    ['finished', 'FINALIZADO'],
-    ['archived', 'FINALIZADO'],
+    ['published', 'Próximo'],
+    ['finished', 'Finalizado'],
+    ['archived', 'Finalizado'],
   ] as const)('maps a %s tournament to %s', async (status, label) => {
     await act(async () => {
       render(

@@ -379,9 +379,9 @@ describe('what the dashboard renders', () => {
 
   it.each([
     ['live', 'LIVE'],
-    ['upcoming', 'UPCOMING'],
-    ['draft', 'DRAFT'],
-    ['finished', 'FINISHED'],
+    ['upcoming', 'Upcoming'],
+    ['draft', 'Draft'],
+    ['finished', 'Finished'],
   ] as const)('labels a %s tournament as %s, not only by colour', (lifecycle, label) => {
     render(
       withIntl(
@@ -417,7 +417,7 @@ describe('what the dashboard renders', () => {
 
     const href = '/control/liga-mendocina/tournaments/apertura-2026/matches-view';
     expect(screen.getByRole('link', { name: 'Torneo Apertura' }).getAttribute('href')).toBe(href);
-    expect(screen.getByRole('link', { name: 'Open' }).getAttribute('href')).toBe(href);
+    expect(screen.getByRole('link', { name: 'Open tournament' }).getAttribute('href')).toBe(href);
   });
 
   it('offers a second entry point to the tournament’s stage list, alongside its title', () => {

@@ -146,6 +146,8 @@ jobs:
           cache: yarn
       - run: yarn install --immutable
       - run: yarn lint
+      - name: Check interface copy voice
+        run: node scripts/check-copy-voice.mjs
       - run: yarn format:check
 
   typecheck:
@@ -326,6 +328,7 @@ jobs:
           node --test scripts/build-identity.test.mjs
           node --test scripts/evaluate-ci-aggregate.test.mjs
           node --test scripts/classify-ci-paths.test.mjs
+          node --test scripts/check-copy-voice.test.mjs
           yarn workspace @copalibre/domain test:coverage --maxWorkers=2
           yarn workspace @copalibre/rules test:coverage --maxWorkers=2
           yarn workspace @copalibre/tournament-engine test:coverage --maxWorkers=2

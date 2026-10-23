@@ -106,7 +106,7 @@ test.describe('public breadcrumb', () => {
 
     // The English position tag is gone; the state tag stays, in the page language.
     await expect(page.getByText('Stage 2 · Round 1 · Match 3')).toHaveCount(0);
-    await expect(page.locator('.cl-match-hero__meta')).toContainText('FINALIZADO');
+    await expect(page.locator('.cl-match-hero__meta')).toContainText('Finalizado');
   });
 
   test('following the trail reaches the tournament page', async ({ page }) => {

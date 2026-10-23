@@ -156,7 +156,7 @@ describe('VenueManagementPage', () => {
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Cancha 1');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit venue'));
 
     const nameInput = await screen.findByLabelText('Name');
     fireEvent.change(nameInput, { target: { value: 'Cancha Renombrada' } });
@@ -185,7 +185,7 @@ describe('VenueManagementPage', () => {
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Cancha 1');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit venue'));
     await screen.findByLabelText('Name');
     await act(async () => {
       fireEvent.click(screen.getByText('Save venue'));
@@ -271,7 +271,7 @@ describe('VenueManagementPage', () => {
 
     await screen.findByText('Ana Gómez');
     await screen.findByText('Referee');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit official'));
     await screen.findByLabelText('Name');
     fireEvent.click(screen.getByLabelText('Observer'));
     await act(async () => {
@@ -396,7 +396,7 @@ describe('VenueManagementPage', () => {
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Cancha 1');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit venue'));
     await screen.findByLabelText('Name');
 
     fireEvent.change(screen.getByLabelText('Detail name'), { target: { value: 'surface' } });
@@ -430,7 +430,7 @@ describe('VenueManagementPage', () => {
 
     await screen.findByText('Ana Gómez');
     await screen.findByText('Referee');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit official'));
     await screen.findByLabelText('Name');
     await act(async () => {
       fireEvent.click(screen.getByText('Save official'));
@@ -447,7 +447,7 @@ describe('VenueManagementPage', () => {
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Cancha 1');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit venue'));
     await screen.findByLabelText('Name');
     await act(async () => {
       fireEvent.click(screen.getByText('Save venue'));
@@ -482,7 +482,7 @@ describe('VenueManagementPage', () => {
 
     await screen.findByText('Ana Gómez');
     await screen.findByText('Referee');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit official'));
     await screen.findByLabelText('Name');
     await act(async () => {
       fireEvent.click(screen.getByText('Save official'));
@@ -576,7 +576,7 @@ describe('VenueManagementPage', () => {
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     const scheduleRegion = await screen.findByRole('region', { name: 'Schedules' });
-    fireEvent.click(within(scheduleRegion).getByText('Edit'));
+    fireEvent.click(within(scheduleRegion).getByText('Edit schedule'));
 
     const editCard = await screen.findByRole('region', { name: 'Edit schedule' });
     fireEvent.change(within(editCard).getByLabelText('Schedule name'), {

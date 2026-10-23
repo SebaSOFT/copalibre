@@ -1,7 +1,9 @@
 import { render, screen } from '@testing-library/react';
+import { IntlProvider } from 'react-intl';
 import { ActivityLog } from './ActivityLog.js';
 import { withIntl } from '../i18n/test-support.js';
 import type { ActivityEntry } from '../lib/dashboard.js';
+import { messages as spanishMessages } from '../i18n/messages.es.js';
 
 describe('ActivityLog', () => {
   const baseTime = new Date('2026-09-04T12:00:00.000Z').getTime();
@@ -40,6 +42,26 @@ describe('ActivityLog', () => {
     expect(screen.getByText('Club created')).toBeDefined();
     expect(screen.getByText('club.created')).toBeDefined();
     expect(screen.getByText('user:staff-2')).toBeDefined();
+  });
+
+  it('translates recorded match activity and its reason into Spanish', () => {
+    const entry: ActivityEntry = {
+      auditId: 'audit-recorded',
+      organizationId: 'org-1',
+      action: 'event.recorded',
+      actor: 'user:admin-1',
+      occurredAt: new Date(baseTime - 120_000).toISOString(),
+      reason: 'match finalized from recorded facts',
+    };
+
+    render(
+      <IntlProvider locale="es" messages={spanishMessages}>
+        <ActivityLog entries={[entry]} now={baseTime} />
+      </IntlProvider>,
+    );
+
+    expect(screen.getByText('Evento registrado')).toBeDefined();
+    expect(screen.getByText('Partido finalizado a partir de los hechos registrados')).toBeDefined();
   });
 
   it('uses default now timestamp when now prop is omitted', () => {

@@ -62,6 +62,22 @@ describe('activity-formatting', () => {
       expect(formatActivityAction('entrant.accepted', 'ru')).toBe('Регистрация одобрена');
       expect(formatActivityAction('club.created', 'zh')).toBe('俱乐部已创建');
     });
+
+    it('localizes recorded match events in all supported languages', () => {
+      const labels = {
+        en: 'Event recorded',
+        es: 'Evento registrado',
+        pt: 'Evento registrado',
+        fr: 'Événement enregistré',
+        it: 'Evento registrato',
+        de: 'Ereignis erfasst',
+        ru: 'Событие записано',
+        zh: '事件已记录',
+      };
+      for (const [language, label] of Object.entries(labels)) {
+        expect(formatActivityAction('event.recorded', language)).toBe(label);
+      }
+    });
   });
 
   describe('formatActivityReason', () => {
@@ -101,6 +117,22 @@ describe('activity-formatting', () => {
       expect(formatActivityReason('Token is missing required scope: org.admin', 'zh')).toBe(
         '令牌缺少所需的权限范围',
       );
+    });
+
+    it('localizes the reason a match was finalized from recorded facts', () => {
+      const labels = {
+        en: 'Match finalized from recorded facts',
+        es: 'Partido finalizado a partir de los hechos registrados',
+        pt: 'Partida finalizada com base nos fatos registrados',
+        fr: 'Match finalisé à partir des faits enregistrés',
+        it: 'Partita finalizzata sulla base dei fatti registrati',
+        de: 'Spiel anhand der erfassten Fakten abgeschlossen',
+        ru: 'Матч завершён по зафиксированным фактам',
+        zh: '比赛已根据记录的事实结束',
+      };
+      for (const [language, label] of Object.entries(labels)) {
+        expect(formatActivityReason('match finalized from recorded facts', language)).toBe(label);
+      }
     });
   });
 });

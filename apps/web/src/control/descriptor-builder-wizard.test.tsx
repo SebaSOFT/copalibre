@@ -5,21 +5,21 @@ import { withIntl } from './i18n/test-support.js';
 function goToParticipantsStep(): void {
   fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'test-sport' } });
   fireEvent.change(screen.getByLabelText('Name *'), { target: { value: 'Test Sport' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue descriptor setup' }));
   fireEvent.change(screen.getByLabelText('Author'), { target: { value: 'Test Author' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue descriptor setup' }));
 }
 
 function goToWinConditionStep(): void {
   goToParticipantsStep();
   fireEvent.click(screen.getByLabelText('team', { exact: true }));
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue descriptor setup' }));
   fireEvent.change(screen.getByLabelText('Statistic code'), { target: { value: 'points' } });
   fireEvent.change(screen.getByLabelText('Statistic label'), { target: { value: 'Points' } });
   fireEvent.click(screen.getAllByRole('button', { name: 'Add' })[0] as HTMLButtonElement);
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue descriptor setup' }));
   fireEvent.click(screen.getByLabelText('single-elimination', { exact: true }));
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue descriptor setup' }));
 }
 
 describe('the discipline builder wizard', () => {
@@ -51,7 +51,9 @@ describe('the discipline builder wizard', () => {
   it('refuses to continue past the name step without an English name', () => {
     render(withIntl(<DescriptorBuilderWizard />));
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'test-sport' } });
-    const continueButton = screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement;
+    const continueButton = screen.getByRole('button', {
+      name: 'Continue descriptor setup',
+    }) as HTMLButtonElement;
     expect(continueButton.disabled).toBe(true);
     fireEvent.change(screen.getByLabelText('Name *'), { target: { value: 'Test Sport' } });
     expect(continueButton.disabled).toBe(false);
@@ -61,7 +63,9 @@ describe('the discipline builder wizard', () => {
     render(withIntl(<DescriptorBuilderWizard />));
     goToParticipantsStep();
     expect(screen.getByText('Participants')).toBeDefined();
-    const continueButton = screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement;
+    const continueButton = screen.getByRole('button', {
+      name: 'Continue descriptor setup',
+    }) as HTMLButtonElement;
     expect(continueButton.disabled).toBe(true);
     fireEvent.click(screen.getByLabelText('team'));
     expect(continueButton.disabled).toBe(false);
@@ -107,7 +111,7 @@ describe('the discipline builder wizard', () => {
     fireEvent.change(screen.getByLabelText('Description'), {
       target: { value: 'Racquet sport decided by sets' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue descriptor setup' }));
 
     // Authorship step.
     fireEvent.change(screen.getByLabelText('Author'), { target: { value: 'E2E Author' } });
@@ -115,7 +119,7 @@ describe('the discipline builder wizard', () => {
     fireEvent.change(screen.getByLabelText('Source URL (optional)'), {
       target: { value: 'https://example.test/tennis' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue descriptor setup' }));
 
     // Participants step: both types, roster bounds, mid-tournament changes, one segment type.
     fireEvent.click(screen.getByLabelText('individual', { exact: true }));
@@ -128,7 +132,7 @@ describe('the discipline builder wizard', () => {
     fireEvent.click(screen.getByLabelText('Timed'));
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     expect(screen.getByText(/set — Set \(timed\)/)).toBeDefined();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue descriptor setup' }));
 
     // Statistics & events step: two statistics, an event with no award, an
     // event that awards one of the declared statistics, one removed.
@@ -163,7 +167,7 @@ describe('the discipline builder wizard', () => {
     fireEvent.click(removeButtons[2] as HTMLButtonElement);
     expect(screen.queryByText(/let — Let \(positive\)/)).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue descriptor setup' }));
 
     // Formats step: two formats, one scoring input.
     fireEvent.click(screen.getByLabelText('single-elimination', { exact: true }));
@@ -179,7 +183,7 @@ describe('the discipline builder wizard', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     expect(screen.getByText(/challenge — Challenge used \(operator-entered\)/)).toBeDefined();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue descriptor setup' }));
 
     // Win condition step: segmented mode with margin, tiebreak, and a
     // winMatch unit naming the segment `winSegment` just closed.

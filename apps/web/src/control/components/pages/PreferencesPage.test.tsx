@@ -193,7 +193,7 @@ describe('PreferencesPage', () => {
     const nameInput = await screen.findByDisplayValue('Liga Mendocina');
 
     fireEvent.change(nameInput, { target: { value: 'Liga Renombrada' } });
-    fireEvent.click(screen.getByText('Save'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save organization details' }));
 
     await waitFor(() =>
       expect(updateOrganizationSettings).toHaveBeenCalledWith('liga-mendocina', {
@@ -318,7 +318,7 @@ describe('PreferencesPage', () => {
     );
 
     await screen.findByDisplayValue('Liga Mendocina');
-    fireEvent.click(screen.getByText('Save'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save organization details' }));
 
     await screen.findByText('Rechazado');
   });
@@ -340,7 +340,7 @@ describe('PreferencesPage', () => {
     );
 
     await screen.findByDisplayValue('Liga Mendocina');
-    fireEvent.click(screen.getByText('Save'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save organization details' }));
 
     await screen.findByText('The request could not be completed. Try again.');
   });
@@ -359,7 +359,7 @@ describe('PreferencesPage', () => {
     );
 
     await screen.findByDisplayValue('Liga Mendocina');
-    fireEvent.click(screen.getByText('Save'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save organization details' }));
 
     expect(screen.queryByText('Organization updated.')).toBeNull();
   });

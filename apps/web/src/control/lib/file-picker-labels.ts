@@ -8,6 +8,7 @@ export interface FilePickerLabels {
   readonly promptDraggingText: string;
   readonly acceptedFormatsLabel: string | undefined;
   readonly maxSizeLabel: string | undefined;
+  readonly clearLabel: string;
   readonly clearButtonText: string;
   readonly formatFilesSelected: (count: number) => string;
 }
@@ -28,13 +29,16 @@ export function filePickerLabels(
     acceptedFormatsLabel:
       options.accept === undefined
         ? undefined
-        : intl.formatMessage(messages.filePickerAcceptedFormats, { formats: options.accept }),
+        : options.accept === 'image/*'
+          ? intl.formatMessage(messages.filePickerImageFormats)
+          : intl.formatMessage(messages.filePickerAcceptedFormats, { formats: options.accept }),
     maxSizeLabel:
       options.maxSizeBytes === undefined
         ? undefined
         : intl.formatMessage(messages.filePickerMaxSize, {
             size: formatFileSize(options.maxSizeBytes),
           }),
+    clearLabel: intl.formatMessage(messages.filePickerClearLabel),
     clearButtonText: intl.formatMessage(messages.filePickerClear),
     formatFilesSelected: (count) => intl.formatMessage(messages.filePickerFilesSelected, { count }),
   };

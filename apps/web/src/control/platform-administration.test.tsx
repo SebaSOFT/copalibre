@@ -406,13 +406,13 @@ describe('platform administration console', () => {
     fireEvent.change(within(wizard).getByLabelText('Name *'), {
       target: { value: 'E2E Sport' },
     });
-    fireEvent.click(within(wizard).getByRole('button', { name: 'Continue' }));
+    fireEvent.click(within(wizard).getByRole('button', { name: 'Continue descriptor setup' }));
     fireEvent.change(within(wizard).getByLabelText('Author'), {
       target: { value: 'E2E Author' },
     });
-    fireEvent.click(within(wizard).getByRole('button', { name: 'Continue' }));
+    fireEvent.click(within(wizard).getByRole('button', { name: 'Continue descriptor setup' }));
     fireEvent.click(within(wizard).getByLabelText('team', { exact: true }));
-    fireEvent.click(within(wizard).getByRole('button', { name: 'Continue' }));
+    fireEvent.click(within(wizard).getByRole('button', { name: 'Continue descriptor setup' }));
     fireEvent.change(within(wizard).getByLabelText('Statistic code'), {
       target: { value: 'points' },
     });
@@ -420,9 +420,9 @@ describe('platform administration console', () => {
       target: { value: 'Points' },
     });
     fireEvent.click(within(wizard).getAllByRole('button', { name: 'Add' })[0] as HTMLButtonElement);
-    fireEvent.click(within(wizard).getByRole('button', { name: 'Continue' }));
+    fireEvent.click(within(wizard).getByRole('button', { name: 'Continue descriptor setup' }));
     fireEvent.click(within(wizard).getByLabelText('round-robin', { exact: true }));
-    fireEvent.click(within(wizard).getByRole('button', { name: 'Continue' }));
+    fireEvent.click(within(wizard).getByRole('button', { name: 'Continue descriptor setup' }));
     fireEvent.change(within(wizard).getByLabelText('Statistic that decides the match'), {
       target: { value: 'points' },
     });

@@ -105,7 +105,7 @@ export const messages: Record<string, string> = {
   'publicWeb.home.operatorCta': '打开控制面板',
   'publicWeb.home.docsCardTitle': '自主托管与技术文档',
   'publicWeb.home.docsCardBody':
-    '查阅运维手册、配置外部反向代理，或通过 REST API 与 CLI 进行集成。',
+    '查阅运维指南、配置外部反向代理，或通过赛事运营接口与命令行工具集成。',
   'publicWeb.home.docsCta': '阅读指南',
   'publicWeb.home.emptySpectatorNotice':
     '如果您是观众或参赛选手，请在主办方发布比赛日程后再次查看。',
@@ -158,6 +158,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tournamentPage.description': '{tournament} 的结果、排名和规则。',
 
   'publicWeb.livePage.title': '实时',
+  'publicWeb.livePage.matchup': '{home} 对阵 {away}',
   'publicWeb.livePage.breadcrumb': '面包屑导航',
   'publicWeb.breadcrumb.stage': '第 {stage} 阶段',
   'publicWeb.breadcrumb.match': '第 {match} 场',
@@ -259,7 +260,7 @@ export const messages: Record<string, string> = {
 
   'publicWeb.ticker.label': '赛事滚动条',
   'publicWeb.ticker.leader': '领先者',
-  'publicWeb.ticker.versus': 'VS',
+  'publicWeb.ticker.versus': '对阵',
   'publicWeb.tvStats.homeSide': '主场',
   'publicWeb.tvStats.awaySide': '客场',
   'publicWeb.tvStats.points': '积分',
@@ -309,6 +310,9 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.playedColumn': '场次',
   'publicWeb.tvDashboard.noTopPerformers': '暂无最佳球员记录',
   'publicWeb.tvDashboard.focalPanelLabel': '主转播面板',
+  'publicWeb.tvDashboard.featuredMatchTitle': '焦点比赛',
+  'publicWeb.tvDashboard.recapTitle': '赛事回顾',
+  'publicWeb.tvDashboard.stageMatch': '第{stage}阶段 · 第{match}场',
   'publicWeb.tvDashboard.matchEventsLabel': '比赛事件',
   'publicWeb.tvDashboard.statsAndTablesLabel': '赛事统计与数据表',
   'publicWeb.tvDashboard.sidebarSectionsLabel': '侧边栏区域',

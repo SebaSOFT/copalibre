@@ -216,8 +216,10 @@ test('publishes an undecided eight-entrant final through the real API and retain
     const time = page.getByLabel(/^Hora de inicio/).last();
     await time.selectOption({ index: 1 });
     await page.getByRole('button', { name: 'Previsualizar', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Publicar', exact: true })).toBeEnabled();
-    await page.getByRole('button', { name: 'Publicar', exact: true }).click();
+    await expect(
+      page.getByRole('button', { name: 'Publicar calendario', exact: true }),
+    ).toBeEnabled();
+    await page.getByRole('button', { name: 'Publicar calendario', exact: true }).click();
     await expect(page.getByText('Horario publicado.')).toBeVisible();
     const stored = await fetch(
       `${api.url}/organizations/liga-orbital/tournaments/undecided-cup/stages/${api.stageId}/schedule`,
@@ -263,7 +265,11 @@ test('publishes an undecided eight-entrant final through the real API and retain
 });
 
 /** The real API launcher in `scenario`, with the page's API calls routed to it. */
-async function realApi(page: import('@playwright/test').Page, scenario: string) {
+async function realApi(
+  page: import('@playwright/test').Page,
+  scenario: string,
+  language: 'en' | 'es' | 'de' = 'es',
+) {
   await promisify(execFile)('yarn', ['workspace', '@copalibre/api', 'build']);
   const child = fork(
     fileURLToPath(new URL('./support/persisted-bracket-api.mjs', import.meta.url)),
@@ -298,7 +304,8 @@ async function realApi(page: import('@playwright/test').Page, scenario: string) 
     },
   );
   await page.addInitScript(
-    ({ tokenEndpoint }) => {
+    ({ tokenEndpoint, language }) => {
+      localStorage.setItem('copalibre.language', language);
       const originalFetch = window.fetch.bind(window);
       window.fetch = async (input, init) => {
         const path = String(input);
@@ -324,7 +331,7 @@ async function realApi(page: import('@playwright/test').Page, scenario: string) 
         });
       };
     },
-    { tokenEndpoint: TOKEN_ENDPOINT },
+    { tokenEndpoint: TOKEN_ENDPOINT, language },
   );
   return {
     api,
@@ -341,6 +348,44 @@ async function realApi(page: import('@playwright/test').Page, scenario: string) 
       });
     },
   };
+}
+
+for (const locale of [
+  {
+    language: 'en',
+    preview: 'Preview',
+    publish: 'Publish schedule',
+    published: 'Schedule published.',
+  },
+  {
+    language: 'de',
+    preview: 'Vorschau',
+    publish: 'Spielplan veröffentlichen',
+    published: 'Spielplan veröffentlicht.',
+  },
+] as const) {
+  test(`publishes a schedule with matching ${locale.language} action and toast copy`, async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    const real = await realApi(page, 'publishable', locale.language);
+    try {
+      const target = '/control/liga-orbital/tournaments/undecided-cup/stages/1/schedule';
+      await seedLoginTransaction(page, target);
+      await page.goto(loginCallbackUrl());
+      await page.waitForURL(`**${target}`);
+
+      await expect(page.getByRole('button', { name: locale.preview, exact: true })).toBeVisible();
+      await page.getByRole('combobox', { name: /Club 1 vs Club 8$/ }).selectOption({ index: 1 });
+      await page.getByRole('button', { name: locale.preview, exact: true }).click();
+      const publishButton = page.getByRole('button', { name: locale.publish, exact: true });
+      await expect(publishButton).toBeEnabled();
+      await publishButton.click();
+      await expect(page.getByText(locale.published, { exact: true })).toBeVisible();
+    } finally {
+      await real.close();
+    }
+  });
 }
 
 test('reports a rest conflict a quarter-final result makes real, without moving either match', async ({
@@ -691,8 +736,8 @@ test('creates a venue and an official, assigns a fixture, previews, and publishe
   await page.getByLabel('Hora de inicio — Club Alfa vs Club Bravo').selectOption('slot-1');
 
   await page.getByText('Previsualizar').click();
-  await expect(page.getByText('Publicar')).toBeEnabled();
-  await page.getByText('Publicar').click();
+  await expect(page.getByText('Publicar calendario')).toBeEnabled();
+  await page.getByText('Publicar calendario').click();
 
   await expect(page.getByText('Horario publicado.')).toBeVisible();
   // fixture-1 is no longer among the unassigned calendar rows — only fixture-2 (never
@@ -733,7 +778,7 @@ test('a conflicting batch shows the conflict and blocks publish until resolved',
   await expect(page.getByText(/^La cancha supera su capacidad con Club/)).toBeVisible();
   // The API's English diagnostic never reaches the operator.
   await expect(page.getByText(/hosts 1 fixture/)).toHaveCount(0);
-  await expect(page.getByText('Publicar')).toBeDisabled();
+  await expect(page.getByText('Publicar calendario')).toBeDisabled();
 });
 
 test('stores a minimum rest, asks a reason for published moves from the keyboard, and withdraws a match', async ({
@@ -794,7 +839,7 @@ test('stores a minimum rest, asks a reason for published moves from the keyboard
   await page.getByLabel('Hora de inicio — Club Cóndor vs Club Delta').selectOption('slot-6');
   await page.getByLabel('Hora de inicio — Club Estrella vs Club Faro').selectOption('slot-7');
   await page.getByText('Previsualizar').click();
-  await page.getByRole('button', { name: 'Publicar', exact: true }).click();
+  await page.getByRole('button', { name: 'Publicar calendario', exact: true }).click();
 
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
@@ -839,7 +884,7 @@ test('stores a minimum rest, asks a reason for published moves from the keyboard
     .click();
   await page.getByText('Previsualizar').click();
   await expect(page.getByText('Horarios que libera este lote')).toBeVisible();
-  await page.getByRole('button', { name: 'Publicar', exact: true }).click();
+  await page.getByRole('button', { name: 'Publicar calendario', exact: true }).click();
   await page.keyboard.press('Control+A');
   await page.keyboard.type('Clima');
   await page.keyboard.press('ArrowDown');
