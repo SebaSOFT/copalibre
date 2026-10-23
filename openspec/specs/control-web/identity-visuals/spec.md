@@ -19,7 +19,34 @@ Uploaded club and organization emblems SHALL render as visible image elements ac
 
 #### Scenario: Missing or unuploaded emblem fallback
 - **WHEN** a club or organization has no uploaded emblem asset
-- **THEN** the view SHALL gracefully display the initials fallback avatar
+- **THEN** the view SHALL display the stored abbreviation in a neutral monogram tile, or the shield placeholder when no usable abbreviation exists
+
+### Requirement: A missing emblem renders the entrant's abbreviation, never an invented label
+When an entrant has no emblem, or its emblem fails to load, every surface SHALL render a neutral
+chrome-ink monogram tile with the abbreviation from `abbreviationOf(team, club)`, in the mono face. It
+SHALL NOT derive initials at render time and SHALL NOT truncate. With no abbreviation, or one longer
+than six characters, the shield placeholder SHALL render instead.
+
+#### Scenario: Club with a stored abbreviation and no emblem
+
+- **WHEN** Concepción Patín Club has abbreviation "CPC" and no emblem
+- **THEN** standings, match cards, bracket and TV show a chrome-ink tile reading "CPC" with the club's
+  display name as its accessible name
+
+#### Scenario: No abbreviation stored
+
+- **WHEN** an entrant has neither a team nor a club abbreviation
+- **THEN** the shield placeholder renders, and no initials are invented
+
+#### Scenario: Emblem URL fails
+
+- **WHEN** an uploaded emblem returns an error
+- **THEN** the frame swaps to the monogram tile without JavaScript on public pages
+
+#### Scenario: Team accent never colours the tile
+
+- **WHEN** the organizer's team accent is set
+- **THEN** the monogram tile still renders in chrome ink with structure border and paper text
 
 ### Requirement: Uploaded identity images remove their background in the browser
 When a user uploads an organization, club, tournament emblem, or person photo, the application SHALL automatically isolate the foreground in the browser before sending the resulting image to CopaLibre. The resulting image SHALL preserve transparent pixels through crop, confirmation, and upload. The original image SHALL NOT be sent to a third-party background-removal service.
