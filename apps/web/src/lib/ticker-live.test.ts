@@ -1,5 +1,7 @@
 import { jest } from '@jest/globals';
 import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
+import { ENTRY_DURATION_MS } from './entry-once.js';
+import { FLASH_DURATION_MS } from './value-flash.js';
 import { mountLiveTicker } from './ticker-live.js';
 
 let connectSpy: ReturnType<typeof jest.spyOn>;
@@ -129,14 +131,50 @@ describe('mountLiveTicker', () => {
     expect(capturedHandlers).toBeDefined();
 
     capturedHandlers?.onEvent(scoreEvent('match-1', { 'home-1': 2, 'away-1': 1 }));
+    jest.advanceTimersByTime(0);
 
     const figures = [...document.querySelectorAll('[data-match-id="match-1"] .cl-ticker__figure')];
     for (const el of figures) expect(el.textContent).toBe('2 : 1');
-    expect(figures[0]?.classList.contains('cl-ticker__figure--pulse')).toBe(true);
+    expect(figures[0]?.classList.contains('cl-flash-on-change')).toBe(true);
 
     const otherFigure = document.querySelector('[data-match-id="match-2"] .cl-ticker__figure');
     expect(otherFigure?.textContent).toBe('0 : 0');
-    expect(otherFigure?.classList.contains('cl-ticker__figure--pulse')).toBe(false);
+    expect(otherFigure?.classList.contains('cl-flash-on-change')).toBe(false);
+  });
+
+  it('enters a match row once when its live state begins and adds one live dot', () => {
+    renderTicker();
+    const rows = [...document.querySelectorAll<HTMLElement>('[data-match-id="match-1"]')];
+    for (const row of rows) {
+      row.dataset.matchState = 'upcoming';
+      const badge = row.querySelector<HTMLElement>('.cl-badge');
+      if (badge) {
+        badge.className = 'cl-badge cl-badge--upcoming';
+        badge.textContent = 'UPCOMING';
+      }
+    }
+    mountLiveTicker();
+
+    const row = rows[0];
+    expect(row?.classList.contains('cl-enter-once')).toBe(false);
+    capturedHandlers?.onEvent({
+      eventId: 'ev-started',
+      organizationId: 'org-1',
+      stream: 'match:match-1',
+      entityId: 'match-1',
+      eventType: 'match.started',
+      projectionVersion: 2,
+      createdAt: '2026-01-01T18:00:00.000Z',
+      payload: { matchId: 'match-1' },
+    });
+    jest.advanceTimersByTime(0);
+
+    expect(row?.classList.contains('cl-enter-once')).toBe(true);
+    const badge = row?.querySelector('.cl-badge');
+    expect(badge?.textContent).toBe('LIVE');
+    expect(badge?.querySelectorAll('.cl-live-dot')).toHaveLength(1);
+    jest.advanceTimersByTime(ENTRY_DURATION_MS);
+    expect(row?.classList.contains('cl-enter-once')).toBe(false);
   });
 
   it('relabels the badge on a live-to-final transition', () => {
@@ -209,15 +247,16 @@ describe('mountLiveTicker', () => {
     expect(() => capturedHandlers?.onOpen?.()).not.toThrow();
   });
 
-  it('removes the pulse class once the animation window elapses', () => {
+  it('removes the flash class once the animation window elapses', () => {
     renderTicker();
     mountLiveTicker();
     capturedHandlers?.onEvent(scoreEvent('match-1', { 'home-1': 2, 'away-1': 1 }));
+    jest.advanceTimersByTime(0);
 
     const figureEl = document.querySelector('[data-match-id="match-1"] .cl-ticker__figure');
-    expect(figureEl?.classList.contains('cl-ticker__figure--pulse')).toBe(true);
+    expect(figureEl?.classList.contains('cl-flash-on-change')).toBe(true);
 
-    jest.runAllTimers();
-    expect(figureEl?.classList.contains('cl-ticker__figure--pulse')).toBe(false);
+    jest.advanceTimersByTime(FLASH_DURATION_MS);
+    expect(figureEl?.classList.contains('cl-flash-on-change')).toBe(false);
   });
 });

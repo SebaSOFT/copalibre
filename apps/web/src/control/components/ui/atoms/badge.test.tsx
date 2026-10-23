@@ -38,4 +38,12 @@ describe('Badge', () => {
     expect(screen.getByTestId('badge-dot').getAttribute('aria-hidden')).toBe('true');
     expect(screen.getByText('Live')).not.toBeNull();
   });
+
+  it('adds one animated dot to a live tone and keeps its label', () => {
+    render(<Badge className="cl-badge--live" label="Live" />);
+    const dots = screen.getAllByTestId('badge-dot');
+    expect(dots).toHaveLength(1);
+    expect(dots[0]?.className).toContain('cl-live-dot');
+    expect(screen.getByText('Live')).not.toBeNull();
+  });
 });

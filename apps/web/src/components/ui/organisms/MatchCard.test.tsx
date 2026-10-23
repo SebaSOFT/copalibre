@@ -210,6 +210,15 @@ describe('MatchCard', () => {
     expect(timestamp?.textContent).not.toContain('2025-05-18T');
   });
 
+  it('uses exactly one live dot beside the live label', () => {
+    const { container } = render(
+      <MatchCard match={baseMatch({ state: 'live' })} labels={labels} locale="en" />,
+    );
+    const badge = container.querySelector('.cl-match-card__header .cl-badge');
+    expect(badge?.querySelectorAll('.cl-live-dot')).toHaveLength(1);
+    expect(badge?.textContent).toContain('LIVE');
+  });
+
   it('renders the scheduled timestamp in the locale it is given, not a fixed one', () => {
     const instant = '2025-05-18T15:30:00.000Z';
     const { container } = render(
@@ -328,6 +337,7 @@ describe('MatchCard compact presentation', () => {
     expect(container.querySelector('.cl-match-card--compact')).not.toBeNull();
     const dot = container.querySelector('.cl-match-card__compact-dot');
     expect(dot?.classList.contains('cl-state--live')).toBe(true);
+    expect(dot?.classList.contains('cl-live-dot')).toBe(true);
     expect(dot?.getAttribute('title')).toBe('LIVE');
     expect(screen.getByText('LIVE', { selector: '.cl-visually-hidden' })).toBeDefined();
     expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toBe(

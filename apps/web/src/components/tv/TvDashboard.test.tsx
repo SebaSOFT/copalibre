@@ -232,7 +232,9 @@ describe('TvDashboard', () => {
 
     const spotlight = screen.getByTestId('tv-match-spotlight');
     expect(spotlight).toBeDefined();
-    expect(screen.getByText('2 : 1')).toBeDefined();
+    expect(
+      document.querySelector('.tv-score-center__digits')?.textContent?.replace(/\s+/g, ' '),
+    ).toBe('2 : 1');
     expect(screen.getAllByText(dashboardLabels.resultState.live).length).toBeGreaterThan(0);
   });
 
@@ -981,6 +983,13 @@ describe('TvDashboard broadcast alert dispatch', () => {
     act(() => jest.advanceTimersByTime(0));
 
     expect(screen.queryByRole('status')).toBeNull();
+    const ticker = screen.getByRole('list', { name: dashboardLabels.matchEventsLabel });
+    const enteredEvent = ticker.querySelector('.tv-event-ticker__item');
+    expect(enteredEvent?.textContent).toContain('goal');
+    expect(enteredEvent?.classList.contains('cl-enter-once')).toBe(true);
+
+    act(() => jest.advanceTimersByTime(200));
+    expect(enteredEvent?.classList.contains('cl-enter-once')).toBe(false);
   });
 });
 

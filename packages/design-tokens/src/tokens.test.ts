@@ -270,6 +270,37 @@ describe('the CSS output', () => {
     expect(css).toContain(`--cl-motion-base: ${MOTION.instant};`);
   });
 
+  it('defines score, event-entry and live-dot cues with motion-safe properties', () => {
+    expect(MOTION.flash).toBe('600ms');
+    expect(MOTION.pulse).toBe('2000ms');
+    expect(css).toContain('.cl-flash-on-change { animation: cl-flash var(--cl-motion-flash)');
+    expect(css).toContain('.cl-enter-once { animation: cl-enter var(--cl-motion-base)');
+    expect(css).toContain('.cl-live-dot { animation: cl-pulse var(--cl-motion-pulse)');
+
+    const allowed = new Set(['background-color', 'opacity', 'transform']);
+    for (const keyframe of ['cl-flash', 'cl-enter', 'cl-pulse']) {
+      const line = css.split('\n').find((entry) => entry.includes(`@keyframes ${keyframe} `));
+      expect(line).toBeDefined();
+      const properties = [...(line ?? '').matchAll(/(?:^|[{};]\s*)([a-z-]+)\s*:/g)].map(
+        (match) => match[1],
+      );
+      expect(properties.length).toBeGreaterThan(0);
+      expect(properties.every((property) => allowed.has(property ?? ''))).toBe(true);
+    }
+  });
+
+  it('holds the flash fill and removes all cue motion for reduced-motion viewers', () => {
+    expect(css).toContain('animation-duration: 0s !important;');
+    expect(css).toContain('transition-duration: 0s !important;');
+    expect(css).toContain(
+      '.cl-flash-on-change { animation: none !important; transition-duration: 0s !important; background-color: var(--cl-color-cyan-950); }',
+    );
+    expect(css).toContain(
+      '.cl-enter-once { animation: none !important; opacity: 1; transform: translateY(0); }',
+    );
+    expect(css).toContain('.cl-live-dot { animation: none !important; opacity: 1; }');
+  });
+
   it('uses corner-shape and border-radius for chamfer styling without clip-path', () => {
     expect(css).toContain('corner-shape: bevel;');
     expect(css).toContain('border-radius: 0 var(--cl-chamfer-size) 0 var(--cl-chamfer-size);');
@@ -789,10 +820,10 @@ describe('compact match card', () => {
   });
 
   it('pulses only the live dot, and stops under reduced motion', () => {
-    expect(css).toMatch(/\.cl-match-card__compact-dot\.cl-state--live \{[^}]*cl-badge-pulse/);
-    expect(css).toMatch(
-      /prefers-reduced-motion: reduce\) \{ \.cl-match-card__compact-dot\.cl-state--live \{ animation: none/,
+    expect(css).toContain(
+      '.cl-live-dot { animation: cl-pulse var(--cl-motion-pulse) ease-in-out infinite alternate; }',
     );
+    expect(css).not.toContain('cl-badge-pulse');
   });
 });
 

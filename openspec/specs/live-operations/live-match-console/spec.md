@@ -541,3 +541,23 @@ is awaiting, and SHALL offer no start, event or result control until every side 
 - **WHEN** the awaited semi-final is decided while the console is open
 - **THEN** after the console's projection refreshes, the final shows both entrants and its normal
   controls
+
+### Requirement: The console shows connection state and per-event sync state
+
+The live match console SHALL show a sticky header status: online or offline, the number of queued
+actions, and the last successful sync time. The status SHALL be amber while actions are queued, and red
+only when an action is refused. Every recorded event SHALL show Queued, Sent, Confirmed or Refused,
+derived from the offline queue and server acknowledgement. Confirmed SHALL NOT be shown without that
+acknowledgement.
+
+#### Scenario: Goal recorded while offline
+
+- **WHEN** an operator records a goal with no connection
+- **THEN** the event shows "Queued", the header reads offline with "1 queued" in amber, and nothing
+  shows "Confirmed"
+
+#### Scenario: Connection returns and the server refuses one action
+
+- **WHEN** the queue drains and the server refuses a substitution
+- **THEN** that event shows "Refused" with the server's reason in an alert, the header turns red, and
+  the other drained events show "Confirmed" once acknowledged

@@ -10,9 +10,9 @@ import {
 } from '../../lib/live-state.js';
 import { formatClock } from '../../lib/matches-view.js';
 import { presentState, type ResultStateLabels } from '../../lib/result-state.js';
+import { ValueFlash } from '../ui/atoms/ValueFlash.js';
 
 const PAGE_ROTATE_MS = 20_000;
-const PULSE_MS = 1_200;
 
 export type CourtGridSize = 2 | 4 | 6;
 
@@ -45,10 +45,6 @@ function paginate<T>(items: readonly T[], pageSize: number, pageIndex: number): 
   return items.slice(start, start + pageSize);
 }
 
-function totalScore(match: LiveMatch): number {
-  return match.sides.reduce((sum, side) => sum + side.score, 0);
-}
-
 /**
  * The multi-court kiosk grid: several live matches at once,
  * each in its own card, independently reactive. Reuses this surface's
@@ -78,13 +74,6 @@ export function TvMultiCourtGrid({
     }
     return false;
   });
-  // Seeded from the initial dashboard, not empty — otherwise the first real
-  // SSE event would have nothing to diff against and never pulse.
-  const previousScores = useRef<Record<string, number>>(
-    Object.fromEntries(initial.matches.map((match) => [match.matchId, totalScore(match)])),
-  );
-  const [pulsingMatchIds, setPulsingMatchIds] = useState<ReadonlySet<string>>(new Set());
-  const pulseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   // Read inside the SSE callback below, which must never close over a stale
   // `dashboard` from the render that first mounted it (the same pattern
   // `TvDashboard.tsx` uses its own `dashboardRef` for).
@@ -122,27 +111,11 @@ export function TvMultiCourtGrid({
     void client.connect({
       onOpen: () => setDashboard((current) => markConnected(current)),
       onEvent: (event) => {
-        // A pure recompute, not a reactive effect on the state it produces —
-        // the diff that decides which cards pulse happens once, right where
-        // the change that causes it actually arrives.
         const positions = event.eventType === 'match.rescheduled' ? measureSchedule() : undefined;
         const next = applyEvent(dashboardRef.current, event);
         dashboardRef.current = next;
         if (positions) requestAnimationFrame(() => animateSchedule(positions));
         setDashboard(next);
-
-        const changed = new Set<string>();
-        for (const match of next.matches) {
-          const score = totalScore(match);
-          const previous = previousScores.current[match.matchId];
-          if (previous !== undefined && previous !== score) changed.add(match.matchId);
-          previousScores.current[match.matchId] = score;
-        }
-        if (changed.size > 0) {
-          setPulsingMatchIds(changed);
-          clearTimeout(pulseTimer.current);
-          pulseTimer.current = setTimeout(() => setPulsingMatchIds(new Set()), PULSE_MS);
-        }
       },
       // A replay-window-expired reload is the same recovery every other live
       // surface on this page takes — a partial-history replay would be a
@@ -151,7 +124,6 @@ export function TvMultiCourtGrid({
     });
     return () => {
       client.close();
-      clearTimeout(pulseTimer.current);
     };
   }, [streamPath]);
 
@@ -181,7 +153,6 @@ export function TvMultiCourtGrid({
           match={match}
           locale={locale}
           rescheduledLabel={rescheduledLabel}
-          pulsing={pulsingMatchIds.has(match.matchId)}
           resultStateLabels={resultStateLabels}
           venueName={match.venueName ?? venueNameByMatchId[match.matchId]}
         />
@@ -195,14 +166,12 @@ function CourtCard({
   locale,
   rescheduledLabel,
   venueName,
-  pulsing,
   resultStateLabels,
 }: {
   readonly match: LiveMatch;
   readonly locale: string;
   readonly rescheduledLabel?: string;
   readonly venueName: string | undefined;
-  readonly pulsing: boolean;
   readonly resultStateLabels: ResultStateLabels;
 }): React.JSX.Element {
   const badge = presentState(match.state, resultStateLabels);
@@ -220,27 +189,25 @@ function CourtCard({
           {rescheduledStatement(match.rescheduledFrom, venueName, locale, rescheduledLabel)}
         </p>
       )}
-      <div
-        className={
-          pulsing ? 'tv-court-card__score tv-court-card__score--pulse' : 'tv-court-card__score'
-        }
-      >
+      <div className="tv-court-card__score">
         <span className="tv-court-card__side">
           <span className="tv-court-card__name" title={home?.name}>
             {home?.abbreviation ?? home?.name ?? ''}
           </span>
-          <span className="tv-court-card__value">{home?.score ?? 0}</span>
+          <ValueFlash className="tv-court-card__value" value={home?.score ?? 0} />
         </span>
         <span className="tv-court-card__side">
           <span className="tv-court-card__name" title={away?.name}>
             {away?.abbreviation ?? away?.name ?? ''}
           </span>
-          <span className="tv-court-card__value">{away?.score ?? 0}</span>
+          <ValueFlash className="tv-court-card__value" value={away?.score ?? 0} />
         </span>
       </div>
       <div className="tv-court-card__footer">
         <span className={`tv-scorebug__badge tv-scorebug__badge--${badge.state}`}>
-          <span aria-hidden="true">{badge.icon}</span>
+          <span aria-hidden="true" className={badge.state === 'live' ? 'cl-live-dot' : ''}>
+            {badge.icon}
+          </span>
           <span>{badge.label}</span>
         </span>
         {match.clockSeconds !== undefined && (

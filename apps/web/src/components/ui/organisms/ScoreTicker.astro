@@ -280,17 +280,6 @@ const {
     color: var(--cl-primary);
   }
 
-  /*
-    A live-patched score change, not a keyframe declared
-    here — `cl-badge-pulse` already exists globally in `packages/design-tokens`
-    and already honours the design-tokens reduced-motion rule, so this only
-    references it for the brief window `ticker-live.ts` adds and removes the
-    class.
-  */
-  .cl-ticker__figure--pulse {
-    animation: cl-badge-pulse var(--cl-motion-fast) ease-in-out 4 alternate;
-  }
-
   /* A period the discipline declared, not a clock that ran long. */
   .cl-ticker__overtime {
     font-weight: 700;

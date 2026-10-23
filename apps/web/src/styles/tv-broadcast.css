@@ -184,10 +184,6 @@
   background-color: currentColor;
 }
 
-.tv-scorebug__badge--live .tv-scorebug__dot {
-  animation: tvDotBlink 1.2s ease-in-out infinite;
-}
-
 .tv-scorebug__clock {
   font-family: var(--cl-font-mono);
   font-size: clamp(0.9rem, 1.8vmin, 1.3rem);
@@ -843,18 +839,6 @@
 }
 
 /* Animations and Responsive rules */
-@keyframes tvDotBlink {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.3;
-    transform: scale(0.85);
-  }
-}
-
 @media (max-width: 900px) {
   .tv-main-stage {
     grid-template-columns: 1fr;
@@ -863,10 +847,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tv-scorebug__badge--live .tv-scorebug__dot {
-    animation: none;
-    opacity: 1;
-  }
   .tv-champion__glow {
     animation: none;
   }
@@ -1239,7 +1219,7 @@
   }
 }
 
-/* The information is in the words and the accent border, never the motion — reduced motion keeps both fully legible and drops only the movement, the same accommodation `.tv-scorebug__badge--live .tv-scorebug__dot` and `.tv-champion__glow` already make. */
+/* The information is in the words and the accent border, never the motion — reduced motion keeps both fully legible and drops only the movement, the same accommodation `.cl-live-dot` and `.tv-champion__glow` already make. */
 .tv-broadcast-alert[data-reduced-motion] {
   transform: translateX(-50%);
 }
@@ -1332,10 +1312,6 @@
   justify-content: center;
 }
 
-.tv-court-card__score--pulse {
-  animation: tvCourtScorePulse 1.2s ease-out;
-}
-
 .tv-court-card__side {
   display: flex;
   align-items: center;
@@ -1375,15 +1351,6 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--tv-text-secondary);
-}
-
-@keyframes tvCourtScorePulse {
-  0% {
-    background: color-mix(in srgb, var(--cl-primary) 30%, transparent);
-  }
-  100% {
-    background: transparent;
-  }
 }
 
 /* The compact match list: two matches to a row, one page at a time. */

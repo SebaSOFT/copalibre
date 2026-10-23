@@ -1,10 +1,15 @@
-import { expect, test } from '@playwright/test';
+import { createServer, type Server } from 'node:http';
+import { expect, test } from './fixtures.js';
 
 test('navigates help content and searches through Starlight', async ({ page }) => {
   const pageErrors: string[] = [];
-  const failedRequests: string[] = [];
+  const failedAppRequests: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
-  page.on('requestfailed', (request) => failedRequests.push(request.url()));
+  page.on('requestfailed', (request) => {
+    if (new URL(request.url()).origin === new URL(page.url()).origin) {
+      failedAppRequests.push(request.url());
+    }
+  });
 
   await page.goto('/help/');
 
@@ -20,7 +25,7 @@ test('navigates help content and searches through Starlight', async ({ page }) =
   await search.click();
   await page.waitForTimeout(1_000);
   expect(pageErrors).toEqual([]);
-  expect(failedRequests).toEqual([]);
+  expect(failedAppRequests).toEqual([]);
   const input = page.getByRole('textbox', { name: 'Search' }).first();
   await expect(input).toBeVisible({ timeout: 15_000 });
   await input.fill('Roster');
@@ -48,23 +53,41 @@ test('serves the dashboard-specific help article under each locale prefix', asyn
   }
 });
 
-test('public home page renders hero orientation hub with zero organizations', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'CopaLibre', level: 1 })).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: 'Ready for Competition', level: 2 }),
-  ).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Open Control Panel' })).toHaveAttribute(
-    'href',
-    '/control/',
-  );
-  await expect(page.getByRole('link', { name: 'Read the Guides' })).toHaveAttribute(
-    'href',
-    '/help/',
-  );
+test('public home page renders hero orientation hub with zero organizations', async ({
+  page,
+  workerPort,
+}) => {
+  const apiServer: Server = createServer((req, res) => {
+    res.setHeader('content-type', 'application/json');
+    if (req.url === '/organizations') {
+      res.end('[]');
+      return;
+    }
+    res.statusCode = 404;
+    res.end(JSON.stringify({ message: 'not found' }));
+  });
+  await new Promise<void>((resolve) => apiServer.listen(workerPort, '127.0.0.1', resolve));
 
-  const nav = page.getByRole('navigation', { name: 'Main' });
-  await expect(nav.getByRole('link', { name: 'Home' })).toBeVisible();
-  await expect(nav.getByRole('link', { name: 'Help' })).toHaveCount(0);
-  await expect(nav.getByRole('link', { name: /API reference/i })).toHaveCount(0);
+  try {
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: 'CopaLibre', level: 1 })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Ready for Competition', level: 2 }),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open Control Panel' })).toHaveAttribute(
+      'href',
+      '/control/',
+    );
+    await expect(page.getByRole('link', { name: 'Read the Guides' })).toHaveAttribute(
+      'href',
+      '/help/',
+    );
+
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    await expect(nav.getByRole('link', { name: 'Home' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Help' })).toHaveCount(0);
+    await expect(nav.getByRole('link', { name: /API reference/i })).toHaveCount(0);
+  } finally {
+    await new Promise<void>((resolve) => apiServer.close(() => resolve()));
+  }
 });

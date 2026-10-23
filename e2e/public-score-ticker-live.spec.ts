@@ -81,7 +81,7 @@ async function mockStreamDeliveringOneScoreEvent(page: Page): Promise<void> {
         const encoder = new TextEncoder();
         const body = new ReadableStream<Uint8Array>({
           start(controller) {
-            controller.enqueue(encoder.encode(frame));
+            setTimeout(() => controller.enqueue(encoder.encode(frame)), 150);
           },
         });
         return new Response(body, {
@@ -120,9 +120,12 @@ test.describe('public score ticker live reactivity', () => {
 
     const item = page.locator(`.cl-ticker__item[data-match-id="${MATCH_ID}"]`).first();
     await expect(item).toBeVisible();
-    // The mock stream delivers its one frame as soon as the client connects,
-    // so the only reliably observable state is the post-patch score.
-    await expect(item.locator('.cl-ticker__figure')).toHaveText('2 : 1', { timeout: 10_000 });
+    // The mock stream waits briefly after connection so the score change remains
+    // observable as a cue.
+    const figure = item.locator('.cl-ticker__figure');
+    await expect(figure).toHaveText('2 : 1', { timeout: 10_000 });
+    await expect(figure).toHaveClass(/cl-flash-on-change/);
+    await expect(figure).not.toHaveClass(/cl-flash-on-change/, { timeout: 2_000 });
 
     // Still the same overview page — a live event never triggers a navigation.
     expect(page.url()).toContain(OVERVIEW_PATH);

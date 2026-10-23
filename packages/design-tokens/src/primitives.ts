@@ -192,6 +192,8 @@ export const MOTION = {
   fast: '120ms',
   base: '200ms',
   slow: '320ms',
+  flash: '600ms',
+  pulse: '2000ms',
   easing: 'cubic-bezier(0.2, 0, 0, 1)',
 } as const;
 

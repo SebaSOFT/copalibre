@@ -70,6 +70,8 @@ export function generateTailwindTheme(): TailwindTheme {
       'cl-fast': MOTION.fast,
       'cl-base': MOTION.base,
       'cl-slow': MOTION.slow,
+      'cl-flash': MOTION.flash,
+      'cl-pulse': MOTION.pulse,
     },
     screens: { ...BREAKPOINTS },
     densitySpacing: Object.fromEntries(

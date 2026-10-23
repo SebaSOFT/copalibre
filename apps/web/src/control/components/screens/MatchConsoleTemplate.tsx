@@ -36,6 +36,7 @@ import { ClockRing } from '../ui/organisms/clock-ring.js';
 import { BracketCanvas } from '../BracketCanvas.js';
 import type { CanvasMatch } from '../../lib/bracket-canvas.js';
 import { EntrantName } from '../../../components/ui/atoms/EntrantName.js';
+import { ValueFlash } from '../../../components/ui/atoms/ValueFlash.js';
 import { ResponsiveTimestamp } from '../../../components/ui/atoms/ResponsiveTimestamp.js';
 import { JerseyGrid } from '../JerseyGrid.js';
 import { RosterSelectionStep } from '../RosterSelectionStep.js';
@@ -45,6 +46,7 @@ import { EventSyncMark, type EventSyncState } from '../ui/molecules/event-sync-m
 import { messages } from '../../i18n/messages.en.js';
 import type { ConsoleStatus } from '../pages/MatchConsolePage.js';
 import { eventSyncKey } from '../../lib/match-console.js';
+import { useEntryOnce } from '../../../lib/use-entry-once.js';
 
 /**
  * How many events stay visible with the ledger collapsed. Three is what makes
@@ -251,6 +253,7 @@ export function MatchConsoleTemplate({
       : [event];
   });
   const allEvents = [...projection.events, ...queuedEvents];
+  const eventEntryIds = useEntryOnce(allEvents.map(eventSyncKey));
   const displayedEvents = allEvents.filter((event) => {
     if (eventCategory === 'all') return true;
     return (
@@ -395,7 +398,9 @@ export function MatchConsoleTemplate({
                 : { abbreviation: entrant.abbreviation })}
               fullName={entrant?.name ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
             />
-            <strong>{side.score}</strong>
+            <strong>
+              <ValueFlash className="cl-tabular-nums" value={side.score} />
+            </strong>
           </div>
         );
       })}
@@ -836,7 +841,10 @@ export function MatchConsoleTemplate({
                     }
                   : undefined);
               return (
-                <li key={event.eventId} className="cl-role-user">
+                <li
+                  key={key}
+                  className={`cl-role-user${eventEntryIds.has(key) ? ' cl-enter-once' : ''}`}
+                >
                   <strong>
                     {event.definitionCode} ·{' '}
                     {segmentLabel(

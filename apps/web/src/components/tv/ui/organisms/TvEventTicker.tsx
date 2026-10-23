@@ -1,4 +1,5 @@
 import type { SupportedLanguage } from '@copalibre/domain';
+import { useEntryOnce } from '../../../../lib/use-entry-once.js';
 import { ResponsiveTimestamp } from '../../../ui/atoms/ResponsiveTimestamp.js';
 import type { TvMatchEvent } from '../../../../lib/tv-match-events.js';
 
@@ -16,17 +17,26 @@ export function TvEventTicker({
   awayLabel,
   ariaLabel,
   language,
+  initialEventIds,
 }: {
   readonly events: readonly TvMatchEvent[];
   readonly homeLabel: string;
   readonly awayLabel: string;
   readonly ariaLabel: string;
   readonly language: SupportedLanguage;
+  /** Initial server-rendered ids, retained when the first live event mounts this ticker. */
+  readonly initialEventIds?: readonly string[];
 }): React.JSX.Element {
+  const eventIds = events.map((event) => event.eventId);
+  const enteringIds = useEntryOnce(eventIds, initialEventIds ?? eventIds);
+
   return (
     <ul aria-label={ariaLabel} className="tv-event-ticker">
       {events.map((event) => (
-        <li key={event.eventId} className="tv-event-ticker__item">
+        <li
+          key={event.eventId}
+          className={`tv-event-ticker__item${enteringIds.has(event.eventId) ? ' cl-enter-once' : ''}`}
+        >
           <ResponsiveTimestamp
             className="tv-event-ticker__time"
             locale={language}
