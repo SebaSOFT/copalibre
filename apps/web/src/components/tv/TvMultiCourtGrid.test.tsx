@@ -153,8 +153,9 @@ describe('TvMultiCourtGrid', () => {
     expect(card1.textContent).toContain('2');
     // Untouched card keeps its original 1-1 scoreline.
     expect(card2.textContent).toContain('1');
-    expect(card1.querySelector('.tv-court-card__score--pulse')).not.toBeNull();
-    expect(card2.querySelector('.tv-court-card__score--pulse')).toBeNull();
+    act(() => jest.advanceTimersByTime(0));
+    expect(card1.querySelector('.tv-court-card__value.cl-flash-on-change')).not.toBeNull();
+    expect(card2.querySelector('.tv-court-card__value.cl-flash-on-change')).toBeNull();
   });
 
   it('rotates pages every 20s once live matches exceed the grid size', async () => {

@@ -18,7 +18,7 @@ const legend = resultLegend(labels);
     {legend.map((state) => (
       <li>
         <Badge className={state.className}>
-          <span aria-hidden="true">{state.icon}</span>
+          {state.state !== 'live' && <span aria-hidden="true">{state.icon}</span>}
           <span class="cl-result-legend__label">{state.label}</span>
         </Badge>
       </li>

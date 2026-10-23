@@ -706,10 +706,14 @@ exception does not extend to chart chrome or other interface areas.
 
 ## Motion
 
-Use a cyan-well flash for a score change for about 600ms, a one-time slide of about 200ms when a new
-event enters, and a live pulse dot beside the LIVE label. The drawer and feedback for user actions may
-also move. Under `prefers-reduced-motion`, collapse every duration to `0s`; preserve meaning through
-text, icons, borders and layout.
+Use a cyan-well flash for 600ms when a score changes, a one-time translate-and-opacity entry for a new
+event over 200ms, and a LIVE dot whose opacity fades and returns over successive 2000ms phases (a
+4000ms round trip). The words carry each state; its motion only draws attention. Live dots start in
+phase, with one dot per match card. State cues animate only `transform`, `opacity` and
+`background-color`; nothing enters on page load. The drawer and feedback for user actions may also move.
+Under `prefers-reduced-motion`, collapse every duration to `0s`; hold the score's cyan-well fill for
+600ms, show new events in place, and keep the live dot steady. Preserve meaning through text, icons,
+borders and layout.
 
 ## Imagery
 

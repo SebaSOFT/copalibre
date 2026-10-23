@@ -11,8 +11,12 @@ const { state, intl } = Astro.props;
 const presentation = presentState(state, resultStateLabels(intl));
 ---
 
-{/* Colour, icon and word together — a template cannot ask for just the colour. */}
+{/* Colour, motion cue and word together — a template cannot ask for just the colour. */}
 <span class={`cl-badge ${presentation.className}`}>
-  <span aria-hidden="true">{presentation.icon}</span>
+  {presentation.state === 'live' ? (
+    <span aria-hidden="true" class="cl-badge__dot cl-live-dot" />
+  ) : (
+    <span aria-hidden="true">{presentation.icon}</span>
+  )}
   <span>{presentation.label}</span>
 </span>

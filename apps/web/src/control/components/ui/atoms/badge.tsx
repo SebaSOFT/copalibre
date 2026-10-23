@@ -37,9 +37,16 @@ export function Badge({
 }: BadgeProps): React.JSX.Element {
   const variantClass = variant === 'default' ? '' : `cl-badge--${variant}`;
   const classes = ['cl-badge', variantClass, className].filter(Boolean).join(' ');
+  const isLive = /(?:^|\s)(?:cl-badge--live|cl-state--live)(?:\s|$)/.test(classes);
   return (
     <span className={classes} {...rest}>
-      {dot && <span aria-hidden="true" className="cl-badge__dot" data-testid="badge-dot" />}
+      {(dot || isLive) && (
+        <span
+          aria-hidden="true"
+          className={`cl-badge__dot${isLive ? ' cl-live-dot' : ''}`}
+          data-testid="badge-dot"
+        />
+      )}
       {label}
     </span>
   );

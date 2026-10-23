@@ -53,6 +53,7 @@ import { tvMatchProgress } from '../../lib/tv-match-progress.js';
 import type { PublicSeriesState } from '../../lib/series.js';
 import { TvChampions } from './ui/organisms/TvChampions.js';
 import { TvEmblem } from './ui/atoms/TvEmblem.js';
+import { ValueFlash } from '../ui/atoms/ValueFlash.js';
 
 export type { TvClubItem, TvDashboardLabels, TvWinnerZone } from './tv-types.js';
 
@@ -184,6 +185,8 @@ export function TvDashboard({
   initialView,
 }: TvDashboardProps): React.JSX.Element {
   const [dashboard, setDashboard] = useState<LiveDashboard>(initial);
+  const [liveMatchEvents, setLiveMatchEvents] = useState(matchEvents ?? []);
+  const [initialMatchEventIds] = useState(() => (matchEvents ?? []).map((event) => event.eventId));
   const [scheduledMatches, setScheduledMatches] = useState(matchList ?? []);
   const scheduleVersions = useRef(
     new Map((matchList ?? []).map((entry) => [entry.key, entry.scheduleVersion ?? 0])),
@@ -396,12 +399,7 @@ export function TvDashboard({
             ? undefined
             : findPinnedMatch(dashboardRef.current.matches, pinnedRef);
         void refreshProjection().then((updated) => {
-          if (
-            !showBroadcastAlerts ||
-            event.eventType !== 'match.event-recorded' ||
-            !before ||
-            !updated
-          ) {
+          if (event.eventType !== 'match.event-recorded' || !before || !updated) {
             return;
           }
           const after = updated.find((m) => m.matchId === before.matchId);
@@ -422,6 +420,12 @@ export function TvDashboard({
             },
           );
           if (!resolved) return;
+          setLiveMatchEvents((current) =>
+            current.some((item) => item.eventId === resolved.eventId)
+              ? current
+              : [...current, resolved],
+          );
+          if (!showBroadcastAlerts) return;
           const scoring = after.sides.some(
             (side, index) => side.score !== before.sides[index]?.score,
           );
@@ -631,9 +635,9 @@ export function TvDashboard({
               {spotlightMatch.sides[0]?.abbreviation ?? spotlightMatch.sides[0]?.name ?? 'Local'}
             </span>
             <span className="tv-lower-third__score">
-              {spotlightMatch.sides[0]?.score ?? 0}
+              <ValueFlash value={spotlightMatch.sides[0]?.score ?? 0} />
               <span className="tv-lower-third__score-sep">:</span>
-              {spotlightMatch.sides[1]?.score ?? 0}
+              <ValueFlash value={spotlightMatch.sides[1]?.score ?? 0} />
             </span>
             <span className="tv-lower-third__side">
               {spotlightMatch.sides[1]?.abbreviation ??
@@ -706,7 +710,9 @@ export function TvDashboard({
             <div
               className={`tv-scorebug__badge tv-scorebug__badge--${statusBadge.type} cl-chamfer`}
             >
-              <span className="tv-scorebug__dot" />
+              <span
+                className={`tv-scorebug__dot${statusBadge.type === 'live' ? ' cl-live-dot' : ''}`}
+              />
               <span>{statusBadge.label}</span>
             </div>
             {showsWallClock && (
@@ -792,7 +798,8 @@ export function TvDashboard({
                   {/* Score Center */}
                   <div className="tv-score-center">
                     <div className="tv-score-center__digits">
-                      {spotlightMatch.sides[0]?.score ?? 0} : {spotlightMatch.sides[1]?.score ?? 0}
+                      <ValueFlash value={spotlightMatch.sides[0]?.score ?? 0} /> :{' '}
+                      <ValueFlash value={spotlightMatch.sides[1]?.score ?? 0} />
                     </div>
                     <div
                       className="cl-chamfer"
@@ -821,12 +828,13 @@ export function TvDashboard({
 
                 <TvSeriesAndSets labels={dashboardLabels} progress={progress} />
 
-                {matchEvents && matchEvents.length > 0 ? (
+                {liveMatchEvents.length > 0 ? (
                   <TvEventTicker
                     ariaLabel={dashboardLabels.matchEventsLabel}
                     awayLabel={labels.awaySide}
-                    events={matchEvents}
+                    events={liveMatchEvents}
                     homeLabel={labels.homeSide}
+                    initialEventIds={initialMatchEventIds}
                     language={language}
                   />
                 ) : null}

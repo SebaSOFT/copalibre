@@ -9,6 +9,7 @@ import { presentState } from '../../../lib/result-state.js';
 import { seriesScore, seriesSegments, seriesPending, toSeriesInput } from '../../../lib/series.js';
 import { applyTemplate, formatClock, type MatchCardData } from '../../../lib/matches-view.js';
 import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
+import { ValueFlash } from '../atoms/ValueFlash.js';
 
 /**
  * The matches-view card: one shared React component for both the public
@@ -116,7 +117,7 @@ export function MatchCard({
       >
         <span
           aria-label={badge.label}
-          className={`cl-match-card__compact-dot ${badge.className}`.trim()}
+          className={`cl-match-card__compact-dot${badge.state === 'live' ? ' cl-live-dot' : ''} ${badge.className}`.trim()}
           role="img"
           title={badge.label}
         >
@@ -141,7 +142,7 @@ export function MatchCard({
     >
       <div className="cl-match-card__header">
         <Badge className={badge.className}>
-          <span aria-hidden="true">{badge.icon}</span>
+          {badge.state !== 'live' && <span aria-hidden="true">{badge.icon}</span>}
           <span>{badge.label}</span>
         </Badge>
         {match.clockSeconds !== undefined && (
@@ -174,7 +175,7 @@ export function MatchCard({
               #{match.homePosition}
             </Badge>
           )}
-          <span className="cl-stat-tile__value cl-tabular-nums">{match.homeScore ?? '—'}</span>
+          <ValueFlash className="cl-stat-tile__value cl-tabular-nums" value={match.homeScore} />
         </li>
         <li className="cl-match-card__side">
           <EntrantName
@@ -190,7 +191,7 @@ export function MatchCard({
               #{match.awayPosition}
             </Badge>
           )}
-          <span className="cl-stat-tile__value cl-tabular-nums">{match.awayScore ?? '—'}</span>
+          <ValueFlash className="cl-stat-tile__value cl-tabular-nums" value={match.awayScore} />
         </li>
       </ol>
 

@@ -134,6 +134,8 @@ export function generateCss(): string {
     dialog(),
     '',
     density(),
+    '',
+    motionCues(),
   ].join('\n');
 }
 
@@ -156,16 +158,36 @@ function reducedMotion(): string {
   return [
     '@media (prefers-reduced-motion: reduce) {',
     '  :root {',
-    `    --cl-motion-fast: ${MOTION.instant};`,
-    `    --cl-motion-base: ${MOTION.instant};`,
-    `    --cl-motion-slow: ${MOTION.instant};`,
+    ...(['fast', 'base', 'slow', 'flash', 'pulse'] as const).map(
+      (name) => `    --cl-motion-${name}: ${MOTION.instant};`,
+    ),
     '  }',
     '',
     '  *, *::before, *::after {',
-    '    animation-duration: 0.01ms !important;',
+    '    animation-duration: 0s !important;',
     '    animation-iteration-count: 1 !important;',
-    '    transition-duration: 0.01ms !important;',
+    '    transition-duration: 0s !important;',
     '  }',
+    '}',
+  ].join('\n');
+}
+
+/** State cues: the only authored motion outside direct user feedback. */
+function motionCues(): string {
+  return [
+    '.cl-flash-on-change { animation: cl-flash var(--cl-motion-flash) ease-out both; }',
+    '@keyframes cl-flash { 0%, 70% { background-color: var(--cl-color-cyan-950); } 100% { background-color: transparent; } }',
+    '',
+    '.cl-enter-once { animation: cl-enter var(--cl-motion-base) var(--cl-motion-easing) both; }',
+    '@keyframes cl-enter { from { opacity: 0; transform: translateY(0.25em); } to { opacity: 1; transform: translateY(0); } }',
+    '',
+    '.cl-live-dot { animation: cl-pulse var(--cl-motion-pulse) ease-in-out infinite alternate; }',
+    '@keyframes cl-pulse { from { opacity: 1; } to { opacity: 0.45; } }',
+    '',
+    '@media (prefers-reduced-motion: reduce) {',
+    '  .cl-flash-on-change { animation: none !important; transition-duration: 0s !important; background-color: var(--cl-color-cyan-950); }',
+    '  .cl-enter-once { animation: none !important; opacity: 1; transform: translateY(0); }',
+    '  .cl-live-dot { animation: none !important; opacity: 1; }',
     '}',
   ].join('\n');
 }
@@ -1340,13 +1362,12 @@ function components(): string {
     // Each `presentState()` class fills the dot with its own semantic token —
     // color is never the sole cue (the visually-hidden label beside it says
     // the same thing), but the dot still has to actually be that color.
-    '.cl-match-card__compact-dot.cl-state--live { background: var(--cl-state-live); animation: cl-badge-pulse var(--cl-motion-slow) ease-in-out infinite alternate; }',
+    '.cl-match-card__compact-dot.cl-state--live { background: var(--cl-state-live); }',
     '.cl-match-card__compact-dot.cl-state--upcoming { background: var(--cl-state-upcoming); }',
     '.cl-match-card__compact-dot.cl-state--positive { background: var(--cl-state-positive); }',
     '.cl-match-card__compact-dot.cl-state--destructive { background: var(--cl-state-destructive); }',
     '.cl-match-card__compact-dot.cl-state--muted { background: var(--cl-border-muted); }',
     '.cl-match-card__compact-dot.cl-state--pending { background: var(--cl-text-muted); }',
-    '@media (prefers-reduced-motion: reduce) { .cl-match-card__compact-dot.cl-state--live { animation: none; opacity: 1; } }',
     '.cl-match-card__compact-content { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }',
     '',
     // The Broadcaster Studio's live preview: a real `<iframe>`
@@ -1474,12 +1495,7 @@ function compositions(): string {
     '  height: 6px;',
     '  border-radius: 50%;',
     '  background: currentColor;',
-    '  animation: cl-badge-pulse var(--cl-motion-slow) ease-in-out infinite alternate;',
     '}',
-    '',
-    '@keyframes cl-badge-pulse { from { opacity: 1; } to { opacity: 0.45; } }',
-    '',
-    '@media (prefers-reduced-motion: reduce) { .cl-badge__dot { animation: none; opacity: 1; } }',
     '',
     /*
      * The bracket's outcome key. Three channels per entry — glyph, box and

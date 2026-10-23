@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-21T18:49:59.000Z",
+  "generatedAt": "2026-10-22T23:51:16.501Z",
   "title": "Design System: CopaLibre",
   "extensions": {
     "colorMeta": {
@@ -345,6 +345,16 @@
         "purpose": "Larger surface transitions."
       },
       {
+        "name": "motion-flash",
+        "value": "600ms",
+        "purpose": "The cyan-well score-change flash. Under reduced motion, animation stops while the cyan well remains for the same 600ms feedback window."
+      },
+      {
+        "name": "motion-pulse",
+        "value": "2000ms",
+        "purpose": "One opacity phase of each LIVE-dot pulse: the dot fades and returns over successive 2000ms phases, for a 4000ms round trip. Dots start in phase; under reduced motion they stay steady."
+      },
+      {
         "name": "motion-easing",
         "value": "cubic-bezier(0.2, 0, 0, 1)",
         "purpose": "Standard easing for every state transition."
@@ -495,7 +505,7 @@
     "rules": [
       {
         "name": "The One Signal Rule",
-        "body": "Cyan means live, active, primary, or focused — nothing else. A second accent introduced for decoration destroys the only cue an operator scans for across a dense screen.",
+        "body": "Cyan means live, active, primary, or focused — nothing else outside a chart plot; inside a plot, it means data-series slot 2. A second accent introduced for decoration destroys the only cue an operator scans for across a dense screen.",
         "section": "colors"
       },
       {

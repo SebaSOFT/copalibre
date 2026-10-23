@@ -4,6 +4,8 @@ import { Badge } from '../atoms/Badge.js';
 import { Card, CardDescription, CardTitle } from '../atoms/Card.js';
 import { EntrantName } from '../atoms/EntrantName.js';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.js';
+import { ValueFlash } from '../atoms/ValueFlash.js';
+import { useEntryOnce } from '../../../lib/use-entry-once.js';
 import { applyEvent, markConnected, type LiveDashboard } from '../../../lib/live-state.js';
 import { formatClock } from '../../../lib/matches-view.js';
 import { presentState, type ResultStateLabels } from '../../../lib/result-state.js';
@@ -46,6 +48,10 @@ export function LiveMatchHero({
 }: LiveMatchHeroProps): React.JSX.Element {
   const [dashboard, setDashboard] = useState(initial);
   const [connectionStale, setConnectionStale] = useState(false);
+  const enteringMatchIds = useEntryOnce(
+    dashboard.matches.filter((match) => match.state === 'live').map((match) => match.matchId),
+    initial.matches.filter((match) => match.state === 'live').map((match) => match.matchId),
+  );
 
   useEffect(() => {
     const client = new RealtimeClient({ url: streamPath });
@@ -101,9 +107,13 @@ export function LiveMatchHero({
             {dashboard.matches.map((match) => {
               const badge = presentState(match.state, resultStateLabels);
               return (
-                <Card as="article" key={match.matchId}>
-                  <Badge>
-                    <span aria-hidden="true">{badge.icon}</span>
+                <Card
+                  as="article"
+                  className={enteringMatchIds.has(match.matchId) ? 'cl-enter-once' : ''}
+                  key={match.matchId}
+                >
+                  <Badge className={badge.className}>
+                    {badge.state !== 'live' && <span aria-hidden="true">{badge.icon}</span>}
                     <span>{badge.label}</span>
                   </Badge>
                   {match.clockSeconds !== undefined && (
@@ -124,7 +134,10 @@ export function LiveMatchHero({
                       {match.sides.map((side) => (
                         <li className="cl-match-card__side" key={side.entrantId}>
                           <EntrantName abbreviation={side.abbreviation} fullName={side.name} />
-                          <span className="cl-stat-tile__value">{side.score}</span>
+                          <ValueFlash
+                            className="cl-stat-tile__value cl-tabular-nums"
+                            value={side.score}
+                          />
                         </li>
                       ))}
                     </ol>
