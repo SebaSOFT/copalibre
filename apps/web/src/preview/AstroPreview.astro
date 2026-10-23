@@ -435,7 +435,9 @@ const [compactSample] = referenceJourneyBracket(true);
           />
         ))}
         <EmblemImage
-          alt="Concepción Patín Club"
+          alt={intl.formatMessage(messages.orgPageEmblemAlt, {
+            name: 'Concepción Patín Club',
+          })}
           abbreviation="CPC"
           placeholderAlt="No emblem set"
           size={72}
