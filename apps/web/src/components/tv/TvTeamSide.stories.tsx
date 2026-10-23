@@ -7,6 +7,7 @@ const meta = {
   args: {
     name: 'Club Atlético Independiente',
     abbreviation: 'CAI',
+    clubId: 'club-independiente',
   },
   parameters: { layout: 'padded' },
 } satisfies Meta<typeof TvTeamSide>;
@@ -15,6 +16,8 @@ type Story = StoryObj<typeof meta>;
 export const Monogram: Story = {};
 export const WithEmblem: Story = {
   args: {
-    clubs: [{ name: 'Club Atlético Independiente', emblemUrl: 'obj-1' }],
+    clubs: [
+      { clubId: 'club-independiente', name: 'Club Atlético Independiente', emblemUrl: 'obj-1' },
+    ],
   },
 };

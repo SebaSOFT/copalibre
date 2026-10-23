@@ -1221,6 +1221,8 @@ export interface TableRowResponseData {
   readonly entrantId?: string;
   readonly entrantName?: string;
   readonly entrantAbbreviation?: string;
+  readonly clubId?: string;
+  readonly emblemObjectId?: string;
   readonly rank: number;
   readonly sharedRank: boolean;
   readonly cells: Readonly<Record<string, TableCellResponse>>;

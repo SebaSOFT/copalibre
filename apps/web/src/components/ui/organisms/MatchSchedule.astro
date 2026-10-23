@@ -1,7 +1,11 @@
 ---
 import type { IntlShape } from 'react-intl';
 import BracketView from './BracketView.astro';
-import DataTable, { type DataTableColumn, type DataTableSection } from './DataTable.astro';
+import DataTable, {
+  type DataTableCellContent,
+  type DataTableColumn,
+  type DataTableSection,
+} from './DataTable.astro';
 import { rescheduledStatement } from '../../../lib/reschedule.ts';
 import { MatchCard } from './MatchCard.tsx';
 import { matchReportUrl } from '../../../lib/bracket.ts';
@@ -11,6 +15,7 @@ import type { ScheduleStage, ScheduleZone } from '../../../lib/match-schedule.ts
 import { presentState } from '../../../lib/result-state.ts';
 import { matchCardLabels, resultStateLabels } from '../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
+import { clubEmblemUrl } from '../../../lib/public-image-paths.ts';
 
 /**
  * A tournament's matches as a schedule: stage, then zone, then group, then round, each level named
@@ -84,6 +89,26 @@ const sideOf = (match: MatchCardData, side: 'home' | 'away'): SourceText | undef
   );
 };
 
+const sideCell = (match: MatchCardData, side: 'home' | 'away'): DataTableCellContent => {
+  const isHome = side === 'home';
+  const name = isHome ? match.homeName : match.awayName;
+  const clubId = isHome ? match.homeClubId : match.awayClubId;
+  const emblemObjectId = isHome ? match.homeEmblemObjectId : match.awayEmblemObjectId;
+  const abbreviation = isHome ? match.homeAbbreviation : match.awayAbbreviation;
+  const displayName = name ?? sideOf(match, side)?.long ?? '—';
+  return {
+    text: displayName,
+    emblem: {
+      abbreviation: name === undefined ? undefined : abbreviation,
+      alt: displayName,
+      src:
+        organizationAlias && clubId && emblemObjectId
+          ? clubEmblemUrl(organizationAlias, clubId)
+          : undefined,
+    },
+  };
+};
+
 const columns: readonly DataTableColumn[] = [
   {
     key: 'kickoff',
@@ -111,8 +136,7 @@ const columns: readonly DataTableColumn[] = [
     header: intl.formatMessage(messages.scheduleColumnHome),
     render: (row) =>
       (row as MatchCardData).homeName ?? sideOf(row as MatchCardData, 'home')?.long ?? '—',
-    abbreviation: (row) =>
-      (row as MatchCardData).homeAbbreviation ?? sideOf(row as MatchCardData, 'home')?.short,
+    renderContent: (row) => sideCell(row as MatchCardData, 'home'),
   },
   {
     key: 'score',
@@ -133,8 +157,7 @@ const columns: readonly DataTableColumn[] = [
     header: intl.formatMessage(messages.scheduleColumnAway),
     render: (row) =>
       (row as MatchCardData).awayName ?? sideOf(row as MatchCardData, 'away')?.long ?? '—',
-    abbreviation: (row) =>
-      (row as MatchCardData).awayAbbreviation ?? sideOf(row as MatchCardData, 'away')?.short,
+    renderContent: (row) => sideCell(row as MatchCardData, 'away'),
   },
   {
     key: 'state',
@@ -223,6 +246,7 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
                               locale={intl.locale}
                               match={match}
                               reportUrl={reportOf(match.stageNumber, match.matchNumber)}
+                              organizationAlias={organizationAlias}
                             />
                           ))}
                         </div>

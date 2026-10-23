@@ -14,6 +14,7 @@ import { columnHint } from '../../../lib/column-hints.ts';
 import Button from '../atoms/Button.astro';
 import ClubFilterChip from '../molecules/ClubFilterChip.astro';
 import { EntrantName } from '../atoms/EntrantName.tsx';
+import EmblemImage from '../atoms/EmblemImage.astro';
 import { ResponsivePlayerName } from '../atoms/ResponsivePlayerName.tsx';
 
 interface Props {
@@ -70,15 +71,27 @@ const rawColumns: readonly TableColumnResponse[] =
       ];
 type DisplayRow = Pick<TableRowResponse, 'actorName' | 'cells'> &
   Partial<
-    Pick<TableRowResponse, 'actorId' | 'entrantName' | 'entrantAbbreviation' | 'nationality'>
+    Pick<
+      TableRowResponse,
+      | 'actorId'
+      | 'entrantId'
+      | 'entrantName'
+      | 'entrantAbbreviation'
+      | 'clubId'
+      | 'emblemObjectId'
+      | 'nationality'
+    >
   >;
 const rows: readonly DisplayRow[] =
   previewRows === undefined
     ? (projection?.rows ?? [])
     : previewRows.map((row) => ({
         actorName: row.name,
+        entrantId: row.entrantId,
         entrantName: row.name,
         entrantAbbreviation: row.abbreviation,
+        clubId: row.clubId,
+        emblemObjectId: row.emblemObjectId,
         cells: {
           rank: { raw: row.position, formatted: String(row.position) },
           name: { formatted: row.name },
@@ -181,6 +194,7 @@ const playerDialogLabels = {
         <ClubFilterChip
           href={`${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}clubId=${encodeURIComponent(club.clubId)}`}
           label={club.name}
+          abbreviation={club.abbreviation}
           active={club.clubId === activeClubId}
           filter={club.clubId}
           club
@@ -301,11 +315,29 @@ const playerDialogLabels = {
                     ) : column.code === 'name' ||
                       column.code === 'entrant' ||
                       column.code === 'team' ? (
-                      <EntrantName
-                        abbreviation={row.entrantAbbreviation}
-                        client:load
-                        fullName={row.entrantName ?? cellFormatted}
-                      />
+                      <span class="cl-standings-entrant">
+                        {(previewRows !== undefined || row.entrantId !== undefined) && (
+                          <EmblemImage
+                            abbreviation={row.entrantAbbreviation}
+                            alt={row.entrantName ?? cellFormatted}
+                            decorative
+                            placeholderAlt={intl.formatMessage(
+                              messages.orgPageEmblemPlaceholderAlt,
+                            )}
+                            size={32}
+                            src={
+                              organizationAlias && row.clubId && row.emblemObjectId
+                                ? clubEmblemUrl(organizationAlias, row.clubId)
+                                : undefined
+                            }
+                          />
+                        )}
+                        <EntrantName
+                          abbreviation={row.entrantAbbreviation}
+                          client:load
+                          fullName={row.entrantName ?? cellFormatted}
+                        />
+                      </span>
                     ) : (
                       cellFormatted
                     )}
@@ -645,6 +677,13 @@ const playerDialogLabels = {
 </script>
 
 <style>
+  .cl-standings-entrant {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+    min-width: 0;
+    max-width: 100%;
+  }
   .cl-table-tabs ul {
     display: flex;
     gap: 8px;

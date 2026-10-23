@@ -16,6 +16,8 @@ export interface LiveSide {
   readonly entrantId: string;
   readonly name: string;
   readonly abbreviation?: string;
+  readonly clubId?: string;
+  readonly emblemObjectId?: string;
   readonly score: number;
   readonly state: ResultState;
 }

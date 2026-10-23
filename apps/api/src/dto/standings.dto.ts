@@ -109,6 +109,18 @@ export class BracketSlotResponse {
   @ApiPropertyOptional({ format: 'uuid' })
   entrantId?: string;
 
+  @ApiPropertyOptional({ description: 'Resolved entrant abbreviation, when one is stored' })
+  abbreviation?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: "The entrant's club, when it belongs to one",
+  })
+  clubId?: string;
+
+  @ApiPropertyOptional({ description: "The club's emblem object id, when one is on record" })
+  emblemObjectId?: string;
+
   @ApiPropertyOptional({ description: 'Match this slot sources its participant from' })
   matchId?: string;
 

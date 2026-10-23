@@ -28,9 +28,13 @@ export interface MatchCardData {
   readonly state: ResultState;
   readonly homeName?: string;
   readonly homeAbbreviation?: string;
+  readonly homeClubId?: string;
+  readonly homeEmblemObjectId?: string;
   readonly homeScore?: number;
   readonly awayName?: string;
   readonly awayAbbreviation?: string;
+  readonly awayClubId?: string;
+  readonly awayEmblemObjectId?: string;
   readonly awayScore?: number;
   readonly clockSeconds?: number;
   /**

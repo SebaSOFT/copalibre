@@ -210,13 +210,45 @@ export class SeedingController {
       }),
     );
     const qualifiers = await this.qualifiersOf(stageId, record.format);
-    const resolvedNamesMap = await new EnrollmentRepository(this.db).resolveEntrantNames(
-      record.entrantIds,
+    const entrantIds = [
+      ...new Set([
+        ...record.entrantIds,
+        ...zoneResponses.flatMap((zone) =>
+          zone.matches.flatMap((match) =>
+            match.slots.flatMap((slot) => (slot.entrantId === undefined ? [] : [slot.entrantId])),
+          ),
+        ),
+      ]),
+    ];
+    const resolvedEntrants = await new EnrollmentRepository(this.db).resolveEntrantPodiumDetails(
+      entrantIds,
     );
     const names: Record<string, string> = {};
-    for (const [entrantId, entry] of resolvedNamesMap) {
+    for (const [entrantId, entry] of resolvedEntrants) {
       names[entrantId] = entry.name;
     }
+    const zonesWithEntrantDetails = zoneResponses.map((zone) => ({
+      ...zone,
+      matches: zone.matches.map((match) => ({
+        ...match,
+        slots: match.slots.map((slot) => {
+          const entrant =
+            slot.entrantId === undefined ? undefined : resolvedEntrants.get(slot.entrantId);
+          return entrant === undefined
+            ? slot
+            : {
+                ...slot,
+                ...(entrant.abbreviation === undefined
+                  ? {}
+                  : { abbreviation: entrant.abbreviation }),
+                ...(entrant.clubId === undefined ? {} : { clubId: entrant.clubId }),
+                ...(entrant.emblemObjectId === undefined
+                  ? {}
+                  : { emblemObjectId: entrant.emblemObjectId }),
+              };
+        }),
+      })),
+    }));
 
     return {
       stageId,
@@ -234,7 +266,7 @@ export class SeedingController {
       ),
       format: record.format,
       seeds: seedOrder.map((entrantId, index) => ({ seed: index + 1, entrantId })),
-      zones: zoneResponses,
+      zones: zonesWithEntrantDetails,
       hasRecordedResults: record.hasRecordedResults,
       names,
       ...(qualifiers === undefined ? {} : { qualifiers: qualifiers.map(qualifierZoneResponse) }),

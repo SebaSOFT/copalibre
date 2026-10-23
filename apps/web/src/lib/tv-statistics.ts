@@ -53,6 +53,7 @@ export interface TopPerformer {
   readonly name: string;
   readonly clubName?: string;
   readonly clubAbbreviation?: string;
+  readonly clubId?: string;
   readonly clubEmblemUrl?: string;
   readonly nationalityCode?: string;
   readonly statLabel: string;
@@ -112,7 +113,7 @@ export function deriveTopPerformers(
   language: SupportedLanguage,
   tableProjection?: TableProjectionResponse,
   standings?: readonly StandingsRowView[],
-  clubs?: readonly { name: string; emblemUrl?: string }[],
+  clubs?: readonly { clubId?: string; name: string; emblemUrl?: string }[],
 ): readonly TopPerformer[] {
   if (tableProjection && tableProjection.rows.length > 0) {
     const column = primaryColumn(tableProjection);
@@ -125,25 +126,20 @@ export function deriveTopPerformers(
     return tableProjection.rows.slice(0, 5).map((row) => {
       const cell = row.cells[primaryCol];
       // `actorName` is the row's own identity (the performer, whatever the
-      // granularity); `entrantName` is its *affiliation* — the club a
-      // person played for, or a team row's own name again. Matching the
-      // club lookup against `entrantName` rather than the performer's own
-      // name is what makes it actually resolve for a person row
-      // (previously this read `row.entrantName` for both,
-      // which is never a person's own name, so a player's name always fell
-      // through to the "unnamed actor" placeholder and its club never matched).
+      // granularity); `entrantName` is its *affiliation* — the club a person
+      // played for, or a team row's own name again. The display label comes
+      // from `entrantName`; the image lookup uses `clubId`, never either name.
       const name =
         row.actorName || fill(labels.unnamedActor, { reference: row.actorId.substring(0, 6) });
-      const clubMatch = clubs?.find(
-        (c) =>
-          row.entrantName !== undefined && c.name.toLowerCase() === row.entrantName.toLowerCase(),
-      );
+      const clubMatch =
+        row.clubId === undefined ? undefined : clubs?.find((club) => club.clubId === row.clubId);
       const rawVal = cell?.formatted || (cell?.raw !== undefined ? String(cell.raw) : '0');
       return {
         rank: row.rank,
         name,
         clubName: row.entrantName,
         clubAbbreviation: row.entrantAbbreviation,
+        ...(row.clubId === undefined ? {} : { clubId: row.clubId }),
         clubEmblemUrl: clubMatch?.emblemUrl,
         nationalityCode: row.nationality,
         statLabel: statHeader,
@@ -154,11 +150,14 @@ export function deriveTopPerformers(
 
   if (standings && standings.length > 0) {
     return standings.slice(0, 3).map((s) => {
-      const clubMatch = clubs?.find((c) => c.name.toLowerCase() === s.name.toLowerCase());
+      const clubMatch =
+        s.clubId === undefined ? undefined : clubs?.find((club) => club.clubId === s.clubId);
       return {
         rank: s.position,
         name: s.name,
         clubName: s.name,
+        clubAbbreviation: s.abbreviation,
+        ...(s.clubId === undefined ? {} : { clubId: s.clubId }),
         clubEmblemUrl: clubMatch?.emblemUrl,
         statLabel: labels.pointsShort,
         statValue: s.points,
@@ -227,11 +226,13 @@ export function resolveChampion(
   labels: TvStatisticsLabels,
   matches: readonly (LiveMatch | OverviewMatch)[],
   standings?: readonly StandingsRowView[],
-  clubs?: readonly { name: string; emblemUrl?: string }[],
+  clubs?: readonly { clubId?: string; name: string; emblemUrl?: string }[],
 ): ChampionInfo | undefined {
   if (matches.length === 0 && (!standings || standings.length === 0)) {
     return undefined;
   }
+  const emblemUrlFor = (clubId?: string): string | undefined =>
+    clubId === undefined ? undefined : clubs?.find((club) => club.clubId === clubId)?.emblemUrl;
 
   const allFinal = matches.length > 0 && matches.every((m) => m.state === 'final');
   // A tournament that played several stages is decided by its last one, so the standings leader of
@@ -243,11 +244,10 @@ export function resolveChampion(
   if (allFinal && stagesPlayed <= 1 && standings && standings.length > 0) {
     const leader = standings.find((s) => s.position === 1) ?? standings[0];
     if (leader) {
-      const clubMatch = clubs?.find((c) => c.name.toLowerCase() === leader.name.toLowerCase());
       return {
         name: leader.name,
         abbreviation: leader.abbreviation,
-        emblemUrl: clubMatch?.emblemUrl,
+        emblemUrl: emblemUrlFor(leader.clubId),
         title: labels.championTitle,
         record: fill(labels.standingsRecord, { points: leader.points, played: leader.played }),
       };
@@ -265,6 +265,7 @@ export function resolveChampion(
 
     const lastMatch = sorted[0];
     if (lastMatch) {
+      const sides = 'sides' in lastMatch ? lastMatch.sides : [lastMatch.home, lastMatch.away];
       const {
         s1: homeScore,
         s2: awayScore,
@@ -275,21 +276,19 @@ export function resolveChampion(
       } = extractScores(lastMatch, labels);
 
       if (homeScore > awayScore) {
-        const clubMatch = clubs?.find((c) => c.name.toLowerCase() === homeName.toLowerCase());
         return {
           name: homeName,
           abbreviation: homeAbbr,
-          emblemUrl: clubMatch?.emblemUrl,
+          emblemUrl: emblemUrlFor(sides[0]?.clubId),
           title: labels.championTitle,
           record: fill(labels.grandFinalRecord, { winner: homeScore, loser: awayScore }),
         };
       }
       if (awayScore > homeScore) {
-        const clubMatch = clubs?.find((c) => c.name.toLowerCase() === awayName.toLowerCase());
         return {
           name: awayName,
           abbreviation: awayAbbr,
-          emblemUrl: clubMatch?.emblemUrl,
+          emblemUrl: emblemUrlFor(sides[1]?.clubId),
           title: labels.championTitle,
           record: fill(labels.grandFinalRecord, { winner: awayScore, loser: homeScore }),
         };
@@ -301,11 +300,10 @@ export function resolveChampion(
   if (standings && standings.length > 0) {
     const leader = standings.find((s) => s.position === 1) ?? standings[0];
     if (leader) {
-      const clubMatch = clubs?.find((c) => c.name.toLowerCase() === leader.name.toLowerCase());
       return {
         name: leader.name,
         abbreviation: leader.abbreviation,
-        emblemUrl: clubMatch?.emblemUrl,
+        emblemUrl: emblemUrlFor(leader.clubId),
         title: labels.tableLeaderTitle,
         record: fill(labels.standingsRecord, { points: leader.points, played: leader.played }),
       };

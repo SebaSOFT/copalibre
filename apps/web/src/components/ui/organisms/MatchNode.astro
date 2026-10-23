@@ -85,7 +85,9 @@ const legScores =
                 <EmblemImage
                   alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: slot.fullName })}
                   placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                  abbreviation={slot.abbreviation}
                   bare
+                  decorative
                   size={20}
                   src={
                     slot.clubId && slot.emblemObjectId

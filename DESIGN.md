@@ -720,8 +720,10 @@ borders and layout.
 ## Imagery
 
 Contain crests in a square chamfered frame. When a crest is missing, show a monogram tile built from the
-entrant's existing abbreviation in the mono face; never derive initials while rendering. Player photos
-use a 4:5 cover crop.
+entrant's existing abbreviation in the mono face. Render stored abbreviations of one to four
+characters at figure size and five to six at one step smaller; absent or longer abbreviations use the
+shield. Never derive initials or truncate while rendering. Keep the tile in neutral chrome ink with a
+structure border and paper text. Player photos use a 4:5 cover crop.
 
 ## Voice
 

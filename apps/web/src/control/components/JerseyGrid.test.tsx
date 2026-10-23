@@ -137,7 +137,7 @@ describe('JerseyGrid', () => {
 
   it('shows a placeholder emblem when the entrant has no club', () => {
     renderGrid({ rosters: [{ entrantId: 'entrant-a', members: [] }] });
-    expect(screen.getByTitle('No emblem')).toBeDefined();
+    expect(document.querySelector('.cl-entrant-emblem__fallback svg')).toBeTruthy();
   });
 
   it('renders the club emblem image when a clubId and organizationAlias are known', () => {
@@ -145,7 +145,8 @@ describe('JerseyGrid', () => {
       organizationAlias: 'liga-orbital',
       rosters: [{ entrantId: 'entrant-a', clubId: 'club-1', members: [] }],
     });
-    const image = screen.getByAltText('Club emblem') as HTMLImageElement;
+    const image = document.querySelector<HTMLImageElement>('.cl-entrant-emblem img');
+    if (!image) throw new Error('club emblem image was not rendered');
     expect(image.src).toContain('/organizations/liga-orbital/clubs/club-1/emblem');
   });
 
@@ -154,8 +155,10 @@ describe('JerseyGrid', () => {
       organizationAlias: 'liga-orbital',
       rosters: [{ entrantId: 'entrant-a', clubId: 'club-1', members: [] }],
     });
-    fireEvent.error(screen.getByAltText('Club emblem'));
-    expect(screen.getByTitle('No emblem')).toBeDefined();
+    const image = document.querySelector<HTMLImageElement>('.cl-entrant-emblem img');
+    if (!image) throw new Error('club emblem image was not rendered');
+    fireEvent.error(image);
+    expect(document.querySelector('.cl-entrant-emblem__fallback svg')).toBeTruthy();
   });
 
   it('disables and labels a sent-off member, and does not dispatch a selection for it', () => {

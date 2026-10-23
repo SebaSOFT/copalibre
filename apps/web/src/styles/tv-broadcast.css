@@ -283,21 +283,6 @@
   object-fit: contain;
 }
 
-.tv-champion__monogram {
-  width: 18vmin;
-  height: 18vmin;
-  border-radius: 50%;
-  background: var(--tv-bg-elevated);
-  border: 2px solid var(--tv-gold);
-  color: var(--tv-gold);
-  font-family: var(--cl-font-display);
-  font-size: 8vmin;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .tv-champion__name {
   margin: 0;
   font-family: var(--cl-font-display);
@@ -366,24 +351,7 @@
 }
 
 .tv-champions__emblem {
-  width: 11vmin;
-  height: 11vmin;
-  object-fit: contain;
   filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--cl-state-upcoming) 35%, transparent));
-}
-
-.tv-champions__monogram {
-  width: 10vmin;
-  height: 10vmin;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  border: 2px solid var(--tv-gold);
-  color: var(--tv-gold);
-  font-family: var(--cl-font-display);
-  font-size: 3.6vmin;
-  font-weight: 800;
 }
 
 .tv-champions__name {
@@ -469,21 +437,6 @@
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-}
-
-.tv-team-side__monogram {
-  width: 12vmin;
-  height: 12vmin;
-  border-radius: 50%;
-  background: var(--tv-bg-elevated);
-  border: 1px solid var(--tv-border);
-  color: var(--tv-live-cyan);
-  font-family: var(--cl-font-display);
-  font-size: 5vmin;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .tv-team-side__name {
@@ -731,19 +684,6 @@
   width: 3vmin;
   height: 3vmin;
   object-fit: contain;
-}
-
-.tv-table-club-monogram {
-  width: 3vmin;
-  height: 3vmin;
-  border-radius: 50%;
-  background: var(--tv-bg-elevated);
-  color: var(--tv-text-secondary);
-  font-size: 1.2vmin;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* 4B. Top Performers List */
@@ -1466,12 +1406,6 @@
   .tv-champions__champion {
     flex-direction: row;
     gap: 2vmin;
-  }
-
-  .tv-champions__emblem,
-  .tv-champions__monogram {
-    width: 9vmin;
-    height: 9vmin;
   }
 }
 

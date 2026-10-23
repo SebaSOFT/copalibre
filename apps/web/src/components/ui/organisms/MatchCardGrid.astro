@@ -41,9 +41,13 @@ const kickoffFormatter = new Intl.DateTimeFormat(intl.locale, {
         state: match.state,
         homeName: match.home.name,
         homeAbbreviation: match.home.abbreviation,
+        homeClubId: match.home.clubId,
+        homeEmblemObjectId: match.home.emblemObjectId,
         homeScore: match.home.score,
         awayName: match.away.name,
         awayAbbreviation: match.away.abbreviation,
+        awayClubId: match.away.clubId,
+        awayEmblemObjectId: match.away.emblemObjectId,
         awayScore: match.away.score,
         ...(match.startsAt
           ? {
@@ -60,6 +64,7 @@ const kickoffFormatter = new Intl.DateTimeFormat(intl.locale, {
           labels={labels}
           locale={intl.locale}
           band={index % 2 === 0 ? 'panel' : 'base'}
+          organizationAlias={model.organizationAlias}
         />
       );
 

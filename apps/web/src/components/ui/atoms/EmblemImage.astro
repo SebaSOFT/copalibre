@@ -1,10 +1,11 @@
 ---
 import Icon from './Icon.astro';
+import { emblemMonogramFit } from '../../../lib/entrant-emblem.ts';
 
 /**
- * An organization's or club's emblem, or a placeholder shield outline when
- * none has been uploaded (the rule: never a broken image or an empty
- * gap) — the public-web sibling of control-web's `ClubEmblemPlaceholder`.
+ * An organization's or club's emblem, the stored abbreviation tile, or a
+ * placeholder shield when no abbreviation is available. A failed image swaps
+ * to the same fallback without waiting for page hydration.
  *
  * `bare` drops the frame (background, border, chamfer and inset) and leaves only the 1:1 image:
  * the mode for an emblem that sits inline with a club's name, where a framed badge reads as a
@@ -14,31 +15,67 @@ interface Props {
   readonly src?: string;
   readonly alt: string;
   readonly placeholderAlt: string;
+  readonly abbreviation?: string;
   readonly size?: number;
   readonly bare?: boolean;
+  readonly decorative?: boolean;
 }
 
-const { src, alt, placeholderAlt, size = 48, bare = false } = Astro.props;
+const {
+  src,
+  alt,
+  placeholderAlt,
+  abbreviation,
+  size = 48,
+  bare = false,
+  decorative = false,
+} = Astro.props;
+const fit = emblemMonogramFit(abbreviation);
+const abbreviationLength = Array.from(abbreviation ?? '').length;
+const hiddenFromAssistiveTechnology = bare || decorative;
 ---
 
 <div
-  class:list={['cl-image-frame', 'cl-emblem-frame', bare && 'cl-emblem-frame--bare']}
+  class:list={[
+    'cl-image-frame',
+    'cl-entrant-emblem',
+    'cl-emblem-frame',
+    size <= 32 && 'cl-entrant-emblem--small',
+    size <= 24 && 'cl-entrant-emblem--micro',
+    bare && 'cl-emblem-frame--bare',
+  ]}
+  aria-hidden={hiddenFromAssistiveTechnology ? 'true' : undefined}
   style={`width: ${size}px`}
 >
   {src && (
     <img
       src={src}
-      alt={alt}
+      alt={hiddenFromAssistiveTechnology ? '' : alt}
       onerror="this.style.display = 'none'; this.nextElementSibling.style.display = '';"
     />
   )}
   <span
-    aria-label={placeholderAlt}
-    class="cl-emblem-placeholder"
-    role="img"
+    aria-label={hiddenFromAssistiveTechnology ? undefined : alt || placeholderAlt}
+    class="cl-emblem-placeholder cl-entrant-emblem__fallback"
+    role={hiddenFromAssistiveTechnology ? undefined : 'img'}
     style={src ? 'display: none' : undefined}
   >
-    <Icon name="club" size={24} />
+    {fit && abbreviation !== undefined ? (
+      <span
+        class:list={[
+          'cl-entrant-emblem__monogram',
+          fit === 'reduced' && 'cl-entrant-emblem__monogram--reduced',
+          fit === 'figure' &&
+            abbreviationLength === 4 &&
+            size <= 32 &&
+            'cl-entrant-emblem__monogram--small-tight',
+        ]}
+      >
+        {abbreviation}
+      </span>
+    ) : (
+      <Icon name="club" size={24} />
+    )}
   </span>
 </div>
 
@@ -77,6 +114,8 @@ const { src, alt, placeholderAlt, size = 48, bare = false } = Astro.props;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--cl-text-muted);
+    width: 100%;
+    height: 100%;
+    color: var(--cl-text-primary);
   }
 </style>

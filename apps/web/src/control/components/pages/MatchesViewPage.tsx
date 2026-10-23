@@ -87,6 +87,7 @@ export function MatchesViewPage({
           completion={completionRead.data}
           labels={labels}
           matches={matches}
+          organizationAlias={organizationAlias}
           onSelectState={setState}
           state={state}
           status="ready"

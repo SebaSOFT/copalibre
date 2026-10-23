@@ -277,6 +277,8 @@ export function tableResponse(result: TableProjectionResult): TableProjectionRes
       ...(row.entrantAbbreviation === undefined
         ? {}
         : { entrantAbbreviation: row.entrantAbbreviation }),
+      ...(row.clubId === undefined ? {} : { clubId: row.clubId }),
+      ...(row.emblemObjectId === undefined ? {} : { emblemObjectId: row.emblemObjectId }),
       ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
       rank: row.rank,
       sharedRank: row.sharedRank,
@@ -310,6 +312,8 @@ export function segmentedTableResponse(
         ...(row.entrantAbbreviation === undefined
           ? {}
           : { entrantAbbreviation: row.entrantAbbreviation }),
+        ...(row.clubId === undefined ? {} : { clubId: row.clubId }),
+        ...(row.emblemObjectId === undefined ? {} : { emblemObjectId: row.emblemObjectId }),
         ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
         rank: row.rank,
         sharedRank: row.sharedRank,

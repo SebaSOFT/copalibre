@@ -51,9 +51,14 @@ export interface TableProjectionScope {
   readonly clubId?: string;
 }
 
+export type TableProjectionRow = TableRow & {
+  readonly clubId?: string;
+  readonly emblemObjectId?: string;
+};
+
 export interface TableProjectionResult {
   readonly layout: TableLayoutDefinition;
-  readonly rows: readonly TableRow[];
+  readonly rows: readonly TableProjectionRow[];
   readonly projectionVersion: number;
   /**
    * The accounting grain in force for this layout's stage, when the layout
@@ -88,7 +93,7 @@ export interface TableProjectionSegment {
   readonly groupName?: string;
   /** The zone the group belongs to; absent for a stage that has only its implicit zone. */
   readonly zoneName?: string;
-  readonly rows: readonly TableRow[];
+  readonly rows: readonly TableProjectionRow[];
 }
 
 export interface SegmentedTableProjectionResult extends TableProjectionResult {
@@ -236,6 +241,17 @@ export async function readTableProjection(
       (row) => row.entrantId !== undefined && matchingEntrantIds.has(row.entrantId),
     );
   }
+
+  const entrantIds = [...new Set(rows.flatMap((row) => (row.entrantId ? [row.entrantId] : [])))];
+  const entrantDetails = await new EnrollmentRepository(db).resolveEntrantPodiumDetails(entrantIds);
+  rows = rows.map((row) => {
+    const details = row.entrantId ? entrantDetails.get(row.entrantId) : undefined;
+    return {
+      ...row,
+      ...(details?.clubId === undefined ? {} : { clubId: details.clubId }),
+      ...(details?.emblemObjectId === undefined ? {} : { emblemObjectId: details.emblemObjectId }),
+    };
+  });
 
   // The column whose value is a `count`-aggregated statistic — the one whose
   // unit the declared grain actually changes. `played`/`heats`/`rounds` are

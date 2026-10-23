@@ -1,4 +1,5 @@
 import { EntrantName } from '../../components/ui/atoms/EntrantName.js';
+import { EntrantEmblem } from '../../components/ui/molecules/EntrantEmblem.js';
 import {
   finalRoundOf,
   formatPlacementSource,
@@ -23,6 +24,7 @@ import { Icon } from './ui/atoms/icon.js';
 import { Badge } from './ui/atoms/badge.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
+import { clubEmblemUrl } from '../lib/api-client.js';
 
 /** An undecided seat names its source, with the compact form for narrow nodes. */
 function pendingSlotName(
@@ -77,6 +79,7 @@ export function BracketCanvas({
   highlightEntrantId,
   onHighlightEntrant,
   names = {},
+  organizationAlias,
   showBracketLabels = false,
   skeletonMode = false,
 }: {
@@ -96,6 +99,7 @@ export function BracketCanvas({
   readonly highlightEntrantId?: string;
   readonly onHighlightEntrant?: (entrantId?: string) => void;
   readonly names?: Readonly<Record<string, string>>;
+  readonly organizationAlias?: string;
   /** Label winners, losers, and grand-final bands in a double-elimination preview. */
   readonly showBracketLabels?: boolean;
   /** Replace entrants, structural ids, and scores with neutral slot skeletons. */
@@ -217,6 +221,7 @@ export function BracketCanvas({
                 highlightEntrantId={highlightEntrantId}
                 onHighlightEntrant={onHighlightEntrant}
                 names={names}
+                organizationAlias={organizationAlias}
                 showBracketLabel={
                   showBracketLabels &&
                   layout.matches.find((match) => match.bracket === node.bracket)?.matchId ===
@@ -249,6 +254,7 @@ function BracketNode({
   highlightEntrantId,
   onHighlightEntrant,
   names,
+  organizationAlias,
   showBracketLabel,
   skeletonMode,
 }: {
@@ -262,6 +268,7 @@ function BracketNode({
   readonly highlightEntrantId?: string;
   readonly onHighlightEntrant?: (entrantId?: string) => void;
   readonly names: Readonly<Record<string, string>>;
+  readonly organizationAlias: string | undefined;
   readonly showBracketLabel: boolean;
   readonly skeletonMode: boolean;
 }): React.JSX.Element {
@@ -309,29 +316,63 @@ function BracketNode({
               {/* Named, never blank: "Ganador del WB-R1-M2" tells an
               operator what has to happen; an empty box reads as a bug. */}
               {interactive && slot.entrantId !== undefined ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="cl-journey-name"
-                  aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
-                    entrant: resolveSlotLabel(slot, names, intl, sourceLabels),
-                  })}
-                  aria-pressed={highlightEntrantId === slot.entrantId}
-                  onClick={() =>
-                    onHighlightEntrant(
-                      slot.entrantId === highlightEntrantId ? undefined : slot.entrantId,
-                    )
-                  }
-                >
-                  {resolveSlotLabel(slot, names, intl, sourceLabels)}
-                </Button>
+                <span style={entrantSlotLabelStyle}>
+                  {slot.clubId !== undefined && (
+                    <EntrantEmblem
+                      alt={resolveSlotLabel(slot, names, intl, sourceLabels)}
+                      abbreviation={slot.abbreviation}
+                      className="cl-bracket-slot-emblem"
+                      control
+                      decorative
+                      size={24}
+                      src={
+                        organizationAlias !== undefined && slot.emblemObjectId !== undefined
+                          ? clubEmblemUrl(organizationAlias, slot.clubId)
+                          : undefined
+                      }
+                    />
+                  )}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="cl-journey-name"
+                    aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
+                      entrant: resolveSlotLabel(slot, names, intl, sourceLabels),
+                    })}
+                    aria-pressed={highlightEntrantId === slot.entrantId}
+                    onClick={() =>
+                      onHighlightEntrant(
+                        slot.entrantId === highlightEntrantId ? undefined : slot.entrantId,
+                      )
+                    }
+                  >
+                    {resolveSlotLabel(slot, names, intl, sourceLabels)}
+                  </Button>
+                </span>
               ) : (
-                <EntrantName
-                  pending={slot.pending}
-                  {...(slot.pending
-                    ? pendingSlotName(slot, sourceLabels, finalRound)
-                    : { fullName: resolveSlotLabel(slot, names, intl, sourceLabels) })}
-                />
+                <span style={entrantSlotLabelStyle}>
+                  {slot.clubId !== undefined && (
+                    <EntrantEmblem
+                      alt={resolveSlotLabel(slot, names, intl, sourceLabels)}
+                      abbreviation={slot.abbreviation}
+                      className="cl-bracket-slot-emblem"
+                      control
+                      decorative
+                      size={24}
+                      src={
+                        organizationAlias !== undefined && slot.emblemObjectId !== undefined
+                          ? clubEmblemUrl(organizationAlias, slot.clubId)
+                          : undefined
+                      }
+                    />
+                  )}
+                  <EntrantName
+                    pending={slot.pending}
+                    {...(slot.pending
+                      ? pendingSlotName(slot, sourceLabels, finalRound)
+                      : { fullName: resolveSlotLabel(slot, names, intl, sourceLabels) })}
+                  />
+                </span>
               )}
               <span style={scoreStyle}>{slot.score ?? '—'}</span>
             </>
@@ -491,6 +532,12 @@ const slotStyle: React.CSSProperties = {
   justifyContent: 'space-between',
   gap: 'var(--cl-space-2)',
   fontSize: 'var(--cl-font-size-sm)',
+};
+const entrantSlotLabelStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 'var(--cl-space-1)',
+  minWidth: 0,
 };
 const pendingSlotStyle: React.CSSProperties = {
   ...slotStyle,

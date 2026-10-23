@@ -203,7 +203,7 @@ test('public header and match-card icons are server-rendered without JavaScript'
   const firstCard = page.locator('.cl-match-card').first();
   await expect(headerLanguageIcon).toHaveCount(1);
   await expect(firstCard).toBeVisible();
-  await expect(firstCard.locator('svg.cl-icon')).toHaveCount(1);
+  await expect(firstCard.locator('.cl-entrant-emblem__fallback svg.cl-icon')).toHaveCount(2);
 
   await context.close();
 });

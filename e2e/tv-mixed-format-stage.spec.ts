@@ -83,6 +83,8 @@ const standing = (
   entrantId: alias,
   name: (CLUBS[alias] as Club).name,
   abbreviation: (CLUBS[alias] as Club).abbreviation,
+  clubId: `club-${alias}`,
+  emblemObjectId: `emblem-${alias}`,
   sharedRank: false,
   zoneName,
   statistics: { played, points },
@@ -352,7 +354,7 @@ test('every image the kiosk asks for loads from the web application alone', asyn
   await page.goto(`${tvPath}?view=standings&bg=discipline`);
   await expect(page.getByTestId('tv-standings-zone')).toHaveCount(2);
 
-  const emblems = page.locator('img.tv-table-club-emblem');
+  const emblems = page.locator('.tv-table-club-emblem img');
   await expect(emblems.first()).toBeVisible();
   await expect
     .poll(() =>
@@ -386,11 +388,8 @@ test('the recap of a finished tournament lists the champions of every zone of th
     .poll(() =>
       page.evaluate(
         () =>
-          [...document.querySelectorAll('.tv-champions__emblem')].filter(
-            (image) =>
-              !(
-                (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0
-              ),
+          [...document.querySelectorAll<HTMLImageElement>('.tv-champions__emblem img')].filter(
+            (image) => !(image.complete && image.naturalWidth > 0),
           ).length,
       ),
     )

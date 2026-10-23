@@ -1,4 +1,6 @@
 ---
+import EmblemImage from '../atoms/EmblemImage.astro';
+
 /**
  * A server-renderable table owner: the public and
  * broadcast surfaces' `<table>` had "no server-renderable owner" recorded
@@ -24,6 +26,8 @@ export interface DataTableColumn {
   readonly key: string;
   readonly header: unknown;
   readonly render: (row: unknown) => unknown;
+  /** Optional server-rendered text with a leading emblem for identity cells. */
+  readonly renderContent?: (row: unknown) => DataTableCellContent | undefined;
   /** Set only by a caller driving its own re-sort script; absent leaves the header a plain label. */
   readonly ariaSort?: 'none' | 'ascending' | 'descending';
   /** Wraps the cell's text in a link when it returns an address: a score that opens its match. */
@@ -35,6 +39,15 @@ export interface DataTableColumn {
   readonly abbreviation?: (row: unknown) => string | undefined;
   /** Wraps the cell's text in `<time datetime>` when it returns an ISO instant. */
   readonly datetime?: (row: unknown) => string | undefined;
+}
+
+export interface DataTableCellContent {
+  readonly text: string;
+  readonly emblem?: {
+    readonly abbreviation?: string;
+    readonly alt: string;
+    readonly src?: string;
+  };
 }
 
 /** Rows under a sub-heading, rendered as a row group of the same table. */
@@ -102,17 +115,38 @@ const modifiers = [
               const address = column.href?.(row);
               const instant = column.datetime?.(row);
               const short = column.abbreviation?.(row);
-              const body = instant ? <time datetime={instant}>{text}</time> : text;
-              const content = short ? (
-                <>
-                  <span class="cl-data-table__full">{body}</span>
-                  <abbr class="cl-data-table__short" title={text}>
-                    {short}
-                  </abbr>
-                </>
+              const richContent = column.renderContent?.(row);
+              const body = richContent ? (
+                <span class="cl-data-table__cell-content">
+                  {richContent.emblem && (
+                    <EmblemImage
+                      abbreviation={richContent.emblem.abbreviation}
+                      alt={richContent.emblem.alt}
+                      bare
+                      decorative
+                      placeholderAlt={richContent.emblem.alt}
+                      size={24}
+                      src={richContent.emblem.src}
+                    />
+                  )}
+                  <span>{richContent.text}</span>
+                </span>
+              ) : instant ? (
+                <time datetime={instant}>{text}</time>
               ) : (
-                body
+                text
               );
+              const content =
+                short && richContent === undefined ? (
+                  <>
+                    <span class="cl-data-table__full">{body}</span>
+                    <abbr class="cl-data-table__short" title={text}>
+                      {short}
+                    </abbr>
+                  </>
+                ) : (
+                  body
+                );
               return <td>{address ? <a href={address}>{content}</a> : content}</td>;
             })}
           </tr>
@@ -124,6 +158,15 @@ const modifiers = [
 </div>
 
 <style>
+  .cl-data-table__cell-content {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+    min-width: 0;
+  }
+  .cl-data-table__cell-content > span:last-child {
+    min-width: 0;
+  }
   .cl-data-table__short {
     display: none;
     text-decoration: none;

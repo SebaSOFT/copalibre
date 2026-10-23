@@ -75,6 +75,8 @@ const MEDAL_CLASS = {
               <EmblemImage
                 alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: spot.entrant.name })}
                 placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                abbreviation={spot.entrant.abbreviation}
+                decorative
                 size={40}
                 src={spot.entrant.emblemSrc}
               />

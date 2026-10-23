@@ -39,6 +39,12 @@ export class TableRowResponse {
   @ApiPropertyOptional({ description: 'Tournament-scoped entrant abbreviation, when resolved' })
   entrantAbbreviation?: string;
 
+  @ApiPropertyOptional({ format: 'uuid', description: 'The entrant club, when one is resolved' })
+  clubId?: string;
+
+  @ApiPropertyOptional({ description: "The entrant club's uploaded emblem, when one is present" })
+  emblemObjectId?: string;
+
   @ApiPropertyOptional({
     description: 'ISO 3166-1 alpha-2 nationality code, present only at person granularity',
   })

@@ -19,9 +19,18 @@ describe('EmblemImage display atom', () => {
 
   it('renders an accessible placeholder with title and fallback onerror handler', () => {
     expect(emblemAstro).toContain('<Icon name="club"');
-    expect(emblemAstro).toContain('class="cl-emblem-placeholder"');
-    expect(emblemAstro).toContain('aria-label={placeholderAlt}');
+    expect(emblemAstro).toContain('cl-emblem-placeholder cl-entrant-emblem__fallback');
+    expect(emblemAstro).toContain(
+      'aria-label={hiddenFromAssistiveTechnology ? undefined : alt || placeholderAlt}',
+    );
     expect(emblemAstro).toContain('this.nextElementSibling.style.display');
+  });
+
+  it('renders a persisted abbreviation at the shared fit size and never invents or truncates one', () => {
+    expect(emblemAstro).toContain('const fit = emblemMonogramFit(abbreviation)');
+    expect(emblemAstro).toContain("'cl-entrant-emblem__monogram--reduced'");
+    expect(emblemAstro).toContain('{abbreviation}');
+    expect(emblemAstro).toContain('<Icon name="club"');
   });
 });
 
@@ -32,6 +41,9 @@ describe('EmblemImage bare mode', () => {
     expect(emblemAstro).toMatch(/\.cl-emblem-frame--bare\s*\{[^}]*background:\s*none/);
     expect(emblemAstro).toMatch(/\.cl-emblem-frame--bare\s*\{[^}]*border-radius:\s*0/);
     expect(emblemAstro).toMatch(/\.cl-emblem-frame--bare img\s*\{[^}]*padding:\s*0/);
+    expect(emblemAstro).toContain(
+      "aria-hidden={hiddenFromAssistiveTechnology ? 'true' : undefined}",
+    );
   });
 });
 

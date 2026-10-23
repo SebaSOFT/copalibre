@@ -53,14 +53,25 @@ describe('TvDashboard', () => {
   };
 
   const sampleStandings: StandingsRowView[] = [
-    { position: 1, name: 'Boca Juniors', abbreviation: 'BOC', played: 2, points: 6 },
+    {
+      position: 1,
+      name: 'Boca Juniors',
+      abbreviation: 'BOC',
+      clubId: 'club-boca',
+      played: 2,
+      points: 6,
+    },
     { position: 2, name: 'Independiente', abbreviation: 'IND', played: 2, points: 6 },
     { position: 3, name: 'River Plate', abbreviation: 'RIV', played: 2, points: 0 },
     { position: 4, name: 'Racing Club', abbreviation: 'RAC', played: 2, points: 0 },
   ];
 
   const sampleClubs = [
-    { name: 'Boca Juniors', emblemUrl: '/organizations/o/clubs/boca/emblem' },
+    {
+      clubId: 'club-boca',
+      name: 'Boca Juniors',
+      emblemUrl: '/organizations/o/clubs/boca/emblem',
+    },
     { name: 'River Plate', emblemUrl: '/organizations/o/clubs/river/emblem' },
   ];
 
@@ -190,9 +201,10 @@ describe('TvDashboard', () => {
     expect(screen.getAllByText('Boca Juniors').length).toBeGreaterThan(0);
     expect(screen.getByText(/Tournament champion/)).toBeDefined();
 
-    // Club emblem should be rendered
-    const emblem = screen.getByAltText('Boca Juniors');
-    expect(emblem.getAttribute('src')).toBe('/organizations/o/clubs/boca/emblem');
+    // The visible name supplies the accessible label; the adjacent emblem is decorative.
+    const emblem = championPanel.querySelector('.tv-champion__emblem-wrap img');
+    expect(emblem?.getAttribute('alt')).toBe('');
+    expect(emblem?.getAttribute('src')).toBe('/organizations/o/clubs/boca/emblem');
   });
 
   it('renders live match spotlight when a live match is in progress', () => {

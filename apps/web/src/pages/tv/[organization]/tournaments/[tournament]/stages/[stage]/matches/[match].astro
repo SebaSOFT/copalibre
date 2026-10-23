@@ -112,7 +112,9 @@ try {
     winnerZones = winnerZonesOf(organizationAlias, mappedOverview.winners);
     if (mappedOverview.clubs) {
       clubs = mappedOverview.clubs.map((c) => ({
+        clubId: c.clubId,
         name: c.name,
+        ...(c.abbreviation === undefined ? {} : { abbreviation: c.abbreviation }),
         ...(c.emblemObjectId ? { emblemUrl: clubEmblemUrl(organizationAlias, c.clubId) } : {}),
       }));
     }

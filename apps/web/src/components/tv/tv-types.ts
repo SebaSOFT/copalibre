@@ -7,7 +7,9 @@ import type { ResultStateLabels } from '../../lib/result-state.js';
  * sub-component doesn't import back into the file that composes it.
  */
 export interface TvClubItem {
+  readonly clubId?: string;
   readonly name: string;
+  readonly abbreviation?: string;
   /** Same-origin URL of the club's emblem route; absent when the club has none. */
   readonly emblemUrl?: string;
 }

@@ -32,6 +32,8 @@ export interface SideView {
   readonly name: string;
   /** The short label; absent when nobody chose one. */
   readonly abbreviation?: string;
+  readonly clubId?: string;
+  readonly emblemObjectId?: string;
   readonly score?: number;
   /** Absent for a synthetic fixture with no persisted entrant yet; needed to correlate live events. */
   readonly entrantId?: string;
@@ -39,8 +41,11 @@ export interface SideView {
 
 export interface StandingsRowView {
   readonly position: number;
+  readonly entrantId?: string;
   readonly name: string;
   readonly abbreviation?: string;
+  readonly clubId?: string;
+  readonly emblemObjectId?: string;
   readonly played: number;
   readonly points: number;
   /** The zone this row is ranked in; set only when the stage mixes formats and ranks each zone on its own. */
@@ -71,6 +76,7 @@ export function groupStandingsByZone(
 export interface ClubView {
   readonly clubId: string;
   readonly name: string;
+  readonly abbreviation?: string;
   readonly alias?: string;
   readonly emblemObjectId?: string;
 }

@@ -748,3 +748,26 @@ SHALL offer a table view of the same data.
 - **WHEN** a two-series chart renders
 - **THEN** it has a legend, a direct label at each line's end, and a control that shows the same values
   as a table
+
+### Requirement: Non-Latin scripts render in declared fallback faces
+
+The generated font stacks SHALL name Roboto Condensed (display) and Roboto (body) for Cyrillic, and
+Noto Sans SC for Chinese, after the Latin faces, and SHALL deliver them through the same stylesheet,
+split by `unicode-range`. Latin text SHALL keep rendering in Barlow, Barlow Condensed and JetBrains
+Mono. Under `:lang(zh)`, uppercase tracking SHALL be normal.
+
+#### Scenario: Russian heading
+
+- **WHEN** a Russian page renders a display heading
+- **THEN** the Cyrillic glyphs render in Roboto Condensed, not in a system face, and measure differently
+  from the system fallback
+
+#### Scenario: Cyrillic club name on a Spanish page
+
+- **WHEN** a Spanish page shows a club name containing Cyrillic letters
+- **THEN** the Latin letters render in Barlow and the Cyrillic letters in the Roboto fallback
+
+#### Scenario: Latin-only page downloads no fallback files
+
+- **WHEN** an English page with only Latin text loads
+- **THEN** no Cyrillic or CJK font file is requested

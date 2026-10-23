@@ -292,7 +292,12 @@ describe('MatchCard undecided sides', () => {
     if (!card) throw new Error('missing final');
     render(<MatchCard compact match={card} labels={labels} locale="en" />);
 
-    expect(screen.getByText(/W SF1 vs W SF2/)).toBeDefined();
+    expect(
+      document
+        .querySelector('.cl-match-card__compact-content')
+        ?.textContent?.replace(/\s+/g, ' ')
+        .trim(),
+    ).toContain('W SF1 vs W SF2');
   });
 });
 
@@ -301,14 +306,16 @@ describe('resolveCompactEntrant', () => {
     expect(resolveCompactEntrant('  CAI  ', 'Club Atlético Independiente')).toBe('CAI');
   });
 
-  it('derives dotted initials from a multi-word name', () => {
-    expect(resolveCompactEntrant(undefined, 'San Juan')).toBe('S.J.');
-    expect(resolveCompactEntrant(undefined, 'Club Atlético Independiente')).toBe('C.A.I.');
+  it('uses the full display name when no abbreviation is stored', () => {
+    expect(resolveCompactEntrant(undefined, 'San Juan')).toBe('San Juan');
+    expect(resolveCompactEntrant(undefined, 'Club Atlético Independiente')).toBe(
+      'Club Atlético Independiente',
+    );
   });
 
-  it('takes the first 5 uppercased characters of a single-word name', () => {
-    expect(resolveCompactEntrant(undefined, 'River')).toBe('RIVER');
-    expect(resolveCompactEntrant(undefined, 'Huracán')).toBe('HURAC');
+  it('does not truncate or change the case of a display name', () => {
+    expect(resolveCompactEntrant(undefined, 'River')).toBe('River');
+    expect(resolveCompactEntrant(undefined, 'Huracán')).toBe('Huracán');
   });
 
   it('falls back to TBD with neither an abbreviation nor a name', () => {
@@ -318,7 +325,7 @@ describe('resolveCompactEntrant', () => {
 });
 
 describe('MatchCard compact presentation', () => {
-  it('renders a color-coded state dot, abbreviations, and the score in ticker order while live', () => {
+  it('renders a color-coded state dot, full entrant names, and score in ticker order while live', () => {
     const { container } = render(
       <MatchCard
         compact
@@ -341,11 +348,11 @@ describe('MatchCard compact presentation', () => {
     expect(dot?.getAttribute('title')).toBe('LIVE');
     expect(screen.getByText('LIVE', { selector: '.cl-visually-hidden' })).toBeDefined();
     expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toBe(
-      'C.A.I. 4 vs 3 U.V.T.',
+      'Club Atlético Independiente 4 vs 3 Unión Vecinal Talcahuano',
     );
   });
 
-  it('renders entrant abbreviations, versus, and the scheduled time for an upcoming match', () => {
+  it('renders full entrant names, versus, and the scheduled time for an upcoming match', () => {
     const { container } = render(
       <MatchCard
         compact
@@ -364,7 +371,7 @@ describe('MatchCard compact presentation', () => {
       new Date('2026-08-01T18:30:00.000Z'),
     );
     expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toBe(
-      `NORTE vs SUR ${expectedTime}`,
+      `Norte vs Sur ${expectedTime}`,
     );
   });
 
@@ -387,7 +394,7 @@ describe('MatchCard compact presentation', () => {
     const dot = container.querySelector('.cl-match-card__compact-dot');
     expect(dot?.classList.contains('cl-state--positive')).toBe(true);
     expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toBe(
-      'NORTE 2 vs 1 SUR',
+      'Norte 2 vs 1 Sur',
     );
   });
 

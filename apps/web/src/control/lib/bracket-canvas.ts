@@ -53,6 +53,9 @@ export function canvasEntrantPath(
 export interface CanvasSlot {
   readonly kind: CanvasSlotKind;
   readonly entrantId?: string;
+  readonly abbreviation?: string;
+  readonly clubId?: string;
+  readonly emblemObjectId?: string;
   /** The match this slot's participant comes from, for the non-entrant kinds. */
   readonly matchId?: string;
   /** Where a filled slot's entrant came from, so a played match stays linked to its sources. */
@@ -87,6 +90,9 @@ export interface LaidOutSlot {
   /** What feeds this seat; the canvas words it per locale at render time. */
   readonly source: SideSource;
   readonly entrantId?: string;
+  readonly abbreviation?: string;
+  readonly clubId?: string;
+  readonly emblemObjectId?: string;
   readonly score?: number;
   /** True while the participant is not known: rendered as a placeholder. */
   readonly pending: boolean;
@@ -161,6 +167,9 @@ export function layoutBracket(
                     slot.matchId === undefined ? undefined : byId.get(slot.matchId)?.position,
                 },
           ...(slot.entrantId === undefined ? {} : { entrantId: slot.entrantId }),
+          ...(slot.abbreviation === undefined ? {} : { abbreviation: slot.abbreviation }),
+          ...(slot.clubId === undefined ? {} : { clubId: slot.clubId }),
+          ...(slot.emblemObjectId === undefined ? {} : { emblemObjectId: slot.emblemObjectId }),
           ...(slot.score === undefined ? {} : { score: slot.score }),
           pending: slot.kind !== 'entrant',
           y: node.slotYs[slotIndex] ?? node.y,
