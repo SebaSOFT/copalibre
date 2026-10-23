@@ -1,6 +1,6 @@
 import type { TvWinnerZone } from '../../tv-types.js';
 import { EntrantName } from '../../../ui/atoms/EntrantName.js';
-import { TvEmblem } from '../atoms/TvEmblem.js';
+import { EntrantEmblem } from '../../../ui/molecules/EntrantEmblem.js';
 
 /**
  * The recap of a finished tournament that was decided zone by zone: one block per zone of the last
@@ -25,14 +25,12 @@ export function TvChampions({
           <ul className="tv-champions__list">
             {zone.champions.map((champion) => (
               <li className="tv-champions__champion" key={champion.name}>
-                <TvEmblem
+                <EntrantEmblem
                   alt=""
                   className="tv-champions__emblem"
-                  fallback={
-                    <span className="tv-champions__monogram">
-                      {champion.abbreviation ?? champion.name.substring(0, 2).toUpperCase()}
-                    </span>
-                  }
+                  abbreviation={champion.abbreviation}
+                  decorative
+                  size="clamp(9vmin, 10vmin, 11vmin)"
                   src={champion.emblemUrl}
                 />
                 <EntrantName

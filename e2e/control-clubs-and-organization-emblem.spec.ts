@@ -221,7 +221,13 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   await expect(useImage).toBeEnabled({ timeout: 15000 });
   await useImage.click();
   await expect(page.getByText('Escudo subido.')).toBeVisible();
-  await expect(page.getByAltText('Escudo de Casa de Italia').first()).toBeVisible();
+  await expect(
+    page
+      .locator('li')
+      .filter({ hasText: 'Casa de Italia' })
+      .locator('.cl-entrant-emblem img')
+      .first(),
+  ).toBeVisible();
 
   const preferencesTarget = `/control/${ORG_ALIAS}/preferences`;
   await seedLoginTransaction(page, preferencesTarget);

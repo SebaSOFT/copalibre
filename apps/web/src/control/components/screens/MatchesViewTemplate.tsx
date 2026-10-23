@@ -18,6 +18,7 @@ export function MatchesViewTemplate({
   completion,
   labels,
   matches,
+  organizationAlias,
   onSelectState,
   state,
   status,
@@ -25,6 +26,7 @@ export function MatchesViewTemplate({
   readonly completion?: TournamentCompletionResponse;
   readonly labels: ReturnType<typeof matchCardLabelsFromControlIntl>;
   readonly matches: readonly MatchCardData[];
+  readonly organizationAlias?: string;
   readonly onSelectState: (state: StateFilter) => void;
   readonly state: StateFilter;
   readonly status: 'loading' | 'ready' | 'error';
@@ -96,7 +98,13 @@ export function MatchesViewTemplate({
       {matches.length > 0 && (
         <div className="cl-matches-view__grid">
           {matches.map((match) => (
-            <MatchCard key={match.matchId} locale={intl.locale} match={match} labels={labels} />
+            <MatchCard
+              key={match.matchId}
+              locale={intl.locale}
+              match={match}
+              labels={labels}
+              organizationAlias={organizationAlias}
+            />
           ))}
         </div>
       )}

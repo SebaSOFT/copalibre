@@ -232,6 +232,7 @@ export function SeedingBuilderTemplate({
                     highlightEntrantId={highlightEntrantId}
                     onHighlightEntrant={setHighlightEntrantId}
                     names={names}
+                    organizationAlias={organizationAlias}
                     matchUrl={
                       tournamentAlias === undefined
                         ? undefined

@@ -1,7 +1,7 @@
 import { groupStandingsByZone, type StandingsRowView } from '../../../../lib/overview.js';
 import { EntrantName } from '../../../ui/atoms/EntrantName.js';
+import { EntrantEmblem } from '../../../ui/molecules/EntrantEmblem.js';
 import type { TvClubItem, TvDashboardLabels } from '../../tv-types.js';
-import { TvEmblem } from '../atoms/TvEmblem.js';
 
 /**
  * The broadcast surface's table owner — under a
@@ -76,22 +76,22 @@ function StandingsBlock({
       </thead>
       <tbody>
         {block.rows.slice(0, 8).map((row) => {
-          const club = clubs?.find((c) => c.name.toLowerCase() === row.name.toLowerCase());
+          const club = clubs?.find((c) => c.clubId === row.clubId);
           return (
             <tr key={row.name}>
               <td>{row.position}</td>
               <td>
                 <div className="tv-table-club-cell">
-                  <TvEmblem
-                    alt=""
-                    className="tv-table-club-emblem"
-                    fallback={
-                      <span className="tv-table-club-monogram">
-                        {row.abbreviation ?? row.name.substring(0, 2).toUpperCase()}
-                      </span>
-                    }
-                    src={club?.emblemUrl}
-                  />
+                  {row.clubId !== undefined && (
+                    <EntrantEmblem
+                      alt=""
+                      className="tv-table-club-emblem cl-entrant-emblem--small"
+                      abbreviation={row.abbreviation}
+                      decorative
+                      size="3vmin"
+                      src={club?.emblemUrl}
+                    />
+                  )}
                   <EntrantName abbreviation={row.abbreviation} fullName={row.name} />
                 </div>
               </td>

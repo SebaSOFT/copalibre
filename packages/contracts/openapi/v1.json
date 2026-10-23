@@ -13382,6 +13382,13 @@
           "homeAbbreviation": {
             "type": "string"
           },
+          "homeClubId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "homeEmblemObjectId": {
+            "type": "string"
+          },
           "awayEntrantId": {
             "type": "string",
             "format": "uuid"
@@ -13390,6 +13397,13 @@
             "type": "string"
           },
           "awayAbbreviation": {
+            "type": "string"
+          },
+          "awayClubId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "awayEmblemObjectId": {
             "type": "string"
           },
           "homeScore": {
@@ -16489,6 +16503,15 @@
             "type": "string",
             "description": "Tournament-scoped entrant abbreviation, when resolved"
           },
+          "clubId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The entrant club, when one is resolved"
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "description": "The entrant club's uploaded emblem, when one is present"
+          },
           "nationality": {
             "type": "string",
             "description": "ISO 3166-1 alpha-2 nationality code, present only at person granularity"
@@ -16691,6 +16714,19 @@
           "entrantId": {
             "type": "string",
             "format": "uuid"
+          },
+          "abbreviation": {
+            "type": "string",
+            "description": "Resolved entrant abbreviation, when one is stored"
+          },
+          "clubId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The entrant's club, when it belongs to one"
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "description": "The club's emblem object id, when one is on record"
           },
           "matchId": {
             "type": "string",
@@ -18625,6 +18661,9 @@
           "name": {
             "type": "string"
           },
+          "abbreviation": {
+            "type": "string"
+          },
           "alias": {
             "type": "string"
           },
@@ -18783,6 +18822,13 @@
           "homeAbbreviation": {
             "type": "string"
           },
+          "homeClubId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "homeEmblemObjectId": {
+            "type": "string"
+          },
           "awayEntrantId": {
             "type": "string",
             "format": "uuid"
@@ -18791,6 +18837,13 @@
             "type": "string"
           },
           "awayAbbreviation": {
+            "type": "string"
+          },
+          "awayClubId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "awayEmblemObjectId": {
             "type": "string"
           },
           "homeScore": {
@@ -18825,6 +18878,13 @@
             "type": "string"
           },
           "abbreviation": {
+            "type": "string"
+          },
+          "clubId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "emblemObjectId": {
             "type": "string"
           },
           "sharedRank": {
@@ -19340,6 +19400,15 @@
           "abbreviation": {
             "type": "string"
           },
+          "clubId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The entrant's club, when it belongs to one"
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "description": "The club's emblem object id, when one is on record"
+          },
           "score": {
             "type": "number"
           }
@@ -19840,6 +19909,13 @@
           "homeAbbreviation": {
             "type": "string"
           },
+          "homeClubId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "homeEmblemObjectId": {
+            "type": "string"
+          },
           "awayEntrantId": {
             "type": "string",
             "format": "uuid"
@@ -19848,6 +19924,13 @@
             "type": "string"
           },
           "awayAbbreviation": {
+            "type": "string"
+          },
+          "awayClubId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "awayEmblemObjectId": {
             "type": "string"
           },
           "homeScore": {

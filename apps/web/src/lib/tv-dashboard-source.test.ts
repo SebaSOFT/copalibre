@@ -19,8 +19,20 @@ const overviewMatch = (
   stageNumber,
   state: 'final',
   startsAt: '',
-  home: { name: 'Home', abbreviation: 'HOM', score: 2 },
-  away: { name: 'Away', abbreviation: 'AWY', score: 1 },
+  home: {
+    name: 'Home',
+    abbreviation: 'HOM',
+    clubId: 'club-home',
+    emblemObjectId: 'emblem-home',
+    score: 2,
+  },
+  away: {
+    name: 'Away',
+    abbreviation: 'AWY',
+    clubId: 'club-away',
+    emblemObjectId: 'emblem-away',
+    score: 1,
+  },
   ...overrides,
 });
 
@@ -31,6 +43,10 @@ describe('dashboardFromOverview', () => {
     expect(dashboard.matches.map((match) => match.matchId)).toEqual(['m-1-1', 'm-1-2']);
     expect(dashboard.matches.map((match) => match.stageOrdinal)).toEqual([1, 2]);
     expect(dashboard.matches[0]?.sides.map((side) => side.score)).toEqual([2, 1]);
+    expect(dashboard.matches[0]?.sides.map((side) => side.clubId)).toEqual([
+      'club-home',
+      'club-away',
+    ]);
   });
 
   it('names a match that has no persisted id by its stage and ordinal', () => {

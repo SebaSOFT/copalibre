@@ -22,6 +22,7 @@ import type { LiveDashboard } from './live-state.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 export { mapBracketResponse } from './bracket-projection.js';
 export type { BracketZone } from './bracket-projection.js';
+export { clubEmblemUrl, organizationEmblemUrl } from './public-image-paths.js';
 import { withSourceDepth, type MatchCardData } from './matches-view.js';
 import type { PublicSeriesState } from './series.js';
 
@@ -247,12 +248,16 @@ export function mapOverviewResponse(
       home: {
         name: m.homeName ?? 'TBD',
         abbreviation: m.homeAbbreviation,
+        clubId: m.homeClubId,
+        emblemObjectId: m.homeEmblemObjectId,
         score: m.homeScore,
         entrantId: m.homeEntrantId,
       },
       away: {
         name: m.awayName ?? 'TBD',
         abbreviation: m.awayAbbreviation,
+        clubId: m.awayClubId,
+        emblemObjectId: m.awayEmblemObjectId,
         score: m.awayScore,
         entrantId: m.awayEntrantId,
       },
@@ -261,8 +266,11 @@ export function mapOverviewResponse(
     })),
     standings: (response.standingsPreview ?? []).map((s: PublicStandingsRowResponse) => ({
       position: s.rank,
+      entrantId: s.entrantId,
       name: s.name,
       abbreviation: s.abbreviation,
+      clubId: s.clubId,
+      emblemObjectId: s.emblemObjectId,
       played: s.statistics['played'] ?? 0,
       points: s.statistics['points'] ?? 0,
       ...(s.zoneName === undefined ? {} : { zoneName: s.zoneName }),
@@ -271,6 +279,7 @@ export function mapOverviewResponse(
     clubs: response.clubs?.map((c) => ({
       clubId: c.clubId,
       name: c.name,
+      abbreviation: c.abbreviation,
       alias: c.alias,
       emblemObjectId: c.emblemObjectId,
     })),
@@ -304,6 +313,8 @@ export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
           entrantId: s.entrantId,
           name: s.name,
           abbreviation: s.abbreviation,
+          clubId: s.clubId,
+          emblemObjectId: s.emblemObjectId,
           score: s.score,
           state,
         })),
@@ -332,9 +343,13 @@ export function mapMatchesViewResponse(response: PublicMatchesViewResponse): {
         state: m.status as MatchState,
         homeName: m.homeName,
         homeAbbreviation: m.homeAbbreviation,
+        homeClubId: m.homeClubId,
+        homeEmblemObjectId: m.homeEmblemObjectId,
         homeScore: m.homeScore,
         awayName: m.awayName,
         awayAbbreviation: m.awayAbbreviation,
+        awayClubId: m.awayClubId,
+        awayEmblemObjectId: m.awayEmblemObjectId,
         awayScore: m.awayScore,
         clockSeconds: m.clockSeconds,
         venueName: m.venueName,
@@ -365,14 +380,6 @@ export async function fetchOrganizationTournaments(
  * this app serves; unlike the fetchers above, the browser requests these
  * directly, not this SSR-only client.
  */
-export function organizationEmblemUrl(organizationAlias: string): string {
-  return `/organizations/${encodeURIComponent(organizationAlias)}/emblem`;
-}
-
-export function clubEmblemUrl(organizationAlias: string, clubId: string): string {
-  return `/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem`;
-}
-
 export function tournamentEmblemUrl(organizationAlias: string, tournamentAlias: string): string {
   return `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`;
 }

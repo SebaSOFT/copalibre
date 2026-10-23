@@ -21,6 +21,12 @@ export class PublicStandingsRowResponse {
   @ApiPropertyOptional()
   abbreviation?: string;
 
+  @ApiPropertyOptional({ format: 'uuid' })
+  clubId?: string;
+
+  @ApiPropertyOptional()
+  emblemObjectId?: string;
+
   @ApiProperty()
   sharedRank!: boolean;
 
@@ -95,6 +101,12 @@ export class PublicOverviewMatchResponse extends FixtureSourcesResponse {
   homeAbbreviation?: string;
 
   @ApiPropertyOptional({ format: 'uuid' })
+  homeClubId?: string;
+
+  @ApiPropertyOptional()
+  homeEmblemObjectId?: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
   awayEntrantId?: string;
 
   @ApiPropertyOptional()
@@ -102,6 +114,12 @@ export class PublicOverviewMatchResponse extends FixtureSourcesResponse {
 
   @ApiPropertyOptional()
   awayAbbreviation?: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  awayClubId?: string;
+
+  @ApiPropertyOptional()
+  awayEmblemObjectId?: string;
 
   @ApiPropertyOptional()
   homeScore?: number;
@@ -119,6 +137,9 @@ export class PublicOverviewClubResponse {
 
   @ApiProperty()
   name!: string;
+
+  @ApiPropertyOptional()
+  abbreviation?: string;
 
   @ApiPropertyOptional()
   alias?: string;
@@ -208,6 +229,15 @@ export class PublicLiveMatchSideResponse {
 
   @ApiPropertyOptional()
   abbreviation?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: "The entrant's club, when it belongs to one",
+  })
+  clubId?: string;
+
+  @ApiPropertyOptional({ description: "The club's emblem object id, when one is on record" })
+  emblemObjectId?: string;
 
   @ApiProperty()
   score!: number;
@@ -1007,6 +1037,12 @@ export class PublicMatchesViewMatchResponse extends FixtureSourcesResponse {
   homeAbbreviation?: string;
 
   @ApiPropertyOptional({ format: 'uuid' })
+  homeClubId?: string;
+
+  @ApiPropertyOptional()
+  homeEmblemObjectId?: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
   awayEntrantId?: string;
 
   @ApiPropertyOptional()
@@ -1014,6 +1050,12 @@ export class PublicMatchesViewMatchResponse extends FixtureSourcesResponse {
 
   @ApiPropertyOptional()
   awayAbbreviation?: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  awayClubId?: string;
+
+  @ApiPropertyOptional()
+  awayEmblemObjectId?: string;
 
   @ApiPropertyOptional()
   homeScore?: number;

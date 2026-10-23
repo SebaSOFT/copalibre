@@ -220,6 +220,7 @@ describe('table projections (integration)', () => {
       const clubTalleres = await enrollment.createClub(uow, {
         organizationId,
         name: 'Club Atlético Talleres',
+        abbreviation: 'TAL',
         ...AUDIT,
       });
       clubTalleresId = clubTalleres.clubId;
@@ -550,7 +551,7 @@ describe('table projections (integration)', () => {
       return (app as NestFastifyApplication).inject({ method: 'GET', url });
     }
 
-    it('prefers a tournament entrant abbreviation over the team abbreviation in overview data', async () => {
+    it('serves persisted entrant abbreviations and club identity in public standings and matches', async () => {
       const response = await getAnonymous(
         '/organizations/liga-tablas/tournaments/apertura-tablas/overview',
       );
@@ -561,7 +562,36 @@ describe('table projections (integration)', () => {
         .matches.find(
           (match: { homeEntrantId: string }) => match.homeEntrantId === entrantTalleres,
         );
-      expect(home).toMatchObject({ homeName: 'Talleres', homeAbbreviation: 'TALR' });
+      expect(home).toMatchObject({
+        homeName: 'Talleres',
+        homeAbbreviation: 'TALR',
+        homeClubId: clubTalleresId,
+      });
+      expect(response.json().clubs).toContainEqual(
+        expect.objectContaining({ clubId: clubTalleresId, abbreviation: 'TAL' }),
+      );
+
+      const matchesView = await getAnonymous(
+        '/organizations/liga-tablas/tournaments/apertura-tablas/matches-view?stageNumber=1',
+      );
+      expect(matchesView.statusCode).toBe(200);
+      expect(matchesView.json().matches[0]).toMatchObject({
+        homeEntrantId: entrantTalleres,
+        homeAbbreviation: 'TALR',
+        homeClubId: clubTalleresId,
+      });
+
+      const standings = await getAnonymous(
+        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
+      );
+      expect(standings.statusCode).toBe(200);
+      expect(standings.json().rows).toContainEqual(
+        expect.objectContaining({
+          entrantId: entrantTalleres,
+          entrantAbbreviation: 'TALR',
+          clubId: clubTalleresId,
+        }),
+      );
     });
 
     it('lists table layouts with no token at all', async () => {

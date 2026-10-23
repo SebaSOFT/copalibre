@@ -4,12 +4,14 @@ import { Badge } from '../atoms/Badge.js';
 import { Icon } from '../atoms/icon.js';
 import { Card } from '../atoms/Card.js';
 import { EntrantName } from '../atoms/EntrantName.js';
+import { EntrantEmblem } from '../molecules/EntrantEmblem.js';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.js';
 import { presentState } from '../../../lib/result-state.js';
 import { seriesScore, seriesSegments, seriesPending, toSeriesInput } from '../../../lib/series.js';
 import { applyTemplate, formatClock, type MatchCardData } from '../../../lib/matches-view.js';
 import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
 import { ValueFlash } from '../atoms/ValueFlash.js';
+import { clubEmblemUrl } from '../../../lib/public-image-paths.js';
 
 /**
  * The matches-view card: one shared React component for both the public
@@ -26,6 +28,8 @@ export interface MatchCardProps {
   readonly locale: string;
   /** Wraps the card in a link when present — the public site's report page. */
   readonly reportUrl?: string;
+  /** Builds same-origin emblem routes for persisted team entrants. */
+  readonly organizationAlias?: string;
   /** Opaque band assigned by a public list; other surfaces retain their default card surface. */
   readonly band?: 'panel' | 'base';
   /** Single-line ticker presentation — a dense listing's own row shape, not a smaller version of the full card. */
@@ -33,22 +37,12 @@ export interface MatchCardProps {
 }
 
 /**
- * The compact ticker's entrant text: a persisted abbreviation
- * always wins — this never overrides an organizer's own choice, the same
- * rule `EntrantName` follows for its overflow fallback. Absent one, it
- * derives dotted initials from a multi-word name ("San Juan" -> "S.J.") or
- * the first 5 characters of a single word ("River" -> "RIVER"), and falls
- * back to "TBD" with no name at all — deterministic, so the same match
- * always tickers the same way regardless of viewport.
+ * The compact ticker's entrant text uses the stored abbreviation when one
+ * exists, then the full display name. It never creates initials or clips a
+ * persisted abbreviation; CSS may ellipsize only the surrounding ticker text.
  */
 export function resolveCompactEntrant(abbreviation?: string, fullName?: string): string {
-  if (abbreviation !== undefined && abbreviation.trim() !== '') return abbreviation.trim();
-  if (fullName === undefined || fullName.trim() === '') return 'TBD';
-  const words = fullName.trim().split(/\s+/);
-  if (words.length > 1) {
-    return `${words.map((word) => word[0]?.toUpperCase()).join('.')}.`;
-  }
-  return (words[0] ?? '').slice(0, 5).toUpperCase();
+  return abbreviation?.trim() || fullName || 'TBD';
 }
 
 export function MatchCard({
@@ -56,6 +50,7 @@ export function MatchCard({
   labels,
   locale,
   reportUrl,
+  organizationAlias,
   band,
   compact = false,
 }: MatchCardProps): React.JSX.Element {
@@ -88,26 +83,34 @@ export function MatchCard({
   const hasFullTrace =
     (match.homeTrace !== undefined && match.homeTrace.length > 0) ||
     (match.awayTrace !== undefined && match.awayTrace.length > 0);
+  const homeName = match.homeName ?? homeSource.long;
+  const awayName = match.awayName ?? awaySource.long;
+  const homeEmblemSrc =
+    organizationAlias && match.homeClubId && match.homeEmblemObjectId
+      ? clubEmblemUrl(organizationAlias, match.homeClubId)
+      : undefined;
+  const awayEmblemSrc =
+    organizationAlias && match.awayClubId && match.awayEmblemObjectId
+      ? clubEmblemUrl(organizationAlias, match.awayClubId)
+      : undefined;
 
   if (compact) {
     const versus = labels.versus ?? 'vs';
-    const homeAbbr =
+    const homeCompactName =
       match.homeName === undefined
         ? homeSource.short
         : resolveCompactEntrant(match.homeAbbreviation, match.homeName);
-    const awayAbbr =
+    const awayCompactName =
       match.awayName === undefined
         ? awaySource.short
         : resolveCompactEntrant(match.awayAbbreviation, match.awayName);
     const hasScores = match.homeScore !== undefined && match.awayScore !== undefined;
     const timeStr =
       !hasScores && match.scheduledAt !== undefined
-        ? ` ${new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(new Date(match.scheduledAt))}`
+        ? new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(
+            new Date(match.scheduledAt),
+          )
         : '';
-    const content = hasScores
-      ? `${homeAbbr} ${match.homeScore} ${versus} ${match.awayScore} ${awayAbbr}`
-      : `${homeAbbr} ${versus} ${awayAbbr}${timeStr}`;
-
     const compactBody = (
       <Card
         as="article"
@@ -124,8 +127,35 @@ export function MatchCard({
           <span className="cl-visually-hidden">{badge.label}</span>
         </span>
         <span className="cl-match-card__compact-content">
-          {content}
-          {rescheduled && <span className="cl-match-card__venue">{rescheduled}</span>}
+          <span className="cl-match-card__compact-side">
+            <EntrantEmblem
+              abbreviation={match.homeAbbreviation}
+              alt={homeName}
+              decorative
+              size={24}
+              src={homeEmblemSrc}
+            />
+            <span>
+              {homeCompactName}
+              {hasScores ? ` ${match.homeScore}` : ''}
+            </span>
+          </span>{' '}
+          <span>{versus}</span>{' '}
+          <span className="cl-match-card__compact-side">
+            <EntrantEmblem
+              abbreviation={match.awayAbbreviation}
+              alt={awayName}
+              decorative
+              size={24}
+              src={awayEmblemSrc}
+            />
+            <span>
+              {hasScores ? `${match.awayScore} ` : ''}
+              {awayCompactName}
+            </span>
+          </span>
+          {timeStr && <span> {timeStr}</span>}
+          {rescheduled && <span className="cl-match-card__venue"> {rescheduled}</span>}
         </span>
       </Card>
     );
@@ -162,9 +192,16 @@ export function MatchCard({
       )}
       <ol className="cl-match-card__sides">
         <li className="cl-match-card__side">
+          <EntrantEmblem
+            abbreviation={match.homeAbbreviation}
+            alt={homeName}
+            decorative
+            size={32}
+            src={homeEmblemSrc}
+          />
           <EntrantName
             pending={match.homeName === undefined}
-            fullName={match.homeName ?? homeSource.long}
+            fullName={homeName}
             abbreviation={match.homeName === undefined ? homeSource.short : match.homeAbbreviation}
           />
           {match.homePosition !== undefined && (
@@ -178,9 +215,16 @@ export function MatchCard({
           <ValueFlash className="cl-stat-tile__value cl-tabular-nums" value={match.homeScore} />
         </li>
         <li className="cl-match-card__side">
+          <EntrantEmblem
+            abbreviation={match.awayAbbreviation}
+            alt={awayName}
+            decorative
+            size={32}
+            src={awayEmblemSrc}
+          />
           <EntrantName
             pending={match.awayName === undefined}
-            fullName={match.awayName ?? awaySource.long}
+            fullName={awayName}
             abbreviation={match.awayName === undefined ? awaySource.short : match.awayAbbreviation}
           />
           {match.awayPosition !== undefined && (

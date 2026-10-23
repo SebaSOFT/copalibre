@@ -83,6 +83,7 @@ describe('standings and seeding routes (integration)', () => {
   let tournamentId = '';
   let stageId = '';
   let seriesStageId = '';
+  let clubTalleresId = '';
   const entrantIds: string[] = [];
   let finalizedMatchId = '';
 
@@ -156,11 +157,28 @@ describe('standings and seeding routes (integration)', () => {
       });
 
       for (const name of ['Talleres', 'Independiente', 'Gimnasia', 'Maipú']) {
-        const team = await participants.createTeam(uow, { organizationId, name, ...AUDIT });
+        const club =
+          name === 'Talleres'
+            ? await participants.createClub(uow, {
+                organizationId,
+                name: 'Club Atlético Talleres',
+                abbreviation: 'TAL',
+                ...AUDIT,
+              })
+            : undefined;
+        if (club) clubTalleresId = club.clubId;
+        const team = await participants.createTeam(uow, {
+          organizationId,
+          name,
+          ...(club === undefined ? {} : { clubId: club.clubId }),
+          ...(name === 'Talleres' ? { abbreviation: 'TAL' } : {}),
+          ...AUDIT,
+        });
         const entrant = await participants.registerEntrant(uow, {
           tournamentId: tournament.tournamentId,
           entrantRef: { kind: 'team', teamId: team.teamId },
           organizationId,
+          ...(name === 'Talleres' ? { abbreviation: 'TALR' } : {}),
           ...AUDIT,
         });
         entrantIds.push(entrant.entrantId);
@@ -330,7 +348,11 @@ describe('standings and seeding routes (integration)', () => {
     // node — `beforeAll` persisted exactly the entrantIds[0]-vs-[1] and [2]-vs-[3] pairings.
     type BracketMatch = {
       readonly persistedMatchId?: string;
-      readonly slots: readonly { readonly entrantId?: string }[];
+      readonly slots: readonly {
+        readonly entrantId?: string;
+        readonly abbreviation?: string;
+        readonly clubId?: string;
+      }[];
     };
     const namedByBoth = (match: BracketMatch, a: string, b: string): boolean => {
       const named = match.slots.map((slot) => slot.entrantId);
@@ -340,6 +362,10 @@ describe('standings and seeding routes (integration)', () => {
       namedByBoth(match, entrantIds[0] as string, entrantIds[1] as string),
     );
     expect(materialized?.persistedMatchId).toEqual(expect.any(String));
+    const talleresSlot = materialized?.slots.find(
+      (slot: BracketMatch['slots'][number]) => slot.entrantId === entrantIds[0],
+    );
+    expect(talleresSlot).toMatchObject({ abbreviation: 'TALR', clubId: clubTalleresId });
 
     const notYetMaterialized = body.zones[0].matches.find((match: BracketMatch) =>
       namedByBoth(match, entrantIds[0] as string, entrantIds[2] as string),

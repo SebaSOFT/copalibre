@@ -3,12 +3,14 @@ import { seriesColor } from '@copalibre/design-tokens';
 import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { EntrantName } from '../../../components/ui/atoms/EntrantName.js';
+import { EntrantEmblem } from '../../../components/ui/molecules/EntrantEmblem.js';
 import { ColumnHeaderTooltip } from '../../../components/ui/atoms/ColumnHeaderTooltip.js';
 import type {
   TableLayoutSummaryResponse,
   TableProjectionResponseData,
   TableRowResponseData,
 } from '../../lib/api-client.js';
+import { clubEmblemUrl } from '../../lib/api-client.js';
 import {
   ariaSortFor,
   comparatorChain,
@@ -152,7 +154,25 @@ export function StandingsTemplate({
         const cell = row.cells[column.code];
         const isEntrantName = row.entrantName !== undefined && cell?.formatted === row.entrantName;
         if (isEntrantName) {
-          return <EntrantName abbreviation={row.entrantAbbreviation} fullName={row.entrantName} />;
+          return (
+            <span className="cl-standings-template__entrant">
+              {row.clubId !== undefined && (
+                <EntrantEmblem
+                  alt={row.entrantName}
+                  abbreviation={row.entrantAbbreviation}
+                  control
+                  decorative
+                  size={32}
+                  src={
+                    row.emblemObjectId === undefined
+                      ? undefined
+                      : clubEmblemUrl(organizationAlias, row.clubId)
+                  }
+                />
+              )}
+              <EntrantName abbreviation={row.entrantAbbreviation} fullName={row.entrantName} />
+            </span>
+          );
         }
         // The comparator that separated two level rows is marked in the column
         // that did it, on the rows it decided — so "what separated them" is
@@ -188,7 +208,16 @@ export function StandingsTemplate({
     }
 
     return baseCols;
-  }, [projection, columns, sort, isGroupPhase, intl, decidingCode, primaryMetricCode]);
+  }, [
+    projection,
+    columns,
+    sort,
+    isGroupPhase,
+    intl,
+    decidingCode,
+    primaryMetricCode,
+    organizationAlias,
+  ]);
 
   const stageHubHref =
     tournamentAlias !== undefined && stageNumber !== undefined

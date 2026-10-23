@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { clubEmblemUrl, type ClubResponse, type ControlApiClient } from '../../lib/api-client.js';
 import { controlLinkClick } from '../../lib/control-navigation.js';
-import { FramedImage } from '../FramedImage.js';
 import { ImageCropModal } from '../ImageCropModal.js';
-import { ClubEmblemPlaceholder } from '../placeholders.js';
+import { EntrantEmblem } from '../../../components/ui/molecules/EntrantEmblem.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
 import { FilePicker } from '../ui/atoms/file-picker.js';
@@ -100,17 +99,14 @@ export function ClubManagementTemplate({
         <ul>
           {clubs.map((club) => (
             <li key={club.clubId} className="cl-role-user">
-              <FramedImage
+              <EntrantEmblem
                 key={
                   optimisticEmblems[club.clubId] ? 'optimistic' : (club.emblemObjectId ?? 'none')
                 }
-                alt={intl.formatMessage(messages.clubManagementEmblemAlt, { name: club.name })}
-                placeholder={
-                  <ClubEmblemPlaceholder
-                    size={32}
-                    title={intl.formatMessage(messages.clubManagementEmblemPlaceholderAlt)}
-                  />
-                }
+                alt={club.name}
+                abbreviation={club.abbreviation}
+                control
+                decorative
                 size={32}
                 src={
                   optimisticEmblems[club.clubId] ??
@@ -197,21 +193,15 @@ export function ClubManagementTemplate({
           </header>
 
           <div className="cl-card__content">
-            <FramedImage
+            <EntrantEmblem
               key={
                 optimisticEmblems[selectedClub.clubId]
                   ? 'optimistic'
                   : (selectedClub.emblemObjectId ?? 'none')
               }
-              alt={intl.formatMessage(messages.clubManagementEmblemAlt, {
-                name: selectedClub.name,
-              })}
-              placeholder={
-                <ClubEmblemPlaceholder
-                  size={64}
-                  title={intl.formatMessage(messages.clubManagementEmblemPlaceholderAlt)}
-                />
-              }
+              alt={selectedClub.name}
+              abbreviation={selectedClub.abbreviation}
+              control
               size={64}
               src={
                 optimisticEmblems[selectedClub.clubId] ??

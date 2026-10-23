@@ -458,7 +458,7 @@ export class PublicProjectionsController {
       if (match.homeEntrantId) entrantIds.add(match.homeEntrantId);
       if (match.awayEntrantId) entrantIds.add(match.awayEntrantId);
     }
-    const names = await new EnrollmentRepository(this.db).resolveEntrantNames(
+    const entrantDetails = await new EnrollmentRepository(this.db).resolveEntrantPodiumDetails(
       Array.from(entrantIds),
     );
 
@@ -493,15 +493,17 @@ export class PublicProjectionsController {
           : await readStandings(this.db, tournament, stage.number);
 
         const standingsEntrantIds = standings.rows.map((r) => r.entrantId);
-        const standingsNames = await new EnrollmentRepository(this.db).resolveEntrantNames(
-          standingsEntrantIds,
-        );
+        const standingsDetails = await new EnrollmentRepository(
+          this.db,
+        ).resolveEntrantPodiumDetails(standingsEntrantIds);
 
         standingsPreview = standings.rows.map((r) => ({
           rank: r.rank,
           entrantId: r.entrantId,
-          name: standingsNames.get(r.entrantId)?.name ?? 'Unknown',
-          abbreviation: standingsNames.get(r.entrantId)?.abbreviation,
+          name: standingsDetails.get(r.entrantId)?.name ?? 'Unknown',
+          abbreviation: standingsDetails.get(r.entrantId)?.abbreviation,
+          clubId: standingsDetails.get(r.entrantId)?.clubId,
+          emblemObjectId: standingsDetails.get(r.entrantId)?.emblemObjectId,
           sharedRank: r.sharedRank,
           statistics: r.statistics,
           ...('zoneName' in r && typeof r.zoneName === 'string' ? { zoneName: r.zoneName } : {}),
@@ -517,6 +519,7 @@ export class PublicProjectionsController {
       .select([
         'clubs.club_id as clubId',
         'clubs.name',
+        'clubs.abbreviation',
         'clubs.alias',
         'clubs.emblem_object_id as emblemObjectId',
       ])
@@ -556,11 +559,27 @@ export class PublicProjectionsController {
         round: m.round,
         status: m.status as PublicOverviewMatchResponse['status'],
         homeEntrantId: m.homeEntrantId ?? undefined,
-        homeName: m.homeEntrantId ? (names.get(m.homeEntrantId)?.name ?? 'Unknown') : undefined,
-        homeAbbreviation: m.homeEntrantId ? names.get(m.homeEntrantId)?.abbreviation : undefined,
+        homeName: m.homeEntrantId
+          ? (entrantDetails.get(m.homeEntrantId)?.name ?? 'Unknown')
+          : undefined,
+        homeAbbreviation: m.homeEntrantId
+          ? entrantDetails.get(m.homeEntrantId)?.abbreviation
+          : undefined,
+        homeClubId: m.homeEntrantId ? entrantDetails.get(m.homeEntrantId)?.clubId : undefined,
+        homeEmblemObjectId: m.homeEntrantId
+          ? entrantDetails.get(m.homeEntrantId)?.emblemObjectId
+          : undefined,
         awayEntrantId: m.awayEntrantId ?? undefined,
-        awayName: m.awayEntrantId ? (names.get(m.awayEntrantId)?.name ?? 'Unknown') : undefined,
-        awayAbbreviation: m.awayEntrantId ? names.get(m.awayEntrantId)?.abbreviation : undefined,
+        awayName: m.awayEntrantId
+          ? (entrantDetails.get(m.awayEntrantId)?.name ?? 'Unknown')
+          : undefined,
+        awayAbbreviation: m.awayEntrantId
+          ? entrantDetails.get(m.awayEntrantId)?.abbreviation
+          : undefined,
+        awayClubId: m.awayEntrantId ? entrantDetails.get(m.awayEntrantId)?.clubId : undefined,
+        awayEmblemObjectId: m.awayEntrantId
+          ? entrantDetails.get(m.awayEntrantId)?.emblemObjectId
+          : undefined,
         homeScore: m.scores?.[0],
         awayScore: m.scores?.[1],
         scheduledAt: scheduleChanges.get(m.matchId)?.scheduledAt,
@@ -570,6 +589,7 @@ export class PublicProjectionsController {
       clubs: clubRows.map((c) => ({
         clubId: c.clubId,
         name: c.name,
+        abbreviation: c.abbreviation ?? undefined,
         ...(c.alias ? { alias: c.alias } : {}),
         ...(c.emblemObjectId ? { emblemObjectId: c.emblemObjectId } : {}),
       })),
@@ -831,7 +851,7 @@ export class PublicProjectionsController {
       if (match.homeEntrantId) entrantIds.add(match.homeEntrantId);
       if (match.awayEntrantId) entrantIds.add(match.awayEntrantId);
     }
-    const names = await new EnrollmentRepository(this.db).resolveEntrantNames(
+    const entrantDetails = await new EnrollmentRepository(this.db).resolveEntrantPodiumDetails(
       Array.from(entrantIds),
     );
     const descriptor = await new TournamentRepository(this.db).findDescriptor(
@@ -902,8 +922,10 @@ export class PublicProjectionsController {
             ? [
                 {
                   entrantId: m.homeEntrantId,
-                  name: names.get(m.homeEntrantId)?.name ?? 'Unknown',
-                  abbreviation: names.get(m.homeEntrantId)?.abbreviation,
+                  name: entrantDetails.get(m.homeEntrantId)?.name ?? 'Unknown',
+                  abbreviation: entrantDetails.get(m.homeEntrantId)?.abbreviation,
+                  clubId: entrantDetails.get(m.homeEntrantId)?.clubId,
+                  emblemObjectId: entrantDetails.get(m.homeEntrantId)?.emblemObjectId,
                   score: m.scores?.[0] ?? 0,
                 },
               ]
@@ -912,8 +934,10 @@ export class PublicProjectionsController {
             ? [
                 {
                   entrantId: m.awayEntrantId,
-                  name: names.get(m.awayEntrantId)?.name ?? 'Unknown',
-                  abbreviation: names.get(m.awayEntrantId)?.abbreviation,
+                  name: entrantDetails.get(m.awayEntrantId)?.name ?? 'Unknown',
+                  abbreviation: entrantDetails.get(m.awayEntrantId)?.abbreviation,
+                  clubId: entrantDetails.get(m.awayEntrantId)?.clubId,
+                  emblemObjectId: entrantDetails.get(m.awayEntrantId)?.emblemObjectId,
                   score: m.scores?.[1] ?? 0,
                 },
               ]
@@ -1183,9 +1207,17 @@ export class PublicProjectionsController {
         ...(row.homeEntrantId === undefined ? {} : { homeEntrantId: row.homeEntrantId }),
         ...(row.homeName === undefined ? {} : { homeName: row.homeName }),
         ...(row.homeAbbreviation === undefined ? {} : { homeAbbreviation: row.homeAbbreviation }),
+        ...(row.homeClubId === undefined ? {} : { homeClubId: row.homeClubId }),
+        ...(row.homeEmblemObjectId === undefined
+          ? {}
+          : { homeEmblemObjectId: row.homeEmblemObjectId }),
         ...(row.awayEntrantId === undefined ? {} : { awayEntrantId: row.awayEntrantId }),
         ...(row.awayName === undefined ? {} : { awayName: row.awayName }),
         ...(row.awayAbbreviation === undefined ? {} : { awayAbbreviation: row.awayAbbreviation }),
+        ...(row.awayClubId === undefined ? {} : { awayClubId: row.awayClubId }),
+        ...(row.awayEmblemObjectId === undefined
+          ? {}
+          : { awayEmblemObjectId: row.awayEmblemObjectId }),
         ...(row.homeScore === undefined ? {} : { homeScore: row.homeScore }),
         ...(row.awayScore === undefined ? {} : { awayScore: row.awayScore }),
         ...(row.clockSeconds === undefined ? {} : { clockSeconds: row.clockSeconds }),

@@ -41,9 +41,13 @@ export interface MatchesViewRow extends FixtureSourcesResponse {
   readonly homeEntrantId?: string;
   readonly homeName?: string;
   readonly homeAbbreviation?: string;
+  readonly homeClubId?: string;
+  readonly homeEmblemObjectId?: string;
   readonly awayEntrantId?: string;
   readonly awayName?: string;
   readonly awayAbbreviation?: string;
+  readonly awayClubId?: string;
+  readonly awayEmblemObjectId?: string;
   readonly homeScore?: number;
   readonly awayScore?: number;
   readonly clockSeconds?: number;
@@ -56,9 +60,6 @@ export interface MatchesViewRow extends FixtureSourcesResponse {
   readonly awayPosition?: number;
   readonly series?: PublicSeriesState;
   readonly decidingFactor?: string;
-  /** Internal only — never serialized by the public mapper. */
-  readonly homeClubId?: string;
-  readonly awayClubId?: string;
   readonly rawTrace?: readonly TraceNode[];
 }
 
@@ -144,21 +145,18 @@ async function readStageMatchesView(
     if (record.awayEntrantId) entrantIds.add(record.awayEntrantId);
   }
   const enrollment = new EnrollmentRepository(db);
-  const [names, clubIdByEntrant, descriptor, seriesByPosition, scheduleByMatch] = await Promise.all(
-    [
-      enrollment.resolveEntrantNames([...entrantIds]),
-      clubIdsOfEntrants(db, enrollment, [...entrantIds]),
-      new TournamentRepository(db).findDescriptor(
-        tournament.disciplineRef.descriptorId,
-        tournament.disciplineRef.version,
-      ),
-      seriesStatesByPosition(db, tournament.tournamentId, stage.stageId, records),
-      scheduleByMatchId(
-        db,
-        records.map((record) => record.matchId),
-      ),
-    ],
-  );
+  const [entrantDetails, descriptor, seriesByPosition, scheduleByMatch] = await Promise.all([
+    enrollment.resolveEntrantPodiumDetails([...entrantIds]),
+    new TournamentRepository(db).findDescriptor(
+      tournament.disciplineRef.descriptorId,
+      tournament.disciplineRef.version,
+    ),
+    seriesStatesByPosition(db, tournament.tournamentId, stage.stageId, records),
+    scheduleByMatchId(
+      db,
+      records.map((record) => record.matchId),
+    ),
+  ]);
   const definitionByCode = new Map(
     (descriptor?.eventDefinitions ?? []).map((definition) => [definition.code, definition]),
   );
@@ -212,17 +210,29 @@ async function readStageMatchesView(
         ...(record.homeEntrantId === undefined ? {} : { homeEntrantId: record.homeEntrantId }),
         ...(record.homeEntrantId === undefined
           ? {}
-          : { homeName: names.get(record.homeEntrantId)?.name ?? 'Unknown' }),
+          : { homeName: entrantDetails.get(record.homeEntrantId)?.name ?? 'Unknown' }),
         ...(record.homeEntrantId === undefined
           ? {}
-          : { homeAbbreviation: names.get(record.homeEntrantId)?.abbreviation }),
+          : { homeAbbreviation: entrantDetails.get(record.homeEntrantId)?.abbreviation }),
+        ...(record.homeEntrantId === undefined
+          ? {}
+          : { homeClubId: entrantDetails.get(record.homeEntrantId)?.clubId }),
+        ...(record.homeEntrantId === undefined
+          ? {}
+          : { homeEmblemObjectId: entrantDetails.get(record.homeEntrantId)?.emblemObjectId }),
         ...(record.awayEntrantId === undefined ? {} : { awayEntrantId: record.awayEntrantId }),
         ...(record.awayEntrantId === undefined
           ? {}
-          : { awayName: names.get(record.awayEntrantId)?.name ?? 'Unknown' }),
+          : { awayName: entrantDetails.get(record.awayEntrantId)?.name ?? 'Unknown' }),
         ...(record.awayEntrantId === undefined
           ? {}
-          : { awayAbbreviation: names.get(record.awayEntrantId)?.abbreviation }),
+          : { awayAbbreviation: entrantDetails.get(record.awayEntrantId)?.abbreviation }),
+        ...(record.awayEntrantId === undefined
+          ? {}
+          : { awayClubId: entrantDetails.get(record.awayEntrantId)?.clubId }),
+        ...(record.awayEntrantId === undefined
+          ? {}
+          : { awayEmblemObjectId: entrantDetails.get(record.awayEntrantId)?.emblemObjectId }),
         ...(scores?.[0] === undefined ? {} : { homeScore: scores[0] }),
         ...(scores?.[1] === undefined ? {} : { awayScore: scores[1] }),
         ...(schedule?.venueName === undefined ? {} : { venueName: schedule.venueName }),
@@ -253,12 +263,6 @@ async function readStageMatchesView(
             }
           : { series }),
         ...(decidingFactor === undefined ? {} : { decidingFactor }),
-        ...(record.homeEntrantId === undefined
-          ? {}
-          : { homeClubId: clubIdByEntrant.get(record.homeEntrantId) }),
-        ...(record.awayEntrantId === undefined
-          ? {}
-          : { awayClubId: clubIdByEntrant.get(record.awayEntrantId) }),
         ...(standings === undefined ? {} : { rawTrace: standings.rawTrace }),
       };
     }),
@@ -277,31 +281,6 @@ function eventLabel(
 ): string {
   const definition = definitionByCode.get(definitionCode);
   return definition ? resolveLabel(definition.label, 'en') : definitionCode;
-}
-
-async function clubIdsOfEntrants(
-  db: Kysely<Database>,
-  enrollment: EnrollmentRepository,
-  entrantIds: readonly string[],
-): Promise<ReadonlyMap<string, string>> {
-  if (entrantIds.length === 0) return new Map();
-  const entrantTeams = await db
-    .selectFrom('entrants')
-    .select(['entrant_id', 'team_id'])
-    .where('entrant_id', 'in', entrantIds)
-    .execute();
-  const teamIdByEntrant = new Map(
-    entrantTeams.flatMap((entrant) =>
-      entrant.team_id === null ? [] : [[entrant.entrant_id, entrant.team_id] as const],
-    ),
-  );
-  const clubIdByTeam = await enrollment.clubsOfTeams([...new Set(teamIdByEntrant.values())]);
-  return new Map(
-    [...teamIdByEntrant.entries()].flatMap(([entrantId, teamId]) => {
-      const clubId = clubIdByTeam.get(teamId);
-      return clubId === undefined ? [] : [[entrantId, clubId] as const];
-    }),
-  );
 }
 
 async function zoneAndGroupNamesByGroupId(

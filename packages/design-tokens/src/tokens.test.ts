@@ -290,6 +290,16 @@ describe('the CSS output', () => {
     for (const name of Object.keys(SEMANTIC_COLORS)) expect(css).toContain(`--cl-${name}:`);
   });
 
+  it('keeps emblem monograms on one line and fits long abbreviations in small frames', () => {
+    expect(css).toContain('white-space: nowrap;');
+    expect(css).toContain(
+      '.cl-entrant-emblem--micro .cl-entrant-emblem__monogram--small-tight { transform: scaleX(0.7); }',
+    );
+    expect(css).toContain(
+      '.cl-entrant-emblem--micro .cl-entrant-emblem__monogram--reduced { transform: scaleX(0.55); }',
+    );
+  });
+
   it('declares every font-size and breakpoint primitive', () => {
     for (const [name, value] of Object.entries(FONT_SIZE)) {
       expect(css).toContain(`--cl-font-size-${name}: ${value};`);

@@ -144,6 +144,68 @@ test('7.3: the public standings preview names the grain, with JavaScript disable
   await context.close();
 });
 
+test('an entrant without an emblem renders its stored abbreviation when JavaScript is disabled', async ({
+  browser,
+}) => {
+  overview = {
+    ...DEFAULT_OVERVIEW,
+    clubs: [{ clubId: 'club-talleres', name: 'Talleres', abbreviation: 'TLL' }],
+    standingsPreview: [
+      {
+        rank: 1,
+        entrantId: 'entrant-talleres',
+        name: 'Talleres',
+        abbreviation: 'TLL',
+        clubId: 'club-talleres',
+        statistics: { points: 3 },
+      },
+    ],
+  };
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto(overviewPath);
+
+  const tile = page.locator('.cl-standings-section .cl-entrant-emblem__monogram');
+  await expect(tile).toHaveText('TLL');
+  await expect(tile).toBeVisible();
+  await context.close();
+});
+
+test('a broken public emblem URL reveals stored abbreviation fallback', async ({ page }) => {
+  overview = {
+    ...DEFAULT_OVERVIEW,
+    clubs: [{ clubId: 'club-talleres', name: 'Talleres', abbreviation: 'TLL' }],
+    standingsPreview: [
+      {
+        rank: 1,
+        entrantId: 'entrant-talleres',
+        name: 'Talleres',
+        abbreviation: 'TLL',
+        clubId: 'club-talleres',
+        emblemObjectId: 'missing-emblem',
+        statistics: { points: 3 },
+      },
+    ],
+  };
+  projection = {
+    ...DEFAULT_PROJECTION,
+    rows: projectionRows.map((row) => ({
+      ...row,
+      entrantAbbreviation: 'TLL',
+      clubId: 'club-talleres',
+      emblemObjectId: 'missing-emblem',
+    })),
+  };
+  await page.route('**/organizations/liga-mendocina/clubs/club-talleres/emblem', (route) =>
+    route.fulfill({ status: 404, body: 'missing' }),
+  );
+  await page.goto(overviewPath);
+
+  const frame = page.locator('.cl-standings-section .cl-table .cl-entrant-emblem');
+  await expect(frame.locator('img')).toHaveCSS('display', 'none');
+  await expect(frame.locator('.cl-entrant-emblem__monogram')).toHaveText('TLL');
+});
+
 test('7.3: a single-match tournament’s preview carries no such statement, unchanged from before this change', async ({
   page,
 }) => {

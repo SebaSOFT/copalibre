@@ -15,7 +15,8 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
-    expect(screen.getByTitle('No emblem uploaded')).toBeTruthy();
+    const clubRow = screen.getByText('Casa de Italia').closest('li');
+    expect(clubRow?.querySelector('.cl-entrant-emblem__monogram')?.textContent).toBe('C I');
   });
 
   it('creates a club and reloads the list', async () => {
@@ -293,10 +294,16 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
-    expect(screen.getByAltText('Casa de Italia emblem')).toBeTruthy();
+    const clubRow = screen.getByText('Casa de Italia').closest('li');
+    expect(clubRow?.querySelector('.cl-entrant-emblem img')?.getAttribute('src')).toContain(
+      '/organizations/liga-mendocina/clubs/club-1/emblem',
+    );
 
     fireEvent.click(screen.getByText('Edit'));
-    expect(await screen.findAllByAltText('Casa de Italia emblem')).toHaveLength(2);
+    const selectedEmblem = await screen.findByRole('img', { name: 'Casa de Italia' });
+    expect(selectedEmblem.querySelector('img')?.getAttribute('src')).toContain(
+      '/organizations/liga-mendocina/clubs/club-1/emblem',
+    );
   });
 
   it('reports a club load it could not complete', async () => {

@@ -671,6 +671,7 @@ export function referenceClubs(): PublicOverviewClubResponse[] {
       clubId: '01936f4a-5001-7000-8000-000000000001',
       name: 'Meridian Athletic',
       alias: 'meridian-athletic',
+      abbreviation: 'MER',
     },
     {
       clubId: '01936f4a-5002-7000-8000-000000000002',

@@ -60,14 +60,14 @@ export const BreadcrumbCollapsed: Story = {
   args: { component: 'breadcrumb-collapsed', height: 120 },
 };
 
-/** The compact club filter: initials stand in without an emblem, and the selected chip carries a check and a fill. */
+/** The compact club filter: stored abbreviations stand in without an emblem, and selection carries a check and a fill. */
 export const ClubFilterChips: Story = {
   args: { component: 'club-filter-chip', height: 120 },
 };
 
 /**
  * Abbreviated headers carry their full wording (hover or focus a header; the legend below the table
- * repeats it for touch), and the club filter is a row of compact chips: emblem or initials, selected
+ * repeats it for touch), and the club filter is a row of compact chips: emblem or stored abbreviation, selected
  * state by fill, border and check.
  */
 export const StandingsTableHints: Story = {
@@ -134,6 +134,11 @@ export const PublicHeader: Story = {
 /** A 4:5 transparent emblem contained within a square chamfer-safe frame. */
 export const EmblemImage: Story = {
   args: { component: 'emblem-image', height: 180 },
+};
+
+/** Missing and failed emblems show only stored abbreviations that fit, otherwise the shield. */
+export const EmblemImageFallbacks: Story = {
+  args: { component: 'emblem-image-fallbacks', height: 140 },
 };
 
 /** The schedule: group tables with round sub-headings, then a cup drawn as its bracket. */

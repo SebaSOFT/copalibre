@@ -914,6 +914,7 @@ export function MatchConsoleTemplate({
               <BracketCanvas
                 focusMatchId={matchId}
                 matches={bracketMatches}
+                organizationAlias={organizationAlias}
                 onZoomChange={setBracketZoom}
                 zoom={bracketZoom}
               />

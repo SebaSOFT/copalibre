@@ -66,4 +66,21 @@ describe('TvStandingsTable', () => {
 
     expect(screen.getByText('Sin tabla')).toBeTruthy();
   });
+
+  it('shows a shield instead of deriving a monogram when an entrant has no abbreviation', () => {
+    const { container } = renderTable([{ ...row(1, 'Boca Juniors'), clubId: 'club-boca' }]);
+
+    expect(container.querySelector('.cl-entrant-emblem__fallback svg')).toBeTruthy();
+    expect(screen.queryByText('BO')).toBeNull();
+  });
+
+  it('fits a four-character abbreviation inside a responsive TV emblem', () => {
+    const { container } = renderTable([
+      { ...row(1, 'Estudiantil San Miguel'), abbreviation: 'ESTM', clubId: 'club-estm' },
+    ]);
+
+    const emblem = container.querySelector('.cl-entrant-emblem');
+    expect(emblem?.classList.contains('cl-entrant-emblem--small')).toBe(true);
+    expect(emblem?.textContent).toContain('ESTM');
+  });
 });

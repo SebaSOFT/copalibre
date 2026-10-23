@@ -52,7 +52,7 @@ import { TvSeriesAndSets } from './ui/organisms/TvSeriesAndSets.js';
 import { tvMatchProgress } from '../../lib/tv-match-progress.js';
 import type { PublicSeriesState } from '../../lib/series.js';
 import { TvChampions } from './ui/organisms/TvChampions.js';
-import { TvEmblem } from './ui/atoms/TvEmblem.js';
+import { EntrantEmblem } from '../ui/molecules/EntrantEmblem.js';
 import { ValueFlash } from '../ui/atoms/ValueFlash.js';
 
 export type { TvClubItem, TvDashboardLabels, TvWinnerZone } from './tv-types.js';
@@ -765,14 +765,12 @@ export function TvDashboard({
                   <span>★ {champion.title} ★</span>
                 </div>
                 <div className="tv-champion__emblem-wrap">
-                  <TvEmblem
+                  <EntrantEmblem
                     alt={champion.name}
                     className="tv-champion__emblem"
-                    fallback={
-                      <div className="tv-champion__monogram">
-                        {champion.abbreviation ?? champion.name.substring(0, 2).toUpperCase()}
-                      </div>
-                    }
+                    abbreviation={champion.abbreviation}
+                    decorative
+                    size="18vmin"
                     src={champion.emblemUrl}
                   />
                 </div>
@@ -793,6 +791,7 @@ export function TvDashboard({
                     clubs={clubs}
                     name={spotlightMatch.sides[0]?.name ?? 'Local'}
                     abbreviation={spotlightMatch.sides[0]?.abbreviation}
+                    clubId={spotlightMatch.sides[0]?.clubId}
                   />
 
                   {/* Score Center */}
@@ -823,6 +822,7 @@ export function TvDashboard({
                     clubs={clubs}
                     name={spotlightMatch.sides[1]?.name ?? 'Visitante'}
                     abbreviation={spotlightMatch.sides[1]?.abbreviation}
+                    clubId={spotlightMatch.sides[1]?.clubId}
                   />
                 </div>
 

@@ -345,7 +345,7 @@ test.describe('B2: public tournament page', () => {
         },
       ],
       clubs: [
-        { clubId: 'club-talleres', name: 'Club Atlético Talleres' },
+        { clubId: 'club-talleres', name: 'Club Atlético Talleres', abbreviation: 'TAL' },
         { clubId: 'club-independiente', name: 'Club Atlético Independiente' },
       ],
       ruleset: {},
@@ -702,18 +702,20 @@ test.describe('B2: public tournament page', () => {
     await expect(legend).not.toContainText('Team');
   });
 
-  test('club chips are compact, show an emblem or initials, and mark the selection by more than colour', async ({
+  test('club chips are compact, show the stored abbreviation, and mark selection by more than colour', async ({
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
 
     const chip = page.locator('a[data-club-filter="club-talleres"]');
-    // No emblem uploaded in this fixture: the club's initials stand in.
-    await expect(chip.locator('.cl-club-chip__monogram')).toHaveText('CA');
+    // No emblem uploaded in this fixture: the stored abbreviation stands in.
+    await expect(chip.locator('.cl-entrant-emblem__monogram')).toHaveText('TAL');
 
-    const primary = page.locator('a.cl-pill').first();
-    const [chipBox, primaryBox] = await Promise.all([chip.boundingBox(), primary.boundingBox()]);
-    expect(chipBox && primaryBox && chipBox.height < primaryBox.height).toBe(true);
+    const emblem = chip.locator('.cl-entrant-emblem--small');
+    await expect(emblem).toBeVisible();
+    const emblemBox = await emblem.boundingBox();
+    expect(emblemBox?.width).toBe(32);
+    expect(emblemBox?.height).toBe(32);
 
     await expect(page.locator('a[data-club-filter="all"]')).toContainText('✓');
     await expect(chip).not.toContainText('✓');

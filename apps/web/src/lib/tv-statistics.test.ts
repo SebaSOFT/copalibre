@@ -43,6 +43,7 @@ describe('tv-statistics', () => {
             actorName: 'Lionel Messi',
             entrantName: 'Inter Miami',
             entrantAbbreviation: 'MIA',
+            clubId: 'club-inter-miami',
             nationality: 'AR',
             rank: 1,
             sharedRank: false,
@@ -63,7 +64,9 @@ describe('tv-statistics', () => {
         ],
       };
 
-      const clubs = [{ name: 'Inter Miami', emblemUrl: 'emblem-inter' }];
+      const clubs = [
+        { clubId: 'club-inter-miami', name: 'Inter Miami', emblemUrl: 'emblem-inter' },
+      ];
 
       const performers = deriveTopPerformers(labels, 'en', projection, undefined, clubs);
       expect(performers).toHaveLength(2);
@@ -288,10 +291,17 @@ describe('tv-statistics', () => {
         },
       ];
       const standings: StandingsRowView[] = [
-        { position: 1, name: 'Huracán', abbreviation: 'HUR', played: 3, points: 9 },
+        {
+          position: 1,
+          name: 'Huracán',
+          abbreviation: 'HUR',
+          clubId: 'club-huracan',
+          played: 3,
+          points: 9,
+        },
         { position: 2, name: 'Godoy Cruz', abbreviation: 'GOD', played: 3, points: 6 },
       ];
-      const clubs = [{ name: 'Huracán', emblemUrl: 'emblem-huracan' }];
+      const clubs = [{ clubId: 'club-huracan', name: 'Huracán', emblemUrl: 'emblem-huracan' }];
 
       const champion = resolveChampion(labels, matches, standings, clubs);
       expect(champion).toBeDefined();
@@ -309,7 +319,14 @@ describe('tv-statistics', () => {
           state: 'final',
           projectionVersion: 2,
           sides: [
-            { entrantId: 'e1', name: 'Real Madrid', score: 3, state: 'final', abbreviation: 'RMA' },
+            {
+              entrantId: 'e1',
+              name: 'Real Madrid',
+              score: 3,
+              state: 'final',
+              abbreviation: 'RMA',
+              clubId: 'club-real-madrid',
+            },
             { entrantId: 'e2', name: 'Barcelona', score: 1, state: 'final', abbreviation: 'BAR' },
           ],
         },
@@ -337,7 +354,7 @@ describe('tv-statistics', () => {
         },
       ];
 
-      const clubs = [{ name: 'Real Madrid', emblemUrl: 'rma-emblem' }];
+      const clubs = [{ clubId: 'club-real-madrid', name: 'Real Madrid', emblemUrl: 'rma-emblem' }];
       const champion = resolveChampion(labels, matches, undefined, clubs);
       expect(champion).toBeDefined();
       expect(champion?.name).toBe('Real Madrid');
@@ -354,11 +371,11 @@ describe('tv-statistics', () => {
           state: 'final',
           startsAt: '',
           home: { name: 'Chelsea', score: 1, abbreviation: 'CHE' },
-          away: { name: 'Arsenal', score: 2, abbreviation: 'ARS' },
+          away: { name: 'Arsenal', score: 2, abbreviation: 'ARS', clubId: 'club-arsenal' },
         },
       ];
 
-      const clubs = [{ name: 'Arsenal', emblemUrl: 'ars-emblem' }];
+      const clubs = [{ clubId: 'club-arsenal', name: 'Arsenal', emblemUrl: 'ars-emblem' }];
       const champion = resolveChampion(labels, matches, undefined, clubs);
       expect(champion).toBeDefined();
       expect(champion?.name).toBe('Arsenal');

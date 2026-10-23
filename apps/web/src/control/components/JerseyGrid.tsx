@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { isSupportedLanguage, resolveLabel, type SupportedLanguage } from '@copalibre/domain';
 import { EntrantName } from '../../components/ui/atoms/EntrantName.js';
+import { EntrantEmblem } from '../../components/ui/molecules/EntrantEmblem.js';
 import { ResponsivePlayerName } from '../../components/ui/atoms/ResponsivePlayerName.js';
 import {
   clubEmblemUrl,
@@ -12,8 +13,6 @@ import {
 } from '../lib/api-client.js';
 import { memberByNumber } from '../lib/match-console.js';
 import { Badge } from './ui/atoms/badge.js';
-import { FramedImage } from './FramedImage.js';
-import { ClubEmblemPlaceholder } from './placeholders.js';
 import { messages } from '../i18n/messages.en.js';
 
 const NUMPAD_BUFFER_TIMEOUT_MS = 600;
@@ -209,7 +208,12 @@ function TeamPanel({
   return (
     <div style={teamPanelStyle}>
       <div style={teamHeaderRowStyle}>
-        <TeamEmblem clubId={roster.clubId} organizationAlias={organizationAlias} />
+        <TeamEmblem
+          abbreviation={roster.teamAbbreviation}
+          clubId={roster.clubId}
+          name={roster.teamName ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
+          organizationAlias={organizationAlias}
+        />
         <h3 style={teamHeaderStyle}>
           <EntrantName
             abbreviation={roster.teamAbbreviation}
@@ -292,25 +296,22 @@ function JerseyButton({
  * this never shows a broken image (identity-visuals spec).
  */
 function TeamEmblem({
+  abbreviation,
   clubId,
+  name,
   organizationAlias,
 }: {
+  readonly abbreviation: string | undefined;
   readonly clubId: string | undefined;
+  readonly name: string;
   readonly organizationAlias: string | undefined;
 }): React.JSX.Element {
-  const intl = useIntl();
-  const alt = intl.formatMessage(messages.jerseyGridEmblemAlt);
-  const placeholder = (
-    <ClubEmblemPlaceholder
-      size={32}
-      title={intl.formatMessage(messages.jerseyGridEmblemPlaceholderAlt)}
-    />
-  );
-
   return (
-    <FramedImage
-      alt={alt}
-      placeholder={placeholder}
+    <EntrantEmblem
+      abbreviation={abbreviation}
+      alt={name}
+      control
+      decorative
       size={32}
       src={
         clubId !== undefined && organizationAlias !== undefined

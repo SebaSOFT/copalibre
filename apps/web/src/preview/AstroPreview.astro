@@ -119,6 +119,7 @@ const PREVIEWABLE = new Set([
   'button',
   'icon',
   'emblem-image',
+  'emblem-image-fallbacks',
   'emblem-image-matrix',
   'logo',
   'person-photo-image',
@@ -417,6 +418,30 @@ const [compactSample] = referenceJourneyBracket(true);
         size={96}
         src="/preview-fixtures/emblem-display.svg"
       />
+    )}
+    {component === 'emblem-image-fallbacks' && (
+      <div class="cl-preview-emblem-matrix">
+        {[
+          { abbreviation: 'CPC', name: 'Concepción Patín Club' },
+          { abbreviation: 'NORTE', name: 'Norte' },
+          { abbreviation: 'PANAMERO', name: 'Panamericano' },
+          { abbreviation: undefined, name: 'Club without an abbreviation' },
+        ].map((entrant) => (
+          <EmblemImage
+            alt={entrant.name}
+            abbreviation={entrant.abbreviation}
+            placeholderAlt="No emblem set"
+            size={72}
+          />
+        ))}
+        <EmblemImage
+          alt="Concepción Patín Club"
+          abbreviation="CPC"
+          placeholderAlt="No emblem set"
+          size={72}
+          src="/missing-emblem.png"
+        />
+      </div>
     )}
     {component === 'emblem-image-bare' && (
       <div class="cl-preview-emblem-matrix">

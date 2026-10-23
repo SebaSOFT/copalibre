@@ -3481,9 +3481,15 @@ export interface components {
             homeName?: string;
             homeAbbreviation?: string;
             /** Format: uuid */
+            homeClubId?: string;
+            homeEmblemObjectId?: string;
+            /** Format: uuid */
             awayEntrantId?: string;
             awayName?: string;
             awayAbbreviation?: string;
+            /** Format: uuid */
+            awayClubId?: string;
+            awayEmblemObjectId?: string;
             homeScore?: number;
             awayScore?: number;
             /** @description Present only while the match is in progress */
@@ -4714,6 +4720,13 @@ export interface components {
             entrantName?: string;
             /** @description Tournament-scoped entrant abbreviation, when resolved */
             entrantAbbreviation?: string;
+            /**
+             * Format: uuid
+             * @description The entrant club, when one is resolved
+             */
+            clubId?: string;
+            /** @description The entrant club's uploaded emblem, when one is present */
+            emblemObjectId?: string;
             /** @description ISO 3166-1 alpha-2 nationality code, present only at person granularity */
             nationality?: string;
             /** @description 1-based; rows sharing a rank were not separated by `defaultSort` */
@@ -4783,6 +4796,15 @@ export interface components {
             kind: "entrant" | "bye" | "winner-of" | "loser-of";
             /** Format: uuid */
             entrantId?: string;
+            /** @description Resolved entrant abbreviation, when one is stored */
+            abbreviation?: string;
+            /**
+             * Format: uuid
+             * @description The entrant's club, when it belongs to one
+             */
+            clubId?: string;
+            /** @description The club's emblem object id, when one is on record */
+            emblemObjectId?: string;
             /** @description Match this slot sources its participant from */
             matchId?: string;
             /** @description Where this side came from, kept once the slot holds the entrant that got here, so the link between the two matches can still be drawn */
@@ -5522,6 +5544,7 @@ export interface components {
             /** Format: uuid */
             clubId: string;
             name: string;
+            abbreviation?: string;
             alias?: string;
             emblemObjectId?: string;
         };
@@ -5561,9 +5584,15 @@ export interface components {
             homeName?: string;
             homeAbbreviation?: string;
             /** Format: uuid */
+            homeClubId?: string;
+            homeEmblemObjectId?: string;
+            /** Format: uuid */
             awayEntrantId?: string;
             awayName?: string;
             awayAbbreviation?: string;
+            /** Format: uuid */
+            awayClubId?: string;
+            awayEmblemObjectId?: string;
             homeScore?: number;
             awayScore?: number;
             /** Format: date-time */
@@ -5575,6 +5604,9 @@ export interface components {
             entrantId: string;
             name: string;
             abbreviation?: string;
+            /** Format: uuid */
+            clubId?: string;
+            emblemObjectId?: string;
             sharedRank: boolean;
             statistics: {
                 [key: string]: number;
@@ -5727,6 +5759,13 @@ export interface components {
             entrantId: string;
             name: string;
             abbreviation?: string;
+            /**
+             * Format: uuid
+             * @description The entrant's club, when it belongs to one
+             */
+            clubId?: string;
+            /** @description The club's emblem object id, when one is on record */
+            emblemObjectId?: string;
             score: number;
         };
         PublicLivePenaltyResponse: {
@@ -5862,9 +5901,15 @@ export interface components {
             homeName?: string;
             homeAbbreviation?: string;
             /** Format: uuid */
+            homeClubId?: string;
+            homeEmblemObjectId?: string;
+            /** Format: uuid */
             awayEntrantId?: string;
             awayName?: string;
             awayAbbreviation?: string;
+            /** Format: uuid */
+            awayClubId?: string;
+            awayEmblemObjectId?: string;
             homeScore?: number;
             awayScore?: number;
             /** @description Present only while the match is in progress */
