@@ -78,7 +78,7 @@ test('renames a stage from the stage hub and sees the change immediately', async
 
   await expect(page.getByText('Configuración de la fase')).toBeVisible();
   await page.getByLabel('Nuevo nombre de la fase').fill('Fase de grupos (corregida)');
-  await page.getByRole('button', { name: 'Renombrar', exact: true }).click();
+  await page.getByRole('button', { name: 'Renombrar etapa', exact: true }).click();
 
   await expect(page.getByText('Stage renamed.')).toBeVisible();
 });
@@ -123,7 +123,7 @@ test('renames a zone from the zone-management screen and sees the change immedia
   const renameInput = page.getByLabel('Renombrar zona Zona 1');
   await expect(renameInput).toBeVisible();
   await renameInput.fill('Zona 1 (corregida)');
-  await page.getByRole('button', { name: 'Renombrar', exact: true }).click();
+  await page.getByRole('button', { name: 'Renombrar zona', exact: true }).click();
 
   await expect(page.getByLabel('Renombrar zona Zona 1 (corregida)')).toBeVisible();
 });

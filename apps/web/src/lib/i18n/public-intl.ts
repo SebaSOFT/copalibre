@@ -160,6 +160,12 @@ export function tvDashboardLabels(intl: IntlShape) {
     playedColumn: intl.formatMessage(messages.tvDashboardPlayedColumn),
     noTopPerformers: intl.formatMessage(messages.tvDashboardNoTopPerformers),
     focalPanelLabel: intl.formatMessage(messages.tvDashboardFocalPanelLabel),
+    focalPanelTitle: intl.formatMessage(messages.tvDashboardFeaturedMatchTitle),
+    recapTitle: intl.formatMessage(messages.tvDashboardRecapTitle),
+    stageMatch: intl.formatMessage(messages.tvDashboardStageMatch, {
+      stage: '{stage}',
+      match: '{match}',
+    }),
     matchEventsLabel: intl.formatMessage(messages.tvDashboardMatchEventsLabel),
     statsAndTablesLabel: intl.formatMessage(messages.tvDashboardStatsAndTablesLabel),
     sidebarSectionsLabel: intl.formatMessage(messages.tvDashboardSidebarSectionsLabel),

@@ -102,7 +102,7 @@ test('recovers silently from a mid-session drop, with no error UI ever shown (8.
   await page.goto(`${TV_PATH}?token=kiosk-token`);
 
   // The reconnected stream's event lands once the client retries.
-  await expect(page.getByText('FINAL', { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('Final', { exact: true })).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText('5')).toBeVisible();
 
   // No error, retry, or "connection lost" text at any point — the design

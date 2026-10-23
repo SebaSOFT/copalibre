@@ -61,10 +61,10 @@ describe('the tournament setup wizard screen', () => {
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Reglas' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-reglas' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
     fireEvent.click(screen.getByLabelText('Add rule for every recorded event'));
 
     expect(screen.getByText(/fires for every recorded event/i)).toBeDefined();
@@ -122,10 +122,10 @@ describe('the tournament setup wizard screen', () => {
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Reglas' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-reglas' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
     fireEvent.click(screen.getByLabelText('Add rule for every recorded event'));
 
     const givenText = screen.getByText(/system supplies the recorded discipline-defined event/i);
@@ -158,7 +158,7 @@ describe('the tournament setup wizard screen', () => {
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Reglas' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-reglas' } });
     for (let step = 0; step < 4; step += 1) {
-      fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
     }
     fireEvent.click(screen.getByLabelText('Add rule for every recorded event'));
 
@@ -193,7 +193,7 @@ describe('the tournament setup wizard screen', () => {
       .getAllByRole('list')
       .map((list) => list.textContent ?? '')
       .find((text) => text.includes('→'));
-    expect(ruleText).toContain('AND');
+    expect(ruleText).toContain('And');
     expect(ruleText?.indexOf('audit —')).toBeLessThan(ruleText?.indexOf('notify —') ?? -1);
     const removeRule = screen.getAllByRole('button', { name: 'Remove' }).at(-1);
     if (!removeRule) throw new Error('Rule remove control is missing');
@@ -214,22 +214,22 @@ describe('the tournament setup wizard screen', () => {
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
 
     expect(screen.getByLabelText('Discipline').textContent).toContain('Football');
     expect(screen.getByLabelText('Discipline').textContent).toContain(
       'Team discipline with timed halves and goal-based scoring',
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
 
     expect(screen.getByLabelText('Stage format').textContent).toContain('Single elimination');
     expect(screen.getByLabelText('Stage format').textContent).not.toContain('placement');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
 
     expect(submitted).toEqual([
@@ -273,18 +273,18 @@ describe('the tournament setup wizard screen', () => {
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Torneo Apertura' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'torneo-apertura' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
 
     expect(screen.getByLabelText('Competition Profile')).toBeDefined();
     fireEvent.change(screen.getByLabelText('Competition Profile'), {
       target: { value: '01890000-0000-7000-8000-000000000099' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
 
     fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'Cuyo' } });
     fireEvent.change(screen.getByLabelText('Capacity'), { target: { value: '16' } });
@@ -293,7 +293,7 @@ describe('the tournament setup wizard screen', () => {
       target: { value: '2026-09-01T12:00' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
 
     expect(submitted).toEqual([
@@ -330,7 +330,9 @@ describe('the tournament setup wizard screen', () => {
     expect(nameInput.id).toBe('wizard-name');
     expect(aliasInput.id).toBe('wizard-alias');
 
-    const continueBtn = screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement;
+    const continueBtn = screen.getByRole('button', {
+      name: 'Continue to discipline',
+    }) as HTMLButtonElement;
     expect(continueBtn.disabled).toBe(true);
     expect(continueBtn.getAttribute('aria-describedby')).toBe('wizard-problems');
     expect(document.getElementById('wizard-problems')?.textContent).toContain(
@@ -360,8 +362,8 @@ describe('the tournament setup wizard screen', () => {
     render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Grano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-grano' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
 
     expect(screen.queryByLabelText('Count standings per series, not per match')).toBeNull();
 
@@ -380,8 +382,8 @@ describe('the tournament setup wizard screen', () => {
     render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Grano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-grano' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
     fireEvent.click(screen.getByLabelText('Settle this stage’s crosses with a series'));
 
     const grainCheckbox = screen.getByLabelText(
@@ -429,9 +431,9 @@ describe('discipline rule overrides at creation', () => {
     render(withIntl(<TournamentSetupWizard disciplines={DISCIPLINE_WITH_RULESET_FIELDS} />));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Reglas' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-reglas' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
 
     // Eligible: not reserved by a dedicated control, and not forbidden/inherited.
     const control = screen.getByLabelText('Points Per Win') as HTMLInputElement;
@@ -455,17 +457,17 @@ describe('discipline rule overrides at creation', () => {
     );
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Reglas' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-reglas' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
 
     fireEvent.change(screen.getByLabelText('Points Per Win'), {
       target: { value: '4' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
 
     expect(submitted).toHaveLength(1);
@@ -478,9 +480,9 @@ describe('discipline rule overrides at creation', () => {
     render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Simple' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-simple' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
 
     expect(
       screen.getByText('This discipline declares no additional rules to configure here.'),
@@ -510,8 +512,8 @@ describe('decision descriptions', () => {
     render(withIntl(<TournamentSetupWizard disciplines={DISCIPLINE_WITH_DESCRIPTIONS} />));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Chukka' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-chukka' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
 
     const formatSelect = screen.getByLabelText('Stage format') as HTMLSelectElement;
     const hintId = formatSelect.getAttribute('aria-describedby');
@@ -525,11 +527,11 @@ describe('decision descriptions', () => {
     render(withIntl(<TournamentSetupWizard disciplines={DISCIPLINE_WITH_DESCRIPTIONS} />));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Chukka' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-chukka' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
 
     const capacityInput = screen.getByLabelText('Capacity') as HTMLInputElement;
     const hintId = capacityInput.getAttribute('aria-describedby');
@@ -542,7 +544,7 @@ describe('decision descriptions', () => {
     render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Explicada' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-explicada' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
 
     const disciplineSelect = screen.getByLabelText('Discipline');
     const disciplineHintId = disciplineSelect.getAttribute('aria-describedby');
@@ -709,12 +711,12 @@ describe('TournamentAuthoringTemplate component', () => {
     await screen.findByLabelText('Name');
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Liga A' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'liga-a' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
 
     await waitFor(() => {

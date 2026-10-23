@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { ActivityEntry } from '../lib/dashboard.js';
-import { formatActivityAction } from '../lib/activity-formatting.js';
+import { formatActivityAction, formatActivityReason } from '../lib/activity-formatting.js';
 import { messages } from '../i18n/messages.en.js';
 import { ResponsiveTimestamp } from '../../components/ui/atoms/ResponsiveTimestamp.js';
 import { Badge } from './ui/atoms/badge.js';
@@ -73,7 +73,9 @@ export function ActivityLog({
         emptyMessage={intl.formatMessage(messages.dashboardNoActivityYet)}
         renderRowDetail={(entry) =>
           entry.reason === undefined ? null : (
-            <span className="cl-activity-feed__reason">{entry.reason}</span>
+            <span className="cl-activity-feed__reason">
+              {formatActivityReason(entry.reason, locale)}
+            </span>
           )
         }
         rowKey={(entry) => entry.auditId}

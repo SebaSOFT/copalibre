@@ -194,7 +194,7 @@ describe('StageHubPage', () => {
     fireEvent.change(screen.getByLabelText('New stage name'), {
       target: { value: 'Fase renombrada' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rename stage' }));
 
     await waitFor(() =>
       expect(updateStage).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 1, {
@@ -335,7 +335,7 @@ describe('StageHubPage', () => {
 
     await waitFor(() => screen.getByLabelText('New stage name'));
     fireEvent.change(screen.getByLabelText('New stage name'), { target: { value: 'X' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rename stage' }));
 
     expect(await screen.findByText('The request could not be completed. Try again.')).toBeTruthy();
   });

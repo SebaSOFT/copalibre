@@ -218,7 +218,9 @@ describe('TournamentRulesetPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
 
     await screen.findByText(/audited correction workflow/);
-    expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      (screen.getByRole('button', { name: 'Save settings' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
     expect(updateRulesetOverrides).not.toHaveBeenCalled();
   });
 
@@ -247,7 +249,7 @@ describe('TournamentRulesetPage', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add field' }));
     fireEvent.change(screen.getByLabelText('Points per loss'), { target: { value: '2' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
 
     await waitFor(() =>
       expect(updateRulesetOverrides).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', {
@@ -316,7 +318,7 @@ describe('TournamentRulesetPage', () => {
     await screen.findByLabelText('Points per win');
     fireEvent.change(screen.getByLabelText('Points per win'), { target: { value: '4' } });
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
 
     // Neither call throws or crashes the screen; the fields remain as edited.
     await waitFor(() =>
@@ -339,7 +341,7 @@ describe('TournamentRulesetPage', () => {
     );
 
     await screen.findByLabelText('Points per win');
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
 
     expect(updateRulesetOverrides).not.toHaveBeenCalled();
   });
@@ -419,7 +421,7 @@ describe('TournamentRulesetPage', () => {
 
     await screen.findByLabelText('Points per win');
     fireEvent.change(screen.getByLabelText('Points per win'), { target: { value: '4' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
 
     expect(await screen.findByText('conflict')).toBeDefined();
   });
@@ -526,7 +528,7 @@ describe('TournamentRulesetPage', () => {
 
     await screen.findByLabelText('Neutral ground required');
     fireEvent.click(screen.getByRole('checkbox'));
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
 
     await waitFor(() =>
       expect(updateRulesetOverrides).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', {
@@ -567,7 +569,7 @@ describe('TournamentRulesetPage', () => {
       target: { value: 'goals-against' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
 
     await waitFor(() =>
       expect(updateRulesetOverrides).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', {

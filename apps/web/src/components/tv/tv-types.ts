@@ -25,6 +25,10 @@ export interface TvDashboardLabels {
   readonly playedColumn: string;
   readonly noTopPerformers: string;
   readonly focalPanelLabel: string;
+  readonly focalPanelTitle: string;
+  readonly recapTitle: string;
+  /** Raw `{stage}`/`{match}` template naming the spotlight match. */
+  readonly stageMatch: string;
   readonly matchEventsLabel: string;
   readonly statsAndTablesLabel: string;
   readonly sidebarSectionsLabel: string;

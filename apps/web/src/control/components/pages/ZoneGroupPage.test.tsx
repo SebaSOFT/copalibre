@@ -102,7 +102,7 @@ describe('ZoneGroupPage', () => {
     fireEvent.change(screen.getByLabelText('Rename zone Zona Campeonato'), {
       target: { value: 'Zona Renombrada' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rename zone' }));
 
     expect(await screen.findByText('The request could not be completed. Try again.')).toBeDefined();
   });
@@ -150,7 +150,7 @@ describe('ZoneGroupPage', () => {
     await waitFor(() => screen.getAllByText('Zona Campeonato'));
     const input = screen.getByLabelText('Rename zone Zona Campeonato') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'Zona Campeonato (corregida)' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rename zone' }));
 
     await waitFor(() => expect(renameZone).toHaveBeenCalled());
     expect(renameZone).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 1, 1, {
@@ -204,7 +204,7 @@ describe('ZoneGroupPage', () => {
     await waitFor(() => screen.getAllByText('Grupo A'));
     const input = screen.getByLabelText('Rename group Grupo A') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'Grupo A (corregido)' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rename group' }));
 
     await waitFor(() => expect(renameGroup).toHaveBeenCalled());
     expect(renameGroup).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 1, 1, 1, {

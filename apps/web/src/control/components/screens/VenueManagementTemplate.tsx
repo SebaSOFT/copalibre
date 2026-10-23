@@ -242,7 +242,7 @@ export function VenueManagementTemplate({
               <li key={venue.venueId} className="cl-role-user">
                 <span>{venue.name}</span>
                 <Button onClick={() => selectVenue(venue)} type="button" variant="secondary">
-                  <FormattedMessage {...messages.resourceManagementEdit} />
+                  <FormattedMessage {...messages.resourceManagementEditVenue} />
                 </Button>
               </li>
             ))}
@@ -430,7 +430,7 @@ export function VenueManagementTemplate({
                     type="button"
                     variant="secondary"
                   >
-                    <FormattedMessage {...messages.resourceManagementEdit} />
+                    <FormattedMessage {...messages.resourceManagementEditSchedule} />
                   </Button>
                   <Button
                     onClick={() => void deleteSchedule(schedule.scheduleId)}
@@ -589,7 +589,7 @@ export function VenueManagementTemplate({
                   ))}
                 </Inline>
                 <Button onClick={() => selectOfficial(official)} type="button" variant="secondary">
-                  <FormattedMessage {...messages.resourceManagementEdit} />
+                  <FormattedMessage {...messages.resourceManagementEditOfficial} />
                 </Button>
               </li>
             ))}

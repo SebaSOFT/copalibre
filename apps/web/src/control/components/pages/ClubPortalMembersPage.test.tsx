@@ -103,7 +103,7 @@ describe('ClubPortalMembersPage', () => {
     );
 
     await waitFor(() => screen.getByText('Elías Salomón'));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit members' }));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Nombre Corregido' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'alias-corregido' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -192,7 +192,7 @@ describe('ClubPortalMembersPage', () => {
     );
 
     await waitFor(() => screen.getByText('Elías Salomón'));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit members' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => screen.getByText('The request could not be completed. Try again.'));

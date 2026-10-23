@@ -22,6 +22,16 @@ import { RadioGroup, RadioGroupItem } from './radio.js';
 import { FilePicker } from './file-picker.js';
 import { Form } from './form.js';
 
+const FILE_PICKER_COPY = {
+  clearLabel: 'Clear selected file',
+  promptText: 'Choose a file or drag it here.',
+  promptDraggingText: 'Drop file here',
+  acceptedFormatsLabel: 'Accepted formats: .png,.jpg',
+  maxSizeLabel: 'Max size: 1 MB',
+  clearButtonText: 'Clear',
+  formatFilesSelected: (count: number) => `${count} files selected`,
+};
+
 describe('form-control atoms', () => {
   it('renders the default and error state classes for Input', () => {
     const { rerender } = render(<Input aria-label="Email" value="" onChange={() => {}} />);
@@ -170,6 +180,7 @@ describe('form-control atoms', () => {
         label="Avatar image"
         accept=".png,.jpg"
         maxSizeBytes={1024 * 1024}
+        {...FILE_PICKER_COPY}
         onChange={onChange}
       />,
     );
@@ -187,6 +198,7 @@ describe('form-control atoms', () => {
         label="Avatar image"
         accept=".png,.jpg"
         error="Invalid file type"
+        {...FILE_PICKER_COPY}
         onChange={onChange}
       />,
     );
@@ -201,7 +213,8 @@ describe('form-control atoms', () => {
         label="Imagen de perfil"
         accept=".png,.jpg"
         maxSizeBytes={1024 * 1024}
-        promptText="Elegí un archivo o arrastralo aquí"
+        clearLabel="Quitar archivo seleccionado"
+        promptText="Elegí un archivo o arrastralo aquí."
         promptDraggingText="Soltá el archivo aquí"
         acceptedFormatsLabel="Formatos aceptados: .png,.jpg"
         maxSizeLabel="Tamaño máximo: 1 MB"
@@ -211,14 +224,31 @@ describe('form-control atoms', () => {
       />,
     );
 
-    expect(screen.getByText('Elegí un archivo o arrastralo aquí')).toBeDefined();
+    expect(screen.getByText('Elegí un archivo o arrastralo aquí.')).toBeDefined();
     expect(screen.getByText('Formatos aceptados: .png,.jpg • Tamaño máximo: 1 MB')).toBeDefined();
-    expect(screen.queryByText('Choose a file or drag here')).toBeNull();
+    expect(screen.queryByText('Choose a file or drag it here.')).toBeNull();
     expect(screen.queryByText(/Accepted formats/)).toBeNull();
   });
 
+  it('keeps image-format guidance readable after the upload prompt', () => {
+    const { container } = render(
+      <FilePicker
+        id="image-picker"
+        label="Organization emblem"
+        accept="image/*"
+        {...FILE_PICKER_COPY}
+        acceptedFormatsLabel="PNG, JPG, SVG or WebP."
+      />,
+    );
+
+    expect(container.querySelector('.cl-file-picker__prompt')?.textContent).toBe(
+      'Choose a file or drag it here. PNG, JPG, SVG or WebP.',
+    );
+    expect(screen.queryByText(/image\/\*/)).toBeNull();
+  });
+
   it('handles keyboard activation on FilePicker drop zone', () => {
-    render(<FilePicker id="keyboard-file" label="Upload document" />);
+    render(<FilePicker id="keyboard-file" label="Upload document" {...FILE_PICKER_COPY} />);
     const input = screen.getByLabelText('Upload document') as HTMLInputElement;
     const clickSpy = jest.spyOn(input, 'click').mockImplementation(() => {});
     const zone = input.closest('.cl-file-picker')?.querySelector('.cl-file-picker__zone');
@@ -238,6 +268,7 @@ describe('form-control atoms', () => {
         label="Upload test"
         hint="Help text"
         required
+        {...FILE_PICKER_COPY}
         onChange={onChange}
         onClear={onClear}
       />,
@@ -278,7 +309,13 @@ describe('form-control atoms', () => {
 
     // Disabled state
     rerender(
-      <FilePicker id="file-interactions" label="Upload test" disabled onChange={onChange} />,
+      <FilePicker
+        id="file-interactions"
+        label="Upload test"
+        disabled
+        {...FILE_PICKER_COPY}
+        onChange={onChange}
+      />,
     );
     clickSpy.mockClear();
     if (zone) {

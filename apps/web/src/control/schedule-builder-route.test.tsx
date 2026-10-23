@@ -209,7 +209,7 @@ describe('ScheduleBuilderPage', () => {
     expect(previewSchedule).toHaveBeenCalled();
 
     await act(async () => {
-      fireEvent.click(screen.getByText('Publish'));
+      fireEvent.click(screen.getByText('Publish schedule'));
     });
     expect(publishSchedule).toHaveBeenCalled();
     await screen.findByText('Schedule published.');
@@ -282,7 +282,7 @@ describe('ScheduleBuilderPage', () => {
       fireEvent.click(screen.getByText('Preview'));
     });
     await act(async () => {
-      fireEvent.click(screen.getByText('Publish'));
+      fireEvent.click(screen.getByText('Publish schedule'));
     });
 
     const dialog = await screen.findByRole('dialog');
@@ -441,7 +441,7 @@ describe('ScheduleBuilderPage', () => {
     );
     // The API's English diagnostic, with its identifiers, is never shown.
     expect(screen.queryByText(/hosts 1 fixture/)).toBeNull();
-    expect((screen.getByText('Publish') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByText('Publish schedule') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('a fixture touching a finalized match is refused and surfaced', async () => {
@@ -487,7 +487,7 @@ describe('ScheduleBuilderPage', () => {
       'Club Alfa vs Club Bravo is finalized: its schedule is a record and can no longer change',
     );
     expect(screen.queryByText(/fixture-1/)).toBeNull();
-    expect((screen.getByText('Publish') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByText('Publish schedule') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('lists the conflicts of a refused publish in words, not the server’s message', async () => {
@@ -535,7 +535,7 @@ describe('ScheduleBuilderPage', () => {
       fireEvent.click(screen.getByText('Preview'));
     });
     await act(async () => {
-      fireEvent.click(screen.getByText('Publish'));
+      fireEvent.click(screen.getByText('Publish schedule'));
     });
 
     await screen.findByText('The schedule was not published: it now has conflicts, listed below.');
@@ -545,7 +545,7 @@ describe('ScheduleBuilderPage', () => {
       ),
     ).toBeTruthy();
     expect(screen.queryByText(/entrant-a/)).toBeNull();
-    expect((screen.getByText('Publish') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByText('Publish schedule') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('surfaces the server’s own refusal message on a failed publish', async () => {
@@ -576,7 +576,7 @@ describe('ScheduleBuilderPage', () => {
       fireEvent.click(screen.getByText('Preview'));
     });
     await act(async () => {
-      fireEvent.click(screen.getByText('Publish'));
+      fireEvent.click(screen.getByText('Publish schedule'));
     });
 
     await screen.findByText('El lote fue rechazado');
@@ -696,7 +696,7 @@ describe('ScheduleBuilderPage', () => {
       fireEvent.click(screen.getByText('Preview'));
     });
     await act(async () => {
-      fireEvent.click(screen.getByText('Publish'));
+      fireEvent.click(screen.getByText('Publish schedule'));
     });
 
     await screen.findByText('The request could not be completed. Try again.');
@@ -726,7 +726,7 @@ describe('ScheduleBuilderPage', () => {
 
     await screen.findAllByText(/Round 1/);
     expect((screen.getByText('Preview') as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByText('Publish') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByText('Publish schedule') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('reports a load failure', async () => {

@@ -297,7 +297,7 @@ describe('MatchCard undecided sides', () => {
         .querySelector('.cl-match-card__compact-content')
         ?.textContent?.replace(/\s+/g, ' ')
         .trim(),
-    ).toContain('W SF1 vs W SF2');
+    ).toContain('W Semi-final 1 vs W Semi-final 2');
   });
 });
 

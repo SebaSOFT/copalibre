@@ -727,10 +727,10 @@ structure border and paper text. Player photos use a 4:5 cover crop.
 
 ## Voice
 
-Button labels use a verb plus an object, such as “Publish schedule”. A success toast repeats that verb,
-such as “Schedule published”. Error messages say what failed and how to fix it, without apologizing.
-Catalogue strings use sentence case. CSS supplies uppercase styling; catalogue text stays in sentence
-case.
+Button labels name the action and its object: “Publish schedule”, “Save settings”, or “Rename stage”,
+not a bare “Publish”, “Save”, or “Rename”. A success toast repeats the action verb: “Publish schedule”
+leads to “Schedule published”. Error messages state what failed and give the next step, without
+apologizing. Catalogue strings use sentence case; CSS supplies uppercase styling.
 
 ## Public Casing
 

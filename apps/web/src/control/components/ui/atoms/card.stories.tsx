@@ -13,6 +13,7 @@ import {
 import { Button } from './button.js';
 import { FilePicker } from './file-picker.js';
 import { storyText } from '../story-text.js';
+import { filePickerLabels } from '../../../lib/file-picker-labels.js';
 
 /**
  * `card.tsx` exports a compound — `Card` plus five slot components — so its
@@ -93,12 +94,12 @@ function SurfaceSample({ base }: { readonly base: boolean }) {
           <FilePicker
             id={base ? 'base-selection' : 'panel-selection'}
             label={intl.formatMessage(storyText.reportTitle)}
-            clearLabel={intl.formatMessage(storyText.dismiss)}
             accept=".csv"
             maxSizeBytes={1024 * 1024}
             value={file}
             onChange={(files) => setFile(files?.[0] ?? null)}
             onClear={() => setFile(null)}
+            {...filePickerLabels(intl, { accept: '.csv', maxSizeBytes: 1024 * 1024 })}
           />
         </CardContent>
         <CardFooter>

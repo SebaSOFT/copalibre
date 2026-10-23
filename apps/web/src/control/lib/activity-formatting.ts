@@ -74,6 +74,16 @@ const ACTION_DESCRIPTIONS: Readonly<Record<string, LocalizedLabel>> = {
     ru: 'Матч создан',
     zh: '比赛已创建',
   },
+  'event.recorded': {
+    en: 'Event recorded',
+    es: 'Evento registrado',
+    fr: 'Événement enregistré',
+    pt: 'Evento registrado',
+    it: 'Evento registrato',
+    de: 'Ereignis erfasst',
+    ru: 'Событие записано',
+    zh: '事件已记录',
+  },
 
   // Registrations & entrants
   'entrant.registered': {
@@ -473,6 +483,16 @@ const ACTION_DESCRIPTIONS: Readonly<Record<string, LocalizedLabel>> = {
 };
 
 const REASON_DESCRIPTIONS: Readonly<Record<string, LocalizedLabel>> = {
+  'match finalized from recorded facts': {
+    en: 'Match finalized from recorded facts',
+    es: 'Partido finalizado a partir de los hechos registrados',
+    fr: 'Match finalisé à partir des faits enregistrés',
+    pt: 'Partida finalizada com base nos fatos registrados',
+    it: 'Partita finalizzata sulla base dei fatti registrati',
+    de: 'Spiel anhand der erfassten Fakten abgeschlossen',
+    ru: 'Матч завершён по зафиксированным фактам',
+    zh: '比赛已根据记录的事实结束',
+  },
   'Subject organization role is not authorized for this route': {
     en: 'Subject organization role is not authorized for this route',
     es: 'El rol en la organización no está autorizado para esta ruta',

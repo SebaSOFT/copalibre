@@ -147,7 +147,7 @@ test("edits a directly-added team's name from the screen and sees the change imm
   await page.waitForURL(`**${target}`);
 
   await page.getByText(TEAM_ID).click();
-  await page.getByRole('button', { name: 'Editar', exact: true }).click();
+  await page.getByRole('button', { name: 'Editar identidad', exact: true }).click();
 
   const dialog = page.getByRole('dialog', { name: 'Editar identidad' });
   await expect(dialog).toBeVisible();

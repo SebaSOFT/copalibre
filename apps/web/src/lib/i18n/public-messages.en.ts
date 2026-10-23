@@ -53,7 +53,7 @@ export const messages = defineMessages({
   },
   sideSourceSemiFinalShort: {
     id: 'publicWeb.sideSource.semiFinalShort',
-    defaultMessage: 'SF{position}',
+    defaultMessage: 'Semi-final {position}',
   },
   sideSourceQuarterFinal: {
     id: 'publicWeb.sideSource.quarterFinal',
@@ -61,7 +61,7 @@ export const messages = defineMessages({
   },
   sideSourceQuarterFinalShort: {
     id: 'publicWeb.sideSource.quarterFinalShort',
-    defaultMessage: 'QF{position}',
+    defaultMessage: 'Quarter-final {position}',
   },
   sideSourcePlace: { id: 'publicWeb.sideSource.place', defaultMessage: 'Place {place}' },
   sideSourcePlaces: { id: 'publicWeb.sideSource.places', defaultMessage: 'Places {from}–{to}' },
@@ -146,30 +146,33 @@ export const messages = defineMessages({
   },
 
   // Result-state labels (lib/result-state.ts)
-  resultStateLive: { id: 'publicWeb.resultState.live', defaultMessage: 'LIVE' },
-  resultStateUpcoming: { id: 'publicWeb.resultState.upcoming', defaultMessage: 'UPCOMING' },
-  resultStateFinal: { id: 'publicWeb.resultState.final', defaultMessage: 'FINAL' },
-  resultStateDisputed: { id: 'publicWeb.resultState.disputed', defaultMessage: 'DISPUTED' },
-  resultStateWinner: { id: 'publicWeb.resultState.winner', defaultMessage: 'WON' },
-  resultStateLoser: { id: 'publicWeb.resultState.loser', defaultMessage: 'LOST' },
-  resultStateTbd: { id: 'publicWeb.resultState.tbd', defaultMessage: 'TBD' },
-  resultStateCancelled: { id: 'publicWeb.resultState.cancelled', defaultMessage: 'CANCELLED' },
+  resultStateLive: { id: 'publicWeb.resultState.live', defaultMessage: 'Live' },
+  resultStateUpcoming: { id: 'publicWeb.resultState.upcoming', defaultMessage: 'Upcoming' },
+  resultStateFinal: { id: 'publicWeb.resultState.final', defaultMessage: 'Final' },
+  resultStateDisputed: { id: 'publicWeb.resultState.disputed', defaultMessage: 'Disputed' },
+  resultStateWinner: { id: 'publicWeb.resultState.winner', defaultMessage: 'Won' },
+  resultStateLoser: { id: 'publicWeb.resultState.loser', defaultMessage: 'Lost' },
+  resultStateTbd: { id: 'publicWeb.resultState.tbd', defaultMessage: 'To be determined' },
+  resultStateCancelled: { id: 'publicWeb.resultState.cancelled', defaultMessage: 'Cancelled' },
 
   // Result-reason badges (lib/bracket.ts, MatchNode.astro). `played` renders nothing.
   resultReasonAdministrativeLoss: {
     id: 'publicWeb.resultReason.administrativeLoss',
-    defaultMessage: 'ADMIN LOSS',
+    defaultMessage: 'Administrative loss',
   },
-  resultReasonWalkover: { id: 'publicWeb.resultReason.walkover', defaultMessage: 'W/O' },
+  resultReasonWalkover: { id: 'publicWeb.resultReason.walkover', defaultMessage: 'Walkover' },
   resultReasonForfeitAbandonment: {
     id: 'publicWeb.resultReason.forfeitAbandonment',
-    defaultMessage: 'FORFEIT',
+    defaultMessage: 'Forfeit by abandonment',
   },
   resultReasonDisqualified: {
     id: 'publicWeb.resultReason.disqualified',
-    defaultMessage: 'DISQUALIFIED',
+    defaultMessage: 'Disqualified',
   },
-  resultReasonDidNotFinish: { id: 'publicWeb.resultReason.didNotFinish', defaultMessage: 'DNF' },
+  resultReasonDidNotFinish: {
+    id: 'publicWeb.resultReason.didNotFinish',
+    defaultMessage: 'Did not finish',
+  },
 
   // ResultLegend.astro
   legendHeading: { id: 'publicWeb.legend.heading', defaultMessage: 'Legend' },
@@ -322,7 +325,7 @@ export const messages = defineMessages({
     defaultMessage: 'Standings appear once the first match is played.',
   },
   standingsTeam: { id: 'publicWeb.standings.team', defaultMessage: 'Team' },
-  standingsPlayed: { id: 'publicWeb.standings.played', defaultMessage: 'MP' },
+  standingsPlayed: { id: 'publicWeb.standings.played', defaultMessage: 'Played' },
   standingsPoints: { id: 'publicWeb.standings.points', defaultMessage: 'Pts' },
   standingsGrainSeries: {
     id: 'publicWeb.standings.grain.series',
@@ -370,8 +373,8 @@ export const messages = defineMessages({
   },
 
   // TournamentHero.astro
-  heroLiveCount: { id: 'publicWeb.hero.liveCount', defaultMessage: '{count} LIVE' },
-  heroNoLiveMatches: { id: 'publicWeb.hero.noLiveMatches', defaultMessage: 'NO LIVE MATCHES' },
+  heroLiveCount: { id: 'publicWeb.hero.liveCount', defaultMessage: '{count} live' },
+  heroNoLiveMatches: { id: 'publicWeb.hero.noLiveMatches', defaultMessage: 'No live matches' },
   heroTournamentEmblemAlt: {
     id: 'publicWeb.hero.tournamentEmblemAlt',
     defaultMessage: '{name} emblem',
@@ -654,6 +657,10 @@ export const messages = defineMessages({
 
   // pages/[organization]/tournaments/[tournament]/live.astro
   livePageTitle: { id: 'publicWeb.livePage.title', defaultMessage: 'Live' },
+  livePageMatchup: {
+    id: 'publicWeb.livePage.matchup',
+    defaultMessage: '{home} vs {away}',
+  },
   livePageBreadcrumb: { id: 'publicWeb.livePage.breadcrumb', defaultMessage: 'Breadcrumb' },
   breadcrumbStage: { id: 'publicWeb.breadcrumb.stage', defaultMessage: 'Stage {stage}' },
   breadcrumbMatch: { id: 'publicWeb.breadcrumb.match', defaultMessage: 'Match {match}' },
@@ -833,7 +840,7 @@ export const messages = defineMessages({
   // ScoreTicker.astro / tv-statistics.ts
   tickerLabel: { id: 'publicWeb.ticker.label', defaultMessage: 'Tournament ticker' },
   tickerLeader: { id: 'publicWeb.ticker.leader', defaultMessage: 'Leader' },
-  tickerVersus: { id: 'publicWeb.ticker.versus', defaultMessage: 'VS' },
+  tickerVersus: { id: 'publicWeb.ticker.versus', defaultMessage: 'vs' },
   // the ticker's own controls and conditions.
   tickerPause: { id: 'publicWeb.ticker.pause', defaultMessage: 'Pause the ticker' },
   tickerResume: { id: 'publicWeb.ticker.resume', defaultMessage: 'Resume the ticker' },
@@ -901,7 +908,7 @@ export const messages = defineMessages({
   },
   tvDashboardPlayedColumn: {
     id: 'publicWeb.tvDashboard.playedColumn',
-    defaultMessage: 'MP',
+    defaultMessage: 'Played',
   },
   tvDashboardNoTopPerformers: {
     id: 'publicWeb.tvDashboard.noTopPerformers',
@@ -910,6 +917,18 @@ export const messages = defineMessages({
   tvDashboardFocalPanelLabel: {
     id: 'publicWeb.tvDashboard.focalPanelLabel',
     defaultMessage: 'Main broadcast panel',
+  },
+  tvDashboardFeaturedMatchTitle: {
+    id: 'publicWeb.tvDashboard.featuredMatchTitle',
+    defaultMessage: 'Featured match',
+  },
+  tvDashboardRecapTitle: {
+    id: 'publicWeb.tvDashboard.recapTitle',
+    defaultMessage: 'Tournament recap',
+  },
+  tvDashboardStageMatch: {
+    id: 'publicWeb.tvDashboard.stageMatch',
+    defaultMessage: 'Stage {stage} · Match {match}',
   },
   // Pinned-match compact event ticker.
   tvDashboardMatchEventsLabel: {

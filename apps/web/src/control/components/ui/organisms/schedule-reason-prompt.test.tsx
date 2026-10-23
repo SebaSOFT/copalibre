@@ -36,6 +36,7 @@ const row = (label: string) => screen.getByRole('option', { name: new RegExp(lab
 describe('ScheduleReasonPrompt', () => {
   it('keeps publish disabled until every row is covered, then sends the batch reason', () => {
     const { onPublish, publish } = renderPrompt();
+    expect(screen.getByRole('dialog', { name: 'Publish schedule' })).toBeDefined();
     expect(publish()).toHaveProperty('disabled', true);
     expect(screen.getByText('3 matches still need a reason')).toBeTruthy();
 

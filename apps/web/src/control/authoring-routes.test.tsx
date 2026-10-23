@@ -92,12 +92,12 @@ describe('the tournament authoring route container', () => {
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
     });
@@ -130,12 +130,12 @@ describe('the tournament authoring route container', () => {
     await screen.findByLabelText('Name');
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Inválida' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-invalida' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
 
     expect(
@@ -413,7 +413,7 @@ describe('the registration review route container', () => {
     fireEvent.click(screen.getByText('person-1'));
     fireEvent.click(screen.getByText('Argentina'));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Save nationality' }));
     });
     expect(nationalityCalls).toEqual([
       { organizationAlias: 'liga-mendocina', personId: 'person-1', nationality: 'AR' },
@@ -636,13 +636,13 @@ describe('the registration review route container', () => {
     const summary = screen.getByText('team-1').closest('summary');
     expect(summary).not.toBeNull();
     fireEvent.click(summary as HTMLElement);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit identity' }));
 
     const nameField = screen.getByLabelText('Name') as HTMLInputElement;
     expect(nameField.value).toBe('team-1');
     fireEvent.change(nameField, { target: { value: 'Talleres FC' } });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Save identity' }));
     });
 
     expect(updated).toEqual([{ teamId: 'team-1', request: { name: 'Talleres FC' } }]);
@@ -684,12 +684,12 @@ describe('the registration review route container', () => {
     });
 
     fireEvent.click(screen.getByText('Mariano Otero'));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit identity' }));
 
     const nameField = screen.getByLabelText('Name') as HTMLInputElement;
     fireEvent.change(nameField, { target: { value: 'Mariano Otero (corrected)' } });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Save identity' }));
     });
 
     expect(updated).toEqual([

@@ -103,37 +103,63 @@ describe('publicIntl formats real translated text, not an English fallback', () 
 
   it('interpolates a value into an ICU template in the resolved language', () => {
     const es = publicIntl('es');
-    expect(es.formatMessage(messages.heroLiveCount, { count: 3 })).toBe('3 EN VIVO');
+    expect(es.formatMessage(messages.heroLiveCount, { count: 3 })).toBe('3 en vivo');
 
     const en = publicIntl('en');
-    expect(en.formatMessage(messages.heroLiveCount, { count: 3 })).toBe('3 LIVE');
+    expect(en.formatMessage(messages.heroLiveCount, { count: 3 })).toBe('3 live');
 
     const de = publicIntl('de');
-    expect(de.formatMessage(messages.heroLiveCount, { count: 3 })).toBe('3 LIVE');
+    expect(de.formatMessage(messages.heroLiveCount, { count: 3 })).toBe('3 live');
+  });
+
+  it('formats live matchups with a localized separator and spaces', () => {
+    const cases = [
+      ['en', 'Centro Valenciano vs Casa de Italia'],
+      ['es', 'Centro Valenciano vs Casa de Italia'],
+      ['pt', 'Centro Valenciano vs Casa de Italia'],
+      ['fr', 'Centro Valenciano contre Casa de Italia'],
+      ['it', 'Centro Valenciano contro Casa de Italia'],
+      ['de', 'Centro Valenciano gegen Casa de Italia'],
+      ['ru', 'Centro Valenciano против Casa de Italia'],
+      ['zh', 'Centro Valenciano 对阵 Casa de Italia'],
+    ] as const;
+
+    for (const [language, expected] of cases) {
+      expect(
+        publicIntl(language).formatMessage(messages.livePageMatchup, {
+          home: 'Centro Valenciano',
+          away: 'Casa de Italia',
+        }),
+      ).toBe(expected);
+    }
   });
 
   it('resolves every result-state label at once', () => {
     const labels = resultStateLabels(publicIntl('es'));
-    expect(labels.live).toBe('EN VIVO');
-    expect(labels.upcoming).toBe('PROGRAMADO');
-    expect(labels.final).toBe('FINALIZADO');
-    expect(labels.disputed).toBe('EN DISPUTA');
-    expect(labels.winner).toBe('GANÓ');
-    expect(labels.loser).toBe('PERDIÓ');
-    expect(labels.tbd).toBe('A DEFINIR');
-    expect(labels.cancelled).toBe('CANCELADO');
+    expect(labels.live).toBe('En vivo');
+    expect(labels.upcoming).toBe('Programado');
+    expect(labels.final).toBe('Finalizado');
+    expect(labels.disputed).toBe('En disputa');
+    expect(labels.winner).toBe('Ganó');
+    expect(labels.loser).toBe('Perdió');
+    expect(labels.tbd).toBe('A definir');
+    expect(labels.cancelled).toBe('Cancelado');
+
+    const englishLabels = resultStateLabels(publicIntl('en'));
+    expect(englishLabels.live).toBe('Live');
+    expect(englishLabels.final).toBe('Final');
   });
 
   it('resolves every non-played result-reason label at once', () => {
     const labels = resultReasonLabels(publicIntl('es'));
-    expect(labels.walkover).toBe('W/O');
-    expect(labels.disqualified).toBe('DESCALIFICADO');
-    expect(labels['administrative-loss']).toBe('DERROTA ADM.');
-    expect(labels['forfeit-abandonment']).toBe('ABANDONO');
-    expect(labels['did-not-finish']).toBe('NO TERMINÓ');
+    expect(labels.walkover).toBe('Victoria por incomparecencia');
+    expect(labels.disqualified).toBe('Descalificado');
+    expect(labels['administrative-loss']).toBe('Derrota administrativa');
+    expect(labels['forfeit-abandonment']).toBe('Abandono');
+    expect(labels['did-not-finish']).toBe('No terminó');
 
     const en = resultReasonLabels(publicIntl('en'));
-    expect(en.walkover).toBe('W/O');
+    expect(en.walkover).toBe('Walkover');
   });
 
   it('resolves matches-view labels as unfilled {placeholder} templates, not formatted values', () => {
@@ -145,7 +171,7 @@ describe('publicIntl formats real translated text, not an English fallback', () 
     expect(labels.decidedBy).toBe('Decidido por: {factor}');
     expect(labels.seriesAriaLabel).toBe('Serie al mejor de {bestOf}: {home} a {away}');
     expect(labels.filters.live).toBe('En vivo');
-    expect(labels.state.final).toBe('FINALIZADO');
+    expect(labels.state.final).toBe('Finalizado');
   });
 });
 

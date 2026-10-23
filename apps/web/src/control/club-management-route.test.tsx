@@ -59,7 +59,7 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit club'));
 
     const nameInput = await screen.findByLabelText('Name');
     fireEvent.change(nameInput, { target: { value: 'Casa de Italia Renombrada' } });
@@ -86,7 +86,7 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit club'));
     await screen.findByLabelText('Name');
 
     const file = new File(['fake-bytes'], 'emblem.png', { type: 'image/png' });
@@ -229,7 +229,7 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit club'));
     await screen.findByLabelText('Name');
     await act(async () => {
       fireEvent.click(screen.getByText('Save changes'));
@@ -243,7 +243,7 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit club'));
     await screen.findByLabelText('Name');
     await act(async () => {
       fireEvent.click(screen.getByText('Save changes'));
@@ -260,7 +260,7 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit club'));
     await screen.findByLabelText('Name');
 
     const file = new File(['fake-bytes'], 'emblem.png', { type: 'image/png' });
@@ -299,7 +299,7 @@ describe('ClubManagementPage', () => {
       '/organizations/liga-mendocina/clubs/club-1/emblem',
     );
 
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit club'));
     const selectedEmblem = await screen.findByRole('img', { name: 'Casa de Italia' });
     expect(selectedEmblem.querySelector('img')?.getAttribute('src')).toContain(
       '/organizations/liga-mendocina/clubs/club-1/emblem',

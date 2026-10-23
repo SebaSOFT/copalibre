@@ -113,7 +113,7 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
     fireEvent.click(screen.getByText('Elías Salomón'));
 
     fireEvent.click(screen.getByText('Argentina'));
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save nationality' }));
 
     expect(onSetNationality).toHaveBeenCalledWith('person-1', 'AR');
   });

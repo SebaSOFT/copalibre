@@ -104,7 +104,7 @@ describe('ClubManagementPage', () => {
     );
 
     await waitFor(() => screen.getByText('Club Atlético Huracán Las Heras'));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit club' }));
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'nuevo-alias' } });
     fireEvent.change(screen.getByLabelText('Abbreviation'), { target: { value: 'NEW' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -159,7 +159,7 @@ describe('ClubManagementPage', () => {
     );
 
     await waitFor(() => screen.getByText('Club Atlético Huracán Las Heras'));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit club' }));
 
     const file = new File(['fake-bytes'], 'emblem.png', { type: 'image/png' });
     const input = screen.getByLabelText('Upload emblem') as HTMLInputElement;
@@ -186,7 +186,7 @@ describe('ClubManagementPage', () => {
     );
 
     await waitFor(() => screen.getByText('Club Atlético Huracán Las Heras'));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit club' }));
 
     const file = new File(['fake-bytes'], 'emblem.png', { type: 'image/png' });
     const input = screen.getByLabelText('Upload emblem') as HTMLInputElement;

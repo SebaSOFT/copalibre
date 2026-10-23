@@ -252,7 +252,7 @@ test('a published move reaches public pages, kiosk and another builder without a
     await surface.evaluate(() => Object.assign(window, { documentMarker: 'same-document' }));
   await page.getByLabel('Hora de inicio — Club Alfa vs Club Bravo').selectOption('slot-2');
   await page.getByText('Previsualizar', { exact: true }).click();
-  await page.getByText('Publicar', { exact: true }).click();
+  await page.getByText('Publicar calendario', { exact: true }).click();
   await page.getByRole('dialog').getByLabel('Motivo del lote').fill('Cancha 1 sin luz');
   await page
     .getByRole('dialog')

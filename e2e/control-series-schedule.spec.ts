@@ -204,7 +204,7 @@ test('7.1: places each game of a best-of-five in its own slot, marking four and 
   }
 
   await page.getByText('Previsualizar').click();
-  await page.getByText('Publicar').click();
+  await page.getByRole('button', { name: 'Publicar calendario', exact: true }).click();
   await expect(page.getByText('Horario publicado.')).toBeVisible();
 });
 

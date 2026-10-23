@@ -219,7 +219,7 @@ export function ScheduleReasonPrompt({
       }
       onOpenChange={onOpenChange}
       open={open}
-      title={intl.formatMessage(messages.reasonPromptTitle)}
+      title={intl.formatMessage(messages.scheduleBuilderPublish)}
     >
       {/* Enter publishes from anywhere in the prompt once every row is covered — unless a
           suggestion list or a row already took the key for itself. */}

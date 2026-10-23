@@ -102,7 +102,7 @@ test('finished multi-zone overview shows shared champions and known third place'
   await expect(podium.getByText('Runner Club', { exact: true })).toBeVisible();
 
   const row = page.locator('.cl-match-schedule').getByRole('row').filter({ hasText: 'Andes' });
-  await expect(row).toContainText('FINAL');
+  await expect(row).toContainText('Final');
   const timestamp = row.locator('time');
   await expect(timestamp).toHaveAttribute('datetime', match.scheduledAt);
   await expect(timestamp).not.toContainText('2025-05-18T');

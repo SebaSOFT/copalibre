@@ -10,14 +10,14 @@ import { publicIntl, tvDashboardLabels, tvStatisticsLabels } from '../../lib/i18
 const tvLabels = tvStatisticsLabels(publicIntl('en'));
 const dashboardLabels = tvDashboardLabels(publicIntl('en'));
 const FRENCH_RESULT_STATE_LABELS = [
-  { state: 'live', label: 'EN DIRECT' },
-  { state: 'upcoming', label: 'À VENIR' },
-  { state: 'final', label: 'FINAL' },
-  { state: 'disputed', label: 'EN LITIGE' },
-  { state: 'winner', label: 'GAGNÉ' },
-  { state: 'loser', label: 'PERDU' },
-  { state: 'tbd', label: 'À DÉFINIR' },
-  { state: 'cancelled', label: 'ANNULÉ' },
+  { state: 'live', label: 'En direct' },
+  { state: 'upcoming', label: 'À venir' },
+  { state: 'final', label: 'Final' },
+  { state: 'disputed', label: 'En litige' },
+  { state: 'winner', label: 'Gagné' },
+  { state: 'loser', label: 'Perdu' },
+  { state: 'tbd', label: 'À définir' },
+  { state: 'cancelled', label: 'Annulé' },
 ] as const;
 
 describe('TvDashboard', () => {
@@ -368,7 +368,7 @@ describe('TvDashboard', () => {
       );
 
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
-      expect(screen.queryByText('EN VIVO')).toBeNull();
+      expect(screen.queryByText('En vivo')).toBeNull();
     },
   );
 
@@ -1234,8 +1234,25 @@ describe('TvDashboard pinned match and views', () => {
     const spotlight = screen.getByTestId('tv-match-spotlight');
     expect(spotlight.textContent).toContain('Epsilon');
     expect(spotlight.textContent).toContain('Zeta');
-    expect(spotlight.textContent).toContain('Partido 3');
+    expect(spotlight.textContent).toContain('Match 3');
     expect(spotlight.textContent).not.toContain('Alfa');
+  });
+
+  it('uses localized copy for the focal title and match stage', () => {
+    renderTv({
+      dashboardLabels: tvDashboardLabels(publicIntl('es')),
+      initial: stageOfThree('live'),
+      language: 'es',
+    });
+
+    expect(screen.getByText('Partido destacado')).toBeTruthy();
+    expect(screen.getByText('Etapa 1 · Partido 1')).toBeTruthy();
+  });
+
+  it('uses localized copy for the tournament recap title', () => {
+    renderTv({ dashboardLabels: tvDashboardLabels(publicIntl('es')), language: 'es' });
+
+    expect(screen.getByText('Resumen del campeonato')).toBeTruthy();
   });
 
   it('shows the data of a pinned match of a finished tournament, not the champion recap', () => {
