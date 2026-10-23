@@ -81,7 +81,7 @@ test('selecting a file opens the crop modal; confirming it uploads and renders t
   // This control shell defaults to Spanish; select English by value (not by
   // its translated label) so the rest of this spec's English assertions
   // hold regardless of that default.
-  await page.getByRole('combobox').selectOption('en');
+  await page.getByLabel('Idioma').selectOption('en');
 
   await expect(page.getByRole('img', { name: 'No emblem uploaded' })).toBeVisible();
 
@@ -145,7 +145,7 @@ test('cancelling the crop modal leaves the placeholder in place and uploads noth
   // This control shell defaults to Spanish; select English by value (not by
   // its translated label) so the rest of this spec's English assertions
   // hold regardless of that default.
-  await page.getByRole('combobox').selectOption('en');
+  await page.getByLabel('Idioma').selectOption('en');
 
   await expect(page.getByRole('img', { name: 'No emblem uploaded' })).toBeVisible();
 
@@ -306,7 +306,7 @@ test('uploading tournament emblem in control panel renders in tournament setting
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByRole('combobox').selectOption('en');
+  await page.getByLabel('Idioma').selectOption('en');
 
   await expect(page.getByRole('img', { name: 'No tournament emblem uploaded' })).toBeVisible();
 
@@ -355,7 +355,7 @@ test('focusing FilePicker and choosing a file displays the chosen filename and c
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByRole('combobox').selectOption('en');
+  await page.getByLabel('Idioma').selectOption('en');
 
   const fileInput = page.getByLabel('Upload emblem');
   await fileInput.focus();

@@ -16,6 +16,7 @@
 import type { IntlShape } from 'react-intl';
 import Logo from '../atoms/Logo.astro';
 import Icon from '../atoms/Icon.astro';
+import Button from '../atoms/Button.astro';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { getLocaleHomePath } from '../../../lib/locale.ts';
 import { swapLocale } from '../../../lib/locale-routing.ts';
@@ -77,6 +78,33 @@ const languageName = (code: string): string => {
             </a>
           </li>
         ))}
+        <li class="cl-public-header__theme" data-public-theme-picker hidden>
+          <details>
+            <summary aria-label={intl.formatMessage(messages.headerTheme)}>
+              <span>{intl.formatMessage(messages.headerTheme)}</span>
+              <span aria-hidden="true">·</span>
+              <span data-theme-current>{intl.formatMessage(messages.headerThemeSystem)}</span>
+              <span aria-hidden="true">⌄</span>
+            </summary>
+            <ul class="cl-public-header__theme-list">
+              <li>
+                <Button aria-pressed="false" data-theme-choice="system" variant="secondary">
+                  {intl.formatMessage(messages.headerThemeSystem)}
+                </Button>
+              </li>
+              <li>
+                <Button aria-pressed="false" data-theme-choice="light" variant="secondary">
+                  {intl.formatMessage(messages.headerThemeLight)}
+                </Button>
+              </li>
+              <li>
+                <Button aria-pressed="false" data-theme-choice="dark" variant="secondary">
+                  {intl.formatMessage(messages.headerThemeDark)}
+                </Button>
+              </li>
+            </ul>
+          </details>
+        </li>
       </ul>
       {/*
         No repeated action here. The reference puts one in its drawer because
@@ -147,6 +175,12 @@ const languageName = (code: string): string => {
 </header>
 
 <script>
+  import {
+    applyThemePreference,
+    isThemePreference,
+    readThemePreference,
+  } from '../../../lib/theme-preference.js';
+
   /*
     Enhancement only. Everything below starts from a page whose navigation is
     already there and already reachable; this closes it, reveals the control
@@ -199,6 +233,35 @@ const languageName = (code: string): string => {
 
   for (const toggle of document.querySelectorAll<HTMLButtonElement>('[data-public-nav-toggle]')) {
     enhanceHeader(toggle);
+  }
+
+  const themePicker = document.querySelector<HTMLElement>('[data-public-theme-picker]');
+  const themeDetails = themePicker?.querySelector('details');
+  const currentThemeLabel = themePicker?.querySelector<HTMLElement>('[data-theme-current]');
+  const themeChoices = Array.from(
+    themePicker?.querySelectorAll<HTMLButtonElement>('[data-theme-choice]') ?? [],
+  );
+  if (themePicker && themeDetails && currentThemeLabel && themeChoices.length > 0) {
+    const updateThemePicker = () => {
+      const preference = readThemePreference();
+      for (const choice of themeChoices) {
+        const selected = choice.dataset.themeChoice === preference;
+        choice.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        if (selected) currentThemeLabel.textContent = choice.textContent?.trim() ?? '';
+      }
+    };
+
+    themePicker.hidden = false;
+    updateThemePicker();
+    for (const choice of themeChoices) {
+      choice.addEventListener('click', () => {
+        const preference = choice.dataset.themeChoice;
+        if (!isThemePreference(preference)) return;
+        applyThemePreference(preference);
+        updateThemePicker();
+        themeDetails.open = false;
+      });
+    }
   }
 </script>
 

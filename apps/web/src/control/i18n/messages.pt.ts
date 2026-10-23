@@ -1333,6 +1333,10 @@ export const messages: Record<string, string> = {
   'control.liveConsole.createTournament': 'Criar torneio',
   'control.preferences.tokensLoading': 'Carregando…',
   'preferences.title': 'Preferências pessoais',
+  'control.preferences.theme': 'Tema',
+  'control.preferences.themeDark': 'Escuro',
+  'control.preferences.themeLight': 'Claro',
+  'control.preferences.themeSystem': 'Sistema',
   'preferences.patTitle': 'Tokens de acesso pessoal',
   'preferences.patDescription':
     'Gere tokens para acessar a API diretamente. Eles são exibidos apenas uma vez.',

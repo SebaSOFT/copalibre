@@ -323,6 +323,7 @@ test.describe('Control Panel Activity Feed and Theme Polish', () => {
   test('5.3: form controls on Clubs and Venues views do not render white browser defaults', async ({
     page,
   }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
     await setupMockApi(page);
 
     // 1. Check Clubs view form controls

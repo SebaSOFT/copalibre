@@ -3947,6 +3947,10 @@ export const messages = defineMessages({
     defaultMessage: 'Loading…',
   },
   preferencesTitle: { id: 'preferences.title', defaultMessage: 'Personal Preferences' },
+  preferencesThemeTitle: { id: 'control.preferences.theme', defaultMessage: 'Theme' },
+  preferencesThemeDark: { id: 'control.preferences.themeDark', defaultMessage: 'Dark' },
+  preferencesThemeLight: { id: 'control.preferences.themeLight', defaultMessage: 'Light' },
+  preferencesThemeSystem: { id: 'control.preferences.themeSystem', defaultMessage: 'System' },
   preferencesPatTitle: { id: 'preferences.patTitle', defaultMessage: 'Personal Access Tokens' },
   preferencesPatDescription: {
     id: 'preferences.patDescription',

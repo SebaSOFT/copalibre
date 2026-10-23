@@ -36,9 +36,24 @@ export const COLOR_PRIMITIVES = {
   'red-500': '#EF4444',
   /** Example only. An organizer replaces it; it may never override a state token. */
   'team-accent': '#FF2E88',
+  'light-ink-950': '#E3E8EF',
+  'light-ink-900': '#F8FAFC',
+  'light-ink-930': '#EDF1F6',
+  'light-ink-850': '#D3DAE4',
+  'light-ink-700': '#8C9AB5',
+  'light-control-border': '#5B6884',
+  'light-text-950': '#05070D',
+  'light-text-900': '#263049',
+  'light-text-800': '#46536B',
+  'light-cyan-800': '#00586B',
+  'light-cyan-100': '#C4EEF8',
+  'light-amber-900': '#6B3A00',
+  'light-green-800': '#116B32',
+  'light-red-800': '#B01818',
 } as const;
 
 export type ColorPrimitive = keyof typeof COLOR_PRIMITIVES;
+export type ColorTheme = 'dark' | 'light';
 
 /**
  * Where the Latin and script-specific brand faces come from.

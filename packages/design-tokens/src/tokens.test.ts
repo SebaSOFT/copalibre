@@ -49,6 +49,39 @@ describe('the token source', () => {
   it('resolves a semantic token to its primitive', () => {
     expect(resolveSemantic('state-live')).toBe(COLOR_PRIMITIVES['cyan-400']);
     expect(resolveSemantic('state-warning')).toBe(COLOR_PRIMITIVES['amber-400']);
+    expect(resolveSemantic('state-live', 'light')).toBe(COLOR_PRIMITIVES['light-cyan-800']);
+    expect(resolveSemantic('primary', 'light')).toBe(COLOR_PRIMITIVES['cyan-400']);
+  });
+
+  it.each([
+    ['body text on panel', 'text-primary', 'surface-panel', 4.5],
+    ['secondary text on panel', 'text-secondary', 'surface-panel', 4.5],
+    ['emblem monogram on frame', 'text-on-emblem-frame', 'surface-emblem-frame', 4.5],
+    ['muted labels on chrome', 'text-muted', 'surface-chrome', 4.5],
+    ['accent text on panel', 'text-accent', 'surface-panel', 4.5],
+    ['live text on panel', 'state-live', 'surface-panel', 4.5],
+    ['upcoming text on chrome', 'state-upcoming', 'surface-chrome', 4.5],
+    ['positive text on chrome', 'state-positive', 'surface-chrome', 4.5],
+    ['destructive text on panel', 'state-destructive', 'surface-panel', 4.5],
+    ['form boundaries on chrome', 'border-control', 'surface-chrome', 3],
+    ['focus ring on panel', 'focus-ring', 'surface-panel', 3],
+    ['primary action text on fill', 'primary-text', 'primary', 4.5],
+  ] as const)(
+    'meets the L3 Sunlight contrast contract for %s',
+    (_name, foreground, background, minimum) => {
+      expect(
+        contrastRatio(resolveSemantic(foreground, 'light'), resolveSemantic(background, 'light')),
+      ).toBeGreaterThanOrEqual(minimum);
+    },
+  );
+
+  it('keeps the decorative L3 structure hairline below the non-text indicator threshold', () => {
+    expect(
+      contrastRatio(
+        resolveSemantic('border-muted', 'light'),
+        resolveSemantic('surface-panel', 'light'),
+      ),
+    ).toBeCloseTo(2.71, 1);
   });
 
   it('gives every state a non-colour cue', () => {
@@ -262,11 +295,53 @@ describe('the badge contract', () => {
 describe('the CSS output', () => {
   const css = generateCss();
 
+  it('emits dark defaults and both guarded and explicit L3 theme blocks', () => {
+    expect(css).toContain(':root {\n  color-scheme: dark;');
+    expect(css).toContain(
+      '@media (prefers-color-scheme: light) {\n  :root:not([data-theme="dark"]) {',
+    );
+    expect(css).toContain(':root[data-theme="light"] {\n  color-scheme: light;');
+    expect(css).toContain('--cl-glow-cyan: 0 0 0 2px var(--cl-color-light-cyan-800);');
+    expect(css).toContain('--cl-chart-1: var(--cl-chart-1-light);');
+  });
+
   it('generates a token-backed rule for every badge tone', () => {
     for (const [name, tone] of Object.entries(BADGE_TONES)) {
       expect(css).toContain(`--cl-badge-${name}-color: var(--cl-${tone.color});`);
+      expect(css).toContain(
+        `--cl-badge-${name}-background: color-mix(in srgb, var(--cl-badge-${name}-color) 15%, transparent);`,
+      );
       expect(css).toContain(`.cl-badge--${name} {`);
       expect(css).toContain(`color: var(--cl-badge-${name}-color);`);
+    }
+    expect(css).toContain(
+      '--cl-badge-verified-background: color-mix(in srgb, var(--cl-state-positive) 15%, transparent);',
+    );
+  });
+
+  it('keeps positive badges above AA with a tinted panel surface in the light theme', () => {
+    const foreground = resolveSemantic('state-positive', 'light');
+    const panel = resolveSemantic('surface-panel', 'light');
+    const channels = (value: string) =>
+      value.match(/[0-9a-f]{2}/gi)?.map((part) => parseInt(part, 16));
+    const foregroundChannels = channels(foreground);
+    const panelChannels = channels(panel);
+    const tintedPanel = `#${foregroundChannels
+      ?.map((channel, index) =>
+        Math.round((channel ?? 0) * 0.15 + (panelChannels?.[index] ?? 0) * 0.85)
+          .toString(16)
+          .padStart(2, '0'),
+      )
+      .join('')}`;
+
+    expect(contrastRatio(foreground, tintedPanel)).toBeGreaterThanOrEqual(
+      CONTRAST_GATES.normalText,
+    );
+    for (const name of ['final', 'positive', 'verified']) {
+      expect(css).toContain(
+        `--cl-badge-${name}-background: color-mix(in srgb, var(--cl-state-positive) 15%, var(--cl-surface-panel));`,
+      );
+      expect(css).toContain(`.cl-badge--${name} { background: var(--cl-badge-${name}-background,`);
     }
   });
 
@@ -274,6 +349,11 @@ describe('the CSS output', () => {
     expect(css).toContain(
       '.cl-inline-alert--warning { border-left-color: var(--cl-state-warning); }',
     );
+  });
+
+  it('leaves native calendar icons to the active color scheme', () => {
+    expect(css).toContain('.cl-input::-webkit-calendar-picker-indicator {');
+    expect(css).not.toContain('filter: invert(0.8);');
   });
 
   it('uses cyan for informational alert rims and pulses live alerts in green', () => {
@@ -384,7 +464,7 @@ describe('the CSS output', () => {
     expect(css).not.toMatch(/\.cl-image-frame\s*\{[^}]*clip-path/);
   });
 
-  it('meets AA for text and essential indicators on every surface level', () => {
+  it('meets AA for text and essential indicators on every surface level in both themes', () => {
     // Every level a container can resolve to, including the two row steps this
     // change adds. A level whose body text fails here is a level nobody can
     // read on, which is the failure adding surfaces quietly introduces.
@@ -398,22 +478,24 @@ describe('the CSS output', () => {
       'surface-row-alt',
     ] as const;
 
-    for (const level of levels) {
-      const background = COLOR_PRIMITIVES[SEMANTIC_COLORS[level].primitive];
-      expect(
-        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['text-primary'].primitive], background),
-      ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
-      expect(
-        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['text-secondary'].primitive], background),
-      ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
-      // Muted panel separators are decorative. Essential indicators must use
-      // the strong role; a 1.2:1 separator is not a WCAG non-text AA pass.
-      expect(
-        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['border-strong'].primitive], background),
-      ).toBeGreaterThanOrEqual(CONTRAST_GATES.nonTextIndicator);
-      expect(
-        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['focus-ring'].primitive], background),
-      ).toBeGreaterThanOrEqual(CONTRAST_GATES.nonTextIndicator);
+    for (const theme of ['dark', 'light'] as const) {
+      for (const level of levels) {
+        const background = resolveSemantic(level, theme);
+        expect(
+          contrastRatio(resolveSemantic('text-primary', theme), background),
+        ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+        expect(
+          contrastRatio(resolveSemantic('text-secondary', theme), background),
+        ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+        // Muted panel separators are decorative. Essential indicators must use
+        // the strong role; a 1.2:1 separator is not a WCAG non-text AA pass.
+        expect(
+          contrastRatio(resolveSemantic('border-strong', theme), background),
+        ).toBeGreaterThanOrEqual(CONTRAST_GATES.nonTextIndicator);
+        expect(
+          contrastRatio(resolveSemantic('focus-ring', theme), background),
+        ).toBeGreaterThanOrEqual(CONTRAST_GATES.nonTextIndicator);
+      }
     }
   });
 
@@ -423,19 +505,19 @@ describe('the CSS output', () => {
     // never a translucent scrim, since that inherits unpredictable video
     // color behind it. Both must clear normal-text AA on their own, not just
     // the non-text gate, since the marker's text is the fact being broadcast.
-    const well = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-base'].primitive];
-    expect(SEMANTIC_COLORS['surface-base'].primitive).toBe('ink-950');
+    const well = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-base'].primitive.dark];
+    expect(SEMANTIC_COLORS['surface-base'].primitive.dark).toBe('ink-950');
     expect(
-      contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['state-positive'].primitive], well),
+      contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['state-positive'].primitive.dark], well),
     ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
     expect(
-      contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['state-upcoming'].primitive], well),
+      contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['state-upcoming'].primitive.dark], well),
     ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
   });
 
   it('separates actual selection fills from neutral chrome without tinting ordinary controls', () => {
-    const selected = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-raised'].primitive];
-    const chrome = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-chrome'].primitive];
+    const selected = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-raised'].primitive.dark];
+    const chrome = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-chrome'].primitive.dark];
     expect(selected).not.toBe(chrome);
     expect(chrome).toBe(COLOR_PRIMITIVES['ink-850']);
     expect(FILE_PICKER_TOKENS['selection-present'].background).toBe('surface-raised');
@@ -445,9 +527,9 @@ describe('the CSS output', () => {
   });
 
   it('keeps the calibrated action legible against its own fill', () => {
-    const primary = COLOR_PRIMITIVES[SEMANTIC_COLORS.primary.primitive];
-    const hover = COLOR_PRIMITIVES[SEMANTIC_COLORS['primary-hover'].primitive];
-    const onAction = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-base'].primitive];
+    const primary = COLOR_PRIMITIVES[SEMANTIC_COLORS.primary.primitive.dark];
+    const hover = COLOR_PRIMITIVES[SEMANTIC_COLORS['primary-hover'].primitive.dark];
+    const onAction = COLOR_PRIMITIVES[SEMANTIC_COLORS['primary-text'].primitive.dark];
     expect(contrastRatio(onAction, primary)).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
     expect(contrastRatio(onAction, hover)).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
   });
@@ -475,6 +557,11 @@ describe('the CSS output', () => {
     expect(imageFrameRule).toContain('position: relative;');
     expect(imageFrameRule).toContain('aspect-ratio: 4 / 5;');
     expect(imageFrameRule).toContain('background: var(--cl-surface-chrome);');
+    expect(css).toContain('background: var(--cl-surface-emblem-frame);');
+    expect(css).toContain('color: var(--cl-text-on-emblem-frame);');
+    expect(css).toContain(
+      '.cl-entrant-emblem--bare .cl-entrant-emblem__fallback { color: var(--cl-text-primary); }',
+    );
   });
 
   it('cuts a badge on its left pair, never with clip-path', () => {
@@ -623,7 +710,7 @@ describe('the CSS output', () => {
 
     expect(FILE_PICKER_TOKENS.error.border).toBe('state-destructive');
     expect(FILE_PICKER_TOKENS.error.focusRing).toBe('state-destructive');
-    expect(FILE_PICKER_TOKENS['drag-active'].border).toBe('primary');
+    expect(FILE_PICKER_TOKENS['drag-active'].border).toBe('border-accent');
   });
 
   it('emits the dialog backdrop and surface rules', () => {
@@ -794,8 +881,8 @@ describe('button CTA treatments', () => {
     expect(css).toContain('.cl-btn:disabled');
   });
 
-  it('keeps primary on state-live and secondary on the raised neutral pairing', () => {
-    expect(css).toMatch(/\.cl-btn--primary \{[^}]*var\(--cl-state-live\)/);
+  it('keeps primary on its semantic action token and secondary on the raised neutral pairing', () => {
+    expect(css).toMatch(/\.cl-btn--primary \{[^}]*var\(--cl-primary\)/);
     expect(css).toMatch(/\.cl-btn--secondary \{[^}]*var\(--cl-surface-chrome\)/);
     expect(css).toMatch(/\.cl-btn--secondary \{[^}]*var\(--cl-border-muted\)/);
   });

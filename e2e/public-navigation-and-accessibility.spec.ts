@@ -1,4 +1,6 @@
 import { createServer, type Server } from 'node:http';
+import AxeBuilder from '@axe-core/playwright';
+import { resolveSemantic } from '@copalibre/design-tokens';
 import { expect, test } from './fixtures.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
@@ -11,6 +13,12 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
+
+const cssColor = (hex: string): string => {
+  const channels = hex.slice(1).match(/.{2}/g);
+  if (!channels || channels.length !== 3) throw new Error('Expected a six-digit design token.');
+  return `rgb(${channels.map((channel) => Number.parseInt(channel, 16)).join(', ')})`;
+};
 
 const organizationsList = [
   {
@@ -159,6 +167,45 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     await expect(english).toHaveAttribute('href', '/tv?lang=en');
     await english.click();
     await expect(page).toHaveURL(/\/tv\?lang=en/);
+  });
+
+  test('the public light theme follows the device, persists selection, and passes contrast checks', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.goto('/es');
+    await expect(page.locator('body')).toHaveCSS(
+      'background-color',
+      cssColor(resolveSemantic('surface-base', 'light')),
+    );
+
+    const themePicker = page.locator('[data-public-theme-picker]');
+    await expect(themePicker).toBeVisible();
+    await themePicker.locator('summary').click();
+    await themePicker.getByRole('button', { name: 'Claro' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    expect(await page.evaluate(() => localStorage.getItem('cl-theme'))).toBe('light');
+
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(page.locator('body')).toHaveCSS(
+      'background-color',
+      cssColor(resolveSemantic('surface-base', 'light')),
+    );
+    const { violations } = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
+    expect(violations).toEqual([]);
+  });
+
+  test('TV layouts remain dark when the device prefers light', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.goto('/tv?bg=neutral');
+
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
+    await expect(page.locator('body')).toHaveCSS(
+      'background-color',
+      cssColor(resolveSemantic('surface-base')),
+    );
   });
 
   test('8.1: from a /es/ tournament page, brand link navigates to /es/ root', async ({ page }) => {

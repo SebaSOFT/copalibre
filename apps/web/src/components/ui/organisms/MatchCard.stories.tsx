@@ -276,3 +276,5 @@ export const UndecidedGermanAt188: Story = {
     );
   },
 };
+
+export const LightL3: Story = { globals: { theme: 'light' } };

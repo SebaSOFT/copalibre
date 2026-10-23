@@ -83,6 +83,12 @@ const withLanguage: Decorator = (Story, context) => {
  * new operator story cannot forget to opt in.
  */
 const withSurfaceChrome: Decorator = (Story, context) => {
+  const theme = context.title.startsWith('TV/') ? 'dark' : (context.globals.theme ?? 'dark');
+  if (typeof document !== 'undefined') {
+    if (theme === 'system') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.dataset.theme = theme;
+  }
+
   if (context.title.startsWith('TV/')) {
     const choice = context.globals.tvBackdrop ?? 'story';
     const backdrop = choice === 'story' ? (context.parameters.tvBackdrop ?? 'neutral') : choice;
@@ -142,10 +148,24 @@ const preview: Preview = {
   },
   initialGlobals: {
     locale: 'en',
+    theme: 'dark',
     tvBackdrop: 'story',
     viewport: { value: 'desktop', isRotated: false },
   },
   globalTypes: {
+    theme: {
+      description: 'Color theme — light variants are L3 Sunlight',
+      toolbar: {
+        title: 'Theme',
+        icon: 'circlehollow',
+        dynamicTitle: true,
+        items: [
+          { value: 'dark', title: 'Dark' },
+          { value: 'light', title: 'Light · L3 Sunlight' },
+          { value: 'system', title: 'System' },
+        ],
+      },
+    },
     tvBackdrop: {
       description: 'TV preview backdrop — independent of discipline and match data',
       toolbar: {

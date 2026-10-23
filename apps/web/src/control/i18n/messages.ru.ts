@@ -1336,6 +1336,10 @@ export const messages: Record<string, string> = {
   'control.liveConsole.createTournament': 'Создать турнир',
   'control.preferences.tokensLoading': 'Загрузка…',
   'preferences.title': 'Личные настройки',
+  'control.preferences.theme': 'Тема',
+  'control.preferences.themeDark': 'Тёмная',
+  'control.preferences.themeLight': 'Светлая',
+  'control.preferences.themeSystem': 'Системная',
   'preferences.patTitle': 'Персональные токены доступа',
   'preferences.patDescription':
     'Создайте токен для прямого доступа к API. Токен будет показан только один раз.',
