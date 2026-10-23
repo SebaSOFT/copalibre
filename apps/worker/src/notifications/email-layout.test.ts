@@ -19,6 +19,17 @@ const content: EmailContent = {
 };
 
 describe('email layout', () => {
+  it('uses script-aware body and display font stacks', () => {
+    const { html } = renderEmail(config, content);
+
+    expect(html).toContain(
+      "font-family:'Barlow', 'Roboto', 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', sans-serif;",
+    );
+    expect(html).toContain(
+      "font-family:'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif;",
+    );
+  });
+
   it('shows the organization emblem, escaped name and public page link in the header', () => {
     const { html } = renderEmail(config, content);
     expect(html).toContain('src="https://liga.example/organizations/liga-mendocina/emblem"');

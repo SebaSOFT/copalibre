@@ -23,6 +23,25 @@ export interface EmailContent {
 const PRODUCT_URL = 'https://www.copalibre.app';
 const PRODUCT_HOST = new URL(PRODUCT_URL).host;
 const LOGO_PATH = '/copalibre-logo.png';
+const EMAIL_FONT_STACKS = {
+  display: [
+    "'Barlow Condensed'",
+    "'Roboto Condensed'",
+    "'Noto Sans SC'",
+    "'Arial Narrow'",
+    'system-ui',
+    'sans-serif',
+  ].join(', '),
+  body: [
+    "'Barlow'",
+    "'Roboto'",
+    "'Noto Sans SC'",
+    'system-ui',
+    '-apple-system',
+    "'Segoe UI'",
+    'sans-serif',
+  ].join(', '),
+} as const;
 
 /**
  * The one layout every email renders through (lifecycle, invitation, password reset): organization
@@ -60,18 +79,18 @@ export function renderEmail(config: EmailDeliveryConfig, content: EmailContent):
         emblemUrl
           ? `<img src="${escapeHtml(emblemUrl.toString())}" alt="${escapeHtml(organization.name)}" width="40" height="40" style="vertical-align:middle;border:0;margin-right:12px;" />`
           : ''
-      }<span style="font-size:18px;font-weight:700;vertical-align:middle;">${escapeHtml(organization.name)}</span></a>`
+      }<span style="font-size:18px;font-weight:700;font-family:${EMAIL_FONT_STACKS.display};vertical-align:middle;">${escapeHtml(organization.name)}</span></a>`
     : `<img src="${escapeHtml(logoUrl)}" alt="Copa Libre" width="40" height="40" style="vertical-align:middle;border:0;" />`;
 
   const action = content.action
-    ? `<p style="margin:24px 0 0;"><a href="${escapeHtml(content.action.url)}" style="display:inline-block;padding:10px 18px;background:#0b6bcb;color:#ffffff;text-decoration:none;border-radius:4px;">${escapeHtml(content.action.label)}</a></p>`
+    ? `<p style="margin:24px 0 0;"><a href="${escapeHtml(content.action.url)}" style="display:inline-block;padding:10px 18px;background:#0b6bcb;color:#ffffff;text-decoration:none;border-radius:4px;font-family:${EMAIL_FONT_STACKS.display};">${escapeHtml(content.action.label)}</a></p>`
     : '';
 
   const html =
-    `<!doctype html><html lang="${content.language}"><body style="margin:0;padding:24px;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;color:#0b1f33;">` +
+    `<!doctype html><html lang="${content.language}"><body style="margin:0;padding:24px;background:#f4f6f8;font-family:${EMAIL_FONT_STACKS.body};color:#0b1f33;">` +
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#ffffff;">` +
     `<tr><td style="padding:20px 24px;border-bottom:1px solid #d8dee4;">${header}</td></tr>` +
-    `<tr><td style="padding:24px;"><h1 style="margin:0 0 16px;font-size:20px;">${escapeHtml(content.heading)}</h1>` +
+    `<tr><td style="padding:24px;"><h1 style="margin:0 0 16px;font-size:20px;font-family:${EMAIL_FONT_STACKS.display};">${escapeHtml(content.heading)}</h1>` +
     content.paragraphs
       .map((paragraph) => `<p style="margin:0 0 12px;">${escapeHtml(paragraph)}</p>`)
       .join('') +

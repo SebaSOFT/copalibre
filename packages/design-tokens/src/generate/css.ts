@@ -108,6 +108,8 @@ export function generateCss(): string {
     `  --cl-glow-cyan: 0 0 20px color-mix(in srgb, var(--cl-primary) 40%, transparent);`,
     `}`,
     '',
+    scriptTypography(),
+    '',
     `:root[data-theme='light'] {`,
     ...Object.keys(CHART_TOKENS.series).map(
       (slot) => `  --cl-chart-${slot}: var(--cl-chart-${slot}-light);`,
@@ -136,6 +138,17 @@ export function generateCss(): string {
     density(),
     '',
     motionCues(),
+  ].join('\n');
+}
+
+/** Keep Latin tracking off Chinese copy, which has no case and needs no spacing. */
+function scriptTypography(): string {
+  return [
+    ':lang(zh) {',
+    '  --cl-tracking-wide: normal;',
+    '  --cl-tracking-wider: normal;',
+    '  --cl-tracking-widest: normal;',
+    '}',
   ].join('\n');
 }
 
