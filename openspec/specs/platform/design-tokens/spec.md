@@ -416,6 +416,29 @@ and preserve the generated reduced-motion behavior.
 - **WHEN** an interactive component adds visual feedback
 - **THEN** it names only the supported property or properties and uses the shared motion contract
 
+### Requirement: Live state changes have defined, reduced-motion-safe cues
+The token set SHALL define motion for a score-change flash (about 600ms, cyan well background), a
+one-time new-event entry (about 200ms, transform and opacity), and a live pulse dot beside the LIVE
+label (opacity only). These cues SHALL animate only `transform`, `opacity` or `background-color`. Under
+reduced motion they SHALL collapse to `0s`, and the flash SHALL become a static held fill.
+
+#### Scenario: A goal changes a TV scorebug
+
+- **WHEN** a match score changes from 2 to 3 on the TV scorebug
+- **THEN** the score container flashes the cyan well colour for about 600ms, and the digits do not
+  change width
+
+#### Scenario: Reduced motion is on
+
+- **WHEN** the viewer has `prefers-reduced-motion: reduce` and a score changes
+- **THEN** the container shows the static cyan well fill for 600ms with no transition, the live dot is
+  steady, and new events appear without sliding
+
+#### Scenario: Initial render does not flash
+
+- **WHEN** a page first renders a live score
+- **THEN** no flash plays
+
 ### Requirement: A container resolves its own surface level, without a call-site decision
 
 A card or section SHALL resolve its surface level from what it is, with no call-site decision:

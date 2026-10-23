@@ -3,10 +3,12 @@ import {
   COLOR_PRIMITIVES,
   CONTROL_DENSITY_SPACING,
   FONT_SIZE,
+  FONT_SOURCE,
   ICON_TOKENS,
   MOTION,
   SPACING,
   TOUCH_TARGET,
+  TYPOGRAPHY,
 } from './primitives.js';
 import { CONTRAST_GATES, contrastRatio } from './contrast.js';
 import { PROTECTED_TOKENS, SEMANTIC_COLORS, isProtected, resolveSemantic } from './semantic.js';
@@ -102,6 +104,70 @@ describe('the token source', () => {
       stroke: 1.5,
       tablerOpticalScale: 1.1,
     });
+  });
+});
+
+describe('script-aware typography', () => {
+  it('delivers every named web face and keeps CSS and Tailwind stacks in order', () => {
+    expect(TYPOGRAPHY).toEqual({
+      display:
+        "'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif",
+      body: "'Barlow', 'Roboto', 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', sans-serif",
+      mono: "'JetBrains Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', monospace",
+    });
+
+    const importedFamilies = new URL(FONT_SOURCE).searchParams
+      .getAll('family')
+      .map((family) => family.split(':', 1)[0]);
+    const platformFallbacks = new Set(['Arial Narrow', 'Segoe UI', 'SFMono-Regular']);
+    const namedWebFamilies = [
+      ...new Set(
+        Object.values(TYPOGRAPHY)
+          .flatMap((stack) => [...stack.matchAll(/'([^']+)'/g)].map(([, family]) => family))
+          .filter((family) => family !== undefined && !platformFallbacks.has(family)),
+      ),
+    ];
+
+    expect(importedFamilies).toEqual([
+      'Barlow',
+      'Barlow Condensed',
+      'JetBrains Mono',
+      'Roboto Condensed',
+      'Roboto',
+      'Noto Sans SC',
+    ]);
+    expect(namedWebFamilies.sort()).toEqual(importedFamilies.sort());
+
+    const css = generateCss();
+    for (const [role, stack] of Object.entries(TYPOGRAPHY)) {
+      expect(css).toContain(`--cl-font-${role}: ${stack};`);
+    }
+    expect(generateTailwindTheme().fontFamily).toEqual({
+      display: [
+        'Barlow Condensed',
+        'Roboto Condensed',
+        'Noto Sans SC',
+        'Arial Narrow',
+        'system-ui',
+        'sans-serif',
+      ],
+      body: [
+        'Barlow',
+        'Roboto',
+        'Noto Sans SC',
+        'system-ui',
+        '-apple-system',
+        'Segoe UI',
+        'sans-serif',
+      ],
+      mono: ['JetBrains Mono', 'Noto Sans SC', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+    });
+  });
+
+  it('removes uppercase tracking for Chinese-language content', () => {
+    expect(generateCss()).toContain(
+      ':lang(zh) {\n  --cl-tracking-wide: normal;\n  --cl-tracking-wider: normal;\n  --cl-tracking-widest: normal;\n}',
+    );
   });
 });
 

@@ -41,7 +41,7 @@ export const COLOR_PRIMITIVES = {
 export type ColorPrimitive = keyof typeof COLOR_PRIMITIVES;
 
 /**
- * Where the three brand faces come from.
+ * Where the Latin and script-specific brand faces come from.
  *
  * They were named in `TYPOGRAPHY` from the beginning and never loaded: no
  * `@font-face`, no link, no files. Every surface silently fell back to a system
@@ -60,13 +60,17 @@ export const FONT_SOURCE =
   'family=Barlow:wght@400;500;600;700&' +
   'family=Barlow+Condensed:wght@400;500;600;700&' +
   'family=JetBrains+Mono:wght@400;500;600;700&' +
+  'family=Roboto+Condensed:wght@400;500;600;700&' +
+  'family=Roboto:wght@400;500;600;700&' +
+  'family=Noto+Sans+SC:wght@400;500;600;700&' +
   'display=swap';
 
 export const TYPOGRAPHY = {
   /** Scores, team names, ranks, state labels. Tabular figures are not optional. */
-  display: "'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif",
-  body: "'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif",
-  mono: "'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace",
+  display:
+    "'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif",
+  body: "'Barlow', 'Roboto', 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  mono: "'JetBrains Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', monospace",
 } as const;
 
 export const FONT_WEIGHTS = {

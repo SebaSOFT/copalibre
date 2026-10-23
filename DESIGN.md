@@ -22,37 +22,37 @@ colors:
   team-accent: "#FF2E88"
 typography:
   display:
-    fontFamily: "'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif"
+    fontFamily: "'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif"
     fontSize: "2.25rem"
     fontWeight: "700"
     lineHeight: "1.1"
     letterSpacing: "0.04em"
   headline:
-    fontFamily: "'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif"
+    fontFamily: "'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif"
     fontSize: "1.5rem"
     fontWeight: "600"
     lineHeight: "1.2"
     letterSpacing: "0.04em"
   title:
-    fontFamily: "'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif"
+    fontFamily: "'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif"
     fontSize: "1.25rem"
     fontWeight: "600"
     lineHeight: "1.3"
     letterSpacing: "0.04em"
   body:
-    fontFamily: "'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif"
+    fontFamily: "'Barlow', 'Roboto', 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', sans-serif"
     fontSize: "1rem"
     fontWeight: "400"
     lineHeight: "1.5"
     letterSpacing: "0"
   label:
-    fontFamily: "'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace"
+    fontFamily: "'JetBrains Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', monospace"
     fontSize: "0.75rem"
     fontWeight: "500"
     lineHeight: "1.4"
     letterSpacing: "0.05em"
   figure:
-    fontFamily: "'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace"
+    fontFamily: "'JetBrains Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', monospace"
     fontSize: "1.25rem"
     fontWeight: "500"
     lineHeight: "1.2"
@@ -358,7 +358,9 @@ it. A heading rendered in the body face is the identity silently not being appli
 
 **The Tracked Uppercase Rule.** Uppercase text carries tracking from the named scale — `wide` (0.04em)
 for metadata and headings, `wider` (0.05em) for buttons and emphasised labels, `widest` (0.06em) for the
-display face set large. Uppercase at `normal` tracking is a bug, not a choice.
+display face set large. Uppercase at `normal` tracking is a bug, not a choice. Chinese (`:lang(zh)`) is
+the exception: tracked values resolve to `normal`, because CJK has no case and added letter spacing
+harms it.
 
 ## Layout
 
@@ -735,8 +737,11 @@ in sentence case on public reading pages.
 
 ## Non-Latin Scripts
 
-Declare script-specific fallbacks through `unicode-range`. Use a condensed Cyrillic display face and a
-Cyrillic body face for Russian, and Noto Sans SC for Chinese. Barlow remains the Latin face.
+Declare script-specific fallbacks through `unicode-range`. Barlow and Barlow Condensed remain the
+Latin faces; Roboto Condensed handles Cyrillic display text and Roboto handles Cyrillic body text.
+Noto Sans SC handles Chinese display and body text, and Chinese glyphs in mono content; figures keep
+`tabular-nums`. Latin-only pages do not download Cyrillic or CJK font files because Google Fonts
+delivers the fallback faces in script-specific subsets.
 
 ## Reading Width
 

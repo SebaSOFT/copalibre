@@ -46,6 +46,98 @@ test('blocked font delivery preserves readable labels and focus at the zoom floo
   ).toBe(0);
 });
 
+test('Cyrillic and Chinese script fallbacks measure differently from the system face', async ({
+  page,
+}) => {
+  await page.goto('/control/login');
+
+  const measurements = await page.evaluate(async () => {
+    const samples = [
+      {
+        language: 'ru',
+        family: 'Roboto Condensed',
+        weight: 700,
+        text: 'ФИНАЛЬНЫЙ МАТЧ МЕЖДУНАРОДНОГО ТУРНИРА',
+      },
+      {
+        language: 'zh',
+        family: 'Noto Sans SC',
+        weight: 700,
+        text: '国际锦标赛 INTERNATIONAL 2026',
+      },
+    ];
+    const results = [];
+
+    for (const sample of samples) {
+      const probe = document.createElement('h1');
+      probe.lang = sample.language;
+      probe.textContent = sample.text;
+      probe.style.cssText =
+        'position:fixed;left:-10000px;top:0;display:inline-block;white-space:nowrap;margin:0;font-size:48px;font-weight:700;font-family:var(--cl-font-display);';
+      document.body.append(probe);
+
+      const fontFaces = await document.fonts.load(
+        `${sample.weight} 48px "${sample.family}"`,
+        sample.text,
+      );
+      await document.fonts.ready;
+      const tracking = getComputedStyle(probe).getPropertyValue('--cl-tracking-wide').trim();
+      probe.style.letterSpacing = 'normal';
+      const stackWidth = probe.getBoundingClientRect().width;
+      probe.style.fontFamily = 'system-ui, sans-serif';
+      const systemWidth = probe.getBoundingClientRect().width;
+      const faceLoaded = fontFaces.some(
+        (face) => face.family.replaceAll(/["']/g, '') === sample.family,
+      );
+
+      results.push({ language: sample.language, stackWidth, systemWidth, tracking, faceLoaded });
+      probe.remove();
+    }
+
+    return results;
+  });
+
+  expect(measurements).toHaveLength(2);
+  for (const measurement of measurements) {
+    expect(measurement.faceLoaded).toBe(true);
+    expect(Math.abs(measurement.stackWidth - measurement.systemWidth)).toBeGreaterThan(0.5);
+  }
+  expect(measurements.find((measurement) => measurement.language === 'zh')?.tracking).toBe(
+    'normal',
+  );
+});
+
+test('an English page does not request Cyrillic or CJK font files', async ({ page }) => {
+  const fontCssResponsePromise = page.waitForResponse((response) =>
+    response.url().startsWith('https://fonts.googleapis.com/css2?'),
+  );
+  const requestedFontFiles: string[] = [];
+  page.on('request', (request) => {
+    if (request.url().startsWith('https://fonts.gstatic.com/')) {
+      requestedFontFiles.push(request.url());
+    }
+  });
+
+  await page.goto('/control/login');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  const fontCssResponse = await fontCssResponsePromise;
+  await page.evaluate(() => document.fonts.ready);
+
+  const fontCss = await fontCssResponse.text();
+  const scriptFallbackFamilies = new Set(['Roboto', 'Roboto Condensed', 'Noto Sans SC']);
+  const scriptFallbackFiles = new Set(
+    [...fontCss.matchAll(/@font-face\s*\{([^}]+)\}/g)].flatMap(([, face]) => {
+      const family = face.match(/font-family:\s*['"]([^'"]+)['"];?/i)?.[1];
+      const source = face.match(/src:\s*url\(([^)]+)\)/i)?.[1];
+      if (!family || !scriptFallbackFamilies.has(family) || !source) return [];
+      return [new URL(source.replace(/^['"]|['"]$/g, ''), fontCssResponse.url()).href];
+    }),
+  );
+
+  expect(scriptFallbackFiles.size).toBeGreaterThan(0);
+  expect(requestedFontFiles.filter((url) => scriptFallbackFiles.has(url))).toEqual([]);
+});
+
 test('content alternates through wrappers and chrome stays lifted at every depth', async ({
   page,
 }) => {
