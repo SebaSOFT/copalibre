@@ -1270,6 +1270,8 @@ export const messages: Record<string, string> = {
   'control.liveConsole.loading': '正在加载实时操作…',
   'control.liveConsole.noActiveTournaments': '该组织没有活跃的锦标赛。',
   'control.liveConsole.createTournament': '创建锦标赛',
+  'control.liveConsole.viewMatches': '查看比赛',
+  'control.liveConsole.matchReports': '比赛报告',
   'control.preferences.tokensLoading': '正在加载…',
   'preferences.title': '个人偏好设置',
   'control.preferences.theme': '主题',

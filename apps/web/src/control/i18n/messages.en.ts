@@ -3936,6 +3936,14 @@ export const messages = defineMessages({
     id: 'control.liveConsole.createTournament',
     defaultMessage: 'Create tournament',
   },
+  liveConsoleViewMatches: {
+    id: 'control.liveConsole.viewMatches',
+    defaultMessage: 'View matches',
+  },
+  liveConsoleMatchReports: {
+    id: 'control.liveConsole.matchReports',
+    defaultMessage: 'Match reports',
+  },
 
   // Preferences route — the personal-access-token
   // list's own loading state. Uses the shared catalogue rather than this

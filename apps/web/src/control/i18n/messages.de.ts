@@ -1353,6 +1353,8 @@ export const messages: Record<string, string> = {
   'control.liveConsole.loading': 'Live-Betrieb wird geladen…',
   'control.liveConsole.noActiveTournaments': 'Keine aktiven Turniere in dieser Organisation.',
   'control.liveConsole.createTournament': 'Turnier erstellen',
+  'control.liveConsole.viewMatches': 'Spiele ansehen',
+  'control.liveConsole.matchReports': 'Spielberichte',
   'control.preferences.tokensLoading': 'Wird geladen…',
   'preferences.title': 'Persönliche Einstellungen',
   'control.preferences.theme': 'Darstellung',

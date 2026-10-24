@@ -1344,6 +1344,8 @@ export const messages: Record<string, string> = {
   'control.liveConsole.loading': 'Chargement des opérations en direct…',
   'control.liveConsole.noActiveTournaments': 'Aucun tournoi actif dans cette organisation.',
   'control.liveConsole.createTournament': 'Créer un tournoi',
+  'control.liveConsole.viewMatches': 'Voir les matchs',
+  'control.liveConsole.matchReports': 'Rapports de match',
   'control.preferences.tokensLoading': 'Chargement…',
   'preferences.title': 'Préférences personnelles',
   'control.preferences.theme': 'Thème',
