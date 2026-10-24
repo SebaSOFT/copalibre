@@ -10,19 +10,18 @@ export function TvTeamSide({
   abbreviation,
   clubId,
   clubs,
-  anchor = false,
+  roleLabel,
 }: {
   readonly name: string;
   readonly abbreviation?: string;
   readonly clubId?: string;
   readonly clubs?: readonly TvClubItem[];
-  /** The home side, on the spotlight's left — the jumbotron's visual anchor. */
-  readonly anchor?: boolean;
+  readonly roleLabel: string;
 }): React.JSX.Element {
   const club = clubId === undefined ? undefined : clubs?.find((c) => c.clubId === clubId);
 
   return (
-    <div className={`tv-team-side ${anchor ? 'tv-team-side--anchor' : ''}`.trim()}>
+    <div className="tv-team-side">
       <div className="tv-team-side__emblem-wrap">
         <EntrantEmblem
           alt={name}
@@ -48,6 +47,7 @@ export function TvTeamSide({
           {abbreviation}
         </abbr>
       )}
+      <span className="tv-team-side__role cl-chamfer">{roleLabel}</span>
     </div>
   );
 }

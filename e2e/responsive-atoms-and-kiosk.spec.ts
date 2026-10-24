@@ -133,15 +133,28 @@ test.afterAll(async () => {
 });
 
 test.describe('TV kiosk', () => {
-  test('the spotlight anchors the home emblem at least 120x120px', async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.goto(TV_PATH);
-    const box = await page
-      .locator('.tv-team-side--anchor .tv-team-side__emblem-wrap')
-      .boundingBox();
-    if (box === null) throw new Error('The anchor emblem has no layout box');
-    expect(box.width).toBeGreaterThanOrEqual(120);
-    expect(box.height).toBeGreaterThanOrEqual(120);
+  test('the spotlight keeps equal emblem frames and labels each team role', async ({ page }) => {
+    await page.goto(`${TV_PATH}?lang=es`);
+
+    for (const viewport of [
+      { width: 1920, height: 1080 },
+      { width: 1280, height: 720 },
+      { width: 480, height: 900 },
+    ]) {
+      await page.setViewportSize(viewport);
+      const frameSizes = await page.locator('.tv-team-side__emblem-wrap').evaluateAll((frames) =>
+        frames.map((frame) => {
+          const { width, height } = frame.getBoundingClientRect();
+          return { width, height };
+        }),
+      );
+      expect(frameSizes).toHaveLength(2);
+      expect(frameSizes[0]).toEqual(frameSizes[1]);
+    }
+
+    const sides = page.locator('.tv-team-side');
+    await expect(sides.nth(0).locator('.tv-team-side__role')).toHaveText('Local');
+    await expect(sides.nth(1).locator('.tv-team-side__role')).toHaveText('Visitante');
   });
 
   test('the spotlight team name falls back to its abbreviation in a narrow frame', async ({

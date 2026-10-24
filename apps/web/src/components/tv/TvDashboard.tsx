@@ -787,13 +787,13 @@ export function TvDashboard({
                   })}
                 </div>
                 <div className="tv-match-spotlight__vs-grid">
-                  {/* Home Side — the spotlight's visual anchor */}
+                  {/* Home side */}
                   <TvTeamSide
-                    anchor
                     clubs={clubs}
                     name={spotlightMatch.sides[0]?.name ?? 'Local'}
                     abbreviation={spotlightMatch.sides[0]?.abbreviation}
                     clubId={spotlightMatch.sides[0]?.clubId}
+                    roleLabel={labels.homeSide}
                   />
 
                   {/* Score Center */}
@@ -825,6 +825,7 @@ export function TvDashboard({
                     name={spotlightMatch.sides[1]?.name ?? 'Visitante'}
                     abbreviation={spotlightMatch.sides[1]?.abbreviation}
                     clubId={spotlightMatch.sides[1]?.clubId}
+                    roleLabel={labels.awaySide}
                   />
                 </div>
 

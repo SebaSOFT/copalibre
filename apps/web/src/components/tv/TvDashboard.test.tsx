@@ -244,6 +244,9 @@ describe('TvDashboard', () => {
 
     const spotlight = screen.getByTestId('tv-match-spotlight');
     expect(spotlight).toBeDefined();
+    expect(spotlight.querySelectorAll('.tv-team-side__role')).toHaveLength(2);
+    expect(screen.getByText(tvLabels.homeSide)).toBeDefined();
+    expect(screen.getByText(tvLabels.awaySide)).toBeDefined();
     expect(
       document.querySelector('.tv-score-center__digits')?.textContent?.replace(/\s+/g, ' '),
     ).toBe('2 : 1');

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-23T21:41:20.712Z",
+  "generatedAt": "2026-10-24T18:32:55.946Z",
   "title": "Design System: CopaLibre",
   "extensions": {
     "colorMeta": {
@@ -684,6 +684,14 @@
       "css": ".ds-match { display: grid; gap: 12px; max-width: 340px; background: #121828; border: 1px solid #243049; padding: 16px; color: #F2F6FB; font-family: 'Barlow', system-ui, sans-serif; } .ds-match-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; } .ds-match-badge { display: inline-flex; align-items: center; font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-weight: 600; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 8px; color: #00D4FF; border: 1px solid #00D4FF; corner-shape: bevel round round bevel; border-radius: 14px 0 0 14px; } .ds-match-clock { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.25rem; color: #00D4FF; font-variant-numeric: tabular-nums; } .ds-match-sides { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; } .ds-match-side { display: flex; align-items: center; gap: 8px; min-width: 0; } .ds-match-rank { flex: 0 0 auto; font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 0.875rem; color: #8C9AB5; padding: 4px 8px; background: #1A2236; corner-shape: bevel round round bevel; border-radius: 14px 0 0 14px; } .ds-match-name { flex: 1 1 auto; font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-weight: 500; font-size: 1.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ds-match-score { flex: 0 0 auto; font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 700; font-size: 1.875rem; font-variant-numeric: tabular-nums; } .ds-match-meta { margin: 0; color: #8C9AB5; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; } .ds-match-factor { margin: 0; padding: 8px 12px; background: #1A2236; border-left: 2px solid #00D4FF; color: #B8C4D8; font-size: 0.875rem; }"
     },
     {
+      "name": "TV Match Spotlight",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Featured broadcast matchup with identical square emblem frames, names and localized neutral role tags on both sides; the centered score separates equal columns.",
+      "html": "<section class='ds-tv-spotlight'><p class='ds-tv-stage'>ETAPA 1 · PARTIDO 5</p><div class='ds-tv-grid'><div class='ds-tv-side'><div class='ds-tv-emblem'>VAL</div><h3 class='ds-tv-name'>VALENCIANO</h3><span class='ds-tv-role'>LOCAL</span></div><div class='ds-tv-score'><strong class='ds-tv-score__digits'>0 : 0</strong><span class='ds-tv-state'>PROGRAMADO</span></div><div class='ds-tv-side'><div class='ds-tv-emblem'>CIT</div><h3 class='ds-tv-name'>CASA DE ITALIA</h3><span class='ds-tv-role'>VISITANTE</span></div></div></section>",
+      "css": ".ds-tv-spotlight { display: grid; gap: 24px; max-width: 1200px; padding: 32px; background: #121828; border: 1px solid #243049; color: #F2F6FB; } .ds-tv-stage { margin: 0; color: #00D4FF; font-family: 'JetBrains Mono', ui-monospace, monospace; text-align: center; letter-spacing: 0.1em; text-transform: uppercase; } .ds-tv-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: clamp(12px, 3vmin, 48px); } .ds-tv-side { display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: 0; text-align: center; } .ds-tv-emblem { display: grid; place-items: center; aspect-ratio: 1; width: clamp(64px, 18vmin, 237px); background: #1A2236; border: 1px solid #243049; color: #F2F6FB; font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-size: 1.5rem; } .ds-tv-name { max-width: 25vmin; overflow: hidden; margin: 0; font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-size: clamp(1.4rem, 3.5vmin, 2.5rem); text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; } .ds-tv-role { display: inline-flex; align-items: center; max-width: 25vmin; overflow: hidden; padding: 0.3vmin 0.8vmin; border: 1px solid #243049; background: #1A2236; color: #B8C4D8; corner-shape: bevel; border-radius: 0 14px 0 14px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: clamp(0.75rem, 1.3vmin, 0.875rem); letter-spacing: 0.08em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; } .ds-tv-score { display: grid; justify-items: center; gap: 1vmin; } .ds-tv-score__digits { font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-size: clamp(3.5rem, 9vmin, 7rem); font-variant-numeric: tabular-nums; } .ds-tv-state { padding: 0.4vmin 1.4vmin; border: 1px solid #FF9C1E; color: #FF9C1E; font-family: 'JetBrains Mono', ui-monospace, monospace; text-transform: uppercase; } @media (max-width: 768px) { .ds-tv-grid { gap: 2vmin; } .ds-tv-emblem { width: 64px; } }"
+    },
+    {
       "name": "Inline Alert",
       "kind": "custom",
       "refersTo": "chrome",
@@ -796,6 +804,11 @@
         "name": "The Diagonal-Pair Rule",
         "body": "The default cut is top-right and bottom-left. Any other combination is a declared variant, not an ad hoc choice at the call site.",
         "section": "shapes"
+      },
+      {
+        "name": "The Equal Sides Rule",
+        "body": "The featured TV match gives home and away identical square emblem frames and the same content order: emblem, entrant name, localized role tag. The neutral tag names each side; size, placement and accent colour never imply preference.",
+        "section": "components"
       }
     ],
     "dos": [
@@ -806,11 +819,13 @@
       "Do keep interactive targets at 44px in the constrained axis, and let long labels wrap with overflow-wrap: anywhere rather than overflow — interface copy must survive all eight languages.",
       "Do let containers alternate against their band, and let chrome lift to ink-850 at any depth.",
       "Do collapse motion to 0s under prefers-reduced-motion, not merely shorten it: state must survive in text, icon, border and layout without the animation.",
+      "Do keep the TV spotlight symmetrical: equal emblem frames and a localized neutral role tag beneath each name.",
       "Do scroll wide content inside its own box."
     ],
     "donts": [
       "Don't introduce a second accent colour. Cyan is the only voice, and its scarcity is what makes it scannable. Data-visualization plot areas are the named exception: they may use only the five declared series colours; chart chrome remains in ink and text tokens.",
       "Don't use clip-path for corner geometry. It clips the focus ring and the glow.",
+      "Don't use emblem size, accent colour or placement to imply that either side of the TV match is more important.",
       "Don't let an organizer's team accent reach state-live, state-upcoming, state-positive, state-destructive or focus-ring, or appear in core chrome — navigation, primary buttons, system badges.",
       "Don't ship a badge, chip or status mark whose only signal is its colour.",
       "Don't add a resting shadow. Shadow means suspended (a dialog) or pressed (the primary button).",

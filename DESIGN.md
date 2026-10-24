@@ -623,6 +623,14 @@ deciding-factor line when the outcome turned on a rule; and a collapsible trace 
 mono label and whose lines are `0.75rem` mono in Muted Steel. It is the whole system in one box —
 condensed identity, mono figures, state rails, no ornament.
 
+### Signature: The TV Match Spotlight
+
+The featured broadcast matchup gives home and away the same square emblem frame and the same reading
+order: emblem, entrant name, then a localized role tag. The frame is `clamp(14vmin, 18vmin, 22vmin)`
+at landscape sizes and `64px` in narrow or portrait layouts. The centered score separates the two
+equal columns. The tag uses a neutral surface, structure border and secondary text; neither side is
+enlarged or identified by the signal accent.
+
 ### Signature: The Tactical Grid
 
 A background of 1px cyan lines at 6% opacity on a `24px × 32px` cell. It is the system's only decorative
@@ -633,6 +641,8 @@ never a layer that competes with content.
 
 ### Do:
 
+- **Do** give both sides of the TV match spotlight equal emblem frames and place each localized role
+  tag beneath its entrant name.
 - **Do** name a state, never a colour. Components consume `state-live`, not `cyan-400`, so retheming
   "live" is one line in `semantic.ts` rather than a search across three rendering technologies.
 - **Do** pair every state colour with its declared non-colour cue — a LIVE label, a scheduled time, a
@@ -652,6 +662,8 @@ never a layer that competes with content.
 - **Don't** introduce a second accent colour. Cyan is the only voice, and its scarcity is what makes it
   scannable. Data-visualization plot areas are the named exception: they may use only the five declared
   series colours; chart chrome remains in ink and text tokens.
+- **Don't** use emblem size, accent colour or placement to imply that either side of the TV match is
+  more important.
 - **Don't** use `clip-path` for corner geometry. It clips the focus ring and the glow.
 - **Don't** let an organizer's team accent reach `state-live`, `state-upcoming`, `state-positive`,
   `state-destructive` or `focus-ring`, or appear in core chrome — navigation, primary buttons, system

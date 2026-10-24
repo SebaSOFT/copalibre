@@ -401,20 +401,10 @@
   gap: 3vmin;
 }
 
-/* Emblems scale with the room they are given rather than staying thumbnail-sized. */
+/* Both teams get the same square crest frame; their role is spelled out beneath the name. */
 .tv-match-spotlight__vs-grid .tv-team-side__emblem-wrap {
   width: clamp(14vmin, 18vmin, 22vmin);
   height: clamp(14vmin, 18vmin, 22vmin);
-}
-
-/*
- * The home side is the spotlight's visual anchor: larger
- * than the away side, and never smaller than 120px even on a cramped
- * viewport where `vmin` alone would shrink below a legible size.
- */
-.tv-match-spotlight__vs-grid .tv-team-side--anchor .tv-team-side__emblem-wrap {
-  width: max(120px, clamp(16vmin, 22vmin, 26vmin));
-  height: max(120px, clamp(16vmin, 22vmin, 26vmin));
 }
 
 .tv-team-side {
@@ -448,6 +438,26 @@
   max-width: 25vmin;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-team-side__role {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 25vmin;
+  overflow: hidden;
+  padding: 0.3vmin 0.8vmin;
+  border: 1px solid var(--tv-border);
+  background: var(--tv-bg-elevated);
+  color: var(--tv-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.75rem, 1.3vmin, 0.875rem);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -1437,8 +1447,7 @@
     gap: 2vmin;
   }
 
-  .tv-match-spotlight__vs-grid .tv-team-side__emblem-wrap,
-  .tv-match-spotlight__vs-grid .tv-team-side--anchor .tv-team-side__emblem-wrap {
+  .tv-match-spotlight__vs-grid .tv-team-side__emblem-wrap {
     width: 64px;
     height: 64px;
   }
