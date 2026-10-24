@@ -17,7 +17,8 @@ const lockText = readFileSync(new URL('yarn.lock', root), 'utf8');
 // a numerically larger prerelease is not evidence that a security fix is present.
 const patchedFloors = {
   'brace-expansion': { 1: '1.1.21', 2: '2.1.7', 5: '5.0.12' },
-  'fast-uri': { 3: '3.1.8', 4: '4.2.1' },
+  'body-parser': { 2: '2.4.0' },
+  'fast-uri': { 3: '3.1.9', 4: '4.2.3' },
   qs: { 6: '6.16.0' },
   'js-yaml': { 3: '3.15.2', 4: '4.3.2', 5: '5.4.1' },
   'postcss-selector-parser': { 7: '7.1.6' },
@@ -30,9 +31,10 @@ const patchedFloors = {
   hono: { 4: '4.13.11' },
   'http-cache-semantics': { 4: '4.3.0' },
   'ip-address': { 10: '10.7.1' },
-  undici: { 6: '6.28.1', 8: '8.10.2' },
+  undici: { 6: '6.29.1', 8: '8.12.2' },
   nanoid: { 3: '3.3.18', 5: '5.1.16' },
   vite: { 8: '8.1.6' },
+  zod: { 4: '4.6.7' },
 };
 
 function assertPatched(name, version, label) {
