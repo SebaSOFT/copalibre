@@ -7,6 +7,7 @@
     "build": "tsc --build && node scripts/build-assets.mjs",
     "bundle": "node scripts/bundle.mjs",
     "build:binary": "node scripts/build-binary.mjs",
+    "build:mcpb": "node scripts/build-mcpb.mjs",
     "start": "node dist/main.js",
     "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
     "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage",

@@ -66,6 +66,16 @@ This is a curated starting set, not an exhaustive wrapper of every `apps/api` en
 
 ## Connecting an MCP client
 
+### Via Smithery (Claude Desktop, Cursor, Windsurf)
+
+Install CopaLibre directly via Smithery CLI:
+
+```bash
+npx -y @smithery/cli install @SebaSOFT/copalibre --client claude
+```
+
+### Manual configuration
+
 Point an MCP-capable client at the `copalibre` executable with the `mcp` argument. Example
 (Claude Desktop-style `mcpServers` configuration):
 

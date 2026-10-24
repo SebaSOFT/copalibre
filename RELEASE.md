@@ -39,7 +39,8 @@ already exist, it:
   [`ghcr.io/sebasoft/copalibre`](https://ghcr.io/sebasoft/copalibre) (the multi-role runtime image) and
   [`ghcr.io/sebasoft/copalibre-web`](https://ghcr.io/sebasoft/copalibre-web) (the static web image) —
   each tagged with the exact version and with `latest`,
-- creates a GitHub Release with auto-generated notes.
+- creates a GitHub Release with auto-generated notes,
+- packages the standalone MCPB bundle (`copalibre.mcpb`) with matching manifest version, attaches it to the GitHub Release, and publishes it to Smithery using `SMITHERY_API_KEY`.
 
 If the tag already exists (a merge to `main` that didn't carry a version bump — a hotfix cherry-pick,
 say), the workflow completes without doing any of the above. This is intentional, not a failure: a
