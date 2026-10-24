@@ -20,6 +20,20 @@ colors:
   green-500: "#22C55E"
   red-500: "#EF4444"
   team-accent: "#FF2E88"
+  light-ink-950: "#E3E8EF"
+  light-ink-900: "#F8FAFC"
+  light-ink-930: "#EDF1F6"
+  light-ink-850: "#D3DAE4"
+  light-ink-700: "#8C9AB5"
+  light-control-border: "#5B6884"
+  light-text-950: "#05070D"
+  light-text-900: "#263049"
+  light-text-800: "#46536B"
+  light-cyan-800: "#00586B"
+  light-cyan-100: "#C4EEF8"
+  light-amber-900: "#6B3A00"
+  light-green-800: "#116B32"
+  light-red-800: "#B01818"
 typography:
   display:
     fontFamily: "'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif"
@@ -161,6 +175,8 @@ components:
   pill-active:
     backgroundColor: "{colors.cyan-400}"
     textColor: "{colors.ink-950}"
+  public-theme-preference:
+    height: "44px"
   table-header:
     backgroundColor: "{colors.ink-850}"
     textColor: "{colors.text-400}"
@@ -222,11 +238,12 @@ chart:
 **Creative North Star: "Broadcast Command Precision"**
 
 CopaLibre looks like the gallery behind a live broadcast, not the broadcast itself. Deep ink surfaces
-recede so that one signal colour — cyan — can mean exactly one thing: this is live, this is the action,
-this is where you look. Everything else on screen is instrumentation: condensed uppercase labels,
-monospaced tabular figures that do not shift width as a score changes, hairline borders that make
-structure countable rather than decorative. The system is built for an operator working a bracket under
-time pressure, and for a venue screen read from twelve metres away, with the same tokens serving both.
+recede in the dark theme; L3 Sunlight uses a cool-grey ground and near-white panels while keeping the
+same semantic roles. In both, one signal colour — cyan — means live, action, or focus. Everything else
+on screen is instrumentation: condensed uppercase labels, monospaced tabular figures that do not shift
+width as a score changes, and hairline borders that make structure countable rather than decorative.
+The system is built for an operator working a bracket under time pressure, and for a venue screen read
+from twelve metres away, with the same tokens serving both.
 
 Density is deliberate and unapologetic. The spacing scale steps in 4px rather than 8px because operator
 tables are tight and a scale nobody can honour is a scale that gets bypassed. Surfaces alternate through
@@ -238,14 +255,15 @@ bottom-left, cut through `corner-shape` and never through a polygon mask.
 The identity is defined as much by refusal as by choice. It is not SebaSOFT's cyberpunk-wireframe world:
 no Cyberpunk Yellow, no `#C5003C`, no TRON grids, no scanlines, no ornamental glow standing in for state.
 That refusal is scanned in CI against generated output rather than left to brand review. Nor is it a
-generic SaaS card grid — there are no soft shadows, no rounded-everything cards, no pastel status chips.
-Colour is never the only cue for anything: every state token carries a required non-colour companion, and
-the token contract throws at build time when a badge arrives without a label.
+generic SaaS card grid — there are no soft shadows, no rounded-everything cards, and no state colour used
+as decoration. Colour is never the only cue for anything: every state token carries a required
+non-colour companion, and the token contract throws at build time when a badge arrives without a label.
 
 **Key Characteristics:**
 
-- Flat, near-black ink surfaces layered by opaque tonal steps, never by translucency or shadow
+- Flat opaque surfaces: near-black ink in the dark theme and a cool-grey ground with near-white panels in L3
 - One accent — Signal Cyan — reserved for live, active, primary action, and focus
+- Public and Control follow the system or an explicit light/dark choice; broadcast remains dark
 - Condensed uppercase display face for identity; monospace for every figure and label
 - Asymmetric chamfer (top-right / bottom-left) as the sole shape signature
 - 4px spacing scale, 44px minimum interactive target, tabular figures everywhere numbers appear
@@ -254,7 +272,7 @@ the token contract throws at build time when a badge arrives without a label.
 
 ## Colors
 
-A near-black ink field, three steps of cool grey text, and four saturated signal colours that appear only
+An ink field for the dark theme, cool-grey daylight surfaces for L3, and signal colours that appear only
 where something is true about the state of the tournament.
 
 ### Primary
@@ -302,6 +320,40 @@ where something is true about the state of the tournament.
 - **Cool Grey** (`text-200`): Secondary text — alert bodies, series detail, broadcast org lines.
 - **Muted Steel** (`text-400`): Labels, table headers, metadata, help text, and emphasised structure.
   Never body copy.
+
+### Light Theme (L3 Sunlight)
+
+Public and Control can follow the device's light preference or an explicit per-device choice. TV stays
+on the dark palette for kiosks and broadcast overlays. L3 keeps the same semantic roles and changes
+their values: a mid-grey ground, near-white panels, darker structure and legible signal colours.
+
+| Role | L3 token | Value | Contrast |
+| --- | --- | --- | --- |
+| Base ground | `surface-base` | `#E3E8EF` | — |
+| Panel and row | `surface-panel`, `surface-row` | `#F8FAFC` | — |
+| Alternate row | `surface-row-alt` | `#EDF1F6` | — |
+| Chrome | `surface-chrome` | `#D3DAE4` | — |
+| Emblem frame | `surface-emblem-frame` | `#1A2236` | Monogram `#F2F6FB` |
+| Decorative structure | `border-muted` | `#8C9AB5` | 2.71:1 on panel |
+| Form-control boundary | `border-control` | `#5B6884` | At least 3:1 on chrome |
+| Body text | `text-primary` | `#05070D` | 19.25:1 on panel |
+| Secondary text | `text-secondary` | `#263049` | 12.53:1 on panel |
+| Muted labels | `text-muted` | `#46536B` | 5.5:1 on chrome |
+| Primary action fill | `primary` | `#00D4FF` | 10.9:1 with `#05070D` text |
+| Accent text, links, live and focus | `text-accent`, `state-live`, `focus-ring` | `#00586B` | 7.7:1 on panel |
+| Selected container | `surface-raised` | `#C4EEF8` | — |
+| Upcoming | `state-upcoming` | `#6B3A00` | 6.69:1 on chrome |
+| Positive result | `state-positive` | `#116B32` | 4.7:1 on chrome; 5.07:1 in positive badge tint |
+| Destructive result | `state-destructive` | `#B01818` | 6.71:1 on panel |
+
+Charts use violet `#6351CA`, cyan `#0094C3`, teal `#007E57`, amber `#CF7100` and magenta `#B43694`
+on near-white plot panels. The primary action's light-theme glow is a 2px deep-cyan outline, not a
+blur. Discipline imagery fades to 35% of its dark-theme opacity; the neutral radial ground is lighter.
+Organizer emblems keep their opaque chrome-ink frame in both themes. Fallback monograms retain
+light text on that frame; frameless emblems follow the active body-text colour.
+
+Positive-result badges blend 15% state green into the near-white panel surface, keeping the label above
+4.5:1 contrast while preserving a restrained green tint.
 
 ### Named Rules
 
@@ -373,10 +425,10 @@ drops to `16px`, and below 375px to `12px` — the width that 200% zoom exposes.
 denser mapping of the same 4px scale: `24px` between sections, `12px` between fields, `8px` between rows,
 `4px` inline. No second scale is introduced; each value is an existing step chosen for density.
 
-**Public (Persuade / Read).** A centred `960px` container over a fixed, low-opacity discipline background
-image — or, when a discipline ships no imagery, a token-drawn neutral radial ground rather than another
-discipline's picture. Card grids are `repeat(auto-fill, minmax(min(100%, 280px), 1fr))`. Output is
-durable and JavaScript-independent.
+**Public (Persuade / Read).** A centred `1200px` page container with a `720px` reading column over a
+fixed, low-opacity discipline background image — or, when a discipline ships no imagery, a token-drawn
+neutral radial ground rather than another discipline's picture. Card grids are
+`repeat(auto-fill, minmax(min(100%, 280px), 1fr))`. Output is durable and JavaScript-independent.
 
 **Broadcast (Experience).** Viewport-relative throughout: type sized in `clamp()` against `vmin` so a
 scorebug reads at any venue-screen resolution, and a single alternation step instead of the full
@@ -513,8 +565,8 @@ uppercase display face, 44px targets, state always spelled out in words as well 
 
 ### Inputs / Fields
 
-- **Style:** Chrome Ink fill, `1px` structure border, control chamfer (`8px` top-right / bottom-left),
-  `44px` minimum height, `8px 12px` padding, `color-scheme: dark` so native pickers match.
+- **Style:** Chrome fill, `1px` control border, control chamfer (`8px` top-right / bottom-left),
+  `44px` minimum height, `8px 12px` padding. Native pickers follow the active theme's `color-scheme`.
 - **Focus:** Border shifts to the focus ring colour and the two-layer ring draws outside the box.
 - **Error:** Border and ring both become Dispute Red; the error message renders in the same red at
   `0.75rem` beneath the field.
@@ -543,6 +595,8 @@ uppercase display face, 44px targets, state always spelled out in words as well 
 - **Pills / filters:** Chrome Ink with a structure border, Barlow 600 at `0.875rem`, `44px` minimum
   height. Hover takes the hovered surface; `--active` or `aria-current` fills Signal Cyan with Deep Ink
   text.
+- **Public theme preference:** Compact disclosure with the current System/Light/Dark choice visible.
+  Its options remain a `44px` target and the selected choice uses the theme-aware accent tokens.
 - **Public shell:** A single logo lock-up in the header and a one-line footer. A skip link sits offscreen
   until focused, then lands at `8px / 8px` on panel ink.
 

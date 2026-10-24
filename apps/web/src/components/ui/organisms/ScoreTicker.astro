@@ -81,32 +81,34 @@ const {
           {staleLabel}
         </p>
       )}
-      <div class="cl-ticker__track" data-ticker-track>
-        {[0, 1].map((copy) =>
-          items.map((item) => (
-            <div
-              class="cl-ticker__item"
-              aria-hidden={copy === 1 ? 'true' : undefined}
-              data-match-id={item.matchId}
-              data-home-entrant-id={item.homeEntrantId}
-              data-away-entrant-id={item.awayEntrantId}
-              data-home-score={item.homeScore}
-              data-away-score={item.awayScore}
-              data-match-state={item.matchState}
-            >
-              <Badge className={`cl-badge--${item.tone}`}>{item.badge}</Badge>
-              <span class="cl-ticker__subject">{item.subject}</span>
-              <span class="cl-ticker__figure">{item.figure}</span>
-              {item.opponent && <span class="cl-ticker__subject">{item.opponent}</span>}
-              {/* Only where the discipline declares one; nothing here derives it. */}
-              {item.overtime && <span class="cl-ticker__overtime">{item.overtime}</span>}
-              {item.meta && <span class="cl-ticker__meta">({item.meta})</span>}
-              <span class="cl-ticker__sep" aria-hidden="true">
-                ///
-              </span>
-            </div>
-          )),
-        )}
+      <div class="cl-ticker__viewport">
+        <div class="cl-ticker__track" data-ticker-track>
+          {[0, 1].map((copy) =>
+            items.map((item) => (
+              <div
+                class="cl-ticker__item"
+                aria-hidden={copy === 1 ? 'true' : undefined}
+                data-match-id={item.matchId}
+                data-home-entrant-id={item.homeEntrantId}
+                data-away-entrant-id={item.awayEntrantId}
+                data-home-score={item.homeScore}
+                data-away-score={item.awayScore}
+                data-match-state={item.matchState}
+              >
+                <Badge className={`cl-badge--${item.tone}`}>{item.badge}</Badge>
+                <span class="cl-ticker__subject">{item.subject}</span>
+                <span class="cl-ticker__figure">{item.figure}</span>
+                {item.opponent && <span class="cl-ticker__subject">{item.opponent}</span>}
+                {/* Only where the discipline declares one; nothing here derives it. */}
+                {item.overtime && <span class="cl-ticker__overtime">{item.overtime}</span>}
+                {item.meta && <span class="cl-ticker__meta">({item.meta})</span>}
+                <span class="cl-ticker__sep" aria-hidden="true">
+                  ///
+                </span>
+              </div>
+            )),
+          )}
+        </div>
       </div>
       {/*
           Hidden until the script that gives it meaning has run. A pause button
@@ -226,8 +228,8 @@ const {
     position: relative;
     z-index: 20;
     user-select: none;
-    background: color-mix(in srgb, var(--cl-color-ink-950) 90%, transparent);
-    border-block-end: 1px solid var(--cl-color-ink-700);
+    background: color-mix(in srgb, var(--cl-surface-base) 90%, transparent);
+    border-block-end: 1px solid var(--cl-border-strong);
     backdrop-filter: blur(6px);
   }
 
@@ -255,6 +257,12 @@ const {
     will-change: transform;
   }
 
+  .cl-ticker__viewport {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
+
   .cl-ticker__item {
     display: inline-flex;
     align-items: center;
@@ -275,9 +283,9 @@ const {
     font-variant-numeric: tabular-nums;
     padding: 0.15em 0.4em;
     border-radius: var(--cl-radius-sm);
-    background: var(--cl-color-ink-900);
-    border: 1px solid var(--cl-color-ink-700);
-    color: var(--cl-primary);
+    background: var(--cl-surface-panel);
+    border: 1px solid var(--cl-border-strong);
+    color: var(--cl-text-accent);
   }
 
   /* A period the discipline declared, not a clock that ran long. */
@@ -293,7 +301,7 @@ const {
 
   .cl-ticker__sep {
     font-weight: 700;
-    color: var(--cl-color-ink-700);
+    color: var(--cl-text-muted);
     margin-inline: var(--cl-space-2);
   }
 
@@ -313,28 +321,26 @@ const {
   .cl-ticker__notice--stale {
     flex: 0 0 auto;
     color: var(--cl-state-upcoming);
-    border-inline-end: 1px solid var(--cl-color-ink-700);
+    border-inline-end: 1px solid var(--cl-border-strong);
     margin-inline-end: var(--cl-space-4);
     padding-block: var(--cl-space-1);
   }
 
   .cl-ticker__pause {
-    position: absolute;
-    inset-block: 0;
-    inset-inline-end: 0;
     display: grid;
     place-items: center;
+    flex: 0 0 auto;
     min-width: var(--cl-touch-target);
     padding-inline: var(--cl-space-3);
     border: 0;
-    border-inline-start: 1px solid var(--cl-color-ink-700);
-    background: var(--cl-color-ink-900);
+    border-inline-start: 1px solid var(--cl-border-strong);
+    background: var(--cl-surface-panel);
     color: var(--cl-text-secondary);
     cursor: pointer;
   }
 
   .cl-ticker__pause[aria-pressed='true'] {
-    color: var(--cl-primary);
+    color: var(--cl-text-accent);
   }
 
   /*
@@ -349,6 +355,10 @@ const {
     .cl-ticker {
       overflow-y: auto;
       align-items: flex-start;
+    }
+
+    .cl-ticker__viewport {
+      overflow: visible;
     }
 
     .cl-ticker__track {

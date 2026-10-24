@@ -47,6 +47,15 @@ describe('EmblemImage bare mode', () => {
   });
 });
 
+describe('EmblemImage theme contrast', () => {
+  it('keeps framed monograms legible on ink and bare emblems legible on the page', () => {
+    expect(emblemAstro).toContain('color: var(--cl-text-on-emblem-frame);');
+    expect(emblemAstro).toMatch(
+      /\.cl-emblem-frame--bare \.cl-emblem-placeholder \{\s*color: var\(--cl-text-primary\);\s*\}/,
+    );
+  });
+});
+
 describe('PersonPhotoImage display atom', () => {
   it('keeps person-photo geometry separate without imposing emblem 1:1 aspect-ratio', () => {
     expect(personAstro).toContain('style={`width: ${size}px`}');

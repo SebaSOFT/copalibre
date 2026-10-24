@@ -302,6 +302,12 @@ body {
   overflow-wrap: anywhere;
 }
 
+.cl-preferences-listing {
+  width: 100%;
+  max-width: var(--cl-breakpoint-md);
+  margin-inline: auto;
+}
+
 .cl-control > main {
   overflow-wrap: anywhere;
 }
@@ -486,18 +492,7 @@ body {
   }
 }
 
-/* Form controls & links themed to dark Broadcast Command Precision palette */
-.cl-control input,
-.cl-control select,
-.cl-control textarea,
-.cl-input,
-.cl-select,
-.cl-textarea {
-  color-scheme: dark;
-}
-
 .cl-input::-webkit-calendar-picker-indicator {
-  filter: invert(0.8);
   cursor: pointer;
 }
 
@@ -537,7 +532,6 @@ input[type='checkbox'].cl-checkbox {
   display: inline-grid;
   place-content: center;
   flex-shrink: 0;
-  color-scheme: dark;
 }
 
 input[type='checkbox'].cl-checkbox:hover {

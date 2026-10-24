@@ -143,4 +143,21 @@ test.describe('public score ticker live reactivity', () => {
 
     await context.close();
   });
+
+  test('the ticker pause control reserves space instead of covering match text', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(OVERVIEW_PATH);
+
+    const viewport = page.locator('.cl-ticker__viewport');
+    const pause = page.locator('[data-ticker-pause]');
+    await expect(pause).toBeVisible();
+
+    const viewportBox = await viewport.boundingBox();
+    const pauseBox = await pause.boundingBox();
+    expect(viewportBox).not.toBeNull();
+    expect(pauseBox).not.toBeNull();
+    expect((viewportBox?.x ?? 0) + (viewportBox?.width ?? 0)).toBeLessThanOrEqual(pauseBox?.x ?? 0);
+  });
 });

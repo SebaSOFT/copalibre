@@ -463,3 +463,26 @@ accessible control; `destructive` alerts SHALL remain until the failure is resol
 - **WHEN** an alert is considered
 - **THEN** non-transient errors, critical warnings and necessary operational choices qualify; "all
   items resolved" or "no pending candidates" do not
+
+### Requirement: Interface copy follows one voice across actions, results and errors
+
+Catalogue strings in all eight languages SHALL be sentence case, with uppercase applied only by CSS. An
+action button SHALL name a verb and its object. The toast for that action SHALL repeat the same verb.
+Error text SHALL state what failed and how to fix it, and SHALL NOT apologise. A catalogue lint SHALL
+enforce the case and apology rules.
+
+#### Scenario: All-caps catalogue value
+
+- **WHEN** a catalogue value is entirely uppercase and is not an allowlisted acronym
+- **THEN** the copy-voice lint fails and names the key and language
+
+#### Scenario: Action and result share a name
+
+- **WHEN** the button "Publish schedule" succeeds
+- **THEN** the toast reads "Schedule published", and the confirmation dialog title also uses "Publish
+  schedule"
+
+#### Scenario: Apology in an error
+
+- **WHEN** a German error string contains "leider"
+- **THEN** the copy-voice lint fails

@@ -108,6 +108,7 @@ for (const viewport of [
   test(`the page has one fixed, faint, blurred discipline image and the hero has none (${viewport.name})`, async ({
     page,
   }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.route(/\/objects\/discipline-background-image\?key=/, (route) =>
       route.fulfill({

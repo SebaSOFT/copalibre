@@ -446,12 +446,13 @@ describe('governance rules: atoms hold no state/data access', () => {
   });
 });
 
-describe('form-control dark theming contract', () => {
+describe('form-control native theme contract', () => {
   const cssPath = join(dirname(fileURLToPath(import.meta.url)), '../../../../styles/control.css');
   const css = readFileSync(cssPath, 'utf8');
 
-  it('declares color-scheme dark for form inputs, selects, and textareas', () => {
-    expect(css).toContain('color-scheme: dark;');
+  it('lets the document theme select the native form-control palette', () => {
+    expect(css).not.toContain('color-scheme: dark;');
+    expect(css).not.toContain('filter: invert(0.8);');
   });
 
   it('declares custom dark appearance for checkboxes', () => {

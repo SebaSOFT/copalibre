@@ -17,6 +17,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};
+export const LightL3: Story = { globals: { theme: 'light' } };
 export const Empty: Story = { args: { tournaments: [] } };
 export const Loading: Story = { args: { loading: true, tournaments: [] } };
 export const Failed: Story = { args: { failed: true, tournaments: [] } };

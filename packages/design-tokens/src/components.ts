@@ -86,9 +86,9 @@ export interface ButtonTokens {
 
 export const BUTTON_VARIANTS: Record<ButtonVariant, ButtonTokens> = {
   primary: {
-    background: 'state-live',
+    background: 'primary',
     // Dark text on a cyan fill: light text on this cyan does not reach AA.
-    text: 'surface-base',
+    text: 'primary-text',
     border: 'transparent',
     minSize: TOUCH_TARGET,
     // The reference lightens the fill on hover rather than filtering it.
@@ -175,7 +175,7 @@ const FORM_CONTROL_STATES: Record<FormControlState, FormControlTokenSet> = {
   default: {
     background: 'surface-chrome',
     text: 'text-primary',
-    border: 'border-muted',
+    border: 'border-control',
     focusRing: 'focus-ring',
   },
   focus: {
@@ -193,7 +193,7 @@ const FORM_CONTROL_STATES: Record<FormControlState, FormControlTokenSet> = {
   disabled: {
     background: 'surface-panel',
     text: 'text-muted',
-    border: 'border-muted',
+    border: 'border-control',
     focusRing: 'border-muted',
   },
 };
@@ -209,7 +209,7 @@ export const FILE_PICKER_TOKENS: FilePickerTokens = {
   'drag-active': {
     background: 'surface-hover',
     text: 'text-primary',
-    border: 'primary',
+    border: 'border-accent',
     focusRing: 'focus-ring',
   },
   'selection-present': {

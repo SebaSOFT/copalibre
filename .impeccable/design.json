@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-22T23:51:16.501Z",
+  "generatedAt": "2026-10-23T21:41:20.712Z",
   "title": "Design System: CopaLibre",
   "extensions": {
     "colorMeta": {
@@ -273,6 +273,216 @@
           "#8C9AB5",
           "#D3DAE7"
         ]
+      },
+      "light-ink-950": {
+        "role": "neutral",
+        "displayName": "Sunlight Ground",
+        "canonical": "#E3E8EF",
+        "tonalRamp": [
+          "#080B10",
+          "#1E2227",
+          "#373B40",
+          "#51565B",
+          "#6E7278",
+          "#8B9096",
+          "#B9BEC5",
+          "#EAEFF6"
+        ]
+      },
+      "light-ink-900": {
+        "role": "neutral",
+        "displayName": "Sunlight Panel",
+        "canonical": "#F8FAFC",
+        "tonalRamp": [
+          "#0A0B0D",
+          "#202223",
+          "#393B3C",
+          "#545557",
+          "#707273",
+          "#8D8F91",
+          "#BCBEC0",
+          "#EDEFF1"
+        ]
+      },
+      "light-ink-930": {
+        "role": "neutral",
+        "displayName": "Sunlight Row",
+        "canonical": "#EDF1F6",
+        "tonalRamp": [
+          "#090B0F",
+          "#1F2225",
+          "#383B3F",
+          "#52565A",
+          "#6E7276",
+          "#8C8F94",
+          "#BABEC3",
+          "#EBEFF4"
+        ]
+      },
+      "light-ink-850": {
+        "role": "neutral",
+        "displayName": "Sunlight Chrome",
+        "canonical": "#D3DAE4",
+        "tonalRamp": [
+          "#070B12",
+          "#1D2229",
+          "#353B43",
+          "#50565E",
+          "#6C727B",
+          "#899099",
+          "#B7BEC8",
+          "#E8EFF9"
+        ]
+      },
+      "light-ink-700": {
+        "role": "neutral",
+        "displayName": "Sunlight Structure",
+        "canonical": "#8C9AB5",
+        "tonalRamp": [
+          "#030A1D",
+          "#172136",
+          "#2F3A51",
+          "#49556E",
+          "#65728B",
+          "#8290AA",
+          "#B0BEDA",
+          "#E7EFFE"
+        ]
+      },
+      "light-control-border": {
+        "role": "neutral",
+        "displayName": "Sunlight Control Boundary",
+        "canonical": "#5B6884",
+        "tonalRamp": [
+          "#03091F",
+          "#172138",
+          "#2F3A53",
+          "#495570",
+          "#64718E",
+          "#818FAD",
+          "#AFBEDD",
+          "#E7EFFE"
+        ]
+      },
+      "light-text-950": {
+        "role": "neutral",
+        "displayName": "Sunlight Primary Text",
+        "canonical": "#05070D",
+        "tonalRamp": [
+          "#080B12",
+          "#1E2229",
+          "#373A43",
+          "#51555E",
+          "#6D727B",
+          "#8B8F99",
+          "#B9BEC8",
+          "#EAEEF9"
+        ]
+      },
+      "light-text-900": {
+        "role": "neutral",
+        "displayName": "Sunlight Secondary Text",
+        "canonical": "#263049",
+        "tonalRamp": [
+          "#04091F",
+          "#172138",
+          "#2F3A53",
+          "#495570",
+          "#65718E",
+          "#828FAD",
+          "#B0BEDD",
+          "#E8EEFE"
+        ]
+      },
+      "light-text-800": {
+        "role": "neutral",
+        "displayName": "Sunlight Muted Text",
+        "canonical": "#46536B",
+        "tonalRamp": [
+          "#030A1D",
+          "#162136",
+          "#2E3B51",
+          "#48566E",
+          "#64728B",
+          "#8190AA",
+          "#AFBEDA",
+          "#E6EFFE"
+        ]
+      },
+      "light-cyan-800": {
+        "role": "primary",
+        "displayName": "Sunlight Signal Cyan",
+        "canonical": "#00586B",
+        "tonalRamp": [
+          "#010D12",
+          "#05262F",
+          "#084250",
+          "#0E5F72",
+          "#357C90",
+          "#549BAF",
+          "#83CAE0",
+          "#D8F4FD"
+        ]
+      },
+      "light-cyan-100": {
+        "role": "primary",
+        "displayName": "Sunlight Selected Surface",
+        "canonical": "#C4EEF8",
+        "tonalRamp": [
+          "#010E11",
+          "#04262D",
+          "#1A4149",
+          "#365C65",
+          "#527982",
+          "#6F97A0",
+          "#9DC6D0",
+          "#D1F6FF"
+        ]
+      },
+      "light-amber-900": {
+        "role": "secondary",
+        "displayName": "Sunlight Attention Amber",
+        "canonical": "#6B3A00",
+        "tonalRamp": [
+          "#150700",
+          "#341A01",
+          "#55300B",
+          "#7A4714",
+          "#996434",
+          "#B88252",
+          "#EAB07F",
+          "#FEEBDB"
+        ]
+      },
+      "light-green-800": {
+        "role": "tertiary",
+        "displayName": "Sunlight Confirm Green",
+        "canonical": "#116B32",
+        "tonalRamp": [
+          "#010F04",
+          "#042A10",
+          "#05471E",
+          "#08672E",
+          "#33854A",
+          "#53A367",
+          "#82D494",
+          "#C8FFD2"
+        ]
+      },
+      "light-red-800": {
+        "role": "state",
+        "displayName": "Sunlight Dispute Red",
+        "canonical": "#B01818",
+        "tonalRamp": [
+          "#1E0101",
+          "#460303",
+          "#6E120F",
+          "#9C1D1A",
+          "#C7342D",
+          "#EA574B",
+          "#FDA296",
+          "#FEE9E6"
+        ]
       }
     },
     "typographyMeta": {
@@ -488,14 +698,23 @@
       "description": "Summary figures on Chrome Ink. Three across above the md breakpoint, one below. Values render in the display face with tabular figures.",
       "html": "<div class=\"ds-stat-grid\"><div class=\"ds-stat\"><span class=\"ds-stat-label\">Matches live</span><span class=\"ds-stat-value\">4</span></div><div class=\"ds-stat\"><span class=\"ds-stat-label\">Awaiting result</span><span class=\"ds-stat-value\">12</span></div><div class=\"ds-stat\"><span class=\"ds-stat-label\">Disputed</span><span class=\"ds-stat-value\">1</span></div></div>",
       "css": ".ds-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } .ds-stat { display: grid; gap: 4px; background: #1A2236; border: 1px solid #243049; padding: 16px; } .ds-stat-label { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #8C9AB5; } .ds-stat-value { font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-weight: 700; font-size: 2.25rem; line-height: 1.1; font-variant-numeric: tabular-nums; color: #F2F6FB; } @media (max-width: 767px) { .ds-stat-grid { grid-template-columns: 1fr; } }"
+    },
+    {
+      "name": "Theme Preference Menu",
+      "kind": "nav",
+      "refersTo": "public-theme-preference",
+      "description": "Compact disclosure with System, Light, and Dark choices. The current choice stays visible, each option meets the 44px target, and the preference is per device; broadcast remains dark.",
+      "html": "<details class=\"cl-theme-preference\"><summary>System</summary><div role=\"group\" aria-label=\"Theme\"><button>System</button><button>Light</button><button>Dark</button></div></details>",
+      "css": ".cl-theme-preference summary { min-height: 44px; display: inline-flex; align-items: center; } .cl-theme-preference button { min-height: 44px; color: var(--cl-text-primary); background: var(--cl-surface-panel); border: 1px solid var(--cl-border-control); } .cl-theme-preference [aria-pressed=\"true\"] { color: var(--cl-text-accent); border-color: var(--cl-focus-ring); }"
     }
   ],
   "narrative": {
     "northStar": "Broadcast Command Precision",
-    "overview": "CopaLibre looks like the gallery behind a live broadcast, not the broadcast itself. Deep ink surfaces recede so that one signal colour — cyan — can mean exactly one thing: this is live, this is the action, this is where you look. Everything else on screen is instrumentation: condensed uppercase labels, monospaced tabular figures that do not shift width as a score changes, hairline borders that make structure countable rather than decorative. The system is built for an operator working a bracket under time pressure, and for a venue screen read from twelve metres away, with the same tokens serving both.\n\nDensity is deliberate and unapologetic. The spacing scale steps in 4px rather than 8px because operator tables are tight and a scale nobody can honour is a scale that gets bypassed. Surfaces alternate through opaque named levels — base, panel, chrome, row — rather than through translucency, so any row's contrast is checkable from its own token instead of from whatever happens to sit behind it. The one piece of ornament in the whole system is the chamfer: a diagonal pair of bevelled corners, top-right and bottom-left, cut through corner-shape and never through a polygon mask.\n\nThe identity is defined as much by refusal as by choice. It is not SebaSOFT's cyberpunk-wireframe world: no Cyberpunk Yellow, no #C5003C, no TRON grids, no scanlines, no ornamental glow standing in for state. That refusal is scanned in CI against generated output rather than left to brand review. Nor is it a generic SaaS card grid — there are no soft shadows, no rounded-everything cards, no pastel status chips. Colour is never the only cue for anything: every state token carries a required non-colour companion, and the token contract throws at build time when a badge arrives without a label.",
+    "overview": "CopaLibre looks like the gallery behind a live broadcast, not the broadcast itself. The dark theme uses deep ink; L3 Sunlight uses a cool-grey ground and near-white panels while preserving the same semantic roles. Public and Control follow the system preference or an explicit per-device choice, while broadcast remains dark. Across both themes, cyan marks live, action, or focus; condensed uppercase labels, tabular monospaced figures, opaque surfaces, and the asymmetric chamfer keep the system precise under tournament pressure.",
     "keyCharacteristics": [
-      "Flat, near-black ink surfaces layered by opaque tonal steps, never by translucency or shadow",
+      "Flat opaque surfaces: near-black ink in the dark theme and a cool-grey ground with near-white panels in L3",
       "One accent — Signal Cyan — reserved for live, active, primary action, and focus",
+      "Public and Control follow the system or an explicit light/dark choice; broadcast remains dark",
       "Condensed uppercase display face for identity; monospace for every figure and label",
       "Asymmetric chamfer (top-right / bottom-left) as the sole shape signature",
       "4px spacing scale, 44px minimum interactive target, tabular figures everywhere numbers appear",

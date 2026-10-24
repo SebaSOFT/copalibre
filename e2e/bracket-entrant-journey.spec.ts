@@ -72,6 +72,7 @@ for (const width of [375, 1440]) {
   test(`highlights the winning continuation and clears by keyboard at ${width}px`, async ({
     page,
   }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
     await page.setViewportSize({ width, height: 900 });
     await page.goto(route);
     const button = page.getByRole('button', { name: 'Highlight path for Talleres' });

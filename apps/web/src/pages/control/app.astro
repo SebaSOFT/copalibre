@@ -29,6 +29,15 @@ import '../../styles/control.css';
 <!doctype html>
 <html lang="en">
   <head>
+    <script is:inline>
+      try {
+        const t = localStorage.getItem('cl-theme');
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+        else document.documentElement.removeAttribute('data-theme');
+      } catch {
+        document.documentElement.removeAttribute('data-theme');
+      }
+    </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />

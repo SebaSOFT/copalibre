@@ -22,3 +22,11 @@
   --sl-color-accent: var(--cl-state-live);
   --sl-color-accent-high: var(--cl-text-primary);
 }
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --sl-color-accent-low: var(--cl-surface-chrome);
+    --sl-color-accent: var(--cl-state-live);
+    --sl-color-accent-high: var(--cl-text-primary);
+  }
+}

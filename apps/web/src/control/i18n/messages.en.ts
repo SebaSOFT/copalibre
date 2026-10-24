@@ -3936,6 +3936,14 @@ export const messages = defineMessages({
     id: 'control.liveConsole.createTournament',
     defaultMessage: 'Create tournament',
   },
+  liveConsoleViewMatches: {
+    id: 'control.liveConsole.viewMatches',
+    defaultMessage: 'View matches',
+  },
+  liveConsoleMatchReports: {
+    id: 'control.liveConsole.matchReports',
+    defaultMessage: 'Match reports',
+  },
 
   // Preferences route — the personal-access-token
   // list's own loading state. Uses the shared catalogue rather than this
@@ -3947,6 +3955,10 @@ export const messages = defineMessages({
     defaultMessage: 'Loading…',
   },
   preferencesTitle: { id: 'preferences.title', defaultMessage: 'Personal Preferences' },
+  preferencesThemeTitle: { id: 'control.preferences.theme', defaultMessage: 'Theme' },
+  preferencesThemeDark: { id: 'control.preferences.themeDark', defaultMessage: 'Dark' },
+  preferencesThemeLight: { id: 'control.preferences.themeLight', defaultMessage: 'Light' },
+  preferencesThemeSystem: { id: 'control.preferences.themeSystem', defaultMessage: 'System' },
   preferencesPatTitle: { id: 'preferences.patTitle', defaultMessage: 'Personal Access Tokens' },
   preferencesPatDescription: {
     id: 'preferences.patDescription',

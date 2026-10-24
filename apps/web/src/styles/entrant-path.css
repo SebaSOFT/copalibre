@@ -3,11 +3,11 @@
 :is(article, a)[data-entrant-path='included'].cl-card {
   box-shadow:
     0 0 0 1px var(--cl-surface-base),
-    0 0 0 3px var(--cl-primary);
+    0 0 0 3px var(--cl-border-accent);
 }
 
 li[data-entrant-path='included'] {
-  border-left: var(--cl-space-1) solid var(--cl-primary);
+  border-left: var(--cl-space-1) solid var(--cl-border-accent);
   padding-left: var(--cl-space-2);
 }
 

@@ -107,7 +107,7 @@ const winners = tournament.winners ?? [];
 
   .cl-card-featured {
     background: linear-gradient(135deg, var(--cl-surface-chrome) 0%, var(--cl-surface-base) 100%);
-    border-color: color-mix(in srgb, var(--cl-primary) 60%, transparent);
+    border-color: color-mix(in srgb, var(--cl-border-accent) 60%, transparent);
     box-shadow: 0 0 20px color-mix(in srgb, var(--cl-primary) 15%, transparent);
   }
 
@@ -175,8 +175,8 @@ const winners = tournament.winners ?? [];
   }
 
   .cl-badge-upcoming {
-    background-color: color-mix(in srgb, var(--cl-primary) 20%, transparent);
-    color: var(--cl-primary);
+    background-color: var(--cl-surface-raised);
+    color: var(--cl-text-accent);
   }
 
   .cl-badge-finished {
