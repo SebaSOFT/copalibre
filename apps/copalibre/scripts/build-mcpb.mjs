@@ -13,8 +13,6 @@ const packageRoot = join(here, '..');
 const packageJsonPath = join(packageRoot, 'package.json');
 const distDir = join(packageRoot, 'dist');
 const bundlePath = join(distDir, 'bundle.cjs');
-const mcpbPath = join(distDir, 'copalibre.mcpb');
-const manifestPath = join(distDir, 'manifest.json');
 
 export function generateMcpbManifest(version) {
   return {
@@ -150,10 +148,20 @@ export function createZipArchive(entries) {
   return Buffer.concat([...localHeaders, ...centralHeaders, eocd]);
 }
 
-export function buildMcpb() {
-  if (!existsSync(bundlePath)) {
-    process.stdout.write('bundle.cjs not found; building bundle first...\n');
-    execFileSync(process.execPath, [join(here, 'bundle.mjs')], { stdio: 'inherit' });
+export function buildMcpb(options = {}) {
+  const targetDistDir = options.distDir ?? distDir;
+  const targetBundlePath = options.bundlePath ?? bundlePath;
+  const targetMcpbPath = options.mcpbPath ?? join(targetDistDir, 'copalibre.mcpb');
+  const targetManifestPath = options.manifestPath ?? join(targetDistDir, 'manifest.json');
+
+  if (!existsSync(targetBundlePath)) {
+    const mainJsPath = join(packageRoot, 'dist', 'main.js');
+    if (existsSync(mainJsPath)) {
+      process.stdout.write('bundle.cjs not found; building bundle first...\n');
+      execFileSync(process.execPath, [join(here, 'bundle.mjs')], { stdio: 'inherit' });
+    } else {
+      throw new Error(`${targetBundlePath} not found (compile with tsc --build first)`);
+    }
   }
 
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
@@ -161,17 +169,17 @@ export function buildMcpb() {
   const manifest = generateMcpbManifest(version);
   const manifestJson = JSON.stringify(manifest, null, 2) + '\n';
 
-  writeFileSync(manifestPath, manifestJson, 'utf8');
+  writeFileSync(targetManifestPath, manifestJson, 'utf8');
 
-  const bundleData = readFileSync(bundlePath);
+  const bundleData = readFileSync(targetBundlePath);
   const zipBuffer = createZipArchive([
     { name: 'manifest.json', data: manifestJson },
     { name: 'bundle.cjs', data: bundleData },
   ]);
 
-  writeFileSync(mcpbPath, zipBuffer);
+  writeFileSync(targetMcpbPath, zipBuffer);
   process.stdout.write(
-    `Built MCPB bundle for v${version} at ${mcpbPath} (${zipBuffer.length} bytes)\n`,
+    `Built MCPB bundle for v${version} at ${targetMcpbPath} (${zipBuffer.length} bytes)\n`,
   );
 }
 

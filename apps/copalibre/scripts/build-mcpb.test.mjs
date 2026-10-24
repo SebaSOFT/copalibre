@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
@@ -8,8 +10,6 @@ import { generateMcpbManifest, createZipArchive, buildMcpb } from './build-mcpb.
 
 const here = dirname(fileURLToPath(import.meta.url));
 const packageRoot = join(here, '..');
-const mcpbPath = join(packageRoot, 'dist', 'copalibre.mcpb');
-const manifestPath = join(packageRoot, 'dist', 'manifest.json');
 
 test('generateMcpbManifest generates descriptor conforming to Smithery/MCPB spec', () => {
   const version = '1.2.6';
@@ -44,24 +44,38 @@ test('createZipArchive produces a valid readable ZIP archive with deflate compre
   assert.deepEqual(readEntries.sort(), ['bundle.cjs', 'manifest.json']);
 });
 
-test('buildMcpb creates copalibre.mcpb with dynamic version from package.json', async () => {
+test('buildMcpb creates copalibre.mcpb with dynamic version from package.json in target directory', async () => {
   const packageJson = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
+  const tempDir = await mkdtemp(join(tmpdir(), 'build-mcpb-test-'));
 
-  buildMcpb();
+  try {
+    const dummyBundle = join(tempDir, 'bundle.cjs');
+    writeFileSync(dummyBundle, 'console.log("mock bundle");', 'utf8');
 
-  assert.ok(existsSync(mcpbPath), 'copalibre.mcpb was created');
-  assert.ok(existsSync(manifestPath), 'manifest.json was created');
+    buildMcpb({
+      distDir: tempDir,
+      bundlePath: dummyBundle,
+    });
 
-  const writtenManifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  assert.equal(writtenManifest.version, packageJson.version);
+    const mcpbFile = join(tempDir, 'copalibre.mcpb');
+    const manifestFile = join(tempDir, 'manifest.json');
 
-  const mcpbBuffer = readFileSync(mcpbPath);
-  const zipfile = await yauzl.fromBufferPromise(mcpbBuffer, { autoClose: true });
-  const fileNames = [];
-  for await (const entry of zipfile.eachEntry()) {
-    fileNames.push(entry.fileName);
+    assert.ok(existsSync(mcpbFile), 'copalibre.mcpb was created');
+    assert.ok(existsSync(manifestFile), 'manifest.json was created');
+
+    const writtenManifest = JSON.parse(readFileSync(manifestFile, 'utf8'));
+    assert.equal(writtenManifest.version, packageJson.version);
+
+    const mcpbBuffer = readFileSync(mcpbFile);
+    const zipfile = await yauzl.fromBufferPromise(mcpbBuffer, { autoClose: true });
+    const fileNames = [];
+    for await (const entry of zipfile.eachEntry()) {
+      fileNames.push(entry.fileName);
+    }
+
+    assert.ok(fileNames.includes('manifest.json'));
+    assert.ok(fileNames.includes('bundle.cjs'));
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
   }
-
-  assert.ok(fileNames.includes('manifest.json'));
-  assert.ok(fileNames.includes('bundle.cjs'));
 });
