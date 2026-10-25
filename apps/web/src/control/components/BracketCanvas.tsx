@@ -452,7 +452,7 @@ function BracketNode({
     minHeight: node.height,
     // Same treatment the public bracket-context panel gives its focused node — one
     // "look here" cue reused across both surfaces, not two different ones to learn.
-    ...(focused ? { borderWidth: 2, borderColor: 'var(--cl-primary)' } : {}),
+    ...(focused ? { borderWidth: 2, borderColor: 'var(--cl-border-accent)' } : {}),
   };
 
   if (href === undefined || interactive) {

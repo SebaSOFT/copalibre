@@ -171,14 +171,14 @@ const captionOf = (match: (typeof layout.nodes)[number]['match']): string | unde
   .cl-bracket-stage__node--championship :global(.cl-card),
   .cl-bracket-stage__node--championship :global(.cl-match-compact) {
     border-width: 2px;
-    border-color: var(--cl-primary);
+    border-color: var(--cl-border-accent);
   }
   /* The match a report page is about: a heavier edge and an outline, so it reads without colour. */
   .cl-bracket-stage__node--focused :global(.cl-card),
   .cl-bracket-stage__node--focused :global(.cl-match-compact) {
     border-width: 3px;
-    border-color: var(--cl-primary);
-    outline: 2px dashed var(--cl-primary);
+    border-color: var(--cl-border-accent);
+    outline: 2px dashed var(--cl-border-accent);
     outline-offset: 3px;
   }
   .cl-bracket-stage__node :global(article),

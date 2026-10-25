@@ -19,6 +19,7 @@ import { FilePicker } from '../ui/atoms/file-picker.js';
 import { Form } from '../ui/atoms/form.js';
 import { filePickerLabels } from '../../lib/file-picker-labels.js';
 import { Input } from '../ui/atoms/input.js';
+import { Select } from '../ui/atoms/select.js';
 import { Inline } from '../ui/atoms/layout/inline.js';
 import { Stack } from '../ui/atoms/layout/stack.js';
 import { Field } from '../ui/molecules/field.js';
@@ -29,6 +30,12 @@ import {
   type PatResponse,
 } from '../pages/PreferencesPage.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import {
+  applyThemePreference,
+  isThemePreference,
+  readThemePreference,
+  type ThemePreference,
+} from '../../../lib/theme-preference.js';
 
 const preferencesSectionPadding = 'clamp(var(--cl-space-3), 4vw, var(--cl-space-6))';
 
@@ -91,6 +98,7 @@ export function PreferencesTemplate({
 }): React.JSX.Element {
   const intl = useIntl();
 
+  const [themePreference, setThemePreference] = useState<ThemePreference>(readThemePreference);
   const [label, setLabel] = useState('');
   const [expiresInDays, setExpiresInDays] = useState(30);
   const [emblemCropSrc, setEmblemCropSrc] = useState<string | undefined>(undefined);
@@ -98,6 +106,18 @@ export function PreferencesTemplate({
   const [rebuildTournamentAlias, setRebuildTournamentAlias] = useState('');
   const [rebuildConfirming, setRebuildConfirming] = useState(false);
   const [dismissedRebuildResult, setDismissedRebuildResult] = useState(false);
+
+  const handleThemePreferenceChange = (value: string): void => {
+    if (!isThemePreference(value)) return;
+    setThemePreference(value);
+    applyThemePreference(value);
+  };
+
+  const themeOptions = [
+    { value: 'system', label: intl.formatMessage(controlMessages.preferencesThemeSystem) },
+    { value: 'light', label: intl.formatMessage(controlMessages.preferencesThemeLight) },
+    { value: 'dark', label: intl.formatMessage(controlMessages.preferencesThemeDark) },
+  ];
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +133,28 @@ export function PreferencesTemplate({
 
   const activeTokens = tokens.filter((token) => !token.revoked);
   const listingNode = (
-    <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto' }}>
+    <Stack gap="0" className="cl-preferences-listing">
+      <Card
+        aria-label={intl.formatMessage(controlMessages.preferencesThemeTitle)}
+        className="cl-chamfer cl-chamfer--control"
+        style={{
+          marginTop: '2rem',
+          padding: preferencesSectionPadding,
+        }}
+      >
+        <Field
+          id="theme-preference"
+          label={intl.formatMessage(controlMessages.preferencesThemeTitle)}
+        >
+          <Select
+            id="theme-preference"
+            onValueChange={handleThemePreferenceChange}
+            options={themeOptions}
+            value={themePreference}
+          />
+        </Field>
+      </Card>
+
       {organizationAlias !== undefined && (
         <Card
           aria-label={intl.formatMessage(controlMessages.orgIdentityHeading)}
@@ -474,7 +515,7 @@ export function PreferencesTemplate({
           }}
         />
       )}
-    </div>
+    </Stack>
   );
 
   return (

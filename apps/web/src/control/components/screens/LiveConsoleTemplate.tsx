@@ -1,4 +1,4 @@
-import { defineMessages, useIntl } from 'react-intl';
+import { useIntl } from 'react-intl';
 import { messages } from '../../i18n/messages.en.js';
 import { type TournamentResponse } from '../../lib/api-client.js';
 import { controlLinkClick } from '../../lib/control-navigation.js';
@@ -10,19 +10,6 @@ import { Skeleton } from '../ui/atoms/skeleton.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { EmptyState } from '../ui/molecules/empty-state.js';
-
-// These two link
-// labels were hardcoded Spanish literals with no message id at all. Local
-// rather than in `messages.en.ts` — the same `auth.*`/`invitation.*`
-// namespace gap already restated in English
-// elsewhere (`AcceptInvitationForm` among them): no locale catalogue has these ids, so every
-// locale falls back to `defaultMessage`, and `check-atomic-composition.mjs`'s
-// catalogue-completeness rule only walks the shared `messages.en.ts` file,
-// not a component's own local descriptors.
-const localMessages = defineMessages({
-  viewMatches: { id: 'control.liveConsole.viewMatches', defaultMessage: 'View matches' },
-  matchReports: { id: 'control.liveConsole.matchReports', defaultMessage: 'Match reports' },
-});
 
 /**
  * Composes the screen from the data `LiveConsolePage` supplies: purely presentational, no API client reference and no
@@ -105,7 +92,7 @@ export function LiveConsoleTemplate({
                       `/control/${organizationAlias}/tournaments/${tournament.alias}/matches-view`,
                     )}
                   >
-                    {intl.formatMessage(localMessages.viewMatches)}
+                    {intl.formatMessage(messages.liveConsoleViewMatches)}
                   </a>
                   <a
                     className="cl-btn cl-btn--secondary cl-focusable"
@@ -114,7 +101,7 @@ export function LiveConsoleTemplate({
                       `/control/${organizationAlias}/tournaments/${tournament.alias}/reports`,
                     )}
                   >
-                    {intl.formatMessage(localMessages.matchReports)}
+                    {intl.formatMessage(messages.liveConsoleMatchReports)}
                   </a>
                 </Inline>
               </Stack>

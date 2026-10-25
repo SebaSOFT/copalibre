@@ -2,7 +2,9 @@ import { render, screen } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { StandingsTemplate } from '../components/screens/StandingsTemplate.js';
 import { SeedingBuilderTemplate } from '../components/screens/SeedingBuilderTemplate.js';
+import { LiveConsoleTemplate } from '../components/screens/LiveConsoleTemplate.js';
 import { RolesPermissionsTemplate } from '../components/screens/RolesPermissionsTemplate.js';
+import { tournament } from '../components/screen-story-fixtures.js';
 import { ToastProvider } from '../components/ToastProvider.js';
 import { activeControlLanguage } from './ControlIntl.js';
 import { messages } from './messages.en.js';
@@ -184,6 +186,40 @@ describe('Non-English catalogs render real translated text, not an English fallb
       expect(screen.getByText(title)).toBeTruthy();
       expect(screen.getByText(emptyState)).toBeTruthy();
       expect(screen.queryByText('Standings')).toBeNull();
+    },
+  );
+});
+
+describe('LiveConsoleTemplate renders localized tournament links', () => {
+  const expectedLinks: Record<string, readonly [string, string]> = {
+    es: ['Ver partidos', 'Informes de partidos'],
+    fr: ['Voir les matchs', 'Rapports de match'],
+    pt: ['Ver partidas', 'Relatórios de partidas'],
+    it: ['Vedi le partite', 'Report delle partite'],
+    de: ['Spiele ansehen', 'Spielberichte'],
+    ru: ['Посмотреть матчи', 'Отчёты о матчах'],
+    zh: ['查看比赛', '比赛报告'],
+  };
+
+  it.each(Object.entries(expectedLinks))(
+    '%s renders both links from its locale catalogue',
+    (lang, [viewMatches, matchReports]) => {
+      render(
+        withLanguage(
+          lang,
+          <LiveConsoleTemplate
+            failed={false}
+            loading={false}
+            onRetry={() => undefined}
+            organizationAlias="liga-mendocina"
+            staleSince={undefined}
+            tournaments={[tournament]}
+          />,
+        ),
+      );
+
+      expect(screen.getByRole('link', { name: viewMatches })).toBeTruthy();
+      expect(screen.getByRole('link', { name: matchReports })).toBeTruthy();
     },
   );
 });

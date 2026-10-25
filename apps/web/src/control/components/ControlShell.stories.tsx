@@ -30,6 +30,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};
+export const LightL3: Story = { globals: { theme: 'light' } };
 export const Reconnecting: Story = {
   play: async ({ canvasElement }) => {
     window.dispatchEvent(

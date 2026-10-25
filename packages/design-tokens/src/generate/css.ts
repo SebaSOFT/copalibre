@@ -39,6 +39,30 @@ import { SEMANTIC_COLORS, type SemanticColor } from '../semantic.js';
  * surface most likely to be behind a hotel proxy or on a venue TV.
  */
 
+function lightThemeVariables(indent: string): string[] {
+  return [
+    `${indent}color-scheme: light;`,
+    ...Object.entries(COLOR_PRIMITIVES)
+      .filter(([name]) => name.startsWith('light-'))
+      .map(([name, value]) => `${indent}--cl-color-${name}: ${value};`),
+    ...Object.entries(SEMANTIC_COLORS).map(
+      ([name, token]) => `${indent}--cl-${name}: var(--cl-color-${token.primitive.light});`,
+    ),
+    ...Object.entries(BADGE_TONES)
+      .filter(([, tone]) => tone.color === 'state-positive')
+      .map(
+        ([name]) =>
+          `${indent}--cl-badge-${name}-background: color-mix(in srgb, var(--cl-state-positive) 15%, var(--cl-surface-panel));`,
+      ),
+    `${indent}--cl-badge-verified-background: color-mix(in srgb, var(--cl-state-positive) 15%, var(--cl-surface-panel));`,
+    ...Object.keys(CHART_TOKENS.series).map(
+      (slot) => `${indent}--cl-chart-${slot}: var(--cl-chart-${slot}-light);`,
+    ),
+    `${indent}--cl-chart-other: var(--cl-chart-other-light);`,
+    `${indent}--cl-glow-cyan: 0 0 0 2px var(--cl-color-light-cyan-800);`,
+  ];
+}
+
 export function generateCss(): string {
   return [
     /*
@@ -54,7 +78,10 @@ export function generateCss(): string {
     '',
     header(),
     `:root {`,
-    ...Object.entries(COLOR_PRIMITIVES).map(([name, value]) => `  --cl-color-${name}: ${value};`),
+    `  color-scheme: dark;`,
+    ...Object.entries(COLOR_PRIMITIVES)
+      .filter(([name]) => !name.startsWith('light-'))
+      .map(([name, value]) => `  --cl-color-${name}: ${value};`),
     ...Object.entries(CHART_TOKENS.series).flatMap(([slot, colors]) => [
       `  --cl-chart-${slot}-dark: ${colors.dark};`,
       `  --cl-chart-${slot}-light: ${colors.light};`,
@@ -65,12 +92,14 @@ export function generateCss(): string {
     `  --cl-chart-other: var(--cl-chart-other-dark);`,
     '',
     ...Object.entries(SEMANTIC_COLORS).map(
-      ([name, token]) => `  --cl-${name}: var(--cl-color-${token.primitive});`,
+      ([name, token]) => `  --cl-${name}: var(--cl-color-${token.primitive.dark});`,
     ),
     ...Object.entries(BADGE_TONES).flatMap(([name, tone]) => [
       `  --cl-badge-${name}-color: var(--cl-${tone.color});`,
       `  --cl-badge-${name}-weight: var(--cl-weight-${tone.weight});`,
+      `  --cl-badge-${name}-background: color-mix(in srgb, var(--cl-badge-${name}-color) 15%, transparent);`,
     ]),
+    `  --cl-badge-verified-background: color-mix(in srgb, var(--cl-state-positive) 15%, transparent);`,
     '',
     `  --cl-font-display: ${TYPOGRAPHY.display};`,
     `  --cl-font-body: ${TYPOGRAPHY.body};`,
@@ -110,11 +139,14 @@ export function generateCss(): string {
     '',
     scriptTypography(),
     '',
-    `:root[data-theme='light'] {`,
-    ...Object.keys(CHART_TOKENS.series).map(
-      (slot) => `  --cl-chart-${slot}: var(--cl-chart-${slot}-light);`,
-    ),
-    `  --cl-chart-other: var(--cl-chart-other-light);`,
+    `@media (prefers-color-scheme: light) {`,
+    `  :root:not([data-theme="dark"]) {`,
+    ...lightThemeVariables('    '),
+    `  }`,
+    `}`,
+    '',
+    `:root[data-theme="light"] {`,
+    ...lightThemeVariables('  '),
     `}`,
     '',
     reducedMotion(),
@@ -369,6 +401,7 @@ function imageFrame(): string {
     '  aspect-ratio: 1 / 1;',
     '  max-height: none;',
     '  flex-shrink: 0;',
+    '  background: var(--cl-surface-emblem-frame);',
     '}',
     '',
     '.cl-entrant-emblem img {',
@@ -392,8 +425,10 @@ function imageFrame(): string {
     '  justify-content: center;',
     '  width: 100%;',
     '  height: 100%;',
-    '  color: var(--cl-text-primary);',
+    '  color: var(--cl-text-on-emblem-frame);',
     '}',
+    '',
+    '.cl-entrant-emblem--bare .cl-entrant-emblem__fallback { color: var(--cl-text-primary); }',
     '',
     '.cl-entrant-emblem__monogram {',
     '  font-family: var(--cl-font-mono);',
@@ -510,7 +545,6 @@ function components(): string {
     // the narrowest reference width (188px, a 200%-zoom equivalent).
     '  width: 100%;',
     '  min-width: 0;',
-    '  color-scheme: dark;',
     '}',
     '',
     /*
@@ -532,7 +566,6 @@ function components(): string {
     '}',
     '',
     '.cl-input::-webkit-calendar-picker-indicator {',
-    '  filter: invert(0.8);',
     '  cursor: pointer;',
     '}',
     '',
@@ -542,7 +575,7 @@ function components(): string {
     '.cl-input[type="file"]::file-selector-button {',
     '  background: var(--cl-surface-chrome);',
     '  color: var(--cl-text-primary);',
-    '  border: 1px solid var(--cl-border-muted);',
+    '  border: 1px solid var(--cl-border-control);',
     '  padding: var(--cl-space-1) var(--cl-space-3);',
     '  margin-right: var(--cl-space-3);',
     '  font-family: var(--cl-font-body);',
@@ -574,11 +607,10 @@ function components(): string {
     '  cursor: pointer;',
     '  border-radius: var(--cl-radius-sm);',
     '  background: var(--cl-surface-base);',
-    '  border: 1px solid var(--cl-border-muted);',
+    '  border: 1px solid var(--cl-border-control);',
     '  display: inline-grid;',
     '  place-content: center;',
     '  flex-shrink: 0;',
-    '  color-scheme: dark;',
     '}',
     'input[type="checkbox"].cl-checkbox:hover, input[type="radio"]:hover {',
     '  border-color: var(--cl-border-hover);',
@@ -876,7 +908,7 @@ function components(): string {
     '',
     // A sub-heading row inside the table (a round of a group's schedule), and a cell that links.
     '.cl-data-table__section th { background: var(--cl-surface-chrome); color: var(--cl-text-primary); border-bottom: 1px solid var(--cl-border-muted); }',
-    '.cl-data-table__table td a { color: var(--cl-primary); font-variant-numeric: tabular-nums; }',
+    '.cl-data-table__table td a { color: var(--cl-text-accent); font-variant-numeric: tabular-nums; }',
     '.cl-data-table__table td time { white-space: nowrap; }',
     '.cl-standings-template__entrant { display: inline-flex; align-items: center; gap: var(--cl-space-2); min-width: 0; }',
     '',
@@ -1002,7 +1034,7 @@ function components(): string {
     '.cl-localized-field { display: grid; min-width: 0; }',
     '.cl-localized-field__tabs { display: flex; gap: var(--cl-space-1); overflow-x: auto; margin-bottom: -1px; }',
     '.cl-localized-field__tab { display: inline-flex; flex: 0 0 auto; align-items: center; gap: var(--cl-space-1); border: 1px solid var(--cl-border-muted); border-bottom: none; border-radius: var(--cl-radius-sm) var(--cl-radius-sm) 0 0; background: var(--cl-surface-chrome); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); line-height: 1; text-transform: uppercase; white-space: nowrap; padding: var(--cl-space-1); cursor: pointer; }',
-    '.cl-localized-field__tab--active { position: relative; z-index: 1; background: var(--cl-surface-panel); border-color: var(--cl-primary); color: var(--cl-text-primary); }',
+    '.cl-localized-field__tab--active { position: relative; z-index: 1; background: var(--cl-surface-panel); border-color: var(--cl-border-accent); color: var(--cl-text-primary); }',
     '.cl-localized-field__tab:disabled { cursor: not-allowed; opacity: 0.6; }',
     // Same green as the badge/terminal-block fill dots (--cl-state-positive):
     // one colour for "this already has a value," everywhere it appears. A
@@ -1066,11 +1098,11 @@ function components(): string {
     '',
     ...Object.entries(BADGE_TONES).map(
       ([name, tone]) =>
-        `.cl-badge--${name} { background: color-mix(in srgb, var(--cl-badge-${name}-color) 15%, transparent); color: var(--cl-badge-${name}-color); ${tone.border ? `border: 1px solid color-mix(in srgb, var(--cl-badge-${name}-color) 40%, transparent); ` : ''}font-weight: var(--cl-badge-${name}-weight); }`,
+        `.cl-badge--${name} { background: var(--cl-badge-${name}-background, color-mix(in srgb, var(--cl-badge-${name}-color) 15%, transparent)); color: var(--cl-badge-${name}-color); ${tone.border ? `border: 1px solid color-mix(in srgb, var(--cl-badge-${name}-color) 40%, transparent); ` : ''}font-weight: var(--cl-badge-${name}-weight); }`,
     ),
     // A confirmed/verified computed result — same positive role as `--final`,
     // its own name because "final" already means a finished match.
-    '.cl-badge--verified { background: color-mix(in srgb, var(--cl-state-positive) 15%, transparent); color: var(--cl-state-positive); border: 1px solid color-mix(in srgb, var(--cl-state-positive) 40%, transparent); }',
+    '.cl-badge--verified { background: var(--cl-badge-verified-background, color-mix(in srgb, var(--cl-state-positive) 15%, transparent)); color: var(--cl-state-positive); border: 1px solid color-mix(in srgb, var(--cl-state-positive) 40%, transparent); }',
     '',
     '.cl-btn {',
     // A link wearing the button treatment is a button, underline included —
@@ -1591,7 +1623,7 @@ function compositions(): string {
     '  line-height: 1;',
     '}',
     '',
-    '.cl-outcome-legend__glyph--advancing { background: var(--cl-primary); border-color: var(--cl-primary); color: var(--cl-surface-base); }',
+    '.cl-outcome-legend__glyph--advancing { background: var(--cl-primary); border-color: var(--cl-primary); color: var(--cl-primary-text); }',
     '',
     '.cl-outcome-legend__label { color: var(--cl-text-secondary); font-size: var(--cl-font-size-sm); overflow-wrap: anywhere; }',
     '',
@@ -1791,7 +1823,7 @@ function compositions(): string {
      * equal point totals is already looking at the row.
      */
     '.cl-standings-panel__figure--deciding {',
-    '  color: var(--cl-primary);',
+    '  color: var(--cl-text-accent);',
     '  font-weight: var(--cl-weight-bold);',
     '  text-decoration: underline;',
     '  text-underline-offset: 3px;',
@@ -1806,7 +1838,7 @@ function compositions(): string {
     // The ranking metric a layout's `defaultSort[0]` scales (PTS for group
     // standings, goals for a scorers table) — emphasised so it reads as the
     // column the whole table is ordered by.
-    '.cl-standings-panel__figure--emphasis { color: var(--cl-primary); font-weight: var(--cl-weight-bold); }',
+    '.cl-standings-panel__figure--emphasis { color: var(--cl-text-accent); font-weight: var(--cl-weight-bold); }',
     '',
     '.cl-standings-panel__subtitle { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
     '',
@@ -1817,7 +1849,7 @@ function compositions(): string {
     // hit target is the header, not just the tooltip glyph beside the label.
     '.cl-column-header { display: inline-flex; align-items: center; gap: var(--cl-space-1); background: transparent; border: none; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; padding: 0; cursor: pointer; }',
     '.cl-column-header__indicator { font-size: var(--cl-font-size-xs); color: var(--cl-text-muted); }',
-    'th[aria-sort="ascending"] .cl-column-header__indicator, th[aria-sort="descending"] .cl-column-header__indicator { color: var(--cl-primary); }',
+    'th[aria-sort="ascending"] .cl-column-header__indicator, th[aria-sort="descending"] .cl-column-header__indicator { color: var(--cl-text-accent); }',
     '',
     // A description trigger beside a header label: a dotted underline is the
     // "there is more here" affordance, the bubble itself only exists in the
@@ -1863,7 +1895,7 @@ function compositions(): string {
     '  width: 32px;',
     '  height: 32px;',
     '  background: var(--cl-primary);',
-    '  color: var(--cl-surface-base);',
+    '  color: var(--cl-primary-text);',
     '  font-family: var(--cl-font-display);',
     '  font-weight: var(--cl-weight-bold);',
     '  font-variant-numeric: tabular-nums;',
@@ -1963,7 +1995,7 @@ function compositions(): string {
     '  box-sizing: border-box;',
     '  margin: 0;',
     '  padding-bottom: var(--cl-space-2);',
-    '  border-bottom: 2px solid var(--cl-primary);',
+    '  border-bottom: 2px solid var(--cl-border-accent);',
     '  color: var(--cl-text-secondary);',
     '  font-family: var(--cl-font-mono);',
     '  font-size: var(--cl-font-size-xs);',
@@ -2004,11 +2036,11 @@ function compositions(): string {
     '.cl-bracket-slot-skeleton { display: block; width: min(9rem, 70%); height: 0.75rem; background: var(--cl-surface-raised); }',
     '.cl-stage-groups > *, .cl-stage-matchdays > * { min-width: 0; }',
     '.cl-visual-rule-builder { display: grid; gap: var(--cl-space-4); min-width: 0; }',
-    '.cl-visual-rule-builder__given { display: grid; gap: var(--cl-space-2); border-left: 3px solid var(--cl-primary); padding: var(--cl-space-3); background: var(--cl-surface-panel); }',
+    '.cl-visual-rule-builder__given { display: grid; gap: var(--cl-space-2); border-left: 3px solid var(--cl-border-accent); padding: var(--cl-space-3); background: var(--cl-surface-panel); }',
     '.cl-visual-rule-builder__logic { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cl-space-4); min-width: 0; }',
     '.cl-visual-rule-builder__block { display: grid; align-content: start; gap: var(--cl-space-3); min-width: 0; padding: var(--cl-space-3); border: 1px solid var(--cl-border-muted); }',
     '.cl-visual-rule-builder__element { display: flex; align-items: center; justify-content: space-between; gap: var(--cl-space-3); min-width: 0; padding: var(--cl-space-2); border: 1px solid var(--cl-border-muted); }',
-    '.cl-visual-rule-builder__block--when { border-left: 3px solid var(--cl-primary); }',
+    '.cl-visual-rule-builder__block--when { border-left: 3px solid var(--cl-border-accent); }',
     '.cl-visual-rule-builder__block h3 { margin: 0; font-size: var(--cl-font-size-sm); }',
     '@media (max-width: 600px) { .cl-visual-rule-builder__logic { grid-template-columns: minmax(0, 1fr); } }',
     '',
@@ -2082,6 +2114,13 @@ function compositions(): string {
     // the tab order, which a `visibility` or an off-screen trick would not.
     // The reset at the top of `components()` is what makes it stick.
     '.cl-public-header__links { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; margin: 0; padding: 0; list-style: none; }',
+    '',
+    '.cl-public-header__theme { position: relative; }',
+    '.cl-public-header__theme > details > summary { display: inline-flex; align-items: center; gap: var(--cl-space-2); min-height: var(--cl-touch-target); padding-inline: var(--cl-space-2); color: var(--cl-text-secondary); font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); cursor: pointer; list-style: none; }',
+    '.cl-public-header__theme > details > summary::-webkit-details-marker { display: none; }',
+    `.cl-public-header__theme-list { position: absolute; inset-inline-start: 0; z-index: 40; display: grid; gap: var(--cl-space-1); min-width: max-content; margin: var(--cl-space-1) 0 0; padding: var(--cl-space-2); list-style: none; background: var(--cl-surface-chrome); border: 1px solid var(--cl-border-muted); box-shadow: ${DIALOG_TOKENS.elevation}; }`,
+    '.cl-public-header__theme-list .cl-btn { width: 100%; justify-content: flex-start; }',
+    '.cl-public-header__theme-list [aria-pressed="true"] { border-color: var(--cl-border-accent); color: var(--cl-text-accent); }',
     '',
     '.cl-public-header__link { display: inline-flex; align-items: center; min-height: var(--cl-touch-target); color: var(--cl-text-secondary); font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); text-decoration: none; overflow-wrap: anywhere; }',
     '',

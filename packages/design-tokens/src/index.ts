@@ -14,6 +14,7 @@ export {
   ICON_TOKENS,
   CHART_TOKENS,
   type ChartTheme,
+  type ColorTheme,
   SPACING,
   RADIUS,
   MOTION,

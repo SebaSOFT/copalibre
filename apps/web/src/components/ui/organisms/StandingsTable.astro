@@ -694,7 +694,10 @@ const playerDialogLabels = {
     overflow-x: auto;
   }
   .cl-table-tab {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    min-height: var(--cl-touch-target);
     padding: 8px 16px;
     text-decoration: none;
     color: inherit;
@@ -702,8 +705,8 @@ const playerDialogLabels = {
     border-bottom: 2px solid transparent;
   }
   .cl-table-tab--active {
-    border-bottom-color: var(--cl-primary);
-    color: var(--cl-primary);
+    border-bottom-color: var(--cl-border-accent);
+    color: var(--cl-text-accent);
   }
   .cl-standings-grain {
     margin: 0 0 12px 0;
@@ -756,7 +759,7 @@ const playerDialogLabels = {
     color: var(--cl-text-muted);
   }
   .cl-player-link {
-    color: var(--cl-primary);
+    color: var(--cl-text-accent);
     text-decoration: none;
     font-weight: 600;
   }

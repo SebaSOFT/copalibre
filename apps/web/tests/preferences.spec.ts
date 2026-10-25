@@ -1,9 +1,16 @@
 import { expect, test, type Page } from '@playwright/test';
+import { resolveSemantic } from '@copalibre/design-tokens';
 import {
   loginCallbackUrl,
   seedLoginTransaction,
   TOKEN_ENDPOINT,
 } from '../../../e2e/support/control-login.js';
+
+const cssColor = (hex: string): string => {
+  const channels = hex.slice(1).match(/.{2}/g);
+  if (!channels || channels.length !== 3) throw new Error('Expected a six-digit design token.');
+  return `rgb(${channels.map((channel) => Number.parseInt(channel, 16)).join(', ')})`;
+};
 
 async function mockPreferencesApi(page: Page): Promise<void> {
   await page.addInitScript(
@@ -107,4 +114,62 @@ test('user can generate and revoke PAT', async ({ page }) => {
 
   // E2E Test Token should be gone
   await expect(page.getByText('E2E Test Token')).toBeHidden();
+});
+
+test('theme preference persists across reload without a dark flash', async ({ page }) => {
+  await mockPreferencesApi(page);
+  const target = '/control/liga-mendocina/preferences';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByRole('region', { name: 'Tema' }).getByLabel('Tema').selectOption('light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  expect(await page.evaluate(() => localStorage.getItem('cl-theme'))).toBe('light');
+
+  let releaseLoadGate: (() => void) | undefined;
+  const loadGate = new Promise<void>((resolve) => {
+    releaseLoadGate = resolve;
+  });
+  await page.route('**/__theme_load_gate', async (route) => {
+    await loadGate;
+    await route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>gate</title>' });
+  });
+  await page.addInitScript(() => {
+    if (window.top !== window || location.pathname !== '/control/liga-mendocina/preferences') {
+      return;
+    }
+    document.addEventListener(
+      'DOMContentLoaded',
+      () => {
+        const frame = document.createElement('iframe');
+        frame.src = '/__theme_load_gate';
+        frame.tabIndex = -1;
+        frame.setAttribute('aria-hidden', 'true');
+        frame.style.cssText =
+          'position:fixed;inset:0 auto auto 0;width:1px;height:1px;opacity:0;pointer-events:none';
+        document.body.append(frame);
+      },
+      { once: true },
+    );
+  });
+
+  try {
+    await page.reload({ waitUntil: 'commit' });
+    expect(await page.evaluate(() => localStorage.getItem('cl-theme'))).toBe('light');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(page.locator('body')).toHaveCSS(
+      'background-color',
+      cssColor(resolveSemantic('surface-base', 'light')),
+    );
+    expect(await page.evaluate(() => document.readyState)).not.toBe('complete');
+    await test.info().attach('control-light-theme-before-load', {
+      body: await page.screenshot(),
+      contentType: 'image/png',
+    });
+  } finally {
+    releaseLoadGate?.();
+  }
+
+  await page.waitForLoadState('load');
 });
