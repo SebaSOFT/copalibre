@@ -122,10 +122,17 @@ export const FONT_SIZE = {
   sm: '0.875rem',
   base: '1rem',
   md: '1.125rem',
+  lg: 'clamp(1.125rem, 1.099rem + 0.1127vw, 1.2rem)',
+  xl: 'clamp(1.266rem, 1.204rem + 0.262vw, 1.44rem)',
+  '2xl': 'clamp(1.424rem, 1.317rem + 0.457vw, 1.728rem)',
+  '3xl': 'clamp(1.602rem, 1.436rem + 0.7088vw, 2.074rem)',
+} as const;
+
+/** Fixed sizes for scores and other values that update while someone reads them. */
+export const FIGURE_SIZE = {
   lg: '1.25rem',
   xl: '1.5rem',
   '2xl': '1.875rem',
-  '3xl': '2.25rem',
 } as const;
 
 /**

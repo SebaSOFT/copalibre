@@ -1,6 +1,7 @@
 import {
   COLOR_PRIMITIVES,
   CHART_TOKENS,
+  FIGURE_SIZE,
   FONT_SIZE,
   FONT_WEIGHTS,
   ICON_TOKENS,
@@ -47,7 +48,7 @@ export function documentedTokens(): Mapping {
       body: role(TYPOGRAPHY.body, FONT_SIZE.base, FONT_WEIGHTS.regular, '1.5', TRACKING.normal),
       label: role(TYPOGRAPHY.mono, FONT_SIZE.xs, FONT_WEIGHTS.medium, '1.4', TRACKING.wider),
       figure: {
-        ...role(TYPOGRAPHY.mono, FONT_SIZE.lg, FONT_WEIGHTS.medium, '1.2', TRACKING.normal),
+        ...role(TYPOGRAPHY.mono, FIGURE_SIZE.lg, FONT_WEIGHTS.medium, '1.2', TRACKING.normal),
         fontFeature: 'tabular-nums',
       },
     },

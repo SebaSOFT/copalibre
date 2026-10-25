@@ -8,7 +8,7 @@ import {
   SELECT_TOKENS,
   TEXTAREA_TOKENS,
 } from '../components.js';
-import { CONTROL_DENSITY_SPACING, FONT_SIZE } from '../primitives.js';
+import { CONTROL_DENSITY_SPACING, FIGURE_SIZE, FONT_SIZE } from '../primitives.js';
 import { SEMANTIC_COLORS } from '../semantic.js';
 
 /**
@@ -63,7 +63,10 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
     )
     .join('\n      ');
 
-  const fontSizes = Object.keys(FONT_SIZE)
+  const fontSizes = [
+    ...Object.keys(FONT_SIZE),
+    ...Object.keys(FIGURE_SIZE).map((name) => `figure-${name}`),
+  ]
     .map(
       (name) =>
         `<div class="font-size-sample" data-font-size="${escape(name)}"><code>${escape(name)}</code><span style="font-size: var(--cl-font-size-${escape(name)})">CopaLibre Aa 0123</span></div>`,

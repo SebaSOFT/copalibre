@@ -789,7 +789,7 @@
 }
 
 /* Animations and Responsive rules */
-@media (max-width: 900px) {
+@media (width < 1024px) {
   .tv-main-stage {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;

@@ -37,19 +37,19 @@ colors:
 typography:
   display:
     fontFamily: "'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif"
-    fontSize: "2.25rem"
+    fontSize: "clamp(1.602rem, 1.436rem + 0.7088vw, 2.074rem)"
     fontWeight: "700"
     lineHeight: "1.1"
     letterSpacing: "0.04em"
   headline:
     fontFamily: "'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif"
-    fontSize: "1.5rem"
+    fontSize: "clamp(1.266rem, 1.204rem + 0.262vw, 1.44rem)"
     fontWeight: "600"
     lineHeight: "1.2"
     letterSpacing: "0.04em"
   title:
     fontFamily: "'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif"
-    fontSize: "1.25rem"
+    fontSize: "clamp(1.125rem, 1.099rem + 0.1127vw, 1.2rem)"
     fontWeight: "600"
     lineHeight: "1.3"
     letterSpacing: "0.04em"
@@ -387,17 +387,35 @@ on the rendering machine.
 
 ### Hierarchy
 
-- **Display** (Barlow Condensed 700, 2.25rem, 1.1, tracked `0.04em`, uppercase): Page and screen titles,
-  the broadcast tournament name.
-- **Headline** (Barlow Condensed 600, 1.5rem, 1.2, tracked `0.04em`, uppercase): Section headings, card
-  titles, toolbar titles, modal titles.
-- **Title** (Barlow Condensed 600, 1.25rem, 1.3, uppercase): Entrant names on a match card, activity feed
-  headings, sub-section headings.
+- **Display** (Barlow Condensed 700, fluid `3xl`, 1.1, tracked `0.04em`, uppercase): Page and screen
+  titles, the broadcast tournament name.
+- **Headline** (Barlow Condensed 600, fluid `xl`, 1.2, tracked `0.04em`, uppercase): Section headings,
+  card titles, toolbar titles, modal titles.
+- **Title** (Barlow Condensed 600, fluid `lg`, 1.3, uppercase): Entrant names on a match card, activity
+  feed headings, sub-section headings.
 - **Body** (Barlow 400, 1rem, 1.5): Prose, form values, alert bodies, descriptions.
 - **Label** (JetBrains Mono 500, 0.75rem, tracked `0.05em`, uppercase): Field labels, table headers,
   action codes, timestamps, scope and venue metadata, trace summaries.
-- **Figure** (JetBrains Mono 500, 1.25rem–1.875rem, `tabular-nums`): Scores, clocks, ranks, stat tile
+- **Figure** (JetBrains Mono 500, fixed `1.25rem`–`1.875rem`, `tabular-nums`): Scores, clocks, ranks, stat tile
   values, any right-aligned numeric column.
+
+**Fluid heading scale.** The `lg`–`3xl` tokens use `clamp()` with a `rem` intercept so headings grow
+with viewport width while still responding to text-only resizing. Each step follows the same
+geometric scale from 1.125 at 375px to 1.2 at 1440px; endpoints equal `16 × 1.125ⁿ` and `16 × 1.2ⁿ`
+pixels respectively:
+
+| Token | 375px | Fluid rule | 1440px |
+| --- | ---: | --- | ---: |
+| `lg` | 18px | `clamp(1.125rem, 1.099rem + 0.1127vw, 1.2rem)` | 19.2px |
+| `xl` | 20.256px | `clamp(1.266rem, 1.204rem + 0.262vw, 1.44rem)` | 23.04px |
+| `2xl` | 22.781px | `clamp(1.424rem, 1.317rem + 0.457vw, 1.728rem)` | 27.648px |
+| `3xl` | 25.629px | `clamp(1.602rem, 1.436rem + 0.7088vw, 2.074rem)` | 33.178px |
+
+The fixed steps remain `xs` 0.75rem, `sm` 0.875rem, `base` 1rem and `md` 1.125rem. Numeric figures
+keep fixed `lg` (1.25rem), `xl` (1.5rem) and `2xl` (1.875rem) sizes so a changing score does not shift
+the visual scale of the readout. **The Floor Rule:** application font sizes never fall below 0.75rem.
+**The Text Unit Rule:** font sizes use `rem` or a token; pixel font sizes are forbidden. The TV
+broadcast typography system keeps its separately documented font sizing.
 
 ### Named Rules
 
@@ -405,8 +423,10 @@ on the rendering machine.
 clock, a rank, a stat tile — renders in the mono face with `font-variant-numeric: tabular-nums`. A score
 that shifts width as it changes is a score nobody can read.
 
-**The Bare Heading Rule.** Every `h1`–`h6` resolves to the display family without a component asking for
-it. A heading rendered in the body face is the identity silently not being applied.
+**The Bare Heading Rule.** Every `h1`–`h6` resolves to the display family and the semantic scale without
+a component asking for it: `h1` uses `3xl`, `h2` `2xl`, `h3` `xl`, `h4` `lg`, `h5` `md` and `h6` `base`.
+A heading rendered in the body face or at a browser-default size is the identity silently not being
+applied. A component with a named typography role may select its own token.
 
 **The Tracked Uppercase Rule.** Uppercase text carries tracking from the named scale — `wide` (0.04em)
 for metadata and headings, `wider` (0.05em) for buttons and emphasised labels, `widest` (0.06em) for the
@@ -418,17 +438,18 @@ harms it.
 
 Three surfaces share one token set and diverge only in density and container behaviour.
 
-**Control (Operate).** A two-column shell: a fixed navigation rail of `minmax(180px, 240px)` against a
-fluid main column, full viewport height, main padded at `32px`. Below the `md` breakpoint (768px) the
-rail collapses into a slide-in drawer of `min(320px, 85vw)` behind a sticky mobile header, main padding
-drops to `16px`, and below 375px to `12px` — the width that 200% zoom exposes. Control composes on a
-denser mapping of the same 4px scale: `24px` between sections, `12px` between fields, `8px` between rows,
-`4px` inline. No second scale is introduced; each value is an existing step chosen for density.
+**Control (Operate).** A two-column shell: a fixed navigation rail of `minmax(11.25rem, 15rem)` against a
+fluid main column, full viewport height, main padded at `2rem`. Below the `md` breakpoint (768px) the
+rail collapses into a slide-in drawer of `min(20rem, 85vw)` behind a sticky mobile header, main padding
+drops to `1rem`, and below 375px to `0.75rem` — the width that 200% text resize exposes. Control
+composes on a denser mapping of the same 4px scale: `24px` between sections, `12px` between fields,
+`8px` between rows, `4px` inline. No second scale is introduced; each value is an existing step chosen
+for density.
 
-**Public (Persuade / Read).** A centred `1200px` page container with a `720px` reading column over a
-fixed, low-opacity discipline background image — or, when a discipline ships no imagery, a token-drawn
-neutral radial ground rather than another discipline's picture. Card grids are
-`repeat(auto-fill, minmax(min(100%, 280px), 1fr))`. Output is durable and JavaScript-independent.
+**Public (Persuade / Read).** A centred `min(75rem, 100%)` page container with a `45rem` reading column
+over a fixed, low-opacity discipline background image — or, when a discipline ships no imagery, a
+token-drawn neutral radial ground rather than another discipline's picture. Card grids are
+`repeat(auto-fill, minmax(min(100%, 17.5rem), 1fr))`. Output is durable and JavaScript-independent.
 
 **Broadcast (Experience).** Viewport-relative throughout: type sized in `clamp()` against `vmin` so a
 scorebug reads at any venue-screen resolution, and a single alternation step instead of the full
@@ -438,7 +459,8 @@ surface ladder.
 because operator tables are dense and an 8px floor forces every tight layout to opt out.
 
 **Breakpoints.** `375px` (small phone), `768px` (tablet), `1024px` (small laptop), `1440px` (desktop) —
-exactly the four widths the screenshot acceptance gate requires, with no undocumented extras.
+exactly the four widths the screenshot acceptance gate requires, with no undocumented extras. Media
+queries use only these declared width values and the `BREAKPOINTS` tokens; do not add a one-off width.
 
 ### Named Rules
 

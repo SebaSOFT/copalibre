@@ -6,6 +6,7 @@ import {
   TRACKING,
   COLOR_PRIMITIVES,
   CONTROL_DENSITY_SPACING,
+  FIGURE_SIZE,
   FONT_SIZE,
   FONT_WEIGHTS,
   MOTION,
@@ -106,6 +107,9 @@ export function generateCss(): string {
     `  --cl-font-mono: ${TYPOGRAPHY.mono};`,
     ...Object.entries(FONT_WEIGHTS).map(([name, value]) => `  --cl-weight-${name}: ${value};`),
     ...Object.entries(FONT_SIZE).map(([name, value]) => `  --cl-font-size-${name}: ${value};`),
+    ...Object.entries(FIGURE_SIZE).map(
+      ([name, value]) => `  --cl-font-size-figure-${name}: ${value};`,
+    ),
     ...Object.entries(TRACKING).map(([name, value]) => `  --cl-tracking-${name}: ${value};`),
     ...Object.entries(ICON_TOKENS.size).map(
       ([name, value]) => `  --cl-icon-size-${name}: ${value}px;`,
@@ -747,7 +751,7 @@ function components(): string {
     '.cl-select { font-family: var(--cl-font-mono); }',
     '.cl-select__icon { margin-inline-start: var(--cl-space-2); transition: transform 0.15s ease; }',
     '.cl-select[data-state="open"] .cl-select__icon { transform: rotate(180deg); }',
-    '.cl-select__badge { margin-inline-start: var(--cl-space-2); font-size: 10px; font-family: var(--cl-font-mono); text-transform: uppercase; letter-spacing: var(--cl-tracking-wider); color: var(--cl-text-muted); }',
+    '.cl-select__badge { margin-inline-start: var(--cl-space-2); font-size: var(--cl-font-size-xs); font-family: var(--cl-font-mono); text-transform: uppercase; letter-spacing: var(--cl-tracking-wider); color: var(--cl-text-muted); }',
     // `popper` positioning exposes the trigger's width, so the panel lines up
     // with the box it belongs to rather than sizing itself to its longest
     // option. `max-height` is the space Radix measured to the viewport edge.
@@ -883,7 +887,7 @@ function components(): string {
     '.cl-data-table__table td { padding: var(--cl-space-3) var(--cl-space-4); }',
     '.cl-data-table__table th + th, .cl-data-table__table td + td { border-inline-start: 1px solid var(--cl-table-column-rule); }',
     '.cl-data-table__empty { padding: var(--cl-space-4); color: var(--cl-text-muted); }',
-    '@media (max-width: 767px) { .cl-data-table { -webkit-overflow-scrolling: touch; } }',
+    `@media (width < ${BREAKPOINTS.md}) { .cl-data-table { -webkit-overflow-scrolling: touch; } }`,
     '',
     // A muted-text utility, and the structured "nothing here yet" card every
     // list-shaped surface not backed by DataTable needs —
@@ -991,11 +995,11 @@ function components(): string {
     '.cl-clock-commands { display: flex; flex-wrap: wrap; gap: var(--cl-space-3); }',
     '.cl-match-console-screen__workspace { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: var(--cl-space-5); min-width: 0; }',
     '.cl-match-console-screen__workspace > * { min-width: 0; }',
-    '@media (max-width: 600px) { .cl-match-console-screen__workspace { grid-template-columns: 1fr; } }',
+    `@media (width < ${BREAKPOINTS.md}) { .cl-match-console-screen__workspace { grid-template-columns: 1fr; } }`,
     '.cl-match-console-screen__primary { display: grid; align-content: start; gap: var(--cl-space-5); min-width: 0; }',
     '.cl-match-console-screen__rail { display: grid; align-content: start; gap: var(--cl-space-5); min-width: 0; }',
     '.cl-match-console-screen__scoreboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)); border: 1px solid var(--cl-border-muted); background: var(--cl-surface-panel); min-width: 0; }',
-    '.cl-match-console-screen__score-side { display: flex; justify-content: space-between; align-items: center; gap: var(--cl-space-3); padding: var(--cl-space-4); font-family: var(--cl-font-mono); font-variant-numeric: tabular-nums; font-size: var(--cl-font-size-lg); min-width: 0; }',
+    '.cl-match-console-screen__score-side { display: flex; justify-content: space-between; align-items: center; gap: var(--cl-space-3); padding: var(--cl-space-4); font-family: var(--cl-font-mono); font-variant-numeric: tabular-nums; font-size: var(--cl-font-size-figure-lg); min-width: 0; }',
     '.cl-match-console-screen__score-entrant { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
     '',
     '/* A row-identity chip (avatar initials + label) reused by any listing showing one person per row. */',
@@ -1013,7 +1017,7 @@ function components(): string {
     '.cl-zone-group__entrant-assignment > * { min-width: 0; }',
     '.cl-schedule-builder__assignment-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--cl-space-4); align-items: start; min-width: 0; }',
     '.cl-schedule-builder__assignment-row > * { min-width: 0; }',
-    '@media (max-width: 600px) { .cl-zone-group__entrant-assignment, .cl-schedule-builder__assignment-row { grid-template-columns: minmax(0, 1fr); } }',
+    `@media (width < ${BREAKPOINTS.md}) { .cl-zone-group__entrant-assignment, .cl-schedule-builder__assignment-row { grid-template-columns: minmax(0, 1fr); } }`,
     '.cl-role-status { display: flex; align-items: center; gap: var(--cl-space-2); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
     '.cl-role-status--active { color: var(--cl-state-live); }',
     '.cl-role-status--inactive { color: var(--cl-text-muted); }',
@@ -1360,10 +1364,17 @@ function components(): string {
      * in the body face — the condensed identity the product shows off appeared
      * only where a component happened to ask for it.
      *
-     * Family and tracking only: whether a given heading is uppercase is the
-     * component's or the page's call, and several already decide it.
+     * The semantic scale replaces browser-dependent sizes: each heading level
+     * uses one declared token, while whether it is uppercase remains the
+     * component's or the page's call.
      */
     'h1, h2, h3, h4, h5, h6 { font-family: var(--cl-font-display); letter-spacing: var(--cl-tracking-wide); }',
+    'h1 { font-size: var(--cl-font-size-3xl); }',
+    'h2 { font-size: var(--cl-font-size-2xl); }',
+    'h3 { font-size: var(--cl-font-size-xl); }',
+    'h4 { font-size: var(--cl-font-size-lg); }',
+    'h5 { font-size: var(--cl-font-size-md); }',
+    'h6 { font-size: var(--cl-font-size-base); }',
     '',
     /*
      * An alert's paragraphs carry no margin of their own — the alert is already
@@ -1400,7 +1411,7 @@ function components(): string {
     // no space to wrap at, so at the 188px reference width the clock alone —
     // not the header row it sits in, which already wraps — held its full
     // unbroken width and pushed the card past the viewport.
-    '.cl-match-card__clock { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); color: var(--cl-state-live); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }',
+    '.cl-match-card__clock { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-figure-lg); color: var(--cl-state-live); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }',
     // A grid of match cards, promoted out of `MatchCardGrid.astro`'s scoped
     // style so the React surfaces can compose it too. While it lived there,
     // `LiveMatchHero` had no grid to reach and stacked one full-width card per
@@ -1421,11 +1432,11 @@ function components(): string {
     // sees it — `>` never matched past it, so the name rendered at its full,
     // unconstrained width and pushed the 188px reference width sideways.
     ".cl-match-card__side span[data-testid='entrant-name'] { flex: 1 1 auto; font-family: var(--cl-font-display); font-weight: var(--cl-weight-medium); font-size: var(--cl-font-size-lg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
-    '.cl-match-card__side .cl-stat-tile__value { flex: 0 0 auto; font-size: var(--cl-font-size-2xl); background: none; padding: 0; }',
+    '.cl-match-card__side .cl-stat-tile__value { flex: 0 0 auto; font-size: var(--cl-font-size-figure-2xl); background: none; padding: 0; }',
     '.cl-match-card__scope, .cl-match-card__venue, .cl-match-card__event { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
     '.cl-match-card__event { color: var(--cl-text-secondary); }',
     '.cl-match-card__series { display: grid; gap: var(--cl-space-1); padding: var(--cl-space-3); background: var(--cl-surface-chrome); border-left: 2px solid var(--cl-state-upcoming); }',
-    '.cl-match-card__series .cl-series__score { margin: 0; font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); }',
+    '.cl-match-card__series .cl-series__score { margin: 0; font-family: var(--cl-font-mono); font-size: var(--cl-font-size-figure-lg); }',
     '.cl-match-card__series .cl-series__pending, .cl-match-card__series .cl-series__decided, .cl-match-card__series .cl-series__aggregate { margin: 0; color: var(--cl-text-secondary); font-size: var(--cl-font-size-sm); }',
     '.cl-match-card__deciding-factor { margin: 0; padding: var(--cl-space-2) var(--cl-space-3); background: var(--cl-surface-chrome); border-left: 2px solid var(--cl-focus-ring); color: var(--cl-text-secondary); font-size: var(--cl-font-size-sm); }',
     '.cl-match-card__trace { border-top: 1px solid var(--cl-border-muted); padding-top: var(--cl-space-2); }',
@@ -1493,7 +1504,7 @@ function components(): string {
     '.cl-championship-card__seed { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); color: var(--cl-text-muted); }',
     '.cl-championship-card__name { font-family: var(--cl-font-display); font-size: var(--cl-font-size-base); text-transform: uppercase; font-weight: var(--cl-weight-semibold); color: var(--cl-text-secondary); }',
     '.cl-championship-card__name--winner { font-weight: var(--cl-weight-bold); color: var(--cl-text-primary); }',
-    '.cl-championship-card__score { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); font-weight: var(--cl-weight-bold); font-variant-numeric: tabular-nums; color: var(--cl-text-primary); }',
+    '.cl-championship-card__score { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-figure-lg); font-weight: var(--cl-weight-bold); font-variant-numeric: tabular-nums; color: var(--cl-text-primary); }',
     '.cl-championship-card__score--winner { color: var(--cl-state-live); }',
     '',
     // The tactical live scorebug — the fourth
@@ -1529,7 +1540,7 @@ function components(): string {
     // `.cl-scorecard__matchup` grid can compress this `auto` track down to
     // its per-word minimum, wrapping "[ 3 : 1 ]" across three lines instead
     // of shrinking the team-name columns beside it, which already wrap.
-    '.cl-scorecard__score-box { background: var(--cl-surface-base); border: 1px solid var(--cl-border-muted); padding: var(--cl-space-2) var(--cl-space-4); border-radius: var(--cl-radius-sm); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xl); font-weight: var(--cl-weight-bold); color: var(--cl-text-primary); font-variant-numeric: tabular-nums; letter-spacing: var(--cl-tracking-wide); text-align: center; min-width: 90px; white-space: nowrap; }',
+    '.cl-scorecard__score-box { background: var(--cl-surface-base); border: 1px solid var(--cl-border-muted); padding: var(--cl-space-2) var(--cl-space-4); border-radius: var(--cl-radius-sm); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-figure-xl); font-weight: var(--cl-weight-bold); color: var(--cl-text-primary); font-variant-numeric: tabular-nums; letter-spacing: var(--cl-tracking-wide); text-align: center; min-width: 90px; white-space: nowrap; }',
     '.cl-scorecard__events { display: flex; flex-wrap: wrap; gap: var(--cl-space-2); padding: var(--cl-space-2) 0; border-top: 1px solid var(--cl-border-muted); }',
     '.cl-scorecard__event { display: inline-flex; align-items: center; gap: var(--cl-space-2); background: var(--cl-surface-chrome); padding: var(--cl-space-1) var(--cl-space-2); border-radius: var(--cl-radius-sm); font-size: var(--cl-font-size-xs); font-family: var(--cl-font-mono); }',
     '.cl-scorecard__event-minute { color: var(--cl-state-live); font-weight: var(--cl-weight-bold); }',
@@ -2042,7 +2053,7 @@ function compositions(): string {
     '.cl-visual-rule-builder__element { display: flex; align-items: center; justify-content: space-between; gap: var(--cl-space-3); min-width: 0; padding: var(--cl-space-2); border: 1px solid var(--cl-border-muted); }',
     '.cl-visual-rule-builder__block--when { border-left: 3px solid var(--cl-border-accent); }',
     '.cl-visual-rule-builder__block h3 { margin: 0; font-size: var(--cl-font-size-sm); }',
-    '@media (max-width: 600px) { .cl-visual-rule-builder__logic { grid-template-columns: minmax(0, 1fr); } }',
+    `@media (width < ${BREAKPOINTS.md}) { .cl-visual-rule-builder__logic { grid-template-columns: minmax(0, 1fr); } }`,
     '',
     // Bare .cl-slot had no rules of its own, so the ordered list's browser
     // default 40px marker indent — far more than the card padding itself —
