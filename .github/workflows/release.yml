@@ -143,3 +143,22 @@ jobs:
             prerelease_flag="--prerelease"
           fi
           gh release create "v${{ steps.version.outputs.version }}" --generate-notes $prerelease_flag
+
+      - name: Build MCPB bundle
+        if: steps.check.outputs.exists != 'true'
+        run: yarn workspace @copalibre/copalibre build:mcpb
+
+      - name: Upload MCPB bundle to GitHub Release
+        if: steps.check.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "v${{ steps.version.outputs.version }}" \
+            'apps/copalibre/dist/copalibre.mcpb#copalibre.mcpb' --clobber
+
+      - name: Publish to Smithery
+        if: steps.check.outputs.exists != 'true'
+        env:
+          SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
+        run: |
+          npm_config_registry=https://registry.npmjs.org/ npx -y @smithery/cli mcp publish apps/copalibre/dist/copalibre.mcpb -n SebaSOFT/copalibre

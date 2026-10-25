@@ -127,6 +127,7 @@ jobs:
       - run: node --test scripts/check-dependabot-alerts.test.mjs
       - run: node --test scripts/dependency-security.test.mjs
       - run: node --test apps/copalibre/scripts/build-binary.test.mjs
+      - run: node --test apps/copalibre/scripts/build-mcpb.test.mjs
       - run: node --test apps/web/scripts/serve-with-security-headers.test.mjs
       - run: node --test scripts/jest-integration-projects.test.mjs
       - run: node --test scripts/summarize-playwright-flaky.test.mjs

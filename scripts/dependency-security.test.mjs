@@ -17,7 +17,8 @@ const lockText = readFileSync(new URL('yarn.lock', root), 'utf8');
 // a numerically larger prerelease is not evidence that a security fix is present.
 const patchedFloors = {
   'brace-expansion': { 1: '1.1.21', 2: '2.1.7', 5: '5.0.12' },
-  'fast-uri': { 3: '3.1.8', 4: '4.2.1' },
+  'body-parser': { 2: '2.4.0' },
+  'fast-uri': { 3: '3.1.9', 4: '4.2.3' },
   qs: { 6: '6.16.0' },
   'js-yaml': { 3: '3.15.2', 4: '4.3.2', 5: '5.4.1' },
   'postcss-selector-parser': { 7: '7.1.6' },
@@ -30,9 +31,11 @@ const patchedFloors = {
   hono: { 4: '4.13.11' },
   'http-cache-semantics': { 4: '4.3.0' },
   'ip-address': { 10: '10.7.1' },
-  undici: { 6: '6.28.1', 8: '8.10.2' },
+  undici: { 6: '6.29.1', 8: '8.12.2' },
   nanoid: { 3: '3.3.18', 5: '5.1.16' },
+  storybook: { 10: '10.6.2' },
   vite: { 8: '8.1.6' },
+  zod: { 4: '4.6.7' },
 };
 
 function assertPatched(name, version, label) {
@@ -82,6 +85,7 @@ for (const [selector, name] of [
   ['source-map-js@npm:^1.0.1', 'source-map-js'],
   ['source-map-js@npm:^1.2.1', 'source-map-js'],
   ['nanoid@npm:^3.3.16', 'nanoid'],
+  ['storybook@npm:10.6.2', 'storybook'],
   ['vite@npm:^8.3.4', 'vite'],
   ['http-cache-semantics@npm:^4.1.1', 'http-cache-semantics'],
   ['hono@npm:^4.11.4', 'hono'],
