@@ -1398,7 +1398,7 @@ __metadata:
     "@copalibre/statistics-refold": "workspace:^"
     "@copalibre/tournament-engine": "workspace:^"
     "@fastify/helmet": "npm:^13.1.1"
-    "@nestjs/common": "npm:^12.1.2"
+    "@nestjs/common": "npm:^12.2.0"
     "@nestjs/core": "npm:^12.1.2"
     "@nestjs/platform-fastify": "npm:^12.1.2"
     "@nestjs/swagger": "npm:^12.0.2"
@@ -1530,7 +1530,7 @@ __metadata:
     "@copalibre/auth": "workspace:^"
     "@copalibre/persistence": "workspace:^"
     "@copalibre/realtime": "workspace:^"
-    "@nestjs/common": "npm:^12.1.2"
+    "@nestjs/common": "npm:^12.2.0"
     "@nestjs/core": "npm:^12.1.2"
     "@nestjs/platform-fastify": "npm:^12.1.2"
     "@nestjs/testing": "npm:^12.1.2"
@@ -1663,7 +1663,7 @@ __metadata:
   dependencies:
     "@copalibre/domain": "workspace:^"
     "@copalibre/persistence": "workspace:^"
-    "@nestjs/common": "npm:^12.1.2"
+    "@nestjs/common": "npm:^12.2.0"
     "@nestjs/core": "npm:^12.1.2"
     "@nestjs/platform-fastify": "npm:^12.1.2"
     "@nestjs/testing": "npm:^12.1.2"
@@ -1788,7 +1788,7 @@ __metadata:
     "@copalibre/persistence": "workspace:^"
     "@copalibre/statistics-refold": "workspace:^"
     "@copalibre/tournament-engine": "workspace:^"
-    "@nestjs/common": "npm:^12.1.2"
+    "@nestjs/common": "npm:^12.2.0"
     "@nestjs/core": "npm:^12.1.2"
     "@nestjs/platform-fastify": "npm:^12.1.2"
     "@nestjs/testing": "npm:^12.1.2"
@@ -3695,9 +3695,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@nestjs/common@npm:^12.1.2":
-  version: 12.1.2
-  resolution: "@nestjs/common@npm:12.1.2"
+"@nestjs/common@npm:^12.2.0":
+  version: 12.2.0
+  resolution: "@nestjs/common@npm:12.2.0"
   dependencies:
     "@standard-schema/spec": "npm:1.1.0"
     file-type: "npm:22.1.1"
@@ -3715,7 +3715,7 @@ __metadata:
       optional: true
     class-validator:
       optional: true
-  checksum: 10c0/94675f98943b2414a2cffee5efc909280e57a36163ea54c037052345f4d0fb6d66c354074f2cd2e3cb8edfe0dc537e3bca994bd2a27804a8c62ff23a5411ace3
+  checksum: 10c0/f1de28535de9671020ba641edbde19342dadb1de5610b819a16e97b78470da8ed8172e2d0d86183c9bbfa43e8ca9f0b44849fc6504b8fd4890bc678c5fafeba3
   languageName: node
   linkType: hard
 
