@@ -771,3 +771,31 @@ Mono. Under `:lang(zh)`, uppercase tracking SHALL be normal.
 
 - **WHEN** an English page with only Latin text loads
 - **THEN** no Cyrillic or CJK font file is requested
+
+### Requirement: Public and Control offer the L3 Sunlight light theme with verified contrast
+
+The token set SHALL define the L3 Sunlight light values for every semantic surface, text, state, focus
+and chart token. It SHALL emit them under `prefers-color-scheme: light` and an explicit
+`data-theme="light"`, with dark as the default. TV surfaces SHALL always render dark. Every text pair
+SHALL meet WCAG 2.2 AA, and form-control boundaries SHALL meet 3:1.
+
+#### Scenario: System light preference on a public page
+
+- **WHEN** a viewer with a light system preference opens a public tournament page
+- **THEN** the page renders with the `#E3E8EF` ground, `#F8FAFC` panels and `#05070D` body text, and
+  live text uses `#00586B`
+
+#### Scenario: Kiosk with light system preference
+
+- **WHEN** a TV kiosk browser has a light system preference
+- **THEN** the `/tv/` page still renders the dark ink theme
+
+#### Scenario: Contrast regression
+
+- **WHEN** a light token edit drops muted label text below 4.5:1 on chrome
+- **THEN** the contrast unit test fails and names the pair
+
+#### Scenario: Charts on light
+
+- **WHEN** a chart renders in the light theme
+- **THEN** its series use the light steps, and its plot area is painted with the panel token

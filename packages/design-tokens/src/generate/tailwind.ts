@@ -2,6 +2,7 @@ import {
   BREAKPOINTS,
   COLOR_PRIMITIVES,
   CONTROL_DENSITY_SPACING,
+  FIGURE_SIZE,
   FONT_SIZE,
   FONT_WEIGHTS,
   ICON_TOKENS,
@@ -58,7 +59,12 @@ export function generateTailwindTheme(): TailwindTheme {
       body: split(TYPOGRAPHY.body),
       mono: split(TYPOGRAPHY.mono),
     },
-    fontSize: { ...FONT_SIZE },
+    fontSize: {
+      ...FONT_SIZE,
+      ...Object.fromEntries(
+        Object.entries(FIGURE_SIZE).map(([name, value]) => [`figure-${name}`, value]),
+      ),
+    },
     fontWeight: { ...FONT_WEIGHTS },
     spacing: Object.fromEntries(
       Object.entries(SPACING).map(([name, value]) => [`cl-${name}`, value]),

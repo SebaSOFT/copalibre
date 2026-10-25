@@ -1,3 +1,5 @@
+import { BREAKPOINTS } from './primitives.js';
+
 /**
  * Closure between what the stylesheet declares and what surfaces reference.
  *
@@ -9,13 +11,29 @@
  * different palette to a public page.
  */
 
-export type IntegrityKind = 'undeclared-token' | 'raw-colour' | 'unsafe-motion' | 'invisible-text';
+export type IntegrityKind =
+  | 'undeclared-token'
+  | 'raw-colour'
+  | 'unsafe-motion'
+  | 'invisible-text'
+  | 'font-size-in-px'
+  | 'font-size-below-floor'
+  | 'non-token-breakpoint';
 
 export interface IntegrityHit {
   readonly file: string;
   readonly line: number;
   readonly kind: IntegrityKind;
   /** The offending token name or colour literal. */
+  readonly detail: string;
+}
+
+interface IntegrityFinding {
+  readonly line: number;
+  readonly kind: Extract<
+    IntegrityKind,
+    'font-size-in-px' | 'font-size-below-floor' | 'non-token-breakpoint'
+  >;
   readonly detail: string;
 }
 
@@ -200,6 +218,108 @@ export function findUnsafeMotion(source: string): readonly RawColour[] {
   );
 }
 
+const TV_BROADCAST_STYLESHEET = 'apps/web/src/styles/tv-broadcast.css';
+const FONT_SIZE_DECLARATION = /\bfont-size\s*:\s*([^;{}]+)/gi;
+const FONT_SIZE_FLOOR_REM = 0.75;
+const MEDIA_QUERY = /@media\b([^{]*)\{/gi;
+const MEDIA_WIDTH = /(?:\b(?:min|max)-width\s*:\s*|\bwidth\s*(?:<=|>=|<|>|=|:)\s*)([^\s)]+)/gi;
+
+function stylesheetSource(file: string, source: string): string | undefined {
+  if (file.endsWith('.css') || file.endsWith('.astro')) {
+    return cssPortionOf(file, source);
+  }
+  // The token generator writes CSS declarations into TypeScript string literals.
+  if (file.endsWith('.ts') || file.endsWith('.tsx')) return source;
+  return undefined;
+}
+
+function cssLengthInRem(value: string): number | undefined {
+  const match = /^\s*(?:clamp\(\s*)?([+-]?(?:\d+(?:\.\d*)?|\.\d+))(px|rem|em)\b/i.exec(value);
+  if (match === null) return undefined;
+  const amount = Number(match[1]);
+  const unit = match[2]?.toLowerCase();
+  if (!Number.isFinite(amount)) return undefined;
+  return unit === 'px' ? amount / 16 : amount;
+}
+
+/**
+ * Text size literals stay at or above the 12px floor, and use relative units.
+ * The TV broadcast stylesheet owns a viewport-scaled display system of its own.
+ */
+export function findTypographyViolations(
+  file: string,
+  source: string,
+): readonly IntegrityFinding[] {
+  if (file === TV_BROADCAST_STYLESHEET) return [];
+  const stylesheet = stylesheetSource(file, source);
+  if (stylesheet === undefined) return [];
+
+  const clean = stripComments(stylesheet);
+  const found: IntegrityFinding[] = [];
+  for (const match of clean.matchAll(FONT_SIZE_DECLARATION)) {
+    const value = match[1]?.trim() ?? '';
+    const line = clean.slice(0, match.index).split('\n').length;
+    const pxValue = /(?:^|[^\w.-])[+-]?(?:\d+(?:\.\d*)?|\.\d+)px\b/i.exec(value)?.[0].trim();
+    if (pxValue !== undefined) found.push({ detail: pxValue, line, kind: 'font-size-in-px' });
+
+    const minimum = cssLengthInRem(value);
+    if (pxValue === undefined && minimum !== undefined && minimum < FONT_SIZE_FLOOR_REM) {
+      const literal = /(?:clamp\(\s*)?([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:px|rem|em))\b/i.exec(
+        value,
+      )?.[1];
+      if (literal !== undefined) {
+        found.push({ detail: literal, line, kind: 'font-size-below-floor' });
+      }
+    }
+  }
+  return found;
+}
+
+function viewportWidth(value: string): number | undefined {
+  const match = /^([+-]?(?:\d+(?:\.\d*)?|\.\d+))(px|rem|em)?$/i.exec(value);
+  if (match === null || match[2] === undefined) return undefined;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount)) return undefined;
+  return match[2].toLowerCase() === 'px' ? amount : amount * 16;
+}
+
+/** Only documented viewport tokens may set a stylesheet's responsive width. */
+export function findNonTokenMediaWidths(file: string, source: string): readonly IntegrityFinding[] {
+  const stylesheet = stylesheetSource(file, source);
+  if (stylesheet === undefined) return [];
+
+  const clean = stripComments(stylesheet).replace(
+    /\$\{BREAKPOINTS\.(sm|md|lg|xl)\}/g,
+    (_match, name: keyof typeof BREAKPOINTS) => BREAKPOINTS[name],
+  );
+  const breakpointEntries = Object.entries(BREAKPOINTS);
+  const allowed = new Set(breakpointEntries.map(([, value]) => value.toLowerCase()));
+  const found: IntegrityFinding[] = [];
+  for (const media of clean.matchAll(MEDIA_QUERY)) {
+    const query = media[1] ?? '';
+    for (const width of query.matchAll(MEDIA_WIDTH)) {
+      const value = width[1]?.toLowerCase() ?? '';
+      if (allowed.has(value)) continue;
+      const numericWidth = viewportWidth(value);
+      const nearest =
+        numericWidth === undefined
+          ? breakpointEntries[0]
+          : breakpointEntries.reduce((closest, current) => {
+              const currentDistance = Math.abs(Number.parseFloat(current[1]) - numericWidth);
+              const closestDistance = Math.abs(Number.parseFloat(closest[1]) - numericWidth);
+              return currentDistance < closestDistance ? current : closest;
+            });
+      const line = clean.slice(0, media.index + (media[0].indexOf(query) || 0)).split('\n').length;
+      const detail =
+        nearest === undefined
+          ? value
+          : `${value}; nearest token is --cl-breakpoint-${nearest[0]} (${nearest[1]})`;
+      found.push({ detail, line, kind: 'non-token-breakpoint' });
+    }
+  }
+  return found;
+}
+
 function isExcepted(
   exceptions: readonly RawColourException[],
   file: string,
@@ -273,9 +393,28 @@ export function checkFile(
     detail: hit.value,
   }));
 
-  return [...undeclared, ...rawColours, ...unsafeMotion, ...invisibleText].sort(
-    (a, b) => a.line - b.line,
-  );
+  const typography: IntegrityHit[] = findTypographyViolations(file, source).map((hit) => ({
+    file,
+    line: hit.line,
+    kind: hit.kind,
+    detail: hit.detail,
+  }));
+
+  const mediaWidths: IntegrityHit[] = findNonTokenMediaWidths(file, source).map((hit) => ({
+    file,
+    line: hit.line,
+    kind: 'non-token-breakpoint',
+    detail: hit.detail,
+  }));
+
+  return [
+    ...undeclared,
+    ...rawColours,
+    ...unsafeMotion,
+    ...invisibleText,
+    ...typography,
+    ...mediaWidths,
+  ].sort((a, b) => a.line - b.line);
 }
 
 export function formatIntegrityHits(hits: readonly IntegrityHit[]): string {
@@ -289,7 +428,13 @@ export function formatIntegrityHits(hits: readonly IntegrityHit[]): string {
               ? `hardcodes ${hit.detail}`
               : hit.kind === 'unsafe-motion'
                 ? `animates a layout property or every property: ${hit.detail}`
-                : `paints text in its own background: ${hit.detail}`
+                : hit.kind === 'invisible-text'
+                  ? `paints text in its own background: ${hit.detail}`
+                  : hit.kind === 'font-size-in-px'
+                    ? `writes font-size in px: ${hit.detail}`
+                    : hit.kind === 'font-size-below-floor'
+                      ? `sets font-size below 0.75rem: ${hit.detail}`
+                      : `uses a non-token media width: ${hit.detail}`
         }`,
     )
     .join('\n');

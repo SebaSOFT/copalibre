@@ -2,6 +2,7 @@ import {
   BREAKPOINTS,
   COLOR_PRIMITIVES,
   CONTROL_DENSITY_SPACING,
+  FIGURE_SIZE,
   FONT_SIZE,
   FONT_SOURCE,
   ICON_TOKENS,
@@ -109,17 +110,25 @@ describe('the token source', () => {
     expect(SPACING['4']).toBe('16px');
   });
 
-  it('defines the documented font-size scale in ascending order', () => {
+  it('defines the documented font-size tokens in scale order', () => {
     expect(Object.entries(FONT_SIZE)).toEqual([
       ['xs', '0.75rem'],
       ['sm', '0.875rem'],
       ['base', '1rem'],
       ['md', '1.125rem'],
-      ['lg', '1.25rem'],
-      ['xl', '1.5rem'],
-      ['2xl', '1.875rem'],
-      ['3xl', '2.25rem'],
+      ['lg', 'clamp(1.125rem, 1.099rem + 0.1127vw, 1.2rem)'],
+      ['xl', 'clamp(1.266rem, 1.204rem + 0.262vw, 1.44rem)'],
+      ['2xl', 'clamp(1.424rem, 1.317rem + 0.457vw, 1.728rem)'],
+      ['3xl', 'clamp(1.602rem, 1.436rem + 0.7088vw, 2.074rem)'],
     ]);
+  });
+
+  it('keeps numeric figure sizes fixed outside the fluid heading scale', () => {
+    expect(FIGURE_SIZE).toEqual({
+      lg: '1.25rem',
+      xl: '1.5rem',
+      '2xl': '1.875rem',
+    });
   });
 
   it('defines exactly the visual-review breakpoint widths', () => {
@@ -384,8 +393,55 @@ describe('the CSS output', () => {
     for (const [name, value] of Object.entries(FONT_SIZE)) {
       expect(css).toContain(`--cl-font-size-${name}: ${value};`);
     }
+    for (const [name, value] of Object.entries(FIGURE_SIZE)) {
+      expect(css).toContain(`--cl-font-size-figure-${name}: ${value};`);
+    }
     for (const [name, value] of Object.entries(BREAKPOINTS)) {
       expect(css).toContain(`--cl-breakpoint-${name}: ${value};`);
+    }
+  });
+
+  it('maps bare heading levels to the semantic font-size scale', () => {
+    const headingSizes = [
+      ['h1', '3xl'],
+      ['h2', '2xl'],
+      ['h3', 'xl'],
+      ['h4', 'lg'],
+      ['h5', 'md'],
+      ['h6', 'base'],
+    ] as const;
+
+    for (const [heading, size] of headingSizes) {
+      expect(css).toContain(`${heading} { font-size: var(--cl-font-size-${size}); }`);
+    }
+  });
+
+  it('interpolates heading tokens between the two-ratio scale endpoints', () => {
+    const headings = [
+      ['lg', 1],
+      ['xl', 2],
+      ['2xl', 3],
+      ['3xl', 4],
+    ] as const;
+
+    for (const [name, exponent] of headings) {
+      const value = FONT_SIZE[name];
+      const match = /^clamp\(([\d.]+)rem,\s*([\d.]+)rem\s*\+\s*([\d.]+)vw,\s*([\d.]+)rem\)$/.exec(
+        value,
+      );
+      if (match === null) throw new Error(`${name} must combine rem and vw in a clamp`);
+
+      const minimum = Number(match[1]) * 16;
+      const intercept = Number(match[2]) * 16;
+      const slopeVw = Number(match[3]);
+      const maximum = Number(match[4]) * 16;
+      const sizeAt = (viewport: number) =>
+        Math.min(maximum, Math.max(minimum, intercept + (slopeVw * viewport) / 100));
+      const lowerEndpoint = 16 * 1.125 ** exponent;
+      const upperEndpoint = 16 * 1.2 ** exponent;
+
+      expect(Math.abs(sizeAt(375) - lowerEndpoint)).toBeLessThanOrEqual(0.1);
+      expect(Math.abs(sizeAt(1440) - upperEndpoint)).toBeLessThanOrEqual(0.1);
     }
   });
 
@@ -755,7 +811,7 @@ describe('the CSS output', () => {
     expect(css).toContain(
       '.cl-select[data-state="open"] .cl-select__icon { transform: rotate(180deg); }',
     );
-    expect(css).toContain('font-size: 10px');
+    expect(css).toContain('font-size: var(--cl-font-size-xs)');
   });
 
   it('stops the native select shim from intercepting pointer events', () => {
@@ -787,7 +843,12 @@ describe('the Tailwind output', () => {
   });
 
   it('sources font sizes and screens directly from the primitives', () => {
-    expect(theme.fontSize).toEqual(FONT_SIZE);
+    expect(theme.fontSize).toEqual({
+      ...FONT_SIZE,
+      ...Object.fromEntries(
+        Object.entries(FIGURE_SIZE).map(([name, value]) => [`figure-${name}`, value]),
+      ),
+    });
     expect(theme.screens).toEqual(BREAKPOINTS);
   });
 
@@ -858,6 +919,10 @@ describe('the style guide', () => {
     for (const name of Object.keys(FONT_SIZE)) {
       expect(html).toContain(`data-font-size="${name}"`);
       expect(html).toContain(`var(--cl-font-size-${name})`);
+    }
+    for (const name of Object.keys(FIGURE_SIZE)) {
+      expect(html).toContain(`data-font-size="figure-${name}"`);
+      expect(html).toContain(`var(--cl-font-size-figure-${name})`);
     }
   });
 

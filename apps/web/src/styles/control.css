@@ -190,7 +190,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 767px) {
+@media (width < 768px) {
   .cl-analytics-status-chart__row {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: var(--cl-space-1) var(--cl-space-3);
@@ -236,7 +236,7 @@ body {
   min-width: 0;
 }
 
-@media (max-width: 374px) {
+@media (width < 375px) {
   .cl-standings-distribution-row {
     grid-template-columns: minmax(0, 1fr) auto;
   }
@@ -455,7 +455,7 @@ body {
 }
 
 /* BREAKPOINTS token md (768px): collapse chrome before tablet content becomes cramped. */
-@media (max-width: 767px) {
+@media (width < 768px) {
   .cl-control {
     display: flex;
     flex-direction: column;
@@ -484,7 +484,7 @@ body {
 }
 
 /* 200% zoom at the 375px review width exposes roughly 188 CSS px. */
-@media (max-width: 374px) {
+@media (width < 375px) {
   .cl-control__mobile-header,
   .cl-control__main,
   .cl-control > main {

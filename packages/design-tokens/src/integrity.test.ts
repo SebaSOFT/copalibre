@@ -243,6 +243,78 @@ describe('invisible text', () => {
   });
 });
 
+describe('responsive typography and media widths', () => {
+  it('rejects pixel font sizes', () => {
+    const hits = checkFile('apps/web/src/a.css', '.x { font-size: 10px; }', declared);
+
+    expect(hits).toEqual([
+      { file: 'apps/web/src/a.css', line: 1, kind: 'font-size-in-px', detail: '10px' },
+    ]);
+  });
+
+  it('rejects text below the 0.75rem floor', () => {
+    const hits = checkFile('apps/web/src/a.css', '.x { font-size: 0.625rem; }', declared);
+
+    expect(hits).toEqual([
+      {
+        file: 'apps/web/src/a.css',
+        line: 1,
+        kind: 'font-size-below-floor',
+        detail: '0.625rem',
+      },
+    ]);
+  });
+
+  it('rejects undocumented media widths and points at the nearest token', () => {
+    const hits = checkFile(
+      'apps/web/src/a.css',
+      '@media (max-width: 600px) { .x { display: block; } }',
+      declared,
+    );
+
+    expect(hits).toEqual([
+      {
+        file: 'apps/web/src/a.css',
+        line: 1,
+        kind: 'non-token-breakpoint',
+        detail: '600px; nearest token is --cl-breakpoint-md (768px)',
+      },
+    ]);
+  });
+
+  it('accepts documented breakpoints and generated breakpoint-token references', () => {
+    const source = [
+      '@media (width < 375px) { .phone { display: block; } }',
+      '@media (width < ${BREAKPOINTS.md}) { .tablet { display: block; } }',
+    ].join('\n');
+
+    expect(checkFile('packages/design-tokens/src/generate/css.ts', source, declared)).toEqual([]);
+  });
+
+  it('keeps the TV broadcast font-size exemption', () => {
+    expect(
+      checkFile('apps/web/src/styles/tv-broadcast.css', '.tv { font-size: 0.625rem; }', declared),
+    ).toEqual([]);
+  });
+
+  it('still constrains TV media widths to the shared breakpoints', () => {
+    const hits = checkFile(
+      'apps/web/src/styles/tv-broadcast.css',
+      '@media (max-width: 600px) { .tv { display: block; } }',
+      declared,
+    );
+
+    expect(hits).toEqual([
+      {
+        file: 'apps/web/src/styles/tv-broadcast.css',
+        line: 1,
+        kind: 'non-token-breakpoint',
+        detail: '600px; nearest token is --cl-breakpoint-md (768px)',
+      },
+    ]);
+  });
+});
+
 describe('the exception registry', () => {
   const chromaKey = {
     file: 'apps/web/src/styles/tv-broadcast.css',

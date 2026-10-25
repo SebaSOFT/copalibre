@@ -92,6 +92,8 @@ export function createApiValidationPipe(options?: {
     transform: true,
     whitelist: true,
     forbidNonWhitelisted: true,
+    // The exception factory only uses the DTO name; response and log contents stay sanitized.
+    validationError: { target: true },
     exceptionFactory: (errors: ValidationError[]): BadRequestException => {
       const undeclared = extractUndeclaredProperties(errors);
       if (undeclared.length > 0) {

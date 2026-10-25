@@ -137,6 +137,68 @@ async function installResponsiveControlFixture(page: Page): Promise<void> {
   );
 }
 
+async function captureControlTypeScaleScreenshots(page: Page, phase: 'before' | 'after') {
+  const routes = [
+    ['dashboard', '/control/liga-mendocina'],
+    ['settings', '/control/liga-mendocina/preferences'],
+    ['venues', '/control/liga-mendocina/resources'],
+  ] as const;
+
+  for (const [width, height] of [
+    [1440, 900],
+    [390, 844],
+    [375, 844],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    for (const [name, path] of routes) {
+      const currentPath = await page.evaluate(() => window.location.pathname);
+      if (currentPath !== path) {
+        await page.evaluate((nextPath) => {
+          history.pushState({}, '', nextPath);
+          window.dispatchEvent(new PopStateEvent('popstate'));
+        }, path);
+      }
+      await expect(page.locator('.cl-control')).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      await page.screenshot({
+        path: `docs/assets/screenshots/responsive-type-scale-${phase}-control-${name}-${width}x${height}.png`,
+      });
+    }
+  }
+}
+
+async function applyPreviousControlTypography(page: Page): Promise<void> {
+  await page.addStyleTag({
+    content:
+      ':root { --cl-font-size-lg: 1.25rem; --cl-font-size-xl: 1.5rem; --cl-font-size-2xl: 1.875rem; --cl-font-size-3xl: 2.25rem; }',
+  });
+  await page.evaluate(() => {
+    const selectors = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+    const removeHeadingSizes = (rules: CSSRuleList, removeRule: (index: number) => void): void => {
+      for (let index = rules.length - 1; index >= 0; index -= 1) {
+        const rule = rules[index];
+        if (
+          rule instanceof CSSStyleRule &&
+          selectors.has(rule.selectorText) &&
+          rule.style.fontSize.includes('--cl-font-size-')
+        ) {
+          removeRule(index);
+        } else if (rule instanceof CSSGroupingRule) {
+          removeHeadingSizes(rule.cssRules, (childIndex) => rule.deleteRule(childIndex));
+        }
+      }
+    };
+
+    for (const sheet of document.styleSheets) {
+      try {
+        removeHeadingSizes(sheet.cssRules, (index) => sheet.deleteRule(index));
+      } catch {
+        // Cross-origin font sheets cannot be changed and carry no heading rules.
+      }
+    }
+  });
+}
+
 test('Control routes remain visible without page overflow at every reference width', async ({
   page,
 }) => {
@@ -167,6 +229,73 @@ test('Control routes remain visible without page overflow at every reference wid
   }
 });
 
+test('Control dashboard, settings and venues remain readable at 200% text size', async ({
+  page,
+}) => {
+  let pageToCheck = page;
+  const captureScreenshots = process.env.CAPTURE_RESPONSIVE_TYPE_SCALE_SCREENSHOTS === '1';
+  await installResponsiveControlFixture(page);
+  if (captureScreenshots) {
+    await page.addInitScript(() => localStorage.setItem('copalibre.language', 'es'));
+  }
+  await seedLoginTransaction(page, '/control/liga-mendocina');
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL('**/control/liga-mendocina');
+
+  if (captureScreenshots) {
+    await applyPreviousControlTypography(page);
+    await captureControlTypeScaleScreenshots(page, 'before');
+
+    pageToCheck = await page.context().newPage();
+    await installResponsiveControlFixture(pageToCheck);
+    await pageToCheck.addInitScript(() => localStorage.setItem('copalibre.language', 'es'));
+    await seedLoginTransaction(pageToCheck, '/control/liga-mendocina');
+    await pageToCheck.goto(loginCallbackUrl());
+    await pageToCheck.waitForURL('**/control/liga-mendocina');
+    await captureControlTypeScaleScreenshots(pageToCheck, 'after');
+  }
+
+  await pageToCheck.setViewportSize({ width: 1280, height: 900 });
+  await pageToCheck.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+
+  for (const path of [
+    '/control/liga-mendocina',
+    '/control/liga-mendocina/preferences',
+    '/control/liga-mendocina/resources',
+  ]) {
+    await test.step(path, async () => {
+      const currentPath = await pageToCheck.evaluate(() => window.location.pathname);
+      if (currentPath !== path) {
+        const previousTitle = await pageToCheck.title();
+        await pageToCheck.evaluate((nextPath) => {
+          history.pushState({}, '', nextPath);
+          window.dispatchEvent(new PopStateEvent('popstate'));
+        }, path);
+        await expect.poll(() => pageToCheck.title()).not.toBe(previousTitle);
+      }
+      await expect(pageToCheck.locator('.cl-control')).toBeVisible();
+      await expectNoPageOverflow(pageToCheck);
+
+      const clippedLabels = await pageToCheck
+        .locator('main h1, main h2, main h3, main label, main button, main [role="button"]')
+        .evaluateAll((elements) =>
+          elements.flatMap((element) => {
+            const style = getComputedStyle(element);
+            const clipsWidth = ['hidden', 'clip'].includes(style.overflowX);
+            const clipsHeight = ['hidden', 'clip'].includes(style.overflowY);
+            const clipped =
+              (clipsWidth && element.scrollWidth > element.clientWidth + 1) ||
+              (clipsHeight && element.scrollHeight > element.clientHeight + 1);
+            return clipped ? [element.textContent?.trim() ?? element.tagName] : [];
+          }),
+        );
+      expect(clippedLabels).toEqual([]);
+    });
+  }
+});
+
 test('/control/callback shows a readable progress state at every reference width', async ({
   page,
 }) => {
@@ -187,6 +316,78 @@ test('/control/callback shows a readable progress state at every reference width
     await page.goto(loginCallbackUrl());
     await expect(page.getByText('Completando el acceso…')).toBeVisible();
     await expectNoPageOverflow(page);
+  }
+});
+
+test('public headings and body text follow the responsive type scale', async ({ page }) => {
+  await page.goto('/404');
+  await expect(page.locator('h1').first()).toBeVisible();
+  await page.evaluate(() => {
+    const probe = document.createElement('h1');
+    probe.dataset.typeScaleProbe = 'display';
+    probe.textContent = 'Display scale';
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    document.body.append(probe);
+  });
+
+  for (const [width, expectedHeading] of [
+    [375, 16 * 1.125 ** 3],
+    [1440, 16 * 1.2 ** 3],
+  ] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    const actual = await page.evaluate(() => {
+      const heading = document.querySelector('h1');
+      const display = document.querySelector('[data-type-scale-probe="display"]');
+      if (heading === null || display === null) {
+        throw new Error('The responsive type-scale probes were not rendered.');
+      }
+      return {
+        heading: Number.parseFloat(getComputedStyle(heading).fontSize),
+        display: Number.parseFloat(getComputedStyle(display).fontSize),
+        body: Number.parseFloat(getComputedStyle(document.body).fontSize),
+      };
+    });
+
+    expect(Math.abs(actual.heading - expectedHeading)).toBeLessThanOrEqual(0.5);
+    expect(
+      Math.abs(actual.display - (width === 375 ? 16 * 1.125 ** 4 : 16 * 1.2 ** 4)),
+    ).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(actual.body - 16)).toBeLessThanOrEqual(0.5);
+    await expectNoPageOverflow(page);
+  }
+});
+
+test('public overview and matches remain readable at 200% text size', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  for (const path of [
+    '/es/panamericano-demo/tournaments/panamericano-clubes-2025',
+    '/es/panamericano-demo/tournaments/panamericano-clubes-2025/matches',
+  ]) {
+    await test.step(path, async () => {
+      await page.goto(path);
+      await expect(page.locator('main h1').first()).toBeVisible();
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '200%';
+      });
+      await expectNoPageOverflow(page);
+
+      const clippedLabels = await page
+        .locator('main h1, main h2, main h3, main label, main button, main [role="button"]')
+        .evaluateAll((elements) =>
+          elements.flatMap((element) => {
+            const style = getComputedStyle(element);
+            const clipsWidth = ['hidden', 'clip'].includes(style.overflowX);
+            const clipsHeight = ['hidden', 'clip'].includes(style.overflowY);
+            const clipped =
+              (clipsWidth && element.scrollWidth > element.clientWidth + 1) ||
+              (clipsHeight && element.scrollHeight > element.clientHeight + 1);
+            return clipped ? [element.textContent?.trim() ?? element.tagName] : [];
+          }),
+        );
+      expect(clippedLabels).toEqual([]);
+    });
   }
 });
 
