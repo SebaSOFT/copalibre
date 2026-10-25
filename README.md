@@ -7,6 +7,8 @@
 [![Release](https://img.shields.io/github/v/release/SebaSOFT/copalibre)](https://github.com/SebaSOFT/copalibre/releases)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
 [![Discussions](https://img.shields.io/github/discussions/SebaSOFT/copalibre)](https://github.com/SebaSOFT/copalibre/discussions)
+[![Glama](https://glama.ai/mcp/servers/SebaSOFT/copalibre/badges/score.svg)](https://glama.ai/mcp/servers/SebaSOFT/copalibre)
+[![Smithery](https://smithery.ai/badge/@SebaSOFT/copalibre)](https://smithery.ai/server/@SebaSOFT/copalibre)
 
 > **Self-hosted tournament management for clubs, leagues, federations, and competitive communities.**
 
