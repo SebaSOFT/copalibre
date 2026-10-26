@@ -1001,6 +1001,18 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.clockLabel',
     defaultMessage: 'Local time',
   },
+  tvDashboardLeading: {
+    id: 'publicWeb.tvDashboard.leading',
+    defaultMessage: 'Leading',
+  },
+  tvDashboardNextMatch: {
+    id: 'publicWeb.tvDashboard.nextMatch',
+    defaultMessage: 'Next match',
+  },
+  tvDashboardZoneLegend: {
+    id: 'publicWeb.tvDashboard.zoneLegend',
+    defaultMessage: 'Group or zone',
+  },
   tvDashboardFinishedOn: {
     id: 'publicWeb.tvDashboard.finishedOn',
     defaultMessage: 'Finished {date}',

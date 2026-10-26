@@ -18,11 +18,13 @@ export function TvStandingsTable({
   clubs,
   dashboardLabels,
   pointsShortLabel,
+  showAllRows = false,
 }: {
   readonly standings?: readonly StandingsRowView[];
   readonly clubs?: readonly TvClubItem[];
   readonly dashboardLabels: TvDashboardLabels;
   readonly pointsShortLabel: string;
+  readonly showAllRows?: boolean;
 }): React.JSX.Element {
   if (!standings || standings.length === 0) {
     return (
@@ -33,8 +35,15 @@ export function TvStandingsTable({
   }
 
   const blocks = groupStandingsByZone(standings);
+  const hasNamedZones = blocks.some((block) => block.zoneName !== undefined);
   return (
     <>
+      {hasNamedZones && (
+        <p className="tv-standings-legend">
+          <span aria-hidden="true" className="tv-standings-legend__mark" />
+          {dashboardLabels.zoneLegend}
+        </p>
+      )}
       {blocks.map((block) => (
         <StandingsBlock
           block={block}
@@ -42,6 +51,7 @@ export function TvStandingsTable({
           dashboardLabels={dashboardLabels}
           key={block.zoneName ?? 'stage'}
           pointsShortLabel={pointsShortLabel}
+          showAllRows={showAllRows}
         />
       ))}
     </>
@@ -58,11 +68,13 @@ function StandingsBlock({
   clubs,
   dashboardLabels,
   pointsShortLabel,
+  showAllRows,
 }: {
   readonly block: { readonly zoneName?: string; readonly rows: readonly StandingsRowView[] };
   readonly clubs?: readonly TvClubItem[];
   readonly dashboardLabels: TvDashboardLabels;
   readonly pointsShortLabel: string;
+  readonly showAllRows: boolean;
 }): React.JSX.Element {
   const table = (
     <table className="tv-standings-table">
@@ -75,7 +87,7 @@ function StandingsBlock({
         </tr>
       </thead>
       <tbody>
-        {block.rows.slice(0, 8).map((row) => {
+        {(showAllRows ? block.rows : block.rows.slice(0, 8)).map((row) => {
           const club = clubs?.find((c) => c.clubId === row.clubId);
           return (
             <tr key={row.name}>
@@ -92,7 +104,11 @@ function StandingsBlock({
                       src={club?.emblemUrl}
                     />
                   )}
-                  <EntrantName abbreviation={row.abbreviation} fullName={row.name} />
+                  <EntrantName
+                    abbreviation={row.abbreviation}
+                    className="tv-standings-table__club-name"
+                    fullName={row.name}
+                  />
                 </div>
               </td>
               <td>{row.played}</td>

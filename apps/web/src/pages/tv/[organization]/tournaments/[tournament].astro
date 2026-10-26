@@ -10,6 +10,7 @@ import {
   fetchOverview,
   fetchBracket,
   fetchMatchesView,
+  fetchMatchReport,
   mapLiveResponse,
   mapOverviewResponse,
   mapMatchesViewResponse,
@@ -18,7 +19,7 @@ import {
   tournamentEmblemUrl,
 } from '../../../../lib/public-api-client.ts';
 import type { PublicObjectReference } from '../../../../lib/discipline-background.ts';
-import type { LiveDashboard } from '../../../../lib/live-state.ts';
+import type { LiveDashboard, LiveMatch } from '../../../../lib/live-state.ts';
 import type { OverviewMatch, StandingsRowView } from '../../../../lib/overview.ts';
 import type { TopPerformer } from '../../../../lib/tv-statistics.ts';
 import type { TvWinnerZone } from '../../../../components/tv/tv-types.ts';
@@ -49,6 +50,11 @@ import type { PublicSeriesState } from '../../../../lib/series.ts';
 import { tvMatchEntriesOf, type TvMatchEntry } from '../../../../lib/tv-match-list.ts';
 import type { BracketZone } from '../../../../lib/bracket-projection.ts';
 import { TV_BACKGROUNDS, type TvBackground } from '../../../../lib/tv-background.ts';
+import {
+  buildActorDirectory,
+  buildTvMatchEvents,
+  type TvMatchEvent,
+} from '../../../../lib/tv-match-events.ts';
 
 export const prerender = false;
 
@@ -191,6 +197,8 @@ const presentation = overlayMode ?? 'kiosk';
 const layoutParam = Astro.url.searchParams.get('layout');
 const gridParam = Astro.url.searchParams.get('grid');
 const viewParam = Astro.url.searchParams.get('view');
+const layoutVariant =
+  layoutParam === 'presentation' || layoutParam === 'dashboard' ? layoutParam : 'kiosk';
 // `matches` is the name a launcher and an operator use; `fixtures` is the name this view had before.
 const initialView =
   viewParam === 'standings'
@@ -201,6 +209,42 @@ const initialView =
 const showMultiCourtGrid = presentation === 'kiosk' && layoutParam === 'multicourt';
 const gridSize: 2 | 4 | 6 | 'auto' =
   gridParam === '2' ? 2 : gridParam === '4' ? 4 : gridParam === '6' ? 6 : 'auto';
+
+let matchEventsById: Record<string, readonly TvMatchEvent[]> = {};
+let rosterActorsByMatchId: Record<string, Readonly<Record<string, string>>> = {};
+if (layoutVariant !== 'kiosk') {
+  const eventMatches = dashboard.matches
+    .filter(
+      (match): match is LiveMatch & { readonly stageOrdinal: number } =>
+        match.state === 'live' && match.stageOrdinal !== undefined,
+    )
+    .slice(0, layoutVariant === 'presentation' ? 1 : 2);
+  try {
+    const reports = await Promise.all(
+      eventMatches.map(async (match) => ({
+        matchId: match.matchId,
+        report: await fetchMatchReport(
+          organizationAlias,
+          tournamentAlias,
+          match.stageNumber,
+          match.stageOrdinal,
+        ),
+      })),
+    );
+    matchEventsById = Object.fromEntries(
+      reports.flatMap(({ matchId, report }) =>
+        report ? [[matchId, buildTvMatchEvents(report)]] : [],
+      ),
+    );
+    rosterActorsByMatchId = Object.fromEntries(
+      reports.flatMap(({ matchId, report }) =>
+        report ? [[matchId, buildActorDirectory(report.rosters)]] : [],
+      ),
+    );
+  } catch {
+    // Report outages remove event context while preserving the live compositions.
+  }
+}
 
 let initialBracket: { stageNumber: number; zones: readonly BracketZone[] } | undefined;
 const featuredStage =
@@ -259,7 +303,7 @@ const tickerChrome = tickerChromeLabels(intl);
 const tournamentDisplayName = tournamentName ?? intl.formatMessage(messages.pageHeaderLoading);
 const organizationDisplayName = organizationName ?? intl.formatMessage(messages.pageHeaderLoading);
 const tickerItems =
-  presentation === 'kiosk'
+  presentation === 'kiosk' && layoutVariant === 'kiosk'
     ? buildTickerItems({
         matches: overviewMatches,
         ...(performerProjection === undefined ? {} : { performers: performerProjection }),
@@ -281,15 +325,17 @@ const tickerItems =
   <h1 aria-busy={!tournamentName ? 'true' : undefined} class="cl-visually-hidden">
     {tournamentDisplayName}
   </h1>
-  <ScoreTicker
-    emptyLabel={tickerChrome.empty}
-    items={tickerItems}
-    label={intl.formatMessage(messages.tickerLabel)}
-    pauseLabel={tickerChrome.pause}
-    resumeLabel={tickerChrome.resume}
-    scale="tv"
-    staleLabel={tickerChrome.stale}
-  />
+  {layoutVariant === 'kiosk' && (
+    <ScoreTicker
+      emptyLabel={tickerChrome.empty}
+      items={tickerItems}
+      label={intl.formatMessage(messages.tickerLabel)}
+      pauseLabel={tickerChrome.pause}
+      resumeLabel={tickerChrome.resume}
+      scale="tv"
+      staleLabel={tickerChrome.stale}
+    />
+  )}
   {showMultiCourtGrid ? (
     <TvMultiCourtGrid
       locale={language}
@@ -310,6 +356,9 @@ const tickerItems =
     <TvDashboard
       client:load
       presentation={presentation}
+      layoutVariant={layoutVariant}
+      matchEventsById={matchEventsById}
+      rosterActorsByMatchId={rosterActorsByMatchId}
       initialView={initialView}
       initial={dashboard}
       initialBracket={initialBracket}
