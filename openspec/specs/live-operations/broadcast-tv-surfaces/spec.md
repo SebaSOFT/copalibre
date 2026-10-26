@@ -635,3 +635,56 @@ text.
 
 - **WHEN** a kiosk misses an event and its replay window has expired
 - **THEN** the next poll shows the current placement and rescheduled statement
+
+### Requirement: TV offers kiosk, presentation and dashboard layouts over the same data
+
+TV SHALL offer three layouts over the same data:
+- a kiosk: results ticker, header with a large clock, focus match plus a tabbed rail;
+- a live presentation: hero match with team sides, centre clock and event log, plus bracket path and
+  standings;
+- a multi-match dashboard: live cards beside a full-height standings rail, with upcoming matches in
+  a compact full-width band below.
+
+TV SHALL render dark and SHALL show no fabricated feed or telemetry chrome.
+
+#### Scenario: Leading side
+
+- **WHEN** one side leads in the presentation layout
+- **THEN** that side has a cyan outline and a "Leading" label; on a draw neither side is marked
+
+#### Scenario: Sport-specific indicator
+
+- **WHEN** a discipline declares a possession indicator
+- **THEN** it renders through the discipline indicator widget, and no core TV component hardcodes it
+
+#### Scenario: Upcoming badge uses the shared semantic tone
+
+- **WHEN** an upcoming match appears in the TV status bar, a match card or the results ticker
+- **THEN** each "Programado" badge uses the amber `state-upcoming` tone with its text label
+
+### Requirement: TV text stays legible at distance and never overlaps
+
+At 1920×1080, TV SHALL render the score at 12vmin or more, the clock at 6vmin, team names at 3.5vmin
+and table body text at 2.2vmin. A name that does not fit SHALL truncate with an ellipsis and keep its
+full text as an accessible name, never wrapping over neighbouring content.
+
+#### Scenario: Distance legibility
+
+- **WHEN** the kiosk renders at 1920×1080
+- **THEN** the computed sizes of score, clock, team names and table text meet their minimums
+
+#### Scenario: Long names on the dashboard
+
+- **WHEN** two live matches with the longest demo club names render two-up at 1280px in German
+- **THEN** names truncate with an ellipsis, carry their full text as an accessible name, and do not
+  overlap
+
+### Requirement: TV dashboard fits without manual scrolling
+
+The dashboard SHALL place live matches and standings side by side and reserve a compact full-width band for upcoming matches. Standings that exceed the visible height SHALL rotate automatically in stable pages. At 1280×720 and 1920×1080, the dashboard SHALL NOT require manual scrolling.
+
+#### Scenario: Dashboard fits supported TV sizes
+
+- **WHEN** the dashboard renders at 1280×720 or 1920×1080
+- **THEN** live matches, upcoming matches and the current standings page fit in the frame without document or panel scrolling
+- **AND** standings rows that do not fit rotate automatically through pages
