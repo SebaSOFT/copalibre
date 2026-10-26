@@ -54,16 +54,25 @@ const overview = {
     match(5, 'scheduled', longNames[0], longNames[2]),
     match(6, 'scheduled', longNames[3], longNames[1]),
   ],
-  standingsPreview: longNames.map((name, index) => ({
-    rank: index + 1,
-    entrantId: `entrant-${index + 1}`,
-    name,
-    abbreviation: `T${index + 1}`,
-    clubId: `club-${index + 1}`,
-    statistics: { played: 1, points: 3 - index },
-    zoneName: 'Zona A',
-  })),
+  standingsPreview: Array.from({ length: 24 }, (_, index) => {
+    const name = longNames[index % longNames.length] ?? 'Club';
+    return {
+      rank: index + 1,
+      entrantId: `entrant-${index + 1}`,
+      name: index < longNames.length ? name : `${name} ${index + 1}`,
+      abbreviation: `T${index + 1}`,
+      clubId: `club-${index + 1}`,
+      statistics: { played: 1, points: 24 - index },
+      zoneName: 'Zona A',
+    };
+  }),
 };
+
+let activeOverview = overview;
+
+test.afterEach(() => {
+  activeOverview = overview;
+});
 
 const bracket = {
   format: 'single-elimination',
@@ -122,7 +131,7 @@ test.beforeAll(async ({ workerPort }) => {
   server = createServer((req, res) => {
     const pathname = new URL(req.url ?? '/', 'http://127.0.0.1').pathname;
     res.setHeader('content-type', 'application/json');
-    if (pathname === `${BASE}/overview`) res.end(JSON.stringify(overview));
+    if (pathname === `${BASE}/overview`) res.end(JSON.stringify(activeOverview));
     else if (pathname === `${BASE}/live`) res.end(JSON.stringify({ matches: [] }));
     else if (pathname === `${BASE}/stages/1/bracket`) res.end(JSON.stringify(bracket));
     else if (pathname === `${BASE}/stages/1/matches/1`) res.end(JSON.stringify(report));
@@ -266,6 +275,85 @@ test('German dashboard keeps long club names accessible and prevents overlap at 
     await expect(name).toHaveCSS('text-overflow', 'ellipsis');
     await expect(name).toHaveCSS('white-space', 'nowrap');
   }
+});
+
+test('TV dashboard fits the frame and rotates overflowing standings without scrolling', async ({
+  page,
+}) => {
+  for (const viewport of [
+    { width: 1280, height: 720 },
+    { width: 1920, height: 1080 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(`${TV_PATH}?layout=dashboard&lang=es`);
+
+    const standings = page.getByTestId('tv-dashboard-standings');
+    await expect(standings).toBeVisible();
+    const metrics = () =>
+      page.evaluate(() => {
+        const dashboard = document.querySelector<HTMLElement>('.tv-multi-match-dashboard');
+        const panel = document.querySelector<HTMLElement>('.tv-dashboard-standings');
+        return {
+          documentScrollHeight: document.documentElement.scrollHeight,
+          viewportHeight: window.innerHeight,
+          dashboardScrollHeight: dashboard?.scrollHeight ?? 0,
+          dashboardClientHeight: dashboard?.clientHeight ?? 0,
+          panelScrollHeight: panel?.scrollHeight ?? 0,
+          panelClientHeight: panel?.clientHeight ?? 0,
+        };
+      });
+    const expectNoScroll = async () => {
+      await expect
+        .poll(async () => (await metrics()).documentScrollHeight)
+        .toBeLessThanOrEqual(viewport.height);
+      await expect
+        .poll(async () => {
+          const measured = await metrics();
+          return measured.dashboardScrollHeight - measured.dashboardClientHeight;
+        })
+        .toBeLessThanOrEqual(0);
+      await expect
+        .poll(async () => {
+          const measured = await metrics();
+          return measured.panelScrollHeight - measured.panelClientHeight;
+        })
+        .toBeLessThanOrEqual(0);
+    };
+    await expectNoScroll();
+
+    if (viewport.width === 1280) {
+      await expect
+        .poll(async () => Number(await standings.getAttribute('data-page-count')))
+        .toBeGreaterThan(1);
+      const currentPage = await standings.getAttribute('data-page-index');
+      await expect
+        .poll(async () => standings.getAttribute('data-page-index'), { timeout: 12_000 })
+        .not.toBe(currentPage);
+      await expectNoScroll();
+    }
+  }
+});
+
+test('TV upcoming status badge uses the semantic amber token', async ({ page }) => {
+  activeOverview = {
+    ...overview,
+    matches: overview.matches.filter((entry) => entry.status === 'scheduled'),
+  };
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto(`${TV_PATH}?layout=dashboard&lang=es`);
+
+  const badge = page.locator('.tv-scorebug__badge--upcoming').first();
+  await expect(badge).toContainText('Programado');
+  const colors = await badge.evaluate((element) => {
+    const probe = document.createElement('span');
+    probe.style.color = 'var(--cl-state-upcoming)';
+    document.body.append(probe);
+    const tokenColor = getComputedStyle(probe).color;
+    probe.remove();
+    return { badgeColor: getComputedStyle(element).color, tokenColor };
+  });
+  expect(colors.badgeColor).toBe(colors.tokenColor);
 });
 
 test('TV keeps its dark surface when the browser prefers light mode', async ({ page }) => {

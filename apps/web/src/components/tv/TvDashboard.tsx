@@ -253,6 +253,9 @@ export function TvDashboard({
   const showBroadcastAlerts = presentation === 'lower' || presentation === 'full';
   const resolvedBranding = resolveTvBranding(branding ?? {});
   const [alertQueue, setAlertQueue] = useState<readonly BroadcastAlertItem[]>([]);
+  const [standingsPageIndex, setStandingsPageIndex] = useState(0);
+  const [standingsPageSize, setStandingsPageSize] = useState(standings?.length ?? 0);
+  const standingsPanelRef = useRef<HTMLElement>(null);
   const dashboardRef = useRef(dashboard);
   useEffect(() => {
     dashboardRef.current = dashboard;
@@ -547,6 +550,56 @@ export function TvDashboard({
     .slice(0, 4);
   const allFinal = matches.length > 0 && matches.every((m) => m.state === 'final');
   const isLive = liveMatches.length > 0;
+  const totalStandingsRows = standings?.length ?? 0;
+  const visibleStandingsPageSize = Math.max(
+    1,
+    Math.min(totalStandingsRows || 1, standingsPageSize || totalStandingsRows || 1),
+  );
+  const standingsPageCount = Math.max(1, Math.ceil(totalStandingsRows / visibleStandingsPageSize));
+  const activeStandingsPage = standingsPageIndex % standingsPageCount;
+  const dashboardStandings = standings?.slice(
+    activeStandingsPage * visibleStandingsPageSize,
+    (activeStandingsPage + 1) * visibleStandingsPageSize,
+  );
+
+  useEffect(() => {
+    if (layoutVariant !== 'dashboard') return;
+    const panel = standingsPanelRef.current;
+    if (!panel || totalStandingsRows === 0) return;
+
+    let measured = false;
+    const measureVisibleRows = (): void => {
+      if (measured || panel.clientHeight === 0) return;
+      const rows = Array.from(
+        panel.querySelectorAll<HTMLTableRowElement>('.tv-standings-table tbody tr'),
+      );
+      const rowHeight = rows[0]?.getBoundingClientRect().height ?? 0;
+      if (rowHeight === 0) return;
+
+      const overflowHeight = Math.max(0, panel.scrollHeight - panel.clientHeight);
+      const rowsBeyondPanel = Math.ceil(overflowHeight / rowHeight);
+      const nextPageSize = Math.max(1, rows.length - rowsBeyondPanel);
+      measured = true;
+      setStandingsPageSize(Math.min(totalStandingsRows, nextPageSize));
+    };
+
+    const observer =
+      typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(measureVisibleRows);
+    observer?.observe(panel);
+    const frame = window.requestAnimationFrame(measureVisibleRows);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [layoutVariant, totalStandingsRows]);
+
+  useEffect(() => {
+    if (layoutVariant !== 'dashboard' || standingsPageCount <= 1) return;
+    const interval = window.setInterval(() => {
+      setStandingsPageIndex((current) => (current + 1) % standingsPageCount);
+    }, 10_000);
+    return () => window.clearInterval(interval);
+  }, [layoutVariant, standingsPageCount]);
 
   const winnerZones = winners ?? [];
   const soleWinner =
@@ -1039,14 +1092,27 @@ export function TvDashboard({
               <p className="tv-layout-empty">{dashboardLabels.noMatchesScheduled}</p>
             )}
           </section>
-          <section className="tv-dashboard-standings cl-chamfer">
-            <h2>{dashboardLabels.standingsTab}</h2>
+          <section
+            className="tv-dashboard-standings cl-chamfer"
+            data-page-count={standingsPageCount}
+            data-page-index={activeStandingsPage}
+            data-testid="tv-dashboard-standings"
+            ref={standingsPanelRef}
+          >
+            <header className="tv-layout-panel-heading">
+              <h2>{dashboardLabels.standingsTab}</h2>
+              {standingsPageCount > 1 && (
+                <span aria-hidden="true" className="tv-dashboard-standings__page">
+                  {activeStandingsPage + 1} / {standingsPageCount}
+                </span>
+              )}
+            </header>
             <TvStandingsTable
               clubs={clubs}
               dashboardLabels={dashboardLabels}
               pointsShortLabel={labels.pointsShort}
               showAllRows
-              standings={standings}
+              standings={dashboardStandings}
             />
           </section>
         </main>

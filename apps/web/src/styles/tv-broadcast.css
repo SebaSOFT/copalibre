@@ -176,9 +176,9 @@
 }
 
 .tv-scorebug__badge--upcoming {
-  background: color-mix(in srgb, var(--cl-text-muted) 12%, transparent);
-  border-color: var(--tv-text-secondary);
-  color: var(--tv-text-primary);
+  background: color-mix(in srgb, var(--cl-state-upcoming) 15%, transparent);
+  border-color: color-mix(in srgb, var(--cl-state-upcoming) 40%, transparent);
+  color: var(--cl-state-upcoming);
 }
 
 .tv-scorebug__dot {
@@ -379,8 +379,23 @@
 }
 
 .tv-multi-match-dashboard {
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1.35fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.tv-dashboard-live-panel {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.tv-dashboard-upcoming-panel {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.tv-dashboard-standings {
+  grid-column: 2;
+  grid-row: 1;
 }
 
 .tv-dashboard-live-panel,
@@ -459,16 +474,30 @@
 }
 
 .tv-dashboard-standings {
-  overflow: auto;
+  overflow: hidden;
 }
 
 .tv-dashboard-standings .tv-standings-table {
   font-size: max(var(--tv-min-table-body-size), 1.6vmin);
 }
 
+.tv-dashboard-standings .tv-standings-table__club-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tv-dashboard-standings .tv-standings-table th,
 .tv-dashboard-standings .tv-standings-table td {
   padding-block: 0.65vmin;
+}
+
+.tv-dashboard-standings__page {
+  color: var(--tv-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: max(var(--tv-min-table-body-size), 1.4vmin);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .tv-layout-empty {
@@ -1781,6 +1810,13 @@
     overflow: auto;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto;
+  }
+
+  .tv-dashboard-live-panel,
+  .tv-dashboard-upcoming-panel,
+  .tv-dashboard-standings {
+    grid-column: 1;
+    grid-row: auto;
   }
 
   .tv-presentation-hero {
