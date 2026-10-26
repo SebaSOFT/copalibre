@@ -486,3 +486,27 @@ enforce the case and apology rules.
 
 - **WHEN** a German error string contains "leider"
 - **THEN** the copy-voice lint fails
+
+### Requirement: Pages expose one ordered heading outline led by a top-left page header
+
+Every public, control and TV page SHALL have exactly one `h1` naming the page in user terms, and
+headings that descend one level at a time with no empty heading. Control and public section pages
+SHALL open with a left-aligned header: breadcrumb of display names, `h1`, optional description, and
+actions on the right. Text styled in the display face at heading size SHALL be a heading or belong
+to one.
+
+#### Scenario: Match page title
+
+- **WHEN** a public match page renders
+- **THEN** its `h1` names both entrants in full, and the score is not the `h1`
+
+#### Scenario: Control page header
+
+- **WHEN** the control tournament hub renders
+- **THEN** the top-left element is a breadcrumb of display names followed by an `h1` containing the
+  tournament name
+
+#### Scenario: Outline gate
+
+- **WHEN** a page skips from `h2` to `h5`, or renders an empty heading
+- **THEN** the e2e outline check fails and names the route
