@@ -85,7 +85,7 @@ export function CompletionFigure({
       aria-label={labels.heading}
     >
       <div className="cl-completion-figure__header">
-        <h3 className="cl-completion-figure__heading">{labels.heading}</h3>
+        <h2 className="cl-completion-figure__heading">{labels.heading}</h2>
         <Badge
           className={`cl-completion-figure__badge cl-completion-figure__badge--${badgeModifier}`}
         >

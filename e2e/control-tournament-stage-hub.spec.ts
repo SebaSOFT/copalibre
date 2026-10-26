@@ -19,7 +19,7 @@ const STAGE = `${TOURNAMENT}/stages/1`;
 
 async function mockControlApi(page: Page): Promise<void> {
   await page.addInitScript(
-    ({ tournament, stage, tokenEndpoint }) => {
+    ({ organizationAlias, tournament, stage, tokenEndpoint }) => {
       const STAGE_KEY = 'e2e-stage';
       const initialStage = {
         stageId: 'stage-1',
@@ -42,6 +42,17 @@ async function mockControlApi(page: Page): Promise<void> {
 
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
+        }
+
+        if (url.includes('/organizations?mine=true')) {
+          return Response.json([
+            {
+              organizationId: 'org-1',
+              organizationAlias,
+              organizationName: 'Liga Mendocina',
+              role: 'admin',
+            },
+          ]);
         }
 
         if (url === `${tournament}/stages` && method === 'GET') {
@@ -80,7 +91,7 @@ async function mockControlApi(page: Page): Promise<void> {
         return new Response('Not found', { status: 404 });
       };
     },
-    { tournament: TOURNAMENT, stage: STAGE, tokenEndpoint: TOKEN_ENDPOINT },
+    { organizationAlias: ORG, tournament: TOURNAMENT, stage: STAGE, tokenEndpoint: TOKEN_ENDPOINT },
   );
 }
 
@@ -94,7 +105,12 @@ test('drills down from a tournament hub to a stage hub, renames the stage, and l
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${tournamentHubTarget}`);
 
-  await expect(page.getByRole('heading', { level: 1, name: 'Fases' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Liga Mendocina' })).toHaveAttribute(
+    'href',
+    `/control/${ORG}`,
+  );
+  await expect(page.getByRole('heading', { level: 1, name: 'Apertura 2026' })).toBeVisible();
+  await expect(page.getByText(TOURNAMENT_ALIAS, { exact: true })).toHaveCount(0);
   const stageLink = page.getByRole('link', { name: /Abrir fase 1/ });
   await expect(stageLink).toBeVisible();
   await expect(stageLink).toContainText('Fase de grupos');
@@ -116,6 +132,12 @@ test('drills down from a tournament hub to a stage hub, renames the stage, and l
   await page.getByRole('link', { name: 'Sorteo' }).click();
   await page.waitForURL(`**${seedingTarget}`);
 
+  const breadcrumb = page.locator('.cl-page-header__breadcrumb');
+  await expect(breadcrumb.getByRole('link', { name: 'Apertura 2026' })).toHaveAttribute(
+    'href',
+    `/control/${ORG}/tournaments/${TOURNAMENT_ALIAS}`,
+  );
+  await expect(page.getByText(TOURNAMENT_ALIAS, { exact: true })).toHaveCount(0);
   const breadcrumbLink = page.getByRole('link', { name: 'Fase 1' });
   await expect(breadcrumbLink).toBeVisible();
   await breadcrumbLink.click();

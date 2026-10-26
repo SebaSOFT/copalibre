@@ -127,6 +127,7 @@ const projection: MatchConsoleResponse = {
 
 function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApiClient {
   return {
+    fetchTournamentSettings: async () => ({ name: 'Apertura 2026', featured: false }),
     fetchMatchConsole: async () => projection,
     fetchMatchRosters: async () => [],
     fetchRosterCandidates: async () => [],
@@ -1405,7 +1406,7 @@ describe('MatchConsolePage', () => {
         />,
       ),
     );
-    await screen.findByText(/apertura/);
+    await screen.findByRole('link', { name: 'Apertura 2026' });
 
     expect(screen.queryByText('Load match data')).toBeNull();
   });
@@ -1428,10 +1429,12 @@ describe('MatchConsolePage', () => {
       ),
     );
 
-    const link = await screen.findByText('Load match data');
+    const link = await screen.findByRole('link', { name: 'Load match data' });
     expect(link.getAttribute('href')).toBe(
       '/control/liga/tournaments/apertura/matches/match-1/load',
     );
+    expect(link.closest('nav')).toBeNull();
+    expect(link.closest('.cl-page-header__actions')).not.toBeNull();
   });
 
   it('toggles the roster-selection step open and closed, labeled by whether a roster already exists', async () => {

@@ -6,10 +6,14 @@
  * business logic lives in this file.
  */
 import type { ReactNode } from 'react';
+import { PageHeader, type PageHeaderBreadcrumb } from '../organisms/page-header.js';
 
 export interface ListScreenLayoutProps {
-  readonly title: ReactNode;
+  readonly title: ReactNode | null;
   readonly breadcrumb?: ReactNode;
+  readonly breadcrumbs?: readonly PageHeaderBreadcrumb[];
+  readonly description?: ReactNode;
+  readonly actions?: ReactNode;
   readonly toolbar?: ReactNode;
   /** A `DataTable` or a `DataEntityCard` grid. */
   readonly listing: ReactNode;
@@ -19,16 +23,23 @@ export interface ListScreenLayoutProps {
 export function ListScreenLayout({
   title,
   breadcrumb,
+  breadcrumbs,
+  description,
+  actions,
   toolbar,
   listing,
   pagination,
 }: ListScreenLayoutProps): React.JSX.Element {
   return (
     <section className="cl-list-screen">
-      <header className="cl-list-screen__header">
-        {breadcrumb ? <div className="cl-list-screen__breadcrumb">{breadcrumb}</div> : null}
-        <h1 className="cl-list-screen__title">{title}</h1>
-      </header>
+      <PageHeader
+        actions={actions}
+        breadcrumbs={breadcrumbs}
+        legacyBreadcrumb={breadcrumb}
+        description={description}
+        title={title}
+        titleClassName="cl-list-screen__title"
+      />
       {toolbar ? <div className="cl-list-screen__toolbar">{toolbar}</div> : null}
       <div className="cl-list-screen__listing">{listing}</div>
       {pagination ? <div className="cl-list-screen__pagination">{pagination}</div> : null}

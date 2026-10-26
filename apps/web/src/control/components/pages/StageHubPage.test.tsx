@@ -21,6 +21,7 @@ function stage(overrides: Partial<StageResponse> = {}): StageResponse {
 function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   return {
     listStages: () => Promise.resolve([stage()]),
+    fetchTournamentSettings: async () => ({ name: 'Apertura 2026' }),
     updateStage: () => Promise.resolve(stage({ name: 'Fase renombrada' })),
     deleteStage: () => Promise.resolve(stage()),
     ...overrides,
@@ -156,6 +157,24 @@ describe('StageHubPage rounds', () => {
 });
 
 describe('StageHubPage', () => {
+  it('uses the tournament display name in its breadcrumb instead of the route alias', async () => {
+    render(
+      withIntl(
+        <StageHubPage
+          client={stubClient()}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    expect(await screen.findByRole('link', { name: 'Apertura 2026' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Stage 1' })).toBeTruthy();
+    expect(screen.getByText('Fase de grupos', { selector: '[aria-current="page"]' })).toBeTruthy();
+    expect(screen.queryByText('apertura-2026')).toBeNull();
+  });
+
   it("pre-fills the rename field with the stage's current name, not blank", async () => {
     render(
       withIntl(

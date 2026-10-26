@@ -143,12 +143,12 @@ describe('ControlApp', () => {
     [
       '/control/liga-mendocina/tournaments/apertura-2026',
       'Stages — apertura-2026',
-      'apertura-2026',
+      'Apertura 2026',
     ],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
       'Stage 1 — apertura-2026',
-      'apertura-2026',
+      'Apertura 2026',
     ],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/registrations',

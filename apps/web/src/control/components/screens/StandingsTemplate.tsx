@@ -24,7 +24,6 @@ import {
   type ActiveSort,
 } from '../../lib/table-projections.js';
 import { messages } from '../../i18n/messages.en.js';
-import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
@@ -62,7 +61,7 @@ export function StandingsTemplate({
   readonly projection?: TableProjectionResponseData;
   /** A load-in-progress or load-failure message; absent once `projection` is ready. */
   readonly status?: string;
-  readonly tournamentName: string;
+  readonly tournamentName?: string;
   readonly organizationAlias: string;
   /** Present when the caller knows it — used only to link the breadcrumb back to the stage hub. */
   readonly tournamentAlias?: string;
@@ -219,31 +218,33 @@ export function StandingsTemplate({
     organizationAlias,
   ]);
 
+  const displayTournamentName = tournamentName?.trim();
+  const tournamentHref =
+    tournamentAlias !== undefined
+      ? `/control/${organizationAlias}/tournaments/${tournamentAlias}`
+      : undefined;
   const stageHubHref =
     tournamentAlias !== undefined && stageNumber !== undefined
       ? `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}`
       : undefined;
-  const breadcrumbNode = (
-    <span>
-      {organizationAlias} &gt; {tournamentName}
-      {projection && (
-        <>
-          {' · '}
-          {intl.formatMessage(messages.standingsProjectionVersion, {
-            version: projection.projectionVersion,
-          })}
-        </>
-      )}
-      {stageHubHref !== undefined && (
-        <>
-          {' · '}
-          <a className="cl-focusable" href={stageHubHref} onClick={controlLinkClick(stageHubHref)}>
-            <FormattedMessage {...messages.stageHubBreadcrumbLink} values={{ stageNumber }} />
-          </a>
-        </>
-      )}
-    </span>
-  );
+  const breadcrumbs = [
+    ...(displayTournamentName && tournamentHref
+      ? [{ label: displayTournamentName, href: tournamentHref }]
+      : []),
+    ...(stageHubHref && stageNumber !== undefined
+      ? [
+          {
+            label: intl.formatMessage(messages.stageHubBreadcrumbLink, { stageNumber }),
+            href: stageHubHref,
+          },
+        ]
+      : []),
+  ];
+  const description = projection
+    ? intl.formatMessage(messages.standingsProjectionVersion, {
+        version: projection.projectionVersion,
+      })
+    : undefined;
 
   const titleNode = <FormattedMessage {...messages.standingsTitle} />;
 
@@ -342,7 +343,7 @@ export function StandingsTemplate({
               label: rule.label,
               triggered: rule.triggered,
             }))}
-            title={tournamentName}
+            title={displayTournamentName ?? localizedText(projection.label, intl.locale)}
             renderRowDetail={
               isGroupPhase
                 ? (row) => (
@@ -375,7 +376,8 @@ export function StandingsTemplate({
 
   return (
     <ListScreenLayout
-      breadcrumb={breadcrumbNode}
+      breadcrumbs={breadcrumbs}
+      description={description}
       listing={listingNode}
       title={titleNode}
       toolbar={toolbarNode}

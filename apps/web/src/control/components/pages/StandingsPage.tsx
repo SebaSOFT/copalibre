@@ -33,6 +33,13 @@ export function StandingsPage({
       }),
     [client],
   );
+  const tournamentRead = useResilientRead(
+    `control-standings-tournament-name:${organizationAlias}:${tournamentAlias}`,
+    () =>
+      api.fetchTournamentSettings?.(organizationAlias, tournamentAlias) ??
+      Promise.resolve(undefined),
+    { thing: intl.formatMessage(messages.tournamentHubTitle) },
+  );
   const [selectedLayout, setActiveLayoutCode] = useState<string | undefined>(undefined);
   const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined);
   const read = useResilientRead(
@@ -152,7 +159,7 @@ export function StandingsPage({
           stageNumber={stageNumber}
           status={undefined}
           tournamentAlias={tournamentAlias}
-          tournamentName={tournamentAlias}
+          tournamentName={tournamentRead.data?.name}
         />
       </ReadState>
     </ReadState>

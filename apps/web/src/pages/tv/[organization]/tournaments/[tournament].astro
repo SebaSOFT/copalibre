@@ -71,8 +71,8 @@ let dashboard: LiveDashboard = {
   standingsVersion: 0,
   usingLastKnown: true,
 };
-let tournamentName = tournamentAlias;
-let organizationName = organizationAlias;
+let tournamentName: string | undefined;
+let organizationName: string | undefined;
 let tournamentEmblem: string | undefined;
 let clubs: { name: string; emblemUrl?: string }[] = [];
 let winnerZones: readonly TvWinnerZone[] = [];
@@ -96,8 +96,8 @@ try {
   if (overview) {
     const mappedOverview = mapOverviewResponse(overview);
     disciplineImages = overview.disciplineImages;
-    tournamentName = mappedOverview.tournamentName || tournamentAlias;
-    organizationName = mappedOverview.organizationName || organizationAlias;
+    tournamentName = mappedOverview.tournamentName || undefined;
+    organizationName = mappedOverview.organizationName || undefined;
     if (mappedOverview.emblemObjectId) {
       tournamentEmblem = tournamentEmblemUrl(organizationAlias, tournamentAlias);
     }
@@ -256,6 +256,8 @@ try {
   are composited over, so the rail is a kiosk-only fixture.
 */
 const tickerChrome = tickerChromeLabels(intl);
+const tournamentDisplayName = tournamentName ?? intl.formatMessage(messages.pageHeaderLoading);
+const organizationDisplayName = organizationName ?? intl.formatMessage(messages.pageHeaderLoading);
 const tickerItems =
   presentation === 'kiosk'
     ? buildTickerItems({
@@ -270,12 +272,15 @@ const tickerItems =
 ---
 
 <TvLayout
-  title={`TV — ${tournamentName}`}
+  title={`TV — ${tournamentDisplayName}`}
   overlayMode={overlayMode}
   chromaKey={chromaKey}
   background={background}
   disciplineImages={disciplineImages}
 >
+  <h1 aria-busy={!tournamentName ? 'true' : undefined} class="cl-visually-hidden">
+    {tournamentDisplayName}
+  </h1>
   <ScoreTicker
     emptyLabel={tickerChrome.empty}
     items={tickerItems}
@@ -314,8 +319,8 @@ const tickerItems =
       seriesByMatchId={seriesByMatchId}
       streamPath={streamPath}
       branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
-      tournamentName={tournamentName}
-      organizationName={organizationName}
+      tournamentName={tournamentDisplayName}
+      organizationName={organizationDisplayName}
       organizationAlias={organizationAlias}
       tournamentAlias={tournamentAlias}
       clubs={clubs}

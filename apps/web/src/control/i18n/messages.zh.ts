@@ -4,6 +4,8 @@
  * ship now, native-speaker review later.
  */
 export const messages: Record<string, string> = {
+  'control.pageHeader.loading': '正在加载页面标题',
+  'control.pageHeader.breadcrumb': '面包屑导航',
   'control.interaction.createToken': '创建令牌',
   'control.interaction.pairTv': '连接电视',
   'control.interaction.pairDescription': '连接电视以显示实时比分。',
@@ -1215,6 +1217,8 @@ export const messages: Record<string, string> = {
   'control.profile.authorAndInstall': '创建并安装',
 
   'control.matchesView.title': '比赛',
+  'control.matchesView.listHeading': '全部比赛',
+  'control.matchesView.cardHeading': '第 {match} 场比赛',
   'control.matchesView.loadFailed': '无法加载比赛。',
   'control.matchesView.filterAll': '全部',
   'control.matchesView.filterLive': '进行中',

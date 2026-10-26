@@ -225,8 +225,22 @@ async function mockControlApi(
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
 
+        if (url === '/organizations?mine=true' && method === 'GET') {
+          return Response.json([
+            {
+              organizationId: 'org-1',
+              organizationAlias: 'liga-mendocina',
+              organizationName: 'Liga Mendocina',
+              role: 'admin',
+            },
+          ]);
+        }
+        if (url === `${tournament}/settings` && method === 'GET') {
+          return Response.json({ name: 'Apertura 2026', featured: false });
+        }
         if (url === `${tournament}/tables`) return Response.json(layouts);
         if (url === `${stage}/tables/group-standings-default`) return Response.json(projection);
+        if (url === `${stage}/zones` && method === 'GET') return Response.json([]);
         if (url.startsWith(`${stage}/standings/entrants/`) && url.endsWith('/trace')) {
           const withoutTrace = url.slice(0, -'/trace'.length);
           const entrantId = decodeURIComponent(
@@ -291,6 +305,14 @@ test('expands a tied standings row and shows the engine’s trace', async ({ pag
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
+  const breadcrumbs = page.locator('.cl-page-header__breadcrumb');
+  await expect(
+    breadcrumbs.getByRole('link', { name: 'Liga Mendocina', exact: true }),
+  ).toHaveAttribute('href', '/control/liga-mendocina');
+  await expect(
+    breadcrumbs.getByRole('link', { name: 'Apertura 2026', exact: true }),
+  ).toHaveAttribute('href', '/control/liga-mendocina/tournaments/apertura-2026');
+  await expect(page.getByRole('heading', { level: 1, name: 'Posiciones' })).toBeVisible();
   await expect(page.getByText('Proyección v12')).toBeVisible();
   await page.locator('tr', { hasText: 'Deportivo Norte' }).locator('+ tr summary').click();
 

@@ -70,7 +70,7 @@ export function SeedingBuilderTemplate({
    * name that happens to differ from the alias never leaks into a route.
    */
   readonly tournamentAlias?: string;
-  readonly tournamentName: string;
+  readonly tournamentName?: string;
   /** Present when the caller knows it — used only to link the breadcrumb back to the stage hub. */
   readonly stageNumber?: number;
   readonly seeds: readonly SeedAssignment[];
@@ -111,19 +111,24 @@ export function SeedingBuilderTemplate({
     tournamentAlias !== undefined && stageNumber !== undefined
       ? `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}`
       : undefined;
-  const breadcrumbNode = (
-    <span>
-      {organizationAlias} &gt; {tournamentName}
-      {stageHubHref !== undefined && (
-        <>
-          {' · '}
-          <a className="cl-focusable" href={stageHubHref} onClick={controlLinkClick(stageHubHref)}>
-            <FormattedMessage {...messages.stageHubBreadcrumbLink} values={{ stageNumber }} />
-          </a>
-        </>
-      )}
-    </span>
-  );
+  const breadcrumbs = [
+    ...(tournamentName?.trim() && tournamentAlias !== undefined
+      ? [
+          {
+            label: tournamentName.trim(),
+            href: `/control/${organizationAlias}/tournaments/${tournamentAlias}`,
+          },
+        ]
+      : []),
+    ...(stageHubHref !== undefined
+      ? [
+          {
+            label: intl.formatMessage(messages.stageHubBreadcrumbLink, { stageNumber }),
+            href: stageHubHref,
+          },
+        ]
+      : []),
+  ];
 
   const titleNode = <FormattedMessage {...messages.seedingTitle} />;
 
@@ -299,7 +304,7 @@ export function SeedingBuilderTemplate({
 
   return (
     <ListScreenLayout
-      breadcrumb={breadcrumbNode}
+      breadcrumbs={breadcrumbs}
       listing={listingNode}
       title={titleNode}
       toolbar={toolbarNode}

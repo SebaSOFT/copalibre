@@ -799,3 +799,57 @@ SHALL meet WCAG 2.2 AA, and form-control boundaries SHALL meet 3:1.
 
 - **WHEN** a chart renders in the light theme
 - **THEN** its series use the light steps, and its plot area is painted with the panel token
+
+### Requirement: Heading sizes are fluid between the mobile and desktop scale
+
+Outside TV, the display, section, headline and title font-size tokens SHALL each be a `clamp()` that
+interpolates from a major-second scale (1.125) at a 375px viewport to a minor-third scale (1.2) at
+1440px, on a 16px base. Each value SHALL combine a `rem` intercept with a `vw` slope. Body, lead,
+secondary and label sizes SHALL stay fixed.
+
+#### Scenario: Display title on a phone and on desktop
+
+- **WHEN** a page title renders at 375px and at 1440px
+- **THEN** its computed size is about 25.6px and about 33.2px respectively, and body text is 16px at
+  both
+
+#### Scenario: Browser text size respected
+
+- **WHEN** the browser's default font size is doubled
+- **THEN** heading sizes grow with it, because each clamp carries a `rem` intercept
+
+### Requirement: Text sizes respect a floor and relative units
+
+Outside TV, no text SHALL render below 0.75rem, no `font-size` SHALL be written in `px`, and body copy
+SHALL be at least 1rem. The integrity check SHALL fail on a violation.
+
+#### Scenario: Pixel font size introduced
+
+- **WHEN** a stylesheet declares `font-size: 10px`
+- **THEN** `check:integrity` fails and names the file and line
+
+#### Scenario: Below the floor
+
+- **WHEN** a component declares `font-size: 0.625rem`
+- **THEN** `check:integrity` fails
+
+### Requirement: Layouts survive text-only resize to 200%
+
+Every public and control template SHALL remain usable with the root font size at 200% and a 1280px
+viewport: no horizontal page overflow, no clipped form label, and no control outside the viewport.
+
+#### Scenario: Large browser font on the control shell
+
+- **WHEN** the root font size is 32px and the control dashboard renders at 1280px
+- **THEN** the navigation rail, the main column and every form label remain fully visible, without
+  horizontal page scroll
+
+### Requirement: Media queries use only breakpoint tokens
+
+Generated and application stylesheets SHALL use only the four breakpoint tokens (375, 768, 1024 and
+1440 px) in width media queries, and the integrity check SHALL fail on any other width.
+
+#### Scenario: Undocumented breakpoint
+
+- **WHEN** a stylesheet adds `@media (max-width: 600px)`
+- **THEN** `check:integrity` fails and suggests the nearest breakpoint token

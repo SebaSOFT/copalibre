@@ -21,6 +21,7 @@ interface Props {
   readonly stageNumber: number;
   readonly localePrefix?: string;
   readonly highlightMatchNumber?: number;
+  readonly headingLevel: number;
 }
 const {
   games,
@@ -30,7 +31,11 @@ const {
   stageNumber,
   localePrefix = '',
   highlightMatchNumber,
+  headingLevel,
 } = Astro.props;
+type HeadingTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+const Heading = `h${Math.min(headingLevel, 6)}` as HeadingTag;
+const RoleHeading = `h${Math.min(headingLevel + 1, 6)}` as HeadingTag;
 
 const sources = sideSourceLabels(intl);
 /** An undecided side names the game it waits on, as every other surface does. */
@@ -48,10 +53,12 @@ const groups = games.reduce<{ role: string; games: BracketMatch[] }[]>((acc, gam
 
 {games.length > 0 && (
   <section class="cl-placement-games" aria-labelledby="placement-games-heading">
-    <h3 id="placement-games-heading">{bracketBranchLabel(intl, 'placement')}</h3>
+    <Heading class="cl-placement-games__heading" id="placement-games-heading">
+      {bracketBranchLabel(intl, 'placement')}
+    </Heading>
     {groups.map((group) => (
       <div class="cl-placement-games__group">
-        <h4 class="cl-placement-games__role">
+        <RoleHeading class="cl-placement-games__role">
           {group.role === ''
             ? bracketBranchLabel(intl, 'placement')
             : bracketRoleLabel(
@@ -61,7 +68,7 @@ const groups = games.reduce<{ role: string; games: BracketMatch[] }[]>((acc, gam
                   games.filter((game) => game.role === group.role).length,
                 ),
               )}
-        </h4>
+        </RoleHeading>
         <ul class="cl-placement-games__list">
           {group.games.map((game) => {
             const [home, away] = game.slots;
@@ -114,7 +121,7 @@ const groups = games.reduce<{ role: string; games: BracketMatch[] }[]>((acc, gam
     gap: var(--cl-space-3);
     min-width: 0;
   }
-  .cl-placement-games h3 {
+  .cl-placement-games__heading {
     margin: 0;
   }
   .cl-placement-games__group {

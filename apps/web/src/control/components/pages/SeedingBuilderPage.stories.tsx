@@ -5,7 +5,15 @@ import { useIntl } from 'react-intl';
 import { SeedingBuilderPage } from '../pages/SeedingBuilderPage.js';
 import type { ControlApiClient } from '../../lib/api-client.js';
 import { messages } from '../../i18n/messages.en.js';
-import { storyClient, pending, ORG, TOURNAMENT, ids, bracket } from '../screen-story-fixtures.js';
+import {
+  storyClient,
+  pending,
+  ORG,
+  TOURNAMENT,
+  TITLE,
+  ids,
+  bracket,
+} from '../screen-story-fixtures.js';
 
 function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'failed' }) {
   const intl = useIntl();
@@ -18,6 +26,7 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
       return Promise.resolve(value);
     }
     return storyClient<ControlApiClient>({
+      fetchTournamentSettings: () => Promise.resolve({ name: TITLE, featured: false }),
       fetchStageConfiguration: undefined,
       fetchPromotionPlansTargetingStage: undefined,
       fetchSeeding: () =>

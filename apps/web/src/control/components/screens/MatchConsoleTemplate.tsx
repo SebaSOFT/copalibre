@@ -42,6 +42,7 @@ import { JerseyGrid } from '../JerseyGrid.js';
 import { RosterSelectionStep } from '../RosterSelectionStep.js';
 import { MatchConsoleLayout } from '../ui/layouts/match-console-layout.js';
 import { ConnectionStatus } from '../ui/organisms/connection-status.js';
+import { LinkButton } from '../ui/atoms/link-button.js';
 import { EventSyncMark, type EventSyncState } from '../ui/molecules/event-sync-mark.js';
 import { messages } from '../../i18n/messages.en.js';
 import type { ConsoleStatus } from '../pages/MatchConsolePage.js';
@@ -101,6 +102,8 @@ export function MatchConsoleTemplate({
   stale,
   status,
   tournamentAlias,
+  tournamentName,
+  tournamentNameLoading = false,
 }: {
   readonly api: MatchConsoleApiClient;
   /** The match's stage bracket, for the "where this match sits" panel. Absent while loading. */
@@ -130,6 +133,8 @@ export function MatchConsoleTemplate({
   readonly stale: boolean;
   readonly status: ConsoleStatus;
   readonly tournamentAlias: string;
+  readonly tournamentName?: string | null;
+  readonly tournamentNameLoading?: boolean;
 }): React.JSX.Element {
   const intl = useIntl();
   // ControlIntl always resolves `locale` to a real SupportedLanguage, but
@@ -339,15 +344,19 @@ export function MatchConsoleTemplate({
     onCancelFinalize();
   }
 
-  const breadcrumbNode = (
-    <BreadcrumbSection
-      intl={intl}
-      matchId={matchId}
-      organizationAlias={organizationAlias}
-      projection={projection}
-      tournamentAlias={tournamentAlias}
-    />
-  );
+  const breadcrumbs = matchConsoleBreadcrumbsOf({
+    organizationAlias,
+    projection,
+    tournamentAlias,
+    tournamentName,
+    tournamentNameLoading,
+  });
+  const loadMatchDataAction = matchConsoleLoadDataAction({
+    matchId,
+    organizationAlias,
+    projection,
+    tournamentAlias,
+  });
 
   const titleNode = <FormattedMessage {...messages.matchConsoleTitle} />;
 
@@ -927,8 +936,9 @@ export function MatchConsoleTemplate({
 
   return (
     <MatchConsoleLayout
+      actions={loadMatchDataAction}
       alerts={alertsNode}
-      breadcrumb={breadcrumbNode}
+      breadcrumbs={breadcrumbs}
       primary={undecided.length > 0 ? awaitingNode : primaryNode}
       primaryLabel={intl.formatMessage(messages.matchConsoleControls)}
       rail={railNode}
@@ -939,6 +949,68 @@ export function MatchConsoleTemplate({
       syncStatus={syncStatusNode}
       title={titleNode}
     />
+  );
+}
+
+function matchConsoleBreadcrumbsOf({
+  organizationAlias,
+  projection,
+  tournamentAlias,
+  tournamentName,
+  tournamentNameLoading,
+}: {
+  readonly organizationAlias: string;
+  readonly projection: MatchConsoleResponse;
+  readonly tournamentAlias: string;
+  readonly tournamentName?: string | null;
+  readonly tournamentNameLoading: boolean;
+}) {
+  const homeName = projection.entrants.find(
+    ({ entrantId }) => entrantId === projection.homeEntrantId,
+  )?.name;
+  const awayName = projection.entrants.find(
+    ({ entrantId }) => entrantId === projection.awayEntrantId,
+  )?.name;
+  const matchName = homeName && awayName ? `${homeName} vs ${awayName}` : undefined;
+  const tournamentBreadcrumb = tournamentName
+    ? {
+        label: tournamentName,
+        href: `/control/${organizationAlias}/tournaments/${tournamentAlias}`,
+      }
+    : tournamentNameLoading
+      ? { label: '', loading: true }
+      : undefined;
+
+  return [
+    ...(tournamentBreadcrumb ? [tournamentBreadcrumb] : []),
+    ...(matchName ? [{ label: matchName, current: true }] : []),
+  ];
+}
+
+function matchConsoleLoadDataAction({
+  matchId,
+  organizationAlias,
+  projection,
+  tournamentAlias,
+}: {
+  readonly matchId: string;
+  readonly organizationAlias: string;
+  readonly projection: MatchConsoleResponse;
+  readonly tournamentAlias: string;
+}): React.JSX.Element | undefined {
+  if (
+    projection.status !== 'scheduled' ||
+    projection.segments.length > 0 ||
+    projection.events.length > 0
+  ) {
+    return undefined;
+  }
+
+  const href = `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/load`;
+  return (
+    <LinkButton href={href} onClick={controlLinkClick(href)}>
+      <FormattedMessage {...messages.matchConsoleLoadMatchData} />
+    </LinkButton>
   );
 }
 
@@ -1013,45 +1085,6 @@ function AlertsSection({
             ))}
         </ul>
       )}
-    </>
-  );
-}
-
-function BreadcrumbSection({
-  intl,
-  matchId,
-  organizationAlias,
-  projection,
-  tournamentAlias,
-}: {
-  readonly intl: IntlShape;
-  readonly matchId: string;
-  readonly organizationAlias: string;
-  readonly projection: MatchConsoleResponse;
-  readonly tournamentAlias: string;
-}): React.JSX.Element {
-  return (
-    <>
-      {intl.formatMessage(messages.matchConsoleBreadcrumb, {
-        tournamentAlias,
-        matchId: matchId.slice(-8),
-      })}
-      {projection.status === 'scheduled' &&
-        projection.segments.length === 0 &&
-        projection.events.length === 0 && (
-          <>
-            {' · '}
-            <a
-              className="cl-focusable"
-              href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/load`}
-              onClick={controlLinkClick(
-                `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/load`,
-              )}
-            >
-              <FormattedMessage {...messages.matchConsoleLoadMatchData} />
-            </a>
-          </>
-        )}
     </>
   );
 }

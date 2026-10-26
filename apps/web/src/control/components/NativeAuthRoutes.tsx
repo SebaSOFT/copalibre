@@ -9,6 +9,7 @@ import { Input } from './ui/atoms/input.js';
 import { Field } from './ui/molecules/field.js';
 import { useToast } from './ToastProvider.js';
 import { AuthScreenLayout } from './ui/layouts/auth-screen-layout.js';
+import { PageHeader } from './ui/organisms/page-header.js';
 
 // Every defaultMessage here was Spanish and fell back
 // incorrectly across locales. Restated in English; the return link has a
@@ -98,9 +99,7 @@ export function LoginRoute(): React.JSX.Element {
       <p className="context">
         <FormattedMessage {...messages.loginContext} />
       </p>
-      <h1>
-        <FormattedMessage {...messages.loginTitle} />
-      </h1>
+      <PageHeader title={<FormattedMessage {...messages.loginTitle} />} />
       <form
         onSubmit={handleLogin}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
@@ -183,9 +182,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
 
   return (
     <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
-      <h1>
-        <FormattedMessage {...messages.forgotTitle} />
-      </h1>
+      <PageHeader title={<FormattedMessage {...messages.forgotTitle} />} />
       <form
         onSubmit={handleSubmit}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
@@ -255,6 +252,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
   if (!token) {
     return (
       <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
+        <PageHeader title={<FormattedMessage {...messages.resetTitle} />} />
         <p>{intl.formatMessage(messages.invalidResetLink)}</p>
         <a
           className="cl-link cl-focusable"
@@ -272,9 +270,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
 
   return (
     <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
-      <h1>
-        <FormattedMessage {...messages.resetTitle} />
-      </h1>
+      <PageHeader title={<FormattedMessage {...messages.resetTitle} />} />
       <form
         onSubmit={handleSubmit}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}

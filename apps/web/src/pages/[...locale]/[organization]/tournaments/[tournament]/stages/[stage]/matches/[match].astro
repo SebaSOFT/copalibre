@@ -1,6 +1,7 @@
 ---
 import PublicLayout from '../../../../../../../../layouts/PublicLayout.astro';
 import Breadcrumb from '../../../../../../../../components/ui/organisms/Breadcrumb.astro';
+import PageHeader from '../../../../../../../../components/ui/organisms/PageHeader.astro';
 import { publicTrail, trailBaseOf } from '../../../../../../../../lib/breadcrumb.ts';
 import MatchHero from '../../../../../../../../components/ui/organisms/MatchHero.astro';
 import MatchOfficials from '../../../../../../../../components/ui/organisms/MatchOfficials.astro';
@@ -99,6 +100,17 @@ const trail = publicTrail(trailBase, [
   },
 ]);
 const statusLabels = resultStateLabels(intl);
+const matchHeading = `${model.home.name} ${intl.formatMessage(messages.tickerVersus)} ${model.away.name}`;
+const matchHeadingDescription = [
+  intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber }),
+  intl.formatMessage(messages.bracketRoundHeading, { round: model.round }),
+  intl.formatMessage(messages.breadcrumbMatch, { match: matchNumber }),
+  model.scheduledAt
+    ? intl.formatDate(new Date(model.scheduledAt), { dateStyle: 'medium', timeStyle: 'short' })
+    : undefined,
+]
+  .filter((part): part is string => part !== undefined)
+  .join(' · ');
 const structuredData = {
   '@type': 'SportsEvent' as const,
   name: `${model.home.name} vs ${model.away.name} — ${model.tournamentName}`,
@@ -114,11 +126,18 @@ const structuredData = {
   disciplineImages={response.disciplineImages}
   structuredData={structuredData}
 >
-  <Breadcrumb
-    items={trail}
-    ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
-    collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
-  />
+  <PageHeader
+    title={matchHeading}
+    description={matchHeadingDescription}
+    loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
+  >
+    <Breadcrumb
+      slot="breadcrumb"
+      items={trail}
+      ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+      collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+    />
+  </PageHeader>
   <article class="cl-match-page">
     <MatchHero
       rescheduledLabel={intl.formatMessage(messages.matchRescheduled, {

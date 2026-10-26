@@ -10,6 +10,8 @@ function mockProjection(overrides: Partial<MatchConsoleResponse> = {}): MatchCon
   return {
     matchId: 'match-1',
     stageNumber: 1,
+    homeEntrantId: 'entrant-home',
+    awayEntrantId: 'entrant-away',
     status: 'in-progress',
     result: null,
     liveScores: [
@@ -77,6 +79,7 @@ function mockProjection(overrides: Partial<MatchConsoleResponse> = {}): MatchCon
 
 function stubClient(projection = mockProjection()): MatchConsoleApiClient {
   return {
+    fetchTournamentSettings: () => Promise.resolve({ name: 'Apertura 2026', featured: false }),
     fetchMatchConsole: () => Promise.resolve(projection),
     adjustMatchClock: () =>
       Promise.resolve({ matchId: 'match-1', elapsedSeconds: 1200, segmentId: 'seg-1' }),
@@ -110,6 +113,8 @@ describe('MatchConsolePage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /match operations/i }));
+    expect(screen.getByRole('link', { name: 'Apertura 2026' })).toBeDefined();
+    expect(screen.getByText('Club Atlético vs Deportivo Cuyo')).toBeDefined();
     expect(container.querySelector('.cl-match-console-screen')).not.toBeNull();
     expect(container.querySelector('.cl-match-console-screen__header')).not.toBeNull();
     expect(container.querySelector('.cl-match-console-screen__workspace')).not.toBeNull();

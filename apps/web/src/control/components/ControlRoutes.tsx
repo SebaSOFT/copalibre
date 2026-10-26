@@ -133,7 +133,11 @@ export function PreferencesControlRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   return (
-    <ControlShell active="preferences" helpPath="preferences" organizationAlias={organizationAlias}>
+    <ControlShell
+      active="organization"
+      helpPath="preferences"
+      organizationAlias={organizationAlias}
+    >
       <PreferencesPage client={client} organizationAlias={organizationAlias} />
     </ControlShell>
   );
@@ -147,7 +151,7 @@ export function ClubManagementControlRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   return (
-    <ControlShell active="clubs" helpPath="clubs" organizationAlias={organizationAlias}>
+    <ControlShell active="resources" helpPath="clubs" organizationAlias={organizationAlias}>
       <ClubManagementPage client={client} organizationAlias={organizationAlias} />
     </ControlShell>
   );

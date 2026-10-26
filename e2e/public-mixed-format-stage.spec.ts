@@ -151,7 +151,9 @@ test('draws knockout zones as brackets and the league zone as matches with its t
 }) => {
   await page.goto(route);
 
-  await expect(page.getByRole('heading', { level: 1, name: /^Stage/ })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: /Apertura 2026.*Stage 1/ }),
+  ).toBeVisible();
   for (const zone of ['Zona 1', 'Zona 2', 'Zona 3']) {
     await expect(page.getByRole('heading', { level: 2, name: zone })).toBeVisible();
   }

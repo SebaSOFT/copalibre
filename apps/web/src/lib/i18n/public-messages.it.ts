@@ -4,6 +4,7 @@
  * (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'publicWeb.pageHeader.loading': 'Caricamento del titolo della pagina',
   'publicWeb.interaction.noLive': 'Nessuna partita in diretta',
   'publicWeb.interaction.nextKickoff': 'Prossima partita: {time}',
   'publicWeb.interaction.seeSchedule': 'Consulta il calendario delle prossime partite.',
@@ -133,6 +134,10 @@ export const messages: Record<string, string> = {
 
   'publicWeb.bracket.roundAriaLabel': '{branch} — turno {round}',
   'publicWeb.bracket.roundHeading': 'Turno {round}',
+  'publicWeb.bracket.zoneHeading': 'Zona {zone}',
+  'publicWeb.bracket.round.quarterfinals': 'Quarti di finale',
+  'publicWeb.bracket.round.semifinals': 'Semifinali',
+  'publicWeb.bracket.round.final': 'Finale',
   'publicWeb.bracket.branch.winners': 'Tabellone principale',
   'publicWeb.bracket.branch.losers': 'Tabellone dei perdenti',
   'publicWeb.bracket.branch.grandFinal': 'Gran finale',

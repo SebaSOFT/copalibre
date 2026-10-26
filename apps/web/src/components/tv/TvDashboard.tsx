@@ -744,10 +744,10 @@ export function TvDashboard({
       <main className={fixedView ? 'tv-main-stage tv-main-stage--single' : 'tv-main-stage'}>
         {/* DOMINANT FOCAL PANEL */}
         {!fixedView && (
-          <section
-            aria-label={dashboardLabels.focalPanelLabel}
-            className="tv-focal-panel cl-chamfer"
-          >
+          <section aria-labelledby="tv-focal-panel-heading" className="tv-focal-panel cl-chamfer">
+            <h2 className="cl-visually-hidden" id="tv-focal-panel-heading">
+              {showRecap ? dashboardLabels.recapTitle : dashboardLabels.focalPanelTitle}
+            </h2>
             <div className="tv-focal-panel__header">
               <span className="tv-focal-panel__label">
                 {showRecap ? dashboardLabels.recapTitle : dashboardLabels.focalPanelTitle}
@@ -774,7 +774,7 @@ export function TvDashboard({
                     src={champion.emblemUrl}
                   />
                 </div>
-                <h2 className="tv-champion__name">{champion.name}</h2>
+                <h3 className="tv-champion__name">{champion.name}</h3>
                 {champion.record && <p className="tv-champion__record">{champion.record}</p>}
               </div>
             ) : spotlightMatch ? (
@@ -844,18 +844,18 @@ export function TvDashboard({
               </div>
             ) : isOverlayPresentation && !pinnedMissing ? (
               <div className="tv-champion" data-testid="tv-overlay-no-match">
-                <h2 className="tv-champion__name">{noMatchMessage}</h2>
+                <h3 className="tv-champion__name">{noMatchMessage}</h3>
               </div>
             ) : pinnedMissing ? (
               <div className="tv-champion" data-testid="tv-match-not-found">
-                <h2 className="tv-champion__name">{dashboardLabels.matchNotFound}</h2>
+                <h3 className="tv-champion__name">{dashboardLabels.matchNotFound}</h3>
                 <p className="tv-champion__record">
                   {tournamentName} · {labelStage(pinnedRef)}
                 </p>
               </div>
             ) : (
               <div className="tv-champion">
-                <h2 className="tv-champion__name">{tournamentName}</h2>
+                <h3 className="tv-champion__name">{tournamentName}</h3>
                 <p className="tv-champion__record">{dashboardLabels.noMatchesScheduled}</p>
               </div>
             )}
@@ -864,10 +864,10 @@ export function TvDashboard({
 
         {/* SECONDARY ROTATING RAIL */}
         {!isOverlay && (
-          <aside
-            aria-label={dashboardLabels.statsAndTablesLabel}
-            className="tv-rail-panel cl-chamfer"
-          >
+          <aside aria-labelledby="tv-rail-panel-heading" className="tv-rail-panel cl-chamfer">
+            <h2 className="cl-visually-hidden" id="tv-rail-panel-heading">
+              {dashboardLabels.statsAndTablesLabel}
+            </h2>
             {/* Navigation Tabs: a fixed view is that one section, so there is nothing to choose between. */}
             {!fixedView && (
               <nav aria-label={dashboardLabels.sidebarSectionsLabel} className="tv-rail-nav">

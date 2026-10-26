@@ -116,8 +116,14 @@ test.describe('Public Match Presentation and Badge Polish', () => {
     // schedule-pending placeholder.
     await expect(page.getByText(/no officials assigned/i)).toBeVisible();
 
-    // Scores and team abbreviations are present — the match did finish.
-    await expect(page.getByRole('heading', { name: /AND.*3.*1.*SUR/ })).toBeVisible();
+    // The page heading names the teams; the scoreboard keeps their abbreviations and result.
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Club Andes vs Deportivo Sur' }),
+    ).toBeVisible();
+    await expect(page.locator('.cl-scoreboard__side--home .cl-team-name')).toHaveText('AND');
+    await expect(page.locator('.cl-scoreboard__side--home .cl-team-score')).toHaveText('3');
+    await expect(page.locator('.cl-scoreboard__side--away .cl-team-score')).toHaveText('1');
+    await expect(page.locator('.cl-scoreboard__side--away .cl-team-name')).toHaveText('SUR');
   });
 
   test('4.2 rank badge in matches-view card uses monospace font and is spaced >= 6px from score', async ({

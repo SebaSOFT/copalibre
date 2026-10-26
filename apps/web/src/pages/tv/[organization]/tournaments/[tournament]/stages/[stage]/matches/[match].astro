@@ -5,6 +5,7 @@ import {
   tvDashboardLabels,
   tvStatisticsLabels,
 } from '../../../../../../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import { TvDashboard } from '../../../../../../../../components/tv/TvDashboard.tsx';
 import { tvStreamPath } from '@copalibre/routing';
@@ -83,8 +84,8 @@ let dashboard: LiveDashboard = {
   standingsVersion: 0,
   usingLastKnown: true,
 };
-let tournamentName = tournamentAlias;
-let organizationName = organizationAlias;
+let tournamentName: string | undefined;
+let organizationName: string | undefined;
 let tournamentEmblem: string | undefined;
 let clubs: { name: string; emblemUrl?: string }[] = [];
 let winnerZones: readonly TvWinnerZone[] = [];
@@ -104,8 +105,8 @@ try {
   if (overview) {
     const mappedOverview = mapOverviewResponse(overview);
     disciplineImages = overview.disciplineImages;
-    tournamentName = mappedOverview.tournamentName || tournamentAlias;
-    organizationName = mappedOverview.organizationName || organizationAlias;
+    tournamentName = mappedOverview.tournamentName || undefined;
+    organizationName = mappedOverview.organizationName || undefined;
     if (mappedOverview.emblemObjectId) {
       tournamentEmblem = tournamentEmblemUrl(organizationAlias, tournamentAlias);
     }
@@ -209,18 +210,24 @@ if (presentation !== 'lower') {
 /* Same query-param language the tournament kiosk takes; TV routes carry no locale segment. */
 const langParam = Astro.url.searchParams.get('lang');
 const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam : 'en';
+const intl = publicIntl(language);
+const tournamentDisplayName = tournamentName ?? intl.formatMessage(messages.pageHeaderLoading);
+const organizationDisplayName = organizationName ?? intl.formatMessage(messages.pageHeaderLoading);
 ---
 
 <TvLayout
-  title={`TV — ${tournamentName} — Partido ${matchOrdinal}`}
+  title={`TV — ${tournamentDisplayName} — Partido ${matchOrdinal}`}
   overlayMode={overlayMode}
   chromaKey={chromaKey}
   background={background}
   disciplineImages={disciplineImages}
 >
+  <h1 aria-busy={!tournamentName ? 'true' : undefined} class="cl-visually-hidden">
+    {tournamentDisplayName}
+  </h1>
   <TvDashboard
-    labels={tvStatisticsLabels(publicIntl(language))}
-    dashboardLabels={tvDashboardLabels(publicIntl(language))}
+    labels={tvStatisticsLabels(intl)}
+    dashboardLabels={tvDashboardLabels(intl)}
     language={language}
     client:load
     presentation={presentation}
@@ -234,8 +241,8 @@ const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam :
     lastMatchAt={overviewLastMatchAt}
     matchEvents={matchEvents}
     rosterActors={rosterActors}
-    tournamentName={tournamentName}
-    organizationName={organizationName}
+    tournamentName={tournamentDisplayName}
+    organizationName={organizationDisplayName}
     organizationAlias={organizationAlias}
     tournamentAlias={tournamentAlias}
     clubs={clubs}

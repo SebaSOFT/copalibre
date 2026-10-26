@@ -96,17 +96,23 @@ export function MatchesViewTemplate({
         <p className="cl-list-screen__empty">{labels.empty}</p>
       )}
       {matches.length > 0 && (
-        <div className="cl-matches-view__grid">
-          {matches.map((match) => (
-            <MatchCard
-              key={match.matchId}
-              locale={intl.locale}
-              match={match}
-              labels={labels}
-              organizationAlias={organizationAlias}
-            />
-          ))}
-        </div>
+        <section aria-labelledby="matches-view-list-heading">
+          <h2 className="cl-visually-hidden" id="matches-view-list-heading">
+            {intl.formatMessage(messages.matchesViewListHeading)}
+          </h2>
+          <div className="cl-matches-view__grid">
+            {matches.map((match) => (
+              <MatchCard
+                key={match.matchId}
+                headingLevel={3}
+                locale={intl.locale}
+                match={match}
+                labels={labels}
+                organizationAlias={organizationAlias}
+              />
+            ))}
+          </div>
+        </section>
       )}
     </>
   );

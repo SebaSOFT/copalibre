@@ -13,6 +13,10 @@ import { defineMessages } from './define-messages.ts';
  * string as a plain prop instead of importing this catalog itself.
  */
 export const messages = defineMessages({
+  pageHeaderLoading: {
+    id: 'publicWeb.pageHeader.loading',
+    defaultMessage: 'Loading page heading',
+  },
   interactionNoLive: { id: 'publicWeb.interaction.noLive', defaultMessage: 'No live matches' },
   interactionNextKickoff: {
     id: 'publicWeb.interaction.nextKickoff',
@@ -394,6 +398,16 @@ export const messages = defineMessages({
     defaultMessage: '{branch} — round {round}',
   },
   bracketRoundHeading: { id: 'publicWeb.bracket.roundHeading', defaultMessage: 'Round {round}' },
+  bracketZoneHeading: { id: 'publicWeb.bracket.zoneHeading', defaultMessage: 'Zone {zone}' },
+  bracketRoundQuarterfinals: {
+    id: 'publicWeb.bracket.round.quarterfinals',
+    defaultMessage: 'Quarter-finals',
+  },
+  bracketRoundSemifinals: {
+    id: 'publicWeb.bracket.round.semifinals',
+    defaultMessage: 'Semi-finals',
+  },
+  bracketRoundFinal: { id: 'publicWeb.bracket.round.final', defaultMessage: 'Final' },
   bracketBranchWinners: { id: 'publicWeb.bracket.branch.winners', defaultMessage: 'Main bracket' },
   bracketBranchLosers: {
     id: 'publicWeb.bracket.branch.losers',

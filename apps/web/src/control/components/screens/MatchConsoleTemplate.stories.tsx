@@ -37,6 +37,7 @@ const meta = {
     stale: false,
     status: { kind: 'ready' },
     tournamentAlias: TOURNAMENT,
+    tournamentName: 'Apertura 2026',
   },
 } satisfies Meta<typeof MatchConsoleTemplate>;
 export default meta;

@@ -190,6 +190,13 @@ export function SeedingBuilderPage({
     },
     { thing: intl.formatMessage(messages.seedingTitle) },
   );
+  const tournamentRead = useResilientRead(
+    `control-seeding-tournament:${organizationAlias}:${tournamentAlias}`,
+    () =>
+      api.fetchTournamentSettings?.(organizationAlias, tournamentAlias) ??
+      Promise.resolve(undefined),
+    { thing: intl.formatMessage(messages.tournamentHubTitle) },
+  );
   const setSeeding = (seeding: SeedingResponse): void =>
     read.update((current) => ({ ...current, seeding }));
   const setStageOverrides = (stageOverrides: Readonly<Record<string, unknown>>): void =>
@@ -279,7 +286,7 @@ export function SeedingBuilderPage({
         seeds={assignments}
         stageNumber={stageNumber}
         tournamentAlias={tournamentAlias}
-        tournamentName={tournamentAlias}
+        tournamentName={tournamentRead.data?.name}
       />
     </ReadState>
   );

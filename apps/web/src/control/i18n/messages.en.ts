@@ -11,6 +11,14 @@ import { defineMessages } from '../../lib/i18n/define-messages.ts';
  * {...messages.someKey} />` directly.
  */
 export const messages = defineMessages({
+  pageHeaderLoading: {
+    id: 'control.pageHeader.loading',
+    defaultMessage: 'Loading page heading',
+  },
+  pageHeaderBreadcrumb: {
+    id: 'control.pageHeader.breadcrumb',
+    defaultMessage: 'Breadcrumb',
+  },
   interactionCreateToken: { id: 'control.interaction.createToken', defaultMessage: 'Create token' },
   interactionPairTv: { id: 'control.interaction.pairTv', defaultMessage: 'Pair TV' },
   interactionPairDescription: {
@@ -3809,6 +3817,14 @@ export const messages = defineMessages({
 
   // Matches view — MatchesViewPage.tsx, shared MatchCard.tsx
   matchesViewControlTitle: { id: 'control.matchesView.title', defaultMessage: 'Matches' },
+  matchesViewListHeading: {
+    id: 'control.matchesView.listHeading',
+    defaultMessage: 'All matches',
+  },
+  matchesViewCardHeading: {
+    id: 'control.matchesView.cardHeading',
+    defaultMessage: 'Match {match}',
+  },
   matchesViewControlLoadFailed: {
     id: 'control.matchesView.loadFailed',
     defaultMessage: 'Could not load matches.',

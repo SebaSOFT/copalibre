@@ -41,6 +41,13 @@ export function TournamentHubPage({
     () => api.listStages?.(organizationAlias, tournamentAlias) ?? Promise.resolve([]),
     { thing: intl.formatMessage(messages.tournamentHubTitle) },
   );
+  const tournamentRead = useResilientRead(
+    `control-tournament-hub-name:${organizationAlias}:${tournamentAlias}`,
+    () =>
+      api.fetchTournamentSettings?.(organizationAlias, tournamentAlias) ??
+      Promise.resolve(undefined),
+    { thing: intl.formatMessage(messages.tournamentHubTitle) },
+  );
 
   if (read.data === undefined)
     return <ReadState {...read} title={intl.formatMessage(messages.tournamentHubTitle)} />;
@@ -50,6 +57,7 @@ export function TournamentHubPage({
         organizationAlias={organizationAlias}
         stages={read.data as readonly StageResponse[]}
         tournamentAlias={tournamentAlias}
+        tournamentName={tournamentRead.data?.name}
       />
     </ReadState>
   );

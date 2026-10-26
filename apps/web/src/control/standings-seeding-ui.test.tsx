@@ -289,7 +289,7 @@ describe('control routes', () => {
       />,
     );
 
-    await screen.findByText('Posiciones');
+    await screen.findByRole('heading', { level: 1, name: 'Posiciones' });
     // Both the distribution chart's bar label and the table row repeat the
     // entrant name; either is proof the projection loaded.
     await screen.findAllByText('ind');

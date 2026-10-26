@@ -52,6 +52,7 @@ import OrganizationClubs from '../components/ui/organisms/OrganizationClubs.astr
 import OrganizationHeader from '../components/ui/organisms/OrganizationHeader.astro';
 import PlayerProfileView from '../components/ui/organisms/PlayerProfileView.astro';
 import PublicHeader from '../components/ui/organisms/PublicHeader.astro';
+import PageHeader from '../components/ui/organisms/PageHeader.astro';
 import EmptyState from '../components/ui/molecules/EmptyState.astro';
 import ResultLegend from '../components/ui/molecules/ResultLegend.astro';
 import ScoreTicker from '../components/ui/organisms/ScoreTicker.astro';
@@ -86,7 +87,7 @@ import {
   referenceTournamentListing,
   referenceWinnerZones,
 } from '../lib/reference-fixtures.ts';
-import type { StandingsRowView } from '../lib/overview.ts';
+import { displayName, type StandingsRowView } from '../lib/overview.ts';
 import { toSeriesInput } from '../lib/series.ts';
 import { buildTickerItems } from '../lib/ticker-items.ts';
 
@@ -115,6 +116,7 @@ const PREVIEWABLE = new Set([
   'match-bracket-context-championship',
   'match-bracket-context-unknown-focus',
   'public-header',
+  'page-header',
   // Every remaining server-rendered library component.
   'button',
   'icon',
@@ -280,6 +282,7 @@ const [compactSample] = referenceJourneyBracket(true);
       component === 'bracket-graph' && (
         <BracketGraph
           density="compact"
+          headingLevel={2}
           intl={intl}
           matches={referencePlacementBracket()}
           organizationAlias="reference-league"
@@ -307,6 +310,7 @@ const [compactSample] = referenceJourneyBracket(true);
       component === 'placement-games' && (
         <PlacementGames
           games={referencePlacementBracket().filter((match) => match.branch === 'placement')}
+          headingLevel={2}
           highlightMatchNumber={8}
           intl={intl}
           organizationAlias="reference-league"
@@ -519,6 +523,25 @@ const [compactSample] = referenceJourneyBracket(true);
       component === 'series-state-bar' && <SeriesStateBar {...seriesBarProps} />
     }
     {component === 'tournament-hero' && <TournamentHero labels={heroLabels} model={overview} />}
+    {component === 'page-header' && (
+      <PageHeader
+        title={displayName(overview)}
+        description={intl.formatMessage(messages.tournamentPageDescription, {
+          tournament: displayName(overview),
+        })}
+        loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
+      >
+        <Breadcrumb
+          slot="breadcrumb"
+          items={[
+            { label: overview.organizationName, href: `/${overview.organizationAlias}` },
+            { label: displayName(overview) },
+          ]}
+          ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+          collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+        />
+      </PageHeader>
+    )}
     {component === 'champion-podium' && (
       <ChampionPodium intl={intl} winners={referenceWinnerZones()} />
     )}

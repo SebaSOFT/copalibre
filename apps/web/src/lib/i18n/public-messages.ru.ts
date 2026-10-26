@@ -4,6 +4,7 @@
  * (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'publicWeb.pageHeader.loading': 'Загрузка заголовка страницы',
   'publicWeb.interaction.noLive': 'Нет матчей в прямом эфире',
   'publicWeb.interaction.nextKickoff': 'Следующий матч: {time}',
   'publicWeb.interaction.seeSchedule': 'Посмотрите расписание ближайших матчей.',
@@ -132,6 +133,10 @@ export const messages: Record<string, string> = {
 
   'publicWeb.bracket.roundAriaLabel': '{branch} — раунд {round}',
   'publicWeb.bracket.roundHeading': 'Раунд {round}',
+  'publicWeb.bracket.zoneHeading': 'Группа {zone}',
+  'publicWeb.bracket.round.quarterfinals': 'Четвертьфиналы',
+  'publicWeb.bracket.round.semifinals': 'Полуфиналы',
+  'publicWeb.bracket.round.final': 'Финал',
   'publicWeb.bracket.branch.winners': 'Основная сетка',
   'publicWeb.bracket.branch.losers': 'Сетка проигравших',
   'publicWeb.bracket.branch.grandFinal': 'Гранд-финал',

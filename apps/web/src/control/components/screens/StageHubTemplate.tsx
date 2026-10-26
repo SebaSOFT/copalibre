@@ -190,6 +190,7 @@ function StageRoundsSection({
 export function StageHubTemplate({
   organizationAlias,
   tournamentAlias,
+  tournamentName,
   stageNumber,
   stageName,
   stageFormat,
@@ -204,6 +205,7 @@ export function StageHubTemplate({
 }: {
   readonly organizationAlias: string;
   readonly tournamentAlias: string;
+  readonly tournamentName?: string;
   readonly stageNumber: number;
   readonly stageName: string;
   readonly stageFormat: string;
@@ -220,15 +222,20 @@ export function StageHubTemplate({
   const intl = useIntl();
   const base = `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}`;
 
-  const breadcrumbNode = (
-    <span>
-      {organizationAlias} / {tournamentAlias}
-    </span>
-  );
-
   const titleNode = (
     <FormattedMessage {...messages.stageHubTitle} values={{ number: stageNumber }} />
   );
+  const breadcrumbs = [
+    ...(tournamentName?.trim()
+      ? [
+          {
+            label: tournamentName.trim(),
+            href: `/control/${organizationAlias}/tournaments/${tournamentAlias}`,
+          },
+        ]
+      : []),
+    { label: stageName, current: true },
+  ] as const;
 
   const tools: readonly { readonly href: string; readonly label: string }[] = [
     { href: `${base}/seeding`, label: intl.formatMessage(messages.stageHubSeedingLink) },
@@ -276,5 +283,5 @@ export function StageHubTemplate({
     </div>
   );
 
-  return <ListScreenLayout breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
+  return <ListScreenLayout breadcrumbs={breadcrumbs} listing={listingNode} title={titleNode} />;
 }

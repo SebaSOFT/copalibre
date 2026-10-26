@@ -12,13 +12,10 @@ import {
   toRounds,
   type BracketMatch,
 } from '../../../lib/bracket.ts';
+import { bracketRoundHeading } from '../../../lib/bracket-round-heading.ts';
 import PlacementGames from '../molecules/PlacementGames.astro';
 import { placementGamesOf } from '../../../lib/public-bracket-layout.ts';
-import {
-  bracketBranchLabel,
-  bracketRoleLabel,
-  sideSourceLabels,
-} from '../../../lib/i18n/public-intl.ts';
+import { bracketRoleLabel, sideSourceLabels } from '../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 interface Props {
@@ -30,6 +27,8 @@ interface Props {
   readonly localePrefix?: string;
   /** The match a report page is about; drawn with a heavier edge and `aria-current`. */
   readonly highlightMatchNumber?: number;
+  /** First heading level for this bracket, based on the page's outline. */
+  readonly headingLevel?: number;
 }
 const {
   intl,
@@ -38,6 +37,7 @@ const {
   stageNumber,
   localePrefix = '',
   highlightMatchNumber,
+  headingLevel = 2,
 } = Astro.props;
 const rounds = toRounds(Astro.props.matches);
 const placementGames = placementGamesOf(Astro.props.matches);
@@ -58,8 +58,12 @@ const legend = stageOutcomes(Astro.props.matches).map((outcome) => ({
   label: outcomeLabels[outcome],
 }));
 
+type HeadingTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+const Heading = `h${Math.min(headingLevel, 6)}` as HeadingTag;
+const OutlineHeading = `h${Math.min(headingLevel + 1, 6)}` as HeadingTag;
+const RoundHeading = `h${Math.min(headingLevel + 2, 6)}` as HeadingTag;
 const roundLabel = (round: (typeof rounds)[number]): string =>
-  `${bracketBranchLabel(intl, round.branch)} · ${intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}`;
+  bracketRoundHeading(intl, round, rounds);
 ---
 
 {/*
@@ -73,6 +77,7 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
   choice survives with JavaScript unavailable.
 */}
 <section aria-label={intl.formatMessage(messages.bracketStageAriaLabel)} class="cl-bracket-stage">
+  <Heading class="cl-visually-hidden">{intl.formatMessage(messages.bracketStageAriaLabel)}</Heading>
   <script
     is:inline
     type="application/json"
@@ -99,6 +104,7 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
     >
       <BracketGraph
         density={density}
+        headingLevel={headingLevel}
         highlightMatchNumber={highlightMatchNumber}
         intl={intl}
         localePrefix={localePrefix}
@@ -113,6 +119,7 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
   <PlacementGames
     games={placementGames}
     highlightMatchNumber={highlightMatchNumber}
+    headingLevel={Math.min(headingLevel + 1, 5)}
     intl={intl}
     localePrefix={localePrefix}
     organizationAlias={organizationAlias}
@@ -126,10 +133,10 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
     instead of the graph.
   */}
   <div class="cl-bracket-stage__outline">
-    <h3>{intl.formatMessage(messages.bracketOutlineHeading)}</h3>
+    <OutlineHeading>{intl.formatMessage(messages.bracketOutlineHeading)}</OutlineHeading>
     {rounds.map((round) => (
       <section class="cl-bracket-stage__outline-branch">
-        <h4>{roundLabel(round)}</h4>
+        <RoundHeading>{roundLabel(round)}</RoundHeading>
         <ol class="cl-bracket-stage__outline-list">
           {round.matches.map((match) => {
             const outcomes = nodeOutcomes(match);

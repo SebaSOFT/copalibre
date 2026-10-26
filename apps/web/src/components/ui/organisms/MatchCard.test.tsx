@@ -5,6 +5,7 @@ import { withSourceDepth, type MatchCardData } from '../../../lib/matches-view.j
 import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
 
 const labels: MatchCardLabels = {
+  matchHeading: 'Match {match}',
   sideSource: sideSourceLabels(publicIntl('en')),
   state: {
     live: 'LIVE',
@@ -46,6 +47,12 @@ function baseMatch(overrides: Partial<MatchCardData> = {}): MatchCardData {
 }
 
 describe('MatchCard', () => {
+  it('uses the match number as its card heading at the requested depth', () => {
+    render(<MatchCard headingLevel={3} match={baseMatch()} labels={labels} locale="en" />);
+
+    expect(screen.getByRole('heading', { level: 3, name: 'Match 1' })).toBeDefined();
+  });
+
   it('uses the requested opaque surface band while leaving other cards at their default', () => {
     const { container } = render(
       <>

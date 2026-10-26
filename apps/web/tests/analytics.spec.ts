@@ -13,6 +13,16 @@ test('analytics shows organization context and tournament match progress', async
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
+        if (url.includes('/organizations?mine=true')) {
+          return Response.json([
+            {
+              organizationId: 'org-1',
+              organizationAlias: 'liga-mendocina',
+              organizationName: 'Liga Mendocina',
+              role: 'admin',
+            },
+          ]);
+        }
         if (url.includes('/organizations/liga-mendocina/tournaments/apertura-2026/completion')) {
           return Response.json({
             totalMatches: 8,
@@ -48,7 +58,11 @@ test('analytics shows organization context and tournament match progress', async
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await expect(page.getByText('liga-mendocina / Analítica')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Liga Mendocina', exact: true })).toHaveAttribute(
+    'href',
+    '/control/liga-mendocina',
+  );
+  await expect(page.getByRole('heading', { level: 1, name: 'Analítica' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Resumen de torneos' })).toBeVisible();
   await expect(page.getByRole('row', { name: /Apertura 2026/ })).toContainText('5 / 8 partidos');
   await expect(page.getByRole('row', { name: /Apertura 2026/ })).toContainText('En vivo');
