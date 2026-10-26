@@ -116,7 +116,7 @@ const historyColumns = [
       src={profile.photoObjectId ? personPhotoUrl(organizationAlias, profile.personId) : undefined}
     />
     <div class="cl-player-profile__identity">
-      <h2 class="cl-player-profile__name">{profile.displayName}</h2>
+      <h1 class="cl-player-profile__name">{profile.displayName}</h1>
       {profile.alias && <span class="cl-player-profile__alias">@{profile.alias}</span>}
       <div class="cl-player-profile__meta">
         {profile.nationality && (
@@ -136,9 +136,9 @@ const historyColumns = [
   </header>
 
   <section class="cl-player-profile__section" aria-labelledby="player-stats-heading">
-    <h3 id="player-stats-heading" class="cl-player-profile__section-title">
+    <h2 id="player-stats-heading" class="cl-player-profile__section-title">
       {intl.formatMessage(messages.playerProfileCareerStatsHeading)}
-    </h3>
+    </h2>
     {profile.careerStatistics.length === 0 && (
       <p class="cl-player-profile__empty">{intl.formatMessage(messages.playerProfileNoStats)}</p>
     )}
@@ -147,7 +147,7 @@ const historyColumns = [
         {profile.careerStatistics.map((discipline) => (
           <div class="cl-player-profile__discipline-stats">
             {discipline.disciplineName && (
-              <h4 class="cl-player-profile__discipline-title">{discipline.disciplineName}</h4>
+              <h3 class="cl-player-profile__discipline-title">{discipline.disciplineName}</h3>
             )}
             <dl class="cl-player-profile__stat-list">
               {discipline.statistics.map((stat) => (
@@ -165,9 +165,9 @@ const historyColumns = [
 
   {statisticsLayouts.length > 0 && (
     <section class="cl-player-profile__section" aria-labelledby="player-tournament-stats-heading">
-      <h3 id="player-tournament-stats-heading" class="cl-player-profile__section-title">
+      <h2 id="player-tournament-stats-heading" class="cl-player-profile__section-title">
         {intl.formatMessage(messages.playerProfileTournamentStatsHeading)}
-      </h3>
+      </h2>
       {statisticsLayouts.length > 1 && (
         <div class="cl-player-profile__layout-selector" role="tablist">
           {statisticsLayouts.map((layoutOption) => (
@@ -215,9 +215,9 @@ const historyColumns = [
   )}
 
   <section class="cl-player-profile__section" aria-labelledby="player-history-heading">
-    <h3 id="player-history-heading" class="cl-player-profile__section-title">
+    <h2 id="player-history-heading" class="cl-player-profile__section-title">
       {intl.formatMessage(messages.playerProfileHistoryHeading)}
-    </h3>
+    </h2>
     {profile.competitionHistory.length === 0 && (
       <p class="cl-player-profile__empty">{intl.formatMessage(messages.playerProfileNoHistory)}</p>
     )}

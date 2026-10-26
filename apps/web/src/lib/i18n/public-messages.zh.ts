@@ -4,6 +4,7 @@
  * choice): ship now, native-speaker review later.
  */
 export const messages: Record<string, string> = {
+  'publicWeb.pageHeader.loading': '正在加载页面标题',
   'publicWeb.interaction.noLive': '当前没有进行中的比赛',
   'publicWeb.interaction.nextKickoff': '下一场比赛：{time}',
   'publicWeb.interaction.seeSchedule': '查看赛程以了解即将进行的比赛。',
@@ -131,6 +132,10 @@ export const messages: Record<string, string> = {
 
   'publicWeb.bracket.roundAriaLabel': '{branch} — 第 {round} 轮',
   'publicWeb.bracket.roundHeading': '第 {round} 轮',
+  'publicWeb.bracket.zoneHeading': '赛区 {zone}',
+  'publicWeb.bracket.round.quarterfinals': '四分之一决赛',
+  'publicWeb.bracket.round.semifinals': '半决赛',
+  'publicWeb.bracket.round.final': '决赛',
   'publicWeb.bracket.branch.winners': '主赛程',
   'publicWeb.bracket.branch.losers': '败者组',
   'publicWeb.bracket.branch.grandFinal': '总决赛',

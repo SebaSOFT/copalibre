@@ -949,6 +949,19 @@ function components(): string {
     // overflowing the page.
     '.cl-list-screen > *, .cl-form-screen > *, .cl-match-console-screen > * { min-width: 0; }',
     '.cl-list-screen__header, .cl-form-screen__header { display: flex; align-items: end; justify-content: space-between; gap: var(--cl-space-4); flex-wrap: wrap; }',
+    '.cl-page-header { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--cl-space-2); min-width: 0; }',
+    '.cl-page-header__breadcrumb { min-width: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; overflow-wrap: anywhere; }',
+    '.cl-page-header__breadcrumb ol { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-2); list-style: none; margin: 0; padding: 0; }',
+    '.cl-page-header__breadcrumb li + li::before { content: "›"; margin-inline-end: var(--cl-space-2); color: var(--cl-text-muted); }',
+    '.cl-page-header__breadcrumb a { color: var(--cl-text-secondary); text-decoration: none; }',
+    '.cl-page-header__breadcrumb a:hover { color: var(--cl-primary-hover); text-decoration: underline; }',
+    '.cl-page-header__row { display: flex; flex-wrap: wrap; align-items: end; gap: var(--cl-space-4); min-width: 0; }',
+    '.cl-page-header__content { flex: 1 1 14rem; min-width: 0; }',
+    '.cl-page-header__title { margin: 0; }',
+    '.cl-page-header__description { margin: var(--cl-space-1) 0 0; color: var(--cl-text-secondary); }',
+    '.cl-page-header__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--cl-space-2); min-width: 0; }',
+    '.cl-page-header--inline { display: block; }',
+    '.cl-page-header--inline .cl-page-header__row { display: block; }',
     '.cl-list-screen__title, .cl-form-screen__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; }',
     '.cl-list-screen__breadcrumb, .cl-form-screen__breadcrumb { color: var(--cl-state-live); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
     '.cl-form-screen__section { display: grid; gap: var(--cl-space-3); }',
@@ -1402,6 +1415,7 @@ function components(): string {
     '',
     "/* The matches-view card — shared by MatchCard.tsx on both public-web and control-web, so it lives here rather than in either surface's own page-scoped styles. */",
     '.cl-match-card { display: grid; gap: var(--cl-space-3); min-width: 0; }',
+    '.cl-match-card__heading { margin: 0; min-width: 0; font-size: var(--cl-font-size-lg); overflow-wrap: anywhere; }',
     // The state badge and the clock sit on one line until they cannot: at the
     // 188px reference width a longer translation of the state — `IN DIRETTA`
     // for `LIVE` — plus a running clock exceeds the card, so the pair wraps

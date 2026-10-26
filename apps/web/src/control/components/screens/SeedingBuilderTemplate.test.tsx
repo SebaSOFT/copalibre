@@ -36,7 +36,7 @@ describe('SeedingBuilderTemplate', () => {
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /seeding/i }));
     expect(container.querySelector('.cl-list-screen')).not.toBeNull();
-    expect(container.querySelector('.cl-list-screen__header')).not.toBeNull();
+    expect(container.querySelector('.cl-page-header')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
     expect(screen.getByText('Godoy Cruz')).toBeDefined();
     expect(screen.getByText('Independiente Rivadavia')).toBeDefined();

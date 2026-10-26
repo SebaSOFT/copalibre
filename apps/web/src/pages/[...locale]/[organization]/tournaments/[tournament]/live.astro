@@ -1,6 +1,7 @@
 ---
 import { rescheduledStatement } from '../../../../../lib/reschedule.ts';
 import Breadcrumb from '../../../../../components/ui/organisms/Breadcrumb.astro';
+import PageHeader from '../../../../../components/ui/organisms/PageHeader.astro';
 import { publicTrail, trailBaseOf } from '../../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../../layouts/PublicLayout.astro';
 import ResultLegend from '../../../../../components/ui/molecules/ResultLegend.astro';
@@ -77,12 +78,17 @@ const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.liveP
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
-  <Breadcrumb
-    items={trail}
-    ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
-    collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
-  />
-  <h1>{intl.formatMessage(messages.livePageTitle)}</h1>
+  <PageHeader
+    title={`${displayName(model)} — ${intl.formatMessage(messages.livePageTitle)}`}
+    loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
+  >
+    <Breadcrumb
+      slot="breadcrumb"
+      items={trail}
+      ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+      collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+    />
+  </PageHeader>
   {/* The island server-renders its initial state, including the zero-live state. */}
   <LiveMatchHero
     client:idle

@@ -1,5 +1,6 @@
 ---
 import Breadcrumb from '../../../../../../components/ui/organisms/Breadcrumb.astro';
+import PageHeader from '../../../../../../components/ui/organisms/PageHeader.astro';
 import { publicTrail, trailBaseOf } from '../../../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
 import BracketView from '../../../../../../components/ui/organisms/BracketView.astro';
@@ -91,13 +92,8 @@ const standingsProjection = groupPhaseLayout
     )
   : undefined;
 
-const pageHeading =
-  layoutMode === 'zones'
-    ? intl.formatMessage(messages.stageZonesPageTitle)
-    : layoutMode === 'grid'
-      ? intl.formatMessage(messages.matchesViewPageTitle)
-      : intl.formatMessage(messages.bracketPageTitle);
-const pageTitle = `${pageHeading} — ${displayName(model)}`;
+const stageHeading = intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber });
+const pageTitle = `${displayName(model)} — ${stageHeading}`;
 
 // A zone's own table: the ranked blocks of the groups it holds, which the API labels with the zone.
 const zoneProjection = (zoneName: string | undefined) => {
@@ -129,6 +125,8 @@ const trail = publicTrail(trailBase, [
   },
   { label: intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber }) },
 ]);
+const zoneHeading = (name: string | undefined, index: number): string =>
+  name?.trim() || intl.formatMessage(messages.bracketZoneHeading, { zone: index + 1 });
 ---
 
 <PublicLayout
@@ -138,12 +136,14 @@ const trail = publicTrail(trailBase, [
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
-  <Breadcrumb
-    items={trail}
-    ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
-    collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
-  />
-  <h1>{pageHeading}</h1>
+  <PageHeader title={pageTitle} loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}>
+    <Breadcrumb
+      slot="breadcrumb"
+      items={trail}
+      ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+      collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+    />
+  </PageHeader>
   <p>
     <a href={`${localePrefix}${model.canonicalPath}/matches?stageNumber=${stageNumber}`}>
       {intl.formatMessage(messages.matchesViewSeeAll)}
@@ -155,16 +155,17 @@ const trail = publicTrail(trailBase, [
         <ul class="cl-bracket-zone-jump">
           {bracketData.zones.map((zone, index) => (
             <li>
-              <a href={`#cl-bracket-zone-${index}`}>{zone.zoneName}</a>
+              <a href={`#cl-bracket-zone-${index}`}>{zoneHeading(zone.zoneName, index)}</a>
             </li>
           ))}
         </ul>
       </nav>
       {bracketData.zones.map((zone, index) => (
         <section aria-labelledby={`cl-bracket-zone-${index}`}>
-          <h2 id={`cl-bracket-zone-${index}`}>{zone.zoneName}</h2>
+          <h2 id={`cl-bracket-zone-${index}`}>{zoneHeading(zone.zoneName, index)}</h2>
           {zoneLayouts[index] === 'bracket' ? (
             <BracketView
+              headingLevel={3}
               intl={intl}
               localePrefix={localePrefix}
               matches={zone.matches}
@@ -180,6 +181,7 @@ const trail = publicTrail(trailBase, [
                   .map((match) => (
                     <MatchCard
                       client:load
+                      headingLevel={3}
                       locale={intl.locale}
                       match={match}
                       labels={labels}
@@ -223,19 +225,19 @@ const trail = publicTrail(trailBase, [
           <ul class="cl-bracket-zone-jump">
             {bracketData.zones.map((zone, index) => (
               <li>
-                <a href={`#cl-bracket-zone-${index}`}>
-                  {zone.zoneName ??
-                    intl.formatMessage(messages.bracketRoundHeading, { round: index + 1 })}
-                </a>
+                <a href={`#cl-bracket-zone-${index}`}>{zoneHeading(zone.zoneName, index)}</a>
               </li>
             ))}
           </ul>
         </nav>
       )}
       {bracketData.zones.map((zone, index) => (
-        <section aria-labelledby={zone.zoneName ? `cl-bracket-zone-${index}` : undefined}>
-          {bracketData.zones.length > 1 && <h2 id={`cl-bracket-zone-${index}`}>{zone.zoneName}</h2>}
+        <section aria-labelledby={`cl-bracket-zone-${index}`}>
+          {bracketData.zones.length > 1 && (
+            <h2 id={`cl-bracket-zone-${index}`}>{zoneHeading(zone.zoneName, index)}</h2>
+          )}
           <BracketView
+            headingLevel={bracketData.zones.length > 1 ? 3 : 2}
             intl={intl}
             localePrefix={localePrefix}
             matches={zone.matches}
@@ -251,23 +253,29 @@ const trail = publicTrail(trailBase, [
       />
     </>
   ) : (
-    <div class="cl-matches-view__grid">
-      {stageMatches.map((match) => (
-        <MatchCard
-          client:load
-          locale={intl.locale}
-          match={match}
-          labels={labels}
-          reportUrl={matchReportUrl({
-            organizationAlias: organization!,
-            tournamentAlias: tournament!,
-            stageNumber: match.stageNumber,
-            matchNumber: match.matchNumber,
-            localePrefix,
-          })}
-        />
-      ))}
-    </div>
+    <section aria-labelledby="stage-match-list-heading">
+      <h2 class="cl-visually-hidden" id="stage-match-list-heading">
+        {intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber })}
+      </h2>
+      <div class="cl-matches-view__grid">
+        {stageMatches.map((match) => (
+          <MatchCard
+            client:load
+            headingLevel={3}
+            locale={intl.locale}
+            match={match}
+            labels={labels}
+            reportUrl={matchReportUrl({
+              organizationAlias: organization!,
+              tournamentAlias: tournament!,
+              stageNumber: match.stageNumber,
+              matchNumber: match.matchNumber,
+              localePrefix,
+            })}
+          />
+        ))}
+      </div>
+    </section>
   )}
   {standingsProjection && layoutMode !== 'zones' && (
     <StandingsTable

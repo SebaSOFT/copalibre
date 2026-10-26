@@ -60,6 +60,10 @@ export const BreadcrumbCollapsed: Story = {
   args: { component: 'breadcrumb-collapsed', height: 120 },
 };
 
+export const PageHeader: Story = {
+  args: { component: 'page-header', height: 240 },
+};
+
 /** The compact club filter: stored abbreviations stand in without an emblem, and selection carries a check and a fill. */
 export const ClubFilterChips: Story = {
   args: { component: 'club-filter-chip', height: 120 },

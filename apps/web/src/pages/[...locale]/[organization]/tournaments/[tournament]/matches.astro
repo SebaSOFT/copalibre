@@ -1,5 +1,6 @@
 ---
 import Breadcrumb from '../../../../../components/ui/organisms/Breadcrumb.astro';
+import PageHeader from '../../../../../components/ui/organisms/PageHeader.astro';
 import { publicTrail, trailBaseOf } from '../../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../../layouts/PublicLayout.astro';
 import MatchSchedule from '../../../../../components/ui/organisms/MatchSchedule.astro';
@@ -134,12 +135,17 @@ const trail = publicTrail(trailBase, [
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
-  <Breadcrumb
-    items={trail}
-    ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
-    collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
-  />
-  <h1>{intl.formatMessage(messages.matchesViewPageTitle)}</h1>
+  <PageHeader
+    title={`${displayName(model)} — ${intl.formatMessage(messages.matchesViewPageTitle)}`}
+    loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
+  >
+    <Breadcrumb
+      slot="breadcrumb"
+      items={trail}
+      ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+      collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+    />
+  </PageHeader>
 
   <MatchScheduleFilters
     stages={schedule.stageOptions.map((one) => ({

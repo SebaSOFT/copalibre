@@ -24,17 +24,21 @@ import {
   writeStoredLanguagePreference,
   type SupportedLanguage,
 } from '../../lib/language-preference.js';
+import { parseControlPath } from '@copalibre/routing';
+import { controlNavItemForScreen, type ControlNavItem } from '../lib/control-route-active.js';
+import { useControlPath } from '../lib/control-navigation.js';
 import { ToastProvider } from './ToastProvider.js';
 import { Alert } from './ui/atoms/alert.js';
 import { Button } from './ui/atoms/button.js';
 import { Icon } from './ui/atoms/icon.js';
 import { FramedImage } from './FramedImage.js';
 import { NavigationDrawer } from './ui/organisms/navigation-drawer.js';
+import { PageHeaderContext } from './ui/organisms/page-header.js';
 import { SESSION_RENEWING_STATUS_EVENT } from '../session/renewal-status.js';
 
 export function ControlShell({
   organizationAlias,
-  active = 'tournaments',
+  active,
   helpPath,
   children,
   client,
@@ -42,19 +46,21 @@ export function ControlShell({
   readonly client?: ControlApiClient;
   readonly organizationAlias?: string;
   /** A `SIDENAV` item's stable `id`, e.g. `'roles'` — never its display label. */
-  readonly active?: string;
+  readonly active?: ControlNavItem;
   /** Slug under `/help/control/`, e.g. `'seeding'` — required so a screen can never ship with no matching help page linked. */
   readonly helpPath: string;
   readonly children: React.ReactNode;
 }): React.JSX.Element {
   const [locale, setLocale] = useState<SupportedLanguage>(() => activeControlLanguage());
+  const route = parseControlPath(useControlPath());
+  const activeItem = active ?? controlNavItemForScreen(route?.screen);
 
   return (
     <ControlIntl locale={locale}>
       <ToastProvider>
         <ControlShellChrome
           client={client}
-          active={active}
+          active={activeItem}
           helpPath={helpPath}
           locale={locale}
           onLocaleChange={(next) => {
@@ -81,7 +87,7 @@ function ControlShellChrome({
 }: {
   readonly client?: ControlApiClient;
   readonly organizationAlias?: string;
-  readonly active: string;
+  readonly active: ControlNavItem | undefined;
   readonly helpPath: string;
   readonly locale: SupportedLanguage;
   readonly onLocaleChange: (language: SupportedLanguage) => void;
@@ -91,6 +97,7 @@ function ControlShellChrome({
   const isSuperAdmin = accessTokenHasScope(controlTokenStore.read(), 'copalibre.super-admin');
   const [role, setRole] = useState<OrganizationRole | undefined>(undefined);
   const [currentOrg, setCurrentOrg] = useState<MyOrganizationResponse | undefined>(undefined);
+  const [organizationLookupSettledAlias, setOrganizationLookupSettledAlias] = useState<string>();
   useEffect(() => {
     if (!organizationAlias) return;
     let cancelled = false;
@@ -107,8 +114,11 @@ function ControlShellChrome({
         const mine = organizations.find((one) => one.organizationAlias === organizationAlias);
         setCurrentOrg(mine);
         setRole(mine?.role);
+        setOrganizationLookupSettledAlias(organizationAlias);
       })
       .catch(() => {
+        if (cancelled) return;
+        setOrganizationLookupSettledAlias(organizationAlias);
         // Nav visibility is a presentation guard; a failed lookup leaves
         // every entry visible rather than blocking the shell from rendering.
       });
@@ -264,7 +274,24 @@ function ControlShellChrome({
             <FormattedMessage {...messages.shellSessionReconnecting} />
           </Alert>
         )}
-        <div className="cl-control-screen">{children}</div>
+        <div className="cl-control-screen">
+          <PageHeaderContext.Provider
+            value={{
+              organizationAlias,
+              organizationName:
+                currentOrg !== undefined && currentOrg.organizationAlias === organizationAlias
+                  ? currentOrg.organizationName
+                  : undefined,
+              organizationNameLoading:
+                organizationAlias !== undefined &&
+                organizationLookupSettledAlias !== organizationAlias,
+              breadcrumbLabel: intl.formatMessage(messages.pageHeaderBreadcrumb),
+              loadingLabel: intl.formatMessage(messages.pageHeaderLoading),
+            }}
+          >
+            {children}
+          </PageHeaderContext.Provider>
+        </div>
       </main>
     </div>
   );

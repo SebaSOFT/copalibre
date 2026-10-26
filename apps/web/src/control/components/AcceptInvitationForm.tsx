@@ -41,6 +41,7 @@ const messages = {
 
 export function AcceptInvitationForm({
   initialToken,
+  showTitle = true,
   navigate = (url: string) => {
     if (typeof window !== 'undefined') {
       window.location.assign(url);
@@ -48,6 +49,7 @@ export function AcceptInvitationForm({
   },
 }: {
   readonly initialToken?: string;
+  readonly showTitle?: boolean;
   readonly navigate?: (url: string) => void;
 }): React.JSX.Element {
   const intl = useIntl();
@@ -121,11 +123,13 @@ export function AcceptInvitationForm({
   };
 
   return (
-    <Card aria-labelledby="accept-invitation-title">
+    <Card aria-labelledby={showTitle ? 'accept-invitation-title' : undefined}>
       <CardHeader>
-        <CardTitle id="accept-invitation-title">
-          <FormattedMessage {...messages.title} />
-        </CardTitle>
+        {showTitle && (
+          <CardTitle id="accept-invitation-title">
+            <FormattedMessage {...messages.title} />
+          </CardTitle>
+        )}
         <CardDescription>
           <FormattedMessage {...messages.subtitle} />
         </CardDescription>

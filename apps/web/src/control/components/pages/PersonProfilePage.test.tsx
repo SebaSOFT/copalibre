@@ -134,7 +134,7 @@ describe('PersonProfilePage', () => {
 
     await waitFor(() => screen.getByText('Elías Salomón'));
     expect(container.querySelector('.cl-list-screen')).not.toBeNull();
-    expect(container.querySelector('.cl-list-screen__header')).not.toBeNull();
+    expect(container.querySelector('.cl-page-header')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
   });
 });

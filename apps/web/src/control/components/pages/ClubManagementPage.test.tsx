@@ -33,7 +33,7 @@ describe('ClubManagementPage', () => {
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /clubs/i }));
     await screen.findByText('Club Atlético Huracán Las Heras');
     expect(container.querySelector('.cl-list-screen')).not.toBeNull();
-    expect(container.querySelector('.cl-list-screen__header')).not.toBeNull();
+    expect(container.querySelector('.cl-page-header')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
     expect(screen.getByText('Club Atlético Huracán Las Heras')).toBeDefined();
   });

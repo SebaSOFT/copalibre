@@ -51,7 +51,7 @@ describe('VenueManagementPage', () => {
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /venues & officials/i }));
     await screen.findByText(/Estadio Feliciano Gambarte/i);
     expect(container.querySelector('.cl-list-screen')).not.toBeNull();
-    expect(container.querySelector('.cl-list-screen__header')).not.toBeNull();
+    expect(container.querySelector('.cl-page-header')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
     expect(screen.getByText(/Estadio Feliciano Gambarte/i)).toBeDefined();
     expect(screen.getByText(/Patricio Loustau/i)).toBeDefined();

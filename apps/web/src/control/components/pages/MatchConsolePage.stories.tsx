@@ -25,6 +25,7 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
       return Promise.resolve(value);
     }
     return storyClient<MatchConsoleApiClient>({
+      fetchTournamentSettings: async () => ({ name: 'Apertura 2026', featured: false }),
       fetchMatchConsole: () =>
         read(
           empty

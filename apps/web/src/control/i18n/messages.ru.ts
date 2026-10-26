@@ -6,6 +6,8 @@
  * two — `react-intl`'s `Intl.PluralRules` selects the right branch for `ru`.
  */
 export const messages: Record<string, string> = {
+  'control.pageHeader.loading': 'Загрузка заголовка страницы',
+  'control.pageHeader.breadcrumb': 'Навигационная цепочка',
   'control.interaction.createToken': 'Создать токен',
   'control.interaction.pairTv': 'Подключить ТВ',
   'control.interaction.pairDescription':
@@ -1277,6 +1279,8 @@ export const messages: Record<string, string> = {
   'control.profile.authorAndInstall': 'Создать и установить',
 
   'control.matchesView.title': 'Матчи',
+  'control.matchesView.listHeading': 'Все матчи',
+  'control.matchesView.cardHeading': 'Матч {match}',
   'control.matchesView.loadFailed': 'Не удалось загрузить матчи.',
   'control.matchesView.filterAll': 'Все',
   'control.matchesView.filterLive': 'В эфире',

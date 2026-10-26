@@ -1,0 +1,65 @@
+---
+interface Props {
+  readonly title?: string | null;
+  readonly description?: string;
+  readonly loadingLabel: string;
+  readonly titleClass?: string;
+  readonly class?: string;
+  readonly visuallyHidden?: boolean;
+}
+
+const {
+  title,
+  description,
+  loadingLabel,
+  titleClass = '',
+  class: className = '',
+  visuallyHidden = false,
+} = Astro.props;
+const missingTitle = title === undefined || title === null || title.trim() === '';
+---
+
+<header class:list={['cl-page-header', className]}>
+  {!missingTitle && Astro.slots.has('breadcrumb') && (
+    <div class="cl-page-header__breadcrumb">
+      <slot name="breadcrumb" />
+    </div>
+  )}
+  {missingTitle ? (
+    <div class="cl-page-header__row">
+      <h1
+        class:list={['cl-page-header__title', titleClass, { 'cl-visually-hidden': visuallyHidden }]}
+      >
+        <span aria-busy="true" class="cl-skeleton cl-skeleton--line" role="status">
+          <span class="cl-visually-hidden">{loadingLabel}</span>
+          <span aria-hidden="true" class="cl-skeleton__shape"></span>
+        </span>
+      </h1>
+      {Astro.slots.has('actions') && (
+        <div class="cl-page-header__actions">
+          <slot name="actions" />
+        </div>
+      )}
+    </div>
+  ) : (
+    <div class="cl-page-header__row">
+      <div class="cl-page-header__content">
+        <h1
+          class:list={[
+            'cl-page-header__title',
+            titleClass,
+            { 'cl-visually-hidden': visuallyHidden },
+          ]}
+        >
+          {title}
+        </h1>
+        {description && <p class="cl-page-header__description">{description}</p>}
+      </div>
+      {Astro.slots.has('actions') && (
+        <div class="cl-page-header__actions">
+          <slot name="actions" />
+        </div>
+      )}
+    </div>
+  )}
+</header>

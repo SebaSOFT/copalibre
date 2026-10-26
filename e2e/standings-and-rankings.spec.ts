@@ -631,7 +631,13 @@ test.describe('B2: public tournament page', () => {
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/matches/1`);
 
-    await expect(page.getByRole('heading', { name: /TAL.*2.*1.*IND/ })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Talleres vs Independiente' }),
+    ).toBeVisible();
+    await expect(page.locator('.cl-scoreboard__side--home .cl-team-name')).toHaveText('TAL');
+    await expect(page.locator('.cl-scoreboard__side--home .cl-team-score')).toHaveText('2');
+    await expect(page.locator('.cl-scoreboard__side--away .cl-team-score')).toHaveText('1');
+    await expect(page.locator('.cl-scoreboard__side--away .cl-team-name')).toHaveText('IND');
     await expect(page.getByText('Marta Referee — referee')).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Sofía Gómez' })).toBeVisible();
     await expect(page.getByText('Goal')).toBeVisible();
@@ -727,7 +733,9 @@ test.describe('B2: public tournament page', () => {
     // The played match (position 1, matchNumber 1) links to the report
     // already asserted above (same fixture, same header).
     await page.locator('article[data-match="1"] a[href$="/matches/1"]').click();
-    await expect(page.getByRole('heading', { name: /TAL.*2.*1.*IND/ })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Talleres vs Independiente' }),
+    ).toBeVisible();
 
     // Still linked though its own slots are winner-of placeholders: the
     // report page renders correctly for a not-yet-played match.

@@ -20,10 +20,10 @@ describe('ListScreenLayout', () => {
         toolbar={<div>Toolbar B</div>}
       />,
     );
-    expect(a.querySelector('.cl-list-screen__header')).not.toBeNull();
+    expect(a.querySelector('.cl-page-header')).not.toBeNull();
     expect(a.querySelector('.cl-list-screen__toolbar')).not.toBeNull();
     expect(a.querySelector('.cl-list-screen__listing')).not.toBeNull();
-    expect(b.querySelector('.cl-list-screen__header')).not.toBeNull();
+    expect(b.querySelector('.cl-page-header')).not.toBeNull();
     expect(b.querySelector('.cl-list-screen__toolbar')).not.toBeNull();
     expect(b.querySelector('.cl-list-screen__listing')).not.toBeNull();
     expect(b.querySelector('.cl-list-screen__pagination')).not.toBeNull();
@@ -73,7 +73,7 @@ describe('MatchConsoleLayout', () => {
     const { container } = render(
       <MatchConsoleLayout
         alerts={<div className="alert">Alerta</div>}
-        breadcrumb="Torneo Apertura > Partido 1"
+        breadcrumbs={[{ label: 'Torneo Apertura' }, { label: 'Partido 1', current: true }]}
         primary={<div className="controls">Controles</div>}
         rail={<div className="ledger">Libro de eventos</div>}
         scoreboard={<div className="score">2 - 1</div>}

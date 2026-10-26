@@ -4,6 +4,8 @@
  * separate, later pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'control.pageHeader.loading': 'Caricamento del titolo della pagina',
+  'control.pageHeader.breadcrumb': 'Percorso di navigazione',
   'control.interaction.createToken': 'Crea token',
   'control.interaction.pairTv': 'Associa TV',
   'control.interaction.pairDescription': 'Associa una TV per mostrare i risultati in diretta.',
@@ -1284,6 +1286,8 @@ export const messages: Record<string, string> = {
   'control.profile.authorAndInstall': 'Crea e installa',
 
   'control.matchesView.title': 'Partite',
+  'control.matchesView.listHeading': 'Tutte le partite',
+  'control.matchesView.cardHeading': 'Partita {match}',
   'control.matchesView.loadFailed': 'Impossibile caricare le partite.',
   'control.matchesView.filterAll': 'Tutte',
   'control.matchesView.filterLive': 'In diretta',

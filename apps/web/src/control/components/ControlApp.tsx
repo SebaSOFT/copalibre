@@ -58,7 +58,8 @@ import {
 } from '../session/token-store.js';
 import { ForgotPasswordRoute, LoginRoute, ResetPasswordRoute } from './NativeAuthRoutes.js';
 import { ToastProvider } from './ToastProvider.js';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/atoms/card.js';
+import { Card, CardContent, CardHeader } from './ui/atoms/card.js';
+import { PageHeader } from './ui/organisms/page-header.js';
 
 /**
  * The one persistent root for every control-panel screen, now also
@@ -439,9 +440,7 @@ function titleFor(route: ReturnType<typeof parseControlPath>): string {
 function NotFound({ path }: { readonly path: string }): React.JSX.Element {
   return (
     <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
-      <h1>
-        <FormattedMessage {...messages.notFoundTitle} />
-      </h1>
+      <PageHeader title={<FormattedMessage {...messages.notFoundTitle} />} />
       <p>
         <FormattedMessage {...messages.notFoundBody} values={{ path }} />
       </p>
@@ -493,9 +492,7 @@ function RootLandingRoute(): React.JSX.Element {
   if (state.kind === 'error') {
     return (
       <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
-        <h1>
-          <FormattedMessage {...messages.landingErrorTitle} />
-        </h1>
+        <PageHeader title={<FormattedMessage {...messages.landingErrorTitle} />} />
         <p>{state.message}</p>
         <a href="/control/login">
           <FormattedMessage {...messages.landingBackToLogin} />
@@ -510,6 +507,7 @@ function RootLandingRoute(): React.JSX.Element {
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
+      <PageHeader loadingLabel={intl.formatMessage(messages.pageHeaderLoading)} title={null} />
       <p>
         <FormattedMessage {...messages.landingLoading} />
       </p>
@@ -569,9 +567,7 @@ function CompletingLogin(): React.JSX.Element {
   if (state.kind === 'error') {
     return (
       <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
-        <h1>
-          <FormattedMessage {...messages.callbackErrorTitle} />
-        </h1>
+        <PageHeader title={<FormattedMessage {...messages.callbackErrorTitle} />} />
         <p>{state.message}</p>
         <a href="/control/">
           <FormattedMessage {...messages.callbackBackHome} />
@@ -586,6 +582,7 @@ function CompletingLogin(): React.JSX.Element {
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
+      <PageHeader loadingLabel={intl.formatMessage(messages.pageHeaderLoading)} title={null} />
       <p>
         <FormattedMessage {...messages.callbackLoading} />
       </p>
@@ -645,9 +642,7 @@ function LoginLandingBody({
       <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
         <Card variant="inverse">
           <CardHeader>
-            <CardTitle>
-              <FormattedMessage {...messages.landingEmptyTitle} />
-            </CardTitle>
+            <PageHeader title={<FormattedMessage {...messages.landingEmptyTitle} />} />
           </CardHeader>
           <CardContent>
             <p>
@@ -661,9 +656,7 @@ function LoginLandingBody({
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
-      <h1>
-        <FormattedMessage {...messages.landingPickerTitle} />
-      </h1>
+      <PageHeader title={<FormattedMessage {...messages.landingPickerTitle} />} />
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '0.5rem' }}>
         {organizations.map((organization) => (
           <li key={organization.organizationId}>

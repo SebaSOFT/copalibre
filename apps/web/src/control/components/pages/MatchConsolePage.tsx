@@ -81,6 +81,35 @@ export function MatchConsolePage({
       }),
     [client],
   );
+  const tournamentHeaderKey = `${organizationAlias}:${tournamentAlias}`;
+  const [tournamentHeader, setTournamentHeader] = useState<{
+    readonly key: string;
+    readonly name?: string;
+  }>();
+  const currentTournamentHeader =
+    tournamentHeader?.key === tournamentHeaderKey ? tournamentHeader : undefined;
+  useEffect(() => {
+    let cancelled = false;
+    if (api.fetchTournamentSettings) {
+      void api
+        .fetchTournamentSettings(organizationAlias, tournamentAlias)
+        .then(({ name }) => {
+          if (cancelled) return;
+          const resolvedName = name.trim();
+          setTournamentHeader({
+            key: tournamentHeaderKey,
+            ...(resolvedName ? { name: resolvedName } : {}),
+          });
+        })
+        .catch(() => {
+          if (!cancelled) setTournamentHeader({ key: tournamentHeaderKey });
+        });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [api, organizationAlias, tournamentAlias, tournamentHeaderKey]);
   const [localProjection, setLocalProjection] = useState<{
     matchId: string;
     data: MatchConsoleResponse | undefined;
@@ -583,6 +612,10 @@ export function MatchConsolePage({
         stale={stale}
         status={status}
         tournamentAlias={tournamentAlias}
+        tournamentName={currentTournamentHeader?.name}
+        tournamentNameLoading={
+          api.fetchTournamentSettings !== undefined && currentTournamentHeader === undefined
+        }
       />
     </ReadState>
   );

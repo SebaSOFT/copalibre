@@ -15,21 +15,17 @@ import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 export function TournamentHubTemplate({
   organizationAlias,
   tournamentAlias,
+  tournamentName,
   stages,
 }: {
   readonly organizationAlias: string;
   readonly tournamentAlias: string;
+  readonly tournamentName?: string;
   readonly stages: readonly StageResponse[];
 }): React.JSX.Element {
   const intl = useIntl();
 
-  const breadcrumbNode = (
-    <span>
-      {organizationAlias} / {tournamentAlias}
-    </span>
-  );
-
-  const titleNode = <FormattedMessage {...messages.tournamentHubTitle} />;
+  const titleNode = tournamentName?.trim() || intl.formatMessage(messages.tournamentHubTitle);
 
   const listingNode = (
     <Card
@@ -77,5 +73,5 @@ export function TournamentHubTemplate({
     </Card>
   );
 
-  return <ListScreenLayout breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
+  return <ListScreenLayout listing={listingNode} title={titleNode} />;
 }

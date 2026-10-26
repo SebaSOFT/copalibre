@@ -4,6 +4,8 @@
  * `primaryLanguage: "es"` sees no behavior change from this refactor.
  */
 export const messages: Record<string, string> = {
+  'control.pageHeader.loading': 'Cargando encabezado de página',
+  'control.pageHeader.breadcrumb': 'Ruta de navegación',
   'control.interaction.createToken': 'Crear token',
   'control.interaction.pairTv': 'Vincular TV',
   'control.interaction.pairDescription': 'Vinculá una TV para mostrar los resultados en vivo.',
@@ -1281,6 +1283,8 @@ export const messages: Record<string, string> = {
   'control.profile.authorAndInstall': 'Crear e instalar',
 
   'control.matchesView.title': 'Partidos',
+  'control.matchesView.listHeading': 'Todos los partidos',
+  'control.matchesView.cardHeading': 'Partido {match}',
   'control.matchesView.loadFailed': 'No se pudieron cargar los partidos.',
   'control.matchesView.filterAll': 'Todos',
   'control.matchesView.filterLive': 'En vivo',

@@ -4,6 +4,7 @@
  * reads exactly as the site did before this change.
  */
 export const messages: Record<string, string> = {
+  'publicWeb.pageHeader.loading': 'Cargando encabezado de página',
   'publicWeb.interaction.noLive': 'No hay partidos en vivo',
   'publicWeb.interaction.nextKickoff': 'Próximo partido: {time}',
   'publicWeb.interaction.seeSchedule': 'Consultá el calendario para ver los próximos partidos.',
@@ -132,6 +133,10 @@ export const messages: Record<string, string> = {
 
   'publicWeb.bracket.roundAriaLabel': '{branch} — ronda {round}',
   'publicWeb.bracket.roundHeading': 'Ronda {round}',
+  'publicWeb.bracket.zoneHeading': 'Zona {zone}',
+  'publicWeb.bracket.round.quarterfinals': 'Cuartos de final',
+  'publicWeb.bracket.round.semifinals': 'Semifinales',
+  'publicWeb.bracket.round.final': 'Final',
   'publicWeb.bracket.branch.winners': 'Cuadro principal',
   'publicWeb.bracket.branch.losers': 'Cuadro de perdedores',
   'publicWeb.bracket.branch.grandFinal': 'Gran final',

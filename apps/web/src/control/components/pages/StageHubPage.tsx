@@ -66,6 +66,13 @@ export function StageHubPage({
   );
 
   const title = intl.formatMessage(messages.stageHubTitle, { number: stageNumber });
+  const tournamentRead = useResilientRead(
+    `control-stage-hub-name:${organizationAlias}:${tournamentAlias}`,
+    () =>
+      api.fetchTournamentSettings?.(organizationAlias, tournamentAlias) ??
+      Promise.resolve(undefined),
+    { thing: intl.formatMessage(messages.tournamentHubTitle) },
+  );
   const read = useResilientRead(
     `control-stage-hub:${organizationAlias}:${tournamentAlias}:${stageNumber}`,
     async () => {
@@ -158,6 +165,7 @@ export function StageHubPage({
         stageFormat={stage.format}
         stageName={stage.name}
         stageNumber={stageNumber}
+        tournamentName={tournamentRead.data?.name}
         tournamentAlias={tournamentAlias}
       />
     </ReadState>

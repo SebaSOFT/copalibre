@@ -1,4 +1,5 @@
 import {
+  bracketBranchLabel,
   matchCardLabels,
   publicIntl,
   resultReasonLabels,
@@ -172,6 +173,17 @@ describe('publicIntl formats real translated text, not an English fallback', () 
     expect(labels.seriesAriaLabel).toBe('Serie al mejor de {bestOf}: {home} a {away}');
     expect(labels.filters.live).toBe('En vivo');
     expect(labels.state.final).toBe('Finalizado');
+  });
+});
+
+describe('bracketBranchLabel', () => {
+  it.each([
+    ['winner', 'Cuadro principal'],
+    ['winners', 'Cuadro principal'],
+    ['loser', 'Cuadro de perdedores'],
+    ['losers', 'Cuadro de perdedores'],
+  ])('maps the %s branch code to a localized display label', (branch, expected) => {
+    expect(bracketBranchLabel(publicIntl('es'), branch)).toBe(expected);
   });
 });
 

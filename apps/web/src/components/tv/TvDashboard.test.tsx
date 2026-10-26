@@ -1248,14 +1248,14 @@ describe('TvDashboard pinned match and views', () => {
       language: 'es',
     });
 
-    expect(screen.getByText('Partido destacado')).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Partido destacado' })).toBeTruthy();
     expect(screen.getByText('Etapa 1 · Partido 1')).toBeTruthy();
   });
 
   it('uses localized copy for the tournament recap title', () => {
     renderTv({ dashboardLabels: tvDashboardLabels(publicIntl('es')), language: 'es' });
 
-    expect(screen.getByText('Resumen del campeonato')).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Resumen del campeonato' })).toBeTruthy();
   });
 
   it('shows the data of a pinned match of a finished tournament, not the champion recap', () => {

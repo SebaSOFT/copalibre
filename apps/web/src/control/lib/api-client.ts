@@ -1100,6 +1100,10 @@ export interface ReviewReportRequest {
 }
 
 export interface MatchConsoleApiClient {
+  readonly fetchTournamentSettings?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<TournamentSettingsResponse>;
   readonly fetchMatchConsole: (
     organizationAlias: string,
     tournamentAlias: string,

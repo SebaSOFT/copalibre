@@ -4,10 +4,12 @@
  * and event workflows stay in MatchConsolePage.tsx.
  */
 import type { ReactNode } from 'react';
+import { PageHeader, type PageHeaderBreadcrumb } from '../organisms/page-header.js';
 
 export interface MatchConsoleLayoutProps {
-  readonly breadcrumb?: ReactNode;
+  readonly breadcrumbs?: readonly PageHeaderBreadcrumb[];
   readonly title: ReactNode;
+  readonly actions?: ReactNode;
   readonly status: ReactNode;
   readonly alerts?: ReactNode;
   readonly syncStatus?: ReactNode;
@@ -20,8 +22,9 @@ export interface MatchConsoleLayoutProps {
 }
 
 export function MatchConsoleLayout({
-  breadcrumb,
+  breadcrumbs,
   title,
+  actions,
   status,
   alerts,
   syncStatus,
@@ -34,13 +37,15 @@ export function MatchConsoleLayout({
 }: MatchConsoleLayoutProps): React.JSX.Element {
   return (
     <section aria-label={sectionLabel} className="cl-match-console-screen">
-      <header className="cl-match-console-screen__header">
-        <div>
-          {breadcrumb ? <p className="cl-match-console-screen__breadcrumb">{breadcrumb}</p> : null}
-          <h1 className="cl-match-console-screen__title">{title}</h1>
-        </div>
+      <div className="cl-match-console-screen__header">
+        <PageHeader
+          actions={actions}
+          breadcrumbs={breadcrumbs}
+          title={title}
+          titleClassName="cl-match-console-screen__title"
+        />
         <div className="cl-match-console-screen__status">{status}</div>
-      </header>
+      </div>
 
       {alerts}
       {syncStatus ? <div className="cl-match-console-screen__sync-status">{syncStatus}</div> : null}

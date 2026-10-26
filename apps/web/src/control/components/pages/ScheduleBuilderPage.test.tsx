@@ -299,7 +299,7 @@ describe('ScheduleBuilderPage', () => {
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /schedule/i }));
     await screen.findAllByText(/Godoy Cruz/i);
     expect(container.querySelector('.cl-list-screen')).not.toBeNull();
-    expect(container.querySelector('.cl-list-screen__header')).not.toBeNull();
+    expect(container.querySelector('.cl-page-header')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
     expect(screen.getAllByText(/Godoy Cruz/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Independiente Rivadavia/i).length).toBeGreaterThan(0);

@@ -14,6 +14,7 @@ import { Alert } from '../atoms/alert.js';
 import { Badge } from '../atoms/badge.js';
 import { Button } from '../atoms/button.js';
 import { Card } from '../atoms/card.js';
+import { PageHeader } from './page-header.js';
 
 export interface WizardShellStep {
   readonly id: string;
@@ -95,20 +96,17 @@ export function WizardShell({
 
   return (
     <section aria-label={ariaLabel} className="cl-form-screen">
-      <header className="cl-form-screen__header">
-        {breadcrumb === undefined ? (
-          <h1 className="cl-form-screen__title">{title}</h1>
-        ) : (
-          <div>
-            <p className="cl-form-screen__breadcrumb">{breadcrumb}</p>
-            <h1 className="cl-form-screen__title">{title}</h1>
-          </div>
-        )}
+      <div className="cl-form-screen__header">
+        <PageHeader
+          legacyBreadcrumb={breadcrumb}
+          title={title}
+          titleClassName="cl-form-screen__title"
+        />
         <div className="cl-stat-tile cl-chamfer cl-chamfer--control" data-testid={progressTestId}>
           <strong className="cl-stat-tile__value">{progress}%</strong>
           {progressCaption === undefined ? null : <span>{progressCaption}</span>}
         </div>
-      </header>
+      </div>
 
       <Card
         className="cl-chamfer cl-chamfer--control"

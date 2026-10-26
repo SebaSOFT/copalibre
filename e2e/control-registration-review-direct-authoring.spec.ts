@@ -28,6 +28,16 @@ async function mockRegistrationApi(
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
+        if (url.includes('/organizations?mine=true')) {
+          return Response.json([
+            {
+              organizationId: 'org-1',
+              organizationAlias: 'liga-mendocina',
+              organizationName: 'Liga Mendocina',
+              role: 'admin',
+            },
+          ]);
+        }
         if (url.endsWith('/registrations')) {
           if (pendingRegistrations) return new Promise<Response>(() => undefined);
           const loaded = await (
@@ -100,12 +110,17 @@ test('registers a walk-up entrant from the registration review screen, with no C
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  const header = page.locator('.cl-list-screen__header');
-  const breadcrumb = page.locator('.cl-list-screen__breadcrumb');
+  const header = page.locator('.cl-page-header');
+  const breadcrumb = page.locator('.cl-page-header__breadcrumb');
   const title = page.getByRole('heading', { level: 1 });
   const toolbar = page.locator('.cl-list-screen__toolbar');
   await expect(header).toBeVisible();
   await expect(breadcrumb).toBeVisible();
+  await expect(breadcrumb.getByRole('link', { name: 'Liga Mendocina' })).toHaveAttribute(
+    'href',
+    '/control/liga-mendocina',
+  );
+  await expect(page.getByText('liga-mendocina', { exact: true })).toHaveCount(0);
   await expect(title).toBeVisible();
   await expect(toolbar).toBeVisible();
   const [headerTop, headerBottom, toolbarTop] = await Promise.all([

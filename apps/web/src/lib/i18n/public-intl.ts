@@ -223,6 +223,7 @@ export function resultReasonLabels(intl: IntlShape): ResultReasonLabels {
  * same way and the component itself stays free of any i18n import.
  */
 export interface MatchCardLabels {
+  readonly matchHeading: string;
   readonly sideSource: SideSourceMessages;
   readonly rescheduled?: string;
   readonly state: ResultStateLabels;
@@ -263,6 +264,7 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
   // `formatMessage` path, just without supplying the real per-match value
   // yet. `MatchCard.tsx` fills it in later via `applyTemplate`.
   return {
+    matchHeading: intl.formatMessage(messages.breadcrumbMatch, { match: '{match}' }),
     sideSource: sideSourceLabels(intl),
     rescheduled: intl.formatMessage(messages.matchRescheduled, {
       time: '{time}',
@@ -530,8 +532,10 @@ export function completionFigureLabels(
 /** A bracket band's name: the engine's own branch code, said in the page's language. */
 export function bracketBranchLabel(intl: IntlShape, branch: string): string {
   switch (branch) {
+    case 'winner':
     case 'winners':
       return intl.formatMessage(messages.bracketBranchWinners);
+    case 'loser':
     case 'losers':
       return intl.formatMessage(messages.bracketBranchLosers);
     case 'grand-final':

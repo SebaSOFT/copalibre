@@ -34,6 +34,8 @@ export interface MatchCardProps {
   readonly band?: 'panel' | 'base';
   /** Single-line ticker presentation — a dense listing's own row shape, not a smaller version of the full card. */
   readonly compact?: boolean;
+  /** Heading depth in the page outline. */
+  readonly headingLevel?: number;
 }
 
 /**
@@ -53,7 +55,10 @@ export function MatchCard({
   organizationAlias,
   band,
   compact = false,
+  headingLevel = 3,
 }: MatchCardProps): React.JSX.Element {
+  const MatchHeading = `h${Math.min(Math.max(headingLevel, 2), 6)}` as
+    'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   const homeSource = formatSideSource(
     match.homeSource,
     labels.sideSource,
@@ -171,6 +176,9 @@ export function MatchCard({
       data-schedule-version={match.scheduleVersion ?? 0}
     >
       <div className="cl-match-card__header">
+        <MatchHeading className="cl-match-card__heading">
+          {applyTemplate(labels.matchHeading, { match: String(match.matchNumber) })}
+        </MatchHeading>
         <Badge className={badge.className}>
           {badge.state !== 'live' && <span aria-hidden="true">{badge.icon}</span>}
           <span>{badge.label}</span>

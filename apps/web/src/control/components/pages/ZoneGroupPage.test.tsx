@@ -60,7 +60,7 @@ describe('ZoneGroupPage', () => {
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /zones and groups/i }));
     await screen.findAllByText('Zona Campeonato');
     expect(container.querySelector('.cl-list-screen')).not.toBeNull();
-    expect(container.querySelector('.cl-list-screen__header')).not.toBeNull();
+    expect(container.querySelector('.cl-page-header')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
     expect(screen.getAllByText('Zona Campeonato').length).toBeGreaterThanOrEqual(1);
   });

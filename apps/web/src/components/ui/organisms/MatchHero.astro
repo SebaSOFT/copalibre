@@ -28,7 +28,7 @@ const rescheduled =
     <Badge className={`cl-badge--${model.status.toLowerCase()}`}>{statusLabel}</Badge>
   </div>
 
-  <h1 class="cl-scoreboard">
+  <div class="cl-scoreboard">
     <div class="cl-scoreboard__side cl-scoreboard__side--home">
       <span class="cl-team-name">{model.home.abbreviation ?? model.home.name}</span>
       <span class="cl-team-score">{model.home.score ?? '—'}</span>
@@ -38,7 +38,7 @@ const rescheduled =
       <span class="cl-team-score">{model.away.score ?? '—'}</span>
       <span class="cl-team-name">{model.away.abbreviation ?? model.away.name}</span>
     </div>
-  </h1>
+  </div>
 
   {model.scheduledAt ? (
     <p class="cl-match-venue">

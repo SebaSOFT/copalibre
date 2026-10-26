@@ -11,6 +11,7 @@ import type { DisciplineOption } from '../../lib/wizard.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import { TournamentSetupWizard } from '../TournamentSetupWizard.js';
 import { messages } from '../../i18n/messages.en.js';
+import { PageHeader } from '../ui/organisms/page-header.js';
 
 type AuthoringStatus =
   | { readonly kind: 'loading' }
@@ -133,7 +134,12 @@ export function TournamentAuthoringTemplate({
   }
 
   if (disciplines.length === 0) {
-    return statusAlert(status);
+    return (
+      <>
+        <PageHeader title={intl.formatMessage(messages.wizardTitle)} />
+        {statusAlert(status)}
+      </>
+    );
   }
 
   return (
