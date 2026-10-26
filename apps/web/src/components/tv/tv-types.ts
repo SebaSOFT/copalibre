@@ -43,6 +43,9 @@ export interface TvDashboardLabels {
   readonly penalty: string;
   /** Names the wall clock the header shows for a tournament still being played. */
   readonly clockLabel: string;
+  readonly leading: string;
+  readonly nextMatch: string;
+  readonly zoneLegend: string;
   /** Raw `{date}` template: the header of a finished tournament, naming the day it ended. */
   readonly finishedOn: string;
   /** Said by a pinned route whose match does not exist. */

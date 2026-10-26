@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   tv-soak-test:
-    name: TV kiosk memory stability
+    name: TV layout memory stability
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
@@ -53,6 +53,7 @@ jobs:
             --duration-minutes=300 \
             --sample-interval-seconds=60 \
             --growth-threshold=0.3 \
+            --layouts=kiosk,presentation,dashboard \
             --report=tv-soak-report.json
       - uses: actions/upload-artifact@v7
         if: always()

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateGrowth } from './tv-soak-test.mjs';
+import { evaluateGrowth, parseLayouts } from './tv-soak-test.mjs';
 
 function samplesOf(heapBytesSeries) {
   return heapBytesSeries.map((heapBytes, index) => ({ at: index, heapBytes }));
@@ -29,4 +29,20 @@ test('does not judge a run with too few samples', () => {
   const result = evaluateGrowth(samplesOf([10]), 0.5);
   assert.equal(result.passed, true);
   assert.equal(result.reason, 'too few samples to judge');
+});
+
+test('defaults the soak to the kiosk layout', () => {
+  assert.deepEqual(parseLayouts(), ['kiosk']);
+});
+
+test('parses each requested TV layout once in configured order', () => {
+  assert.deepEqual(parseLayouts('kiosk,presentation,dashboard,presentation'), [
+    'kiosk',
+    'presentation',
+    'dashboard',
+  ]);
+});
+
+test('rejects unsupported TV layouts', () => {
+  assert.throws(() => parseLayouts('kiosk,unknown'), /Unsupported TV layout list/);
 });

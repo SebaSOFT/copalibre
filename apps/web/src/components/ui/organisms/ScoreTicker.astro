@@ -102,9 +102,7 @@ const {
                 {/* Only where the discipline declares one; nothing here derives it. */}
                 {item.overtime && <span class="cl-ticker__overtime">{item.overtime}</span>}
                 {item.meta && <span class="cl-ticker__meta">({item.meta})</span>}
-                <span class="cl-ticker__sep" aria-hidden="true">
-                  ///
-                </span>
+                <span class="cl-ticker__sep" aria-hidden="true"></span>
               </div>
             )),
           )}
@@ -300,8 +298,8 @@ const {
   }
 
   .cl-ticker__sep {
-    font-weight: 700;
-    color: var(--cl-text-muted);
+    align-self: stretch;
+    border-inline-start: 1px solid var(--cl-border-muted);
     margin-inline: var(--cl-space-2);
   }
 

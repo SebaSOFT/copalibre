@@ -17,6 +17,10 @@
 
 .tv-root-container {
   --entrant-pending-color: var(--tv-text-secondary);
+  --tv-min-score-size: 12vmin;
+  --tv-min-clock-size: 6vmin;
+  --tv-min-team-name-size: 3.5vmin;
+  --tv-min-table-body-size: 2.2vmin;
   box-sizing: border-box;
   width: 100%;
   height: 100%;
@@ -186,10 +190,22 @@
 
 .tv-scorebug__clock {
   font-family: var(--cl-font-mono);
-  font-size: clamp(0.9rem, 1.8vmin, 1.3rem);
+  font-size: max(var(--tv-min-clock-size), 1.8vmin);
   font-weight: 600;
   color: var(--tv-text-secondary);
   letter-spacing: 0.05em;
+}
+
+.tv-scorebug__clock-zone {
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-xs), 1.2vmin, var(--cl-font-size-sm));
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tv-scorebug__clock--finished {
+  font-size: clamp(0.9rem, 1.8vmin, 1.3rem);
 }
 
 .tv-scorebug__clock::after {
@@ -203,6 +219,264 @@
   gap: 2.5vmin;
   flex: 1;
   min-height: 0;
+}
+
+.tv-presentation-layout,
+.tv-multi-match-dashboard {
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 2vmin;
+}
+
+.tv-presentation-layout {
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.tv-presentation-hero,
+.tv-layout-panel,
+.tv-dashboard-live-panel,
+.tv-dashboard-upcoming-panel,
+.tv-dashboard-standings,
+.tv-next-match-crawl {
+  min-width: 0;
+  min-height: 0;
+  padding: 2vmin;
+  background: var(--tv-bg-surface);
+  border: 1px solid var(--tv-border);
+  overflow: hidden;
+}
+
+.tv-presentation-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5vmin;
+}
+
+.tv-layout-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2vmin;
+}
+
+.tv-layout-panel-heading h2,
+.tv-layout-panel > h2,
+.tv-dashboard-upcoming-panel > h2,
+.tv-dashboard-standings > h2,
+.tv-next-match-crawl > h2 {
+  margin: 0;
+  color: var(--tv-live-cyan);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-sm), 1.8vmin, var(--cl-font-size-lg));
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.tv-presentation-match {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 1.5vmin;
+}
+
+.tv-presentation-match__sides {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2vmin;
+}
+
+.tv-presentation-match__sides .tv-team-side__emblem-wrap {
+  width: 16vmin;
+  height: 16vmin;
+}
+
+.tv-presentation-match__sides .tv-team-side__name {
+  max-width: 30vmin;
+}
+
+.tv-presentation-match__clock {
+  color: var(--tv-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-lg), 3vmin, var(--cl-font-size-3xl));
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-presentation-rail {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 0;
+  gap: 2vmin;
+}
+
+.tv-layout-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1vmin;
+  overflow: auto;
+}
+
+.tv-presentation-standings .tv-standings-table {
+  font-size: max(var(--tv-min-table-body-size), 1.6vmin);
+}
+
+.tv-next-match-crawl {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2vmin;
+}
+
+.tv-next-match-crawl ol,
+.tv-dashboard-upcoming-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1vmin;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-next-match-crawl li,
+.tv-dashboard-upcoming-grid li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.7vmin;
+  min-width: 0;
+  padding: 0.8vmin 1vmin;
+  border-inline-start: 0.35vmin solid var(--tv-live-cyan);
+  background: var(--tv-bg-elevated);
+  font-family: var(--cl-font-display);
+  font-size: clamp(var(--cl-font-size-xs), 1.5vmin, var(--cl-font-size-base));
+}
+
+.tv-next-match-crawl li > span,
+.tv-dashboard-upcoming-grid li > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-next-match-crawl li > span:nth-child(2),
+.tv-dashboard-upcoming-grid li > strong {
+  color: var(--tv-live-cyan);
+  font-family: var(--cl-font-mono);
+}
+
+.tv-next-match-crawl small,
+.tv-dashboard-upcoming-grid small {
+  grid-column: 1 / -1;
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: 0.85em;
+}
+
+.tv-multi-match-dashboard {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1.35fr) auto minmax(0, 1fr);
+}
+
+.tv-dashboard-live-panel,
+.tv-dashboard-upcoming-panel,
+.tv-dashboard-standings {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2vmin;
+}
+
+.tv-dashboard-live-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  flex: 1;
+  min-height: 0;
+  gap: 1.5vmin;
+}
+
+.tv-dashboard-match {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1vmin;
+  padding: 1.5vmin;
+  background: var(--tv-bg-elevated);
+  border: 1px solid var(--tv-border);
+  overflow: hidden;
+}
+
+.tv-dashboard-match > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1vmin;
+  color: var(--tv-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-xs), 1.4vmin, var(--cl-font-size-base));
+}
+
+.tv-dashboard-match__scoreline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1.5vmin;
+  min-width: 0;
+  text-align: center;
+}
+
+.tv-dashboard-match__scoreline span {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--cl-font-display);
+  font-size: max(var(--tv-min-team-name-size), 1.6vmin);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-dashboard-match__scoreline strong {
+  color: var(--tv-text-primary);
+  font-family: var(--cl-font-display);
+  font-size: max(var(--tv-min-score-size), 9vmin);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tv-dashboard-match .tv-event-ticker {
+  max-height: 12vmin;
+  padding: 0.8vmin 1vmin;
+}
+
+.tv-dashboard-match .tv-event-ticker__item {
+  font-size: max(var(--tv-min-table-body-size), 1.3vmin);
+}
+
+.tv-dashboard-standings {
+  overflow: auto;
+}
+
+.tv-dashboard-standings .tv-standings-table {
+  font-size: max(var(--tv-min-table-body-size), 1.6vmin);
+}
+
+.tv-dashboard-standings .tv-standings-table th,
+.tv-dashboard-standings .tv-standings-table td {
+  padding-block: 0.65vmin;
+}
+
+.tv-layout-empty {
+  margin: auto;
+  color: var(--tv-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-sm), 1.8vmin, var(--cl-font-size-lg));
+  text-align: center;
 }
 
 /* 3. Dominant Focal Panel */
@@ -431,7 +705,7 @@
 
 .tv-team-side__name {
   font-family: var(--cl-font-display);
-  font-size: clamp(1.4rem, 3.5vmin, 2.5rem);
+  font-size: max(var(--tv-min-team-name-size), 1.4rem);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -461,6 +735,20 @@
   white-space: nowrap;
 }
 
+.tv-team-side__leading {
+  min-height: 1.3em;
+  color: var(--tv-live-cyan);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.75rem, 1.3vmin, 0.875rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tv-team-side__leading--placeholder {
+  visibility: hidden;
+}
+
 .tv-score-center {
   display: flex;
   flex-direction: column;
@@ -470,7 +758,7 @@
 
 .tv-score-center__digits {
   font-family: var(--cl-font-display);
-  font-size: clamp(3.5rem, 9vmin, 7rem);
+  font-size: max(var(--tv-min-score-size), 3.5rem);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.05em;
@@ -660,7 +948,43 @@
   width: 100%;
   border-collapse: collapse;
   font-family: var(--cl-font-mono);
-  font-size: clamp(0.85rem, 1.6vmin, 1.15rem);
+  font-size: max(var(--tv-min-table-body-size), 0.85rem);
+}
+
+.tv-standings-table__club-name {
+  font-family: var(--cl-font-body);
+  font-weight: 500;
+}
+
+.tv-standings-zone {
+  border-inline-start: 0.45vmin solid var(--tv-live-cyan);
+  padding-inline-start: 1.2vmin;
+}
+
+.tv-standings-zone__name {
+  margin: 0 0 0.6vmin;
+  color: var(--tv-live-cyan);
+  font-family: var(--cl-font-display);
+  font-size: clamp(var(--cl-font-size-sm), 1.8vmin, var(--cl-font-size-lg));
+  font-weight: 700;
+}
+
+.tv-standings-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.8vmin;
+  margin: 0;
+  color: var(--tv-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-xs), 1.2vmin, var(--cl-font-size-sm));
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tv-standings-legend__mark {
+  width: 0.6vmin;
+  height: 1.5em;
+  background: var(--tv-live-cyan);
 }
 
 .tv-standings-table th {
@@ -1419,16 +1743,10 @@
   }
 }
 
-/* The abbreviation stands in for the name on a narrow frame; wide frames show the name. */
-.tv-team-side__short {
-  display: none;
-  text-decoration: none;
-}
-
 /*
  * Narrow or portrait frames: the title card stacks (brand and titles above, status and clock
- * below) instead of splitting its width in two, the pinned match shows abbreviations, smaller
- * emblems and a score that stays on one line, and each entry of the match list is two lines.
+ * below) instead of splitting its width in two, team names stay full and truncate, and each entry
+ * of the match list is two lines.
  */
 @media (max-width: 768px), (orientation: portrait) {
   .tv-scorebug {
@@ -1452,20 +1770,51 @@
     height: 64px;
   }
 
-  .tv-team-side__full {
-    display: none;
-  }
-
-  .tv-team-side__short {
-    display: block;
-    max-width: 100%;
-    font-size: clamp(1.1rem, 5vw, 1.6rem);
-  }
-
   .tv-score-center__digits {
-    font-size: clamp(2.2rem, 11vw, 3.5rem);
+    font-size: max(var(--tv-min-score-size), clamp(2.2rem, 11vw, 3.5rem));
     letter-spacing: 0;
     white-space: nowrap;
+  }
+
+  .tv-presentation-layout,
+  .tv-multi-match-dashboard {
+    overflow: auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+
+  .tv-presentation-hero {
+    min-height: 58vmin;
+  }
+
+  .tv-presentation-rail {
+    grid-template-rows: auto;
+  }
+
+  .tv-layout-panel {
+    min-height: 28vmin;
+  }
+
+  .tv-next-match-crawl {
+    grid-column: auto;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tv-next-match-crawl ol,
+  .tv-dashboard-upcoming-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tv-dashboard-live-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tv-dashboard-match {
+    min-height: 32vmin;
+  }
+
+  .tv-dashboard-standings {
+    max-height: 60vmin;
   }
 
   .tv-match-list__entries {

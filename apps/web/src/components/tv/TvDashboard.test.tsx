@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { act, render, screen, fireEvent } from '@testing-library/react';
 import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
-import { TvDashboard } from './TvDashboard.js';
+import { leadingTvSide, TvDashboard } from './TvDashboard.js';
 import type { LiveDashboard, LiveMatch } from '../../lib/live-state.js';
 import type { PublicSeriesState } from '../../lib/series.js';
 import type { StandingsRowView } from '../../lib/overview.js';
@@ -75,8 +75,132 @@ describe('TvDashboard', () => {
     { name: 'River Plate', emblemUrl: '/organizations/o/clubs/river/emblem' },
   ];
 
+  const fixtureMatch = (
+    matchId: string,
+    state: 'live' | 'upcoming',
+    homeScore?: number,
+    awayScore?: number,
+  ): LiveMatch => ({
+    matchId,
+    stageNumber: 1,
+    matchNumber: 1,
+    stageOrdinal: 1,
+    state,
+    projectionVersion: 1,
+    ...(state === 'live' ? { clockSeconds: 420 } : {}),
+    sides: [
+      {
+        entrantId: `${matchId}-home`,
+        name: 'Club Atlético Independiente de San Juan',
+        abbreviation: 'CAI',
+        state,
+        score: homeScore ?? 0,
+      },
+      {
+        entrantId: `${matchId}-away`,
+        name: 'Deportivo San Juan del Valle',
+        abbreviation: 'DSJ',
+        state,
+        score: awayScore ?? 0,
+      },
+    ],
+  });
+
+  const layoutMatches: LiveMatch[] = [
+    fixtureMatch('live-1', 'live', 2, 1),
+    fixtureMatch('live-2', 'live', 1, 1),
+    ...Array.from({ length: 4 }, (_, index) => {
+      const upcoming = fixtureMatch(`upcoming-${index + 1}`, 'upcoming');
+      return {
+        ...upcoming,
+        matchNumber: index + 2,
+        stageOrdinal: index + 2,
+        scheduledAt: new Date(Date.UTC(2026, 10, 7, 18 + index, 0)).toISOString(),
+      };
+    }),
+  ];
+
+  const layoutStandings = [
+    ...sampleStandings.map((row, index) => ({
+      ...row,
+      zoneName: index < 2 ? 'Zona A' : 'Zona B',
+    })),
+    ...Array.from({ length: 6 }, (_, index) => ({
+      position: index + 5,
+      name: `Club ${index + 5}`,
+      played: 2,
+      points: 4 - index,
+    })),
+  ];
+
   beforeEach(() => {
     window.history.pushState({}, '', '/tv/liga-argentina/tournaments/apertura-2026');
+  });
+
+  it('identifies a leading side only for an active match with a strict score lead', () => {
+    expect(leadingTvSide(fixtureMatch('home-leads', 'live', 2, 1))).toBe('home');
+    expect(leadingTvSide(fixtureMatch('away-leads', 'live', 1, 2))).toBe('away');
+    expect(leadingTvSide(fixtureMatch('draw', 'live', 1, 1))).toBeUndefined();
+    expect(leadingTvSide(fixtureMatch('upcoming', 'upcoming'))).toBeUndefined();
+  });
+
+  it('renders the presentation composition with a localized leading tag', () => {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        layoutVariant="presentation"
+        initial={{ matches: layoutMatches.slice(0, 1), standingsVersion: 1, usingLastKnown: false }}
+        streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+        standings={sampleStandings}
+        pollIntervalMs={0}
+      />,
+    );
+
+    expect(screen.getByTestId('tv-presentation-layout')).toBeDefined();
+    expect(screen.getByText(dashboardLabels.leading)).toBeDefined();
+    expect(document.querySelectorAll('.tv-team-side[data-leading="true"]')).toHaveLength(1);
+  });
+
+  it('shows two live cards, four upcoming matches and every standings row in the dashboard layout', () => {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        layoutVariant="dashboard"
+        initial={{ matches: layoutMatches, standingsVersion: 1, usingLastKnown: false }}
+        streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+        standings={layoutStandings}
+        pollIntervalMs={0}
+      />,
+    );
+
+    expect(screen.getAllByTestId('tv-dashboard-match')).toHaveLength(2);
+    expect(screen.getAllByTestId('tv-upcoming-match')).toHaveLength(4);
+    expect(document.querySelectorAll('.tv-dashboard-standings tbody tr')).toHaveLength(10);
+    expect(screen.getByText(dashboardLabels.zoneLegend)).toBeDefined();
+  });
+
+  it('shows an em dash instead of a zero score for a scheduled focus match', () => {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={{
+          matches: [fixtureMatch('upcoming', 'upcoming')],
+          standingsVersion: 1,
+          usingLastKnown: false,
+        }}
+        streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+        pollIntervalMs={0}
+      />,
+    );
+
+    expect(document.querySelector('.tv-score-center__digits')?.textContent).toBe('–');
+    expect(screen.queryByText('0 : 0')).toBeNull();
   });
 
   it('renders scorebug and content without a token, without crashing or reloading', () => {
@@ -668,6 +792,75 @@ describe('TvDashboard broadcast alert dispatch', () => {
         ),
     });
   }
+
+  it('moves the presentation leader when a corrected live projection reverses the score', async () => {
+    let capturedHandlers: RealtimeHandlers | undefined;
+    connectSpy = jest
+      .spyOn(RealtimeClient.prototype, 'connect')
+      .mockImplementation(async (handlers) => {
+        capturedHandlers = handlers;
+        return { attempts: 1, stopped: 'aborted' as const };
+      });
+    const initiallyLeading = {
+      ...pinnedMatch,
+      sides: [
+        { entrantId: 'entrant-home', name: 'Boca Juniors', score: 2, state: 'live' as const },
+        { entrantId: 'entrant-away', name: 'River Plate', score: 1, state: 'live' as const },
+      ],
+    };
+    mockRefreshResponse([
+      {
+        ...initiallyLeading,
+        projectionVersion: 3,
+        sides: [
+          { entrantId: 'entrant-home', name: 'Boca Juniors', score: 1, state: 'live' },
+          { entrantId: 'entrant-away', name: 'River Plate', score: 2, state: 'live' },
+        ],
+      },
+    ]);
+
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={{ ...pinnedDashboard, matches: [initiallyLeading] }}
+        layoutVariant="presentation"
+        streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+        organizationAlias="liga-argentina"
+        tournamentAlias="apertura-2026"
+        pollIntervalMs={0}
+      />,
+    );
+
+    const leadingName = () =>
+      document.querySelector('.tv-team-side[data-leading="true"] .tv-team-side__name')?.textContent;
+    expect(leadingName()).toBe('Boca Juniors');
+
+    await act(async () => {
+      capturedHandlers?.onEvent({
+        eventId: 'ev-correction',
+        organizationId: 'org-1',
+        stream: 'match:m-pinned',
+        entityId: 'm-pinned',
+        eventType: 'result.superseded',
+        projectionVersion: 2,
+        createdAt: '2026-01-01T18:20:00.000Z',
+        payload: {
+          matchId: 'm-pinned',
+          result: {
+            sides: [
+              { entrantId: 'entrant-home', statistics: { goals: 1 } },
+              { entrantId: 'entrant-away', statistics: { goals: 2 } },
+            ],
+          },
+        },
+      });
+      await jest.advanceTimersByTimeAsync(0);
+    });
+
+    expect(leadingName()).toBe('River Plate');
+  });
 
   it('marks the retained TV score stale when both refresh and live connection fail', async () => {
     let capturedHandlers: RealtimeHandlers | undefined;

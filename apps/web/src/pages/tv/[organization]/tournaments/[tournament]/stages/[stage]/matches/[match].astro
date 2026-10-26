@@ -190,6 +190,9 @@ const requestedBackground =
 const background = TV_BACKGROUNDS.find((value) => value === requestedBackground) as
   TvBackground | undefined;
 const presentation = overlayMode ?? 'kiosk';
+const layoutParam = Astro.url.searchParams.get('layout');
+const layoutVariant =
+  layoutParam === 'presentation' || layoutParam === 'dashboard' ? layoutParam : 'kiosk';
 
 let initialBracket: { stageNumber: number; zones: readonly BracketZone[] } | undefined;
 if (presentation !== 'lower') {
@@ -231,6 +234,7 @@ const organizationDisplayName = organizationName ?? intl.formatMessage(messages.
     language={language}
     client:load
     presentation={presentation}
+    layoutVariant={layoutVariant}
     initial={dashboard}
     initialBracket={initialBracket}
     streamPath={streamPath}

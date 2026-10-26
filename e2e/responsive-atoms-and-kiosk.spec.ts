@@ -157,12 +157,14 @@ test.describe('TV kiosk', () => {
     await expect(sides.nth(1).locator('.tv-team-side__role')).toHaveText('Visitante');
   });
 
-  test('the spotlight team name falls back to its abbreviation in a narrow frame', async ({
-    page,
-  }) => {
+  test('the spotlight keeps the full team name accessible in a narrow frame', async ({ page }) => {
     await page.setViewportSize({ width: 480, height: 900 });
     await page.goto(TV_PATH);
-    await expect(page.locator('abbr.tv-team-side__short', { hasText: 'CAI' })).toBeVisible();
+    const homeName = page.locator('.tv-team-side__name').first();
+    await expect(homeName).toHaveText(HOME_NAME);
+    await expect(homeName).toHaveAccessibleName(HOME_NAME);
+    await expect(homeName).toHaveAttribute('title', HOME_NAME);
+    await expect(homeName.locator('abbr')).toHaveCount(0);
   });
 
   test('top performers shows a responsive player name, nationality flag, and club', async ({
