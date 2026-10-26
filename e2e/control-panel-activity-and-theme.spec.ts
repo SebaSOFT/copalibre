@@ -267,7 +267,7 @@ test.describe('Control Panel Activity Feed and Theme Polish', () => {
     await expect(page.getByText('Club creado')).toBeVisible();
 
     // Verify actor tag and reason appear
-    await expect(page.getByText('user:referee-1')).toBeVisible();
+    await expect(page.getByText('Usuario')).toHaveCount(3);
     await expect(page.getByText('Inscripción confirmada')).toBeVisible();
 
     // Verify empty placeholder is NOT visible

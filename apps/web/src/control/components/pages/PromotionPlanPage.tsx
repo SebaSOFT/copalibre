@@ -8,6 +8,7 @@ import {
   type PromotionPreviewResponse,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
+import { formatEntrant } from '../../lib/presentation-formatting.js';
 import { useToast } from '../ToastProvider.js';
 import {
   PromotionPlanTemplate,
@@ -103,10 +104,9 @@ export function PromotionPlanPage({
   );
   const { zone, entrants = [], preview, previewError } = read.data ?? {};
   function entrantLabel(entrantId: string): string {
-    return (
-      entrants.find((candidate) => candidate.entrantId === entrantId)?.displayName ??
-      entrantId.slice(-8)
-    );
+    return formatEntrant(intl, {
+      displayName: entrants.find((candidate) => candidate.entrantId === entrantId)?.displayName,
+    }).fullName;
   }
 
   async function savePlan(

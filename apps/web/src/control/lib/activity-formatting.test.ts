@@ -29,9 +29,9 @@ describe('activity-formatting', () => {
       expect(formatActivityAction('player.role-updated', 'es')).toBe('Rol de miembro actualizado');
     });
 
-    it('falls back to humanized action when encountering an unknown action', () => {
-      expect(formatActivityAction('custom-domain.action-performed')).toBe('Action performed');
-      expect(formatActivityAction('simple_action')).toBe('Simple action');
+    it('falls back to a translated generic label for an unknown action', () => {
+      expect(formatActivityAction('custom-domain.action-performed', 'en')).toBe('Other activity');
+      expect(formatActivityAction('simple_action', 'es')).toBe('Otra actividad');
     });
 
     it('uses the default locale when omitted', () => {

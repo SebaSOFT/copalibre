@@ -18,6 +18,7 @@ import { Field } from '../ui/molecules/field.js';
 import { FieldSet } from '../ui/molecules/field-set.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { formatDateTimeInputHint } from '../../lib/presentation-formatting.js';
 
 const OFFICIAL_ROLES: readonly OfficialRole[] = [
   'referee',
@@ -463,24 +464,30 @@ export function VenueManagementTemplate({
                 />
               </Field>
               <Field
+                helpText={formatDateTimeInputHint(intl)}
                 id="new-schedule-starts-at"
                 label={intl.formatMessage(messages.resourceManagementNewScheduleStartsAt)}
               >
                 <Input
                   aria-label={intl.formatMessage(messages.resourceManagementNewScheduleStartsAt)}
+                  aria-describedby="new-schedule-starts-at-help"
                   id="new-schedule-starts-at"
+                  lang={intl.locale}
                   onChange={(event) => setNewScheduleStartsAt(event.target.value)}
                   type="datetime-local"
                   value={newScheduleStartsAt}
                 />
               </Field>
               <Field
+                helpText={formatDateTimeInputHint(intl)}
                 id="new-schedule-ends-at"
                 label={intl.formatMessage(messages.resourceManagementNewScheduleEndsAt)}
               >
                 <Input
                   aria-label={intl.formatMessage(messages.resourceManagementNewScheduleEndsAt)}
+                  aria-describedby="new-schedule-ends-at-help"
                   id="new-schedule-ends-at"
+                  lang={intl.locale}
                   onChange={(event) => setNewScheduleEndsAt(event.target.value)}
                   type="datetime-local"
                   value={newScheduleEndsAt}

@@ -17,6 +17,7 @@ export function TvEventTicker({
   awayLabel,
   ariaLabel,
   language,
+  timeZone,
   initialEventIds,
 }: {
   readonly events: readonly TvMatchEvent[];
@@ -24,6 +25,7 @@ export function TvEventTicker({
   readonly awayLabel: string;
   readonly ariaLabel: string;
   readonly language: SupportedLanguage;
+  readonly timeZone?: string;
   /** Initial server-rendered ids, retained when the first live event mounts this ticker. */
   readonly initialEventIds?: readonly string[];
 }): React.JSX.Element {
@@ -41,6 +43,7 @@ export function TvEventTicker({
             className="tv-event-ticker__time"
             locale={language}
             timestamp={event.occurredAt}
+            timeZone={timeZone}
           />
           {event.side ? (
             <span className={`tv-event-ticker__side tv-event-ticker__side--${event.side}`}>

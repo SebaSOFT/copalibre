@@ -4,8 +4,12 @@
  * separate, later pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'control.dateInput.formatHint': 'Format local de date, par exemple : {example}.',
+  'control.dateTimeInput.formatHint': 'Format local de date et d’heure, par exemple : {example}.',
   'control.pageHeader.loading': 'Chargement du titre de page',
   'control.pageHeader.breadcrumb': 'Fil d’Ariane',
+  'control.pageHeader.organizationFallback': 'Organisation',
+  'control.pageHeader.tournamentFallback': 'Tournoi',
   'control.interaction.createToken': 'Créer un jeton',
   'control.interaction.pairTv': 'Associer une TV',
   'control.interaction.pairDescription': 'Associez une TV pour afficher les scores en direct.',
@@ -155,6 +159,7 @@ export const messages: Record<string, string> = {
   'control.heartbeat.revoked': 'Révoqué',
   'control.deviceHeartbeat.sectionLabel': 'État des écrans TV',
   'control.deviceHeartbeat.title': 'Écrans TV',
+  'control.deviceHeartbeat.unnamedToken': 'Écran sans nom',
   'control.deviceHeartbeat.empty': 'Aucun appareil TV provisionné pour le moment.',
   'control.deviceHeartbeat.lastSeen': 'dernier signal',
 
@@ -358,7 +363,6 @@ export const messages: Record<string, string> = {
   'control.review.columnStatus': 'Statut',
   'control.review.columnSubmitted': 'Soumise',
   'control.review.selectRow': 'Sélectionner {displayName}',
-  'control.review.idLabel': 'ID : {entrantId}',
   'control.review.contact': 'Contact',
   'control.review.teamMembers': 'Membres de l’équipe',
   'control.review.teamMembersUnavailable': 'Non disponible dans cette réponse',
@@ -560,6 +564,7 @@ export const messages: Record<string, string> = {
   'control.stageEditor.preview.matchday': 'Journée {number}',
   'control.stageEditor.preview.group': 'Groupe {letter}',
   'control.stageEditor.format.league': 'Ligue',
+  'control.match.format.bestOf': 'Au meilleur des {games}',
   'control.stageEditor.format.roundRobin': 'Toutes rondes',
   'control.stageEditor.format.singleElimination': 'Élimination simple',
   'control.stageEditor.format.doubleElimination': 'Double élimination',
@@ -1659,4 +1664,9 @@ export const messages: Record<string, string> = {
     '{match} est en cours : il ne peut être ni déplacé ni retiré maintenant',
   'control.scheduleBuilder.publishRefused':
     'L’horaire n’a pas été publié : il présente désormais des conflits, listés ci-dessous.',
+  'control.copyId.button': 'Copier l’ID',
+  'control.copyId.success': 'ID copié',
+  'control.copyId.failure': 'Impossible de copier l’ID',
+  'control.auditTrail.copyEntityId': 'Copier l’ID de l’enregistrement',
+  'control.auditTrail.copyActorId': 'Copier l’ID de l’auteur',
 };

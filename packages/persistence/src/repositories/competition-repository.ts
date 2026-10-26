@@ -465,6 +465,26 @@ export class CompetitionRepository {
     return rows.map(toGroup);
   }
 
+  async listGroupEntrantIdsOfZone(zoneId: string): Promise<ReadonlyMap<string, readonly string[]>> {
+    const rows = await this.db
+      .selectFrom('group_entrants')
+      .innerJoin('groups', 'groups.group_id', 'group_entrants.group_id')
+      .select(['group_entrants.group_id as groupId', 'group_entrants.entrant_id as entrantId'])
+      .where('groups.zone_id', '=', zoneId)
+      .orderBy('groups.number')
+      .orderBy('group_entrants.entrant_id')
+      .execute();
+    const entrantIdsByGroup = new Map<string, string[]>();
+
+    for (const row of rows) {
+      const entrantIds = entrantIdsByGroup.get(row.groupId) ?? [];
+      entrantIds.push(row.entrantId);
+      entrantIdsByGroup.set(row.groupId, entrantIds);
+    }
+
+    return entrantIdsByGroup;
+  }
+
   async listEntrantIdsOfZone(zoneId: string): Promise<readonly string[]> {
     const rows = await this.db
       .selectFrom('zone_entrants')

@@ -34,7 +34,22 @@ describe('PromotionPlanPage', () => {
     const { container } = render(
       withIntl(
         <PromotionPlanPage
-          client={stubClient()}
+          client={stubClient({
+            listRegistrations: async () => [
+              {
+                entrantId: 'entrant-1',
+                tournamentId: 'tournament-1',
+                status: 'accepted',
+                displayName: 'Club Atlético',
+              },
+              {
+                entrantId: 'entrant-2',
+                tournamentId: 'tournament-1',
+                status: 'accepted',
+                displayName: 'Deportivo Cuyo',
+              },
+            ],
+          })}
           organizationAlias="liga-mendocina"
           stageNumber={1}
           tournamentAlias="apertura-2026"
@@ -44,11 +59,13 @@ describe('PromotionPlanPage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /promotion plan/i }));
-    await screen.findByText(/ntrant-1/i);
+    await screen.findByText((_, element) => element?.textContent === '1. Club Atlético');
     expect(container.querySelector('.cl-list-screen')).not.toBeNull();
     expect(container.querySelector('.cl-page-header')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
-    expect(screen.getByText(/ntrant-1/i)).toBeDefined();
-    expect(screen.getByText(/ntrant-2/i)).toBeDefined();
+    expect(
+      screen.getByText((_, element) => element?.textContent === '2. Deportivo Cuyo'),
+    ).toBeDefined();
+    expect(screen.queryByText(/entrant-[12]/)).toBeNull();
   });
 });

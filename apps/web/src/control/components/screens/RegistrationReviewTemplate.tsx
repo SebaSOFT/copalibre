@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { Alert, type AlertTone } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { Button } from '../ui/atoms/button.js';
+import { CopyIdButton } from '../ui/atoms/copy-id-button.js';
 import {
   AbbreviationReviewSection,
   type AbbreviationCandidateRow,
@@ -57,6 +58,8 @@ import {
   type StatusFilter,
 } from '../../lib/review.js';
 import { messages } from '../../i18n/messages.en.js';
+import { formatDateTime } from '../../lib/presentation-formatting.js';
+import { PageHeaderContext } from '../ui/organisms/page-header.js';
 
 export interface ReviewRegistrationRow extends RegistrationRow {
   readonly contactEmail: string;
@@ -85,6 +88,7 @@ const STATUS_LABELS: Record<RegistrationRow['status'], MessageDescriptor> = {
 export function RegistrationReviewTemplate({
   organizationAlias,
   tournamentName,
+  tournamentAlias,
   rows,
   now,
   loadStatus = 'ready',
@@ -107,6 +111,7 @@ export function RegistrationReviewTemplate({
   onEditTeamMembers,
 }: {
   readonly organizationAlias: string;
+  readonly tournamentAlias: string;
   readonly tournamentName: string;
   readonly rows: readonly ReviewRegistrationRow[];
   readonly now: string;
@@ -149,6 +154,7 @@ export function RegistrationReviewTemplate({
   ) => Promise<void> | void;
 }): React.JSX.Element {
   const intl = useIntl();
+  const pageHeader = useContext(PageHeaderContext);
   const [state, setState] = useState(() => initialReview(10));
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [dismissedCsvStatus, setDismissedCsvStatus] = useState<string>();
@@ -171,9 +177,13 @@ export function RegistrationReviewTemplate({
   const allVisibleSelected =
     visible.length > 0 && visible.every((row) => state.selected.includes(row.entrantId));
 
+  const organizationName =
+    pageHeader?.organizationName?.trim() ||
+    pageHeader?.organizationNameFallback ||
+    intl.formatMessage(messages.pageHeaderOrganizationFallback);
   const breadcrumbNode = (
     <span>
-      {organizationAlias} &gt; {tournamentName}
+      {organizationName} &gt; {tournamentName}
     </span>
   );
 
@@ -185,9 +195,9 @@ export function RegistrationReviewTemplate({
         <>
           <a
             className="cl-focusable"
-            href={`/control/${organizationAlias}/tournaments/${tournamentName}/settings`}
+            href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/settings`}
             onClick={controlLinkClick(
-              `/control/${organizationAlias}/tournaments/${tournamentName}/settings`,
+              `/control/${organizationAlias}/tournaments/${tournamentAlias}/settings`,
             )}
           >
             <FormattedMessage {...messages.tournamentSettingsLink} />
@@ -285,16 +295,19 @@ export function RegistrationReviewTemplate({
                   )}
                   {row.displayName}
                 </strong>
-                <small className="cl-label">
-                  {intl.formatMessage(messages.reviewIdLabel, { entrantId: row.entrantId })}
-                </small>
               </span>
               <span className="cl-badge">{intl.formatMessage(STATUS_LABELS[row.status])}</span>
               <time className="cl-label" dateTime={row.submittedAt}>
-                {row.submittedAt}
+                {formatDateTime(intl, row.submittedAt, pageHeader?.organizationTimeZone)}
               </time>
             </summary>
             <div className="cl-card__content">
+              <CopyIdButton
+                copiedLabel={intl.formatMessage(messages.copyIdSuccess)}
+                failedLabel={intl.formatMessage(messages.copyIdFailure)}
+                label={intl.formatMessage(messages.copyIdButton)}
+                value={row.entrantId}
+              />
               <FieldValue
                 label={intl.formatMessage(messages.reviewContact)}
                 value={row.contactEmail}
@@ -325,7 +338,10 @@ export function RegistrationReviewTemplate({
                           gap: 'var(--cl-space-1)',
                         }}
                       >
-                        <span>{member.displayName || member.personId}</span>
+                        <span>
+                          {member.displayName ||
+                            intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
+                        </span>
                         <span
                           className={`cl-badge ${ROSTER_ROLE_ACCENTS[member.role as PlayerRole] ?? 'cl-state--muted'}`}
                           data-testid={`role-badge-${member.personId}`}
@@ -962,7 +978,7 @@ function EditTeamMembersDialog({
     row.teamMembersDetailed && row.teamMembersDetailed.length > 0
       ? row.teamMembersDetailed.map((m) => ({
           personId: m.personId,
-          displayName: m.displayName || m.personId,
+          displayName: m.displayName || intl.formatMessage(messages.matchConsoleUnnamedEntrant),
           role: m.role as PlayerRole,
           nationality: m.nationality,
           photoObjectId: m.photoObjectId,

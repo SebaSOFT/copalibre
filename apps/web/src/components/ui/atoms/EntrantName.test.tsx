@@ -29,9 +29,12 @@ describe('EntrantName', () => {
     Object.assign(globalThis, { ResizeObserver: ResizeObserverMock });
   });
 
-  it('uses the persisted abbreviation with the full name as its title when constrained', () => {
+  it('uses the persisted abbreviation with the full accessible name when constrained', () => {
     render(<EntrantName fullName="Casa de Italia" abbreviation="CDI" />);
-    expect(screen.getByTitle('Casa de Italia').textContent).toBe('CDI');
+    const name = screen.getByTestId('entrant-name');
+    expect(name.textContent).toBe('CDI');
+    expect(name.getAttribute('aria-label')).toBe('Casa de Italia');
+    expect(name.getAttribute('title')).toBeNull();
   });
 
   it('keeps the full name when it fits', () => {

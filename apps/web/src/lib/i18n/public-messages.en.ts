@@ -228,6 +228,62 @@ export const messages = defineMessages({
     id: 'publicWeb.ruleset.format.ffaLeague',
     defaultMessage: 'FFA League',
   },
+  rulesetValueUnknown: {
+    id: 'publicWeb.ruleset.valueUnknown',
+    defaultMessage: 'Not available',
+  },
+  presentationEntrantUnknown: {
+    id: 'publicWeb.presentation.entrantUnknown',
+    defaultMessage: 'Unnamed entrant',
+  },
+  presentationActorSystem: {
+    id: 'publicWeb.presentation.actorSystem',
+    defaultMessage: 'System',
+  },
+  presentationActorDemoDataset: {
+    id: 'publicWeb.presentation.actorDemoDataset',
+    defaultMessage: 'Demo dataset loader',
+  },
+  presentationActorUser: {
+    id: 'publicWeb.presentation.actorUser',
+    defaultMessage: 'User',
+  },
+  rulesetTiebreakerPoints: {
+    id: 'publicWeb.ruleset.tiebreaker.points',
+    defaultMessage: 'Points',
+  },
+  rulesetTiebreakerScoreDifference: {
+    id: 'publicWeb.ruleset.tiebreaker.scoreDifference',
+    defaultMessage: 'Score difference',
+  },
+  rulesetTiebreakerGoalAverage: {
+    id: 'publicWeb.ruleset.tiebreaker.goalAverage',
+    defaultMessage: 'Goal average',
+  },
+  rulesetTiebreakerGoalsFor: {
+    id: 'publicWeb.ruleset.tiebreaker.goalsFor',
+    defaultMessage: 'Goals for',
+  },
+  rulesetTiebreakerGoalsAgainst: {
+    id: 'publicWeb.ruleset.tiebreaker.goalsAgainst',
+    defaultMessage: 'Goals against',
+  },
+  rulesetTiebreakerMatchesWon: {
+    id: 'publicWeb.ruleset.tiebreaker.matchesWon',
+    defaultMessage: 'Matches won',
+  },
+  rulesetTiebreakerSetsWon: {
+    id: 'publicWeb.ruleset.tiebreaker.setsWon',
+    defaultMessage: 'Sets won',
+  },
+  rulesetTiebreakerGamesWon: {
+    id: 'publicWeb.ruleset.tiebreaker.gamesWon',
+    defaultMessage: 'Games won',
+  },
+  rulesetTiebreakerHeadToHead: {
+    id: 'publicWeb.ruleset.tiebreaker.headToHead',
+    defaultMessage: 'Head-to-head',
+  },
 
   // StandingsTable.astro
   standingsHeading: { id: 'publicWeb.standings.heading', defaultMessage: 'Standings' },

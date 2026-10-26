@@ -1386,6 +1386,11 @@ export interface GroupResponse {
   readonly number: number;
   readonly name: string;
   readonly entrantIds?: readonly string[];
+  readonly entrants?: readonly {
+    readonly entrantId: string;
+    readonly displayName?: string;
+    readonly abbreviation?: string;
+  }[];
 }
 
 /** Shared by a zone's and a group's rename action — the only field either edits. */
@@ -1711,7 +1716,7 @@ export interface RegistrationResponse {
   readonly abbreviation?: string;
   readonly teamId?: string;
   readonly personId?: string;
-  /** A person entrant's display name; absent for a team entrant. */
+  /** The person or team entrant's display name. */
   readonly displayName?: string;
   readonly nationality?: string;
   readonly photoObjectId?: string;
@@ -1873,6 +1878,7 @@ export interface MyOrganizationResponse {
   readonly organizationId: string;
   readonly organizationAlias: string;
   readonly organizationName: string;
+  readonly timezone: string;
   readonly role: OrganizationRole;
   readonly emblemObjectId?: string;
 }
@@ -2067,6 +2073,10 @@ export interface MatchConsoleResponse {
   readonly rosters: readonly ConsoleRoster[];
   readonly rosterRoles: readonly ConsoleRosterRole[];
   readonly eligibleStaffIds: readonly string[];
+  readonly eligibleStaff?: readonly {
+    readonly personId: string;
+    readonly displayName: string;
+  }[];
   readonly entrants: readonly ConsoleEntrant[];
   /** Persisted graph sources; present only on bracket-graph matches. */
   readonly nodeKey?: string;

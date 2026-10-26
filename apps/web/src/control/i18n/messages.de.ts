@@ -4,8 +4,12 @@
  * separate, later pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'control.dateInput.formatHint': 'Lokales Datumsformat, zum Beispiel: {example}.',
+  'control.dateTimeInput.formatHint': 'Lokales Datums- und Uhrzeitformat, zum Beispiel: {example}.',
   'control.pageHeader.loading': 'Seitenüberschrift wird geladen',
   'control.pageHeader.breadcrumb': 'Brotkrumennavigation',
+  'control.pageHeader.organizationFallback': 'Organisation',
+  'control.pageHeader.tournamentFallback': 'Turnier',
   'control.interaction.createToken': 'Token erstellen',
   'control.interaction.pairTv': 'TV verbinden',
   'control.interaction.pairDescription': 'Verbinde einen Fernseher, um Live-Ergebnisse anzuzeigen.',
@@ -156,6 +160,7 @@ export const messages: Record<string, string> = {
   'control.heartbeat.revoked': 'Widerrufen',
   'control.deviceHeartbeat.sectionLabel': 'Status der TV-Bildschirme',
   'control.deviceHeartbeat.title': 'TV-Bildschirme',
+  'control.deviceHeartbeat.unnamedToken': 'Unbenannter Bildschirm',
   'control.deviceHeartbeat.empty': 'Noch keine TV-Geräte eingerichtet.',
   'control.deviceHeartbeat.lastSeen': 'letztes Signal',
 
@@ -359,7 +364,6 @@ export const messages: Record<string, string> = {
   'control.review.columnStatus': 'Status',
   'control.review.columnSubmitted': 'Eingereicht',
   'control.review.selectRow': '{displayName} auswählen',
-  'control.review.idLabel': 'ID: {entrantId}',
   'control.review.contact': 'Kontakt',
   'control.review.teamMembers': 'Teammitglieder',
   'control.review.teamMembersUnavailable': 'In dieser Antwort nicht verfügbar',
@@ -561,6 +565,7 @@ export const messages: Record<string, string> = {
   'control.stageEditor.preview.matchday': 'Spieltag {number}',
   'control.stageEditor.preview.group': 'Gruppe {letter}',
   'control.stageEditor.format.league': 'Liga',
+  'control.match.format.bestOf': 'Best-of-{games}',
   'control.stageEditor.format.roundRobin': 'Rundenturnier',
   'control.stageEditor.format.singleElimination': 'Einfaches K.-o.',
   'control.stageEditor.format.doubleElimination': 'Doppel-K.-o.',
@@ -1664,4 +1669,9 @@ export const messages: Record<string, string> = {
     '{match} läuft gerade: Es kann jetzt weder verschoben noch zurückgezogen werden',
   'control.scheduleBuilder.publishRefused':
     'Der Spielplan wurde nicht veröffentlicht: Er hat jetzt Konflikte, die unten aufgeführt sind.',
+  'control.copyId.button': 'ID kopieren',
+  'control.copyId.success': 'ID kopiert',
+  'control.copyId.failure': 'ID konnte nicht kopiert werden',
+  'control.auditTrail.copyEntityId': 'Datensatz-ID kopieren',
+  'control.auditTrail.copyActorId': 'Akteurs-ID kopieren',
 };

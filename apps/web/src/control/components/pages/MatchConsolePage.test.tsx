@@ -171,7 +171,7 @@ describe('MatchConsolePage', () => {
     const toggle = await screen.findByRole('button', { name: 'Show bracket' });
     fireEvent.click(toggle);
 
-    const focusedNode = await screen.findByText('WB-R1-M1');
+    const focusedNode = await screen.findByText('Round 1, match 1');
     expect(focusedNode.closest('[data-match]')?.getAttribute('data-focused')).toBe('true');
   });
 

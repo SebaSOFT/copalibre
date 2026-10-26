@@ -88,7 +88,7 @@ test('edits a ruleset override from the tournament ruleset screen and sees the c
   // existing edit field, reflecting the tournament's current override, and
   // its tournament-facts block shows the sibling settings fetch.
   await expect(page.getByText('Reglas')).toBeVisible();
-  await expect(page.getByText('Apertura 2026')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Apertura/ })).toBeVisible();
   // Shown twice now: the read-only summary's label, and the editor field's own label.
   await expect(page.getByText('Points per win').first()).toBeVisible();
   await expect(page.getByText('Valor actual: 3')).toBeVisible();

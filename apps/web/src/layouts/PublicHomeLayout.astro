@@ -103,7 +103,6 @@ const localePrefix = getLocalePrefix(locale);
               />
               <div class="cl-org-info">
                 <span class="cl-org-name">{org.name}</span>
-                <span class="cl-org-alias">{`/${org.alias}`}</span>
               </div>
             </a>
           ))}
@@ -291,10 +290,5 @@ const localePrefix = getLocalePrefix(locale);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .cl-org-alias {
-    font-size: 0.75rem;
-    color: var(--cl-text-muted);
   }
 </style>

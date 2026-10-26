@@ -6,8 +6,12 @@
  * two — `react-intl`'s `Intl.PluralRules` selects the right branch for `ru`.
  */
 export const messages: Record<string, string> = {
+  'control.dateInput.formatHint': 'Локальный формат даты, например: {example}.',
+  'control.dateTimeInput.formatHint': 'Локальный формат даты и времени, например: {example}.',
   'control.pageHeader.loading': 'Загрузка заголовка страницы',
   'control.pageHeader.breadcrumb': 'Навигационная цепочка',
+  'control.pageHeader.organizationFallback': 'Организация',
+  'control.pageHeader.tournamentFallback': 'Турнир',
   'control.interaction.createToken': 'Создать токен',
   'control.interaction.pairTv': 'Подключить ТВ',
   'control.interaction.pairDescription':
@@ -157,6 +161,7 @@ export const messages: Record<string, string> = {
   'control.heartbeat.revoked': 'Отозвано',
   'control.deviceHeartbeat.sectionLabel': 'Статус ТВ-экранов',
   'control.deviceHeartbeat.title': 'ТВ-экраны',
+  'control.deviceHeartbeat.unnamedToken': 'Экран без названия',
   'control.deviceHeartbeat.empty': 'ТВ-устройства ещё не подключены.',
   'control.deviceHeartbeat.lastSeen': 'последний сигнал',
 
@@ -357,7 +362,6 @@ export const messages: Record<string, string> = {
   'control.review.columnStatus': 'Статус',
   'control.review.columnSubmitted': 'Отправлено',
   'control.review.selectRow': 'Выбрать {displayName}',
-  'control.review.idLabel': 'ID: {entrantId}',
   'control.review.contact': 'Контакт',
   'control.review.teamMembers': 'Участники команды',
   'control.review.teamMembersUnavailable': 'Недоступно в этом ответе',
@@ -557,6 +561,7 @@ export const messages: Record<string, string> = {
   'control.stageEditor.preview.matchday': 'Тур {number}',
   'control.stageEditor.preview.group': 'Группа {letter}',
   'control.stageEditor.format.league': 'Лига',
+  'control.match.format.bestOf': 'Серия до {games} игр',
   'control.stageEditor.format.roundRobin': 'Круговой турнир',
   'control.stageEditor.format.singleElimination': 'Олимпийская система',
   'control.stageEditor.format.doubleElimination': 'Двойное выбывание',
@@ -1641,4 +1646,9 @@ export const messages: Record<string, string> = {
     '{match} идёт сейчас: его нельзя перенести или снять',
   'control.scheduleBuilder.publishRefused':
     'Расписание не опубликовано: в нём есть конфликты, они перечислены ниже.',
+  'control.copyId.button': 'Копировать ID',
+  'control.copyId.success': 'ID скопирован',
+  'control.copyId.failure': 'Не удалось скопировать ID',
+  'control.auditTrail.copyEntityId': 'Копировать ID записи',
+  'control.auditTrail.copyActorId': 'Копировать ID автора',
 };

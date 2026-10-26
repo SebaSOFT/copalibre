@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
+import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT = 'apertura-2026';
@@ -46,6 +47,7 @@ const scheduled = {
 const overview = {
   organizationAlias: ORGANIZATION,
   organizationName: 'Liga Mendocina',
+  organizationTimeZone: 'America/Argentina/Mendoza',
   tournamentAlias: TOURNAMENT,
   tournamentName: 'Apertura 2026',
   seasonName: 'Apertura 2026',
@@ -93,11 +95,12 @@ test.beforeEach(() => {
   liveResponse = { matches: [] };
 });
 
-test('empty live view has a localized next kickoff and owned leaders table without JavaScript', async ({
+test('empty live view has a localized next kickoff and owned leaders table without JavaScript @visible-identifier-lint', async ({
   page,
 }) => {
   const response = await page.goto(`/es${PAGE}`);
   expect(response?.status()).toBe(200);
+  await expectNoVisibleIdentifiers(page, FIXTURE_ALIASES);
 
   await expect(page.getByText('No hay partidos en vivo')).toBeVisible();
   await expect(page.getByText('Próximo partido programado:')).toBeVisible();
@@ -135,6 +138,7 @@ test('each active match renders once in the live hero without JavaScript', async
 
   const hero = page.locator('.cl-match-card-grid').first();
   await expect(hero.locator('article')).toHaveCount(1);
+  await expect(hero.getByRole('article', { name: 'Andes vs Concepción' })).toBeVisible();
   await expect(hero.getByText('Andes')).toBeVisible();
   await expect(hero.getByText('Concepción')).toBeVisible();
   await expect(page.getByText('No live matches in progress')).toHaveCount(0);

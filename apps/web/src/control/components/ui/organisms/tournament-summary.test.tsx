@@ -26,8 +26,8 @@ const FACTS: TournamentSummaryFacts = {
 describe('TournamentSummary', () => {
   it('renders every stage and every registration fact when provided', () => {
     render(withIntl(<TournamentSummary discipline={DISCIPLINE} facts={FACTS} />));
-    expect(screen.getByText('Group stage: round-robin')).not.toBeNull();
-    expect(screen.getByText('Playoffs: single-elimination')).not.toBeNull();
+    expect(screen.getByText('Group stage: Round robin')).not.toBeNull();
+    expect(screen.getByText('Playoffs: Single elimination')).not.toBeNull();
     expect(screen.getByText('Public registration is open.')).not.toBeNull();
     expect(screen.getByText('Check-in is required.')).not.toBeNull();
     expect(screen.getByText('Check-in closes at 2026-10-01T18:00:00.000Z.')).not.toBeNull();
@@ -60,7 +60,7 @@ describe('TournamentSummary', () => {
       ),
     );
     expect(
-      screen.getByText('Zones: Copa Oro (single-elimination), Liga (round-robin)'),
+      screen.getByText('Zones: Copa Oro (Single elimination), Liga (Round robin)'),
     ).not.toBeNull();
     expect(screen.getAllByText(/^Zones:/)).toHaveLength(1);
   });

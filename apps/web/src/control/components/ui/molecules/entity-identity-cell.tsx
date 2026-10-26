@@ -1,6 +1,6 @@
 /**
  * Original composition — an identity chip (avatar initials + primary
- * label + a truncated secondary id) for one row of any listing keyed by
+ * label) for one row of any listing keyed by
  * email/principal (roles, invitations, an installation's super-admins).
  * Extracted from an inline `RoleUserCell` definition in
  * `RolesPermissionsTemplate.tsx`: single-use in that screen does not make it a
@@ -13,10 +13,9 @@
  */
 export interface EntityIdentityCellProps {
   readonly email: string;
-  readonly id: string;
 }
 
-export function EntityIdentityCell({ email, id }: EntityIdentityCellProps): React.JSX.Element {
+export function EntityIdentityCell({ email }: EntityIdentityCellProps): React.JSX.Element {
   const initials = email
     .split('@')[0]
     .split(/[._-]/)
@@ -27,10 +26,7 @@ export function EntityIdentityCell({ email, id }: EntityIdentityCellProps): Reac
   return (
     <div className="cl-role-user">
       <span className="cl-role-user__avatar">{initials || 'U'}</span>
-      <span>
-        <strong>{email}</strong>
-        <small className="cl-role-user__id">ID {id.slice(-8)}</small>
-      </span>
+      <strong>{email}</strong>
     </div>
   );
 }

@@ -608,7 +608,7 @@ const [compactSample] = referenceJourneyBracket(true);
       <MatchCardGrid intl={intl} localePrefix="" model={overview} />
     )}
     {component === 'match-hero' && (
-      <MatchHero locale={intl.locale} model={matchReport} statusLabel="LIVE" />
+      <MatchHero intl={intl} locale={intl.locale} model={matchReport} statusLabel="LIVE" />
     )}
     {component === 'match-node' && (
       <MatchNode
@@ -694,11 +694,7 @@ const [compactSample] = referenceJourneyBracket(true);
       <OrganizationClubs clubs={referenceClubs()} intl={intl} />
     )}
     {component === 'organization-header' && (
-      <OrganizationHeader
-        intl={intl}
-        organizationAlias="reference-league"
-        organizationName="Reference League"
-      />
+      <OrganizationHeader intl={intl} organizationName="Reference League" />
     )}
     {component === 'player-profile-view' && (
       <PlayerProfileView

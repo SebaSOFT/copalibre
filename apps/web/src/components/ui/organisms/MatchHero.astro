@@ -7,16 +7,22 @@ import { rescheduledStatement } from '../../../lib/reschedule.ts';
 import { Badge } from '../atoms/Badge.tsx';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
 import type { MatchReportModel } from '../../../lib/match-report.ts';
+import { formatEntrant } from '../../../lib/i18n/public-intl.ts';
+import type { IntlShape } from 'react-intl';
 
 export interface Props {
   readonly model: MatchReportModel;
+  readonly intl: IntlShape;
   readonly locale: string;
+  readonly timeZone?: string;
   /** The match state in the page language. The stage/round/match position lives in the breadcrumb. */
   readonly statusLabel: string;
   readonly rescheduledLabel?: string;
 }
 
-const { model, locale, statusLabel, rescheduledLabel } = Astro.props;
+const { model, intl, locale, timeZone, statusLabel, rescheduledLabel } = Astro.props;
+const home = formatEntrant(intl, model.home);
+const away = formatEntrant(intl, model.away);
 const rescheduled =
   model.status === 'upcoming'
     ? rescheduledStatement(model.rescheduledFrom, model.venueName, locale, rescheduledLabel)
@@ -30,19 +36,25 @@ const rescheduled =
 
   <div class="cl-scoreboard">
     <div class="cl-scoreboard__side cl-scoreboard__side--home">
-      <span class="cl-team-name">{model.home.abbreviation ?? model.home.name}</span>
+      <span class="cl-team-identity">
+        <span class="cl-team-name">{home.fullName}</span>
+        {home.abbreviation && <span class="cl-team-abbreviation">{home.abbreviation}</span>}
+      </span>
       <span class="cl-team-score">{model.home.score ?? '—'}</span>
     </div>
     <div class="cl-scoreboard__divider">–</div>
     <div class="cl-scoreboard__side cl-scoreboard__side--away">
       <span class="cl-team-score">{model.away.score ?? '—'}</span>
-      <span class="cl-team-name">{model.away.abbreviation ?? model.away.name}</span>
+      <span class="cl-team-identity">
+        <span class="cl-team-name">{away.fullName}</span>
+        {away.abbreviation && <span class="cl-team-abbreviation">{away.abbreviation}</span>}
+      </span>
     </div>
   </div>
 
   {model.scheduledAt ? (
     <p class="cl-match-venue">
-      <ResponsiveTimestamp locale={locale} timestamp={model.scheduledAt} />
+      <ResponsiveTimestamp locale={locale} timestamp={model.scheduledAt} timeZone={timeZone} />
       {model.venueName ? ` · ${model.venueName}` : ''}
     </p>
   ) : model.status === 'upcoming' ? (
@@ -106,6 +118,26 @@ const rescheduled =
     font-size: 1.5rem;
     font-weight: 700;
     font-family: var(--cl-font-display);
+  }
+
+  .cl-team-identity {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .cl-scoreboard__side--home .cl-team-identity {
+    align-items: flex-end;
+  }
+
+  .cl-scoreboard__side--away .cl-team-identity {
+    align-items: flex-start;
+  }
+
+  .cl-team-abbreviation {
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-sm);
   }
 
   .cl-team-score {

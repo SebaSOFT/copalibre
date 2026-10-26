@@ -14,6 +14,7 @@ import { Stack } from '../atoms/layout/stack.js';
 import { messages } from '../../../i18n/messages.en.js';
 import { DisciplineSummary, type DisciplineSummarySection } from './discipline-summary.js';
 import type { DisciplineSummaryData } from '../../../lib/discipline-summary.js';
+import { formatEnum } from '../../../lib/presentation-formatting.js';
 
 export interface TournamentSummaryStage {
   readonly name: string;
@@ -78,14 +79,17 @@ export function TournamentSummary({
                       <p>
                         {intl.formatMessage(messages.tournamentSummaryStageLine, {
                           name: stage.name,
-                          format: stage.format,
+                          format: formatEnum(intl, 'format', stage.format),
                         })}
                       </p>
                       {stage.zones !== undefined && stage.zones.length > 0 && (
                         <p>
                           {intl.formatMessage(messages.tournamentSummaryStageZonesLine, {
                             zones: intl.formatList(
-                              stage.zones.map((zone) => `${zone.name} (${zone.format})`),
+                              stage.zones.map(
+                                (zone) =>
+                                  `${zone.name} (${formatEnum(intl, 'format', zone.format)})`,
+                              ),
                               { type: 'unit' },
                             ),
                           })}

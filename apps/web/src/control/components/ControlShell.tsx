@@ -54,6 +54,8 @@ export function ControlShell({
   const [locale, setLocale] = useState<SupportedLanguage>(() => activeControlLanguage());
   const route = parseControlPath(useControlPath());
   const activeItem = active ?? controlNavItemForScreen(route?.screen);
+  const tournamentAlias =
+    route !== undefined && 'tournamentAlias' in route ? route.tournamentAlias : undefined;
 
   return (
     <ControlIntl locale={locale}>
@@ -68,6 +70,7 @@ export function ControlShell({
             setLocale(next);
           }}
           organizationAlias={organizationAlias}
+          tournamentAlias={tournamentAlias}
         >
           {children}
         </ControlShellChrome>
@@ -79,6 +82,7 @@ export function ControlShell({
 function ControlShellChrome({
   client,
   organizationAlias,
+  tournamentAlias,
   active,
   helpPath,
   locale,
@@ -87,6 +91,7 @@ function ControlShellChrome({
 }: {
   readonly client?: ControlApiClient;
   readonly organizationAlias?: string;
+  readonly tournamentAlias?: string;
   readonly active: ControlNavItem | undefined;
   readonly helpPath: string;
   readonly locale: SupportedLanguage;
@@ -98,6 +103,16 @@ function ControlShellChrome({
   const [role, setRole] = useState<OrganizationRole | undefined>(undefined);
   const [currentOrg, setCurrentOrg] = useState<MyOrganizationResponse | undefined>(undefined);
   const [organizationLookupSettledAlias, setOrganizationLookupSettledAlias] = useState<string>();
+  const tournamentHeaderKey = `${organizationAlias ?? ''}:${tournamentAlias ?? ''}`;
+  const [tournamentHeader, setTournamentHeader] = useState<{
+    readonly key: string;
+    readonly name?: string;
+  }>();
+  const canLoadTournamentHeader =
+    tournamentAlias !== undefined &&
+    (client === undefined || client.fetchTournamentSettings !== undefined);
+  const currentTournamentHeader =
+    tournamentHeader?.key === tournamentHeaderKey ? tournamentHeader : undefined;
   useEffect(() => {
     if (!organizationAlias) return;
     let cancelled = false;
@@ -126,6 +141,33 @@ function ControlShellChrome({
       cancelled = true;
     };
   }, [client, organizationAlias]);
+  useEffect(() => {
+    if (!organizationAlias || !tournamentAlias) return;
+    let cancelled = false;
+    const api =
+      client ??
+      createControlApiClient({
+        fetch: globalThis.fetch.bind(globalThis),
+        accessToken: () => controlTokenStore.read(),
+      });
+    if (!api.fetchTournamentSettings) return;
+    void api
+      .fetchTournamentSettings(organizationAlias, tournamentAlias)
+      .then(({ name }) => {
+        if (cancelled) return;
+        const resolvedName = name.trim();
+        setTournamentHeader({
+          key: tournamentHeaderKey,
+          ...(resolvedName ? { name: resolvedName } : {}),
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setTournamentHeader({ key: tournamentHeaderKey });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [client, organizationAlias, tournamentAlias, tournamentHeaderKey]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sessionReconnecting, setSessionReconnecting] = useState(false);
   useEffect(() => {
@@ -282,6 +324,18 @@ function ControlShellChrome({
                 currentOrg !== undefined && currentOrg.organizationAlias === organizationAlias
                   ? currentOrg.organizationName
                   : undefined,
+              organizationNameFallback: intl.formatMessage(messages.pageHeaderOrganizationFallback),
+              organizationTimeZone:
+                currentOrg !== undefined && currentOrg.organizationAlias === organizationAlias
+                  ? currentOrg.timezone
+                  : undefined,
+              tournamentAlias,
+              tournamentName: currentTournamentHeader?.name,
+              tournamentNameFallback: intl.formatMessage(messages.pageHeaderTournamentFallback),
+              tournamentNameLoading:
+                tournamentAlias !== undefined &&
+                canLoadTournamentHeader &&
+                currentTournamentHeader === undefined,
               organizationNameLoading:
                 organizationAlias !== undefined &&
                 organizationLookupSettledAlias !== organizationAlias,

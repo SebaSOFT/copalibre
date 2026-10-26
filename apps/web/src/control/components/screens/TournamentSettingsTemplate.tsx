@@ -22,6 +22,7 @@ import {
 } from '../../lib/api-client.js';
 import { TournamentSummary } from '../ui/organisms/tournament-summary.js';
 import { fieldValueAt, mergeOverrides } from '../../lib/discipline-summary.js';
+import { formatDateTimeInputHint } from '../../lib/presentation-formatting.js';
 import type { ConfigFieldPolicies } from '@copalibre/domain';
 import { messages } from '../../i18n/messages.en.js';
 
@@ -276,11 +277,14 @@ export function TournamentSettingsTemplate({
               />
             </Field>
             <Field
+              helpText={formatDateTimeInputHint(intl)}
               id="settings-check-in-closes-at"
               label={intl.formatMessage(messages.settingsCheckInClosesAtLabel)}
             >
               <Input
+                aria-describedby="settings-check-in-closes-at-help"
                 id="settings-check-in-closes-at"
+                lang={intl.locale}
                 onChange={(event) => setCheckInClosesAt(event.target.value)}
                 type="datetime-local"
                 value={checkInClosesAt}

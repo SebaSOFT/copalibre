@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { ActivityEntry } from '../lib/dashboard.js';
 import { formatActivityAction, formatActivityReason } from '../lib/activity-formatting.js';
+import { formatActor } from '../lib/presentation-formatting.js';
 import { messages } from '../i18n/messages.en.js';
 import { ResponsiveTimestamp } from '../../components/ui/atoms/ResponsiveTimestamp.js';
 import { Badge } from './ui/atoms/badge.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
+import { PageHeaderContext } from './ui/organisms/page-header.js';
 
 /**
  * The organization dashboard's recent activity feed.
@@ -23,6 +25,7 @@ export function ActivityLog({
   readonly now?: number;
 }): React.JSX.Element {
   const intl = useIntl();
+  const pageHeader = useContext(PageHeaderContext);
   const [currentNow] = useState(() => now ?? Date.now());
   const locale = intl.locale || 'es';
 
@@ -31,18 +34,17 @@ export function ActivityLog({
       key: 'action',
       header: <FormattedMessage {...messages.auditTrailColumnAction} />,
       render: (entry) => (
-        <>
-          <strong className="cl-activity-feed__action">
-            {formatActivityAction(entry.action, locale)}
-          </strong>{' '}
-          <code className="cl-label cl-activity-feed__action-code">{entry.action}</code>
-        </>
+        <strong className="cl-activity-feed__action">
+          {formatActivityAction(entry.action, locale)}
+        </strong>
       ),
     },
     {
       key: 'actor',
       header: <FormattedMessage {...messages.auditTrailColumnActor} />,
-      render: (entry) => <Badge className="cl-state--muted" label={entry.actor} />,
+      render: (entry) => (
+        <Badge className="cl-state--muted" label={formatActor(intl, entry.actor)} />
+      ),
     },
     {
       key: 'occurredAt',
@@ -54,6 +56,7 @@ export function ActivityLog({
           locale={locale}
           referenceDate={currentNow}
           timestamp={entry.occurredAt}
+          timeZone={pageHeader?.organizationTimeZone}
         />
       ),
     },

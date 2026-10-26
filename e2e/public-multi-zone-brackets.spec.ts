@@ -153,11 +153,11 @@ test('renders one bracket diagram per zone with a jump-list, real entrant data, 
   // (`.cl-bracket-stage__node` is the wrapper `championshipMatch` marks, one level above the
   // match card itself); silver's two concurrent deepest-round crosses are an ambiguous terminal
   // round — declined, exactly the same "don't guess" rule `resolveTournamentWinners` applies — unaffected by gold's.
-  const goldNode = page.locator('.cl-bracket-stage__node', {
+  const goldNode = page.locator('.cl-bracket-stage__scroll--full .cl-bracket-stage__node', {
     has: page.locator('[data-match="1"]', { hasText: 'Talleres' }),
   });
   await expect(goldNode).toHaveClass(/cl-bracket-stage__node--championship/);
-  const silverNode = page.locator('.cl-bracket-stage__node', {
+  const silverNode = page.locator('.cl-bracket-stage__scroll--full .cl-bracket-stage__node', {
     has: page.locator('[data-match="2"]', { hasText: 'Gimnasia' }),
   });
   await expect(silverNode).not.toHaveClass(/cl-bracket-stage__node--championship/);

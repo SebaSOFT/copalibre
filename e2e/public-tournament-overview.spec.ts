@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
+import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
 
 /**
  * The tournament overview's progress card (an overall bar, one per stage and
@@ -15,6 +16,7 @@ const PAGE = `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const overview = {
   organizationAlias: ORGANIZATION,
   organizationName: 'Liga Mendocina',
+  organizationTimeZone: 'America/Argentina/Mendoza',
   tournamentAlias: TOURNAMENT_ALIAS,
   tournamentName: 'Apertura 2026',
   seasonName: 'Apertura 2026',
@@ -160,11 +162,14 @@ test.describe('tournament overview progress and rules', () => {
     ).toBe(true);
   });
 
-  test('the rules section lists the rules in force, defaults included', async ({ page }) => {
+  test('the rules section lists the rules in force, defaults included @visible-identifier-lint', async ({
+    page,
+  }) => {
     await page.route('**/events/**', (route) =>
       route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': ok\n\n' }),
     );
     await page.goto(PAGE);
+    await expectNoVisibleIdentifiers(page, FIXTURE_ALIASES);
 
     const section = page.locator('section', {
       has: page.getByRole('heading', { name: 'Reglamento' }),

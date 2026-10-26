@@ -4,7 +4,7 @@ import { MatchCard } from './MatchCard.tsx';
 import type { OverviewModel } from '../../../lib/overview.ts';
 import type { MatchCardData } from '../../../lib/matches-view.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
-import { matchCardLabels } from '../../../lib/i18n/public-intl.ts';
+import { formatDateTime, matchCardLabels } from '../../../lib/i18n/public-intl.ts';
 
 interface Props {
   readonly model: OverviewModel;
@@ -16,10 +16,7 @@ interface Props {
 }
 const { model, intl, localePrefix = '', compact = false } = Astro.props;
 const labels = matchCardLabels(intl);
-const kickoffFormatter = new Intl.DateTimeFormat(intl.locale, {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
+const timeZone = model.organizationTimeZone ?? 'UTC';
 ---
 
 {/*
@@ -52,7 +49,7 @@ const kickoffFormatter = new Intl.DateTimeFormat(intl.locale, {
         ...(match.startsAt
           ? {
               scheduledAt: match.startsAt,
-              scheduledAtLabel: kickoffFormatter.format(new Date(match.startsAt)),
+              scheduledAtLabel: formatDateTime(intl, match.startsAt, timeZone),
             }
           : {}),
       };
@@ -64,6 +61,7 @@ const kickoffFormatter = new Intl.DateTimeFormat(intl.locale, {
           labels={labels}
           locale={intl.locale}
           band={index % 2 === 0 ? 'panel' : 'base'}
+          timeZone={timeZone}
           organizationAlias={model.organizationAlias}
         />
       );

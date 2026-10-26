@@ -13,7 +13,11 @@ import { formatSideSource, sourceMatchLabel, type SourceText } from '../../../li
 import type { MatchCardData } from '../../../lib/matches-view.ts';
 import type { ScheduleStage, ScheduleZone } from '../../../lib/match-schedule.ts';
 import { presentState } from '../../../lib/result-state.ts';
-import { matchCardLabels, resultStateLabels } from '../../../lib/i18n/public-intl.ts';
+import {
+  formatDateTime,
+  matchCardLabels,
+  resultStateLabels,
+} from '../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { clubEmblemUrl } from '../../../lib/public-image-paths.ts';
 
@@ -22,13 +26,14 @@ import { clubEmblemUrl } from '../../../lib/public-image-paths.ts';
  * only when it has company. A large scope is a table of rows (kick-off, sides, score, state,
  * venue); a short one may be cards instead; a knockout zone is its bracket, never rows as well.
  *
- * Everything renders on the server. The one script only re-writes the kick-off times into the
- * viewer's own time zone, which the server cannot know.
+ * Everything renders on the server in the organization's time zone. The viewer's local zone does
+ * not change when a spectator opens the schedule from another region.
  */
 interface Props {
   readonly stages: readonly ScheduleStage[];
   readonly intl: IntlShape;
   readonly organizationAlias: string;
+  readonly organizationTimeZone?: string;
   readonly tournamentAlias: string;
   readonly localePrefix?: string;
   readonly presentation?: 'rows' | 'cards' | 'compact-cards';
@@ -43,6 +48,7 @@ const {
   stages,
   intl,
   organizationAlias,
+  organizationTimeZone,
   tournamentAlias,
   localePrefix = '',
   presentation = 'rows',
@@ -54,13 +60,12 @@ const {
 
 const cardLabels = matchCardLabels(intl);
 const stateLabels = resultStateLabels(intl);
-const kickoff = new Intl.DateTimeFormat(intl.locale, {
-  day: 'numeric',
-  month: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
-  timeZone: 'UTC',
-  timeZoneName: 'short',
+const scheduleTimeZone = organizationTimeZone ?? 'UTC';
+const scheduledMatch = (match: MatchCardData): MatchCardData => ({
+  ...match,
+  ...(match.scheduledAt === undefined
+    ? {}
+    : { scheduledAtLabel: formatDateTime(intl, match.scheduledAt, scheduleTimeZone) }),
 });
 const stageLabel = (stage: ScheduleStage): string =>
   stage.stageName || intl.formatMessage(messages.breadcrumbStage, { stage: stage.stageNumber });
@@ -126,7 +131,7 @@ const columns: readonly DataTableColumn[] = [
               cardLabels.rescheduled,
             )
           : '';
-      return [scheduledAt ? kickoff.format(new Date(scheduledAt)) : '—', previous]
+      return [scheduledAt ? formatDateTime(intl, scheduledAt, scheduleTimeZone) : '—', previous]
         .filter(Boolean)
         .join(' · ');
     },
@@ -151,6 +156,17 @@ const columns: readonly DataTableColumn[] = [
     href: (row) => {
       const match = row as MatchCardData;
       return reportOf(match.stageNumber, match.matchNumber);
+    },
+    linkAriaLabel: (row) => {
+      const match = row as MatchCardData;
+      const home = match.homeName ?? sideOf(match, 'home')?.long ?? '—';
+      const away = match.awayName ?? sideOf(match, 'away')?.long ?? '—';
+      const versus = cardLabels.versus ?? intl.formatMessage(messages.matchesViewVersus);
+      const score =
+        match.homeScore === undefined || match.awayScore === undefined
+          ? ''
+          : `, ${match.homeScore} – ${match.awayScore}`;
+      return `${home} ${versus} ${away}${score}`;
     },
   },
   {
@@ -258,9 +274,10 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
                                   headingLevel={matchHeadingLevel}
                                   labels={cardLabels}
                                   locale={intl.locale}
-                                  match={match}
+                                  match={scheduledMatch(match)}
                                   reportUrl={reportOf(match.stageNumber, match.matchNumber)}
                                   organizationAlias={organizationAlias}
+                                  timeZone={scheduleTimeZone}
                                 />
                               ))}
                             </div>
@@ -289,20 +306,6 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
     );
   })}
 </div>
-
-<script>
-  // Table kick-offs use the viewer's time zone. Cards own their timestamp formatting.
-  const format = new Intl.DateTimeFormat(document.documentElement.lang || undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
-  for (const time of document.querySelectorAll<HTMLTimeElement>(
-    '.cl-match-schedule td time[datetime]',
-  )) {
-    const instant = new Date(time.dateTime);
-    if (!Number.isNaN(instant.getTime())) time.textContent = format.format(instant);
-  }
-</script>
 
 <style>
   .cl-match-schedule > section.cl-match-schedule__stage,

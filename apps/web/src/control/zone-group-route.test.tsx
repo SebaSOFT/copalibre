@@ -729,7 +729,7 @@ describe('ZoneGroupPage', () => {
     });
   });
 
-  it('falls back to a shortened entrant id when the entrant record has no display name', async () => {
+  it('falls back to a translated placeholder when the entrant has no display name', async () => {
     const client = stubClient({
       listZones: () => Promise.resolve(oneZone),
       listGroups: () => Promise.resolve(oneGroup),
@@ -749,7 +749,8 @@ describe('ZoneGroupPage', () => {
 
     await screen.findAllByText('Zone 1');
     fireEvent.click(within(groupAssignRegion()).getByText('Manual placement'));
-    await screen.findByText('99999999');
+    await screen.findByText('Unnamed entrant');
+    expect(screen.queryByText(/99999999/)).toBeNull();
   });
 
   it('reloads through a client with no listZones after creating a zone', async () => {

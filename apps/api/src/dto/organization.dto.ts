@@ -108,6 +108,9 @@ export class MyOrganizationResponse {
   @ApiProperty({ example: 'Liga Orbital' })
   organizationName!: string;
 
+  @ApiProperty({ example: 'America/Argentina/Buenos_Aires' })
+  timezone!: string;
+
   @ApiProperty({
     enum: ORGANIZATION_ROLES,
     description: "The caller's active role in this organization",
@@ -1467,7 +1470,7 @@ export class RegistrationResponse {
   personId?: string;
 
   @ApiPropertyOptional({
-    description: 'The person entrant’s display name — absent for a team entrant.',
+    description: 'The person or team entrant’s human-readable display name.',
     example: 'Elías Salomón',
   })
   displayName?: string;

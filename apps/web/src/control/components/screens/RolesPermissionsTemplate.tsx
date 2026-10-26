@@ -158,7 +158,7 @@ export function RolesPermissionsTemplate({
     {
       key: 'user',
       header: <FormattedMessage {...messages.rolesColumnUser} />,
-      render: (row) => <EntityIdentityCell email={row.email} id={row.principalId} />,
+      render: (row) => <EntityIdentityCell email={row.email} />,
     },
     {
       key: 'role',

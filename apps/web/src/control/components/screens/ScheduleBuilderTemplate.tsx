@@ -30,6 +30,7 @@ import {
 } from '../ui/organisms/schedule-reason-prompt.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { formatDateTime } from '../../lib/presentation-formatting.js';
 
 export interface DraftAssignment {
   readonly slotId: string;
@@ -110,6 +111,7 @@ export function ScheduleBuilderTemplate({
   onToggleOfficial,
   onSetDraft,
   organizationAlias,
+  organizationTimeZone,
   placements = {},
   previewed,
   reasonRequiredMatches = [],
@@ -144,6 +146,7 @@ export function ScheduleBuilderTemplate({
   readonly onSetDraft: (matchId: string, patch: Partial<DraftAssignment>) => void;
   readonly onToggleOfficial: (matchId: string, officialId: string) => void;
   readonly organizationAlias: string;
+  readonly organizationTimeZone?: string;
   readonly previewed: boolean;
   readonly schedules: readonly ScheduleDetailResponse[];
   readonly stageNumber: number;
@@ -237,7 +240,7 @@ export function ScheduleBuilderTemplate({
     const slot = slotById.get(slotId);
     if (!slot) return undefined;
     const venue = venues.find((candidate) => candidate.venueId === slot.venueId);
-    return `${new Date(slot.startsAt).toISOString().slice(0, 16)}${venue ? ` @ ${venue.name}` : ''}`;
+    return `${formatDateTime(intl, slot.startsAt, organizationTimeZone)}${venue ? ` @ ${venue.name}` : ''}`;
   }
 
   const releases = pendingReleases(groups, (matchId) => draftFor(matchId).slotId);
@@ -453,7 +456,7 @@ export function ScheduleBuilderTemplate({
                           <span>
                             {assignedSlot ? (
                               <>
-                                {new Date(assignedSlot.startsAt).toISOString().slice(0, 16)}
+                                {formatDateTime(intl, assignedSlot.startsAt, organizationTimeZone)}
                                 {assignedSlot.slotMinutes && ` (${assignedSlot.slotMinutes}m)`}
                                 {venue && ` @ ${venue.name}`}
                                 {assignedOfficials.length > 0 &&
@@ -590,7 +593,7 @@ export function ScheduleBuilderTemplate({
                                   draft.slotId !== slot.slotId;
                                 return {
                                   value: slot.slotId,
-                                  label: `${new Date(slot.startsAt).toISOString().slice(0, 16)}${venue ? ` @ ${venue.name}` : ''} (${slot.matchCount}/${venue?.concurrentCapacity ?? 1})${isOccupied ? ' (Full)' : ''}`,
+                                  label: `${formatDateTime(intl, slot.startsAt, organizationTimeZone)}${venue ? ` @ ${venue.name}` : ''} (${slot.matchCount}/${venue?.concurrentCapacity ?? 1})${isOccupied ? ' (Full)' : ''}`,
                                   disabled: isOccupied,
                                 };
                               }),

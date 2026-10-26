@@ -12,6 +12,7 @@ const client = storyClient<ControlApiClient>({
       organizationId: ids.organization,
       organizationAlias: ORG,
       organizationName: 'Liga San Juan',
+      timezone: 'America/Argentina/Buenos_Aires',
       role: 'admin',
     },
   ],

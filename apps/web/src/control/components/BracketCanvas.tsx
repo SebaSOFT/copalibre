@@ -2,7 +2,6 @@ import { EntrantName } from '../../components/ui/atoms/EntrantName.js';
 import { EntrantEmblem } from '../../components/ui/molecules/EntrantEmblem.js';
 import {
   finalRoundOf,
-  formatPlacementSource,
   formatSideSource,
   sourceMatchLabel,
   type SideSourceMessages,
@@ -25,6 +24,7 @@ import { Badge } from './ui/atoms/badge.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { clubEmblemUrl } from '../lib/api-client.js';
+import { formatEntrant, formatEnum, formatMatchRef } from '../lib/presentation-formatting.js';
 
 /** An undecided seat names its source, with the compact form for narrow nodes. */
 function pendingSlotName(
@@ -40,9 +40,7 @@ function pendingSlotName(
   return { fullName: text.long, abbreviation: text.short };
 }
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** A seated entrant's name; an unnamed seat falls back to a short id, never a raw UUID. */
+/** A seated entrant's name; missing read-model data stays a translated label. */
 function resolveSlotLabel(
   slot: LaidOutMatch['slots'][number],
   names: Readonly<Record<string, string>>,
@@ -51,13 +49,7 @@ function resolveSlotLabel(
 ): string {
   if (slot.entrantId === undefined) return sourceLabels.unknown;
   const resolved = names[slot.entrantId];
-  if (resolved) return resolved;
-  if (UUID_PATTERN.test(slot.entrantId)) {
-    return intl.formatMessage(messages.seedingUnresolvedEntrant, {
-      id: slot.entrantId.slice(0, 8),
-    });
-  }
-  return slot.entrantId;
+  return formatEntrant(intl, { displayName: resolved }).fullName;
 }
 
 /**
@@ -275,7 +267,7 @@ function BracketNode({
   const intl = useIntl();
   const interactive = onHighlightEntrant !== undefined;
   const sourceLabels = sideSourceLabelsFromControlIntl(intl);
-  const title = formatPlacementSource(node.matchId, sourceLabels) ?? node.matchId;
+  const title = formatMatchRef(intl, node.matchId, finalRound);
   const children = (
     <>
       <header style={nodeHeaderStyle}>
@@ -298,7 +290,7 @@ function BracketNode({
           <span>{title}</span>
         )}
         {skeletonMode || node.format === undefined ? null : (
-          <span className="cl-badge">{node.format}</span>
+          <span className="cl-badge">{formatEnum(intl, 'format', node.format)}</span>
         )}
         {node.conditional === 'bracket-reset' && (
           <Badge

@@ -26,11 +26,13 @@ import { presentState, type ResultStateLabels } from '../../../lib/result-state.
 export interface LiveMatchHeroProps {
   readonly initial: LiveDashboard;
   readonly streamPath: string;
+  readonly versusLabel: string;
   readonly usingLastKnownText: string;
   readonly noMatchesText: string;
   readonly nextKickoffText: string;
   readonly nextKickoffAt?: string;
   readonly locale: string;
+  readonly timeZone?: string;
   readonly referenceDate: number;
   readonly resultStateLabels: ResultStateLabels;
 }
@@ -38,11 +40,13 @@ export interface LiveMatchHeroProps {
 export function LiveMatchHero({
   initial,
   streamPath,
+  versusLabel,
   usingLastKnownText,
   noMatchesText,
   nextKickoffText,
   nextKickoffAt,
   locale,
+  timeZone,
   referenceDate,
   resultStateLabels,
 }: LiveMatchHeroProps): React.JSX.Element {
@@ -82,6 +86,7 @@ export function LiveMatchHero({
                 locale={locale}
                 referenceDate={referenceDate}
                 timestamp={nextKickoffAt}
+                timeZone={timeZone}
               />
             </CardDescription>
           )}
@@ -109,6 +114,7 @@ export function LiveMatchHero({
               return (
                 <Card
                   as="article"
+                  aria-label={match.sides.map((side) => side.name).join(` ${versusLabel} `)}
                   className={enteringMatchIds.has(match.matchId) ? 'cl-enter-once' : ''}
                   key={match.matchId}
                 >

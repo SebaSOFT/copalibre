@@ -17,11 +17,13 @@ import {
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiExtraModels,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import {
   IdentityPrincipalRepository,
@@ -76,7 +78,17 @@ export class OrganizationsController {
       'When called without filters, returns public organizations with at least one published tournament. ' +
       'When called with "?mine=true", returns organizations the authenticated caller belongs to.',
   })
-  @ApiOkResponse({ type: OrganizationResponse, isArray: true })
+  @ApiExtraModels(OrganizationResponse, MyOrganizationResponse)
+  @ApiOkResponse({
+    description:
+      'Public organizations by default; with ?mine=true, organizations available to the authenticated caller.',
+    schema: {
+      oneOf: [
+        { type: 'array', items: { $ref: getSchemaPath(OrganizationResponse) } },
+        { type: 'array', items: { $ref: getSchemaPath(MyOrganizationResponse) } },
+      ],
+    },
+  })
   async list(
     @Query('mine') mine: string | undefined,
     @Req() request: RequestWithSubject,
@@ -97,6 +109,7 @@ export class OrganizationsController {
         organizationId: membership.organizationId,
         organizationAlias: membership.organizationAlias,
         organizationName: membership.organizationName,
+        timezone: membership.timezone,
         role: membership.role,
         ...(membership.emblemObjectId ? { emblemObjectId: membership.emblemObjectId } : {}),
       }));

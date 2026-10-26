@@ -14,12 +14,14 @@ export function TvMatchList({
   page,
   labels,
   locale = 'en',
+  timeZone,
 }: {
   readonly pages: readonly (readonly (readonly TvMatchEntry[])[])[];
   /** The zero-based page shown; clamped to the pages that exist. */
   readonly page: number;
   readonly labels: TvDashboardLabels;
   readonly locale?: string;
+  readonly timeZone?: string;
 }): React.JSX.Element {
   const shown = pages[Math.min(Math.max(page, 0), Math.max(pages.length - 1, 0))] ?? [];
   const entries = shown.flat();
@@ -38,9 +40,11 @@ export function TvMatchList({
           const placement = [
             entry.scope,
             entry.scheduledAt
-              ? new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(
-                  new Date(entry.scheduledAt),
-                )
+              ? new Intl.DateTimeFormat(locale, {
+                  dateStyle: 'short',
+                  timeStyle: 'short',
+                  ...(timeZone === undefined ? {} : { timeZone }),
+                }).format(new Date(entry.scheduledAt))
               : undefined,
             entry.venueName,
           ]

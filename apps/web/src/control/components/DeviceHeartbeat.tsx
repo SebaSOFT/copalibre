@@ -1,3 +1,4 @@
+import { useContext } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   HEARTBEAT_PRESENTATION,
@@ -6,8 +7,10 @@ import {
 } from '../lib/device-heartbeat.js';
 import type { DisplayTokenResponse } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
+import { formatDateTime } from '../lib/presentation-formatting.js';
 import { Badge } from './ui/atoms/badge.js';
 import { EmptyState, type EmptyStateAction } from './ui/molecules/empty-state.js';
+import { PageHeaderContext } from './ui/organisms/page-header.js';
 
 const BADGE_ACCENT: Readonly<Record<HeartbeatStatus, string>> = {
   online: 'cl-state--live',
@@ -29,7 +32,7 @@ export function DeviceHeartbeat({
   pairAction,
 }: {
   readonly devices: readonly {
-    readonly tournamentAlias: string;
+    readonly tournamentName: string;
     readonly token: DisplayTokenResponse;
   }[];
   /** The caller's clock — read once in an effect, never inside render. */
@@ -37,6 +40,7 @@ export function DeviceHeartbeat({
   readonly pairAction?: EmptyStateAction;
 }): React.JSX.Element {
   const intl = useIntl();
+  const pageHeader = useContext(PageHeaderContext);
   return (
     <section aria-label={intl.formatMessage(messages.deviceHeartbeatSectionLabel)}>
       <h2>
@@ -57,7 +61,7 @@ export function DeviceHeartbeat({
         />
       )}
       <ul>
-        {devices.map(({ tournamentAlias, token }) => {
+        {devices.map(({ tournamentName, token }) => {
           const status = heartbeatStatus(token, now);
           const presentation = HEARTBEAT_PRESENTATION[status];
           return (
@@ -66,12 +70,15 @@ export function DeviceHeartbeat({
                 className={BADGE_ACCENT[status]}
                 label={intl.formatMessage(presentation.label)}
               />{' '}
-              <span>{token.label ?? token.displayTokenId}</span> <span>({tournamentAlias})</span>
+              <span>{token.label ?? intl.formatMessage(messages.deviceHeartbeatUnnamedToken)}</span>{' '}
+              <span>({tournamentName})</span>
               {token.lastSeenAt !== undefined && (
                 <>
                   {' — '}
                   <FormattedMessage {...messages.deviceHeartbeatLastSeen} />{' '}
-                  <time dateTime={token.lastSeenAt}>{token.lastSeenAt}</time>
+                  <time dateTime={token.lastSeenAt}>
+                    {formatDateTime(intl, token.lastSeenAt, pageHeader?.organizationTimeZone)}
+                  </time>
                 </>
               )}
             </li>

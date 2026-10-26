@@ -25,6 +25,7 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
           organizationId: ids.organization,
           organizationAlias: ORG,
           organizationName: 'Liga San Juan',
+          timezone: 'America/Argentina/Buenos_Aires',
           role: 'admin',
         },
       ],

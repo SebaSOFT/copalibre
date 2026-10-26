@@ -40,6 +40,7 @@ describe('LiveMatchHero connection state', () => {
           usingLastKnown: false,
         }}
         streamPath="/events/public/liga/tournaments/apertura"
+        versusLabel="vs"
         usingLastKnownText="Last known results: live connection lost"
         noMatchesText="No matches"
         nextKickoffText="Next match"

@@ -117,7 +117,6 @@ const historyColumns = [
     />
     <div class="cl-player-profile__identity">
       <h1 class="cl-player-profile__name">{profile.displayName}</h1>
-      {profile.alias && <span class="cl-player-profile__alias">@{profile.alias}</span>}
       <div class="cl-player-profile__meta">
         {profile.nationality && (
           <span class="cl-player-profile__tag">
@@ -248,10 +247,6 @@ const historyColumns = [
     font-weight: 700;
     color: var(--cl-text-primary);
     overflow-wrap: anywhere;
-  }
-  .cl-player-profile__alias {
-    color: var(--cl-text-muted);
-    font-size: var(--cl-font-size-sm);
   }
   .cl-player-profile__meta {
     display: flex;

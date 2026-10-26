@@ -4,7 +4,13 @@ import { ORG, TITLE, NOW, reviewRows } from '../screen-story-fixtures.js';
 const meta = {
   title: 'Admin/Screens/RegistrationReviewTemplate',
   component: RegistrationReviewTemplate,
-  args: { organizationAlias: ORG, tournamentName: TITLE, rows: reviewRows, now: NOW },
+  args: {
+    organizationAlias: ORG,
+    tournamentAlias: 'apertura-2026',
+    tournamentName: TITLE,
+    rows: reviewRows,
+    now: NOW,
+  },
 } satisfies Meta<typeof RegistrationReviewTemplate>;
 export default meta;
 type Story = StoryObj<typeof meta>;

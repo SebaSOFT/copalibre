@@ -14,24 +14,14 @@ import { Card } from '../ui/atoms/card.js';
 import { GenerateAheadPanel } from '../ui/organisms/generate-ahead-panel.js';
 import type { SeedingQualifierZoneResponse } from '../../lib/api-client.js';
 import { aheadPreviewMatches } from '../../lib/generate-ahead.js';
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { formatEntrant } from '../../lib/presentation-formatting.js';
 
 function resolveEntrantDisplayName(
   entrantId: string,
   names: Readonly<Record<string, string>>,
   intl: ReturnType<typeof useIntl>,
 ): string {
-  const resolved = names[entrantId];
-  if (resolved) {
-    return resolved;
-  }
-  if (UUID_PATTERN.test(entrantId)) {
-    return intl.formatMessage(messages.seedingUnresolvedEntrant, {
-      id: entrantId.slice(0, 8),
-    });
-  }
-  return entrantId;
+  return formatEntrant(intl, { displayName: names[entrantId] }).fullName;
 }
 
 /**

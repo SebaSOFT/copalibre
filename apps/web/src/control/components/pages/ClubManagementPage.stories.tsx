@@ -24,6 +24,7 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
           organizationId: ids.organization,
           role: 'admin',
           organizationName: ORG,
+          timezone: 'America/Argentina/Buenos_Aires',
         },
       ],
       listClubs: () =>

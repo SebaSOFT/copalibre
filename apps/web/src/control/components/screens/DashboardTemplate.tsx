@@ -14,7 +14,7 @@ import { ReadState } from '../ui/layouts/read-state.js';
 import { EmptyState } from '../ui/molecules/empty-state.js';
 
 interface DeviceEntry {
-  readonly tournamentAlias: string;
+  readonly tournamentName: string;
   readonly token: DisplayTokenResponse;
 }
 

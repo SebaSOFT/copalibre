@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { KIND_LABEL, summaryOf, type ReportRow } from '../../lib/reports.js';
 import { messages } from '../../i18n/messages.en.js';
@@ -7,6 +7,8 @@ import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
 import { Alert } from '../ui/atoms/alert.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { formatDateTime } from '../../lib/presentation-formatting.js';
+import { PageHeaderContext } from '../ui/organisms/page-header.js';
 
 type LoadStatus = 'loading' | 'ready' | 'failed';
 
@@ -24,6 +26,7 @@ export function ReportReviewTemplate({
   readonly status: LoadStatus;
 }): React.JSX.Element {
   const intl = useIntl();
+  const pageHeader = useContext(PageHeaderContext);
   const [dismissedLoading, setDismissedLoading] = useState(false);
 
   const listingNode = (
@@ -57,7 +60,9 @@ export function ReportReviewTemplate({
               <Badge label={intl.formatMessage(KIND_LABEL[row.kind])} />
               <p>{summaryOf(row) ?? intl.formatMessage(messages.reportGenericSummary)}</p>
               <p>
-                <time dateTime={row.submittedAt}>{row.submittedAt}</time>
+                <time dateTime={row.submittedAt}>
+                  {formatDateTime(intl, row.submittedAt, pageHeader?.organizationTimeZone)}
+                </time>
               </p>
               {row.evidence.length > 0 && (
                 <ul aria-label={intl.formatMessage(messages.reportAttachedEvidence)}>

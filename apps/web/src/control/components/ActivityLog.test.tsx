@@ -13,7 +13,7 @@ describe('ActivityLog', () => {
     expect(screen.getByText('No activity yet.')).toBeDefined();
   });
 
-  it('renders activity entries with actor, action code, localized title, and reason', () => {
+  it('renders activity entries with human-readable actors, actions, and reason', () => {
     const entries: readonly ActivityEntry[] = [
       {
         auditId: 'audit-1',
@@ -35,13 +35,11 @@ describe('ActivityLog', () => {
     render(withIntl(<ActivityLog entries={entries} now={baseTime} />));
 
     expect(screen.getByText('Match finalized')).toBeDefined();
-    expect(screen.getByText('match.finalized')).toBeDefined();
-    expect(screen.getByText('user:admin-1')).toBeDefined();
     expect(screen.getByText('Finalized by supervisor review')).toBeDefined();
 
     expect(screen.getByText('Club created')).toBeDefined();
-    expect(screen.getByText('club.created')).toBeDefined();
-    expect(screen.getByText('user:staff-2')).toBeDefined();
+    expect(screen.getAllByText('User')).toHaveLength(2);
+    expect(screen.queryByText(/match\.finalized|club\.created|user:(admin|staff)-\d/)).toBeNull();
   });
 
   it('translates recorded match activity and its reason into Spanish', () => {

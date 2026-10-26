@@ -118,7 +118,8 @@ export class RegistrationsController {
       tournamentAlias,
       request,
     );
-    const entrants = await new EnrollmentRepository(this.db).listEntrants(tournament.tournamentId);
+    const enrollment = new EnrollmentRepository(this.db);
+    const entrants = await enrollment.listEntrants(tournament.tournamentId);
     const visible = entrants.filter(
       (entrant) => status === undefined || status === 'all' || entrant.status === status,
     );
@@ -135,6 +136,9 @@ export class RegistrationsController {
     const linkedPersonIds = await new IdentityPrincipalRepository(this.db).linkedPersonIds(
       organizationId,
       personIds,
+    );
+    const entrantLabels = await enrollment.resolveEntrantNames(
+      visible.map((entrant) => entrant.entrantId),
     );
 
     const teamEntrants = visible.filter(
@@ -173,7 +177,7 @@ export class RegistrationsController {
     }
 
     return visible.map((entrant) =>
-      toResponse(entrant, personById, linkedPersonIds, teamMembersByTeamId),
+      toResponse(entrant, personById, linkedPersonIds, teamMembersByTeamId, entrantLabels),
     );
   }
 
@@ -785,7 +789,14 @@ function toResponse(
   > = new Map(),
   linkedPersonIds: ReadonlySet<string> = new Set(),
   teamMembersByTeamId: ReadonlyMap<string, TeamMemberResponse[]> = new Map(),
+  entrantLabels: ReadonlyMap<
+    string,
+    { readonly name: string; readonly abbreviation?: string }
+  > = new Map(),
 ): RegistrationResponse {
+  const label = entrantLabels.get(entrant.entrantId);
+  const abbreviation = entrant.abbreviation ?? label?.abbreviation;
+
   if (entrant.entrantRef.kind === 'team') {
     const teamMembers = teamMembersByTeamId.get(entrant.entrantRef.teamId);
     return {
@@ -793,26 +804,24 @@ function toResponse(
       tournamentId: entrant.tournamentId,
       status: entrant.status,
       teamId: entrant.entrantRef.teamId,
-      ...(entrant.abbreviation === undefined ? {} : { abbreviation: entrant.abbreviation }),
+      ...(label === undefined ? {} : { displayName: label.name }),
+      ...(abbreviation === undefined ? {} : { abbreviation }),
       ...(teamMembers !== undefined ? { teamMembers } : {}),
     };
   }
 
   const person = personById.get(entrant.entrantRef.personId);
+  const displayName = label?.name ?? person?.displayName;
   return {
     entrantId: entrant.entrantId,
     tournamentId: entrant.tournamentId,
     status: entrant.status,
     personId: entrant.entrantRef.personId,
-    ...(entrant.abbreviation === undefined ? {} : { abbreviation: entrant.abbreviation }),
+    ...(displayName === undefined ? {} : { displayName }),
+    ...(abbreviation === undefined ? {} : { abbreviation }),
     hasIdentityLink: linkedPersonIds.has(entrant.entrantRef.personId),
-    ...(person === undefined
-      ? {}
-      : {
-          displayName: person.displayName,
-          ...(person.nationality === undefined ? {} : { nationality: person.nationality }),
-          ...(person.photoObjectId === undefined ? {} : { photoObjectId: person.photoObjectId }),
-        }),
+    ...(person?.nationality === undefined ? {} : { nationality: person.nationality }),
+    ...(person?.photoObjectId === undefined ? {} : { photoObjectId: person.photoObjectId }),
   };
 }
 

@@ -21,6 +21,7 @@ import {
   publicIntl,
   resultStateLabels,
   sideSourceLabels,
+  formatDateTime,
 } from '../../../../../../../../lib/i18n/public-intl.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 
@@ -106,7 +107,7 @@ const matchHeadingDescription = [
   intl.formatMessage(messages.bracketRoundHeading, { round: model.round }),
   intl.formatMessage(messages.breadcrumbMatch, { match: matchNumber }),
   model.scheduledAt
-    ? intl.formatDate(new Date(model.scheduledAt), { dateStyle: 'medium', timeStyle: 'short' })
+    ? formatDateTime(intl, model.scheduledAt, response.organizationTimeZone ?? 'UTC')
     : undefined,
 ]
   .filter((part): part is string => part !== undefined)
@@ -140,11 +141,13 @@ const structuredData = {
   </PageHeader>
   <article class="cl-match-page">
     <MatchHero
+      intl={intl}
       rescheduledLabel={intl.formatMessage(messages.matchRescheduled, {
         time: '{time}',
         venue: '{venue}',
       })}
       locale={intl.locale}
+      timeZone={response.organizationTimeZone ?? 'UTC'}
       model={model}
       statusLabel={statusLabels[model.status]}
     />
@@ -170,7 +173,11 @@ const structuredData = {
         organization={organization!}
         tournament={tournament!}
       />
-      <MatchTimeline model={model} intl={intl} />
+      <MatchTimeline
+        model={model}
+        intl={intl}
+        organizationTimeZone={response.organizationTimeZone}
+      />
     </div>
   </article>
 </PublicLayout>

@@ -94,12 +94,14 @@ const registrationsFixture = [
     entrantId: 'entrant-001',
     tournamentId: 'tournament-001',
     status: 'pending',
+    displayName: 'Deportivo Norte',
     teamId: 'Deportivo Norte',
   },
   {
     entrantId: 'entrant-002',
     tournamentId: 'tournament-001',
     status: 'pending',
+    displayName: 'Atlético Sur',
     teamId: 'Atlético Sur',
   },
 ];
@@ -359,7 +361,7 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
 
   // The final step summarizes every choice made so far, in plain language,
   // before the operator confirms creation.
-  await expect(page.getByText('1: round-robin')).toBeVisible();
+  await expect(page.getByText('1: Todos contra todos')).toBeVisible();
   await expect(page.getByText('La inscripción pública está abierta.')).toBeVisible();
   await expect(page.getByText('Se requiere check-in.')).toBeVisible();
   await expect(page.getByText('Región: Mendoza')).toBeVisible();
@@ -998,7 +1000,7 @@ test('declares a stage zone plan with a league zone overriding the stage format'
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await expect(
-    page.getByText('Zonas: Copa Oro (single-elimination) y Liga (round-robin)'),
+    page.getByText('Zonas: Copa Oro (Eliminación directa) y Liga (Todos contra todos)'),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Crear torneo' }).click();
 

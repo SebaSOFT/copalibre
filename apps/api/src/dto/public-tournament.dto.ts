@@ -451,6 +451,9 @@ export class PublicMatchReportResponse extends FixtureSourcesResponse {
   @ApiProperty()
   organizationName!: string;
 
+  @ApiPropertyOptional({ description: "Organization's IANA time zone for public schedule labels" })
+  organizationTimeZone?: string;
+
   @ApiProperty()
   tournamentAlias!: string;
 

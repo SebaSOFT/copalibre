@@ -46,7 +46,6 @@ const { clubs, intl } = Astro.props;
             <span class="cl-club-name" title={club.name}>
               {club.name}
             </span>
-            {club.alias && <span class="cl-club-abbr">{club.alias}</span>}
           </div>
         </div>
       ))}
@@ -118,10 +117,5 @@ const { clubs, intl } = Astro.props;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-
-  .cl-club-abbr {
-    font-size: var(--cl-font-size-sm);
-    color: var(--cl-text-muted);
   }
 </style>

@@ -11,6 +11,14 @@ import { defineMessages } from '../../lib/i18n/define-messages.ts';
  * {...messages.someKey} />` directly.
  */
 export const messages = defineMessages({
+  dateInputFormatHint: {
+    id: 'control.dateInput.formatHint',
+    defaultMessage: 'Local date format; for example: {example}.',
+  },
+  dateTimeInputFormatHint: {
+    id: 'control.dateTimeInput.formatHint',
+    defaultMessage: 'Local date and time format; for example: {example}.',
+  },
   pageHeaderLoading: {
     id: 'control.pageHeader.loading',
     defaultMessage: 'Loading page heading',
@@ -18,6 +26,14 @@ export const messages = defineMessages({
   pageHeaderBreadcrumb: {
     id: 'control.pageHeader.breadcrumb',
     defaultMessage: 'Breadcrumb',
+  },
+  pageHeaderOrganizationFallback: {
+    id: 'control.pageHeader.organizationFallback',
+    defaultMessage: 'Organization',
+  },
+  pageHeaderTournamentFallback: {
+    id: 'control.pageHeader.tournamentFallback',
+    defaultMessage: 'Tournament',
   },
   interactionCreateToken: { id: 'control.interaction.createToken', defaultMessage: 'Create token' },
   interactionPairTv: { id: 'control.interaction.pairTv', defaultMessage: 'Pair TV' },
@@ -445,6 +461,10 @@ export const messages = defineMessages({
     defaultMessage: 'TV screen status',
   },
   deviceHeartbeatTitle: { id: 'control.deviceHeartbeat.title', defaultMessage: 'TV screens' },
+  deviceHeartbeatUnnamedToken: {
+    id: 'control.deviceHeartbeat.unnamedToken',
+    defaultMessage: 'Unlabelled display',
+  },
   deviceHeartbeatEmpty: {
     id: 'control.deviceHeartbeat.empty',
     defaultMessage: 'No TV devices provisioned yet.',
@@ -1019,7 +1039,6 @@ export const messages = defineMessages({
     id: 'control.review.selectRow',
     defaultMessage: 'Select {displayName}',
   },
-  reviewIdLabel: { id: 'control.review.idLabel', defaultMessage: 'ID: {entrantId}' },
   reviewContact: { id: 'control.review.contact', defaultMessage: 'Contact' },
   reviewTeamMembers: { id: 'control.review.teamMembers', defaultMessage: 'Team members' },
   reviewTeamMembersUnavailable: {
@@ -1543,6 +1562,10 @@ export const messages = defineMessages({
     defaultMessage: 'Group {number} capacity',
   },
   stageFormatLeague: { id: 'control.stageEditor.format.league', defaultMessage: 'League' },
+  matchFormatBestOf: {
+    id: 'control.match.format.bestOf',
+    defaultMessage: 'Best of {games}',
+  },
   stageFormatRoundRobin: {
     id: 'control.stageEditor.format.roundRobin',
     defaultMessage: 'Round robin',
@@ -4869,4 +4892,9 @@ export const messages = defineMessages({
     id: 'control.scheduleBuilder.publishRefused',
     defaultMessage: 'The schedule was not published: it now has conflicts, listed below.',
   },
+  copyIdButton: { id: 'control.copyId.button', defaultMessage: 'Copy ID' },
+  copyIdSuccess: { id: 'control.copyId.success', defaultMessage: 'ID copied' },
+  copyIdFailure: { id: 'control.copyId.failure', defaultMessage: 'Could not copy ID' },
+  auditCopyEntityId: { id: 'control.auditTrail.copyEntityId', defaultMessage: 'Copy record ID' },
+  auditCopyActorId: { id: 'control.auditTrail.copyActorId', defaultMessage: 'Copy actor ID' },
 });

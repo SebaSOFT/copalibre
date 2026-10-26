@@ -251,7 +251,13 @@ describe('the registration review route container', () => {
             tournamentAlias="apertura-2026"
             client={client({
               listRegistrations: async () => [
-                { entrantId: 'e-1', tournamentId: 't-1', status: 'pending', teamId: 'team-1' },
+                {
+                  entrantId: 'e-1',
+                  tournamentId: 't-1',
+                  status: 'pending',
+                  teamId: 'team-1',
+                  displayName: 'Team One',
+                },
               ],
               bulkReview: async (_organizationAlias, _tournamentAlias, request) => {
                 reviewed.push(request);
@@ -269,7 +275,7 @@ describe('the registration review route container', () => {
       );
     });
 
-    fireEvent.click(screen.getByLabelText('Select team-1'));
+    fireEvent.click(screen.getByLabelText('Select Team One'));
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
     });
@@ -292,7 +298,13 @@ describe('the registration review route container', () => {
             tournamentAlias="apertura-2026"
             client={client({
               listRegistrations: async () => [
-                { entrantId: 'e-1', tournamentId: 't-1', status: 'pending', teamId: 'team-1' },
+                {
+                  entrantId: 'e-1',
+                  tournamentId: 't-1',
+                  status: 'pending',
+                  teamId: 'team-1',
+                  displayName: 'Team One',
+                },
               ],
               reviewRegistration: async (
                 _organizationAlias,
@@ -315,7 +327,7 @@ describe('the registration review route container', () => {
       );
     });
 
-    const summary = screen.getByLabelText('Select team-1').closest('summary');
+    const summary = screen.getByLabelText('Select Team One').closest('summary');
     expect(summary).not.toBeNull();
     fireEvent.click(summary as HTMLElement);
     await act(async () => {
@@ -394,7 +406,13 @@ describe('the registration review route container', () => {
             tournamentAlias="apertura-2026"
             client={client({
               listRegistrations: async () => [
-                { entrantId: 'e-1', tournamentId: 't-1', status: 'pending', personId: 'person-1' },
+                {
+                  entrantId: 'e-1',
+                  tournamentId: 't-1',
+                  status: 'pending',
+                  personId: 'person-1',
+                  displayName: 'Person One',
+                },
               ],
               setPersonNationality: async (organizationAlias, personId, nationality) => {
                 nationalityCalls.push({ organizationAlias, personId, nationality });
@@ -410,7 +428,7 @@ describe('the registration review route container', () => {
       );
     });
 
-    fireEvent.click(screen.getByText('person-1'));
+    fireEvent.click(screen.getByText('Person One'));
     fireEvent.click(screen.getByText('Argentina'));
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Save nationality' }));
@@ -450,7 +468,13 @@ describe('the registration review route container', () => {
             tournamentAlias="apertura-2026"
             client={client({
               listEntrantsNeedingAbbreviation: async () => [
-                { entrantId: 'e-2', tournamentId: 't-1', status: 'accepted', teamId: 'team-2' },
+                {
+                  entrantId: 'e-2',
+                  tournamentId: 't-1',
+                  status: 'accepted',
+                  teamId: 'team-2',
+                  displayName: 'Team Two',
+                },
               ],
               setEntrantAbbreviation: async (
                 organizationAlias,
@@ -467,8 +491,8 @@ describe('the registration review route container', () => {
       );
     });
 
-    expect(screen.getByText('team-2')).toBeDefined();
-    fireEvent.change(screen.getByLabelText('Abbreviation for team-2'), {
+    expect(screen.getByText('Team Two')).toBeDefined();
+    fireEvent.change(screen.getByLabelText('Abbreviation for Team Two'), {
       target: { value: 'TAL' },
     });
     await act(async () => {
@@ -621,7 +645,13 @@ describe('the registration review route container', () => {
             tournamentAlias="apertura-2026"
             client={client({
               listRegistrations: async () => [
-                { entrantId: 'e-1', tournamentId: 't-1', status: 'pending', teamId: 'team-1' },
+                {
+                  entrantId: 'e-1',
+                  tournamentId: 't-1',
+                  status: 'pending',
+                  teamId: 'team-1',
+                  displayName: 'Team One',
+                },
               ],
               updateTeamIdentity: async (_organizationAlias, _tournamentAlias, teamId, request) => {
                 updated.push({ teamId, request });
@@ -633,13 +663,13 @@ describe('the registration review route container', () => {
       );
     });
 
-    const summary = screen.getByText('team-1').closest('summary');
+    const summary = screen.getByText('Team One').closest('summary');
     expect(summary).not.toBeNull();
     fireEvent.click(summary as HTMLElement);
     fireEvent.click(screen.getByRole('button', { name: 'Edit identity' }));
 
     const nameField = screen.getByLabelText('Name') as HTMLInputElement;
-    expect(nameField.value).toBe('team-1');
+    expect(nameField.value).toBe('Team One');
     fireEvent.change(nameField, { target: { value: 'Talleres FC' } });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Save identity' }));

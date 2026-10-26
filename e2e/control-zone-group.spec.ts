@@ -2,6 +2,7 @@ import { createServer, type Server } from 'node:http';
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
 
 /**
  * Exercise zone and group management in a real browser: creating a second zone and group on a stage,
@@ -207,7 +208,7 @@ async function mockControlApi(page: Page): Promise<void> {
   );
 }
 
-test('creates a second zone and group, assigns entrants manually, and reflects it in group-scoped standings', async ({
+test('creates a second zone and group, assigns entrants manually, and reflects it in group-scoped standings @visible-identifier-lint', async ({
   page,
 }) => {
   await mockControlApi(page);
@@ -216,6 +217,7 @@ test('creates a second zone and group, assigns entrants manually, and reflects i
   await seedLoginTransaction(page, zonesTarget);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${zonesTarget}`);
+  await expectNoVisibleIdentifiers(page, FIXTURE_ALIASES);
   const zonesPanel = page.getByRole('region', { name: 'Zonas', exact: true });
   await expect(zonesPanel.getByText('Zona 1')).toBeVisible();
 
@@ -338,6 +340,10 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
             stageId: 'stage-2',
             format: 'single-elimination',
             seeds: [],
+            names: {
+              'entrant-aaaaaaaa': 'Deportivo Norte',
+              'entrant-bbbbbbbb': 'Atlético Sur',
+            },
             zones: [],
             hasRecordedResults: false,
           });
@@ -408,8 +414,8 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
   });
   await page.waitForURL(`**${seedingTarget}`);
   const seedList = page.getByRole('list', { name: 'Orden de siembra' });
-  await expect(seedList.getByText(/1.*aaaaaaaa/)).toBeVisible();
-  await expect(seedList.getByText(/2.*bbbbbbbb/)).toBeVisible();
+  await expect(seedList.getByText(/1.*Deportivo Norte/)).toBeVisible();
+  await expect(seedList.getByText(/2.*Atlético Sur/)).toBeVisible();
 
   // Still nothing persisted — pre-fill only changes the builder's initial
   // client-side state (no new commit path).

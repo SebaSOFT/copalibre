@@ -32,6 +32,8 @@ export interface DataTableColumn {
   readonly ariaSort?: 'none' | 'ascending' | 'descending';
   /** Wraps the cell's text in a link when it returns an address: a score that opens its match. */
   readonly href?: (row: unknown) => string | undefined;
+  /** Gives a linked cell the full human-readable label when its visible text is abbreviated. */
+  readonly linkAriaLabel?: (row: unknown) => string;
   /**
    * A short form of the cell's text, shown in its place on a narrow screen (the full text stays
    * in the tooltip), so a wide table scrolls less. Absent or empty leaves the text as it is.
@@ -113,6 +115,7 @@ const modifiers = [
             {columns.map((column: DataTableColumn) => {
               const text = column.render(row) as string;
               const address = column.href?.(row);
+              const linkAriaLabel = column.linkAriaLabel?.(row);
               const instant = column.datetime?.(row);
               const short = column.abbreviation?.(row);
               const richContent = column.renderContent?.(row);
@@ -147,7 +150,17 @@ const modifiers = [
                 ) : (
                   body
                 );
-              return <td>{address ? <a href={address}>{content}</a> : content}</td>;
+              return (
+                <td>
+                  {address ? (
+                    <a aria-label={linkAriaLabel} href={address}>
+                      {content}
+                    </a>
+                  ) : (
+                    content
+                  )}
+                </td>
+              );
             })}
           </tr>
         ))}

@@ -13,6 +13,7 @@ import { useToast } from '../ToastProvider.js';
 import { ZoneGroupTemplate, type ManualPlacements } from '../screens/ZoneGroupTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
+import { formatEntrant } from '../../lib/presentation-formatting.js';
 
 /**
  * Zone/Group management, entrant assignment, and the doorway to a zone's
@@ -93,10 +94,17 @@ export function ZoneGroupPage({
   );
   const { groups = [], zoneEntrantIds = [] } = groupsRead.data ?? {};
   const reloadGroups = groupsRead.retry;
+  const groupEntrants = new Map(
+    groups.flatMap((group) => group.entrants ?? []).map((entrant) => [entrant.entrantId, entrant]),
+  );
 
   function entrantLabel(entrantId: string): string {
-    const entrant = entrants.find((candidate) => candidate.entrantId === entrantId);
-    return entrant?.displayName ?? entrantId.slice(-8);
+    const groupEntrant = groupEntrants.get(entrantId);
+    const registeredEntrant = entrants.find((candidate) => candidate.entrantId === entrantId);
+    return formatEntrant(intl, {
+      displayName: groupEntrant?.displayName ?? registeredEntrant?.displayName,
+      abbreviation: groupEntrant?.abbreviation ?? registeredEntrant?.abbreviation,
+    }).fullName;
   }
 
   async function createZone(name: string): Promise<boolean> {
