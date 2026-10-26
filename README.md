@@ -104,7 +104,8 @@ both images from the checkout root first (`docker build --target runtime -t copa
 `docker build --target web -t copalibre-web:local .`), then set `COPALIBRE_IMAGE=copalibre:local` and
 `COPALIBRE_WEB_IMAGE=copalibre-web:local` in the installation's `.env` before starting it.
 
-See [`AGENTS.md`](AGENTS.md) for the full contributor guide.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the contributor guide. [`AGENTS.md`](AGENTS.md) is the
+agent and tooling reference.
 Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosting.md`](docs/self-hosting.md).
 
 ## Features
@@ -185,8 +186,9 @@ yarn test:integration   # requires PostgreSQL via DATABASE_URL
 yarn test:e2e
 ```
 
-See [`AGENTS.md`](AGENTS.md) for the full contributor guide (conventions, testing strategy,
-authentication contract). Every change is planned and tracked as an OpenSpec proposal in
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the contributor guide. [`AGENTS.md`](AGENTS.md) is the
+agent and tooling reference (conventions, testing strategy, authentication contract). Every change
+is planned and tracked as an OpenSpec proposal in
 [`openspec/`](openspec/) before implementation — read the active change before editing.
 
 ## Documentation
@@ -214,6 +216,8 @@ authentication contract). Every change is planned and tracked as an OpenSpec pro
   React story coverage, selected/chrome surfaces, and TV background review
 - [`docs/i18n-glossary.md`](docs/i18n-glossary.md) — domain-term glossary and content-accuracy
   review workflow for translated interface strings
+- [`docs/i18n/REVIEW-LEDGER.md`](docs/i18n/REVIEW-LEDGER.md) — human review status for each interface
+  language and catalogue area
 - [`docs/BROADCAST-TV.md`](docs/BROADCAST-TV.md) — the `/tv/` kiosk/overlay surface and
   device-token pairing
 - [`docs/reviews/`](docs/reviews/) — design system and operational surface review evidence

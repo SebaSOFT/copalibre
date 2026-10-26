@@ -138,6 +138,8 @@ jobs:
     needs: install
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
@@ -149,6 +151,9 @@ jobs:
       - run: yarn lint
       - name: Check interface copy voice
         run: node scripts/check-copy-voice.mjs
+      - name: Check changed interface strings in pull request body
+        if: github.event_name == 'pull_request'
+        run: node scripts/list-changed-strings.mjs --check-body
       - run: yarn format:check
 
   typecheck:
@@ -330,6 +335,7 @@ jobs:
           node --test scripts/evaluate-ci-aggregate.test.mjs
           node --test scripts/classify-ci-paths.test.mjs
           node --test scripts/check-copy-voice.test.mjs
+          node --test scripts/list-changed-strings.test.mjs
           yarn workspace @copalibre/domain test:coverage --maxWorkers=2
           yarn workspace @copalibre/rules test:coverage --maxWorkers=2
           yarn workspace @copalibre/tournament-engine test:coverage --maxWorkers=2
