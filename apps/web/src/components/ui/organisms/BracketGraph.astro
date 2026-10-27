@@ -10,7 +10,7 @@ import {
 } from '../../../lib/bracket.ts';
 import { layoutPublicBracket, type BracketDensity } from '../../../lib/public-bracket-layout.ts';
 import { bracketBranchLabel, bracketRoleLabel } from '../../../lib/i18n/public-intl.ts';
-import { bracketRoundHeading } from '../../../lib/bracket-round-heading.ts';
+import { bracketRoundHeading, bracketRoundTitle } from '../../../lib/bracket-round-heading.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 /**
@@ -44,11 +44,11 @@ const layout = layoutPublicBracket(Astro.props.matches, density);
 type HeadingTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 const BranchHeading = `h${Math.min(Astro.props.headingLevel + 1, 6)}` as HeadingTag;
 const RoundHeading = `h${Math.min(
-  Astro.props.headingLevel + (layout.bands.length > 1 ? 2 : 1),
+  Astro.props.headingLevel + (layout.bands.length > 0 ? 2 : 1),
   6,
 )}` as HeadingTag;
-// Room above the first band for its column headings (and its name, when a zone draws several).
-const HEAD = layout.bands.length > 1 ? 104 : 64;
+// Room above each band for its subtitle and the column headings.
+const HEAD = layout.bands.length > 0 ? 104 : 64;
 const bandTop = new Map(layout.bands.map((band) => [band.branch, band.y]));
 // A round is the matches of one branch and round number; its column is where the first of them sits.
 const placedRounds = rounds
@@ -103,15 +103,14 @@ const captionOf = (match: (typeof layout.nodes)[number]['match']): string | unde
       ))}
     </g>
   </svg>
-  {layout.bands.length > 1 &&
-    layout.bands.map((band) => (
-      <BranchHeading
-        class="cl-bracket-stage__band"
-        style={`left: ${band.x}px; top: ${HEAD - 100}px;`}
-      >
-        {bracketBranchLabel(intl, band.branch)}
-      </BranchHeading>
-    ))}
+  {layout.bands.map((band) => (
+    <BranchHeading
+      class="cl-bracket-stage__band"
+      style={`left: ${band.x}px; top: ${HEAD - 100}px;`}
+    >
+      {bracketBranchLabel(intl, band.branch)}
+    </BranchHeading>
+  ))}
   {placedRounds.map(({ round, nodes, heads }) => (
     <section aria-label={bracketRoundHeading(intl, round, rounds)} class="cl-bracket-stage__round">
       {heads.map((head) => (
@@ -119,7 +118,7 @@ const captionOf = (match: (typeof layout.nodes)[number]['match']): string | unde
           class="cl-bracket-stage__round-label"
           style={`left: ${head.x}px; top: ${(bandTop.get(round.branch) ?? 0) + HEAD - 56}px; width: ${head.width}px;`}
         >
-          {bracketRoundHeading(intl, round, rounds)}
+          {bracketRoundTitle(intl, round, rounds)}
         </RoundHeading>
       ))}
       {nodes.map((node) => {

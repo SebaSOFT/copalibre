@@ -185,7 +185,13 @@ test.describe('public knockout bracket', () => {
 
     const canvas = page.locator('.cl-bracket-stage__canvas[data-density="full"]');
     await expect(canvas.locator('.cl-bracket-stage__node')).toHaveCount(7);
-    await expect(canvas.getByText('Final', { exact: true })).toBeVisible();
+    await expect(
+      canvas.getByRole('heading', { name: 'Cuadro principal', exact: true }),
+    ).toHaveCount(1);
+    await expect(
+      canvas.locator('.cl-bracket-stage__round-label').filter({ hasText: 'Cuadro principal' }),
+    ).toHaveCount(0);
+    await expect(canvas.getByRole('heading', { name: 'Final', exact: true })).toBeVisible();
 
     // The five placement games are not in the tree; they are listed under what each decides.
     const list = page.locator('.cl-placement-games');
