@@ -218,6 +218,37 @@ export function formatChanges(changes) {
   return JSON.stringify(normalizeChanges(changes), null, 2);
 }
 
+/** Compact JSON groups translations by key while preserving each old/new pair. */
+export function formatCompactChanges(changes) {
+  const grouped = new Map();
+  for (const { key, language, old, new: next } of normalizeChanges(changes)) {
+    const entry = grouped.get(key) ?? { key };
+    entry[language] = [old, next];
+    grouped.set(key, entry);
+  }
+  return JSON.stringify([...grouped.values()]);
+}
+
+function expandCompactChanges(changes) {
+  return normalizeChanges(
+    changes.flatMap((entry) => {
+      if (typeof entry?.key !== 'string')
+        throw new Error('Each compact changed-string entry must include a key');
+
+      return Object.entries(entry)
+        .filter(([property]) => property !== 'key')
+        .map(([language, pair]) => {
+          if (!SUPPORTED_LANGUAGES.includes(language))
+            throw new Error(`Unsupported language in compact changed-string entry: ${language}`);
+          if (!Array.isArray(pair) || pair.length !== 2)
+            throw new Error(`Compact changed-string value for ${language} must be [old, new]`);
+          const [old, next] = pair;
+          return { key: entry.key, language, old, new: next };
+        });
+    }),
+  );
+}
+
 export function changedStringsFromBody(body) {
   const lines = body.split(/\r?\n/);
   const heading = lines.findIndex((line) => /^##\s+Changed interface strings\s*$/i.test(line));
@@ -230,7 +261,11 @@ export function changedStringsFromBody(body) {
     throw new Error('Add the script output as a fenced JSON block in "Changed interface strings"');
 
   try {
-    return normalizeChanges(JSON.parse(block[1]));
+    const changes = JSON.parse(block[1]);
+    if (!Array.isArray(changes)) throw new Error('The changed-string list must be a JSON array');
+    if (changes.length === 0 || typeof changes[0]?.language === 'string')
+      return normalizeChanges(changes);
+    return expandCompactChanges(changes);
   } catch (error) {
     throw new Error(`Could not read the changed-string JSON block: ${error.message}`, {
       cause: error,
@@ -258,10 +293,11 @@ function diffRefs({ baseRef, headRef, cwd, env, pullRequest }) {
 }
 
 function parseArguments(args) {
-  const options = { checkBody: false, help: false };
+  const options = { checkBody: false, compact: false, help: false };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === '--check-body') options.checkBody = true;
+    else if (argument === '--compact') options.compact = true;
     else if (argument === '--help' || argument === '-h') options.help = true;
     else if (argument === '--base' || argument === '--head') {
       const value = args[index + 1];
@@ -277,8 +313,9 @@ function parseArguments(args) {
 
 function usage() {
   return [
-    'Usage: node scripts/list-changed-strings.mjs [--base <ref>] [--head <ref>] [--check-body]',
+    'Usage: node scripts/list-changed-strings.mjs [--base <ref>] [--head <ref>] [--compact] [--check-body]',
     'Prints a JSON list of changed catalogue keys (key, language, old and new).',
+    'With --compact, translations are grouped by key; each language maps to [old, new].',
     'With --check-body, compares that list with the pull request event body.',
   ].join('\n');
 }
@@ -299,7 +336,9 @@ function main() {
     }
     const refs = diffRefs({ ...options, cwd, env, pullRequest });
     const changes = collectChangedStrings({ cwd, ...refs });
-    process.stdout.write(`${formatChanges(changes)}\n`);
+    process.stdout.write(
+      `${options.compact ? formatCompactChanges(changes) : formatChanges(changes)}\n`,
+    );
 
     if (!options.checkBody || changes.length === 0) return;
 

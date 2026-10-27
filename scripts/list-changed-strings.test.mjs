@@ -8,6 +8,7 @@ import test from 'node:test';
 import {
   changedStringsFromBody,
   collectChangedStrings,
+  formatCompactChanges,
   formatChanges,
   parseCatalogue,
 } from './list-changed-strings.mjs';
@@ -118,6 +119,18 @@ test('lists added, changed and removed keys across control and public catalogues
 
     const body = `## Changed interface strings\n\n\`\`\`json\n${formatChanges(changes)}\n\`\`\`\n\n## UI screenshots\n`;
     assert.deepEqual(changedStringsFromBody(body), expected);
+
+    const compact = [
+      { key: 'control.added', es: [null, 'Texto agregado'] },
+      { key: 'control.changed', es: ['Texto anterior', 'Texto nuevo'] },
+      { key: 'control.removed', es: ['Texto quitado', null] },
+      { key: 'publicWeb.added', es: [null, 'Texto público agregado'] },
+      { key: 'publicWeb.changed', es: ['Texto público anterior', 'Texto público nuevo'] },
+      { key: 'publicWeb.removed', es: ['Texto público quitado', null] },
+    ];
+    assert.equal(formatCompactChanges(changes), JSON.stringify(compact));
+    const compactBody = `## Changed interface strings\n\n\`\`\`json\n${formatCompactChanges(changes)}\n\`\`\`\n`;
+    assert.deepEqual(changedStringsFromBody(compactBody), expected);
   } finally {
     rmSync(repository, { recursive: true, force: true });
   }
