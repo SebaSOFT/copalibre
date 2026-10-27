@@ -237,7 +237,8 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/screens/LiveConsoleTemplate.tsx', 2],
   ['control/components/NativeAuthRoutes.tsx', 7],
   ['control/components/screens/PlatformAdministrationTemplate.tsx', 1],
-  ['control/components/screens/PreferencesTemplate.tsx', 14],
+  // Historical screen-level card and token-list layout remains inline pending CSS consolidation.
+  ['control/components/screens/PreferencesTemplate.tsx', 10],
   ['control/components/ProfileBuilderWizard.tsx', 3],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 4],
@@ -319,7 +320,8 @@ export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['components/ui/AstroPreview.tsx', 1],
   ['control/components/ControlApp.tsx', 8],
   ['control/components/NativeAuthRoutes.tsx', 7],
-  ['control/components/screens/PreferencesTemplate.tsx', 13],
+  // Historical preference-panel and token presentation values remain inline pending CSS consolidation.
+  ['control/components/screens/PreferencesTemplate.tsx', 9],
   ['control/components/RosterRoleSelector.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 1],
   ['control/components/TournamentSetupWizard.tsx', 1],

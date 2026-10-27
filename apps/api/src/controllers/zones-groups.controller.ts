@@ -296,7 +296,9 @@ export class ZonesGroupsController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Remove a zone',
-    description: 'Refused once an entrant has been assigned into it, naming the assignment.',
+    description:
+      'Available only before fixtures exist. The zone is hidden immediately, and its entrant ' +
+      'assignments remain available if it is restored within 24 hours.',
   })
   @ApiOkResponse({ type: ZoneResponse })
   @ApiConflictResponse({ type: ProblemResponse })
@@ -483,7 +485,9 @@ export class ZonesGroupsController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Remove a group',
-    description: 'Refused once an entrant has been assigned into it, naming the assignment.',
+    description:
+      'Available only before fixtures exist. The group is hidden immediately, and its entrant ' +
+      'assignments remain available if it is restored within 24 hours.',
   })
   @ApiOkResponse({ type: GroupResponse })
   @ApiConflictResponse({ type: ProblemResponse })
