@@ -40,6 +40,16 @@ export interface PatCreatedResponse extends PatResponse {
   readonly token: string;
 }
 
+export interface PatRevocationPreview {
+  readonly reversible: boolean;
+  readonly tokens: number;
+  readonly lastUsedAt?: string;
+}
+
+interface PatScopeOptionsResponse {
+  readonly scopes: readonly string[];
+}
+
 /**
  * Fetches and mutates: every call into the API
  * client — including the raw `fetch` calls the personal-access-token
@@ -77,24 +87,38 @@ export function PreferencesPage({
     `control-preferences:${organizationAlias ?? 'personal'}`,
     async () => {
       const token = controlTokenStore.read();
-      const [response, organization, storageUsage, unreferencedObjects] = await Promise.all([
-        requestPat('/api/auth/pat', { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
-        organizationAlias === undefined ? undefined : api.getOrganization?.(organizationAlias),
-        organizationAlias === undefined ? undefined : api.getStorageUsage?.(organizationAlias),
-        organizationAlias === undefined
-          ? []
-          : (api.listUnreferencedObjects?.(organizationAlias) ?? []),
-      ]);
-      if (!response.ok) throw new Error('Personal access tokens could not be loaded');
+      const [response, scopeResponse, organization, storageUsage, unreferencedObjects] =
+        await Promise.all([
+          requestPat('/api/auth/pat', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }),
+          requestPat('/api/auth/pat/scopes', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }),
+          organizationAlias === undefined ? undefined : api.getOrganization?.(organizationAlias),
+          organizationAlias === undefined ? undefined : api.getStorageUsage?.(organizationAlias),
+          organizationAlias === undefined
+            ? []
+            : (api.listUnreferencedObjects?.(organizationAlias) ?? []),
+        ]);
+      if (!response.ok || !scopeResponse.ok)
+        throw new Error('Personal access tokens could not be loaded');
       const tokens = (await response.json()) as readonly PatResponse[];
-      return { tokens, organization, storageUsage, unreferencedObjects };
+      const patScopes = ((await scopeResponse.json()) as PatScopeOptionsResponse).scopes;
+      return { tokens, patScopes, organization, storageUsage, unreferencedObjects };
     },
     {
       thing: intl.formatMessage(controlMessages.preferencesTitle),
       isEmpty: (value) => value.tokens.length === 0 && value.organization === undefined,
     },
   );
-  const { tokens = [], organization, storageUsage, unreferencedObjects = [] } = read.data ?? {};
+  const {
+    tokens = [],
+    patScopes = [],
+    organization,
+    storageUsage,
+    unreferencedObjects = [],
+  } = read.data ?? {};
   const orgName = orgNameEdit ?? organization?.name ?? '';
   const setTokens = (change: (current: readonly PatResponse[]) => readonly PatResponse[]): void =>
     read.update((current) => ({ ...current, tokens: change(current.tokens) }));
@@ -116,8 +140,12 @@ export function PreferencesPage({
   ): void => read.update((current) => ({ ...current, storageUsage: change(current.storageUsage) }));
   const reloadOrganization = read.retry;
 
-  async function createPat(label: string, expiresInDays: number): Promise<boolean> {
-    if (!label.trim()) return false;
+  async function createPat(
+    label: string,
+    expiresInDays: number,
+    scopes: readonly string[],
+  ): Promise<boolean> {
+    if (!label.trim() || scopes.length === 0) return false;
 
     const token = controlTokenStore.read();
     const res = await requestPat('/api/auth/pat', {
@@ -126,7 +154,7 @@ export function PreferencesPage({
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({ label, expiresInDays }),
+      body: JSON.stringify({ label, scopes, expiresInDays }),
     });
 
     if (res.ok) {
@@ -138,14 +166,83 @@ export function PreferencesPage({
     return false;
   }
 
-  async function revokePat(tokenId: string): Promise<void> {
+  async function revokePat(tokenId: string): Promise<PatRevocationPreview | undefined> {
     const token = controlTokenStore.read();
-    const res = await requestPat(`/api/auth/pat/${tokenId}`, {
-      method: 'DELETE',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (res.ok) {
-      setTokens((current) => current.filter((t) => t.tokenId !== tokenId));
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    try {
+      const previewResponse = await requestPat(`/api/auth/pat/${tokenId}?dryRun=true`, {
+        method: 'DELETE',
+        headers,
+      });
+      if (!previewResponse.ok) throw new Error('Personal access token could not be previewed');
+      const preview = (await previewResponse.json()) as PatRevocationPreview;
+      if (!preview.reversible) return preview;
+
+      const response = await requestPat(`/api/auth/pat/${tokenId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      if (!response.ok) throw new Error('Personal access token could not be revoked');
+      setTokens((current) => current.filter((currentToken) => currentToken.tokenId !== tokenId));
+      const result = (await response.json()) as { readonly reversible: boolean };
+      push(
+        result.reversible
+          ? {
+              severity: 'success',
+              message: intl.formatMessage(controlMessages.preferencesPatRevoked),
+              durationMs: 10_000,
+              action: {
+                label: intl.formatMessage(controlMessages.preferencesPatUndo),
+                onAction: () => void restorePat(tokenId),
+              },
+            }
+          : {
+              severity: 'success',
+              message: intl.formatMessage(controlMessages.preferencesPatRevoked),
+            },
+      );
+      return undefined;
+    } catch (error) {
+      pushError(error);
+      return undefined;
+    }
+  }
+
+  async function confirmPatRevoke(tokenId: string): Promise<void> {
+    const token = controlTokenStore.read();
+    try {
+      const response = await requestPat(`/api/auth/pat/${tokenId}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) throw new Error('Personal access token could not be revoked');
+      setTokens((current) => current.filter((currentToken) => currentToken.tokenId !== tokenId));
+      push({
+        severity: 'success',
+        message: intl.formatMessage(controlMessages.preferencesPatRevoked),
+      });
+    } catch (error) {
+      pushError(error);
+      throw error;
+    }
+  }
+
+  async function restorePat(tokenId: string): Promise<void> {
+    const token = controlTokenStore.read();
+    try {
+      const response = await requestPat(`/api/auth/pat/${tokenId}/restore`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) throw new Error('Personal access token could not be restored');
+      const restored = (await response.json()) as PatResponse;
+      setTokens((current) => [...current.filter((item) => item.tokenId !== tokenId), restored]);
+      push({
+        severity: 'success',
+        message: intl.formatMessage(controlMessages.preferencesPatRestored),
+      });
+    } catch (error) {
+      pushError(error);
     }
   }
 
@@ -208,17 +305,38 @@ export function PreferencesPage({
     undefined,
   );
 
-  async function runStatisticsRebuild(tournamentAlias: string): Promise<void> {
-    if (!api.rebuildStatistics || organizationAlias === undefined) return;
+  async function previewStatisticsRebuild(
+    tournamentAlias: string,
+  ): Promise<StatisticsRebuildResponse | undefined> {
+    if (!api.rebuildStatistics || organizationAlias === undefined) return undefined;
     try {
       const result = await api.rebuildStatistics(
         organizationAlias,
         tournamentAlias.trim() === '' ? undefined : tournamentAlias.trim(),
+        true,
       );
+      return result.dryRun ? result : undefined;
+    } catch (error) {
+      pushError(error);
+      return undefined;
+    }
+  }
+
+  async function runStatisticsRebuild(tournamentAlias: string): Promise<boolean> {
+    if (!api.rebuildStatistics || organizationAlias === undefined) return false;
+    try {
+      const result = await api.rebuildStatistics(
+        organizationAlias,
+        tournamentAlias.trim() === '' ? undefined : tournamentAlias.trim(),
+        false,
+      );
+      if (result.dryRun) return false;
       setRebuildResult(result);
+      return true;
     } catch (error) {
       setRebuildResult(undefined);
       pushError(error);
+      return false;
     }
   }
 
@@ -233,6 +351,8 @@ export function PreferencesPage({
         onCreatePat={createPat}
         onDeleteUnreferencedObject={deleteUnreferencedObject}
         onRevokePat={revokePat}
+        onConfirmRevokePat={confirmPatRevoke}
+        onPreviewStatisticsRebuild={previewStatisticsRebuild}
         onRunStatisticsRebuild={runStatisticsRebuild}
         onSaveOrganizationName={saveOrganizationName}
         onUploadOrganizationEmblem={uploadOrganizationEmblem}
@@ -246,6 +366,7 @@ export function PreferencesPage({
         storageLoading={false}
         storageUsage={storageUsage}
         tokens={tokens}
+        patScopes={patScopes}
         unreferencedObjects={unreferencedObjects}
       />
     </ReadState>

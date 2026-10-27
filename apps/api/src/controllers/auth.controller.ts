@@ -10,6 +10,7 @@ import {
   Inject,
   Param,
   Post,
+  Query,
   Req,
   Res,
 } from '@nestjs/common';
@@ -56,6 +57,8 @@ import {
   CreatePatRequest,
   PatCreatedResponse,
   PatResponse,
+  PatScopeOptionsResponse,
+  PatRevocationResponse,
   AuthSuccessResponse,
   NativeAcceptInvitationRequest,
   JwksResponse,
@@ -456,6 +459,18 @@ export function assertPatScopesAllowed(
 export class PersonalAccessTokenController {
   constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
 
+  @Get('scopes')
+  @SecurityPlaneTag('admin-control')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Scopes the current user may grant to a personal access token' })
+  @ApiOkResponse({ type: PatScopeOptionsResponse })
+  scopes(@Req() request: RequestWithSubject): PatScopeOptionsResponse {
+    const availableScopes = request.subject?.scopes ?? [];
+    return {
+      scopes: [...new Set(availableScopes.filter((scope) => !PRIVILEGED_SCOPES.includes(scope)))],
+    };
+  }
+
   @Get()
   @SecurityPlaneTag('admin-control')
   @ApiBearerAuth()
@@ -487,8 +502,8 @@ export class PersonalAccessTokenController {
     }
 
     const expiresAt = new Date(Date.now() + body.expiresInDays * 24 * 60 * 60 * 1000);
-    assertPatScopesAllowed(body.scopes ?? [], request.subject?.scopes ?? []);
-    const scopes = body.scopes ?? [...(request.subject?.scopes ?? [])];
+    assertPatScopesAllowed(body.scopes, request.subject?.scopes ?? []);
+    const scopes = body.scopes;
 
     const result = await withTransaction(this.db, (uow) =>
       new PersonalAccessTokenRepository(this.db).create(uow, {
@@ -516,21 +531,58 @@ export class PersonalAccessTokenController {
   @SecurityPlaneTag('admin-control')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Revoke a personal access token' })
-  @ApiOkResponse({ type: PatResponse })
+  @ApiOkResponse({ type: PatRevocationResponse })
   async revoke(
     @Param('tokenId') tokenId: string,
+    @Query('dryRun') dryRun: string | undefined,
     @Req() request: RequestWithSubject,
-  ): Promise<PatResponse> {
+  ): Promise<PatRevocationResponse> {
     const principalId = requirePrincipalId(request);
+    const repository = new PersonalAccessTokenRepository(this.db);
+    if (dryRun === 'true') {
+      const preview = await repository.previewRevoke(tokenId, principalId);
+      if (!preview) throw new NotFoundException('Personal access token was not found');
+      return { dryRun: true, ...preview };
+    }
+    if (dryRun !== undefined && dryRun !== 'false') {
+      throw new BadRequestException('dryRun must be a boolean', { errorCode: 'auth-bad-request' });
+    }
     const revoked = await withTransaction(this.db, (uow) =>
-      new PersonalAccessTokenRepository(this.db).revoke(uow, {
+      repository.revoke(uow, {
         tokenId,
         principalId,
         actor: `user:${principalId}`,
         authorizationContext: (request.subject?.scopes ?? []).join(' '),
       }),
     );
-    return toPatResponse(revoked);
+    return {
+      ...toPatResponse(revoked),
+      dryRun: false,
+      reversible: revoked.lastUsedAt === undefined,
+      tokens: 1,
+    };
+  }
+
+  @Post(':tokenId/restore')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Restore a recently revoked personal access token' })
+  @ApiOkResponse({ type: PatResponse })
+  async restore(
+    @Param('tokenId') tokenId: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<PatResponse> {
+    const principalId = requirePrincipalId(request);
+    const restored = await withTransaction(this.db, (uow) =>
+      new PersonalAccessTokenRepository(this.db).restore(uow, {
+        tokenId,
+        principalId,
+        actor: `user:${principalId}`,
+        authorizationContext: (request.subject?.scopes ?? []).join(' '),
+      }),
+    );
+    return toPatResponse(restored);
   }
 }
 

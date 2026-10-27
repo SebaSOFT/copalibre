@@ -336,6 +336,18 @@ export class TournamentSettingsResponse {
     example: 120,
   })
   minimumRestMinutes?: number;
+
+  @ApiProperty({
+    description: 'Whether the organizer has marked this tournament as including minors.',
+    default: false,
+  })
+  includesMinors!: boolean;
+
+  @ApiProperty({
+    description: 'Whether player profiles are public when the tournament includes minors.',
+    default: false,
+  })
+  showYouthProfiles!: boolean;
 }
 
 /** A partial edit — every field is optional, so only the fields the operator actually changed are sent. */
@@ -344,6 +356,23 @@ export class TournamentSettingsRequest {
   @IsString()
   @ApiPropertyOptional({ example: 'Copa Verano (corregida)' })
   name?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiPropertyOptional({
+    description: 'Whether participants in this tournament include minors.',
+    default: false,
+  })
+  includesMinors?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiPropertyOptional({
+    description:
+      'Allows public profiles for youth participants. Requires includesMinors to be true.',
+    default: false,
+  })
+  showYouthProfiles?: boolean;
 
   @IsOptional()
   @IsString()
@@ -800,6 +829,14 @@ export class CreateTournamentRequest {
   requiresCheckIn!: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  @ApiPropertyOptional({
+    description:
+      'Whether participants include minors. Public youth profiles remain hidden unless explicitly enabled in tournament settings.',
+  })
+  includesMinors?: boolean;
+
+  @IsOptional()
   @IsString()
   @ApiPropertyOptional({
     format: 'date-time',
@@ -1015,6 +1052,78 @@ export class StageResponse {
     example: { 'round-robin': 'Every entrant plays every other entrant once' },
   })
   formatDescriptions?: Readonly<Record<string, string | LocalizedLabel>>;
+}
+
+export class DeleteStageRequest {
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: 'Must exactly match the current stage name for deletion.' })
+  confirmationName?: string;
+}
+
+export class StageDeletionResponse {
+  @ApiProperty({ format: 'uuid' })
+  stageId!: string;
+
+  @ApiProperty({ example: 'Fase de grupos' })
+  stageName!: string;
+
+  @ApiProperty({ description: 'True when this response only previews the deletion.' })
+  dryRun!: boolean;
+
+  @ApiProperty({ description: 'True after the stage and its records were removed.' })
+  success!: boolean;
+
+  @ApiProperty({ description: 'Fixtures that will be or were removed.' })
+  fixtures!: number;
+
+  @ApiProperty({ description: 'Matches and their results that will be or were removed.' })
+  matches!: number;
+
+  @ApiProperty({ description: 'Zones that will be or were removed.' })
+  zones!: number;
+
+  @ApiProperty({ description: 'Groups that will be or were removed.' })
+  groups!: number;
+
+  @ApiProperty({ description: 'Recorded match events that will be or were removed.' })
+  matchEvents!: number;
+
+  @ApiProperty({ description: 'Schedule placements that will be or were removed.' })
+  schedulePlacements!: number;
+
+  @ApiProperty({ description: 'Match official assignments that will be or were removed.' })
+  scheduleOfficials!: number;
+
+  @ApiProperty({ description: 'Participant reports that will be or were removed.' })
+  participantReports!: number;
+
+  @ApiProperty({ description: 'Report evidence references that will be or were removed.' })
+  reportEvidence!: number;
+
+  @ApiProperty({ description: 'Statistics and standings records that will be or were removed.' })
+  statistics!: number;
+
+  @ApiProperty({ description: 'Match-operation permissions that will be or were removed.' })
+  matchPermissions!: number;
+
+  @ApiProperty({ description: 'Match-scoped display tokens that will be or were revoked.' })
+  displayTokens!: number;
+
+  @ApiProperty({ description: 'Stage configurations that will be or were removed.' })
+  stageConfigurations!: number;
+
+  @ApiProperty({ description: 'Compiled rulesets that will be or were removed.' })
+  compiledRulesets!: number;
+
+  @ApiProperty({ description: 'Threshold counters that will be or were removed.' })
+  thresholdConsumption!: number;
+
+  @ApiProperty({ description: 'Promotion plans that will be or were removed.' })
+  promotionPlans!: number;
+
+  @ApiProperty({ description: 'Idempotent command records that will be or were removed.' })
+  commandRecords!: number;
 }
 
 /** A partial edit — rename is always permitted; a format change is refused once the stage holds a fixture. */

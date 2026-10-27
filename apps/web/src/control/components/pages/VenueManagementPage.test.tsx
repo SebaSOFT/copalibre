@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { jest } from '@jest/globals';
 import { VenueManagementPage } from '../pages/VenueManagementPage.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { ControlApiClient } from '../../lib/api-client.js';
@@ -55,5 +56,37 @@ describe('VenueManagementPage', () => {
     expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
     expect(screen.getByText(/Estadio Feliciano Gambarte/i)).toBeDefined();
     expect(screen.getByText(/Patricio Loustau/i)).toBeDefined();
+  });
+
+  it('removes a venue and restores it through the undo action', async () => {
+    const deleteVenue = jest.fn<NonNullable<ControlApiClient['deleteVenue']>>(async () => ({
+      success: true,
+    }));
+    const restoreVenue = jest.fn<NonNullable<ControlApiClient['restoreVenue']>>(async () => ({
+      venueId: 'venue-1',
+      organizationId: 'org-1',
+      name: 'Estadio Feliciano Gambarte',
+      alias: 'gambarte',
+      concurrentCapacity: 1,
+    }));
+    render(
+      withIntl(
+        <VenueManagementPage
+          client={stubClient({ deleteVenue, restoreVenue })}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit venue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove venue' }));
+
+    await screen.findByText('Venue removed.');
+    expect(deleteVenue).toHaveBeenCalledWith('liga-mendocina', 'venue-1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+
+    await screen.findByText('Venue restored.');
+    expect(restoreVenue).toHaveBeenCalledWith('liga-mendocina', 'venue-1');
   });
 });

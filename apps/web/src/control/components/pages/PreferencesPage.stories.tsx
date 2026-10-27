@@ -39,6 +39,7 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
       uploadOrganizationEmblem: () => Promise.resolve({ objectId: 'emblem-1' }),
       rebuildStatistics: () =>
         Promise.resolve({
+          dryRun: false,
           organizationAlias: ORG,
           matches: 10,
           figures: 2,
@@ -47,25 +48,28 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
   }, [mode]);
 
   const patFetch = useMemo<typeof fetch>(
-    () => async (_input, init) => {
+    () => async (input, init) => {
       if (init?.method && init.method !== 'GET')
         throw new Error('This story only declares personal access token reads');
       if (mode === 'loading') return pending<Response>();
       if (mode === 'failed') throw new Error('Fixture request failed');
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : '';
       return new Response(
         JSON.stringify(
-          mode === 'empty'
-            ? []
-            : [
-                {
-                  tokenId: '019927d0-0000-7000-8000-00000000000c',
-                  label: 'Broadcast integration',
-                  revoked: false,
-                  expiresAt: '2027-09-08T19:00:00.000Z',
-                  createdAt: '2026-09-08T19:00:00.000Z',
-                  scopes: [],
-                },
-              ],
+          url.endsWith('/api/auth/pat/scopes')
+            ? { scopes: ['copalibre.control', 'copalibre.participant'] }
+            : mode === 'empty'
+              ? []
+              : [
+                  {
+                    tokenId: '019927d0-0000-7000-8000-00000000000c',
+                    label: 'Broadcast integration',
+                    revoked: false,
+                    expiresAt: '2027-09-08T19:00:00.000Z',
+                    createdAt: '2026-09-08T19:00:00.000Z',
+                    scopes: [],
+                  },
+                ],
         ),
         { status: 200, headers: { 'content-type': 'application/json' } },
       );

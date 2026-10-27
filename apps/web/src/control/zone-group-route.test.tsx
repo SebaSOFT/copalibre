@@ -44,6 +44,55 @@ function groupAssignRegion(): HTMLElement {
 }
 
 describe('ZoneGroupPage', () => {
+  it('does not choose a draw mode before the organizer selects one', async () => {
+    const previewZoneDraw = jest.fn<NonNullable<ControlApiClient['previewZoneDraw']>>(async () => ({
+      assignment: { groups: {} },
+      seed: 1,
+      steps: 0,
+    }));
+    const previewGroupDraw = jest.fn<NonNullable<ControlApiClient['previewGroupDraw']>>(
+      async () => ({ assignment: { groups: {} }, seed: 1, steps: 0 }),
+    );
+    const client = stubClient({
+      listZones: () => Promise.resolve(oneZone),
+      listGroups: () => Promise.resolve(oneGroup),
+      previewZoneDraw,
+      previewGroupDraw,
+    });
+    render(
+      withIntl(
+        <ZoneGroupPage
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    await screen.findAllByText('Zone 1');
+    const zones = zoneAssignRegion();
+    const groups = groupAssignRegion();
+    expect(
+      within(zones).getByRole('radio', { name: 'Automatic draw' }).getAttribute('aria-checked'),
+    ).toBe('false');
+    expect(
+      within(zones).getByRole('radio', { name: 'Manual placement' }).getAttribute('aria-checked'),
+    ).toBe('false');
+    expect(within(zones).getByRole('status').textContent).toContain('Choose an assignment mode');
+    expect(
+      within(groups).getByRole('radio', { name: 'Automatic draw' }).getAttribute('aria-checked'),
+    ).toBe('false');
+    expect(
+      within(groups).getByRole('radio', { name: 'Manual placement' }).getAttribute('aria-checked'),
+    ).toBe('false');
+    expect(within(groups).getByRole('status').textContent).toContain('Choose an assignment mode');
+    expect(within(zones).queryByText('Preview draw')).toBeNull();
+    expect(within(groups).queryByText('Preview draw')).toBeNull();
+    expect(previewZoneDraw).not.toHaveBeenCalled();
+    expect(previewGroupDraw).not.toHaveBeenCalled();
+  });
+
   it('renders zones, groups, and (in manual mode) entrants for the default stage', async () => {
     const client = stubClient({
       listZones: () => Promise.resolve(oneZone),
@@ -182,6 +231,7 @@ describe('ZoneGroupPage', () => {
 
     await screen.findAllByText('Zone 1');
     const region = zoneAssignRegion();
+    fireEvent.click(within(region).getByText('Automatic draw'));
     fireEvent.change(within(region).getByLabelText('Number of zones'), {
       target: { value: '2' },
     });
@@ -278,6 +328,7 @@ describe('ZoneGroupPage', () => {
 
     await screen.findAllByText('Zone 1');
     const region = groupAssignRegion();
+    fireEvent.click(within(region).getByText('Automatic draw'));
     fireEvent.change(within(region).getByLabelText('Number of groups'), {
       target: { value: '2' },
     });
@@ -415,6 +466,7 @@ describe('ZoneGroupPage', () => {
 
     // previewZoneDraw succeeds (enabling Confirm), confirmZoneDraw refuses
     const zoneRegion = zoneAssignRegion();
+    fireEvent.click(within(zoneRegion).getByText('Automatic draw'));
     await act(async () => {
       fireEvent.click(within(zoneRegion).getByText('Preview draw'));
     });
@@ -437,6 +489,7 @@ describe('ZoneGroupPage', () => {
 
     // previewGroupDraw succeeds (enabling Confirm), confirmGroupDraw refuses
     const groupRegion = groupAssignRegion();
+    fireEvent.click(within(groupRegion).getByText('Automatic draw'));
     await act(async () => {
       fireEvent.click(within(groupRegion).getByText('Preview draw'));
     });
@@ -486,6 +539,7 @@ describe('ZoneGroupPage', () => {
 
     await screen.findAllByText('Zone 1');
     const zoneRegion = zoneAssignRegion();
+    fireEvent.click(within(zoneRegion).getByText('Automatic draw'));
     await act(async () => {
       fireEvent.click(within(zoneRegion).getByText('Preview draw'));
     });
@@ -496,6 +550,7 @@ describe('ZoneGroupPage', () => {
     expect(screen.queryByText('Assignment saved.')).toBeNull();
 
     const groupRegion = groupAssignRegion();
+    fireEvent.click(within(groupRegion).getByText('Automatic draw'));
     await act(async () => {
       fireEvent.click(within(groupRegion).getByText('Preview draw'));
     });
@@ -554,10 +609,12 @@ describe('ZoneGroupPage', () => {
     );
 
     await screen.findAllByText('Zone 1');
+    fireEvent.click(within(zoneAssignRegion()).getByText('Automatic draw'));
     await act(async () => {
       fireEvent.click(within(zoneAssignRegion()).getByText('Preview draw'));
     });
     await waitFor(() => expect(screen.getAllByText('Rechazado')).toHaveLength(1));
+    fireEvent.click(within(groupAssignRegion()).getByText('Automatic draw'));
     await act(async () => {
       fireEvent.click(within(groupAssignRegion()).getByText('Preview draw'));
     });
@@ -802,6 +859,7 @@ describe('ZoneGroupPage', () => {
     expect(screen.queryByLabelText('New zone name')).toBeNull();
 
     const zoneRegion = zoneAssignRegion();
+    fireEvent.click(within(zoneRegion).getByText('Automatic draw'));
     await act(async () => {
       fireEvent.click(within(zoneRegion).getByText('Preview draw'));
     });
@@ -836,6 +894,7 @@ describe('ZoneGroupPage', () => {
     expect(screen.queryByLabelText('New group name')).toBeNull();
 
     const groupRegion = groupAssignRegion();
+    fireEvent.click(within(groupRegion).getByText('Automatic draw'));
     await act(async () => {
       fireEvent.click(within(groupRegion).getByText('Preview draw'));
     });

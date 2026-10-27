@@ -775,6 +775,18 @@ describe('the CSS output', () => {
     expect(css).toContain(`box-shadow: ${DIALOG_TOKENS.elevation};`);
   });
 
+  it('keeps modal descriptions below translated titles', () => {
+    expect(css).toContain(
+      '.cl-modal__header { display: grid; grid-template-columns: minmax(0, 1fr) auto;',
+    );
+    expect(css).toContain('.cl-modal__title { grid-column: 1; grid-row: 1;');
+    expect(css).toContain('.cl-modal__description { grid-column: 1 / -1; grid-row: 2;');
+    expect(css).toContain('.cl-modal__close { grid-column: 2; grid-row: 1;');
+    expect(css).toContain(
+      `@media (width < ${BREAKPOINTS.sm}) { .cl-modal__footer { flex-direction: column; }`,
+    );
+  });
+
   it('emits template layout rules including match console', () => {
     expect(css).toContain('.cl-match-console-screen {');
     expect(css).toContain('.cl-match-console-screen__header {');

@@ -19,6 +19,7 @@ export interface ToastInput {
   readonly message: string;
   readonly details?: ErrorDetails;
   readonly action?: { readonly label: string; readonly onAction: () => void };
+  readonly durationMs?: number;
 }
 
 export interface ToastApi {
@@ -97,7 +98,7 @@ export function ToastProvider({
       ) {
         autoDismissTimers.current.set(
           toast.id,
-          setTimeout(() => dismiss(toast.id), AUTO_DISMISS_MS),
+          setTimeout(() => dismiss(toast.id), toast.durationMs ?? AUTO_DISMISS_MS),
         );
       }
     }

@@ -18,7 +18,12 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
       return Promise.resolve(value);
     }
     return storyClient<ControlApiClient>({
-      fetchTournamentSettings: async () => ({ name: 'Apertura 2026', featured: false }),
+      fetchTournamentSettings: async () => ({
+        name: 'Apertura 2026',
+        featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
+      }),
       listStages: () =>
         read(
           empty

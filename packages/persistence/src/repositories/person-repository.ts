@@ -10,7 +10,7 @@ import {
   type Player,
   type PlayerRole,
 } from '@copalibre/domain';
-import { InvariantViolationError } from '../errors.js';
+import { InvariantViolationError, NotFoundError } from '../errors.js';
 import { newId } from '../ids.js';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
@@ -254,6 +254,57 @@ export class PersonRepository {
         : { previousState: { nationality: previous.nationality ?? null } }),
       resultingState: { nationality: person.nationality ?? null },
     });
+    return person;
+  }
+
+  /** Sets or clears the person's public-page opt-out without changing results. */
+  async setHiddenFromPublic(
+    uow: UnitOfWork,
+    input: {
+      readonly personId: string;
+      readonly organizationId: string;
+      readonly hiddenFromPublic: boolean;
+    } & AuditContext,
+  ): Promise<Person> {
+    const previous = await this.findPerson(input.personId);
+    if (!previous || previous.organizationId !== input.organizationId) {
+      throw new NotFoundError(`Person ${input.personId} does not exist in this organization`, {
+        personId: input.personId,
+        organizationId: input.organizationId,
+      });
+    }
+
+    const row = await uow.tx
+      .updateTable('persons')
+      .set({ hidden_from_public: input.hiddenFromPublic })
+      .where('person_id', '=', input.personId)
+      .where('organization_id', '=', input.organizationId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    const person = toPerson(row);
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'person',
+      entityId: input.personId,
+      action: 'person.public-visibility-updated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { hiddenFromPublic: previous.hiddenFromPublic ?? false },
+      resultingState: { hiddenFromPublic: person.hiddenFromPublic ?? false },
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `person:${input.personId}`,
+      entityId: input.personId,
+      eventType: 'person.public-visibility-updated',
+      projectionVersion: 1,
+      payload: {
+        personId: input.personId,
+        hiddenFromPublic: person.hiddenFromPublic ?? false,
+      },
+    });
+
     return person;
   }
 
@@ -712,6 +763,12 @@ export class PersonRepository {
       .where('players.person_id', '=', personId)
       .where('tournaments.organization_id', '=', organizationId)
       .where('tournaments.status', '!=', 'draft')
+      .where((eb) =>
+        eb.or([
+          eb('tournaments.includes_minors', '=', false),
+          eb('tournaments.show_youth_profiles', '=', true),
+        ]),
+      )
       .orderBy('tournaments.created_at', 'asc')
       .execute();
 
@@ -739,12 +796,24 @@ export class PersonRepository {
   ): Promise<readonly PersonCareerDisciplineTotals[]> {
     const rows = await this.db
       .selectFrom('statistic_totals')
+      .innerJoin('matches', 'matches.match_id', 'statistic_totals.source_match_id')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .innerJoin('stages', 'stages.stage_id', 'fixtures.stage_id')
+      .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
+      .innerJoin('tournaments', 'tournaments.tournament_id', 'seasons.tournament_id')
       .select(['collector_code'])
       .select((eb) => eb.fn.sum<number>('value').as('value'))
       .select((eb) => eb.fn.sum<number>('samples').as('samples'))
-      .where('organization_id', '=', organizationId)
-      .where('actor_id', '=', personId)
-      .where('actor_granularity', '=', 'person')
+      .where('statistic_totals.organization_id', '=', organizationId)
+      .where('statistic_totals.actor_id', '=', personId)
+      .where('statistic_totals.actor_granularity', '=', 'person')
+      .where('tournaments.organization_id', '=', organizationId)
+      .where((eb) =>
+        eb.or([
+          eb('tournaments.includes_minors', '=', false),
+          eb('tournaments.show_youth_profiles', '=', true),
+        ]),
+      )
       .groupBy('collector_code')
       .execute();
 
@@ -860,6 +929,7 @@ interface PersonRow {
   readonly birth_date?: string | Date | null;
   readonly photo_object_id?: string | null;
   readonly club_id?: string | null;
+  readonly hidden_from_public?: boolean | number;
 }
 
 function toPerson(row: PersonRow): Person {
@@ -887,6 +957,7 @@ function toPerson(row: PersonRow): Person {
       ? {}
       : { photoObjectId: row.photo_object_id }),
     ...(row.club_id === null || row.club_id === undefined ? {} : { clubId: row.club_id }),
+    hiddenFromPublic: Boolean(row.hidden_from_public),
   };
 }
 

@@ -34,6 +34,69 @@ afterAll(async () => {
 });
 
 describe('CSV import routes', () => {
+  it('allows individual exports to omit selected personal columns', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const people = new PersonRepository(scratch.db);
+    const enrollments = new EnrollmentRepository(scratch.db);
+    const audit = { actor: 'user:seed', authorizationContext: 'seed' };
+    const { person } = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      const descriptor = footballDescriptor();
+      await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...audit });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-export-individual',
+        name: 'Copa Export Individual',
+        descriptor,
+        ...audit,
+      });
+      const registered = await people.register(uow, {
+        organizationId,
+        alias: 'maria-perez-export',
+        displayName: 'Maria Perez',
+        naturalKey: { kind: 'dni', value: '30123456' },
+        birthDate: '2008-05-12',
+        ...audit,
+      });
+      await enrollments.registerEntrant(uow, {
+        organizationId,
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'person', personId: registered.person.personId },
+        ...audit,
+      });
+      return registered;
+    });
+
+    const baseUrl =
+      '/organizations/liga-orbital/tournaments/copa-export-individual/exports/participants/individual';
+    const complete = await request({ method: 'GET', url: baseUrl, token: 'organizer-org1' });
+    expect(complete.statusCode).toBe(200);
+    expect(complete.body).toBe(
+      'alias,displayName,naturalKeyKind,naturalKey\nmaria-perez-export,Maria Perez,dni,30123456\n',
+    );
+
+    const minimized = await request({
+      method: 'GET',
+      url: `${baseUrl}?excludePersonalData=displayName%2CnaturalKeyKind%2CnaturalKey`,
+      token: 'organizer-org1',
+    });
+    expect(minimized.statusCode).toBe(200);
+    expect(minimized.body).toBe('alias\nmaria-perez-export\n');
+
+    const invalid = await request({
+      method: 'GET',
+      url: `${baseUrl}?excludePersonalData=unknown`,
+      token: 'organizer-org1',
+    });
+    expect(invalid.statusCode).toBe(400);
+
+    const stored = await people.findPerson(person.personId);
+    expect(stored).toMatchObject({
+      displayName: 'Maria Perez',
+      naturalKey: { kind: 'dni', value: '30123456' },
+      birthDate: '2008-05-12',
+    });
+  });
+
   it('persists an upload and queues validation without parsing in the request', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const descriptor = footballDescriptor();

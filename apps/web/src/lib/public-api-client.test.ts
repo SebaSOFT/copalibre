@@ -10,6 +10,7 @@ import {
   fetchPublicTableLayouts,
   fetchPublicTableProjection,
   mapOverviewResponse,
+  mapPublicWinnerZones,
   mapLiveResponse,
   mapBracketResponse,
   mapMatchesViewResponse,
@@ -510,6 +511,56 @@ describe('public-api-client', () => {
       expect(result.matches[0].home.entrantId).toBe('entrant-home');
       expect(result.matches[0].away.entrantId).toBe('entrant-away');
       expect(result.standings[0].points).toBe(3);
+    });
+
+    it('localizes hidden podium identities and strips youth identity details', () => {
+      const [zone] =
+        mapPublicWinnerZones(
+          [
+            {
+              champion: {
+                entrantId: 'hidden-adult',
+                name: 'Private Person',
+                hiddenAtRequest: true,
+                publicProfileAvailable: false,
+                abbreviation: 'PRI',
+                clubId: 'club-private',
+                emblemObjectId: 'emblem-private',
+              },
+              champions: [
+                {
+                  entrantId: 'hidden-adult',
+                  name: 'Private Person',
+                  hiddenAtRequest: true,
+                  publicProfileAvailable: false,
+                  clubId: 'club-private',
+                },
+              ],
+              runnerUp: {
+                entrantId: 'youth',
+                name: 'Youth Player',
+                publicProfileAvailable: false,
+                abbreviation: 'YOU',
+                clubId: 'club-youth',
+                emblemObjectId: 'emblem-youth',
+              },
+            },
+          ],
+          'es',
+        ) ?? [];
+
+      expect(zone?.champion).toEqual({
+        entrantId: 'hidden-adult',
+        name: 'Participante oculto por solicitud propia',
+        hiddenAtRequest: true,
+        publicProfileAvailable: false,
+      });
+      expect(zone?.champions?.[0]?.name).toBe('Participante oculto por solicitud propia');
+      expect(zone?.runnerUp).toEqual({
+        entrantId: 'youth',
+        name: 'Youth Player',
+        publicProfileAvailable: false,
+      });
     });
 
     it.each([

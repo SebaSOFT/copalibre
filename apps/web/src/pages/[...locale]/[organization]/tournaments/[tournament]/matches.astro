@@ -52,6 +52,7 @@ const schedule = await loadSchedule({
   organization: organization!,
   tournament: tournament!,
   state,
+  hiddenPlayerLabel: intl.formatMessage(messages.personHiddenAtRequest),
   ...(stageNumber === undefined ? {} : { stageNumber }),
   ...(zoneParam === undefined ? {} : { zone: zoneParam }),
   ...(groupParam === undefined ? {} : { group: groupParam }),

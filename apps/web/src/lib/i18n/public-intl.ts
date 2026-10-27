@@ -182,6 +182,7 @@ export function tvStatisticsLabels(intl: IntlShape) {
     unnamedActor: intl.formatMessage(messages.tvStatsUnnamedActor, {
       reference: '{reference}',
     }),
+    hiddenPerson: intl.formatMessage(messages.personHiddenAtRequest),
     scheduledMatches: intl.formatMessage(messages.tvStatsScheduledMatches),
     status: intl.formatMessage(messages.tvStatsStatus),
     inProgress: intl.formatMessage(messages.tvStatsInProgress),

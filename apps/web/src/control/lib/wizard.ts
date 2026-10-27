@@ -133,6 +133,8 @@ export interface WizardState {
   readonly publicRegistration: boolean;
   readonly requiresCheckIn: boolean;
   readonly checkInClosesAt?: string;
+  /** Explicit organizer choice; undefined until the first-step question is answered. */
+  readonly includesMinors?: boolean;
   /** Dot-path → value for a discipline-declared ruleset field beyond format/registration.*. */
   readonly ruleOverrides: Readonly<Record<string, unknown>>;
   readonly customRuleEnabled: boolean;
@@ -234,6 +236,7 @@ export function stepProblems(
         ...(state.alias === undefined || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(state.alias)
           ? [messages.wizardProblemAliasFormat]
           : []),
+        ...(state.includesMinors === undefined ? [messages.wizardProblemChooseMinors] : []),
       ];
     case 'discipline':
       return state.descriptorId === undefined ? [messages.wizardProblemChooseDiscipline] : [];
@@ -314,6 +317,7 @@ export function toCreateRequest(
     state.name === undefined ||
     state.descriptorId === undefined ||
     state.descriptorVersion === undefined ||
+    state.includesMinors === undefined ||
     state.stages.length === 0
   ) {
     throw new Error('The wizard is not complete');
@@ -326,6 +330,7 @@ export function toCreateRequest(
     stages: state.stages.map(stageRequestFrom),
     publicRegistration: state.publicRegistration,
     requiresCheckIn: state.requiresCheckIn,
+    includesMinors: state.includesMinors,
     ...(state.checkInClosesAt !== undefined && state.checkInClosesAt.trim() !== ''
       ? { checkInClosesAt: state.checkInClosesAt }
       : {}),

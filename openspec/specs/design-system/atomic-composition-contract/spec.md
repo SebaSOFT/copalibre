@@ -510,3 +510,31 @@ to one.
 
 - **WHEN** a page skips from `h2` to `h5`, or renders an empty heading
 - **THEN** the e2e outline check fails and names the route
+
+### Requirement: Identifiers and codes never appear as visible text
+
+Visible interface text SHALL NOT contain UUIDs, UUID fragments, aliases, slugs, internal match codes,
+enum keys or system actor IDs. Entities SHALL render their display name, enumerations a translated
+label, and dates and times SHALL be formatted in the interface locale and the organization's time
+zone. Identifiers MAY appear only in URLs (aliases), attributes, explicit copy-ID actions and exports.
+
+#### Scenario: Registration review
+
+- **WHEN** an organizer opens registration review
+- **THEN** each row shows the entrant's display name, and no UUID is visible
+
+#### Scenario: Zone membership
+
+- **WHEN** an organizer opens zones and groups
+- **THEN** each group lists club names, not ID fragments
+
+#### Scenario: Audit actions
+
+- **WHEN** the dashboard lists recent activity in Spanish
+- **THEN** each action and actor reads as translated Spanish text, with no `EVENT.RECORDED` or
+  `system:` codes
+
+#### Scenario: Lint
+
+- **WHEN** an e2e page renders a UUID in visible text
+- **THEN** the visible-identifier check fails and names the route and element

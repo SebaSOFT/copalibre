@@ -8,7 +8,14 @@ const meta = {
   args: {
     organizationAlias: ORG,
     tournamentAlias: TOURNAMENT,
-    settings: { name: TITLE, region: 'San Juan', capacity: 16, featured: false },
+    settings: {
+      name: TITLE,
+      region: 'San Juan',
+      capacity: 16,
+      featured: false,
+      includesMinors: false,
+      showYouthProfiles: false,
+    },
     onPreview: async () => [],
     onSave: async () => undefined,
   },

@@ -68,11 +68,13 @@ const layoutMode = mixedZones ? 'zones' : (zoneLayouts[0] ?? selectStageLayout(b
 const stageMatches =
   layoutMode === 'grid' || layoutMode === 'zones'
     ? await fetchMatchesView(organization!, tournament!, { stageNumber }).then((res) =>
-        res ? mapMatchesViewResponse(res).matches : [],
+        res
+          ? mapMatchesViewResponse(res, intl.formatMessage(messages.personHiddenAtRequest)).matches
+          : [],
       )
     : [];
 
-const model = buildOverview(mapOverviewResponse(overviewData));
+const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
 const localePrefix = locale ? `/${locale}` : '';
 const stagePath = `${localePrefix}${model.canonicalPath}/stages/${stageNumber}`;
 const activeClubId = Astro.url.searchParams.get('clubId') ?? undefined;

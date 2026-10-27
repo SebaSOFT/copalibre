@@ -80,6 +80,8 @@ type DisplayRow = Pick<TableRowResponse, 'actorName' | 'cells'> &
       | 'clubId'
       | 'emblemObjectId'
       | 'nationality'
+      | 'hiddenAtRequest'
+      | 'publicProfileAvailable'
     >
   >;
 const rows: readonly DisplayRow[] =
@@ -92,6 +94,8 @@ const rows: readonly DisplayRow[] =
         entrantAbbreviation: row.abbreviation,
         clubId: row.clubId,
         emblemObjectId: row.emblemObjectId,
+        hiddenAtRequest: row.hiddenAtRequest,
+        publicProfileAvailable: row.publicProfileAvailable,
         cells: {
           rank: { raw: row.position, formatted: String(row.position) },
           name: { formatted: row.name },
@@ -297,7 +301,9 @@ const playerDialogLabels = {
                     data-sort-type={typeof cellRaw === 'number' ? 'number' : 'text'}
                     data-sort-missing={cellMissing ? 'true' : undefined}
                   >
-                    {isPlayerNameCell && row.actorId ? (
+                    {isPlayerNameCell && row.hiddenAtRequest ? (
+                      intl.formatMessage(messages.personHiddenAtRequest)
+                    ) : isPlayerNameCell && row.actorId && row.publicProfileAvailable !== false ? (
                       <a
                         href={playerPageUrl}
                         class="cl-player-link"
@@ -311,7 +317,11 @@ const playerDialogLabels = {
                         />
                       </a>
                     ) : isPlayerNameCell ? (
-                      cellFormatted
+                      <ResponsivePlayerName
+                        client:load
+                        fullName={row.actorName ?? cellFormatted}
+                        nationalityCode={row.nationality}
+                      />
                     ) : column.code === 'name' ||
                       column.code === 'entrant' ||
                       column.code === 'team' ? (

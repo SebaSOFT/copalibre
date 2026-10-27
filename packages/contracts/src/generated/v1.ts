@@ -494,6 +494,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream a player's photo when public tournament settings allow it */
+        get: operations["TournamentMediaController_servePublicPersonPhoto"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/emblem": {
         parameters: {
             query?: never;
@@ -1377,8 +1394,8 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Remove an unseeded stage
-         * @description Refused once the stage already holds a generated fixture, or a promotion plan already targets it, naming why. Cascades the stage’s own zones, groups and their entrant assignments; never a fixture or another stage’s record.
+         * Preview or remove a stage and its fixtures
+         * @description `dryRun=true` reports the records that would be removed without changing data. Deletion requires `confirmationName` to exactly match the current stage name.
          */
         delete: operations["StagesController_remove"];
         options?: never;
@@ -2181,6 +2198,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/pat/scopes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scopes the current user may grant to a personal access token */
+        get: operations["PersonalAccessTokenController_scopes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/pat": {
         parameters: {
             query?: never;
@@ -2211,6 +2245,23 @@ export interface paths {
         post?: never;
         /** Revoke a personal access token */
         delete: operations["PersonalAccessTokenController_revoke"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/pat/{tokenId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a recently revoked personal access token */
+        post: operations["PersonalAccessTokenController_restore"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2380,7 +2431,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Stream a person's photo, once it has passed validation */
+        /** Stream a person's photo when a public tournament allows it */
         get: operations["PersonMediaController_servePhoto"];
         put?: never;
         /** Upload a person's photo (must be exactly 410×512px, ±1%) */
@@ -2406,6 +2457,23 @@ export interface paths {
         head?: never;
         /** Set or clear a person's nationality */
         patch: operations["PersonMediaController_setNationality"];
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/persons/{personId}/public-visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set whether a person is hidden from public pages */
+        patch: operations["PersonMediaController_setPublicVisibility"];
         trace?: never;
     };
     "/organizations/{organizationAlias}/clubs/{clubId}/emblem": {
@@ -2580,11 +2648,29 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /** Remove an unused venue with a 10-second undo window */
+        delete: operations["ResourcesController_deleteVenue"];
         options?: never;
         head?: never;
         /** Edit a venue's name, capacity, address, or details */
         patch: operations["ResourcesController_updateVenue"];
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/venues/{venueId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a recently removed venue */
+        post: operations["ResourcesController_restoreVenue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/organizations/{organizationAlias}/officials": {
@@ -2650,7 +2736,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remove a schedule grid */
+        /**
+         * Preview or remove a schedule grid
+         * @description `dryRun=true` reports slot and match counts without changing records. Removal requires the exact schedule name in `confirmationName`.
+         */
         delete: operations["ResourcesController_deleteSchedule"];
         options?: never;
         head?: never;
@@ -2708,7 +2797,7 @@ export interface paths {
         post?: never;
         /**
          * Remove a zone
-         * @description Refused once an entrant has been assigned into it, naming the assignment.
+         * @description Available only before fixtures exist. The zone is hidden immediately, and its entrant assignments remain available if it is restored within 24 hours.
          */
         delete: operations["ZonesGroupsController_deleteZone"];
         options?: never;
@@ -2731,6 +2820,23 @@ export interface paths {
          */
         put: operations["ZonesGroupsController_configureZone"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a recently removed zone */
+        post: operations["ZonesGroupsController_restoreZone"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2784,13 +2890,30 @@ export interface paths {
         post?: never;
         /**
          * Remove a group
-         * @description Refused once an entrant has been assigned into it, naming the assignment.
+         * @description Available only before fixtures exist. The group is hidden immediately, and its entrant assignments remain available if it is restored within 24 hours.
          */
         delete: operations["ZonesGroupsController_deleteGroup"];
         options?: never;
         head?: never;
         /** Rename a group — permitted at any time, seeded or not */
         patch: operations["ZonesGroupsController_renameGroup"];
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/{groupNumber}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a recently removed group */
+        post: operations["ZonesGroupsController_restoreGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/draw/preview": {
@@ -3502,6 +3625,8 @@ export interface components {
             /** Format: uuid */
             homeEntrantId?: string;
             homeName?: string;
+            homeHiddenAtRequest?: boolean;
+            homePublicProfileAvailable?: boolean;
             homeAbbreviation?: string;
             /** Format: uuid */
             homeClubId?: string;
@@ -3509,6 +3634,8 @@ export interface components {
             /** Format: uuid */
             awayEntrantId?: string;
             awayName?: string;
+            awayHiddenAtRequest?: boolean;
+            awayPublicProfileAvailable?: boolean;
             awayAbbreviation?: string;
             /** Format: uuid */
             awayClubId?: string;
@@ -3647,6 +3774,8 @@ export interface components {
             publicRegistration: boolean;
             /** @description Whether accepted entrants must check in before eligibility is locked. */
             requiresCheckIn: boolean;
+            /** @description Whether participants include minors. Public youth profiles remain hidden unless explicitly enabled in tournament settings. */
+            includesMinors?: boolean;
             /**
              * Format: date-time
              * @description Optional instant when checked-in team memberships stop being editable.
@@ -3717,10 +3846,30 @@ export interface components {
              * @example 120
              */
             minimumRestMinutes?: number;
+            /**
+             * @description Whether the organizer has marked this tournament as including minors.
+             * @default false
+             */
+            includesMinors: boolean;
+            /**
+             * @description Whether player profiles are public when the tournament includes minors.
+             * @default false
+             */
+            showYouthProfiles: boolean;
         };
         TournamentSettingsRequest: {
             /** @example Copa Verano (corregida) */
             name?: string;
+            /**
+             * @description Whether participants in this tournament include minors.
+             * @default false
+             */
+            includesMinors: boolean;
+            /**
+             * @description Allows public profiles for youth participants. Requires includesMinors to be true.
+             * @default false
+             */
+            showYouthProfiles: boolean;
             /**
              * @description Geographic or administrative region for tournament registration.
              * @example South America
@@ -4760,6 +4909,10 @@ export interface components {
             emblemObjectId?: string;
             /** @description ISO 3166-1 alpha-2 nationality code, present only at person granularity */
             nationality?: string;
+            /** @description The person requested to be hidden from public pages */
+            hiddenAtRequest?: boolean;
+            /** @description A public player profile may be linked from this row */
+            publicProfileAvailable?: boolean;
             /** @description 1-based; rows sharing a rank were not separated by `defaultSort` */
             rank: number;
             /** @description True when another row holds the same rank */
@@ -5137,6 +5290,54 @@ export interface components {
             format?: string;
             /** @description Replaces this stage’s declared allocation. Absent leaves it unchanged; there is no way to clear a declared allocation back to none through this endpoint. */
             allocation?: components["schemas"]["StageAllocationRequest"];
+        };
+        DeleteStageRequest: {
+            /** @description Must exactly match the current stage name for deletion. */
+            confirmationName?: string;
+        };
+        StageDeletionResponse: {
+            /** Format: uuid */
+            stageId: string;
+            /** @example Fase de grupos */
+            stageName: string;
+            /** @description True when this response only previews the deletion. */
+            dryRun: boolean;
+            /** @description True after the stage and its records were removed. */
+            success: boolean;
+            /** @description Fixtures that will be or were removed. */
+            fixtures: number;
+            /** @description Matches and their results that will be or were removed. */
+            matches: number;
+            /** @description Zones that will be or were removed. */
+            zones: number;
+            /** @description Groups that will be or were removed. */
+            groups: number;
+            /** @description Recorded match events that will be or were removed. */
+            matchEvents: number;
+            /** @description Schedule placements that will be or were removed. */
+            schedulePlacements: number;
+            /** @description Match official assignments that will be or were removed. */
+            scheduleOfficials: number;
+            /** @description Participant reports that will be or were removed. */
+            participantReports: number;
+            /** @description Report evidence references that will be or were removed. */
+            reportEvidence: number;
+            /** @description Statistics and standings records that will be or were removed. */
+            statistics: number;
+            /** @description Match-operation permissions that will be or were removed. */
+            matchPermissions: number;
+            /** @description Match-scoped display tokens that will be or were revoked. */
+            displayTokens: number;
+            /** @description Stage configurations that will be or were removed. */
+            stageConfigurations: number;
+            /** @description Compiled rulesets that will be or were removed. */
+            compiledRulesets: number;
+            /** @description Threshold counters that will be or were removed. */
+            thresholdConsumption: number;
+            /** @description Promotion plans that will be or were removed. */
+            promotionPlans: number;
+            /** @description Idempotent command records that will be or were removed. */
+            commandRecords: number;
         };
         StageConfigurationResponse: {
             /** @description The full stage-configuration override document, not only the changed fields. */
@@ -5535,7 +5736,9 @@ export interface components {
         PublicTournamentEntrantPodiumResponse: {
             /** Format: uuid */
             entrantId: string;
-            name: string;
+            name?: string;
+            hiddenAtRequest?: boolean;
+            publicProfileAvailable?: boolean;
             abbreviation?: string;
             /** Format: uuid */
             clubId?: string;
@@ -5613,6 +5816,8 @@ export interface components {
             /** Format: uuid */
             homeEntrantId?: string;
             homeName?: string;
+            homeHiddenAtRequest?: boolean;
+            homePublicProfileAvailable?: boolean;
             homeAbbreviation?: string;
             /** Format: uuid */
             homeClubId?: string;
@@ -5620,6 +5825,8 @@ export interface components {
             /** Format: uuid */
             awayEntrantId?: string;
             awayName?: string;
+            awayHiddenAtRequest?: boolean;
+            awayPublicProfileAvailable?: boolean;
             awayAbbreviation?: string;
             /** Format: uuid */
             awayClubId?: string;
@@ -5633,7 +5840,11 @@ export interface components {
             rank: number;
             /** Format: uuid */
             entrantId: string;
-            name: string;
+            name?: string;
+            /** @description The entrant is a person hidden at their request */
+            hiddenAtRequest?: boolean;
+            /** @description A public player profile may be linked from this row */
+            publicProfileAvailable?: boolean;
             abbreviation?: string;
             /** Format: uuid */
             clubId?: string;
@@ -5684,9 +5895,11 @@ export interface components {
         };
         PublicMatchRosterMemberResponse: {
             /** Format: uuid */
-            personId: string;
+            personId?: string;
             number?: number | string;
-            name: string;
+            name?: string;
+            hiddenAtRequest?: boolean;
+            publicProfileAvailable?: boolean;
             nationality?: string;
             roles?: string[];
             onField: boolean;
@@ -5722,6 +5935,7 @@ export interface components {
             side?: string;
             /** Format: uuid */
             personId?: string;
+            hiddenAtRequest?: boolean;
             payload: {
                 [key: string]: unknown;
             };
@@ -5768,10 +5982,12 @@ export interface components {
             /** Format: uuid */
             homeEntrantId?: string;
             homeName?: string;
+            homeHiddenAtRequest?: boolean;
             homeAbbreviation?: string;
             /** Format: uuid */
             awayEntrantId?: string;
             awayName?: string;
+            awayHiddenAtRequest?: boolean;
             awayAbbreviation?: string;
             homeScore?: number;
             awayScore?: number;
@@ -5790,7 +6006,9 @@ export interface components {
         PublicLiveMatchSideResponse: {
             /** Format: uuid */
             entrantId: string;
-            name: string;
+            name?: string;
+            hiddenAtRequest?: boolean;
+            publicProfileAvailable?: boolean;
             abbreviation?: string;
             /**
              * Format: uuid
@@ -5852,6 +6070,8 @@ export interface components {
             /** Format: uuid */
             entrantId?: string;
             name?: string;
+            hiddenAtRequest?: boolean;
+            publicProfileAvailable?: boolean;
             abbreviation?: string;
             /**
              * Format: uuid
@@ -5932,6 +6152,8 @@ export interface components {
             /** Format: uuid */
             homeEntrantId?: string;
             homeName?: string;
+            homeHiddenAtRequest?: boolean;
+            homePublicProfileAvailable?: boolean;
             homeAbbreviation?: string;
             /** Format: uuid */
             homeClubId?: string;
@@ -5939,6 +6161,8 @@ export interface components {
             /** Format: uuid */
             awayEntrantId?: string;
             awayName?: string;
+            awayHiddenAtRequest?: boolean;
+            awayPublicProfileAvailable?: boolean;
             awayAbbreviation?: string;
             /** Format: uuid */
             awayClubId?: string;
@@ -6072,6 +6296,10 @@ export interface components {
             /** @description New password (min 8 characters) */
             newPassword: string;
         };
+        PatScopeOptionsResponse: {
+            /** @description Scopes the current user may grant to a token */
+            scopes: string[];
+        };
         PatResponse: {
             /** Format: uuid */
             tokenId: string;
@@ -6088,8 +6316,8 @@ export interface components {
         CreatePatRequest: {
             /** @description Human-readable label for this token */
             label: string;
-            /** @description Scopes to grant (defaults to the creating user scopes) */
-            scopes?: string[];
+            /** @description At least one explicitly selected scope to grant */
+            scopes: string[];
             /** @description Expiration duration in days (max 365) */
             expiresInDays: number;
         };
@@ -6105,14 +6333,38 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        PatRevocationResponse: {
+            dryRun: boolean;
+            reversible: boolean;
+            /** @description Number of credentials that will be revoked. */
+            tokens: number;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            /** Format: uuid */
+            tokenId?: string;
+            label?: string;
+            scopes?: string[];
+            revoked?: boolean;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
         StatisticsRebuildRequest: {
             /**
              * @description Narrows the rebuild to one tournament within the organization
              * @example apertura-2026
              */
             tournamentAlias?: string;
+            /**
+             * @description Returns exact recomputation counts without changing statistic projections.
+             * @default false
+             */
+            dryRun: boolean;
         };
         StatisticsRebuildResponse: {
+            /** @description True when this response only previews the rebuild. */
+            dryRun: boolean;
             /** @example liga-orbital */
             organizationAlias: string;
             /** @example apertura-2026 */
@@ -6286,6 +6538,8 @@ export interface components {
              */
             photoObjectId?: string;
             naturalKey?: components["schemas"]["NaturalKeyResponse"];
+            /** @description Whether this person is hidden from public pages. */
+            hiddenFromPublic: boolean;
         };
         SetPersonNationalityRequest: {
             /**
@@ -6302,6 +6556,16 @@ export interface components {
              * @example AR
              */
             nationality?: Record<string, never> | null;
+        };
+        SetPersonPublicVisibilityRequest: {
+            /** @description Whether to hide this person from public pages. */
+            hiddenFromPublic: boolean;
+        };
+        PersonPublicVisibilityResponse: {
+            /** Format: uuid */
+            personId: string;
+            /** @description Whether this person is hidden from public pages. */
+            hiddenFromPublic: boolean;
         };
         ClubResponse: {
             /** Format: uuid */
@@ -6467,6 +6731,9 @@ export interface components {
                 [key: string]: string;
             };
         };
+        VenueRemovalResponse: {
+            success: boolean;
+        };
         OfficialResponse: {
             /** Format: uuid */
             officialId: string;
@@ -6587,6 +6854,26 @@ export interface components {
             turnaroundMinutes?: number;
             /** @description Venues to cover */
             venueIds?: string[];
+        };
+        DeleteScheduleRequest: {
+            /** @example Horario Fin de Semana */
+            confirmationName?: string;
+        };
+        ScheduleDeletionResponse: {
+            /** @description True when this response only previews the deletion. */
+            dryRun: boolean;
+            /** @description True after the schedule and its slots were removed. */
+            success: boolean;
+            /**
+             * @description Schedule slots that will be or were removed.
+             * @example 4333
+             */
+            slots: number;
+            /**
+             * @description Matches that will be or were unassigned.
+             * @example 36
+             */
+            matchesUnassigned: number;
         };
         AuditRecordResponse: {
             /** Format: uuid */
@@ -7600,6 +7887,14 @@ export interface operations {
                     "application/json": components["schemas"]["TournamentSettingsResponse"];
                 };
             };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -8040,6 +8335,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TournamentProfileSummaryResponse"][];
+                };
+            };
+        };
+    };
+    TournamentMediaController_servePublicPersonPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
                 };
             };
         };
@@ -9335,7 +9654,10 @@ export interface operations {
     };
     DataExportController_participants: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Comma-separated individual participant columns to omit from the export */
+                excludePersonalData?: "displayName" | "naturalKeyKind" | "naturalKey";
+            };
             header?: never;
             path: {
                 organizationAlias: string;
@@ -9354,6 +9676,13 @@ export interface operations {
                 content: {
                     "text/csv": string;
                 };
+            };
+            /** @description Unknown personal-data column exclusion */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -10030,7 +10359,9 @@ export interface operations {
     };
     StagesController_remove: {
         parameters: {
-            query?: never;
+            query?: {
+                dryRun?: "true" | "false";
+            };
             header?: never;
             path: {
                 organizationAlias: string;
@@ -10039,14 +10370,26 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteStageRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["StageResponse"];
+                    "application/json": components["schemas"]["StageDeletionResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
             401: {
@@ -11497,6 +11840,25 @@ export interface operations {
             };
         };
     };
+    PersonalAccessTokenController_scopes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatScopeOptionsResponse"];
+                };
+            };
+        };
+    };
     PersonalAccessTokenController_list: {
         parameters: {
             query?: never;
@@ -11541,6 +11903,27 @@ export interface operations {
         };
     };
     PersonalAccessTokenController_revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tokenId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatRevocationResponse"];
+                };
+            };
+        };
+    };
+    PersonalAccessTokenController_restore: {
         parameters: {
             query?: never;
             header?: never;
@@ -11937,6 +12320,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                organizationAlias: string;
                 personId: string;
             };
             cookie?: never;
@@ -12002,6 +12386,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PersonNationalityResponse"];
+                };
+            };
+        };
+    };
+    PersonMediaController_setPublicVisibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPersonPublicVisibilityRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonPublicVisibilityResponse"];
                 };
             };
         };
@@ -12369,6 +12779,28 @@ export interface operations {
             };
         };
     };
+    ResourcesController_deleteVenue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                venueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VenueRemovalResponse"];
+                };
+            };
+        };
+    };
     ResourcesController_updateVenue: {
         parameters: {
             query?: never;
@@ -12384,6 +12816,28 @@ export interface operations {
                 "application/json": components["schemas"]["UpdateVenueRequest"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VenueResponse"];
+                };
+            };
+        };
+    };
+    ResourcesController_restoreVenue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                venueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
@@ -12523,16 +12977,18 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DeleteScheduleRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success?: boolean;
-                    };
+                    "application/json": components["schemas"]["ScheduleDeletionResponse"];
                 };
             };
         };
@@ -12850,6 +13306,38 @@ export interface operations {
             };
         };
     };
+    ZonesGroupsController_restoreZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+                zoneNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZoneResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
     ZonesGroupsController_zoneEntrants: {
         parameters: {
             query?: never;
@@ -13072,6 +13560,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    ZonesGroupsController_restoreGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+                zoneNumber: number;
+                groupNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupResponse"];
                 };
             };
             404: {

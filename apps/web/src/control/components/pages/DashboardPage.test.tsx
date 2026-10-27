@@ -145,6 +145,163 @@ describe('DashboardPage', () => {
     expect(screen.getByTestId('pendingRegistrations').textContent).toBe('2');
   });
 
+  it('asks which personal columns to include before exporting individual participants', async () => {
+    const downloadCsvExport = jest.fn(async () => 'alias,displayName\nmaria-perez,Maria Perez\n');
+    const createObjectUrl = Object.getOwnPropertyDescriptor(URL, 'createObjectURL');
+    const revokeObjectUrl = Object.getOwnPropertyDescriptor(URL, 'revokeObjectURL');
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: jest.fn(() => 'blob:participant-export'),
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: jest.fn(),
+    });
+
+    try {
+      render(
+        <DashboardPage
+          client={client({ listActiveTournaments: async () => [tournament()], downloadCsvExport })}
+          organizationAlias="liga-mendocina"
+        />,
+      );
+
+      const exportButton = await screen.findByRole('button', { name: 'Exportar' });
+      exportButton.focus();
+      fireEvent.keyDown(exportButton, { key: 'ArrowDown', code: 'ArrowDown' });
+      fireEvent.click(
+        await screen.findByRole('menuitem', { name: 'CSV de participantes individuales' }),
+      );
+
+      const name = await screen.findByRole('checkbox', { name: 'Nombre de la persona' });
+      const identityDocument = screen.getByRole('checkbox', {
+        name: 'Documento de identidad (tipo y número)',
+      });
+      expect(name.getAttribute('aria-checked')).toBe('true');
+      expect(identityDocument.getAttribute('aria-checked')).toBe('false');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Descargar CSV' }));
+      await waitFor(() =>
+        expect(downloadCsvExport).toHaveBeenCalledWith(
+          'liga-mendocina',
+          'apertura-2026',
+          'participants/individual',
+          ['naturalKeyKind', 'naturalKey'],
+        ),
+      );
+    } finally {
+      if (createObjectUrl) Object.defineProperty(URL, 'createObjectURL', createObjectUrl);
+      else Reflect.deleteProperty(URL, 'createObjectURL');
+      if (revokeObjectUrl) Object.defineProperty(URL, 'revokeObjectURL', revokeObjectUrl);
+      else Reflect.deleteProperty(URL, 'revokeObjectURL');
+    }
+  });
+
+  it('keeps the personal-column choices open and reports a failed CSV export', async () => {
+    const downloadCsvExport = jest.fn(async () => {
+      throw new Error('Network unavailable');
+    });
+    render(
+      <DashboardPage
+        client={client({ listActiveTournaments: async () => [tournament()], downloadCsvExport })}
+        organizationAlias="liga-mendocina"
+      />,
+    );
+
+    const exportButton = await screen.findByRole('button', { name: 'Exportar' });
+    exportButton.focus();
+    fireEvent.keyDown(exportButton, { key: 'ArrowDown', code: 'ArrowDown' });
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'CSV de participantes individuales' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Descargar CSV' }));
+
+    expect(await screen.findByText('No se pudo exportar el CSV. Intentá de nuevo.')).toBeDefined();
+    expect(screen.getByRole('dialog')).toBeDefined();
+    expect(screen.getByRole('checkbox', { name: 'Nombre de la persona' })).toBeDefined();
+  });
+
+  it('previews youth visibility before publishing and refreshes the dashboard after confirmation', async () => {
+    const fetchTournamentSettings = jest.fn(async () => ({
+      name: 'Torneo Apertura 2026',
+      featured: false,
+      includesMinors: true,
+      showYouthProfiles: false,
+    }));
+    const publishTournament = jest.fn(async () => tournament({ status: 'published' }));
+    const listActiveTournaments = jest.fn(async () => [tournament({ status: 'draft' })]);
+    render(
+      <DashboardPage
+        client={client({
+          listActiveTournaments,
+          fetchTournamentSettings,
+          publishTournament,
+        })}
+        organizationAlias="liga-mendocina"
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Publicar torneo' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Resumen del torneo')).toBeDefined();
+    expect(
+      within(dialog).getByText(
+        'Como el torneo incluye menores y los perfiles juveniles están ocultos, sus nombres aparecen sin fotos, nacionalidades, perfiles públicos ni estadísticas de carrera.',
+      ),
+    ).toBeDefined();
+    expect(publishTournament).not.toHaveBeenCalled();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Publicar torneo' }));
+    const dismissedByEscape = await screen.findByRole('dialog');
+    fireEvent.keyDown(dismissedByEscape, { code: 'Escape', key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Publicar torneo' }));
+    const confirmationDialog = await screen.findByRole('dialog');
+    expect(publishTournament).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.click(within(confirmationDialog).getByRole('button', { name: 'Publicar torneo' }));
+    });
+
+    expect(fetchTournamentSettings).toHaveBeenCalledTimes(4);
+    expect(publishTournament).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026');
+    await waitFor(() => expect(screen.getByText('Torneo publicado.')).toBeDefined());
+    await waitFor(() => expect(listActiveTournaments).toHaveBeenCalledTimes(2));
+  });
+
+  it('names public youth profiles and links directly to tournament privacy settings', async () => {
+    render(
+      <DashboardPage
+        client={client({
+          listActiveTournaments: async () => [tournament({ status: 'draft' })],
+          fetchTournamentSettings: async () => ({
+            name: 'Torneo Apertura 2026',
+            featured: false,
+            includesMinors: true,
+            showYouthProfiles: true,
+          }),
+          publishTournament: async () => tournament({ status: 'published' }),
+        })}
+        organizationAlias="liga-juvenil"
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Publicar torneo' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByText(
+        'Este torneo incluye menores y los perfiles juveniles públicos están habilitados. Los perfiles pueden mostrar nombres, fotos, nacionalidades y trayectoria. Las personas ocultas de las páginas públicas siguen ocultas.',
+      ),
+    ).toBeDefined();
+    expect(
+      within(dialog).getByRole('link', { name: 'Revisar privacidad' }).getAttribute('href'),
+    ).toBe('/control/liga-juvenil/tournaments/apertura-2026/settings#privacy');
+  });
+
   it('uses the tournament alias for token lookup and the display name in the heartbeat', async () => {
     const listDisplayTokens = jest.fn(async () => [
       {

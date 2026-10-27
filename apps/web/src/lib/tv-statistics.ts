@@ -18,6 +18,7 @@ export interface TvStatisticsLabels {
   readonly pointsShort: string;
   /** Stands in for a competitor the projection could not name; `{reference}`. */
   readonly unnamedActor: string;
+  readonly hiddenPerson: string;
   readonly scheduledMatches: string;
   readonly status: string;
   readonly inProgress: string;
@@ -129,19 +130,23 @@ export function deriveTopPerformers(
       // granularity); `entrantName` is its *affiliation* — the club a person
       // played for, or a team row's own name again. The display label comes
       // from `entrantName`; the image lookup uses `clubId`, never either name.
-      const name =
-        row.actorName || fill(labels.unnamedActor, { reference: row.actorId.substring(0, 6) });
+      const hidden = row.hiddenAtRequest === true;
+      const name = hidden
+        ? labels.hiddenPerson
+        : row.actorName || fill(labels.unnamedActor, { reference: row.actorId.substring(0, 6) });
       const clubMatch =
         row.clubId === undefined ? undefined : clubs?.find((club) => club.clubId === row.clubId);
       const rawVal = cell?.formatted || (cell?.raw !== undefined ? String(cell.raw) : '0');
       return {
         rank: row.rank,
         name,
-        clubName: row.entrantName,
-        clubAbbreviation: row.entrantAbbreviation,
-        ...(row.clubId === undefined ? {} : { clubId: row.clubId }),
-        clubEmblemUrl: clubMatch?.emblemUrl,
-        nationalityCode: row.nationality,
+        ...(hidden || row.entrantName === undefined ? {} : { clubName: row.entrantName }),
+        ...(hidden || row.entrantAbbreviation === undefined
+          ? {}
+          : { clubAbbreviation: row.entrantAbbreviation }),
+        ...(hidden || row.clubId === undefined ? {} : { clubId: row.clubId }),
+        ...(hidden ? {} : { clubEmblemUrl: clubMatch?.emblemUrl }),
+        ...(hidden ? {} : { nationalityCode: row.nationality }),
         statLabel: statHeader,
         statValue: rawVal,
       };

@@ -94,7 +94,7 @@ const HOOK_VOCABULARY: HookScriptVocabulary = {
 };
 
 function wizard(overrides: Partial<WizardState> = {}): WizardState {
-  return { ...initialWizard(), ...overrides };
+  return { ...initialWizard(), includesMinors: false, ...overrides };
 }
 
 describe('the wizard gates each step', () => {
@@ -189,6 +189,7 @@ describe('the wizard gates each step', () => {
       descriptorId: 'd-football',
       descriptorVersion: '1.2.0',
       stages: [{ number: 1, format: 'round-robin' }],
+      includesMinors: false,
       publicRegistration: true,
       requiresCheckIn: true,
       customScripts: [],

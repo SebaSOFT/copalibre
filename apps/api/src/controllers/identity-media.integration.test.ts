@@ -8,10 +8,12 @@ import { Test } from '@nestjs/testing';
 import sharp from 'sharp';
 import type { ObjectStorageAdapter } from '@copalibre/object-storage';
 import {
+  AuditReader,
   EnrollmentRepository,
   ObjectMetadataRepository,
   OrganizationAccessRepository,
   OrganizationRepository,
+  OutboxReader,
   PersonRepository,
   TournamentRepository,
   withTransaction,
@@ -227,6 +229,19 @@ describe('person photo / club emblem upload and public serve (integration)', () 
       });
     });
     tournamentId = tournament.tournamentId;
+    await withTransaction(db, async (uow) => {
+      await new EnrollmentRepository(db).registerEntrant(uow, {
+        organizationId: organization.organizationId,
+        tournamentId,
+        entrantRef: { kind: 'person', personId },
+        ...AUDIT,
+      });
+      await new TournamentRepository(db).publish(uow, {
+        tournamentId,
+        organizationId: organization.organizationId,
+        ...AUDIT,
+      });
+    });
 
     @Module({
       controllers: [
@@ -533,6 +548,48 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     });
     expect(cleared.statusCode).toBe(200);
     expect(cleared.json()).toMatchObject({ personId, nationality: null });
+  });
+
+  it('audits and publishes each public-visibility change in the same transaction', async () => {
+    const hide = await inject({
+      method: 'PATCH',
+      url: `/organizations/${organizationAlias}/persons/${personId}/public-visibility`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { hiddenFromPublic: true },
+    });
+    expect(hide.statusCode).toBe(200);
+    expect(hide.json()).toEqual({ personId, hiddenFromPublic: true });
+
+    const unhide = await inject({
+      method: 'PATCH',
+      url: `/organizations/${organizationAlias}/persons/${personId}/public-visibility`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { hiddenFromPublic: false },
+    });
+    expect(unhide.statusCode).toBe(200);
+    expect(unhide.json()).toEqual({ personId, hiddenFromPublic: false });
+
+    const history = await new AuditReader(db).historyFor('person', personId);
+    const changes = history.filter(
+      (record) => record.action === 'person.public-visibility-updated',
+    );
+    expect(changes.slice(-2)).toMatchObject([
+      {
+        actor: 'user:organizer-1',
+        previousState: { hiddenFromPublic: false },
+        resultingState: { hiddenFromPublic: true },
+      },
+      {
+        actor: 'user:organizer-1',
+        previousState: { hiddenFromPublic: true },
+        resultingState: { hiddenFromPublic: false },
+      },
+    ]);
+    const events = (await new OutboxReader(db).pending(10_000)).filter(
+      (event) =>
+        event.entityId === personId && event.eventType === 'person.public-visibility-updated',
+    );
+    expect(events.slice(-2).map((event) => event.payload.hiddenFromPublic)).toEqual([true, false]);
   });
 
   it('reads a person’s profile for an admin, refusing an unauthenticated request', async () => {

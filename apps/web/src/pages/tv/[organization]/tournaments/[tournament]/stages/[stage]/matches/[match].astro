@@ -53,6 +53,10 @@ const stageNumber = Number(stage ?? '1');
 // Named the way the public match route names it: by its ordinal within the stage.
 const matchOrdinal = Number(match ?? '1');
 const streamPath = tvStreamPath({ organizationAlias, tournamentAlias });
+/* Same query-param language the tournament kiosk takes; TV routes carry no locale segment. */
+const langParam = Astro.url.searchParams.get('lang');
+const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam : 'en';
+const intl = publicIntl(language);
 
 // Reuses the same fetch the public match report page makes (`fetchMatchReport`) — a second
 // consumer of that data, not a new endpoint. Kept in its own guard, same
@@ -69,7 +73,7 @@ try {
     matchOrdinal,
   );
   if (report) {
-    matchEvents = buildTvMatchEvents(report);
+    matchEvents = buildTvMatchEvents(report, intl.formatMessage(messages.personHiddenAtRequest));
     // Resolves a *live* event's actor the same way the initial
     // timeline above already resolves one, for `BroadcastAlertBanner`.
     rosterActors = buildActorDirectory(report.rosters);
@@ -103,14 +107,14 @@ try {
   ]);
 
   if (overview) {
-    const mappedOverview = mapOverviewResponse(overview);
+    const mappedOverview = mapOverviewResponse(overview, language);
     disciplineImages = overview.disciplineImages;
     tournamentName = mappedOverview.tournamentName || undefined;
     organizationName = mappedOverview.organizationName || undefined;
     if (mappedOverview.emblemObjectId) {
       tournamentEmblem = tournamentEmblemUrl(organizationAlias, tournamentAlias);
     }
-    winnerZones = winnerZonesOf(organizationAlias, mappedOverview.winners);
+    winnerZones = winnerZonesOf(organizationAlias, mappedOverview.winners, language);
     if (mappedOverview.clubs) {
       clubs = mappedOverview.clubs.map((c) => ({
         clubId: c.clubId,
@@ -163,9 +167,10 @@ try {
   const view = await fetchMatchesView(organizationAlias, tournamentAlias, { stageNumber });
   if (view) {
     seriesByMatchId = Object.fromEntries(
-      mapMatchesViewResponse(view).matches.flatMap((row) =>
-        row.series === undefined ? [] : [[row.matchId, row.series]],
-      ),
+      mapMatchesViewResponse(
+        view,
+        intl.formatMessage(messages.personHiddenAtRequest),
+      ).matches.flatMap((row) => (row.series === undefined ? [] : [[row.matchId, row.series]])),
     );
   }
 } catch {
@@ -210,10 +215,6 @@ if (presentation !== 'lower') {
   }
 }
 
-/* Same query-param language the tournament kiosk takes; TV routes carry no locale segment. */
-const langParam = Astro.url.searchParams.get('lang');
-const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam : 'en';
-const intl = publicIntl(language);
 const tournamentDisplayName = tournamentName ?? intl.formatMessage(messages.pageHeaderLoading);
 const organizationDisplayName = organizationName ?? intl.formatMessage(messages.pageHeaderLoading);
 ---

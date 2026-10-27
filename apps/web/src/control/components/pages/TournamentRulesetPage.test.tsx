@@ -452,7 +452,13 @@ describe('TournamentRulesetPage', () => {
         <TournamentRulesetPage
           client={stubClient({
             fetchTournamentSettings: () =>
-              Promise.resolve({ name: 'Copa Orbital', region: 'South Sector', featured: false }),
+              Promise.resolve({
+                name: 'Copa Orbital',
+                region: 'South Sector',
+                featured: false,
+                includesMinors: false,
+                showYouthProfiles: false,
+              }),
           })}
           organizationAlias="liga-mendocina"
           tournamentAlias="apertura-2026"

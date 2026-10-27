@@ -1,8 +1,13 @@
 import { jest } from '@jest/globals';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { StageHubPage } from './StageHubPage.js';
 import { withIntl } from '../../i18n/test-support.js';
-import type { ControlApiClient, StageResponse, ZoneResponse } from '../../lib/api-client.js';
+import type {
+  ControlApiClient,
+  StageDeletionResponse,
+  StageResponse,
+  ZoneResponse,
+} from '../../lib/api-client.js';
 
 function stage(overrides: Partial<StageResponse> = {}): StageResponse {
   return {
@@ -18,12 +23,40 @@ function stage(overrides: Partial<StageResponse> = {}): StageResponse {
   };
 }
 
+function stageDeletion(overrides: Partial<StageDeletionResponse> = {}): StageDeletionResponse {
+  return {
+    stageId: 's-1',
+    stageName: 'Fase de grupos',
+    dryRun: true,
+    success: false,
+    fixtures: 2,
+    matches: 2,
+    zones: 1,
+    groups: 1,
+    matchEvents: 0,
+    schedulePlacements: 0,
+    scheduleOfficials: 0,
+    participantReports: 0,
+    reportEvidence: 0,
+    statistics: 0,
+    matchPermissions: 0,
+    displayTokens: 0,
+    stageConfigurations: 0,
+    compiledRulesets: 0,
+    thresholdConsumption: 0,
+    promotionPlans: 0,
+    commandRecords: 0,
+    ...overrides,
+  };
+}
+
 function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   return {
     listStages: () => Promise.resolve([stage()]),
     fetchTournamentSettings: async () => ({ name: 'Apertura 2026' }),
     updateStage: () => Promise.resolve(stage({ name: 'Fase renombrada' })),
-    deleteStage: () => Promise.resolve(stage()),
+    previewDeleteStage: () => Promise.resolve(stageDeletion()),
+    deleteStage: () => Promise.resolve(stageDeletion({ dryRun: false, success: true })),
     ...overrides,
   } as unknown as ControlApiClient;
 }
@@ -283,16 +316,31 @@ describe('StageHubPage', () => {
     );
 
     await waitFor(() => screen.getByLabelText('New stage name'));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete stage' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Delete stage' }));
+    });
+    const typeName = await screen.findByRole('textbox', { name: 'Type the stage name to confirm' });
+    fireEvent.change(typeName, { target: { value: 'Fase de grupos' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Delete stage' }));
+    });
 
     expect(await screen.findByText('The request could not be completed. Try again.')).toBeTruthy();
   });
 
-  it('disables format-change and delete once the stage is seeded, surfacing why', async () => {
+  it('keeps format changes locked but confirms deletion of a seeded stage', async () => {
+    const previewDeleteStage = jest.fn(() => Promise.resolve(stageDeletion()));
+    const deleteStage = jest.fn(() =>
+      Promise.resolve(stageDeletion({ dryRun: false, success: true })),
+    );
     render(
       withIntl(
         <StageHubPage
-          client={stubClient({ listStages: () => Promise.resolve([stage({ seeded: true })]) })}
+          client={stubClient({
+            listStages: () => Promise.resolve([stage({ seeded: true })]),
+            previewDeleteStage,
+            deleteStage,
+          })}
           organizationAlias="liga-mendocina"
           stageNumber={1}
           tournamentAlias="apertura-2026"
@@ -304,24 +352,51 @@ describe('StageHubPage', () => {
     expect(
       (screen.getByRole('button', { name: 'Change format' }) as HTMLButtonElement).disabled,
     ).toBe(true);
+    const deleteButton = screen.getByRole('button', { name: 'Delete stage' });
+    expect((deleteButton as HTMLButtonElement).disabled).toBe(false);
     expect(
-      (screen.getByRole('button', { name: 'Delete stage' }) as HTMLButtonElement).disabled,
-    ).toBe(true);
-    expect(
-      screen.getByText('This stage already has fixtures, so its format and removal are locked.'),
+      screen.getByText('This stage already has fixtures, so its format is locked.'),
     ).toBeTruthy();
-    fireEvent.click(
-      within(screen.getByRole('status')).getByRole('button', { name: 'Dismiss notification' }),
+
+    await act(async () => {
+      fireEvent.click(deleteButton);
+    });
+    const typeName = await screen.findByRole('textbox', {
+      name: 'Type the stage name to confirm',
+    });
+    expect(previewDeleteStage).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 1);
+    expect(within(screen.getByRole('dialog')).getAllByText('2')).toHaveLength(3);
+    expect(screen.getByRole('button', { name: 'Delete stage' })).toHaveProperty('disabled', true);
+    fireEvent.change(typeName, { target: { value: 'Fase de grupos' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Delete stage' }));
+    });
+    await waitFor(() =>
+      expect(deleteStage).toHaveBeenCalledWith(
+        'liga-mendocina',
+        'apertura-2026',
+        1,
+        'Fase de grupos',
+      ),
     );
-    expect(screen.queryByRole('status')).toBeNull();
+    const notifications = within(screen.getByRole('region', { name: 'Notifications' }));
+    fireEvent.click(
+      within(notifications.getByRole('status')).getByRole('button', {
+        name: 'Dismiss notification',
+      }),
+    );
+    await waitFor(() => expect(notifications.queryByRole('status')).toBeNull());
   });
 
   it('deletes an unseeded stage', async () => {
-    const deleteStage = jest.fn(() => Promise.resolve(stage()));
+    const deleteStage = jest.fn(() =>
+      Promise.resolve(stageDeletion({ dryRun: false, success: true })),
+    );
+    const previewDeleteStage = jest.fn(() => Promise.resolve(stageDeletion()));
     render(
       withIntl(
         <StageHubPage
-          client={stubClient({ deleteStage })}
+          client={stubClient({ deleteStage, previewDeleteStage })}
           organizationAlias="liga-mendocina"
           stageNumber={1}
           tournamentAlias="apertura-2026"
@@ -330,10 +405,23 @@ describe('StageHubPage', () => {
     );
 
     await waitFor(() => screen.getByLabelText('New stage name'));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete stage' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Delete stage' }));
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Type the stage name to confirm' }), {
+      target: { value: 'Fase de grupos' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Delete stage' }));
+    });
 
     await waitFor(() =>
-      expect(deleteStage).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 1),
+      expect(deleteStage).toHaveBeenCalledWith(
+        'liga-mendocina',
+        'apertura-2026',
+        1,
+        'Fase de grupos',
+      ),
     );
     expect(await screen.findByText('Stage deleted.')).toBeTruthy();
   });

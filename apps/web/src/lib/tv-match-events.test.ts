@@ -132,6 +132,24 @@ describe('buildTvMatchEvents', () => {
 
     expect(buildTvMatchEvents(withUnknownPerson)[0]?.actor).toBeUndefined();
   });
+
+  it('uses the opt-out label when a public event has no exposed person id', () => {
+    const source = report();
+    const firstEvent = source.timeline[0];
+    if (firstEvent === undefined) throw new Error('report fixture should have a timeline event');
+    const hiddenPerson: PublicMatchReportResponse = {
+      ...source,
+      rosters: {
+        home: [{ hiddenAtRequest: true, publicProfileAvailable: false, onField: true }],
+        away: [],
+      },
+      timeline: [{ ...firstEvent, personId: undefined, hiddenAtRequest: true }],
+    };
+
+    expect(buildTvMatchEvents(hiddenPerson, 'Participante oculto')[0]?.actor).toBe(
+      'Participante oculto',
+    );
+  });
 });
 
 describe('buildActorDirectory', () => {

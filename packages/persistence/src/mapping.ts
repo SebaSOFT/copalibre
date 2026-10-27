@@ -165,6 +165,8 @@ export function toTournament(row: TournamentRow): Tournament {
       : { emblemObjectId: row.emblem_object_id }),
     // SQLite has no boolean column: it hands back 0 or 1.
     featured: Boolean(row.featured),
+    includesMinors: Boolean(row.includes_minors),
+    showYouthProfiles: Boolean(row.show_youth_profiles),
     ...(row.minimum_rest_minutes === null || row.minimum_rest_minutes === undefined
       ? {}
       : { minimumRestMinutes: row.minimum_rest_minutes }),

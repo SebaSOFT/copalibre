@@ -918,17 +918,15 @@ function components(): string {
     '',
     '.cl-modal__overlay { position: fixed; inset: 0; }',
     '.cl-modal__content { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(480px, calc(100vw - var(--cl-space-8))); max-height: 85vh; overflow-y: auto; padding: var(--cl-space-4); }',
-    // The title and the close control share a row, and a long compound title
-    // pushed the dialog past the 188px reference width. The same treatment the
-    // card and toolbar titles already carry — this one was missed because the
-    // workbench was rendering it inside a 240px column, where nothing could
-    // overflow because nothing had room to try.
-    '.cl-modal__header { display: flex; align-items: start; justify-content: space-between; gap: var(--cl-space-3); min-width: 0; }',
-    '.cl-modal__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }',
-    '.cl-modal__description { margin: 0; color: var(--cl-text-muted); }',
-    '.cl-modal__close { background: transparent; border: 0; color: var(--cl-text-primary); }',
+    // Keep the title and close control together while giving translated
+    // descriptions their own row, so neither steals width from the heading.
+    '.cl-modal__header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--cl-space-3); min-width: 0; }',
+    '.cl-modal__title { grid-column: 1; grid-row: 1; margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }',
+    '.cl-modal__description { grid-column: 1 / -1; grid-row: 2; margin: 0; color: var(--cl-text-muted); }',
+    '.cl-modal__close { grid-column: 2; grid-row: 1; background: transparent; border: 0; color: var(--cl-text-primary); }',
     '.cl-modal__body { margin-block: var(--cl-space-4); display: grid; gap: var(--cl-space-3); }',
     '.cl-modal__footer { display: flex; justify-content: flex-end; gap: var(--cl-space-2); }',
+    `@media (width < ${BREAKPOINTS.sm}) { .cl-modal__footer { flex-direction: column; } .cl-modal__footer > * { width: 100%; } }`,
     '',
     // The menu surface reuses the dialog surface, since both are the same thing —
     // a layer floating over the screen — and a second definition of that would

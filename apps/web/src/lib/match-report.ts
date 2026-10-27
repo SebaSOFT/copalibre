@@ -30,6 +30,8 @@ export interface MatchReportOptions {
   readonly locale?: string;
   /** Names a platform official role (`referee`, `assistant`, …) in the page language. */
   readonly officialRoleLabel?: (code: string) => string;
+  /** Localized label for a person who opted out of public identification. */
+  readonly hiddenPersonLabel?: string;
   /** Words an undecided side by its source; without it the side reads as an unknown entrant. */
   readonly sideSource?: SideSourceMessages;
   /** The stage's single-elimination depth, so a source names "Semi-final 2" as every surface does. */
@@ -73,6 +75,7 @@ export function buildMatchReport(
   options: MatchReportOptions = {},
 ): MatchReportModel {
   const locale = options.locale ?? 'en';
+  const hiddenPersonLabel = options.hiddenPersonLabel ?? 'Player hidden at their request';
   const sideName = (source: PublicMatchReportResponse['homeSource']): string =>
     options.sideSource === undefined
       ? 'TBD'
@@ -91,25 +94,37 @@ export function buildMatchReport(
     member: PublicMatchReportResponse['rosters']['home'][number],
   ): MatchReportRosterMember => ({
     ...member,
+    ...(member.hiddenAtRequest ? { name: hiddenPersonLabel } : {}),
     roleLabels: (member.roles ?? []).map((code) =>
       descriptorLabel(roleDeclarations.get(code), locale, code),
     ),
   });
 
-  const actors = new Map(
-    [...response.rosters.home, ...response.rosters.away].map((member) => [
+  const actors = new Map<string, string>();
+  for (const member of [...response.rosters.home, ...response.rosters.away]) {
+    if (
+      member.personId === undefined ||
+      member.hiddenAtRequest === true ||
+      member.name === undefined
+    ) {
+      continue;
+    }
+    actors.set(
       member.personId,
       member.number === undefined ? member.name : `#${member.number} ${member.name}`,
-    ]),
-  );
+    );
+  }
 
   const timeline: MatchReportTimelineGroup[] = [];
   for (let index = 0; index < response.timeline.length; index += 1) {
     const event = response.timeline[index];
     const next = response.timeline[index + 1];
-    const eventView = timelineEvent(event, actors, locale);
+    const eventView = timelineEvent(event, actors, locale, hiddenPersonLabel);
     if (next && event.workflowOutcomeCodes?.includes(next.definitionCode)) {
-      timeline.push({ kind: 'workflow', events: [eventView, timelineEvent(next, actors, locale)] });
+      timeline.push({
+        kind: 'workflow',
+        events: [eventView, timelineEvent(next, actors, locale, hiddenPersonLabel)],
+      });
       index += 1;
     } else {
       timeline.push({ kind: 'single', events: [eventView] });
@@ -125,13 +140,17 @@ export function buildMatchReport(
     round: response.round,
     status: response.status,
     home: {
-      name: response.homeName ?? sideName(response.homeSource),
+      name: response.homeHiddenAtRequest
+        ? hiddenPersonLabel
+        : (response.homeName ?? sideName(response.homeSource)),
       abbreviation: response.homeAbbreviation,
       score: response.homeScore,
       roster: response.rosters.home.map(withRoleLabels),
     },
     away: {
-      name: response.awayName ?? sideName(response.awaySource),
+      name: response.awayHiddenAtRequest
+        ? hiddenPersonLabel
+        : (response.awayName ?? sideName(response.awaySource)),
       abbreviation: response.awayAbbreviation,
       score: response.awayScore,
       roster: response.rosters.away.map(withRoleLabels),
@@ -151,14 +170,17 @@ function timelineEvent(
   event: PublicMatchReportResponse['timeline'][number],
   actors: ReadonlyMap<string, string>,
   locale: string,
+  hiddenPersonLabel: string,
 ): MatchReportTimelineEvent {
   return {
     eventId: event.eventId,
     label: descriptorLabel(event.labels ?? event.label, locale, event.definitionCode),
     occurredAt: event.occurredAt,
     ...(event.segmentNumber === undefined ? {} : { segmentNumber: event.segmentNumber }),
-    ...(event.personId === undefined || !actors.has(event.personId)
-      ? {}
-      : { actor: actors.get(event.personId) }),
+    ...(event.hiddenAtRequest
+      ? { actor: hiddenPersonLabel }
+      : event.personId === undefined || !actors.has(event.personId)
+        ? {}
+        : { actor: actors.get(event.personId) }),
   };
 }

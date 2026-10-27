@@ -72,6 +72,7 @@ if (selectStageLayout(response.stageFormat) === 'bracket') {
 
 const model = buildMatchReport(response, {
   locale: resolvedLocale,
+  hiddenPersonLabel: intl.formatMessage(messages.personHiddenAtRequest),
   sideSource: sideSourceLabels(intl),
   sourceFinalRound: bracketMatches[0]?.sourceFinalRound,
   officialRoleLabel: (code) =>

@@ -4,7 +4,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { TournamentSettingsPage } from '../pages/TournamentSettingsPage.js';
 import { TournamentSettingsTemplate } from '../screens/TournamentSettingsTemplate.js';
 import { withIntl } from '../../i18n/test-support.js';
-import type { ControlApiClient, TournamentSettingsResponse } from '../../lib/api-client.js';
+import type {
+  ControlApiClient,
+  TournamentSettingsRequest,
+  TournamentSettingsResponse,
+} from '../../lib/api-client.js';
 import { clearResilientReadCache } from './use-resilient-read.js';
 
 function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
@@ -15,6 +19,8 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
         region: 'South America',
         capacity: 16,
         featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
       }),
     ...overrides,
   } as unknown as ControlApiClient;
@@ -22,6 +28,69 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 
 describe('TournamentSettingsPage', () => {
   beforeEach(() => clearResilientReadCache());
+
+  it('opens the privacy tab from a privacy deep link', async () => {
+    const previousUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    window.history.replaceState(
+      {},
+      '',
+      `${window.location.pathname}${window.location.search}#privacy`,
+    );
+    try {
+      render(
+        withIntl(
+          <TournamentSettingsPage
+            client={stubClient()}
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+          />,
+        ),
+      );
+
+      const privacyTab = await screen.findByRole('tab', { name: 'Privacy' });
+      expect(privacyTab.getAttribute('aria-selected')).toBe('true');
+    } finally {
+      window.history.replaceState({}, '', previousUrl);
+    }
+  });
+
+  it('supports arrow and boundary key navigation between settings tabs', () => {
+    render(
+      withIntl(
+        <TournamentSettingsTemplate
+          organizationAlias="liga-mendocina"
+          settings={{
+            name: 'Copa Verano',
+            featured: false,
+            includesMinors: false,
+            showYouthProfiles: false,
+          }}
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    const tabList = screen.getByRole('tablist');
+    const [settingsTab, privacyTab] = screen.getAllByRole('tab');
+    expect(settingsTab?.getAttribute('aria-selected')).toBe('true');
+
+    fireEvent.keyDown(tabList, { key: 'ArrowDown' });
+    expect(privacyTab?.getAttribute('aria-selected')).toBe('true');
+    expect(document.activeElement).toBe(privacyTab);
+
+    fireEvent.keyDown(tabList, { key: 'ArrowUp' });
+    expect(settingsTab?.getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(tabList, { key: 'End' });
+    expect(privacyTab?.getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(tabList, { key: 'Home' });
+    expect(settingsTab?.getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(tabList, { key: 'ArrowRight' });
+    expect(privacyTab?.getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(tabList, { key: 'ArrowLeft' });
+    expect(settingsTab?.getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(tabList, { key: 'Tab' });
+    expect(settingsTab?.getAttribute('aria-selected')).toBe('true');
+  });
 
   it('loads and shows the current settings', async () => {
     render(
@@ -37,6 +106,38 @@ describe('TournamentSettingsPage', () => {
     expect(await screen.findByDisplayValue('Copa Verano')).toBeDefined();
     expect(screen.getByDisplayValue('South America')).toBeDefined();
     expect(screen.getByDisplayValue('16')).toBeDefined();
+  });
+
+  it('saves privacy settings from their own tab without changing other settings', async () => {
+    const onSave = jest.fn<(request: TournamentSettingsRequest) => Promise<void>>(() =>
+      Promise.resolve(),
+    );
+    render(
+      withIntl(
+        <TournamentSettingsTemplate
+          onSave={onSave}
+          organizationAlias="liga-mendocina"
+          settings={{
+            name: 'Copa Verano',
+            featured: false,
+            includesMinors: false,
+            showYouthProfiles: false,
+          }}
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Privacy' }));
+    const includesMinors = screen.getByLabelText('Participants include minors');
+    const showYouthProfiles = screen.getByLabelText('Show youth player profiles publicly');
+    expect((showYouthProfiles as HTMLInputElement).disabled).toBe(true);
+
+    fireEvent.click(includesMinors);
+    expect((showYouthProfiles as HTMLInputElement).disabled).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Save privacy settings' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith({ includesMinors: true }));
   });
 
   it('shows a load-failure message when settings fail to load', async () => {
@@ -129,6 +230,8 @@ describe('TournamentSettingsPage', () => {
         region: 'South America',
         capacity: 8,
         featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
       }),
     );
     render(
@@ -244,14 +347,26 @@ describe('TournamentSettingsPage', () => {
     const updateTournamentSettings = jest.fn<
       NonNullable<ControlApiClient['updateTournamentSettings']>
     >(() =>
-      Promise.resolve({ name: 'Copa Verano', region: 'Europe', capacity: 8, featured: false }),
+      Promise.resolve({
+        name: 'Copa Verano',
+        region: 'Europe',
+        capacity: 8,
+        featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
+      }),
     );
     render(
       withIntl(
         <TournamentSettingsPage
           client={stubClient({
             fetchTournamentSettings: () =>
-              Promise.resolve({ name: 'Copa Verano', featured: false }),
+              Promise.resolve({
+                name: 'Copa Verano',
+                featured: false,
+                includesMinors: false,
+                showYouthProfiles: false,
+              }),
             updateTournamentSettings,
           })}
           organizationAlias="liga-mendocina"
@@ -276,13 +391,23 @@ describe('TournamentSettingsPage', () => {
   it('sends the featured flag only when the operator actually changed it', async () => {
     const updateTournamentSettings =
       jest.fn<NonNullable<ControlApiClient['updateTournamentSettings']>>();
-    updateTournamentSettings.mockResolvedValue({ name: 'Copa Verano', featured: true });
+    updateTournamentSettings.mockResolvedValue({
+      name: 'Copa Verano',
+      featured: true,
+      includesMinors: false,
+      showYouthProfiles: false,
+    });
     render(
       withIntl(
         <TournamentSettingsPage
           client={stubClient({
             fetchTournamentSettings: () =>
-              Promise.resolve({ name: 'Copa Verano', featured: false }),
+              Promise.resolve({
+                name: 'Copa Verano',
+                featured: false,
+                includesMinors: false,
+                showYouthProfiles: false,
+              }),
             updateTournamentSettings,
           })}
           organizationAlias="liga-mendocina"
@@ -312,6 +437,8 @@ describe('TournamentSettingsPage', () => {
         region: 'South America',
         capacity: 16,
         featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
         minimumRestMinutes: undefined,
       }),
     );
@@ -320,7 +447,13 @@ describe('TournamentSettingsPage', () => {
         <TournamentSettingsPage
           client={stubClient({
             fetchTournamentSettings: () =>
-              Promise.resolve({ name: 'Copa Verano', featured: false, minimumRestMinutes: 120 }),
+              Promise.resolve({
+                name: 'Copa Verano',
+                featured: false,
+                includesMinors: false,
+                showYouthProfiles: false,
+                minimumRestMinutes: 120,
+              }),
             updateTournamentSettings,
           })}
           organizationAlias="liga-mendocina"
@@ -372,13 +505,26 @@ describe('TournamentSettingsPage', () => {
   it('clearing capacity back to empty omits it from the saved request', async () => {
     const updateTournamentSettings = jest.fn<
       NonNullable<ControlApiClient['updateTournamentSettings']>
-    >(() => Promise.resolve({ name: 'Copa Verano', featured: false }));
+    >(() =>
+      Promise.resolve({
+        name: 'Copa Verano',
+        featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
+      }),
+    );
     render(
       withIntl(
         <TournamentSettingsPage
           client={stubClient({
             fetchTournamentSettings: () =>
-              Promise.resolve({ name: 'Copa Verano', capacity: 16, featured: false }),
+              Promise.resolve({
+                name: 'Copa Verano',
+                capacity: 16,
+                featured: false,
+                includesMinors: false,
+                showYouthProfiles: false,
+              }),
             updateTournamentSettings,
           })}
           organizationAlias="liga-mendocina"
@@ -404,7 +550,14 @@ describe('TournamentSettingsPage', () => {
     const updateTournamentSettings = jest.fn<
       NonNullable<ControlApiClient['updateTournamentSettings']>
     >(() =>
-      Promise.resolve({ name: 'Copa Verano', region: 'Europe', capacity: 16, featured: false }),
+      Promise.resolve({
+        name: 'Copa Verano',
+        region: 'Europe',
+        capacity: 16,
+        featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
+      }),
     );
     render(
       withIntl(
@@ -438,11 +591,15 @@ describe('TournamentSettingsPage', () => {
       .mockResolvedValueOnce({
         name: 'Copa Verano',
         featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
         emblemObjectId: 'emblem-99',
       })
       .mockResolvedValueOnce({
         name: 'Copa Verano',
         featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
         emblemObjectId: undefined,
       });
 
@@ -486,10 +643,14 @@ describe('TournamentSettingsPage', () => {
       .mockResolvedValueOnce({
         name: 'Copa Verano',
         featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
       })
       .mockResolvedValueOnce({
         name: 'Copa Verano',
         featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
         emblemObjectId: 'emblem-new',
       });
 
@@ -575,7 +736,13 @@ describe('TournamentSettingsPage', () => {
         <TournamentSettingsPage
           client={stubClient({
             fetchTournamentSettings: () =>
-              Promise.resolve({ name: 'Copa Verano', emblemObjectId: 'emblem-1', featured: false }),
+              Promise.resolve({
+                name: 'Copa Verano',
+                emblemObjectId: 'emblem-1',
+                featured: false,
+                includesMinors: false,
+                showYouthProfiles: false,
+              }),
             deleteTournamentEmblem,
           })}
           organizationAlias="liga-mendocina"
@@ -639,7 +806,13 @@ describe('TournamentSettingsPage', () => {
           onDeleteEmblem={onDeleteEmblem}
           onUploadEmblem={onUploadEmblem}
           organizationAlias="liga-mendocina"
-          settings={{ name: 'Copa Verano', emblemObjectId: 'emblem-1', featured: false }}
+          settings={{
+            name: 'Copa Verano',
+            emblemObjectId: 'emblem-1',
+            featured: false,
+            includesMinors: false,
+            showYouthProfiles: false,
+          }}
           tournamentAlias="apertura-2026"
         />,
       ),
@@ -675,7 +848,13 @@ describe('TournamentSettingsPage', () => {
       withIntl(
         <TournamentSettingsTemplate
           organizationAlias="liga-mendocina"
-          settings={{ name: 'Copa Verano', emblemObjectId: 'emblem-1', featured: false }}
+          settings={{
+            name: 'Copa Verano',
+            emblemObjectId: 'emblem-1',
+            featured: false,
+            includesMinors: false,
+            showYouthProfiles: false,
+          }}
           tournamentAlias="apertura-2026"
         />,
       ),
@@ -725,7 +904,13 @@ describe('TournamentSettingsPage', () => {
     );
     const fetchTournamentSettings = jest
       .fn<NonNullable<ControlApiClient['fetchTournamentSettings']>>()
-      .mockResolvedValueOnce({ name: 'Copa Verano', emblemObjectId: 'emblem-1', featured: false })
+      .mockResolvedValueOnce({
+        name: 'Copa Verano',
+        emblemObjectId: 'emblem-1',
+        featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
+      })
       .mockResolvedValueOnce(undefined as unknown as TournamentSettingsResponse);
 
     render(
@@ -796,7 +981,12 @@ describe('TournamentSettingsPage', () => {
     );
     const fetchTournamentSettings = jest
       .fn<NonNullable<ControlApiClient['fetchTournamentSettings']>>()
-      .mockResolvedValueOnce({ name: 'Copa Verano', featured: false })
+      .mockResolvedValueOnce({
+        name: 'Copa Verano',
+        featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
+      })
       .mockResolvedValueOnce(undefined as unknown as TournamentSettingsResponse);
 
     render(

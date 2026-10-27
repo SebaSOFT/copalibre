@@ -20,6 +20,7 @@ interface Props {
   readonly profile: PublicPersonProfileResponse;
   readonly intl: IntlShape;
   readonly organizationAlias: string;
+  readonly tournamentAlias?: string;
   /** The tournament's own canonical path — used to build the layout-selector links. */
   readonly canonicalPath?: string;
   /** Every effective person-granularity player-ranking layout declared for the current tournament. */
@@ -32,6 +33,7 @@ const {
   profile,
   intl,
   organizationAlias,
+  tournamentAlias,
   canonicalPath = '',
   statisticsLayouts = [],
   activeStatisticsLayoutCode,
@@ -87,12 +89,12 @@ const hasStatistics =
 const historyColumns = [
   {
     key: 'tournament',
-    header: 'Tournament',
+    header: intl.formatMessage(messages.playerProfileHistoryTournamentColumnHeading),
     render: (row: unknown) => (row as PublicPersonCompetitionHistoryResponse).tournamentName,
   },
   {
     key: 'team',
-    header: 'Team',
+    header: intl.formatMessage(messages.playerProfileHistoryTeamColumnHeading),
     render: (row: unknown) => {
       const item = row as PublicPersonCompetitionHistoryResponse;
       return item.entrantAbbreviation
@@ -102,7 +104,7 @@ const historyColumns = [
   },
   {
     key: 'role',
-    header: 'Role',
+    header: intl.formatMessage(messages.playerProfileHistoryRoleColumnHeading),
     render: (row: unknown) => (row as PublicPersonCompetitionHistoryResponse).role,
   },
 ];
@@ -113,7 +115,11 @@ const historyColumns = [
     <PersonPhotoImage
       alt={intl.formatMessage(messages.playerProfilePhotoAlt, { name: profile.displayName })}
       placeholderAlt={intl.formatMessage(messages.playerProfilePhotoPlaceholderAlt)}
-      src={profile.photoObjectId ? personPhotoUrl(organizationAlias, profile.personId) : undefined}
+      src={
+        profile.photoObjectId && tournamentAlias
+          ? personPhotoUrl(organizationAlias, tournamentAlias, profile.personId)
+          : undefined
+      }
     />
     <div class="cl-player-profile__identity">
       <h1 class="cl-player-profile__name">{profile.displayName}</h1>

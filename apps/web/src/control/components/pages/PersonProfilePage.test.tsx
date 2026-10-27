@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { expectFirstReadFailure } from './resilient-read.test-support.js';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { PersonProfilePage } from '../pages/PersonProfilePage.js';
@@ -20,6 +21,7 @@ describe('PersonProfilePage', () => {
             personId: 'person-1',
             displayName: 'Elías Salomón',
             nationality: 'AR',
+            hiddenFromPublic: false,
             naturalKey: { kind: 'dni', value: '12345678' },
           })}
           organizationAlias="liga-orbital"
@@ -33,11 +35,87 @@ describe('PersonProfilePage', () => {
     expect(screen.getByText('dni: 12345678')).toBeDefined();
   });
 
+  it('hides and restores a person from public pages without changing their results', async () => {
+    const setPublicVisibility = jest.fn(
+      async (_organizationAlias: string, personId: string, hiddenFromPublic: boolean) => ({
+        personId,
+        hiddenFromPublic,
+      }),
+    );
+    const client = {
+      getPerson: () =>
+        Promise.resolve({
+          personId: 'person-1',
+          displayName: 'Elías Salomón',
+          hiddenFromPublic: false,
+        }),
+      setPersonPublicVisibility: setPublicVisibility,
+    } as unknown as ControlApiClient;
+    render(
+      withIntl(
+        <PersonProfilePage client={client} organizationAlias="liga-orbital" personId="person-1" />,
+      ),
+    );
+
+    await screen.findByText('Elías Salomón');
+    const visibility = screen.getByRole('checkbox', {
+      name: 'Hidden from public pages',
+    });
+    expect(visibility.getAttribute('aria-checked')).toBe('false');
+
+    fireEvent.click(visibility);
+    await waitFor(() => {
+      expect(setPublicVisibility).toHaveBeenNthCalledWith(1, 'liga-orbital', 'person-1', true);
+      expect(visibility.getAttribute('aria-checked')).toBe('true');
+    });
+    expect(await screen.findByText('Public visibility updated.')).toBeDefined();
+
+    fireEvent.click(visibility);
+    await waitFor(() => {
+      expect(setPublicVisibility).toHaveBeenNthCalledWith(2, 'liga-orbital', 'person-1', false);
+      expect(visibility.getAttribute('aria-checked')).toBe('false');
+    });
+    expect(screen.getByText('Elías Salomón')).toBeDefined();
+  });
+
+  it('keeps a person visible when a privacy update fails and shows the reason', async () => {
+    const setPublicVisibility = jest.fn(async () => {
+      throw new Error('visibility write failed');
+    });
+    const client = {
+      getPerson: () =>
+        Promise.resolve({
+          personId: 'person-1',
+          displayName: 'Elías Salomón',
+          hiddenFromPublic: false,
+        }),
+      setPersonPublicVisibility: setPublicVisibility,
+    } as unknown as ControlApiClient;
+    render(
+      withIntl(
+        <PersonProfilePage client={client} organizationAlias="liga-orbital" personId="person-1" />,
+      ),
+    );
+
+    const visibility = await screen.findByRole('checkbox', {
+      name: 'Hidden from public pages',
+    });
+    fireEvent.click(visibility);
+
+    expect(await screen.findByText('visibility write failed')).toBeDefined();
+    expect(visibility.getAttribute('aria-checked')).toBe('false');
+    expect(setPublicVisibility).toHaveBeenCalledWith('liga-orbital', 'person-1', true);
+  });
+
   it('shows a placeholder photo and "not recorded" fields when nothing is set', async () => {
     render(
       withIntl(
         <PersonProfilePage
-          client={stubClient({ personId: 'person-1', displayName: 'Tomás Scibilia' })}
+          client={stubClient({
+            personId: 'person-1',
+            displayName: 'Tomás Scibilia',
+            hiddenFromPublic: false,
+          })}
           organizationAlias="liga-orbital"
           personId="person-1"
         />,
@@ -58,6 +136,7 @@ describe('PersonProfilePage', () => {
             personId: 'person-1',
             displayName: 'Elías Salomón',
             photoObjectId: 'object-1',
+            hiddenFromPublic: false,
           })}
           organizationAlias="liga-orbital"
           personId="person-1"
@@ -88,7 +167,11 @@ describe('PersonProfilePage', () => {
     const firstRead = render(
       withIntl(
         <PersonProfilePage
-          client={stubClient({ personId: 'person-1', displayName: 'Elías Salomón' })}
+          client={stubClient({
+            personId: 'person-1',
+            displayName: 'Elías Salomón',
+            hiddenFromPublic: false,
+          })}
           organizationAlias="stale-profile-league"
           personId="person-1"
         />,
@@ -125,6 +208,7 @@ describe('PersonProfilePage', () => {
             personId: 'person-1',
             displayName: 'Elías Salomón',
             nationality: 'AR',
+            hiddenFromPublic: false,
           })}
           organizationAlias="liga-orbital"
           personId="person-1"

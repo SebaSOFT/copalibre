@@ -258,6 +258,47 @@ describe('migrations (integration)', () => {
         expect.objectContaining({ name: 'confirmed_resolution', isNullable: true }),
       ]),
     );
+    expect(afterUpTables.find((table) => table.name === 'tournaments')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'includes_minors', isNullable: false }),
+        expect.objectContaining({ name: 'show_youth_profiles', isNullable: false }),
+      ]),
+    );
+    expect(afterUpTables.find((table) => table.name === 'persons')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'hidden_from_public', isNullable: false }),
+      ]),
+    );
+    for (const table of ['venues', 'zones', 'groups', 'personal_access_tokens']) {
+      expect(afterUpTables.find((candidate) => candidate.name === table)?.columns).toEqual(
+        expect.arrayContaining([expect.objectContaining({ name: 'deleted_at' })]),
+      );
+    }
+
+    const reversibleRemovalsDown = await migrateDownOneStep(scratch.db);
+    expect(reversibleRemovalsDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0045-personal-data-publication',
+    );
+    const afterReversibleRemovalsDown = await scratch.db.introspection.getTables();
+    for (const table of ['venues', 'zones', 'groups', 'personal_access_tokens']) {
+      expect(
+        afterReversibleRemovalsDown.find((candidate) => candidate.name === table)?.columns,
+      ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'deleted_at' })]));
+    }
+
+    const personalDataPublicationDown = await migrateDownOneStep(scratch.db);
+    expect(personalDataPublicationDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0044-promotion-plan-confirmation',
+    );
+    const afterPrivacyDown = await scratch.db.introspection.getTables();
+    expect(afterPrivacyDown.find((table) => table.name === 'tournaments')?.columns).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'includes_minors' })]),
+    );
+    expect(afterPrivacyDown.find((table) => table.name === 'persons')?.columns).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'hidden_from_public' })]),
+    );
 
     const promotionPlanConfirmationDown = await migrateDownOneStep(scratch.db);
     expect(promotionPlanConfirmationDown.error).toBeUndefined();

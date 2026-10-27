@@ -9,6 +9,7 @@ import type {
   PublicPersonProfileResponse,
   PlayerStatisticsDrilldownResponse,
   PublicOrganizationTournamentListResponse,
+  PublicTournamentWinnerZoneResponse,
 } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import type { OrganizationResponse } from '@copalibre/api/src/dto/organization.dto.js';
 import type { TournamentCompletionResponse } from '@copalibre/contracts';
@@ -25,6 +26,8 @@ export type { BracketZone } from './bracket-projection.js';
 export { clubEmblemUrl, organizationEmblemUrl } from './public-image-paths.js';
 import { withSourceDepth, type MatchCardData } from './matches-view.js';
 import type { PublicSeriesState } from './series.js';
+import { publicIntl } from './i18n/public-intl.js';
+import { messages as publicMessages } from './i18n/public-messages.en.js';
 
 export const requestApiStorage = new AsyncLocalStorage<{ apiBaseUrl?: string }>();
 
@@ -217,6 +220,9 @@ export function mapOverviewResponse(
   response: PublicOverviewResponse,
   language: SupportedLanguage = 'en',
 ): OverviewInput {
+  const hiddenPlayerLabel = publicIntl(language).formatMessage(
+    publicMessages.personHiddenAtRequest,
+  );
   return {
     organizationAlias: response.organizationAlias,
     tournamentAlias: response.tournamentAlias,
@@ -227,7 +233,7 @@ export function mapOverviewResponse(
     tournamentName: response.tournamentName,
     seasonName: response.seasonName,
     status: response.status,
-    winners: response.winners,
+    winners: mapPublicWinnerZones(response.winners, language),
     ...(response.emblemObjectId === undefined ? {} : { emblemObjectId: response.emblemObjectId }),
     ruleset: Object.entries(response.ruleset).map(([dotPath, value]) => {
       const declaredLabel = response.rulesetLabels?.[dotPath];
@@ -246,7 +252,7 @@ export function mapOverviewResponse(
       ...(m.stageOrdinal === undefined ? {} : { stageOrdinal: m.stageOrdinal }),
       stageNumber: m.stageNumber,
       home: {
-        name: m.homeName ?? 'TBD',
+        name: m.homeHiddenAtRequest ? hiddenPlayerLabel : (m.homeName ?? 'TBD'),
         abbreviation: m.homeAbbreviation,
         clubId: m.homeClubId,
         emblemObjectId: m.homeEmblemObjectId,
@@ -254,7 +260,7 @@ export function mapOverviewResponse(
         entrantId: m.homeEntrantId,
       },
       away: {
-        name: m.awayName ?? 'TBD',
+        name: m.awayHiddenAtRequest ? hiddenPlayerLabel : (m.awayName ?? 'TBD'),
         abbreviation: m.awayAbbreviation,
         clubId: m.awayClubId,
         emblemObjectId: m.awayEmblemObjectId,
@@ -267,7 +273,11 @@ export function mapOverviewResponse(
     standings: (response.standingsPreview ?? []).map((s: PublicStandingsRowResponse) => ({
       position: s.rank,
       entrantId: s.entrantId,
-      name: s.name,
+      name: s.hiddenAtRequest ? hiddenPlayerLabel : (s.name ?? ''),
+      ...(s.hiddenAtRequest === undefined ? {} : { hiddenAtRequest: s.hiddenAtRequest }),
+      ...(s.publicProfileAvailable === undefined
+        ? {}
+        : { publicProfileAvailable: s.publicProfileAvailable }),
       abbreviation: s.abbreviation,
       clubId: s.clubId,
       emblemObjectId: s.emblemObjectId,
@@ -284,6 +294,42 @@ export function mapOverviewResponse(
       emblemObjectId: c.emblemObjectId,
     })),
   } as OverviewInput;
+}
+
+/** Localizes protected podium identities and strips all optional identity details defensively. */
+export function mapPublicWinnerZones(
+  zones: readonly PublicTournamentWinnerZoneResponse[] | undefined,
+  language: SupportedLanguage = 'en',
+): PublicTournamentWinnerZoneResponse[] | undefined {
+  if (zones === undefined) return undefined;
+  const hiddenPlayerLabel = publicIntl(language).formatMessage(
+    publicMessages.personHiddenAtRequest,
+  );
+  const mapEntrant = (entrant: PublicTournamentWinnerZoneResponse['champion']) => {
+    if (entrant.hiddenAtRequest) {
+      return {
+        entrantId: entrant.entrantId,
+        name: hiddenPlayerLabel,
+        hiddenAtRequest: true,
+        publicProfileAvailable: false,
+      };
+    }
+    if (entrant.publicProfileAvailable === false) {
+      return {
+        entrantId: entrant.entrantId,
+        name: entrant.name,
+        publicProfileAvailable: false,
+      };
+    }
+    return entrant;
+  };
+  return zones.map((zone) => ({
+    ...zone,
+    champion: mapEntrant(zone.champion),
+    champions: zone.champions?.map(mapEntrant),
+    runnerUp: zone.runnerUp && mapEntrant(zone.runnerUp),
+    thirdPlace: zone.thirdPlace && mapEntrant(zone.thirdPlace),
+  }));
 }
 
 export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
@@ -323,7 +369,10 @@ export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
   } as LiveDashboard;
 }
 
-export function mapMatchesViewResponse(response: PublicMatchesViewResponse): {
+export function mapMatchesViewResponse(
+  response: PublicMatchesViewResponse,
+  hiddenPlayerLabel = 'Player hidden at their request',
+): {
   readonly matches: readonly MatchCardData[];
 } {
   return {
@@ -341,12 +390,12 @@ export function mapMatchesViewResponse(response: PublicMatchesViewResponse): {
         matchNumber: m.matchNumber,
         round: m.round,
         state: m.status as MatchState,
-        homeName: m.homeName,
+        homeName: m.homeHiddenAtRequest ? hiddenPlayerLabel : m.homeName,
         homeAbbreviation: m.homeAbbreviation,
         homeClubId: m.homeClubId,
         homeEmblemObjectId: m.homeEmblemObjectId,
         homeScore: m.homeScore,
-        awayName: m.awayName,
+        awayName: m.awayHiddenAtRequest ? hiddenPlayerLabel : m.awayName,
         awayAbbreviation: m.awayAbbreviation,
         awayClubId: m.awayClubId,
         awayEmblemObjectId: m.awayEmblemObjectId,
@@ -384,6 +433,10 @@ export function tournamentEmblemUrl(organizationAlias: string, tournamentAlias: 
   return `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`;
 }
 
-export function personPhotoUrl(organizationAlias: string, personId: string): string {
-  return `/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/photo`;
+export function personPhotoUrl(
+  organizationAlias: string,
+  tournamentAlias: string,
+  personId: string,
+): string {
+  return `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(personId)}/photo`;
 }

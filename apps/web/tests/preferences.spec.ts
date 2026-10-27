@@ -35,6 +35,9 @@ async function mockPreferencesApi(page: Page): Promise<void> {
         }
 
         // Mock the PAT API under /api
+        if (url === '/api/auth/pat/scopes' && method === 'GET') {
+          return Response.json({ scopes: ['api'] });
+        }
         if (url.includes('/auth/pat') && method === 'GET') {
           return Response.json(tokens);
         }
@@ -55,9 +58,12 @@ async function mockPreferencesApi(page: Page): Promise<void> {
         }
 
         if (url.includes('/auth/pat/') && method === 'DELETE') {
+          if (url.endsWith('?dryRun=true')) {
+            return Response.json({ reversible: true });
+          }
           const id = url.split('/').pop();
           tokens = tokens.map((t) => (t.tokenId === id ? { ...t, revoked: true } : t));
-          return new Response(null, { status: 204 });
+          return Response.json({ reversible: true });
         }
 
         if (url.endsWith('/organizations/liga-mendocina')) {
@@ -95,7 +101,11 @@ test('user can generate and revoke PAT', async ({ page }) => {
 
   // Create a new token
   await page.getByLabel('Etiqueta del token').fill('New CI Token');
-  await page.getByRole('button', { name: 'Generar token' }).click();
+  const createToken = page.getByRole('button', { name: 'Generar token' });
+  await expect(createToken).toBeDisabled();
+  await page.getByRole('checkbox', { name: 'api' }).check();
+  await expect(createToken).toBeEnabled();
+  await createToken.click();
 
   // Check it shows the token value
   await expect(page.getByText('Token creado. Copialo ahora:')).toBeVisible();

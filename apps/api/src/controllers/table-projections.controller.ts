@@ -280,6 +280,10 @@ export function tableResponse(result: TableProjectionResult): TableProjectionRes
       ...(row.clubId === undefined ? {} : { clubId: row.clubId }),
       ...(row.emblemObjectId === undefined ? {} : { emblemObjectId: row.emblemObjectId }),
       ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
+      ...(row.hiddenAtRequest === undefined ? {} : { hiddenAtRequest: row.hiddenAtRequest }),
+      ...(row.publicProfileAvailable === undefined
+        ? {}
+        : { publicProfileAvailable: row.publicProfileAvailable }),
       rank: row.rank,
       sharedRank: row.sharedRank,
       cells: row.cells,
@@ -315,6 +319,10 @@ export function segmentedTableResponse(
         ...(row.clubId === undefined ? {} : { clubId: row.clubId }),
         ...(row.emblemObjectId === undefined ? {} : { emblemObjectId: row.emblemObjectId }),
         ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
+        ...(row.hiddenAtRequest === undefined ? {} : { hiddenAtRequest: row.hiddenAtRequest }),
+        ...(row.publicProfileAvailable === undefined
+          ? {}
+          : { publicProfileAvailable: row.publicProfileAvailable }),
         rank: row.rank,
         sharedRank: row.sharedRank,
         cells: row.cells,

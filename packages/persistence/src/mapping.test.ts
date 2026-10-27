@@ -156,6 +156,8 @@ describe('snake_case row → camelCase domain mapping', () => {
       archived_at: null,
       emblem_object_id: null,
       featured: false,
+      includes_minors: false,
+      show_youth_profiles: false,
       minimum_rest_minutes: null,
     };
     expect(toTournament(row)).toEqual({
@@ -167,6 +169,8 @@ describe('snake_case row → camelCase domain mapping', () => {
       rulesetId: undefined,
       status: 'draft',
       featured: false,
+      includesMinors: false,
+      showYouthProfiles: false,
     });
     expect(toTournament({ ...row, minimum_rest_minutes: 120 }).minimumRestMinutes).toBe(120);
     // SQLite stores a boolean as an integer.
@@ -417,6 +421,8 @@ describe('mapping edge cases', () => {
       archived_at: null,
       emblem_object_id: null,
       featured: false,
+      includes_minors: false,
+      show_youth_profiles: false,
       minimum_rest_minutes: null,
     };
     expect(toTournament(row).rulesetId).toBe('rs-1');
@@ -488,6 +494,7 @@ describe('scheduling rows', () => {
       address: null,
       details: null,
       created_at: CREATED,
+      deleted_at: null,
     };
 
     expect(toVenue(row)).toEqual({
@@ -509,6 +516,7 @@ describe('scheduling rows', () => {
       address: 'Av. Libertador 1200',
       details: null,
       created_at: CREATED,
+      deleted_at: null,
     };
 
     expect(toVenue(row).address).toBe('Av. Libertador 1200');
@@ -524,6 +532,7 @@ describe('scheduling rows', () => {
       address: null,
       details: { region: 'sa-east-1', map: 'de_dust2' },
       created_at: CREATED,
+      deleted_at: null,
     };
 
     expect(toVenue(row).details).toEqual({ region: 'sa-east-1', map: 'de_dust2' });

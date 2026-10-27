@@ -38,6 +38,9 @@ import {
   readSegmentedTableProjection,
   readTableProjection,
   type PlayerStatisticsDrilldownResult,
+  type SegmentedTableProjectionResult,
+  type TableProjectionResult,
+  type TableProjectionRow,
 } from '../table-projections/read.js';
 
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
@@ -58,6 +61,11 @@ import { segmentedTableResponse, tableResponse } from './table-projections.contr
 import { eventLabelFields, rosterRolesOf } from './public-match-labels.js';
 import { segmentSummariesOf } from './public-segments.js';
 import { publicRuleset } from './public-ruleset.js';
+import {
+  entrantVisibilityById,
+  personVisibility,
+  personVisibilityById,
+} from '../public-person-visibility.js';
 import { generateFixtures } from '@copalibre/tournament-engine';
 import {
   resolveLabel,
@@ -377,7 +385,33 @@ export async function resolveTournamentWinners(
     }
   }
 
-  return results;
+  const podiumEntrantIds = results.flatMap((zone) => [
+    zone.champion.entrantId,
+    ...(zone.champions ?? []).map((entrant) => entrant.entrantId),
+    ...(zone.runnerUp === undefined ? [] : [zone.runnerUp.entrantId]),
+    ...(zone.thirdPlace === undefined ? [] : [zone.thirdPlace.entrantId]),
+  ]);
+  const visibilityByEntrant = await entrantVisibilityById(db, tournament, podiumEntrantIds);
+  const protectPodiumEntrant = (
+    entrant: PublicTournamentWinnerZoneResponse['champion'],
+  ): PublicTournamentWinnerZoneResponse['champion'] => {
+    const visibility = visibilityByEntrant.get(entrant.entrantId);
+    if (visibility === undefined) return entrant;
+    const { name, abbreviation, clubId, emblemObjectId, ...identity } = entrant;
+    return {
+      ...identity,
+      ...(visibility.hiddenAtRequest ? { hiddenAtRequest: true } : { name }),
+      publicProfileAvailable: visibility.publicProfileAvailable,
+      ...(visibility.publicProfileAvailable ? { abbreviation, clubId, emblemObjectId } : {}),
+    };
+  };
+  return results.map((zone) => ({
+    ...zone,
+    champion: protectPodiumEntrant(zone.champion),
+    champions: zone.champions?.map(protectPodiumEntrant),
+    runnerUp: zone.runnerUp && protectPodiumEntrant(zone.runnerUp),
+    thirdPlace: zone.thirdPlace && protectPodiumEntrant(zone.thirdPlace),
+  }));
 }
 
 @ApiTags('Public Projections')
@@ -461,6 +495,7 @@ export class PublicProjectionsController {
     const entrantDetails = await new EnrollmentRepository(this.db).resolveEntrantPodiumDetails(
       Array.from(entrantIds),
     );
+    const entrantVisibility = await entrantVisibilityById(this.db, tournament, [...entrantIds]);
 
     const rulesetData = await new TournamentRepository(this.db).findLatestRuleset(
       tournament.tournamentId,
@@ -496,18 +531,36 @@ export class PublicProjectionsController {
         const standingsDetails = await new EnrollmentRepository(
           this.db,
         ).resolveEntrantPodiumDetails(standingsEntrantIds);
+        const standingsVisibility = await entrantVisibilityById(
+          this.db,
+          tournament,
+          standingsEntrantIds,
+        );
 
-        standingsPreview = standings.rows.map((r) => ({
-          rank: r.rank,
-          entrantId: r.entrantId,
-          name: standingsDetails.get(r.entrantId)?.name ?? 'Unknown',
-          abbreviation: standingsDetails.get(r.entrantId)?.abbreviation,
-          clubId: standingsDetails.get(r.entrantId)?.clubId,
-          emblemObjectId: standingsDetails.get(r.entrantId)?.emblemObjectId,
-          sharedRank: r.sharedRank,
-          statistics: r.statistics,
-          ...('zoneName' in r && typeof r.zoneName === 'string' ? { zoneName: r.zoneName } : {}),
-        }));
+        standingsPreview = standings.rows.map((r) => {
+          const visibility = standingsVisibility.get(r.entrantId);
+          const details = standingsDetails.get(r.entrantId);
+          return {
+            rank: r.rank,
+            entrantId: r.entrantId,
+            ...(visibility?.hiddenAtRequest
+              ? { hiddenAtRequest: true }
+              : { name: details?.name ?? 'Unknown' }),
+            ...(visibility === undefined
+              ? {}
+              : { publicProfileAvailable: visibility.publicProfileAvailable }),
+            ...(visibility?.publicProfileAvailable === false
+              ? {}
+              : { abbreviation: details?.abbreviation }),
+            ...(visibility?.publicProfileAvailable === false ? {} : { clubId: details?.clubId }),
+            ...(visibility?.publicProfileAvailable === false
+              ? {}
+              : { emblemObjectId: details?.emblemObjectId }),
+            sharedRank: r.sharedRank,
+            statistics: r.statistics,
+            ...('zoneName' in r && typeof r.zoneName === 'string' ? { zoneName: r.zoneName } : {}),
+          };
+        });
         standingsGrain = standings.grain;
       }
     }
@@ -547,43 +600,59 @@ export class PublicProjectionsController {
       ...(descriptor?.images === undefined
         ? {}
         : { disciplineImages: descriptor.images.map((reference) => ({ ...reference })) }),
-      matches: matches.map((m) => ({
-        matchId: m.matchId,
-        ...fixtureSources.get(m.matchId),
-        ...scheduleChanges.get(m.matchId),
-        matchNumber: m.matchNumber,
-        ...(ordinalByMatchId.has(m.matchId)
-          ? { stageOrdinal: ordinalByMatchId.get(m.matchId) }
-          : {}),
-        stageNumber: m.stageNumber,
-        round: m.round,
-        status: m.status as PublicOverviewMatchResponse['status'],
-        homeEntrantId: m.homeEntrantId ?? undefined,
-        homeName: m.homeEntrantId
-          ? (entrantDetails.get(m.homeEntrantId)?.name ?? 'Unknown')
-          : undefined,
-        homeAbbreviation: m.homeEntrantId
-          ? entrantDetails.get(m.homeEntrantId)?.abbreviation
-          : undefined,
-        homeClubId: m.homeEntrantId ? entrantDetails.get(m.homeEntrantId)?.clubId : undefined,
-        homeEmblemObjectId: m.homeEntrantId
-          ? entrantDetails.get(m.homeEntrantId)?.emblemObjectId
-          : undefined,
-        awayEntrantId: m.awayEntrantId ?? undefined,
-        awayName: m.awayEntrantId
-          ? (entrantDetails.get(m.awayEntrantId)?.name ?? 'Unknown')
-          : undefined,
-        awayAbbreviation: m.awayEntrantId
-          ? entrantDetails.get(m.awayEntrantId)?.abbreviation
-          : undefined,
-        awayClubId: m.awayEntrantId ? entrantDetails.get(m.awayEntrantId)?.clubId : undefined,
-        awayEmblemObjectId: m.awayEntrantId
-          ? entrantDetails.get(m.awayEntrantId)?.emblemObjectId
-          : undefined,
-        homeScore: m.scores?.[0],
-        awayScore: m.scores?.[1],
-        scheduledAt: scheduleChanges.get(m.matchId)?.scheduledAt,
-      })),
+      matches: matches.map((m) => {
+        const homeVisibility = m.homeEntrantId ? entrantVisibility.get(m.homeEntrantId) : undefined;
+        const awayVisibility = m.awayEntrantId ? entrantVisibility.get(m.awayEntrantId) : undefined;
+        return {
+          matchId: m.matchId,
+          ...fixtureSources.get(m.matchId),
+          ...scheduleChanges.get(m.matchId),
+          matchNumber: m.matchNumber,
+          ...(ordinalByMatchId.has(m.matchId)
+            ? { stageOrdinal: ordinalByMatchId.get(m.matchId) }
+            : {}),
+          stageNumber: m.stageNumber,
+          round: m.round,
+          status: m.status as PublicOverviewMatchResponse['status'],
+          homeEntrantId: m.homeEntrantId ?? undefined,
+          ...(m.homeEntrantId && !homeVisibility?.hiddenAtRequest
+            ? { homeName: entrantDetails.get(m.homeEntrantId)?.name ?? 'Unknown' }
+            : {}),
+          ...(homeVisibility?.hiddenAtRequest ? { homeHiddenAtRequest: true } : {}),
+          ...(homeVisibility === undefined
+            ? {}
+            : { homePublicProfileAvailable: homeVisibility.publicProfileAvailable }),
+          ...(m.homeEntrantId && homeVisibility?.publicProfileAvailable !== false
+            ? { homeAbbreviation: entrantDetails.get(m.homeEntrantId)?.abbreviation }
+            : {}),
+          ...(m.homeEntrantId && homeVisibility?.publicProfileAvailable !== false
+            ? { homeClubId: entrantDetails.get(m.homeEntrantId)?.clubId }
+            : {}),
+          ...(m.homeEntrantId && homeVisibility?.publicProfileAvailable !== false
+            ? { homeEmblemObjectId: entrantDetails.get(m.homeEntrantId)?.emblemObjectId }
+            : {}),
+          awayEntrantId: m.awayEntrantId ?? undefined,
+          ...(m.awayEntrantId && !awayVisibility?.hiddenAtRequest
+            ? { awayName: entrantDetails.get(m.awayEntrantId)?.name ?? 'Unknown' }
+            : {}),
+          ...(awayVisibility?.hiddenAtRequest ? { awayHiddenAtRequest: true } : {}),
+          ...(awayVisibility === undefined
+            ? {}
+            : { awayPublicProfileAvailable: awayVisibility.publicProfileAvailable }),
+          ...(m.awayEntrantId && awayVisibility?.publicProfileAvailable !== false
+            ? { awayAbbreviation: entrantDetails.get(m.awayEntrantId)?.abbreviation }
+            : {}),
+          ...(m.awayEntrantId && awayVisibility?.publicProfileAvailable !== false
+            ? { awayClubId: entrantDetails.get(m.awayEntrantId)?.clubId }
+            : {}),
+          ...(m.awayEntrantId && awayVisibility?.publicProfileAvailable !== false
+            ? { awayEmblemObjectId: entrantDetails.get(m.awayEntrantId)?.emblemObjectId }
+            : {}),
+          homeScore: m.scores?.[0],
+          awayScore: m.scores?.[1],
+          scheduledAt: scheduleChanges.get(m.matchId)?.scheduledAt,
+        };
+      }),
       standingsPreview,
       standingsGrain,
       clubs: clubRows.map((c) => ({
@@ -720,8 +789,27 @@ export class PublicProjectionsController {
       (entrantId): entrantId is string => entrantId !== null,
     );
     const entrantNames = await new EnrollmentRepository(this.db).resolveEntrantNames(entrantIds);
+    const entrantVisibility = await entrantVisibilityById(this.db, tournament, entrantIds);
+    const personIds = [
+      ...rosterRows.flatMap((roster) => roster.roster_members.map((member) => member.personId)),
+      ...events.flatMap((event) => (event.personId === undefined ? [] : [event.personId])),
+    ];
+    const visibilityByPersonId = await personVisibilityById(this.db, tournament, personIds);
     const rosterByEntrant = new Map(
-      rosterRows.map((roster) => [roster.entrant_id, roster.roster_members]),
+      rosterRows.map((roster) => [
+        roster.entrant_id,
+        roster.roster_members.map((member) => {
+          const visibility =
+            visibilityByPersonId.get(member.personId) ?? personVisibility(tournament);
+          const { personId, name, nationality, ...details } = member;
+          return {
+            ...details,
+            ...(visibility.hiddenAtRequest ? { hiddenAtRequest: true } : { personId, name }),
+            publicProfileAvailable: visibility.publicProfileAvailable,
+            ...(visibility.nationalityVisible && nationality !== undefined ? { nationality } : {}),
+          };
+        }),
+      ]),
     );
     const segmentNumberById = new Map(
       segments.map((segment) => [segment.segmentId, segment.number]),
@@ -750,17 +838,43 @@ export class PublicProjectionsController {
       round: match.round,
       status: publicMatchStatus(match.status),
       ...(match.home_entrant_id === null ? {} : { homeEntrantId: match.home_entrant_id }),
-      ...(match.home_entrant_id === null
+      ...(match.home_entrant_id === null ||
+      entrantVisibility.get(match.home_entrant_id)?.hiddenAtRequest === true
         ? {}
         : { homeName: entrantNames.get(match.home_entrant_id)?.name ?? 'Unknown' }),
-      ...(match.home_entrant_id === null
+      ...(match.home_entrant_id !== null &&
+      entrantVisibility.get(match.home_entrant_id)?.hiddenAtRequest === true
+        ? { homeHiddenAtRequest: true }
+        : {}),
+      ...(match.home_entrant_id === null ||
+      entrantVisibility.get(match.home_entrant_id) === undefined
+        ? {}
+        : {
+            homePublicProfileAvailable: entrantVisibility.get(match.home_entrant_id)
+              ?.publicProfileAvailable,
+          }),
+      ...(match.home_entrant_id === null ||
+      entrantVisibility.get(match.home_entrant_id)?.publicProfileAvailable === false
         ? {}
         : { homeAbbreviation: entrantNames.get(match.home_entrant_id)?.abbreviation }),
       ...(match.away_entrant_id === null ? {} : { awayEntrantId: match.away_entrant_id }),
-      ...(match.away_entrant_id === null
+      ...(match.away_entrant_id === null ||
+      entrantVisibility.get(match.away_entrant_id)?.hiddenAtRequest === true
         ? {}
         : { awayName: entrantNames.get(match.away_entrant_id)?.name ?? 'Unknown' }),
-      ...(match.away_entrant_id === null
+      ...(match.away_entrant_id !== null &&
+      entrantVisibility.get(match.away_entrant_id)?.hiddenAtRequest === true
+        ? { awayHiddenAtRequest: true }
+        : {}),
+      ...(match.away_entrant_id === null ||
+      entrantVisibility.get(match.away_entrant_id) === undefined
+        ? {}
+        : {
+            awayPublicProfileAvailable: entrantVisibility.get(match.away_entrant_id)
+              ?.publicProfileAvailable,
+          }),
+      ...(match.away_entrant_id === null ||
+      entrantVisibility.get(match.away_entrant_id)?.publicProfileAvailable === false
         ? {}
         : { awayAbbreviation: entrantNames.get(match.away_entrant_id)?.abbreviation }),
       ...(scores?.[0] === undefined ? {} : { homeScore: scores[0] }),
@@ -807,7 +921,14 @@ export class PublicProjectionsController {
             ? {}
             : { segmentNumber: segmentNumberById.get(event.segmentId) }),
           ...(event.side === undefined ? {} : { side: event.side }),
-          ...(event.personId === undefined ? {} : { personId: event.personId }),
+          ...(event.personId === undefined ||
+          visibilityByPersonId.get(event.personId)?.hiddenAtRequest === true
+            ? {}
+            : { personId: event.personId }),
+          ...(event.personId !== undefined &&
+          visibilityByPersonId.get(event.personId)?.hiddenAtRequest === true
+            ? { hiddenAtRequest: true }
+            : {}),
           payload: event.payload,
         };
       }),
@@ -853,6 +974,7 @@ export class PublicProjectionsController {
     const entrantDetails = await new EnrollmentRepository(this.db).resolveEntrantPodiumDetails(
       Array.from(entrantIds),
     );
+    const entrantVisibility = await entrantVisibilityById(this.db, tournament, [...entrantIds]);
     const descriptor = await new TournamentRepository(this.db).findDescriptor(
       tournament.disciplineRef.descriptorId,
       tournament.disciplineRef.version,
@@ -921,10 +1043,25 @@ export class PublicProjectionsController {
             ? [
                 {
                   entrantId: m.homeEntrantId,
-                  name: entrantDetails.get(m.homeEntrantId)?.name ?? 'Unknown',
-                  abbreviation: entrantDetails.get(m.homeEntrantId)?.abbreviation,
-                  clubId: entrantDetails.get(m.homeEntrantId)?.clubId,
-                  emblemObjectId: entrantDetails.get(m.homeEntrantId)?.emblemObjectId,
+                  ...(entrantVisibility.get(m.homeEntrantId)?.hiddenAtRequest
+                    ? {}
+                    : { name: entrantDetails.get(m.homeEntrantId)?.name ?? 'Unknown' }),
+                  ...(entrantVisibility.get(m.homeEntrantId)?.hiddenAtRequest
+                    ? { hiddenAtRequest: true }
+                    : {}),
+                  ...(entrantVisibility.get(m.homeEntrantId) === undefined
+                    ? {}
+                    : {
+                        publicProfileAvailable: entrantVisibility.get(m.homeEntrantId)
+                          ?.publicProfileAvailable,
+                      }),
+                  ...(entrantVisibility.get(m.homeEntrantId)?.publicProfileAvailable === false
+                    ? {}
+                    : {
+                        abbreviation: entrantDetails.get(m.homeEntrantId)?.abbreviation,
+                        clubId: entrantDetails.get(m.homeEntrantId)?.clubId,
+                        emblemObjectId: entrantDetails.get(m.homeEntrantId)?.emblemObjectId,
+                      }),
                   score: m.scores?.[0] ?? 0,
                 },
               ]
@@ -933,10 +1070,25 @@ export class PublicProjectionsController {
             ? [
                 {
                   entrantId: m.awayEntrantId,
-                  name: entrantDetails.get(m.awayEntrantId)?.name ?? 'Unknown',
-                  abbreviation: entrantDetails.get(m.awayEntrantId)?.abbreviation,
-                  clubId: entrantDetails.get(m.awayEntrantId)?.clubId,
-                  emblemObjectId: entrantDetails.get(m.awayEntrantId)?.emblemObjectId,
+                  ...(entrantVisibility.get(m.awayEntrantId)?.hiddenAtRequest
+                    ? {}
+                    : { name: entrantDetails.get(m.awayEntrantId)?.name ?? 'Unknown' }),
+                  ...(entrantVisibility.get(m.awayEntrantId)?.hiddenAtRequest
+                    ? { hiddenAtRequest: true }
+                    : {}),
+                  ...(entrantVisibility.get(m.awayEntrantId) === undefined
+                    ? {}
+                    : {
+                        publicProfileAvailable: entrantVisibility.get(m.awayEntrantId)
+                          ?.publicProfileAvailable,
+                      }),
+                  ...(entrantVisibility.get(m.awayEntrantId)?.publicProfileAvailable === false
+                    ? {}
+                    : {
+                        abbreviation: entrantDetails.get(m.awayEntrantId)?.abbreviation,
+                        clubId: entrantDetails.get(m.awayEntrantId)?.clubId,
+                        emblemObjectId: entrantDetails.get(m.awayEntrantId)?.emblemObjectId,
+                      }),
                   score: m.scores?.[1] ?? 0,
                 },
               ]
@@ -1004,6 +1156,15 @@ export class PublicProjectionsController {
               ),
             ),
           );
+          const visibilityByEntrant = await entrantVisibilityById(
+            this.db,
+            tournament,
+            zoneRecords.flatMap((record) =>
+              [record.homeEntrantId, record.awayEntrantId].filter(
+                (id): id is string => id !== undefined,
+              ),
+            ),
+          );
           return {
             ...zone,
             format: effectiveFormat(zone, stage),
@@ -1021,15 +1182,28 @@ export class PublicProjectionsController {
               slots: match.slots.map((slot) => {
                 const identity =
                   slot.entrantId === undefined ? undefined : details.get(slot.entrantId);
+                const visibility =
+                  slot.entrantId === undefined
+                    ? undefined
+                    : visibilityByEntrant.get(slot.entrantId);
                 return {
                   ...slot,
                   ...(identity === undefined
                     ? {}
                     : {
-                        name: identity.name,
-                        abbreviation: identity.abbreviation,
-                        clubId: identity.clubId,
-                        emblemObjectId: identity.emblemObjectId,
+                        ...(visibility?.hiddenAtRequest
+                          ? { name: undefined, hiddenAtRequest: true }
+                          : { name: identity.name }),
+                        ...(visibility === undefined
+                          ? {}
+                          : { publicProfileAvailable: visibility.publicProfileAvailable }),
+                        ...(visibility?.publicProfileAvailable === false
+                          ? {}
+                          : {
+                              abbreviation: identity.abbreviation,
+                              clubId: identity.clubId,
+                              emblemObjectId: identity.emblemObjectId,
+                            }),
                       }),
                 };
               }),
@@ -1086,6 +1260,9 @@ export class PublicProjectionsController {
           }
         }
         const details = await enrollmentRepo.resolveEntrantPodiumDetails(Array.from(entrantIds));
+        const visibilityByEntrant = await entrantVisibilityById(this.db, tournament, [
+          ...entrantIds,
+        ]);
 
         // Keyed by the round/position the bracket graph and the read model agree on, so a series
         // rides onto the cross it settles rather than onto a match id neither side shares — scoped
@@ -1116,14 +1293,25 @@ export class PublicProjectionsController {
                   : { matchNumber: ordinalByMatchId.get(m.persistedMatchId) }),
                 slots: m.slots.map((s, slotIndex) => {
                   const detail = s.entrantId ? details.get(s.entrantId) : undefined;
+                  const visibility = s.entrantId ? visibilityByEntrant.get(s.entrantId) : undefined;
                   const from = s.kind === 'entrant' ? sourcesOf(m)[slotIndex] : undefined;
                   return {
                     kind: s.kind,
                     entrantId: s.entrantId,
-                    name: s.entrantId ? (detail?.name ?? 'Unknown') : undefined,
-                    abbreviation: detail?.abbreviation,
-                    clubId: detail?.clubId,
-                    emblemObjectId: detail?.emblemObjectId,
+                    ...(s.entrantId && !visibility?.hiddenAtRequest
+                      ? { name: detail?.name ?? 'Unknown' }
+                      : {}),
+                    ...(visibility?.hiddenAtRequest ? { hiddenAtRequest: true } : {}),
+                    ...(visibility === undefined
+                      ? {}
+                      : { publicProfileAvailable: visibility.publicProfileAvailable }),
+                    ...(visibility?.publicProfileAvailable === false
+                      ? {}
+                      : {
+                          abbreviation: detail?.abbreviation,
+                          clubId: detail?.clubId,
+                          emblemObjectId: detail?.emblemObjectId,
+                        }),
                     matchId: s.matchId,
                     ...(from === undefined ? {} : { from }),
                     score: s.score,
@@ -1143,10 +1331,25 @@ export class PublicProjectionsController {
                   return {
                     kind: 'entrant' as const,
                     entrantId,
-                    name: entrantId ? (detail?.name ?? 'Unknown') : undefined,
-                    abbreviation: detail?.abbreviation,
-                    clubId: detail?.clubId,
-                    emblemObjectId: detail?.emblemObjectId,
+                    ...(entrantId && !visibilityByEntrant.get(entrantId)?.hiddenAtRequest
+                      ? { name: detail?.name ?? 'Unknown' }
+                      : {}),
+                    ...(visibilityByEntrant.get(entrantId ?? '')?.hiddenAtRequest
+                      ? { hiddenAtRequest: true }
+                      : {}),
+                    ...(entrantId && visibilityByEntrant.has(entrantId)
+                      ? {
+                          publicProfileAvailable:
+                            visibilityByEntrant.get(entrantId)?.publicProfileAvailable,
+                        }
+                      : {}),
+                    ...(visibilityByEntrant.get(entrantId ?? '')?.publicProfileAvailable === false
+                      ? {}
+                      : {
+                          abbreviation: detail?.abbreviation,
+                          clubId: detail?.clubId,
+                          emblemObjectId: detail?.emblemObjectId,
+                        }),
                     ...(source === undefined ? {} : { from: source }),
                     score: node.record.scores?.[index],
                     resultReason: node.record.resultReasons?.[index],
@@ -1191,45 +1394,87 @@ export class PublicProjectionsController {
     }
 
     const rows = await readMatchesView(this.db, tournament, { stageNumber, groupId, state });
+    const entrantIds = rows.flatMap((row) =>
+      [row.homeEntrantId, row.awayEntrantId].filter(
+        (entrantId): entrantId is string => entrantId !== undefined,
+      ),
+    );
+    const entrantVisibility = await entrantVisibilityById(this.db, tournament, entrantIds);
     return {
-      matches: rows.map((row) => ({
-        matchId: row.matchId,
-        nodeKey: row.nodeKey,
-        homeSource: row.homeSource,
-        awaySource: row.awaySource,
-        scheduleVersion: row.scheduleVersion,
-        rescheduledFrom: row.rescheduledFrom,
-        stageNumber: row.stageNumber,
-        matchNumber: row.matchNumber,
-        round: row.round,
-        status: row.status,
-        ...(row.homeEntrantId === undefined ? {} : { homeEntrantId: row.homeEntrantId }),
-        ...(row.homeName === undefined ? {} : { homeName: row.homeName }),
-        ...(row.homeAbbreviation === undefined ? {} : { homeAbbreviation: row.homeAbbreviation }),
-        ...(row.homeClubId === undefined ? {} : { homeClubId: row.homeClubId }),
-        ...(row.homeEmblemObjectId === undefined
-          ? {}
-          : { homeEmblemObjectId: row.homeEmblemObjectId }),
-        ...(row.awayEntrantId === undefined ? {} : { awayEntrantId: row.awayEntrantId }),
-        ...(row.awayName === undefined ? {} : { awayName: row.awayName }),
-        ...(row.awayAbbreviation === undefined ? {} : { awayAbbreviation: row.awayAbbreviation }),
-        ...(row.awayClubId === undefined ? {} : { awayClubId: row.awayClubId }),
-        ...(row.awayEmblemObjectId === undefined
-          ? {}
-          : { awayEmblemObjectId: row.awayEmblemObjectId }),
-        ...(row.homeScore === undefined ? {} : { homeScore: row.homeScore }),
-        ...(row.awayScore === undefined ? {} : { awayScore: row.awayScore }),
-        ...(row.clockSeconds === undefined ? {} : { clockSeconds: row.clockSeconds }),
-        ...(row.venueName === undefined ? {} : { venueName: row.venueName }),
-        ...(row.scheduledAt === undefined ? {} : { scheduledAt: row.scheduledAt }),
-        ...(row.latestEvent === undefined ? {} : { latestEvent: row.latestEvent }),
-        ...(row.zoneName === undefined ? {} : { zoneName: row.zoneName }),
-        ...(row.groupName === undefined ? {} : { groupName: row.groupName }),
-        ...(row.homePosition === undefined ? {} : { homePosition: row.homePosition }),
-        ...(row.awayPosition === undefined ? {} : { awayPosition: row.awayPosition }),
-        ...(row.series === undefined ? {} : { series: seriesResponseOf(row.series) }),
-        ...(row.decidingFactor === undefined ? {} : { decidingFactor: row.decidingFactor }),
-      })),
+      matches: rows.map((row) => {
+        const homeVisibility = row.homeEntrantId
+          ? entrantVisibility.get(row.homeEntrantId)
+          : undefined;
+        const awayVisibility = row.awayEntrantId
+          ? entrantVisibility.get(row.awayEntrantId)
+          : undefined;
+        return {
+          matchId: row.matchId,
+          nodeKey: row.nodeKey,
+          homeSource: row.homeSource,
+          awaySource: row.awaySource,
+          scheduleVersion: row.scheduleVersion,
+          rescheduledFrom: row.rescheduledFrom,
+          stageNumber: row.stageNumber,
+          matchNumber: row.matchNumber,
+          round: row.round,
+          status: row.status,
+          ...(row.homeEntrantId === undefined ? {} : { homeEntrantId: row.homeEntrantId }),
+          ...(row.homeName === undefined || homeVisibility?.hiddenAtRequest
+            ? {}
+            : { homeName: row.homeName }),
+          ...(homeVisibility?.hiddenAtRequest ? { homeHiddenAtRequest: true } : {}),
+          ...(homeVisibility === undefined
+            ? {}
+            : { homePublicProfileAvailable: homeVisibility.publicProfileAvailable }),
+          ...(row.homeAbbreviation === undefined || homeVisibility?.publicProfileAvailable === false
+            ? {}
+            : { homeAbbreviation: row.homeAbbreviation }),
+          ...(homeVisibility?.publicProfileAvailable === false
+            ? {}
+            : row.homeClubId === undefined
+              ? {}
+              : { homeClubId: row.homeClubId }),
+          ...(homeVisibility?.publicProfileAvailable === false
+            ? {}
+            : row.homeEmblemObjectId === undefined
+              ? {}
+              : { homeEmblemObjectId: row.homeEmblemObjectId }),
+          ...(row.awayEntrantId === undefined ? {} : { awayEntrantId: row.awayEntrantId }),
+          ...(row.awayName === undefined || awayVisibility?.hiddenAtRequest
+            ? {}
+            : { awayName: row.awayName }),
+          ...(awayVisibility?.hiddenAtRequest ? { awayHiddenAtRequest: true } : {}),
+          ...(awayVisibility === undefined
+            ? {}
+            : { awayPublicProfileAvailable: awayVisibility.publicProfileAvailable }),
+          ...(row.awayAbbreviation === undefined || awayVisibility?.publicProfileAvailable === false
+            ? {}
+            : { awayAbbreviation: row.awayAbbreviation }),
+          ...(awayVisibility?.publicProfileAvailable === false
+            ? {}
+            : row.awayClubId === undefined
+              ? {}
+              : { awayClubId: row.awayClubId }),
+          ...(awayVisibility?.publicProfileAvailable === false
+            ? {}
+            : row.awayEmblemObjectId === undefined
+              ? {}
+              : { awayEmblemObjectId: row.awayEmblemObjectId }),
+          ...(row.homeScore === undefined ? {} : { homeScore: row.homeScore }),
+          ...(row.awayScore === undefined ? {} : { awayScore: row.awayScore }),
+          ...(row.clockSeconds === undefined ? {} : { clockSeconds: row.clockSeconds }),
+          ...(row.venueName === undefined ? {} : { venueName: row.venueName }),
+          ...(row.scheduledAt === undefined ? {} : { scheduledAt: row.scheduledAt }),
+          ...(row.latestEvent === undefined ? {} : { latestEvent: row.latestEvent }),
+          ...(row.zoneName === undefined ? {} : { zoneName: row.zoneName }),
+          ...(row.groupName === undefined ? {} : { groupName: row.groupName }),
+          ...(row.homePosition === undefined ? {} : { homePosition: row.homePosition }),
+          ...(row.awayPosition === undefined ? {} : { awayPosition: row.awayPosition }),
+          ...(row.series === undefined ? {} : { series: seriesResponseOf(row.series) }),
+          ...(row.decidingFactor === undefined ? {} : { decidingFactor: row.decidingFactor }),
+        };
+      }),
     };
   }
 
@@ -1283,7 +1528,7 @@ export class PublicProjectionsController {
       },
       layoutCode,
     );
-    return tableResponse(result);
+    return tableResponse(await this.protectPublicPersonRows(tournament, result));
   }
 
   @Get('stages/:stageNumber/public/tables/:layoutCode')
@@ -1324,7 +1569,7 @@ export class PublicProjectionsController {
       },
       layoutCode,
     );
-    return segmentedTableResponse(result);
+    return segmentedTableResponse(await this.protectPublicPersonRows(tournament, result));
   }
 
   @Get('persons/:personId/public/profile')
@@ -1342,7 +1587,11 @@ export class PublicProjectionsController {
     );
     const people = new PersonRepository(this.db);
     const person = await people.findPerson(personId);
-    if (!person || person.organizationId !== tournament.organizationId) {
+    if (
+      !person ||
+      person.organizationId !== tournament.organizationId ||
+      !canShowPublicPlayerProfile(tournament, person.hiddenFromPublic)
+    ) {
       throw new NotFoundException(
         `No person "${personId}" found in organization "${organizationAlias}"`,
         { errorCode: 'public-projection-not-found' },
@@ -1437,7 +1686,11 @@ export class PublicProjectionsController {
     );
 
     const person = await new PersonRepository(this.db).findPerson(personId);
-    if (!person || person.organizationId !== tournament.organizationId) {
+    if (
+      !person ||
+      person.organizationId !== tournament.organizationId ||
+      !canShowPublicPlayerProfile(tournament, person.hiddenFromPublic)
+    ) {
       throw new NotFoundException(
         `No person "${personId}" found in organization "${organizationAlias}"`,
         { errorCode: 'public-projection-not-found' },
@@ -1476,6 +1729,89 @@ export class PublicProjectionsController {
     );
     return playerStatisticsResponse(result);
   }
+
+  private async protectPublicPersonRows<T extends TableProjectionResult>(
+    tournament: Tournament,
+    result: T,
+  ): Promise<T> {
+    if (result.layout.entityGranularity !== 'person') return result;
+    const segmentedResult =
+      'segments' in result ? (result as T & SegmentedTableProjectionResult) : undefined;
+    const rows = [
+      ...result.rows,
+      ...(segmentedResult?.segments.flatMap((segment) => segment.rows) ?? []),
+    ];
+    const visibilityById = await personVisibilityById(
+      this.db,
+      tournament,
+      rows.map((row) => row.actorId),
+    );
+    const actorNameCodes = new Set(
+      result.layout.columns
+        .filter((column) => column.source.kind === 'actor-name')
+        .map((column) => column.code),
+    );
+    const entrantNameCodes = new Set(
+      result.layout.columns
+        .filter(
+          (column) => column.source.kind === 'entrant-name' || column.source.kind === 'team-name',
+        )
+        .map((column) => column.code),
+    );
+    const protectRows = (source: readonly TableProjectionRow[]): TableProjectionRow[] =>
+      source.map((row) => {
+        const visibility = visibilityById.get(row.actorId) ?? personVisibility(tournament);
+        const { nationality, ...withoutNationality } = row;
+        const suppressedCodes = new Set([
+          ...(visibility.hiddenAtRequest ? actorNameCodes : []),
+          ...(!visibility.publicProfileAvailable ? entrantNameCodes : []),
+        ]);
+        const cells =
+          suppressedCodes.size > 0
+            ? Object.fromEntries(
+                Object.entries(row.cells).map(([code, cell]) =>
+                  suppressedCodes.has(code)
+                    ? [code, { ...cell, formatted: '', raw: undefined }]
+                    : [code, cell],
+                ),
+              )
+            : row.cells;
+        return {
+          ...withoutNationality,
+          ...(!visibility.publicProfileAvailable
+            ? {
+                entrantName: undefined,
+                entrantAbbreviation: undefined,
+                clubId: undefined,
+                emblemObjectId: undefined,
+              }
+            : {}),
+          ...(visibility.hiddenAtRequest ? { actorName: '', hiddenAtRequest: true } : {}),
+          publicProfileAvailable: visibility.publicProfileAvailable,
+          ...(visibility.nationalityVisible && nationality !== undefined ? { nationality } : {}),
+          cells,
+        };
+      });
+
+    if (segmentedResult !== undefined) {
+      return {
+        ...segmentedResult,
+        rows: protectRows(result.rows),
+        segments: segmentedResult.segments.map((segment) => ({
+          ...segment,
+          rows: protectRows(segment.rows),
+        })),
+      } as T;
+    }
+    return { ...result, rows: protectRows(result.rows) } as T;
+  }
+}
+
+function canShowPublicPlayerProfile(tournament: Tournament, hiddenFromPublic?: boolean): boolean {
+  return (
+    hiddenFromPublic !== true &&
+    !(tournament.includesMinors === true && tournament.showYouthProfiles !== true)
+  );
 }
 
 function playerStatisticsResponse(

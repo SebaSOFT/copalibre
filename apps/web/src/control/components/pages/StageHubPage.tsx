@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { messages } from '../../i18n/messages.en.js';
 import {
   createControlApiClient,
   type ControlApiClient,
+  type StageDeletionResponse,
   type ZoneResponse,
 } from '../../lib/api-client.js';
 import { navigateControl } from '../../lib/control-navigation.js';
@@ -20,6 +21,10 @@ import { useResilientRead } from './use-resilient-read.js';
  */
 const pageMessages = defineMessages({
   stageDeleted: { id: 'control.stageHub.stageDeleted', defaultMessage: 'Stage deleted.' },
+  stageDeleteUnavailable: {
+    id: 'control.stageSettings.deleteUnavailable',
+    defaultMessage: 'Stage removal is unavailable.',
+  },
   stageRenamed: { id: 'control.stageHub.stageRenamed', defaultMessage: 'Stage renamed.' },
 });
 
@@ -66,6 +71,8 @@ export function StageHubPage({
   );
 
   const title = intl.formatMessage(messages.stageHubTitle, { number: stageNumber });
+  const [deletePreview, setDeletePreview] = useState<StageDeletionResponse | undefined>();
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const tournamentRead = useResilientRead(
     `control-stage-hub-name:${organizationAlias}:${tournamentAlias}`,
     () =>
@@ -127,11 +134,37 @@ export function StageHubPage({
 
   async function onDelete(): Promise<void> {
     try {
-      await api.deleteStage?.(organizationAlias, tournamentAlias, stageNumber);
+      if (!api.previewDeleteStage) {
+        throw new Error(intl.formatMessage(pageMessages.stageDeleteUnavailable));
+      }
+      setDeletePreview(
+        await api.previewDeleteStage(organizationAlias, tournamentAlias, stageNumber),
+      );
+    } catch (error) {
+      pushError(error);
+    }
+  }
+
+  async function onConfirmDelete(): Promise<void> {
+    if (!deletePreview) return;
+    setDeleteBusy(true);
+    try {
+      if (!api.deleteStage) {
+        throw new Error(intl.formatMessage(pageMessages.stageDeleteUnavailable));
+      }
+      await api.deleteStage(
+        organizationAlias,
+        tournamentAlias,
+        stageNumber,
+        deletePreview.stageName,
+      );
+      setDeletePreview(undefined);
       push({ severity: 'success', message: intl.formatMessage(pageMessages.stageDeleted) });
       navigateControl(`/control/${organizationAlias}/tournaments/${tournamentAlias}`);
     } catch (error) {
       pushError(error);
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
@@ -154,9 +187,15 @@ export function StageHubPage({
     <ReadState {...read} title={title}>
       <StageHubTemplate
         availableFormats={stage.availableFormats ?? []}
+        deleteBusy={deleteBusy}
+        deletePreview={deletePreview}
         formatDescriptions={stage.formatDescriptions}
         onChangeFormat={onChangeFormat}
         onDelete={onDelete}
+        onDeletePreviewOpenChange={(open) => {
+          if (!open) setDeletePreview(undefined);
+        }}
+        onConfirmDelete={onConfirmDelete}
         onGenerateNextRound={onGenerateNextRound}
         onRename={onRename}
         organizationAlias={organizationAlias}

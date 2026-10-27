@@ -6,6 +6,7 @@ import {
   EVIDENCE_VALIDATION_REQUESTED_EVENT,
   OBJECT_PROCESSING_REQUESTED_EVENT,
   OutboxRelay,
+  ReversibleRemovalRepository,
   type Database,
 } from '@copalibre/persistence';
 import { createRefold } from '@copalibre/statistics-refold';
@@ -90,6 +91,9 @@ const providers: Provider[] = [
         .register('password-reset-requested', passwordReset)
         .register(EVIDENCE_VALIDATION_REQUESTED_EVENT, evidence)
         .register(OBJECT_PROCESSING_REQUESTED_EVENT, objectProcessing)
+        .register('privacy.soft-deletes.purge', async () => {
+          await new ReversibleRemovalRepository(db).purgeExpired();
+        })
         .register(RESCHEDULE_EMAIL_EVENT, reschedule);
       for (const eventType of LIFECYCLE_EMAIL_EVENTS) {
         dispatcher.register(eventType, lifecycle[eventType]);

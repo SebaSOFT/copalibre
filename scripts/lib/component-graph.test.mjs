@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count after shared interaction states, resilient read layouts, live motion cues, entrant emblems, theme preferences, shared page headers, display-name standings breadcrumbs, TV layout adoption and locale-aware human-readable presentation (402/1669)', () => {
+test('the graph resolves the current node/edge count after shared interaction states, resilient read layouts, live motion cues, entrant emblems, theme preferences, shared page headers, display-name standings breadcrumbs, TV layout adoption, locale-aware human-readable presentation and privacy controls (404/1698)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 402);
-  assert.equal(graph.edges.length, 1669);
+  assert.equal(graph.nodes.size, 404);
+  assert.equal(graph.edges.length, 1698);
 });
 
 test('a type-only import is not counted as a render', () => {

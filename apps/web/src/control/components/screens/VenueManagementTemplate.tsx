@@ -5,6 +5,7 @@ import type {
   OfficialResponse,
   OfficialRole,
   ScheduleDetailResponse,
+  ScheduleDeletionResponse,
   VenueResponse,
 } from '../../lib/api-client.js';
 import { Badge } from '../ui/atoms/badge.js';
@@ -16,6 +17,7 @@ import { Label } from '../ui/atoms/label.js';
 import { Inline } from '../ui/atoms/layout/inline.js';
 import { Field } from '../ui/molecules/field.js';
 import { FieldSet } from '../ui/molecules/field-set.js';
+import { ConsequenceDialog } from '../ui/organisms/consequence-dialog.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { formatDateTimeInputHint } from '../../lib/presentation-formatting.js';
@@ -41,6 +43,8 @@ export function VenueManagementTemplate({
   onCreateSchedule,
   onCreateVenue,
   onDeleteSchedule,
+  onDeleteVenue,
+  onPreviewDeleteSchedule,
   onSaveOfficial,
   onSaveSchedule,
   onSaveVenue,
@@ -60,7 +64,11 @@ export function VenueManagementTemplate({
     venueIds: readonly string[],
   ) => Promise<boolean>;
   readonly onCreateVenue: (name: string, alias: string, capacity: string) => Promise<boolean>;
-  readonly onDeleteSchedule: (scheduleId: string) => Promise<boolean>;
+  readonly onDeleteSchedule: (scheduleId: string, confirmationName: string) => Promise<boolean>;
+  readonly onDeleteVenue: (venueId: string) => Promise<boolean>;
+  readonly onPreviewDeleteSchedule: (
+    scheduleId: string,
+  ) => Promise<ScheduleDeletionResponse | undefined>;
   readonly onSaveOfficial: (
     officialId: string,
     name: string,
@@ -108,6 +116,12 @@ export function VenueManagementTemplate({
 
   const [selectedScheduleId, setSelectedScheduleId] = useState<string>();
   const [editScheduleName, setEditScheduleName] = useState('');
+  const [pendingScheduleDelete, setPendingScheduleDelete] = useState<{
+    readonly scheduleId: string;
+    readonly name: string;
+    readonly preview: ScheduleDeletionResponse;
+  }>();
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const selectVenue = (venue: VenueResponse): void => {
     setSelectedVenueId(venue.venueId);
@@ -165,6 +179,11 @@ export function VenueManagementTemplate({
     );
   }
 
+  async function deleteVenue(): Promise<void> {
+    if (selectedVenueId === undefined) return;
+    if (await onDeleteVenue(selectedVenueId)) setSelectedVenueId(undefined);
+  }
+
   async function createOfficial(): Promise<void> {
     if (await onCreateOfficial(newOfficialName, newOfficialRoles)) {
       setNewOfficialName('');
@@ -199,9 +218,33 @@ export function VenueManagementTemplate({
     await onSaveSchedule(selectedScheduleId, editScheduleName);
   }
 
-  async function deleteSchedule(scheduleId: string): Promise<void> {
-    if (await onDeleteSchedule(scheduleId)) {
-      if (selectedScheduleId === scheduleId) setSelectedScheduleId(undefined);
+  async function previewScheduleDeletion(schedule: ScheduleDetailResponse): Promise<void> {
+    setDeleteBusy(true);
+    try {
+      const preview = await onPreviewDeleteSchedule(schedule.scheduleId);
+      if (preview?.dryRun) {
+        setPendingScheduleDelete({
+          scheduleId: schedule.scheduleId,
+          name: schedule.name,
+          preview,
+        });
+      }
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
+
+  async function confirmScheduleDeletion(): Promise<void> {
+    if (!pendingScheduleDelete) return;
+    setDeleteBusy(true);
+    try {
+      if (await onDeleteSchedule(pendingScheduleDelete.scheduleId, pendingScheduleDelete.name)) {
+        if (selectedScheduleId === pendingScheduleDelete.scheduleId)
+          setSelectedScheduleId(undefined);
+        setPendingScheduleDelete(undefined);
+      }
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
@@ -399,6 +442,13 @@ export function VenueManagementTemplate({
               <Button onClick={() => void saveVenue()} type="button">
                 <FormattedMessage {...messages.resourceManagementSaveVenueChanges} />
               </Button>
+              <Button
+                onClick={() => void deleteVenue()}
+                type="button"
+                variant="destructive-outline"
+              >
+                <FormattedMessage {...messages.resourceManagementDeleteVenue} />
+              </Button>
             </div>
           </div>
         </Card>
@@ -434,7 +484,8 @@ export function VenueManagementTemplate({
                     <FormattedMessage {...messages.resourceManagementEditSchedule} />
                   </Button>
                   <Button
-                    onClick={() => void deleteSchedule(schedule.scheduleId)}
+                    disabled={deleteBusy}
+                    onClick={() => void previewScheduleDeletion(schedule)}
                     type="button"
                     variant="secondary"
                   >
@@ -695,5 +746,41 @@ export function VenueManagementTemplate({
     </div>
   );
 
-  return <ListScreenLayout breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
+  return (
+    <>
+      <ListScreenLayout breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />
+      <ConsequenceDialog
+        busy={deleteBusy}
+        cancelLabel={intl.formatMessage(messages.registrationModalClose)}
+        closeLabel={intl.formatMessage(messages.registrationModalClose)}
+        confirmLabel={intl.formatMessage(messages.resourceManagementDeleteSchedule)}
+        counts={
+          pendingScheduleDelete === undefined
+            ? []
+            : [
+                {
+                  label: intl.formatMessage(messages.consequenceDialogSlotsDeleted),
+                  value: pendingScheduleDelete.preview.slots,
+                },
+                {
+                  label: intl.formatMessage(messages.consequenceDialogMatchesUnassigned),
+                  value: pendingScheduleDelete.preview.matchesUnassigned,
+                },
+              ]
+        }
+        description={intl.formatMessage(messages.resourceManagementDeleteScheduleConsequences, {
+          slots: intl.formatNumber(pendingScheduleDelete?.preview.slots ?? 0),
+          matches: intl.formatNumber(pendingScheduleDelete?.preview.matchesUnassigned ?? 0),
+        })}
+        onConfirm={() => void confirmScheduleDeletion()}
+        onOpenChange={(open) => {
+          if (!open && !deleteBusy) setPendingScheduleDelete(undefined);
+        }}
+        open={pendingScheduleDelete !== undefined}
+        title={intl.formatMessage(messages.resourceManagementDeleteSchedule)}
+        typeToConfirm={pendingScheduleDelete?.name}
+        typeToConfirmLabel={intl.formatMessage(messages.consequenceDialogTypeObjectName)}
+      />
+    </>
+  );
 }

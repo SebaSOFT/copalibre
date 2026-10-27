@@ -10,6 +10,7 @@ import { Test } from '@nestjs/testing';
 import * as argon2 from 'argon2';
 import {
   AuthVerificationTokenRepository,
+  PersonalAccessTokenRepository,
   withTransaction,
   newId,
   type Database,
@@ -499,6 +500,7 @@ describe('Auth Controllers', () => {
         token: 'admin-token',
         payload: {
           label: 'Test Token',
+          scopes: ['copalibre.control'],
           expiresInDays: 30,
         },
       });
@@ -521,22 +523,106 @@ describe('Auth Controllers', () => {
       expect(data[0].tokenId).toBe(tokenId);
     });
 
-    it('DELETE /auth/pat/:id revokes it', async () => {
+    it('dry-runs, revokes, and restores an unused PAT without preview writes', async () => {
+      const preview = await request({
+        method: 'DELETE',
+        url: `/auth/pat/${tokenId}?dryRun=true`,
+        token: 'admin-token',
+      });
+      expect(preview.statusCode).toBe(200);
+      expect(JSON.parse(preview.payload)).toMatchObject({
+        dryRun: true,
+        reversible: true,
+        tokens: 1,
+      });
+      const beforeRevoke = await (scratch.db as Kysely<Database>)
+        .selectFrom('personal_access_tokens')
+        .select(['revoked_at', 'deleted_at'])
+        .where('token_id', '=', tokenId)
+        .executeTakeFirstOrThrow();
+      expect(beforeRevoke).toEqual({ revoked_at: null, deleted_at: null });
+
       const response = await request({
         method: 'DELETE',
         url: `/auth/pat/${tokenId}`,
         token: 'admin-token',
       });
       expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.payload)).toMatchObject({
+        dryRun: false,
+        reversible: true,
+        tokens: 1,
+      });
 
       const getResponse = await request({
         method: 'GET',
         url: '/auth/pat',
         token: 'admin-token',
       });
-      const data = JSON.parse(getResponse.payload);
-      expect(data).toHaveLength(1);
-      expect(data[0].revoked).toBe(true);
+      expect(JSON.parse(getResponse.payload)).toHaveLength(0);
+
+      const restored = await request({
+        method: 'POST',
+        url: `/auth/pat/${tokenId}/restore`,
+        token: 'admin-token',
+      });
+      expect(restored.statusCode).toBe(200);
+      expect(JSON.parse(restored.payload)).toMatchObject({ tokenId, revoked: false });
+    });
+
+    it('dry-runs and confirms an in-use PAT revoke as irreversible', async () => {
+      const created = await request({
+        method: 'POST',
+        url: '/auth/pat',
+        token: 'admin-token',
+        payload: { label: 'Used Token', scopes: ['copalibre.control'], expiresInDays: 30 },
+      });
+      const usedTokenId = JSON.parse(created.payload).tokenId as string;
+      await new PersonalAccessTokenRepository(scratch.db as Kysely<Database>).touchLastUsed(
+        usedTokenId,
+      );
+
+      const preview = await request({
+        method: 'DELETE',
+        url: `/auth/pat/${usedTokenId}?dryRun=true`,
+        token: 'admin-token',
+      });
+      expect(preview.statusCode).toBe(200);
+      expect(JSON.parse(preview.payload)).toMatchObject({
+        dryRun: true,
+        reversible: false,
+        tokens: 1,
+      });
+      const stillActive = await (scratch.db as Kysely<Database>)
+        .selectFrom('personal_access_tokens')
+        .select(['revoked_at', 'deleted_at'])
+        .where('token_id', '=', usedTokenId)
+        .executeTakeFirstOrThrow();
+      expect(stillActive).toEqual({ revoked_at: null, deleted_at: null });
+
+      const revoked = await request({
+        method: 'DELETE',
+        url: `/auth/pat/${usedTokenId}`,
+        token: 'admin-token',
+      });
+      expect(revoked.statusCode).toBe(200);
+      expect(JSON.parse(revoked.payload)).toMatchObject({
+        dryRun: false,
+        reversible: false,
+        tokens: 1,
+      });
+
+      const audit = await (scratch.db as Kysely<Database>)
+        .selectFrom('audit_log')
+        .select(['actor', 'resulting_state'])
+        .where('entity_type', '=', 'personal-access-token')
+        .where('entity_id', '=', usedTokenId)
+        .where('action', '=', 'pat.revoked')
+        .executeTakeFirstOrThrow();
+      expect(audit).toMatchObject({
+        actor: 'user:550e8400-e29b-41d4-a716-446655440000',
+        resulting_state: { revoked: true, reversible: false, tokens: 1 },
+      });
     });
 
     // Scope policy regression cases. Each rejection case asserts the
@@ -562,15 +648,26 @@ describe('Auth Controllers', () => {
       expect(JSON.parse(response.payload).scopes).toEqual(['copalibre.control']);
     });
 
-    it('POST /auth/pat without scopes still defaults to the caller own scopes', async () => {
+    it('GET /auth/pat/scopes returns only grantable caller scopes', async () => {
+      const response = await request({
+        method: 'GET',
+        url: '/auth/pat/scopes',
+        token: 'superadmin-token',
+      });
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.payload)).toEqual({ scopes: ['copalibre.control'] });
+    });
+
+    it('POST /auth/pat requires explicitly selected scopes', async () => {
+      const before = await patCount('550e8400-e29b-41d4-a716-446655440000');
       const response = await request({
         method: 'POST',
         url: '/auth/pat',
         token: 'admin-token',
         payload: { label: 'Default Scopes Token', expiresInDays: 30 },
       });
-      expect(response.statusCode).toBe(201);
-      expect(JSON.parse(response.payload).scopes).toEqual(['copalibre.control']);
+      expect(response.statusCode).toBe(400);
+      expect(await patCount('550e8400-e29b-41d4-a716-446655440000')).toBe(before);
     });
 
     it('POST /auth/pat requesting a scope the caller does not hold returns 403 and persists nothing', async () => {
@@ -605,15 +702,15 @@ describe('Auth Controllers', () => {
       expect(await patCount('550e8400-e29b-41d4-a716-446655440001')).toBe(before);
     });
 
-    it('POST /auth/pat still accepts scopes null and an empty scopes array, as before this change', async () => {
+    it('POST /auth/pat rejects null or an empty scopes array', async () => {
+      const before = await patCount('550e8400-e29b-41d4-a716-446655440000');
       const nullResponse = await request({
         method: 'POST',
         url: '/auth/pat',
         token: 'admin-token',
         payload: { label: 'Null Scopes Token', scopes: null, expiresInDays: 30 },
       });
-      expect(nullResponse.statusCode).toBe(201);
-      expect(JSON.parse(nullResponse.payload).scopes).toEqual(['copalibre.control']);
+      expect(nullResponse.statusCode).toBe(400);
 
       const emptyResponse = await request({
         method: 'POST',
@@ -621,8 +718,8 @@ describe('Auth Controllers', () => {
         token: 'admin-token',
         payload: { label: 'Empty Scopes Token', scopes: [], expiresInDays: 30 },
       });
-      expect(emptyResponse.statusCode).toBe(201);
-      expect(JSON.parse(emptyResponse.payload).scopes).toEqual([]);
+      expect(emptyResponse.statusCode).toBe(400);
+      expect(await patCount('550e8400-e29b-41d4-a716-446655440000')).toBe(before);
     });
 
     it('POST /auth/pat rejects non-string scope entries with 400', async () => {

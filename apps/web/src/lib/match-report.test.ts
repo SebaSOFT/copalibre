@@ -98,6 +98,36 @@ describe('buildMatchReport', () => {
     expect(model.timeline).toEqual([]);
   });
 
+  it('replaces an opted-out person on the match, roster and event timeline', () => {
+    const response: PublicMatchReportResponse = {
+      ...report(),
+      homeName: undefined,
+      homeHiddenAtRequest: true,
+      rosters: {
+        home: [{ hiddenAtRequest: true, publicProfileAvailable: false, onField: true }],
+        away: [],
+      },
+      timeline: [
+        {
+          eventId: 'event-hidden',
+          definitionCode: 'goal',
+          label: 'Goal',
+          occurredAt: '2026-08-19T12:00:00.000Z',
+          sequence: 1,
+          hiddenAtRequest: true,
+          payload: {},
+        },
+      ],
+    };
+    const label = 'Participante oculto por solicitud propia';
+    const model = buildMatchReport(response, { hiddenPersonLabel: label });
+
+    expect(model.home.name).toBe(label);
+    expect(model.home.roster[0]?.name).toBe(label);
+    expect(model.home.roster[0]?.personId).toBeUndefined();
+    expect(model.timeline[0]?.events[0]?.actor).toBe(label);
+  });
+
   it('preserves final status so the page can suppress scheduling placeholder banners', () => {
     const model = buildMatchReport({ ...report(), status: 'final', scheduledAt: undefined });
 

@@ -4,6 +4,7 @@ import {
   AuditReader,
   CompetitionRepository,
   EnrollmentRepository,
+  OutboxReader,
   TournamentProfileRepository,
   TournamentRepository,
   withTransaction,
@@ -1178,6 +1179,67 @@ describe('organization-scoped tournament routes', () => {
     expect(entry?.previousState).toMatchObject({ featured: false });
     expect(entry?.resultingState).toMatchObject({ featured: true });
     expect(entry?.actor).toBe('user:organizer');
+  });
+
+  it('audits tournament publication-privacy settings and writes a projection event', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    const created = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-privacy-settings',
+        name: 'Copa Privacy Settings',
+        descriptor,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      await tournaments.createRuleset(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        descriptor,
+        overrides: {},
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      return tournament;
+    });
+
+    const response = await request({
+      method: 'PUT',
+      url: `/organizations/liga-orbital/tournaments/${created.alias}/settings`,
+      token: 'organizer-org1',
+      payload: { includesMinors: true },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ includesMinors: true, showYouthProfiles: false });
+    const history = await new AuditReader(scratch.db).historyFor(
+      'tournament',
+      created.tournamentId,
+    );
+    const privacyChange = history.find(
+      (entry) => entry.action === 'tournament.publication-privacy-updated',
+    );
+    expect(privacyChange).toMatchObject({
+      actor: expect.stringMatching(/^user:/),
+      previousState: { includesMinors: false, showYouthProfiles: false },
+      resultingState: { includesMinors: true, showYouthProfiles: false },
+    });
+    const event = (await new OutboxReader(scratch.db).pending(10_000)).find(
+      (entry) =>
+        entry.entityId === created.tournamentId &&
+        entry.eventType === 'tournament.publication-privacy-updated',
+    );
+    expect(event?.payload).toMatchObject({
+      tournamentId: created.tournamentId,
+      includesMinors: true,
+      showYouthProfiles: false,
+    });
   });
 
   it('rejects capacity reduction below current accepted entrant count', async () => {

@@ -23,10 +23,17 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
         read({
           name: TITLE,
           featured: false,
+          includesMinors: false,
+          showYouthProfiles: false,
           ...(empty ? {} : { region: 'San Juan', capacity: 16 }),
         }),
       previewTournamentSettings: async () => ({ fields: [] }),
-      updateTournamentSettings: async () => ({ name: TITLE, featured: false }),
+      updateTournamentSettings: async () => ({
+        name: TITLE,
+        featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
+      }),
       uploadTournamentEmblem: undefined,
       deleteTournamentEmblem: undefined,
     });

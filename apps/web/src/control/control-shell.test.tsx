@@ -488,6 +488,7 @@ describe('the wizard beyond the first step', () => {
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
+    fireEvent.click(screen.getByLabelText('No, this tournament has no minor participants'));
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
 
     fireEvent.change(screen.getByLabelText('Discipline'), { target: { value: 'd-swimming' } });
@@ -503,6 +504,7 @@ describe('the wizard beyond the first step', () => {
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
+    fireEvent.click(screen.getByLabelText('No, this tournament has no minor participants'));
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
     fireEvent.click(screen.getByRole('button', { name: /Back/i }));
 
@@ -522,6 +524,7 @@ describe('the wizard beyond the first step', () => {
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
+    fireEvent.click(screen.getByLabelText('No, this tournament has no minor participants'));
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));

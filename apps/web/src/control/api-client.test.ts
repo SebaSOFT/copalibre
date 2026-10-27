@@ -227,7 +227,7 @@ describe('the control API client', () => {
       accessToken: () => 'token-1',
       fetch: async (url, init) => {
         calls.push({ url: String(url), init });
-        if (String(url).endsWith('/exports/standings')) return textResponse('stageId,standings\n');
+        if (String(url).includes('/exports/')) return textResponse('stageId,standings\n');
         if (String(url).endsWith('/export')) {
           return response({
             kind: 'copalibre-tournament-configuration',
@@ -269,6 +269,13 @@ describe('the control API client', () => {
       client.downloadCsvExport('liga-mendocina', 'copa-verano', 'standings'),
     ).resolves.toBe('stageId,standings\n');
     await expect(
+      client.downloadCsvExport('liga-mendocina', 'copa-verano', 'participants/individual', [
+        'displayName',
+        'naturalKeyKind',
+        'naturalKey',
+      ]),
+    ).resolves.toBe('stageId,standings\n');
+    await expect(
       client.downloadTournamentConfiguration('liga-mendocina', 'copa-verano'),
     ).resolves.toMatchObject({ kind: 'copalibre-tournament-configuration' });
 
@@ -277,6 +284,7 @@ describe('the control API client', () => {
       '/organizations/liga-mendocina/tournaments/copa-verano/imports/01800000-0000-7000-8000-000000000002',
       '/organizations/liga-mendocina/tournaments/copa-verano/imports/01800000-0000-7000-8000-000000000002/commit',
       '/organizations/liga-mendocina/tournaments/copa-verano/exports/standings',
+      '/organizations/liga-mendocina/tournaments/copa-verano/exports/participants/individual?excludePersonalData=displayName%2CnaturalKeyKind%2CnaturalKey',
       '/organizations/liga-mendocina/tournaments/copa-verano/export',
     ]);
     expect(JSON.parse(String(calls[0]?.init?.body))).toMatchObject({ target: 'team' });
@@ -304,7 +312,7 @@ describe('the control API client', () => {
     expect(usage).toEqual({ totalBytes: 104857600, objectCount: 12 });
   });
 
-  it('calls the competition-structure-editing and object-cleanup endpoints', async () => {
+  it('calls competition, privacy, resource-removal, and object-cleanup endpoints', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({
       accessToken: () => 'token-admin',
@@ -323,15 +331,21 @@ describe('the control API client', () => {
       !client.updateTournamentSettings ||
       !client.listStages ||
       !client.updateStage ||
+      !client.previewDeleteStage ||
       !client.deleteStage ||
       !client.renameZone ||
       !client.deleteZone ||
+      !client.restoreZone ||
       !client.renameGroup ||
       !client.deleteGroup ||
+      !client.restoreGroup ||
+      !client.setPersonPublicVisibility ||
+      !client.deleteVenue ||
+      !client.restoreVenue ||
       !client.listUnreferencedObjects ||
       !client.deleteObject
     ) {
-      throw new Error('competition structure editing client methods must be available');
+      throw new Error('the tested control client methods must be available');
     }
 
     await client.fetchTournamentSettings('liga-orbital', 'copa-verano');
@@ -339,11 +353,17 @@ describe('the control API client', () => {
     await client.updateTournamentSettings('liga-orbital', 'copa-verano', { region: 'Europe' });
     await client.listStages('liga-orbital', 'copa-verano');
     await client.updateStage('liga-orbital', 'copa-verano', 1, { name: 'Fase 1' });
-    await client.deleteStage('liga-orbital', 'copa-verano', 1);
+    await client.previewDeleteStage('liga-orbital', 'copa-verano', 1);
+    await client.deleteStage('liga-orbital', 'copa-verano', 1, 'Fase 1');
     await client.renameZone('liga-orbital', 'copa-verano', 1, 1, { name: 'Zona 1' });
     await client.deleteZone('liga-orbital', 'copa-verano', 1, 1);
+    await client.restoreZone('liga-orbital', 'copa-verano', 1, 1);
     await client.renameGroup('liga-orbital', 'copa-verano', 1, 1, 1, { name: 'Grupo A' });
     await client.deleteGroup('liga-orbital', 'copa-verano', 1, 1, 1);
+    await client.restoreGroup('liga-orbital', 'copa-verano', 1, 1, 1);
+    await client.setPersonPublicVisibility('liga-orbital', 'person-1', true);
+    await client.deleteVenue('liga-orbital', 'venue-1');
+    await client.restoreVenue('liga-orbital', 'venue-1');
     await client.listUnreferencedObjects('liga-orbital');
     await client.deleteObject('liga-orbital', 'object-1');
 
@@ -372,8 +392,14 @@ describe('the control API client', () => {
         body: { name: 'Fase 1' },
       },
       {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1?dryRun=true',
+        method: 'DELETE',
+        body: {},
+      },
+      {
         url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1',
         method: 'DELETE',
+        body: { confirmationName: 'Fase 1' },
       },
       {
         url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1/zones/1',
@@ -385,6 +411,10 @@ describe('the control API client', () => {
         method: 'DELETE',
       },
       {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1/zones/1/restore',
+        method: 'POST',
+      },
+      {
         url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1/zones/1/groups/1',
         method: 'PATCH',
         body: { name: 'Grupo A' },
@@ -394,12 +424,87 @@ describe('the control API client', () => {
         method: 'DELETE',
       },
       {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1/zones/1/groups/1/restore',
+        method: 'POST',
+      },
+      {
+        url: '/organizations/liga-orbital/persons/person-1/public-visibility',
+        method: 'PATCH',
+        body: { hiddenFromPublic: true },
+      },
+      {
+        url: '/organizations/liga-orbital/venues/venue-1',
+        method: 'DELETE',
+      },
+      {
+        url: '/organizations/liga-orbital/venues/venue-1/restore',
+        method: 'POST',
+      },
+      {
         url: '/organizations/liga-orbital/storage-usage/objects',
         method: 'GET',
       },
       {
         url: '/organizations/liga-orbital/storage-usage/objects/object-1',
         method: 'DELETE',
+      },
+    ]);
+  });
+
+  it('previews schedule removal without a body and sends exact-name confirmation on deletion', async () => {
+    const calls: Array<{ url: string; method: string; body?: unknown }> = [];
+    const client = createControlApiClient({
+      fetch: async (input, init) => {
+        calls.push({
+          url: String(input),
+          method: init?.method ?? 'GET',
+          ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}),
+        });
+        return response({});
+      },
+    });
+    if (!client.deleteSchedule) throw new Error('deleteSchedule must be available');
+
+    await client.deleteSchedule('liga-orbital', 'schedule-1', true);
+    await client.deleteSchedule('liga-orbital', 'schedule-1', false, 'Horario de verano');
+
+    expect(calls).toEqual([
+      {
+        url: '/organizations/liga-orbital/schedules/schedule-1?dryRun=true',
+        method: 'DELETE',
+      },
+      {
+        url: '/organizations/liga-orbital/schedules/schedule-1',
+        method: 'DELETE',
+        body: { confirmationName: 'Horario de verano' },
+      },
+    ]);
+  });
+
+  it('publishes a tournament through the lifecycle endpoint', async () => {
+    const calls: Array<{ url: string; method: string }> = [];
+    const client = createControlApiClient({
+      fetch: async (input, init) => {
+        calls.push({ url: String(input), method: init?.method ?? 'GET' });
+        return response({
+          tournamentId: 'tournament-1',
+          organizationId: 'organization-1',
+          alias: 'copa-verano',
+          name: 'Copa Verano',
+          status: 'published',
+        });
+      },
+    });
+    if (!client.publishTournament) throw new Error('publishTournament must be available');
+
+    await expect(client.publishTournament('liga-orbital', 'copa-verano')).resolves.toMatchObject({
+      status: 'published',
+    });
+
+    expect(calls).toEqual([
+      {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/publish',
+        method: 'POST',
       },
     ]);
   });

@@ -50,6 +50,12 @@ export class TableRowResponse {
   })
   nationality?: string;
 
+  @ApiPropertyOptional({ description: 'The person requested to be hidden from public pages' })
+  hiddenAtRequest?: boolean;
+
+  @ApiPropertyOptional({ description: 'A public player profile may be linked from this row' })
+  publicProfileAvailable?: boolean;
+
   @ApiProperty({ description: '1-based; rows sharing a rank were not separated by `defaultSort`' })
   rank!: number;
 

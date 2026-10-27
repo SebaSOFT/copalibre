@@ -42,6 +42,11 @@ export class VenueResponse {
   details?: Record<string, string>;
 }
 
+export class VenueRemovalResponse {
+  @ApiProperty()
+  success!: boolean;
+}
+
 export class CreateVenueRequest {
   @ApiProperty({
     description: 'Lowercase kebab-case alias, unique within the organization.',
@@ -185,6 +190,27 @@ export class ScheduleDetailResponse {
 
   @ApiProperty({ type: [ScheduleSlotResponse], description: 'Generated grid slots' })
   slots!: ScheduleSlotResponse[];
+}
+
+export class ScheduleDeletionResponse {
+  @ApiProperty({ description: 'True when this response only previews the deletion.' })
+  dryRun!: boolean;
+
+  @ApiProperty({ description: 'True after the schedule and its slots were removed.' })
+  success!: boolean;
+
+  @ApiProperty({ description: 'Schedule slots that will be or were removed.', example: 4333 })
+  slots!: number;
+
+  @ApiProperty({ description: 'Matches that will be or were unassigned.', example: 36 })
+  matchesUnassigned!: number;
+}
+
+export class DeleteScheduleRequest {
+  @ApiPropertyOptional({ example: 'Horario Fin de Semana' })
+  @IsOptional()
+  @IsString()
+  confirmationName?: string;
 }
 
 export class CreateScheduleRequest {

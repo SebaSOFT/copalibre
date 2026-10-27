@@ -26,16 +26,23 @@ const TONE: Readonly<
 };
 
 /** The exports the dashboard already produces; named so a caller cannot invent one. */
-export type TournamentExportKind = 'participants/team' | 'results' | 'standings';
+export type TournamentExportKind =
+  'participants/individual' | 'participants/team' | 'results' | 'standings';
 
 export interface TournamentSummaryCardProps {
   readonly card: CardModel;
   readonly organizationAlias: string;
-  readonly onExport: (alias: string, kind: TournamentExportKind) => void;
+  readonly onExport: (
+    alias: string,
+    kind: TournamentExportKind,
+    trigger?: HTMLElement | null,
+  ) => void;
   readonly onExportConfiguration: (alias: string) => void;
   readonly onArchive: (alias: string) => void;
+  readonly onPublish: (alias: string, name: string) => void;
   /** Gates the Broadcaster Studio link — the same capability its backend endpoints already require. */
   readonly canManageDisplayTokens: boolean;
+  readonly canManageTournamentLifecycle: boolean;
 }
 
 /**
@@ -57,7 +64,9 @@ export function TournamentSummaryCard({
   onExport,
   onExportConfiguration,
   onArchive,
+  onPublish,
   canManageDisplayTokens,
+  canManageTournamentLifecycle,
 }: TournamentSummaryCardProps): React.JSX.Element {
   const intl = useIntl();
   const presentation = LIFECYCLE_PRESENTATION[card.lifecycle];
@@ -84,9 +93,18 @@ export function TournamentSummaryCard({
       ? intl.formatMessage(messages.dashboardResumeEditing)
       : intl.formatMessage(messages.dashboardOpen);
 
-  const exports = [
+  const exports: {
+    readonly id: string;
+    readonly label: (typeof messages)[keyof typeof messages];
+    readonly run: (trigger?: HTMLElement | null) => void;
+  }[] = [
     {
-      id: 'participants',
+      id: 'individual-participants',
+      label: messages.dashboardIndividualsCsv,
+      run: (trigger) => onExport(card.alias, 'participants/individual', trigger),
+    },
+    {
+      id: 'team-participants',
       label: messages.dashboardParticipantsCsv,
       run: () => onExport(card.alias, 'participants/team'),
     },
@@ -141,6 +159,15 @@ export function TournamentSummaryCard({
           >
             {intl.formatMessage(messages.dashboardStages)}
           </a>
+          {card.lifecycle === 'draft' && canManageTournamentLifecycle && (
+            <Button
+              onClick={() => onPublish(card.alias, card.name)}
+              type="button"
+              variant="secondary"
+            >
+              {intl.formatMessage(messages.dashboardPublishAction)}
+            </Button>
+          )}
           <LinkButton
             aria-label={intl.formatMessage(messages.tournamentPublicSite)}
             href={publicHref}
@@ -161,7 +188,7 @@ export function TournamentSummaryCard({
             items={exports.map((one) => ({
               id: one.id,
               label: intl.formatMessage(one.label),
-              onSelect: one.run,
+              onSelect: (trigger) => one.run(trigger),
             }))}
             trigger={
               <Button type="button" variant="secondary">

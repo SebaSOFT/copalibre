@@ -236,6 +236,10 @@ export const messages = defineMessages({
     id: 'publicWeb.presentation.entrantUnknown',
     defaultMessage: 'Unnamed entrant',
   },
+  personHiddenAtRequest: {
+    id: 'publicWeb.presentation.personHiddenAtRequest',
+    defaultMessage: 'Player hidden at their request',
+  },
   presentationActorSystem: {
     id: 'publicWeb.presentation.actorSystem',
     defaultMessage: 'System',
@@ -772,6 +776,18 @@ export const messages = defineMessages({
   playerProfileHistoryHeading: {
     id: 'publicWeb.playerProfile.historyHeading',
     defaultMessage: 'Competition History',
+  },
+  playerProfileHistoryTournamentColumnHeading: {
+    id: 'publicWeb.playerProfile.historyTournamentColumnHeading',
+    defaultMessage: 'Tournament',
+  },
+  playerProfileHistoryTeamColumnHeading: {
+    id: 'publicWeb.playerProfile.historyTeamColumnHeading',
+    defaultMessage: 'Team',
+  },
+  playerProfileHistoryRoleColumnHeading: {
+    id: 'publicWeb.playerProfile.historyRoleColumnHeading',
+    defaultMessage: 'Role',
   },
   playerProfileCareerStatsHeading: {
     id: 'publicWeb.playerProfile.careerStatsHeading',

@@ -100,7 +100,7 @@ try {
   ]);
 
   if (overview) {
-    const mappedOverview = mapOverviewResponse(overview);
+    const mappedOverview = mapOverviewResponse(overview, language);
     disciplineImages = overview.disciplineImages;
     tournamentName = mappedOverview.tournamentName || undefined;
     organizationName = mappedOverview.organizationName || undefined;
@@ -111,7 +111,7 @@ try {
     overviewMatches = mappedOverview.matches;
     organizationTimeZone = mappedOverview.organizationTimeZone;
 
-    winnerZones = winnerZonesOf(organizationAlias, mappedOverview.winners);
+    winnerZones = winnerZonesOf(organizationAlias, mappedOverview.winners, language);
     if (mappedOverview.clubs) {
       clubs = mappedOverview.clubs.map((c) => ({
         clubId: c.clubId,
@@ -233,7 +233,14 @@ if (layoutVariant !== 'kiosk') {
     );
     matchEventsById = Object.fromEntries(
       reports.flatMap(({ matchId, report }) =>
-        report ? [[matchId, buildTvMatchEvents(report)]] : [],
+        report
+          ? [
+              [
+                matchId,
+                buildTvMatchEvents(report, intl.formatMessage(messages.personHiddenAtRequest)),
+              ],
+            ]
+          : [],
       ),
     );
     rosterActorsByMatchId = Object.fromEntries(
@@ -275,7 +282,10 @@ let matchList: readonly TvMatchEntry[] = [];
 try {
   const view = await fetchMatchesView(organizationAlias, tournamentAlias, { state: 'all' });
   if (view) {
-    const rows = mapMatchesViewResponse(view).matches;
+    const rows = mapMatchesViewResponse(
+      view,
+      intl.formatMessage(messages.personHiddenAtRequest),
+    ).matches;
     venueNameByMatchId = Object.fromEntries(
       rows.flatMap((row) => (row.venueName === undefined ? [] : [[row.matchId, row.venueName]])),
     );

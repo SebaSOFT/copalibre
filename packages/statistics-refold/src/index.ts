@@ -26,6 +26,7 @@ export { readRolledUp, type ActorMembership } from './rollup.js';
 export { readRolledUpTotals, type RollupQuery } from './rollup-read.js';
 export { createRefold, foldLiveEvent, resolveMatchFold, type MatchFoldContext } from './refold.js';
 export {
+  previewStatisticsRebuild,
   runStatisticsRebuild,
   type StatisticsRebuildOptions,
   type StatisticsRebuildResult,

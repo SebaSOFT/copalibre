@@ -107,6 +107,42 @@ describe('tv-statistics', () => {
       expect(performers[0]?.statValue).toBe('10');
     });
 
+    it('replaces an opted-out performer and removes identifying affiliation', () => {
+      const projection: TableProjectionResponse = {
+        layoutCode: 'top-scorers',
+        target: 'tournament',
+        label: 'Goals',
+        projectionVersion: 1,
+        defaultSort: [],
+        columns: [{ code: 'goals', header: 'Goals', format: 'number' }],
+        rows: [
+          {
+            actorId: 'person-1',
+            actorName: '',
+            hiddenAtRequest: true,
+            publicProfileAvailable: false,
+            entrantName: 'North Club',
+            entrantAbbreviation: 'NOR',
+            clubId: 'club-1',
+            nationality: 'AR',
+            rank: 1,
+            sharedRank: false,
+            cells: { goals: { raw: 10, formatted: '10' } },
+          },
+        ],
+      };
+
+      const performer = deriveTopPerformers(labels, 'en', projection)[0];
+      expect(performer).toMatchObject({
+        name: 'Player hidden at their request',
+        statValue: '10',
+      });
+      expect(performer).not.toHaveProperty('clubName');
+      expect(performer).not.toHaveProperty('clubAbbreviation');
+      expect(performer).not.toHaveProperty('clubId');
+      expect(performer).not.toHaveProperty('nationalityCode');
+    });
+
     it('falls back to standings when table projection is not available', () => {
       const standings: StandingsRowView[] = [
         { position: 1, name: 'Boca Juniors', abbreviation: 'BOC', played: 5, points: 15 },

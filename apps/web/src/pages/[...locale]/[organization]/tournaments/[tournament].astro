@@ -130,6 +130,7 @@ const schedule = await loadSchedule({
   organization: organization!,
   tournament: tournament!,
   state: 'all',
+  hiddenPlayerLabel: intl.formatMessage(messages.personHiddenAtRequest),
 });
 const openStage = defaultOpenStage(
   schedule?.stageRows ?? [],
