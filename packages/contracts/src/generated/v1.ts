@@ -2797,7 +2797,7 @@ export interface paths {
         post?: never;
         /**
          * Remove a zone
-         * @description Refused once an entrant has been assigned into it, naming the assignment.
+         * @description Available only before fixtures exist. The zone is hidden immediately, and its entrant assignments remain available if it is restored within 24 hours.
          */
         delete: operations["ZonesGroupsController_deleteZone"];
         options?: never;
@@ -2890,7 +2890,7 @@ export interface paths {
         post?: never;
         /**
          * Remove a group
-         * @description Refused once an entrant has been assigned into it, naming the assignment.
+         * @description Available only before fixtures exist. The group is hidden immediately, and its entrant assignments remain available if it is restored within 24 hours.
          */
         delete: operations["ZonesGroupsController_deleteGroup"];
         options?: never;
