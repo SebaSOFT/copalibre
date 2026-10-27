@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { isSupportedLanguage, resolveLabel } from '@copalibre/domain';
@@ -48,6 +48,8 @@ import { messages } from '../../i18n/messages.en.js';
 import type { ConsoleStatus } from '../pages/MatchConsolePage.js';
 import { eventSyncKey } from '../../lib/match-console.js';
 import { useEntryOnce } from '../../../lib/use-entry-once.js';
+import { formatEntrant } from '../../lib/presentation-formatting.js';
+import { PageHeaderContext } from '../ui/organisms/page-header.js';
 
 /**
  * How many events stay visible with the ledger collapsed. Three is what makes
@@ -137,6 +139,7 @@ export function MatchConsoleTemplate({
   readonly tournamentNameLoading?: boolean;
 }): React.JSX.Element {
   const intl = useIntl();
+  const pageHeader = useContext(PageHeaderContext);
   // ControlIntl always resolves `locale` to a real SupportedLanguage, but
   // react-intl's own IntlShape types it as a bare `string` — narrow it here,
   // once, rather than at every resolveLabel call site.
@@ -382,7 +385,14 @@ export function MatchConsoleTemplate({
       refusedCount={pendingMutations.filter((mutation) => mutation.status === 'refused').length}
       {...(lastSyncedAt === undefined
         ? {}
-        : { lastSuccessfulSync: new Date(lastSyncedAt).toLocaleTimeString(intl.locale) })}
+        : {
+            lastSuccessfulSync: new Intl.DateTimeFormat(intl.locale, {
+              timeStyle: 'short',
+              ...(pageHeader?.organizationTimeZone === undefined
+                ? {}
+                : { timeZone: pageHeader.organizationTimeZone }),
+            }).format(new Date(lastSyncedAt)),
+          })}
       labels={{
         online: intl.formatMessage(messages.interactionOnline),
         offline: intl.formatMessage(messages.interactionOffline),
@@ -575,7 +585,11 @@ export function MatchConsoleTemplate({
                   },
                   ...projection.eligibleStaffIds.map((personId) => ({
                     value: personId,
-                    label: personId.slice(-8),
+                    label: formatEntrant(intl, {
+                      displayName: projection.eligibleStaff?.find(
+                        (staff) => staff.personId === personId,
+                      )?.displayName,
+                    }).fullName,
                   })),
                 ]}
                 value={selectedStaffId}
@@ -866,7 +880,11 @@ export function MatchConsoleTemplate({
                       ? null
                       : ` · ${formatClock(event.segmentElapsedSeconds)}`}
                   </strong>
-                  <ResponsiveTimestamp locale={intl.locale} timestamp={event.occurredAt} />
+                  <ResponsiveTimestamp
+                    locale={intl.locale}
+                    timeZone={pageHeader?.organizationTimeZone}
+                    timestamp={event.occurredAt}
+                  />
                   {syncState && (
                     <EventSyncMark
                       acknowledged={syncState.state === 'confirmed'}

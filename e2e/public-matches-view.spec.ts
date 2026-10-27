@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
+import { expectNoVisibleIdentifiers } from './support/visible-identifiers.js';
 
 /**
  * The public matches view: a flat, filterable card grid of a
@@ -17,6 +18,7 @@ const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIA
 const overview = {
   organizationAlias: ORGANIZATION,
   organizationName: 'Liga Mendocina',
+  organizationTimeZone: 'America/Argentina/Buenos_Aires',
   tournamentAlias: TOURNAMENT_ALIAS,
   tournamentName: 'Apertura 2026',
   seasonName: 'Apertura 2026',
@@ -126,11 +128,31 @@ test('lists the matches as table rows by default, with the score linking to its 
   ]);
   const finished = table.getByRole('row').filter({ hasText: 'Club Andes' });
   await expect(finished.getByRole('cell').nth(3)).toHaveText('Deportivo Sur');
-  await expect(finished.getByRole('link', { name: '2 – 1' })).toHaveAttribute(
+  await expect(finished.getByRole('link', { name: /Club Andes vs Deportivo Sur/ })).toHaveAttribute(
     'href',
     /\/stages\/1\/matches\/3$/,
   );
   await expect(page.locator('.cl-match-card')).toHaveCount(0);
+});
+
+test('formats schedule dates and times in English and German using the organization time zone @visible-identifier-lint', async ({
+  page,
+}) => {
+  const instant = new Date(liveMatch.scheduledAt);
+  const timeZone = 'America/Argentina/Buenos_Aires';
+
+  for (const locale of ['en', 'de'] as const) {
+    await page.goto(`${locale === 'en' ? '' : `/${locale}`}${matchesPath}`);
+    await expectNoVisibleIdentifiers(page, [ORGANIZATION, TOURNAMENT_ALIAS]);
+
+    const scheduledRow = page.getByRole('row').filter({ hasText: 'Talleres' });
+    const expected = new Intl.DateTimeFormat(locale, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone,
+    }).format(instant);
+    await expect(scheduledRow.getByRole('cell').first()).toHaveText(expected);
+  }
 });
 
 test('every filter row carries a visible title, and only the rows that apply appear', async ({

@@ -16,6 +16,12 @@ const materializedMatch: CanvasMatch = {
   ],
 };
 
+function matchNode(matchId: string): HTMLElement {
+  const node = document.querySelector<HTMLElement>(`[data-match="${matchId}"]`);
+  if (node === null) throw new Error(`Expected bracket node ${matchId}`);
+  return node;
+}
+
 describe('SeedingBuilderTemplate', () => {
   it('renders within ListScreenLayout structure and displays seeding order and bracket canvas', async () => {
     const { container } = render(
@@ -77,7 +83,8 @@ describe('SeedingBuilderTemplate', () => {
       ),
     );
 
-    const link = screen.getByText('WB-R1-M1').closest('a');
+    const link = matchNode('WB-R1-M1').querySelector('a');
+    expect(screen.getByText('Round 1, match 1')).toBeDefined();
     expect(link?.getAttribute('href')).toBe(
       '/control/liga-mendocina/tournaments/apertura-2026/matches/persisted-match-1',
     );
@@ -96,7 +103,7 @@ describe('SeedingBuilderTemplate', () => {
       ),
     );
 
-    expect(screen.getByText('WB-R1-M1').closest('a')).toBeNull();
+    expect(matchNode('WB-R1-M1').querySelector('a')).toBeNull();
   });
 
   it('renders graceful fallback for unresolved entrants missing from names dictionary', () => {
@@ -113,7 +120,7 @@ describe('SeedingBuilderTemplate', () => {
       ),
     );
 
-    expect(screen.getByText('Entrant 01890000')).toBeDefined();
+    expect(screen.getByText('Unnamed entrant')).toBeDefined();
     expect(screen.queryByText('01890000-0000-7000-8000-000000000001')).toBeNull();
   });
 });

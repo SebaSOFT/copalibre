@@ -27,10 +27,7 @@ const {
 } = Astro.props;
 const node = toNode(match, resultStateLabels(intl), sideSourceLabels(intl));
 const sides = node.slots.map((slot, index) => ({
-  short:
-    slot.fullName === undefined
-      ? (slot.abbreviation ?? slot.label)
-      : (slot.abbreviation ?? Array.from(slot.fullName).slice(0, 3).join('').toLocaleUpperCase()),
+  short: slot.fullName === undefined ? (slot.abbreviation ?? slot.label) : slot.abbreviation,
   name: slot.fullName ?? slot.label,
   pending: slot.pending,
   score: slot.score,

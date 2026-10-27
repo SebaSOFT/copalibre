@@ -94,11 +94,13 @@ const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.liveP
     client:idle
     initial={dashboard}
     streamPath={model.streamPath}
+    versusLabel={intl.formatMessage(messages.tickerVersus)}
     usingLastKnownText={intl.formatMessage(messages.liveUsingLastKnown)}
     noMatchesText={intl.formatMessage(messages.livePageNoMatches)}
     nextKickoffText={intl.formatMessage(messages.livePageNextKickoff)}
     nextKickoffAt={nextKickoffAt}
     locale={resolvedLocale}
+    timeZone={model.organizationTimeZone}
     referenceDate={referenceDate}
     resultStateLabels={labels}
   />
@@ -135,17 +137,25 @@ const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.liveP
                 )}
               </CardDescription>
             )}
-            <CardTitle>
-              {intl.formatMessage(messages.livePageMatchup, {
+            <CardTitle
+              aria-label={intl.formatMessage(messages.livePageMatchup, {
                 home: match.home.name,
                 away: match.away.name,
               })}
+              className="cl-live-matchup"
+            >
+              <span>{match.home.name}</span>
+              <span aria-hidden="true" class="cl-live-matchup__versus">
+                {intl.formatMessage(messages.tickerVersus)}
+              </span>
+              <span>{match.away.name}</span>
             </CardTitle>
             {match.startsAt && !Number.isNaN(Date.parse(match.startsAt)) && (
               <CardDescription>
                 <ResponsiveTimestamp
                   locale={resolvedLocale}
                   referenceDate={referenceDate}
+                  timeZone={model.organizationTimeZone}
                   timestamp={match.startsAt}
                 />
               </CardDescription>
@@ -173,3 +183,17 @@ const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.liveP
   import { mountPublicSchedule } from '../../../../../lib/public-schedule-live.ts';
   mountPublicSchedule();
 </script>
+
+<style is:global>
+  .cl-live-matchup {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--cl-space-2);
+  }
+
+  .cl-live-matchup__versus {
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-mono);
+  }
+</style>

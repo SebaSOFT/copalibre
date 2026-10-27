@@ -949,6 +949,7 @@ export function TvDashboard({
                     homeLabel={labels.homeSide}
                     initialEventIds={eventIdsForMatch(spotlightMatch.matchId)}
                     language={language}
+                    timeZone={timeZone}
                   />
                 )}
               </div>
@@ -1055,6 +1056,7 @@ export function TvDashboard({
                       homeLabel={labels.homeSide}
                       initialEventIds={eventIdsForMatch(match.matchId)}
                       language={language}
+                      timeZone={timeZone}
                     />
                   )}
                 </article>
@@ -1222,6 +1224,7 @@ export function TvDashboard({
                       homeLabel={labels.homeSide}
                       initialEventIds={initialMatchEventIds}
                       language={language}
+                      timeZone={timeZone}
                     />
                   ) : null}
                 </div>
@@ -1314,6 +1317,7 @@ export function TvDashboard({
                     labels={dashboardLabels}
                     page={rail.page}
                     pages={matchPages}
+                    timeZone={timeZone}
                   />
                 )}
               </div>

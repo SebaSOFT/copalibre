@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { messages } from '../../i18n/messages.en.js';
 import {
@@ -15,6 +15,8 @@ import {
 import type { AlertTone } from '../ui/atoms/alert.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
+import { formatEntrant } from '../../lib/presentation-formatting.js';
+import { PageHeaderContext } from '../ui/organisms/page-header.js';
 
 export function RegistrationReviewPage({
   organizationAlias,
@@ -28,6 +30,7 @@ export function RegistrationReviewPage({
   readonly now?: string;
 }): React.JSX.Element {
   const intl = useIntl();
+  const pageHeader = useContext(PageHeaderContext);
   const api = useMemo(
     () =>
       client ??
@@ -59,6 +62,7 @@ export function RegistrationReviewPage({
           row,
           intl.formatMessage(messages.registrationContactUnavailable),
           intl.formatMessage(messages.registrationExperienceUnrecorded),
+          intl.formatMessage(messages.matchConsoleUnnamedEntrant),
         ),
       );
       return { rows, abbreviationCandidates };
@@ -85,13 +89,18 @@ export function RegistrationReviewPage({
       <RegistrationReviewTemplate
         abbreviationCandidates={abbreviationCandidates.map((row) => ({
           entrantId: row.entrantId,
-          displayName: row.displayName ?? row.teamId ?? row.personId ?? row.entrantId,
+          displayName: formatEntrant(intl, { displayName: row.displayName }).fullName,
         }))}
         csv={csv}
         csvStatus={csvStatus}
         loadStatus="ready"
         organizationAlias={organizationAlias}
-        tournamentName={tournamentAlias}
+        tournamentAlias={tournamentAlias}
+        tournamentName={
+          pageHeader?.tournamentName ??
+          pageHeader?.tournamentNameFallback ??
+          intl.formatMessage(messages.pageHeaderTournamentFallback)
+        }
         rows={rows}
         now={now}
         onCsvFileSelected={(file) => {
@@ -202,6 +211,7 @@ export function RegistrationReviewPage({
                   created,
                   intl.formatMessage(messages.registrationContactUnavailable),
                   intl.formatMessage(messages.registrationExperienceUnrecorded),
+                  intl.formatMessage(messages.matchConsoleUnnamedEntrant),
                 ),
               ]);
             }))
@@ -216,6 +226,7 @@ export function RegistrationReviewPage({
                   created,
                   intl.formatMessage(messages.registrationContactUnavailable),
                   intl.formatMessage(messages.registrationExperienceUnrecorded),
+                  intl.formatMessage(messages.matchConsoleUnnamedEntrant),
                 ),
               ]);
             }))
@@ -297,10 +308,9 @@ function toReviewRow(
   row: RegistrationResponse,
   contactUnavailableLabel: string,
   experienceUnrecordedLabel: string,
+  unnamedEntrantLabel: string,
 ): ReviewRegistrationRow {
-  // The API now supplies a person entrant's real displayName; a team
-  // entrant still has none to show, so this placeholder stays the fallback.
-  const displayName = row.displayName ?? row.teamId ?? row.personId ?? row.entrantId;
+  const displayName = row.displayName?.trim() || unnamedEntrantLabel;
   return {
     entrantId: row.entrantId,
     displayName,
@@ -312,7 +322,7 @@ function toReviewRow(
     ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
     ...(row.photoObjectId === undefined ? {} : { photoObjectId: row.photoObjectId }),
     ...(row.hasIdentityLink === undefined ? {} : { hasIdentityLink: row.hasIdentityLink }),
-    teamMembers: row.teamMembers?.map((m) => m.displayName || m.personId) ?? [],
+    teamMembers: row.teamMembers?.map((m) => m.displayName || unnamedEntrantLabel) ?? [],
     teamMembersDetailed: row.teamMembers,
     experience: experienceUnrecordedLabel,
     requiresCheckIn: false,

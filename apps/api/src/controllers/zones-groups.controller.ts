@@ -356,15 +356,25 @@ export class ZonesGroupsController {
     const zone = await this.zone(stage.stageId, zoneNumber);
     const competition = new CompetitionRepository(this.db);
     const groups = await competition.listGroupsOfZone(zone.zoneId);
-    return Promise.all(
-      groups.map(async (group) => {
-        const entrantIds = await competition.listEntrantIdsOfGroup(group.groupId);
-        return {
-          ...group,
-          entrantIds,
-        };
-      }),
-    );
+    const entrantIdsByGroup = await competition.listGroupEntrantIdsOfZone(zone.zoneId);
+    const entrantIds = groups.flatMap((group) => entrantIdsByGroup.get(group.groupId) ?? []);
+    const labels = await new EnrollmentRepository(this.db).resolveEntrantNames(entrantIds);
+
+    return groups.map((group) => {
+      const groupEntrantIds = entrantIdsByGroup.get(group.groupId) ?? [];
+      return {
+        ...group,
+        entrantIds: groupEntrantIds,
+        entrants: groupEntrantIds.map((entrantId) => {
+          const label = labels.get(entrantId);
+          return {
+            entrantId,
+            ...(label === undefined ? {} : { displayName: label.name }),
+            ...(label?.abbreviation === undefined ? {} : { abbreviation: label.abbreviation }),
+          };
+        }),
+      };
+    });
   }
 
   @Post('zones/:zoneNumber/groups')

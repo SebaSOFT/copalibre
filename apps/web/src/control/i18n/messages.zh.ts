@@ -4,8 +4,12 @@
  * ship now, native-speaker review later.
  */
 export const messages: Record<string, string> = {
+  'control.dateInput.formatHint': '本地日期格式，例如：{example}。',
+  'control.dateTimeInput.formatHint': '本地日期和时间格式，例如：{example}。',
   'control.pageHeader.loading': '正在加载页面标题',
   'control.pageHeader.breadcrumb': '面包屑导航',
+  'control.pageHeader.organizationFallback': '组织',
+  'control.pageHeader.tournamentFallback': '赛事',
   'control.interaction.createToken': '创建令牌',
   'control.interaction.pairTv': '连接电视',
   'control.interaction.pairDescription': '连接电视以显示实时比分。',
@@ -148,6 +152,7 @@ export const messages: Record<string, string> = {
   'control.heartbeat.revoked': '已吊销',
   'control.deviceHeartbeat.sectionLabel': '电视屏幕状态',
   'control.deviceHeartbeat.title': '电视屏幕',
+  'control.deviceHeartbeat.unnamedToken': '未命名显示设备',
   'control.deviceHeartbeat.empty': '尚未配置任何电视设备。',
   'control.deviceHeartbeat.lastSeen': '最后信号',
 
@@ -343,7 +348,6 @@ export const messages: Record<string, string> = {
   'control.review.columnStatus': '状态',
   'control.review.columnSubmitted': '提交时间',
   'control.review.selectRow': '选择 {displayName}',
-  'control.review.idLabel': 'ID：{entrantId}',
   'control.review.contact': '联系方式',
   'control.review.teamMembers': '队伍成员',
   'control.review.teamMembersUnavailable': '此响应中不可用',
@@ -535,6 +539,7 @@ export const messages: Record<string, string> = {
   'control.stageEditor.preview.matchday': '第 {number} 轮',
   'control.stageEditor.preview.group': '{letter} 组',
   'control.stageEditor.format.league': '联赛',
+  'control.match.format.bestOf': '最多 {games} 场',
   'control.stageEditor.format.roundRobin': '循环赛',
   'control.stageEditor.format.singleElimination': '单败淘汰',
   'control.stageEditor.format.doubleElimination': '双败淘汰',
@@ -1551,4 +1556,9 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.conflictFinalized': '{match} 已结束：其时间已成记录，不能再更改',
   'control.scheduleBuilder.conflictInProgress': '{match} 正在进行：现在不能移动或撤下',
   'control.scheduleBuilder.publishRefused': '时间表未发布：现在存在冲突，详见下方。',
+  'control.copyId.button': '复制 ID',
+  'control.copyId.success': '已复制 ID',
+  'control.copyId.failure': '无法复制 ID',
+  'control.auditTrail.copyEntityId': '复制记录 ID',
+  'control.auditTrail.copyActorId': '复制操作人 ID',
 };

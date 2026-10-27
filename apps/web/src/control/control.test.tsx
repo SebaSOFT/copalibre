@@ -49,7 +49,7 @@ function entry(overrides: Partial<ActivityEntry> = {}): ActivityEntry {
   return {
     auditId: 'a-1',
     organizationId: 'org-1',
-    action: 'registration.approved',
+    action: 'entrant.accepted',
     actor: 'user:organizer-1',
     occurredAt: '2026-08-01T20:00:00.000Z',
     ...overrides,
@@ -364,8 +364,8 @@ describe('what the dashboard renders', () => {
     expect(screen.getByRole('columnheader', { name: 'Who' })).toBeDefined();
     expect(screen.getByRole('columnheader', { name: 'When' })).toBeDefined();
     expect(table.querySelectorAll('tbody tr')).toHaveLength(2);
-    expect(screen.getByText('registration.approved')).toBeDefined();
-    expect(screen.getByText('user:organizer-1')).toBeDefined();
+    expect(screen.getByText('Registration approved')).toBeDefined();
+    expect(screen.getByText('User')).toBeDefined();
     // A reason is a per-row detail, shown only for the rows that carry one.
     expect(screen.getByText('Documentación completa')).toBeDefined();
   });
@@ -561,9 +561,9 @@ describe('what the dashboard renders', () => {
 
     expect(screen.getByRole('link', { name: 'Torneos' })).toBeDefined();
     expect(screen.getByText('Torneo Apertura')).toBeDefined();
-    expect(screen.getByText(/registration.approved/)).toBeDefined();
+    expect(screen.getByText(/Inscripción aprobada/)).toBeDefined();
     // The two questions an audit trail is asked.
-    expect(screen.getByText(/user:organizer-1/)).toBeDefined();
+    expect(screen.getByText(/Usuario/)).toBeDefined();
     expect(screen.getByText(/Documentación completa/)).toBeDefined();
   });
 
@@ -704,7 +704,7 @@ describe('what the dashboard renders', () => {
         <DeviceHeartbeat
           devices={[
             {
-              tournamentAlias: 'apertura-2026',
+              tournamentName: 'Apertura 2026',
               token: {
                 displayTokenId: 'token-online',
                 tournamentId: 't-1',
@@ -715,7 +715,7 @@ describe('what the dashboard renders', () => {
               },
             },
             {
-              tournamentAlias: 'apertura-2026',
+              tournamentName: 'Apertura 2026',
               token: {
                 displayTokenId: 'token-never-seen',
                 tournamentId: 't-1',
@@ -730,7 +730,9 @@ describe('what the dashboard renders', () => {
     );
 
     expect(screen.getByText('Cancha 1')).toBeDefined();
-    expect(screen.getByText('token-never-seen')).toBeDefined();
+    expect(screen.getAllByText('(Apertura 2026)')).toHaveLength(2);
+    expect(screen.getByText('Unlabelled display')).toBeDefined();
+    expect(screen.queryByText('token-never-seen')).toBeNull();
     expect(screen.getByText(/last signal/i)).toBeDefined();
   });
 

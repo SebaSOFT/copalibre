@@ -12,6 +12,7 @@ import { controlLinkClick } from '../../lib/control-navigation.js';
 import { sideSourceLabelsFromControlIntl } from '../../lib/matches-view-labels.js';
 import { formatQualifier } from '../../../lib/side-source.js';
 import { messages } from '../../i18n/messages.en.js';
+import { formatEntrant } from '../../lib/presentation-formatting.js';
 
 export type QualificationScreenState =
   | { readonly kind: 'loading' }
@@ -47,7 +48,9 @@ export function QualificationTemplate({
   const preview = state.kind === 'loaded' ? state.preview : undefined;
   const names = preview?.names ?? {};
   const nameOf = (entrantId: string | undefined): string =>
-    entrantId === undefined ? sourceLabels.unknown : (names[entrantId] ?? entrantId.slice(0, 8));
+    entrantId === undefined
+      ? sourceLabels.unknown
+      : formatEntrant(intl, { displayName: names[entrantId] }).fullName;
   const positionText = (
     entry: Pick<QualificationPositionResponse, 'position' | 'qualifierLabel'>,
   ) => formatQualifier({ kind: 'qualifier', ...entry }, sourceLabels).long;

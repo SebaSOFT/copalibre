@@ -15,10 +15,26 @@ const preview: PromotionPreviewResponse = {
   trace: [],
 };
 
+const namedEntrants = [
+  {
+    entrantId: 'entrant1',
+    tournamentId: 't-1',
+    status: 'accepted' as const,
+    displayName: 'Club Atlético',
+  },
+  {
+    entrantId: 'entrant2',
+    tournamentId: 't-1',
+    status: 'accepted' as const,
+    displayName: 'Deportivo Cuyo',
+  },
+];
+
 describe('PromotionPlanPage', () => {
   it('renders the computed candidate order once the preview resolves', async () => {
     const client = stubClient({
       listZones: () => Promise.resolve([zone]),
+      listRegistrations: () => Promise.resolve(namedEntrants),
       fetchPromotionPreview: () => Promise.resolve(preview),
     });
     render(
@@ -33,8 +49,11 @@ describe('PromotionPlanPage', () => {
       ),
     );
 
-    await screen.findByText((_, element) => element?.textContent === '1. entrant1');
-    expect(screen.getByText((_, element) => element?.textContent === '2. entrant2')).toBeTruthy();
+    await screen.findByText((_, element) => element?.textContent === '1. Club Atlético');
+    expect(
+      screen.getByText((_, element) => element?.textContent === '2. Deportivo Cuyo'),
+    ).toBeTruthy();
+    expect(screen.queryByText(/entrant[12]/)).toBeNull();
   });
 
   it('reports a load it could not complete instead of an empty list', async () => {
@@ -200,6 +219,7 @@ describe('PromotionPlanPage', () => {
       .mockResolvedValueOnce(preview);
     const client = stubClient({
       listZones: () => Promise.resolve([zone]),
+      listRegistrations: () => Promise.resolve(namedEntrants),
       fetchPromotionPreview,
       savePromotionPlan,
     });
@@ -230,7 +250,7 @@ describe('PromotionPlanPage', () => {
       combination: { mode: 'group-order' },
     });
     await screen.findByText('Plan saved.');
-    await screen.findByText((_, element) => element?.textContent === '1. entrant1');
+    await screen.findByText((_, element) => element?.textContent === '1. Club Atlético');
   });
 
   it('adds and removes promotion bands', async () => {

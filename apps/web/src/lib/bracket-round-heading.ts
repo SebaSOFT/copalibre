@@ -3,8 +3,18 @@ import { bracketBranchLabel } from './i18n/public-intl.js';
 import { messages } from './i18n/public-messages.en.js';
 import type { BracketRound } from './bracket.js';
 
-/** Names a round by its place in its own branch, keeping every cup scoped. */
+/** Names a round with its branch context for its accessible region. */
 export function bracketRoundHeading(
+  intl: IntlShape,
+  round: BracketRound,
+  rounds: readonly BracketRound[],
+): string {
+  const heading = bracketRoundTitle(intl, round, rounds);
+  return `${bracketBranchLabel(intl, round.branch)} · ${heading}`;
+}
+
+/** Names a round without repeating its branch subtitle beside every round. */
+export function bracketRoundTitle(
   intl: IntlShape,
   round: BracketRound,
   rounds: readonly BracketRound[],
@@ -23,5 +33,5 @@ export function bracketRoundHeading(
           ? intl.formatMessage(messages.bracketRoundQuarterfinals)
           : intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber });
 
-  return `${bracketBranchLabel(intl, round.branch)} · ${heading}`;
+  return heading;
 }

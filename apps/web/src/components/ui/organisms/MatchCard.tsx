@@ -26,6 +26,8 @@ export interface MatchCardProps {
   readonly labels: MatchCardLabels;
   /** Required: threaded straight into `ResponsiveTimestamp`, which no longer guesses one. */
   readonly locale: string;
+  /** Public schedules use the organization's zone; other callers may keep viewer-local time. */
+  readonly timeZone?: string;
   /** Wraps the card in a link when present — the public site's report page. */
   readonly reportUrl?: string;
   /** Builds same-origin emblem routes for persisted team entrants. */
@@ -51,6 +53,7 @@ export function MatchCard({
   match,
   labels,
   locale,
+  timeZone,
   reportUrl,
   organizationAlias,
   band,
@@ -112,9 +115,10 @@ export function MatchCard({
     const hasScores = match.homeScore !== undefined && match.awayScore !== undefined;
     const timeStr =
       !hasScores && match.scheduledAt !== undefined
-        ? new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(
-            new Date(match.scheduledAt),
-          )
+        ? new Intl.DateTimeFormat(locale, {
+            timeStyle: 'short',
+            ...(timeZone === undefined ? {} : { timeZone }),
+          }).format(new Date(match.scheduledAt))
         : '';
     const compactBody = (
       <Card
@@ -267,7 +271,11 @@ export function MatchCard({
               }
             >
               <Icon name="clock" size={16} />
-              <ResponsiveTimestamp timestamp={match.scheduledAt} locale={locale} />
+              <ResponsiveTimestamp
+                timestamp={match.scheduledAt}
+                locale={locale}
+                timeZone={timeZone}
+              />
             </span>
           )}
           {match.venueName !== undefined && match.scheduledAt !== undefined && ' · '}

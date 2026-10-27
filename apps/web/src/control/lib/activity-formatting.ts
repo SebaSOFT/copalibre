@@ -482,6 +482,8 @@ const ACTION_DESCRIPTIONS: Readonly<Record<string, LocalizedLabel>> = {
   },
 };
 
+export const ACTIVITY_ACTION_CODES = Object.freeze(Object.keys(ACTION_DESCRIPTIONS));
+
 const REASON_DESCRIPTIONS: Readonly<Record<string, LocalizedLabel>> = {
   'match finalized from recorded facts': {
     en: 'Match finalized from recorded facts',
@@ -575,6 +577,50 @@ const REASON_DESCRIPTIONS: Readonly<Record<string, LocalizedLabel>> = {
   },
 };
 
+const UNKNOWN_ACTION: LocalizedLabel = {
+  en: 'Other activity',
+  es: 'Otra actividad',
+  fr: 'Autre activité',
+  pt: 'Outra atividade',
+  it: 'Altra attività',
+  de: 'Weitere Aktivität',
+  ru: 'Другое действие',
+  zh: '其他操作',
+};
+
+const SYSTEM_ACTOR: LocalizedLabel = {
+  en: 'System',
+  es: 'Sistema',
+  fr: 'Système',
+  pt: 'Sistema',
+  it: 'Sistema',
+  de: 'System',
+  ru: 'Система',
+  zh: '系统',
+};
+
+const DEMO_DATASET_ACTOR: LocalizedLabel = {
+  en: 'Demo dataset loader',
+  es: 'Carga del conjunto de demostración',
+  fr: 'Chargement du jeu de démonstration',
+  pt: 'Carga do conjunto de demonstração',
+  it: 'Caricamento dei dati dimostrativi',
+  de: 'Laden des Demodatensatzes',
+  ru: 'Загрузка демонстрационного набора',
+  zh: '演示数据集加载器',
+};
+
+const USER_ACTOR: LocalizedLabel = {
+  en: 'User',
+  es: 'Usuario',
+  fr: 'Utilisateur',
+  pt: 'Usuário',
+  it: 'Utente',
+  de: 'Person',
+  ru: 'Пользователь',
+  zh: '用户',
+};
+
 /**
  * Returns a human-readable, localized description of an audit refusal reason.
  */
@@ -601,13 +647,21 @@ export function formatActivityReason(reason: string | undefined, locale = 'es'):
  */
 export function formatActivityAction(action: string, locale = 'es'): string {
   const language = isSupportedLanguage(locale) ? locale : 'en';
-  const match = ACTION_DESCRIPTIONS[action];
+  const normalized = action.toLowerCase().replaceAll('_', '-');
+  const match = ACTION_DESCRIPTIONS[action] ?? ACTION_DESCRIPTIONS[normalized];
   if (match) {
     return resolveLabel(match, language);
   }
+  return resolveLabel(UNKNOWN_ACTION, language);
+}
 
-  // Fallback: humanize unknown actions like "report.evidence-uploaded"
-  const suffix = action.includes('.') ? action.split('.').slice(1).join(' ') : action;
-  const humanized = suffix.replace(/[-_]/g, ' ').trim();
-  return humanized.charAt(0).toUpperCase() + humanized.slice(1);
+/** Resolve technical actor identifiers to a role label; only known people retain their email. */
+export function formatActivityActor(actor: string, locale = 'es'): string {
+  const language = isSupportedLanguage(locale) ? locale : 'en';
+  if (actor === 'system:demo-dataset') return resolveLabel(DEMO_DATASET_ACTOR, language);
+  if (actor.startsWith('system:')) return resolveLabel(SYSTEM_ACTOR, language);
+  if (actor.startsWith('user:') || /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(actor)) {
+    return resolveLabel(USER_ACTOR, language);
+  }
+  return actor.includes('@') ? actor : resolveLabel(SYSTEM_ACTOR, language);
 }

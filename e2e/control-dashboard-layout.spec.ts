@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectNoVisibleIdentifiers } from './support/visible-identifiers.js';
 
 /**
  * Organization dashboard layout: summary-tile grid, page gutters, and mobile
@@ -107,6 +108,10 @@ async function openDashboard(page: Page): Promise<void> {
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
   await expect(page.getByTestId('activeTournaments')).toBeVisible();
+  await expectNoVisibleIdentifiers(page, [
+    ORG_ALIAS,
+    ...Array.from({ length: TOURNAMENT_COUNT }, (_, index) => `torneo-${index + 1}`),
+  ]);
   // `TYPOGRAPHY` loads Barlow/Barlow Condensed from Google Fonts with
   // `display=swap` (packages/design-tokens/src/primitives.ts): text renders
   // in the fallback stack first, then reflows once the real font swaps in.
@@ -116,7 +121,7 @@ async function openDashboard(page: Page): Promise<void> {
   await page.evaluate(() => document.fonts.ready);
 }
 
-test('4.1: summary tiles sit in a row on desktop, stack on mobile, and keep a page gutter', async ({
+test('4.1: summary tiles sit in a row on desktop, stack on mobile, and keep a page gutter @visible-identifier-lint', async ({
   page,
 }) => {
   await page.setViewportSize(DESKTOP);

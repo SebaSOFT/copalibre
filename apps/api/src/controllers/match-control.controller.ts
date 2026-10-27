@@ -2228,6 +2228,7 @@ export class MatchControlController {
       (entrantId): entrantId is string => entrantId !== null && entrantId !== undefined,
     );
     const eligibleStaffIds = await this.eligibleStaffIds(entrantIds);
+    const eligibleStaff = await new PersonRepository(this.db).findPersons([...eligibleStaffIds]);
     const { teamNameByEntrant, teamAbbreviationByEntrant, clubIdByEntrant } =
       await this.identityByEntrant(entrantIds);
 
@@ -2302,6 +2303,10 @@ export class MatchControlController {
         ...(role.badge === undefined ? {} : { badge: role.badge }),
       })),
       eligibleStaffIds: [...eligibleStaffIds],
+      eligibleStaff: eligibleStaff.map((person) => ({
+        personId: person.personId,
+        displayName: person.displayName,
+      })),
       entrants: entrantIds.map((entrantId) => ({
         entrantId,
         ...(teamNameByEntrant.get(entrantId) === undefined

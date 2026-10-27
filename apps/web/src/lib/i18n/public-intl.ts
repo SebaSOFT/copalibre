@@ -1,4 +1,4 @@
-import type { SideSourceMessages } from '../side-source.js';
+import { formatMatchRef as formatSourceMatchRef, type SideSourceMessages } from '../side-source.js';
 import { createIntl, createIntlCache, type IntlShape } from 'react-intl';
 import type { SupportedLanguage } from '@copalibre/domain';
 import { messages as esMessages } from './public-messages.es.js';
@@ -46,6 +46,64 @@ const cache = createIntlCache();
 
 export function publicIntl(locale: SupportedLanguage): IntlShape {
   return createIntl({ locale, defaultLocale: 'en', messages: CATALOGS[locale] }, cache);
+}
+
+export interface PublicEntrantPresentation {
+  readonly fullName: string;
+  readonly abbreviation?: string;
+}
+
+/** Resolve a public entrant to its persisted display name and optional short label. */
+export function formatEntrant(
+  intl: IntlShape,
+  entrant: {
+    readonly name?: string;
+    readonly displayName?: string;
+    readonly abbreviation?: string;
+  },
+): PublicEntrantPresentation {
+  const name = entrant.displayName?.trim() || entrant.name?.trim();
+  const abbreviation = entrant.abbreviation?.trim();
+  return {
+    fullName: name || intl.formatMessage(messages.presentationEntrantUnknown),
+    ...(abbreviation ? { abbreviation } : {}),
+  };
+}
+
+/** Resolve a technical audit actor to a translated role label. */
+export function formatActor(intl: IntlShape, actor: string): string {
+  if (actor === 'system:demo-dataset') {
+    return intl.formatMessage(messages.presentationActorDemoDataset);
+  }
+  if (actor.startsWith('system:')) return intl.formatMessage(messages.presentationActorSystem);
+  if (actor.startsWith('user:') || /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(actor)) {
+    return intl.formatMessage(messages.presentationActorUser);
+  }
+  return actor.includes('@') ? actor : intl.formatMessage(messages.presentationActorSystem);
+}
+
+/** Human-readable name for a generated public bracket reference. */
+export function formatMatchRef(intl: IntlShape, key: string, finalRound?: number): string {
+  return formatSourceMatchRef(key, sideSourceLabels(intl), { finalRound });
+}
+
+/** Locale and organization-zone aware date/time for public and broadcast labels. */
+export function formatDateTime(
+  intl: IntlShape,
+  value: string | number | Date,
+  timeZone?: string,
+): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return intl.formatMessage(messages.rulesetValueUnknown);
+  try {
+    return new Intl.DateTimeFormat(intl.locale, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      ...(timeZone === undefined ? {} : { timeZone }),
+    }).format(date);
+  } catch {
+    return intl.formatMessage(messages.rulesetValueUnknown);
+  }
 }
 
 const RESULT_STATE_MESSAGE_KEY = {
@@ -438,12 +496,7 @@ export interface RulesetBriefingRow {
   readonly value: string;
 }
 
-/**
- * A finite, well-known enum of stage formats — every one of the bracket/
- * round-robin family the tournament engine declares. A format a future
- * discipline module adds and this map has not caught up with falls back to
- * the generic word-split below, same as any other unrecognized enum value.
- */
+/** Known public format labels. Unknown values use the translated generic label. */
 const RULESET_FORMAT_MESSAGE: Record<string, (typeof messages)['rulesetFormatSingleElimination']> =
   {
     'single-elimination': messages.rulesetFormatSingleElimination,
@@ -460,16 +513,41 @@ const RULESET_FORMAT_MESSAGE: Record<string, (typeof messages)['rulesetFormatSin
     'ffa-league': messages.rulesetFormatFfaLeague,
   };
 
+const RULESET_TIEBREAKER_MESSAGE: Record<string, (typeof messages)['rulesetTiebreakerPoints']> = {
+  points: messages.rulesetTiebreakerPoints,
+  'score-difference': messages.rulesetTiebreakerScoreDifference,
+  'goal-average': messages.rulesetTiebreakerGoalAverage,
+  'goals-for': messages.rulesetTiebreakerGoalsFor,
+  'goals-against': messages.rulesetTiebreakerGoalsAgainst,
+  'matches-won': messages.rulesetTiebreakerMatchesWon,
+  'sets-won': messages.rulesetTiebreakerSetsWon,
+  'games-won': messages.rulesetTiebreakerGamesWon,
+  'head-to-head': messages.rulesetTiebreakerHeadToHead,
+};
+
+export type PublicEnumKind = 'format' | 'tiebreaker';
+
+export const PUBLIC_ENUM_VALUES: Readonly<Record<PublicEnumKind, readonly string[]>> = {
+  format: Object.freeze(Object.keys(RULESET_FORMAT_MESSAGE)),
+  tiebreaker: Object.freeze(Object.keys(RULESET_TIEBREAKER_MESSAGE)),
+};
+
+/** A translated public enum label; future unknown codes resolve to a generic label. */
+export function formatEnum(intl: IntlShape, kind: PublicEnumKind, value: string): string {
+  const descriptor =
+    kind === 'format' ? RULESET_FORMAT_MESSAGE[value] : RULESET_TIEBREAKER_MESSAGE[value];
+  return descriptor
+    ? intl.formatMessage(descriptor)
+    : intl.formatMessage(messages.rulesetValueUnknown);
+}
+
 function rulesetValue(intl: IntlShape, value: string): string {
   if (value === 'true') return intl.formatMessage(messages.rulesetValueYes);
   if (value === 'false') return intl.formatMessage(messages.rulesetValueNo);
   const formatMessage = RULESET_FORMAT_MESSAGE[value];
   if (formatMessage) return intl.formatMessage(formatMessage);
   if (/^[a-z]+([-_][a-z]+)+$/i.test(value)) {
-    return value
-      .split(/[-_]+/)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ');
+    return intl.formatMessage(messages.rulesetValueUnknown);
   }
   return value;
 }
@@ -484,10 +562,20 @@ export function rulesetBriefingRows(
   intl: IntlShape,
   model: OverviewModel,
 ): readonly RulesetBriefingRow[] {
-  return model.ruleset.map((entry) => ({
-    label: entry.label,
-    value: rulesetValue(intl, entry.value),
-  }));
+  return model.ruleset.map((entry) => {
+    const isTiebreakerList = /(?:^|\.)tiebreakers$/.test(entry.dotPath);
+    const value = isTiebreakerList
+      ? intl.formatList(
+          entry.value
+            .split(',')
+            .map((kind) => kind.trim())
+            .filter(Boolean)
+            .map((kind) => formatEnum(intl, 'tiebreaker', kind)),
+          { type: 'conjunction' },
+        )
+      : rulesetValue(intl, entry.value);
+    return { label: entry.label, value };
+  });
 }
 
 export interface CompletionFigureLabels {

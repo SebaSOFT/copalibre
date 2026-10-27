@@ -732,7 +732,8 @@ describe('the registration review screen', () => {
       withIntl(
         <RegistrationReviewTemplate
           organizationAlias="liga-mendocina"
-          tournamentName="apertura-2026"
+          tournamentAlias="apertura-2026"
+          tournamentName="Apertura 2026"
           rows={sampleRegistrations()}
           now="2026-08-01T17:00:00.000Z"
         />,
@@ -740,6 +741,8 @@ describe('the registration review screen', () => {
     );
 
     fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'pending' } });
+    expect(screen.getByText(/Apertura 2026/)).toBeDefined();
+    expect(screen.queryByText(/apertura-2026/)).toBeNull();
     expect(screen.getByText('Talleres Azul')).toBeDefined();
     expect(screen.queryByText('Casa de Italia')).toBeNull();
 
@@ -757,7 +760,8 @@ describe('the registration review screen', () => {
       withIntl(
         <RegistrationReviewTemplate
           organizationAlias="liga-mendocina"
-          tournamentName="apertura-2026"
+          tournamentAlias="apertura-2026"
+          tournamentName="Apertura 2026"
           rows={sampleRegistrations()}
           now="2026-08-01T19:00:00.000Z"
         />,

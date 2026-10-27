@@ -128,7 +128,7 @@ function DashboardContent({
       const byTournament = await Promise.all(
         model.tournaments.map(async (card) => {
           const tokens = (await api.listDisplayTokens?.(organizationAlias, card.alias)) ?? [];
-          return tokens.map((token) => ({ tournamentAlias: card.alias, token }));
+          return tokens.map((token) => ({ tournamentName: card.name, token }));
         }),
       );
       return byTournament.flat();

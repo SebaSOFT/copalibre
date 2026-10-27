@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
 
 /**
  * A5 and A6 in a real browser.
@@ -93,6 +94,12 @@ const traceByEntrant: Record<
 const seedingFixture = {
   stageId: 'stage-001',
   format: 'double-elimination',
+  names: {
+    'Deportivo Norte': 'Deportivo Norte',
+    'Atlético Sur': 'Atlético Sur',
+    'Club Cometa': 'Club Cometa',
+    'Unión Andina': 'Unión Andina',
+  },
   seeds: [
     { seed: 1, entrantId: 'Deportivo Norte' },
     { seed: 2, entrantId: 'Atlético Sur' },
@@ -366,7 +373,7 @@ test('keeps locked seeds through a randomize', async ({ page }) => {
   await expect(seedList.getByRole('listitem').nth(1)).toContainText('Atlético Sur');
 });
 
-test('renders both halves of a double-elimination bracket with named placeholders', async ({
+test('renders both halves of a double-elimination bracket with named placeholders @visible-identifier-lint', async ({
   page,
 }) => {
   await mockControlApi(page);
@@ -377,6 +384,7 @@ test('renders both halves of a double-elimination bracket with named placeholder
   await page.waitForURL(`**${target}`);
 
   const canvas = page.getByLabel('Llave');
+  await expectNoVisibleIdentifiers(page, FIXTURE_ALIASES);
   await expect(canvas.locator('[data-bracket="winners"]')).toHaveCount(3);
   await expect(canvas.locator('[data-bracket="losers"]')).toHaveCount(1);
   await expect(canvas.locator('[data-bracket="grand-final"]')).toHaveCount(1);
@@ -387,7 +395,7 @@ test('renders both halves of a double-elimination bracket with named placeholder
   await expect(
     canvas.locator('[data-match="GF-R1-M1"]').getByText('Ganador de Ronda 1, partido 1'),
   ).toBeVisible();
-  await expect(canvas.getByText('BO5').first()).toBeVisible();
+  await expect(canvas.getByText('Al mejor de 5').first()).toBeVisible();
 });
 
 test('opens a resolved bracket node in the match console', async ({ page }) => {
@@ -399,7 +407,7 @@ test('opens a resolved bracket node in the match console', async ({ page }) => {
   await page.waitForURL(`**${target}`);
 
   const canvas = page.getByLabel('Llave');
-  await canvas.getByText('WB-R1-M1', { exact: true }).click();
+  await canvas.locator('[data-match="WB-R1-M1"] a').click();
 
   await page.waitForURL(
     '**/control/liga-mendocina/tournaments/apertura-2026/matches/persisted-wb-r1-m1',
@@ -419,8 +427,8 @@ test('a not-yet-materialized bracket node has no link and does nothing when acti
   const canvas = page.getByLabel('Llave');
   // `WB-R2-M1` names two winner-of placeholders, not a persisted match — no fixture row
   // exists for it yet, so the canvas renders it with no anchor at all.
-  const pendingNode = canvas.getByText('WB-R2-M1', { exact: true });
-  await expect(pendingNode.locator('xpath=ancestor::a')).toHaveCount(0);
+  const pendingNode = canvas.locator('[data-match="WB-R2-M1"]');
+  await expect(pendingNode.locator('xpath=ancestor-or-self::a')).toHaveCount(0);
 
   await pendingNode.click();
   await expect(page).toHaveURL(new RegExp(`${target}$`));

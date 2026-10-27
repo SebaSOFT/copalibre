@@ -60,6 +60,57 @@ describe('PageHeader', () => {
     expect(screen.queryByText('panamericano-demo')).toBeNull();
   });
 
+  it('shows loading placeholders without generic breadcrumb labels while names load', () => {
+    render(
+      <PageHeaderContext.Provider
+        value={{
+          organizationAlias: 'panamericano-demo',
+          organizationNameFallback: 'Organization',
+          organizationNameLoading: true,
+          tournamentAlias: 'panamericano-clubes-2025',
+          tournamentNameFallback: 'Tournament',
+          tournamentNameLoading: true,
+          breadcrumbLabel: 'Breadcrumb',
+          loadingLabel: 'Loading page heading',
+        }}
+      >
+        <PageHeader title="Schedule" />
+      </PageHeaderContext.Provider>,
+    );
+
+    const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(breadcrumb.querySelectorAll('[role="status"]')).toHaveLength(2);
+    expect(screen.queryByText('Organization')).toBeNull();
+    expect(screen.queryByText('Tournament')).toBeNull();
+    expect(screen.queryByText('panamericano-demo')).toBeNull();
+    expect(screen.queryByText('panamericano-clubes-2025')).toBeNull();
+  });
+
+  it('uses translated generic labels after organization and tournament lookups settle empty', () => {
+    render(
+      <PageHeaderContext.Provider
+        value={{
+          organizationAlias: 'panamericano-demo',
+          organizationNameFallback: 'Organization',
+          organizationNameLoading: false,
+          tournamentAlias: 'panamericano-clubes-2025',
+          tournamentNameFallback: 'Tournament',
+          tournamentNameLoading: false,
+          breadcrumbLabel: 'Breadcrumb',
+          loadingLabel: 'Loading page heading',
+        }}
+      >
+        <PageHeader title="Schedule" />
+      </PageHeaderContext.Provider>,
+    );
+
+    const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(breadcrumb.textContent).toContain('Organization');
+    expect(breadcrumb.textContent).toContain('Tournament');
+    expect(breadcrumb.textContent).not.toContain('panamericano-demo');
+    expect(breadcrumb.textContent).not.toContain('panamericano-clubes-2025');
+  });
+
   it('ends the organization breadcrumb loading state when lookup settles without a display name', () => {
     render(
       <PageHeaderContext.Provider

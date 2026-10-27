@@ -1,3 +1,4 @@
+import { useContext } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { AuditRecordResponse } from '../../lib/api-client.js';
 import { messages } from '../../i18n/messages.en.js';
@@ -12,6 +13,9 @@ import { toAuditLogItem } from '../../lib/audit-log.js';
 import { ResponsiveTimestamp } from '../../../components/ui/atoms/ResponsiveTimestamp.js';
 import { EntityIdentityCell } from '../ui/molecules/entity-identity-cell.js';
 import { formatActivityAction, formatActivityReason } from '../../lib/activity-formatting.js';
+import { formatActor } from '../../lib/presentation-formatting.js';
+import { CopyIdButton } from '../ui/atoms/copy-id-button.js';
+import { PageHeaderContext } from '../ui/organisms/page-header.js';
 
 export interface AuditActorProfile {
   readonly email: string;
@@ -52,12 +56,19 @@ export function AuditTrailTemplate({
   readonly onNextPage: () => void;
 }): React.JSX.Element {
   const intl = useIntl();
+  const pageHeader = useContext(PageHeaderContext);
 
   const columns: readonly DataTableColumn<AuditRecordResponse>[] = [
     {
       key: 'occurredAt',
       header: <FormattedMessage {...messages.auditTrailColumnTime} />,
-      render: (row) => <ResponsiveTimestamp locale={intl.locale} timestamp={row.occurredAt} />,
+      render: (row) => (
+        <ResponsiveTimestamp
+          locale={intl.locale}
+          timeZone={pageHeader?.organizationTimeZone}
+          timestamp={row.occurredAt}
+        />
+      ),
     },
     {
       key: 'actor',
@@ -65,26 +76,19 @@ export function AuditTrailTemplate({
       render: (row) => {
         const actorProfile = actors?.[row.actor];
         if (actorProfile) {
-          return (
-            <EntityIdentityCell
-              email={actorProfile.email}
-              id={actorProfile.principalId ?? row.actor}
-            />
-          );
+          return <EntityIdentityCell email={actorProfile.email} />;
         }
         if (row.actor.includes('@')) {
-          return <EntityIdentityCell email={row.actor} id={row.actor} />;
+          return <EntityIdentityCell email={row.actor} />;
         }
-        return <span className="cl-role-user__id">{row.actor}</span>;
+        return <span>{formatActor(intl, row.actor)}</span>;
       },
     },
     {
       key: 'action',
       header: <FormattedMessage {...messages.auditTrailColumnAction} />,
       render: (row) => (
-        <span title={row.action}>
-          <Badge label={formatActivityAction(row.action, intl.locale)} variant="section" />
-        </span>
+        <Badge label={formatActivityAction(row.action, intl.locale)} variant="section" />
       ),
     },
     {
@@ -155,14 +159,31 @@ export function AuditTrailTemplate({
               revealed here that the row above did not already carry to this
               authorized surface.
             */
-            renderRowDetail={(row) =>
-              row.previousState === undefined || row.resultingState === undefined ? null : (
-                <AuditLogPanel
-                  items={[toAuditLogItem(row)]}
-                  title={intl.formatMessage(messages.auditTrailCorrectionTitle)}
-                />
-              )
-            }
+            renderRowDetail={(row) => (
+              <div className="cl-screen-sections">
+                <div className="cl-role-user">
+                  <CopyIdButton
+                    label={intl.formatMessage(messages.auditCopyEntityId)}
+                    copiedLabel={intl.formatMessage(messages.copyIdSuccess)}
+                    failedLabel={intl.formatMessage(messages.copyIdFailure)}
+                    value={row.entityId}
+                  />
+                  <CopyIdButton
+                    label={intl.formatMessage(messages.auditCopyActorId)}
+                    copiedLabel={intl.formatMessage(messages.copyIdSuccess)}
+                    failedLabel={intl.formatMessage(messages.copyIdFailure)}
+                    value={actors?.[row.actor]?.principalId ?? row.actor}
+                  />
+                </div>
+                {row.previousState !== undefined && row.resultingState !== undefined && (
+                  <AuditLogPanel
+                    items={[toAuditLogItem(row)]}
+                    title={intl.formatMessage(messages.auditTrailCorrectionTitle)}
+                    timeZone={pageHeader?.organizationTimeZone}
+                  />
+                )}
+              </div>
+            )}
           />
         )
       }

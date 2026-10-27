@@ -325,6 +325,7 @@ describe('public projections routes', () => {
       stageNumber: stage.number,
       matchNumber: match.number,
       status: 'upcoming',
+      organizationTimeZone: expect.any(String),
       disciplineImages: [{ key: 'modules/football/1.0.0/football-01.jpg' }],
       schedulePublished: false,
       rosters: { home: [], away: [] },

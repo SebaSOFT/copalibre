@@ -12,6 +12,7 @@ import { Field } from '../ui/molecules/field.js';
 import { messages } from '../../i18n/messages.en.js';
 import { resolveDecisionDescription } from '../../lib/wizard.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { formatEnum } from '../../lib/presentation-formatting.js';
 
 /**
  * Rename/format-change/delete for the stage this hub is on — relocated from
@@ -89,7 +90,10 @@ function StageIdentitySection({
             disabled={seeded}
             id="stage-format"
             onValueChange={setFormat}
-            options={formatOptions.map((value) => ({ value, label: value }))}
+            options={formatOptions.map((value) => ({
+              value,
+              label: formatEnum(intl, 'format', value),
+            }))}
             value={format}
           />
         </Field>

@@ -25,6 +25,7 @@ export function EntrantName({
 }): React.JSX.Element {
   const ref = useRef<HTMLSpanElement>(null);
   const [compact, setCompact] = useState(false);
+  const showAbbreviation = (compact || preferCompact) && abbreviation !== undefined;
 
   useEffect(() => {
     const element = ref.current;
@@ -41,18 +42,15 @@ export function EntrantName({
       className={`cl-entrant-name ${inline ? 'cl-entrant-name--inline' : ''} ${pending ? 'cl-entrant-name--pending' : ''} ${className ?? ''}`.trim()}
       data-testid="entrant-name"
       ref={ref}
-      title={compact || preferCompact ? undefined : fullName}
+      aria-label={fullName}
+      title={showAbbreviation ? undefined : fullName}
     >
       {pending && (
         <>
           <span aria-hidden="true">{resultStateGlyph('upcoming')}</span>{' '}
         </>
       )}
-      {(compact || preferCompact) && abbreviation !== undefined ? (
-        <abbr title={fullName}>{abbreviation}</abbr>
-      ) : (
-        fullName
-      )}
+      {showAbbreviation ? <abbr title={fullName}>{abbreviation}</abbr> : fullName}
     </span>
   );
 }

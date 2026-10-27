@@ -30,6 +30,12 @@ const matches: readonly CanvasMatch[] = [
   },
 ];
 
+function matchNode(matchId: string): HTMLElement {
+  const node = document.querySelector<HTMLElement>(`[data-match="${matchId}"]`);
+  if (node === null) throw new Error(`Expected bracket node ${matchId}`);
+  return node;
+}
+
 describe('BracketCanvas', () => {
   it('labels double-elimination brackets and identifies the conditional reset final', () => {
     const doubleEliminationMatches: readonly CanvasMatch[] = [
@@ -69,9 +75,9 @@ describe('BracketCanvas', () => {
       ),
     );
 
-    const link = screen.getByText('WB-R1-M1').closest('a');
-    expect(link).not.toBeNull();
-    expect(link?.getAttribute('href')).toBe('/control/org/tournaments/t/matches/persisted-match-1');
+    const link = matchNode('WB-R1-M1');
+    expect(link.tagName).toBe('A');
+    expect(link.getAttribute('href')).toBe('/control/org/tournaments/t/matches/persisted-match-1');
   });
 
   it('leaves a not-yet-materialized node with no link', () => {
@@ -85,14 +91,14 @@ describe('BracketCanvas', () => {
       ),
     );
 
-    const pendingArticle = screen.getByText('WB-R2-M1').closest('article');
+    const pendingArticle = matchNode('WB-R2-M1').closest('article');
     expect(pendingArticle?.closest('a')).toBeNull();
   });
 
   it('renders no links when matchUrl is not supplied, even for a persisted node', () => {
     render(withIntl(<BracketCanvas matches={matches} zoom={1} />));
 
-    expect(screen.getByText('WB-R1-M1').closest('a')).toBeNull();
+    expect(matchNode('WB-R1-M1').querySelector('a')).toBeNull();
   });
 
   it('marks the focused node (by its persisted match id) and scrolls it into view on mount', () => {
@@ -101,34 +107,24 @@ describe('BracketCanvas', () => {
 
     render(withIntl(<BracketCanvas focusMatchId="persisted-match-1" matches={matches} zoom={1} />));
 
-    const focusedNode = screen.getByText('WB-R1-M1').closest('[data-match]');
+    const focusedNode = matchNode('WB-R1-M1');
     expect(focusedNode?.getAttribute('data-focused')).toBe('true');
-    expect(screen.getByText('WB-R2-M1').closest('[data-match]')?.getAttribute('data-focused')).toBe(
-      null,
-    );
+    expect(matchNode('WB-R2-M1').getAttribute('data-focused')).toBe(null);
     expect(scrollIntoView).toHaveBeenCalled();
   });
 
   it('renders normally with nothing emphasized when focusMatchId matches no node', () => {
     render(withIntl(<BracketCanvas focusMatchId="does-not-exist" matches={matches} zoom={1} />));
 
-    expect(screen.getByText('WB-R1-M1').closest('[data-match]')?.getAttribute('data-focused')).toBe(
-      null,
-    );
-    expect(screen.getByText('WB-R2-M1').closest('[data-match]')?.getAttribute('data-focused')).toBe(
-      null,
-    );
+    expect(matchNode('WB-R1-M1').getAttribute('data-focused')).toBe(null);
+    expect(matchNode('WB-R2-M1').getAttribute('data-focused')).toBe(null);
   });
 
   it('leaves every node unfocused when focusMatchId is not supplied, including an unmaterialized one', () => {
     render(withIntl(<BracketCanvas matches={matches} zoom={1} />));
 
-    expect(screen.getByText('WB-R1-M1').closest('[data-match]')?.getAttribute('data-focused')).toBe(
-      null,
-    );
-    expect(screen.getByText('WB-R2-M1').closest('[data-match]')?.getAttribute('data-focused')).toBe(
-      null,
-    );
+    expect(matchNode('WB-R1-M1').getAttribute('data-focused')).toBe(null);
+    expect(matchNode('WB-R2-M1').getAttribute('data-focused')).toBe(null);
   });
 });
 
@@ -138,13 +134,14 @@ it('toggles journey selection without nesting buttons inside report links', () =
     withIntl(
       <BracketCanvas
         matches={matches}
+        names={{ 'entrant-1': 'Godoy Cruz', 'entrant-2': 'Independiente Rivadavia' }}
         zoom={1}
         onHighlightEntrant={callback}
         matchUrl={() => '/report'}
       />,
     ),
   );
-  const button = screen.getByRole('button', { name: 'Highlight path for entrant-1' });
+  const button = screen.getByRole('button', { name: 'Highlight path for Godoy Cruz' });
   expect(button.closest('a')).toBeNull();
   fireEvent.click(button);
   expect(callback).toHaveBeenLastCalledWith('entrant-1');
@@ -155,12 +152,11 @@ it('toggles journey selection without nesting buttons inside report links', () =
         zoom={1}
         highlightEntrantId="entrant-1"
         onHighlightEntrant={callback}
+        names={{ 'entrant-1': 'Godoy Cruz', 'entrant-2': 'Independiente Rivadavia' }}
       />,
     ),
   );
-  expect(
-    screen.getByText('WB-R2-M1').closest('[data-match]')?.getAttribute('data-entrant-path'),
-  ).toBe('included');
+  expect(matchNode('WB-R2-M1').getAttribute('data-entrant-path')).toBe('included');
   expect(button.getAttribute('aria-pressed')).toBe('true');
   fireEvent.click(button);
   expect(callback).toHaveBeenLastCalledWith(undefined);
@@ -236,7 +232,7 @@ describe('BracketCanvas series progress indicator', () => {
   it('renders series indicator for an in-progress series with score, pending label, and remaining legs', () => {
     render(withIntl(<BracketCanvas matches={[inProgressSeriesMatch]} zoom={1} />));
 
-    const node = screen.getByText('WB-R1-M1').closest('[data-match]');
+    const node = matchNode('WB-R1-M1');
     expect(node).not.toBeNull();
     const indicator = node?.querySelector('[data-series-status]');
     expect(indicator).not.toBeNull();
@@ -251,7 +247,7 @@ describe('BracketCanvas series progress indicator', () => {
   it('renders series indicator for a decided series with score, decided label, and anulled legs', () => {
     render(withIntl(<BracketCanvas matches={[decidedSeriesMatch]} zoom={1} />));
 
-    const node = screen.getByText('WB-R1-M2').closest('[data-match]');
+    const node = matchNode('WB-R1-M2');
     expect(node).not.toBeNull();
     const indicator = node?.querySelector('[data-series-status]');
     expect(indicator).not.toBeNull();
@@ -266,7 +262,7 @@ describe('BracketCanvas series progress indicator', () => {
   it('does not render series indicator for a non-series node', () => {
     render(withIntl(<BracketCanvas matches={[nonSeriesMatch]} zoom={1} />));
 
-    const node = screen.getByText('WB-R1-M3').closest('[data-match]');
+    const node = matchNode('WB-R1-M3');
     expect(node).not.toBeNull();
     const indicator = node?.querySelector('[data-series-status]');
     expect(indicator).toBeNull();
@@ -278,8 +274,8 @@ describe('BracketCanvas series progress indicator', () => {
       withIntl(<BracketCanvas matches={[inProgressSeriesMatch, decidedSeriesMatch]} zoom={1} />),
     );
 
-    const pendingNode = screen.getByText('WB-R1-M1').closest('[data-match]');
-    const decidedNode = screen.getByText('WB-R1-M2').closest('[data-match]');
+    const pendingNode = matchNode('WB-R1-M1');
+    const decidedNode = matchNode('WB-R1-M2');
 
     const pendingIndicator = pendingNode?.querySelector('[data-series-status]');
     const decidedIndicator = decidedNode?.querySelector('[data-series-status]');

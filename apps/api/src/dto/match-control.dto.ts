@@ -179,6 +179,14 @@ export class ConsoleRosterRoleResponse {
   badge?: string;
 }
 
+export class ConsoleEligibleStaffResponse {
+  @ApiProperty({ format: 'uuid' })
+  personId!: string;
+
+  @ApiProperty({ description: 'The staff member’s human-readable display name' })
+  displayName!: string;
+}
+
 export class ConsoleLiveScoreResponse {
   @ApiProperty({ format: 'uuid' })
   entrantId!: string;
@@ -264,6 +272,13 @@ export class MatchConsoleResponse extends FixtureSourcesResponse {
     description: 'Coaches and staff attached to an entrant contesting this match',
   })
   eligibleStaffIds!: string[];
+
+  @ApiProperty({
+    type: [ConsoleEligibleStaffResponse],
+    description:
+      'Human-readable names for coaches and staff attached to an entrant contesting this match',
+  })
+  eligibleStaff!: ConsoleEligibleStaffResponse[];
 
   @ApiProperty({
     type: [ConsoleEntrantResponse],

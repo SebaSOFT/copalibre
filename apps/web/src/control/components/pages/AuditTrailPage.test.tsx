@@ -43,9 +43,10 @@ describe('AuditTrailPage', () => {
   it('renders applied and refused entries, each naming its actor and outcome', async () => {
     render(withIntl(<AuditTrailPage client={stubClient()} organizationAlias="liga-mendocina" />));
 
-    await waitFor(() => screen.getByText('user:alice'));
+    await waitFor(() => expect(screen.getAllByText('User')).toHaveLength(2));
     expect(screen.getByRole('heading', { level: 1, name: /audit trail/i })).toBeDefined();
-    expect(screen.getByText('user:bob')).toBeDefined();
+    expect(screen.queryByText('user:alice')).toBeNull();
+    expect(screen.queryByText('user:bob')).toBeNull();
     expect(screen.getByText('Applied')).toBeDefined();
     expect(screen.getByText('Refused')).toBeDefined();
     expect(
@@ -124,7 +125,8 @@ describe('AuditTrailPage', () => {
     );
 
     await waitFor(() => screen.getByText('alice@copalibre.test'));
-    expect(screen.getByText('ID 00000001')).toBeDefined();
+    expect(screen.queryByText(/01800000-0000-7000-8000-000000000001/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Copy actor ID' })).toBeDefined();
     expect(screen.getByText('Settings updated')).toBeDefined();
   });
 
@@ -196,7 +198,7 @@ describe('AuditTrailPage', () => {
       ),
     );
 
-    await waitFor(() => screen.getByText('user:charlie'));
+    await waitFor(() => expect(screen.getByText('User')).toBeDefined());
     const nextBtn = getByRole('button', { name: /next/i });
     nextBtn.click();
     await waitFor(() => expect(capturedOffset).toBe(25));

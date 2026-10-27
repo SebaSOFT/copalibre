@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
 
 // The audit trail's control-panel surface.
 // The correction-history view has no control-web UI to click
@@ -97,7 +98,7 @@ async function mockAuditTrailApi(page: Page, role: string): Promise<void> {
   );
 }
 
-test('an administrator opens the audit surface and sees applied and refused actions (7.1)', async ({
+test('an administrator opens the audit surface and sees applied and refused actions (7.1) @visible-identifier-lint', async ({
   page,
 }) => {
   await mockAuditTrailApi(page, 'admin');
@@ -108,6 +109,7 @@ test('an administrator opens the audit surface and sees applied and refused acti
 
   await page.getByRole('link', { name: 'Registro de auditoría', exact: true }).click();
   await page.waitForURL(`**${controlAuditTrailPath}`);
+  await expectNoVisibleIdentifiers(page, FIXTURE_ALIASES);
 
   await expect(page.getByText('alice@copalibre.test')).toBeVisible();
   await expect(page.getByText('bob@copalibre.test')).toBeVisible();

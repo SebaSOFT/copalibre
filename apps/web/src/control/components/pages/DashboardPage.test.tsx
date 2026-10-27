@@ -145,6 +145,34 @@ describe('DashboardPage', () => {
     expect(screen.getByTestId('pendingRegistrations').textContent).toBe('2');
   });
 
+  it('uses the tournament alias for token lookup and the display name in the heartbeat', async () => {
+    const listDisplayTokens = jest.fn(async () => [
+      {
+        displayTokenId: 'token-1',
+        tournamentId: 't-1',
+        label: 'Cancha 1',
+        revoked: false,
+        createdAt: '2026-08-01T00:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <DashboardPage
+        client={client({
+          listActiveTournaments: async () => [tournament()],
+          listDisplayTokens,
+        })}
+        organizationAlias="liga-mendocina"
+      />,
+    );
+
+    await waitFor(() =>
+      expect(listDisplayTokens).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026'),
+    );
+    expect(await screen.findByText('(Torneo Apertura 2026)')).toBeDefined();
+    expect(screen.queryByText('apertura-2026')).toBeNull();
+  });
+
   it('shows an explicit empty state for an organization with no tournaments, not sample data', async () => {
     await act(async () => {
       render(
@@ -212,6 +240,7 @@ describe('DashboardPage', () => {
         organizationId: 'org-1',
         organizationAlias: 'liga-mendocina',
         organizationName: 'Liga Mendocina',
+        timezone: 'America/Argentina/Buenos_Aires',
         role: 'club-admin' as const,
       },
     ];
@@ -231,6 +260,7 @@ describe('DashboardPage', () => {
         organizationId: 'org-1',
         organizationAlias: 'liga-mendocina',
         organizationName: 'Liga Mendocina',
+        timezone: 'America/Argentina/Buenos_Aires',
         role: 'admin' as const,
       },
     ];
@@ -317,6 +347,7 @@ describe('DashboardPage', () => {
         organizationId: 'org-1',
         organizationAlias: 'liga-mendocina',
         organizationName: 'Liga Mendocina',
+        timezone: 'America/Argentina/Buenos_Aires',
         role: 'viewer' as const,
       },
     ];
@@ -342,6 +373,7 @@ describe('DashboardPage', () => {
         organizationId: 'org-1',
         organizationAlias: 'liga-mendocina',
         organizationName: 'Liga Mendocina',
+        timezone: 'America/Argentina/Buenos_Aires',
         role: 'admin' as const,
       },
     ];
@@ -404,7 +436,7 @@ describe('DashboardPage', () => {
 
     await waitFor(() => expect(screen.getByText('Partido finalizado')).toBeDefined());
     expect(screen.getByText('Club creado')).toBeDefined();
-    expect(screen.getAllByText('user:admin-1')).toHaveLength(2);
+    expect(screen.getAllByText('Usuario')).toHaveLength(2);
   });
 
   it('subscribes to realtime events via controlStream and refreshes on new events', async () => {
@@ -571,8 +603,7 @@ describe('DashboardPage', () => {
     expect(within(table).getByRole('columnheader', { name: 'Acción' })).toBeDefined();
     expect(within(table).getByRole('columnheader', { name: 'Quién' })).toBeDefined();
     expect(within(table).getByRole('columnheader', { name: 'Cuándo' })).toBeDefined();
-    expect(within(table).getByText('user:referee-1')).toBeDefined();
-    expect(within(table).getByText('user:admin-1')).toBeDefined();
+    expect(within(table).getAllByText('Usuario')).toHaveLength(2);
     // The reason a record carries rides with its own row, not a separate panel.
     expect(within(table).getByText('Inscripción confirmada')).toBeDefined();
   });

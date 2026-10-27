@@ -68,11 +68,44 @@ export function formatPlacementSource(
   key: string,
   messages: SideSourceMessages,
 ): string | undefined {
+  const generatedPlacement = /^PL(\d+)-R\d+-M\d+(?:-G\d+)?$/.exec(key);
+  if (generatedPlacement) {
+    return applyTemplate(messages.place, { place: generatedPlacement[1] ?? '' });
+  }
   const places = /^(?:placement|places?)-(\d+)(?:-(\d+))?$/.exec(key);
   if (!places) return undefined;
   return places[2] === undefined
     ? applyTemplate(messages.place, { place: places[1] ?? '' })
     : applyTemplate(messages.places, { from: places[1] ?? '', to: places[2] });
+}
+
+/** A human label for generated bracket ids such as `SE-R2-M1` or `PL5-R1-M1`. */
+export function formatMatchRef(
+  key: string,
+  messages: SideSourceMessages,
+  options: { readonly finalRound?: number; readonly matchNumber?: number } = {},
+): string {
+  const placement = formatPlacementSource(key, messages);
+  if (placement !== undefined) return placement;
+
+  const structural = /^(?:SE|WB|LB|GF)-R(\d+)-M(\d+)(?:-G\d+)?$/.exec(key);
+  if (structural) {
+    const source = {
+      kind: 'winner-of' as const,
+      nodeKey: key,
+      round: Number(structural[1]),
+      position: Number(structural[2]),
+    };
+    return (
+      sourceMatchLabel(source, messages, options.finalRound)?.long ??
+      applyTemplate(messages.round, {
+        round: source.round,
+        position: source.position,
+      })
+    );
+  }
+
+  return applyTemplate(messages.match, { position: options.matchNumber ?? 1 });
 }
 
 export interface Placement {

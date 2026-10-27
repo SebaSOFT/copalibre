@@ -34,14 +34,20 @@ const projection: TableProjectionResponseData = {
       entrantId: 'tll',
       rank: 1,
       sharedRank: false,
-      cells: { name: { raw: 'tll', formatted: 'tll' }, points: { raw: 6, formatted: '6' } },
+      cells: {
+        name: { raw: 'Talleres', formatted: 'Talleres' },
+        points: { raw: 6, formatted: '6' },
+      },
     },
     {
       actorId: 'ind',
       entrantId: 'ind',
       rank: 2,
       sharedRank: true,
-      cells: { name: { raw: 'ind', formatted: 'ind' }, points: { raw: 3, formatted: '3' } },
+      cells: {
+        name: { raw: 'Independiente', formatted: 'Independiente' },
+        points: { raw: 3, formatted: '3' },
+      },
     },
   ],
   projectionVersion: 7,
@@ -93,6 +99,7 @@ describe('SeedingBuilderTemplate', () => {
         <SeedingBuilderTemplate
           hasRecordedResults={false}
           zones={[{ matches }]}
+          names={{ tll: 'Talleres', ind: 'Independiente' }}
           organizationAlias="liga-mendocina"
           random={() => 0.99}
           seeds={seeds}
@@ -105,7 +112,7 @@ describe('SeedingBuilderTemplate', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Shuffle unlocked' }));
 
     const rows = screen.getAllByRole('listitem').map((item) => item.textContent ?? '');
-    expect(rows[0]).toContain('tll');
+    expect(rows[0]).toContain('Talleres');
   });
 
   it('undoes and redoes a change', () => {
@@ -194,7 +201,7 @@ describe('SeedingBuilderTemplate', () => {
     );
 
     expect(screen.getByText('Winner of Round 1, match 1')).toBeTruthy();
-    expect(screen.getByText('BO3')).toBeTruthy();
+    expect(screen.getByText('Best of 3')).toBeTruthy();
   });
 
   it('zooms the canvas through the declared stops', () => {
@@ -251,6 +258,7 @@ function stubClient(overrides: Partial<ControlApiClient>): ControlApiClient {
       Promise.resolve({
         stageId: 'stage-1',
         format: 'single-elimination',
+        names: { tll: 'Talleres', ind: 'Independiente' },
         seeds: [{ seed: 1, entrantId: 'tll' }],
         zones: [{ matches }],
         hasRecordedResults: false,
@@ -292,8 +300,8 @@ describe('control routes', () => {
     await screen.findByRole('heading', { level: 1, name: 'Posiciones' });
     // Both the distribution chart's bar label and the table row repeat the
     // entrant name; either is proof the projection loaded.
-    await screen.findAllByText('ind');
-    openRow('ind');
+    await screen.findAllByText('Independiente');
+    openRow('Independiente');
     expect(await screen.findByText('linea')).toBeTruthy();
   });
 
@@ -384,7 +392,7 @@ describe('control routes', () => {
       />,
     );
 
-    await screen.findAllByText('ind');
+    await screen.findAllByText('Independiente');
     expect(screen.queryByRole('combobox', { name: 'Grupo' })).toBeNull();
   });
 
@@ -510,6 +518,7 @@ describe('control routes', () => {
             Promise.resolve({
               stageId: 'stage-2',
               format: 'single-elimination',
+              names: { tll: 'Talleres', ind: 'Independiente' },
               seeds: [],
               zones: [],
               hasRecordedResults: false,
@@ -537,7 +546,10 @@ describe('control routes', () => {
     const rows = within(seedList)
       .getAllByRole('listitem')
       .map((row) => row.textContent);
-    expect(rows).toEqual([expect.stringContaining('tll'), expect.stringContaining('ind')]);
+    expect(rows).toEqual([
+      expect.stringContaining('Talleres'),
+      expect.stringContaining('Independiente'),
+    ]);
   });
 
   it('does not override an already-recorded seed order with a matching promotion plan', async () => {
@@ -550,6 +562,7 @@ describe('control routes', () => {
             Promise.resolve({
               stageId: 'stage-2',
               format: 'single-elimination',
+              names: { tll: 'Talleres', ind: 'Independiente' },
               seeds: [{ seed: 1, entrantId: 'tll' }],
               zones: [{ matches }],
               hasRecordedResults: false,
@@ -568,7 +581,7 @@ describe('control routes', () => {
       within(seedList)
         .getAllByRole('listitem')
         .map((row) => row.textContent),
-    ).toEqual([expect.stringContaining('tll')]);
+    ).toEqual([expect.stringContaining('Talleres')]);
     // Existing seeds are the API's own signal not to look further — the
     // reverse lookup is never even called (no override, ever).
     expect(fetchPromotionPlansTargetingStage).not.toHaveBeenCalled();

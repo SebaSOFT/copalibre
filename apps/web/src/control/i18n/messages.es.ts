@@ -4,8 +4,12 @@
  * `primaryLanguage: "es"` sees no behavior change from this refactor.
  */
 export const messages: Record<string, string> = {
+  'control.dateInput.formatHint': 'Formato local de fecha; por ejemplo: {example}.',
+  'control.dateTimeInput.formatHint': 'Formato local de fecha y hora; por ejemplo: {example}.',
   'control.pageHeader.loading': 'Cargando encabezado de página',
   'control.pageHeader.breadcrumb': 'Ruta de navegación',
+  'control.pageHeader.organizationFallback': 'Organización',
+  'control.pageHeader.tournamentFallback': 'Torneo',
   'control.interaction.createToken': 'Crear token',
   'control.interaction.pairTv': 'Vincular TV',
   'control.interaction.pairDescription': 'Vinculá una TV para mostrar los resultados en vivo.',
@@ -156,6 +160,7 @@ export const messages: Record<string, string> = {
   'control.heartbeat.revoked': 'Revocado',
   'control.deviceHeartbeat.sectionLabel': 'Estado de pantallas TV',
   'control.deviceHeartbeat.title': 'Pantallas TV',
+  'control.deviceHeartbeat.unnamedToken': 'Pantalla sin nombre',
   'control.deviceHeartbeat.empty': 'No hay dispositivos TV provisionados todavía.',
   'control.deviceHeartbeat.lastSeen': 'última señal',
 
@@ -358,7 +363,6 @@ export const messages: Record<string, string> = {
   'control.review.columnStatus': 'Estado',
   'control.review.columnSubmitted': 'Enviada',
   'control.review.selectRow': 'Seleccionar {displayName}',
-  'control.review.idLabel': 'ID: {entrantId}',
   'control.review.contact': 'Contacto',
   'control.review.teamMembers': 'Miembros del equipo',
   'control.review.teamMembersUnavailable': 'No disponible en esta respuesta',
@@ -557,6 +561,7 @@ export const messages: Record<string, string> = {
   'control.stageEditor.preview.matchday': 'Jornada {number}',
   'control.stageEditor.preview.group': 'Grupo {letter}',
   'control.stageEditor.format.league': 'Liga',
+  'control.match.format.bestOf': 'Al mejor de {games}',
   'control.stageEditor.format.roundRobin': 'Todos contra todos',
   'control.stageEditor.format.singleElimination': 'Eliminación directa',
   'control.stageEditor.format.doubleElimination': 'Doble eliminación',
@@ -1646,4 +1651,9 @@ export const messages: Record<string, string> = {
     '{match} se está jugando: no se puede mover ni retirar ahora',
   'control.scheduleBuilder.publishRefused':
     'El horario no se publicó: ahora tiene conflictos, que se listan abajo.',
+  'control.copyId.button': 'Copiar ID',
+  'control.copyId.success': 'ID copiado',
+  'control.copyId.failure': 'No se pudo copiar el ID',
+  'control.auditTrail.copyEntityId': 'Copiar ID del registro',
+  'control.auditTrail.copyActorId': 'Copiar ID del actor',
 };

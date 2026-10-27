@@ -18,6 +18,7 @@ function needingAbbreviationResponse(): unknown {
       entrantId: ENTRANT_ID,
       tournamentId: 't-1',
       status: 'accepted',
+      displayName: 'Club Atlético Talleres',
       teamId: 'club-atletico-talleres',
     },
   ];
@@ -82,21 +83,21 @@ test('sets a free abbreviation for a collided entrant and it disappears from the
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await expect(page.getByText('club-atletico-talleres')).toBeVisible();
+  await expect(page.getByText('Club Atlético Talleres')).toBeVisible();
 
-  await page.getByLabel('Abreviatura para club-atletico-talleres').fill('IND');
+  await page.getByLabel('Abreviatura para Club Atlético Talleres').fill('IND');
   await page.getByRole('button', { name: 'Asignar' }).click();
   await expect(page.getByRole('alert')).toContainText(
     'Este cambio entra en conflicto con los datos actuales del torneo.',
   );
-  await expect(page.getByText('club-atletico-talleres')).toBeVisible();
+  await expect(page.getByText('Club Atlético Talleres')).toBeVisible();
 
-  await page.getByLabel('Abreviatura para club-atletico-talleres').fill('TAL');
+  await page.getByLabel('Abreviatura para Club Atlético Talleres').fill('TAL');
   await page.getByRole('button', { name: 'Asignar' }).click();
   await expect(
     page.getByText(/Todos los (?:entrantes|participantes) ya tienen una abreviatura\./),
   ).toHaveCount(0);
-  await expect(page.getByLabel('Abreviatura para club-atletico-talleres')).toHaveCount(0);
+  await expect(page.getByLabel('Abreviatura para Club Atlético Talleres')).toHaveCount(0);
 
   // The session is in-memory only and a reload discards it, same as a real
   // browser refresh — log back in to return to this screen so the assertion
@@ -105,5 +106,5 @@ test('sets a free abbreviation for a collided entrant and it disappears from the
   await expect(
     page.getByText(/Todos los (?:entrantes|participantes) ya tienen una abreviatura\./),
   ).toHaveCount(0);
-  await expect(page.getByText('club-atletico-talleres')).toHaveCount(0);
+  await expect(page.getByText('Club Atlético Talleres')).toHaveCount(0);
 });

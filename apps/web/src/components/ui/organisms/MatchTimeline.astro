@@ -11,9 +11,10 @@ import type { MatchReportModel } from '../../../lib/match-report.ts';
 export interface Props {
   readonly model: MatchReportModel;
   readonly intl: IntlShape;
+  readonly organizationTimeZone?: string;
 }
 
-const { model, intl } = Astro.props;
+const { model, intl, organizationTimeZone } = Astro.props;
 ---
 
 <section class="cl-section-card cl-chamfer" aria-labelledby="timeline-heading">
@@ -35,6 +36,7 @@ const { model, intl } = Astro.props;
                 client:load
                 timestamp={event.occurredAt}
                 locale={intl.locale}
+                timeZone={organizationTimeZone}
                 className="cl-timeline-time"
               />
               <span class="cl-timeline-label">{event.label}</span>

@@ -196,6 +196,18 @@ describe('registration review routes', () => {
       token: 'organizer-org1',
     });
     expect(listBefore.statusCode).toBe(200);
+    expect(listBefore.json()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          entrantId: seeded.first.entrantId,
+          displayName: 'Talleres Azul',
+        }),
+        expect.objectContaining({
+          entrantId: seeded.second.entrantId,
+          displayName: 'Casa de Italia',
+        }),
+      ]),
+    );
     expect(
       listBefore
         .json()

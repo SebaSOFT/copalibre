@@ -12,10 +12,14 @@ import {
   toRounds,
   type BracketMatch,
 } from '../../../lib/bracket.ts';
-import { bracketRoundHeading } from '../../../lib/bracket-round-heading.ts';
+import { bracketRoundTitle } from '../../../lib/bracket-round-heading.ts';
 import PlacementGames from '../molecules/PlacementGames.astro';
 import { placementGamesOf } from '../../../lib/public-bracket-layout.ts';
-import { bracketRoleLabel, sideSourceLabels } from '../../../lib/i18n/public-intl.ts';
+import {
+  bracketBranchLabel,
+  bracketRoleLabel,
+  sideSourceLabels,
+} from '../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 interface Props {
@@ -61,9 +65,12 @@ const legend = stageOutcomes(Astro.props.matches).map((outcome) => ({
 type HeadingTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 const Heading = `h${Math.min(headingLevel, 6)}` as HeadingTag;
 const OutlineHeading = `h${Math.min(headingLevel + 1, 6)}` as HeadingTag;
-const RoundHeading = `h${Math.min(headingLevel + 2, 6)}` as HeadingTag;
-const roundLabel = (round: (typeof rounds)[number]): string =>
-  bracketRoundHeading(intl, round, rounds);
+const BranchHeading = `h${Math.min(headingLevel + 2, 6)}` as HeadingTag;
+const RoundHeading = `h${Math.min(headingLevel + 3, 6)}` as HeadingTag;
+const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((branch) => ({
+  branch,
+  rounds: rounds.filter((round) => round.branch === branch),
+}));
 ---
 
 {/*
@@ -134,55 +141,60 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
   */}
   <div class="cl-bracket-stage__outline">
     <OutlineHeading>{intl.formatMessage(messages.bracketOutlineHeading)}</OutlineHeading>
-    {rounds.map((round) => (
+    {outlineBranches.map(({ branch, rounds: branchRounds }) => (
       <section class="cl-bracket-stage__outline-branch">
-        <RoundHeading>{roundLabel(round)}</RoundHeading>
-        <ol class="cl-bracket-stage__outline-list">
-          {round.matches.map((match) => {
-            const outcomes = nodeOutcomes(match);
-            return (
-              <li data-journey-match={bracketMatchId(match)}>
-                {match.role !== undefined && (
-                  <strong>{bracketRoleLabel(intl, match.role)}: </strong>
-                )}
-                {match.slots.map((slot, index) => (
-                  <>
-                    {index > 0 && ' — '}
-                    {slot.kind === 'entrant' && slot.entrantId !== undefined ? (
+        <BranchHeading>{bracketBranchLabel(intl, branch)}</BranchHeading>
+        {branchRounds.map((round) => (
+          <>
+            <RoundHeading>{bracketRoundTitle(intl, round, branchRounds)}</RoundHeading>
+            <ol class="cl-bracket-stage__outline-list">
+              {round.matches.map((match) => {
+                const outcomes = nodeOutcomes(match);
+                return (
+                  <li data-journey-match={bracketMatchId(match)}>
+                    {match.role !== undefined && (
+                      <strong>{bracketRoleLabel(intl, match.role)}: </strong>
+                    )}
+                    {match.slots.map((slot, index) => (
                       <>
-                        <span data-journey-fallback>
-                          {describeSlot(slot, sideSourceLabels(intl), match.sourceFinalRound)}
-                        </span>
-                        <Button
-                          hidden
-                          aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
-                            entrant: slot.name,
-                          })}
-                          aria-pressed="false"
-                          class="cl-journey-name"
-                          data-entrant-id={slot.entrantId}
-                          variant="secondary"
-                        >
-                          {slot.name}
-                        </Button>
+                        {index > 0 && ' — '}
+                        {slot.kind === 'entrant' && slot.entrantId !== undefined ? (
+                          <>
+                            <span data-journey-fallback>
+                              {describeSlot(slot, sideSourceLabels(intl), match.sourceFinalRound)}
+                            </span>
+                            <Button
+                              hidden
+                              aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
+                                entrant: slot.name,
+                              })}
+                              aria-pressed="false"
+                              class="cl-journey-name"
+                              data-entrant-id={slot.entrantId}
+                              variant="secondary"
+                            >
+                              {slot.name}
+                            </Button>
+                          </>
+                        ) : (
+                          <span>
+                            {describeSlot(slot, sideSourceLabels(intl), match.sourceFinalRound)}
+                          </span>
+                        )}
+                        {match.scores?.[index] !== undefined && (
+                          <span class="cl-row__figure cl-tabular-nums"> {match.scores[index]}</span>
+                        )}
+                        {outcomes[index] !== undefined && (
+                          <span> ({outcomeLabels[outcomes[index]!]})</span>
+                        )}
                       </>
-                    ) : (
-                      <span>
-                        {describeSlot(slot, sideSourceLabels(intl), match.sourceFinalRound)}
-                      </span>
-                    )}
-                    {match.scores?.[index] !== undefined && (
-                      <span class="cl-row__figure cl-tabular-nums"> {match.scores[index]}</span>
-                    )}
-                    {outcomes[index] !== undefined && (
-                      <span> ({outcomeLabels[outcomes[index]!]})</span>
-                    )}
-                  </>
-                ))}
-              </li>
-            );
-          })}
-        </ol>
+                    ))}
+                  </li>
+                );
+              })}
+            </ol>
+          </>
+        ))}
       </section>
     ))}
   </div>

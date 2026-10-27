@@ -1,5 +1,5 @@
 import { RealtimeClient } from '@copalibre/realtime';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { messages } from '../../i18n/messages.en.js';
 import {
@@ -18,6 +18,7 @@ import {
 } from '../screens/ScheduleBuilderTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
+import { PageHeaderContext } from '../ui/organisms/page-header.js';
 
 const EMPTY_DRAFT: DraftAssignment = {
   slotId: '',
@@ -52,6 +53,7 @@ export function ScheduleBuilderPage({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   const intl = useIntl();
+  const pageHeader = useContext(PageHeaderContext);
   const { push, pushError } = useToast();
   const api = useMemo(
     () =>
@@ -352,6 +354,7 @@ export function ScheduleBuilderPage({
         onSetDraft={setDraft}
         onToggleOfficial={toggleOfficial}
         organizationAlias={organizationAlias}
+        organizationTimeZone={pageHeader?.organizationTimeZone}
         placements={placements}
         previewed={previewed}
         reasonRequiredMatches={reasonRequiredMatches}

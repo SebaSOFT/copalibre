@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
 
 /**
  * Direct participant authoring from the registration-review
@@ -145,7 +146,7 @@ test('registers a walk-up entrant from the registration review screen, with no C
   await expect(row.getByText('Pendiente')).toBeVisible();
 });
 
-test("edits a directly-added team's name from the screen and sees the change immediately", async ({
+test("edits a directly-added team's name from the screen and sees the change immediately @visible-identifier-lint", async ({
   page,
 }) => {
   await mockRegistrationApi(page, [
@@ -154,6 +155,7 @@ test("edits a directly-added team's name from the screen and sees the change imm
       tournamentId: 't-1',
       status: 'pending',
       teamId: TEAM_ID,
+      displayName: 'Talleres',
     },
   ]);
   const target = '/control/liga-mendocina/tournaments/apertura-2026/registrations';
@@ -161,7 +163,8 @@ test("edits a directly-added team's name from the screen and sees the change imm
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByText(TEAM_ID).click();
+  await expectNoVisibleIdentifiers(page, FIXTURE_ALIASES);
+  await page.getByText('Talleres', { exact: true }).click();
   await page.getByRole('button', { name: 'Editar identidad', exact: true }).click();
 
   const dialog = page.getByRole('dialog', { name: 'Editar identidad' });

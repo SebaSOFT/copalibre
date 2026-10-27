@@ -3075,6 +3075,29 @@ export interface components {
              */
             emblemObjectId?: string;
         };
+        MyOrganizationResponse: {
+            /** Format: uuid */
+            organizationId: string;
+            /**
+             * @description Human-readable, URL-safe alias; globally unique per installation
+             * @example liga-orbital
+             */
+            organizationAlias: string;
+            /** @example Liga Orbital */
+            organizationName: string;
+            /** @example America/Argentina/Buenos_Aires */
+            timezone: string;
+            /**
+             * @description The caller's active role in this organization
+             * @enum {string}
+             */
+            role: "admin" | "club-admin" | "tournament-admin" | "referee" | "broadcaster" | "viewer";
+            /**
+             * Format: uuid
+             * @description Object storage ID of the organization emblem
+             */
+            emblemObjectId?: string;
+        };
         CreateOrganizationRequest: {
             /**
              * @description Lowercase kebab-case alias, unique per installation
@@ -3862,7 +3885,7 @@ export interface components {
             /** Format: uuid */
             personId?: string;
             /**
-             * @description The person entrant’s display name — absent for a team entrant.
+             * @description The person or team entrant’s human-readable display name.
              * @example Elías Salomón
              */
             displayName?: string;
@@ -4300,6 +4323,12 @@ export interface components {
             /** @description Short tactile-console badge text, e.g. 'GK', 'C'. Falls back to `code` when absent */
             badge?: string;
         };
+        ConsoleEligibleStaffResponse: {
+            /** Format: uuid */
+            personId: string;
+            /** @description The staff member’s human-readable display name */
+            displayName: string;
+        };
         ConsoleEntrantResponse: {
             /** Format: uuid */
             entrantId: string;
@@ -4336,6 +4365,8 @@ export interface components {
             rosterRoles: components["schemas"]["ConsoleRosterRoleResponse"][];
             /** @description Coaches and staff attached to an entrant contesting this match */
             eligibleStaffIds: string[];
+            /** @description Human-readable names for coaches and staff attached to an entrant contesting this match */
+            eligibleStaff: components["schemas"]["ConsoleEligibleStaffResponse"][];
             /** @description Entrants contesting this match, with the identity the console renders */
             entrants: components["schemas"]["ConsoleEntrantResponse"][];
             /**
@@ -5722,6 +5753,8 @@ export interface components {
             rescheduledFrom?: components["schemas"]["PublicPreviousPlacementResponse"] | null;
             organizationAlias: string;
             organizationName: string;
+            /** @description Organization's IANA time zone for public schedule labels */
+            organizationTimeZone?: string;
             tournamentAlias: string;
             tournamentName: string;
             disciplineImages?: components["schemas"]["PublicObjectReferenceResponse"][];
@@ -6629,6 +6662,14 @@ export interface components {
             /** @description Sets the zone’s own series; `null` clears it so the zone inherits its stage’s. Absent leaves it unchanged. */
             series?: components["schemas"]["SeriesDeclarationRequest"] | null;
         };
+        GroupEntrantResponse: {
+            /** Format: uuid */
+            entrantId: string;
+            /** @description The entrant’s human-readable display name. */
+            displayName?: string;
+            /** @description A short display label for a constrained layout. */
+            abbreviation?: string;
+        };
         GroupResponse: {
             /** Format: uuid */
             groupId: string;
@@ -6648,6 +6689,8 @@ export interface components {
              *     ]
              */
             entrantIds?: string[];
+            /** @description Human-readable labels for the entrants assigned to this group. */
+            entrants?: components["schemas"]["GroupEntrantResponse"][];
         };
         CreateGroupRequest: {
             /**
@@ -6960,12 +7003,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Public organizations by default; with ?mine=true, organizations available to the authenticated caller. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganizationResponse"][];
+                    "application/json": components["schemas"]["OrganizationResponse"][] | components["schemas"]["MyOrganizationResponse"][];
                 };
             };
         };

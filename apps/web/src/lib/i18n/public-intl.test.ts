@@ -1,7 +1,13 @@
 import {
   bracketBranchLabel,
   matchCardLabels,
+  formatActor,
+  formatDateTime,
+  formatEntrant,
+  formatEnum,
+  formatMatchRef,
   publicIntl,
+  PUBLIC_ENUM_VALUES,
   resultReasonLabels,
   resultStateLabels,
   seriesStateBarLabels,
@@ -173,6 +179,54 @@ describe('publicIntl formats real translated text, not an English fallback', () 
     expect(labels.seriesAriaLabel).toBe('Serie al mejor de {bestOf}: {home} a {away}');
     expect(labels.filters.live).toBe('En vivo');
     expect(labels.state.final).toBe('Finalizado');
+  });
+});
+
+describe('public presentation formatters', () => {
+  const locales = ['en', 'es', 'pt', 'fr', 'it', 'de', 'ru', 'zh'] as const;
+
+  it.each(locales)('%s labels every known public enum and hides unknown keys', (locale) => {
+    const intl = publicIntl(locale);
+    for (const kind of Object.keys(PUBLIC_ENUM_VALUES) as (keyof typeof PUBLIC_ENUM_VALUES)[]) {
+      for (const value of PUBLIC_ENUM_VALUES[kind]) {
+        const label = formatEnum(intl, kind, value);
+        expect(label).toBeTruthy();
+        expect(label).not.toBe(value);
+        expect(label).not.toBe(intl.formatMessage(messages.rulesetValueUnknown));
+      }
+      const unknown = formatEnum(intl, kind, 'future-machine-code');
+      expect(unknown).toBe(intl.formatMessage(messages.rulesetValueUnknown));
+      expect(unknown).not.toContain('future-machine-code');
+    }
+  });
+
+  it.each(locales)(
+    '%s resolves unnamed entrants and technical actors to translated labels',
+    (locale) => {
+      const intl = publicIntl(locale);
+      const entrant = formatEntrant(intl, {});
+      expect(entrant.fullName).toBe(intl.formatMessage(messages.presentationEntrantUnknown));
+      expect(formatActor(intl, 'system:demo-dataset')).toBe(
+        intl.formatMessage(messages.presentationActorDemoDataset),
+      );
+      expect(formatActor(intl, '01935bd3-7b4a-7a19-9c20-5a1a44600001')).toBe(
+        intl.formatMessage(messages.presentationActorUser),
+      );
+      expect(formatMatchRef(intl, 'SE-R3-M1', 4)).not.toBe('SE-R3-M1');
+    },
+  );
+
+  it('formats the same instant in the organization time zone', () => {
+    const intl = publicIntl('en');
+    const value = '2026-10-21T22:00:00.000Z';
+    const buenosAires = formatDateTime(intl, value, 'America/Argentina/Buenos_Aires');
+    const utc = formatDateTime(intl, value, 'UTC');
+
+    expect(buenosAires).toContain('7:00 PM');
+    expect(buenosAires).not.toBe(utc);
+    expect(formatDateTime(intl, 'not-a-date', 'UTC')).toBe(
+      intl.formatMessage(messages.rulesetValueUnknown),
+    );
   });
 });
 

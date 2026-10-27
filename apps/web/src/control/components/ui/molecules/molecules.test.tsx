@@ -247,14 +247,14 @@ describe('TableToolbar and Pagination', () => {
 
 describe('EntityIdentityCell', () => {
   it('derives initials from the local part of the email', () => {
-    render(<EntityIdentityCell email="ana.gomez@example.test" id="01800000-0000-7000-8000-abc" />);
+    render(<EntityIdentityCell email="ana.gomez@example.test" />);
     expect(screen.getByText('AG')).toBeDefined();
     expect(screen.getByText('ana.gomez@example.test')).toBeDefined();
-    expect(screen.getByText(/ID 8000-abc/)).toBeDefined();
+    expect(screen.queryByText(/ID /)).toBeNull();
   });
 
   it('falls back to a single "U" when no initials can be derived', () => {
-    render(<EntityIdentityCell email="@example.test" id="short" />);
+    render(<EntityIdentityCell email="@example.test" />);
     expect(screen.getByText('U')).toBeDefined();
   });
 });

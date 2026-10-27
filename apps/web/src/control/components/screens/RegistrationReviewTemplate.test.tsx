@@ -31,6 +31,7 @@ function renderPage(overrides: Partial<Parameters<typeof RegistrationReviewTempl
         onSetNationality={onSetNationality}
         onUploadPhoto={onUploadPhoto}
         organizationAlias="liga-orbital"
+        tournamentAlias="apertura-2026"
         rows={[row({ personId: 'person-1' })]}
         tournamentName="Copa Verano"
         {...overrides}
@@ -49,6 +50,15 @@ describe('registration review screen hierarchy', () => {
     expect(
       title.compareDocumentPosition(importButton) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expect(screen.getByText(/Copa Verano/)).toBeDefined();
+    expect(screen.queryByText(/liga-orbital/)).toBeNull();
+    expect(screen.queryByText(/apertura-2026/)).toBeNull();
+    expect(screen.getByRole('link', { name: 'Tournament settings' }).getAttribute('href')).toBe(
+      '/control/liga-orbital/tournaments/apertura-2026/settings',
+    );
+    expect(screen.queryByText('entrant-1')).toBeNull();
+    fireEvent.click(screen.getByText('Elías Salomón'));
+    expect(screen.getByRole('button', { name: 'Copy ID' })).toBeDefined();
     expect(screen.queryByLabelText('Entrants needing an abbreviation')).toBeNull();
   });
 
@@ -194,6 +204,7 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
           now="2026-08-01T00:00:00.000Z"
           onLinkIdentity={onLinkIdentity}
           organizationAlias="liga-orbital"
+          tournamentAlias="apertura-2026"
           rows={[row({ personId: 'person-1' })]}
           tournamentName="Copa Verano"
         />,
@@ -222,6 +233,7 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
           now="2026-08-01T00:00:00.000Z"
           onLinkIdentity={onLinkIdentity}
           organizationAlias="liga-orbital"
+          tournamentAlias="apertura-2026"
           rows={[row({ personId: 'person-1' })]}
           tournamentName="Copa Verano"
         />,
@@ -247,6 +259,7 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
           now="2026-08-01T00:00:00.000Z"
           onUnlinkIdentity={onUnlinkIdentity}
           organizationAlias="liga-orbital"
+          tournamentAlias="apertura-2026"
           rows={[row({ personId: 'person-1', hasIdentityLink: true })]}
           tournamentName="Copa Verano"
         />,
@@ -274,6 +287,7 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
           now="2026-08-01T00:00:00.000Z"
           onBulkReview={onBulkReview}
           organizationAlias="liga-orbital"
+          tournamentAlias="apertura-2026"
           rows={[row({ personId: 'person-1' })]}
           tournamentName="Copa Verano"
         />,

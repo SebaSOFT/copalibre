@@ -634,10 +634,12 @@ test.describe('B2: public tournament page', () => {
     await expect(
       page.getByRole('heading', { level: 1, name: 'Talleres vs Independiente' }),
     ).toBeVisible();
-    await expect(page.locator('.cl-scoreboard__side--home .cl-team-name')).toHaveText('TAL');
+    await expect(page.locator('.cl-scoreboard__side--home .cl-team-name')).toHaveText('Talleres');
     await expect(page.locator('.cl-scoreboard__side--home .cl-team-score')).toHaveText('2');
     await expect(page.locator('.cl-scoreboard__side--away .cl-team-score')).toHaveText('1');
-    await expect(page.locator('.cl-scoreboard__side--away .cl-team-name')).toHaveText('IND');
+    await expect(page.locator('.cl-scoreboard__side--away .cl-team-name')).toHaveText(
+      'Independiente',
+    );
     await expect(page.getByText('Marta Referee — referee')).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Sofía Gómez' })).toBeVisible();
     await expect(page.getByText('Goal')).toBeVisible();

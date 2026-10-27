@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
+import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
 
 /**
  * The match report page's officials, rosters, and event
@@ -18,6 +19,7 @@ const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const populatedMatchReport = {
   organizationAlias: ORGANIZATION,
   organizationName: 'Liga Mendocina',
+  organizationTimeZone: 'America/Argentina/Buenos_Aires',
   tournamentAlias: TOURNAMENT_ALIAS,
   tournamentName: 'Apertura 2026',
   stageNumber: 1,
@@ -96,12 +98,13 @@ test.afterAll(async () => {
 });
 
 test.describe('Match report localization and timestamps', () => {
-  test('renders localized section headings and a humanized timestamp in a non-English locale', async ({
+  test('renders localized section headings and a humanized timestamp in a non-English locale @visible-identifier-lint', async ({
     page,
   }) => {
     await page.goto(
       `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${MATCH}`,
     );
+    await expectNoVisibleIdentifiers(page, FIXTURE_ALIASES);
 
     // Section headings render in Spanish, not the hardcoded English strings.
     await expect(page.getByRole('heading', { name: 'Árbitros' })).toBeVisible();

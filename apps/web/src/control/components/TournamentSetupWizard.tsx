@@ -54,6 +54,7 @@ import { initialStages } from '../lib/stage-authoring.js';
 import type { HookScriptVocabulary, HookVocabularyEntry } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
 import { localizedText } from '../../lib/localized-label.js';
+import { formatDateTimeInputHint } from '../lib/presentation-formatting.js';
 
 /** Fields the wizard's own dedicated steps already capture — excluded from the generic list. */
 const RESERVED_RULESET_FIELDS = new Set([
@@ -608,12 +609,14 @@ function WindowStep({
       />
       {state.requiresCheckIn && (
         <Field
+          helpText={formatDateTimeInputHint(intl)}
           id="wizard-check-in-closes-at"
           label={intl.formatMessage(messages.wizardFieldCheckInClosesAt)}
         >
           <Input
-            aria-describedby="wizard-check-in-closes-at-hint"
+            aria-describedby="wizard-check-in-closes-at-help wizard-check-in-closes-at-hint"
             id="wizard-check-in-closes-at"
+            lang={intl.locale}
             onChange={(event) => patch({ checkInClosesAt: event.target.value })}
             type="datetime-local"
             value={state.checkInClosesAt ?? ''}

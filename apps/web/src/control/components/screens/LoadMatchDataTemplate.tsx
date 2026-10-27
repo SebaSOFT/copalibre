@@ -24,6 +24,7 @@ import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { formatDateTimeInputHint } from '../../lib/presentation-formatting.js';
 
 interface MemberSelection {
   readonly included: boolean;
@@ -92,10 +93,8 @@ function downloadCsvTemplate(): void {
  */
 export function LoadMatchDataTemplate({
   candidatesByEntrant,
-  matchId,
   onSubmit,
   projection,
-  tournamentAlias,
 }: {
   readonly candidatesByEntrant: ReadonlyMap<string, readonly RosterCandidate[]>;
   readonly matchId: string;
@@ -285,15 +284,6 @@ export function LoadMatchDataTemplate({
       setSubmitting(false);
     }
   }
-
-  const breadcrumbNode = (
-    <span>
-      {intl.formatMessage(messages.loadMatchDataBreadcrumb, {
-        tournamentAlias,
-        matchId: matchId.slice(-8),
-      })}
-    </span>
-  );
 
   const titleNode = <FormattedMessage {...messages.loadMatchDataTitle} />;
 
@@ -505,12 +495,15 @@ export function LoadMatchDataTemplate({
                     />
                   </Field>
                   <Field
+                    helpText={formatDateTimeInputHint(intl)}
                     id={`event-occurred-${row.key}`}
                     label={intl.formatMessage(messages.loadMatchDataEventOccurredAt)}
                   >
                     <Input
                       aria-label={intl.formatMessage(messages.loadMatchDataEventOccurredAt)}
+                      aria-describedby={`event-occurred-${row.key}-help`}
                       id={`event-occurred-${row.key}`}
+                      lang={intl.locale}
                       onChange={(event) => updateEvent(row.key, { occurredAt: event.target.value })}
                       type="datetime-local"
                       value={row.occurredAt}
@@ -687,5 +680,5 @@ export function LoadMatchDataTemplate({
     </div>
   );
 
-  return <ListScreenLayout breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
+  return <ListScreenLayout listing={listingNode} title={titleNode} />;
 }

@@ -661,7 +661,9 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
       - run: yarn playwright install --with-deps chromium
       - name: Run E2E test shard
-        run: PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --shard=${{ matrix.shard }}
+        run: PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --grep-invert @visible-identifier-lint --shard=${{ matrix.shard }}
+      - name: Run visible-identifier lint
+        run: PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --grep @visible-identifier-lint --shard=${{ matrix.shard }}
       # A retry that rescues a test passes the job, so list those tests where a reviewer looks.
       - name: List flaky E2E tests
         if: always()

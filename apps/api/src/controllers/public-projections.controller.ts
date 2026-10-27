@@ -608,10 +608,8 @@ export class PublicProjectionsController {
     @Param('stageNumber') stageNumberValue: string,
     @Param('matchNumber') matchNumberValue: string,
   ): Promise<PublicMatchReportResponse> {
-    const { tournament, organizationName } = await this.resolvePublishedTournament(
-      organizationAlias,
-      tournamentAlias,
-    );
+    const { tournament, organizationName, organizationTimeZone } =
+      await this.resolvePublishedTournament(organizationAlias, tournamentAlias);
     const stageNumber = Number(stageNumberValue);
     const matchNumber = Number(matchNumberValue);
     if (
@@ -740,6 +738,7 @@ export class PublicProjectionsController {
     return {
       organizationAlias,
       organizationName,
+      organizationTimeZone,
       tournamentAlias,
       tournamentName: tournament.name,
       ...(descriptor.images === undefined

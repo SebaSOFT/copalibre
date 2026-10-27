@@ -5,6 +5,7 @@ import { Badge } from '../ui/atoms/badge.js';
 import { Card } from '../ui/atoms/card.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { formatEnum } from '../../lib/presentation-formatting.js';
 
 /**
  * The Tournament hub: the first real Tournament → Stage link
@@ -57,7 +58,8 @@ export function TournamentHubTemplate({
                     href={href}
                     onClick={controlLinkClick(href)}
                   >
-                    <strong>{stage.number}.</strong> {stage.name} ({stage.format})
+                    <strong>{stage.number}.</strong> {stage.name} (
+                    {formatEnum(intl, 'format', stage.format)})
                   </a>
                   <Badge
                     label={intl.formatMessage(

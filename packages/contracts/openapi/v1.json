@@ -121,14 +121,24 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Public organizations by default; with ?mine=true, organizations available to the authenticated caller.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/OrganizationResponse"
-                  }
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OrganizationResponse"
+                      }
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MyOrganizationResponse"
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -12388,6 +12398,52 @@
           "timezone"
         ]
       },
+      "MyOrganizationResponse": {
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationAlias": {
+            "type": "string",
+            "description": "Human-readable, URL-safe alias; globally unique per installation",
+            "example": "liga-orbital"
+          },
+          "organizationName": {
+            "type": "string",
+            "example": "Liga Orbital"
+          },
+          "timezone": {
+            "type": "string",
+            "example": "America/Argentina/Buenos_Aires"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "club-admin",
+              "tournament-admin",
+              "referee",
+              "broadcaster",
+              "viewer"
+            ],
+            "description": "The caller's active role in this organization"
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Object storage ID of the organization emblem"
+          }
+        },
+        "required": [
+          "organizationId",
+          "organizationAlias",
+          "organizationName",
+          "timezone",
+          "role"
+        ]
+      },
       "CreateOrganizationRequest": {
         "type": "object",
         "properties": {
@@ -14199,7 +14255,7 @@
           },
           "displayName": {
             "type": "string",
-            "description": "The person entrant’s display name — absent for a team entrant.",
+            "description": "The person or team entrant’s human-readable display name.",
             "example": "Elías Salomón"
           },
           "nationality": {
@@ -15339,6 +15395,23 @@
           "label"
         ]
       },
+      "ConsoleEligibleStaffResponse": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "The staff member’s human-readable display name"
+          }
+        },
+        "required": [
+          "personId",
+          "displayName"
+        ]
+      },
       "ConsoleEntrantResponse": {
         "type": "object",
         "properties": {
@@ -15488,6 +15561,13 @@
               "type": "string"
             }
           },
+          "eligibleStaff": {
+            "description": "Human-readable names for coaches and staff attached to an entrant contesting this match",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsoleEligibleStaffResponse"
+            }
+          },
           "entrants": {
             "description": "Entrants contesting this match, with the identity the console renders",
             "type": "array",
@@ -15531,6 +15611,7 @@
           "rosters",
           "rosterRoles",
           "eligibleStaffIds",
+          "eligibleStaff",
           "entrants",
           "capabilities",
           "projectionVersion"
@@ -19272,6 +19353,10 @@
           "organizationName": {
             "type": "string"
           },
+          "organizationTimeZone": {
+            "type": "string",
+            "description": "Organization's IANA time zone for public schedule labels"
+          },
           "tournamentAlias": {
             "type": "string"
           },
@@ -21693,6 +21778,26 @@
           }
         }
       },
+      "GroupEntrantResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "The entrant’s human-readable display name."
+          },
+          "abbreviation": {
+            "type": "string",
+            "description": "A short display label for a constrained layout."
+          }
+        },
+        "required": [
+          "entrantId"
+        ]
+      },
       "GroupResponse": {
         "type": "object",
         "properties": {
@@ -21721,6 +21826,13 @@
             "type": "array",
             "items": {
               "type": "string"
+            }
+          },
+          "entrants": {
+            "description": "Human-readable labels for the entrants assigned to this group.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupEntrantResponse"
             }
           }
         },

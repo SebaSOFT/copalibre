@@ -50,6 +50,7 @@ const bracketData = {
       matches: [
         {
           matchId: 'WB-R1-M1',
+          matchNumber: 1,
           bracket: 'winners',
           round: 1,
           position: 1,
@@ -61,6 +62,7 @@ const bracketData = {
         },
         {
           matchId: 'WB-R1-M2',
+          matchNumber: 2,
           bracket: 'winners',
           round: 1,
           position: 2,
@@ -72,6 +74,7 @@ const bracketData = {
         },
         {
           matchId: 'WB-R2-M1',
+          matchNumber: 3,
           bracket: 'winners',
           round: 2,
           position: 1,
@@ -163,9 +166,9 @@ test('shows the bracket-context panel with the current match emphasized, and lin
 
   // The current match's node (Talleres vs Independiente, round one) is marked with a heavier edge
   // and `aria-current`, so the mark does not rest on colour.
-  const focusedNode = panel
-    .locator('.cl-bracket-stage__node--focused')
-    .filter({ hasText: 'Talleres' });
+  const focusedNode = panel.locator(
+    '.cl-bracket-stage__scroll--full .cl-bracket-stage__node[aria-current="true"]',
+  );
   await expect(focusedNode).toHaveCount(1);
   await expect(focusedNode).toHaveAttribute('aria-current', 'true');
 

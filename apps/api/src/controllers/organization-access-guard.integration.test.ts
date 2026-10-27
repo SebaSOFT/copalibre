@@ -129,6 +129,7 @@ describe('organization access guards (integration)', () => {
           organizationId,
           organizationAlias: 'liga-segura',
           organizationName: 'Liga Segura',
+          timezone: 'UTC',
           role: 'admin',
         },
       ]);

@@ -10,7 +10,8 @@ import type {
   ZoneResponse,
 } from '../../lib/api-client.js';
 import { SERIES_RESOLUTION_CLASSES } from '../../lib/stage-authoring.js';
-import { SERIES_CLASS_LABELS, STAGE_FORMAT_LABELS } from '../../lib/stage-format-labels.js';
+import { SERIES_CLASS_LABELS } from '../../lib/stage-format-labels.js';
+import { formatEnum } from '../../lib/presentation-formatting.js';
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
@@ -601,8 +602,7 @@ function ZoneConfiguration({
     zone.series?.resolutionClass ?? 'best-of',
   );
   const formatName = (format: string): string => {
-    const label = STAGE_FORMAT_LABELS[format];
-    return label === undefined ? format : intl.formatMessage(label);
+    return formatEnum(intl, 'format', format);
   };
   const playing = formatName(zone.effectiveFormat ?? zone.format ?? stageFormat);
   const spanValue = Number.parseInt(span, 10);

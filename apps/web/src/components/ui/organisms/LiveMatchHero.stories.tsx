@@ -79,6 +79,7 @@ const meta = {
   args: {
     initial: DASHBOARD,
     streamPath: '/stories/no-stream',
+    versusLabel: publicIntl('en').formatMessage(publicMessages.tickerVersus),
     usingLastKnownText: '',
     noMatchesText: publicIntl('en').formatMessage(publicMessages.livePageNoMatches),
     nextKickoffText: publicIntl('en').formatMessage(publicMessages.livePageNextKickoff),
@@ -99,6 +100,7 @@ export const UsingLastKnown: Story = {
         initial={DASHBOARD}
         resultStateLabels={labelsFor(locale)}
         streamPath="/stories/no-stream"
+        versusLabel={publicIntl(locale).formatMessage(publicMessages.tickerVersus)}
         usingLastKnownText={publicIntl(locale).formatMessage(publicMessages.liveUsingLastKnown)}
         noMatchesText={publicIntl(locale).formatMessage(publicMessages.livePageNoMatches)}
         nextKickoffText={publicIntl(locale).formatMessage(publicMessages.livePageNextKickoff)}
@@ -118,6 +120,7 @@ export const NoMatches: Story = {
         initial={{ matches: [], standingsVersion: 0, usingLastKnown: false }}
         resultStateLabels={labelsFor(locale)}
         streamPath="/stories/no-stream"
+        versusLabel={publicIntl(locale).formatMessage(publicMessages.tickerVersus)}
         usingLastKnownText=""
         noMatchesText={publicIntl(locale).formatMessage(publicMessages.livePageNoMatches)}
         nextKickoffText={publicIntl(locale).formatMessage(publicMessages.livePageNextKickoff)}

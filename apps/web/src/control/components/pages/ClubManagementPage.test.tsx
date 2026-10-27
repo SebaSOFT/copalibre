@@ -71,6 +71,7 @@ describe('ClubManagementPage', () => {
                   organizationId: 'org-1',
                   organizationAlias: 'liga-mendocina',
                   organizationName: 'Liga Mendocina',
+                  timezone: 'America/Argentina/Buenos_Aires',
                   role: 'referee' as const,
                 },
               ]),

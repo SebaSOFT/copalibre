@@ -237,6 +237,26 @@ describe('MatchCard', () => {
     const timestamp = container.querySelector('time.cl-responsive-timestamp');
     expect(timestamp?.textContent).toContain(expectedMonth);
   });
+
+  it("renders scheduled timestamps in the organization's time zone", () => {
+    const instant = '2025-05-18T03:30:00.000Z';
+    const timeZone = 'America/Argentina/Buenos_Aires';
+    const { container } = render(
+      <MatchCard
+        match={baseMatch({ scheduledAt: instant })}
+        labels={labels}
+        locale="en"
+        timeZone={timeZone}
+      />,
+    );
+    const timestamp = container.querySelector('time.cl-responsive-timestamp');
+    const expected = new Intl.DateTimeFormat('en', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+      timeZone,
+    }).format(new Date(instant));
+    expect(timestamp?.getAttribute('title')).toBe(expected);
+  });
 });
 
 describe('MatchCard undecided sides', () => {

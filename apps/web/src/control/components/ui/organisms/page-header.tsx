@@ -11,7 +11,13 @@ export interface PageHeaderBreadcrumb {
 export interface PageHeaderContextValue {
   readonly organizationAlias?: string;
   readonly organizationName?: string;
+  readonly organizationNameFallback?: string;
+  readonly organizationTimeZone?: string;
   readonly organizationNameLoading?: boolean;
+  readonly tournamentAlias?: string;
+  readonly tournamentName?: string;
+  readonly tournamentNameFallback?: string;
+  readonly tournamentNameLoading?: boolean;
   readonly breadcrumbLabel: string;
   readonly loadingLabel: string;
 }
@@ -37,6 +43,36 @@ function isMissingPageHeaderTitle(title: ReactNode | null | undefined): boolean 
   );
 }
 
+function resolveBreadcrumbName(
+  name: string | undefined,
+  fallback: string | undefined,
+  loading: boolean | undefined,
+): string | undefined {
+  return name?.trim() || (loading ? undefined : fallback);
+}
+
+function organizationBreadcrumb(
+  context: PageHeaderContextValue | undefined,
+  label: string | undefined,
+): PageHeaderBreadcrumb | undefined {
+  if (!context?.organizationAlias || !label) return undefined;
+  return {
+    label,
+    href: `/control/${encodeURIComponent(context.organizationAlias)}`,
+  };
+}
+
+function tournamentBreadcrumb(
+  context: PageHeaderContextValue | undefined,
+  label: string | undefined,
+): PageHeaderBreadcrumb | undefined {
+  if (!context?.organizationAlias || !context.tournamentAlias || !label) return undefined;
+  return {
+    label,
+    href: `/control/${encodeURIComponent(context.organizationAlias)}/tournaments/${encodeURIComponent(context.tournamentAlias)}`,
+  };
+}
+
 function PageHeaderBreadcrumbs({
   context,
   breadcrumbs,
@@ -52,31 +88,50 @@ function PageHeaderBreadcrumbs({
   readonly loadingLabel: string;
   readonly breadcrumbLabel: string;
 }): React.JSX.Element | null {
-  const organizationBreadcrumb =
-    context?.organizationAlias && context.organizationName
-      ? {
-          label: context.organizationName,
-          href: `/control/${encodeURIComponent(context.organizationAlias)}`,
-        }
-      : undefined;
+  const organizationName = resolveBreadcrumbName(
+    context?.organizationName,
+    context?.organizationNameFallback,
+    context?.organizationNameLoading,
+  );
+  const tournamentName = resolveBreadcrumbName(
+    context?.tournamentName,
+    context?.tournamentNameFallback,
+    context?.tournamentNameLoading,
+  );
+  const organizationCrumb = organizationBreadcrumb(context, organizationName);
+  const tournamentCrumb = tournamentBreadcrumb(context, tournamentName);
   const hasOrganizationBreadcrumb =
-    organizationBreadcrumb !== undefined &&
-    (breadcrumbs ?? []).some((item) => item.label === organizationBreadcrumb.label);
+    organizationCrumb !== undefined &&
+    (breadcrumbs ?? []).some((item) => item.label === organizationCrumb.label);
+  const hasTournamentBreadcrumb =
+    tournamentCrumb !== undefined &&
+    (breadcrumbs ?? []).some((item) => item.label === tournamentCrumb.label);
   const organizationNamePending =
     context?.organizationNameLoading ??
     (context?.organizationAlias !== undefined &&
       context.organizationName === undefined &&
       !hasOrganizationBreadcrumb);
+  const tournamentNamePending = context?.tournamentNameLoading === true && !hasTournamentBreadcrumb;
   const contextualBreadcrumbs: readonly PageHeaderBreadcrumb[] = [
-    ...(!hasOrganizationBreadcrumb && organizationBreadcrumb ? [organizationBreadcrumb] : []),
+    ...(!hasOrganizationBreadcrumb && organizationCrumb ? [organizationCrumb] : []),
+    ...(!hasTournamentBreadcrumb && tournamentCrumb ? [tournamentCrumb] : []),
     ...(breadcrumbs ?? []),
   ];
 
-  if (contextualBreadcrumbs.length > 0 || organizationNamePending) {
+  if (contextualBreadcrumbs.length > 0 || organizationNamePending || tournamentNamePending) {
     return (
       <nav aria-label={breadcrumbLabel} className="cl-page-header__breadcrumb">
         <ol>
           {organizationNamePending && (
+            <li>
+              <Skeleton
+                className="cl-page-header__breadcrumb-skeleton"
+                label={loadingLabel}
+                variant="line"
+              />
+            </li>
+          )}
+          {tournamentNamePending && (
             <li>
               <Skeleton
                 className="cl-page-header__breadcrumb-skeleton"

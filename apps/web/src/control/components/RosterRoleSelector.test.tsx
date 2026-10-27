@@ -81,7 +81,7 @@ describe('RosterRoleSelector', () => {
     expect(screen.getByText(/No members on this team yet/)).toBeDefined();
   });
 
-  it('falls back to personId when displayName is absent', () => {
+  it('uses a translated placeholder when displayName is absent', () => {
     const onChange = jest.fn();
     render(
       withIntl(
@@ -98,7 +98,8 @@ describe('RosterRoleSelector', () => {
       ),
     );
 
-    expect(screen.getByText('p-anon')).toBeDefined();
+    expect(screen.getByText('Unnamed entrant')).toBeDefined();
+    expect(screen.queryByText('p-anon')).toBeNull();
     const select = screen.getByTestId('role-select-p-anon');
     fireEvent.change(select, { target: { value: 'coach' } });
     expect(onChange).toHaveBeenCalledTimes(1);

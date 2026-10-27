@@ -2087,13 +2087,14 @@ function compositions(): string {
      * outcomes, and it is what renders below the graph's floor or wherever the
      * graph cannot represent a topology.
      */
-    '.cl-bracket-stage__outline { display: grid; gap: var(--cl-space-4); margin: 0; padding: 0; }',
+    '.cl-bracket-stage__outline { display: none; gap: var(--cl-space-4); margin: 0; padding: 0; }',
     '.cl-bracket-stage__outline-branch { display: grid; gap: var(--cl-space-2); }',
     '.cl-bracket-stage__outline-list { margin: 0; padding-left: var(--cl-space-5); display: grid; gap: var(--cl-space-1); }',
     '.cl-bracket-stage__outline-list li { overflow-wrap: anywhere; }',
     '',
     `@media (max-width: ${BREAKPOINTS.sm}) {`,
     '  .cl-bracket-stage__scroll { display: none; }',
+    '  .cl-bracket-stage__outline { display: grid; }',
     '}',
     // Two drawings of one bracket: cards where there is room, abbreviations and scores where there
     // is not. The breakpoint is the one the textual view already uses.
@@ -2102,9 +2103,6 @@ function compositions(): string {
     '}',
     `@media (min-width: ${BREAKPOINTS.md}) {`,
     '  .cl-bracket-stage__scroll--compact { display: none; }',
-    '}',
-    `@media (min-width: ${BREAKPOINTS.md}) {`,
-    '  .cl-bracket-stage__outline { display: none; }',
     '}',
     '',
     // A stack of editorial cards, each already framed by the card owner.

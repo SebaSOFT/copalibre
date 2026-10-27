@@ -102,13 +102,13 @@ describe('TvBracketView', () => {
 
   it('names an unresolved slot by its source match rather than leaving it blank', () => {
     render(<TvBracketView labels={labels} zones={zones()} />);
-    expect(screen.getByText('G P1').getAttribute('title')).toBe('Ganador de Partido 1');
-    expect(screen.getByText('G P3').getAttribute('title')).toBe('Ganador de Partido 3');
+    expect(screen.getByLabelText('Ganador de Partido 1')).toBeDefined();
+    expect(screen.getByLabelText('Ganador de Partido 3')).toBeDefined();
   });
 
   it('composes the control chamfer on every matchup card', () => {
-    render(<TvBracketView labels={labels} zones={zones()} />);
-    const cards = screen.getAllByLabelText(/Partido \d/);
+    const { container } = render(<TvBracketView labels={labels} zones={zones()} />);
+    const cards = container.querySelectorAll('article.tv-bracket-card');
     expect(cards).toHaveLength(2);
     for (const card of cards) {
       expect(card.className).toContain('cl-chamfer');
