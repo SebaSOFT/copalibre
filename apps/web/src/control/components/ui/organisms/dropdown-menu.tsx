@@ -14,7 +14,7 @@ import * as RadixDropdownMenu from '@radix-ui/react-dropdown-menu';
 export interface DropdownMenuItem {
   readonly id: string;
   readonly label: string;
-  readonly onSelect: () => void;
+  readonly onSelect: (trigger: HTMLElement | null) => void;
   /** `destructive` carries the same tone the destructive button variants do. */
   readonly variant?: 'default' | 'destructive';
   readonly disabled?: boolean;
@@ -70,7 +70,15 @@ export function DropdownMenu({
               data-variant={item.variant ?? 'default'}
               disabled={item.disabled ?? false}
               key={item.id}
-              onSelect={item.onSelect}
+              onSelect={(event) => {
+                const selectedItem = event.currentTarget;
+                const menu =
+                  selectedItem instanceof HTMLElement
+                    ? selectedItem.closest('[role="menu"]')
+                    : null;
+                const triggerId = menu?.getAttribute('aria-labelledby');
+                item.onSelect(triggerId ? document.getElementById(triggerId) : null);
+              }}
             >
               {item.label}
             </RadixDropdownMenu.Item>

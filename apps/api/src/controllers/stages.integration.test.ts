@@ -203,7 +203,7 @@ describe('stage creation routes (integration)', () => {
   });
 
   function request(options: {
-    method: 'GET' | 'POST';
+    method: 'GET' | 'POST' | 'DELETE';
     url: string;
     token?: string;
     payload?: unknown;
@@ -743,6 +743,137 @@ describe('stage creation routes (integration)', () => {
         expect(refusal?.resulting_state).toBeNull();
       },
     );
+
+    it('previews a seeded stage removal without writes and deletes only after exact-name confirmation', async () => {
+      const created = await request({
+        method: 'POST',
+        url: base,
+        token: 'organizer',
+        payload: { name: 'Fase para eliminar' },
+      });
+      expect(created.statusCode).toBe(201);
+      const { stageId, number } = created.json();
+      const stageUrl = `${base}/${number}`;
+      const seedingUrl = `${stageUrl}/seeding`;
+      const seedPreview = await request({ method: 'GET', url: seedingUrl, token: 'organizer' });
+      expect(seedPreview.statusCode).toBe(200);
+      const seeded = await request({
+        method: 'POST',
+        url: seedingUrl,
+        token: 'organizer',
+        payload: { seeds: seedPreview.json().seeds },
+      });
+      expect(seeded.statusCode).toBe(200);
+
+      const fixturesBefore = await scratch.db
+        .selectFrom('fixtures')
+        .select('fixture_id')
+        .where('stage_id', '=', stageId)
+        .execute();
+      const matchesBefore = await scratch.db
+        .selectFrom('matches')
+        .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+        .select('matches.match_id')
+        .where('fixtures.stage_id', '=', stageId)
+        .execute();
+      expect(fixturesBefore.length).toBeGreaterThan(0);
+      expect(matchesBefore.length).toBeGreaterThan(0);
+
+      const preview = await request({
+        method: 'DELETE',
+        url: `${stageUrl}?dryRun=true`,
+        token: 'organizer',
+        payload: {},
+      });
+      expect(preview.statusCode).toBe(200);
+      expect(preview.json()).toMatchObject({
+        stageId,
+        stageName: 'Fase para eliminar',
+        dryRun: true,
+        success: false,
+        fixtures: fixturesBefore.length,
+        matches: matchesBefore.length,
+      });
+      await expect(
+        scratch.db
+          .selectFrom('stages')
+          .select('stage_id')
+          .where('stage_id', '=', stageId)
+          .execute(),
+      ).resolves.toHaveLength(1);
+      await expect(
+        scratch.db
+          .selectFrom('fixtures')
+          .select('fixture_id')
+          .where('stage_id', '=', stageId)
+          .execute(),
+      ).resolves.toHaveLength(fixturesBefore.length);
+
+      const wrongConfirmation = await request({
+        method: 'DELETE',
+        url: stageUrl,
+        token: 'organizer',
+        payload: { confirmationName: 'Otra fase' },
+      });
+      expect(wrongConfirmation.statusCode).toBe(409);
+
+      const deleted = await request({
+        method: 'DELETE',
+        url: stageUrl,
+        token: 'organizer',
+        payload: { confirmationName: 'Fase para eliminar' },
+      });
+      expect(deleted.statusCode).toBe(200);
+      expect(deleted.json()).toMatchObject({
+        stageId,
+        stageName: 'Fase para eliminar',
+        dryRun: false,
+        success: true,
+        fixtures: fixturesBefore.length,
+        matches: matchesBefore.length,
+      });
+      await expect(
+        scratch.db
+          .selectFrom('stages')
+          .select('stage_id')
+          .where('stage_id', '=', stageId)
+          .execute(),
+      ).resolves.toHaveLength(0);
+      await expect(
+        scratch.db
+          .selectFrom('fixtures')
+          .select('fixture_id')
+          .where('stage_id', '=', stageId)
+          .execute(),
+      ).resolves.toHaveLength(0);
+      await expect(
+        scratch.db
+          .selectFrom('matches')
+          .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+          .select('matches.match_id')
+          .where('fixtures.stage_id', '=', stageId)
+          .execute(),
+      ).resolves.toHaveLength(0);
+      const audit = await scratch.db
+        .selectFrom('audit_log')
+        .select(['action', 'actor', 'resulting_state'])
+        .where('entity_type', '=', 'stage')
+        .where('entity_id', '=', stageId)
+        .where('action', '=', 'stage.deleted')
+        .executeTakeFirstOrThrow();
+      expect(audit).toMatchObject({
+        actor: 'user:organizer-1',
+        resulting_state: { consequences: { fixtures: fixturesBefore.length } },
+      });
+      await expect(
+        scratch.db
+          .selectFrom('outbox_events')
+          .select('event_type')
+          .where('entity_id', '=', stageId)
+          .where('event_type', '=', 'stage.deleted')
+          .execute(),
+      ).resolves.toHaveLength(1);
+    });
   });
 
   describe('stage allocation', () => {

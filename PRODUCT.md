@@ -106,6 +106,10 @@ JSON is installed through `apps/seed`. Do not describe a descriptor as a shipped
 - Public and broadcast surfaces must be durable and complete without JavaScript.
 - Identifiers are UUIDs; public aliases are lowercase kebab-case. Personal data is not exposed
   unnecessarily.
+- The organizer explicitly declares whether a tournament includes minors; birth dates never infer
+  age-based publication rules. Youth participant names are public only when youth profiles are
+  enabled, and protected profiles omit links, photos, nationality and career statistics. Adults may
+  opt out of public identity. Privacy changes never alter match results or standings.
 - Domain packages stay framework-free.
 
 **Domain language.** `roster` means the selected players of one entrant in one match, and nothing

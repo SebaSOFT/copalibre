@@ -116,7 +116,7 @@ export function ZoneGroupTemplate({
 
   const [newZoneName, setNewZoneName] = useState('');
   const [zoneNameDrafts, setZoneNameDrafts] = useState<Record<number, string>>({});
-  const [zoneMode, setZoneMode] = useState<AssignMode>('draw');
+  const [zoneMode, setZoneMode] = useState<AssignMode | undefined>(undefined);
   const [zoneCount, setZoneCount] = useState('1');
   const [zoneSeed, setZoneSeed] = useState('1');
   const [zonePlacements, setZonePlacements] = useState<ManualPlacements>({});
@@ -124,7 +124,7 @@ export function ZoneGroupTemplate({
 
   const [newGroupName, setNewGroupName] = useState('');
   const [groupNameDrafts, setGroupNameDrafts] = useState<Record<number, string>>({});
-  const [groupMode, setGroupMode] = useState<AssignMode>('draw');
+  const [groupMode, setGroupMode] = useState<AssignMode | undefined>(undefined);
   const [groupCount, setGroupCount] = useState('1');
   const [groupSeed, setGroupSeed] = useState('1');
   const [groupPlacements, setGroupPlacements] = useState<ManualPlacements>({});
@@ -190,6 +190,9 @@ export function ZoneGroupTemplate({
           </h2>
         </header>
         <div className="cl-card__content">
+          <p className="cl-form-field__help" role="note">
+            {intl.formatMessage(messages.zoneGroupDeleteHelp)}
+          </p>
           <ul>
             {zones.map((zone) => (
               <li key={zone.number} className="cl-role-user">
@@ -314,7 +317,7 @@ export function ZoneGroupTemplate({
                 <FormattedMessage {...messages.zoneGroupConfirmDraw} />
               </Button>
             </div>
-          ) : (
+          ) : zoneMode === 'manual' ? (
             <div>
               <ul>
                 {entrants.map((entrant) => (
@@ -341,6 +344,8 @@ export function ZoneGroupTemplate({
                 <FormattedMessage {...messages.zoneGroupSaveAssignment} />
               </Button>
             </div>
+          ) : (
+            <p role="status">{intl.formatMessage(messages.zoneGroupChooseAssignmentMode)}</p>
           )}
 
           {zonePreview && (
@@ -378,6 +383,9 @@ export function ZoneGroupTemplate({
               </h2>
             </header>
             <div className="cl-card__content">
+              <p className="cl-form-field__help" role="note">
+                {intl.formatMessage(messages.zoneGroupDeleteHelp)}
+              </p>
               <ul>
                 {groups.map((group) => (
                   <li key={group.number} className="cl-role-user">
@@ -518,7 +526,7 @@ export function ZoneGroupTemplate({
                     <FormattedMessage {...messages.zoneGroupConfirmDraw} />
                   </Button>
                 </div>
-              ) : (
+              ) : groupMode === 'manual' ? (
                 <div>
                   <ul>
                     {zoneEntrantIds.map((entrantId) => (
@@ -545,6 +553,8 @@ export function ZoneGroupTemplate({
                     <FormattedMessage {...messages.zoneGroupSaveAssignment} />
                   </Button>
                 </div>
+              ) : (
+                <p role="status">{intl.formatMessage(messages.zoneGroupChooseAssignmentMode)}</p>
               )}
 
               {groupPreview && (

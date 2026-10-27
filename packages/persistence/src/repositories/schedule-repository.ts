@@ -156,6 +156,7 @@ export class ScheduleRepository {
         address: input.address ?? null,
         details: input.details === undefined ? null : JSON.stringify(input.details),
         created_at: new Date(),
+        deleted_at: null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -177,6 +178,7 @@ export class ScheduleRepository {
       .selectFrom('venues')
       .selectAll()
       .where('organization_id', '=', organizationId)
+      .where('deleted_at', 'is', null)
       .orderBy('name')
       .execute();
     return rows.map(toVenue);
@@ -187,8 +189,115 @@ export class ScheduleRepository {
       .selectFrom('venues')
       .selectAll()
       .where('venue_id', '=', venueId)
+      .where('deleted_at', 'is', null)
       .executeTakeFirst();
     return row ? toVenue(row) : undefined;
+  }
+
+  async deleteVenue(
+    uow: UnitOfWork,
+    input: { readonly venueId: string; readonly organizationId: string } & Omit<
+      AuditContext,
+      'organizationId'
+    >,
+  ): Promise<Venue> {
+    const locked = await lockRowsForMutation(
+      this.db,
+      uow.tx
+        .selectFrom('venues')
+        .selectAll()
+        .where('venue_id', '=', input.venueId)
+        .where('organization_id', '=', input.organizationId)
+        .orderBy('venue_id'),
+    )
+      .execute()
+      .then((rows) => rows[0]);
+    if (!locked || locked.deleted_at !== null) {
+      throw new NotFoundError(`Venue ${input.venueId} does not exist`, { venueId: input.venueId });
+    }
+
+    const scheduleUse = await uow.tx
+      .selectFrom('schedule_venues')
+      .select('schedule_id')
+      .where('venue_id', '=', input.venueId)
+      .executeTakeFirst();
+    if (scheduleUse) {
+      throw new InvariantViolationError('Cannot remove a venue used by a schedule', {
+        venueId: input.venueId,
+      });
+    }
+
+    const deletedAt = new Date();
+    const row = await uow.tx
+      .updateTable('venues')
+      .set({ deleted_at: deletedAt })
+      .where('venue_id', '=', input.venueId)
+      .where('organization_id', '=', input.organizationId)
+      .where('deleted_at', 'is', null)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    const venue = toVenue(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'venue',
+      entityId: input.venueId,
+      action: 'venue.deleted',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { ...venue },
+      resultingState: { deletedAt: deletedAt.toISOString() },
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `organization:${input.organizationId}`,
+      entityId: input.venueId,
+      eventType: 'venue.deleted',
+      projectionVersion: 1,
+      payload: { venueId: input.venueId, deletedAt: deletedAt.toISOString(), actor: input.actor },
+    });
+    return venue;
+  }
+
+  async restoreVenue(
+    uow: UnitOfWork,
+    input: { readonly venueId: string; readonly organizationId: string } & Omit<
+      AuditContext,
+      'organizationId'
+    >,
+  ): Promise<Venue> {
+    const undoDeadline = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const row = await uow.tx
+      .updateTable('venues')
+      .set({ deleted_at: null })
+      .where('venue_id', '=', input.venueId)
+      .where('organization_id', '=', input.organizationId)
+      .where('deleted_at', '>', undoDeadline)
+      .returningAll()
+      .executeTakeFirst();
+    if (!row) {
+      throw new NotFoundError(`Venue ${input.venueId} is no longer available to restore`, {
+        venueId: input.venueId,
+      });
+    }
+    const venue = toVenue(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'venue',
+      entityId: input.venueId,
+      action: 'venue.restored',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { ...venue },
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `organization:${input.organizationId}`,
+      entityId: input.venueId,
+      eventType: 'venue.restored',
+      projectionVersion: 1,
+      payload: { venueId: input.venueId, actor: input.actor },
+    });
+    return venue;
   }
 
   async updateVenue(
@@ -214,6 +323,7 @@ export class ScheduleRepository {
         ...(input.details === undefined ? {} : { details: JSON.stringify(input.details) }),
       })
       .where('venue_id', '=', input.venueId)
+      .where('deleted_at', 'is', null)
       .returningAll()
       .executeTakeFirstOrThrow();
 
@@ -365,11 +475,20 @@ export class ScheduleRepository {
     if (!valid.ok) throw new InvariantViolationError(valid.error.message, { scheduleId });
 
     // Verify all venueIds belong to the organization
+    await lockRowsForMutation(
+      this.db,
+      uow.tx
+        .selectFrom('venues')
+        .select('venue_id')
+        .where('venue_id', 'in', input.venueIds)
+        .orderBy('venue_id'),
+    ).execute();
     const venues = await uow.tx
       .selectFrom('venues')
       .select('venue_id')
       .where('organization_id', '=', input.organizationId)
       .where('venue_id', 'in', input.venueIds)
+      .where('deleted_at', 'is', null)
       .execute();
     if (venues.length !== input.venueIds.length) {
       throw new InvariantViolationError('One or more venues do not belong to the organization', {
@@ -699,30 +818,172 @@ export class ScheduleRepository {
     return result;
   }
 
-  async removeSchedule(
-    uow: UnitOfWork,
-    input: { readonly scheduleId: string; readonly organizationId: string } & Omit<
-      AuditContext,
-      'organizationId'
-    >,
-  ): Promise<void> {
-    const previous = await this.findSchedule(input.scheduleId);
-    if (!previous) return;
-
-    const occupied = await uow.tx
+  async previewRemoveSchedule(scheduleId: string): Promise<{
+    readonly slots: number;
+    readonly matchesUnassigned: number;
+  }> {
+    const slots = await this.db
+      .selectFrom('schedule_slots')
+      .select('slot_id')
+      .where('schedule_id', '=', scheduleId)
+      .execute();
+    const matches = await this.db
       .selectFrom('match_schedule_assignments')
       .innerJoin('schedule_slots', 'schedule_slots.slot_id', 'match_schedule_assignments.slot_id')
-      .select('schedule_slots.slot_id')
+      .select('match_schedule_assignments.match_id')
+      .where('schedule_slots.schedule_id', '=', scheduleId)
+      .execute();
+    return { slots: slots.length, matchesUnassigned: matches.length };
+  }
+
+  async removeSchedule(
+    uow: UnitOfWork,
+    input: {
+      readonly scheduleId: string;
+      readonly organizationId: string;
+      readonly confirmationName: string;
+    } & Omit<AuditContext, 'organizationId'>,
+  ): Promise<{ readonly slots: number; readonly matchesUnassigned: number }> {
+    const schedule = await uow.tx
+      .selectFrom('schedules')
+      .select(['schedule_id', 'name'])
+      .where('schedule_id', '=', input.scheduleId)
+      .forUpdate()
+      .executeTakeFirst();
+    if (!schedule) return { slots: 0, matchesUnassigned: 0 };
+    if (schedule.name !== input.confirmationName) {
+      throw new InvariantViolationError('Schedule name confirmation did not match', {
+        scheduleId: input.scheduleId,
+      });
+    }
+
+    const previous = await this.findSchedule(input.scheduleId);
+    if (!previous) return { slots: 0, matchesUnassigned: 0 };
+
+    const assignments = await uow.tx
+      .selectFrom('match_schedule_assignments')
+      .innerJoin('schedule_slots', 'schedule_slots.slot_id', 'match_schedule_assignments.slot_id')
+      .innerJoin('matches', 'matches.match_id', 'match_schedule_assignments.match_id')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .select([
+        'match_schedule_assignments.match_id',
+        'schedule_slots.slot_id',
+        'schedule_slots.venue_id',
+        'schedule_slots.starts_at',
+        'fixtures.stage_id',
+      ])
       .where('schedule_slots.schedule_id', '=', input.scheduleId)
       .execute();
 
-    if (occupied.length > 0) {
-      throw new InvariantViolationError(
-        'Cannot delete schedule while its slots hold matches; unassign matches first',
-        { scheduleId: input.scheduleId, occupiedSlots: occupied.map((o) => o.slot_id) },
-      );
+    const slots = await uow.tx
+      .selectFrom('schedule_slots')
+      .select('slot_id')
+      .where('schedule_id', '=', input.scheduleId)
+      .execute();
+    const matchIds = assignments.map((assignment) => assignment.match_id);
+    const officials =
+      matchIds.length === 0
+        ? []
+        : await uow.tx
+            .selectFrom('match_schedule_officials')
+            .select(['match_id', 'official_id'])
+            .where('match_id', 'in', matchIds)
+            .orderBy('official_id')
+            .execute();
+    const officialsByMatch = new Map<string, string[]>();
+    for (const official of officials) {
+      const list = officialsByMatch.get(official.match_id) ?? [];
+      list.push(official.official_id);
+      officialsByMatch.set(official.match_id, list);
+    }
+    const venues =
+      assignments.length === 0
+        ? []
+        : await uow.tx
+            .selectFrom('venues')
+            .select(['venue_id', 'alias', 'name'])
+            .where('venue_id', 'in', [
+              ...new Set(assignments.map((assignment) => assignment.venue_id)),
+            ])
+            .where('deleted_at', 'is', null)
+            .execute();
+    const venueById = new Map(
+      venues.map((venue) => [venue.venue_id, { alias: venue.alias, name: venue.name }]),
+    );
+    const projectionStore = new ProjectionStore(uow.tx);
+
+    for (const assignment of assignments) {
+      const priorOfficialIds = officialsByMatch.get(assignment.match_id) ?? [];
+      await uow.tx
+        .insertInto('match_schedule_history')
+        .values({
+          history_id: newId(),
+          match_id: assignment.match_id,
+          prior_slot_id: assignment.slot_id,
+          prior_starts_at: String(assignment.starts_at),
+          prior_venue_id: assignment.venue_id,
+          prior_official_ids: JSON.stringify(priorOfficialIds),
+          resulting_slot_id: null,
+          reason_code: null,
+          reason: 'Schedule deleted',
+          actor: input.actor,
+          changed_at: new Date(),
+        })
+        .execute();
+      await uow.recordAudit({
+        organizationId: input.organizationId,
+        entityType: 'match',
+        entityId: assignment.match_id,
+        action: 'schedule.placement-withdrawn',
+        actor: input.actor,
+        authorizationContext: input.authorizationContext,
+        previousState: {
+          slotId: assignment.slot_id,
+          startsAt: Number(assignment.starts_at),
+          venueId: assignment.venue_id,
+          officialIds: priorOfficialIds,
+        },
+        resultingState: { slotId: null, officialIds: [] },
+        reason: 'Schedule deleted after consequence confirmation',
+      });
+      const projectionVersion = await projectionStore.nextVersion(uow, {
+        projectionType: 'match-schedule',
+        entityId: assignment.match_id,
+      });
+      await uow.publishEvent({
+        organizationId: input.organizationId,
+        stream: `match:${assignment.match_id}`,
+        entityId: assignment.match_id,
+        eventType: 'match.rescheduled',
+        projectionVersion,
+        payload: {
+          matchId: assignment.match_id,
+          stageId: assignment.stage_id,
+          startsAt: null,
+          estimatedEnd: null,
+          venue: null,
+          withdrawn: true,
+          previous: {
+            startsAt: Number(assignment.starts_at),
+            venue: venueById.get(assignment.venue_id) ?? null,
+          },
+          actor: input.actor,
+          actorName: input.actor,
+          officialIds: [],
+        },
+      });
     }
 
+    if (matchIds.length > 0) {
+      await uow.tx
+        .deleteFrom('match_schedule_officials')
+        .where('match_id', 'in', matchIds)
+        .execute();
+      await uow.tx
+        .deleteFrom('match_schedule_assignments')
+        .where('match_id', 'in', matchIds)
+        .execute();
+    }
     await uow.tx.deleteFrom('schedule_slots').where('schedule_id', '=', input.scheduleId).execute();
     await uow.tx
       .deleteFrom('schedule_venues')
@@ -738,7 +999,23 @@ export class ScheduleRepository {
       actor: input.actor,
       authorizationContext: input.authorizationContext,
       previousState: { ...previous },
+      resultingState: { slots: slots.length, matchesUnassigned: matchIds.length },
+      reason: 'Schedule deleted after consequence confirmation',
     });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `organization:${input.organizationId}`,
+      entityId: input.scheduleId,
+      eventType: 'schedule.deleted',
+      projectionVersion: 1,
+      payload: {
+        scheduleId: input.scheduleId,
+        slots: slots.length,
+        matchesUnassigned: matchIds.length,
+        actor: input.actor,
+      },
+    });
+    return { slots: slots.length, matchesUnassigned: matchIds.length };
   }
 
   // ---------------------------------------------------------------------------
@@ -1344,6 +1621,7 @@ export class ScheduleRepository {
       .selectFrom('venues')
       .selectAll()
       .where('organization_id', '=', organizationId)
+      .where('deleted_at', 'is', null)
       .execute();
 
     const slotRows = await executor

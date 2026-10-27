@@ -25,6 +25,7 @@ const meta = {
   args: {
     canCreateTournament: true,
     canManageDisplayTokens: true,
+    canManageTournamentLifecycle: true,
     devices: [],
     failed: false,
     loading: false,
@@ -33,6 +34,7 @@ const meta = {
     onArchive: () => undefined,
     onExport: () => undefined,
     onExportConfiguration: () => undefined,
+    onPublish: () => undefined,
     onRetry: () => undefined,
     organizationAlias: ORG,
     staleSince: undefined,
@@ -41,6 +43,25 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};
+export const DraftReadyToPublish: Story = {
+  args: {
+    model: buildDashboard({
+      organizationId: ids.organization,
+      tournaments: [
+        {
+          tournamentId: ids.tournament,
+          organizationId: ids.organization,
+          alias: TOURNAMENT,
+          name: TITLE,
+          lifecycle: 'draft',
+          matchesToday: 0,
+          pendingRegistrations: 0,
+        },
+      ],
+      activity: auditRecords,
+    }),
+  },
+};
 export const Empty: Story = {
   args: {
     model: buildDashboard({ organizationId: ids.organization, tournaments: [], activity: [] }),

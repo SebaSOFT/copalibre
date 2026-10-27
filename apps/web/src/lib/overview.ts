@@ -43,6 +43,8 @@ export interface StandingsRowView {
   readonly position: number;
   readonly entrantId?: string;
   readonly name: string;
+  readonly hiddenAtRequest?: boolean;
+  readonly publicProfileAvailable?: boolean;
   readonly abbreviation?: string;
   readonly clubId?: string;
   readonly emblemObjectId?: string;

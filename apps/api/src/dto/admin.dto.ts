@@ -10,9 +10,20 @@ export class StatisticsRebuildRequest {
   @IsOptional()
   @IsString()
   tournamentAlias?: string;
+
+  @ApiPropertyOptional({
+    default: false,
+    description: 'Returns exact recomputation counts without changing statistic projections.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  dryRun?: boolean;
 }
 
 export class StatisticsRebuildResponse {
+  @ApiProperty({ description: 'True when this response only previews the rebuild.' })
+  dryRun!: boolean;
+
   @ApiProperty({ example: 'liga-orbital' })
   organizationAlias!: string;
 

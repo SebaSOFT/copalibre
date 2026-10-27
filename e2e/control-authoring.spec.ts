@@ -329,6 +329,13 @@ async function capturedRequests(page: Page): Promise<readonly CapturedRequest[]>
   });
 }
 
+async function continueWithNoMinors(page: Page): Promise<void> {
+  await page
+    .getByRole('radio', { name: 'No, este torneo no tiene participantes menores de edad' })
+    .check();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+}
+
 test('creates a tournament from the control authoring wizard', async ({ page }) => {
   await mockControlApi(page);
   const target = '/control/liga-mendocina/tournaments/new';
@@ -338,7 +345,7 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
 
   await page.getByLabel('Nombre').fill('Apertura Local');
   await page.getByLabel('Alias').fill('apertura-local');
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  await continueWithNoMinors(page);
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
@@ -423,7 +430,7 @@ test('sets a discipline-declared rule field during creation, beyond format/regis
 
   await page.getByLabel('Nombre').fill('Copa Reglas');
   await page.getByLabel('Alias').fill('copa-reglas');
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  await continueWithNoMinors(page);
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
@@ -467,7 +474,7 @@ test('authors a three-stage tournament with a mix of allocation modes, and every
 
   await page.getByLabel('Nombre').fill('Copa Multi Fase');
   await page.getByLabel('Alias').fill('copa-multi-fase');
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  await continueWithNoMinors(page);
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   // Stage 1 (declared by default): automatic seeding, round-robin.
@@ -578,7 +585,7 @@ test('instantiates a tournament from a profile, previewing its stages read-only 
 
   await page.getByLabel('Nombre').fill('Copa Desde Perfil');
   await page.getByLabel('Alias').fill('copa-desde-perfil');
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  await continueWithNoMinors(page);
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   await page.getByLabel('Perfil de competición').selectOption('profile-001');
@@ -648,6 +655,11 @@ test('shows step badge states and explains blocked tournament wizard progression
 
   await page.getByLabel('Nombre').fill('Copa Progreso');
   await page.getByLabel('Alias').fill('copa-progreso');
+  await expect(continueButton).toBeDisabled();
+  await expect(page.locator('#wizard-problems')).toContainText('menores');
+  await page
+    .getByRole('radio', { name: 'No, este torneo no tiene participantes menores de edad' })
+    .check();
   await expect(continueButton).toBeEnabled();
   await continueButton.click();
 
@@ -675,6 +687,12 @@ test('completes tournament authoring via keyboard and without overflow at 375px'
   // Fill Step 1 (name & alias)
   await page.getByLabel('Nombre').fill('Copa Teclado');
   await page.getByLabel('Alias').fill('copa-teclado');
+  const noMinors = page.getByRole('radio', {
+    name: 'No, este torneo no tiene participantes menores de edad',
+  });
+  await noMinors.focus();
+  await noMinors.press('Space');
+  await expect(noMinors).toBeChecked();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   // Step 2 (discipline)
@@ -720,6 +738,9 @@ test('explains every decision on every wizard step, reachable by keyboard with n
 
   await page.getByLabel('Nombre').fill('Copa Explicada');
   await page.getByLabel('Alias').fill('copa-explicada');
+  await page
+    .getByRole('radio', { name: 'No, este torneo no tiene participantes menores de edad' })
+    .check();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   // Discipline step: the decision hint is bound to the control via
@@ -768,7 +789,7 @@ test('states a blocked_after_results decision cannot change after the first resu
 
   await page.getByLabel('Nombre').fill('Copa Bloqueada');
   await page.getByLabel('Alias').fill('copa-bloqueada');
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  await continueWithNoMinors(page);
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   // The organizer has not chosen a format yet — the wizard states the
@@ -802,7 +823,7 @@ test('shows a named backend rule refusal without replacing it with a generic err
 
   await page.getByLabel('Nombre').fill('Copa Regla Inválida');
   await page.getByLabel('Alias').fill('copa-regla-invalida');
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  await continueWithNoMinors(page);
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
@@ -916,7 +937,7 @@ test('previews first stage structure on the format step and updates on format ch
 
   await page.getByLabel('Nombre').fill('Apertura Preview Test');
   await page.getByLabel('Alias').fill('apertura-preview-test');
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  await continueWithNoMinors(page);
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   const preview = page.getByTestId('stage-structure-preview');
@@ -945,7 +966,7 @@ test('setting registration capacity updates preview entrant count and removes il
 
   await page.getByLabel('Nombre').fill('Apertura Capacity Test');
   await page.getByLabel('Alias').fill('apertura-capacity-test');
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  await continueWithNoMinors(page);
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   await page.locator('#stage-1-format').selectOption('single-elimination');
@@ -984,7 +1005,7 @@ test('declares a stage zone plan with a league zone overriding the stage format'
 
   await page.getByLabel('Nombre').fill('Copa Zonas');
   await page.getByLabel('Alias').fill('copa-zonas');
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  await continueWithNoMinors(page);
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   await page.getByLabel('Formato de la fase').selectOption('single-elimination');

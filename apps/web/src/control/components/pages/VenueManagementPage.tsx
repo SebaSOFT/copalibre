@@ -5,6 +5,7 @@ import {
   createControlApiClient,
   type ControlApiClient,
   type OfficialRole,
+  type ScheduleDeletionResponse,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import { useToast } from '../ToastProvider.js';
@@ -108,6 +109,42 @@ export function VenueManagementPage({
     }
   }
 
+  async function restoreVenue(venueId: string): Promise<void> {
+    if (!api.restoreVenue) return;
+    try {
+      await api.restoreVenue(organizationAlias, venueId);
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.resourceManagementVenueRestored),
+      });
+      void reload();
+    } catch (error) {
+      pushError(error);
+    }
+  }
+
+  async function deleteVenue(venueId: string): Promise<boolean> {
+    if (!api.deleteVenue) return false;
+    try {
+      const result = await api.deleteVenue(organizationAlias, venueId);
+      if (!result.success) return false;
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.resourceManagementVenueDeleted),
+        durationMs: 10_000,
+        action: {
+          label: intl.formatMessage(messages.seedingUndo),
+          onAction: () => void restoreVenue(venueId),
+        },
+      });
+      void reload();
+      return true;
+    } catch (error) {
+      pushError(error);
+      return false;
+    }
+  }
+
   async function createOfficial(name: string, roles: readonly OfficialRole[]): Promise<boolean> {
     if (!api.createOfficial || name.trim() === '' || roles.length === 0) return false;
     try {
@@ -198,10 +235,16 @@ export function VenueManagementPage({
     }
   }
 
-  async function deleteSchedule(scheduleId: string): Promise<boolean> {
+  async function deleteSchedule(scheduleId: string, confirmationName: string): Promise<boolean> {
     if (!api.deleteSchedule) return false;
     try {
-      await api.deleteSchedule(organizationAlias, scheduleId);
+      const result = await api.deleteSchedule(
+        organizationAlias,
+        scheduleId,
+        false,
+        confirmationName,
+      );
+      if (!result.success) return false;
       push({
         severity: 'success',
         message: intl.formatMessage(messages.resourceManagementScheduleDeleted),
@@ -211,6 +254,18 @@ export function VenueManagementPage({
     } catch (error) {
       pushError(error);
       return false;
+    }
+  }
+
+  async function previewDeleteSchedule(
+    scheduleId: string,
+  ): Promise<ScheduleDeletionResponse | undefined> {
+    if (!api.deleteSchedule) return undefined;
+    try {
+      return await api.deleteSchedule(organizationAlias, scheduleId, true);
+    } catch (error) {
+      pushError(error);
+      return undefined;
     }
   }
 
@@ -226,6 +281,8 @@ export function VenueManagementPage({
         onCreateSchedule={createSchedule}
         onCreateVenue={createVenue}
         onDeleteSchedule={deleteSchedule}
+        onDeleteVenue={deleteVenue}
+        onPreviewDeleteSchedule={previewDeleteSchedule}
         onSaveOfficial={saveOfficial}
         onSaveSchedule={saveSchedule}
         onSaveVenue={saveVenue}

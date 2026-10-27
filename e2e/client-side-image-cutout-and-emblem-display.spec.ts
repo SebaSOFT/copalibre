@@ -39,6 +39,9 @@ async function mockIdentityUploadApi(page: import('@playwright/test').Page): Pro
           });
         }
 
+        if (url === '/api/auth/pat/scopes' && method === 'GET') {
+          return Response.json({ scopes: [] });
+        }
         if (url === '/api/auth/pat' && method === 'GET') return Response.json([]);
         if (url === `/organizations/${orgAlias}/storage-usage` && method === 'GET') {
           return Response.json({ totalBytes: 0, objectCount: 0 });

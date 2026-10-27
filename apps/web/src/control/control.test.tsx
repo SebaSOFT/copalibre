@@ -387,10 +387,12 @@ describe('what the dashboard renders', () => {
       withIntl(
         <Card
           canManageDisplayTokens
+          canManageTournamentLifecycle={false}
           card={card({ lifecycle })}
           onArchive={() => {}}
           onExport={() => {}}
           onExportConfiguration={() => {}}
+          onPublish={() => {}}
           organizationAlias="liga-mendocina"
         />,
       ),
@@ -406,10 +408,12 @@ describe('what the dashboard renders', () => {
       withIntl(
         <Card
           canManageDisplayTokens
+          canManageTournamentLifecycle={false}
           card={card({ lifecycle: 'live' })}
           onArchive={() => {}}
           onExport={() => {}}
           onExportConfiguration={() => {}}
+          onPublish={() => {}}
           organizationAlias="liga-mendocina"
         />,
       ),
@@ -425,10 +429,12 @@ describe('what the dashboard renders', () => {
       withIntl(
         <Card
           canManageDisplayTokens
+          canManageTournamentLifecycle={false}
           card={card({ lifecycle: 'live' })}
           onArchive={() => {}}
           onExport={() => {}}
           onExportConfiguration={() => {}}
+          onPublish={() => {}}
           organizationAlias="liga-mendocina"
         />,
       ),
@@ -448,10 +454,12 @@ describe('what the dashboard renders', () => {
       withIntl(
         <Card
           canManageDisplayTokens
+          canManageTournamentLifecycle={false}
           card={card({ lifecycle: 'draft' })}
           onArchive={() => {}}
           onExport={() => {}}
           onExportConfiguration={() => {}}
+          onPublish={() => {}}
           organizationAlias="liga-mendocina"
         />,
       ),
@@ -465,9 +473,11 @@ describe('what the dashboard renders', () => {
   it('offers archiving only on a finished tournament', () => {
     const props = {
       canManageDisplayTokens: true,
+      canManageTournamentLifecycle: false,
       onArchive: () => {},
       onExport: () => {},
       onExportConfiguration: () => {},
+      onPublish: () => {},
       organizationAlias: 'liga-mendocina',
     };
     const { unmount } = render(withIntl(<Card card={card({ lifecycle: 'live' })} {...props} />));
@@ -483,10 +493,12 @@ describe('what the dashboard renders', () => {
       withIntl(
         <Card
           canManageDisplayTokens
+          canManageTournamentLifecycle={false}
           card={card({ lifecycle: 'live' })}
           onArchive={() => {}}
           onExport={() => {}}
           onExportConfiguration={() => {}}
+          onPublish={() => {}}
           organizationAlias="liga-mendocina"
         />,
       ),
@@ -510,10 +522,12 @@ describe('what the dashboard renders', () => {
       withIntl(
         <Card
           canManageDisplayTokens
+          canManageTournamentLifecycle={false}
           card={card({ lifecycle: 'live' })}
           onArchive={() => {}}
           onExport={() => {}}
           onExportConfiguration={() => {}}
+          onPublish={() => {}}
           organizationAlias="liga-mendocina"
         />,
       ),
@@ -531,10 +545,12 @@ describe('what the dashboard renders', () => {
       withIntl(
         <Card
           canManageDisplayTokens={false}
+          canManageTournamentLifecycle={false}
           card={card({ lifecycle: 'live' })}
           onArchive={() => {}}
           onExport={() => {}}
           onExportConfiguration={() => {}}
+          onPublish={() => {}}
           organizationAlias="liga-mendocina"
         />,
       ),
@@ -554,6 +570,7 @@ describe('what the dashboard renders', () => {
       <Dashboard
         canCreateTournament
         canManageDisplayTokens
+        canManageTournamentLifecycle={false}
         model={model}
         organizationAlias="liga-mendocina"
       />,
@@ -572,6 +589,7 @@ describe('what the dashboard renders', () => {
       <Dashboard
         canCreateTournament
         canManageDisplayTokens
+        canManageTournamentLifecycle={false}
         model={buildDashboard({ organizationId: 'org-1', tournaments: [], activity: [] })}
         organizationAlias="liga-mendocina"
       />,
@@ -618,15 +636,67 @@ describe('what the dashboard renders', () => {
         <Dashboard
           canCreateTournament
           canManageDisplayTokens
+          canManageTournamentLifecycle={false}
           model={buildDashboard({ organizationId: 'org-1', tournaments: [card()], activity: [] })}
           organizationAlias="liga-mendocina"
         />,
       );
-      // The exports live behind the card's own menu now, so each is chosen the
-      // way an operator chooses it: open the menu, pick the item. Radix closes
-      // the menu on select, hence the reopen before each one.
+      // Individual exports preview their personal-data columns first. The
+      // remaining exports live behind the same menu and download directly.
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Exportar' }), {
+        code: 'Enter',
+        key: 'Enter',
+      });
+      fireEvent.click(
+        await screen.findByRole('menuitem', { name: 'CSV de participantes individuales' }),
+      );
+      expect(screen.getByRole('dialog', { name: 'Datos personales del archivo' })).toBeDefined();
+      const participantName = screen.getByRole('checkbox', { name: 'Nombre de la persona' });
+      const identityDocument = screen.getByRole('checkbox', {
+        name: 'Documento de identidad (tipo y número)',
+      });
+      expect(participantName.getAttribute('aria-checked')).toBe('true');
+      expect(identityDocument.getAttribute('aria-checked')).toBe('false');
+      fireEvent.click(participantName);
+      fireEvent.click(identityDocument);
+      fireEvent.click(screen.getByRole('button', { name: 'Descargar CSV' }));
+      await waitFor(() => expect(requests).toHaveLength(1));
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: 'Datos personales del archivo' })).toBeNull(),
+      );
+      expect(requests[0]).toContain('?excludePersonalData=displayName');
+
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Exportar' }), {
+        code: 'Enter',
+        key: 'Enter',
+      });
+      fireEvent.click(
+        await screen.findByRole('menuitem', { name: 'CSV de participantes individuales' }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: 'Datos personales del archivo' })).toBeNull(),
+      );
+      expect(requests).toHaveLength(1);
+
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Exportar' }), {
+        code: 'Enter',
+        key: 'Enter',
+      });
+      fireEvent.click(
+        await screen.findByRole('menuitem', { name: 'CSV de participantes individuales' }),
+      );
+      fireEvent.keyDown(screen.getByRole('dialog', { name: 'Datos personales del archivo' }), {
+        code: 'Escape',
+        key: 'Escape',
+      });
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: 'Datos personales del archivo' })).toBeNull(),
+      );
+      expect(requests).toHaveLength(1);
+
       for (const name of [
-        'Participantes CSV',
+        'CSV de equipos',
         'Resultados CSV',
         'Posiciones CSV',
         'Exportar configuración JSON',
@@ -638,14 +708,15 @@ describe('what the dashboard renders', () => {
         fireEvent.click(await screen.findByRole('menuitem', { name }));
       }
 
-      await waitFor(() => expect(click).toHaveBeenCalledTimes(4));
+      await waitFor(() => expect(click).toHaveBeenCalledTimes(5));
       expect(requests).toEqual([
+        '/organizations/liga-mendocina/tournaments/apertura-2026/exports/participants/individual?excludePersonalData=displayName',
         '/organizations/liga-mendocina/tournaments/apertura-2026/exports/participants/team',
         '/organizations/liga-mendocina/tournaments/apertura-2026/exports/results',
         '/organizations/liga-mendocina/tournaments/apertura-2026/exports/standings',
         '/organizations/liga-mendocina/tournaments/apertura-2026/export',
       ]);
-      expect(createObjectUrl).toHaveBeenCalledTimes(4);
+      expect(createObjectUrl).toHaveBeenCalledTimes(5);
       expect(createObjectUrl).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'application/json' }),
       );
@@ -682,6 +753,7 @@ describe('what the dashboard renders', () => {
       <Dashboard
         canCreateTournament
         canManageDisplayTokens
+        canManageTournamentLifecycle={false}
         model={buildDashboard({
           organizationId: 'org-1',
           tournaments: [card({ lifecycle: 'finished' })],
@@ -749,6 +821,7 @@ describe('what the dashboard renders', () => {
       <Dashboard
         canCreateTournament
         canManageDisplayTokens
+        canManageTournamentLifecycle={false}
         model={buildDashboard({ organizationId: 'org-1', tournaments: [card()], activity: [] })}
         organizationAlias="liga-mendocina"
       />,

@@ -39,6 +39,12 @@ export interface RevokePatInput {
   readonly authorizationContext: string;
 }
 
+export interface PatRevocationPreview {
+  readonly reversible: boolean;
+  readonly tokens: number;
+  readonly lastUsedAt?: string;
+}
+
 /** What the API auth guard needs to know a PAT authorizes. */
 export interface PatScope {
   readonly tokenId: string;
@@ -79,6 +85,7 @@ export class PersonalAccessTokenRepository {
         revoked_at: null,
         last_used_at: null,
         created_at: now,
+        deleted_at: null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -103,13 +110,20 @@ export class PersonalAccessTokenRepository {
       .selectAll()
       .where('token_id', '=', input.tokenId)
       .where('principal_id', '=', input.principalId)
+      .where('revoked_at', 'is', null)
+      .where('deleted_at', 'is', null)
       .executeTakeFirst();
     if (!existing) throw new NotFoundError('Personal access token was not found');
 
+    const reversible = existing.last_used_at === null;
+    const revokedAt = new Date();
     const row = await uow.tx
       .updateTable('personal_access_tokens')
-      .set({ revoked_at: new Date() })
+      .set({ revoked_at: revokedAt, ...(reversible ? { deleted_at: revokedAt } : {}) })
       .where('token_id', '=', input.tokenId)
+      .where('principal_id', '=', input.principalId)
+      .where('revoked_at', 'is', null)
+      .where('deleted_at', 'is', null)
       .returningAll()
       .executeTakeFirstOrThrow();
 
@@ -122,7 +136,53 @@ export class PersonalAccessTokenRepository {
       actor: input.actor,
       authorizationContext: input.authorizationContext,
       previousState: { revoked: existing.revoked_at !== null },
-      resultingState: { revoked: true },
+      resultingState: { revoked: true, reversible, tokens: 1, lastUsedAt: existing.last_used_at },
+    });
+    return pat;
+  }
+
+  async previewRevoke(
+    tokenId: string,
+    principalId: string,
+  ): Promise<PatRevocationPreview | undefined> {
+    const existing = await this.db
+      .selectFrom('personal_access_tokens')
+      .select(['last_used_at'])
+      .where('token_id', '=', tokenId)
+      .where('principal_id', '=', principalId)
+      .where('revoked_at', 'is', null)
+      .where('deleted_at', 'is', null)
+      .executeTakeFirst();
+    if (!existing) return undefined;
+    return {
+      reversible: existing.last_used_at === null,
+      tokens: 1,
+      ...(existing.last_used_at === null ? {} : { lastUsedAt: toIsoString(existing.last_used_at) }),
+    };
+  }
+
+  async restore(uow: UnitOfWork, input: RevokePatInput): Promise<PersonalAccessToken> {
+    const restored = await uow.tx
+      .updateTable('personal_access_tokens')
+      .set({ revoked_at: null, deleted_at: null })
+      .where('token_id', '=', input.tokenId)
+      .where('principal_id', '=', input.principalId)
+      .where('last_used_at', 'is', null)
+      .where('deleted_at', '>', new Date(Date.now() - 24 * 60 * 60 * 1000))
+      .returningAll()
+      .executeTakeFirst();
+    if (!restored) {
+      throw new NotFoundError('Personal access token is no longer available to restore');
+    }
+    const pat = toPat(restored);
+    await uow.recordAudit({
+      organizationId: '00000000-0000-0000-0000-000000000000',
+      entityType: 'personal-access-token',
+      entityId: input.tokenId,
+      action: 'pat.restored',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { revoked: false },
     });
     return pat;
   }
@@ -133,6 +193,7 @@ export class PersonalAccessTokenRepository {
       .selectFrom('personal_access_tokens')
       .select((eb) => eb.fn.count<string>('token_id').as('count'))
       .where('revoked_at', 'is', null)
+      .where('deleted_at', 'is', null)
       .where('expires_at', '>', new Date())
       .executeTakeFirstOrThrow();
     return Number(row.count);
@@ -148,6 +209,7 @@ export class PersonalAccessTokenRepository {
       .select(['token_id', 'principal_id', 'scopes'])
       .where('token_hash', '=', tokenHash)
       .where('revoked_at', 'is', null)
+      .where('deleted_at', 'is', null)
       .where('expires_at', '>', new Date())
       .executeTakeFirst();
     if (!row) return undefined;
@@ -165,6 +227,8 @@ export class PersonalAccessTokenRepository {
       .updateTable('personal_access_tokens')
       .set({ last_used_at: new Date() })
       .where('token_id', '=', tokenId)
+      .where('revoked_at', 'is', null)
+      .where('deleted_at', 'is', null)
       .where((eb) =>
         eb.or([eb('last_used_at', 'is', null), eb('last_used_at', '<', observationWindowStart)]),
       )
@@ -176,6 +240,7 @@ export class PersonalAccessTokenRepository {
       .selectFrom('personal_access_tokens')
       .selectAll()
       .where('principal_id', '=', principalId)
+      .where('deleted_at', 'is', null)
       .orderBy('created_at', 'desc')
       .execute();
     return rows.map(toPat);

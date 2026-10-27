@@ -11,6 +11,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   Req,
 } from '@nestjs/common';
 import {
@@ -27,6 +28,7 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -66,12 +68,14 @@ import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import {
   CreateStageRequest,
+  DeleteStageRequest,
   NextRoundRequest,
   ProblemResponse,
   SeriesDeclarationRequest,
   SeriesMutationPreviewResponse,
   StageConfigurationRequest,
   StageConfigurationResponse,
+  StageDeletionResponse,
   StageResponse,
   UpdateStageRequest,
 } from '../dto/organization.dto.js';
@@ -484,13 +488,14 @@ export class StagesController {
   @RequireOrganizationCapability('org.manage-stages')
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Remove an unseeded stage',
+    summary: 'Preview or remove a stage and its fixtures',
     description:
-      'Refused once the stage already holds a generated fixture, or a promotion plan already ' +
-      'targets it, naming why. Cascades the stage’s own zones, groups and their entrant ' +
-      'assignments; never a fixture or another stage’s record.',
+      '`dryRun=true` reports the records that would be removed without changing data. Deletion ' +
+      'requires `confirmationName` to exactly match the current stage name.',
   })
-  @ApiOkResponse({ type: StageResponse })
+  @ApiQuery({ name: 'dryRun', required: false, enum: ['true', 'false'] })
+  @ApiOkResponse({ type: StageDeletionResponse })
+  @ApiBadRequestResponse({ type: ProblemResponse })
   @ApiConflictResponse({ type: ProblemResponse })
   @ApiUnauthorizedResponse({ type: ProblemResponse })
   @ApiForbiddenResponse({ type: ProblemResponse })
@@ -499,8 +504,15 @@ export class StagesController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Query('dryRun') dryRun: string | undefined,
+    @Body() body: DeleteStageRequest,
     @Req() request: RequestWithSubject,
-  ): Promise<StageResponse> {
+  ): Promise<StageDeletionResponse> {
+    if (dryRun !== undefined && dryRun !== 'true' && dryRun !== 'false') {
+      throw new BadRequestException('dryRun must be true or false', {
+        errorCode: 'bad-request',
+      });
+    }
     const { tournament } = await resolveTournament(this.db, {
       organizationAlias,
       tournamentAlias,
@@ -509,22 +521,28 @@ export class StagesController {
 
     const competition = new CompetitionRepository(this.db);
     const stage = await this.findStage(competition, tournament.tournamentId, stageNumber);
+    if (dryRun === 'true') {
+      return {
+        ...(await competition.previewDeleteStage(stage.stageId)),
+        dryRun: true,
+        success: false,
+      };
+    }
 
     try {
       const deleted = await withTransaction(this.db, (uow) =>
         competition.deleteStage(uow, {
           stageId: stage.stageId,
+          confirmationName: body.confirmationName ?? '',
           organizationId: tournament.organizationId,
           actor: actorOf(request),
           authorizationContext: authorizationContextOf(request),
         }),
       );
       return {
-        stageId: deleted.stageId,
-        seasonId: deleted.seasonId,
-        number: deleted.number,
-        name: deleted.name,
-        format: deleted.format,
+        ...deleted.consequences,
+        dryRun: false,
+        success: true,
       };
     } catch (error) {
       if (error instanceof InvariantViolationError) {

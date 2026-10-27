@@ -131,16 +131,15 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // `RulesetFieldControl` (typed, owned atoms); only the "add a new field by
   // dot-path" name input remains raw.
   ['control/components/screens/TournamentRulesetTemplate.tsx', 1],
-  // Form-structure elements: `<form>`, `<label>`, `<fieldset>`,
-  // `<legend>` and table parts outside the table owners, now governed by
-  // `Form`, `Field`/`Label`, `FieldSet` and `DataTable`.
-  // Recorded as debt, not fixed here — adoption is a later task.
+  // Remaining form-structure and table parts outside the table owners.
+  // Adopted the owned primitives where their existing APIs preserve the
+  // screen layout; remaining debt is recorded until separately migrated.
   //
   // `Form` was adopted for every raw `<form>` that was a safe,
   // no-visual-change swap: bare `<form id=… onSubmit=…>` inside a modal
   // (`RegistrationReviewTemplate.tsx`, `RolesPermissionsTemplate.tsx`) and
   // `<form className="cl-platform-form-grid" …>` (`PlatformAdministrationPage.tsx`,
-  // `TournamentRulesetTemplate.tsx`, `TournamentSettingsTemplate.tsx` — that
+  // `TournamentRulesetTemplate.tsx` — that
   // class's own `gap` already equals `Form`'s, so the two compose without a
   // visual change). `PreferencesTemplate.tsx` now composes `Form` with its
   // `Inline` layout atom; `AcceptInvitationForm.tsx` and `NativeAuthRoutes.tsx`
@@ -151,7 +150,6 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   ['control/components/NativeAuthRoutes.tsx', 3],
   ['control/components/RosterSelectionStep.tsx', 3],
   ['control/components/screens/ScheduleBuilderTemplate.tsx', 3],
-  ['control/components/screens/TournamentSettingsTemplate.tsx', 1],
   ['control/components/TournamentSetupWizard.tsx', 5],
 ]);
 

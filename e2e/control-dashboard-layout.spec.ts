@@ -260,7 +260,15 @@ test('the export menu works from the keyboard and gives focus back to its trigge
   const menu = page.getByRole('menu').first();
   await expect(menu).toBeVisible();
 
-  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Enter');
+
+  const columnsDialog = page.getByRole('dialog');
+  await expect(columnsDialog).toBeVisible();
+  await expect(columnsDialog.getByRole('checkbox').nth(0)).toBeChecked();
+  await expect(columnsDialog.getByRole('checkbox').nth(1)).not.toBeChecked();
+  const download = columnsDialog.getByRole('button').last();
+  await download.focus();
   await page.keyboard.press('Enter');
 
   await expect

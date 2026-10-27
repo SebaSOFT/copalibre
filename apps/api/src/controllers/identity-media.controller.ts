@@ -47,8 +47,10 @@ import { DATABASE } from '../database.token.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
 import {
   DeleteEmblemResponse,
+  PersonPublicVisibilityResponse,
   PersonNationalityResponse,
   PersonResponse,
+  SetPersonPublicVisibilityRequest,
   SetPersonNationalityRequest,
   UploadImageRequest,
   UploadImageResponse,
@@ -61,15 +63,9 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 /**
  * Person photo and club emblem upload/serve.
  *
- * The upload routes are `admin-control`, matching how a person/club is
- * already edited. The serve routes are deliberately `public-read`, unlike
- * `reports.controller.ts`'s evidence: these are spectator-facing images
- * ("distinct from... every other stored object"), not
- * report evidence, so they carry no organization membership or capability
- * check. Each serve route resolves its own entity's stored reference
- * server-side rather than accepting an arbitrary object id, which is what
- * keeps this narrower than a generic `GET /objects/:objectId` reader would
- * be.
+ * Person and club images resolve their stored object reference server-side.
+ * Tournament-scoped public person-photo requests apply that tournament's
+ * youth visibility settings before returning the bytes.
  */
 @ApiTags('persons')
 @Controller('organizations/:organizationAlias/persons/:personId')
@@ -112,6 +108,7 @@ export class PersonMediaController {
       ...(person.nationality === undefined ? {} : { nationality: person.nationality }),
       ...(person.photoObjectId === undefined ? {} : { photoObjectId: person.photoObjectId }),
       ...(person.naturalKey === undefined ? {} : { naturalKey: person.naturalKey }),
+      hiddenFromPublic: person.hiddenFromPublic ?? false,
     };
   }
 
@@ -169,17 +166,67 @@ export class PersonMediaController {
 
   @Get('photo')
   @SecurityPlaneTag('public-read')
-  @ApiOperation({ summary: "Stream a person's photo, once it has passed validation" })
+  @ApiOperation({ summary: "Stream a person's photo when a public tournament allows it" })
   @ApiOkResponse({ description: 'Image bytes', schema: { type: 'string', format: 'binary' } })
   async servePhoto(
+    @Param('organizationAlias') organizationAlias: string,
     @Param('personId') personId: string,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<Buffer | undefined> {
-    const person = await new PersonRepository(this.db).findPerson(personId);
-    if (!person?.photoObjectId)
-      throw new NotFoundException('No photo for this person', {
+    const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
+    if (!organization) {
+      throw new NotFoundException('No public photo for this person', {
         errorCode: 'identity-media-not-found',
       });
+    }
+    const person = await new PersonRepository(this.db).findPerson(personId);
+    if (
+      !person ||
+      person.organizationId !== organization.organizationId ||
+      person.hiddenFromPublic === true ||
+      !person.photoObjectId
+    ) {
+      throw new NotFoundException('No public photo for this person', {
+        errorCode: 'identity-media-not-found',
+      });
+    }
+    const publicTeamEntry = await this.db
+      .selectFrom('players')
+      .innerJoin('teams', 'teams.team_id', 'players.team_id')
+      .innerJoin('entrants', 'entrants.team_id', 'teams.team_id')
+      .innerJoin('tournaments', 'tournaments.tournament_id', 'entrants.tournament_id')
+      .select('tournaments.tournament_id')
+      .where('players.person_id', '=', personId)
+      .where('tournaments.organization_id', '=', organization.organizationId)
+      .where('tournaments.status', '!=', 'draft')
+      .where((eb) =>
+        eb.or([
+          eb('tournaments.includes_minors', '=', false),
+          eb('tournaments.show_youth_profiles', '=', true),
+        ]),
+      )
+      .limit(1)
+      .executeTakeFirst();
+    const publicIndividualEntry = await this.db
+      .selectFrom('entrants')
+      .innerJoin('tournaments', 'tournaments.tournament_id', 'entrants.tournament_id')
+      .select('tournaments.tournament_id')
+      .where('entrants.person_id', '=', personId)
+      .where('tournaments.organization_id', '=', organization.organizationId)
+      .where('tournaments.status', '!=', 'draft')
+      .where((eb) =>
+        eb.or([
+          eb('tournaments.includes_minors', '=', false),
+          eb('tournaments.show_youth_profiles', '=', true),
+        ]),
+      )
+      .limit(1)
+      .executeTakeFirst();
+    if (!publicTeamEntry && !publicIndividualEntry) {
+      throw new NotFoundException('No public photo for this person', {
+        errorCode: 'identity-media-not-found',
+      });
+    }
     return streamStoredObject(this.db, this.storage, person.photoObjectId, reply);
   }
 
@@ -213,6 +260,41 @@ export class PersonMediaController {
       }),
     );
     return { personId: updated.personId, nationality: updated.nationality ?? null };
+  }
+
+  @Patch('public-visibility')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-persons')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Set whether a person is hidden from public pages' })
+  @ApiOkResponse({ type: PersonPublicVisibilityResponse })
+  async setPublicVisibility(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('personId') personId: string,
+    @Body() body: SetPersonPublicVisibilityRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<PersonPublicVisibilityResponse> {
+    const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
+    const person = await new PersonRepository(this.db).findPerson(personId);
+    if (!person || person.organizationId !== organizationId) {
+      throw new NotFoundException(`No person "${personId}" in this organization`, {
+        errorCode: 'identity-media-not-found',
+      });
+    }
+
+    const updated = await withTransaction(this.db, (uow) =>
+      new PersonRepository(this.db).setHiddenFromPublic(uow, {
+        personId,
+        organizationId,
+        hiddenFromPublic: body.hiddenFromPublic,
+        actor: actorOf(request),
+        authorizationContext: (request.subject?.scopes ?? []).join(' '),
+      }),
+    );
+    return {
+      personId: updated.personId,
+      hiddenFromPublic: updated.hiddenFromPublic ?? false,
+    };
   }
 }
 
@@ -378,6 +460,43 @@ export class TournamentMediaController {
     @Inject(DATABASE) private readonly db: Kysely<Database>,
     @Inject(OBJECT_STORAGE) private readonly storage: ObjectStorageAdapter,
   ) {}
+
+  @Get('persons/:personId/photo')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: "Stream a player's photo when public tournament settings allow it" })
+  @ApiOkResponse({ description: 'Image bytes', schema: { type: 'string', format: 'binary' } })
+  async servePublicPersonPhoto(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('personId') personId: string,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<Buffer | undefined> {
+    const tournament = await new TournamentRepository(this.db).findByScopedAlias(
+      organizationAlias,
+      tournamentAlias,
+    );
+    if (
+      !tournament ||
+      tournament.status === 'draft' ||
+      (tournament.includesMinors === true && tournament.showYouthProfiles !== true)
+    ) {
+      throw new NotFoundException('No public photo in this tournament', {
+        errorCode: 'identity-media-not-found',
+      });
+    }
+    const person = await new PersonRepository(this.db).findPerson(personId);
+    if (
+      !person ||
+      person.organizationId !== tournament.organizationId ||
+      person.hiddenFromPublic === true ||
+      !person.photoObjectId
+    ) {
+      throw new NotFoundException('No public photo in this tournament', {
+        errorCode: 'identity-media-not-found',
+      });
+    }
+    return streamStoredObject(this.db, this.storage, person.photoObjectId, reply);
+  }
 
   @Post('emblem')
   @Throttle({ default: { limit: RESOURCE_THROTTLE_LIMIT, ttl: RESOURCE_THROTTLE_TTL_MS } })

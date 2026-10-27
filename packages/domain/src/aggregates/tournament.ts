@@ -37,6 +37,9 @@ export interface Tournament {
    * curated, and a tournament can be either, both, or neither.
    */
   readonly featured: boolean;
+  /** Organizer privacy settings; changing visibility is `safe` and leaves results untouched. */
+  readonly includesMinors?: boolean;
+  readonly showYouthProfiles?: boolean;
   /**
    * Minimum minutes between the end of one of an entrant's matches and the start of their next,
    * checked whenever matches are scheduled. Absent declares no rest rule.

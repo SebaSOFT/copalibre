@@ -842,12 +842,14 @@ test.describe('B2: public tournament page', () => {
     // The `<img>` tag's own GET goes through the network stack, not any
     // in-page fetch mock — this stands in for the real photo-serving route
     // A real photo renders framed on the public page.
-    await page.route(`**/organizations/${ORGANIZATION}/persons/p-1/photo`, (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'image/png',
-        body: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
-      }),
+    await page.route(
+      `**/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/persons/p-1/photo`,
+      (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'image/png',
+          body: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
+        }),
     );
 
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);

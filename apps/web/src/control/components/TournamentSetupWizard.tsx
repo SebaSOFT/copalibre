@@ -3,6 +3,8 @@ import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
 import { Checkbox } from './ui/atoms/checkbox.js';
+import { RadioGroup, RadioGroupItem } from './ui/atoms/radio.js';
+import { Label } from './ui/atoms/label.js';
 import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
 import { Textarea } from './ui/atoms/textarea.js';
@@ -258,7 +260,11 @@ export function TournamentSetupWizard({
       )}
 
       {state.step === 'summary' && (
-        <SummaryStep selectedDiscipline={selectedDiscipline} state={state} />
+        <SummaryStep
+          onReviewPrivacy={() => patch({ step: 'name' })}
+          selectedDiscipline={selectedDiscipline}
+          state={state}
+        />
       )}
     </WizardShell>
   );
@@ -295,6 +301,34 @@ function NameStep({
           value={state.alias ?? ''}
         />
       </Field>
+      <div className="cl-form-field">
+        <h3 id="wizard-includes-minors-label">
+          {intl.formatMessage(messages.wizardIncludesMinorsQuestion)}
+        </h3>
+        <p className="cl-form-field__help" id="wizard-includes-minors-help">
+          {intl.formatMessage(messages.wizardIncludesMinorsHelp)}
+        </p>
+        <RadioGroup
+          aria-describedby="wizard-includes-minors-help"
+          aria-labelledby="wizard-includes-minors-label"
+          aria-required="true"
+          onValueChange={(value) => patch({ includesMinors: value === 'yes' })}
+          value={state.includesMinors === undefined ? '' : state.includesMinors ? 'yes' : 'no'}
+        >
+          <div>
+            <RadioGroupItem id="wizard-includes-minors-yes" value="yes" />
+            <Label htmlFor="wizard-includes-minors-yes">
+              {intl.formatMessage(messages.wizardIncludesMinorsYes)}
+            </Label>
+          </div>
+          <div>
+            <RadioGroupItem id="wizard-includes-minors-no" value="no" />
+            <Label htmlFor="wizard-includes-minors-no">
+              {intl.formatMessage(messages.wizardIncludesMinorsNo)}
+            </Label>
+          </div>
+        </RadioGroup>
+      </div>
     </div>
   );
 }
@@ -933,19 +967,22 @@ function RulesStep({
  * The wizard's final step: everything configured on every prior step,
  * rendered in plain language via `TournamentSummary` — no
  * new fetch, since every fact it needs is already in `state`/the selected
- * `DisciplineOption`. Only the `rules` section is available here (the
+ * `DisciplineOption`. The `rules` section is available here (the
  * discipline's `defaults`/`fieldPolicies`, the wizard's own overlay via
  * `mergeOverrides`) — `segmentTypes`/`eventDefinitions` are never part of a
  * `DisciplineOption`, the same scope `TournamentRulesetTemplate` already
- * renders with.
+ * renders with. The explicit privacy choice is summarized beside those rules.
  */
 function SummaryStep({
+  onReviewPrivacy,
   selectedDiscipline,
   state,
 }: {
+  readonly onReviewPrivacy: () => void;
   readonly selectedDiscipline: DisciplineOption | undefined;
   readonly state: WizardState;
 }): React.JSX.Element {
+  const intl = useIntl();
   const fieldPolicies = selectedDiscipline?.fieldPolicies ?? {};
   const defaults = selectedDiscipline?.defaults ?? {};
   const facts: TournamentSummaryFacts = {
@@ -965,14 +1002,32 @@ function SummaryStep({
     ...(state.capacity !== undefined ? { capacity: state.capacity } : {}),
   };
   return (
-    <TournamentSummary
-      discipline={{
-        fieldPolicies,
-        defaults: mergeOverrides(defaults, state.ruleOverrides, fieldPolicies),
-      }}
-      facts={facts}
-      sections={['rules']}
-    />
+    <div className="cl-platform-form-grid">
+      <TournamentSummary
+        discipline={{
+          fieldPolicies,
+          defaults: mergeOverrides(defaults, state.ruleOverrides, fieldPolicies),
+        }}
+        facts={facts}
+        sections={['rules']}
+      />
+      <section aria-labelledby="wizard-summary-privacy-heading">
+        <h3 id="wizard-summary-privacy-heading">
+          {intl.formatMessage(messages.settingsTabPrivacy)}
+        </h3>
+        <p>
+          {intl.formatMessage(
+            state.includesMinors
+              ? messages.wizardIncludesMinorsYes
+              : messages.wizardIncludesMinorsNo,
+          )}
+        </p>
+        <p>{intl.formatMessage(messages.wizardIncludesMinorsHelp)}</p>
+        <Button onClick={onReviewPrivacy} type="button" variant="secondary">
+          <FormattedMessage {...messages.wizardSummaryReviewPrivacy} />
+        </Button>
+      </section>
+    </div>
   );
 }
 

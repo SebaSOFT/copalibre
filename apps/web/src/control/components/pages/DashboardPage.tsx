@@ -107,6 +107,8 @@ export function DashboardPage({
   // per-tournament entry point into it.
   const canManageDisplayTokens =
     role === undefined || capabilitiesForRole(role).includes('org.manage-display-tokens');
+  const canManageTournamentLifecycle =
+    role === undefined || capabilitiesForRole(role).includes('org.manage-tournament-lifecycle');
 
   const reload = read.retry;
 
@@ -132,11 +134,13 @@ export function DashboardPage({
     <Dashboard
       canCreateTournament={canCreateTournament}
       canManageDisplayTokens={canManageDisplayTokens}
+      canManageTournamentLifecycle={canManageTournamentLifecycle}
       client={api}
       failed={read.status === 'failed-empty'}
       loading={read.status === 'loading'}
       model={model}
       onRetry={read.retry}
+      onPublishComplete={read.retry}
       organizationAlias={organizationAlias}
       staleSince={read.status === 'stale' ? read.staleSince : undefined}
     />

@@ -22,6 +22,8 @@ export function TournamentSettingsPage({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   const intl = useIntl();
+  const initialTab =
+    typeof window !== 'undefined' && window.location.hash === '#privacy' ? 'privacy' : 'settings';
   const api = useMemo(
     () =>
       client ??
@@ -62,6 +64,7 @@ export function TournamentSettingsPage({
   return (
     <ReadState {...read} title={intl.formatMessage(messages.settingsTitle)}>
       <TournamentSettingsTemplate
+        initialTab={initialTab}
         key={JSON.stringify([requestKey, read.data?.settings])}
         onPreview={(request) =>
           api

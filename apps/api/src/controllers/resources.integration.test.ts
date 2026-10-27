@@ -161,6 +161,88 @@ describe('venue/official list/create/edit (integration)', () => {
     expect(listed.json()).toEqual([venue]);
   });
 
+  it('soft-deletes and restores an unused venue with audit and outbox records', async () => {
+    const created = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/venues`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { alias: 'cancha-recuperable', name: 'Cancha Recuperable', concurrentCapacity: 1 },
+    });
+    expect(created.statusCode).toBe(201);
+    const venue = created.json() as { venueId: string; name: string };
+
+    const removed = await inject({
+      method: 'DELETE',
+      url: `/organizations/${organizationAlias}/venues/${venue.venueId}`,
+      headers: { authorization: 'Bearer organizer' },
+    });
+    expect(removed.statusCode).toBe(200);
+    expect(removed.json()).toEqual({ success: true });
+
+    const hidden = await inject({
+      method: 'GET',
+      url: `/organizations/${organizationAlias}/venues`,
+      headers: { authorization: 'Bearer organizer' },
+    });
+    expect(hidden.statusCode).toBe(200);
+    expect(hidden.json()).not.toEqual(expect.arrayContaining([expect.objectContaining(venue)]));
+
+    const unauthenticatedRestore = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/venues/${venue.venueId}/restore`,
+    });
+    expect(unauthenticatedRestore.statusCode).toBe(401);
+
+    const restored = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/venues/${venue.venueId}/restore`,
+      headers: { authorization: 'Bearer organizer' },
+    });
+    expect(restored.statusCode).toBe(200);
+    expect(restored.json()).toMatchObject({ venueId: venue.venueId, name: venue.name });
+
+    const visible = await inject({
+      method: 'GET',
+      url: `/organizations/${organizationAlias}/venues`,
+      headers: { authorization: 'Bearer organizer' },
+    });
+    expect(visible.json()).toEqual(expect.arrayContaining([expect.objectContaining(venue)]));
+
+    const audit = await db
+      .selectFrom('audit_log')
+      .select(['action', 'actor'])
+      .where('entity_id', '=', venue.venueId)
+      .where('action', 'in', ['venue.deleted', 'venue.restored'])
+      .orderBy('action')
+      .execute();
+    expect(audit).toEqual([
+      { action: 'venue.deleted', actor: 'user:organizer-1' },
+      { action: 'venue.restored', actor: 'user:organizer-1' },
+    ]);
+
+    const events = await db
+      .selectFrom('outbox_events')
+      .select(['event_type', 'payload'])
+      .where('entity_id', '=', venue.venueId)
+      .where('event_type', 'in', ['venue.deleted', 'venue.restored'])
+      .orderBy('event_type')
+      .execute();
+    expect(events).toEqual([
+      {
+        event_type: 'venue.deleted',
+        payload: {
+          venueId: venue.venueId,
+          deletedAt: expect.any(String),
+          actor: 'user:organizer-1',
+        },
+      },
+      {
+        event_type: 'venue.restored',
+        payload: { venueId: venue.venueId, actor: 'user:organizer-1' },
+      },
+    ]);
+  });
+
   it('creates a virtual venue — a server is a venue the same way a court is', async () => {
     const created = await inject({
       method: 'POST',
@@ -380,12 +462,80 @@ describe('venue/official list/create/edit (integration)', () => {
     expect(updateRes.statusCode).toBe(200);
     expect(updateRes.json()).toMatchObject({ name: 'Horario Modificado' });
 
-    // 5. Delete schedule
-    const deleteRes = await inject({
+    // 5. Preview deletion and prove the schedule remains unchanged
+    const previewRes = await inject({
+      method: 'DELETE',
+      url: `/organizations/${organizationAlias}/schedules/${created.scheduleId}?dryRun=true`,
+      headers: { authorization: 'Bearer organizer' },
+    });
+    expect(previewRes.statusCode).toBe(200);
+    expect(previewRes.json()).toEqual({
+      dryRun: true,
+      success: false,
+      slots: created.slots.length,
+      matchesUnassigned: 0,
+    });
+    const stillListed = await inject({
+      method: 'GET',
+      url: `/organizations/${organizationAlias}/schedules`,
+      headers: { authorization: 'Bearer organizer' },
+    });
+    expect(
+      (stillListed.json() as { scheduleId: string }[]).some(
+        (schedule) => schedule.scheduleId === created.scheduleId,
+      ),
+    ).toBe(true);
+
+    const missingNameRes = await inject({
       method: 'DELETE',
       url: `/organizations/${organizationAlias}/schedules/${created.scheduleId}`,
       headers: { authorization: 'Bearer organizer' },
     });
+    expect(missingNameRes.statusCode).toBe(409);
+
+    const wrongNameRes = await inject({
+      method: 'DELETE',
+      url: `/organizations/${organizationAlias}/schedules/${created.scheduleId}`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { confirmationName: 'Horario Fin de Semana' },
+    });
+    expect(wrongNameRes.statusCode).toBe(409);
+
+    // 6. Confirm removal
+    const deleteRes = await inject({
+      method: 'DELETE',
+      url: `/organizations/${organizationAlias}/schedules/${created.scheduleId}`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { confirmationName: 'Horario Modificado' },
+    });
     expect(deleteRes.statusCode).toBe(200);
+    expect(deleteRes.json()).toEqual({
+      dryRun: false,
+      success: true,
+      slots: created.slots.length,
+      matchesUnassigned: 0,
+    });
+    const audit = await db
+      .selectFrom('audit_log')
+      .select(['action', 'actor', 'resulting_state'])
+      .where('entity_id', '=', created.scheduleId)
+      .where('action', '=', 'schedule.deleted')
+      .executeTakeFirstOrThrow();
+    expect(audit).toMatchObject({
+      actor: 'user:organizer-1',
+      resulting_state: { slots: created.slots.length, matchesUnassigned: 0 },
+    });
+    const event = await db
+      .selectFrom('outbox_events')
+      .select(['event_type', 'payload'])
+      .where('entity_id', '=', created.scheduleId)
+      .where('event_type', '=', 'schedule.deleted')
+      .executeTakeFirstOrThrow();
+    expect(event.payload).toEqual({
+      scheduleId: created.scheduleId,
+      slots: created.slots.length,
+      matchesUnassigned: 0,
+      actor: 'user:organizer-1',
+    });
   });
 });

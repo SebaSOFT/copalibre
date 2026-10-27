@@ -603,9 +603,14 @@ describe('VenueManagementPage', () => {
       venueIds: ['venue-1'],
       slots: [],
     };
-    const deleteSchedule = jest.fn<NonNullable<ControlApiClient['deleteSchedule']>>(async () => ({
-      success: true,
-    }));
+    const deleteSchedule = jest.fn<NonNullable<ControlApiClient['deleteSchedule']>>(
+      async (_organizationAlias, _scheduleId, dryRun) => ({
+        dryRun: dryRun ?? false,
+        success: dryRun !== true,
+        slots: 5,
+        matchesUnassigned: 2,
+      }),
+    );
     const client = stubClient({
       listVenues: () => Promise.resolve(oneVenue),
       listSchedules: () => Promise.resolve([existingSchedule]),
@@ -617,7 +622,28 @@ describe('VenueManagementPage', () => {
     await act(async () => {
       fireEvent.click(within(scheduleRegion).getByText('Delete schedule'));
     });
-    expect(deleteSchedule).toHaveBeenCalledWith('liga-mendocina', 'sched-1');
+    const dialog = await screen.findByRole('dialog', { name: 'Delete schedule' });
+    expect(
+      within(dialog).getByText(
+        'Deletes 5 slots and unassigns 2 matches. Match results stay unchanged.',
+      ),
+    ).toBeDefined();
+    expect(within(dialog).getByText('5')).toBeDefined();
+    expect(within(dialog).getByText('2')).toBeDefined();
+    const confirm = within(dialog).getByRole('button', { name: 'Delete schedule' });
+    expect((confirm as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(within(dialog).getByLabelText('Type the exact name to confirm'), {
+      target: { value: 'Horario Apertura' },
+    });
+    expect((confirm as HTMLButtonElement).disabled).toBe(false);
+    expect(deleteSchedule).toHaveBeenCalledWith('liga-mendocina', 'sched-1', true);
+    await act(async () => fireEvent.click(confirm));
+    expect(deleteSchedule).toHaveBeenLastCalledWith(
+      'liga-mendocina',
+      'sched-1',
+      false,
+      'Horario Apertura',
+    );
     await screen.findByText('Schedule removed.');
   });
 

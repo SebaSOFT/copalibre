@@ -58,6 +58,9 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
             },
           ]);
         }
+        if (url === '/api/auth/pat/scopes' && method === 'GET') {
+          return Response.json({ scopes: [] });
+        }
         if (url === '/api/auth/pat' && method === 'GET') return Response.json([]);
         if (url === `/organizations/${orgAlias}/storage-usage` && method === 'GET') {
           return Response.json({ totalBytes: 0, objectCount: 0 });
@@ -80,13 +83,19 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
           return Response.json(created);
         }
         if (url === `/organizations/${orgAlias}/statistics/rebuild` && method === 'POST') {
-          const body = JSON.parse(String(init?.body)) as { tournamentAlias?: string };
+          const body = JSON.parse(String(init?.body)) as {
+            dryRun?: boolean;
+            tournamentAlias?: string;
+          };
           const result = await (
             window as unknown as {
               __rebuildStatistics: (tournamentAlias?: string) => Promise<unknown>;
             }
           ).__rebuildStatistics(body.tournamentAlias);
-          return Response.json(result);
+          return Response.json({
+            ...(result as Record<string, unknown>),
+            dryRun: body.dryRun ?? false,
+          });
         }
 
         if (url === `/organizations/${orgAlias}/clubs` && method === 'GET') {
@@ -325,10 +334,10 @@ test('triggers a statistics rebuild from the control panel and reports the match
   await page.waitForURL(`**${preferencesTarget}`);
 
   await page.getByRole('button', { name: 'Reconstruir estadísticas' }).click();
-  await expect(
-    page.getByText('Esto recalcula cada cifra almacenada dentro del alcance elegido. ¿Continuar?'),
-  ).toBeVisible();
+  const preview = page.getByRole('dialog', { name: 'Reconstrucción de estadísticas' });
+  await expect(preview).toBeVisible();
+  await expect(preview).toContainText('Partidos: 5; filas estadísticas para escribir: 12.');
 
-  await page.getByRole('button', { name: 'Confirmar reconstrucción' }).click();
+  await preview.getByRole('button', { name: 'Reconstruir estadísticas' }).click();
   await expect(page.getByText('5 partidos procesados.')).toBeVisible();
 });

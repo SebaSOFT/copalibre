@@ -15,8 +15,14 @@ export class PublicStandingsRowResponse {
   @ApiProperty({ format: 'uuid' })
   entrantId!: string;
 
-  @ApiProperty()
-  name!: string;
+  @ApiPropertyOptional()
+  name?: string;
+
+  @ApiPropertyOptional({ description: 'The entrant is a person hidden at their request' })
+  hiddenAtRequest?: boolean;
+
+  @ApiPropertyOptional({ description: 'A public player profile may be linked from this row' })
+  publicProfileAvailable?: boolean;
 
   @ApiPropertyOptional()
   abbreviation?: string;
@@ -98,6 +104,12 @@ export class PublicOverviewMatchResponse extends FixtureSourcesResponse {
   homeName?: string;
 
   @ApiPropertyOptional()
+  homeHiddenAtRequest?: boolean;
+
+  @ApiPropertyOptional()
+  homePublicProfileAvailable?: boolean;
+
+  @ApiPropertyOptional()
   homeAbbreviation?: string;
 
   @ApiPropertyOptional({ format: 'uuid' })
@@ -111,6 +123,12 @@ export class PublicOverviewMatchResponse extends FixtureSourcesResponse {
 
   @ApiPropertyOptional()
   awayName?: string;
+
+  @ApiPropertyOptional()
+  awayHiddenAtRequest?: boolean;
+
+  @ApiPropertyOptional()
+  awayPublicProfileAvailable?: boolean;
 
   @ApiPropertyOptional()
   awayAbbreviation?: string;
@@ -224,8 +242,14 @@ export class PublicLiveMatchSideResponse {
   @ApiProperty({ format: 'uuid' })
   entrantId!: string;
 
-  @ApiProperty()
-  name!: string;
+  @ApiPropertyOptional()
+  name?: string;
+
+  @ApiPropertyOptional()
+  hiddenAtRequest?: boolean;
+
+  @ApiPropertyOptional()
+  publicProfileAvailable?: boolean;
 
   @ApiPropertyOptional()
   abbreviation?: string;
@@ -353,14 +377,20 @@ export class PublicMatchOfficialResponse {
 }
 
 export class PublicMatchRosterMemberResponse {
-  @ApiProperty({ format: 'uuid' })
-  personId!: string;
+  @ApiPropertyOptional({ format: 'uuid' })
+  personId?: string;
 
   @ApiPropertyOptional({ oneOf: [{ type: 'number' }, { type: 'string' }] })
   number?: number | string;
 
-  @ApiProperty()
-  name!: string;
+  @ApiPropertyOptional()
+  name?: string;
+
+  @ApiPropertyOptional()
+  hiddenAtRequest?: boolean;
+
+  @ApiPropertyOptional()
+  publicProfileAvailable?: boolean;
 
   @ApiPropertyOptional()
   nationality?: string;
@@ -434,6 +464,9 @@ export class PublicMatchEventResponse {
   @ApiPropertyOptional({ format: 'uuid' })
   personId?: string;
 
+  @ApiPropertyOptional()
+  hiddenAtRequest?: boolean;
+
   @ApiProperty({ type: 'object', additionalProperties: true })
   payload!: Record<string, unknown>;
 }
@@ -489,6 +522,9 @@ export class PublicMatchReportResponse extends FixtureSourcesResponse {
   homeName?: string;
 
   @ApiPropertyOptional()
+  homeHiddenAtRequest?: boolean;
+
+  @ApiPropertyOptional()
   homeAbbreviation?: string;
 
   @ApiPropertyOptional({ format: 'uuid' })
@@ -496,6 +532,9 @@ export class PublicMatchReportResponse extends FixtureSourcesResponse {
 
   @ApiPropertyOptional()
   awayName?: string;
+
+  @ApiPropertyOptional()
+  awayHiddenAtRequest?: boolean;
 
   @ApiPropertyOptional()
   awayAbbreviation?: string;
@@ -552,6 +591,12 @@ export class PublicBracketSlotResponse {
 
   @ApiPropertyOptional()
   name?: string;
+
+  @ApiPropertyOptional()
+  hiddenAtRequest?: boolean;
+
+  @ApiPropertyOptional()
+  publicProfileAvailable?: boolean;
 
   @ApiPropertyOptional()
   abbreviation?: string;
@@ -888,8 +933,14 @@ export class PublicTournamentEntrantPodiumResponse {
   @ApiProperty({ format: 'uuid' })
   entrantId!: string;
 
-  @ApiProperty()
-  name!: string;
+  @ApiPropertyOptional()
+  name?: string;
+
+  @ApiPropertyOptional()
+  hiddenAtRequest?: boolean;
+
+  @ApiPropertyOptional()
+  publicProfileAvailable?: boolean;
 
   @ApiPropertyOptional()
   abbreviation?: string;
@@ -1037,6 +1088,12 @@ export class PublicMatchesViewMatchResponse extends FixtureSourcesResponse {
   homeName?: string;
 
   @ApiPropertyOptional()
+  homeHiddenAtRequest?: boolean;
+
+  @ApiPropertyOptional()
+  homePublicProfileAvailable?: boolean;
+
+  @ApiPropertyOptional()
   homeAbbreviation?: string;
 
   @ApiPropertyOptional({ format: 'uuid' })
@@ -1050,6 +1107,12 @@ export class PublicMatchesViewMatchResponse extends FixtureSourcesResponse {
 
   @ApiPropertyOptional()
   awayName?: string;
+
+  @ApiPropertyOptional()
+  awayHiddenAtRequest?: boolean;
+
+  @ApiPropertyOptional()
+  awayPublicProfileAvailable?: boolean;
 
   @ApiPropertyOptional()
   awayAbbreviation?: string;

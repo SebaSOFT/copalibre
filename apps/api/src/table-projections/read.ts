@@ -54,6 +54,8 @@ export interface TableProjectionScope {
 export type TableProjectionRow = TableRow & {
   readonly clubId?: string;
   readonly emblemObjectId?: string;
+  readonly hiddenAtRequest?: boolean;
+  readonly publicProfileAvailable?: boolean;
 };
 
 export interface TableProjectionResult {

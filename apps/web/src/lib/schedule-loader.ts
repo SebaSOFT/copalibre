@@ -32,8 +32,9 @@ export async function loadSchedule(args: {
   readonly state: ScheduleStateFilter;
   readonly zone?: string;
   readonly group?: string;
+  readonly hiddenPlayerLabel?: string;
 }): Promise<LoadedSchedule | undefined> {
-  const { organization, tournament, stageNumber, state, zone, group } = args;
+  const { organization, tournament, stageNumber, state, zone, group, hiddenPlayerLabel } = args;
   const [completion, view] = await Promise.all([
     fetchCompletion(organization, tournament),
     fetchMatchesView(organization, tournament, {
@@ -43,7 +44,7 @@ export async function loadSchedule(args: {
   ]);
   if (!view) return undefined;
 
-  const stageRows = mapMatchesViewResponse(view).matches;
+  const stageRows = mapMatchesViewResponse(view, hiddenPlayerLabel).matches;
   const declared = (completion?.stages ?? []).map((one) => ({
     stageNumber: one.stageNumber,
     stageName: one.stageName,

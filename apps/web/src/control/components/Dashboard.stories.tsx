@@ -17,6 +17,19 @@ const client = storyClient<ControlApiClient>({
     },
   ],
   listDisplayTokens: async () => [],
+  fetchTournamentSettings: async () => ({
+    name: TITLE,
+    featured: false,
+    includesMinors: true,
+    showYouthProfiles: false,
+  }),
+  publishTournament: async () => ({
+    tournamentId: ids.tournament,
+    organizationId: ids.organization,
+    alias: TOURNAMENT,
+    name: TITLE,
+    status: 'published',
+  }),
 });
 const model = buildDashboard({
   organizationId: ids.organization,
@@ -33,16 +46,33 @@ const model = buildDashboard({
   ],
   activity: auditRecords,
 });
+const draftModel = buildDashboard({
+  organizationId: ids.organization,
+  tournaments: [
+    {
+      tournamentId: ids.tournament,
+      organizationId: ids.organization,
+      alias: TOURNAMENT,
+      name: TITLE,
+      lifecycle: 'draft',
+      matchesToday: 0,
+      pendingRegistrations: 0,
+    },
+  ],
+  activity: auditRecords,
+});
 const meta = {
   title: 'Admin/Screens/Dashboard',
   component: Dashboard,
   args: {
     canCreateTournament: true,
     canManageDisplayTokens: true,
+    canManageTournamentLifecycle: true,
     failed: false,
     loading: false,
     model,
     onRetry: () => undefined,
+    onPublishComplete: () => undefined,
     organizationAlias: ORG,
     staleSince: undefined,
     client,
@@ -56,6 +86,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};
+export const DraftReadyToPublish: Story = { args: { model: draftModel } };
 export const Empty: Story = {
   args: {
     model: buildDashboard({ organizationId: ids.organization, tournaments: [], activity: [] }),

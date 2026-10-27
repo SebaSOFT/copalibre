@@ -28,6 +28,8 @@ export interface CreateTournamentInput {
   readonly name: string;
   readonly descriptor: DisciplineDescriptor;
   readonly profile?: { readonly profileId: string; readonly version: string };
+  readonly includesMinors?: boolean;
+  readonly showYouthProfiles?: boolean;
   readonly actor: string;
   readonly authorizationContext: string;
   readonly origin?: EventOrigin;
@@ -213,6 +215,12 @@ export class TournamentRepository {
   }
 
   async create(uow: UnitOfWork, input: CreateTournamentInput): Promise<Tournament> {
+    if (input.showYouthProfiles && !input.includesMinors) {
+      throw new InvariantViolationError(
+        'Youth profiles can only be enabled when participants include minors',
+        { alias: input.alias },
+      );
+    }
     const alias = Alias.create('tournament', input.alias);
     if (!alias.ok) {
       throw new InvariantViolationError(alias.error.message, { alias: input.alias });
@@ -230,6 +238,8 @@ export class TournamentRepository {
         descriptor_version: input.descriptor.version,
         profile_id: input.profile?.profileId ?? null,
         profile_version: input.profile?.version ?? null,
+        includes_minors: input.includesMinors ?? false,
+        show_youth_profiles: input.showYouthProfiles ?? false,
         ruleset_id: null,
         status: 'draft',
         created_at: new Date(),
@@ -259,6 +269,8 @@ export class TournamentRepository {
         alias: tournament.alias,
         status: tournament.status,
         name: tournament.name,
+        includesMinors: tournament.includesMinors ?? false,
+        showYouthProfiles: tournament.showYouthProfiles ?? false,
         actor: input.actor,
         ...(input.origin === undefined ? {} : { origin: input.origin }),
       },
@@ -807,6 +819,77 @@ export class TournamentRepository {
       authorizationContext: input.authorizationContext,
       previousState: { featured: current.featured },
       resultingState: { featured: updated.featured },
+    });
+
+    return updated;
+  }
+
+  /**
+   * Sets tournament publication privacy. These are presentation controls, so
+   * changing them is always `safe`: they do not change entrants, fixtures or
+   * recorded results. The audit entry and projection event commit atomically.
+   */
+  async setPublicationPrivacy(
+    uow: UnitOfWork,
+    input: {
+      readonly tournamentId: string;
+      readonly organizationId: string;
+      readonly includesMinors: boolean;
+      readonly showYouthProfiles: boolean;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<Tournament> {
+    if (input.showYouthProfiles && !input.includesMinors) {
+      throw new InvariantViolationError(
+        'Youth profiles can only be enabled when participants include minors',
+        { tournamentId: input.tournamentId },
+      );
+    }
+    const current = await this.findInTransaction(uow, input.tournamentId);
+    if (!current || current.organizationId !== input.organizationId) {
+      throw new NotFoundError(`Tournament ${input.tournamentId} does not exist`, {
+        tournamentId: input.tournamentId,
+      });
+    }
+
+    const row = await uow.tx
+      .updateTable('tournaments')
+      .set({
+        includes_minors: input.includesMinors,
+        show_youth_profiles: input.showYouthProfiles,
+      })
+      .where('tournament_id', '=', input.tournamentId)
+      .where('organization_id', '=', input.organizationId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    const updated = toTournament(row);
+    const previousState = {
+      includesMinors: current.includesMinors ?? false,
+      showYouthProfiles: current.showYouthProfiles ?? false,
+    };
+    const resultingState = {
+      includesMinors: updated.includesMinors ?? false,
+      showYouthProfiles: updated.showYouthProfiles ?? false,
+    };
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'tournament',
+      entityId: input.tournamentId,
+      action: 'tournament.publication-privacy-updated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState,
+      resultingState,
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `tournament:${input.tournamentId}`,
+      entityId: input.tournamentId,
+      eventType: 'tournament.publication-privacy-updated',
+      projectionVersion: 1,
+      payload: { tournamentId: input.tournamentId, ...resultingState },
     });
 
     return updated;

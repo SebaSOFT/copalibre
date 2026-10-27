@@ -19,6 +19,13 @@ const meta = {
     onCreateSchedule: async () => true,
     onCreateVenue: async () => true,
     onDeleteSchedule: async () => true,
+    onDeleteVenue: async () => true,
+    onPreviewDeleteSchedule: async () => ({
+      dryRun: true,
+      success: false,
+      slots: 4333,
+      matchesUnassigned: 36,
+    }),
     onSaveOfficial: async () => undefined,
     onSaveSchedule: async () => undefined,
     onSaveVenue: async () => undefined,

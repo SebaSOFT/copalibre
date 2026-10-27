@@ -308,6 +308,10 @@ body {
   margin-inline: auto;
 }
 
+.cl-preferences-scope-label {
+  color: var(--cl-text-primary);
+}
+
 .cl-control > main {
   overflow-wrap: anywhere;
 }
@@ -579,4 +583,22 @@ input[type='checkbox'].cl-checkbox:focus-visible {
 .cl-link:focus-visible {
   outline: 2px solid var(--cl-focus-ring);
   outline-offset: 2px;
+}
+
+.cl-consequence-dialog__counts {
+  display: grid;
+  gap: var(--cl-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-consequence-dialog__counts li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--cl-space-2);
+  padding: var(--cl-space-2) var(--cl-space-3);
+  border-bottom: 1px solid var(--cl-border-muted);
 }

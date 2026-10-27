@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsInt, IsOptional, IsString } from 'class-validator';
+import { ArrayNotEmpty, IsArray, IsInt, IsOptional, IsString } from 'class-validator';
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 
@@ -45,16 +45,14 @@ export class CreatePatRequest {
   // before the handler ever sees it.
   @IsString()
   label!: string;
-  @ApiPropertyOptional({
-    description: 'Scopes to grant (defaults to the creating user scopes)',
+  @ApiProperty({
+    description: 'At least one explicitly selected scope to grant',
     type: [String],
   })
-  // Validation shape mirrors `scopes?: string[]` exactly: omitted or
-  // null skips, an array of strings passes.
-  @IsOptional()
   @IsArray()
+  @ArrayNotEmpty()
   @IsString({ each: true })
-  scopes?: string[];
+  scopes!: string[];
   @ApiProperty({
     description: 'Expiration duration in days (max 365)',
     minimum: 1,
@@ -62,6 +60,11 @@ export class CreatePatRequest {
   })
   @IsInt()
   expiresInDays!: number;
+}
+
+export class PatScopeOptionsResponse {
+  @ApiProperty({ type: [String], description: 'Scopes the current user may grant to a token' })
+  scopes!: string[];
 }
 
 export class PatCreatedResponse {
@@ -94,6 +97,29 @@ export class PatResponse {
   lastUsedAt?: string;
   @ApiProperty({ format: 'date-time' })
   createdAt!: string;
+}
+
+export class PatRevocationResponse {
+  @ApiProperty()
+  dryRun!: boolean;
+  @ApiProperty()
+  reversible!: boolean;
+  @ApiProperty({ description: 'Number of credentials that will be revoked.' })
+  tokens!: number;
+  @ApiPropertyOptional({ format: 'date-time' })
+  lastUsedAt?: string;
+  @ApiPropertyOptional({ format: 'uuid' })
+  tokenId?: string;
+  @ApiPropertyOptional()
+  label?: string;
+  @ApiPropertyOptional({ type: [String] })
+  scopes?: string[];
+  @ApiPropertyOptional()
+  revoked?: boolean;
+  @ApiPropertyOptional({ format: 'date-time' })
+  expiresAt?: string;
+  @ApiPropertyOptional({ format: 'date-time' })
+  createdAt?: string;
 }
 
 export class NativeAcceptInvitationRequest {

@@ -1,7 +1,7 @@
 import { expectFirstReadFailure } from './resilient-read.test-support.js';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { jest } from '@jest/globals';
-import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { PreferencesPage } from '../pages/PreferencesPage.js';
 import { ControlIntl as BaseControlIntl } from '../../i18n/ControlIntl.js';
 import { controlTokenStore } from '../../session/token-store.js';
@@ -61,6 +61,13 @@ describe('PreferencesPage', () => {
             ? input.url
             : String((input as any)?.href ?? input);
       if (url.startsWith('blob:')) return defaultFetch(...args);
+      if (url.endsWith('/api/auth/pat/scopes'))
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ scopes: ['copalibre.control'] }),
+        } as any);
+      if (url.endsWith('/api/auth/pat') && args[1]?.method !== 'POST')
+        return Promise.resolve({ ok: true, json: async () => [] } as any);
       return undefined as any;
     }) as any;
   });
@@ -105,6 +112,10 @@ describe('PreferencesPage', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => [] } as any) // load PATs
       .mockResolvedValueOnce({
         ok: true,
+        json: async () => ({ scopes: ['copalibre.control'] }),
+      } as any) // load available scopes
+      .mockResolvedValueOnce({
+        ok: true,
         json: async () => ({ token: 'clpat_generated123' }),
       } as any) // create PAT
       .mockResolvedValueOnce({ ok: true, json: async () => [] } as any); // reload PATs
@@ -119,6 +130,7 @@ describe('PreferencesPage', () => {
       target: { value: 'New PAT' },
     });
     fireEvent.change(screen.getByLabelText('Vence en (días)'), { target: { value: '60' } });
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'copalibre.control' }));
     fireEvent.click(screen.getByRole('button', { name: 'Generar token' }));
 
     await waitFor(() => {
@@ -127,7 +139,27 @@ describe('PreferencesPage', () => {
     });
   });
 
-  it('revokes a PAT', async () => {
+  it('requires selecting at least one PAT permission', async () => {
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+
+    render(
+      <ControlIntl locale="es">
+        <PreferencesPage />
+      </ControlIntl>,
+    );
+
+    await screen.findByRole('checkbox', { name: 'copalibre.control' });
+    expect(
+      (screen.getByRole('button', { name: 'Generar token' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(screen.getByText('Elegí al menos un permiso para generar el token.')).toBeDefined();
+    expect((globalThis.fetch as jest.Mock<typeof fetch>).mock.calls).toHaveLength(2);
+  });
+
+  it('revokes an unused PAT immediately and restores it from Undo', async () => {
     (globalThis.fetch as jest.Mock<typeof fetch>)
       .mockResolvedValueOnce({
         ok: true,
@@ -143,8 +175,29 @@ describe('PreferencesPage', () => {
           },
         ],
       } as any) // load PATs
-      .mockResolvedValueOnce({ ok: true } as any) // revoke PAT
-      .mockResolvedValueOnce({ ok: true, json: async () => [] } as any); // reload PATs
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ scopes: ['copalibre.control'] }),
+      } as any) // load available scopes
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ reversible: true, tokens: 1 }),
+      } as any) // preview PAT revoke
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ reversible: true, tokens: 1, dryRun: false }),
+      } as any) // revoke PAT
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          tokenId: 'test-pat-1',
+          label: 'Test PAT',
+          revoked: false,
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+          scopes: ['copalibre.control'],
+        }),
+      } as any); // restore PAT
 
     render(
       <ControlIntl locale="es">
@@ -158,7 +211,60 @@ describe('PreferencesPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Revocar' }));
 
-    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledTimes(2));
+    await screen.findByText('Token revocado.');
+    expect(screen.queryByText('Test PAT')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Deshacer' }));
+    await screen.findByText('Token restaurado.');
+    expect(await screen.findByText('Test PAT')).toBeDefined();
+    expect(globalThis.fetch).toHaveBeenCalledTimes(5);
+  });
+
+  it('previews an in-use PAT revoke and confirms it in a consequence dialog', async () => {
+    (globalThis.fetch as jest.Mock<typeof fetch>)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [
+          {
+            tokenId: 'test-pat-used',
+            label: 'In-use PAT',
+            revoked: false,
+            createdAt: new Date().toISOString(),
+            lastUsedAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 3600000).toISOString(),
+            scopes: ['copalibre.control'],
+          },
+        ],
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ scopes: ['copalibre.control'] }),
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ reversible: false, tokens: 1, lastUsedAt: new Date().toISOString() }),
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ reversible: false, tokens: 1, dryRun: false }),
+      } as any);
+
+    render(
+      <ControlIntl locale="es">
+        <PreferencesPage />
+      </ControlIntl>,
+    );
+
+    await screen.findByText('In-use PAT');
+    fireEvent.click(screen.getByRole('button', { name: 'Revocar' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('heading', { name: 'Revocar In-use PAT' })).toBeDefined();
+    expect(within(dialog).getByText('Tokens revocados')).toBeDefined();
+    expect(globalThis.fetch).toHaveBeenCalledTimes(3);
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Revocar' }));
+    await screen.findByText('Token revocado.');
+    expect(screen.queryByText('In-use PAT')).toBeNull();
+    expect(globalThis.fetch).toHaveBeenCalledTimes(4);
   });
 
   it('loads and edits the organization identity when an alias is given', async () => {
@@ -423,7 +529,12 @@ describe('PreferencesPage', () => {
       json: async () => [],
     } as any);
     const rebuildStatistics = jest.fn<NonNullable<ControlApiClient['rebuildStatistics']>>(
-      async () => ({ organizationAlias: 'liga-mendocina', matches: 12, figures: 40 }),
+      async (_organizationAlias, _tournamentAlias, dryRun) => ({
+        dryRun: dryRun ?? false,
+        organizationAlias: 'liga-mendocina',
+        matches: 12,
+        figures: 40,
+      }),
     );
     const client = stubClient({
       getOrganization: () => Promise.resolve(organization),
@@ -439,14 +550,15 @@ describe('PreferencesPage', () => {
     await screen.findByDisplayValue('Liga Mendocina');
     fireEvent.click(screen.getByRole('button', { name: 'Rebuild statistics' }));
 
-    // Nothing runs until confirmed.
-    expect(rebuildStatistics).not.toHaveBeenCalled();
-    await screen.findByText('This recomputes every stored figure in scope. Continue?');
+    await screen.findByText(
+      'Rebuilds statistics from recorded events. Matches: 12; statistic rows to write: 40.',
+    );
+    expect(rebuildStatistics).toHaveBeenCalledWith('liga-mendocina', undefined, true);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm rebuild' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rebuild statistics' }));
 
     await waitFor(() =>
-      expect(rebuildStatistics).toHaveBeenCalledWith('liga-mendocina', undefined),
+      expect(rebuildStatistics).toHaveBeenLastCalledWith('liga-mendocina', undefined, false),
     );
     await screen.findByText('12 matches processed.');
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }));
@@ -459,7 +571,12 @@ describe('PreferencesPage', () => {
       json: async () => [],
     } as any);
     const rebuildStatistics = jest.fn<NonNullable<ControlApiClient['rebuildStatistics']>>(
-      async () => ({ organizationAlias: 'liga-mendocina', matches: 1, figures: 1 }),
+      async (_organizationAlias, _tournamentAlias, dryRun) => ({
+        dryRun: dryRun ?? false,
+        organizationAlias: 'liga-mendocina',
+        matches: 1,
+        figures: 1,
+      }),
     );
     const client = stubClient({
       getOrganization: () => Promise.resolve(organization),
@@ -474,13 +591,14 @@ describe('PreferencesPage', () => {
 
     await screen.findByDisplayValue('Liga Mendocina');
     fireEvent.click(screen.getByRole('button', { name: 'Rebuild statistics' }));
-    await screen.findByText('This recomputes every stored figure in scope. Continue?');
+    await screen.findByText(
+      'Rebuilds statistics from recorded events. Matches: 1; statistic rows to write: 1.',
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(
-      screen.queryByText('This recomputes every stored figure in scope. Continue?'),
-    ).toBeNull();
-    expect(rebuildStatistics).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Matches: 1; statistic rows to write: 1/)).toBeNull();
+    expect(rebuildStatistics).toHaveBeenCalledTimes(1);
+    expect(rebuildStatistics).toHaveBeenCalledWith('liga-mendocina', undefined, true);
   });
 
   it('scopes a confirmed rebuild to the entered tournament alias', async () => {
@@ -489,7 +607,8 @@ describe('PreferencesPage', () => {
       json: async () => [],
     } as any);
     const rebuildStatistics = jest.fn<NonNullable<ControlApiClient['rebuildStatistics']>>(
-      async () => ({
+      async (_organizationAlias, _tournamentAlias, dryRun) => ({
+        dryRun: dryRun ?? false,
         organizationAlias: 'liga-mendocina',
         tournamentAlias: 'apertura-2026',
         matches: 1,
@@ -512,10 +631,13 @@ describe('PreferencesPage', () => {
       target: { value: 'apertura-2026' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Rebuild statistics' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm rebuild' }));
+    await screen.findByText(
+      'Rebuilds statistics from recorded events. Matches: 1; statistic rows to write: 2.',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Rebuild statistics' }));
 
     await waitFor(() =>
-      expect(rebuildStatistics).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026'),
+      expect(rebuildStatistics).toHaveBeenLastCalledWith('liga-mendocina', 'apertura-2026', false),
     );
     await screen.findByText('1 match processed.');
   });
@@ -538,8 +660,6 @@ describe('PreferencesPage', () => {
 
     await screen.findByDisplayValue('Liga Mendocina');
     fireEvent.click(screen.getByRole('button', { name: 'Rebuild statistics' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm rebuild' }));
-
     await screen.findByText('Not an admin');
   });
 
@@ -561,8 +681,6 @@ describe('PreferencesPage', () => {
 
     await screen.findByDisplayValue('Liga Mendocina');
     fireEvent.click(screen.getByRole('button', { name: 'Rebuild statistics' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm rebuild' }));
-
     await screen.findByText('The request could not be completed. Try again.');
   });
 

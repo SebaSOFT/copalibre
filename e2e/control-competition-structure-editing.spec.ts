@@ -19,6 +19,9 @@ async function withTokenEndpoint(page: Page): Promise<void> {
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
+        if (url === '/api/auth/pat/scopes') {
+          return Response.json({ scopes: [] });
+        }
         const handler = (window as unknown as { __route?: (u: string, i?: RequestInit) => unknown })
           .__route;
         const handled = handler ? await handler(url, init) : undefined;

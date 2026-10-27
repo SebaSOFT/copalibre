@@ -217,25 +217,66 @@ describe('AdminStatisticsController (integration)', () => {
     await scratch?.drop();
   });
 
-  function rebuild(token: string) {
+  function rebuild(token: string, dryRun?: boolean) {
     return (app as NestFastifyApplication).inject({
       method: 'POST',
       url: '/organizations/liga-admin-http/statistics/rebuild',
       headers: { authorization: `Bearer ${token}` },
-      payload: {},
+      payload: dryRun === undefined ? {} : { dryRun },
     });
   }
 
-  it('rebuilds statistics for an organization admin, matching the direct-database path shape', async () => {
+  it('previews without writes, then rebuilds and audits the recomputed figures', async () => {
+    const before = await scratch.db
+      .selectFrom('statistic_totals')
+      .select('source_match_id')
+      .execute();
+    expect(before).toEqual([]);
+
+    const preview = await rebuild('admin', true);
+    expect(preview.statusCode).toBe(200);
+    expect(preview.json()).toEqual({
+      dryRun: true,
+      organizationAlias: 'liga-admin-http',
+      matches: 1,
+      figures: 1,
+    });
+    await expect(
+      scratch.db.selectFrom('statistic_totals').select('source_match_id').execute(),
+    ).resolves.toEqual([]);
+
     const response = await rebuild('admin');
     expect(response.statusCode).toBe(200);
-    const body = response.json();
+    const body = response.json() as {
+      readonly dryRun: boolean;
+      readonly organizationAlias: string;
+      readonly matches: number;
+      readonly figures: number;
+    };
     expect(body).toEqual({
+      dryRun: false,
       organizationAlias: 'liga-admin-http',
       matches: 1,
       figures: expect.any(Number),
     });
     expect(body.figures).toBeGreaterThan(0);
+
+    const audit = await scratch.db
+      .selectFrom('audit_log')
+      .select(['action', 'actor', 'resulting_state'])
+      .where('action', '=', 'statistics.rebuilt')
+      .executeTakeFirstOrThrow();
+    expect(audit).toMatchObject({
+      action: 'statistics.rebuilt',
+      actor: 'user:oidc-admin',
+      resulting_state: { figures: body.figures },
+    });
+    const event = await scratch.db
+      .selectFrom('outbox_events')
+      .select(['event_type', 'payload'])
+      .where('event_type', '=', 'statistics.rebuilt')
+      .executeTakeFirstOrThrow();
+    expect(event.payload).toMatchObject({ matchId: expect.any(String), figures: body.figures });
   });
 
   it('refuses a non-admin organization role', async () => {

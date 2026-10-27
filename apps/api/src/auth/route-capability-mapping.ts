@@ -49,6 +49,7 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'ParticipantIdentityLinksController.unlink': 'org.manage-persons',
   'PersonMediaController.getPerson': 'org.manage-persons',
   'PersonMediaController.setNationality': 'org.manage-persons',
+  'PersonMediaController.setPublicVisibility': 'org.manage-persons',
   'PersonMediaController.uploadPhoto': 'org.manage-persons',
 
   // org.manage-resources
@@ -56,9 +57,11 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'ResourcesController.createSchedule': 'org.manage-resources',
   'ResourcesController.createVenue': 'org.manage-resources',
   'ResourcesController.deleteSchedule': 'org.manage-resources',
+  'ResourcesController.deleteVenue': 'org.manage-resources',
   'ResourcesController.listOfficials': 'org.manage-resources',
   'ResourcesController.listSchedules': 'org.manage-resources',
   'ResourcesController.listVenues': 'org.manage-resources',
+  'ResourcesController.restoreVenue': 'org.manage-resources',
   'ResourcesController.updateOfficial': 'org.manage-resources',
   'ResourcesController.updateSchedule': 'org.manage-resources',
   'ResourcesController.updateVenue': 'org.manage-resources',
@@ -112,6 +115,8 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'ZonesGroupsController.deleteZone': 'org.manage-zones-groups',
   'ZonesGroupsController.renameGroup': 'org.manage-zones-groups',
   'ZonesGroupsController.deleteGroup': 'org.manage-zones-groups',
+  'ZonesGroupsController.restoreGroup': 'org.manage-zones-groups',
+  'ZonesGroupsController.restoreZone': 'org.manage-zones-groups',
   'ZonesGroupsController.previewGroups': 'org.manage-zones-groups',
   'ZonesGroupsController.previewPromotion': 'org.manage-zones-groups',
   'ZonesGroupsController.previewZones': 'org.manage-zones-groups',

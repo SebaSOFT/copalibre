@@ -28,6 +28,7 @@ import type {
   TournamentCompletionSummary,
 } from '@copalibre/domain';
 import type { Kysely, Transaction } from 'kysely';
+import { sql } from 'kysely';
 import { InvariantViolationError, NotFoundError } from '../errors.js';
 import { newId } from '../ids.js';
 import { ProjectionStore } from '../relay/projection-store.js';
@@ -55,6 +56,62 @@ export interface PersistedDraw<T> {
 /** Structural output shared with the pure tournament-engine group draw. */
 export interface GroupAssignment {
   readonly groups: Readonly<Record<string, number>>;
+}
+
+export interface StageDeletionConsequences {
+  readonly stageId: string;
+  readonly stageName: string;
+  readonly fixtures: number;
+  readonly matches: number;
+  readonly zones: number;
+  readonly groups: number;
+  readonly matchEvents: number;
+  readonly schedulePlacements: number;
+  readonly scheduleOfficials: number;
+  readonly participantReports: number;
+  readonly reportEvidence: number;
+  readonly statistics: number;
+  readonly matchPermissions: number;
+  readonly displayTokens: number;
+  readonly stageConfigurations: number;
+  readonly compiledRulesets: number;
+  readonly thresholdConsumption: number;
+  readonly promotionPlans: number;
+  readonly commandRecords: number;
+}
+
+export interface StageDeletionResult {
+  readonly stage: Stage;
+  readonly consequences: StageDeletionConsequences;
+}
+
+type StageDeletionDatabase = Kysely<Database> | Transaction<Database>;
+
+async function countWhereIn(
+  db: StageDeletionDatabase,
+  table: string,
+  column: string,
+  ids: readonly string[],
+): Promise<number> {
+  if (ids.length === 0) return 0;
+  const result = await sql<{ count: number }>`
+    select count(*) as count from ${sql.table(table)}
+    where ${sql.ref(column)} in (${sql.join(ids)})
+  `.execute(db);
+  return Number(result.rows[0]?.count ?? 0);
+}
+
+async function countWhereEqual(
+  db: StageDeletionDatabase,
+  table: string,
+  column: string,
+  value: string,
+): Promise<number> {
+  const result = await sql<{ count: number }>`
+    select count(*) as count from ${sql.table(table)}
+    where ${sql.ref(column)} = ${value}
+  `.execute(db);
+  return Number(result.rows[0]?.count ?? 0);
 }
 
 /**
@@ -182,6 +239,7 @@ export class CompetitionRepository {
         draw_seed: null,
         draw_constraints: null,
         created_at: new Date(),
+        deleted_at: null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -236,6 +294,7 @@ export class CompetitionRepository {
       .selectFrom('zones')
       .select('stage_id')
       .where('zone_id', '=', input.zoneId)
+      .where('deleted_at', 'is', null)
       .executeTakeFirst();
     if (!existing) {
       throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
@@ -245,6 +304,7 @@ export class CompetitionRepository {
       .updateTable('zones')
       .set({ format: input.format })
       .where('zone_id', '=', input.zoneId)
+      .where('deleted_at', 'is', null)
       .returningAll()
       .executeTakeFirstOrThrow();
     await uow.recordAudit({
@@ -259,40 +319,52 @@ export class CompetitionRepository {
     return toZone(row);
   }
 
-  /** Removes a zone, refused once an entrant has been assigned into it. */
+  /** Removes a zone while retaining its assignments for the undo window. */
   async deleteZone(
     uow: UnitOfWork,
     input: { readonly zoneId: string } & AuditContext,
   ): Promise<Zone> {
-    const assigned = await uow.tx
-      .selectFrom('zone_entrants')
-      .select('entrant_id')
+    const existing = await uow.tx
+      .selectFrom('zones')
+      .selectAll()
       .where('zone_id', '=', input.zoneId)
+      .where('deleted_at', 'is', null)
       .executeTakeFirst();
-    if (assigned) {
-      throw new InvariantViolationError(
-        'Cannot remove a zone that already has an entrant assigned',
-        {
-          zoneId: input.zoneId,
-        },
-      );
+    if (!existing) {
+      throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
     }
-
     const groups = await uow.tx
       .selectFrom('groups')
       .select('group_id')
       .where('zone_id', '=', input.zoneId)
+      .where('deleted_at', 'is', null)
       .execute();
     const groupIds = groups.map((group) => group.group_id);
-    if (groupIds.length > 0) {
-      await uow.tx.deleteFrom('group_entrants').where('group_id', 'in', groupIds).execute();
-      await uow.tx.deleteFrom('groups').where('group_id', 'in', groupIds).execute();
-    }
-    await uow.tx.deleteFrom('promotion_plans').where('zone_id', '=', input.zoneId).execute();
-
-    const deleted = await uow.tx
-      .deleteFrom('zones')
+    const zoneFixture = await uow.tx
+      .selectFrom('fixtures')
+      .select('fixture_id')
       .where('zone_id', '=', input.zoneId)
+      .executeTakeFirst();
+    const groupFixture =
+      groupIds.length === 0
+        ? undefined
+        : await uow.tx
+            .selectFrom('fixtures')
+            .select('fixture_id')
+            .where('group_id', 'in', groupIds)
+            .executeTakeFirst();
+    if (zoneFixture || groupFixture) {
+      throw new InvariantViolationError('Cannot remove a zone that already has fixtures', {
+        zoneId: input.zoneId,
+      });
+    }
+
+    const deletedAt = new Date();
+    const deleted = await uow.tx
+      .updateTable('zones')
+      .set({ deleted_at: deletedAt })
+      .where('zone_id', '=', input.zoneId)
+      .where('deleted_at', 'is', null)
       .returningAll()
       .executeTakeFirst();
     if (!deleted) {
@@ -307,8 +379,60 @@ export class CompetitionRepository {
       actor: input.actor,
       authorizationContext: input.authorizationContext,
       previousState: { ...toZone(deleted) },
+      resultingState: { deletedAt: deletedAt.toISOString(), groupsHidden: groupIds.length },
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `stage:${deleted.stage_id}`,
+      entityId: input.zoneId,
+      eventType: 'zone.deleted',
+      projectionVersion: 1,
+      payload: {
+        stageId: deleted.stage_id,
+        zoneId: input.zoneId,
+        deletedAt: deletedAt.toISOString(),
+        groupsHidden: groupIds.length,
+        actor: input.actor,
+      },
     });
     return toZone(deleted);
+  }
+
+  async restoreZone(
+    uow: UnitOfWork,
+    input: { readonly zoneId: string } & AuditContext,
+  ): Promise<Zone> {
+    const restored = await uow.tx
+      .updateTable('zones')
+      .set({ deleted_at: null })
+      .where('zone_id', '=', input.zoneId)
+      .where('deleted_at', '>', new Date(Date.now() - 24 * 60 * 60 * 1000))
+      .returningAll()
+      .executeTakeFirst();
+    if (!restored) {
+      throw new NotFoundError(`Zone ${input.zoneId} is no longer available to restore`, {
+        zoneId: input.zoneId,
+      });
+    }
+    const zone = toZone(restored);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'zone',
+      entityId: input.zoneId,
+      action: 'zone.restored',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { ...zone },
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `stage:${restored.stage_id}`,
+      entityId: input.zoneId,
+      eventType: 'zone.restored',
+      projectionVersion: 1,
+      payload: { stageId: restored.stage_id, zoneId: input.zoneId, actor: input.actor },
+    });
+    return zone;
   }
 
   async listZonesOfStage(stageId: string): Promise<readonly Zone[]> {
@@ -316,6 +440,7 @@ export class CompetitionRepository {
       .selectFrom('zones')
       .selectAll()
       .where('stage_id', '=', stageId)
+      .where('deleted_at', 'is', null)
       .orderBy('number')
       .execute();
     return rows.map(toZone);
@@ -326,6 +451,20 @@ export class CompetitionRepository {
       .selectFrom('zones')
       .selectAll()
       .where('zone_id', '=', zoneId)
+      .where('deleted_at', 'is', null)
+      .executeTakeFirst();
+    return row === undefined ? undefined : toZone(row);
+  }
+
+  async findZoneByNumberIncludingDeleted(
+    stageId: string,
+    number: number,
+  ): Promise<Zone | undefined> {
+    const row = await this.db
+      .selectFrom('zones')
+      .selectAll()
+      .where('stage_id', '=', stageId)
+      .where('number', '=', number)
       .executeTakeFirst();
     return row === undefined ? undefined : toZone(row);
   }
@@ -338,6 +477,7 @@ export class CompetitionRepository {
       .selectFrom('zones')
       .selectAll()
       .where('stage_id', '=', input.stageId)
+      .where('deleted_at', 'is', null)
       .orderBy('number')
       .limit(1)
       .executeTakeFirst();
@@ -358,6 +498,7 @@ export class CompetitionRepository {
       .selectFrom('zones')
       .select('stage_id')
       .where('zone_id', '=', input.zoneId)
+      .where('deleted_at', 'is', null)
       .executeTakeFirst();
     if (!zoneRow) {
       throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
@@ -376,6 +517,7 @@ export class CompetitionRepository {
         draw_seed: null,
         draw_constraints: null,
         created_at: new Date(),
+        deleted_at: null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -400,6 +542,7 @@ export class CompetitionRepository {
       .updateTable('groups')
       .set({ name: input.name })
       .where('group_id', '=', input.groupId)
+      .where('deleted_at', 'is', null)
       .returningAll()
       .executeTakeFirst();
     if (!row) {
@@ -417,26 +560,36 @@ export class CompetitionRepository {
     return toGroup(row);
   }
 
-  /** Removes a group, refused once an entrant has been assigned into it. */
+  /** Removes a group while retaining its assignments for the undo window. */
   async deleteGroup(
     uow: UnitOfWork,
     input: { readonly groupId: string } & AuditContext,
   ): Promise<Group> {
-    const assigned = await uow.tx
-      .selectFrom('group_entrants')
-      .select('entrant_id')
+    const existing = await uow.tx
+      .selectFrom('groups')
+      .selectAll()
+      .where('group_id', '=', input.groupId)
+      .where('deleted_at', 'is', null)
+      .executeTakeFirst();
+    if (!existing) {
+      throw new NotFoundError(`Group ${input.groupId} does not exist`, { groupId: input.groupId });
+    }
+    const fixture = await uow.tx
+      .selectFrom('fixtures')
+      .select('fixture_id')
       .where('group_id', '=', input.groupId)
       .executeTakeFirst();
-    if (assigned) {
-      throw new InvariantViolationError(
-        'Cannot remove a group that already has an entrant assigned',
-        { groupId: input.groupId },
-      );
+    if (fixture) {
+      throw new InvariantViolationError('Cannot remove a group that already has fixtures', {
+        groupId: input.groupId,
+      });
     }
-
+    const deletedAt = new Date();
     const deleted = await uow.tx
-      .deleteFrom('groups')
+      .updateTable('groups')
+      .set({ deleted_at: deletedAt })
       .where('group_id', '=', input.groupId)
+      .where('deleted_at', 'is', null)
       .returningAll()
       .executeTakeFirst();
     if (!deleted) {
@@ -451,26 +604,96 @@ export class CompetitionRepository {
       actor: input.actor,
       authorizationContext: input.authorizationContext,
       previousState: { ...toGroup(deleted) },
+      resultingState: { deletedAt: deletedAt.toISOString() },
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `zone:${deleted.zone_id}`,
+      entityId: input.groupId,
+      eventType: 'group.deleted',
+      projectionVersion: 1,
+      payload: {
+        zoneId: deleted.zone_id,
+        groupId: input.groupId,
+        deletedAt: deletedAt.toISOString(),
+        actor: input.actor,
+      },
     });
     return toGroup(deleted);
+  }
+
+  async restoreGroup(
+    uow: UnitOfWork,
+    input: { readonly groupId: string } & AuditContext,
+  ): Promise<Group> {
+    const restored = await uow.tx
+      .updateTable('groups')
+      .set({ deleted_at: null })
+      .where('group_id', '=', input.groupId)
+      .where('deleted_at', '>', new Date(Date.now() - 24 * 60 * 60 * 1000))
+      .returningAll()
+      .executeTakeFirst();
+    if (!restored) {
+      throw new NotFoundError(`Group ${input.groupId} is no longer available to restore`, {
+        groupId: input.groupId,
+      });
+    }
+    const group = toGroup(restored);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'group',
+      entityId: input.groupId,
+      action: 'group.restored',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { ...group },
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `zone:${restored.zone_id}`,
+      entityId: input.groupId,
+      eventType: 'group.restored',
+      projectionVersion: 1,
+      payload: { zoneId: restored.zone_id, groupId: input.groupId, actor: input.actor },
+    });
+    return group;
   }
 
   async listGroupsOfZone(zoneId: string): Promise<readonly Group[]> {
     const rows = await this.db
       .selectFrom('groups')
-      .selectAll()
-      .where('zone_id', '=', zoneId)
-      .orderBy('number')
+      .innerJoin('zones', 'zones.zone_id', 'groups.zone_id')
+      .selectAll('groups')
+      .where('groups.zone_id', '=', zoneId)
+      .where('groups.deleted_at', 'is', null)
+      .where('zones.deleted_at', 'is', null)
+      .orderBy('groups.number')
       .execute();
     return rows.map(toGroup);
+  }
+
+  async findGroupByNumberIncludingDeleted(
+    zoneId: string,
+    number: number,
+  ): Promise<Group | undefined> {
+    const row = await this.db
+      .selectFrom('groups')
+      .selectAll()
+      .where('zone_id', '=', zoneId)
+      .where('number', '=', number)
+      .executeTakeFirst();
+    return row === undefined ? undefined : toGroup(row);
   }
 
   async listGroupEntrantIdsOfZone(zoneId: string): Promise<ReadonlyMap<string, readonly string[]>> {
     const rows = await this.db
       .selectFrom('group_entrants')
       .innerJoin('groups', 'groups.group_id', 'group_entrants.group_id')
+      .innerJoin('zones', 'zones.zone_id', 'groups.zone_id')
       .select(['group_entrants.group_id as groupId', 'group_entrants.entrant_id as entrantId'])
       .where('groups.zone_id', '=', zoneId)
+      .where('groups.deleted_at', 'is', null)
+      .where('zones.deleted_at', 'is', null)
       .orderBy('groups.number')
       .orderBy('group_entrants.entrant_id')
       .execute();
@@ -488,8 +711,10 @@ export class CompetitionRepository {
   async listEntrantIdsOfZone(zoneId: string): Promise<readonly string[]> {
     const rows = await this.db
       .selectFrom('zone_entrants')
+      .innerJoin('zones', 'zones.zone_id', 'zone_entrants.zone_id')
       .select('entrant_id')
-      .where('zone_id', '=', zoneId)
+      .where('zone_entrants.zone_id', '=', zoneId)
+      .where('zones.deleted_at', 'is', null)
       .orderBy('entrant_id')
       .execute();
     return rows.map((row) => row.entrant_id);
@@ -498,8 +723,12 @@ export class CompetitionRepository {
   async listEntrantIdsOfGroup(groupId: string): Promise<readonly string[]> {
     const rows = await this.db
       .selectFrom('group_entrants')
+      .innerJoin('groups', 'groups.group_id', 'group_entrants.group_id')
+      .innerJoin('zones', 'zones.zone_id', 'groups.zone_id')
       .select('entrant_id')
-      .where('group_id', '=', groupId)
+      .where('group_entrants.group_id', '=', groupId)
+      .where('groups.deleted_at', 'is', null)
+      .where('zones.deleted_at', 'is', null)
       .orderBy('entrant_id')
       .execute();
     return rows.map((row) => row.entrant_id);
@@ -566,8 +795,10 @@ export class CompetitionRepository {
   > {
     const row = await this.db
       .selectFrom('promotion_plans')
-      .selectAll()
-      .where('zone_id', '=', zoneId)
+      .innerJoin('zones', 'zones.zone_id', 'promotion_plans.zone_id')
+      .selectAll('promotion_plans')
+      .where('promotion_plans.zone_id', '=', zoneId)
+      .where('zones.deleted_at', 'is', null)
       .executeTakeFirst();
     return row === undefined ? undefined : promotionPlanOf(row);
   }
@@ -640,6 +871,7 @@ export class CompetitionRepository {
       .selectFrom('groups')
       .selectAll()
       .where('zone_id', '=', input.zoneId)
+      .where('deleted_at', 'is', null)
       .orderBy('number')
       .limit(1)
       .executeTakeFirst();
@@ -719,6 +951,7 @@ export class CompetitionRepository {
       .selectFrom('zones')
       .select('zone_id')
       .where('stage_id', '=', input.stageId)
+      .where('deleted_at', 'is', null)
       .executeTakeFirst();
     if (existing) {
       throw new InvariantViolationError('Zones have already been assigned for this stage', {
@@ -736,6 +969,7 @@ export class CompetitionRepository {
           draw_seed: replay?.seed ?? null,
           draw_constraints: replay ? JSON.stringify(replay.constraints) : null,
           created_at: new Date(),
+          deleted_at: null,
         })),
       )
       .returningAll()
@@ -775,6 +1009,7 @@ export class CompetitionRepository {
       .selectFrom('zones')
       .select(['zone_id', 'stage_id'])
       .where('zone_id', '=', input.zoneId)
+      .where('deleted_at', 'is', null)
       .executeTakeFirst();
     if (!zone)
       throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
@@ -783,6 +1018,7 @@ export class CompetitionRepository {
       .selectFrom('groups')
       .select('group_id')
       .where('zone_id', '=', input.zoneId)
+      .where('deleted_at', 'is', null)
       .executeTakeFirst();
     if (existing) {
       throw new InvariantViolationError('Groups have already been assigned for this zone', {
@@ -810,6 +1046,7 @@ export class CompetitionRepository {
           draw_seed: replay?.seed ?? null,
           draw_constraints: replay ? JSON.stringify(replay.constraints) : null,
           created_at: new Date(),
+          deleted_at: null,
         })),
       )
       .returningAll()
@@ -903,6 +1140,8 @@ export class CompetitionRepository {
         .innerJoin('zones', 'zones.zone_id', 'groups.zone_id')
         .select(['groups.group_id', 'groups.zone_id', 'zones.stage_id'])
         .where('groups.group_id', '=', fixture.groupId)
+        .where('groups.deleted_at', 'is', null)
+        .where('zones.deleted_at', 'is', null)
         .executeTakeFirst();
       if (!group || group.stage_id !== input.stageId) {
         throw new NotFoundError(
@@ -929,6 +1168,7 @@ export class CompetitionRepository {
         .select('zone_id')
         .where('zone_id', '=', zoneId)
         .where('stage_id', '=', input.stageId)
+        .where('deleted_at', 'is', null)
         .executeTakeFirst();
       if (!zone) {
         throw new NotFoundError(`Zone ${zoneId} does not belong to stage ${input.stageId}`, {
@@ -1173,51 +1413,139 @@ export class CompetitionRepository {
     return stage;
   }
 
+  /** Read-only consequence counts for the stage removal confirmation. */
+  async previewDeleteStage(stageId: string): Promise<StageDeletionConsequences> {
+    return this.stageDeletionConsequences(this.db, stageId);
+  }
+
   /**
-   * Removes a stage, refused once it holds a fixture or a promotion plan
-   * already targets it — cascades only the stage's own zones, groups and
-   * their entrant assignments, never a fixture (there are none, by the guard
-   * above) and never another stage's record.
+   * Irreversibly removes a named stage and every record owned by its fixtures.
+   * The name is checked again inside the transaction so a stale preview cannot
+   * authorize deleting a renamed stage.
    */
   async deleteStage(
     uow: UnitOfWork,
-    input: { readonly stageId: string } & AuditContext,
-  ): Promise<Stage> {
-    await this.assertStageHasNoFixtures(uow, input.stageId);
-
-    const incomingPlan = await uow.tx
-      .selectFrom('promotion_plans')
-      .select('promotion_plan_id')
-      .where('next_stage_id', '=', input.stageId)
-      .executeTakeFirst();
-    if (incomingPlan) {
-      throw new InvariantViolationError(
-        'Cannot remove a stage that a promotion plan already targets',
-        { stageId: input.stageId },
-      );
+    input: { readonly stageId: string; readonly confirmationName: string } & AuditContext,
+  ): Promise<StageDeletionResult> {
+    const consequences = await this.stageDeletionConsequences(uow.tx, input.stageId);
+    if (consequences.stageName !== input.confirmationName) {
+      throw new InvariantViolationError('Stage name confirmation did not match', {
+        stageId: input.stageId,
+      });
     }
 
+    const fixtureRows = await uow.tx
+      .selectFrom('fixtures')
+      .select('fixture_id')
+      .where('stage_id', '=', input.stageId)
+      .execute();
+    const fixtureIds = fixtureRows.map((fixture) => fixture.fixture_id);
+    const matchRows =
+      fixtureIds.length === 0
+        ? []
+        : await uow.tx
+            .selectFrom('matches')
+            .select('match_id')
+            .where('fixture_id', 'in', fixtureIds)
+            .execute();
+    const matchIds = matchRows.map((match) => match.match_id);
     const zones = await uow.tx
       .selectFrom('zones')
       .select('zone_id')
       .where('stage_id', '=', input.stageId)
       .execute();
     const zoneIds = zones.map((zone) => zone.zone_id);
+    const groups =
+      zoneIds.length === 0
+        ? []
+        : await uow.tx
+            .selectFrom('groups')
+            .select('group_id')
+            .where('zone_id', 'in', zoneIds)
+            .execute();
+    const groupIds = groups.map((group) => group.group_id);
+    const reports =
+      matchIds.length === 0
+        ? []
+        : await uow.tx
+            .selectFrom('participant_reports')
+            .select('report_id')
+            .where('match_id', 'in', matchIds)
+            .execute();
+    const reportIds = reports.map((report) => report.report_id);
+
+    if (reportIds.length > 0) {
+      await uow.tx.deleteFrom('report_evidence').where('report_id', 'in', reportIds).execute();
+      await uow.tx.deleteFrom('participant_reports').where('report_id', 'in', reportIds).execute();
+    }
+
+    if (matchIds.length > 0) {
+      await uow.tx
+        .deleteFrom('match_timer_resolutions')
+        .where('match_id', 'in', matchIds)
+        .execute();
+      await uow.tx.deleteFrom('declared_effects').where('match_id', 'in', matchIds).execute();
+      await uow.tx.deleteFrom('match_events').where('match_id', 'in', matchIds).execute();
+      await uow.tx.deleteFrom('segments').where('match_id', 'in', matchIds).execute();
+      await uow.tx.deleteFrom('match_schedule_history').where('match_id', 'in', matchIds).execute();
+      await uow.tx
+        .deleteFrom('match_schedule_officials')
+        .where('match_id', 'in', matchIds)
+        .execute();
+      await uow.tx
+        .deleteFrom('match_schedule_assignments')
+        .where('match_id', 'in', matchIds)
+        .execute();
+      await uow.tx.deleteFrom('materialised_standings').where('match_id', 'in', matchIds).execute();
+      await uow.tx
+        .deleteFrom('statistic_totals')
+        .where('source_match_id', 'in', matchIds)
+        .execute();
+      await uow.tx.deleteFrom('statistic_adjustments').where('match_id', 'in', matchIds).execute();
+      await uow.tx.deleteFrom('match_rosters').where('match_id', 'in', matchIds).execute();
+      await uow.tx
+        .deleteFrom('match_command_idempotency')
+        .where('match_id', 'in', matchIds)
+        .execute();
+      await uow.tx.deleteFrom('match_assignments').where('match_id', 'in', matchIds).execute();
+      await uow.tx
+        .updateTable('display_tokens')
+        .set({ match_id: null, revoked_at: new Date() })
+        .where('match_id', 'in', matchIds)
+        .execute();
+      await uow.tx.deleteFrom('projection_versions').where('entity_id', 'in', matchIds).execute();
+    }
+
+    if (matchIds.length > 0) {
+      await uow.tx.deleteFrom('matches').where('match_id', 'in', matchIds).execute();
+    }
+    await uow.tx.deleteFrom('fixtures').where('stage_id', '=', input.stageId).execute();
+
+    await uow.tx.deleteFrom('match_assignments').where('stage_id', '=', input.stageId).execute();
+    await uow.tx
+      .deleteFrom('materialised_standings')
+      .where('stage_id', '=', input.stageId)
+      .execute();
+    await uow.tx.deleteFrom('compiled_rulesets').where('stage_id', '=', input.stageId).execute();
+    await uow.tx
+      .deleteFrom('collector_threshold_consumption')
+      .where('stage_id', '=', input.stageId)
+      .execute();
+    await uow.tx
+      .deleteFrom('promotion_plans')
+      .where((eb) =>
+        zoneIds.length === 0
+          ? eb('next_stage_id', '=', input.stageId)
+          : eb('next_stage_id', '=', input.stageId).or('zone_id', 'in', zoneIds),
+      )
+      .execute();
 
     if (zoneIds.length > 0) {
-      const groups = await uow.tx
-        .selectFrom('groups')
-        .select('group_id')
-        .where('zone_id', 'in', zoneIds)
-        .execute();
-      const groupIds = groups.map((group) => group.group_id);
-
       if (groupIds.length > 0) {
         await uow.tx.deleteFrom('group_entrants').where('group_id', 'in', groupIds).execute();
         await uow.tx.deleteFrom('groups').where('group_id', 'in', groupIds).execute();
       }
       await uow.tx.deleteFrom('zone_entrants').where('zone_id', 'in', zoneIds).execute();
-      await uow.tx.deleteFrom('promotion_plans').where('zone_id', 'in', zoneIds).execute();
       await uow.tx.deleteFrom('zones').where('zone_id', 'in', zoneIds).execute();
     }
 
@@ -1240,8 +1568,126 @@ export class CompetitionRepository {
       actor: input.actor,
       authorizationContext: input.authorizationContext,
       previousState: { ...toStage(deleted) },
+      resultingState: { consequences },
+      reason: 'Deleted after consequence confirmation',
     });
-    return toStage(deleted);
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `stage:${input.stageId}`,
+      entityId: input.stageId,
+      eventType: 'stage.deleted',
+      projectionVersion: 1,
+      payload: { stageId: input.stageId, consequences, actor: input.actor },
+    });
+    return { stage: toStage(deleted), consequences };
+  }
+
+  private async stageDeletionConsequences(
+    db: StageDeletionDatabase,
+    stageId: string,
+  ): Promise<StageDeletionConsequences> {
+    const stage = await db
+      .selectFrom('stages')
+      .select(['stage_id', 'name'])
+      .where('stage_id', '=', stageId)
+      .executeTakeFirst();
+    if (!stage) throw new NotFoundError(`Stage ${stageId} does not exist`, { stageId });
+
+    const [fixtureRows, zoneRows] = await Promise.all([
+      db.selectFrom('fixtures').select('fixture_id').where('stage_id', '=', stageId).execute(),
+      db.selectFrom('zones').select('zone_id').where('stage_id', '=', stageId).execute(),
+    ]);
+    const fixtureIds = fixtureRows.map((row) => row.fixture_id);
+    const zoneIds = zoneRows.map((row) => row.zone_id);
+    const [matchRows, groupRows] = await Promise.all([
+      fixtureIds.length === 0
+        ? Promise.resolve([])
+        : db
+            .selectFrom('matches')
+            .select('match_id')
+            .where('fixture_id', 'in', fixtureIds)
+            .execute(),
+      zoneIds.length === 0
+        ? Promise.resolve([])
+        : db.selectFrom('groups').select('group_id').where('zone_id', 'in', zoneIds).execute(),
+    ]);
+    const matchIds = matchRows.map((row) => row.match_id);
+    const groupIds = groupRows.map((row) => row.group_id);
+    const reportRows =
+      matchIds.length === 0
+        ? []
+        : await db
+            .selectFrom('participant_reports')
+            .select('report_id')
+            .where('match_id', 'in', matchIds)
+            .execute();
+    const reportIds = reportRows.map((row) => row.report_id);
+    const promotionPlans =
+      zoneIds.length === 0
+        ? await countWhereEqual(db, 'promotion_plans', 'next_stage_id', stageId)
+        : await sql<{ count: number }>`
+            select count(*) as count from promotion_plans
+            where next_stage_id = ${stageId}
+              or zone_id in (${sql.join(zoneIds)})
+          `
+            .execute(db)
+            .then((result) => Number(result.rows[0]?.count ?? 0));
+
+    const [
+      matchEvents,
+      schedulePlacements,
+      scheduleOfficials,
+      participantReports,
+      reportEvidence,
+      statisticTotals,
+      statisticAdjustments,
+      standings,
+      matchPermissions,
+      stagePermissions,
+      displayTokens,
+      stageConfigurations,
+      compiledRulesets,
+      thresholdConsumption,
+      commandRecords,
+    ] = await Promise.all([
+      countWhereIn(db, 'match_events', 'match_id', matchIds),
+      countWhereIn(db, 'match_schedule_assignments', 'match_id', matchIds),
+      countWhereIn(db, 'match_schedule_officials', 'match_id', matchIds),
+      Promise.resolve(reportIds.length),
+      countWhereIn(db, 'report_evidence', 'report_id', reportIds),
+      countWhereIn(db, 'statistic_totals', 'source_match_id', matchIds),
+      countWhereIn(db, 'statistic_adjustments', 'match_id', matchIds),
+      countWhereEqual(db, 'materialised_standings', 'stage_id', stageId),
+      countWhereIn(db, 'match_assignments', 'match_id', matchIds),
+      countWhereEqual(db, 'match_assignments', 'stage_id', stageId),
+      countWhereIn(db, 'display_tokens', 'match_id', matchIds),
+      countWhereEqual(db, 'stage_configurations', 'stage_id', stageId),
+      countWhereEqual(db, 'compiled_rulesets', 'stage_id', stageId),
+      countWhereEqual(db, 'collector_threshold_consumption', 'stage_id', stageId),
+      countWhereIn(db, 'match_command_idempotency', 'match_id', matchIds),
+    ]);
+
+    return {
+      stageId,
+      stageName: stage.name,
+      fixtures: fixtureIds.length,
+      matches: matchIds.length,
+      zones: zoneIds.length,
+      groups: groupIds.length,
+      matchEvents,
+      schedulePlacements,
+      scheduleOfficials,
+      participantReports,
+      reportEvidence,
+      statistics: statisticTotals + statisticAdjustments + standings,
+      matchPermissions: matchPermissions + stagePermissions,
+      displayTokens,
+      stageConfigurations,
+      compiledRulesets,
+      thresholdConsumption,
+      promotionPlans,
+      commandRecords,
+    };
   }
 
   /** Bulk fixture insert — the shape the generator will hand over. */
@@ -1375,8 +1821,11 @@ export class CompetitionRepository {
   async findGroupZoneId(groupId: string): Promise<string | undefined> {
     const row = await this.db
       .selectFrom('groups')
-      .select('zone_id')
-      .where('group_id', '=', groupId)
+      .innerJoin('zones', 'zones.zone_id', 'groups.zone_id')
+      .select('groups.zone_id')
+      .where('groups.group_id', '=', groupId)
+      .where('groups.deleted_at', 'is', null)
+      .where('zones.deleted_at', 'is', null)
       .executeTakeFirst();
     return row?.zone_id;
   }

@@ -13,6 +13,8 @@ import { messages } from '../../i18n/messages.en.js';
 import { resolveDecisionDescription } from '../../lib/wizard.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { formatEnum } from '../../lib/presentation-formatting.js';
+import { ConsequenceDialog } from '../ui/organisms/consequence-dialog.js';
+import type { StageDeletionResponse } from '../../lib/api-client.js';
 
 /**
  * Rename/format-change/delete for the stage this hub is on — relocated from
@@ -109,12 +111,7 @@ function StageIdentitySection({
           <FormattedMessage {...messages.stageFormatSubmit} />
         </Button>
 
-        <Button
-          disabled={seeded}
-          onClick={() => void onDelete()}
-          type="button"
-          variant="destructive-outline"
-        >
+        <Button onClick={() => void onDelete()} type="button" variant="destructive-outline">
           <FormattedMessage {...messages.stageDelete} />
         </Button>
         {seeded && !dismissedSeededNotice && (
@@ -201,11 +198,15 @@ export function StageHubTemplate({
   availableFormats,
   formatDescriptions,
   seeded,
+  deletePreview,
+  deleteBusy = false,
   roundZones = [],
   onGenerateNextRound,
   onRename,
   onChangeFormat,
   onDelete,
+  onDeletePreviewOpenChange = () => undefined,
+  onConfirmDelete = () => undefined,
 }: {
   readonly organizationAlias: string;
   readonly tournamentAlias: string;
@@ -216,12 +217,16 @@ export function StageHubTemplate({
   readonly availableFormats: readonly string[];
   readonly formatDescriptions?: Readonly<Record<string, string | LocalizedLabel>>;
   readonly seeded: boolean;
+  readonly deletePreview?: StageDeletionResponse;
+  readonly deleteBusy?: boolean;
   /** Zones that can advance a round; empty hides the rounds section. */
   readonly roundZones?: readonly RoundZone[];
   readonly onGenerateNextRound?: (zoneNumber: number) => Promise<void>;
   readonly onRename: (name: string) => Promise<void>;
   readonly onChangeFormat: (format: string) => Promise<void>;
   readonly onDelete: () => Promise<void>;
+  readonly onDeletePreviewOpenChange?: (open: boolean) => void;
+  readonly onConfirmDelete?: () => void;
 }): React.JSX.Element {
   const intl = useIntl();
   const base = `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}`;
@@ -247,6 +252,56 @@ export function StageHubTemplate({
     { href: `${base}/standings`, label: intl.formatMessage(messages.stageHubStandingsLink) },
     { href: `${base}/schedule`, label: intl.formatMessage(messages.stageHubScheduleLink) },
   ];
+
+  const deletionCounts =
+    deletePreview === undefined
+      ? []
+      : [
+          {
+            label: intl.formatMessage(messages.stageDeleteFixtures),
+            value: deletePreview.fixtures,
+          },
+          { label: intl.formatMessage(messages.stageDeleteMatches), value: deletePreview.matches },
+          {
+            label: intl.formatMessage(messages.stageDeleteZonesGroups),
+            value: deletePreview.zones + deletePreview.groups,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeleteEvents),
+            value: deletePreview.matchEvents,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeleteSchedule),
+            value: deletePreview.schedulePlacements + deletePreview.scheduleOfficials,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeleteReports),
+            value: deletePreview.participantReports + deletePreview.reportEvidence,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeleteStatistics),
+            value: deletePreview.statistics,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeleteAccess),
+            value: deletePreview.matchPermissions + deletePreview.displayTokens,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeleteConfiguration),
+            value:
+              deletePreview.stageConfigurations +
+              deletePreview.compiledRulesets +
+              deletePreview.thresholdConsumption,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeletePromotionPlans),
+            value: deletePreview.promotionPlans,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeleteCommandRecords),
+            value: deletePreview.commandRecords,
+          },
+        ].filter((count) => count.value > 0);
 
   const listingNode = (
     <div className="cl-screen-sections">
@@ -287,5 +342,25 @@ export function StageHubTemplate({
     </div>
   );
 
-  return <ListScreenLayout breadcrumbs={breadcrumbs} listing={listingNode} title={titleNode} />;
+  return (
+    <>
+      <ListScreenLayout breadcrumbs={breadcrumbs} listing={listingNode} title={titleNode} />
+      <ConsequenceDialog
+        busy={deleteBusy}
+        cancelLabel={intl.formatMessage(messages.dashboardExportColumnsCancel)}
+        closeLabel={intl.formatMessage(messages.registrationModalClose)}
+        confirmLabel={intl.formatMessage(messages.stageDelete)}
+        counts={deletionCounts}
+        description={intl.formatMessage(messages.stageDeleteDescription)}
+        onConfirm={onConfirmDelete}
+        onOpenChange={onDeletePreviewOpenChange}
+        open={deletePreview !== undefined}
+        title={intl.formatMessage(messages.stageDeleteTitle, {
+          name: deletePreview?.stageName ?? stageName,
+        })}
+        typeToConfirm={deletePreview?.stageName}
+        typeToConfirmLabel={intl.formatMessage(messages.stageDeleteTypeName)}
+      />
+    </>
+  );
 }

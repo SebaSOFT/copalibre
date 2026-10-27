@@ -325,6 +325,38 @@ export class ZonesGroupsController {
     }
   }
 
+  @Post('zones/:zoneNumber/restore')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-zones-groups')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Restore a recently removed zone' })
+  @ApiOkResponse({ type: ZoneResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async restoreZone(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Param('zoneNumber', ParseIntPipe) zoneNumber: number,
+    @Req() request: RequestWithSubject,
+  ): Promise<ZoneResponse> {
+    const context = await this.adminStage(organizationAlias, tournamentAlias, stageNumber, request);
+    const repository = new CompetitionRepository(this.db);
+    const zone = await repository.findZoneByNumberIncludingDeleted(
+      context.stage.stageId,
+      zoneNumber,
+    );
+    if (!zone) throw new NotFoundException(`Zone ${zoneNumber} was not found`);
+    try {
+      const restored = await withTransaction(this.db, (uow) =>
+        repository.restoreZone(uow, { zoneId: zone.zoneId, ...context.audit }),
+      );
+      return (await this.zoneResponses(context.stage, [restored]))[0] as ZoneResponse;
+    } catch (error) {
+      throwConflict(error);
+    }
+  }
+
   @Get('zones/:zoneNumber/entrants')
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'List the entrant ids assigned to a zone' })
@@ -475,6 +507,36 @@ export class ZonesGroupsController {
           groupId: group.groupId,
           ...context.audit,
         }),
+      );
+    } catch (error) {
+      throwConflict(error);
+    }
+  }
+
+  @Post('zones/:zoneNumber/groups/:groupNumber/restore')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-zones-groups')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Restore a recently removed group' })
+  @ApiOkResponse({ type: GroupResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async restoreGroup(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Param('zoneNumber', ParseIntPipe) zoneNumber: number,
+    @Param('groupNumber', ParseIntPipe) groupNumber: number,
+    @Req() request: RequestWithSubject,
+  ): Promise<GroupResponse> {
+    const context = await this.adminStage(organizationAlias, tournamentAlias, stageNumber, request);
+    const zone = await this.zone(context.stage.stageId, zoneNumber);
+    const repository = new CompetitionRepository(this.db);
+    const group = await repository.findGroupByNumberIncludingDeleted(zone.zoneId, groupNumber);
+    if (!group) throw new NotFoundException(`Group ${groupNumber} was not found`);
+    try {
+      return await withTransaction(this.db, (uow) =>
+        repository.restoreGroup(uow, { groupId: group.groupId, ...context.audit }),
       );
     } catch (error) {
       throwConflict(error);

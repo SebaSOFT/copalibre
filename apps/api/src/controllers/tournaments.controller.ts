@@ -533,6 +533,7 @@ export class TournamentsController {
           ...(profileToBind
             ? { profile: { profileId: profileToBind.profileId, version: profileToBind.version } }
             : {}),
+          includesMinors: body.includesMinors ?? false,
           actor: `user:${subject?.subjectId ?? 'unknown'}`,
           authorizationContext: (subject?.scopes ?? []).join(' '),
         });
@@ -710,6 +711,8 @@ export class TournamentsController {
       tournament.featured,
       tournament.emblemObjectId,
       tournament.minimumRestMinutes,
+      tournament.includesMinors ?? false,
+      tournament.showYouthProfiles ?? false,
     );
   }
 
@@ -811,6 +814,7 @@ export class TournamentsController {
       'the whole edit rather than applying part of it.',
   })
   @ApiOkResponse({ type: TournamentSettingsResponse })
+  @ApiBadRequestResponse({ type: ProblemResponse })
   @ApiConflictResponse({ type: ProblemResponse })
   @ApiUnauthorizedResponse({ type: ProblemResponse })
   @ApiForbiddenResponse({ type: ProblemResponse })
@@ -898,6 +902,14 @@ export class TournamentsController {
       body.minimumRestMinutes === undefined
         ? tournament.minimumRestMinutes
         : (body.minimumRestMinutes ?? undefined);
+    const finalIncludesMinors = body.includesMinors ?? tournament.includesMinors ?? false;
+    const finalShowYouthProfiles = body.showYouthProfiles ?? tournament.showYouthProfiles ?? false;
+    if (finalShowYouthProfiles && !finalIncludesMinors) {
+      throw new BadRequestException(
+        'Youth profiles can only be enabled when participants include minors',
+        { errorCode: 'tournament-privacy-settings-invalid' },
+      );
+    }
     try {
       return await withTransaction(this.db, async (uow) => {
         if (body.name !== undefined) {
@@ -930,6 +942,21 @@ export class TournamentsController {
             authorizationContext,
           });
         }
+        if (
+          (body.includesMinors !== undefined &&
+            finalIncludesMinors !== tournament.includesMinors) ||
+          (body.showYouthProfiles !== undefined &&
+            finalShowYouthProfiles !== tournament.showYouthProfiles)
+        ) {
+          await tournaments.setPublicationPrivacy(uow, {
+            tournamentId: tournament.tournamentId,
+            organizationId: tournament.organizationId,
+            includesMinors: finalIncludesMinors,
+            showYouthProfiles: finalShowYouthProfiles,
+            actor,
+            authorizationContext,
+          });
+        }
         if (proposedFields.length > 0) {
           const { effective } = await tournaments.createRuleset(uow, {
             tournamentId: tournament.tournamentId,
@@ -955,6 +982,8 @@ export class TournamentsController {
           finalFeatured,
           tournament.emblemObjectId,
           finalMinimumRest,
+          finalIncludesMinors,
+          finalShowYouthProfiles,
         );
       });
     } catch (error) {
@@ -984,10 +1013,14 @@ export class TournamentsController {
     featured: boolean,
     emblemObjectId?: string,
     minimumRestMinutes?: number,
+    includesMinors = false,
+    showYouthProfiles = false,
   ): TournamentSettingsResponse {
     return {
       name,
       featured,
+      includesMinors,
+      showYouthProfiles,
       ...(minimumRestMinutes === undefined ? {} : { minimumRestMinutes }),
       ...(typeof overrides['registration.region'] === 'string'
         ? { region: overrides['registration.region'] }

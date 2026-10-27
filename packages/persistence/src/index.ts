@@ -19,6 +19,10 @@ export {
 } from './realtime-replicas.js';
 export { newId } from './ids.js';
 export { lockRowsForMutation } from './row-lock.js';
+export {
+  ReversibleRemovalRepository,
+  type ReversibleRemovalPurgeCounts,
+} from './repositories/reversible-removal-repository.js';
 
 export {
   PersistenceError,

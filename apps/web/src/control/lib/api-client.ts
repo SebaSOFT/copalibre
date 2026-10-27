@@ -240,12 +240,19 @@ export interface ControlApiClient {
     stageNumber: number,
     request: UpdateStageRequest,
   ) => Promise<StageResponse>;
-  /** Refused once the stage holds a fixture or a promotion plan already targets it. */
+  /** Read-only consequence counts for a stage removal. */
+  readonly previewDeleteStage?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+  ) => Promise<StageDeletionResponse>;
+  /** Removes the stage after the server verifies its exact current name. */
   readonly deleteStage?: (
     organizationAlias: string,
     tournamentAlias: string,
     stageNumber: number,
-  ) => Promise<StageResponse>;
+    confirmationName: string,
+  ) => Promise<StageDeletionResponse>;
   readonly fetchTournamentSettings?: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -347,6 +354,12 @@ export interface ControlApiClient {
     stageNumber: number,
     zoneNumber: number,
   ) => Promise<ZoneResponse>;
+  readonly restoreZone?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+  ) => Promise<ZoneResponse>;
   readonly renameGroup?: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -356,6 +369,13 @@ export interface ControlApiClient {
     request: RenameRequest,
   ) => Promise<GroupResponse>;
   readonly deleteGroup?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+    groupNumber: number,
+  ) => Promise<GroupResponse>;
+  readonly restoreGroup?: (
     organizationAlias: string,
     tournamentAlias: string,
     stageNumber: number,
@@ -498,6 +518,7 @@ export interface ControlApiClient {
     organizationAlias: string,
     tournamentAlias: string,
     kind: 'participants/individual' | 'participants/team' | 'results' | 'standings',
+    excludedPersonalColumns?: readonly ('displayName' | 'naturalKeyKind' | 'naturalKey')[],
   ) => Promise<string>;
   /** The A1 dashboard's device-health panel reads this per tournament. */
   readonly listDisplayTokens?: (
@@ -536,6 +557,11 @@ export interface ControlApiClient {
     organizationAlias: string,
     tournamentAlias: string,
   ) => Promise<{ readonly status: string }>;
+  /** Publishes a draft tournament after the operator reviews its public-data preview. */
+  readonly publishTournament?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<TournamentResponse>;
   /** A person's profile — display name, nationality, photo, natural key. */
   readonly getPerson?: (organizationAlias: string, personId: string) => Promise<PersonResponse>;
   readonly setPersonNationality?: (
@@ -543,6 +569,11 @@ export interface ControlApiClient {
     personId: string,
     nationality: string | null,
   ) => Promise<{ readonly personId: string; readonly nationality: string | null }>;
+  readonly setPersonPublicVisibility?: (
+    organizationAlias: string,
+    personId: string,
+    hiddenFromPublic: boolean,
+  ) => Promise<{ readonly personId: string; readonly hiddenFromPublic: boolean }>;
   readonly uploadPersonPhoto?: (
     organizationAlias: string,
     personId: string,
@@ -584,6 +615,7 @@ export interface ControlApiClient {
   readonly rebuildStatistics?: (
     organizationAlias: string,
     tournamentAlias?: string,
+    dryRun?: boolean,
   ) => Promise<StatisticsRebuildResponse>;
   /** An organization's clubs — list/create/edit identity; emblem upload is `uploadClubEmblem`. */
   readonly listClubs?: (organizationAlias: string) => Promise<readonly ClubResponse[]>;
@@ -646,6 +678,11 @@ export interface ControlApiClient {
     venueId: string,
     request: UpdateVenueRequest,
   ) => Promise<VenueResponse>;
+  readonly deleteVenue?: (
+    organizationAlias: string,
+    venueId: string,
+  ) => Promise<{ success: boolean }>;
+  readonly restoreVenue?: (organizationAlias: string, venueId: string) => Promise<VenueResponse>;
   readonly listOfficials?: (organizationAlias: string) => Promise<readonly OfficialResponse[]>;
   readonly createOfficial?: (
     organizationAlias: string,
@@ -672,7 +709,9 @@ export interface ControlApiClient {
   readonly deleteSchedule?: (
     organizationAlias: string,
     scheduleId: string,
-  ) => Promise<{ readonly success: boolean }>;
+    dryRun?: boolean,
+    confirmationName?: string,
+  ) => Promise<ScheduleDeletionResponse>;
   /**
    * A stage's real generated fixtures, with `fixtureId`s, resolved from the URL's `stageNumber`.
    * Also resolves `stageId`, which the schedule routes below address directly.
@@ -754,6 +793,7 @@ export interface UnreferencedObjectResponse {
 }
 
 export interface StatisticsRebuildResponse {
+  readonly dryRun: boolean;
   readonly organizationAlias: string;
   readonly tournamentAlias?: string;
   readonly matches: number;
@@ -895,6 +935,13 @@ export interface ScheduleDetailResponse {
   readonly turnaroundMinutes: number;
   readonly venueIds: readonly string[];
   readonly slots: readonly ScheduleSlotResponse[];
+}
+
+export interface ScheduleDeletionResponse {
+  readonly dryRun: boolean;
+  readonly success: boolean;
+  readonly slots: number;
+  readonly matchesUnassigned: number;
 }
 
 export interface CreateScheduleRequest {
@@ -1414,6 +1461,30 @@ export interface StageResponse {
   readonly formatDescriptions?: Readonly<Record<string, string | LocalizedLabel>>;
 }
 
+export interface StageDeletionResponse {
+  readonly stageId: string;
+  readonly stageName: string;
+  readonly dryRun: boolean;
+  readonly success: boolean;
+  readonly fixtures: number;
+  readonly matches: number;
+  readonly zones: number;
+  readonly groups: number;
+  readonly matchEvents: number;
+  readonly schedulePlacements: number;
+  readonly scheduleOfficials: number;
+  readonly participantReports: number;
+  readonly reportEvidence: number;
+  readonly statistics: number;
+  readonly matchPermissions: number;
+  readonly displayTokens: number;
+  readonly stageConfigurations: number;
+  readonly compiledRulesets: number;
+  readonly thresholdConsumption: number;
+  readonly promotionPlans: number;
+  readonly commandRecords: number;
+}
+
 export interface UpdateStageRequest {
   readonly name?: string;
   readonly format?: string;
@@ -1428,6 +1499,8 @@ export interface TournamentSettingsResponse {
   readonly emblemObjectId?: string;
   /** Organizer-set: shown in the public organization page's featured block. */
   readonly featured: boolean;
+  readonly includesMinors: boolean;
+  readonly showYouthProfiles: boolean;
   /** Minimum minutes between an entrant's matches; absent declares no rest rule. */
   readonly minimumRestMinutes?: number;
 }
@@ -1594,6 +1667,7 @@ export interface CreateTournamentRequest {
   readonly stages: readonly CreateTournamentStageRequest[];
   readonly publicRegistration: boolean;
   readonly requiresCheckIn: boolean;
+  readonly includesMinors?: boolean;
   readonly checkInClosesAt?: string;
   readonly region?: string;
   readonly capacity?: number;
@@ -1731,6 +1805,7 @@ export interface PersonResponse {
   readonly nationality?: string;
   readonly photoObjectId?: string;
   readonly naturalKey?: { readonly kind: string; readonly value: string };
+  readonly hiddenFromPublic: boolean;
 }
 
 export interface CreatePersonRequest {
@@ -2568,11 +2643,18 @@ export function createControlApiClient(input: {
         { method: 'PATCH', body, token: input.accessToken?.() },
       ),
 
-    deleteStage: (organizationAlias, tournamentAlias, stageNumber) =>
-      requestJson<StageResponse>(
+    previewDeleteStage: (organizationAlias, tournamentAlias, stageNumber) =>
+      requestJson<StageDeletionResponse>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}?dryRun=true`,
+        { method: 'DELETE', body: {}, token: input.accessToken?.() },
+      ),
+
+    deleteStage: (organizationAlias, tournamentAlias, stageNumber, confirmationName) =>
+      requestJson<StageDeletionResponse>(
         input.fetch,
         stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber),
-        { method: 'DELETE', token: input.accessToken?.() },
+        { method: 'DELETE', body: { confirmationName }, token: input.accessToken?.() },
       ),
 
     fetchStageConfiguration: (organizationAlias, tournamentAlias, stageNumber) =>
@@ -2706,6 +2788,13 @@ export function createControlApiClient(input: {
         { method: 'DELETE', token: input.accessToken?.() },
       ),
 
+    restoreZone: (organizationAlias, tournamentAlias, stageNumber, zoneNumber) =>
+      requestJson<ZoneResponse>(
+        input.fetch,
+        `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/restore`,
+        { method: 'POST', token: input.accessToken?.() },
+      ),
+
     renameGroup: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, groupNumber, body) =>
       requestJson<GroupResponse>(
         input.fetch,
@@ -2718,6 +2807,13 @@ export function createControlApiClient(input: {
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups/${groupNumber}`,
         { method: 'DELETE', token: input.accessToken?.() },
+      ),
+
+    restoreGroup: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, groupNumber) =>
+      requestJson<GroupResponse>(
+        input.fetch,
+        `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups/${groupNumber}/restore`,
+        { method: 'POST', token: input.accessToken?.() },
       ),
 
     previewZoneDraw: (organizationAlias, tournamentAlias, stageNumber, body) =>
@@ -2923,12 +3019,17 @@ export function createControlApiClient(input: {
         { method: 'POST', body: { sourceHash }, token: input.accessToken?.() },
       ),
 
-    downloadCsvExport: (organizationAlias, tournamentAlias, kind) =>
-      requestText(
+    downloadCsvExport: (organizationAlias, tournamentAlias, kind, excludedPersonalColumns = []) => {
+      const query =
+        kind === 'participants/individual' && excludedPersonalColumns.length > 0
+          ? `?excludePersonalData=${encodeURIComponent(excludedPersonalColumns.join(','))}`
+          : '';
+      return requestText(
         input.fetch,
-        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/exports/${kind}`,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/exports/${kind}${query}`,
         input.accessToken?.(),
-      ),
+      );
+    },
 
     downloadTournamentConfiguration: (organizationAlias, tournamentAlias) =>
       requestJson<TournamentConfigurationExportResponse>(
@@ -2976,6 +3077,13 @@ export function createControlApiClient(input: {
       requestJson<{ readonly status: string }>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/archive`,
+        { method: 'POST', token: input.accessToken?.() },
+      ),
+
+    publishTournament: (organizationAlias, tournamentAlias) =>
+      requestJson<TournamentResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/publish`,
         { method: 'POST', token: input.accessToken?.() },
       ),
 
@@ -3087,6 +3195,13 @@ export function createControlApiClient(input: {
         { method: 'PATCH', body: { nationality }, token: input.accessToken?.() },
       ),
 
+    setPersonPublicVisibility: (organizationAlias, personId, hiddenFromPublic) =>
+      requestJson(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/public-visibility`,
+        { method: 'PATCH', body: { hiddenFromPublic }, token: input.accessToken?.() },
+      ),
+
     uploadPersonPhoto: (organizationAlias, personId, body) =>
       requestJson(
         input.fetch,
@@ -3150,13 +3265,16 @@ export function createControlApiClient(input: {
         { method: 'DELETE', token: input.accessToken?.() },
       ),
 
-    rebuildStatistics: (organizationAlias, tournamentAlias) =>
+    rebuildStatistics: (organizationAlias, tournamentAlias, dryRun) =>
       requestJson<StatisticsRebuildResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/statistics/rebuild`,
         {
           method: 'POST',
-          body: tournamentAlias === undefined ? {} : { tournamentAlias },
+          body: {
+            ...(tournamentAlias === undefined ? {} : { tournamentAlias }),
+            ...(dryRun === undefined ? {} : { dryRun }),
+          },
           token: input.accessToken?.(),
         },
       ),
@@ -3252,6 +3370,20 @@ export function createControlApiClient(input: {
         { method: 'PATCH', body, token: input.accessToken?.() },
       ),
 
+    deleteVenue: (organizationAlias, venueId) =>
+      requestJson<{ success: boolean }>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/venues/${encodeURIComponent(venueId)}`,
+        { method: 'DELETE', token: input.accessToken?.() },
+      ),
+
+    restoreVenue: (organizationAlias, venueId) =>
+      requestJson<VenueResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/venues/${encodeURIComponent(venueId)}/restore`,
+        { method: 'POST', token: input.accessToken?.() },
+      ),
+
     listOfficials: (organizationAlias) =>
       requestJson<readonly OfficialResponse[]>(
         input.fetch,
@@ -3294,11 +3426,15 @@ export function createControlApiClient(input: {
         { method: 'PATCH', body, token: input.accessToken?.() },
       ),
 
-    deleteSchedule: (organizationAlias, scheduleId) =>
-      requestJson<{ readonly success: boolean }>(
+    deleteSchedule: (organizationAlias, scheduleId, dryRun, confirmationName) =>
+      requestJson<ScheduleDeletionResponse>(
         input.fetch,
-        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/schedules/${encodeURIComponent(scheduleId)}`,
-        { method: 'DELETE', token: input.accessToken?.() },
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/schedules/${encodeURIComponent(scheduleId)}${dryRun ? '?dryRun=true' : ''}`,
+        {
+          method: 'DELETE',
+          body: confirmationName === undefined ? undefined : { confirmationName },
+          token: input.accessToken?.(),
+        },
       ),
 
     getStageFixtures: (organizationAlias, tournamentAlias, stageNumber) =>

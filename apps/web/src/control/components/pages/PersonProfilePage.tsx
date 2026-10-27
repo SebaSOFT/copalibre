@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { messages } from '../../i18n/messages.en.js';
 import {
@@ -9,7 +9,7 @@ import {
 import { controlTokenStore } from '../../session/token-store.js';
 import { PersonProfileTemplate } from '../screens/PersonProfileTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
-import { useResilientRead } from './use-resilient-read.js';
+import { replaceResilientReadCache, useResilientRead } from './use-resilient-read.js';
 
 /**
  * A minimal person-profile view:
@@ -40,8 +40,12 @@ export function PersonProfilePage({
       }),
     [client],
   );
+  const cacheKey = `control-person-profile:${organizationAlias}:${personId}`;
+  const [personOverride, setPersonOverride] = useState<
+    { readonly requestKey: string; readonly person: PersonResponse } | undefined
+  >(undefined);
   const read = useResilientRead<PersonResponse>(
-    `control-person-profile:${organizationAlias}:${personId}`,
+    cacheKey,
     async () => {
       if (!api.getPerson) throw new Error('Person profile is unavailable');
       const person = await api.getPerson(organizationAlias, personId);
@@ -51,13 +55,27 @@ export function PersonProfilePage({
     { thing: intl.formatMessage(messages.personProfileTitle) },
   );
 
-  if (read.data === undefined)
+  const person =
+    (personOverride?.requestKey === cacheKey ? personOverride.person : undefined) ?? read.data;
+  if (person === undefined)
     return <ReadState {...read} title={intl.formatMessage(messages.personProfileTitle)} />;
   return (
     <ReadState {...read} title={intl.formatMessage(messages.personProfileTitle)}>
       <PersonProfileTemplate
         organizationAlias={organizationAlias}
-        person={read.data as PersonResponse}
+        onSetPublicVisibility={(hiddenFromPublic) => {
+          if (!api.setPersonPublicVisibility) {
+            return Promise.reject(new Error('Person public visibility is unavailable'));
+          }
+          return api
+            .setPersonPublicVisibility(organizationAlias, personId, hiddenFromPublic)
+            .then((result) => {
+              const updated = { ...person, hiddenFromPublic: result.hiddenFromPublic };
+              setPersonOverride({ requestKey: cacheKey, person: updated });
+              replaceResilientReadCache(cacheKey, updated);
+            });
+        }}
+        person={person}
         personId={personId}
       />
     </ReadState>

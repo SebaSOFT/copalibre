@@ -197,6 +197,8 @@ describe('repositories (integration)', () => {
       expect(tournamentEvent?.payload).toEqual({
         tournamentId: tournament.tournamentId,
         alias: 'copa-aviso-importada',
+        includesMinors: false,
+        showYouthProfiles: false,
         status: 'draft',
         name: 'Copa Aviso Importada',
         actor: AUDIT.actor,

@@ -2963,6 +2963,419 @@ describe('public projections routes', () => {
   });
 });
 
+describe('public privacy read models', () => {
+  const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+
+  async function createPrivacyTournament(
+    alias: string,
+    includesMinors: boolean,
+    hideHomePerson = false,
+  ) {
+    const tournaments = new TournamentRepository(scratch.db);
+    const people = new PersonRepository(scratch.db);
+    const enrollments = new EnrollmentRepository(scratch.db);
+    const competition = new CompetitionRepository(scratch.db);
+    const descriptor = footballDescriptor();
+
+    const setup = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...audit });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias,
+        name: `Privacy ${alias}`,
+        descriptor,
+        includesMinors,
+        ...audit,
+      });
+      const homePerson = await people.register(uow, {
+        organizationId,
+        displayName: `Home ${alias}`,
+        birthDate: '2010-05-20',
+        ...audit,
+      });
+      const awayPerson = await people.register(uow, {
+        organizationId,
+        displayName: `Away ${alias}`,
+        birthDate: '1995-05-20',
+        ...audit,
+      });
+      await people.setNationality(uow, {
+        personId: homePerson.person.personId,
+        organizationId,
+        nationality: 'AR',
+        ...audit,
+      });
+      const homeEntrant = await enrollments.registerEntrant(uow, {
+        organizationId,
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'person', personId: homePerson.person.personId },
+        ...audit,
+      });
+      const awayEntrant = await enrollments.registerEntrant(uow, {
+        organizationId,
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'person', personId: awayPerson.person.personId },
+        ...audit,
+      });
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Liga',
+        format: 'round-robin',
+        organizationId,
+        ...audit,
+      });
+      const [fixture] = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [
+          {
+            round: 1,
+            homeEntrantId: homeEntrant.entrantId,
+            awayEntrantId: awayEntrant.entrantId,
+          },
+        ],
+        organizationId,
+        ...audit,
+      });
+      if (!fixture) throw new Error('Privacy fixture was not created');
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture.fixtureId,
+        number: 1,
+        organizationId,
+        ...audit,
+      });
+      await competition.recordResult(uow, {
+        matchId: match.matchId,
+        result: {
+          sides: [
+            { entrantId: homeEntrant.entrantId, statistics: { goals: 2 } },
+            { entrantId: awayEntrant.entrantId, statistics: { goals: 1 } },
+          ],
+          winnerEntrantId: homeEntrant.entrantId,
+          recordedAt: '2026-10-01T12:00:00.000Z',
+        },
+        organizationId,
+        ...audit,
+      });
+      const knockout = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 2,
+        name: 'Eliminatorias',
+        format: 'single-elimination',
+        organizationId,
+        ...audit,
+      });
+      const [knockoutFixture] = await competition.createFixtures(uow, {
+        stageId: knockout.stageId,
+        fixtures: [
+          {
+            round: 1,
+            homeEntrantId: homeEntrant.entrantId,
+            awayEntrantId: awayEntrant.entrantId,
+          },
+        ],
+        organizationId,
+        ...audit,
+      });
+      if (!knockoutFixture) throw new Error('Privacy knockout fixture was not created');
+      const knockoutMatch = await competition.createMatch(uow, {
+        fixtureId: knockoutFixture.fixtureId,
+        number: 1,
+        organizationId,
+        ...audit,
+      });
+      await competition.recordResult(uow, {
+        matchId: knockoutMatch.matchId,
+        result: {
+          sides: [
+            { entrantId: homeEntrant.entrantId, statistics: { goals: 2 } },
+            { entrantId: awayEntrant.entrantId, statistics: { goals: 1 } },
+          ],
+          winnerEntrantId: homeEntrant.entrantId,
+          recordedAt: '2026-10-02T12:00:00.000Z',
+        },
+        organizationId,
+        ...audit,
+      });
+      return {
+        tournament,
+        homePersonId: homePerson.person.personId,
+        tournamentId: tournament.tournamentId,
+        homeEntrantId: homeEntrant.entrantId,
+        matchNumber: match.number,
+        knockoutMatchNumber: knockoutMatch.number,
+      };
+    });
+    if (hideHomePerson) {
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        people.setHiddenFromPublic(uow, {
+          personId: setup.homePersonId,
+          organizationId,
+          hiddenFromPublic: true,
+          ...audit,
+        }),
+      );
+    }
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.publish(uow, {
+        tournamentId: setup.tournamentId,
+        organizationId,
+        ...audit,
+      }),
+    );
+    return setup;
+  }
+
+  it('keeps youth names and match results while removing public profile access', async () => {
+    const tournament = await createPrivacyTournament('privacy-youth-public', true);
+    const root = `/organizations/liga-orbital/tournaments/${tournament.tournament.alias}`;
+
+    const [overview, match, bracket, profile, statistics] = await Promise.all([
+      request({ method: 'GET', url: `${root}/overview` }),
+      request({ method: 'GET', url: `${root}/stages/1/matches/${tournament.matchNumber}` }),
+      request({ method: 'GET', url: `${root}/stages/2/bracket` }),
+      request({ method: 'GET', url: `${root}/persons/${tournament.homePersonId}/public/profile` }),
+      request({
+        method: 'GET',
+        url: `${root}/persons/${tournament.homePersonId}/public/statistics?layout=missing`,
+      }),
+    ]);
+
+    expect(overview.statusCode).toBe(200);
+    const overviewBody = JSON.parse(overview.payload as string);
+    expect(overviewBody.matches[0]).toMatchObject({
+      homeName: 'Home privacy-youth-public',
+      homePublicProfileAvailable: false,
+      homeScore: 2,
+      awayScore: 1,
+    });
+    expect(overviewBody.standingsPreview).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Home privacy-youth-public',
+          publicProfileAvailable: false,
+        }),
+      ]),
+    );
+    expect(match.statusCode).toBe(200);
+    expect(JSON.parse(match.payload as string)).toMatchObject({
+      homeName: 'Home privacy-youth-public',
+      homePublicProfileAvailable: false,
+      homeScore: 2,
+      awayScore: 1,
+    });
+    expect(bracket.statusCode).toBe(200);
+    expect(JSON.stringify(bracket.json())).toContain('Home privacy-youth-public');
+    expect(bracket.json().zones[0].matches[0].slots).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          entrantId: tournament.homeEntrantId,
+          name: 'Home privacy-youth-public',
+          publicProfileAvailable: false,
+        }),
+      ]),
+    );
+    expect(profile.statusCode).toBe(404);
+    expect(statistics.statusCode).toBe(404);
+  });
+
+  it('replaces an opted-out adult identity without changing results and 404s profile routes', async () => {
+    const tournament = await createPrivacyTournament('privacy-adult-opt-out', false, true);
+    const root = `/organizations/liga-orbital/tournaments/${tournament.tournament.alias}`;
+
+    const [overview, match, bracket, profile, statistics] = await Promise.all([
+      request({ method: 'GET', url: `${root}/overview` }),
+      request({ method: 'GET', url: `${root}/stages/1/matches/${tournament.matchNumber}` }),
+      request({ method: 'GET', url: `${root}/stages/2/bracket` }),
+      request({ method: 'GET', url: `${root}/persons/${tournament.homePersonId}/public/profile` }),
+      request({
+        method: 'GET',
+        url: `${root}/persons/${tournament.homePersonId}/public/statistics?layout=missing`,
+      }),
+    ]);
+
+    expect(overview.statusCode).toBe(200);
+    const overviewBody = JSON.parse(overview.payload as string);
+    expect(overviewBody.matches[0]).toMatchObject({
+      homeHiddenAtRequest: true,
+      homePublicProfileAvailable: false,
+      homeScore: 2,
+      awayScore: 1,
+    });
+    expect(overviewBody.matches[0].homeName).toBeUndefined();
+    expect(JSON.stringify(overviewBody)).not.toContain('Home privacy-adult-opt-out');
+    expect(match.statusCode).toBe(200);
+    expect(JSON.parse(match.payload as string)).toMatchObject({
+      homeHiddenAtRequest: true,
+      homeScore: 2,
+      awayScore: 1,
+    });
+    expect(bracket.statusCode).toBe(200);
+    expect(JSON.stringify(bracket.json())).not.toContain('Home privacy-adult-opt-out');
+    expect(bracket.json().zones[0].matches[0].slots).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          entrantId: tournament.homeEntrantId,
+          hiddenAtRequest: true,
+          publicProfileAvailable: false,
+        }),
+      ]),
+    );
+    expect(profile.statusCode).toBe(404);
+    expect(statistics.statusCode).toBe(404);
+  });
+
+  it('excludes protected youth tournaments from a public adult career without inferring age', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const people = new PersonRepository(scratch.db);
+    const enrollment = new EnrollmentRepository(scratch.db);
+    const competition = new CompetitionRepository(scratch.db);
+    const statistics = new StatisticRepository(scratch.db);
+    const descriptor = footballDescriptor();
+
+    const setup = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...audit });
+      const adult = await tournaments.create(uow, {
+        organizationId,
+        alias: 'privacy-career-adult',
+        name: 'Privacy Career Adult',
+        descriptor,
+        ...audit,
+      });
+      const youth = await tournaments.create(uow, {
+        organizationId,
+        alias: 'privacy-career-youth',
+        name: 'Privacy Career Youth',
+        descriptor,
+        includesMinors: true,
+        ...audit,
+      });
+      const { person } = await people.register(uow, {
+        organizationId,
+        displayName: 'Career Example',
+        birthDate: '2010-05-20',
+        ...audit,
+      });
+      const team = await enrollment.createTeam(uow, {
+        organizationId,
+        name: 'Club Carrera',
+        ...audit,
+      });
+      await people.enlist(uow, {
+        personId: person.personId,
+        teamId: team.teamId,
+        role: 'player',
+        organizationId,
+        ...audit,
+      });
+
+      const matchIds: string[] = [];
+      for (const [tournament, goals] of [
+        [adult, 3],
+        [youth, 99],
+      ] as const) {
+        const homeEntrant = await enrollment.registerEntrant(uow, {
+          organizationId,
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          ...audit,
+        });
+        const opponent = await enrollment.createTeam(uow, {
+          organizationId,
+          name: `Rival ${tournament.alias}`,
+          ...audit,
+        });
+        const awayEntrant = await enrollment.registerEntrant(uow, {
+          organizationId,
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: opponent.teamId },
+          ...audit,
+        });
+        const stage = await competition.createStageInTournament(uow, {
+          tournamentId: tournament.tournamentId,
+          number: 1,
+          name: 'Liga',
+          format: 'round-robin',
+          organizationId,
+          ...audit,
+        });
+        const [fixture] = await competition.createFixtures(uow, {
+          stageId: stage.stageId,
+          fixtures: [
+            {
+              round: 1,
+              homeEntrantId: homeEntrant.entrantId,
+              awayEntrantId: awayEntrant.entrantId,
+            },
+          ],
+          organizationId,
+          ...audit,
+        });
+        if (!fixture) throw new Error('Career fixture was not created');
+        const match = await competition.createMatch(uow, {
+          fixtureId: fixture.fixtureId,
+          number: 1,
+          organizationId,
+          ...audit,
+        });
+        matchIds.push(match.matchId);
+        await statistics.projectMatch(uow, {
+          organizationId,
+          matchId: match.matchId,
+          projectionVersion: 1,
+          figures: [
+            {
+              collectorCode: 'career-goals',
+              actorGranularity: 'person',
+              actorId: person.personId,
+              competitionGranularity: 'match',
+              competitionId: match.matchId,
+              value: goals,
+              samples: 1,
+            },
+          ],
+        });
+      }
+      return { adult, youth, personId: person.personId, matchIds };
+    });
+
+    for (const tournament of [setup.adult, setup.youth]) {
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.publish(uow, {
+          tournamentId: tournament.tournamentId,
+          organizationId,
+          ...audit,
+        }),
+      );
+    }
+
+    const response = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${setup.adult.alias}/persons/${setup.personId}/public/profile`,
+    });
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.payload as string);
+    expect(
+      body.competitionHistory.map((entry: { tournamentAlias: string }) => entry.tournamentAlias),
+    ).toEqual([setup.adult.alias]);
+    expect(body.careerStatistics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          statistics: expect.arrayContaining([
+            expect.objectContaining({ code: 'career-goals', value: 3, samples: 1 }),
+          ]),
+        }),
+      ]),
+    );
+    expect(JSON.stringify(body.careerStatistics)).not.toContain('99');
+    const protectedProfile = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${setup.youth.alias}/persons/${setup.personId}/public/profile`,
+    });
+    expect(protectedProfile.statusCode).toBe(404);
+  });
+});
+
 describe('overview standings of a mixed-format stage', () => {
   const AUDIT = { actor: 'user:seed', authorizationContext: 'seed' } as const;
 

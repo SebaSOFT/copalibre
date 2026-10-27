@@ -21,7 +21,12 @@ function Screen({
       return Promise.resolve(value);
     }
     return storyClient<ControlApiClient>({
-      fetchTournamentSettings: async () => ({ name: 'Apertura 2026', featured: false }),
+      fetchTournamentSettings: async () => ({
+        name: 'Apertura 2026',
+        featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
+      }),
       listStages: () =>
         read(
           mode === 'not-found' || mode === 'empty'

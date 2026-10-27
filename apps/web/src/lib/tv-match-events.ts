@@ -29,8 +29,10 @@ export function buildActorDirectory(
 ): Readonly<Record<string, string>> {
   const actors: Record<string, string> = {};
   for (const member of [...rosters.home, ...rosters.away]) {
-    actors[member.personId] =
-      member.number === undefined ? member.name : `#${member.number} ${member.name}`;
+    if (member.personId !== undefined && member.hiddenAtRequest !== true) {
+      actors[member.personId] =
+        member.number === undefined ? (member.name ?? '') : `#${member.number} ${member.name}`;
+    }
   }
   return actors;
 }
@@ -93,7 +95,10 @@ export function resolveLiveTvMatchEvent(
  * Every recorded event of one match, generic over its `definitionCode` — a goal, a card, or
  * whatever else the installed discipline declares — rather than a hardcoded goal/card list.
  */
-export function buildTvMatchEvents(response: PublicMatchReportResponse): readonly TvMatchEvent[] {
+export function buildTvMatchEvents(
+  response: PublicMatchReportResponse,
+  hiddenPersonLabel = 'Player hidden at their request',
+): readonly TvMatchEvent[] {
   const actors = buildActorDirectory(response.rosters);
 
   return response.timeline.map((event) => ({
@@ -108,8 +113,10 @@ export function buildTvMatchEvents(response: PublicMatchReportResponse): readonl
         : event.side === response.awayEntrantId
           ? { side: 'away' as const }
           : {}),
-    ...(event.personId === undefined || !(event.personId in actors)
-      ? {}
-      : { actor: actors[event.personId] }),
+    ...(event.hiddenAtRequest
+      ? { actor: hiddenPersonLabel }
+      : event.personId === undefined || !(event.personId in actors)
+        ? {}
+        : { actor: actors[event.personId] }),
   }));
 }

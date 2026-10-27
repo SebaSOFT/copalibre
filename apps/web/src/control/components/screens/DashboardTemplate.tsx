@@ -26,6 +26,7 @@ interface DeviceEntry {
 export function DashboardTemplate({
   canCreateTournament,
   canManageDisplayTokens,
+  canManageTournamentLifecycle,
   devices,
   failed,
   loading,
@@ -34,6 +35,7 @@ export function DashboardTemplate({
   onArchive,
   onExport,
   onExportConfiguration,
+  onPublish,
   onRetry,
   organizationAlias,
   staleSince,
@@ -42,6 +44,7 @@ export function DashboardTemplate({
   readonly canCreateTournament: boolean;
   /** Same guard, gating each tournament card's Broadcaster Studio link. */
   readonly canManageDisplayTokens: boolean;
+  readonly canManageTournamentLifecycle: boolean;
   readonly devices: readonly DeviceEntry[];
   readonly failed: boolean;
   readonly loading: boolean;
@@ -50,9 +53,11 @@ export function DashboardTemplate({
   readonly onArchive: (tournamentAlias: string) => void;
   readonly onExport: (
     tournamentAlias: string,
-    kind: 'participants/team' | 'results' | 'standings',
+    kind: 'participants/individual' | 'participants/team' | 'results' | 'standings',
+    trigger?: HTMLElement | null,
   ) => void;
   readonly onExportConfiguration: (tournamentAlias: string) => void;
+  readonly onPublish: (tournamentAlias: string, tournamentName: string) => void;
   readonly onRetry: () => void;
   readonly organizationAlias: string;
   readonly staleSince: number | undefined;
@@ -99,11 +104,13 @@ export function DashboardTemplate({
               {model.tournaments.map((card) => (
                 <TournamentSummaryCard
                   canManageDisplayTokens={canManageDisplayTokens}
+                  canManageTournamentLifecycle={canManageTournamentLifecycle}
                   card={card}
                   key={card.tournamentId}
                   onArchive={onArchive}
                   onExport={onExport}
                   onExportConfiguration={onExportConfiguration}
+                  onPublish={onPublish}
                   organizationAlias={organizationAlias}
                 />
               ))}

@@ -127,7 +127,12 @@ const projection: MatchConsoleResponse = {
 
 function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApiClient {
   return {
-    fetchTournamentSettings: async () => ({ name: 'Apertura 2026', featured: false }),
+    fetchTournamentSettings: async () => ({
+      name: 'Apertura 2026',
+      featured: false,
+      includesMinors: false,
+      showYouthProfiles: false,
+    }),
     fetchMatchConsole: async () => projection,
     fetchMatchRosters: async () => [],
     fetchRosterCandidates: async () => [],

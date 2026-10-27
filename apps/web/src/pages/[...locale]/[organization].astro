@@ -8,6 +8,7 @@ import {
   fetchOrganizationTournaments,
   organizationEmblemUrl,
   clubEmblemUrl,
+  mapPublicWinnerZones,
 } from '../../lib/public-api-client.ts';
 import { withListingPodiumEmblems } from '../../lib/podium-emblems.ts';
 import { featuredTournaments } from '../../lib/organization-page.ts';
@@ -45,7 +46,10 @@ const localePrefix = resolvedLocale === 'en' ? '' : `/${resolvedLocale}`;
 const canonicalPath = `${localePrefix}/${encodeURIComponent(organization!)}`;
 
 const withEmblems = (items: readonly PublicTournamentListingItemResponse[]) =>
-  items.map((t) => withListingPodiumEmblems(organization!, t));
+  items.map((t) => {
+    const winners = mapPublicWinnerZones(t.winners, resolvedLocale);
+    return withListingPodiumEmblems(organization!, winners === undefined ? t : { ...t, winners });
+  });
 const liveTournaments = withEmblems(listData?.tournaments.filter((t) => t.status === 'live') ?? []);
 const upcomingTournaments = withEmblems(
   listData?.tournaments.filter((t) => t.status === 'upcoming') ?? [],

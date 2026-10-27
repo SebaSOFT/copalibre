@@ -615,6 +615,66 @@ describe('table projections (integration)', () => {
       expect(response.json().rows[0]).toMatchObject({ actorId: personScorer });
     });
 
+    it('protects player table identities while retaining their recorded statistics', async () => {
+      const people = new PersonRepository(scratch.db);
+      const tournaments = new TournamentRepository(scratch.db);
+
+      await withTransaction(scratch.db, (uow) =>
+        people.setHiddenFromPublic(uow, {
+          personId: personScorer,
+          organizationId,
+          hiddenFromPublic: true,
+          ...AUDIT,
+        }),
+      );
+
+      const hiddenResponse = await getAnonymous(
+        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+      );
+      expect(hiddenResponse.statusCode).toBe(200);
+      expect(hiddenResponse.json().rows[0]).toMatchObject({
+        actorId: personScorer,
+        actorName: '',
+        hiddenAtRequest: true,
+        publicProfileAvailable: false,
+        rank: 1,
+        cells: { goals: { raw: 1, formatted: '1' } },
+      });
+      expect(hiddenResponse.json().rows[0].nationality).toBeUndefined();
+      expect(hiddenResponse.json().rows[0].entrantName).toBeUndefined();
+      expect(hiddenResponse.json().rows[0].cells.player.formatted).toBe('');
+
+      await withTransaction(scratch.db, async (uow) => {
+        await people.setHiddenFromPublic(uow, {
+          personId: personScorer,
+          organizationId,
+          hiddenFromPublic: false,
+          ...AUDIT,
+        });
+        await tournaments.setPublicationPrivacy(uow, {
+          tournamentId,
+          organizationId,
+          includesMinors: true,
+          showYouthProfiles: false,
+          ...AUDIT,
+        });
+      });
+
+      const youthResponse = await getAnonymous(
+        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+      );
+      expect(youthResponse.statusCode).toBe(200);
+      expect(youthResponse.json().rows[0]).toMatchObject({
+        actorId: personScorer,
+        actorName: 'Goleador',
+        publicProfileAvailable: false,
+        rank: 1,
+        cells: { player: { formatted: 'Goleador' }, goals: { raw: 1, formatted: '1' } },
+      });
+      expect(youthResponse.json().rows[0].nationality).toBeUndefined();
+      expect(youthResponse.json().rows[0].entrantName).toBeUndefined();
+    });
+
     it('filters a tournament-wide table by clubId without changing computed ranking', async () => {
       const matching = await getAnonymous(
         `/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?clubId=${clubTalleresId}`,

@@ -69,6 +69,15 @@ function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
     ...overrides,
   };
 }
+function continueWizardWithAdultParticipants(): void {
+  const noMinors = screen.queryByRole('radio', {
+    name: 'No, this tournament has no minor participants',
+  });
+  if (noMinors && !screen.queryByRole('radio', { checked: true })) {
+    fireEvent.click(noMinors);
+  }
+  fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+}
 
 describe('the tournament authoring route container', () => {
   it('loads disciplines from the API and posts the wizard request', async () => {
@@ -92,12 +101,12 @@ describe('the tournament authoring route container', () => {
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
     });
@@ -130,12 +139,12 @@ describe('the tournament authoring route container', () => {
     await screen.findByLabelText('Name');
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Inválida' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-invalida' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
     fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
 
     expect(

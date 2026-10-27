@@ -41,6 +41,14 @@ type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};
 export const Empty: Story = { args: { disciplines: [] } };
 
+export const MinorsChoiceUnanswered: Story = {
+  args: { initialState: { step: 'name' } },
+};
+
+export const MinorsChoiceAnsweredNo: Story = {
+  args: { initialState: { step: 'name', includesMinors: false } },
+};
+
 export const FormatStepSingleElimination: Story = {
   args: {
     initialState: {

@@ -60,12 +60,16 @@ const { model, intl, locale, organization, tournament } = Astro.props;
                     <tr>
                       <td class="cl-num-cell">{member.number ?? '—'}</td>
                       <td class="cl-name-cell">
-                        <a
-                          href={`${locale ? `/${locale}` : ''}/${encodeURIComponent(organization)}/tournaments/${encodeURIComponent(tournament)}/players/${encodeURIComponent(member.personId)}`}
-                          class="cl-player-link"
-                        >
-                          {member.name}
-                        </a>
+                        {member.personId && member.publicProfileAvailable !== false ? (
+                          <a
+                            href={`${locale ? `/${locale}` : ''}/${encodeURIComponent(organization)}/tournaments/${encodeURIComponent(tournament)}/players/${encodeURIComponent(member.personId)}`}
+                            class="cl-player-link"
+                          >
+                            {member.name}
+                          </a>
+                        ) : (
+                          member.name
+                        )}
                       </td>
                       <td>{member.roleLabels.length > 0 ? member.roleLabels.join(', ') : '—'}</td>
                       <td>

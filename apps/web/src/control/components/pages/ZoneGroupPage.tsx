@@ -159,6 +159,31 @@ export function ZoneGroupPage({
     if (!api.deleteZone) return;
     try {
       await api.deleteZone(organizationAlias, tournamentAlias, stageNumber, zoneNumber);
+      if (selectedZoneOverride === zoneNumber) setSelectedZoneNumber(undefined);
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.zoneGroupZoneDeleted),
+        durationMs: 10_000,
+        action: {
+          label: intl.formatMessage(messages.seedingUndo),
+          onAction: () => {
+            if (!api.restoreZone) return;
+            void api
+              .restoreZone(organizationAlias, tournamentAlias, stageNumber, zoneNumber)
+              .then(() => {
+                setSelectedZoneNumber(zoneNumber);
+                void reload();
+              })
+              .then(() =>
+                push({
+                  severity: 'success',
+                  message: intl.formatMessage(messages.zoneGroupZoneRestored),
+                }),
+              )
+              .catch(pushError);
+          },
+        },
+      });
       void reload();
     } catch (error) {
       pushError(error);
@@ -192,6 +217,33 @@ export function ZoneGroupPage({
         selectedZoneNumber,
         groupNumber,
       );
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.zoneGroupGroupDeleted),
+        durationMs: 10_000,
+        action: {
+          label: intl.formatMessage(messages.seedingUndo),
+          onAction: () => {
+            if (!api.restoreGroup || selectedZoneNumber === undefined) return;
+            void api
+              .restoreGroup(
+                organizationAlias,
+                tournamentAlias,
+                stageNumber,
+                selectedZoneNumber,
+                groupNumber,
+              )
+              .then(() => void reloadGroups())
+              .then(() =>
+                push({
+                  severity: 'success',
+                  message: intl.formatMessage(messages.zoneGroupGroupRestored),
+                }),
+              )
+              .catch(pushError);
+          },
+        },
+      });
       void reloadGroups();
     } catch (error) {
       pushError(error);

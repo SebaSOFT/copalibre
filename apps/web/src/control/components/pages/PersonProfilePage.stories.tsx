@@ -22,6 +22,7 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
         read({
           personId: ids.person,
           displayName: 'V. Kael',
+          hiddenFromPublic: false,
           ...(empty ? {} : { nationality: 'AR', naturalKey: { kind: 'member', value: 'MS-014' } }),
         }),
     });

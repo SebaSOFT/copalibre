@@ -26,7 +26,13 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
       return Promise.resolve(value);
     }
     return storyClient<ControlApiClient>({
-      fetchTournamentSettings: () => Promise.resolve({ name: TITLE, featured: false }),
+      fetchTournamentSettings: () =>
+        Promise.resolve({
+          name: TITLE,
+          featured: false,
+          includesMinors: false,
+          showYouthProfiles: false,
+        }),
       fetchStageConfiguration: undefined,
       fetchPromotionPlansTargetingStage: undefined,
       fetchSeeding: () =>

@@ -33,8 +33,11 @@ import { FIXTURE_SIDE_SOURCE_MODELS } from '../dto/fixture-side-source.dto.js';
  * Bumped to 7.0.0 for multi-stage tournament authoring: tournament creation now
  * requires a `stages` array declaring every stage up front, replacing the single
  * top-level `format`/`series` fields.
+ *
+ * Bumped to 8.0.0 because personal access token creation now requires an explicit
+ * `scopes` array; callers can no longer inherit every scope from their session.
  */
-export const OPENAPI_VERSION = '7.6.0';
+export const OPENAPI_VERSION = '8.0.0';
 
 export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()

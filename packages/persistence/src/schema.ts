@@ -50,6 +50,7 @@ export interface PersonalAccessTokensTable {
   revoked_at: Timestamp | null;
   last_used_at: Timestamp | null;
   created_at: Timestamp;
+  deleted_at: Timestamp | null;
 }
 
 /**
@@ -253,6 +254,9 @@ export interface TournamentsTable {
   emblem_object_id: string | null;
   /** Organizer-set "this one matters" flag for the public organization page. */
   featured: ColumnType<boolean, boolean | undefined, boolean>;
+  /** Privacy preferences are safe mutations: they do not alter results or fixtures. */
+  includes_minors: ColumnType<boolean, boolean | undefined, boolean>;
+  show_youth_profiles: ColumnType<boolean, boolean | undefined, boolean>;
   /** Minimum minutes between an entrant's matches; null declares no rest rule. */
   minimum_rest_minutes: ColumnType<number | null, number | null | undefined, number | null>;
 }
@@ -278,6 +282,8 @@ export interface PersonsTable {
   photo_object_id: string | null;
   /** The club this person is affiliated with; null for a person with no club affiliation. */
   club_id: string | null;
+  /** Person-level public-page opt-out; changing visibility is a safe mutation. */
+  hidden_from_public: ColumnType<boolean, boolean | undefined, boolean>;
   created_at: Timestamp;
 }
 
@@ -383,6 +389,7 @@ export interface ZonesTable {
   draw_seed: number | null;
   draw_constraints: JSONColumnType<readonly DrawConstraint[]> | null;
   created_at: Timestamp;
+  deleted_at: Timestamp | null;
 }
 
 export interface GroupsTable {
@@ -393,6 +400,7 @@ export interface GroupsTable {
   draw_seed: number | null;
   draw_constraints: JSONColumnType<readonly DrawConstraint[]> | null;
   created_at: Timestamp;
+  deleted_at: Timestamp | null;
 }
 
 export interface PromotionPlansTable {
@@ -445,6 +453,7 @@ export interface VenuesTable {
   address: string | null;
   details: JSONColumnType<Record<string, string>> | null;
   created_at: Timestamp;
+  deleted_at: Timestamp | null;
 }
 
 export interface OfficialsTable {
