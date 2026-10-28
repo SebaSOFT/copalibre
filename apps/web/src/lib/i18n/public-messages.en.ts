@@ -789,6 +789,22 @@ export const messages = defineMessages({
     id: 'publicWeb.playerProfile.historyRoleColumnHeading',
     defaultMessage: 'Role',
   },
+  playerProfileRolePlayer: {
+    id: 'publicWeb.playerProfile.role.player',
+    defaultMessage: 'Player',
+  },
+  playerProfileRoleSubstitute: {
+    id: 'publicWeb.playerProfile.role.substitute',
+    defaultMessage: 'Substitute',
+  },
+  playerProfileRoleCoach: {
+    id: 'publicWeb.playerProfile.role.coach',
+    defaultMessage: 'Coach',
+  },
+  playerProfileRoleStaff: {
+    id: 'publicWeb.playerProfile.role.staff',
+    defaultMessage: 'Staff',
+  },
   playerProfileCareerStatsHeading: {
     id: 'publicWeb.playerProfile.careerStatsHeading',
     defaultMessage: 'Career Statistics',

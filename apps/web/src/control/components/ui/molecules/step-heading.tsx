@@ -16,6 +16,8 @@ import type { ReactNode } from 'react';
 export interface StepHeadingProps {
   /** The step's position in its sequence. Rendered in tabular figures. */
   readonly step: number;
+  /** When supplied, the marker shows position and total to make long sequences clear. */
+  readonly totalSteps?: number;
   readonly title: string;
   /**
    * Which heading level this is in its page's outline. A step is not always an
@@ -30,6 +32,7 @@ export interface StepHeadingProps {
 
 export function StepHeading({
   step,
+  totalSteps,
   title,
   level = 3,
   id,
@@ -41,7 +44,7 @@ export function StepHeading({
     <div className={className || undefined}>
       <div className="cl-step-heading">
         <span aria-hidden="true" className="cl-step-heading__marker cl-chamfer cl-chamfer--control">
-          {step}
+          {totalSteps === undefined ? step : `${step} / ${totalSteps}`}
         </span>
         <Heading className="cl-step-heading__title" id={id}>
           {title}

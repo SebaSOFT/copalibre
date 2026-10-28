@@ -51,13 +51,19 @@ const HOOK_VOCABULARY: HookScriptVocabulary = {
   ],
 };
 function continueWizardWithAdultParticipants(): void {
-  const noMinors = screen.queryByRole('radio', {
+  let noMinors = screen.queryByRole('radio', {
     name: 'No, this tournament has no minor participants',
   });
+  if (!noMinors && screen.queryByLabelText('Name')) {
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    noMinors = screen.queryByRole('radio', {
+      name: 'No, this tournament has no minor participants',
+    });
+  }
   if (noMinors && !screen.queryByRole('radio', { checked: true })) {
     fireEvent.click(noMinors);
   }
-  fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 }
 
 describe('the tournament setup wizard screen', () => {
@@ -68,11 +74,16 @@ describe('the tournament setup wizard screen', () => {
       target: { value: 'copa-privacidad' },
     });
 
+    expect(
+      screen.queryByRole('radio', { name: 'No, this tournament has no minor participants' }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
     const noMinors = screen.getByRole('radio', {
       name: 'No, this tournament has no minor participants',
     });
     const continueButton = screen.getByRole('button', {
-      name: 'Continue to discipline',
+      name: 'Continue',
     }) as HTMLButtonElement;
     expect(noMinors.getAttribute('aria-checked')).toBe('false');
     expect(continueButton.disabled).toBe(true);
@@ -94,12 +105,17 @@ describe('the tournament setup wizard screen', () => {
     expect(screen.getByText('Yes, participants include minors')).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'Review privacy choice' }));
 
-    expect(screen.getByLabelText('Name')).toBeDefined();
     expect(
-      (screen.getByLabelText('Yes, participants include minors') as HTMLInputElement).getAttribute(
-        'aria-checked',
-      ),
+      screen
+        .getByRole('radio', { name: 'Yes, participants include minors' })
+        .getAttribute('aria-checked'),
     ).toBe('true');
+    expect(screen.getByRole('heading', { name: 'Privacy' })).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByRole('heading', { name: 'Summary' })).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Review privacy choice' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Return to summary' }));
+    expect(screen.getByRole('heading', { name: 'Summary' })).toBeDefined();
   });
 
   it('renders schema-driven rule fields, conditionless guidance, and a removable rule list', () => {
@@ -375,7 +391,7 @@ describe('the tournament setup wizard screen', () => {
     render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
 
     const progressTile = screen.getByTestId('wizard-progress');
-    expect(progressTile.textContent).toBe('14% configured');
+    expect(progressTile.textContent).toBe('0% configured');
 
     const nameInput = screen.getByLabelText('Name') as HTMLInputElement;
     const aliasInput = screen.getByLabelText('Alias') as HTMLInputElement;
@@ -383,7 +399,7 @@ describe('the tournament setup wizard screen', () => {
     expect(aliasInput.id).toBe('wizard-alias');
 
     const continueBtn = screen.getByRole('button', {
-      name: 'Continue to discipline',
+      name: 'Continue',
     }) as HTMLButtonElement;
     expect(continueBtn.disabled).toBe(true);
     expect(continueBtn.getAttribute('aria-describedby')).toBe('wizard-problems');
@@ -397,6 +413,10 @@ describe('the tournament setup wizard screen', () => {
     expect(document.getElementById('wizard-problems')?.textContent).toContain('lowercase letters');
 
     fireEvent.change(aliasInput, { target: { value: 'liga-san-rafael' } });
+    expect(continueBtn.disabled).toBe(false);
+    expect(continueBtn.hasAttribute('aria-describedby')).toBe(false);
+    fireEvent.click(continueBtn);
+    expect(progressTile.textContent).toContain('13%');
     expect(continueBtn.disabled).toBe(true);
     fireEvent.click(
       screen.getByRole('radio', { name: 'No, this tournament has no minor participants' }),
@@ -405,11 +425,18 @@ describe('the tournament setup wizard screen', () => {
     expect(continueBtn.hasAttribute('aria-describedby')).toBe(false);
 
     fireEvent.click(continueBtn);
-    expect(progressTile.textContent).toContain('29%');
+    expect(progressTile.textContent).toContain('38%');
     expect((screen.getByLabelText('Discipline') as HTMLSelectElement).id).toBe('wizard-discipline');
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(progressTile.textContent).toContain('14%');
+    expect(progressTile.textContent).toContain('25%');
+    expect(
+      screen
+        .getByRole('radio', { name: 'No, this tournament has no minor participants' })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(progressTile.textContent).toContain('13%');
     expect(screen.getByLabelText('Name')).toBeDefined();
     expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Liga San Rafael');
   });
@@ -614,7 +641,7 @@ describe('wizard state transitions and validators', () => {
     const disciplines = sampleDisciplines();
     let state = initialWizard();
     expect(state.step).toBe('name');
-    expect(progress(state)).toBe(14);
+    expect(progress(state, false)).toBe(0);
     expect(canContinue(state, disciplines)).toBe(false);
     expect(stepProblems(state, disciplines).length).toBeGreaterThan(0);
 
@@ -623,10 +650,16 @@ describe('wizard state transitions and validators', () => {
 
     state = { ...state, alias: 'test-cup', includesMinors: false };
     expect(canContinue(state, disciplines)).toBe(true);
+    expect(progress(state, stepProblems(state, disciplines).length === 0)).toBe(13);
 
     const step2 = nextStep(state);
-    expect(step2).toBe('discipline');
+    expect(step2).toBe('privacy');
     state = { ...state, step: step2 };
+    expect(stepProblems(state, disciplines)).toHaveLength(0);
+    expect(progress(state, stepProblems(state, disciplines).length === 0)).toBe(25);
+    const step3 = nextStep(state);
+    expect(step3).toBe('discipline');
+    state = { ...state, step: step3 };
     expect(stepProblems(state, disciplines).length).toBe(1);
 
     state = {
@@ -636,11 +669,11 @@ describe('wizard state transitions and validators', () => {
     };
     expect(canContinue(state, disciplines)).toBe(true);
 
-    const step3 = nextStep(state);
-    expect(step3).toBe('format');
+    const step4 = nextStep(state);
+    expect(step4).toBe('format');
     state = {
       ...state,
-      step: step3,
+      step: step4,
       stages: [{ number: 1, name: '', format: 'invalid-format' }],
     };
     expect(stepProblems(state, disciplines).length).toBe(1);
@@ -648,32 +681,32 @@ describe('wizard state transitions and validators', () => {
     state = { ...state, stages: [{ number: 1, name: '', format: 'round-robin' }] };
     expect(canContinue(state, disciplines)).toBe(true);
 
-    const step4 = nextStep(state);
-    expect(step4).toBe('ruleset');
-    state = { ...state, step: step4 };
-    expect(canContinue(state, disciplines)).toBe(true);
-
     const step5 = nextStep(state);
-    expect(step5).toBe('rules');
+    expect(step5).toBe('ruleset');
     state = { ...state, step: step5 };
     expect(canContinue(state, disciplines)).toBe(true);
 
     const step6 = nextStep(state);
-    expect(step6).toBe('window');
-    state = { ...state, step: step6, capacity: 1 };
+    expect(step6).toBe('rules');
+    state = { ...state, step: step6 };
+    expect(canContinue(state, disciplines)).toBe(true);
+
+    const step7 = nextStep(state);
+    expect(step7).toBe('window');
+    state = { ...state, step: step7, capacity: 1 };
     expect(stepProblems(state, disciplines).length).toBe(1);
 
     state = { ...state, capacity: 8 };
     expect(canContinue(state, disciplines)).toBe(true);
-    expect(progress(state)).toBe(86);
+    expect(progress(state, stepProblems(state, disciplines).length === 0)).toBe(88);
 
     expect(previousStep(state)).toBe('rules');
 
-    const step7 = nextStep(state);
-    expect(step7).toBe('summary');
-    state = { ...state, step: step7 };
+    const step8 = nextStep(state);
+    expect(step8).toBe('summary');
+    state = { ...state, step: step8 };
     expect(canContinue(state, disciplines)).toBe(true);
-    expect(progress(state)).toBe(100);
+    expect(progress(state, stepProblems(state, disciplines).length === 0)).toBe(100);
     expect(nextStep(state)).toBe('summary');
 
     expect(() => toCreateRequest(initialWizard())).toThrow('The wizard is not complete');

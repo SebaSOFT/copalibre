@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useIntl } from 'react-intl';
 import { personPhotoUrl, type PersonResponse } from '../../lib/api-client.js';
 import { controlLinkClick } from '../../lib/control-navigation.js';
-import { countryFlag, countryName } from '../../lib/country.js';
+import { countryName } from '../../lib/country.js';
 import { isSupportedLanguage } from '@copalibre/domain';
 import { FramedImage } from '../FramedImage.js';
 import { PersonPhotoPlaceholder } from '../placeholders.js';
@@ -36,14 +36,7 @@ export function PersonProfileTemplate({
   const [visibilitySaved, setVisibilitySaved] = useState(false);
   const backHref = `/control/${organizationAlias}`;
 
-  const titleNode = (
-    <>
-      {person.nationality !== undefined && (
-        <span aria-hidden="true">{countryFlag(person.nationality)} </span>
-      )}
-      {person.displayName}
-    </>
-  );
+  const titleNode = person.displayName;
 
   const breadcrumbNode = (
     <a className="cl-focusable" href={backHref} onClick={controlLinkClick(backHref)}>

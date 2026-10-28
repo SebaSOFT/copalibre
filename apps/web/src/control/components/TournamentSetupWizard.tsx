@@ -93,6 +93,7 @@ export function TournamentSetupWizard({
   const intl = useIntl();
   const firstDiscipline = disciplines[0];
   const [asyncProfiles, setAsyncProfiles] = useState<readonly TournamentProfileOption[]>([]);
+  const [privacyReturnToSummary, setPrivacyReturnToSummary] = useState(false);
   const [state, setState] = useState<WizardState>(() => ({
     ...initialWizard(),
     ...(firstDiscipline === undefined
@@ -180,7 +181,14 @@ export function TournamentSetupWizard({
       backLabel={intl.formatMessage(messages.wizardBack)}
       breadcrumb={intl.formatMessage(messages.wizardBreadcrumb)}
       currentStepId={state.step}
-      onBack={() => patch({ step: previousStep(state) })}
+      onBack={() => {
+        if (state.step === 'privacy' && privacyReturnToSummary) {
+          setPrivacyReturnToSummary(false);
+          patch({ step: 'summary' });
+          return;
+        }
+        patch({ step: previousStep(state) });
+      }}
       primaryAction={
         state.step === 'summary'
           ? {
@@ -189,13 +197,24 @@ export function TournamentSetupWizard({
               onClick: submit,
             }
           : {
-              label: intl.formatMessage(messages.wizardContinue),
+              label: intl.formatMessage(
+                state.step === 'privacy' && privacyReturnToSummary
+                  ? messages.wizardReturnToSummary
+                  : messages.wizardContinue,
+              ),
               disabled: !canContinue(state, disciplines, vocabulary),
-              onClick: () => patch({ step: nextStep(state) }),
+              onClick: () => {
+                if (state.step === 'privacy' && privacyReturnToSummary) {
+                  setPrivacyReturnToSummary(false);
+                  patch({ step: 'summary' });
+                  return;
+                }
+                patch({ step: nextStep(state) });
+              },
             }
       }
       problems={problems.map((problem) => intl.formatMessage(problem))}
-      progress={progress(state)}
+      progress={progress(state, problems.length === 0)}
       progressCaption={` ${intl.formatMessage(messages.wizardConfigured)}`}
       progressTestId="wizard-progress"
       stepIndicatorVariant="badge"
@@ -212,10 +231,13 @@ export function TournamentSetupWizard({
         <StepHeading
           level={2}
           step={activeStepNumber}
+          totalSteps={WIZARD_STEPS.length}
           title={intl.formatMessage(activeStep.label)}
         />
       )}
       {state.step === 'name' && <NameStep intl={intl} patch={patch} state={state} />}
+
+      {state.step === 'privacy' && <PrivacyStep intl={intl} patch={patch} state={state} />}
 
       {state.step === 'discipline' && (
         <DisciplineStep disciplines={disciplines} intl={intl} patch={patch} state={state} />
@@ -261,7 +283,10 @@ export function TournamentSetupWizard({
 
       {state.step === 'summary' && (
         <SummaryStep
-          onReviewPrivacy={() => patch({ step: 'name' })}
+          onReviewPrivacy={() => {
+            setPrivacyReturnToSummary(true);
+            patch({ step: 'privacy' });
+          }}
           selectedDiscipline={selectedDiscipline}
           state={state}
         />
@@ -301,6 +326,21 @@ function NameStep({
           value={state.alias ?? ''}
         />
       </Field>
+    </div>
+  );
+}
+
+function PrivacyStep({
+  intl,
+  patch,
+  state,
+}: {
+  readonly intl: IntlShape;
+  readonly patch: (next: Partial<WizardState>) => void;
+  readonly state: WizardState;
+}): React.JSX.Element {
+  return (
+    <div className="cl-platform-form-grid">
       <div className="cl-form-field">
         <h3 id="wizard-includes-minors-label">
           {intl.formatMessage(messages.wizardIncludesMinorsQuestion)}

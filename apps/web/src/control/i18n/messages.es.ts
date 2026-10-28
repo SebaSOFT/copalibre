@@ -543,6 +543,7 @@ export const messages: Record<string, string> = {
   'control.wizard.ruleset.empty':
     'Esta disciplina no declara reglas adicionales para configurar aquí.',
   'control.wizard.step.window': 'Ventana',
+  'control.wizard.step.privacy': 'Privacidad',
   'control.wizard.step.summary': 'Resumen',
   'control.wizard.formatPreview.title': 'Vista previa de la estructura',
   'control.wizard.formatPreview.illustrative': 'Vista previa ilustrativa (8 participantes)',
@@ -659,7 +660,8 @@ export const messages: Record<string, string> = {
   'control.wizard.requiresCheckIn': 'Requiere check-in',
   'control.wizard.back': 'Volver',
   'control.wizard.create': 'Crear torneo',
-  'control.wizard.continue': 'Continuar a la disciplina',
+  'control.wizard.continue': 'Continuar',
+  'control.wizard.returnToSummary': 'Volver al resumen',
 
   'control.wizard.decision.discipline':
     'Determina las reglas, estadísticas y eventos disponibles para esta competición.',
@@ -1027,7 +1029,7 @@ export const messages: Record<string, string> = {
   'control.clubPortal.rosterSubmit': 'Enviar inscripción',
   'control.clubPortal.dashboardLink': 'Portal del club',
   'control.resourceManagement.sectionLabel': 'Gestión de canchas y árbitros',
-  'control.resourceManagement.title': 'Canchas y árbitros',
+  'control.resourceManagement.title': 'Canchas, horarios y árbitros',
   'control.resourceManagement.loading': 'Cargando…',
   'control.resourceManagement.loadFailed': 'No se pudieron cargar las canchas y los árbitros.',
   'control.resourceManagement.saveFailed': 'La solicitud fue rechazada.',
@@ -1408,6 +1410,7 @@ export const messages: Record<string, string> = {
 
   'control.dashboard.open': 'Abrir torneo',
   'control.dashboard.export': 'Exportar',
+  'control.dashboard.moreActions': 'Más acciones',
   'control.dashboard.resumeEditing': 'Continuar edición',
 
   // standings panel chrome, metric availability, module updates.

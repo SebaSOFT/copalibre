@@ -48,6 +48,7 @@ export interface TournamentSummaryProps {
   /** Forwarded to `DisciplineSummary`; defaults to every section. */
   readonly sections?: readonly DisciplineSummarySection[];
   readonly className?: string;
+  readonly headingLevel?: 2 | 3;
 }
 
 export function TournamentSummary({
@@ -55,6 +56,7 @@ export function TournamentSummary({
   discipline,
   sections,
   className = '',
+  headingLevel = 3,
 }: TournamentSummaryProps): React.JSX.Element {
   const intl = useIntl();
 
@@ -62,7 +64,7 @@ export function TournamentSummary({
     <Stack className={`cl-tournament-summary ${className}`.trim()} gap="4">
       <Card>
         <CardHeader>
-          <CardTitle>
+          <CardTitle level={headingLevel}>
             {intl.formatMessage(messages.tournamentSummaryFactsHeading, { name: facts.name })}
           </CardTitle>
         </CardHeader>
@@ -149,7 +151,7 @@ export function TournamentSummary({
         </CardContent>
       </Card>
 
-      <DisciplineSummary data={discipline} sections={sections} />
+      <DisciplineSummary data={discipline} headingLevel={headingLevel} sections={sections} />
     </Stack>
   );
 }

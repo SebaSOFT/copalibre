@@ -539,6 +539,7 @@ export const messages: Record<string, string> = {
   'control.wizard.ruleset.empty':
     'Esta modalidade não declara regras adicionais para configurar aqui.',
   'control.wizard.step.window': 'Janela',
+  'control.wizard.step.privacy': 'Privacidade',
   'control.wizard.step.summary': 'Resumo',
   'control.wizard.formatPreview.title': 'Pré-visualização da estrutura',
   'control.wizard.formatPreview.illustrative': 'Pré-visualização ilustrativa (8 participantes)',
@@ -654,7 +655,8 @@ export const messages: Record<string, string> = {
   'control.wizard.requiresCheckIn': 'Requer check-in',
   'control.wizard.back': 'Voltar',
   'control.wizard.create': 'Criar torneio',
-  'control.wizard.continue': 'Continuar para a modalidade',
+  'control.wizard.continue': 'Continuar',
+  'control.wizard.returnToSummary': 'Voltar ao resumo',
 
   'control.wizard.decision.discipline':
     'Determina as regras, estatísticas e eventos disponíveis para esta competição.',
@@ -1021,7 +1023,7 @@ export const messages: Record<string, string> = {
   'control.clubPortal.rosterSubmit': 'Enviar inscrição',
   'control.clubPortal.dashboardLink': 'Portal do clube',
   'control.resourceManagement.sectionLabel': 'Gestão de locais e árbitros',
-  'control.resourceManagement.title': 'Locais e árbitros',
+  'control.resourceManagement.title': 'Locais, horários e árbitros',
   'control.resourceManagement.loading': 'Carregando…',
   'control.resourceManagement.loadFailed': 'Não foi possível carregar locais e árbitros.',
   'control.resourceManagement.saveFailed': 'A solicitação foi recusada.',
@@ -1403,6 +1405,7 @@ export const messages: Record<string, string> = {
 
   'control.dashboard.open': 'Abrir torneio',
   'control.dashboard.export': 'Exportar',
+  'control.dashboard.moreActions': 'Mais ações',
   'control.dashboard.resumeEditing': 'Retomar edição',
 
   // standings panel chrome, metric availability, module updates.

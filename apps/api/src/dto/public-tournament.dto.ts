@@ -822,6 +822,13 @@ export class PublicPersonCompetitionHistoryResponse {
 
   @ApiPropertyOptional()
   disciplineName?: string;
+
+  @ApiPropertyOptional({
+    description: 'The discipline name as declared, with its available translations',
+    type: 'object',
+    additionalProperties: { type: 'string' },
+  })
+  localizedDisciplineName?: LocalizedLabel;
 }
 
 export class PublicPersonCareerStatisticResponse {
@@ -830,6 +837,13 @@ export class PublicPersonCareerStatisticResponse {
 
   @ApiProperty()
   label!: string;
+
+  @ApiPropertyOptional({
+    description: 'The statistic collector label as declared, with its available translations',
+    type: 'object',
+    additionalProperties: { type: 'string' },
+  })
+  localizedLabel?: LocalizedLabel;
 
   @ApiProperty()
   value!: number;
@@ -844,6 +858,13 @@ export class PublicPersonCareerDisciplineTotalsResponse {
 
   @ApiPropertyOptional()
   disciplineName?: string;
+
+  @ApiPropertyOptional({
+    description: 'The discipline name as declared, with its available translations',
+    type: 'object',
+    additionalProperties: { type: 'string' },
+  })
+  localizedDisciplineName?: LocalizedLabel;
 
   @ApiProperty({ type: [PublicPersonCareerStatisticResponse] })
   statistics!: PublicPersonCareerStatisticResponse[];

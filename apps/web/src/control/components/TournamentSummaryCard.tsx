@@ -56,7 +56,8 @@ export interface TournamentSummaryCardProps {
  * `<p>` styled as a flex row in `Dashboard.tsx`, five equal-weight buttons
  * acting on an entity they were merely adjacent to; at 375px that wrapped into
  * four ragged rows per tournament. Here they are ranked: one primary action,
- * the four exports behind one menu, and the destructive one held apart.
+ * compact destinations, secondary actions behind one menu, and destructive
+ * actions held apart.
  */
 export function TournamentSummaryCard({
   card,
@@ -93,11 +94,20 @@ export function TournamentSummaryCard({
       ? intl.formatMessage(messages.dashboardResumeEditing)
       : intl.formatMessage(messages.dashboardOpen);
 
-  const exports: {
+  const secondaryActions: {
     readonly id: string;
     readonly label: (typeof messages)[keyof typeof messages];
     readonly run: (trigger?: HTMLElement | null) => void;
   }[] = [
+    ...(card.lifecycle === 'draft' && canManageTournamentLifecycle
+      ? [
+          {
+            id: 'publish',
+            label: messages.dashboardPublishAction,
+            run: () => onPublish(card.alias, card.name),
+          },
+        ]
+      : []),
     {
       id: 'individual-participants',
       label: messages.dashboardIndividualsCsv,
@@ -123,10 +133,9 @@ export function TournamentSummaryCard({
       label: messages.dashboardConfigurationJson,
       run: () => onExportConfiguration(card.alias),
     },
-    // Not an export, but the same overflow menu — a fourth standalone button
-    // here (like the four exports before this menu existed) wraps this row
-    // into two at 375px, exactly the layout defect this menu already exists
-    // to prevent. `navigateControl` directly, not
+    // A destination, not an export, but still a secondary action. Keep it in
+    // the overflow menu so additional destinations do not grow the card's
+    // main action row. `navigateControl` directly, not
     // `controlLinkClick`: a menu item is a Radix `onSelect`, not an `<a>`
     // click, and carries no `MouseEvent` to read modifier keys from.
     ...(canManageDisplayTokens
@@ -159,15 +168,6 @@ export function TournamentSummaryCard({
           >
             {intl.formatMessage(messages.dashboardStages)}
           </a>
-          {card.lifecycle === 'draft' && canManageTournamentLifecycle && (
-            <Button
-              onClick={() => onPublish(card.alias, card.name)}
-              type="button"
-              variant="secondary"
-            >
-              {intl.formatMessage(messages.dashboardPublishAction)}
-            </Button>
-          )}
           <LinkButton
             aria-label={intl.formatMessage(messages.tournamentPublicSite)}
             href={publicHref}
@@ -185,14 +185,14 @@ export function TournamentSummaryCard({
             {intl.formatMessage(messages.tournamentTvDisplayShort)}
           </LinkButton>
           <DropdownMenu
-            items={exports.map((one) => ({
+            items={secondaryActions.map((one) => ({
               id: one.id,
               label: intl.formatMessage(one.label),
               onSelect: (trigger) => one.run(trigger),
             }))}
             trigger={
               <Button type="button" variant="secondary">
-                {intl.formatMessage(messages.dashboardExport)}
+                {intl.formatMessage(messages.dashboardMoreActions)}
               </Button>
             }
           />

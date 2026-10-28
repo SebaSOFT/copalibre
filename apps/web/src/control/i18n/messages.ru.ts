@@ -543,6 +543,7 @@ export const messages: Record<string, string> = {
   'control.wizard.ruleset.empty':
     'Эта дисциплина не объявляет дополнительных правил для настройки здесь.',
   'control.wizard.step.window': 'Окно',
+  'control.wizard.step.privacy': 'Конфиденциальность',
   'control.wizard.step.summary': 'Сводка',
   'control.wizard.formatPreview.title': 'Предварительный просмотр структуры',
   'control.wizard.formatPreview.illustrative': 'Иллюстративный просмотр (8 участников)',
@@ -660,7 +661,8 @@ export const messages: Record<string, string> = {
   'control.wizard.requiresCheckIn': 'Требуется регистрация на месте',
   'control.wizard.back': 'Назад',
   'control.wizard.create': 'Создать турнир',
-  'control.wizard.continue': 'Перейти к дисциплине',
+  'control.wizard.continue': 'Продолжить',
+  'control.wizard.returnToSummary': 'Вернуться к сводке',
 
   'control.wizard.decision.discipline':
     'Определяет правила, статистику и события, доступные для этого соревнования.',
@@ -1026,7 +1028,7 @@ export const messages: Record<string, string> = {
   'control.clubPortal.rosterSubmit': 'Отправить заявку',
   'control.clubPortal.dashboardLink': 'Портал клуба',
   'control.resourceManagement.sectionLabel': 'Управление площадками и судьями',
-  'control.resourceManagement.title': 'Площадки и судьи',
+  'control.resourceManagement.title': 'Площадки, расписания и судьи',
   'control.resourceManagement.loading': 'Загрузка…',
   'control.resourceManagement.loadFailed': 'Не удалось загрузить площадки и судей.',
   'control.resourceManagement.saveFailed': 'Запрос отклонён.',
@@ -1406,6 +1408,7 @@ export const messages: Record<string, string> = {
 
   'control.dashboard.open': 'Открыть турнир',
   'control.dashboard.export': 'Экспорт',
+  'control.dashboard.moreActions': 'Дополнительные действия',
   'control.dashboard.resumeEditing': 'Продолжить редактирование',
 
   // standings panel chrome, metric availability, module updates.

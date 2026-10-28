@@ -553,9 +553,6 @@ export function PreferencesTemplate({
                 value={expiresInDays}
               />
             </Field>
-            <Button disabled={!label.trim() || selectedPatScopes.length === 0} type="submit">
-              <FormattedMessage {...controlMessages.preferencesPatCreate} />
-            </Button>
           </Inline>
           <FieldSet legend={intl.formatMessage(controlMessages.preferencesPatScopes)}>
             {patScopes.length === 0 ? (
@@ -585,6 +582,9 @@ export function PreferencesTemplate({
           {selectedPatScopes.length === 0 && patScopes.length > 0 && (
             <p role="status">{intl.formatMessage(controlMessages.preferencesPatScopesRequired)}</p>
           )}
+          <Button disabled={!label.trim() || selectedPatScopes.length === 0} type="submit">
+            <FormattedMessage {...controlMessages.preferencesPatCreate} />
+          </Button>
         </Form>
 
         {newToken && (

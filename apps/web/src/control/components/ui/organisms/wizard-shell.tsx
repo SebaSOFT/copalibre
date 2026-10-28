@@ -112,67 +112,84 @@ export function WizardShell({
         className="cl-chamfer cl-chamfer--control"
         style={badge ? { minWidth: 0, maxWidth: '100%', overflow: 'hidden' } : undefined}
       >
-        <ol
-          aria-label={stepsAriaLabel}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: badge
-              ? `repeat(${steps.length}, minmax(8rem, 1fr))`
-              : 'repeat(auto-fit, minmax(min(100%, 6rem), 1fr))',
-            gap: 'var(--cl-space-3)',
-            listStyle: 'none',
-            padding: 0,
-            margin: 0,
-            ...(badge
-              ? { width: '100%', maxWidth: '100%', overflowX: 'auto', scrollbarGutter: 'stable' }
-              : {}),
-          }}
-        >
-          {steps.map((step, index) => (
-            <li
-              key={step.id}
-              style={
-                badge
-                  ? {
-                      display: 'grid',
-                      gap: 'var(--cl-space-2)',
-                      justifyItems: 'center',
-                      color: 'var(--cl-text-secondary)',
-                      fontFamily: 'var(--cl-font-mono)',
-                      textTransform: 'uppercase',
-                      fontSize: 'var(--cl-font-size-xs)',
-                    }
-                  : { display: 'grid', gap: 'var(--cl-space-2)', justifyItems: 'center' }
-              }
-            >
-              {badge ? (
-                <Badge
-                  aria-current={step.id === currentStepId ? 'step' : undefined}
-                  className={`cl-badge--${
-                    step.id === currentStepId
-                      ? 'live'
-                      : index < currentStepIndex
-                        ? 'positive'
-                        : 'muted'
-                  }`}
-                  data-state={
-                    step.id === currentStepId
-                      ? 'active'
-                      : index < currentStepIndex
-                        ? 'completed'
-                        : 'upcoming'
+        <div className={badge ? 'cl-wizard-shell__step-rail' : undefined}>
+          <ol
+            aria-label={stepsAriaLabel}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: badge
+                ? `repeat(${steps.length}, minmax(8rem, 1fr))`
+                : 'repeat(auto-fit, minmax(min(100%, 6rem), 1fr))',
+              gap: 'var(--cl-space-3)',
+              listStyle: 'none',
+              padding: 0,
+              margin: 0,
+              ...(badge
+                ? {
+                    width: '100%',
+                    maxWidth: '100%',
+                    overflowX: 'auto',
+                    scrollbarGutter: 'stable',
+                    scrollPaddingInlineEnd: 'var(--cl-space-8)',
                   }
-                  label={String(index + 1)}
-                />
-              ) : (
-                <span aria-current={step.id === currentStepId ? 'step' : undefined}>
-                  {index + 1}
-                </span>
-              )}
-              <span>{step.label}</span>
-            </li>
-          ))}
-        </ol>
+                : {}),
+            }}
+          >
+            {steps.map((step, index) => (
+              <li
+                key={step.id}
+                style={
+                  badge
+                    ? {
+                        display: 'grid',
+                        gap: 'var(--cl-space-2)',
+                        justifyItems: 'center',
+                        color: 'var(--cl-text-secondary)',
+                        fontFamily: 'var(--cl-font-mono)',
+                        textTransform: 'uppercase',
+                        fontSize: 'var(--cl-font-size-xs)',
+                      }
+                    : { display: 'grid', gap: 'var(--cl-space-2)', justifyItems: 'center' }
+                }
+              >
+                {badge ? (
+                  <Badge
+                    aria-current={step.id === currentStepId ? 'step' : undefined}
+                    className={`cl-badge--${
+                      step.id === currentStepId
+                        ? 'live'
+                        : index < currentStepIndex
+                          ? 'positive'
+                          : 'muted'
+                    }`}
+                    data-state={
+                      step.id === currentStepId
+                        ? 'active'
+                        : index < currentStepIndex
+                          ? 'completed'
+                          : 'upcoming'
+                    }
+                    label={String(index + 1)}
+                  />
+                ) : (
+                  <span aria-current={step.id === currentStepId ? 'step' : undefined}>
+                    {index + 1}
+                  </span>
+                )}
+                <span>{step.label}</span>
+              </li>
+            ))}
+          </ol>
+          {badge ? (
+            <span
+              aria-hidden="true"
+              className="cl-wizard-shell__scroll-cue"
+              data-testid="wizard-step-scroll-cue"
+            >
+              ›
+            </span>
+          ) : null}
+        </div>
       </Card>
 
       <Card className="cl-chamfer cl-chamfer--control">

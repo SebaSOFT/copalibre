@@ -6208,16 +6208,28 @@ export interface components {
             disciplineDescriptorId: string;
             disciplineDescriptorVersion: string;
             disciplineName?: string;
+            /** @description The discipline name as declared, with its available translations */
+            localizedDisciplineName?: {
+                [key: string]: string;
+            };
         };
         PublicPersonCareerStatisticResponse: {
             code: string;
             label: string;
+            /** @description The statistic collector label as declared, with its available translations */
+            localizedLabel?: {
+                [key: string]: string;
+            };
             value: number;
             samples?: number;
         };
         PublicPersonCareerDisciplineTotalsResponse: {
             disciplineDescriptorId: string;
             disciplineName?: string;
+            /** @description The discipline name as declared, with its available translations */
+            localizedDisciplineName?: {
+                [key: string]: string;
+            };
             statistics: components["schemas"]["PublicPersonCareerStatisticResponse"][];
         };
         PublicPersonProfileResponse: {

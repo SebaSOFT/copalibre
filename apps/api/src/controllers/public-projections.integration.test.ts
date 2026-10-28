@@ -42,7 +42,7 @@ describe('public projections routes', () => {
   beforeAll(async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const descriptor = {
-      ...footballDescriptor(),
+      ...footballDescriptor({ name: { en: 'Football', es: 'Fútbol' } }),
       images: [{ key: 'modules/football/1.0.0/football-01.jpg' }],
     };
 
@@ -859,6 +859,11 @@ describe('public projections routes', () => {
           tournamentAlias: publishedTournament.alias,
           teamName: 'Colo-Colo',
           role: 'player',
+          disciplineName: 'Football',
+          localizedDisciplineName: expect.objectContaining({
+            en: 'Football',
+            es: 'Fútbol',
+          }),
         }),
       ]),
     );
@@ -867,9 +872,19 @@ describe('public projections routes', () => {
       expect.arrayContaining([
         expect.objectContaining({
           disciplineDescriptorId: publishedTournament.disciplineRef.descriptorId,
+          disciplineName: 'Football',
+          localizedDisciplineName: expect.objectContaining({
+            en: 'Football',
+            es: 'Fútbol',
+          }),
           statistics: expect.arrayContaining([
             expect.objectContaining({
               code: 'career-goals',
+              label: 'Career goals',
+              localizedLabel: expect.objectContaining({
+                en: 'Career goals',
+                es: 'Goles en carrera',
+              }),
               value: 12,
             }),
           ]),

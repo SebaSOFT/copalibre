@@ -70,13 +70,19 @@ function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   };
 }
 function continueWizardWithAdultParticipants(): void {
-  const noMinors = screen.queryByRole('radio', {
+  let noMinors = screen.queryByRole('radio', {
     name: 'No, this tournament has no minor participants',
   });
+  if (!noMinors && screen.queryByLabelText('Name')) {
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    noMinors = screen.queryByRole('radio', {
+      name: 'No, this tournament has no minor participants',
+    });
+  }
   if (noMinors && !screen.queryByRole('radio', { checked: true })) {
     fireEvent.click(noMinors);
   }
-  fireEvent.click(screen.getByRole('button', { name: 'Continue to discipline' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 }
 
 describe('the tournament authoring route container', () => {

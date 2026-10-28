@@ -81,6 +81,13 @@ const hasStatistics =
   statistics !== undefined &&
   (statistics.tournamentTotal !== undefined || statistics.matches.length > 0);
 
+const playerProfileRoleMessages = {
+  player: messages.playerProfileRolePlayer,
+  substitute: messages.playerProfileRoleSubstitute,
+  coach: messages.playerProfileRoleCoach,
+  staff: messages.playerProfileRoleStaff,
+};
+
 // `DataTable`'s `render` returns a plain value per cell (its own docstring
 // records why), so the bold tournament name and the muted abbreviation
 // colour this table used to carry are dropped rather than preserved —
@@ -105,7 +112,10 @@ const historyColumns = [
   {
     key: 'role',
     header: intl.formatMessage(messages.playerProfileHistoryRoleColumnHeading),
-    render: (row: unknown) => (row as PublicPersonCompetitionHistoryResponse).role,
+    render: (row: unknown) => {
+      const item = row as PublicPersonCompetitionHistoryResponse;
+      return intl.formatMessage(playerProfileRoleMessages[item.role]);
+    },
   },
 ];
 ---
@@ -152,12 +162,19 @@ const historyColumns = [
         {profile.careerStatistics.map((discipline) => (
           <div class="cl-player-profile__discipline-stats">
             {discipline.disciplineName && (
-              <h3 class="cl-player-profile__discipline-title">{discipline.disciplineName}</h3>
+              <h3 class="cl-player-profile__discipline-title">
+                {localizedText(
+                  discipline.localizedDisciplineName ?? discipline.disciplineName,
+                  intl.locale,
+                )}
+              </h3>
             )}
             <dl class="cl-player-profile__stat-list">
               {discipline.statistics.map((stat) => (
                 <div class="cl-player-profile__stat-item">
-                  <dt class="cl-player-profile__stat-label">{stat.label}</dt>
+                  <dt class="cl-player-profile__stat-label">
+                    {localizedText(stat.localizedLabel ?? stat.label, intl.locale)}
+                  </dt>
                   <dd class="cl-player-profile__stat-value">{stat.value}</dd>
                 </div>
               ))}

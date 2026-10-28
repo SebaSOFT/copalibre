@@ -20835,6 +20835,13 @@
           },
           "disciplineName": {
             "type": "string"
+          },
+          "localizedDisciplineName": {
+            "type": "object",
+            "description": "The discipline name as declared, with its available translations",
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -20857,6 +20864,13 @@
           "label": {
             "type": "string"
           },
+          "localizedLabel": {
+            "type": "object",
+            "description": "The statistic collector label as declared, with its available translations",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
           "value": {
             "type": "number"
           },
@@ -20878,6 +20892,13 @@
           },
           "disciplineName": {
             "type": "string"
+          },
+          "localizedDisciplineName": {
+            "type": "object",
+            "description": "The discipline name as declared, with its available translations",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "statistics": {
             "type": "array",

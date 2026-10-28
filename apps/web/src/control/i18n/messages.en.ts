@@ -1539,6 +1539,7 @@ export const messages = defineMessages({
   },
   wizardStepRules: { id: 'control.wizard.step.rules', defaultMessage: 'Event rules' },
   wizardStepWindow: { id: 'control.wizard.step.window', defaultMessage: 'Window' },
+  wizardStepPrivacy: { id: 'control.wizard.step.privacy', defaultMessage: 'Privacy' },
   wizardStepSummary: { id: 'control.wizard.step.summary', defaultMessage: 'Summary' },
   wizardFormatPreviewTitle: {
     id: 'control.wizard.formatPreview.title',
@@ -1965,7 +1966,11 @@ export const messages = defineMessages({
   },
   wizardBack: { id: 'control.wizard.back', defaultMessage: 'Back' },
   wizardCreate: { id: 'control.wizard.create', defaultMessage: 'Create tournament' },
-  wizardContinue: { id: 'control.wizard.continue', defaultMessage: 'Continue to discipline' },
+  wizardContinue: { id: 'control.wizard.continue', defaultMessage: 'Continue' },
+  wizardReturnToSummary: {
+    id: 'control.wizard.returnToSummary',
+    defaultMessage: 'Return to summary',
+  },
 
   // Decision descriptions — what each wizard decision does
   // during the competition, not what the setting is named.
@@ -3115,7 +3120,7 @@ export const messages = defineMessages({
   },
   resourceManagementTitle: {
     id: 'control.resourceManagement.title',
-    defaultMessage: 'Venues & officials',
+    defaultMessage: 'Venues, schedules & officials',
   },
   resourceManagementLoading: {
     id: 'control.resourceManagement.loading',
@@ -4229,6 +4234,10 @@ export const messages = defineMessages({
   // Dashboard tournament card
   dashboardOpen: { id: 'control.dashboard.open', defaultMessage: 'Open tournament' },
   dashboardExport: { id: 'control.dashboard.export', defaultMessage: 'Export' },
+  dashboardMoreActions: {
+    id: 'control.dashboard.moreActions',
+    defaultMessage: 'More actions',
+  },
   dashboardResumeEditing: {
     id: 'control.dashboard.resumeEditing',
     defaultMessage: 'Resume editing',

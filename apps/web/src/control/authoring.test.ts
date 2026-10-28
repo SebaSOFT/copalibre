@@ -160,13 +160,16 @@ describe('the wizard gates each step', () => {
   });
 
   it('moves between steps and stops at the ends', () => {
-    expect(nextStep(wizard())).toBe('discipline');
-    expect(previousStep(wizard({ step: 'discipline' }))).toBe('name');
+    expect(nextStep(wizard())).toBe('privacy');
+    expect(previousStep(wizard({ step: 'privacy' }))).toBe('name');
+    expect(nextStep(wizard({ step: 'privacy' }))).toBe('discipline');
+    expect(previousStep(wizard({ step: 'discipline' }))).toBe('privacy');
     expect(previousStep(wizard())).toBe('name');
     expect(nextStep(wizard({ step: 'window' }))).toBe('summary');
     expect(nextStep(wizard({ step: 'summary' }))).toBe('summary');
-    expect(progress(wizard())).toBe(14);
-    expect(progress(wizard({ step: 'summary' }))).toBe(100);
+    expect(progress(wizard(), false)).toBe(0);
+    const summary = wizard({ step: 'summary' });
+    expect(progress(summary, stepProblems(summary, DISCIPLINES).length === 0)).toBe(100);
   });
 
   it('submits the descriptor version, which the ruleset freezes', () => {
@@ -248,6 +251,7 @@ describe('the wizard gates each step', () => {
     it('positions the ruleset step between format and window, alongside the hook-script rules step', () => {
       expect(WIZARD_STEPS.map((step) => step.id)).toEqual([
         'name',
+        'privacy',
         'discipline',
         'format',
         'ruleset',

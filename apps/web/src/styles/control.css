@@ -602,3 +602,101 @@ input[type='checkbox'].cl-checkbox:focus-visible {
   padding: var(--cl-space-2) var(--cl-space-3);
   border-bottom: 1px solid var(--cl-border-muted);
 }
+
+.cl-tournament-settings__form-content,
+.cl-tournament-settings__settings-panel {
+  display: grid;
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-tournament-settings__related-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cl-space-4);
+}
+
+.cl-tournament-settings__identity-grid {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.6fr) minmax(0, 2.4fr);
+  align-items: start;
+  gap: var(--cl-space-4);
+  min-width: 0;
+}
+
+.cl-tournament-settings__identity-fields,
+.cl-tournament-settings__schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: var(--cl-space-4);
+  min-width: 0;
+}
+
+.cl-tournament-settings__emblem-section,
+.cl-tournament-settings__emblem-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cl-space-2);
+  min-width: 0;
+}
+
+.cl-tournament-settings__emblem-heading {
+  font-weight: var(--cl-weight-bold);
+}
+
+.cl-tournament-settings__emblem-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cl-space-4);
+}
+
+.cl-tournament-settings__featured {
+  display: flex;
+  align-items: center;
+  gap: var(--cl-space-2);
+  min-height: var(--cl-touch-target);
+}
+
+@media (width < 1024px) {
+  .cl-tournament-settings__identity-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cl-tournament-settings__identity-fields,
+  .cl-tournament-settings__schedule-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width < 768px) {
+  .cl-tournament-settings__identity-fields,
+  .cl-tournament-settings__schedule-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cl-wizard-shell__step-rail {
+  min-width: 0;
+  position: relative;
+}
+
+.cl-wizard-shell__scroll-cue {
+  display: none;
+}
+
+@media (width < 768px) {
+  .cl-wizard-shell__scroll-cue {
+    position: absolute;
+    inset-block: 0;
+    right: 0;
+    display: grid;
+    place-items: center;
+    width: var(--cl-space-8);
+    color: var(--cl-text-primary);
+    background: linear-gradient(90deg, transparent, var(--cl-surface-panel) 40%);
+    pointer-events: none;
+  }
+}

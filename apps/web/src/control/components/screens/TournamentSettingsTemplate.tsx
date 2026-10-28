@@ -4,8 +4,10 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Checkbox } from '../ui/atoms/checkbox.js';
+import { Card } from '../ui/atoms/card.js';
 import { Label } from '../ui/atoms/label.js';
 import { FilePicker } from '../ui/atoms/file-picker.js';
+import { Stack } from '../ui/atoms/layout/stack.js';
 import { filePickerLabels } from '../../lib/file-picker-labels.js';
 import { Input } from '../ui/atoms/input.js';
 import { Form } from '../ui/atoms/form.js';
@@ -191,30 +193,68 @@ export function TournamentSettingsTemplate({
     </span>
   );
 
+  const sectionTabs = (
+    <div
+      aria-label={intl.formatMessage(messages.settingsSections)}
+      className="cl-table-toolbar__filters"
+      onKeyDown={(event) => {
+        const tabOrder = ['settings', 'privacy'] as const;
+        const currentIndex = tabOrder.indexOf(activeTab);
+        const nextIndex =
+          event.key === 'ArrowRight' || event.key === 'ArrowDown'
+            ? (currentIndex + 1) % tabOrder.length
+            : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+              ? (currentIndex + tabOrder.length - 1) % tabOrder.length
+              : event.key === 'Home'
+                ? 0
+                : event.key === 'End'
+                  ? tabOrder.length - 1
+                  : currentIndex;
+        if (nextIndex !== currentIndex) {
+          event.preventDefault();
+          const nextTab = tabOrder[nextIndex];
+          if (nextTab !== undefined) {
+            setActiveTab(nextTab);
+            document.getElementById(`tournament-${nextTab}-tab`)?.focus();
+          }
+        }
+      }}
+      role="tablist"
+    >
+      <Button
+        aria-controls="tournament-settings-panel"
+        aria-selected={activeTab === 'settings'}
+        id="tournament-settings-tab"
+        onClick={() => setActiveTab('settings')}
+        role="tab"
+        tabIndex={activeTab === 'settings' ? 0 : -1}
+        type="button"
+        variant={activeTab === 'settings' ? 'primary' : 'secondary'}
+      >
+        <FormattedMessage {...messages.settingsTabGeneral} />
+      </Button>
+      <Button
+        aria-controls="tournament-privacy-panel"
+        aria-selected={activeTab === 'privacy'}
+        id="tournament-privacy-tab"
+        onClick={() => setActiveTab('privacy')}
+        role="tab"
+        tabIndex={activeTab === 'privacy' ? 0 : -1}
+        type="button"
+        variant={activeTab === 'privacy' ? 'primary' : 'secondary'}
+      >
+        <FormattedMessage {...messages.settingsTabPrivacy} />
+      </Button>
+    </div>
+  );
+
   return (
     <ListScreenLayout
       breadcrumb={breadcrumbNode}
+      toolbar={sectionTabs}
       listing={
         <>
-          <TournamentSummary
-            discipline={{ fieldPolicies: rulesetFieldPolicies, defaults: mergedRulesetConfig }}
-            facts={{
-              name: settings.name,
-              region: settings.region,
-              capacity: settings.capacity,
-              checkInClosesAt: settings.checkInClosesAt,
-              minimumRestMinutes: settings.minimumRestMinutes,
-              publicRegistration: asBoolean(
-                fieldValueAt(mergedRulesetConfig, 'registration.publicOpen'),
-              ),
-              requiresCheckIn: asBoolean(
-                fieldValueAt(mergedRulesetConfig, 'registration.requiresCheckIn'),
-              ),
-            }}
-            sections={['rules']}
-          />
           <Form
-            className="cl-platform-form-grid"
             onSubmit={(event) => {
               event.preventDefault();
               setBusy(true);
@@ -228,292 +268,287 @@ export function TournamentSettingsTemplate({
                 .finally(() => setBusy(false));
             }}
           >
-            <div
-              aria-label={intl.formatMessage(messages.settingsSections)}
-              className="cl-table-toolbar__filters"
-              onKeyDown={(event) => {
-                const tabOrder = ['settings', 'privacy'] as const;
-                const currentIndex = tabOrder.indexOf(activeTab);
-                const nextIndex =
-                  event.key === 'ArrowRight' || event.key === 'ArrowDown'
-                    ? (currentIndex + 1) % tabOrder.length
-                    : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
-                      ? (currentIndex + tabOrder.length - 1) % tabOrder.length
-                      : event.key === 'Home'
-                        ? 0
-                        : event.key === 'End'
-                          ? tabOrder.length - 1
-                          : currentIndex;
-                if (nextIndex !== currentIndex) {
-                  event.preventDefault();
-                  const nextTab = tabOrder[nextIndex];
-                  if (nextTab !== undefined) {
-                    setActiveTab(nextTab);
-                    document.getElementById(`tournament-${nextTab}-tab`)?.focus();
-                  }
-                }
-              }}
-              role="tablist"
-            >
-              <Button
-                aria-controls="tournament-settings-panel"
-                aria-selected={activeTab === 'settings'}
-                id="tournament-settings-tab"
-                onClick={() => setActiveTab('settings')}
-                role="tab"
-                tabIndex={activeTab === 'settings' ? 0 : -1}
-                type="button"
-                variant={activeTab === 'settings' ? 'primary' : 'secondary'}
-              >
-                <FormattedMessage {...messages.settingsTabGeneral} />
-              </Button>
-              <Button
-                aria-controls="tournament-privacy-panel"
-                aria-selected={activeTab === 'privacy'}
-                id="tournament-privacy-tab"
-                onClick={() => setActiveTab('privacy')}
-                role="tab"
-                tabIndex={activeTab === 'privacy' ? 0 : -1}
-                type="button"
-                variant={activeTab === 'privacy' ? 'primary' : 'secondary'}
-              >
-                <FormattedMessage {...messages.settingsTabPrivacy} />
-              </Button>
-            </div>
-            {activeTab === 'settings' ? (
-              <div
-                aria-labelledby="tournament-settings-tab"
-                className="cl-platform-form-grid"
-                id="tournament-settings-panel"
-                role="tabpanel"
-                tabIndex={0}
-              >
-                <a
-                  className="cl-focusable"
-                  href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/ruleset`}
-                  onClick={controlLinkClick(
-                    `/control/${organizationAlias}/tournaments/${tournamentAlias}/ruleset`,
-                  )}
-                >
-                  <FormattedMessage {...messages.rulesetOverridesLink} />
-                </a>
-                <a
-                  className="cl-focusable"
-                  href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/matches-view`}
-                  onClick={controlLinkClick(
-                    `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches-view`,
-                  )}
-                >
-                  <FormattedMessage {...messages.matchesViewSeeAll} />
-                </a>
+            <div className="cl-tournament-settings__form-content">
+              {activeTab === 'settings' ? (
                 <div
-                  className="cl-tournament-settings__emblem-section"
-                  style={{ display: 'flex', flexDirection: 'column', gap: 'var(--cl-space-2)' }}
+                  aria-labelledby="tournament-settings-tab"
+                  className="cl-tournament-settings__settings-panel"
+                  id="tournament-settings-panel"
+                  role="tabpanel"
+                  tabIndex={0}
                 >
-                  <span style={{ fontWeight: 'bold' }}>
-                    <FormattedMessage {...messages.settingsEmblemHeading} />
-                  </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-4)' }}>
-                    <FramedImage
-                      key={optimisticEmblemSrc ? 'optimistic' : (settings.emblemObjectId ?? 'none')}
-                      alt={intl.formatMessage(messages.settingsEmblemAlt)}
-                      placeholder={
-                        <ClubEmblemPlaceholder
-                          size={64}
-                          title={intl.formatMessage(messages.settingsEmblemPlaceholderAlt)}
-                        />
-                      }
-                      size={64}
-                      src={
-                        optimisticEmblemSrc ??
-                        (settings.emblemObjectId !== undefined
-                          ? tournamentEmblemUrl(organizationAlias, tournamentAlias)
-                          : undefined)
-                      }
-                    />
-                    <div
-                      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--cl-space-2)' }}
-                    >
-                      {onUploadEmblem && (
-                        <FilePicker
-                          accept="image/*"
-                          aria-label={intl.formatMessage(messages.settingsUploadEmblem)}
-                          id="tournament-emblem-upload"
-                          label={intl.formatMessage(messages.settingsUploadEmblem)}
-                          onChange={(files) => {
-                            const file = files?.[0];
-                            if (file) setEmblemCropSrc(URL.createObjectURL(file));
-                          }}
-                          {...filePickerLabels(intl, { accept: 'image/*' })}
-                        />
+                  <div className="cl-tournament-settings__related-links">
+                    <a
+                      className="cl-focusable"
+                      href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/ruleset`}
+                      onClick={controlLinkClick(
+                        `/control/${organizationAlias}/tournaments/${tournamentAlias}/ruleset`,
                       )}
-                      {settings.emblemObjectId !== undefined && onDeleteEmblem && (
-                        <Button
-                          disabled={emblemBusy}
-                          onClick={() => {
-                            setEmblemBusy(true);
-                            setEmblemNotice(undefined);
-                            setOptimisticEmblemSrc(undefined);
-                            void onDeleteEmblem()
-                              .then(() =>
-                                setEmblemNotice(intl.formatMessage(messages.settingsEmblemRemoved)),
-                              )
-                              .catch((cause: unknown) =>
-                                setError(cause instanceof Error ? cause.message : String(cause)),
-                              )
-                              .finally(() => setEmblemBusy(false));
-                          }}
-                          type="button"
-                          variant="secondary"
+                    >
+                      <FormattedMessage {...messages.rulesetOverridesLink} />
+                    </a>
+                    <a
+                      className="cl-focusable"
+                      href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/matches-view`}
+                      onClick={controlLinkClick(
+                        `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches-view`,
+                      )}
+                    >
+                      <FormattedMessage {...messages.matchesViewSeeAll} />
+                    </a>
+                  </div>
+                  <div className="cl-tournament-settings__identity-grid">
+                    <div className="cl-tournament-settings__emblem-section">
+                      <span className="cl-tournament-settings__emblem-heading">
+                        <FormattedMessage {...messages.settingsEmblemHeading} />
+                      </span>
+                      <div className="cl-tournament-settings__emblem-controls">
+                        <FramedImage
+                          key={
+                            optimisticEmblemSrc ? 'optimistic' : (settings.emblemObjectId ?? 'none')
+                          }
+                          alt={intl.formatMessage(messages.settingsEmblemAlt)}
+                          placeholder={
+                            <ClubEmblemPlaceholder
+                              size={64}
+                              title={intl.formatMessage(messages.settingsEmblemPlaceholderAlt)}
+                            />
+                          }
+                          size={64}
+                          src={
+                            optimisticEmblemSrc ??
+                            (settings.emblemObjectId !== undefined
+                              ? tournamentEmblemUrl(organizationAlias, tournamentAlias)
+                              : undefined)
+                          }
+                        />
+                        <div className="cl-tournament-settings__emblem-actions">
+                          {onUploadEmblem && (
+                            <FilePicker
+                              accept="image/*"
+                              aria-label={intl.formatMessage(messages.settingsUploadEmblem)}
+                              id="tournament-emblem-upload"
+                              label={intl.formatMessage(messages.settingsUploadEmblem)}
+                              onChange={(files) => {
+                                const file = files?.[0];
+                                if (file) setEmblemCropSrc(URL.createObjectURL(file));
+                              }}
+                              {...filePickerLabels(intl, { accept: 'image/*' })}
+                            />
+                          )}
+                          {settings.emblemObjectId !== undefined && onDeleteEmblem && (
+                            <Button
+                              disabled={emblemBusy}
+                              onClick={() => {
+                                setEmblemBusy(true);
+                                setEmblemNotice(undefined);
+                                setOptimisticEmblemSrc(undefined);
+                                void onDeleteEmblem()
+                                  .then(() =>
+                                    setEmblemNotice(
+                                      intl.formatMessage(messages.settingsEmblemRemoved),
+                                    ),
+                                  )
+                                  .catch((cause: unknown) =>
+                                    setError(
+                                      cause instanceof Error ? cause.message : String(cause),
+                                    ),
+                                  )
+                                  .finally(() => setEmblemBusy(false));
+                              }}
+                              type="button"
+                              variant="secondary"
+                            >
+                              <FormattedMessage {...messages.settingsRemoveEmblem} />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      {emblemNotice && (
+                        <Alert
+                          dismissLabel={intl.formatMessage(messages.toastDismiss)}
+                          onDismiss={() => setEmblemNotice(undefined)}
+                          tone="info"
                         >
-                          <FormattedMessage {...messages.settingsRemoveEmblem} />
-                        </Button>
+                          {emblemNotice}
+                        </Alert>
                       )}
                     </div>
+                    <div className="cl-tournament-settings__identity-fields">
+                      <Field
+                        id="settings-name"
+                        label={intl.formatMessage(messages.settingsNameLabel)}
+                      >
+                        <Input
+                          id="settings-name"
+                          onChange={(event) => setName(event.target.value)}
+                          value={name}
+                        />
+                      </Field>
+                      <Field
+                        id="settings-region"
+                        label={intl.formatMessage(messages.settingsRegionLabel)}
+                      >
+                        <Input
+                          id="settings-region"
+                          onChange={(event) => setRegion(event.target.value)}
+                          value={region}
+                        />
+                      </Field>
+                      <Field
+                        id="settings-capacity"
+                        label={intl.formatMessage(messages.settingsCapacityLabel)}
+                      >
+                        <Input
+                          id="settings-capacity"
+                          onChange={(event) => setCapacity(event.target.value)}
+                          type="number"
+                          value={capacity}
+                        />
+                      </Field>
+                    </div>
                   </div>
-                  {emblemNotice && (
-                    <Alert
-                      dismissLabel={intl.formatMessage(messages.toastDismiss)}
-                      onDismiss={() => setEmblemNotice(undefined)}
-                      tone="info"
+                  <div className="cl-tournament-settings__schedule-grid">
+                    <Field
+                      helpText={formatDateTimeInputHint(intl)}
+                      id="settings-check-in-closes-at"
+                      label={intl.formatMessage(messages.settingsCheckInClosesAtLabel)}
                     >
-                      {emblemNotice}
-                    </Alert>
-                  )}
-                </div>
-
-                <Field id="settings-name" label={intl.formatMessage(messages.settingsNameLabel)}>
-                  <Input
-                    id="settings-name"
-                    onChange={(event) => setName(event.target.value)}
-                    value={name}
-                  />
-                </Field>
-                <Field
-                  id="settings-region"
-                  label={intl.formatMessage(messages.settingsRegionLabel)}
-                >
-                  <Input
-                    id="settings-region"
-                    onChange={(event) => setRegion(event.target.value)}
-                    value={region}
-                  />
-                </Field>
-                <Field
-                  id="settings-capacity"
-                  label={intl.formatMessage(messages.settingsCapacityLabel)}
-                >
-                  <Input
-                    id="settings-capacity"
-                    onChange={(event) => setCapacity(event.target.value)}
-                    type="number"
-                    value={capacity}
-                  />
-                </Field>
-                <Field
-                  helpText={formatDateTimeInputHint(intl)}
-                  id="settings-check-in-closes-at"
-                  label={intl.formatMessage(messages.settingsCheckInClosesAtLabel)}
-                >
-                  <Input
-                    aria-describedby="settings-check-in-closes-at-help"
-                    id="settings-check-in-closes-at"
-                    lang={intl.locale}
-                    onChange={(event) => setCheckInClosesAt(event.target.value)}
-                    type="datetime-local"
-                    value={checkInClosesAt}
-                  />
-                </Field>
-                {/* A scheduling rule, not a ruleset override: always safe, and it moves no match. */}
-                <Field
-                  helpText={intl.formatMessage(messages.settingsMinimumRestHelp)}
-                  id="settings-minimum-rest"
-                  label={intl.formatMessage(messages.settingsMinimumRestLabel)}
-                >
-                  <Input
-                    aria-describedby="settings-minimum-rest-help"
-                    id="settings-minimum-rest"
-                    inputMode="numeric"
-                    min={0}
-                    onChange={(event) => setMinimumRest(event.target.value)}
-                    step={5}
-                    type="number"
-                    value={minimumRest}
-                  />
-                </Field>
-                {/* Not a registration field and not mutation-classified: featured is
+                      <Input
+                        aria-describedby="settings-check-in-closes-at-help"
+                        id="settings-check-in-closes-at"
+                        lang={intl.locale}
+                        onChange={(event) => setCheckInClosesAt(event.target.value)}
+                        type="datetime-local"
+                        value={checkInClosesAt}
+                      />
+                    </Field>
+                    {/* A scheduling rule, not a ruleset override: always safe, and it moves no match. */}
+                    <Field
+                      helpText={intl.formatMessage(messages.settingsMinimumRestHelp)}
+                      id="settings-minimum-rest"
+                      label={intl.formatMessage(messages.settingsMinimumRestLabel)}
+                    >
+                      <Input
+                        aria-describedby="settings-minimum-rest-help"
+                        id="settings-minimum-rest"
+                        inputMode="numeric"
+                        min={0}
+                        onChange={(event) => setMinimumRest(event.target.value)}
+                        step={5}
+                        type="number"
+                        value={minimumRest}
+                      />
+                    </Field>
+                    {/* Not a registration field and not mutation-classified: featured is
                 a record flag about the public page, like the name above it. */}
-                <Label
-                  className="cl-toggle cl-focusable"
-                  htmlFor="settings-featured"
-                  style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
+                    <Label
+                      className="cl-toggle cl-focusable cl-tournament-settings__featured"
+                      htmlFor="settings-featured"
+                    >
+                      <Checkbox
+                        checked={featured}
+                        id="settings-featured"
+                        onCheckedChange={setFeatured}
+                      />
+                      <span>{intl.formatMessage(messages.settingsFeaturedLabel)}</span>
+                    </Label>
+                  </div>
+                </div>
+              ) : (
+                <Card
+                  aria-labelledby="tournament-privacy-tab"
+                  className="cl-tournament-settings__privacy-panel"
+                  id="tournament-privacy-panel"
+                  role="tabpanel"
                 >
-                  <Checkbox
-                    checked={featured}
-                    id="settings-featured"
-                    onCheckedChange={setFeatured}
-                  />
-                  <span>{intl.formatMessage(messages.settingsFeaturedLabel)}</span>
-                </Label>
-              </div>
-            ) : (
-              <section
-                aria-labelledby="tournament-privacy-tab"
-                className="cl-platform-form-grid"
-                id="tournament-privacy-panel"
-                role="tabpanel"
-                tabIndex={0}
-              >
-                <h2>
-                  <FormattedMessage {...messages.settingsPrivacyHeading} />
-                </h2>
-                <p>{intl.formatMessage(messages.settingsPrivacyIntro)}</p>
-                <Label className="cl-toggle cl-focusable" htmlFor="settings-includes-minors">
-                  <Checkbox
-                    aria-describedby="settings-includes-minors-help"
-                    checked={includesMinors}
-                    id="settings-includes-minors"
-                    onCheckedChange={(checked) => {
-                      setIncludesMinors(checked);
-                      if (!checked) setShowYouthProfiles(false);
-                    }}
-                  />
-                  <span>{intl.formatMessage(messages.settingsIncludesMinorsLabel)}</span>
-                </Label>
-                <p id="settings-includes-minors-help">
-                  {intl.formatMessage(messages.settingsIncludesMinorsHelp)}
-                </p>
-                <Label className="cl-toggle cl-focusable" htmlFor="settings-show-youth-profiles">
-                  <Checkbox
-                    aria-describedby="settings-show-youth-profiles-help"
-                    checked={showYouthProfiles}
-                    disabled={!includesMinors}
-                    id="settings-show-youth-profiles"
-                    onCheckedChange={setShowYouthProfiles}
-                  />
-                  <span>{intl.formatMessage(messages.settingsShowYouthProfilesLabel)}</span>
-                </Label>
-                <p id="settings-show-youth-profiles-help">
-                  {intl.formatMessage(messages.settingsShowYouthProfilesHelp)}
-                </p>
-              </section>
-            )}
+                  <Stack gap="4">
+                    <Stack gap="2">
+                      <h2 id="tournament-privacy-heading">
+                        <FormattedMessage {...messages.settingsPrivacyHeading} />
+                      </h2>
+                      <p>{intl.formatMessage(messages.settingsPrivacyIntro)}</p>
+                    </Stack>
+                    <Stack gap="4">
+                      <Stack gap="1">
+                        <Label
+                          className="cl-toggle cl-focusable"
+                          htmlFor="settings-includes-minors"
+                        >
+                          <Checkbox
+                            aria-describedby="settings-includes-minors-help"
+                            checked={includesMinors}
+                            id="settings-includes-minors"
+                            onCheckedChange={(checked) => {
+                              setIncludesMinors(checked);
+                              if (!checked) setShowYouthProfiles(false);
+                            }}
+                          />
+                          <span>{intl.formatMessage(messages.settingsIncludesMinorsLabel)}</span>
+                        </Label>
+                        <p id="settings-includes-minors-help">
+                          {intl.formatMessage(messages.settingsIncludesMinorsHelp)}
+                        </p>
+                      </Stack>
+                      <Stack gap="1">
+                        <Label
+                          className="cl-toggle cl-focusable"
+                          htmlFor="settings-show-youth-profiles"
+                        >
+                          <Checkbox
+                            aria-describedby="settings-show-youth-profiles-help"
+                            checked={showYouthProfiles}
+                            disabled={!includesMinors}
+                            id="settings-show-youth-profiles"
+                            onCheckedChange={setShowYouthProfiles}
+                          />
+                          <span>{intl.formatMessage(messages.settingsShowYouthProfilesLabel)}</span>
+                        </Label>
+                        <p id="settings-show-youth-profiles-help">
+                          {intl.formatMessage(messages.settingsShowYouthProfilesHelp)}
+                        </p>
+                      </Stack>
+                    </Stack>
+                  </Stack>
+                </Card>
+              )}
 
-            <SettingsActionArea
-              activeTab={activeTab}
-              blocked={blockedField !== undefined}
-              busy={busy}
-              onPreview={previewSettings}
-              preview={preview}
-            />
+              <SettingsActionArea
+                activeTab={activeTab}
+                blocked={blockedField !== undefined}
+                busy={busy}
+                onPreview={previewSettings}
+                preview={preview}
+              />
 
-            {error !== undefined && <Alert tone="destructive">{error}</Alert>}
-            {saved && (
-              <Alert tone="success">
-                <FormattedMessage {...messages.settingsSaved} />
-              </Alert>
-            )}
+              {error !== undefined && <Alert tone="destructive">{error}</Alert>}
+              {saved && (
+                <Alert tone="success">
+                  <FormattedMessage {...messages.settingsSaved} />
+                </Alert>
+              )}
+            </div>
           </Form>
+          {activeTab === 'settings' && (
+            <TournamentSummary
+              discipline={{ fieldPolicies: rulesetFieldPolicies, defaults: mergedRulesetConfig }}
+              facts={{
+                name: settings.name,
+                region: settings.region,
+                capacity: settings.capacity,
+                checkInClosesAt: settings.checkInClosesAt,
+                minimumRestMinutes: settings.minimumRestMinutes,
+                publicRegistration: asBoolean(
+                  fieldValueAt(mergedRulesetConfig, 'registration.publicOpen'),
+                ),
+                requiresCheckIn: asBoolean(
+                  fieldValueAt(mergedRulesetConfig, 'registration.requiresCheckIn'),
+                ),
+              }}
+              headingLevel={2}
+              sections={['rules']}
+            />
+          )}
           {emblemCropSrc !== undefined && (
             <ImageCropModal
               imageSrc={emblemCropSrc}
