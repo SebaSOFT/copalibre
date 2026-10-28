@@ -664,7 +664,7 @@ export const messages: Record<string, string> = {
   'control.wizard.requiresCheckIn': 'Erfordert Check-in',
   'control.wizard.back': 'Zurück',
   'control.wizard.create': 'Turnier erstellen',
-  'control.wizard.continue': 'Weiter',
+  'control.wizard.continue': 'Weiter zum nächsten Schritt',
   'control.wizard.returnToSummary': 'Zur Zusammenfassung zurückkehren',
 
   'control.wizard.decision.discipline':

@@ -660,7 +660,7 @@ export const messages: Record<string, string> = {
   'control.wizard.requiresCheckIn': 'Requiere check-in',
   'control.wizard.back': 'Volver',
   'control.wizard.create': 'Crear torneo',
-  'control.wizard.continue': 'Continuar',
+  'control.wizard.continue': 'Continuar al siguiente paso',
   'control.wizard.returnToSummary': 'Volver al resumen',
 
   'control.wizard.decision.discipline':

@@ -55,7 +55,7 @@ function continueWizardWithAdultParticipants(): void {
     name: 'No, this tournament has no minor participants',
   });
   if (!noMinors && screen.queryByLabelText('Name')) {
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to the next step' }));
     noMinors = screen.queryByRole('radio', {
       name: 'No, this tournament has no minor participants',
     });
@@ -63,7 +63,7 @@ function continueWizardWithAdultParticipants(): void {
   if (noMinors && !screen.queryByRole('radio', { checked: true })) {
     fireEvent.click(noMinors);
   }
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue to the next step' }));
 }
 
 describe('the tournament setup wizard screen', () => {
@@ -77,13 +77,13 @@ describe('the tournament setup wizard screen', () => {
     expect(
       screen.queryByRole('radio', { name: 'No, this tournament has no minor participants' }),
     ).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to the next step' }));
 
     const noMinors = screen.getByRole('radio', {
       name: 'No, this tournament has no minor participants',
     });
     const continueButton = screen.getByRole('button', {
-      name: 'Continue',
+      name: 'Continue to the next step',
     }) as HTMLButtonElement;
     expect(noMinors.getAttribute('aria-checked')).toBe('false');
     expect(continueButton.disabled).toBe(true);
@@ -399,7 +399,7 @@ describe('the tournament setup wizard screen', () => {
     expect(aliasInput.id).toBe('wizard-alias');
 
     const continueBtn = screen.getByRole('button', {
-      name: 'Continue',
+      name: 'Continue to the next step',
     }) as HTMLButtonElement;
     expect(continueBtn.disabled).toBe(true);
     expect(continueBtn.getAttribute('aria-describedby')).toBe('wizard-problems');

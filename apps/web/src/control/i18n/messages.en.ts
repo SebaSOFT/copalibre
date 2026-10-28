@@ -1966,7 +1966,7 @@ export const messages = defineMessages({
   },
   wizardBack: { id: 'control.wizard.back', defaultMessage: 'Back' },
   wizardCreate: { id: 'control.wizard.create', defaultMessage: 'Create tournament' },
-  wizardContinue: { id: 'control.wizard.continue', defaultMessage: 'Continue' },
+  wizardContinue: { id: 'control.wizard.continue', defaultMessage: 'Continue to the next step' },
   wizardReturnToSummary: {
     id: 'control.wizard.returnToSummary',
     defaultMessage: 'Return to summary',

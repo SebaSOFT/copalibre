@@ -74,7 +74,7 @@ function continueWizardWithAdultParticipants(): void {
     name: 'No, this tournament has no minor participants',
   });
   if (!noMinors && screen.queryByLabelText('Name')) {
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to the next step' }));
     noMinors = screen.queryByRole('radio', {
       name: 'No, this tournament has no minor participants',
     });
@@ -82,7 +82,7 @@ function continueWizardWithAdultParticipants(): void {
   if (noMinors && !screen.queryByRole('radio', { checked: true })) {
     fireEvent.click(noMinors);
   }
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue to the next step' }));
 }
 
 describe('the tournament authoring route container', () => {

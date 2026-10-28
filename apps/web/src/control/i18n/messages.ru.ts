@@ -661,7 +661,7 @@ export const messages: Record<string, string> = {
   'control.wizard.requiresCheckIn': 'Требуется регистрация на месте',
   'control.wizard.back': 'Назад',
   'control.wizard.create': 'Создать турнир',
-  'control.wizard.continue': 'Продолжить',
+  'control.wizard.continue': 'Перейти к следующему шагу',
   'control.wizard.returnToSummary': 'Вернуться к сводке',
 
   'control.wizard.decision.discipline':

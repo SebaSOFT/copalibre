@@ -636,7 +636,7 @@ export const messages: Record<string, string> = {
   'control.wizard.requiresCheckIn': '需要签到',
   'control.wizard.back': '返回',
   'control.wizard.create': '创建赛事',
-  'control.wizard.continue': '继续',
+  'control.wizard.continue': '前往下一步',
   'control.wizard.returnToSummary': '返回摘要',
 
   'control.wizard.decision.discipline': '决定本次比赛可用的规则、统计数据和事件。',
