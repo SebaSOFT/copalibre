@@ -174,3 +174,15 @@ external repository automatically.
 - **THEN** the system offers it as a downloadable/copyable JSON document, with no action that installs
   it, submits it to a module repository, or otherwise treats it as a `discipline`/`tournament-profile`
   manifest
+
+### Requirement: Exports show and let the organizer exclude personal-data columns
+
+Before a CSV export downloads, the control panel SHALL list every personal-data column it contains,
+each with a toggle to exclude it. By default it SHALL include only the columns the export kind
+requires.
+
+#### Scenario: Participant export
+
+- **WHEN** an organizer exports participants
+- **THEN** a step lists name, nationality and photo reference, each with a toggle, before the file
+  downloads

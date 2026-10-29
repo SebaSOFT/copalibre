@@ -199,3 +199,13 @@ involved, and SHALL commit only on an explicit confirmation.
 
 - **WHEN** a cut-line tie is unresolved
 - **THEN** the screen names the tied entrants and the position, and offers no confirm action
+
+### Requirement: Draw mode has no preselection
+
+The zone assignment step SHALL present "Automatic draw" and "Manual placement" with neither selected,
+and SHALL not run or preview a draw until one is chosen.
+
+#### Scenario: First visit
+
+- **WHEN** an organizer opens zone assignment for the first time
+- **THEN** neither mode is selected, and Preview draw is unavailable until one is

@@ -69,3 +69,13 @@ The personal access token interface on the preferences screen SHALL render all f
 #### Scenario: Token generation interface matches operator locale
 - **WHEN** an operator views the personal access tokens section in a non-English language (such as Spanish)
 - **THEN** all titles, instructions, input labels, and action buttons render in the selected language rather than English defaults
+
+### Requirement: Token scopes are never preselected
+
+The token creation form SHALL default expiry to 30 days, SHALL preselect no scope, and SHALL refuse
+creation until at least one scope is chosen.
+
+#### Scenario: Empty scope
+
+- **WHEN** a user submits the token form without choosing a scope
+- **THEN** the form refuses and asks for at least one scope

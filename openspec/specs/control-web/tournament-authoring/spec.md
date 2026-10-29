@@ -730,3 +730,14 @@ matches are scheduled. Saving it SHALL move no match.
 
 - **WHEN** an organizer clears the minimum rest and saves
 - **THEN** the tournament applies no rest rule from then on
+
+### Requirement: Publishing previews what becomes public
+
+Publishing a tournament SHALL show, before confirmation, which public pages and personal data become
+visible, reflecting the tournament's youth-protection setting. The tournament wizard SHALL ask
+whether participants include minors, with no preselected answer.
+
+#### Scenario: Publish a youth tournament
+
+- **WHEN** an organizer publishes a tournament marked as including minors, with youth profiles off
+- **THEN** the confirmation states that player names appear without photos or profile pages
