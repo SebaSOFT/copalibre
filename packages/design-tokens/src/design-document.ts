@@ -5,6 +5,7 @@ import {
   FONT_SIZE,
   FONT_WEIGHTS,
   ICON_TOKENS,
+  LAYOUT_TOKENS,
   RADIUS,
   SPACING,
   TRACKING,
@@ -53,6 +54,10 @@ export function documentedTokens(): Mapping {
       },
     },
     rounded: { ...RADIUS },
+    layout: {
+      container: { ...LAYOUT_TOKENS.container },
+      gutter: { ...LAYOUT_TOKENS.gutter },
+    },
     spacing: { ...SPACING },
   };
 }
@@ -108,6 +113,7 @@ export function readDesignTokens(document: string): Mapping {
         'icon',
         'typography',
         'rounded',
+        'layout',
         'spacing',
         'components',
       ].includes(key)
@@ -117,7 +123,7 @@ export function readDesignTokens(document: string): Mapping {
   }
   return Object.fromEntries(
     Object.entries(root).filter(([key]) =>
-      ['colors', 'chart', 'icon', 'typography', 'rounded', 'spacing'].includes(key),
+      ['colors', 'chart', 'icon', 'typography', 'rounded', 'layout', 'spacing'].includes(key),
     ),
   );
 }
@@ -159,7 +165,16 @@ export function refreshDesignTokens(document: string): string {
     if (value === undefined) continue;
     const section = new RegExp(`^${key}:\\r?\\n(?:[ \\t].*(?:\\r?\\n|$)|\\r?\\n)*`, 'm');
     const rendered = render({ [key]: value }, 0) + '\n';
-    block = section.test(block) ? block.replace(section, rendered) : block + '\n' + rendered;
+    if (section.test(block)) {
+      block = block.replace(section, rendered);
+    } else {
+      const componentMetadata = /^components:\r?$/m.exec(block);
+      if (componentMetadata?.index !== undefined) {
+        block = `${block.slice(0, componentMetadata.index).trimEnd()}\n\n${rendered}${block.slice(componentMetadata.index)}`;
+      } else {
+        block += '\n' + rendered;
+      }
+    }
   }
   return document.replace(frontmatter(document), block.trimEnd());
 }

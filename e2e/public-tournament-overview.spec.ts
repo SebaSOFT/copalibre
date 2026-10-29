@@ -1,6 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
+import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 
 /**
  * The tournament overview's progress card (an overall bar, one per stage and
@@ -129,7 +130,7 @@ test.afterAll(async () => {
 });
 
 test.describe('tournament overview progress and rules', () => {
-  test('the progress card nests a bar per stage and per zone or group, sized to its content', async ({
+  test('the progress card fills the public column and nests a bar per stage and segment', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -145,9 +146,26 @@ test.describe('tournament overview progress and rules', () => {
     await expect(card.getByLabel('Copa Oro: 1 / 2')).toBeVisible();
     await expect(card.locator('progress')).toHaveCount(7);
 
-    // Not a full-width banner for a handful of lines.
-    const [cardBox, viewport] = [await card.boundingBox(), page.viewportSize()];
-    expect(cardBox && viewport && cardBox.width < viewport.width * 0.6).toBe(true);
+    const [cardBox, containerBox, padding] = await Promise.all([
+      card.boundingBox(),
+      page.locator('main > .cl-container--public').first().boundingBox(),
+      page
+        .locator('main > .cl-container--public')
+        .first()
+        .evaluate((element) => {
+          const style = getComputedStyle(element);
+          return Number.parseFloat(style.paddingLeft) + Number.parseFloat(style.paddingRight);
+        }),
+    ]);
+    expect(cardBox && containerBox).not.toBeNull();
+    expect(cardBox?.width).toBeCloseTo((containerBox?.width ?? 0) - padding, 0);
+  });
+
+  test('uses the centered public container at reference widths', async ({ page }) => {
+    await page.route('**/events/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': ok\n\n' }),
+    );
+    await expectCenteredPageContainer(page, PAGE);
   });
 
   test('the progress card fits a phone without scrolling sideways', async ({ page }) => {

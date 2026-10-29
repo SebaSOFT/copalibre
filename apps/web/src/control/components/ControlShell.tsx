@@ -30,6 +30,7 @@ import { useControlPath } from '../lib/control-navigation.js';
 import { ToastProvider } from './ToastProvider.js';
 import { Alert } from './ui/atoms/alert.js';
 import { Button } from './ui/atoms/button.js';
+import { Container } from './ui/atoms/layout/container.js';
 import { Icon } from './ui/atoms/icon.js';
 import { FramedImage } from './FramedImage.js';
 import { NavigationDrawer } from './ui/organisms/navigation-drawer.js';
@@ -311,41 +312,45 @@ function ControlShellChrome({
         {navContent()}
       </nav>
       <main className="cl-control__main">
-        {sessionReconnecting && (
-          <Alert block live="polite" tone="warning">
-            <FormattedMessage {...messages.shellSessionReconnecting} />
-          </Alert>
-        )}
-        <div className="cl-control-screen">
-          <PageHeaderContext.Provider
-            value={{
-              organizationAlias,
-              organizationName:
-                currentOrg !== undefined && currentOrg.organizationAlias === organizationAlias
-                  ? currentOrg.organizationName
-                  : undefined,
-              organizationNameFallback: intl.formatMessage(messages.pageHeaderOrganizationFallback),
-              organizationTimeZone:
-                currentOrg !== undefined && currentOrg.organizationAlias === organizationAlias
-                  ? currentOrg.timezone
-                  : undefined,
-              tournamentAlias,
-              tournamentName: currentTournamentHeader?.name,
-              tournamentNameFallback: intl.formatMessage(messages.pageHeaderTournamentFallback),
-              tournamentNameLoading:
-                tournamentAlias !== undefined &&
-                canLoadTournamentHeader &&
-                currentTournamentHeader === undefined,
-              organizationNameLoading:
-                organizationAlias !== undefined &&
-                organizationLookupSettledAlias !== organizationAlias,
-              breadcrumbLabel: intl.formatMessage(messages.pageHeaderBreadcrumb),
-              loadingLabel: intl.formatMessage(messages.pageHeaderLoading),
-            }}
-          >
-            {children}
-          </PageHeaderContext.Provider>
-        </div>
+        <Container variant="control">
+          {sessionReconnecting && (
+            <Alert block live="polite" tone="warning">
+              <FormattedMessage {...messages.shellSessionReconnecting} />
+            </Alert>
+          )}
+          <div className="cl-control-screen">
+            <PageHeaderContext.Provider
+              value={{
+                organizationAlias,
+                organizationName:
+                  currentOrg !== undefined && currentOrg.organizationAlias === organizationAlias
+                    ? currentOrg.organizationName
+                    : undefined,
+                organizationNameFallback: intl.formatMessage(
+                  messages.pageHeaderOrganizationFallback,
+                ),
+                organizationTimeZone:
+                  currentOrg !== undefined && currentOrg.organizationAlias === organizationAlias
+                    ? currentOrg.timezone
+                    : undefined,
+                tournamentAlias,
+                tournamentName: currentTournamentHeader?.name,
+                tournamentNameFallback: intl.formatMessage(messages.pageHeaderTournamentFallback),
+                tournamentNameLoading:
+                  tournamentAlias !== undefined &&
+                  canLoadTournamentHeader &&
+                  currentTournamentHeader === undefined,
+                organizationNameLoading:
+                  organizationAlias !== undefined &&
+                  organizationLookupSettledAlias !== organizationAlias,
+                breadcrumbLabel: intl.formatMessage(messages.pageHeaderBreadcrumb),
+                loadingLabel: intl.formatMessage(messages.pageHeaderLoading),
+              }}
+            >
+              {children}
+            </PageHeaderContext.Provider>
+          </div>
+        </Container>
       </main>
     </div>
   );

@@ -1,6 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 import { expectNoVisibleIdentifiers } from './support/visible-identifiers.js';
+import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 
 /**
  * The public matches view: a flat, filterable card grid of a
@@ -94,6 +95,10 @@ test.afterAll(async () => {
 const matchesPath = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches`;
 // A short scope is a table by default; the cards are the viewer's choice.
 const cardsPath = `${matchesPath}?view=cards`;
+
+test('uses the centered public container at reference widths', async ({ page }) => {
+  await expectCenteredPageContainer(page, matchesPath);
+});
 
 test('shows every match with venue, clock, and a one-line deciding-factor summary — no full trace', async ({
   page,

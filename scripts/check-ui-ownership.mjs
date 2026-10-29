@@ -121,11 +121,6 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   ['components/ui/organisms/Modal.astro', 1],
   ['components/ui/organisms/PublicHeader.astro', 1],
   ['components/ui/organisms/ScoreTicker.astro', 1],
-  // `form-screen-layout.tsx`'s own `<form>` is the templates tier's full-page
-  // form shape, not a smaller composed form the `Form` atom already covers —
-  // recorded alongside the other un-adopted `<form>`s below rather than
-  // forced onto an atom built for a different shape.
-  ['control/components/ui/layouts/form-screen-layout.tsx', 1],
   // Raw `<input>`s were replaced with `<Input>` atom in SeedingBuilderPage.tsx.
   // The per-override-field raw JSON `<input>`s were replaced with
   // `RulesetFieldControl` (typed, owned atoms); only the "add a new field by

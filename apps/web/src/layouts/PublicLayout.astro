@@ -9,6 +9,7 @@ import {
 import { buildHreflangAlternates, serializeJsonLd, type JsonLdStructuredData } from '../lib/seo.ts';
 import type { SupportedLanguage } from '@copalibre/domain';
 
+import Container from '../components/ui/atoms/layout/Container.astro';
 import PublicHeader from '../components/ui/organisms/PublicHeader.astro';
 
 interface Props {
@@ -121,7 +122,9 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
       <slot />
     </main>
     <footer>
-      <p>{intl.formatMessage(messages.layoutFooter)}</p>
+      <Container variant="public">
+        <p>{intl.formatMessage(messages.layoutFooter)}</p>
+      </Container>
     </footer>
   </body>
 </html>
@@ -171,7 +174,7 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
   }
 
   :global(main),
-  :global(main > *) {
+  :global(main > *:not(.cl-container)) {
     min-width: 0;
     max-width: 100%;
     overflow-x: hidden;

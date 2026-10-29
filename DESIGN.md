@@ -93,6 +93,16 @@ spacing:
   "10": "40px"
   "12": "48px"
   "16": "64px"
+layout:
+  container:
+    public: "75rem"
+    reading: "45rem"
+    control: "90rem"
+    form: "45rem"
+  gutter:
+    sm: "1rem"
+    md: "1.5rem"
+    lg: "2rem"
 components:
   button-primary:
     backgroundColor: "{colors.cyan-400}"
@@ -439,17 +449,22 @@ harms it.
 Three surfaces share one token set and diverge only in density and container behaviour.
 
 **Control (Operate).** A two-column shell: a fixed navigation rail of `minmax(11.25rem, 15rem)` against a
-fluid main column, full viewport height, main padded at `2rem`. Below the `md` breakpoint (768px) the
-rail collapses into a slide-in drawer of `min(20rem, 85vw)` behind a sticky mobile header, main padding
-drops to `1rem`, and below 375px to `0.75rem` — the width that 200% text resize exposes. Control
-composes on a denser mapping of the same 4px scale: `24px` between sections, `12px` between fields,
-`8px` between rows, `4px` inline. No second scale is introduced; each value is an existing step chosen
-for density.
+fluid main column, full viewport height. Main content is centered in a `90rem` container; each form or
+settings panel is capped at `45rem`. Horizontal gutters are `1rem`, `1.5rem`, and `2rem` from the `sm`,
+`md`, and `lg` breakpoints; vertical main padding is `2rem` on desktop and `1rem` below `md`. Below
+the `md` breakpoint (768px) the rail collapses into a slide-in drawer of `min(20rem, 85vw)` behind a
+sticky mobile header. Buttons keep their content width, except primary actions in single-column mobile
+forms, which fill the available width. Control composes on a denser mapping of the same 4px scale:
+`24px` between sections, `12px` between fields, `8px` between rows, `4px` inline. No second scale is
+introduced; each value is an existing step chosen for density.
 
-**Public (Persuade / Read).** A centred `min(75rem, 100%)` page container with a `45rem` reading column
-over a fixed, low-opacity discipline background image — or, when a discipline ships no imagery, a
-token-drawn neutral radial ground rather than another discipline's picture. Card grids are
-`repeat(auto-fill, minmax(min(100%, 17.5rem), 1fr))`. Output is durable and JavaScript-independent.
+**Public (Persuade / Read).** Full-width header and footer bands align their contents to a centered
+`75rem` container. Public page content uses that same `75rem` maximum; reading pages use a `45rem`
+column. Both use `1rem`, `1.5rem`, and `2rem` horizontal gutters from the `sm`, `md`, and `lg`
+breakpoints. Content sits over a fixed, low-opacity discipline background image — or, when a discipline
+ships no imagery, a token-drawn neutral radial ground rather than another discipline's picture. Card
+grids are `repeat(auto-fill, minmax(min(100%, 17.5rem), 1fr))`. Output is durable and
+JavaScript-independent.
 
 **Broadcast (Experience).** Viewport-relative throughout: type sized in `clamp()` against `vmin` so a
 scorebug reads at any venue-screen resolution, and a single alternation step instead of the full
@@ -473,6 +488,13 @@ is readable without a single border being required to carry it.
 
 **The No-Sideways-Page Rule.** Wide content scrolls inside its own box (`.cl-table-scroll`,
 `overflow-x: auto`). The page body never scrolls horizontally; every layout child carries `min-width: 0`.
+
+**The Shared Container Rule.** Public content uses a centered `75rem` (`1200px`) container and
+reading pages use `45rem` (`720px`); Control uses `90rem` (`1440px`) and its forms use `45rem`
+(`720px`). At 1920px and wider, each surface stays at its maximum and centered. Below that, horizontal
+gutters follow the shared `1rem`, `1.5rem`, and `2rem` scale. Full-width bands may break out, but their
+contents return to the matching container. Pages compose the owned container instead of setting a raw
+`max-width`.
 
 **The 44px Rule.** Every interactive target — button, pill, nav link, form control, pagination step —
 is at least `44px` in its constrained axis.

@@ -1,4 +1,5 @@
 import type { FormEvent, ReactNode } from 'react';
+import { Container } from './layout/container.js';
 
 export interface FormProps {
   readonly children: ReactNode;
@@ -20,13 +21,15 @@ export function Form({
   ...rest
 }: FormProps): React.JSX.Element {
   return (
-    <form
-      className={`cl-form ${className}`.trim()}
-      noValidate={noValidate}
-      onSubmit={onSubmit}
-      {...rest}
-    >
-      {children}
-    </form>
+    <Container variant="form">
+      <form
+        className={`cl-form ${className}`.trim()}
+        noValidate={noValidate}
+        onSubmit={onSubmit}
+        {...rest}
+      >
+        {children}
+      </form>
+    </Container>
   );
 }

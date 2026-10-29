@@ -280,32 +280,29 @@ body {
 
 .cl-control__main,
 .cl-control > main,
-.cl-control > main > *,
+.cl-control > main > *:not(.cl-container),
 .cl-control > main > * > *,
 .cl-control-screen,
-.cl-control-screen > *,
-.cl-control-screen > * > *,
+.cl-control-screen > *:not(.cl-form-screen):not(.cl-container),
+.cl-control-screen > * > *:not(.cl-form-screen):not(.cl-container),
 .cl-list-screen,
-.cl-list-screen > *,
-.cl-form-screen,
-.cl-form-screen > *,
+.cl-list-screen > *:not(.cl-container),
+.cl-form-screen > *:not(.cl-container),
 .cl-match-console-screen,
-.cl-match-console-screen > * {
+.cl-match-console-screen > *:not(.cl-container) {
   min-width: 0;
   max-width: 100%;
 }
 
 .cl-control-screen,
 .cl-list-screen,
-.cl-form-screen,
 .cl-match-console-screen {
   overflow-wrap: anywhere;
 }
 
-.cl-preferences-listing {
-  width: 100%;
-  max-width: var(--cl-breakpoint-md);
-  margin-inline: auto;
+.cl-form-screen {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .cl-preferences-scope-label {
@@ -316,11 +313,44 @@ body {
   overflow-wrap: anywhere;
 }
 
-.cl-control-screen :where(div, section, article, form, fieldset, label, header, footer),
-.cl-list-screen :where(div, section, article, form, fieldset, label, header, footer),
-.cl-form-screen :where(div, section, article, form, fieldset, label, header, footer),
-.cl-match-console-screen :where(div, section, article, form, fieldset, label, header, footer),
-.cl-control > main :where(div, section, article, form, fieldset, label, header, footer) {
+.cl-control-screen
+  :where(
+    div:not(.cl-container),
+    section,
+    article,
+    form:not(.cl-form-screen),
+    fieldset,
+    label,
+    header,
+    footer
+  ),
+.cl-list-screen
+  :where(div:not(.cl-container), section, article, form, fieldset, label, header, footer),
+.cl-form-screen
+  :where(
+    div:not(.cl-container),
+    section,
+    article,
+    form:not(.cl-form-screen),
+    fieldset,
+    label,
+    header,
+    footer
+  ),
+.cl-match-console-screen
+  :where(div:not(.cl-container), section, article, form, fieldset, label, header, footer),
+.cl-control
+  > main
+  :where(
+    div:not(.cl-container),
+    section,
+    article,
+    form:not(.cl-form-screen),
+    fieldset,
+    label,
+    header,
+    footer
+  ) {
   min-width: 0;
   max-width: 100%;
 }
@@ -335,6 +365,11 @@ body {
 .cl-control button,
 .cl-control select {
   min-height: var(--cl-touch-target);
+}
+
+.cl-control .cl-form .cl-btn,
+.cl-control .cl-card__content .cl-btn {
+  width: fit-content;
 }
 
 /* Entrant journey controls live inside compact bracket slots; preserve the canvas row rhythm. */
@@ -352,7 +387,7 @@ body {
 
 .cl-control__main,
 .cl-control > main {
-  padding: var(--cl-space-8);
+  padding-block: var(--cl-space-8);
 }
 
 .cl-control img,
@@ -483,7 +518,18 @@ body {
 
   .cl-control__main,
   .cl-control > main {
-    padding: var(--cl-space-4);
+    padding-block: var(--cl-space-4);
+  }
+
+  .cl-control .cl-form .cl-btn--primary,
+  .cl-control .cl-card__content .cl-btn--primary,
+  .cl-control .cl-form-screen__footer .cl-btn--primary {
+    width: 100%;
+  }
+
+  .cl-control .cl-preferences-organization-identity-form .cl-form-field,
+  .cl-control .cl-preferences-organization-identity-form .cl-input {
+    width: 100%;
   }
 }
 

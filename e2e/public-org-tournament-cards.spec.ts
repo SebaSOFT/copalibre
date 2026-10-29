@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
+import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 
 const organization = 'org-cards-fixture';
 const id = (n: number) => `00000000-0000-7000-8000-${String(n).padStart(12, '0')}`;
@@ -52,6 +53,11 @@ test.afterAll(async () => {
 });
 
 test.describe('organization page tournament cards', () => {
+  test('uses the centered public container at reference widths', async ({ page, workerPort }) => {
+    await page.setExtraHTTPHeaders({ 'x-copalibre-api-port': String(workerPort) });
+    await expectCenteredPageContainer(page, `/${organization}`);
+  });
+
   test('a lone finished card is at most half the content area and stacks its winners', async ({
     page,
     workerPort,

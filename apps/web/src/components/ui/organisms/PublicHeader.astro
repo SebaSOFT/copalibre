@@ -14,6 +14,7 @@
  * the page held still behind its menu; a public page wants the page to move.
  */
 import type { IntlShape } from 'react-intl';
+import Container from '../atoms/layout/Container.astro';
 import Logo from '../atoms/Logo.astro';
 import Icon from '../atoms/Icon.astro';
 import Button from '../atoms/Button.astro';
@@ -66,7 +67,7 @@ const languageName = (code: string): string => {
 ---
 
 <header class="cl-public-header">
-  <div class="cl-public-header__row">
+  <Container class="cl-public-header__row" variant="public">
     <Logo href={homeUrl} />
 
     <nav aria-label={navLabel} class="cl-public-header__nav" id="cl-public-nav">
@@ -171,7 +172,7 @@ const languageName = (code: string): string => {
         <Icon name="close" size={20} class="cl-public-header__toggle-open" />
       </button>
     </div>
-  </div>
+  </Container>
 </header>
 
 <script>

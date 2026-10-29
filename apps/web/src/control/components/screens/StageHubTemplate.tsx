@@ -5,6 +5,7 @@ import { isSupportedLanguage, resolveLabel, type LocalizedLabel } from '@copalib
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
+import { Container } from '../ui/atoms/layout/container.js';
 import { Input } from '../ui/atoms/input.js';
 import { Select } from '../ui/atoms/select.js';
 import { DecisionHint } from '../ui/atoms/decision-hint.js';
@@ -64,67 +65,73 @@ function StageIdentitySection({
     : [format, ...availableFormats];
 
   return (
-    <Card
-      aria-label={intl.formatMessage(messages.stageSettingsTitle)}
-      className="cl-chamfer cl-chamfer--control"
-    >
-      <header className="cl-card__header">
-        <h2 className="cl-card__title">
-          <FormattedMessage {...messages.stageSettingsTitle} />
-        </h2>
-      </header>
-      <div className="cl-card__content">
-        <Field id="stage-rename" label={intl.formatMessage(messages.stageRenameLabel)}>
-          <Input id="stage-rename" onChange={(event) => setName(event.target.value)} value={name} />
-        </Field>
-        <Button
-          disabled={name.trim() === ''}
-          onClick={() => void onRename(name)}
-          type="button"
-          variant="secondary"
-        >
-          <FormattedMessage {...messages.stageRenameSubmit} />
-        </Button>
-
-        <Field id="stage-format" label={intl.formatMessage(messages.stageFormatLabel)}>
-          <Select
-            aria-describedby={formatHintText === undefined ? undefined : 'stage-format-hint'}
-            disabled={seeded}
-            id="stage-format"
-            onValueChange={setFormat}
-            options={formatOptions.map((value) => ({
-              value,
-              label: formatEnum(intl, 'format', value),
-            }))}
-            value={format}
-          />
-        </Field>
-        {formatHintText !== undefined && (
-          <DecisionHint id="stage-format-hint" text={formatHintText} />
-        )}
-        <Button
-          disabled={seeded || format.trim() === ''}
-          onClick={() => void onChangeFormat(format)}
-          type="button"
-          variant="secondary"
-        >
-          <FormattedMessage {...messages.stageFormatSubmit} />
-        </Button>
-
-        <Button onClick={() => void onDelete()} type="button" variant="destructive-outline">
-          <FormattedMessage {...messages.stageDelete} />
-        </Button>
-        {seeded && !dismissedSeededNotice && (
-          <Alert
-            dismissLabel={intl.formatMessage(messages.toastDismiss)}
-            onDismiss={() => setDismissedSeededNotice(true)}
-            tone="warning"
+    <Container variant="form">
+      <Card
+        aria-label={intl.formatMessage(messages.stageSettingsTitle)}
+        className="cl-chamfer cl-chamfer--control"
+      >
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.stageSettingsTitle} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          <Field id="stage-rename" label={intl.formatMessage(messages.stageRenameLabel)}>
+            <Input
+              id="stage-rename"
+              onChange={(event) => setName(event.target.value)}
+              value={name}
+            />
+          </Field>
+          <Button
+            disabled={name.trim() === ''}
+            onClick={() => void onRename(name)}
+            type="button"
+            variant="secondary"
           >
-            <FormattedMessage {...messages.stageSeededExplanation} />
-          </Alert>
-        )}
-      </div>
-    </Card>
+            <FormattedMessage {...messages.stageRenameSubmit} />
+          </Button>
+
+          <Field id="stage-format" label={intl.formatMessage(messages.stageFormatLabel)}>
+            <Select
+              aria-describedby={formatHintText === undefined ? undefined : 'stage-format-hint'}
+              disabled={seeded}
+              id="stage-format"
+              onValueChange={setFormat}
+              options={formatOptions.map((value) => ({
+                value,
+                label: formatEnum(intl, 'format', value),
+              }))}
+              value={format}
+            />
+          </Field>
+          {formatHintText !== undefined && (
+            <DecisionHint id="stage-format-hint" text={formatHintText} />
+          )}
+          <Button
+            disabled={seeded || format.trim() === ''}
+            onClick={() => void onChangeFormat(format)}
+            type="button"
+            variant="secondary"
+          >
+            <FormattedMessage {...messages.stageFormatSubmit} />
+          </Button>
+
+          <Button onClick={() => void onDelete()} type="button" variant="destructive-outline">
+            <FormattedMessage {...messages.stageDelete} />
+          </Button>
+          {seeded && !dismissedSeededNotice && (
+            <Alert
+              dismissLabel={intl.formatMessage(messages.toastDismiss)}
+              onDismiss={() => setDismissedSeededNotice(true)}
+              tone="warning"
+            >
+              <FormattedMessage {...messages.stageSeededExplanation} />
+            </Alert>
+          )}
+        </div>
+      </Card>
+    </Container>
   );
 }
 
@@ -149,37 +156,39 @@ function StageRoundsSection({
 }): React.JSX.Element {
   const intl = useIntl();
   return (
-    <Card
-      aria-label={intl.formatMessage(messages.stageRoundsHeading)}
-      className="cl-chamfer cl-chamfer--control"
-    >
-      <header className="cl-card__header">
-        <h2 className="cl-card__title">
-          <FormattedMessage {...messages.stageRoundsHeading} />
-        </h2>
-      </header>
-      <div className="cl-card__content">
-        <p>
-          <FormattedMessage {...messages.stageRoundsExplanation} />
-        </p>
-        <ul>
-          {zones.map((zone) => (
-            <li key={zone.zoneNumber}>
-              <Button
-                onClick={() => void onGenerateNextRound(zone.zoneNumber)}
-                type="button"
-                variant="secondary"
-              >
-                <FormattedMessage
-                  {...messages.stageRoundsGenerate}
-                  values={{ zone: zone.zoneName }}
-                />
-              </Button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </Card>
+    <Container variant="form">
+      <Card
+        aria-label={intl.formatMessage(messages.stageRoundsHeading)}
+        className="cl-chamfer cl-chamfer--control"
+      >
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.stageRoundsHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          <p>
+            <FormattedMessage {...messages.stageRoundsExplanation} />
+          </p>
+          <ul>
+            {zones.map((zone) => (
+              <li key={zone.zoneNumber}>
+                <Button
+                  onClick={() => void onGenerateNextRound(zone.zoneNumber)}
+                  type="button"
+                  variant="secondary"
+                >
+                  <FormattedMessage
+                    {...messages.stageRoundsGenerate}
+                    values={{ zone: zone.zoneName }}
+                  />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Card>
+    </Container>
   );
 }
 

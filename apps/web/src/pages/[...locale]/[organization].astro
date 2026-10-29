@@ -1,6 +1,7 @@
 ---
 import EmptyState from '../../components/ui/molecules/EmptyState.astro';
 import PublicLayout from '../../layouts/PublicLayout.astro';
+import Container from '../../components/ui/atoms/layout/Container.astro';
 import OrganizationHeader from '../../components/ui/organisms/OrganizationHeader.astro';
 import TournamentSection from '../../components/ui/organisms/TournamentSection.astro';
 import OrganizationClubs from '../../components/ui/organisms/OrganizationClubs.astro';
@@ -90,23 +91,25 @@ const structuredData = listData
   structuredData={structuredData}
 >
   {!listData && (
-    <div class="cl-org-container">
-      <EmptyState
-        icon="team"
-        headingLevel={1}
-        heading={intl.formatMessage(messages.orgPageNotFoundTitle)}
-        description={intl.formatMessage(messages.orgPageNotFoundBody)}
-        actionLabel={intl.formatMessage(messages.interactionBrowseOrganizations)}
-        href={getLocaleHomePath(resolvedLocale)}
-        secondaryAction={{
-          label: intl.formatMessage(messages.headerNavHelp),
-          href: `${resolvedLocale === 'en' ? '' : `/${resolvedLocale}`}/help/`,
-        }}
-      />
-    </div>
+    <Container class="cl-org-container" variant="public">
+      <Container variant="reading">
+        <EmptyState
+          icon="team"
+          headingLevel={1}
+          heading={intl.formatMessage(messages.orgPageNotFoundTitle)}
+          description={intl.formatMessage(messages.orgPageNotFoundBody)}
+          actionLabel={intl.formatMessage(messages.interactionBrowseOrganizations)}
+          href={getLocaleHomePath(resolvedLocale)}
+          secondaryAction={{
+            label: intl.formatMessage(messages.headerNavHelp),
+            href: `${resolvedLocale === 'en' ? '' : `/${resolvedLocale}`}/help/`,
+          }}
+        />
+      </Container>
+    </Container>
   )}
   {listData && (
-    <div class="cl-org-container">
+    <Container class="cl-org-container" variant="public">
       <OrganizationHeader
         organizationName={listData.organizationName}
         emblemSrc={organizationEmblemSrc}
@@ -171,15 +174,13 @@ const structuredData = listData
       )}
 
       <OrganizationClubs clubs={orgClubs} intl={intl} />
-    </div>
+    </Container>
   )}
 </PublicLayout>
 
 <style>
   .cl-org-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem 1.5rem 4rem;
+    padding-block: var(--cl-space-8) var(--cl-space-16);
     display: flex;
     flex-direction: column;
     gap: 2.5rem;
@@ -196,7 +197,7 @@ const structuredData = listData
   /* BREAKPOINTS.sm: retain readable padding at the 375px review width. */
   @media (max-width: 375px) {
     .cl-org-container {
-      padding: 1rem 0.75rem 2rem;
+      padding-block: var(--cl-space-4) var(--cl-space-8);
     }
   }
 </style>

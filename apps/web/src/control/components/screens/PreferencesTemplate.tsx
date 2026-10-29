@@ -22,6 +22,7 @@ import { filePickerLabels } from '../../lib/file-picker-labels.js';
 import { Input } from '../ui/atoms/input.js';
 import { Select } from '../ui/atoms/select.js';
 import { Inline } from '../ui/atoms/layout/inline.js';
+import { Container } from '../ui/atoms/layout/container.js';
 import { Stack } from '../ui/atoms/layout/stack.js';
 import { Field } from '../ui/molecules/field.js';
 import { FieldSet } from '../ui/molecules/field-set.js';
@@ -123,19 +124,27 @@ function OrganizationIdentitySection({
             />
           )}
 
-          <Inline align="end" gap="4" wrap>
-            <Field id="org-name" label={intl.formatMessage(controlMessages.orgIdentityName)}>
-              <Input
-                id="org-name"
-                onChange={(event) => onChangeOrgName(event.target.value)}
-                type="text"
-                value={orgName}
-              />
-            </Field>
-            <Button onClick={() => void onSaveOrganizationName()} type="button">
-              <FormattedMessage {...controlMessages.orgIdentitySave} />
-            </Button>
-          </Inline>
+          <Form
+            className="cl-preferences-organization-identity-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void onSaveOrganizationName();
+            }}
+          >
+            <Inline align="end" gap="4" wrap>
+              <Field id="org-name" label={intl.formatMessage(controlMessages.orgIdentityName)}>
+                <Input
+                  id="org-name"
+                  onChange={(event) => onChangeOrgName(event.target.value)}
+                  type="text"
+                  value={orgName}
+                />
+              </Field>
+              <Button type="submit">
+                <FormattedMessage {...controlMessages.orgIdentitySave} />
+              </Button>
+            </Inline>
+          </Form>
         </Stack>
       )}
     </Card>
@@ -453,244 +462,248 @@ export function PreferencesTemplate({
 
   const activeTokens = tokens.filter((token) => !token.revoked);
   const listingNode = (
-    <Stack gap="0" className="cl-preferences-listing">
-      <Card
-        aria-label={intl.formatMessage(controlMessages.preferencesThemeTitle)}
-        className="cl-chamfer cl-chamfer--control"
-        style={{
-          marginTop: '2rem',
-          padding: preferencesSectionPadding,
-        }}
-      >
-        <Field
-          id="theme-preference"
-          label={intl.formatMessage(controlMessages.preferencesThemeTitle)}
+    <Container variant="form">
+      <Stack gap="0">
+        <Card
+          aria-label={intl.formatMessage(controlMessages.preferencesThemeTitle)}
+          className="cl-chamfer cl-chamfer--control"
+          style={{
+            marginTop: '2rem',
+            padding: preferencesSectionPadding,
+          }}
         >
-          <Select
+          <Field
             id="theme-preference"
-            onValueChange={handleThemePreferenceChange}
-            options={themeOptions}
-            value={themePreference}
-          />
-        </Field>
-      </Card>
-
-      <OrganizationIdentitySection
-        api={api}
-        onChangeOrgName={onChangeOrgName}
-        onSaveOrganizationName={onSaveOrganizationName}
-        optimisticEmblemSrc={optimisticEmblemSrc}
-        organization={organization}
-        organizationAlias={organizationAlias}
-        orgLoadError={orgLoadError}
-        orgLoading={orgLoading}
-        orgName={orgName}
-        setEmblemCropSrc={setEmblemCropSrc}
-      />
-
-      <OrganizationStorageSection
-        onDeleteUnreferencedObject={onDeleteUnreferencedObject}
-        organizationAlias={organizationAlias}
-        storageError={storageError}
-        storageLoading={storageLoading}
-        storageUsage={storageUsage}
-        unreferencedObjects={unreferencedObjects}
-      />
-
-      <StatisticsRebuildSection
-        api={api}
-        dismissedRebuildResult={dismissedRebuildResult}
-        onDismissRebuildResult={() => setDismissedRebuildResult(true)}
-        onPreviewRebuild={previewStatisticsRebuild}
-        organizationAlias={organizationAlias}
-        rebuildBusy={rebuildBusy}
-        rebuildResult={rebuildResult}
-        rebuildTournamentAlias={rebuildTournamentAlias}
-        setRebuildTournamentAlias={setRebuildTournamentAlias}
-      />
-
-      <Card
-        className="cl-chamfer cl-chamfer--control"
-        style={{
-          marginTop: '2rem',
-          padding: preferencesSectionPadding,
-        }}
-      >
-        <h2>
-          <FormattedMessage {...controlMessages.preferencesPatTitle} />
-        </h2>
-        <p>
-          <FormattedMessage {...controlMessages.preferencesPatDescription} />
-        </p>
-
-        <Form
-          aria-label={intl.formatMessage(controlMessages.preferencesPatTitle)}
-          className="cl-preferences-pat-form"
-          onSubmit={handleCreate}
-        >
-          <Inline align="end" gap="4" wrap>
-            <Field id="pat-label" label={intl.formatMessage(controlMessages.preferencesPatLabel)}>
-              <Input
-                id="pat-label"
-                onChange={(e) => setLabel(e.target.value)}
-                required
-                type="text"
-                value={label}
-              />
-            </Field>
-            <Field
-              id="pat-expires"
-              label={intl.formatMessage(controlMessages.preferencesPatExpiresIn)}
-            >
-              <Input
-                id="pat-expires"
-                max={365}
-                min={1}
-                onChange={(e) => setExpiresInDays(parseInt(e.target.value))}
-                required
-                style={{ width: '80px' }}
-                type="number"
-                value={expiresInDays}
-              />
-            </Field>
-          </Inline>
-          <FieldSet legend={intl.formatMessage(controlMessages.preferencesPatScopes)}>
-            {patScopes.length === 0 ? (
-              <p>{intl.formatMessage(controlMessages.preferencesPatNoScopes)}</p>
-            ) : (
-              <Stack gap="2">
-                {patScopes.map((scope) => (
-                  <Label key={scope} className="cl-toggle cl-focusable">
-                    <Checkbox
-                      aria-label={scope}
-                      checked={selectedPatScopes.includes(scope)}
-                      id={`pat-scope-${scope}`}
-                      onCheckedChange={(checked) =>
-                        setSelectedPatScopes((current) =>
-                          checked
-                            ? [...current, scope]
-                            : current.filter((selected) => selected !== scope),
-                        )
-                      }
-                    />
-                    <span className="cl-preferences-scope-label">{scope}</span>
-                  </Label>
-                ))}
-              </Stack>
-            )}
-          </FieldSet>
-          {selectedPatScopes.length === 0 && patScopes.length > 0 && (
-            <p role="status">{intl.formatMessage(controlMessages.preferencesPatScopesRequired)}</p>
-          )}
-          <Button disabled={!label.trim() || selectedPatScopes.length === 0} type="submit">
-            <FormattedMessage {...controlMessages.preferencesPatCreate} />
-          </Button>
-        </Form>
-
-        {newToken && (
-          <div
-            style={{
-              marginTop: '1.5rem',
-              padding: '1rem',
-              border: '1px solid var(--cl-state-live)',
-              background: 'var(--cl-surface-base)',
-            }}
+            label={intl.formatMessage(controlMessages.preferencesThemeTitle)}
           >
-            <strong>
-              <FormattedMessage {...controlMessages.preferencesPatCreated} />
-            </strong>
-            <code
+            <Select
+              id="theme-preference"
+              onValueChange={handleThemePreferenceChange}
+              options={themeOptions}
+              value={themePreference}
+            />
+          </Field>
+        </Card>
+
+        <OrganizationIdentitySection
+          api={api}
+          onChangeOrgName={onChangeOrgName}
+          onSaveOrganizationName={onSaveOrganizationName}
+          optimisticEmblemSrc={optimisticEmblemSrc}
+          organization={organization}
+          organizationAlias={organizationAlias}
+          orgLoadError={orgLoadError}
+          orgLoading={orgLoading}
+          orgName={orgName}
+          setEmblemCropSrc={setEmblemCropSrc}
+        />
+
+        <OrganizationStorageSection
+          onDeleteUnreferencedObject={onDeleteUnreferencedObject}
+          organizationAlias={organizationAlias}
+          storageError={storageError}
+          storageLoading={storageLoading}
+          storageUsage={storageUsage}
+          unreferencedObjects={unreferencedObjects}
+        />
+
+        <StatisticsRebuildSection
+          api={api}
+          dismissedRebuildResult={dismissedRebuildResult}
+          onDismissRebuildResult={() => setDismissedRebuildResult(true)}
+          onPreviewRebuild={previewStatisticsRebuild}
+          organizationAlias={organizationAlias}
+          rebuildBusy={rebuildBusy}
+          rebuildResult={rebuildResult}
+          rebuildTournamentAlias={rebuildTournamentAlias}
+          setRebuildTournamentAlias={setRebuildTournamentAlias}
+        />
+
+        <Card
+          className="cl-chamfer cl-chamfer--control"
+          style={{
+            marginTop: '2rem',
+            padding: preferencesSectionPadding,
+          }}
+        >
+          <h2>
+            <FormattedMessage {...controlMessages.preferencesPatTitle} />
+          </h2>
+          <p>
+            <FormattedMessage {...controlMessages.preferencesPatDescription} />
+          </p>
+
+          <Form
+            aria-label={intl.formatMessage(controlMessages.preferencesPatTitle)}
+            className="cl-preferences-pat-form"
+            onSubmit={handleCreate}
+          >
+            <Inline align="end" gap="4" wrap>
+              <Field id="pat-label" label={intl.formatMessage(controlMessages.preferencesPatLabel)}>
+                <Input
+                  id="pat-label"
+                  onChange={(e) => setLabel(e.target.value)}
+                  required
+                  type="text"
+                  value={label}
+                />
+              </Field>
+              <Field
+                id="pat-expires"
+                label={intl.formatMessage(controlMessages.preferencesPatExpiresIn)}
+              >
+                <Input
+                  id="pat-expires"
+                  max={365}
+                  min={1}
+                  onChange={(e) => setExpiresInDays(parseInt(e.target.value))}
+                  required
+                  style={{ width: '80px' }}
+                  type="number"
+                  value={expiresInDays}
+                />
+              </Field>
+            </Inline>
+            <FieldSet legend={intl.formatMessage(controlMessages.preferencesPatScopes)}>
+              {patScopes.length === 0 ? (
+                <p>{intl.formatMessage(controlMessages.preferencesPatNoScopes)}</p>
+              ) : (
+                <Stack gap="2">
+                  {patScopes.map((scope) => (
+                    <Label key={scope} className="cl-toggle cl-focusable">
+                      <Checkbox
+                        aria-label={scope}
+                        checked={selectedPatScopes.includes(scope)}
+                        id={`pat-scope-${scope}`}
+                        onCheckedChange={(checked) =>
+                          setSelectedPatScopes((current) =>
+                            checked
+                              ? [...current, scope]
+                              : current.filter((selected) => selected !== scope),
+                          )
+                        }
+                      />
+                      <span className="cl-preferences-scope-label">{scope}</span>
+                    </Label>
+                  ))}
+                </Stack>
+              )}
+            </FieldSet>
+            {selectedPatScopes.length === 0 && patScopes.length > 0 && (
+              <p role="status">
+                {intl.formatMessage(controlMessages.preferencesPatScopesRequired)}
+              </p>
+            )}
+            <Button disabled={!label.trim() || selectedPatScopes.length === 0} type="submit">
+              <FormattedMessage {...controlMessages.preferencesPatCreate} />
+            </Button>
+          </Form>
+
+          {newToken && (
+            <div
               style={{
-                display: 'block',
+                marginTop: '1.5rem',
                 padding: '1rem',
-                backgroundColor: 'var(--c-surface-sunken)',
-                borderRadius: '0.25rem',
-                marginTop: '0.5rem',
-                wordBreak: 'break-all',
+                border: '1px solid var(--cl-state-live)',
+                background: 'var(--cl-surface-base)',
               }}
             >
-              {newToken.token}
-            </code>
-          </div>
-        )}
-
-        <div style={{ marginTop: '2rem' }}>
-          {loading ? (
-            <p>
-              <FormattedMessage {...controlMessages.preferencesTokensLoading} />
-            </p>
-          ) : activeTokens.length === 0 ? (
-            <EmptyState
-              icon="user"
-              headingLevel={3}
-              heading={intl.formatMessage(controlMessages.preferencesPatEmpty)}
-              description={intl.formatMessage(controlMessages.interactionTokenDescription)}
-              action={{
-                label: intl.formatMessage(controlMessages.interactionCreateToken),
-                onClick: () => document.getElementById('pat-label')?.focus(),
-              }}
-            />
-          ) : (
-            <ul style={{ listStyle: 'none', padding: 0 }}>
-              {activeTokens.map((token) => (
-                <li
-                  key={token.tokenId}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '1rem',
-                    borderBottom: '1px solid var(--cl-border-muted)',
-                  }}
-                >
-                  <div>
-                    <strong>{token.label}</strong>
-                    <div
-                      style={{
-                        fontSize: 'var(--cl-font-size-sm)',
-                        color: 'var(--cl-text-secondary)',
-                        marginTop: '0.25rem',
-                      }}
-                    >
-                      <FormattedMessage
-                        {...controlMessages.preferencesPatExpiresAt}
-                        values={{
-                          date: new Date(token.expiresAt).toLocaleDateString(intl.locale),
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    onClick={() => void requestPatRevoke(token.tokenId, token.label)}
-                    type="button"
-                    variant="destructive-outline"
-                  >
-                    <FormattedMessage {...controlMessages.preferencesPatRevoke} />
-                  </Button>
-                </li>
-              ))}
-            </ul>
+              <strong>
+                <FormattedMessage {...controlMessages.preferencesPatCreated} />
+              </strong>
+              <code
+                style={{
+                  display: 'block',
+                  padding: '1rem',
+                  backgroundColor: 'var(--c-surface-sunken)',
+                  borderRadius: '0.25rem',
+                  marginTop: '0.5rem',
+                  wordBreak: 'break-all',
+                }}
+              >
+                {newToken.token}
+              </code>
+            </div>
           )}
-        </div>
-      </Card>
 
-      {emblemCropSrc !== undefined && (
-        <ImageCropModal
-          imageSrc={emblemCropSrc}
-          onCancel={() => {
-            URL.revokeObjectURL(emblemCropSrc);
-            setEmblemCropSrc(undefined);
-          }}
-          onConfirm={(output) => {
-            URL.revokeObjectURL(emblemCropSrc);
-            setEmblemCropSrc(undefined);
-            setOptimisticEmblemSrc(`data:${output.contentType};base64,${output.contentBase64}`);
-            void onUploadOrganizationEmblem(output).catch(() => {
-              setOptimisticEmblemSrc(undefined);
-            });
-          }}
-        />
-      )}
-    </Stack>
+          <div style={{ marginTop: '2rem' }}>
+            {loading ? (
+              <p>
+                <FormattedMessage {...controlMessages.preferencesTokensLoading} />
+              </p>
+            ) : activeTokens.length === 0 ? (
+              <EmptyState
+                icon="user"
+                headingLevel={3}
+                heading={intl.formatMessage(controlMessages.preferencesPatEmpty)}
+                description={intl.formatMessage(controlMessages.interactionTokenDescription)}
+                action={{
+                  label: intl.formatMessage(controlMessages.interactionCreateToken),
+                  onClick: () => document.getElementById('pat-label')?.focus(),
+                }}
+              />
+            ) : (
+              <ul style={{ listStyle: 'none', padding: 0 }}>
+                {activeTokens.map((token) => (
+                  <li
+                    key={token.tokenId}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      padding: '1rem',
+                      borderBottom: '1px solid var(--cl-border-muted)',
+                    }}
+                  >
+                    <div>
+                      <strong>{token.label}</strong>
+                      <div
+                        style={{
+                          fontSize: 'var(--cl-font-size-sm)',
+                          color: 'var(--cl-text-secondary)',
+                          marginTop: '0.25rem',
+                        }}
+                      >
+                        <FormattedMessage
+                          {...controlMessages.preferencesPatExpiresAt}
+                          values={{
+                            date: new Date(token.expiresAt).toLocaleDateString(intl.locale),
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => void requestPatRevoke(token.tokenId, token.label)}
+                      type="button"
+                      variant="destructive-outline"
+                    >
+                      <FormattedMessage {...controlMessages.preferencesPatRevoke} />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </Card>
+
+        {emblemCropSrc !== undefined && (
+          <ImageCropModal
+            imageSrc={emblemCropSrc}
+            onCancel={() => {
+              URL.revokeObjectURL(emblemCropSrc);
+              setEmblemCropSrc(undefined);
+            }}
+            onConfirm={(output) => {
+              URL.revokeObjectURL(emblemCropSrc);
+              setEmblemCropSrc(undefined);
+              setOptimisticEmblemSrc(`data:${output.contentType};base64,${output.contentBase64}`);
+              void onUploadOrganizationEmblem(output).catch(() => {
+                setOptimisticEmblemSrc(undefined);
+              });
+            }}
+          />
+        )}
+      </Stack>
+    </Container>
   );
 
   return (

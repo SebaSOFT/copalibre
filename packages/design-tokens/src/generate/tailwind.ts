@@ -6,6 +6,7 @@ import {
   FONT_SIZE,
   FONT_WEIGHTS,
   ICON_TOKENS,
+  LAYOUT_TOKENS,
   CHART_TOKENS,
   MOTION,
   RADIUS,
@@ -32,6 +33,7 @@ export interface TailwindTheme {
   readonly fontSize: Record<string, string>;
   readonly fontWeight: Record<string, string>;
   readonly spacing: Record<string, string>;
+  readonly maxWidth: Record<string, string>;
   readonly borderRadius: Record<string, string>;
   readonly transitionDuration: Record<string, string>;
   readonly screens: Record<string, string>;
@@ -66,8 +68,12 @@ export function generateTailwindTheme(): TailwindTheme {
       ),
     },
     fontWeight: { ...FONT_WEIGHTS },
-    spacing: Object.fromEntries(
-      Object.entries(SPACING).map(([name, value]) => [`cl-${name}`, value]),
+    spacing: Object.fromEntries([
+      ...Object.entries(SPACING).map(([name, value]) => [`cl-${name}`, value]),
+      ...Object.entries(LAYOUT_TOKENS.gutter).map(([name, value]) => [`cl-gutter-${name}`, value]),
+    ]),
+    maxWidth: Object.fromEntries(
+      Object.entries(LAYOUT_TOKENS.container).map(([name, value]) => [`cl-${name}`, value]),
     ),
     borderRadius: Object.fromEntries(
       Object.entries(RADIUS).map(([name, value]) => [`cl-${name}`, value]),

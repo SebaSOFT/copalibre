@@ -146,3 +146,36 @@ test('drills down from a tournament hub to a stage hub, renames the stage, and l
   await expect(page.getByRole('heading', { level: 1, name: 'Fase 1' })).toBeVisible();
   await expect(page.getByLabel('Nuevo nombre de la fase')).toHaveValue('Fase renombrada');
 });
+
+test('centres the Control main column and stage settings at 1920 pixels', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await mockControlApi(page);
+
+  const tournamentHubTarget = `/control/${ORG}/tournaments/${TOURNAMENT_ALIAS}`;
+  await seedLoginTransaction(page, tournamentHubTarget);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${tournamentHubTarget}`);
+  await page.getByRole('link', { name: /Abrir fase 1/ }).click();
+  await page.waitForURL(`**/control/${ORG}/tournaments/${TOURNAMENT_ALIAS}/stages/1`);
+
+  const navigation = page.locator('.cl-control__nav');
+  const main = page.locator('.cl-control__main > .cl-container--control');
+  const settings = page.locator('main .cl-container--form').first();
+  await expect(settings).toBeVisible();
+  const [navigationBox, mainBox, settingsBox] = await Promise.all([
+    navigation.boundingBox(),
+    main.boundingBox(),
+    settings.boundingBox(),
+  ]);
+
+  expect(navigationBox).not.toBeNull();
+  expect(mainBox).not.toBeNull();
+  expect(settingsBox).not.toBeNull();
+  expect(mainBox?.width).toBeLessThanOrEqual(1440);
+  const contentStart = (navigationBox?.x ?? 0) + (navigationBox?.width ?? 0);
+  const contentCenter = contentStart + (1920 - contentStart) / 2;
+  expect(
+    Math.abs((mainBox?.x ?? 0) + (mainBox?.width ?? 0) / 2 - contentCenter),
+  ).toBeLessThanOrEqual(1);
+  expect(settingsBox?.width).toBeLessThanOrEqual(720);
+});

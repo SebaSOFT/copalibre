@@ -2,6 +2,7 @@
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@copalibre/domain';
 import type { publicIntl } from '../lib/i18n/public-intl.ts';
 import PublicLayout from './PublicLayout.astro';
+import Container from '../components/ui/atoms/layout/Container.astro';
 import EmblemImage from '../components/ui/atoms/EmblemImage.astro';
 import Button from '../components/ui/atoms/Button.astro';
 import { Card } from '../components/ui/atoms/Card.tsx';
@@ -28,13 +29,15 @@ const localePrefix = getLocalePrefix(locale);
   intl={intl}
   localeVariants={SUPPORTED_LANGUAGES}
 >
-  <div class="cl-home-container">
+  <Container class="cl-home-container" variant="public">
     <header class="cl-home-hero">
       <div class="cl-home-hero__meta">
         <h1 class="cl-home-hero__title">{intl.formatMessage(messages.homeHeroTitle)}</h1>
         <p class="cl-home-hero__subtitle">{intl.formatMessage(messages.homeHeroSubtitle)}</p>
       </div>
-      <p class="cl-home-hero__description">{intl.formatMessage(messages.homeHeroDescription)}</p>
+      <Container variant="reading">
+        <p class="cl-home-hero__description">{intl.formatMessage(messages.homeHeroDescription)}</p>
+      </Container>
       <div class="cl-home-hero__badges" role="list">
         <Badge>{intl.formatMessage(messages.homeBadgeFreeSoftware)}</Badge>
         <Badge>{intl.formatMessage(messages.homeBadgeSovereign)}</Badge>
@@ -47,12 +50,12 @@ const localePrefix = getLocalePrefix(locale);
         class="cl-home-empty-hub cl-tactical-grid"
         aria-label={intl.formatMessage(messages.homeEmptyHeading)}
       >
-        <div class="cl-home-empty-hub__intro">
+        <Container class="cl-home-empty-hub__intro" variant="reading">
           <h2 class="cl-home-empty-hub__heading">
             {intl.formatMessage(messages.homeEmptyHeading)}
           </h2>
           <p class="cl-home-empty-hub__lead">{intl.formatMessage(messages.homeEmptyLead)}</p>
-        </div>
+        </Container>
 
         <div class="cl-home-orientation-grid">
           <Card as="article" className="cl-orientation-card">
@@ -109,14 +112,12 @@ const localePrefix = getLocalePrefix(locale);
         </div>
       </section>
     )}
-  </div>
+  </Container>
 </PublicLayout>
 
 <style>
   .cl-home-container {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: var(--cl-space-8) var(--cl-space-4);
+    padding-block: var(--cl-space-8);
     display: flex;
     flex-direction: column;
     gap: var(--cl-space-8);
@@ -152,7 +153,6 @@ const localePrefix = getLocalePrefix(locale);
 
   .cl-home-hero__description {
     margin: 0;
-    max-width: 64ch;
     font-size: 1rem;
     line-height: 1.5;
     color: var(--cl-text-muted);
@@ -182,7 +182,6 @@ const localePrefix = getLocalePrefix(locale);
     flex-direction: column;
     gap: var(--cl-space-2);
     text-align: center;
-    max-width: 580px;
     margin: 0 auto;
   }
 

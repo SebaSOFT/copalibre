@@ -4,6 +4,7 @@
  * business logic lives in this file.
  */
 import type { ReactNode } from 'react';
+import { Form } from '../atoms/form.js';
 import { PageHeader, type PageHeaderBreadcrumb } from '../organisms/page-header.js';
 
 export interface FormScreenSection {
@@ -34,7 +35,7 @@ export function FormScreenLayout({
   onSubmit,
 }: FormScreenLayoutProps): React.JSX.Element {
   return (
-    <form className="cl-form-screen" onSubmit={onSubmit}>
+    <Form className="cl-form-screen" onSubmit={onSubmit}>
       <PageHeader
         actions={actions}
         breadcrumbs={breadcrumbs}
@@ -52,6 +53,6 @@ export function FormScreenLayout({
         </section>
       ))}
       <footer className="cl-form-screen__footer">{footer}</footer>
-    </form>
+    </Form>
   );
 }

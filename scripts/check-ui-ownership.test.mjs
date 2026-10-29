@@ -544,19 +544,24 @@ test('registers key on the path, so two files with one name are not confused', (
   assert.equal(checkFileOwnership('pages/somewhere/else/[personId].astro', card).length, 1);
 });
 
-test('a file inside a ui/ directory is the design language, not a bypass of it', () => {
-  // Ownership is expressed by directory on every surface: control/components/ui
-  // and components/ui alike. That is why the public primitives moved there
-  // rather than being named in an allowlist.
+test('ui/atoms files define the design language while other ui tiers remain checked', () => {
+  // Only the atom tier is exempt from adoption checks on every surface. A
+  // layout, molecule, organism or template under ui/ is governed like any
+  // other consumer of the owned primitives.
   const uiPath = fileURLToPath(new URL('../apps/web/src/components/ui/atoms', import.meta.url));
   const scanned = Object.keys(
     scanEverySurface(fileURLToPath(new URL('../apps/web/src', import.meta.url))),
   );
   assert.ok(existsSync(join(uiPath, 'Button.astro')), 'expected the public Button primitive');
   assert.equal(
-    scanned.filter((f) => f.includes('/ui/')).length,
+    scanned.filter((f) => f.includes('/ui/atoms/')).length,
     0,
-    'no file inside a ui/ directory should be scanned',
+    'no file inside the atom tier should be scanned',
+  );
+  assert.equal(
+    checkFileOwnership('control/components/ui/layouts/future-template.tsx', '<form />').length,
+    1,
+    'a non-atom tier inside ui/ should be scanned',
   );
 });
 
