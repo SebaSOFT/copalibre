@@ -488,7 +488,7 @@ describe('what the dashboard renders', () => {
     expect(screen.getByRole('button', { name: 'Archive' })).toBeDefined();
   });
 
-  it('keeps every export inside the menu, so the footer is never a button row', () => {
+  it('keeps secondary actions inside the menu, so the footer stays compact', () => {
     render(
       withIntl(
         <Card
@@ -504,8 +504,7 @@ describe('what the dashboard renders', () => {
       ),
     );
 
-    // This is the defect the change exists to fix: four equal-weight export
-    // buttons per card, which at 375px wrapped into four ragged rows.
+    // Secondary exports stay out of the card footer, which wraps at narrow widths.
     for (const name of [
       'Participants CSV',
       'Results CSV',
@@ -514,10 +513,10 @@ describe('what the dashboard renders', () => {
     ]) {
       expect(screen.queryByRole('button', { name })).toBeNull();
     }
-    expect(screen.getByRole('button', { name: 'Export' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'More actions' })).toBeDefined();
   });
 
-  it('offers Broadcaster Studio inside the same export menu when the operator can manage display tokens, never as its own button', async () => {
+  it('offers Broadcaster Studio inside the action menu when the operator can manage display tokens, never as its own button', async () => {
     render(
       withIntl(
         <Card
@@ -534,7 +533,7 @@ describe('what the dashboard renders', () => {
     );
 
     expect(screen.queryByRole('link', { name: 'Broadcaster Studio' })).toBeNull();
-    const trigger = screen.getByRole('button', { name: 'Export' });
+    const trigger = screen.getByRole('button', { name: 'More actions' });
     trigger.focus();
     fireEvent.keyDown(trigger, { code: 'Enter', key: 'Enter' });
     expect(await screen.findByRole('menuitem', { name: 'Broadcaster Studio' })).toBeDefined();
@@ -556,8 +555,34 @@ describe('what the dashboard renders', () => {
       ),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    const trigger = screen.getByRole('button', { name: 'More actions' });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { code: 'Enter', key: 'Enter' });
     expect(screen.queryByRole('menuitem', { name: 'Broadcaster Studio' })).toBeNull();
+  });
+
+  it('puts draft publication inside the action menu', async () => {
+    const onPublish = jest.fn();
+    render(
+      withIntl(
+        <Card
+          canManageDisplayTokens={false}
+          canManageTournamentLifecycle
+          card={card({ lifecycle: 'draft' })}
+          onArchive={() => {}}
+          onExport={() => {}}
+          onExportConfiguration={() => {}}
+          onPublish={onPublish}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    const trigger = screen.getByRole('button', { name: 'More actions' });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { code: 'Enter', key: 'Enter' });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Publish tournament' }));
+    expect(onPublish).toHaveBeenCalledWith('apertura-2026', 'Torneo Apertura');
   });
 
   it('renders the sidenav, the cards and the activity log', () => {
@@ -643,7 +668,7 @@ describe('what the dashboard renders', () => {
       );
       // Individual exports preview their personal-data columns first. The
       // remaining exports live behind the same menu and download directly.
-      fireEvent.keyDown(screen.getByRole('button', { name: 'Exportar' }), {
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Más acciones' }), {
         code: 'Enter',
         key: 'Enter',
       });
@@ -666,7 +691,7 @@ describe('what the dashboard renders', () => {
       );
       expect(requests[0]).toContain('?excludePersonalData=displayName');
 
-      fireEvent.keyDown(screen.getByRole('button', { name: 'Exportar' }), {
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Más acciones' }), {
         code: 'Enter',
         key: 'Enter',
       });
@@ -679,7 +704,7 @@ describe('what the dashboard renders', () => {
       );
       expect(requests).toHaveLength(1);
 
-      fireEvent.keyDown(screen.getByRole('button', { name: 'Exportar' }), {
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Más acciones' }), {
         code: 'Enter',
         key: 'Enter',
       });
@@ -701,7 +726,7 @@ describe('what the dashboard renders', () => {
         'Posiciones CSV',
         'Exportar configuración JSON',
       ]) {
-        fireEvent.keyDown(screen.getByRole('button', { name: 'Exportar' }), {
+        fireEvent.keyDown(screen.getByRole('button', { name: 'Más acciones' }), {
           code: 'Enter',
           key: 'Enter',
         });

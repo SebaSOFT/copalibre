@@ -544,6 +544,7 @@ export const messages: Record<string, string> = {
   'control.wizard.ruleset.empty':
     'Diese Disziplin deklariert hier keine zusätzlich konfigurierbaren Regeln.',
   'control.wizard.step.window': 'Zeitfenster',
+  'control.wizard.step.privacy': 'Datenschutz',
   'control.wizard.step.summary': 'Zusammenfassung',
   'control.wizard.formatPreview.title': 'Strukturvorschau',
   'control.wizard.formatPreview.illustrative': 'Illustrative Vorschau (8 Teilnehmer)',
@@ -663,7 +664,8 @@ export const messages: Record<string, string> = {
   'control.wizard.requiresCheckIn': 'Erfordert Check-in',
   'control.wizard.back': 'Zurück',
   'control.wizard.create': 'Turnier erstellen',
-  'control.wizard.continue': 'Mit der Disziplin fortfahren',
+  'control.wizard.continue': 'Weiter zum nächsten Schritt',
+  'control.wizard.returnToSummary': 'Zur Zusammenfassung zurückkehren',
 
   'control.wizard.decision.discipline':
     'Legt fest, welche Regeln, Statistiken und Ereignisse für diesen Wettbewerb verfügbar sind.',
@@ -1033,7 +1035,7 @@ export const messages: Record<string, string> = {
   'control.clubPortal.rosterSubmit': 'Anmeldung einreichen',
   'control.clubPortal.dashboardLink': 'Vereinsportal',
   'control.resourceManagement.sectionLabel': 'Verwaltung von Austragungsorten und Offiziellen',
-  'control.resourceManagement.title': 'Austragungsorte & Offizielle',
+  'control.resourceManagement.title': 'Austragungsorte, Zeitpläne & Offizielle',
   'control.resourceManagement.loading': 'Wird geladen…',
   'control.resourceManagement.loadFailed':
     'Austragungsorte und Offizielle konnten nicht geladen werden.',
@@ -1425,6 +1427,7 @@ export const messages: Record<string, string> = {
 
   'control.dashboard.open': 'Turnier öffnen',
   'control.dashboard.export': 'Exportieren',
+  'control.dashboard.moreActions': 'Weitere Aktionen',
   'control.dashboard.resumeEditing': 'Bearbeitung fortsetzen',
 
   // standings panel chrome, metric availability, module updates.

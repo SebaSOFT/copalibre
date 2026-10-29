@@ -103,9 +103,14 @@ describe('TournamentSettingsPage', () => {
       ),
     );
 
-    expect(await screen.findByDisplayValue('Copa Verano')).toBeDefined();
+    const nameInput = await screen.findByDisplayValue('Copa Verano');
     expect(screen.getByDisplayValue('South America')).toBeDefined();
     expect(screen.getByDisplayValue('16')).toBeDefined();
+    const summaryHeading = screen.getByRole('heading', { level: 2, name: 'Copa Verano' });
+    expect(
+      nameInput.compareDocumentPosition(summaryHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Rules' })).toBeDefined();
   });
 
   it('saves privacy settings from their own tab without changing other settings', async () => {
@@ -129,6 +134,9 @@ describe('TournamentSettingsPage', () => {
     );
 
     fireEvent.click(screen.getByRole('tab', { name: 'Privacy' }));
+    expect(screen.getByRole('tablist').closest('.cl-list-screen__toolbar')).not.toBeNull();
+    expect(screen.getByRole('tabpanel').getAttribute('id')).toBe('tournament-privacy-panel');
+    expect(screen.queryByText('Copa Verano')).toBeNull();
     const includesMinors = screen.getByLabelText('Participants include minors');
     const showYouthProfiles = screen.getByLabelText('Show youth player profiles publicly');
     expect((showYouthProfiles as HTMLInputElement).disabled).toBe(true);

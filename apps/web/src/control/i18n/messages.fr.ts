@@ -543,6 +543,7 @@ export const messages: Record<string, string> = {
   'control.wizard.ruleset.empty':
     'Cette discipline ne déclare aucune règle supplémentaire à configurer ici.',
   'control.wizard.step.window': 'Fenêtre',
+  'control.wizard.step.privacy': 'Confidentialité',
   'control.wizard.step.summary': 'Résumé',
   'control.wizard.formatPreview.title': 'Aperçu de la structure',
   'control.wizard.formatPreview.illustrative': 'Aperçu illustratif (8 participants)',
@@ -665,7 +666,8 @@ export const messages: Record<string, string> = {
   'control.wizard.requiresCheckIn': 'Nécessite un enregistrement',
   'control.wizard.back': 'Retour',
   'control.wizard.create': 'Créer le tournoi',
-  'control.wizard.continue': 'Continuer vers la discipline',
+  'control.wizard.continue': 'Passer à l’étape suivante',
+  'control.wizard.returnToSummary': 'Revenir au résumé',
 
   'control.wizard.decision.discipline':
     'Détermine les règles, statistiques et événements disponibles pour cette compétition.',
@@ -1035,7 +1037,7 @@ export const messages: Record<string, string> = {
   'control.clubPortal.rosterSubmit': "Soumettre l'inscription",
   'control.clubPortal.dashboardLink': 'Portail du club',
   'control.resourceManagement.sectionLabel': 'Gestion des lieux et des officiels',
-  'control.resourceManagement.title': 'Lieux et officiels',
+  'control.resourceManagement.title': 'Lieux, horaires et officiels',
   'control.resourceManagement.loading': 'Chargement…',
   'control.resourceManagement.loadFailed': 'Impossible de charger les lieux et les officiels.',
   'control.resourceManagement.saveFailed': 'La demande a été refusée.',
@@ -1415,6 +1417,7 @@ export const messages: Record<string, string> = {
 
   'control.dashboard.open': 'Ouvrir le tournoi',
   'control.dashboard.export': 'Exporter',
+  'control.dashboard.moreActions': 'Plus d’actions',
   'control.dashboard.resumeEditing': 'Reprendre la modification',
 
   // standings panel chrome, metric availability, module updates.

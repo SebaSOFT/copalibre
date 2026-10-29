@@ -42,11 +42,11 @@ export const Loaded: Story = {};
 export const Empty: Story = { args: { disciplines: [] } };
 
 export const MinorsChoiceUnanswered: Story = {
-  args: { initialState: { step: 'name' } },
+  args: { initialState: { step: 'privacy' } },
 };
 
 export const MinorsChoiceAnsweredNo: Story = {
-  args: { initialState: { step: 'name', includesMinors: false } },
+  args: { initialState: { step: 'privacy', includesMinors: false } },
 };
 
 export const FormatStepSingleElimination: Story = {

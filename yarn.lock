@@ -9097,10 +9097,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"deepmerge@npm:^4.3.1":
-  version: 4.3.1
-  resolution: "deepmerge@npm:4.3.1"
-  checksum: 10c0/e53481aaf1aa2c4082b5342be6b6d8ad9dfe387bc92ce197a66dea08bd4265904a087e75e464f14d1347cf2ac8afe1e4c16b266e0561cc5df29382d3c5f80044
+"deepmerge@npm:@stackline/deepmerge@1.1.0":
+  version: 1.1.0
+  resolution: "@stackline/deepmerge@npm:1.1.0"
+  checksum: 10c0/c3dfcd2b82c7dd9dc67ae16f6d07175a9b0f8bde240f6cd159203c46ec3f1d850ff913065349703f22b048e8b1f075f6cef9116ad28ad0fa2008d639d8d2e4be
   languageName: node
   linkType: hard
 
@@ -15599,17 +15599,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"qs@npm:^6.14.0, qs@npm:^6.14.1":
-  version: 6.16.0
-  resolution: "qs@npm:6.16.0"
-  dependencies:
-    es-define-property: "npm:^1.0.1"
-    side-channel: "npm:^1.1.1"
-  checksum: 10c0/eb3e31992fbd70e31a1791e571ed817d70975de7d3bfcbbbec93d77d1dd305877e9e8fdbcc62303c228ee5c3606685622cd6231c042dbc4790bb4e7c65fcbe18
-  languageName: node
-  linkType: hard
-
-"qs@npm:^6.16.1":
+"qs@npm:6.16.1":
   version: 6.16.1
   resolution: "qs@npm:6.16.1"
   dependencies:

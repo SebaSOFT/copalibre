@@ -13,7 +13,10 @@ const meta = {
     stageFormat: 'round-robin',
     availableFormats: ['round-robin', 'single-elimination', 'double-elimination'],
     formatDescriptions: {
-      'round-robin': 'Every entrant plays every other entrant once',
+      'round-robin': {
+        en: 'Every entrant plays every other entrant once',
+        es: 'Cada participante juega una vez contra cada uno de los demás',
+      },
       'single-elimination': { en: 'Single elimination bracket', es: 'Eliminación directa' },
     },
     seeded: false,

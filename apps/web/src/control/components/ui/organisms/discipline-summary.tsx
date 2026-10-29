@@ -45,6 +45,7 @@ export interface DisciplineSummaryProps {
    */
   readonly sections?: readonly DisciplineSummarySection[];
   readonly className?: string;
+  readonly headingLevel?: 2 | 3;
 }
 
 const EVENT_ACTOR_MESSAGE = {
@@ -65,6 +66,7 @@ export function DisciplineSummary({
   data,
   sections = ALL_SECTIONS,
   className = '',
+  headingLevel = 3,
 }: DisciplineSummaryProps): React.JSX.Element {
   const intl = useIntl();
   const rules = ruleFieldSummaries(data);
@@ -78,7 +80,9 @@ export function DisciplineSummary({
       {sections.includes('segments') && (
         <Card>
           <CardHeader>
-            <CardTitle>{intl.formatMessage(messages.disciplineSummarySegmentsHeading)}</CardTitle>
+            <CardTitle level={headingLevel}>
+              {intl.formatMessage(messages.disciplineSummarySegmentsHeading)}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {segmentTypes.length === 0 ? (
@@ -110,7 +114,9 @@ export function DisciplineSummary({
       {sections.includes('rules') && (
         <Card>
           <CardHeader>
-            <CardTitle>{intl.formatMessage(messages.disciplineSummaryRulesHeading)}</CardTitle>
+            <CardTitle level={headingLevel}>
+              {intl.formatMessage(messages.disciplineSummaryRulesHeading)}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {rules.length === 0 ? (
@@ -156,7 +162,9 @@ export function DisciplineSummary({
       {sections.includes('events') && (
         <Card>
           <CardHeader>
-            <CardTitle>{intl.formatMessage(messages.disciplineSummaryEventsHeading)}</CardTitle>
+            <CardTitle level={headingLevel}>
+              {intl.formatMessage(messages.disciplineSummaryEventsHeading)}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {eventDefinitions.length === 0 ? (

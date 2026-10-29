@@ -243,7 +243,6 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 4],
   ['control/components/screens/StandingsTemplate.tsx', 4],
-  ['control/components/screens/TournamentSettingsTemplate.tsx', 4],
   // The GIVEN/WHEN/THEN rule composition was extracted into its own organism.
   ['control/components/TournamentSetupWizard.tsx', 9],
   // A stage is genuinely an ordered list; the layout primitives (Stack/

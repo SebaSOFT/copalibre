@@ -21,7 +21,7 @@ import {
   type StageSeriesDraft,
   type WizardStageDraft,
 } from './stage-authoring.js';
-import { nextStepId, previousStepId, stepProgress } from './wizard-steps.js';
+import { nextStepId, previousStepId } from './wizard-steps.js';
 
 export {
   appendStage,
@@ -59,13 +59,14 @@ export {
  */
 
 export type WizardStepId =
-  'name' | 'discipline' | 'format' | 'ruleset' | 'rules' | 'window' | 'summary';
+  'name' | 'privacy' | 'discipline' | 'format' | 'ruleset' | 'rules' | 'window' | 'summary';
 
 export const WIZARD_STEPS: readonly {
   readonly id: WizardStepId;
   readonly label: MessageDescriptor;
 }[] = [
   { id: 'name', label: messages.wizardStepName },
+  { id: 'privacy', label: messages.wizardStepPrivacy },
   { id: 'discipline', label: messages.wizardStepDiscipline },
   { id: 'format', label: messages.wizardStepFormat },
   { id: 'ruleset', label: messages.wizardStepRuleset },
@@ -133,7 +134,7 @@ export interface WizardState {
   readonly publicRegistration: boolean;
   readonly requiresCheckIn: boolean;
   readonly checkInClosesAt?: string;
-  /** Explicit organizer choice; undefined until the first-step question is answered. */
+  /** Explicit organizer choice; undefined until the privacy-step question is answered. */
   readonly includesMinors?: boolean;
   /** Dot-path → value for a discipline-declared ruleset field beyond format/registration.*. */
   readonly ruleOverrides: Readonly<Record<string, unknown>>;
@@ -236,8 +237,9 @@ export function stepProblems(
         ...(state.alias === undefined || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(state.alias)
           ? [messages.wizardProblemAliasFormat]
           : []),
-        ...(state.includesMinors === undefined ? [messages.wizardProblemChooseMinors] : []),
       ];
+    case 'privacy':
+      return state.includesMinors === undefined ? [messages.wizardProblemChooseMinors] : [];
     case 'discipline':
       return state.descriptorId === undefined ? [messages.wizardProblemChooseDiscipline] : [];
     case 'format': {
@@ -298,8 +300,10 @@ export function previousStep(state: WizardState): WizardStepId {
   return previousStepId(WIZARD_STEPS, state.step);
 }
 
-export function progress(state: WizardState): number {
-  return stepProgress(WIZARD_STEPS, state.step);
+export function progress(state: WizardState, currentStepComplete: boolean): number {
+  const currentStepIndex = WIZARD_STEPS.findIndex((step) => step.id === state.step);
+  const completedSteps = currentStepIndex + Number(currentStepComplete);
+  return Math.round((completedSteps / WIZARD_STEPS.length) * 100);
 }
 
 /**

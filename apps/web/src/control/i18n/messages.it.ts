@@ -541,6 +541,7 @@ export const messages: Record<string, string> = {
   'control.wizard.ruleset.empty':
     'Questa disciplina non dichiara regole aggiuntive da configurare qui.',
   'control.wizard.step.window': 'Finestra',
+  'control.wizard.step.privacy': 'Privacy',
   'control.wizard.step.summary': 'Riepilogo',
   'control.wizard.formatPreview.title': 'Anteprima della struttura',
   'control.wizard.formatPreview.illustrative': 'Anteprima illustrativa (8 partecipanti)',
@@ -660,7 +661,8 @@ export const messages: Record<string, string> = {
   'control.wizard.requiresCheckIn': 'Richiede check-in',
   'control.wizard.back': 'Indietro',
   'control.wizard.create': 'Crea torneo',
-  'control.wizard.continue': 'Continua alla disciplina',
+  'control.wizard.continue': 'Vai al passaggio successivo',
+  'control.wizard.returnToSummary': 'Torna al riepilogo',
 
   'control.wizard.decision.discipline':
     'Determina le regole, le statistiche e gli eventi disponibili per questa competizione.',
@@ -1029,7 +1031,7 @@ export const messages: Record<string, string> = {
   'control.clubPortal.rosterSubmit': 'Invia iscrizione',
   'control.clubPortal.dashboardLink': 'Portale del club',
   'control.resourceManagement.sectionLabel': 'Gestione sedi e ufficiali di gara',
-  'control.resourceManagement.title': 'Sedi e ufficiali di gara',
+  'control.resourceManagement.title': 'Sedi, orari e ufficiali di gara',
   'control.resourceManagement.loading': 'Caricamento…',
   'control.resourceManagement.loadFailed': 'Impossibile caricare sedi e ufficiali di gara.',
   'control.resourceManagement.saveFailed': 'La richiesta è stata rifiutata.',
@@ -1413,6 +1415,7 @@ export const messages: Record<string, string> = {
 
   'control.dashboard.open': 'Apri torneo',
   'control.dashboard.export': 'Esporta',
+  'control.dashboard.moreActions': 'Altre azioni',
   'control.dashboard.resumeEditing': 'Riprendi modifica',
 
   // standings panel chrome, metric availability, module updates.

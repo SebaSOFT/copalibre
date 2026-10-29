@@ -38,9 +38,11 @@ export function CardHeader({
 
 export function CardTitle({
   className = '',
+  level = 3,
   ...rest
-}: HTMLAttributes<HTMLHeadingElement>): React.JSX.Element {
-  return <h3 className={`cl-card__title ${className}`} {...rest} />;
+}: HTMLAttributes<HTMLHeadingElement> & { readonly level?: 2 | 3 }): React.JSX.Element {
+  const Heading = level === 2 ? 'h2' : 'h3';
+  return <Heading className={`cl-card__title ${className}`} {...rest} />;
 }
 
 export function CardDescription({

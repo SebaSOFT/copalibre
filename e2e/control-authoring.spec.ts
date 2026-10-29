@@ -308,7 +308,7 @@ test('downloads tournament configuration JSON from the dashboard', async ({ page
   await expect(page.getByText('Apertura 2026')).toBeVisible();
   const downloadPromise = page.waitForEvent('download');
   // The exports moved into the tournament card's own menu.
-  await page.getByRole('button', { name: 'Exportar' }).first().click();
+  await page.getByRole('button', { name: 'Más acciones' }).first().click();
   await page.getByRole('menuitem', { name: 'Exportar configuración JSON' }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('apertura-2026-configuration.json');
@@ -330,6 +330,7 @@ async function capturedRequests(page: Page): Promise<readonly CapturedRequest[]>
 }
 
 async function continueWithNoMinors(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page
     .getByRole('radio', { name: 'No, este torneo no tiene participantes menores de edad' })
     .check();
@@ -655,6 +656,8 @@ test('shows step badge states and explains blocked tournament wizard progression
 
   await page.getByLabel('Nombre').fill('Copa Progreso');
   await page.getByLabel('Alias').fill('copa-progreso');
+  await continueButton.click();
+  await expect(activeStep).toHaveText('2');
   await expect(continueButton).toBeDisabled();
   await expect(page.locator('#wizard-problems')).toContainText('menores');
   await page
@@ -663,8 +666,8 @@ test('shows step badge states and explains blocked tournament wizard progression
   await expect(continueButton).toBeEnabled();
   await continueButton.click();
 
-  await expect(page.locator('.cl-badge[data-state="completed"]')).toHaveText('1');
-  await expect(page.locator('.cl-badge[data-state="active"]')).toHaveText('2');
+  await expect(page.locator('.cl-badge[data-state="completed"]')).toHaveText(['1', '2']);
+  await expect(page.locator('.cl-badge[data-state="active"]')).toHaveText('3');
 });
 
 test('completes tournament authoring via keyboard and without overflow at 375px', async ({
@@ -684,9 +687,12 @@ test('completes tournament authoring via keyboard and without overflow at 375px'
   );
   expect(overflowStep1).toBe(true);
 
-  // Fill Step 1 (name & alias)
+  // Step 1 (name & alias)
   await page.getByLabel('Nombre').fill('Copa Teclado');
   await page.getByLabel('Alias').fill('copa-teclado');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Step 2 (privacy)
   const noMinors = page.getByRole('radio', {
     name: 'No, este torneo no tiene participantes menores de edad',
   });
@@ -695,27 +701,28 @@ test('completes tournament authoring via keyboard and without overflow at 375px'
   await expect(noMinors).toBeChecked();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
-  // Step 2 (discipline)
+  // Step 3 (discipline)
   await expect(page.getByLabel('Disciplina')).toBeVisible();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
-  // Step 3 (format & profile)
+  // Step 4 (format & profile)
   await expect(page.getByLabel('Formato de la fase')).toBeVisible();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
-  // Step 4 (discipline rules)
+  // Step 5 (discipline rules)
   await page.getByRole('button', { name: 'Continuar' }).click();
 
-  // Step 5 (rules)
+  // Step 6 (rules)
   await expect(page.getByLabel('Agregar regla para cada evento registrado')).toBeVisible();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
-  // Step 6 (window)
+  // Step 7 (window)
   await page.getByLabel('Región').fill('Mendoza');
   await page.getByLabel('Capacidad').fill('8');
   await page.getByRole('button', { name: 'Continuar' }).click();
 
-  // Step 7 (summary)
+  // Step 8 (summary), including the privacy decision made on step 2.
+  await expect(page.getByRole('heading', { name: 'Privacidad' })).toBeVisible();
   await page.getByRole('button', { name: 'Crear torneo' }).click();
 
   await expect(page.getByText('Torneo creado: copa-teclado')).toBeVisible();
@@ -738,6 +745,7 @@ test('explains every decision on every wizard step, reachable by keyboard with n
 
   await page.getByLabel('Nombre').fill('Copa Explicada');
   await page.getByLabel('Alias').fill('copa-explicada');
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page
     .getByRole('radio', { name: 'No, este torneo no tiene participantes menores de edad' })
     .check();

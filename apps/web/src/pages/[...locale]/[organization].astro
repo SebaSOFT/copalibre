@@ -114,7 +114,7 @@ const structuredData = listData
       />
 
       {listData.tournaments.length === 0 && (
-        <div class="cl-empty-state">
+        <div class="cl-empty-state cl-chamfer">
           <p>{intl.formatMessage(messages.tournamentsEmpty)}</p>
         </div>
       )}
@@ -189,7 +189,6 @@ const structuredData = listData
     padding: 3rem 1rem;
     text-align: center;
     background-color: var(--cl-surface-panel);
-    border-radius: 12px;
     border: 1px dashed var(--cl-border-muted);
     color: var(--cl-text-muted);
   }

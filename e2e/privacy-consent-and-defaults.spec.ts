@@ -297,7 +297,8 @@ test('publishes a youth tournament and its standings show player names without p
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${DASHBOARD}`);
 
-  await page.getByRole('button', { name: 'Publicar torneo' }).click();
+  await page.getByRole('button', { name: 'Más acciones' }).first().click();
+  await page.getByRole('menuitem', { name: 'Publicar torneo' }).click();
   const preview = page.getByRole('dialog', {
     name: 'Revisá qué se publicará sobre Apertura Juvenil',
   });
@@ -323,7 +324,7 @@ test('shows schedule deletion counts and enables confirmation only after typing 
   await seedLoginTransaction(page, RESOURCES);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${RESOURCES}`);
-  await expect(page.getByRole('heading', { name: 'Canchas y árbitros' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Canchas, horarios y árbitros' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Eliminar horario' }).click();
   const dialog = page.getByRole('dialog', { name: 'Eliminar horario' });

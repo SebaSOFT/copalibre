@@ -1617,6 +1617,8 @@ export class PublicProjectionsController {
 
     const careerStatistics = careerDisciplineTotals.map((disc) => {
       const desc = descriptorMap.get(disc.descriptorId);
+      const localizedDisciplineName =
+        desc?.name !== undefined && typeof desc.name !== 'string' ? desc.name : undefined;
       const collectorMap = new Map<string, StatisticCollector>();
       if (desc?.collectors) {
         for (const c of desc.collectors) {
@@ -1627,12 +1629,18 @@ export class PublicProjectionsController {
         disciplineDescriptorId: disc.descriptorId,
         disciplineName:
           disc.disciplineName ?? (desc?.name ? resolveLabel(desc.name, 'en') : undefined),
+        ...(localizedDisciplineName === undefined ? {} : { localizedDisciplineName }),
         statistics: disc.totals.map((tot) => {
           const colDef = collectorMap.get(tot.collectorCode);
+          const localizedLabel =
+            colDef?.label !== undefined && typeof colDef.label !== 'string'
+              ? colDef.label
+              : undefined;
           const label = colDef?.label ? resolveLabel(colDef.label, 'en') : tot.collectorCode;
           return {
             code: tot.collectorCode,
             label,
+            ...(localizedLabel === undefined ? {} : { localizedLabel }),
             value: tot.value,
             samples: tot.samples,
           };
@@ -1642,6 +1650,8 @@ export class PublicProjectionsController {
 
     const competitionHistory = history.map((item) => {
       const desc = descriptorMap.get(item.disciplineRef.descriptorId);
+      const localizedDisciplineName =
+        desc?.name !== undefined && typeof desc.name !== 'string' ? desc.name : undefined;
       return {
         tournamentId: item.tournamentId,
         tournamentName: item.tournamentName,
@@ -1655,6 +1665,7 @@ export class PublicProjectionsController {
         disciplineDescriptorId: item.disciplineRef.descriptorId,
         disciplineDescriptorVersion: item.disciplineRef.version,
         disciplineName: desc?.name ? resolveLabel(desc.name, 'en') : undefined,
+        ...(localizedDisciplineName === undefined ? {} : { localizedDisciplineName }),
       };
     });
 

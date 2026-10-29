@@ -166,7 +166,7 @@ describe('DashboardPage', () => {
         />,
       );
 
-      const exportButton = await screen.findByRole('button', { name: 'Exportar' });
+      const exportButton = await screen.findByRole('button', { name: 'Más acciones' });
       exportButton.focus();
       fireEvent.keyDown(exportButton, { key: 'ArrowDown', code: 'ArrowDown' });
       fireEvent.click(
@@ -208,7 +208,7 @@ describe('DashboardPage', () => {
       />,
     );
 
-    const exportButton = await screen.findByRole('button', { name: 'Exportar' });
+    const exportButton = await screen.findByRole('button', { name: 'Más acciones' });
     exportButton.focus();
     fireEvent.keyDown(exportButton, { key: 'ArrowDown', code: 'ArrowDown' });
     fireEvent.click(
@@ -241,7 +241,10 @@ describe('DashboardPage', () => {
       />,
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Publicar torneo' }));
+    const actionsButton = await screen.findByRole('button', { name: 'Más acciones' });
+    actionsButton.focus();
+    fireEvent.keyDown(actionsButton, { code: 'Enter', key: 'Enter' });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Publicar torneo' }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('Resumen del torneo')).toBeDefined();
     expect(
@@ -254,12 +257,18 @@ describe('DashboardPage', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Publicar torneo' }));
+    const actionsButtonAgain = await screen.findByRole('button', { name: 'Más acciones' });
+    actionsButtonAgain.focus();
+    fireEvent.keyDown(actionsButtonAgain, { code: 'Enter', key: 'Enter' });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Publicar torneo' }));
     const dismissedByEscape = await screen.findByRole('dialog');
     fireEvent.keyDown(dismissedByEscape, { code: 'Escape', key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Publicar torneo' }));
+    const actionsButtonForPublish = await screen.findByRole('button', { name: 'Más acciones' });
+    actionsButtonForPublish.focus();
+    fireEvent.keyDown(actionsButtonForPublish, { code: 'Enter', key: 'Enter' });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Publicar torneo' }));
     const confirmationDialog = await screen.findByRole('dialog');
     expect(publishTournament).not.toHaveBeenCalled();
 
@@ -290,7 +299,10 @@ describe('DashboardPage', () => {
       />,
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Publicar torneo' }));
+    const actionsButton = await screen.findByRole('button', { name: 'Más acciones' });
+    actionsButton.focus();
+    fireEvent.keyDown(actionsButton, { code: 'Enter', key: 'Enter' });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Publicar torneo' }));
     const dialog = await screen.findByRole('dialog');
     expect(
       within(dialog).getByText(

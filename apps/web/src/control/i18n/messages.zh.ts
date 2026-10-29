@@ -523,6 +523,7 @@ export const messages: Record<string, string> = {
   'control.wizard.step.ruleset': '项目规则',
   'control.wizard.ruleset.empty': '该项目未声明可在此配置的其他规则。',
   'control.wizard.step.window': '时间窗口',
+  'control.wizard.step.privacy': '隐私',
   'control.wizard.step.summary': '摘要',
   'control.wizard.formatPreview.title': '结构预览',
   'control.wizard.formatPreview.illustrative': '示例预览（8名参赛者）',
@@ -635,7 +636,8 @@ export const messages: Record<string, string> = {
   'control.wizard.requiresCheckIn': '需要签到',
   'control.wizard.back': '返回',
   'control.wizard.create': '创建赛事',
-  'control.wizard.continue': '继续选择项目',
+  'control.wizard.continue': '前往下一步',
+  'control.wizard.returnToSummary': '返回摘要',
 
   'control.wizard.decision.discipline': '决定本次比赛可用的规则、统计数据和事件。',
   'control.wizard.decision.format': '决定赛程如何生成以及参赛者如何晋级。',
@@ -982,7 +984,7 @@ export const messages: Record<string, string> = {
   'control.clubPortal.rosterSubmit': '提交报名',
   'control.clubPortal.dashboardLink': '俱乐部门户',
   'control.resourceManagement.sectionLabel': '场地与裁判管理',
-  'control.resourceManagement.title': '场地与裁判',
+  'control.resourceManagement.title': '场地、赛程与裁判',
   'control.resourceManagement.loading': '加载中…',
   'control.resourceManagement.loadFailed': '无法加载场地与裁判。',
   'control.resourceManagement.saveFailed': '请求被拒绝。',
@@ -1339,6 +1341,7 @@ export const messages: Record<string, string> = {
 
   'control.dashboard.open': '打开赛事',
   'control.dashboard.export': '导出',
+  'control.dashboard.moreActions': '更多操作',
   'control.dashboard.resumeEditing': '继续编辑',
 
   // standings panel chrome, metric availability, module updates.

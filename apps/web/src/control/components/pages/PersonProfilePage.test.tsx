@@ -13,7 +13,7 @@ function stubClient(person: PersonResponse): ControlApiClient {
 describe('PersonProfilePage', () => {
   beforeEach(() => clearResilientReadCache());
 
-  it("shows the person's display name, flag, and natural key", async () => {
+  it("shows the person's display name, localized nationality, and natural key", async () => {
     render(
       withIntl(
         <PersonProfilePage
@@ -30,8 +30,8 @@ describe('PersonProfilePage', () => {
       ),
     );
 
-    await waitFor(() => screen.getByText('Elías Salomón'));
-    expect(screen.getByText('🇦🇷')).toBeDefined();
+    await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Elías Salomón' }));
+    expect(screen.getByText('Argentina')).toBeDefined();
     expect(screen.getByText('dni: 12345678')).toBeDefined();
   });
 

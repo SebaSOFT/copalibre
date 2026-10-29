@@ -253,7 +253,7 @@ test('the export menu works from the keyboard and gives focus back to its trigge
 }) => {
   await openDashboard(page);
 
-  const trigger = page.getByRole('button', { name: 'Exportar' }).first();
+  const trigger = page.getByRole('button', { name: 'Más acciones' }).first();
   await trigger.focus();
   await page.keyboard.press('Enter');
 
