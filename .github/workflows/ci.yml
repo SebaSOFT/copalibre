@@ -581,6 +581,18 @@ jobs:
       - run: yarn workspace @copalibre/routing build
       - name: Inspect public web build output
         run: yarn workspace @copalibre/web inspect:build
+      - name: Check public performance budget configuration
+        run: node --test scripts/lighthouse/budgets.test.mjs
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+      - name: Install Chromium for Lighthouse CI
+        run: yarn playwright install --with-deps chromium
+      - name: Run public performance budgets
+        env:
+          PERFORMANCE_BUDGET_ENFORCEMENT: ${{ needs.detect-changes.outputs.release_candidate == 'true' && 'error' || 'warn' }}
+        run: node scripts/lighthouse/run.mjs
 
   # Starlight and the statically served Scalar document are inspected from
   # the single verified producer artifact, including the proof that the
@@ -662,8 +674,40 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
       - run: yarn playwright install --with-deps chromium
+      - name: Install pinned Chromium 100 for TV compatibility
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          import subprocess
+          import urllib.request
+          import zipfile
+
+          revision = '965416'
+          browser_version = '100.0.4863.0'
+          cache = pathlib.Path.home() / '.cache' / 'ms-playwright'
+          browser = cache / f'chromium-{revision}'
+          archive = pathlib.Path('/tmp/playwright-chromium-100.zip')
+          cache.mkdir(parents=True, exist_ok=True)
+          urllib.request.urlretrieve(
+              f'https://playwright.azureedge.net/builds/chromium/{revision}/chromium-linux.zip',
+              archive,
+          )
+          with zipfile.ZipFile(archive) as package:
+              package.extractall(browser)
+              for member in package.infolist():
+                  mode = (member.external_attr >> 16) & 0o777
+                  target = browser / member.filename
+                  if mode and target.exists():
+                      target.chmod(mode)
+          archive.unlink()
+          executable = browser / 'chrome-linux' / 'chrome'
+          actual = subprocess.check_output([executable, '--version'], text=True).strip()
+          if actual != f'Chromium {browser_version}':
+              raise SystemExit(f'Expected Chromium {browser_version}, got {actual}')
+          print(actual)
+          PY
       - name: Run E2E test shard
-        run: PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --grep-invert @visible-identifier-lint --shard=${{ matrix.shard }}
+        run: PLAYWRIGHT_CHROMIUM_100_PATH="$HOME/.cache/ms-playwright/chromium-965416/chrome-linux/chrome" PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --grep-invert @visible-identifier-lint --shard=${{ matrix.shard }}
       - name: Run visible-identifier lint
         run: PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --grep @visible-identifier-lint --shard=${{ matrix.shard }}
       # A retry that rescues a test passes the job, so list those tests where a reviewer looks.

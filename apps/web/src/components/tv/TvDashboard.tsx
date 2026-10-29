@@ -577,10 +577,14 @@ export function TvDashboard({
       if (rowHeight === 0) return;
 
       const overflowHeight = Math.max(0, panel.scrollHeight - panel.clientHeight);
+      if (overflowHeight === 0) {
+        measured = true;
+        return;
+      }
       const rowsBeyondPanel = Math.ceil(overflowHeight / rowHeight);
       const nextPageSize = Math.max(1, rows.length - rowsBeyondPanel);
       measured = true;
-      setStandingsPageSize(Math.min(totalStandingsRows, nextPageSize));
+      setStandingsPageSize((current) => Math.min(current, totalStandingsRows, nextPageSize));
     };
 
     const observer =
@@ -591,7 +595,7 @@ export function TvDashboard({
       window.cancelAnimationFrame(frame);
       observer?.disconnect();
     };
-  }, [layoutVariant, totalStandingsRows]);
+  }, [layoutVariant, standingsPageSize, totalStandingsRows]);
 
   useEffect(() => {
     if (layoutVariant !== 'dashboard' || standingsPageCount <= 1) return;

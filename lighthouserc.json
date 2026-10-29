@@ -1,0 +1,55 @@
+{
+  "ci": {
+    "collect": {
+      "url": [
+        "http://127.0.0.1:4321/panamericano-demo/tournaments/panamericano-clubes-2025",
+        "http://127.0.0.1:4321/panamericano-demo/tournaments/panamericano-clubes-2025/matches",
+        "http://127.0.0.1:4321/panamericano-demo/tournaments/panamericano-clubes-2025/stages/1/matches/1"
+      ],
+      "numberOfRuns": 3,
+      "settings": {
+        "formFactor": "mobile",
+        "screenEmulation": {
+          "mobile": true,
+          "width": 412,
+          "height": 823,
+          "deviceScaleFactor": 1.75,
+          "disabled": false
+        },
+        "throttlingMethod": "simulate",
+        "throttling": {
+          "rttMs": 150,
+          "throughputKbps": 1638.4,
+          "cpuSlowdownMultiplier": 4,
+          "requestLatencyMs": 150,
+          "downloadThroughputKbps": 1638.4,
+          "uploadThroughputKbps": 768
+        }
+      }
+    },
+    "assert": {
+      "assertions": {
+        "largest-contentful-paint": [
+          "warn",
+          { "aggregationMethod": "median", "maxNumericValue": 2625 }
+        ],
+        "cumulative-layout-shift": [
+          "warn",
+          { "aggregationMethod": "median", "maxNumericValue": 0.1 }
+        ],
+        "resource-summary:script:size": [
+          "warn",
+          { "aggregationMethod": "median", "maxNumericValue": 153600 }
+        ],
+        "resource-summary:total:size": [
+          "warn",
+          { "aggregationMethod": "median", "maxNumericValue": 1048576 }
+        ]
+      }
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": ".artifacts/lighthouseci"
+    }
+  }
+}
