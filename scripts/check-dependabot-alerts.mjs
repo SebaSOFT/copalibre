@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import semver from 'semver';
 import { parse } from 'yaml';
 
 const ROOT = new URL('../', import.meta.url);
@@ -50,10 +51,18 @@ export function compareStableVersions(left, right) {
   return 0;
 }
 
-export function checkPatchedFloor(packageName, versions, firstPatchedVersion) {
+export function checkPatchedFloor(
+  packageName,
+  versions,
+  firstPatchedVersion,
+  vulnerableVersionRange,
+) {
   if (firstPatchedVersion === null || firstPatchedVersion === undefined) return [];
   stableParts(firstPatchedVersion);
-  return versions
+  const affectedVersions = vulnerableVersionRange
+    ? versions.filter((version) => matchesVersionRange(version, vulnerableVersionRange))
+    : versions;
+  return affectedVersions
     .filter((version) => compareStableVersions(version, firstPatchedVersion) < 0)
     .map(
       (version) =>
@@ -61,16 +70,45 @@ export function checkPatchedFloor(packageName, versions, firstPatchedVersion) {
     );
 }
 
-export function checkManifestResolutionFloor(packageName, resolutions, firstPatchedVersion) {
-  const entries = Object.entries(resolutions).filter(([selector]) =>
-    selector.startsWith(`${packageName}@`),
+export function checkManifestResolutionFloor(
+  packageName,
+  resolutions,
+  firstPatchedVersion,
+  lockedVersions,
+  vulnerableVersionRange,
+) {
+  const entries = Object.entries(resolutions).filter(
+    ([selector]) => selector === packageName || selector.startsWith(`${packageName}@`),
   );
   if (entries.length === 0) {
+    if (
+      lockedVersions &&
+      !lockedVersions.some((version) => semver.major(version) === semver.major(firstPatchedVersion))
+    ) {
+      return [];
+    }
     return [
       `${packageName}: package.json resolutions has no explicit pin for upstream patched version ${firstPatchedVersion}`,
     ];
   }
-  return entries.flatMap(([selector, version]) =>
+  const patchedMajor = semver.major(firstPatchedVersion);
+  const applicableEntries = entries.filter(
+    ([selector, version]) =>
+      resolutionTargetsRange(selector, packageName, vulnerableVersionRange) ||
+      semver.major(version) === patchedMajor,
+  );
+  if (applicableEntries.length === 0) {
+    if (
+      lockedVersions &&
+      !lockedVersions.some((version) => semver.major(version) === patchedMajor)
+    ) {
+      return [];
+    }
+    return [
+      `${packageName}: package.json resolutions has no explicit pin for upstream patched version ${firstPatchedVersion}`,
+    ];
+  }
+  return applicableEntries.flatMap(([selector, version]) =>
     checkPatchedFloor(packageName, [version], firstPatchedVersion).map(
       (failure) => `${selector}: ${failure}`,
     ),
@@ -91,6 +129,7 @@ export function inspectOpenAlerts(
     const ghsa = alert.security_advisory?.ghsa_id;
     if (!registered) {
       const firstPatchedVersion = alert.security_vulnerability?.first_patched_version?.identifier;
+      const vulnerableVersionRange = alert.security_vulnerability?.vulnerable_version_range;
       if (firstPatchedVersion && packageName && lockText) {
         const versions = lockVersions(lockText, packageName);
         if (versions.length === 0) {
@@ -100,8 +139,14 @@ export function inspectOpenAlerts(
           continue;
         }
         const patchFailures = [
-          ...checkPatchedFloor(packageName, versions, firstPatchedVersion),
-          ...checkManifestResolutionFloor(packageName, resolutions, firstPatchedVersion),
+          ...checkPatchedFloor(packageName, versions, firstPatchedVersion, vulnerableVersionRange),
+          ...checkManifestResolutionFloor(
+            packageName,
+            resolutions,
+            firstPatchedVersion,
+            versions,
+            vulnerableVersionRange,
+          ),
         ];
         failures.push(...patchFailures);
         if (patchFailures.length === 0) {
@@ -159,9 +204,9 @@ export async function checkDependabotAlerts({
       failures.push(`${entry.ghsa}: advisory has no npm vulnerability record for ${entry.package}`);
       continue;
     }
-    const patchedVersions = packageVulnerabilities
-      .map((vulnerability) => vulnerability.first_patched_version?.identifier)
-      .filter((version) => version !== undefined && version !== null);
+    const patchedVersions = packageVulnerabilities.filter(
+      (vulnerability) => vulnerability.first_patched_version?.identifier,
+    );
     const lockedVersions = lockVersions(lockText, entry.package);
     if (lockedVersions.length === 0) {
       failures.push(
@@ -170,11 +215,26 @@ export async function checkDependabotAlerts({
       continue;
     }
     if (patchedVersions.length > 0) {
-      const earliestPatch = patchedVersions.sort(compareStableVersions)[0];
-      failures.push(...checkPatchedFloor(entry.package, lockedVersions, earliestPatch));
-      failures.push(
-        ...checkManifestResolutionFloor(entry.package, manifest.resolutions ?? {}, earliestPatch),
-      );
+      for (const vulnerability of patchedVersions) {
+        const firstPatchedVersion = vulnerability.first_patched_version.identifier;
+        failures.push(
+          ...checkPatchedFloor(
+            entry.package,
+            lockedVersions,
+            firstPatchedVersion,
+            vulnerability.vulnerable_version_range,
+          ),
+        );
+        failures.push(
+          ...checkManifestResolutionFloor(
+            entry.package,
+            manifest.resolutions ?? {},
+            firstPatchedVersion,
+            lockedVersions,
+            vulnerability.vulnerable_version_range,
+          ),
+        );
+      }
     } else if (alerts.some((alert) => alert.number === Number(number))) {
       process.stdout.write(
         `Reviewed open alert #${number}: ${entry.package} has no upstream patched version; ${entry.upstreamIssue}\n`,
@@ -251,6 +311,27 @@ function stableParts(version) {
     throw new Error(`Expected a stable x.y.z version, received ${String(version)}`);
   }
   return version.split('.').map(Number);
+}
+
+function matchesVersionRange(version, range) {
+  return semver.satisfies(version, normalizeVulnerableVersionRange(range));
+}
+
+function resolutionTargetsRange(selector, packageName, vulnerableVersionRange) {
+  if (!vulnerableVersionRange || selector === packageName) return true;
+  const prefix = `${packageName}@npm:`;
+  if (!selector.startsWith(prefix)) return true;
+  const versionRange = selector.slice(prefix.length);
+  if (!semver.validRange(versionRange)) return true;
+  return semver.intersects(versionRange, normalizeVulnerableVersionRange(vulnerableVersionRange));
+}
+
+function normalizeVulnerableVersionRange(range) {
+  const normalized = range.replace(/,\s*/g, ' ');
+  if (!semver.validRange(normalized)) {
+    throw new Error(`Expected a valid GitHub vulnerable version range, received ${range}`);
+  }
+  return normalized;
 }
 
 async function main() {

@@ -248,6 +248,8 @@ jobs:
       - run: node scripts/check-enterprise-readiness-docs.mjs
       - run: node --test scripts/check-readme-doc-links.test.mjs
       - run: node scripts/check-readme-doc-links.mjs
+      - run: node --test scripts/check-research-kit.test.mjs
+      - run: node scripts/check-research-kit.mjs
       - run: node --test scripts/i18n-content-review.test.mjs
       - run: node --test scripts/check-help-locale-parity.test.mjs
       - run: node scripts/check-help-locale-parity.mjs

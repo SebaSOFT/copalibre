@@ -210,6 +210,8 @@ is planned and tracked as an OpenSpec proposal in
 - [`docs/TESTING.md`](docs/TESTING.md) — testing conventions
 - [`docs/DEMO-DATA.md`](docs/DEMO-DATA.md) — loading a realistic demo tournament into a development
   stack with `copalibre dev demo`
+- [`docs/research/2026-operator-study/`](docs/research/2026-operator-study/) — bilingual operator
+  navigation tree, moderator script, consent note, and research results templates
 - [`docs/SCREEN-STORY-REVIEW.md`](docs/SCREEN-STORY-REVIEW.md) — operator Storybook coverage,
   fixture boundaries, responsive review evidence, and deferred UX gaps
 - [`docs/reviews/owned-control-coverage.md`](docs/reviews/owned-control-coverage.md) — recursive
