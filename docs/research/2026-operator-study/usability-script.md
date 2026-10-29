@@ -83,10 +83,10 @@ corresponding rows in `results-template.md` before discussing findings with the 
 ### Observation sheet
 
 | Time | Task / step | Participant action or first click | Outcome / hesitation / error | Short quote (anonymous) |
-|---|---|---|---|---|
-| | | | | |
-| | | | | |
-| | | | | |
+| ---- | ----------- | --------------------------------- | ---------------------------- | ----------------------- |
+|      |             |                                   |                              |                         |
+|      |             |                                   |                              |                         |
+|      |             |                                   |                              |                         |
 
 ## Español
 
@@ -166,7 +166,7 @@ persona.
 ### Hoja de observación
 
 | Hora | Tarea / paso | Acción o primer clic | Resultado / duda / error | Cita breve (anónima) |
-|---|---|---|---|---|
-| | | | | |
-| | | | | |
-| | | | | |
+| ---- | ------------ | -------------------- | ------------------------ | -------------------- |
+|      |              |                      |                          |                      |
+|      |              |                      |                          |                      |
+|      |              |                      |                          |                      |

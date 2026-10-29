@@ -3,6 +3,7 @@ title: Stage hub
 description: A stage's identity — rename, format, removal — and links to its own tools.
 capabilities:
   - control-web/tournament-stage-navigation
+  - design-system/destructive-actions
 roles:
   - admin
 ---
@@ -19,7 +20,8 @@ standings and schedule screens, and each of those links back here.
 - **Change format**: available only while the stage holds no generated fixture. Once seeded, the
   screen names why the action is locked instead of only refusing it silently.
 - **Delete stage**: available only while the stage holds no generated fixture, and only while no
-  promotion plan already targets it.
+  promotion plan already targets it. Confirming the irreversible deletion requires typing the stage
+  name.
 
 ## Reaching this screen
 

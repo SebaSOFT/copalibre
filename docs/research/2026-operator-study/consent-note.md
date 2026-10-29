@@ -31,7 +31,7 @@ Please choose one:
 - [ ] I am 18 or older, understand this note, and agree to participate and have written notes taken.
 - [ ] I do not agree. The session will not begin.
 
-Participant code: ____________________  Date: ____________________
+Participant code: ____________________ Date: ____________________
 
 The moderator reads this note before the session and records only the participant code and whether
 they agreed. No signature or personal contact details are needed in the research notes.
@@ -71,7 +71,7 @@ Elegí una opción:
 - [ ] Tengo 18 años o más, entiendo esta nota y acepto participar y que tomen notas escritas.
 - [ ] No acepto. La sesión no comenzará.
 
-Código de participante: ____________________  Fecha: ____________________
+Código de participante: ____________________ Fecha: ____________________
 
 La persona moderadora lee esta nota antes de la sesión y registra solo el código y si la persona
 aceptó. No hace falta una firma ni guardar datos personales de contacto en las notas de investigación.

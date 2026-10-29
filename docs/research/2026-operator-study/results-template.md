@@ -24,16 +24,16 @@ Record the first click before any follow-up. Mark directness based on whether th
 the expected destination without backtracking.
 
 | Task | Participant code | First click | Final destination | Success (Y/N) | Directness (direct/indirect/failed) | Time | Backtracks / notes |
-|---|---|---|---|---|---|---|---|
-| | | | | | | | |
-| | | | | | | | |
+| ---- | ---------------- | ----------- | ----------------- | ------------- | ----------------------------------- | ---- | ------------------ |
+|      |                  |             |                   |               |                                     |      |                    |
+|      |                  |             |                   |               |                                     |      |                    |
 
 ### Usability-test results
 
 | Task / step | Participant code | Completed (Y/N) | Time | Errors or hesitation | Anonymous quote | Severity (1–4) |
-|---|---|---|---|---|---|---|
-| | | | | | | |
-| | | | | | | |
+| ----------- | ---------------- | --------------- | ---- | -------------------- | --------------- | -------------- |
+|             |                  |                 |      |                      |                 |                |
+|             |                  |                 |      |                      |                 |                |
 
 ### Severity scale
 
@@ -71,16 +71,16 @@ Registra el primer clic antes de cualquier pregunta de seguimiento. Marca la rut
 llega al destino esperado sin retroceder.
 
 | Tarea | Código | Primer clic | Destino final | Éxito (Sí/No) | Ruta (directa/indirecta/fallida) | Tiempo | Retrocesos / notas |
-|---|---|---|---|---|---|---|---|
-| | | | | | | | |
-| | | | | | | | |
+| ----- | ------ | ----------- | ------------- | ------------- | -------------------------------- | ------ | ------------------ |
+|       |        |             |               |               |                                  |        |                    |
+|       |        |             |               |               |                                  |        |                    |
 
 ### Resultados de la prueba de usabilidad
 
 | Tarea / paso | Código | Completó (Sí/No) | Tiempo | Errores o dudas | Cita anónima | Severidad (1–4) |
-|---|---|---|---|---|---|---|
-| | | | | | | |
-| | | | | | | |
+| ------------ | ------ | ---------------- | ------ | --------------- | ------------ | --------------- |
+|              |        |                  |        |                 |              |                 |
+|              |        |                  |        |                 |              |                 |
 
 ### Escala de severidad
 

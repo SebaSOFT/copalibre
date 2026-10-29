@@ -22,7 +22,7 @@ conjunto de datos para todas las personas de una ronda, así todas empiezan con 
    ```
 
    `--anchor today` places the first game day today in the organization's time zone. `--played-until
-   now` marks only games completed by the current time as played and leaves later games scheduled.
+now` marks only games completed by the current time as played and leaves later games scheduled.
    `--with-admin` creates an administrator invitation for the demo organization; it is not a
    referee-only account. The command prints a setup link once. Share it privately with the test
    operator, and do not put the link or email address in research notes.
