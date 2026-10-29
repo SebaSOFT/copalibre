@@ -8816,6 +8816,7 @@ __metadata:
     playwright-core: "npm:1.64.1"
     prettier: "npm:^3.9.10"
     prettier-plugin-astro: "npm:^1.1.1"
+    semver: "npm:^7.8.5"
     ts-jest: "npm:^29.4.15"
     tsx: "npm:^4.23.15"
     typescript: "npm:^6.0.3"

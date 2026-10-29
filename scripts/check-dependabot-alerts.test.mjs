@@ -94,6 +94,60 @@ test('open alerts with published fixes pass when current lock and root resolutio
   ]);
 });
 
+test('open alerts check only locked instances inside the advisory vulnerable range', () => {
+  const alert = {
+    number: 89,
+    security_vulnerability: {
+      package: { name: 'fast-uri' },
+      vulnerable_version_range: '>= 4.0.1, < 4.2.3',
+      first_patched_version: { identifier: '4.2.3' },
+    },
+    security_advisory: { ghsa_id: 'GHSA-wjr9-j795-jxcr' },
+  };
+  const lockText = `
+"fast-uri@npm:^3.0.0":
+  version: 3.1.9
+  resolution: "fast-uri@npm:3.1.9"
+"fast-uri@npm:^4.0.0":
+  version: 4.2.3
+  resolution: "fast-uri@npm:4.2.3"
+`;
+  const resolutions = {
+    'fast-uri@npm:^3.0.0': '3.1.9',
+    'fast-uri@npm:^4.0.0': '4.2.3',
+  };
+
+  const patched = inspectOpenAlerts([alert], {}, { lockText, resolutions });
+  assert.deepEqual(patched.failures, []);
+  assert.deepEqual(patched.patchedInCheckout, [
+    {
+      number: 89,
+      packageName: 'fast-uri',
+      ghsa: 'GHSA-wjr9-j795-jxcr',
+      firstPatchedVersion: '4.2.3',
+    },
+  ]);
+
+  const vulnerableLock = lockText.replaceAll('4.2.3', '4.2.2');
+  const vulnerable = inspectOpenAlerts(
+    [alert],
+    {},
+    {
+      lockText: vulnerableLock,
+      resolutions: { ...resolutions, 'fast-uri@npm:^4.0.0': '4.2.2' },
+    },
+  );
+  assert.equal(vulnerable.failures.length, 2);
+  assert.match(
+    vulnerable.failures[0],
+    /fast-uri: locked 4\.2\.2 is below upstream patched version 4\.2\.3/,
+  );
+  assert.match(
+    vulnerable.failures[1],
+    /fast-uri@npm:\^4\.0\.0: fast-uri: locked 4\.2\.2 is below upstream patched version 4\.2\.3/,
+  );
+});
+
 test('open alerts with published fixes still fail when the current checkout is vulnerable', () => {
   const alert = {
     number: 75,
