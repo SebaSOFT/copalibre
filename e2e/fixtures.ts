@@ -1,4 +1,5 @@
 import { test as base, expect, type BrowserContextOptions } from '@playwright/test';
+import { installChromium100VisibilityShim } from './chromium-100-compat.js';
 
 export { expect };
 
@@ -14,6 +15,14 @@ export interface WorkerPortFixture {
 }
 
 export const test = base.extend<Record<string, never>, WorkerPortFixture>({
+  page: async ({ page }, use, testInfo) => {
+    const cdp = await installChromium100VisibilityShim(page, testInfo.project.name);
+    try {
+      await use(page);
+    } finally {
+      await cdp?.detach();
+    }
+  },
   workerPort: [
     // eslint-disable-next-line no-empty-pattern
     async ({}, use, workerInfo) => {

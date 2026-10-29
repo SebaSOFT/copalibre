@@ -23,6 +23,10 @@ test-results/
 blob-report/
 .artifacts/
 artifacts/
+.lighthouse
+.lighthouseci/
+# Chrome Launcher can leave temporary WSL profiles with a Windows path as the root name.
+/*lighthouse.*/
 .cache/
 .eslintcache
 .stylelintcache

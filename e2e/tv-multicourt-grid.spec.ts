@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from './fixtures.js';
+import type { Page } from '@playwright/test';
 
 /**
  * The `?layout=multicourt` grid mode on the `/tv/**` kiosk route — the same unattended-surface constraints as `broadcast-tv.spec.ts`

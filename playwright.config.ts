@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const port = Number(process.env.PLAYWRIGHT_PORT ?? 4321);
 const baseURL = `http://localhost:${port}`;
+const tvChromium100Path = process.env.PLAYWRIGHT_CHROMIUM_100_PATH;
 
 /**
  * E2E scaffold. No specs exist yet;
@@ -22,7 +23,21 @@ export default defineConfig({
     baseURL,
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    ...(tvChromium100Path
+      ? [
+          {
+            name: 'chromium-100',
+            testMatch: /(?:^|\/)(?:tv-[^/]+|broadcast-tv)\.spec\.ts$/,
+            use: {
+              ...devices['Desktop Chrome'],
+              launchOptions: { executablePath: tvChromium100Path },
+            },
+          },
+        ]
+      : []),
+  ],
   webServer: {
     // astro dev self-daemonizes when stdout is not a TTY (Astro 7), which Playwright's
     // webServer treats as an early exit. build+preview is a plain foreground server and

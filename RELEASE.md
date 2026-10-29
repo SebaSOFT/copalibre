@@ -18,7 +18,10 @@ and it's what `.github/workflows/release.yml` reads to decide what to tag and pu
    `version` tracks chart packaging separately from the application's `appVersion`.
 2. **Refresh the changelog and documentation.** Run `yarn changelog` after bumping the root version,
    then review `CHANGELOG.md` against the commits since the previous release tag. Update README
-   feature descriptions and release-related documentation where behavior has changed.
+   feature descriptions and release-related documentation where behavior has changed. Complete the
+   required [screen-reader pass](docs/release/screen-reader-checklist.md) for the candidate and
+   commit its per-release results record with the preparation change. A release is not ready to tag
+   while any required flow/platform result is missing or failing.
 3. **Validate and merge the preparation branch into `develop`.** Run the repository's required local
    gates, including the deployment validation scripts for Helm metadata changes, and open a PR
    against `develop`. Merge after CI passes and explicit merge approval is given.

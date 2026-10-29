@@ -63,6 +63,10 @@ jobs:
       backend_only: ${{ steps.classify.outputs.backend_only }}
       cli_only: ${{ steps.classify.outputs.cli_only }}
       docs_only: ${{ steps.classify.outputs.docs_only }}
+      # Lighthouse is expensive, so run its release gate only before merging
+      # to main or on an explicit workflow dispatch. The broader
+      # release_candidate output below still controls release-only soak gates.
+      performance_gate: ${{ (github.event_name == 'pull_request' && github.base_ref == 'main') || github.event_name == 'workflow_dispatch' }}
       # A release candidate is a PR targeting main, a push to main (a
       # develop->main PR merging — see release.yml), or a manual
       # dispatch. Everything else (routine develop-targeting PRs) is not,
@@ -581,6 +585,8 @@ jobs:
       - run: yarn workspace @copalibre/routing build
       - name: Inspect public web build output
         run: yarn workspace @copalibre/web inspect:build
+      - name: Check public performance budget configuration
+        run: node --test scripts/lighthouse/budgets.test.mjs
 
   # Starlight and the statically served Scalar document are inspected from
   # the single verified producer artifact, including the proof that the
@@ -662,10 +668,49 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
       - run: yarn playwright install --with-deps chromium
+      - name: Install pinned Chromium 100 for TV compatibility
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          import subprocess
+          import urllib.request
+          import zipfile
+
+          revision = '965416'
+          browser_version = '100.0.4863.0'
+          cache = pathlib.Path.home() / '.cache' / 'ms-playwright'
+          browser = cache / f'chromium-{revision}'
+          archive = pathlib.Path('/tmp/playwright-chromium-100.zip')
+          cache.mkdir(parents=True, exist_ok=True)
+          urllib.request.urlretrieve(
+              f'https://playwright.azureedge.net/builds/chromium/{revision}/chromium-linux.zip',
+              archive,
+          )
+          with zipfile.ZipFile(archive) as package:
+              package.extractall(browser)
+              for member in package.infolist():
+                  mode = (member.external_attr >> 16) & 0o777
+                  target = browser / member.filename
+                  if mode and target.exists():
+                      target.chmod(mode)
+          archive.unlink()
+          executable = browser / 'chrome-linux' / 'chrome'
+          actual = subprocess.check_output([executable, '--version'], text=True).strip()
+          if actual != f'Chromium {browser_version}':
+              raise SystemExit(f'Expected Chromium {browser_version}, got {actual}')
+          print(actual)
+          PY
       - name: Run E2E test shard
-        run: PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --grep-invert @visible-identifier-lint --shard=${{ matrix.shard }}
+        run: PLAYWRIGHT_CHROMIUM_100_PATH="$HOME/.cache/ms-playwright/chromium-965416/chrome-linux/chrome" PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --grep-invert @visible-identifier-lint --shard=${{ matrix.shard }}
       - name: Run visible-identifier lint
         run: PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --grep @visible-identifier-lint --shard=${{ matrix.shard }}
+      # This shard already installed Playwright's Chromium above. Run the
+      # costly Lighthouse gate here, once per workflow, reusing that browser.
+      - name: Run public performance budgets
+        if: needs.detect-changes.outputs.performance_gate == 'true' && matrix.shard == '1/2'
+        env:
+          PERFORMANCE_BUDGET_ENFORCEMENT: error
+        run: node scripts/lighthouse/run.mjs
       # A retry that rescues a test passes the job, so list those tests where a reviewer looks.
       - name: List flaky E2E tests
         if: always()

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './tv-fixtures.js';
 
 test('TV launcher previews background changes and exposes pinned match controls', async ({
   page,
