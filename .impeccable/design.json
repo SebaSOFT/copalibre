@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-24T18:32:55.946Z",
+  "generatedAt": "2026-10-29T15:38:13.000Z",
   "title": "Design System: CopaLibre",
   "extensions": {
     "colorMeta": {
@@ -600,7 +600,21 @@
       "state-destructive",
       "focus-ring"
     ],
-    "touchTarget": "44px"
+    "touchTarget": "44px",
+    "layout": {
+      "container": {
+        "public": "75rem (1200px)",
+        "reading": "45rem (720px)",
+        "control": "90rem (1440px)",
+        "form": "45rem (720px)"
+      },
+      "gutter": {
+        "sm": "1rem (16px)",
+        "md": "1.5rem (24px)",
+        "lg": "2rem (32px)"
+      },
+      "wideViewport": "At widths of 1920px and above, content remains centered at its surface maximum; full-width bands break out while their contents stay aligned to the matching container."
+    }
   },
   "components": [
     {
@@ -781,6 +795,11 @@
         "section": "layout"
       },
       {
+        "name": "The Shared Container Rule",
+        "body": "Public, reading and Control content uses the owned centered container at its named maximum, with responsive gutters. At 1920px and wider each surface remains capped and centered. Full-width bands break out while their contents return to the matching container; pages never set a raw max-width.",
+        "section": "layout"
+      },
+      {
         "name": "The 44px Rule",
         "body": "Every interactive target — button, pill, nav link, form control, pagination step — is at least 44px in its constrained axis.",
         "section": "layout"
@@ -818,6 +837,7 @@
       "Do cut the chamfer with corner-shape and border-radius, and let unsupported browsers get square corners and a working component.",
       "Do keep interactive targets at 44px in the constrained axis, and let long labels wrap with overflow-wrap: anywhere rather than overflow — interface copy must survive all eight languages.",
       "Do let containers alternate against their band, and let chrome lift to ink-850 at any depth.",
+      "Do compose the shared layout container for page width and gutters; let full-width bands break out around aligned contents.",
       "Do collapse motion to 0s under prefers-reduced-motion, not merely shorten it: state must survive in text, icon, border and layout without the animation.",
       "Do keep the TV spotlight symmetrical: equal emblem frames and a localized neutral role tag beneath each name.",
       "Do scroll wide content inside its own box."
@@ -830,6 +850,7 @@
       "Don't ship a badge, chip or status mark whose only signal is its colour.",
       "Don't add a resting shadow. Shadow means suspended (a dialog) or pressed (the primary button).",
       "Don't use translucent surface fills where a row's contrast has to be verifiable; resolve them to opaque tokens.",
+      "Don't set page-level max-width or horizontal gutter values by hand; use the named layout containers and tokens.",
       "Don't reach for text-muted for body copy — it is a label colour.",
       "Don't reintroduce SebaSOFT's identity: #f3e600, #c5003c, CP2077 or DATA_BLOB vocabulary, TRON references, scanlines, or a grid glow used as a state indicator. CI scans generated output for all of them.",
       "Don't introduce a spacing, radius, font-size, tracking or breakpoint value outside the named scales. A hardcoded literal at a call site is how a scale becomes an accident."

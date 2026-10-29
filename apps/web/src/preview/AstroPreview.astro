@@ -20,6 +20,7 @@
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@copalibre/domain';
 import '@copalibre/design-tokens/generated/copalibre.css';
 import Button from '../components/ui/atoms/Button.astro';
+import Container from '../components/ui/atoms/layout/Container.astro';
 import EmblemImage from '../components/ui/atoms/EmblemImage.astro';
 import Icon from '../components/ui/atoms/Icon.astro';
 import Logo from '../components/ui/atoms/Logo.astro';
@@ -117,6 +118,7 @@ const PREVIEWABLE = new Set([
   'match-bracket-context-unknown-focus',
   'public-header',
   'page-header',
+  'container',
   // Every remaining server-rendered library component.
   'button',
   'icon',
@@ -224,6 +226,14 @@ const [compactSample] = referenceJourneyBracket(true);
     </style>
   </head>
   <body class="cl-band--base" data-preview={component} data-locale={locale}>
+    {component === 'container' && (
+      <Container variant="public">
+        <h1>{intl.formatMessage(messages.homeHeroTitle)}</h1>
+        <Container variant="reading">
+          <p>{intl.formatMessage(messages.homeHeroDescription)}</p>
+        </Container>
+      </Container>
+    )}
     {component === 'empty-state' && (
       <EmptyState
         icon="calendar"

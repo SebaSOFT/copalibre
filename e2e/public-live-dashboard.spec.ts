@@ -1,6 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
+import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT = 'apertura-2026';
@@ -93,6 +94,10 @@ test.afterAll(async () => {
 
 test.beforeEach(() => {
   liveResponse = { matches: [] };
+});
+
+test('uses the centered public container at reference widths', async ({ page }) => {
+  await expectCenteredPageContainer(page, PAGE, 'public');
 });
 
 test('empty live view has a localized next kickoff and owned leaders table without JavaScript @visible-identifier-lint', async ({

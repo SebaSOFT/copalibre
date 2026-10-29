@@ -1,5 +1,6 @@
 ---
 import Breadcrumb from '../../../../../components/ui/organisms/Breadcrumb.astro';
+import Container from '../../../../../components/ui/atoms/layout/Container.astro';
 import PageHeader from '../../../../../components/ui/organisms/PageHeader.astro';
 import { publicTrail, trailBaseOf } from '../../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../../layouts/PublicLayout.astro';
@@ -136,86 +137,88 @@ const trail = publicTrail(trailBase, [
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
-  <PageHeader
-    title={`${displayName(model)} — ${intl.formatMessage(messages.matchesViewPageTitle)}`}
-    loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
-  >
-    <Breadcrumb
-      slot="breadcrumb"
-      items={trail}
-      ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
-      collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
-    />
-  </PageHeader>
-
-  <MatchScheduleFilters
-    stages={schedule.stageOptions.map((one) => ({
-      stageNumber: one.stageNumber,
-      stageName:
-        one.stageName || intl.formatMessage(messages.breadcrumbStage, { stage: one.stageNumber }),
-    }))}
-    activeStageNumber={stageNumber}
-    zones={zones}
-    activeZone={zoneParam}
-    groups={groups}
-    activeGroup={groupParam}
-    state={state}
-    view={view}
-    offerView={offerView}
-    labels={{
-      stageFilterAriaLabel: intl.formatMessage(messages.matchesViewStageFilterAriaLabel),
-      zoneFilterAriaLabel: intl.formatMessage(messages.matchesViewZoneFilterAriaLabel),
-      groupFilterAriaLabel: intl.formatMessage(messages.matchesViewGroupFilterAriaLabel),
-      stateFilterAriaLabel: intl.formatMessage(messages.matchesViewStateFilterAriaLabel),
-      viewFilterAriaLabel: intl.formatMessage(messages.matchesViewViewFilterAriaLabel),
-      titles: {
-        stage: intl.formatMessage(messages.matchesViewStageFilterTitle),
-        zone: intl.formatMessage(messages.matchesViewZoneFilterTitle),
-        group: intl.formatMessage(messages.matchesViewGroupFilterTitle),
-        state: intl.formatMessage(messages.matchesViewStateFilterTitle),
-        view: intl.formatMessage(messages.matchesViewViewFilterTitle),
-      },
-      viewOptions: {
-        rows: intl.formatMessage(messages.matchesViewViewRows),
-        cards: intl.formatMessage(messages.matchesViewViewCards),
-      },
-      filters: labels.filters,
-    }}
-    buildUrl={buildUrl}
-  />
-
-  {view === 'cards' && (
-    <nav
-      class="cl-pill-group"
-      aria-label={intl.formatMessage(messages.matchesViewDensityToggleAriaLabel)}
+  <Container variant="public">
+    <PageHeader
+      title={`${displayName(model)} — ${intl.formatMessage(messages.matchesViewPageTitle)}`}
+      loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
     >
-      <a
-        class="cl-pill cl-focusable"
-        href={buildUrl({ compact: false })}
-        aria-current={compact ? undefined : 'true'}
-      >
-        {intl.formatMessage(messages.matchesViewDetailedToggle)}
-      </a>
-      <a
-        class="cl-pill cl-focusable"
-        href={buildUrl({ compact: true })}
-        aria-current={compact ? 'true' : undefined}
-      >
-        {intl.formatMessage(messages.matchesViewCompactToggle)}
-      </a>
-    </nav>
-  )}
+      <Breadcrumb
+        slot="breadcrumb"
+        items={trail}
+        ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+        collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+      />
+    </PageHeader>
 
-  <MatchSchedule
-    emptyLabel={labels.empty}
-    intl={intl}
-    localePrefix={localePrefix}
-    organizationAlias={organization!}
-    organizationTimeZone={model.organizationTimeZone}
-    presentation={presentation}
-    stages={schedule.stages}
-    tournamentAlias={tournament!}
-  />
+    <MatchScheduleFilters
+      stages={schedule.stageOptions.map((one) => ({
+        stageNumber: one.stageNumber,
+        stageName:
+          one.stageName || intl.formatMessage(messages.breadcrumbStage, { stage: one.stageNumber }),
+      }))}
+      activeStageNumber={stageNumber}
+      zones={zones}
+      activeZone={zoneParam}
+      groups={groups}
+      activeGroup={groupParam}
+      state={state}
+      view={view}
+      offerView={offerView}
+      labels={{
+        stageFilterAriaLabel: intl.formatMessage(messages.matchesViewStageFilterAriaLabel),
+        zoneFilterAriaLabel: intl.formatMessage(messages.matchesViewZoneFilterAriaLabel),
+        groupFilterAriaLabel: intl.formatMessage(messages.matchesViewGroupFilterAriaLabel),
+        stateFilterAriaLabel: intl.formatMessage(messages.matchesViewStateFilterAriaLabel),
+        viewFilterAriaLabel: intl.formatMessage(messages.matchesViewViewFilterAriaLabel),
+        titles: {
+          stage: intl.formatMessage(messages.matchesViewStageFilterTitle),
+          zone: intl.formatMessage(messages.matchesViewZoneFilterTitle),
+          group: intl.formatMessage(messages.matchesViewGroupFilterTitle),
+          state: intl.formatMessage(messages.matchesViewStateFilterTitle),
+          view: intl.formatMessage(messages.matchesViewViewFilterTitle),
+        },
+        viewOptions: {
+          rows: intl.formatMessage(messages.matchesViewViewRows),
+          cards: intl.formatMessage(messages.matchesViewViewCards),
+        },
+        filters: labels.filters,
+      }}
+      buildUrl={buildUrl}
+    />
+
+    {view === 'cards' && (
+      <nav
+        class="cl-pill-group"
+        aria-label={intl.formatMessage(messages.matchesViewDensityToggleAriaLabel)}
+      >
+        <a
+          class="cl-pill cl-focusable"
+          href={buildUrl({ compact: false })}
+          aria-current={compact ? undefined : 'true'}
+        >
+          {intl.formatMessage(messages.matchesViewDetailedToggle)}
+        </a>
+        <a
+          class="cl-pill cl-focusable"
+          href={buildUrl({ compact: true })}
+          aria-current={compact ? 'true' : undefined}
+        >
+          {intl.formatMessage(messages.matchesViewCompactToggle)}
+        </a>
+      </nav>
+    )}
+
+    <MatchSchedule
+      emptyLabel={labels.empty}
+      intl={intl}
+      localePrefix={localePrefix}
+      organizationAlias={organization!}
+      organizationTimeZone={model.organizationTimeZone}
+      presentation={presentation}
+      stages={schedule.stages}
+      tournamentAlias={tournament!}
+    />
+  </Container>
 </PublicLayout>
 
 <script>

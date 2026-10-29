@@ -125,3 +125,14 @@ the locked versions and root resolutions SHALL meet the patched floor.
 #### Scenario: Existing release tag remains an idempotent no-op
 - **WHEN** the version already has a release tag
 - **THEN** the release workflow completes as a no-op without auditing or publishing that version again
+
+### Requirement: Each release records a manual screen-reader pass
+
+Each release SHALL record a manual screen-reader pass with TalkBack and Chrome on Android, VoiceOver
+and Safari on iOS, and NVDA and Firefox on Windows, over the public overview, match page, live match
+console, registration review and login. Each result SHALL be recorded in the release checklist.
+
+#### Scenario: Release without the pass
+
+- **WHEN** a release checklist lacks a screen-reader result for one of the three combinations
+- **THEN** the release is not tagged

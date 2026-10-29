@@ -688,3 +688,14 @@ The dashboard SHALL place live matches and standings side by side and reserve a 
 - **WHEN** the dashboard renders at 1280×720 or 1920×1080
 - **THEN** live matches, upcoming matches and the current standings page fit in the frame without document or panel scrolling
 - **AND** standings rows that do not fit rotate automatically through pages
+
+### Requirement: TV works on Chromium 100 and later
+
+TV kiosk and overlay pages SHALL render their full layout on Chromium 100 and later. Where container
+queries are unsupported (below Chromium 105), a media-query fallback layout SHALL apply, and the
+chamfer SHALL degrade to square corners.
+
+#### Scenario: Old kiosk browser
+
+- **WHEN** the TV dashboard opens in Chromium 100
+- **THEN** the score, clock, standings and ticker render in the fallback layout with no overflow

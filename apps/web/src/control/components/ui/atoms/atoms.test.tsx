@@ -385,6 +385,7 @@ describe('Form', () => {
     const form = container.querySelector('form');
     expect(form).not.toBeNull();
     expect(form?.className).toContain('cl-form');
+    expect(form?.parentElement?.className).toContain('cl-container--form');
     fireEvent.submit(form as HTMLFormElement);
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });

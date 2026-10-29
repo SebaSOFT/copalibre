@@ -64,6 +64,11 @@ export const PageHeader: Story = {
   args: { component: 'page-header', height: 240 },
 };
 
+/** Public and reading containers rendered by Astro at their production widths. */
+export const ContainerWidths: Story = {
+  args: { component: 'container', height: 460 },
+};
+
 /** The compact club filter: stored abbreviations stand in without an emblem, and selection carries a check and a fill. */
 export const ClubFilterChips: Story = {
   args: { component: 'club-filter-chip', height: 120 },

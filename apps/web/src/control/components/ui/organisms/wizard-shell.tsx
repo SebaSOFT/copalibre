@@ -14,6 +14,7 @@ import { Alert } from '../atoms/alert.js';
 import { Badge } from '../atoms/badge.js';
 import { Button } from '../atoms/button.js';
 import { Card } from '../atoms/card.js';
+import { Container } from '../atoms/layout/container.js';
 import { PageHeader } from './page-header.js';
 
 export interface WizardShellStep {
@@ -95,156 +96,158 @@ export function WizardShell({
   const currentStepIndex = steps.findIndex((step) => step.id === currentStepId);
 
   return (
-    <section aria-label={ariaLabel} className="cl-form-screen">
-      <div className="cl-form-screen__header">
-        <PageHeader
-          legacyBreadcrumb={breadcrumb}
-          title={title}
-          titleClassName="cl-form-screen__title"
-        />
-        <div className="cl-stat-tile cl-chamfer cl-chamfer--control" data-testid={progressTestId}>
-          <strong className="cl-stat-tile__value">{progress}%</strong>
-          {progressCaption === undefined ? null : <span>{progressCaption}</span>}
+    <Container variant="form">
+      <section aria-label={ariaLabel} className="cl-form-screen">
+        <div className="cl-form-screen__header">
+          <PageHeader
+            legacyBreadcrumb={breadcrumb}
+            title={title}
+            titleClassName="cl-form-screen__title"
+          />
+          <div className="cl-stat-tile cl-chamfer cl-chamfer--control" data-testid={progressTestId}>
+            <strong className="cl-stat-tile__value">{progress}%</strong>
+            {progressCaption === undefined ? null : <span>{progressCaption}</span>}
+          </div>
         </div>
-      </div>
 
-      <Card
-        className="cl-chamfer cl-chamfer--control"
-        style={badge ? { minWidth: 0, maxWidth: '100%', overflow: 'hidden' } : undefined}
-      >
-        <div className={badge ? 'cl-wizard-shell__step-rail' : undefined}>
-          <ol
-            aria-label={stepsAriaLabel}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: badge
-                ? `repeat(${steps.length}, minmax(8rem, 1fr))`
-                : 'repeat(auto-fit, minmax(min(100%, 6rem), 1fr))',
-              gap: 'var(--cl-space-3)',
-              listStyle: 'none',
-              padding: 0,
-              margin: 0,
-              ...(badge
-                ? {
-                    width: '100%',
-                    maxWidth: '100%',
-                    overflowX: 'auto',
-                    scrollbarGutter: 'stable',
-                    scrollPaddingInlineEnd: 'var(--cl-space-8)',
+        <Card
+          className="cl-chamfer cl-chamfer--control"
+          style={badge ? { minWidth: 0, maxWidth: '100%', overflow: 'hidden' } : undefined}
+        >
+          <div className={badge ? 'cl-wizard-shell__step-rail' : undefined}>
+            <ol
+              aria-label={stepsAriaLabel}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: badge
+                  ? `repeat(${steps.length}, minmax(8rem, 1fr))`
+                  : 'repeat(auto-fit, minmax(min(100%, 6rem), 1fr))',
+                gap: 'var(--cl-space-3)',
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                ...(badge
+                  ? {
+                      width: '100%',
+                      maxWidth: '100%',
+                      overflowX: 'auto',
+                      scrollbarGutter: 'stable',
+                      scrollPaddingInlineEnd: 'var(--cl-space-8)',
+                    }
+                  : {}),
+              }}
+            >
+              {steps.map((step, index) => (
+                <li
+                  key={step.id}
+                  style={
+                    badge
+                      ? {
+                          display: 'grid',
+                          gap: 'var(--cl-space-2)',
+                          justifyItems: 'center',
+                          color: 'var(--cl-text-secondary)',
+                          fontFamily: 'var(--cl-font-mono)',
+                          textTransform: 'uppercase',
+                          fontSize: 'var(--cl-font-size-xs)',
+                        }
+                      : { display: 'grid', gap: 'var(--cl-space-2)', justifyItems: 'center' }
                   }
-                : {}),
+                >
+                  {badge ? (
+                    <Badge
+                      aria-current={step.id === currentStepId ? 'step' : undefined}
+                      className={`cl-badge--${
+                        step.id === currentStepId
+                          ? 'live'
+                          : index < currentStepIndex
+                            ? 'positive'
+                            : 'muted'
+                      }`}
+                      data-state={
+                        step.id === currentStepId
+                          ? 'active'
+                          : index < currentStepIndex
+                            ? 'completed'
+                            : 'upcoming'
+                      }
+                      label={String(index + 1)}
+                    />
+                  ) : (
+                    <span aria-current={step.id === currentStepId ? 'step' : undefined}>
+                      {index + 1}
+                    </span>
+                  )}
+                  <span>{step.label}</span>
+                </li>
+              ))}
+            </ol>
+            {badge ? (
+              <span
+                aria-hidden="true"
+                className="cl-wizard-shell__scroll-cue"
+                data-testid="wizard-step-scroll-cue"
+              >
+                ›
+              </span>
+            ) : null}
+          </div>
+        </Card>
+
+        <Card className="cl-chamfer cl-chamfer--control">
+          {children}
+
+          {problems.length > 0 && (
+            <Alert block className="cl-inline-alert--spaced" tone="destructive">
+              <ul id="wizard-problems">
+                {problems.map((problem) => (
+                  <li key={problem}>{problem}</li>
+                ))}
+              </ul>
+            </Alert>
+          )}
+
+          {failures.length > 0 && (
+            <Alert
+              block
+              className="cl-inline-alert--spaced"
+              testId={failuresTestId}
+              tone="destructive"
+            >
+              <ul>
+                {failures.map((failure) => (
+                  <li key={failure.key}>{failure.text}</li>
+                ))}
+              </ul>
+            </Alert>
+          )}
+
+          {afterFailures}
+
+          <footer
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 'var(--cl-space-3)',
+              marginTop: 'var(--cl-space-6)',
             }}
           >
-            {steps.map((step, index) => (
-              <li
-                key={step.id}
-                style={
-                  badge
-                    ? {
-                        display: 'grid',
-                        gap: 'var(--cl-space-2)',
-                        justifyItems: 'center',
-                        color: 'var(--cl-text-secondary)',
-                        fontFamily: 'var(--cl-font-mono)',
-                        textTransform: 'uppercase',
-                        fontSize: 'var(--cl-font-size-xs)',
-                      }
-                    : { display: 'grid', gap: 'var(--cl-space-2)', justifyItems: 'center' }
-                }
-              >
-                {badge ? (
-                  <Badge
-                    aria-current={step.id === currentStepId ? 'step' : undefined}
-                    className={`cl-badge--${
-                      step.id === currentStepId
-                        ? 'live'
-                        : index < currentStepIndex
-                          ? 'positive'
-                          : 'muted'
-                    }`}
-                    data-state={
-                      step.id === currentStepId
-                        ? 'active'
-                        : index < currentStepIndex
-                          ? 'completed'
-                          : 'upcoming'
-                    }
-                    label={String(index + 1)}
-                  />
-                ) : (
-                  <span aria-current={step.id === currentStepId ? 'step' : undefined}>
-                    {index + 1}
-                  </span>
-                )}
-                <span>{step.label}</span>
-              </li>
-            ))}
-          </ol>
-          {badge ? (
-            <span
-              aria-hidden="true"
-              className="cl-wizard-shell__scroll-cue"
-              data-testid="wizard-step-scroll-cue"
+            <Button onClick={onBack} type="button" variant="secondary">
+              {backLabel}
+            </Button>
+            <Button
+              aria-describedby={
+                primaryAction.disabled && problems.length > 0 ? 'wizard-problems' : undefined
+              }
+              disabled={primaryAction.disabled}
+              onClick={primaryAction.onClick}
+              type="button"
             >
-              ›
-            </span>
-          ) : null}
-        </div>
-      </Card>
-
-      <Card className="cl-chamfer cl-chamfer--control">
-        {children}
-
-        {problems.length > 0 && (
-          <Alert block className="cl-inline-alert--spaced" tone="destructive">
-            <ul id="wizard-problems">
-              {problems.map((problem) => (
-                <li key={problem}>{problem}</li>
-              ))}
-            </ul>
-          </Alert>
-        )}
-
-        {failures.length > 0 && (
-          <Alert
-            block
-            className="cl-inline-alert--spaced"
-            testId={failuresTestId}
-            tone="destructive"
-          >
-            <ul>
-              {failures.map((failure) => (
-                <li key={failure.key}>{failure.text}</li>
-              ))}
-            </ul>
-          </Alert>
-        )}
-
-        {afterFailures}
-
-        <footer
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: 'var(--cl-space-3)',
-            marginTop: 'var(--cl-space-6)',
-          }}
-        >
-          <Button onClick={onBack} type="button" variant="secondary">
-            {backLabel}
-          </Button>
-          <Button
-            aria-describedby={
-              primaryAction.disabled && problems.length > 0 ? 'wizard-problems' : undefined
-            }
-            disabled={primaryAction.disabled}
-            onClick={primaryAction.onClick}
-            type="button"
-          >
-            {primaryAction.label}
-          </Button>
-        </footer>
-      </Card>
-    </section>
+              {primaryAction.label}
+            </Button>
+          </footer>
+        </Card>
+      </section>
+    </Container>
   );
 }

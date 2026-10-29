@@ -6,6 +6,7 @@ import {
   FONT_SIZE,
   FONT_SOURCE,
   ICON_TOKENS,
+  LAYOUT_TOKENS,
   MOTION,
   SPACING,
   TOUCH_TARGET,
@@ -108,6 +109,37 @@ describe('the token source', () => {
     expect(SPACING['0']).toBe('0');
     expect(SPACING['1']).toBe('4px');
     expect(SPACING['4']).toBe('16px');
+  });
+
+  it('emits rem-based page containers and responsive gutters to CSS and Tailwind', () => {
+    expect(LAYOUT_TOKENS).toEqual({
+      container: { public: '75rem', reading: '45rem', control: '90rem', form: '45rem' },
+      gutter: { sm: '1rem', md: '1.5rem', lg: '2rem' },
+    });
+
+    const css = generateCss();
+    for (const [name, value] of Object.entries(LAYOUT_TOKENS.container)) {
+      expect(css).toContain(`--cl-layout-container-${name}: ${value};`);
+      expect(css).toContain(
+        `.cl-container--${name} { max-width: var(--cl-layout-container-${name}); }`,
+      );
+    }
+    for (const [name, value] of Object.entries(LAYOUT_TOKENS.gutter)) {
+      expect(css).toContain(`--cl-layout-gutter-${name}: ${value};`);
+    }
+
+    const theme = generateTailwindTheme();
+    expect(theme.maxWidth).toEqual({
+      'cl-public': '75rem',
+      'cl-reading': '45rem',
+      'cl-control': '90rem',
+      'cl-form': '45rem',
+    });
+    expect(theme.spacing).toMatchObject({
+      'cl-gutter-sm': '1rem',
+      'cl-gutter-md': '1.5rem',
+      'cl-gutter-lg': '2rem',
+    });
   });
 
   it('defines the documented font-size tokens in scale order', () => {

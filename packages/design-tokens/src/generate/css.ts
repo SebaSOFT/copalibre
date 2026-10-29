@@ -2,6 +2,7 @@ import {
   BREAKPOINTS,
   FONT_SOURCE,
   ICON_TOKENS,
+  LAYOUT_TOKENS,
   CHART_TOKENS,
   TRACKING,
   COLOR_PRIMITIVES,
@@ -125,6 +126,12 @@ export function generateCss(): string {
     ),
     '',
     ...Object.entries(SPACING).map(([name, value]) => `  --cl-space-${name}: ${value};`),
+    ...Object.entries(LAYOUT_TOKENS.container).map(
+      ([name, value]) => `  --cl-layout-container-${name}: ${value};`,
+    ),
+    ...Object.entries(LAYOUT_TOKENS.gutter).map(
+      ([name, value]) => `  --cl-layout-gutter-${name}: ${value};`,
+    ),
     ...Object.entries(RADIUS).map(([name, value]) => `  --cl-radius-${name}: ${value};`),
     ...Object.entries(BREAKPOINTS).map(([name, value]) => `  --cl-breakpoint-${name}: ${value};`),
     '',
@@ -167,6 +174,8 @@ export function generateCss(): string {
     '',
     surfaceLevels(),
     '',
+    containers(),
+    '',
     formControls(),
     '',
     dialog(),
@@ -174,6 +183,19 @@ export function generateCss(): string {
     density(),
     '',
     motionCues(),
+  ].join('\n');
+}
+
+function containers(): string {
+  return [
+    '.cl-container { width: 100%; min-width: 0; margin-inline: auto; padding-inline: var(--cl-layout-gutter-sm); }',
+    '.cl-container--public { max-width: var(--cl-layout-container-public); }',
+    '.cl-container--reading { max-width: var(--cl-layout-container-reading); }',
+    '.cl-container--control { max-width: var(--cl-layout-container-control); }',
+    '.cl-container--form { max-width: var(--cl-layout-container-form); }',
+    '.cl-container .cl-container { padding-inline: 0; }',
+    `@media (min-width: ${BREAKPOINTS.md}) { .cl-container { padding-inline: var(--cl-layout-gutter-md); } }`,
+    `@media (min-width: ${BREAKPOINTS.lg}) { .cl-container { padding-inline: var(--cl-layout-gutter-lg); } }`,
   ].join('\n');
 }
 
@@ -939,6 +961,7 @@ function components(): string {
     '',
     '/* Templates own inter-section spacing — no component below this tier sets its own external margin. */',
     '.cl-list-screen, .cl-form-screen, .cl-match-console-screen { display: grid; gap: var(--cl-density-section-gap, var(--cl-space-6)); min-width: 0; }',
+    '.cl-form-screen { width: 100%; }',
     // A grid item's default `min-width: auto` sizes it to its content, which
     // silently defeats a descendant's `overflow-x: auto` (a wide table forces
     // every ancestor grid track wider instead of scrolling in place). Every
@@ -1655,8 +1678,7 @@ function compositions(): string {
     '  flex-direction: column;',
     '  gap: var(--cl-space-3);',
     '  padding: var(--cl-space-4);',
-    // Sized to what it shows: a card with one line of text does not need the page's width.
-    '  width: min(100%, 44rem);',
+    '  width: 100%;',
     '}',
     '',
     '.cl-completion-figure__header {',
@@ -2122,7 +2144,7 @@ function compositions(): string {
      */
     '.cl-public-header { position: sticky; top: 0; z-index: 30; background: color-mix(in srgb, var(--cl-surface-base) 92%, transparent); border-block-end: 1px solid var(--cl-border-muted); backdrop-filter: blur(6px); }',
     '',
-    '.cl-public-header__row { display: flex; align-items: center; justify-content: space-between; gap: var(--cl-space-3); padding: var(--cl-space-3) var(--cl-space-4); min-width: 0; }',
+    '.cl-public-header__row { display: flex; align-items: center; justify-content: space-between; gap: var(--cl-space-3); padding-block: var(--cl-space-3); min-width: 0; }',
     '',
     // Wraps, and every child may shrink. At the 188px zoom floor the brand,
     // the locale control, the action and the toggle cannot share one line, and

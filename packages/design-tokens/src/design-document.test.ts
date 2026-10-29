@@ -47,6 +47,14 @@ describe('generated design frontmatter', () => {
     });
   });
 
+  it('reads layout container and gutter tokens from the verified frontmatter', () => {
+    expect(
+      readDesignTokens(
+        wrap('layout:\n  container:\n    public: "75rem"\n  gutter:\n    sm: "1rem"'),
+      ),
+    ).toEqual({ layout: { container: { public: '75rem' }, gutter: { sm: '1rem' } } });
+  });
+
   it('decodes equivalent YAML quoting without changing string contents', () => {
     expect(readDesignTokens(wrap('colors:\n  "ink": \'#0A0E1A\'\nspacing:\n  \'0\': "0"'))).toEqual(
       { colors: { ink: '#0A0E1A' }, spacing: { '0': '0' } },
@@ -119,6 +127,17 @@ describe('generated design frontmatter', () => {
     const refreshed = refreshDesignTokens(wrap('colors:\n  extra: "bad"'));
     expect(designTokenDifferences(readDesignTokens(refreshed))).toEqual([]);
     expect(refreshed).toContain('# Kept narrative');
+  });
+
+  it('inserts missing verified groups before component metadata', () => {
+    const partial = wrap('colors:\n  extra: "bad"\ncomponents:\n  custom:\n    label: "keep"');
+    const refreshed = refreshDesignTokens(partial);
+
+    expect(designTokenDifferences(readDesignTokens(refreshed))).toEqual([]);
+    expect(refreshed.indexOf('\nlayout:')).toBeLessThan(refreshed.indexOf('\ncomponents:'));
+    expect(refreshed.slice(refreshed.indexOf('\ncomponents:'))).toBe(
+      partial.slice(partial.indexOf('\ncomponents:')),
+    );
   });
 });
 

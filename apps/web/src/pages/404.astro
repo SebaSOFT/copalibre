@@ -1,6 +1,7 @@
 ---
 import { ControlOrNotFound } from '../control/components/ControlOrNotFound.tsx';
 import PublicLayout from '../layouts/PublicLayout.astro';
+import Container from '../components/ui/atoms/layout/Container.astro';
 import { Card } from '../components/ui/atoms/Card.tsx';
 import Button from '../components/ui/atoms/Button.astro';
 import { resolvePathLocale, getLocaleHomePath } from '../lib/locale.ts';
@@ -21,16 +22,18 @@ const homeUrl = getLocaleHomePath(locale);
   noindex={true}
   intl={intl}
 >
-  <div id="static-not-found" class="cl-not-found">
-    <Card as="section" className="cl-not-found__card">
-      <p class="cl-not-found__numeral" aria-hidden="true">
-        404
-      </p>
-      <h1 class="cl-not-found__heading">{intl.formatMessage(messages.notFoundHeading)}</h1>
-      <p class="cl-not-found__body">{intl.formatMessage(messages.notFoundBody)}</p>
-      <Button href={homeUrl}>{intl.formatMessage(messages.notFoundHomeLink)}</Button>
-    </Card>
-  </div>
+  <Container variant="reading">
+    <div id="static-not-found" class="cl-not-found">
+      <Card as="section" className="cl-not-found__card">
+        <p class="cl-not-found__numeral" aria-hidden="true">
+          404
+        </p>
+        <h1 class="cl-not-found__heading">{intl.formatMessage(messages.notFoundHeading)}</h1>
+        <p class="cl-not-found__body">{intl.formatMessage(messages.notFoundBody)}</p>
+        <Button href={homeUrl}>{intl.formatMessage(messages.notFoundHomeLink)}</Button>
+      </Card>
+    </div>
+  </Container>
   <ControlOrNotFound client:only="react" />
 </PublicLayout>
 
@@ -48,7 +51,6 @@ const homeUrl = getLocaleHomePath(locale);
     flex-direction: column;
     align-items: center;
     gap: var(--cl-space-4);
-    max-width: 32rem;
     padding: var(--cl-space-10) var(--cl-space-8);
     text-align: center;
   }

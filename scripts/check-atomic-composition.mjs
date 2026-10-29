@@ -1,13 +1,14 @@
 import { fileURLToPath } from 'node:url';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
-import { buildGraph } from './lib/component-graph.mjs';
+import { buildGraph, collectSourceFiles } from './lib/component-graph.mjs';
 import { ratchet, unreachableRegisterEntries } from './lib/rule-register.mjs';
 import {
   GOVERNED_ELEMENTS,
   KNOWN_RAW_ELEMENTS,
   KNOWN_HANDWRITTEN_CLASSES,
+  withoutComments,
 } from './check-ui-ownership.mjs';
 import { isExempt } from './check-ui-text-catalogue-coverage.mjs';
 
@@ -977,6 +978,44 @@ export function checkPageTemplateHierarchy(nodes, webSrcDir) {
 }
 
 // ---------------------------------------------------------------------------
+// R15 — page and screen templates use named container widths, not local caps.
+// ---------------------------------------------------------------------------
+
+const PAGE_LAYOUT_PATH = /^(?:pages|layouts|control\/components\/(?:pages|screens))\//;
+const RAW_PAGE_MAX_WIDTH =
+  /\bmax-width\s*:\s*(['"]?)(\d+(?:\.\d+)?(?:px|rem|em|vw|vh|ch)?)\1\s*(?=;|})|\bmaxWidth\s*:\s*(['"]?)(\d+(?:\.\d+)?(?:px|rem|em|vw|vh|ch)?)\3/g;
+
+/**
+ * Page and screen templates choose a named Container variant. A raw max-width
+ * there creates another layout system beside the shared public/control tokens.
+ * Percentages remain valid for overflow; readable line lengths use the named
+ * reading container. Viewport breakpoint expressions are not declarations.
+ *
+ * @param {string} webSrcDir
+ * @returns {readonly { path: string, line: number, message: string }[]}
+ */
+export function checkPageWidthLiterals(webSrcDir) {
+  const violations = [];
+
+  for (const file of collectSourceFiles(webSrcDir)) {
+    const path = relative(webSrcDir, file).replaceAll('\\', '/');
+    if (!PAGE_LAYOUT_PATH.test(path)) continue;
+
+    const source = withoutComments(readFileSync(file, 'utf8'));
+    for (const match of source.matchAll(RAW_PAGE_MAX_WIDTH)) {
+      const line = source.slice(0, match.index).split('\n').length;
+      violations.push({
+        path,
+        line,
+        message: `${path}:${line}: page or screen declares a raw max-width. Use a named Container variant or design token.`,
+      });
+    }
+  }
+
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -1074,6 +1113,7 @@ export function checkAtomicComposition(webSrcDir) {
       'KNOWN_PAGE_TEMPLATE_HIERARCHY',
       'leading page sibling(s)',
     ),
+    checkPageWidthLiterals(webSrcDir),
   ].flat();
 
   return results.sort((a, b) => (a.path === b.path ? a.line - b.line : a.path < b.path ? -1 : 1));

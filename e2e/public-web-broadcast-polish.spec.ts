@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
+import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 
 /**
  * End-to-end tests for public web (Public Web & Broadcast Polish):
@@ -184,6 +185,19 @@ test.afterAll(async () => {
 });
 
 test.describe('Public Web & Broadcast Polish', () => {
+  test('stage and player pages use centered public and reading columns', async ({ page }) => {
+    await expectCenteredPageContainer(
+      page,
+      `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`,
+      'public',
+    );
+    await expectCenteredPageContainer(
+      page,
+      `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/${PERSON_ID}`,
+      'reading',
+    );
+  });
+
   test('5.1 organization home shows a Final section for finished tournaments, with no LIVE badge', async ({
     page,
   }) => {

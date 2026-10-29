@@ -1,5 +1,6 @@
 ---
 import EmptyState from '../../../../components/ui/molecules/EmptyState.astro';
+import Container from '../../../../components/ui/atoms/layout/Container.astro';
 import Breadcrumb from '../../../../components/ui/organisms/Breadcrumb.astro';
 import { publicTrail, trailBaseOf } from '../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../layouts/PublicLayout.astro';
@@ -194,11 +195,13 @@ const trail = publicTrail(trailBase, []);
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
-  <Breadcrumb
-    items={trail}
-    ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
-    collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
-  />
+  <Container variant="public">
+    <Breadcrumb
+      items={trail}
+      ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+      collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+    />
+  </Container>
   <ScoreTicker
     emptyLabel={tickerChrome.empty}
     items={tickerItems}
@@ -208,72 +211,76 @@ const trail = publicTrail(trailBase, []);
     resumeLabel={tickerChrome.resume}
     staleLabel={tickerChrome.stale}
   />
-  <TournamentHero labels={tournamentHeroLabels(intl, model)} model={model} />
-  {model.liveCount === 0 && (
-    <EmptyState
-      icon="calendar"
-      heading={intl.formatMessage(messages.interactionNoLive)}
-      description={noLiveDescription}
-      actionLabel={intl.formatMessage(messages.interactionViewMatches)}
-      href={`${localePrefix}${model.canonicalPath}/matches`}
+  <Container variant="public">
+    <TournamentHero labels={tournamentHeroLabels(intl, model)} model={model} />
+    {model.liveCount === 0 && (
+      <Container variant="reading">
+        <EmptyState
+          icon="calendar"
+          heading={intl.formatMessage(messages.interactionNoLive)}
+          description={noLiveDescription}
+          actionLabel={intl.formatMessage(messages.interactionViewMatches)}
+          href={`${localePrefix}${model.canonicalPath}/matches`}
+        />
+      </Container>
+    )}
+    <CompletionFigure
+      totalMatches={completion.totalMatches}
+      resolvedMatches={completion.resolvedMatches}
+      stages={completion.stages}
+      labels={completionLabels}
     />
-  )}
-  <CompletionFigure
-    totalMatches={completion.totalMatches}
-    resolvedMatches={completion.resolvedMatches}
-    stages={completion.stages}
-    labels={completionLabels}
-  />
-  {shouldShowChampionPodium(model) && model.winners && (
-    <ChampionPodium
-      winners={withPodiumEmblems(organization!, model.winners)}
-      intl={intl}
-      prominent={true}
+    {shouldShowChampionPodium(model) && model.winners && (
+      <ChampionPodium
+        winners={withPodiumEmblems(organization!, model.winners)}
+        intl={intl}
+        prominent={true}
+      />
+    )}
+    <BroadcastStatusPanel
+      model={model}
+      statusText={intl.formatMessage(messages.broadcastStatusDisconnected)}
     />
-  )}
-  <BroadcastStatusPanel
-    model={model}
-    statusText={intl.formatMessage(messages.broadcastStatusDisconnected)}
-  />
-  <section aria-labelledby="match-schedule-heading">
-    <h2 id="match-schedule-heading">{intl.formatMessage(messages.matchGridHeading)}</h2>
-    <MatchSchedule
-      collapsible
-      emptyLabel={intl.formatMessage(messages.matchGridEmpty)}
-      headingLevel={3}
+    <section aria-labelledby="match-schedule-heading">
+      <h2 id="match-schedule-heading">{intl.formatMessage(messages.matchGridHeading)}</h2>
+      <MatchSchedule
+        collapsible
+        emptyLabel={intl.formatMessage(messages.matchGridEmpty)}
+        headingLevel={3}
+        intl={intl}
+        localePrefix={localePrefix}
+        openStage={openStage}
+        organizationAlias={organization!}
+        organizationTimeZone={model.organizationTimeZone}
+        stages={schedule?.stages ?? []}
+        tournamentAlias={tournament!}
+      />
+    </section>
+    <p>
+      <a
+        class="cl-pill cl-focusable"
+        href={`${locale ? `/${locale}` : ''}${model.canonicalPath}/matches`}
+      >
+        {intl.formatMessage(messages.matchesViewSeeAll)}
+      </a>
+    </p>
+    <StandingsTable
+      layouts={declaredLayouts}
+      layout={activeLayout}
+      projection={activeProjection}
+      activeLayoutCode={activeLayout?.code}
+      activeClubId={activeClubId}
+      clubs={model.clubs}
       intl={intl}
-      localePrefix={localePrefix}
-      openStage={openStage}
+      canonicalPath={`${locale ? `/${locale}` : ''}${model.canonicalPath}`}
       organizationAlias={organization!}
-      organizationTimeZone={model.organizationTimeZone}
-      stages={schedule?.stages ?? []}
-      tournamentAlias={tournament!}
+      tournamentAlias={tournament}
     />
-  </section>
-  <p>
-    <a
-      class="cl-pill cl-focusable"
-      href={`${locale ? `/${locale}` : ''}${model.canonicalPath}/matches`}
-    >
-      {intl.formatMessage(messages.matchesViewSeeAll)}
-    </a>
-  </p>
-  <StandingsTable
-    layouts={declaredLayouts}
-    layout={activeLayout}
-    projection={activeProjection}
-    activeLayoutCode={activeLayout?.code}
-    activeClubId={activeClubId}
-    clubs={model.clubs}
-    intl={intl}
-    canonicalPath={`${locale ? `/${locale}` : ''}${model.canonicalPath}`}
-    organizationAlias={organization!}
-    tournamentAlias={tournament}
-  />
-  <RulesetBriefing
-    heading={intl.formatMessage(messages.rulesetHeading)}
-    rows={rulesetBriefingRows(intl, model)}
-  />
+    <RulesetBriefing
+      heading={intl.formatMessage(messages.rulesetHeading)}
+      rows={rulesetBriefingRows(intl, model)}
+    />
+  </Container>
 </PublicLayout>
 
 <script>

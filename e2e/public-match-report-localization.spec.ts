@@ -1,6 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
+import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 
 /**
  * The match report page's officials, rosters, and event
@@ -151,15 +152,17 @@ test.describe('Match report localization and timestamps', () => {
     await expect(page.getByRole('cell', { name: 'Captain' })).toBeVisible();
   });
 
-  test('uses the full public width and chamfered sections on a wide screen', async ({ page }) => {
+  test('uses the centered reading width and chamfered sections at reference widths', async ({
+    page,
+  }) => {
+    const path = `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${MATCH}`;
+    await expectCenteredPageContainer(page, path, 'reading');
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(
-      `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${MATCH}`,
-    );
+    await page.goto(path);
 
     const widthOf = async (selector: string) =>
       (await page.locator(selector).first().boundingBox())?.width ?? 0;
-    expect(await widthOf('.cl-match-page')).toBeGreaterThan(1200);
+    expect(await widthOf('main > .cl-container--reading')).toBeLessThanOrEqual(720);
     const sections = page.locator('section.cl-section-card');
     await expect(sections).toHaveCount(3);
     for (const section of await sections.all()) {

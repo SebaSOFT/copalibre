@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 
 const REFERENCE_WIDTHS = [375, 768, 1024, 1440] as const;
 const EFFECTIVE_200_PERCENT_ZOOM_WIDTH = 188;
@@ -389,6 +390,11 @@ test('public overview and matches remain readable at 200% text size', async ({ p
       expect(clippedLabels).toEqual([]);
     });
   }
+});
+
+test('public root and not-found page keep centred tokenized containers', async ({ page }) => {
+  await expectCenteredPageContainer(page, '/', 'public');
+  await expectCenteredPageContainer(page, '/404', 'reading');
 });
 
 for (const path of [

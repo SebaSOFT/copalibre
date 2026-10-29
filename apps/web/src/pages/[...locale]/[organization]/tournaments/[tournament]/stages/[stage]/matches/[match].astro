@@ -1,5 +1,6 @@
 ---
 import PublicLayout from '../../../../../../../../layouts/PublicLayout.astro';
+import Container from '../../../../../../../../components/ui/atoms/layout/Container.astro';
 import Breadcrumb from '../../../../../../../../components/ui/organisms/Breadcrumb.astro';
 import PageHeader from '../../../../../../../../components/ui/organisms/PageHeader.astro';
 import { publicTrail, trailBaseOf } from '../../../../../../../../lib/breadcrumb.ts';
@@ -128,66 +129,68 @@ const structuredData = {
   disciplineImages={response.disciplineImages}
   structuredData={structuredData}
 >
-  <PageHeader
-    title={matchHeading}
-    description={matchHeadingDescription}
-    loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
-  >
-    <Breadcrumb
-      slot="breadcrumb"
-      items={trail}
-      ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
-      collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
-    />
-  </PageHeader>
-  <article class="cl-match-page">
-    <MatchHero
-      intl={intl}
-      rescheduledLabel={intl.formatMessage(messages.matchRescheduled, {
-        time: '{time}',
-        venue: '{venue}',
-      })}
-      locale={intl.locale}
-      timeZone={response.organizationTimeZone ?? 'UTC'}
-      model={model}
-      statusLabel={statusLabels[model.status]}
-    />
-
-    {bracketMatches.length > 0 && (
-      <MatchBracketContext
-        currentMatchNumber={matchNumber}
-        intl={intl}
-        localePrefix={localePrefix}
-        matches={bracketMatches}
-        organizationAlias={organization!}
-        stageNumber={stageNumber}
-        tournamentAlias={tournament!}
+  <Container variant="reading">
+    <PageHeader
+      title={matchHeading}
+      description={matchHeadingDescription}
+      loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
+    >
+      <Breadcrumb
+        slot="breadcrumb"
+        items={trail}
+        ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+        collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
       />
-    )}
-
-    <div class="cl-match-details">
-      <MatchOfficials model={model} intl={intl} />
-      <MatchRosters
+    </PageHeader>
+    <article class="cl-match-page">
+      <MatchHero
+        intl={intl}
+        rescheduledLabel={intl.formatMessage(messages.matchRescheduled, {
+          time: '{time}',
+          venue: '{venue}',
+        })}
+        locale={intl.locale}
+        timeZone={response.organizationTimeZone ?? 'UTC'}
         model={model}
-        intl={intl}
-        locale={locale}
-        organization={organization!}
-        tournament={tournament!}
+        statusLabel={statusLabels[model.status]}
       />
-      <MatchTimeline
-        model={model}
-        intl={intl}
-        organizationTimeZone={response.organizationTimeZone}
-      />
-    </div>
-  </article>
+
+      {bracketMatches.length > 0 && (
+        <MatchBracketContext
+          currentMatchNumber={matchNumber}
+          intl={intl}
+          localePrefix={localePrefix}
+          matches={bracketMatches}
+          organizationAlias={organization!}
+          stageNumber={stageNumber}
+          tournamentAlias={tournament!}
+        />
+      )}
+
+      <div class="cl-match-details">
+        <MatchOfficials model={model} intl={intl} />
+        <MatchRosters
+          model={model}
+          intl={intl}
+          locale={locale}
+          organization={organization!}
+          tournament={tournament!}
+        />
+        <MatchTimeline
+          model={model}
+          intl={intl}
+          organizationTimeZone={response.organizationTimeZone}
+        />
+      </div>
+    </article>
+  </Container>
 </PublicLayout>
 
 <style>
   .cl-match-page {
     /* The shared public width: no page-specific column. */
     margin: 0 auto;
-    padding: var(--cl-space-6) var(--cl-space-4);
+    padding-block: var(--cl-space-6);
     overflow-x: hidden;
   }
 

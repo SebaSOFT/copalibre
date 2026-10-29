@@ -1,5 +1,6 @@
 ---
 import { rescheduledStatement } from '../../../../../lib/reschedule.ts';
+import Container from '../../../../../components/ui/atoms/layout/Container.astro';
 import Breadcrumb from '../../../../../components/ui/organisms/Breadcrumb.astro';
 import PageHeader from '../../../../../components/ui/organisms/PageHeader.astro';
 import { publicTrail, trailBaseOf } from '../../../../../lib/breadcrumb.ts';
@@ -78,105 +79,107 @@ const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.liveP
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
-  <PageHeader
-    title={`${displayName(model)} — ${intl.formatMessage(messages.livePageTitle)}`}
-    loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
-  >
-    <Breadcrumb
-      slot="breadcrumb"
-      items={trail}
-      ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
-      collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+  <Container variant="public">
+    <PageHeader
+      title={`${displayName(model)} — ${intl.formatMessage(messages.livePageTitle)}`}
+      loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
+    >
+      <Breadcrumb
+        slot="breadcrumb"
+        items={trail}
+        ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+        collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+      />
+    </PageHeader>
+    {/* The island server-renders its initial state, including the zero-live state. */}
+    <LiveMatchHero
+      client:idle
+      initial={dashboard}
+      streamPath={model.streamPath}
+      versusLabel={intl.formatMessage(messages.tickerVersus)}
+      usingLastKnownText={intl.formatMessage(messages.liveUsingLastKnown)}
+      noMatchesText={intl.formatMessage(messages.livePageNoMatches)}
+      nextKickoffText={intl.formatMessage(messages.livePageNextKickoff)}
+      nextKickoffAt={nextKickoffAt}
+      locale={resolvedLocale}
+      timeZone={model.organizationTimeZone}
+      referenceDate={referenceDate}
+      resultStateLabels={labels}
     />
-  </PageHeader>
-  {/* The island server-renders its initial state, including the zero-live state. */}
-  <LiveMatchHero
-    client:idle
-    initial={dashboard}
-    streamPath={model.streamPath}
-    versusLabel={intl.formatMessage(messages.tickerVersus)}
-    usingLastKnownText={intl.formatMessage(messages.liveUsingLastKnown)}
-    noMatchesText={intl.formatMessage(messages.livePageNoMatches)}
-    nextKickoffText={intl.formatMessage(messages.livePageNextKickoff)}
-    nextKickoffAt={nextKickoffAt}
-    locale={resolvedLocale}
-    timeZone={model.organizationTimeZone}
-    referenceDate={referenceDate}
-    resultStateLabels={labels}
-  />
 
-  <h2>{intl.formatMessage(messages.livePageUpcomingHeading)}</h2>
-  {upcomingMatches.length === 0 && <p>{intl.formatMessage(messages.livePageNoUpcoming)}</p>}
-  <div class="cl-match-card-grid">
-    {upcomingMatches.map((match) => {
-      const Wrapper = match.matchNumber === undefined ? 'div' : 'a';
-      return (
-        <Wrapper
-          href={
-            match.matchNumber === undefined
-              ? undefined
-              : reportPath(match.stageNumber, match.matchNumber)
-          }
-        >
-          <Card
-            as="article"
-            data-match={match.matchId}
-            data-schedule-version={match.scheduleVersion ?? 0}
+    <h2>{intl.formatMessage(messages.livePageUpcomingHeading)}</h2>
+    {upcomingMatches.length === 0 && <p>{intl.formatMessage(messages.livePageNoUpcoming)}</p>}
+    <div class="cl-match-card-grid">
+      {upcomingMatches.map((match) => {
+        const Wrapper = match.matchNumber === undefined ? 'div' : 'a';
+        return (
+          <Wrapper
+            href={
+              match.matchNumber === undefined
+                ? undefined
+                : reportPath(match.stageNumber, match.matchNumber)
+            }
           >
-            <StateBadge state="upcoming" intl={intl} />
-            {match.rescheduledFrom && (
-              <CardDescription>
-                {rescheduledStatement(
-                  match.rescheduledFrom,
-                  match.venueName,
-                  intl.locale,
-                  intl.formatMessage(messages.matchRescheduled, {
-                    time: '{time}',
-                    venue: '{venue}',
-                  }),
-                )}
-              </CardDescription>
-            )}
-            <CardTitle
-              aria-label={intl.formatMessage(messages.livePageMatchup, {
-                home: match.home.name,
-                away: match.away.name,
-              })}
-              className="cl-live-matchup"
+            <Card
+              as="article"
+              data-match={match.matchId}
+              data-schedule-version={match.scheduleVersion ?? 0}
             >
-              <span>{match.home.name}</span>
-              <span aria-hidden="true" class="cl-live-matchup__versus">
-                {intl.formatMessage(messages.tickerVersus)}
-              </span>
-              <span>{match.away.name}</span>
-            </CardTitle>
-            {match.startsAt && !Number.isNaN(Date.parse(match.startsAt)) && (
-              <CardDescription>
-                <ResponsiveTimestamp
-                  locale={resolvedLocale}
-                  referenceDate={referenceDate}
-                  timeZone={model.organizationTimeZone}
-                  timestamp={match.startsAt}
-                />
-              </CardDescription>
-            )}
-          </Card>
-        </Wrapper>
-      );
-    })}
-  </div>
+              <StateBadge state="upcoming" intl={intl} />
+              {match.rescheduledFrom && (
+                <CardDescription>
+                  {rescheduledStatement(
+                    match.rescheduledFrom,
+                    match.venueName,
+                    intl.locale,
+                    intl.formatMessage(messages.matchRescheduled, {
+                      time: '{time}',
+                      venue: '{venue}',
+                    }),
+                  )}
+                </CardDescription>
+              )}
+              <CardTitle
+                aria-label={intl.formatMessage(messages.livePageMatchup, {
+                  home: match.home.name,
+                  away: match.away.name,
+                })}
+                className="cl-live-matchup"
+              >
+                <span>{match.home.name}</span>
+                <span aria-hidden="true" class="cl-live-matchup__versus">
+                  {intl.formatMessage(messages.tickerVersus)}
+                </span>
+                <span>{match.away.name}</span>
+              </CardTitle>
+              {match.startsAt && !Number.isNaN(Date.parse(match.startsAt)) && (
+                <CardDescription>
+                  <ResponsiveTimestamp
+                    locale={resolvedLocale}
+                    referenceDate={referenceDate}
+                    timeZone={model.organizationTimeZone}
+                    timestamp={match.startsAt}
+                  />
+                </CardDescription>
+              )}
+            </Card>
+          </Wrapper>
+        );
+      })}
+    </div>
 
-  <StandingsTable
-    headingText={intl.formatMessage(messages.livePageLeadersHeading)}
-    intl={intl}
-    previewGrain={model.standingsGrain}
-    previewRows={model.standings}
-  />
+    <StandingsTable
+      headingText={intl.formatMessage(messages.livePageLeadersHeading)}
+      intl={intl}
+      previewGrain={model.standingsGrain}
+      previewRows={model.standings}
+    />
 
-  <ResultLegend
-    heading={intl.formatMessage(messages.legendHeading)}
-    labels={resultStateLabels(intl)}
-  />
+    <ResultLegend
+      heading={intl.formatMessage(messages.legendHeading)}
+      labels={resultStateLabels(intl)}
+    />
+  </Container>
 </PublicLayout>
 
 <script>

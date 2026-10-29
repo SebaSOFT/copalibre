@@ -1,5 +1,6 @@
 ---
 import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
+import Container from '../../../../../../components/ui/atoms/layout/Container.astro';
 import PlayerProfileView from '../../../../../../components/ui/organisms/PlayerProfileView.astro';
 import {
   fetchOverview,
@@ -58,7 +59,7 @@ const canonicalPath = `${tournamentCanonicalPath}/players/${personId}`;
   intl={intl}
   disciplineImages={overviewData.disciplineImages}
 >
-  <main class="cl-player-profile-page">
+  <Container class="cl-player-profile-page" variant="reading">
     <nav class="cl-player-profile-page__back">
       <a href={tournamentCanonicalPath}>
         {intl.formatMessage(messages.playerProfileBackTo, { name: displayName(model) })}
@@ -76,17 +77,15 @@ const canonicalPath = `${tournamentCanonicalPath}/players/${personId}`;
         statistics={statistics}
       />
     </div>
-  </main>
+  </Container>
 </PublicLayout>
 
 <style>
   .cl-player-profile-page {
-    max-width: 800px;
-    margin: 32px auto;
-    padding: 0 16px;
+    margin-block: var(--cl-space-8);
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--cl-space-4);
   }
   .cl-player-profile-page__back a {
     color: var(--cl-text-accent);

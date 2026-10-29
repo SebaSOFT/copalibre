@@ -188,6 +188,21 @@ export const SPACING = {
   '16': '64px',
 } as const;
 
+/** Page and control containers share widths and responsive gutters in rem. */
+export const LAYOUT_TOKENS = {
+  container: {
+    public: '75rem',
+    reading: '45rem',
+    control: '90rem',
+    form: '45rem',
+  },
+  gutter: {
+    sm: '1rem',
+    md: '1.5rem',
+    lg: '2rem',
+  },
+} as const;
+
 export const RADIUS = {
   none: '0',
   sm: '2px',

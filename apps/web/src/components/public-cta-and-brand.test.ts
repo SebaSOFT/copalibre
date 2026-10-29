@@ -140,7 +140,9 @@ describe('public tables and filter pills', () => {
   });
 
   it('styles the overview’s see-all-matches link rather than leaving it bare', () => {
-    expect(overviewPage).toMatch(/class="cl-pill cl-focusable"[\s\S]{0,120}matchesViewSeeAll/);
+    expect(overviewPage).toMatch(
+      /<a\s+class="cl-pill cl-focusable"[\s\S]*?\{intl\.formatMessage\(messages\.matchesViewSeeAll\)\}[\s\S]*?<\/a>/,
+    );
   });
 });
 

@@ -22,6 +22,7 @@ import {
   extractCatalogueIds,
   checkBannedOrnament,
   checkPageTemplateHierarchy,
+  checkPageWidthLiterals,
   loadReferenceIndex,
 } from './check-atomic-composition.mjs';
 import { buildGraph } from './lib/component-graph.mjs';
@@ -32,6 +33,24 @@ const webSrc = fileURLToPath(new URL('../apps/web/src', import.meta.url));
 
 test('the repository passes the atomic-composition gate', () => {
   assert.deepEqual(checkAtomicComposition(webSrc), []);
+});
+
+test('R1 registers both shared Container implementations as consumed atoms', () => {
+  const { nodes, edges } = buildGraph(webSrc);
+  const paths = [
+    'components/ui/atoms/layout/Container.astro',
+    'control/components/ui/atoms/layout/container.tsx',
+  ];
+
+  for (const path of paths) {
+    const node = nodes.get(path);
+    assert.ok(node, `${path} resolves in the component graph`);
+    assert.equal(node.tier, 'atoms');
+    assert.ok(
+      edges.some((edge) => edge.to === path),
+      `${path} has a production consumer`,
+    );
+  }
 });
 
 test('R12: no register entry in check-atomic-composition.mjs names a path that does not exist', () => {
@@ -125,6 +144,33 @@ test('R14 allows a template-first fragment and standalone loading returns', () =
 
   const { nodes } = buildGraph(root);
   assert.deepEqual(checkPageTemplateHierarchy(nodes, root), []);
+});
+
+test('R15 rejects raw max-width literals and allows percentages or named tokens', () => {
+  const root = fixture();
+  const pages = join(root, 'pages');
+  mkdirSync(pages, { recursive: true });
+  writeFileSync(
+    join(pages, 'index.astro'),
+    [
+      '<style>',
+      '.page { max-width: 1200px; }',
+      '.reading { max-width: 64ch; }',
+      '.fluid { max-width: 100%; }',
+      '.tokenized { max-width: var(--cl-layout-container-public); }',
+      'const style = { maxWidth: 720 };',
+      '@media (max-width: 768px) { .page { max-width: 100%; } }',
+      '</style>',
+    ].join('\n'),
+  );
+
+  const violations = checkPageWidthLiterals(root);
+  assert.equal(violations.length, 3);
+  assert.equal(violations[0].path, 'pages/index.astro');
+  assert.equal(violations[0].line, 2);
+  assert.equal(violations[1].line, 3);
+  assert.equal(violations[2].line, 6);
+  assert.match(violations[0].message, /named Container variant or design token/);
 });
 
 test('R2 reports a file and line when an atom imports a screen component', () => {
