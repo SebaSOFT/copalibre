@@ -98,9 +98,3 @@ pass; strict OpenSpec validation passes. Full end-to-end verification passes wit
 default parallel run collided on public fixture port 3001 (`EADDRINUSE`), so it is not reported as green.
 Existing unrelated token-generator working-tree edits are not part of this change; screenshots reflect that
 working tree and are review evidence, not pixel baselines.
-
-### Review captures
-
-![German match operations at 1440px](assets/screenshots/screen-stories-console-desktop.png)
-
-![German navigation drawer at 374px](assets/screenshots/screen-stories-drawer-mobile.png)
