@@ -261,6 +261,10 @@ body {
   font-family: var(--cl-font-body);
 }
 
+.cl-control .cl-entrant-name {
+  text-transform: uppercase;
+}
+
 .cl-control__nav,
 .cl-control > nav {
   position: sticky;

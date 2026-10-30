@@ -1043,6 +1043,44 @@ describe('button CTA treatments', () => {
 describe('public table and pill treatments', () => {
   const css = generateCss();
 
+  it('keeps public actions visible while mobile navigation expands in page flow', () => {
+    expect(css).toContain(
+      '.cl-public-header__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto;',
+    );
+    expect(css).toContain(
+      '.cl-public-header__nav { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; justify-self: stretch;',
+    );
+    expect(css).toContain(
+      '.cl-public-header__links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); width: 100%;',
+    );
+    expect(css).toContain(
+      '.cl-public-header__tournament-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); width: 100%;',
+    );
+    expect(css).toContain(
+      '.cl-public-header__tournament-link[aria-current="page"] { color: var(--cl-text-primary); text-decoration: underline;',
+    );
+    expect(css).toContain(
+      '.cl-public-header__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end;',
+    );
+    expect(css).toContain(
+      '@media (max-width: 768px) {\n  .cl-public-header__row { grid-template-columns: minmax(0, 1fr); }',
+    );
+    expect(css).toContain(
+      '  .cl-public-header__nav { grid-column: 1; grid-row: 3; align-items: stretch;',
+    );
+    expect(css).toContain(
+      '  .cl-public-header__actions { grid-column: 1; grid-row: 2; justify-content: space-between; width: 100%; }',
+    );
+    expect(css).toContain('  .cl-public-header__toggle:not([hidden]) { display: inline-grid; }');
+    expect(css).toContain(
+      '@media (min-width: 768px) {\n  .cl-public-header__toggle { display: none; }',
+    );
+    expect(css).toContain(
+      '  .cl-public-header__links, .cl-public-header__tournament-links { flex-direction: column; align-items: stretch;',
+    );
+    expect(css).not.toContain('.cl-public-header__cta-item');
+  });
+
   it('gives every table a header treatment and tabular figures', () => {
     expect(css).toMatch(/\.cl-table \{[^}]*font-variant-numeric: tabular-nums/);
     expect(css).toContain('.cl-tabular-nums { font-variant-numeric: tabular-nums; }');
@@ -1093,6 +1131,10 @@ describe('compact match card', () => {
 
   it('keeps the report link on the title and extends its target across the card', () => {
     expect(css).toContain('.cl-match-card--linked { position: relative; }');
+    expect(css).toContain('.cl-match-card__report-link { color: inherit; text-decoration: none; }');
+    expect(css).toContain(
+      '.cl-match-card__report-link:hover, .cl-match-card__report-link:focus-visible { text-decoration: underline; }',
+    );
     expect(css).toContain('.cl-match-card__report-link::after { content: ""; }');
     expect(css).toContain(
       '.cl-match-card__report-link::after, .cl-match-card__hit-area { position: absolute; inset: 0; z-index: 1; }',

@@ -7953,6 +7953,62 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables/{layoutCode}/csv": {
+      "get": {
+        "operationId": "PublicProjectionsController_tournamentTableCsv",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "layoutCode",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV table export",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Download a tournament-wide public table as CSV",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/public/tables/{layoutCode}": {
       "get": {
         "operationId": "PublicProjectionsController_stageTable",
@@ -8011,6 +8067,70 @@
           }
         },
         "summary": "A stage-scoped table projection (group standings, schedule tables)",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/public/tables/{layoutCode}/csv": {
+      "get": {
+        "operationId": "PublicProjectionsController_stageTableCsv",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "layoutCode",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV table export",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Download a stage-scoped public table as CSV",
         "tags": [
           "Public Projections"
         ]
@@ -13844,7 +13964,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "awaySource": {
@@ -13863,7 +13989,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "scheduleVersion": {
@@ -15970,7 +16102,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "awaySource": {
@@ -15989,7 +16127,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "matchId": {
@@ -17123,6 +17267,18 @@
             "type": "boolean",
             "description": "True when another row holds the same rank"
           },
+          "promotionBandLabel": {
+            "type": "string",
+            "description": "Destination zone from the saved promotion band this entrant qualifies for"
+          },
+          "promotionBandIndex": {
+            "type": "number",
+            "description": "Zero-based position used to give each configured promotion band a visual rail"
+          },
+          "promotionSeed": {
+            "type": "number",
+            "description": "1-based seed position in the saved promotion plan"
+          },
           "cells": {
             "description": "One cell per declared column, keyed by column code",
             "allOf": [
@@ -17165,6 +17321,37 @@
         },
         "required": [
           "rows"
+        ]
+      },
+      "TablePromotionBandResponse": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Destination zone name configured in the promotion plan"
+          },
+          "sourceZoneName": {
+            "type": "string",
+            "description": "Source zone whose entrants are shown in this table, when named"
+          },
+          "index": {
+            "type": "number",
+            "description": "Zero-based position used to give each band a visual rail"
+          },
+          "firstSeed": {
+            "type": "number",
+            "description": "First seed position in this band, inclusive"
+          },
+          "lastSeed": {
+            "type": "number",
+            "description": "Last seed position in this band, inclusive"
+          }
+        },
+        "required": [
+          "label",
+          "index",
+          "firstSeed",
+          "lastSeed"
         ]
       },
       "TableProjectionResponse": {
@@ -17227,6 +17414,13 @@
           "countColumnCode": {
             "type": "string",
             "description": "The `code` of this layout’s column whose value is a `count`-aggregated statistic — the one column `grain` changes the unit of. Present only alongside `grain`."
+          },
+          "promotionBands": {
+            "description": "Configured promotion bands for a stage-scoped public standings projection",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TablePromotionBandResponse"
+            }
           }
         },
         "required": [
@@ -17297,7 +17491,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "kind": {
@@ -17388,7 +17588,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "awaySource": {
@@ -17407,7 +17613,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "matchId": {
@@ -18398,7 +18610,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "awaySource": {
@@ -18417,7 +18635,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "fixtureId": {
@@ -19473,7 +19697,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "awaySource": {
@@ -19492,7 +19722,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "venueName": {
@@ -19982,7 +20218,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "awaySource": {
@@ -20001,7 +20243,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "scheduleVersion": {
@@ -20235,7 +20483,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "awaySource": {
@@ -20254,7 +20508,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "scheduledAt": {
@@ -20364,7 +20624,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "kind": {
@@ -20463,7 +20729,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "awaySource": {
@@ -20482,7 +20754,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "matchId": {
@@ -20615,7 +20893,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "awaySource": {
@@ -20634,7 +20918,13 @@
               }
             ],
             "discriminator": {
-              "propertyName": "kind"
+              "propertyName": "kind",
+              "mapping": {
+                "entrant": "#/components/schemas/EntrantFixtureSideSourceDto",
+                "winner-of": "#/components/schemas/WinnerFixtureSideSourceDto",
+                "loser-of": "#/components/schemas/LoserFixtureSideSourceDto",
+                "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
+              }
             }
           },
           "scheduleVersion": {

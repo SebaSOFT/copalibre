@@ -1,0 +1,53 @@
+---
+import { MatchCard } from './MatchCard.tsx';
+import type { MatchCardLabels } from '../../../lib/i18n/public-intl.ts';
+import type { MatchCardData } from '../../../lib/matches-view.ts';
+
+interface Props {
+  readonly heading: string;
+  readonly match: MatchCardData;
+  readonly href: string;
+  readonly labels: MatchCardLabels;
+  readonly locale: string;
+  readonly timeZone?: string;
+  readonly organizationAlias?: string;
+}
+
+const { heading, match, href, labels, locale, timeZone, organizationAlias } = Astro.props;
+---
+
+<section class="cl-featured-match" aria-labelledby="featured-match-heading">
+  <div class="cl-featured-match__heading">
+    <h2 id="featured-match-heading">{heading}</h2>
+  </div>
+  <MatchCard
+    labels={labels}
+    locale={locale}
+    match={match}
+    organizationAlias={organizationAlias}
+    reportUrl={href}
+    timeZone={timeZone}
+  />
+</section>
+
+<style>
+  .cl-featured-match {
+    margin-block-end: var(--cl-space-5);
+    padding: var(--cl-space-4);
+    border: 1px solid var(--cl-border-strong);
+    background: var(--cl-surface-chrome);
+  }
+
+  .cl-featured-match__heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--cl-space-2);
+    margin-block-end: var(--cl-space-3);
+  }
+
+  .cl-featured-match__heading h2 {
+    margin: 0;
+  }
+</style>

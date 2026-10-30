@@ -280,7 +280,10 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     await page.goto('/404');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.locator('#static-not-found h1')).toHaveText('Page not found');
-    await expect(page.locator('#static-not-found a')).toHaveAttribute('href', '/');
+    await expect(page.getByRole('link', { name: 'Return to tournaments' })).toHaveAttribute(
+      'href',
+      '/',
+    );
   });
 
   test('8.3: Modal close control exposes accessible name in accessibility tree', async ({

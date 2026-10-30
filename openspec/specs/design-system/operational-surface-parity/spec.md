@@ -429,3 +429,41 @@ play. Lists SHALL be ordered by meaning: chronological fixtures, cups by tier.
 - **WHEN** an organizer opens a schedule of 72 matches
 - **THEN** matches are grouped by day and venue with collapsible days, and each entrant pair appears
   once per match
+
+### Requirement: Control compositions exist once as shared templates
+
+The control panel SHALL provide these shared templates and organisms, built only from CopaLibre
+tokens and icons, and pages SHALL compose them instead of writing equivalent layout inline:
+- page header;
+- KPI strip of at most four real metrics;
+- list-with-rail (8/4 at 1024px and above, stacked below);
+- two-pane workspace;
+- wizard stepper with sticky footer;
+- filter bar, tournament card, unsaved-changes bar, section tabs and drop zone.
+
+#### Scenario: Dashboard at 1440px
+
+- **WHEN** an admin opens the organization dashboard at 1440px
+- **THEN** tournament cards occupy the main column, the TV pairing panel occupies the right rail, and the KPI strip shows only counts the API returns
+
+#### Scenario: Dashboard at 768px
+
+- **WHEN** the same page renders at 768px
+- **THEN** the rail stacks below the cards with no horizontal page overflow
+
+#### Scenario: No fabricated telemetry
+
+- **WHEN** any control page renders
+- **THEN** it shows no latency, cluster, node, port, hash-ledger, storage-telemetry or certification element
+
+### Requirement: The rail shows the current scope
+
+The control shell SHALL show the current organization or tournament at the top of the navigation rail:
+emblem or monogram, name, discipline line, status badge, and at most one pinned primary action
+permitted by the viewer's role.
+
+#### Scenario: Tournament in configuration
+
+- **WHEN** an admin opens any page of a tournament in configuration
+- **THEN** the rail header shows that tournament's emblem or monogram, name, discipline and an
+  "In configuration" badge

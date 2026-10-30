@@ -1439,7 +1439,8 @@ function components(): string {
     '.cl-match-card { display: grid; gap: var(--cl-space-3); min-width: 0; }',
     '.cl-match-card--linked { position: relative; }',
     '.cl-match-card__heading { margin: 0; min-width: 0; font-size: var(--cl-font-size-lg); overflow-wrap: anywhere; }',
-    '.cl-match-card__report-link { color: inherit; }',
+    '.cl-match-card__report-link { color: inherit; text-decoration: none; }',
+    '.cl-match-card__report-link:hover, .cl-match-card__report-link:focus-visible { text-decoration: underline; }',
     '.cl-match-card__report-link::after, .cl-match-card__hit-area { position: absolute; inset: 0; z-index: 1; }',
     '.cl-match-card__report-link::after { content: ""; }',
     // The state badge and the clock sit on one line until they cannot: at the
@@ -2145,11 +2146,10 @@ function compositions(): string {
     /*
      * The public header.
      *
-     * One navigation landmark, not two. On a wide viewport it sits in the row
-     * between the brand and the actions; below the medium breakpoint it takes a
-     * whole line of the same wrapping flex row, which is what makes the menu
-     * expand *in page flow* — the ticker and the content below it move down
-     * rather than being covered.
+     * One navigation landmark, not two. On a wide viewport it fills the row
+     * between the brand and the persistent locale and Control panel actions;
+     * below the medium breakpoint it takes a whole line of
+     * the same wrapping flex row, which makes the menu expand *in page flow*.
      *
      * That is the deliberate difference from the operator surface's modal
      * drawer, which keeps its overlay, its focus trap and its return-focus
@@ -2158,19 +2158,20 @@ function compositions(): string {
      */
     '.cl-public-header { position: sticky; top: 0; z-index: 30; background: color-mix(in srgb, var(--cl-surface-base) 92%, transparent); border-block-end: 1px solid var(--cl-border-muted); backdrop-filter: blur(6px); }',
     '',
-    '.cl-public-header__row { display: flex; align-items: center; justify-content: space-between; gap: var(--cl-space-3); padding-block: var(--cl-space-3); min-width: 0; }',
+    '.cl-public-header__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--cl-space-3); padding-block: var(--cl-space-3); min-width: 0; }',
     '',
-    // Wraps, and every child may shrink. At the 188px zoom floor the brand,
-    // the locale control, the action and the toggle cannot share one line, and
-    // a row that refused to wrap pushed the whole page sideways instead.
+    // Locale and Control panel stay visible in their own mobile row while the
+    // menu toggle opens and closes the spectator links below.
     '.cl-public-header__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--cl-space-2); min-width: 0; }',
     '',
-    '.cl-public-header__nav { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; }',
+    '.cl-public-header__nav { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; justify-self: stretch; gap: var(--cl-space-2); min-width: 0; }',
     '',
     // The closed menu is closed for everyone: `hidden` takes its links out of
     // the tab order, which a `visibility` or an off-screen trick would not.
     // The reset at the top of `components()` is what makes it stick.
-    '.cl-public-header__links { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; margin: 0; padding: 0; list-style: none; }',
+    '.cl-public-header__links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); width: 100%; min-width: 0; margin: 0; padding: 0; list-style: none; }',
+    '',
+    '.cl-public-header__tournament-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); width: 100%; min-width: 0; margin: 0; padding: var(--cl-space-1) 0 0; list-style: none; border-block-start: 1px solid var(--cl-border-muted); }',
     '',
     '.cl-public-header__theme { position: relative; }',
     '.cl-public-header__theme > details > summary { display: inline-flex; align-items: center; gap: var(--cl-space-2); min-height: var(--cl-touch-target); padding-inline: var(--cl-space-2); color: var(--cl-text-secondary); font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); cursor: pointer; list-style: none; }',
@@ -2182,6 +2183,8 @@ function compositions(): string {
     '.cl-public-header__link { display: inline-flex; align-items: center; min-height: var(--cl-touch-target); color: var(--cl-text-secondary); font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); text-decoration: none; overflow-wrap: anywhere; }',
     '',
     '.cl-public-header__link:hover, .cl-public-header__link:focus-visible { color: var(--cl-text-primary); }',
+    '',
+    '.cl-public-header__tournament-link[aria-current="page"] { color: var(--cl-text-primary); text-decoration: underline; text-decoration-color: var(--cl-primary); text-decoration-thickness: 2px; text-underline-offset: var(--cl-space-1); }',
     '',
     '.cl-public-header__toggle { display: inline-grid; place-items: center; min-width: var(--cl-touch-target); min-height: var(--cl-touch-target); background: transparent; border: 1px solid var(--cl-border-muted); color: var(--cl-text-primary); cursor: pointer; }',
     '',
@@ -2198,14 +2201,16 @@ function compositions(): string {
     `.cl-public-header__locale-list { position: absolute; inset-inline-end: 0; z-index: 40; min-width: max-content; width: max-content; white-space: nowrap; display: grid; gap: var(--cl-space-1); margin: var(--cl-space-1) 0 0; padding: var(--cl-space-2); list-style: none; background: var(--cl-surface-chrome); border: 1px solid var(--cl-border-muted); box-shadow: ${DIALOG_TOKENS.elevation}; }`,
     '',
     /*
-     * Below the medium breakpoint the navigation takes its own line of the
-     * wrapping row, and the CTA the row already carries is repeated at the end
-     * of it so the primary action is reachable from inside the opened menu too.
+     * At and below the inclusive medium breakpoint the navigation takes its
+     * own line below the persistent actions, which get a full row of their own.
      */
     `@media (max-width: ${BREAKPOINTS.md}) {`,
-    '  .cl-public-header__row { flex-wrap: wrap; }',
-    '  .cl-public-header__nav { order: 3; flex-basis: 100%; flex-direction: column; align-items: stretch; gap: var(--cl-space-3); padding-block: var(--cl-space-4); border-block-start: 1px solid var(--cl-border-muted); }',
-    '  .cl-public-header__links { flex-direction: column; align-items: stretch; gap: var(--cl-space-2); }',
+    '  .cl-public-header__row { grid-template-columns: minmax(0, 1fr); }',
+    '  .cl-public-header__nav { grid-column: 1; grid-row: 3; align-items: stretch; gap: var(--cl-space-3); padding-block: var(--cl-space-4); border-block-start: 1px solid var(--cl-border-muted); }',
+    '  .cl-public-header__actions { grid-column: 1; grid-row: 2; justify-content: space-between; width: 100%; }',
+    '  .cl-public-header__links, .cl-public-header__tournament-links { flex-direction: column; align-items: stretch; gap: var(--cl-space-2); }',
+    '  .cl-public-header__tournament-links { padding-block-start: var(--cl-space-3); }',
+    '  .cl-public-header__toggle:not([hidden]) { display: inline-grid; }',
     '}',
     `@media (min-width: ${BREAKPOINTS.md}) {`,
     // Nothing to disclose once every link is already in the row.

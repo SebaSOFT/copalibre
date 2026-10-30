@@ -4,9 +4,8 @@ import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-i
 import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 
 /**
- * The tournament overview's progress card (an overall bar, one per stage and
- * one per declared zone or group), its rules section and the connection
- * notice that appears only when the live stream is down.
+ * The tournament overview's state-first lead, compact completion fact, rules
+ * section and connection notice that appears only when the live stream is down.
  */
 
 const ORGANIZATION = 'liga-mendocina';
@@ -233,9 +232,11 @@ const demoCompletion = {
 let apiServer: Server;
 let noLiveMatches = false;
 let demoScaleOverview = false;
+let completedOverview = false;
 test.beforeEach(() => {
   noLiveMatches = false;
   demoScaleOverview = false;
+  completedOverview = false;
 });
 
 test.beforeAll(async ({ workerPort }) => {
@@ -243,28 +244,68 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
     if (path === `${TOURNAMENT}/overview`) {
-      const response = demoScaleOverview
+      const response = completedOverview
         ? {
             ...overview,
-            matches: demoMatches,
-            standingsPreview: demoStandingsPreview,
-            standingsGrain: 'match',
+            status: 'finished',
+            winners: [
+              {
+                zoneId: 'zone-finished',
+                zoneName: 'Zona Campeonato',
+                champion: { entrantId: 'home-1', name: 'Club Andes', abbreviation: 'AND' },
+                runnerUp: { entrantId: 'away-1', name: 'Deportivo Sur', abbreviation: 'SUR' },
+              },
+            ],
+            matches: overview.matches.map((match) => ({ ...match, status: 'finalized' })),
           }
-        : noLiveMatches
+        : demoScaleOverview
           ? {
               ...overview,
-              matches: overview.matches.map((match) => ({
-                ...match,
-                status: 'scheduled',
-                scheduledAt: '2099-06-01T19:00:00.000Z',
-              })),
+              matches: demoMatches,
+              standingsPreview: demoStandingsPreview,
+              standingsGrain: 'match',
             }
-          : overview;
+          : noLiveMatches
+            ? {
+                ...overview,
+                matches: overview.matches.map((match) => ({
+                  ...match,
+                  status: 'scheduled',
+                  scheduledAt: '2099-06-01T19:00:00.000Z',
+                })),
+              }
+            : overview;
       res.end(JSON.stringify(response));
       return;
     }
     if (path === `${TOURNAMENT}/completion`) {
-      res.end(JSON.stringify(demoScaleOverview ? demoCompletion : completion));
+      const result = completedOverview
+        ? {
+            ...completion,
+            totalMatches: 1,
+            resolvedMatches: 1,
+            liveMatches: 0,
+            scheduledMatches: 0,
+            finalizedMatches: 1,
+            stages: [
+              {
+                stageId: 'stage-finished',
+                stageNumber: 1,
+                stageName: 'Fase de grupos',
+                totalMatches: 1,
+                resolvedMatches: 1,
+                liveMatches: 0,
+                scheduledMatches: 0,
+                finalizedMatches: 1,
+                forfeitedMatches: 0,
+                segments: [],
+              },
+            ],
+          }
+        : demoScaleOverview
+          ? demoCompletion
+          : completion;
+      res.end(JSON.stringify(result));
       return;
     }
     if (demoScaleOverview && path === `${TOURNAMENT}/public/tables`) {
@@ -277,7 +318,35 @@ test.beforeAll(async ({ workerPort }) => {
               label: { en: 'Group Table', es: 'Tabla de posiciones' },
               entityGranularity: 'team',
             },
+            {
+              code: 'player-statistics',
+              target: 'player-ranking',
+              label: { en: 'Player Statistics' },
+              entityGranularity: 'person',
+            },
           ],
+        }),
+      );
+      return;
+    }
+    if (demoScaleOverview && path.endsWith('/public/tables/player-statistics')) {
+      res.end(
+        JSON.stringify({
+          layoutCode: 'player-statistics',
+          target: 'player-ranking',
+          label: { en: 'Player Statistics' },
+          columns: [{ code: 'points', header: { en: 'Points' }, format: 'number' }],
+          defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+          rows: [
+            {
+              actorId: '00000000-0000-7000-8000-000000000901',
+              actorName: 'Player Demo',
+              rank: 1,
+              sharedRank: false,
+              cells: { points: { raw: 5, formatted: '5' } },
+            },
+          ],
+          projectionVersion: 1,
         }),
       );
       return;
@@ -297,6 +366,18 @@ test.afterAll(async () => {
 });
 
 test.describe('tournament overview progress and rules', () => {
+  test('localizes the default player-statistics ticker badge in German', async ({ page }) => {
+    demoScaleOverview = true;
+    await page.route('**/events/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': ok\n\n' }),
+    );
+    await page.goto(PAGE.replace(/^\/es/, '/de'));
+
+    const ticker = page.locator('.cl-ticker');
+    await expect(ticker).toContainText('Spielerstatistiken');
+    await expect(ticker).not.toContainText('Player Statistics');
+  });
+
   test('4.1: on the 72-match demo scale, kickoff is in the first viewport and the page stays below 2,500px', async ({
     page,
   }) => {
@@ -308,29 +389,26 @@ test.describe('tournament overview progress and rules', () => {
     await page.goto(PAGE);
     await page.evaluate(() => document.fonts.ready);
 
-    const kickoff = page
-      .locator('section[aria-labelledby="overview-next-heading"]')
-      .getByText('16:00', { exact: true })
-      .first();
+    const nowStrip = page.locator('.cl-overview-now');
+    await expect(nowStrip).toBeVisible();
+    const kickoff = nowStrip.locator('.cl-overview-now__item--upcoming').getByText(/16:00/).first();
     await expect(kickoff).toBeVisible();
     await expect(kickoff).toBeInViewport();
     await expect(page.locator('.cl-standings-section tbody tr')).toHaveCount(8);
-    const firstUpcoming = page
-      .locator('section[aria-labelledby="overview-next-heading"] .cl-match-card--compact')
-      .first();
+    const firstUpcoming = nowStrip.locator('.cl-overview-now__item--upcoming');
     await expect(firstUpcoming).toContainText('Red Star');
     await expect(firstUpcoming).toContainText('Corazonistas Bogotá');
-    await expect(firstUpcoming).toHaveCSS('min-height', '44px');
+    await expect(firstUpcoming.locator('.cl-match-card')).toBeVisible();
     await expect(
       page.locator('section[aria-labelledby="overview-next-heading"] .cl-match-card--compact'),
-    ).toHaveCount(4);
+    ).toHaveCount(3);
     await expect(
       page.locator('section[aria-labelledby="overview-results-heading"] .cl-match-card--compact'),
-    ).toHaveCount(4);
+    ).toHaveCount(3);
     await expect(
       page.locator('.cl-club-filter, .cl-table-tabs, [data-table-sort-button]'),
     ).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'Ver tabla completa' })).toHaveAttribute(
+    await expect(page.locator('[data-full-layout-code="group-table"]')).toHaveAttribute(
       'href',
       `${PAGE}?tab=group-table`,
     );
@@ -342,9 +420,7 @@ test.describe('tournament overview progress and rules', () => {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
-    const mobileUpcoming = page
-      .locator('section[aria-labelledby="overview-next-heading"] .cl-match-card--compact')
-      .first();
+    const mobileUpcoming = page.locator('.cl-overview-now__item--upcoming');
     await expect(mobileUpcoming).toContainText('Red Star');
     await expect(mobileUpcoming).toContainText('Corazonistas Bogotá');
     expect(
@@ -352,24 +428,19 @@ test.describe('tournament overview progress and rules', () => {
     ).toBe(true);
   });
 
-  test('the progress card fills the public column and nests a bar per stage and segment', async ({
-    page,
-  }) => {
+  test('the completion summary stays with the full-width overview hero', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.route('**/events/**', (route) =>
       route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': ok\n\n' }),
     );
     await page.goto(PAGE);
 
-    const card = page.locator('.cl-completion-figure');
-    await expect(card.getByLabel('Fase de grupos: 8 / 8')).toBeVisible();
-    await expect(card.getByLabel('Copas: 1 / 4')).toBeVisible();
-    await expect(card.getByLabel('Grupo B: 4 / 4')).toBeVisible();
-    await expect(card.getByLabel('Copa Oro: 1 / 2')).toBeVisible();
-    await expect(card.locator('progress')).toHaveCount(7);
+    const hero = page.locator('.cl-overview-hero');
+    await expect(hero.locator('.cl-overview-hero__facts')).toContainText(/9.*12/);
+    await expect(page.locator('.cl-completion-figure')).toHaveCount(0);
 
-    const [cardBox, containerBox, padding] = await Promise.all([
-      card.boundingBox(),
+    const [heroBox, containerBox, padding] = await Promise.all([
+      hero.boundingBox(),
       page.locator('main > .cl-container--public').first().boundingBox(),
       page
         .locator('main > .cl-container--public')
@@ -379,8 +450,8 @@ test.describe('tournament overview progress and rules', () => {
           return Number.parseFloat(style.paddingLeft) + Number.parseFloat(style.paddingRight);
         }),
     ]);
-    expect(cardBox && containerBox).not.toBeNull();
-    expect(cardBox?.width).toBeCloseTo((containerBox?.width ?? 0) - padding, 0);
+    expect(heroBox && containerBox).not.toBeNull();
+    expect(heroBox?.width).toBeCloseTo((containerBox?.width ?? 0) - padding, 0);
   });
 
   test('uses the centered public container at reference widths', async ({ page }) => {
@@ -390,13 +461,13 @@ test.describe('tournament overview progress and rules', () => {
     await expectCenteredPageContainer(page, PAGE);
   });
 
-  test('the progress card fits a phone without scrolling sideways', async ({ page }) => {
+  test('the overview hero fits a phone without scrolling sideways', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.route('**/events/**', (route) =>
       route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': ok\n\n' }),
     );
     await page.goto(PAGE);
-    await expect(page.locator('.cl-completion-figure')).toBeVisible();
+    await expect(page.locator('.cl-overview-hero__facts')).toContainText(/9.*12/);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
@@ -426,33 +497,93 @@ test.describe('tournament overview progress and rules', () => {
       route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': ok\n\n' }),
     );
     await page.goto(PAGE);
-    await expect(page.locator('.cl-completion-figure')).toBeVisible();
+    await expect(page.locator('.cl-overview-hero__facts')).toContainText(/9.*12/);
     await expect(page.getByText('esta página ya trae todo')).toHaveCount(0);
-    await expect(page.locator('[data-connection-notice]')).toBeHidden();
+    await expect(page.locator('[data-ticker-connection-notice]')).toBeHidden();
 
     await page.unroute('**/events/**');
     await page.route('**/events/**', (route) => route.fulfill({ status: 503, body: 'down' }));
     await page.reload();
-    await expect(page.locator('[data-connection-notice]')).toBeVisible();
-    await expect(page.locator('[data-connection-notice]')).toContainText(
-      'actualizaciones en vivo no están disponibles',
-    );
+    await expect(page.locator('[data-ticker-connection-notice]')).toBeVisible();
+    await expect(page.locator('[data-ticker-connection-notice]')).toContainText(/conexi[oó]n/i);
   });
 });
 
 test.describe('public empty states without JavaScript', () => {
   test.use({ javaScriptEnabled: false });
-  test('names the next kickoff and links to matches when no match is live', async ({ page }) => {
-    noLiveMatches = true;
+  test('the in-progress overview leads with the now strip without JavaScript', async ({ page }) => {
     await page.goto(PAGE);
-    const empty = page.locator('.cl-interaction-empty-state');
-    await expect(empty.getByRole('heading', { name: 'No hay partidos en vivo' })).toBeVisible();
-    await expect(empty).toContainText('Próximo partido:');
-    await expect(empty).toContainText('2099');
-    await expect(empty.getByRole('link', { name: 'Ver partidos' })).toHaveAttribute(
+
+    await expect(page.locator('#overview-now-heading')).toBeVisible();
+    await expect(page.locator('#overview-honours-heading')).toHaveCount(0);
+    const lifecycleBadge = page.locator('.cl-overview-hero__state .cl-badge');
+    await expect(lifecycleBadge).toHaveText('En progreso');
+    await expect(lifecycleBadge).not.toHaveClass(/cl-badge--live/);
+  });
+
+  test('the tournament header links its sections in server-rendered markup', async ({ page }) => {
+    await page.goto(PAGE);
+
+    const navigation = page.locator('#cl-public-nav');
+    await expect(navigation.getByRole('link', { name: 'Resumen', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await expect(navigation.getByRole('link', { name: 'Partidos', exact: true })).toHaveAttribute(
       'href',
       `${PAGE}/matches`,
     );
+    await expect(navigation.getByRole('link', { name: 'Posiciones', exact: true })).toHaveAttribute(
+      'href',
+      `${PAGE}#standings`,
+    );
+    await expect(navigation.getByRole('link', { name: 'Cuadros', exact: true })).toHaveAttribute(
+      'href',
+      `${PAGE}/stages/1`,
+    );
+    await expect(navigation.getByRole('link', { name: 'Equipos', exact: true })).toHaveAttribute(
+      'href',
+      `${PAGE}#teams`,
+    );
+    await expect(page.locator('#standings')).toBeAttached();
+    await expect(page.locator('#teams')).toBeAttached();
+  });
+
+  test('the completed overview leads with the honour board without JavaScript', async ({
+    page,
+  }) => {
+    completedOverview = true;
+    await page.goto(PAGE);
+
+    const honours = page.locator('#overview-honours-heading');
+    await expect(honours).toBeVisible();
+    await expect(page.locator('.cl-overview-honours')).toContainText('Club Andes');
+    await expect(page.locator('#overview-now-heading')).toHaveCount(0);
+  });
+
+  test('overview and not-found report stay inside a 375px German viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 844 });
+    await page.goto(PAGE.replace(/^\/es/, '/de'));
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+
+    await page.goto('/de/liga-mendocina/tournaments/apertura-2026/stages/1/matches/999999');
+    await expect(page.locator('.cl-not-found__card')).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+  });
+
+  test('names the next kickoff and links to matches when no match is live', async ({ page }) => {
+    noLiveMatches = true;
+    await page.goto(PAGE);
+    const nowStrip = page.locator('.cl-overview-now');
+    await expect(nowStrip).toBeVisible();
+    await expect(
+      nowStrip.locator('.cl-overview-now__item--upcoming').getByText(/16:00/),
+    ).toBeVisible();
+    await expect(page.locator(`a[href="${PAGE}/matches"]`).first()).toBeVisible();
   });
   test('a missing organization keeps its 404 status and offers organization and help navigation', async ({
     page,

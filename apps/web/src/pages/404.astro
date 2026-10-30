@@ -10,10 +10,10 @@ import { messages } from '../lib/i18n/public-messages.en.ts';
 
 export const prerender = false;
 
-const rawPath = Astro.request?.url ? new URL(Astro.request.url).pathname : Astro.url.pathname;
-const locale = resolvePathLocale(rawPath);
+const locale = resolvePathLocale(Astro.url.searchParams.get('locale') ?? Astro.url.pathname);
 const intl = publicIntl(locale);
 const homeUrl = getLocaleHomePath(locale);
+const liveMatchesUrl = `/tv?lang=${locale}&view=dashboard`;
 ---
 
 <PublicLayout
@@ -30,7 +30,14 @@ const homeUrl = getLocaleHomePath(locale);
         </p>
         <h1 class="cl-not-found__heading">{intl.formatMessage(messages.notFoundHeading)}</h1>
         <p class="cl-not-found__body">{intl.formatMessage(messages.notFoundBody)}</p>
-        <Button href={homeUrl}>{intl.formatMessage(messages.notFoundHomeLink)}</Button>
+        <div class="cl-not-found__actions">
+          <Button href={homeUrl} variant="primary">
+            {intl.formatMessage(messages.notFoundTournamentsLink)}
+          </Button>
+          <Button href={liveMatchesUrl} variant="secondary">
+            {intl.formatMessage(messages.notFoundLiveMatchesLink)}
+          </Button>
+        </div>
       </Card>
     </div>
   </Container>
@@ -47,21 +54,21 @@ const homeUrl = getLocaleHomePath(locale);
   }
 
   .cl-not-found__card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--cl-space-4);
-    padding: var(--cl-space-10) var(--cl-space-8);
+    display: grid;
+    justify-items: center;
+    gap: var(--cl-space-3);
+    padding: var(--cl-space-8);
     text-align: center;
   }
 
   .cl-not-found__numeral {
     margin: 0;
-    font-family: var(--cl-font-mono);
+    font-family: var(--cl-font-display);
     font-size: var(--cl-font-size-3xl);
     font-weight: 700;
-    color: var(--cl-text-accent);
-    letter-spacing: 0.05em;
+    line-height: 1;
+    color: var(--cl-text-primary);
+    letter-spacing: var(--cl-tracking-wide);
   }
 
   .cl-not-found__heading {
@@ -74,5 +81,24 @@ const homeUrl = getLocaleHomePath(locale);
   .cl-not-found__body {
     margin: 0;
     color: var(--cl-text-muted);
+  }
+
+  .cl-not-found__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--cl-space-2);
+    margin-block-start: var(--cl-space-2);
+  }
+
+  @media (max-width: 375px) {
+    .cl-not-found__card {
+      padding: var(--cl-space-6) var(--cl-space-4);
+    }
+
+    .cl-not-found__actions,
+    .cl-not-found__actions :global(.cl-btn) {
+      width: 100%;
+    }
   }
 </style>

@@ -811,7 +811,9 @@ test.describe('generate a cup ahead and confirm its qualifiers', () => {
     confirmed = true;
     const after = await page.context().newPage();
     await after.goto(`/${ORG}/tournaments/${TOURNAMENT_ALIAS}/matches?view=cards`);
-    const seated = after.locator('[data-match="0199c000-0000-7000-8000-000000000101"]');
+    const seated = after.locator(
+      '.cl-match-schedule [data-match="0199c000-0000-7000-8000-000000000101"]',
+    );
     await expect(seated.getByText('Deportivo Norte')).toBeVisible();
     await expect(seated.getByText('Sportivo Este')).toBeVisible();
     await expect(seated.getByText('1st Grupo A', { exact: true })).toHaveCount(0);

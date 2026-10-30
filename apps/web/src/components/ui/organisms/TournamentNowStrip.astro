@@ -1,0 +1,70 @@
+---
+import { MatchCard } from './MatchCard.tsx';
+import type { MatchCardLabels } from '../../../lib/i18n/public-intl.ts';
+import type { MatchCardData } from '../../../lib/matches-view.ts';
+
+export interface TournamentNowStripEntry {
+  readonly kind: 'live' | 'upcoming' | 'final';
+  readonly match: MatchCardData;
+  readonly href: string;
+}
+
+interface Props {
+  readonly heading: string;
+  readonly entries: readonly TournamentNowStripEntry[];
+  readonly labels: MatchCardLabels;
+  readonly locale: string;
+  readonly timeZone?: string;
+}
+
+const { heading, entries, labels, locale, timeZone } = Astro.props;
+---
+
+<section class="cl-overview-now" aria-labelledby="overview-now-heading">
+  <h2 id="overview-now-heading">{heading}</h2>
+  {entries.length > 0 ? (
+    <ul class="cl-match-card-grid cl-overview-now__grid">
+      {entries.map((entry) => (
+        <li class:list={['cl-overview-now__item', `cl-overview-now__item--${entry.kind}`]}>
+          <MatchCard
+            labels={labels}
+            locale={locale}
+            match={entry.match}
+            reportUrl={entry.href}
+            timeZone={timeZone}
+          />
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p>{labels.empty}</p>
+  )}
+</section>
+
+<style>
+  .cl-overview-now {
+    margin-block-end: var(--cl-space-5);
+  }
+
+  .cl-overview-now__grid {
+    align-items: stretch;
+  }
+
+  .cl-overview-now__item {
+    min-width: 0;
+    border-inline-start: var(--cl-space-1) solid var(--cl-border-muted);
+    padding-inline-start: var(--cl-space-2);
+  }
+
+  .cl-overview-now__item--live {
+    border-inline-start-color: var(--cl-state-live);
+  }
+
+  .cl-overview-now__item--upcoming {
+    border-inline-start-color: var(--cl-state-upcoming);
+  }
+
+  .cl-overview-now__item--final {
+    border-inline-start-color: var(--cl-state-positive);
+  }
+</style>
