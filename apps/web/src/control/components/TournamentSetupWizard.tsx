@@ -94,6 +94,7 @@ export function TournamentSetupWizard({
   const firstDiscipline = disciplines[0];
   const [asyncProfiles, setAsyncProfiles] = useState<readonly TournamentProfileOption[]>([]);
   const [privacyReturnToSummary, setPrivacyReturnToSummary] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
   const [state, setState] = useState<WizardState>(() => ({
     ...initialWizard(),
     ...(firstDiscipline === undefined
@@ -182,6 +183,7 @@ export function TournamentSetupWizard({
       breadcrumb={intl.formatMessage(messages.wizardBreadcrumb)}
       currentStepId={state.step}
       onBack={() => {
+        setShowValidation(false);
         if (state.step === 'privacy' && privacyReturnToSummary) {
           setPrivacyReturnToSummary(false);
           patch({ step: 'summary' });
@@ -205,15 +207,17 @@ export function TournamentSetupWizard({
               disabled: !canContinue(state, disciplines, vocabulary),
               onClick: () => {
                 if (state.step === 'privacy' && privacyReturnToSummary) {
+                  setShowValidation(false);
                   setPrivacyReturnToSummary(false);
                   patch({ step: 'summary' });
                   return;
                 }
+                setShowValidation(false);
                 patch({ step: nextStep(state) });
               },
             }
       }
-      problems={problems.map((problem) => intl.formatMessage(problem))}
+      problems={showValidation ? problems.map((problem) => intl.formatMessage(problem)) : []}
       progress={progress(state, problems.length === 0)}
       progressCaption={` ${intl.formatMessage(messages.wizardConfigured)}`}
       progressTestId="wizard-progress"
@@ -227,70 +231,72 @@ export function TournamentSetupWizard({
         what they are doing. Until now the panel carried no heading at all, so
         a screen reader moving by heading arrived at a form with no subject.
       */}
-      {activeStep !== undefined && (
-        <StepHeading
-          level={2}
-          step={activeStepNumber}
-          totalSteps={WIZARD_STEPS.length}
-          title={intl.formatMessage(activeStep.label)}
-        />
-      )}
-      {state.step === 'name' && <NameStep intl={intl} patch={patch} state={state} />}
+      <div onBlurCapture={() => setShowValidation(true)}>
+        {activeStep !== undefined && (
+          <StepHeading
+            level={2}
+            step={activeStepNumber}
+            totalSteps={WIZARD_STEPS.length}
+            title={intl.formatMessage(activeStep.label)}
+          />
+        )}
+        {state.step === 'name' && <NameStep intl={intl} patch={patch} state={state} />}
 
-      {state.step === 'privacy' && <PrivacyStep intl={intl} patch={patch} state={state} />}
+        {state.step === 'privacy' && <PrivacyStep intl={intl} patch={patch} state={state} />}
 
-      {state.step === 'discipline' && (
-        <DisciplineStep disciplines={disciplines} intl={intl} patch={patch} state={state} />
-      )}
+        {state.step === 'discipline' && (
+          <DisciplineStep disciplines={disciplines} intl={intl} patch={patch} state={state} />
+        )}
 
-      {state.step === 'format' && (
-        <FormatStep
-          formatHintText={decisionHintText('format', messages.wizardDecisionFormat)}
-          formats={formats}
-          intl={intl}
-          patch={patch}
-          profiles={profiles}
-          state={state}
-        />
-      )}
+        {state.step === 'format' && (
+          <FormatStep
+            formatHintText={decisionHintText('format', messages.wizardDecisionFormat)}
+            formats={formats}
+            intl={intl}
+            patch={patch}
+            profiles={profiles}
+            state={state}
+          />
+        )}
 
-      {state.step === 'ruleset' && (
-        <RulesetStep
-          intl={intl}
-          patch={patch}
-          selectedDiscipline={selectedDiscipline}
-          state={state}
-        />
-      )}
+        {state.step === 'ruleset' && (
+          <RulesetStep
+            intl={intl}
+            patch={patch}
+            selectedDiscipline={selectedDiscipline}
+            state={state}
+          />
+        )}
 
-      {state.step === 'window' && (
-        <WindowStep decisionHintText={decisionHintText} intl={intl} patch={patch} state={state} />
-      )}
+        {state.step === 'window' && (
+          <WindowStep decisionHintText={decisionHintText} intl={intl} patch={patch} state={state} />
+        )}
 
-      {state.step === 'rules' && (
-        <RulesStep
-          actions={actions}
-          conditions={conditions}
-          intl={intl}
-          patch={patch}
-          selectedAction={selectedAction}
-          selectedCondition={selectedCondition}
-          setState={setState}
-          state={state}
-          vocabulary={vocabulary}
-        />
-      )}
+        {state.step === 'rules' && (
+          <RulesStep
+            actions={actions}
+            conditions={conditions}
+            intl={intl}
+            patch={patch}
+            selectedAction={selectedAction}
+            selectedCondition={selectedCondition}
+            setState={setState}
+            state={state}
+            vocabulary={vocabulary}
+          />
+        )}
 
-      {state.step === 'summary' && (
-        <SummaryStep
-          onReviewPrivacy={() => {
-            setPrivacyReturnToSummary(true);
-            patch({ step: 'privacy' });
-          }}
-          selectedDiscipline={selectedDiscipline}
-          state={state}
-        />
-      )}
+        {state.step === 'summary' && (
+          <SummaryStep
+            onReviewPrivacy={() => {
+              setPrivacyReturnToSummary(true);
+              patch({ step: 'privacy' });
+            }}
+            selectedDiscipline={selectedDiscipline}
+            state={state}
+          />
+        )}
+      </div>
     </WizardShell>
   );
 }

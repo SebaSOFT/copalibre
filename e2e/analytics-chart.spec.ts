@@ -71,10 +71,12 @@ test('analytics chart legend and table toggle show the same status values in Spa
 }) => {
   await openAnalytics(page);
 
+  await expect(page.locator('.cl-badge--live')).toHaveCount(0);
+
   const legend = page.getByRole('list', { name: 'Leyenda' });
   const legendItems = legend.getByRole('listitem');
   await expect(legendItems).toHaveCount(5);
-  await expect(legendItems.nth(0)).toContainText('En vivo');
+  await expect(legendItems.nth(0)).toContainText('En curso');
   await expect(legendItems.nth(1)).toContainText('Próximo');
   await expect(legendItems.nth(2)).toContainText('Finalizado');
   const chartRows = page.getByRole('list', { name: 'Distribución de torneos por estado' });
@@ -89,7 +91,7 @@ test('analytics chart legend and table toggle show the same status values in Spa
     .getByRole('table');
   await expect(table).toBeVisible();
   for (const [label, value] of [
-    ['En vivo', '2'],
+    ['En curso', '2'],
     ['Próximo', '1'],
     ['Finalizado', '1'],
   ]) {

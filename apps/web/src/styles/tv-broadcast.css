@@ -710,6 +710,15 @@
   height: clamp(14vmin, 18vmin, 22vmin);
 }
 
+.tv-match-spotlight__vs-grid .tv-team-side__name {
+  max-width: 36vmin;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-align: center;
+  text-overflow: clip;
+  white-space: normal;
+}
+
 .tv-team-side {
   display: flex;
   flex-direction: column;
@@ -981,7 +990,7 @@
 }
 
 .tv-standings-table__club-name {
-  font-family: var(--cl-font-body);
+  font-family: var(--cl-font-display);
   font-weight: 500;
 }
 
@@ -1703,6 +1712,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--cl-font-display);
+}
+
+.tv-match-list__side .cl-entrant-name {
+  font-family: inherit;
 }
 
 .tv-match-list__side--home {

@@ -51,12 +51,23 @@ const withEmblems = (items: readonly PublicTournamentListingItemResponse[]) =>
     const winners = mapPublicWinnerZones(t.winners, resolvedLocale);
     return withListingPodiumEmblems(organization!, winners === undefined ? t : { ...t, winners });
   });
-const liveTournaments = withEmblems(listData?.tournaments.filter((t) => t.status === 'live') ?? []);
+const featured = withEmblems(listData ? featuredTournaments(listData.tournaments) : []);
+const featuredTournamentIds = new Set(featured.map((tournament) => tournament.tournamentId));
+const liveTournaments = withEmblems(
+  listData?.tournaments.filter((t) => t.status === 'live') ?? [],
+).map((tournament) => ({
+  ...tournament,
+  featured: featuredTournamentIds.has(tournament.tournamentId),
+}));
 const upcomingTournaments = withEmblems(
-  listData?.tournaments.filter((t) => t.status === 'upcoming') ?? [],
+  listData?.tournaments.filter(
+    (t) => t.status === 'upcoming' && !featuredTournamentIds.has(t.tournamentId),
+  ) ?? [],
 );
 const finishedTournaments = withEmblems(
-  listData?.tournaments.filter((t) => t.status === 'finished') ?? [],
+  listData?.tournaments.filter(
+    (t) => t.status === 'finished' && !featuredTournamentIds.has(t.tournamentId),
+  ) ?? [],
 );
 const orgClubs = (listData?.clubs ?? []).map((club) => ({
   ...club,
@@ -65,8 +76,9 @@ const orgClubs = (listData?.clubs ?? []).map((club) => ({
 const organizationEmblemSrc = listData?.organizationEmblemObjectId
   ? organizationEmblemUrl(listData.organizationAlias)
   : undefined;
-// Live first, featured second: live is urgent, featured is curated.
-const featured = withEmblems(listData ? featuredTournaments(listData.tournaments) : []);
+// A tournament appears once. In-progress entries lead; featured entries that
+// are not already there follow in the curated section.
+const featuredOnly = featured.filter((tournament) => tournament.status !== 'live');
 
 const pageTitle = listData?.organizationName ?? intl.formatMessage(messages.orgPageNotFoundTitle);
 const structuredData = listData
@@ -125,22 +137,20 @@ const structuredData = listData
       {liveTournaments.length > 0 && (
         <TournamentSection
           headingId="heading-live"
-          heading={intl.formatMessage(messages.tournamentsLiveHeading)}
+          heading={intl.formatMessage(messages.completionInProgress)}
           tournaments={liveTournaments}
           organizationAlias={organization!}
           localePrefix={localePrefix}
           intl={intl}
-          showLiveDot={true}
-          sectionClass="cl-section-live"
-          gridClass="cl-grid-live"
+          gridClass="cl-grid-priority"
         />
       )}
 
-      {featured.length > 0 && (
+      {featuredOnly.length > 0 && (
         <TournamentSection
           headingId="heading-featured"
           heading={intl.formatMessage(messages.orgPageFeaturedHeading)}
-          tournaments={featured}
+          tournaments={featuredOnly}
           organizationAlias={organization!}
           localePrefix={localePrefix}
           intl={intl}

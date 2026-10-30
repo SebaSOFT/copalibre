@@ -64,7 +64,7 @@ if (!schedule) {
 
 // Zone/group facets are derived from the rows the active stage(s) and state filter already
 // returned: a stage the filter narrows to zero rows simply shows no zone/group pills.
-const zones = distinctFacetValues(schedule.stageRows, 'zoneName');
+const zones = distinctFacetValues(schedule.stageRows, 'zoneName', schedule.zoneOrder);
 const zoneFiltered =
   zoneParam === undefined
     ? schedule.stageRows
@@ -75,6 +75,12 @@ const groups = distinctFacetValues(zoneFiltered, 'groupName');
 const offerView = offersViewChoice(schedule.rows.length);
 const view: MatchScheduleView = offerView && cardsRequested ? 'cards' : 'rows';
 const presentation = view === 'rows' ? 'rows' : compact ? 'compact-cards' : 'cards';
+const filtersOpen =
+  stageNumber !== undefined ||
+  zoneParam !== undefined ||
+  groupParam !== undefined ||
+  state !== 'all' ||
+  (offerView && view !== 'rows');
 
 function buildUrl(
   overrides: Partial<{
@@ -151,6 +157,7 @@ const trail = publicTrail(trailBase, [
     </PageHeader>
 
     <MatchScheduleFilters
+      filtersOpen={filtersOpen}
       stages={schedule.stageOptions.map((one) => ({
         stageNumber: one.stageNumber,
         stageName:
@@ -165,6 +172,7 @@ const trail = publicTrail(trailBase, [
       view={view}
       offerView={offerView}
       labels={{
+        disclosureLabel: intl.formatMessage(messages.matchesViewFiltersDisclosureLabel),
         stageFilterAriaLabel: intl.formatMessage(messages.matchesViewStageFilterAriaLabel),
         zoneFilterAriaLabel: intl.formatMessage(messages.matchesViewZoneFilterAriaLabel),
         groupFilterAriaLabel: intl.formatMessage(messages.matchesViewGroupFilterAriaLabel),

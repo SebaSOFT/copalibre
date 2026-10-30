@@ -158,10 +158,17 @@ describe('DataEntityCard', () => {
   });
 
   it('renders a numeric metadata value as a figure and a prose one plainly', () => {
+    const onMetadataNavigate = jest.fn();
     const { container } = render(
       <DataEntityCard
         metadata={[
-          { label: 'Partidos hoy', numeric: true, value: '4' },
+          {
+            href: '/control/tournaments/a/registrations',
+            label: 'Partidos hoy',
+            numeric: true,
+            onNavigate: onMetadataNavigate,
+            value: '4',
+          },
           { label: 'Alias', value: 'apertura-2026' },
         ]}
         title="Apertura"
@@ -171,6 +178,16 @@ describe('DataEntityCard', () => {
     const figures = container.querySelectorAll('.cl-data-entity-card__metadata-figure');
     expect(figures).toHaveLength(1);
     expect(figures[0]?.textContent).toBe('4');
+
+    const link = screen.getByRole('link', { name: 'Partidos hoy: 4' });
+    expect(link.getAttribute('href')).toBe('/control/tournaments/a/registrations');
+    expect(link.className).toContain('cl-data-entity-card__metadata-item');
+    expect(link.querySelector('.cl-data-entity-card__metadata-label')?.textContent).toBe(
+      'Partidos hoy',
+    );
+    expect(link.querySelector('.cl-data-entity-card__metadata-figure')?.textContent).toBe('4');
+    fireEvent.click(link);
+    expect(onMetadataNavigate).toHaveBeenCalledTimes(1);
   });
 });
 

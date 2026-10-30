@@ -321,7 +321,7 @@ test('expands a tied standings row and shows the engine’s trace', async ({ pag
   ).toHaveAttribute('href', '/control/liga-mendocina/tournaments/apertura-2026');
   await expect(page.getByRole('heading', { level: 1, name: 'Posiciones' })).toBeVisible();
   await expect(page.getByText('Proyección v12')).toBeVisible();
-  await page.locator('tr', { hasText: 'Deportivo Norte' }).locator('+ tr summary').click();
+  await page.getByRole('button', { name: 'Desempate — Deportivo Norte' }).click();
 
   const trace = page.getByLabel('Traza de desempate');
   await expect(trace).toBeVisible();
@@ -332,7 +332,7 @@ test('expands a tied standings row and shows the engine’s trace', async ({ pag
   // The row nobody had to break a tie for fetches its own real (empty) trace
   // — every row is a candidate to expand now, not only the ones a
   // precomputed flag marked in advance.
-  await page.locator('tr', { hasText: 'Club Cometa' }).locator('+ tr summary').click();
+  await page.getByRole('button', { name: 'Desempate — Club Cometa' }).click();
   await expect(page.getByText('El motor no registró comparadores.')).toBeVisible();
 });
 

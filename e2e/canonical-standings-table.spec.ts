@@ -119,6 +119,9 @@ test.describe('canonical standings table', () => {
     await openStandings(page);
     const header = page.getByRole('button', { name: 'GF' });
     const th = page.locator('th', { has: header });
+    const columnIndex = await th.evaluate((element) =>
+      Array.from(element.parentElement?.children ?? []).indexOf(element),
+    );
 
     // The projection's own order: Talleres (12 GF) before Independiente (6 GF).
     // `:not(.cl-data-table__detail-row)` excludes the per-row expandable
@@ -126,8 +129,10 @@ test.describe('canonical standings table', () => {
     const rowsInOrder = async (): Promise<readonly string[]> =>
       page
         .locator('.cl-data-table__table tbody > tr:not(.cl-data-table__detail-row)')
-        .evaluateAll((rows) =>
-          rows.map((row) => row.querySelector('td')?.nextElementSibling?.textContent?.trim() ?? ''),
+        .evaluateAll(
+          (rows, index) =>
+            rows.map((row) => row.querySelectorAll('td').item(index)?.textContent?.trim() ?? ''),
+          columnIndex,
         );
 
     await expect(th).toHaveAttribute('aria-sort', 'none');

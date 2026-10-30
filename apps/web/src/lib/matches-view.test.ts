@@ -52,6 +52,23 @@ describe('distinctFacetValues', () => {
     ]);
   });
 
+  it('uses the declared promotion-band order before appending undeclared zones', () => {
+    const rows = [
+      { zoneName: 'Bronze', groupName: undefined },
+      { zoneName: 'Gold', groupName: undefined },
+      { zoneName: 'Silver', groupName: undefined },
+      { zoneName: 'Gold', groupName: undefined },
+      { zoneName: 'Unlisted', groupName: undefined },
+    ];
+
+    expect(distinctFacetValues(rows, 'zoneName', ['Gold', 'Silver', 'Bronze'])).toEqual([
+      'Gold',
+      'Silver',
+      'Bronze',
+      'Unlisted',
+    ]);
+  });
+
   it('derives group options only from the rows passed in (a zone-filtered subset)', () => {
     const zoneFilteredRows = [
       { zoneName: 'Copa de Oro', groupName: 'Group A' },
@@ -90,5 +107,15 @@ describe('groupMatchesByRound', () => {
   it('buckets a row with no round under round 0 rather than dropping it', () => {
     const rows = [{ round: undefined, matchNumber: 1 }];
     expect(groupMatchesByRound(rows)).toEqual([{ round: 0, matches: rows }]);
+  });
+
+  it('orders scheduled matches chronologically and leaves unscheduled matches afterward', () => {
+    const rows = [
+      { round: 1, matchNumber: 1, scheduledAt: '2026-10-22T00:15:00.000Z' },
+      { round: 1, matchNumber: 2, scheduledAt: '2026-10-21T12:00:00.000Z' },
+      { round: 1, matchNumber: 3 },
+    ];
+
+    expect(groupMatchesByRound(rows)[0]?.matches).toEqual([rows[1], rows[0], rows[2]]);
   });
 });

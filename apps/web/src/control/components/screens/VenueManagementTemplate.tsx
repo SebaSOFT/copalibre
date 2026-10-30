@@ -595,7 +595,7 @@ export function VenueManagementTemplate({
                     </Label>
                   ))}
                 </FieldSet>
-                <Button onClick={() => void createSchedule()} type="button">
+                <Button onClick={() => void createSchedule()} type="button" variant="secondary">
                   <FormattedMessage {...messages.resourceManagementAddSchedule} />
                 </Button>
               </div>
@@ -700,7 +700,7 @@ export function VenueManagementTemplate({
                     </Label>
                   ))}
                 </FieldSet>
-                <Button onClick={() => void createOfficial()} type="button">
+                <Button onClick={() => void createOfficial()} type="button" variant="secondary">
                   <FormattedMessage {...messages.resourceManagementAddOfficial} />
                 </Button>
               </div>

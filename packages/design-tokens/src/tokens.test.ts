@@ -752,6 +752,15 @@ describe('the CSS output', () => {
     expect(css).toContain('font-variant-numeric: tabular-nums;');
   });
 
+  it('makes stat figures larger than their labels', () => {
+    expect(css).toContain(
+      '.cl-stat-tile__value {\n  font-family: var(--cl-font-display);\n  font-size: var(--cl-font-size-figure-2xl);',
+    );
+    expect(css).toContain(
+      '.cl-metric-strip__label { display: block; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs);',
+    );
+  });
+
   it('emits a rule per form-control atom/state', () => {
     for (const atom of ['input', 'select', 'textarea', 'checkbox', 'radio']) {
       for (const state of ['default', 'focus', 'error', 'disabled']) {
@@ -1055,9 +1064,12 @@ describe('public table and pill treatments', () => {
     expect(css).toMatch(/\.cl-pill \{[^}]*border: 1px solid var\(--cl-border-muted\)/);
   });
 
-  it('marks the active pill by fill and border, not color alone', () => {
+  it('marks an active pill with the cyan well, signal text, and an emphasized border', () => {
     expect(css).toMatch(
-      /\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*var\(--cl-state-live\)/,
+      /\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*background: var\(--cl-surface-raised\)/,
+    );
+    expect(css).toMatch(
+      /\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*color: var\(--cl-state-live\)/,
     );
     expect(css).toMatch(/\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*border-color/);
   });
@@ -1065,6 +1077,14 @@ describe('public table and pill treatments', () => {
 
 describe('compact match card', () => {
   const css = generateCss();
+
+  it('keeps the report link on the title and extends its target across the card', () => {
+    expect(css).toContain('.cl-match-card--linked { position: relative; }');
+    expect(css).toContain('.cl-match-card__report-link::after { content: ""; }');
+    expect(css).toContain(
+      '.cl-match-card__report-link::after, .cl-match-card__hit-area { position: absolute; inset: 0; z-index: 1; }',
+    );
+  });
 
   it('lays the compact card out as a dense flex row, not the full card grid', () => {
     expect(css).toMatch(/\.cl-match-card--compact \{[^}]*display: inline-flex/);
@@ -1074,6 +1094,11 @@ describe('compact match card', () => {
   it('sizes the compact grids denser than the full-card grids', () => {
     expect(css).toMatch(/\.cl-matches-view__grid--compact \{[^}]*minmax\(min\(100%, 220px\)/);
     expect(css).toMatch(/\.cl-match-card-grid--compact \{[^}]*minmax\(min\(100%, 220px\)/);
+    expect(css).toMatch(/\.cl-match-card-grid--compact-summary \{[^}]*minmax\(min\(100%, 280px\)/);
+  });
+
+  it('keeps compact match links at the shared minimum touch target', () => {
+    expect(css).toMatch(/\.cl-match-card--compact \{[^}]*min-height: var\(--cl-touch-target\)/);
   });
 
   it('colors the state dot per semantic state, never leaving it uncolored', () => {

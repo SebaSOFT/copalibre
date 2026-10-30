@@ -998,15 +998,12 @@ function components(): string {
     '.cl-auth-screen__brand { display: grid; gap: 2px; }',
     '.cl-auth-screen__wordmark { font-family: var(--cl-font-display); font-size: var(--cl-font-size-md); }',
     '.cl-auth-screen__tagline { color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
-    // The live-accent rail is the auth surface's own identity, kept exactly as
-    // the shipped login/forgot/reset screens carry it. A Card composed inside
-    // this panel sits 24px inboard of it, so the two read as a rail plus a
-    // card rather than a doubled border.
     // `.cl-auth-screen` is a single-column grid, so `align-self: center` alone
     // only centers the panel vertically (the block axis); without
     // `justify-self: center` (the inline axis) the panel's constrained width
     // left it flush to the grid track's start edge instead of centered.
-    '.cl-auth-screen__panel { width: min(100%, 560px); min-width: 0; max-width: 100%; box-sizing: border-box; align-self: center; justify-self: center; margin-block: var(--cl-space-8); display: grid; gap: var(--cl-space-5); border-left: 4px solid var(--cl-state-live); padding: var(--cl-space-6) 0 var(--cl-space-6) var(--cl-space-6); }',
+    '.cl-auth-screen__panel { width: min(100%, 560px); min-width: 0; max-width: 100%; box-sizing: border-box; align-self: center; justify-self: center; margin-block: var(--cl-space-8); display: grid; gap: var(--cl-space-5); padding-block: var(--cl-space-6); }',
+    '.cl-auth-screen .cl-btn--primary { font-size: var(--cl-font-size-sm); }',
     '',
     '.cl-match-console-screen__header { display: flex; justify-content: space-between; align-items: start; gap: var(--cl-space-4); flex-wrap: wrap; min-width: 0; }',
     '.cl-match-console-screen__header > * { min-width: 0; }',
@@ -1276,12 +1273,12 @@ function components(): string {
     '  cursor: pointer;',
     '}',
     '.cl-pill:hover { background: var(--cl-surface-hover); }',
-    /* State is carried by fill *and* border, never by color alone. */
+    /* A selected filter is context, not another primary action. */
     '.cl-pill--active,',
     '.cl-pill[aria-current] {',
-    '  background: var(--cl-state-live);',
+    '  background: var(--cl-surface-raised);',
     '  border-color: var(--cl-state-live);',
-    '  color: var(--cl-surface-base);',
+    '  color: var(--cl-state-live);',
     '}',
     '',
     '.cl-inline-alert {',
@@ -1361,6 +1358,7 @@ function components(): string {
     '',
     '.cl-stat-tile__value {',
     '  font-family: var(--cl-font-display);',
+    '  font-size: var(--cl-font-size-figure-2xl);',
     '  font-weight: var(--cl-weight-bold);',
     '  /* Scores that shift width as they change are scores nobody can read. */',
     '  font-variant-numeric: tabular-nums;',
@@ -1436,7 +1434,11 @@ function components(): string {
     '',
     "/* The matches-view card — shared by MatchCard.tsx on both public-web and control-web, so it lives here rather than in either surface's own page-scoped styles. */",
     '.cl-match-card { display: grid; gap: var(--cl-space-3); min-width: 0; }',
+    '.cl-match-card--linked { position: relative; }',
     '.cl-match-card__heading { margin: 0; min-width: 0; font-size: var(--cl-font-size-lg); overflow-wrap: anywhere; }',
+    '.cl-match-card__report-link { color: inherit; }',
+    '.cl-match-card__report-link::after, .cl-match-card__hit-area { position: absolute; inset: 0; z-index: 1; }',
+    '.cl-match-card__report-link::after { content: ""; }',
     // The state badge and the clock sit on one line until they cannot: at the
     // 188px reference width a longer translation of the state — `IN DIRETTA`
     // for `LIVE` — plus a running clock exceeds the card, so the pair wraps
@@ -1474,7 +1476,7 @@ function components(): string {
     '.cl-match-card__series .cl-series__score { margin: 0; font-family: var(--cl-font-mono); font-size: var(--cl-font-size-figure-lg); }',
     '.cl-match-card__series .cl-series__pending, .cl-match-card__series .cl-series__decided, .cl-match-card__series .cl-series__aggregate { margin: 0; color: var(--cl-text-secondary); font-size: var(--cl-font-size-sm); }',
     '.cl-match-card__deciding-factor { margin: 0; padding: var(--cl-space-2) var(--cl-space-3); background: var(--cl-surface-chrome); border-left: 2px solid var(--cl-focus-ring); color: var(--cl-text-secondary); font-size: var(--cl-font-size-sm); }',
-    '.cl-match-card__trace { border-top: 1px solid var(--cl-border-muted); padding-top: var(--cl-space-2); }',
+    '.cl-match-card__trace { position: relative; z-index: 2; border-top: 1px solid var(--cl-border-muted); padding-top: var(--cl-space-2); }',
     '.cl-match-card__trace > summary { cursor: pointer; color: var(--cl-focus-ring); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
     '.cl-match-card__trace-lines { margin: var(--cl-space-2) 0 0; padding-left: var(--cl-space-4); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
     // `min(100%, 280px)` rather than a bare floor: a hard minimum wider than
@@ -1496,7 +1498,9 @@ function components(): string {
     // compact branch never renders them.
     '.cl-matches-view__grid--compact { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: var(--cl-space-2); }',
     '.cl-match-card-grid--compact { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: var(--cl-space-2); }',
-    '.cl-match-card--compact { display: inline-flex; align-items: center; gap: var(--cl-space-2); padding: var(--cl-space-1) var(--cl-space-3); font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); min-width: 0; max-width: 100%; }',
+    '.cl-match-card-grid--compact-summary { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--cl-space-2); }',
+    '.cl-match-card--compact { display: inline-flex; align-items: center; gap: var(--cl-space-2); min-height: var(--cl-touch-target); padding: var(--cl-space-1) var(--cl-space-3); font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); min-width: 0; max-width: 100%; }',
+    '.cl-match-card--compact-full-names { display: flex; width: 100%; }',
     '.cl-match-card__compact-dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--cl-border-muted); }',
     // Each `presentState()` class fills the dot with its own semantic token —
     // color is never the sole cue (the visually-hidden label beside it says
@@ -1508,6 +1512,13 @@ function components(): string {
     '.cl-match-card__compact-dot.cl-state--muted { background: var(--cl-border-muted); }',
     '.cl-match-card__compact-dot.cl-state--pending { background: var(--cl-text-muted); }',
     '.cl-match-card__compact-content { display: inline-flex; align-items: center; gap: var(--cl-space-2); min-width: 0; overflow: hidden; white-space: nowrap; font-variant-numeric: tabular-nums; }',
+    '.cl-match-card--compact-full-names .cl-match-card__compact-content { display: grid; flex: 1 1 auto; grid-template-columns: minmax(0, 1fr) auto; gap: var(--cl-space-1) var(--cl-space-2); overflow: visible; white-space: normal; }',
+    '.cl-match-card__compact-side--home { grid-column: 1; grid-row: 1; }',
+    '.cl-match-card__compact-versus { grid-column: 2; grid-row: 1; }',
+    '.cl-match-card__compact-side--away { grid-column: 1; grid-row: 2; }',
+    '.cl-match-card__compact-time { grid-column: 2; grid-row: 2; white-space: nowrap; }',
+    '.cl-match-card__compact-rescheduled { grid-column: 1 / -1; }',
+    '.cl-match-card--compact-full-names .cl-match-card__compact-side > span { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }',
     '.cl-match-card__compact-side { display: inline-flex; align-items: center; gap: var(--cl-space-1); min-width: 0; }',
     '.cl-match-card__compact-side > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
     '.cl-match-card__compact-side .cl-entrant-emblem { flex: 0 0 auto; }',

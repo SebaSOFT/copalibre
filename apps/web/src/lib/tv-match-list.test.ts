@@ -41,10 +41,17 @@ describe('tvMatchEntriesOf', () => {
     expect(entry?.home).toEqual({
       label: 'LOM',
       name: 'Lomas de Rivadavia',
+      abbreviation: 'LOM',
       pending: false,
       score: 1,
     });
-    expect(entry?.away).toEqual({ label: 'HIS', name: 'Club Hispano', pending: false, score: 2 });
+    expect(entry?.away).toEqual({
+      label: 'HIS',
+      name: 'Club Hispano',
+      abbreviation: 'HIS',
+      pending: false,
+      score: 2,
+    });
     expect(entry?.stateLabel).toBe('FINAL');
   });
 
@@ -65,6 +72,8 @@ describe('tvMatchEntriesOf', () => {
     );
 
     expect(entry?.home.label).toBe('Lomas de Rivadavia');
+    expect(entry?.home.abbreviation).toBeUndefined();
+    expect(entry?.away.abbreviation).toBeUndefined();
     expect(entry?.away).toMatchObject({
       label: 'Awaiting participant',
       name: 'Awaiting participant',
@@ -110,6 +119,15 @@ describe('tvMatchEntriesOf', () => {
   it('leaves the score out of a side that has none', () => {
     const [entry] = tvMatchEntriesOf([row({ homeScore: undefined })], labels);
     expect(entry?.home.score).toBeUndefined();
+  });
+
+  it('shows no score for an upcoming fixture even when the API sends zeroes', () => {
+    const [entry] = tvMatchEntriesOf(
+      [row({ state: 'upcoming', homeScore: 0, awayScore: 0 })],
+      labels,
+    );
+    expect(entry?.home.score).toBeUndefined();
+    expect(entry?.away.score).toBeUndefined();
   });
 });
 

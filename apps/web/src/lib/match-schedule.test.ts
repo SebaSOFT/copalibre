@@ -66,6 +66,34 @@ describe('buildSchedule', () => {
     expect(zone.groups[1]?.rounds).toHaveLength(1);
   });
 
+  it('orders scheduled matches chronologically within each round', () => {
+    const schedule = buildSchedule({
+      stages,
+      rows: [
+        row({
+          matchNumber: 1,
+          round: 1,
+          zoneName: 'Groups',
+          groupName: 'A',
+          scheduledAt: '2026-10-22T00:15:00Z',
+        }),
+        row({
+          matchNumber: 2,
+          round: 1,
+          zoneName: 'Groups',
+          groupName: 'A',
+          scheduledAt: '2026-10-21T12:00:00Z',
+        }),
+        row({ matchNumber: 3, round: 1, zoneName: 'Groups', groupName: 'A' }),
+      ],
+      knockoutAsBracket: false,
+    });
+    const zone = schedule[0]?.zones[0];
+    expect(zone?.kind).toBe('rows');
+    if (zone?.kind !== 'rows') return;
+    expect(zone.groups[0]?.rounds[0]?.matches.map((match) => match.matchNumber)).toEqual([2, 1, 3]);
+  });
+
   it('draws a knockout zone as its bracket and does not list its matches as rows', () => {
     const cups = buildSchedule({ stages, rows, knockoutAsBracket: true })[1];
     expect(cups?.zones.map((zone) => zone.kind)).toEqual(['bracket', 'bracket']);

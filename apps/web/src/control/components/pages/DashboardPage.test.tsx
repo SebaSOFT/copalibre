@@ -143,6 +143,9 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
     expect(screen.getByText('Clausura 2026')).toBeDefined();
     expect(screen.getByTestId('pendingRegistrations').textContent).toBe('2');
+    expect(
+      screen.getByRole('link', { name: 'Inscripciones pendientes: 2' }).getAttribute('href'),
+    ).toBe('/control/liga-mendocina/tournaments/apertura-2026/registrations');
   });
 
   it('asks which personal columns to include before exporting individual participants', async () => {

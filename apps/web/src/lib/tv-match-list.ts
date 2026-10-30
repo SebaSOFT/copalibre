@@ -30,12 +30,14 @@ export interface TvMatchEntry {
   readonly home: {
     readonly label: string;
     readonly name: string;
+    readonly abbreviation?: string;
     readonly pending?: boolean;
     readonly score?: number;
   };
   readonly away: {
     readonly label: string;
     readonly name: string;
+    readonly abbreviation?: string;
     readonly pending?: boolean;
     readonly score?: number;
   };
@@ -69,8 +71,9 @@ export function tvMatchEntriesOf(
       return {
         label: pending ? formatted.short : (abbreviation ?? name),
         name: name ?? formatted.long,
+        ...(abbreviation === undefined ? {} : { abbreviation }),
         pending,
-        ...(score === undefined ? {} : { score }),
+        ...(score === undefined || row.state === 'upcoming' ? {} : { score }),
       };
     };
     return {

@@ -19,7 +19,7 @@ const TONE: Readonly<
     { readonly accent: DataEntityCardAccent; readonly badge: SemanticColor }
   >
 > = {
-  live: { accent: 'live', badge: 'state-live' },
+  live: { accent: 'muted', badge: 'text-muted' },
   upcoming: { accent: 'upcoming', badge: 'state-upcoming' },
   draft: { accent: 'muted', badge: 'text-muted' },
   finished: { accent: 'positive', badge: 'state-positive' },
@@ -80,6 +80,7 @@ export function TournamentSummaryCard({
     title linking there would resolve to nothing.
   */
   const matchesHref = `${base}/matches-view`;
+  const registrationsHref = `${base}/registrations`;
   // A draft has nothing to open yet; its own requirement asks for a way back
   // into editing, which is its settings screen.
   const primaryHref = card.lifecycle === 'draft' ? `${base}/settings` : matchesHref;
@@ -224,6 +225,12 @@ export function TournamentSummaryCard({
           label: intl.formatMessage(messages.dashboardPendingRegistrations),
           numeric: true,
           value: String(card.pendingRegistrations),
+          ...(card.pendingRegistrations > 0
+            ? {
+                href: registrationsHref,
+                onNavigate: controlLinkClick(registrationsHref),
+              }
+            : {}),
         },
       ]}
       onTitleNavigate={controlLinkClick(matchesHref)}

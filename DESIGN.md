@@ -183,8 +183,8 @@ components:
     padding: "4px 12px"
     height: "44px"
   pill-active:
-    backgroundColor: "{colors.cyan-400}"
-    textColor: "{colors.ink-950}"
+    backgroundColor: "{colors.cyan-950}"
+    textColor: "{colors.cyan-400}"
   public-theme-preference:
     height: "44px"
   table-header:
@@ -272,7 +272,7 @@ non-colour companion, and the token contract throws at build time when a badge a
 **Key Characteristics:**
 
 - Flat opaque surfaces: near-black ink in the dark theme and a cool-grey ground with near-white panels in L3
-- One accent — Signal Cyan — reserved for live, active, primary action, and focus
+- One accent — Signal Cyan — reserved for live, primary action, and focus; active filters use its cyan well
 - Public and Control follow the system or an explicit light/dark choice; broadcast remains dark
 - Condensed uppercase display face for identity; monospace for every figure and label
 - Asymmetric chamfer (top-right / bottom-left) as the sole shape signature
@@ -287,9 +287,8 @@ where something is true about the state of the tournament.
 
 ### Primary
 
-- **Signal Cyan** (`cyan-400`): Live and active state, primary action fills, links, focus rings, the
-  match clock, the active pill in a filter group. This is the system's only voice; it is why the ink is
-  as dark as it is.
+- **Signal Cyan** (`cyan-400`): Live state, primary action fills, links, focus rings and the match
+  clock. Active filters use its cyan-well surface with Signal Cyan text and border.
 - **Signal Cyan Bright** (`cyan-300`): The primary control under the pointer. The reference lightens the
   fill rather than applying a brightness filter, so hover reads as a step toward live rather than as a
   rendering artifact.
@@ -637,8 +636,8 @@ uppercase display face, 44px targets, state always spelled out in words as well 
   flex row at `44px` minimum height. Below 768px it becomes a drawer — a 65% ink scrim with a `4px` blur,
   a 200ms `cubic-bezier(0.16, 1, 0.3, 1)` slide-in, and a `44px` hamburger with a structure border.
 - **Pills / filters:** Chrome Ink with a structure border, Barlow 600 at `0.875rem`, `44px` minimum
-  height. Hover takes the hovered surface; `--active` or `aria-current` fills Signal Cyan with Deep Ink
-  text.
+  height. Hover takes the hovered surface; `--active` or `aria-current` uses the cyan well with Signal
+  Cyan text and border, keeping selected filters distinct from primary actions.
 - **Public theme preference:** Compact disclosure with the current System/Light/Dark choice visible.
   Its options remain a `44px` target and the selected choice uses the theme-aware accent tokens.
 - **Public shell:** A single logo lock-up in the header and a one-line footer. A skip link sits offscreen
@@ -863,6 +862,35 @@ widths; review the layout itself rather than imposing a `ch` limit.
 ## Accessibility Target
 
 Meet WCAG 2.2 AA. Keep the existing 44px minimum interactive target rule.
+
+## Hierarchy and Scanning
+
+Every screen has one focal point in its first viewport, placed top-left or top-centre. Public
+tournament overviews lead with live matches, then the next fixtures and latest results; control
+dashboards lead with tournaments that need action. Figures use the figure token at a minimum of
+1.875rem; labels use 0.75rem.
+
+Each view region has one primary action. Supporting actions use secondary or tertiary treatment.
+Active filters use the cyan well token, not a cyan-filled action style. Keep the signal colour for
+actions, selections and state.
+
+Progressively disclose detail: tournament overviews show up to four upcoming fixtures and four latest
+results, then link to the complete match list; the overview shows full entrant names and keeps
+abbreviations for tickers. Schedules group matches by day and venue, with collapsible days and filters;
+standings reveal tie-break detail for one position at a time; activity feeds group consecutive
+identical actions while preserving the complete audit trail.
+
+Use LIVE and its live colour only for a match in play. A tournament that is underway uses a neutral
+“In progress” badge. A featured tournament that is also live appears once, with both state badges.
+
+For linked cards, make the title the link and use a single overlay hit target for the remaining card
+area. Keep non-link text visually unadorned. Sort fixtures chronologically within rounds, order cups
+by their promotion tier, and name bracket rounds by their meaning.
+
+Do not use cyan for decoration, including taglines, rails or resting glows. Upcoming matches have no
+score; show a dash instead of zeroes, and pair an empty live state with the next kickoff time. Charts
+identify series by entity name and also provide the same values in a table. Forms show validation only
+after a field is blurred or submitted, never on first render.
 
 ## Deliberate Choices
 

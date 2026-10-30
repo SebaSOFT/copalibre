@@ -107,7 +107,7 @@ export interface DashboardModel {
 export const LIFECYCLE_PRESENTATION: Readonly<
   Record<TournamentLifecycle, { readonly label: MessageDescriptor }>
 > = {
-  live: { label: messages.lifecycleLive },
+  live: { label: messages.lifecycleInProgress },
   upcoming: { label: messages.lifecycleUpcoming },
   draft: { label: messages.lifecycleDraft },
   finished: { label: messages.lifecycleFinished },

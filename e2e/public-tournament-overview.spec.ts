@@ -88,10 +88,154 @@ const completion = {
   ],
 };
 
+const DEMO_CLUBS = [
+  'Casa de Italia',
+  'San Martín',
+  'Richett y Zapata',
+  'Estudiantil San Miguel',
+  'Lomas de Rivadavia',
+  'Club Hispano',
+  'Red Star',
+  'Corazonistas Bogotá',
+  'Atlético Unión',
+  'Valenciano',
+  'Concepción Patín Club',
+  'Andes Talleres',
+  'Leonardo Murialdo',
+  'Olimpia Patín Club',
+  'Banco Hispano',
+  'Social San Juan',
+  'Unión Vecinal',
+  'Richet y Zapata B',
+  'Estudiantil Porteño',
+  'Huracán',
+  'Palmira',
+  'Aberastain',
+  'Lomas de Rivadavia B',
+  'San Martín B',
+];
+
+const demoMatches = Array.from({ length: 72 }, (_, index) => {
+  const played = index < 6;
+  const homeClub = index % DEMO_CLUBS.length;
+  const awayClub = (index + 1) % DEMO_CLUBS.length;
+  const stageNumber = index < 48 ? 1 : 2;
+  const matchNumber = index + 1;
+  return {
+    matchId: `00000000-0000-7000-8000-${String(index + 100).padStart(12, '0')}`,
+    stageNumber,
+    stageOrdinal: matchNumber,
+    matchNumber,
+    status: played ? 'finalized' : 'scheduled',
+    round: stageNumber === 1 ? Math.floor(index / 8) + 1 : Math.floor((index - 48) / 8) + 1,
+    homeEntrantId: `club-${homeClub + 1}`,
+    homeName: DEMO_CLUBS[homeClub],
+    ...(played ? { homeScore: 4 } : {}),
+    awayEntrantId: `club-${awayClub + 1}`,
+    awayName: DEMO_CLUBS[awayClub],
+    ...(played ? { awayScore: index % 2 === 0 ? 2 : 3 } : {}),
+    scheduledAt: played
+      ? `2026-10-${String(23 + index).padStart(2, '0')}T19:00:00.000Z`
+      : `2099-06-${String(Math.floor((index - 6) / 5) + 1).padStart(2, '0')}T${String(
+          19 + ((index - 6) % 5),
+        ).padStart(2, '0')}:00:00.000Z`,
+    venueName: `Cancha ${(index % 4) + 1}`,
+  };
+});
+
+const demoStandingsPreview = DEMO_CLUBS.map((name, index) => ({
+  rank: index + 1,
+  entrantId: `club-${index + 1}`,
+  name,
+  sharedRank: false,
+  statistics: {
+    played: index === 0 || index === 6 ? 1 : index < 6 ? 2 : 0,
+    points: index < 6 ? 3 : 0,
+  },
+  zoneName: `Grupo ${String.fromCharCode(65 + Math.floor(index / 4))}`,
+}));
+
+const demoTableProjection = {
+  layoutCode: 'group-table',
+  target: 'group-phase',
+  label: { en: 'Group Table', es: 'Tabla de posiciones' },
+  columns: [
+    { code: 'rank', header: '#', format: 'number' },
+    { code: 'name', header: 'Equipo', format: 'text' },
+    { code: 'played', header: 'PJ', format: 'number' },
+    { code: 'points', header: 'Pts', format: 'number' },
+  ],
+  defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+  rows: demoStandingsPreview.map((row, index) => ({
+    actorId: `00000000-0000-7000-8000-${String(index + 201).padStart(12, '0')}`,
+    entrantId: `00000000-0000-7000-8000-${String(index + 301).padStart(12, '0')}`,
+    actorName: row.name,
+    entrantName: row.name,
+    rank: row.rank,
+    sharedRank: row.sharedRank,
+    cells: {
+      rank: { raw: row.rank, formatted: String(row.rank) },
+      name: { formatted: row.name },
+      played: { raw: row.statistics.played, formatted: String(row.statistics.played) },
+      points: { raw: row.statistics.points, formatted: String(row.statistics.points) },
+    },
+  })),
+  projectionVersion: 1,
+  grain: 'match',
+  countColumnCode: 'played',
+};
+
+const demoCompletion = {
+  ...completion,
+  totalMatches: 72,
+  resolvedMatches: 6,
+  liveMatches: 0,
+  scheduledMatches: 66,
+  finalizedMatches: 6,
+  stages: [
+    {
+      stageId: 'stage-1',
+      stageNumber: 1,
+      stageName: 'Fase de grupos',
+      totalMatches: 48,
+      resolvedMatches: 6,
+      liveMatches: 0,
+      scheduledMatches: 42,
+      finalizedMatches: 6,
+      forfeitedMatches: 0,
+      segments: Array.from({ length: 6 }, (_, index) => ({
+        segmentId: `group-${index + 1}`,
+        name: `Grupo ${String.fromCharCode(65 + index)}`,
+        totalMatches: 8,
+        resolvedMatches: index === 0 ? 6 : 0,
+      })),
+    },
+    {
+      stageId: 'stage-2',
+      stageNumber: 2,
+      stageName: 'Copas',
+      totalMatches: 24,
+      resolvedMatches: 0,
+      liveMatches: 0,
+      scheduledMatches: 24,
+      finalizedMatches: 0,
+      forfeitedMatches: 0,
+      segments: ['Copa Oro', 'Copa Plata', 'Copa Bronce'].map((name, index) => ({
+        segmentId: `cup-${index + 1}`,
+        name,
+        totalMatches: 8,
+        resolvedMatches: 0,
+      })),
+    },
+  ],
+};
+
 let apiServer: Server;
 let noLiveMatches = false;
+let demoScaleOverview = false;
 test.beforeEach(() => {
   noLiveMatches = false;
+  demoScaleOverview = false;
 });
 
 test.beforeAll(async ({ workerPort }) => {
@@ -99,24 +243,47 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
     if (path === `${TOURNAMENT}/overview`) {
-      res.end(
-        JSON.stringify(
-          noLiveMatches
-            ? {
-                ...overview,
-                matches: overview.matches.map((match) => ({
-                  ...match,
-                  status: 'scheduled',
-                  scheduledAt: '2099-06-01T19:00:00.000Z',
-                })),
-              }
-            : overview,
-        ),
-      );
+      const response = demoScaleOverview
+        ? {
+            ...overview,
+            matches: demoMatches,
+            standingsPreview: demoStandingsPreview,
+            standingsGrain: 'match',
+          }
+        : noLiveMatches
+          ? {
+              ...overview,
+              matches: overview.matches.map((match) => ({
+                ...match,
+                status: 'scheduled',
+                scheduledAt: '2099-06-01T19:00:00.000Z',
+              })),
+            }
+          : overview;
+      res.end(JSON.stringify(response));
       return;
     }
     if (path === `${TOURNAMENT}/completion`) {
-      res.end(JSON.stringify(completion));
+      res.end(JSON.stringify(demoScaleOverview ? demoCompletion : completion));
+      return;
+    }
+    if (demoScaleOverview && path === `${TOURNAMENT}/public/tables`) {
+      res.end(
+        JSON.stringify({
+          layouts: [
+            {
+              code: 'group-table',
+              target: 'group-phase',
+              label: { en: 'Group Table', es: 'Tabla de posiciones' },
+              entityGranularity: 'team',
+            },
+          ],
+        }),
+      );
+      return;
+    }
+    if (demoScaleOverview && path.endsWith('/public/tables/group-table')) {
+      res.end(JSON.stringify(demoTableProjection));
       return;
     }
     res.statusCode = 404;
@@ -130,6 +297,61 @@ test.afterAll(async () => {
 });
 
 test.describe('tournament overview progress and rules', () => {
+  test('4.1: on the 72-match demo scale, kickoff is in the first viewport and the page stays below 2,500px', async ({
+    page,
+  }) => {
+    demoScaleOverview = true;
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.route('**/events/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': ok\n\n' }),
+    );
+    await page.goto(PAGE);
+    await page.evaluate(() => document.fonts.ready);
+
+    const kickoff = page
+      .locator('section[aria-labelledby="overview-next-heading"]')
+      .getByText('16:00', { exact: true })
+      .first();
+    await expect(kickoff).toBeVisible();
+    await expect(kickoff).toBeInViewport();
+    await expect(page.locator('.cl-standings-section tbody tr')).toHaveCount(8);
+    const firstUpcoming = page
+      .locator('section[aria-labelledby="overview-next-heading"] .cl-match-card--compact')
+      .first();
+    await expect(firstUpcoming).toContainText('Red Star');
+    await expect(firstUpcoming).toContainText('Corazonistas Bogotá');
+    await expect(firstUpcoming).toHaveCSS('min-height', '44px');
+    await expect(
+      page.locator('section[aria-labelledby="overview-next-heading"] .cl-match-card--compact'),
+    ).toHaveCount(4);
+    await expect(
+      page.locator('section[aria-labelledby="overview-results-heading"] .cl-match-card--compact'),
+    ).toHaveCount(4);
+    await expect(
+      page.locator('.cl-club-filter, .cl-table-tabs, [data-table-sort-button]'),
+    ).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Ver tabla completa' })).toHaveAttribute(
+      'href',
+      `${PAGE}?tab=group-table`,
+    );
+
+    const pageHeight = await page.evaluate(() =>
+      Math.max(document.body.scrollHeight, document.documentElement.scrollHeight),
+    );
+    expect(pageHeight).toBeLessThan(2500);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    const mobileUpcoming = page
+      .locator('section[aria-labelledby="overview-next-heading"] .cl-match-card--compact')
+      .first();
+    await expect(mobileUpcoming).toContainText('Red Star');
+    await expect(mobileUpcoming).toContainText('Corazonistas Bogotá');
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+  });
+
   test('the progress card fills the public column and nests a bar per stage and segment', async ({
     page,
   }) => {

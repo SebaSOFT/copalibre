@@ -634,7 +634,7 @@ test('instantiates a tournament from a profile, previewing its stages read-only 
     );
 });
 
-test('shows step badge states and explains blocked tournament wizard progression', async ({
+test('shows no initial validation, then explains blocked tournament wizard progression', async ({
   page,
 }) => {
   await mockControlApi(page);
@@ -645,6 +645,12 @@ test('shows step badge states and explains blocked tournament wizard progression
 
   const continueButton = page.getByRole('button', { name: 'Continuar' });
   await expect(continueButton).toBeDisabled();
+  await expect(page.locator('#wizard-problems')).toHaveCount(0);
+  await expect(continueButton).not.toHaveAttribute('aria-describedby', 'wizard-problems');
+
+  const nameInput = page.getByLabel('Nombre');
+  await nameInput.focus();
+  await nameInput.blur();
   await expect(continueButton).toHaveAttribute('aria-describedby', 'wizard-problems');
   await expect(page.locator('#wizard-problems')).toContainText('nombre');
   const buttonBox = await continueButton.boundingBox();
@@ -654,15 +660,20 @@ test('shows step badge states and explains blocked tournament wizard progression
   await expect(activeStep).toHaveText('1');
   await expect(activeStep).toHaveAttribute('aria-current', 'step');
 
-  await page.getByLabel('Nombre').fill('Copa Progreso');
+  await nameInput.fill('Copa Progreso');
   await page.getByLabel('Alias').fill('copa-progreso');
   await continueButton.click();
   await expect(activeStep).toHaveText('2');
   await expect(continueButton).toBeDisabled();
+  await expect(page.locator('#wizard-problems')).toHaveCount(0);
+
+  const noMinors = page.getByRole('radio', {
+    name: 'No, este torneo no tiene participantes menores de edad',
+  });
+  await noMinors.focus();
+  await noMinors.blur();
   await expect(page.locator('#wizard-problems')).toContainText('menores');
-  await page
-    .getByRole('radio', { name: 'No, este torneo no tiene participantes menores de edad' })
-    .check();
+  await noMinors.check();
   await expect(continueButton).toBeEnabled();
   await continueButton.click();
 

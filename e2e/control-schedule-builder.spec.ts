@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { fork, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +13,19 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 const ORG_ALIAS = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
 const STAGE_ID = 'stage-1';
+
+async function expandAllAgendaDays(page: Page): Promise<void> {
+  const agenda = page.getByRole('region', { name: 'Agenda diaria' });
+  await expect(agenda).toBeVisible();
+  const summaries = agenda.locator('details > summary');
+  await expect(summaries.first()).toBeVisible();
+  for (const summary of await summaries.all()) {
+    const isOpen = await summary.evaluate(
+      (element) => (element.parentElement as HTMLDetailsElement).open,
+    );
+    if (!isOpen) await summary.click();
+  }
+}
 
 interface VenueRecord {
   readonly venueId: string;
@@ -205,15 +218,16 @@ test('publishes an undecided eight-entrant final through the real API and retain
     await seedLoginTransaction(page, target);
     await page.goto(loginCallbackUrl());
     await page.waitForURL(`**${target}`);
-    await expect(page.getByText('Ronda 3').first()).toBeVisible();
+    await expandAllAgendaDays(page);
     await expect(
       page.getByTestId('entrant-name').filter({ hasText: 'Club 1' }).first(),
     ).toBeVisible();
     expect(await page.locator('main').innerText()).not.toMatch(
       /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
     );
-    // Until source labels arrive, the final remains selectable by its real match row.
-    const time = page.getByLabel(/^Hora de inicio/).last();
+    // Address the persisted final directly; the agenda sorts rows by date and venue.
+    const time = page.locator(`#slot-${api.matchId}`);
+    await expect(time).toBeVisible();
     await time.selectOption({ index: 1 });
     await page.getByRole('button', { name: 'Previsualizar', exact: true }).click();
     await expect(
@@ -228,7 +242,7 @@ test('publishes an undecided eight-entrant final through the real API and retain
       expect.objectContaining({ matchId: api.matchId, slotId: expect.any(String) }),
     ]);
     await page.reload();
-    await expect(page.getByLabel(/^Hora de inicio/).last()).not.toHaveValue('');
+    await expect(time).not.toHaveValue('');
     for (const [name, width, height] of [
       ['desktop', 1440, 900],
       ['mobile', 390, 844],
@@ -247,10 +261,7 @@ test('publishes an undecided eight-entrant final through the real API and retain
         }),
       );
       expect(typography).toBe(true);
-      await page
-        .getByLabel(/^Hora de inicio/)
-        .last()
-        .evaluate((element) => element.scrollIntoView({ block: 'center' }));
+      await time.evaluate((element) => element.scrollIntoView({ block: 'center' }));
       await page.screenshot({
         path: `docs/assets/screenshots/control-undecided-final-${name}.png`,
       });
@@ -398,7 +409,7 @@ test('reports a rest conflict a quarter-final result makes real, without moving 
     await seedLoginTransaction(page, target);
     await page.goto(loginCallbackUrl());
     await page.waitForURL(`**${target}`);
-    await expect(page.getByText('Ronda 1').first()).toBeVisible();
+    await expandAllAgendaDays(page);
     await expect(page.getByText('Conflictos surgidos después de publicar')).toHaveCount(0);
 
     // The quarter-final is played; its winner now owes the semi-final an hour of rest.
@@ -732,7 +743,7 @@ test('creates a venue and an official, assigns a fixture, previews, and publishe
   });
   await page.waitForURL(`**${scheduleTarget}`);
 
-  await expect(page.getByText('Ronda 1').first()).toBeVisible();
+  await expandAllAgendaDays(page);
   await page.getByLabel('Hora de inicio — Club Alfa vs Club Bravo').selectOption('slot-1');
 
   await page.getByText('Previsualizar').click();
@@ -740,12 +751,7 @@ test('creates a venue and an official, assigns a fixture, previews, and publishe
   await page.getByText('Publicar calendario').click();
 
   await expect(page.getByText('Horario publicado.')).toBeVisible();
-  // fixture-1 is no longer among the unassigned calendar rows — only fixture-2 (never
-  // assigned in this test) remains "Sin asignar". Scoped to the calendar: the list view's
-  // slot picker carries an unassigned option on every row, which is not a row's state.
-  await expect(
-    page.locator('[aria-label="Vista de calendario"]').getByText('Sin asignar'),
-  ).toHaveCount(1);
+  expect(published).toEqual([{ matchId: 'match-1', slotId: 'slot-1' }]);
 });
 
 test('a conflicting batch shows the conflict and blocks publish until resolved', async ({
@@ -767,14 +773,15 @@ test('a conflicting batch shows the conflict and blocks publish until resolved',
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${scheduleTarget}`);
 
-  await expect(page.getByText('Ronda 1').first()).toBeVisible();
+  await expandAllAgendaDays(page);
 
   // Both matches into the same slot at a venue that can host only one.
   await page.getByLabel('Hora de inicio — Club Alfa vs Club Bravo').selectOption('slot-1');
+  await expandAllAgendaDays(page);
   await page.getByLabel('Hora de inicio — Club Cóndor vs Club Delta').selectOption('slot-1');
 
   await page.getByText('Previsualizar').click();
-  await expect(page.getByText('Conflictos')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Conflictos', exact: true })).toBeVisible();
   await expect(page.getByText(/^La cancha supera su capacidad con Club/)).toBeVisible();
   // The API's English diagnostic never reaches the operator.
   await expect(page.getByText(/hosts 1 fixture/)).toHaveCount(0);
@@ -823,7 +830,7 @@ test('stores a minimum rest, asks a reason for published moves from the keyboard
     if (!error.message.includes('is interrupted by another navigation')) throw error;
   });
   await page.waitForURL(`**${scheduleTarget}`);
-  await expect(page.getByText('Ronda 1').first()).toBeVisible();
+  await expandAllAgendaDays(page);
 
   // entrant-a plays match-1 at 14:00; match-4 at 15:00 leaves no rest at all.
   await page.getByLabel('Hora de inicio — Club Alfa vs Club Cóndor').selectOption('slot-5');

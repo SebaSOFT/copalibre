@@ -658,6 +658,8 @@ test.describe('B2: public tournament page', () => {
   }) => {
     await page.setViewportSize({ width: 1280, height: 320 });
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    await page.locator('[data-full-layout-code="group-standings-default"]').click();
+    await expect(page).toHaveURL(/tab=group-standings-default/);
     await page.evaluate(() => {
       (window as unknown as { __sameDocument: boolean }).__sameDocument = true;
       document.querySelector('.cl-standings-section')?.scrollIntoView();
@@ -694,6 +696,8 @@ test.describe('B2: public tournament page', () => {
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    await page.locator('[data-full-layout-code="group-standings-default"]').click();
+    await expect(page).toHaveURL(/tab=group-standings-default/);
 
     // `ga` declares a short header: it shows GC, its long header is the hint.
     await page.getByRole('button', { name: 'GC', exact: true }).focus();
@@ -714,6 +718,8 @@ test.describe('B2: public tournament page', () => {
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    await page.locator('[data-full-layout-code="group-standings-default"]').click();
+    await expect(page).toHaveURL(/tab=group-standings-default/);
 
     const chip = page.locator('a[data-club-filter="club-talleres"]');
     // No emblem uploaded in this fixture: the stored abbreviation stands in.
@@ -757,13 +763,16 @@ test.describe('B2: public tournament page', () => {
     await expect(page.locator('article[data-match="1"]').getByText('Independiente')).toBeVisible();
     await expect(page.locator('article[data-match="1"]').getByText('1')).toBeVisible();
 
-    // Unresolved slot names its source cleanly, never a NaN match number
-    await expect(
-      page.locator('article[data-match="2"]').getByText('Winner of Match 1'),
-    ).toBeVisible();
-    await expect(
-      page.locator('article[data-match="2"]').getByText('Winner of Match 3'),
-    ).toBeVisible();
+    // Compact bracket labels retain the full source as their title; full cards show it directly.
+    const final = page.locator('article[data-match="2"]');
+    for (const source of ['Winner of Match 1', 'Winner of Match 3']) {
+      await expect(
+        final
+          .getByText(source, { exact: true })
+          .or(final.getByTitle(source, { exact: true }))
+          .first(),
+      ).toBeVisible();
+    }
 
     // Entire stage body must never contain "NaN"
     await expect(page.locator('body')).not.toContainText('NaN');
@@ -774,8 +783,10 @@ test.describe('B2: public tournament page', () => {
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    await page.locator('[data-full-layout-code="top-scorers"]').click();
+    await expect(page).toHaveURL(/tab=top-scorers/);
 
-    // Click Top Scorers tab
+    // The full-ranking destination exposes its layout tabs and club filter.
     await page.getByRole('tab', { name: 'Top Scorers' }).click();
     await expect(page.getByRole('heading', { name: 'Top Scorers' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toBeVisible();
@@ -853,9 +864,9 @@ test.describe('B2: public tournament page', () => {
     );
 
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    await page.locator('[data-full-layout-code="top-scorers"]').click();
+    await expect(page).toHaveURL(/tab=top-scorers/);
 
-    // Switch to Top Scorers tab
-    await page.getByRole('tab', { name: 'Top Scorers' }).click();
     const playerLink = page.getByRole('link', { name: 'Goleador Uno' });
     await expect(playerLink).toBeVisible();
 
@@ -914,8 +925,8 @@ test.describe('B2: public tournament page', () => {
 
   test('states an absence, not zeroes, for a player with no roster history', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
-
-    await page.getByRole('tab', { name: 'Top Scorers' }).click();
+    await page.locator('[data-full-layout-code="top-scorers"]').click();
+    await expect(page).toHaveURL(/tab=top-scorers/);
     const playerLink = page.getByRole('link', { name: 'Goleador Dos' });
     await expect(playerLink).toBeVisible();
 
@@ -950,27 +961,33 @@ test.describe('B2: public tournament page', () => {
     await page.goto(`/${ORGANIZATION}`);
 
     await expect(page.getByRole('heading', { name: 'Liga Mendocina' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Live & Active' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'In progress' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Upcoming' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Finished & Archive' })).toBeVisible();
 
-    // No tournament in this seed carries the organizer's featured flag, so the
-    // block falls back to naming the live one exactly as it did before the featured flag —
-    // the regression that proves an organization which never touches the toggle
-    // sees no change at all.
-    await expect(page.getByRole('heading', { name: 'Featured' })).toBeVisible();
+    // The live tournament appears once in the In progress section and carries
+    // its featured badge there, instead of being duplicated in another section.
+    const inProgress = page.getByRole('region', { name: 'In progress' });
+    const liveCard = inProgress.locator('[data-tournament-alias="torneo-relampago-2026"]');
+    await expect(liveCard).toHaveCount(1);
+    await expect(liveCard).toContainText('In progress');
+    await expect(liveCard).toContainText('Featured');
+    await expect(liveCard.locator('.cl-badge-live')).toHaveCount(0);
+    await expect(liveCard.locator('.cl-live-pulse')).toHaveCount(0);
 
-    // Live is urgent and comes first; featured is curated and follows it.
+    // The sections follow lifecycle priority.
     const sectionHeadings = await page
       .locator('h2.cl-section-title')
       .allTextContents()
       .then((all) => all.map((heading) => heading.trim()));
-    expect(sectionHeadings.indexOf('Live & Active')).toBeLessThan(
-      sectionHeadings.indexOf('Featured'),
+    expect(sectionHeadings.indexOf('In progress')).toBeLessThan(
+      sectionHeadings.indexOf('Upcoming'),
+    );
+    expect(sectionHeadings.indexOf('Upcoming')).toBeLessThan(
+      sectionHeadings.indexOf('Finished & Archive'),
     );
 
-    // Check Live tournament
-    await expect(page.getByRole('link', { name: 'Torneo Relámpago 2026' }).first()).toBeVisible();
+    await expect(inProgress.getByRole('link', { name: 'Torneo Relámpago 2026' })).toBeVisible();
 
     // Check Finished tournament & Podium
     await expect(page.getByRole('link', { name: 'Apertura 2026' }).first()).toBeVisible();

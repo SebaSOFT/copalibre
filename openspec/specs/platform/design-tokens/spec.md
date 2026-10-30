@@ -302,6 +302,28 @@ labels or unreachable controls.
 - **WHEN** a screen is viewed at 200% browser zoom
 - **THEN** no form label is clipped and no interactive control becomes unreachable
 
+### Requirement: Pages use one container per surface with tokenised gutters
+Every public page SHALL place its content in a centred container of at most 1200px, with prose,
+forms and match detail in a reading column of at most 720px. The control main column SHALL be at
+most 1440px, with forms at most 720px. Side gutters SHALL be 16px below 768px, 24px from 768px, and
+32px from 1024px. No content SHALL start at the viewport edge.
+
+#### Scenario: Tournament overview at 1920px
+
+- **WHEN** the public tournament overview renders at 1920px
+- **THEN** its content is at most 1200px wide and centred, and the background band still fills the
+  viewport
+
+#### Scenario: Headings never touch the edge
+
+- **WHEN** any public page renders at 375px
+- **THEN** every heading and card starts at least 16px from the left edge
+
+#### Scenario: Control form at 1920px
+
+- **WHEN** the stage settings form renders at 1920px
+- **THEN** the form is at most 720px wide and no button is wider than its label plus padding
+
 ### Requirement: Long content truncates without losing meaning
 Any field displaying a long team, participant, tournament, venue, or sponsor name SHALL use
 `min-width: 0` with an ellipsis or explicit wrapping rule, and SHALL make the full text available

@@ -204,6 +204,7 @@ test('switching the zone facet on the matches page narrows the list and updates 
   await expect(page.getByText('Club Andes', { exact: true })).toBeVisible();
   await expect(page.getByText('River', { exact: true })).toBeVisible();
 
+  await page.locator('.cl-match-schedule-filters > summary').click();
   const zoneNav = page.getByRole('navigation', { name: 'Filter by zone' });
   await expect(zoneNav).toBeVisible();
   await zoneNav.getByRole('link', { name: 'Copa de Plata' }).click();

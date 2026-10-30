@@ -44,7 +44,8 @@ import {
 } from '../table-projections/read.js';
 
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
-import { resolveStageZones } from './bracket-zones.js';
+import { orderZonesByPromotionBands, resolveStageZones } from './bracket-zones.js';
+import { stageQualifierPlans } from './stage-qualifiers.js';
 import { bracketLinks, graphRecordsOf, placementMatchOf } from './bracket-placements.js';
 import { persistedBracketMatches } from './persisted-bracket.js';
 import {
@@ -1132,7 +1133,14 @@ export class PublicProjectionsController {
 
     const readModel = new StageReadModel(this.db);
     const enrollmentRepo = new EnrollmentRepository(this.db);
-    const zones = await resolveStageZones(this.db, stage.stageId);
+    const [declaredZones, promotionPlans] = await Promise.all([
+      resolveStageZones(this.db, stage.stageId),
+      stageQualifierPlans(this.db, stage.stageId),
+    ]);
+    const zones = orderZonesByPromotionBands(
+      declaredZones,
+      promotionPlans.map(({ plan }) => plan),
+    );
 
     // Computed once, from every zone combined — a per-zone fetch below cannot
     // reconstruct this on its own, since it has no visibility into how many

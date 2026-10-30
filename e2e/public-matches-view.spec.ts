@@ -164,6 +164,7 @@ test('every filter row carries a visible title, and only the rows that apply app
   page,
 }) => {
   await page.goto(matchesPath);
+  await page.locator('.cl-match-schedule-filters > summary').click();
 
   await expect(page.locator('.cl-filter-row__title')).toHaveText(['State', 'View']);
   await expect(
@@ -193,6 +194,7 @@ test('the Live filter link narrows the server-rendered list with scripting off',
   await page.goto(matchesPath);
 
   await expect(page.getByText('Club Andes', { exact: true })).toBeVisible();
+  await page.locator('.cl-match-schedule-filters > summary').click();
   await page.getByRole('link', { name: 'Live' }).click();
 
   await expect(page.getByText('Talleres', { exact: true })).toBeVisible();
@@ -206,6 +208,7 @@ test('the state filter renders as discrete pills with a visible active state', a
   // Scripting off: the treatment is server-rendered, like the filter itself.
   await context.route('**/*.js', (route) => route.abort());
   await page.goto(matchesPath);
+  await page.locator('.cl-match-schedule-filters > summary').click();
 
   // Scoped by its own aria-label (the compact match card added a second
   // `nav.cl-pill-group` for the density toggle): a bare `nav.cl-pill-group`

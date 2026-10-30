@@ -15,6 +15,27 @@ export interface StageZone {
   readonly format?: TournamentFormat;
 }
 
+export function orderZonesByPromotionBands<
+  Plan extends { readonly bands?: readonly { readonly zoneRef: string }[] },
+>(zones: readonly StageZone[], plans: readonly Plan[]): readonly StageZone[] {
+  const ordered: StageZone[] = [];
+  const included = new Set<StageZone>();
+
+  for (const plan of plans) {
+    for (const band of plan.bands ?? []) {
+      const zone = zones.find((candidate) => candidate.zoneName === band.zoneRef);
+      if (zone !== undefined && !included.has(zone)) {
+        included.add(zone);
+        ordered.push(zone);
+      }
+    }
+  }
+
+  return ordered.length === 0
+    ? zones
+    : [...ordered, ...zones.filter((zone) => !included.has(zone))];
+}
+
 /**
  * A stage's own zones, in declared order — or one implicit zone when none are
  * declared, so every caller's "for each zone" loop runs at least once and an

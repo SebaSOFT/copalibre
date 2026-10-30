@@ -114,14 +114,15 @@ export function WizardShell({
           className="cl-chamfer cl-chamfer--control"
           style={badge ? { minWidth: 0, maxWidth: '100%', overflow: 'hidden' } : undefined}
         >
-          <div className={badge ? 'cl-wizard-shell__step-rail' : undefined}>
+          <div>
             <ol
               aria-label={stepsAriaLabel}
+              className={badge ? 'cl-wizard-shell__step-list--wrap' : undefined}
               style={{
                 display: 'grid',
-                gridTemplateColumns: badge
-                  ? `repeat(${steps.length}, minmax(8rem, 1fr))`
-                  : 'repeat(auto-fit, minmax(min(100%, 6rem), 1fr))',
+                ...(badge
+                  ? {}
+                  : { gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 6rem), 1fr))' }),
                 gap: 'var(--cl-space-3)',
                 listStyle: 'none',
                 padding: 0,
@@ -130,9 +131,6 @@ export function WizardShell({
                   ? {
                       width: '100%',
                       maxWidth: '100%',
-                      overflowX: 'auto',
-                      scrollbarGutter: 'stable',
-                      scrollPaddingInlineEnd: 'var(--cl-space-8)',
                     }
                   : {}),
               }}
@@ -182,15 +180,6 @@ export function WizardShell({
                 </li>
               ))}
             </ol>
-            {badge ? (
-              <span
-                aria-hidden="true"
-                className="cl-wizard-shell__scroll-cue"
-                data-testid="wizard-step-scroll-cue"
-              >
-                ›
-              </span>
-            ) : null}
           </div>
         </Card>
 
@@ -224,14 +213,7 @@ export function WizardShell({
 
           {afterFailures}
 
-          <footer
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: 'var(--cl-space-3)',
-              marginTop: 'var(--cl-space-6)',
-            }}
-          >
+          <footer className="cl-wizard-shell__actions">
             <Button onClick={onBack} type="button" variant="secondary">
               {backLabel}
             </Button>

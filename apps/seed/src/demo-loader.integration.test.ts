@@ -182,10 +182,14 @@ describePostgres('demo dataset loading (integration)', () => {
       'Grupo E',
       'Grupo F',
     ]);
-    const zones = await scratch.db.selectFrom('zones').select('name').execute();
-    expect(zones.map((zone) => zone.name)).toEqual(
-      expect.arrayContaining(['Copa Oro', 'Copa Plata', 'Copa Bronce']),
-    );
+    const cupZones = await scratch.db
+      .selectFrom('zones')
+      .innerJoin('stages', 'stages.stage_id', 'zones.stage_id')
+      .select('zones.name')
+      .where('stages.number', '=', 2)
+      .orderBy('zones.number')
+      .execute();
+    expect(cupZones.map((zone) => zone.name)).toEqual(['Copa Oro', 'Copa Plata', 'Copa Bronce']);
 
     const assigned = await scratch.db
       .selectFrom('match_schedule_assignments')

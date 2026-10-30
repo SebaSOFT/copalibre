@@ -1,6 +1,52 @@
-import { formatActivityAction, formatActivityReason } from './activity-formatting.js';
+import {
+  formatActivityAction,
+  formatActivityReason,
+  groupConsecutiveActivity,
+} from './activity-formatting.js';
 
 describe('activity-formatting', () => {
+  describe('groupConsecutiveActivity', () => {
+    const entry = (
+      auditId: string,
+      occurredAt: string,
+      overrides: Partial<{ action: string; actor: string }> = {},
+    ) => ({
+      auditId,
+      action: overrides.action ?? 'event.recorded',
+      actor: overrides.actor ?? 'system:demo-dataset',
+      occurredAt,
+    });
+
+    it('groups adjacent identical actions and actors inside one five-minute window', () => {
+      const grouped = groupConsecutiveActivity([
+        entry('newest', '2026-10-29T12:05:00.000Z'),
+        entry('older', '2026-10-29T12:00:00.000Z'),
+        entry('outside', '2026-10-29T11:55:00.000Z'),
+      ]);
+
+      expect(grouped.map((group) => group.entries.map((one) => one.auditId))).toEqual([
+        ['newest', 'older'],
+        ['outside'],
+      ]);
+    });
+
+    it('keeps different actors, actions and non-consecutive entries separate', () => {
+      const grouped = groupConsecutiveActivity([
+        entry('first', '2026-10-29T12:05:00.000Z'),
+        entry('other-actor', '2026-10-29T12:04:00.000Z', { actor: 'admin' }),
+        entry('other-action', '2026-10-29T12:03:00.000Z', { action: 'match.finalized' }),
+        entry('same-again', '2026-10-29T12:02:00.000Z'),
+      ]);
+
+      expect(grouped.map((group) => group.entries.map((one) => one.auditId))).toEqual([
+        ['first'],
+        ['other-actor'],
+        ['other-action'],
+        ['same-again'],
+      ]);
+    });
+  });
+
   describe('formatActivityAction', () => {
     it('handles match finalization events in both Spanish and English', () => {
       expect(formatActivityAction('match.finalized', 'es')).toBe('Partido finalizado');

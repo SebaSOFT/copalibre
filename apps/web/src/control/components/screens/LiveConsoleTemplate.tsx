@@ -69,14 +69,14 @@ export function LiveConsoleTemplate({
                   <Badge
                     className={
                       tournament.status === 'started'
-                        ? 'cl-state--live'
+                        ? 'cl-state--muted'
                         : tournament.status === 'finished'
                           ? 'cl-state--positive'
                           : 'cl-state--upcoming'
                     }
                     label={intl.formatMessage(
                       tournament.status === 'started'
-                        ? messages.lifecycleLive
+                        ? messages.lifecycleInProgress
                         : tournament.status === 'finished'
                           ? messages.lifecycleFinished
                           : messages.lifecycleUpcoming,

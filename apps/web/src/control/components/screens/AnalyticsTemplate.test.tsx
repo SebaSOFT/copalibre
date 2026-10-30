@@ -41,10 +41,11 @@ describe('AnalyticsTemplate', () => {
     expect(screen.getByText('liga-mendocina / Analytics')).toBeTruthy();
     expect(screen.getByText('Total tournaments')).toBeTruthy();
     expect(screen.getByText('Apertura 2026')).toBeTruthy();
-    expect(screen.getAllByText('Live').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('In progress').length).toBeGreaterThan(0);
     expect(screen.getByText('5 / 8 matches')).toBeTruthy();
     expect(screen.getByRole('region', { name: 'Tournament overview' })).toBeTruthy();
-    expect(document.querySelector('.cl-badge--live')).not.toBeNull();
+    expect(document.querySelector('.cl-badge--live')).toBeNull();
+    expect(document.querySelector('.cl-badge--muted')).not.toBeNull();
   });
 
   it('charts all tournament statuses with stable palette slots and table values', () => {
@@ -81,7 +82,7 @@ describe('AnalyticsTemplate', () => {
       name: 'Tournament status distribution: Show as table',
     });
     const chartTable = within(chartRegion).getByRole('table');
-    expect(within(chartTable).getByRole('row', { name: 'Live 1' })).toBeTruthy();
+    expect(within(chartTable).getByRole('row', { name: 'In progress 1' })).toBeTruthy();
     expect(within(chartTable).getByRole('row', { name: 'Draft 1' })).toBeTruthy();
     expect(within(chartTable).getByRole('row', { name: 'Archived 1' })).toBeTruthy();
   });

@@ -1,5 +1,5 @@
 import type { BracketMatch } from './bracket.js';
-import type { MatchCardData } from './matches-view.js';
+import { groupMatchesByRound, type MatchCardData } from './matches-view.js';
 
 /** A scope of more matches than this is only ever a table; at or below it the viewer may choose cards. */
 export const SCHEDULE_TABLE_THRESHOLD = 12;
@@ -51,12 +51,7 @@ function byKey<T>(
 }
 
 function roundsOf(rows: readonly MatchCardData[]): readonly ScheduleRound[] {
-  return [...byKey(rows, (row) => String(row.round ?? 0)).entries()]
-    .map(([round, matches]) => ({
-      round: Number(round),
-      matches: [...matches].sort((a, b) => a.matchNumber - b.matchNumber),
-    }))
-    .sort((a, b) => a.round - b.round);
+  return groupMatchesByRound(rows);
 }
 
 function groupsOf(rows: readonly MatchCardData[]): readonly ScheduleGroup[] {

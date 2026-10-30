@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-29T15:38:13.000Z",
+  "generatedAt": "2026-10-29T18:14:31.000Z",
   "title": "Design System: CopaLibre",
   "extensions": {
     "colorMeta": {
@@ -576,22 +576,58 @@
       }
     ],
     "breakpoints": [
-      { "name": "sm", "value": "375px" },
-      { "name": "md", "value": "768px" },
-      { "name": "lg", "value": "1024px" },
-      { "name": "xl", "value": "1440px" }
+      {
+        "name": "sm",
+        "value": "375px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1440px"
+      }
     ],
     "tracking": [
-      { "name": "normal", "value": "0" },
-      { "name": "wide", "value": "0.04em" },
-      { "name": "wider", "value": "0.05em" },
-      { "name": "widest", "value": "0.06em" }
+      {
+        "name": "normal",
+        "value": "0"
+      },
+      {
+        "name": "wide",
+        "value": "0.04em"
+      },
+      {
+        "name": "wider",
+        "value": "0.05em"
+      },
+      {
+        "name": "widest",
+        "value": "0.06em"
+      }
     ],
     "controlDensity": [
-      { "name": "section-gap", "value": "24px" },
-      { "name": "field-gap", "value": "12px" },
-      { "name": "row-gap", "value": "8px" },
-      { "name": "inline-gap", "value": "4px" }
+      {
+        "name": "section-gap",
+        "value": "24px"
+      },
+      {
+        "name": "field-gap",
+        "value": "12px"
+      },
+      {
+        "name": "row-gap",
+        "value": "8px"
+      },
+      {
+        "name": "inline-gap",
+        "value": "4px"
+      }
     ],
     "protectedTokens": [
       "state-live",
@@ -669,9 +705,9 @@
       "name": "Filter Pills",
       "kind": "nav",
       "refersTo": "pill",
-      "description": "The list-screen filter row. Chrome Ink at rest; the active pill fills Signal Cyan and is marked with aria-current, so selection survives without colour.",
+      "description": "The list-screen filter row. Chrome Ink at rest; the selected pill uses the cyan well with Signal Cyan text and border, marked with aria-current so selection survives without colour.",
       "html": "<ul class=\"ds-pill-group\"><li><a class=\"ds-pill ds-pill-active\" href=\"#\" aria-current=\"page\">ALL</a></li><li><a class=\"ds-pill\" href=\"#\">LIVE</a></li><li><a class=\"ds-pill\" href=\"#\">SCHEDULED</a></li><li><a class=\"ds-pill\" href=\"#\">FINAL</a></li></ul>",
-      "css": ".ds-pill-group { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; } .ds-pill { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 4px 12px; border: 1px solid #243049; background: #1A2236; color: #F2F6FB; font-family: 'Barlow', system-ui, sans-serif; font-size: 0.875rem; font-weight: 600; text-decoration: none; cursor: pointer; } .ds-pill:hover { background: #243049; } .ds-pill-active { background: #00D4FF; border-color: #00D4FF; color: #0A0E1A; } .ds-pill:focus-visible { outline: none; box-shadow: 0 0 0 2px #0A0E1A, 0 0 0 4px #00D4FF; }"
+      "css": ".ds-pill-group { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; } .ds-pill { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 4px 12px; border: 1px solid #243049; background: #1A2236; color: #F2F6FB; font-family: 'Barlow', system-ui, sans-serif; font-size: 0.875rem; font-weight: 600; text-decoration: none; cursor: pointer; } .ds-pill:hover { background: #243049; } .ds-pill-active { background: #0E3E53; border-color: #00D4FF; color: #00D4FF; } .ds-pill:focus-visible { outline: none; box-shadow: 0 0 0 2px #0A0E1A, 0 0 0 4px #00D4FF; }"
     },
     {
       "name": "Entity Card",
@@ -732,10 +768,10 @@
   ],
   "narrative": {
     "northStar": "Broadcast Command Precision",
-    "overview": "CopaLibre looks like the gallery behind a live broadcast, not the broadcast itself. The dark theme uses deep ink; L3 Sunlight uses a cool-grey ground and near-white panels while preserving the same semantic roles. Public and Control follow the system preference or an explicit per-device choice, while broadcast remains dark. Across both themes, cyan marks live, action, or focus; condensed uppercase labels, tabular monospaced figures, opaque surfaces, and the asymmetric chamfer keep the system precise under tournament pressure.",
+    "overview": "CopaLibre looks like the gallery behind a live broadcast, not the broadcast itself. The dark theme uses deep ink; L3 Sunlight uses a cool-grey ground and near-white panels while preserving the same semantic roles. Public and Control follow the system preference or an explicit per-device choice, while broadcast remains dark. Across both themes, cyan marks live, primary action, focus, and selection; selected filters use a cyan well with Signal Cyan text and border instead of a primary-action fill. Condensed uppercase labels, tabular monospaced figures, opaque surfaces, and the asymmetric chamfer keep the system precise under tournament pressure.",
     "keyCharacteristics": [
       "Flat opaque surfaces: near-black ink in the dark theme and a cool-grey ground with near-white panels in L3",
-      "One accent — Signal Cyan — reserved for live, active, primary action, and focus",
+      "Signal Cyan marks live, primary action, selection, and focus; selected filters use a cyan well rather than the action fill",
       "Public and Control follow the system or an explicit light/dark choice; broadcast remains dark",
       "Condensed uppercase display face for identity; monospace for every figure and label",
       "Asymmetric chamfer (top-right / bottom-left) as the sole shape signature",
@@ -746,7 +782,7 @@
     "rules": [
       {
         "name": "The One Signal Rule",
-        "body": "Cyan means live, active, primary, or focused — nothing else outside a chart plot; inside a plot, it means data-series slot 2. A second accent introduced for decoration destroys the only cue an operator scans for across a dense screen.",
+        "body": "Cyan marks live, primary, selected, or focused state — nothing else outside a chart plot; inside a plot, it means data-series slot 2. A selected filter uses the cyan well with Signal Cyan text and border, not the filled primary-action treatment. A second accent introduced for decoration destroys the only cue an operator scans for across a dense screen.",
         "section": "colors"
       },
       {
@@ -828,6 +864,46 @@
         "name": "The Equal Sides Rule",
         "body": "The featured TV match gives home and away identical square emblem frames and the same content order: emblem, entrant name, localized role tag. The neutral tag names each side; size, placement and accent colour never imply preference.",
         "section": "components"
+      },
+      {
+        "name": "The First-Viewport Rule",
+        "body": "Give each screen one focal point in its first viewport. Public tournament overviews lead with live matches, then the next fixtures and latest results; Control dashboards lead with tournaments that need action.",
+        "section": "layout"
+      },
+      {
+        "name": "The Match-Summary Rule",
+        "body": "Show up to four upcoming fixtures and four latest results on a tournament overview, then link to the complete match list. Use full entrant names in the overview and abbreviations in tickers.",
+        "section": "layout"
+      },
+      {
+        "name": "The Neutral-Progress Rule",
+        "body": "Use LIVE and its live colour only for a match in play. An underway tournament uses a neutral In progress badge. Upcoming matches have no score; show a dash and pair an empty live state with the next kickoff time.",
+        "section": "colors"
+      },
+      {
+        "name": "The Progressive-Disclosure Rule",
+        "body": "Schedules group matches by day and venue, with collapsible days and filters. Standings reveal tie-break detail for one position at a time. Activity feeds group consecutive identical actions while preserving the complete audit trail.",
+        "section": "layout"
+      },
+      {
+        "name": "The Action-Hierarchy Rule",
+        "body": "Give each view region one primary action; supporting actions use secondary or tertiary treatment. Keep figures at the figure token with a minimum size of 1.875rem and labels at 0.75rem.",
+        "section": "components"
+      },
+      {
+        "name": "The Linked-Card Rule",
+        "body": "For linked cards, make the title the link and use one overlay hit target for the remaining card area. Keep non-link text visually unadorned.",
+        "section": "components"
+      },
+      {
+        "name": "The No-Decorative-Cyan Rule",
+        "body": "Do not use cyan for decoration, including taglines, rails, or resting glows.",
+        "section": "colors"
+      },
+      {
+        "name": "The Chart-and-Table Rule",
+        "body": "Charts identify each series by entity name and provide the same values in a table. Forms show validation only after a field is blurred or submitted, never on first render.",
+        "section": "components"
       }
     ],
     "dos": [
@@ -840,7 +916,10 @@
       "Do compose the shared layout container for page width and gutters; let full-width bands break out around aligned contents.",
       "Do collapse motion to 0s under prefers-reduced-motion, not merely shorten it: state must survive in text, icon, border and layout without the animation.",
       "Do keep the TV spotlight symmetrical: equal emblem frames and a localized neutral role tag beneath each name.",
-      "Do scroll wide content inside its own box."
+      "Do scroll wide content inside its own box.",
+      "Do give each screen one first-viewport focal point and keep tournament summaries to four upcoming fixtures and four latest results before linking to complete lists.",
+      "Do use the cyan well with Signal Cyan text and border for selected filters, reserving filled cyan for primary actions.",
+      "Do order fixtures chronologically within rounds and cups by promotion tier; use full entrant names on overviews and abbreviations in tickers."
     ],
     "donts": [
       "Don't introduce a second accent colour. Cyan is the only voice, and its scarcity is what makes it scannable. Data-visualization plot areas are the named exception: they may use only the five declared series colours; chart chrome remains in ink and text tokens.",
@@ -853,7 +932,10 @@
       "Don't set page-level max-width or horizontal gutter values by hand; use the named layout containers and tokens.",
       "Don't reach for text-muted for body copy — it is a label colour.",
       "Don't reintroduce SebaSOFT's identity: #f3e600, #c5003c, CP2077 or DATA_BLOB vocabulary, TRON references, scanlines, or a grid glow used as a state indicator. CI scans generated output for all of them.",
-      "Don't introduce a spacing, radius, font-size, tracking or breakpoint value outside the named scales. A hardcoded literal at a call site is how a scale becomes an accident."
+      "Don't introduce a spacing, radius, font-size, tracking or breakpoint value outside the named scales. A hardcoded literal at a call site is how a scale becomes an accident.",
+      "Do not expose filter, tab, or sort controls inside a read-only overview standings summary.",
+      "Do not use LIVE for an underway tournament when no match is in play; use the neutral In progress state.",
+      "Do not use cyan for decorative taglines, rails, or resting glows."
     ]
   }
 }

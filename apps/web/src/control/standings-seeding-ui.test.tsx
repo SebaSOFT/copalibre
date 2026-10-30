@@ -76,15 +76,13 @@ const matches: readonly CanvasMatch[] = [
   },
 ];
 
-function openRow(entrantId: string): HTMLDetailsElement {
-  const tr = screen.getAllByText(entrantId)[0]?.closest('tr');
-  const detailTr = tr?.nextElementSibling;
-  const row = (detailTr?.querySelector('details') ??
-    tr?.querySelector('details') ??
-    document.querySelector('details')) as HTMLDetailsElement;
-  row.open = true;
-  fireEvent(row, new Event('toggle'));
-  return row;
+function openRow(entrantId: string): HTMLButtonElement {
+  const table = screen.getByRole('table');
+  const tr = within(table).getAllByText(entrantId)[0]?.closest('tr');
+  if (!tr) throw new Error(`No standings row for ${entrantId}`);
+  const toggle = within(tr).getByRole('button') as HTMLButtonElement;
+  fireEvent.click(toggle);
+  return toggle;
 }
 
 describe('SeedingBuilderTemplate', () => {

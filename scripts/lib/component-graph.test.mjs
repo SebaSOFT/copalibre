@@ -17,7 +17,7 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count after shared page and control containers (406/1721)', () => {
+test('the graph resolves the current node/edge count after hierarchy and disclosure work (406/1721)', () => {
   const graph = buildGraph(webSrc);
   assert.equal(graph.nodes.size, 406);
   assert.equal(graph.edges.length, 1721);

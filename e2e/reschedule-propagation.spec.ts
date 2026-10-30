@@ -203,7 +203,10 @@ async function builder(page: Page, subject: string): Promise<void> {
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
-  await expect(page.getByText('Ronda 1').first()).toBeVisible();
+  const agenda = page.getByRole('region', { name: 'Agenda diaria' });
+  await expect(agenda).toBeVisible();
+  const collapsedDays = agenda.locator('details:not([open]) > summary');
+  while ((await collapsedDays.count()) > 0) await collapsedDays.first().click();
 }
 async function send(page: Page): Promise<void> {
   await page.evaluate(
