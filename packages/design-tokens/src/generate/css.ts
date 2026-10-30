@@ -132,6 +132,9 @@ export function generateCss(): string {
     ...Object.entries(LAYOUT_TOKENS.gutter).map(
       ([name, value]) => `  --cl-layout-gutter-${name}: ${value};`,
     ),
+    ...Object.entries(LAYOUT_TOKENS.split).map(
+      ([name, value]) => `  --cl-layout-split-${name}: ${value};`,
+    ),
     ...Object.entries(RADIUS).map(([name, value]) => `  --cl-radius-${name}: ${value};`),
     ...Object.entries(BREAKPOINTS).map(([name, value]) => `  --cl-breakpoint-${name}: ${value};`),
     '',

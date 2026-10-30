@@ -104,10 +104,7 @@ export function ActivityLog({
   ];
 
   return (
-    <section
-      aria-label={intl.formatMessage(messages.dashboardRecentActivity)}
-      className="cl-activity-feed"
-    >
+    <section className="cl-activity-feed">
       <h2>
         <FormattedMessage {...messages.dashboardRecentActivity} />
       </h2>

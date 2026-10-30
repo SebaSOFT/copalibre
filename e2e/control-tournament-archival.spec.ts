@@ -67,10 +67,11 @@ test('archives a finished tournament and it disappears from the active dashboard
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${DASHBOARD_PATH}`);
 
-  await expect(page.getByText('Torneo Apertura 2025')).toBeVisible();
+  const archivedTournament = page.getByRole('link', { name: 'Torneo Apertura 2025' });
+  await expect(archivedTournament).toBeVisible();
   await page.getByRole('button', { name: 'Archivar' }).click();
-  await expect(page.getByText('Torneo Apertura 2025')).toHaveCount(0);
+  await expect(archivedTournament).toHaveCount(0);
 
   // Every other card is unaffected by one archival.
-  await expect(page.getByText('Torneo Apertura 2026')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Torneo Apertura 2026' })).toBeVisible();
 });

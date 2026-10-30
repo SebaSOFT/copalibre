@@ -126,7 +126,7 @@ test('mobile tournament card links directly to public and TV displays', async ({
   await page.goto('/control/liga-mendocina');
 
   await expect(page.getByRole('link', { name: /Torneo Apertura/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Sitio público' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: 'Público' })).toHaveAttribute(
     'href',
     '/liga-mendocina/tournaments/apertura-2026',
   );
@@ -142,7 +142,7 @@ test('desktop tournament card links directly to public and TV displays', async (
   await page.goto('/control/liga-mendocina');
 
   await expect(page.getByRole('link', { name: /Torneo Apertura/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Sitio público' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: 'Público' })).toHaveAttribute(
     'href',
     '/liga-mendocina/tournaments/apertura-2026',
   );

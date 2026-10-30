@@ -50,9 +50,8 @@ export function DashboardPage({
     `control-dashboard:${organizationAlias}`,
     async () => {
       const listActiveTournaments = api.listActiveTournaments;
-      const fetchTournaments = listActiveTournaments
-        ? listActiveTournaments(organizationAlias)
-        : Promise.resolve([]);
+      if (!listActiveTournaments) throw new Error('Tournament listing is unavailable');
+      const fetchTournaments = listActiveTournaments(organizationAlias);
       const fetchAudit = api.fetchAuditTrail
         ? api.fetchAuditTrail(organizationAlias, { limit: 10 }).catch(() => undefined)
         : Promise.resolve(undefined);
@@ -66,10 +65,11 @@ export function DashboardPage({
             organizationId: tournament.organizationId ?? '',
             alias: tournament.alias,
             name: tournament.name,
-            lifecycle: classifyTournamentLifecycle({ status: tournament.status }),
-            // No tournament-wide scheduled-today read exists; keep the metric at zero until the
-            // API exposes authoritative data rather than infer a misleading value.
-            matchesToday: 0,
+            ...(tournament.status === undefined
+              ? {}
+              : { lifecycle: classifyTournamentLifecycle({ status: tournament.status }) }),
+            // The dashboard API exposes no schedule count. Omitting it keeps both the card fact
+            // and KPI out of the view until an authoritative value exists.
             pendingRegistrations: pending.length,
           };
         }),

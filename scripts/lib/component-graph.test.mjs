@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count after hierarchy and disclosure work (406/1721)', () => {
+test('the graph resolves the current node/edge count after operator layout adoption (418/1751)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 406);
-  assert.equal(graph.edges.length, 1721);
+  assert.equal(graph.nodes.size, 418);
+  assert.equal(graph.edges.length, 1751);
 });
 
 test('a type-only import is not counted as a render', () => {

@@ -103,6 +103,10 @@ layout:
     sm: "1rem"
     md: "1.5rem"
     lg: "2rem"
+  split:
+    main-rail: "minmax(0, 8fr) minmax(0, 4fr)"
+    chart-panel: "minmax(0, 7fr) minmax(0, 5fr)"
+    media-form: "minmax(0, 4fr) minmax(0, 8fr)"
 components:
   button-primary:
     backgroundColor: "{colors.cyan-400}"
@@ -456,6 +460,10 @@ sticky mobile header. Buttons keep their content width, except primary actions i
 forms, which fill the available width. Control composes on a denser mapping of the same 4px scale:
 `24px` between sections, `12px` between fields, `8px` between rows, `4px` inline. No second scale is
 introduced; each value is an existing step chosen for density.
+Control uses the named split tokens `layout.split.main-rail` (8/4), `layout.split.chart-panel` (7/5)
+and `layout.split.media-form` (4/8), each composed from `minmax(0, nfr)` columns. List-plus-rail and
+workspace layouts stack at container widths below `1024px`; the container, not the viewport, decides
+when the second column fits.
 
 **Public (Persuade / Read).** Full-width header and footer bands align their contents to a centered
 `75rem` container. Public page content uses that same `75rem` maximum; reading pages use a `45rem`
@@ -736,16 +744,24 @@ Use external products and broadcasts to assess hierarchy, pace and information d
 scorebugs are compared with FIFA and UEFA broadcasts; public match centres with ESPN and FotMob; control
 surfaces with a broadcast vision mixer and Bloomberg-dense tables. Do not reproduce trade dress.
 
-The owner adopted these layout compositions as guidance for layout, spacing, hierarchy, density and
-intended user journey. Their prose descriptions are the complete source for each composition:
+The owner adopted eleven compositions as guidance for layout, spacing, information order, density and
+intended user journey. The operator-workflow study is marked **not run**; rail grouping and hierarchy
+remain unvalidated design hypotheses. These prose descriptions are the complete source for the
+compositions:
 
-| Surface | Adopted composition |
+| Composition | Layout and behavior |
 | --- | --- |
-| Control foundation | Shared screen templates, a scope rail header and the organization dashboard. |
-| Tournament setup | Tournament settings and rules, wizards, zones and groups, promotion planning, seeding and image cropping. |
-| Operations and administration | Venues, schedule and officials, roles and permissions, analytics, audit trail, preferences and invitation acceptance. |
-| Public | Tournament overview, matches, stages and the not-found page. |
-| TV | Kiosk, live presentation and multi-match dashboard. |
+| Context rail header | Show the current organization or tournament, emblem or monogram, name, available discipline and category, lifecycle state, and at most one action the current role may use. Order navigation by tournament lifecycle and keep help and preferences in the rail footer. |
+| Page header | Place breadcrumb, display title, one-sentence description, and a right-aligned action group in that order. Put optional status badges beside the title; keep secondary actions before the primary action. |
+| KPI strip | Place up to four compact tiles below the page header. Each tile has a label, tabular value and context line, all bound to available API data. Omit a tile when its source field is unavailable. |
+| List plus form | Use an 8/4 main-list and right-rail split from the shared token. Stack the form below the list when the containing layout is narrower than `1024px`. |
+| Entity identity cell | Place emblem or monogram before the name, with a monospace metadata line for available role, scope, country or rating data. |
+| Filter bar | Put search, segmented state filters with counts, and result count in one row above the list. |
+| Tournament card | Show lifecycle state, display-face name, available metadata, API-backed progress and facts, then an action row with one primary action appropriate to that state. |
+| Unsaved-changes bar | When a form is dirty, pin a bottom bar with the number and names of changed fields, a reset action and a save action. Hide it while clean. |
+| Section tabs | Place categories in one segmented tab row at the start of their section. |
+| Wizard stepper | Show ordered steps with number, label and active, done or pending state. Keep back, save-draft and next-step actions in a sticky footer. |
+| Dashed drop zone | Pair a dashed upload area with a preview. Include an icon, instruction, file constraints and a browse action; size the preview to its rendered context. |
 
 Adopted compositions never supply palette, icons, shadows, tokens or technical guidance. `DESIGN.md`
 and the token source govern every conflict. Reject fabricated system chrome such as ports, latency,

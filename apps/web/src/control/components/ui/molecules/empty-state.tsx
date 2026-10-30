@@ -15,7 +15,8 @@ type EmptyStatePermission =
       readonly action: EmptyStateAction;
       readonly whoCanAct?: never;
     }
-  | { readonly reason: 'no-permission'; readonly action?: never; readonly whoCanAct: ReactNode };
+  | { readonly reason: 'no-permission'; readonly action?: never; readonly whoCanAct: ReactNode }
+  | { readonly reason: 'informational'; readonly action?: never; readonly whoCanAct?: never };
 
 export type EmptyStateProps = EmptyStatePermission & {
   readonly icon: string;
@@ -23,13 +24,16 @@ export type EmptyStateProps = EmptyStatePermission & {
   readonly description: ReactNode;
   readonly className?: string;
   readonly headingLevel?: 2 | 3;
+  readonly children?: ReactNode;
 };
 
 /** A successful empty result that names the next useful action. */
 export function EmptyState(props: EmptyStateProps): React.JSX.Element {
   const Heading = props.headingLevel === 3 ? 'h3' : 'h2';
-  if (props.reason !== 'no-permission' && !props.action) {
-    throw new Error('EmptyState requires an action unless reason is no-permission.');
+  if (props.reason !== 'no-permission' && props.reason !== 'informational' && !props.action) {
+    throw new Error(
+      'EmptyState requires an action unless reason is informational or no-permission.',
+    );
   }
 
   return (
@@ -39,9 +43,10 @@ export function EmptyState(props: EmptyStateProps): React.JSX.Element {
       </div>
       <Heading className="cl-interaction-empty-state__heading">{props.heading}</Heading>
       <p className="cl-interaction-empty-state__description">{props.description}</p>
+      {props.children}
       {props.reason === 'no-permission' ? (
         <p className="cl-interaction-empty-state__permission">{props.whoCanAct}</p>
-      ) : props.action.href ? (
+      ) : props.reason === 'informational' ? null : props.action.href ? (
         <LinkButton
           href={props.action.href}
           onClick={(event) => {

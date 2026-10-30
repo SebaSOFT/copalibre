@@ -263,14 +263,20 @@ describe('classifyTournamentLifecycle', () => {
     ).toBe('finished');
   });
 
-  it('classifies a tournament with in-progress matches as live, not finished or upcoming', () => {
+  it('uses the live state only when a match is in progress', () => {
     expect(
       classifyTournamentLifecycle({
         status: 'published',
         matches: [{ status: 'finalized' }, { status: 'in-progress' }],
       }),
     ).toBe('live');
-    expect(classifyTournamentLifecycle({ status: 'started' })).toBe('live');
+    expect(classifyTournamentLifecycle({ status: 'started' })).toBe('in-progress');
+    expect(
+      classifyTournamentLifecycle({
+        status: 'started',
+        matches: [{ status: 'finalized' }, { status: 'scheduled' }],
+      }),
+    ).toBe('in-progress');
   });
 
   it('classifies a tournament with no played matches as upcoming', () => {
@@ -295,11 +301,12 @@ describe('classifyTournamentLifecycle', () => {
       tournaments: [
         card({ tournamentId: 't-finished', lifecycle: 'finished' }),
         card({ tournamentId: 't-live', lifecycle: 'live' }),
+        card({ tournamentId: 't-in-progress', lifecycle: 'in-progress' }),
         card({ tournamentId: 't-upcoming', lifecycle: 'upcoming' }),
       ],
       activity: [],
     });
-    expect(dashboard.stats.activeTournaments).toBe(1);
+    expect(dashboard.stats.activeTournaments).toBe(2);
   });
 });
 
@@ -349,6 +356,18 @@ describe('what the dashboard renders', () => {
     expect(grid?.querySelectorAll('.cl-stat-tile')).toHaveLength(3);
   });
 
+  it('omits unmeasured tiles and names the API field behind each visible tile', () => {
+    const { container } = render(
+      withIntl(<QuickStats stats={{ activeTournaments: 4, pendingRegistrations: undefined }} />),
+    );
+
+    const tiles = container.querySelectorAll('.cl-stat-tile');
+    expect(tiles).toHaveLength(1);
+    expect(tiles[0]?.getAttribute('data-source-field')).toBe('activeTournaments');
+    expect(screen.queryByTestId('pendingRegistrations')).toBeNull();
+    expect(screen.queryByTestId('matchesToday')).toBeNull();
+  });
+
   it('renders the activity feed through the DataTable organism', () => {
     render(
       withIntl(
@@ -378,7 +397,8 @@ describe('what the dashboard renders', () => {
   });
 
   it.each([
-    ['live', 'In progress'],
+    ['live', 'LIVE'],
+    ['in-progress', 'In progress'],
     ['upcoming', 'Upcoming'],
     ['draft', 'Draft'],
     ['finished', 'Finished'],

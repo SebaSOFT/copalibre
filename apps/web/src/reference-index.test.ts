@@ -81,10 +81,23 @@ describe('the reference index', () => {
     // this specific presentation still ships nowhere. 'Astro preview seam'
     // joined: the development preview seam itself, permanently
     // unconsumed by design (it answers 404 in a build).
+    // New page compositions and organisms are registered before their first
+    // production use so their shapes are reviewable in the workbench.
     expect(
       REFERENCE_INDEX.filter((entry) => entry.consumers.length === 0).map(
         (entry) => entry.reference,
       ),
-    ).toEqual(['Live match scorecard', 'Astro preview seam']);
+    ).toEqual([
+      'Generic data entity card',
+      'Live match scorecard',
+      'Astro preview seam',
+      'Shared page header and settings form',
+      'Venue list with a side form',
+      'Two-pane operator workspace',
+      'Wizard with a sticky action footer',
+      'Dirty-form save bar',
+      'Section route tabs',
+      'Image upload drop zone',
+    ]);
   });
 });

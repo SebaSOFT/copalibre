@@ -224,10 +224,6 @@ const OWNED_CLASS_RULES = [
  * of these files fails, as does one in a file not listed, and improving below
  * the recorded number fails until it is lowered. Delete an entry at zero.
  *
- * `TournamentSummaryCard.tsx`'s single `cl-btn` is a genuine library gap rather than
- * an oversight: it styles an `<a>` as a button, and the `Button` atom renders a
- * `<button>`, which cannot be a link. It is recorded here so the gap stays
- * counted until the library has something for it.
  */
 export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   // Operator surface — an owned atom exists for every one of these.
@@ -243,12 +239,8 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   // `StageHubTemplate.tsx`, lowering this file's count from 2 to 1.
   ['control/components/pages/SeedingBuilderPage.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 2],
-  // A second `cl-btn`-as-anchor was added (the Tournament hub
-  // entry point), the same genuine gap this file's first one is recorded
-  // for above — the `Button` atom renders a `<button>`, which cannot link.
-  ['control/components/TournamentSummaryCard.tsx', 2],
-  // Same gap as `TournamentSummaryCard.tsx` above: an `<a>` styled as a
-  // button, which the `Button` atom cannot render
+  // A callout action is an `<a>` styled as a button, which the `Button` atom
+  // cannot render
   // (surfaced by narrowing the `ui/` directory skip to the atom tier).
   ['control/components/ui/molecules/callout-banner.tsx', 1],
   // Public and broadcast surfaces.

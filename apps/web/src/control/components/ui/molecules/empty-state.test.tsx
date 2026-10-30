@@ -52,7 +52,22 @@ describe('EmptyState', () => {
     );
   });
 
-  it('rejects a missing action unless no-permission is explicit', () => {
+  it('renders informational copy without an action or permission claim', () => {
+    render(
+      <EmptyState
+        description="Create a tournament before pairing a TV screen."
+        heading="No devices connected"
+        icon="offline"
+        reason="informational"
+      />,
+    );
+
+    expect(screen.getByText('Create a tournament before pairing a TV screen.')).toBeDefined();
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByText(/can create/i)).toBeNull();
+  });
+
+  it('rejects a missing action unless an informational or permission reason is explicit', () => {
     const invalid = {
       icon: 'trophy',
       heading: 'No tournaments yet',
@@ -60,7 +75,7 @@ describe('EmptyState', () => {
     } as unknown as EmptyStateProps;
 
     expect(() => render(<EmptyState {...invalid} />)).toThrow(
-      'EmptyState requires an action unless reason is no-permission.',
+      'EmptyState requires an action unless reason is informational or no-permission.',
     );
   });
 });

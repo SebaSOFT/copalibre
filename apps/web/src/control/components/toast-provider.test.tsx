@@ -121,4 +121,22 @@ describe('ToastProvider', () => {
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
     expect(css).toContain('transition-duration: 0s');
   });
+
+  it('reuses the parent notification region when providers are nested', () => {
+    render(
+      <IntlProvider locale="en">
+        <ToastProvider>
+          <ToastProvider>
+            <Fixture />
+          </ToastProvider>
+        </ToastProvider>
+      </IntlProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'First' }));
+
+    const regions = screen.getAllByRole('region', { name: 'Notifications' });
+    expect(regions).toHaveLength(1);
+    expect(within(regions[0]).getByText('Saved one')).toBeTruthy();
+  });
 });

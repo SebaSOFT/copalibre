@@ -47,12 +47,20 @@ describe('generated design frontmatter', () => {
     });
   });
 
-  it('reads layout container and gutter tokens from the verified frontmatter', () => {
+  it('reads layout container, gutter and split tokens from the verified frontmatter', () => {
     expect(
       readDesignTokens(
-        wrap('layout:\n  container:\n    public: "75rem"\n  gutter:\n    sm: "1rem"'),
+        wrap(
+          'layout:\n  container:\n    public: "75rem"\n  gutter:\n    sm: "1rem"\n  split:\n    main-rail: "minmax(0, 8fr) minmax(0, 4fr)"',
+        ),
       ),
-    ).toEqual({ layout: { container: { public: '75rem' }, gutter: { sm: '1rem' } } });
+    ).toEqual({
+      layout: {
+        container: { public: '75rem' },
+        gutter: { sm: '1rem' },
+        split: { 'main-rail': 'minmax(0, 8fr) minmax(0, 4fr)' },
+      },
+    });
   });
 
   it('decodes equivalent YAML quoting without changing string contents', () => {

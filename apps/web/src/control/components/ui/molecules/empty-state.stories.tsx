@@ -56,3 +56,23 @@ export const NoPermission: Story = {
     );
   },
 };
+
+export const Informational: Story = {
+  args: {
+    reason: 'informational',
+    icon: 'offline',
+    heading: '',
+    description: '',
+  },
+  render: function Render() {
+    const intl = useIntl();
+    return (
+      <EmptyState
+        description={intl.formatMessage(messages.dashboardPairTvNeedsTournament)}
+        heading={intl.formatMessage(messages.deviceHeartbeatEmpty)}
+        icon="offline"
+        reason="informational"
+      />
+    );
+  },
+};

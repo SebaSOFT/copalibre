@@ -115,6 +115,11 @@ describe('the token source', () => {
     expect(LAYOUT_TOKENS).toEqual({
       container: { public: '75rem', reading: '45rem', control: '90rem', form: '45rem' },
       gutter: { sm: '1rem', md: '1.5rem', lg: '2rem' },
+      split: {
+        'main-rail': 'minmax(0, 8fr) minmax(0, 4fr)',
+        'chart-panel': 'minmax(0, 7fr) minmax(0, 5fr)',
+        'media-form': 'minmax(0, 4fr) minmax(0, 8fr)',
+      },
     });
 
     const css = generateCss();
@@ -126,6 +131,9 @@ describe('the token source', () => {
     }
     for (const [name, value] of Object.entries(LAYOUT_TOKENS.gutter)) {
       expect(css).toContain(`--cl-layout-gutter-${name}: ${value};`);
+    }
+    for (const [name, value] of Object.entries(LAYOUT_TOKENS.split)) {
+      expect(css).toContain(`--cl-layout-split-${name}: ${value};`);
     }
 
     const theme = generateTailwindTheme();
@@ -139,6 +147,11 @@ describe('the token source', () => {
       'cl-gutter-sm': '1rem',
       'cl-gutter-md': '1.5rem',
       'cl-gutter-lg': '2rem',
+    });
+    expect(theme.gridTemplateColumns).toEqual({
+      'cl-main-rail': 'minmax(0, 8fr) minmax(0, 4fr)',
+      'cl-chart-panel': 'minmax(0, 7fr) minmax(0, 5fr)',
+      'cl-media-form': 'minmax(0, 4fr) minmax(0, 8fr)',
     });
   });
 

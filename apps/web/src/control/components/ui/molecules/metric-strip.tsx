@@ -17,6 +17,7 @@ export interface MetricStripEntry {
   readonly unavailableLabel?: string;
   readonly description?: ReactNode;
   readonly demonstrationLabel?: string;
+  readonly sourceField?: string;
 }
 
 export interface MetricStripProps {
@@ -45,6 +46,7 @@ export function MetricStrip({
           {...(metric.demonstrationLabel === undefined
             ? {}
             : { demonstrationLabel: metric.demonstrationLabel })}
+          {...(metric.sourceField === undefined ? {} : { sourceField: metric.sourceField })}
         />
       ))}
     </div>

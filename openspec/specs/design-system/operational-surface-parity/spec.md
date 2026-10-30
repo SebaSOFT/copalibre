@@ -393,3 +393,39 @@ unreviewed examples SHALL NOT be marked as achieved parity.
 - **WHEN** parity is verified
 - **THEN** the record names the reference identifier, story or route, language, viewport, evidence
   location and unresolved discrepancies
+
+### Requirement: Screens lead with one focal point and disclose detail progressively
+
+Every screen SHALL present one focal point in its first viewport and one primary action per view
+region. Overview pages SHALL summarise and link to full lists rather than embed them. Figures SHALL
+be visually larger than their labels. The live state colour and word SHALL appear only for matches in
+play. Lists SHALL be ordered by meaning: chronological fixtures, cups by tier.
+
+#### Scenario: Public overview first screen
+
+- **WHEN** a spectator opens an in-progress tournament at 1440px
+- **THEN** the first viewport shows the next or live matches with times, and the full fixture list is
+  reached through "See every match"
+
+#### Scenario: Public overview summaries stay scannable
+
+- **WHEN** an overview has more than four upcoming fixtures or latest results
+- **THEN** it shows the nearest four fixtures and latest four results and links to the complete
+  match list
+
+#### Scenario: No false LIVE
+
+- **WHEN** no match is in play
+- **THEN** no LIVE badge appears on organization, analytics or live-console screens, and the
+  tournament reads "In progress"
+
+#### Scenario: Stat tile
+
+- **WHEN** a stat tile shows "0 pending registrations"
+- **THEN** the figure renders at least 1.875rem and the label at 0.75rem
+
+#### Scenario: Schedule
+
+- **WHEN** an organizer opens a schedule of 72 matches
+- **THEN** matches are grouped by day and venue with collapsible days, and each entrant pair appears
+  once per match
