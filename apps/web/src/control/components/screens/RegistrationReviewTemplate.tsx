@@ -226,7 +226,7 @@ export function RegistrationReviewTemplate({
           >
             <FormattedMessage {...messages.reviewRefuse} />
           </Button>
-          <Button type="button">
+          <Button type="button" variant="secondary">
             <FormattedMessage {...messages.reviewExport} />
           </Button>
         </>

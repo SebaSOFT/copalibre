@@ -291,6 +291,10 @@ export const messages = defineMessages({
 
   // StandingsTable.astro
   standingsHeading: { id: 'publicWeb.standings.heading', defaultMessage: 'Standings' },
+  standingsFullTable: {
+    id: 'publicWeb.standings.fullTable',
+    defaultMessage: 'View full standings',
+  },
   standingsTableLayouts: {
     id: 'publicWeb.standings.tableLayouts',
     defaultMessage: 'Table layouts',
@@ -544,6 +548,10 @@ export const messages = defineMessages({
 
   // matches.astro / MatchCard.tsx
   matchesViewPageTitle: { id: 'publicWeb.matchesView.pageTitle', defaultMessage: 'Matches' },
+  matchesViewFiltersDisclosureLabel: {
+    id: 'publicWeb.matchesView.filtersDisclosureLabel',
+    defaultMessage: 'Filter matches',
+  },
   matchesViewFilterAll: { id: 'publicWeb.matchesView.filterAll', defaultMessage: 'All' },
   matchesViewFilterLive: { id: 'publicWeb.matchesView.filterLive', defaultMessage: 'Live' },
   matchesViewFilterUpcoming: {
@@ -671,6 +679,14 @@ export const messages = defineMessages({
   matchesViewSeeAll: {
     id: 'publicWeb.matchesView.seeAll',
     defaultMessage: 'See every match',
+  },
+  overviewNextMatches: {
+    id: 'publicWeb.overview.nextMatches',
+    defaultMessage: 'Next matches',
+  },
+  overviewLatestResults: {
+    id: 'publicWeb.overview.latestResults',
+    defaultMessage: 'Latest results',
   },
   matchesViewVersus: { id: 'publicWeb.matchesView.versus', defaultMessage: 'vs' },
   matchesViewDensityToggleAriaLabel: {

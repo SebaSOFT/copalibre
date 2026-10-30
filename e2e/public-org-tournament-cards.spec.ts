@@ -24,6 +24,14 @@ const tournament = {
   winners: [zone('Copa Oro', 10), zone('Copa Plata', 20), zone('Copa Bronce', 30)],
   featured: false,
 };
+const inProgressTournament = {
+  tournamentId: id(2),
+  alias: 'apertura-2026',
+  name: 'Apertura 2026',
+  status: 'live',
+  discipline: { name: 'Rink Hockey' },
+  featured: false,
+};
 
 let apiServer: Server;
 
@@ -36,7 +44,7 @@ test.beforeAll(async ({ workerPort }) => {
         JSON.stringify({
           organizationAlias: organization,
           organizationName: 'Org Cards Fixture',
-          tournaments: [tournament],
+          tournaments: [tournament, inProgressTournament],
           clubs: [],
         }),
       );
@@ -53,6 +61,19 @@ test.afterAll(async () => {
 });
 
 test.describe('organization page tournament cards', () => {
+  test('a tournament in progress without a live match has a neutral status badge', async ({
+    page,
+    workerPort,
+  }) => {
+    await page.setExtraHTTPHeaders({ 'x-copalibre-api-port': String(workerPort) });
+    await page.goto(`/${organization}`);
+
+    const section = page.locator('section[aria-labelledby="heading-live"]');
+    await expect(section.getByRole('heading', { name: 'In progress' })).toBeVisible();
+    await expect(section.locator('.cl-badge-in-progress')).toHaveText('In progress');
+    await expect(section.locator('.cl-badge-live, .cl-live-pulse')).toHaveCount(0);
+  });
+
   test('uses the centered public container at reference widths', async ({ page, workerPort }) => {
     await page.setExtraHTTPHeaders({ 'x-copalibre-api-port': String(workerPort) });
     await expectCenteredPageContainer(page, `/${organization}`);

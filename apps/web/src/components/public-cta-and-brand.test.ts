@@ -106,8 +106,9 @@ describe('public tables and filter pills', () => {
   });
 
   it('renders standings through the shared table treatment', () => {
+    expect(standings).toContain('class="cl-table"');
     expect(standings).toContain(
-      '<table class="cl-table" data-sortable-table={previewRows === undefined ? true : undefined}>',
+      'data-sortable-table={showControls && previewRows === undefined ? true : undefined}',
     );
     expect(standings).toContain('cl-table-scroll');
     expect(standings).toContain("'cl-table__num'");

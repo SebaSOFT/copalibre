@@ -161,6 +161,14 @@ test('an entrant without an emblem renders its stored abbreviation when JavaScri
       },
     ],
   };
+  projection = {
+    ...DEFAULT_PROJECTION,
+    rows: projectionRows.map((row) => ({
+      ...row,
+      entrantAbbreviation: 'TLL',
+      clubId: 'club-talleres',
+    })),
+  };
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
   await page.goto(overviewPath);
@@ -267,7 +275,7 @@ test('public standings figures and the schedule scores keep their numeric treatm
     /cl-tabular-nums/,
   );
 
-  const scores = page.locator('.cl-match-schedule td a');
+  const scores = page.locator('.cl-ticker__item:not([aria-hidden="true"]) .cl-ticker__figure');
   await expect(scores).toHaveCount(2);
   for (const score of await scores.all()) {
     await expect(score).toHaveCSS('font-variant-numeric', 'tabular-nums');

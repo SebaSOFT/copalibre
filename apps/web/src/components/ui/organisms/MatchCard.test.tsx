@@ -115,7 +115,12 @@ describe('MatchCard', () => {
   it('shows a zone match with zone and position, and no series indication', () => {
     render(
       <MatchCard
-        match={baseMatch({ zoneName: 'Group B', homePosition: 1, awayPosition: 2 })}
+        match={baseMatch({
+          state: 'final',
+          zoneName: 'Group B',
+          homePosition: 1,
+          awayPosition: 2,
+        })}
         labels={labels}
         locale="en"
       />,
@@ -124,6 +129,17 @@ describe('MatchCard', () => {
     expect(screen.getByTitle('Position #1')).toBeDefined();
     expect(screen.getByTitle('Position #2')).toBeDefined();
     expect(screen.queryByText(/Series undecided|won the series/)).toBeNull();
+  });
+
+  it('omits rankings before an upcoming match has been played', () => {
+    render(
+      <MatchCard
+        match={baseMatch({ homePosition: 1, awayPosition: 2 })}
+        labels={labels}
+        locale="en"
+      />,
+    );
+    expect(screen.queryByTitle(/^Position/)).toBeNull();
   });
 
   it('renders a series cross via the series summary, with no position shown', () => {
@@ -185,8 +201,8 @@ describe('MatchCard', () => {
     expect(screen.getByText('Rule 2 (Head-to-head): a=1 → resolved')).toBeDefined();
   });
 
-  it('wraps the card in a link when reportUrl is given', () => {
-    render(
+  it('links the heading and makes the rest of the card a click target', () => {
+    const { container } = render(
       <MatchCard
         match={baseMatch()}
         labels={labels}
@@ -197,6 +213,8 @@ describe('MatchCard', () => {
     expect(screen.getByRole('link').getAttribute('href')).toBe(
       '/liga/tournaments/x/stages/1/matches/1',
     );
+    expect(container.querySelector('.cl-match-card__heading a')).not.toBeNull();
+    expect(container.querySelector('.cl-match-card')?.closest('a')).toBeNull();
   });
 
   it('shows a labelled state badge and a localized timestamp', () => {
@@ -352,6 +370,38 @@ describe('resolveCompactEntrant', () => {
 });
 
 describe('MatchCard compact presentation', () => {
+  it('keeps full club names in overview summaries when requested', () => {
+    const { container } = render(
+      <MatchCard
+        compact
+        compactNames="full"
+        match={baseMatch({
+          homeName: 'Club Universitario de Buenos Aires',
+          homeAbbreviation: 'CUBA',
+          awayName: 'Andes Talleres',
+          awayAbbreviation: 'AND',
+        })}
+        labels={labels}
+        locale="es"
+        reportUrl="/match/1"
+      />,
+    );
+
+    expect(container.querySelector('.cl-match-card--compact-full-names')).not.toBeNull();
+    expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toContain(
+      'Club Universitario de Buenos Aires',
+    );
+    expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toContain(
+      'Andes Talleres',
+    );
+    const displayedNames = Array.from(
+      container.querySelectorAll('.cl-match-card__compact-side > span'),
+      (name) => name.textContent,
+    );
+    expect(displayedNames).toContain('Club Universitario de Buenos Aires');
+    expect(displayedNames).toContain('Andes Talleres');
+  });
+
   it('renders a color-coded state dot, full entrant names, and score in ticker order while live', () => {
     const { container } = render(
       <MatchCard
@@ -425,8 +475,8 @@ describe('MatchCard compact presentation', () => {
     );
   });
 
-  it('wraps the compact card in a link when reportUrl is given', () => {
-    render(
+  it('gives compact cards an accessible overlay link without wrapping the card', () => {
+    const { container } = render(
       <MatchCard
         compact
         match={baseMatch()}
@@ -438,6 +488,9 @@ describe('MatchCard compact presentation', () => {
     expect(screen.getByRole('link').getAttribute('href')).toBe(
       '/liga/tournaments/x/stages/1/matches/1',
     );
+    expect(screen.getByRole('link').getAttribute('aria-label')).toBe('Norte vs Sur');
+    expect(screen.getByRole('link').classList.contains('cl-match-card__hit-area')).toBe(true);
+    expect(container.querySelector('.cl-match-card--compact')?.closest('a')).toBeNull();
   });
 
   it('never renders the full card structure while compact', () => {

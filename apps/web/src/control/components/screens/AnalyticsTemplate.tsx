@@ -28,7 +28,7 @@ function statusMessage(status: TournamentResponse['status']) {
     case 'published':
       return messages.analyticsStatusUpcoming;
     case 'started':
-      return messages.analyticsStatusLive;
+      return messages.lifecycleInProgress;
     case 'finished':
       return messages.analyticsStatusFinished;
     case 'archived':
@@ -43,7 +43,7 @@ function statusClassName(status: TournamentResponse['status']): string {
     case 'published':
       return 'cl-badge--upcoming';
     case 'started':
-      return 'cl-badge--live';
+      return 'cl-badge--muted';
     case 'finished':
       return 'cl-badge--final';
     default:
@@ -81,7 +81,7 @@ export function AnalyticsTemplate({
   const statusSeries = [
     {
       key: 'started',
-      label: intl.formatMessage(messages.analyticsStatusLive),
+      label: intl.formatMessage(messages.lifecycleInProgress),
       value: liveCount,
       slot: 0,
     },

@@ -57,7 +57,13 @@ describe('loadSchedule', () => {
       ],
     },
     [`${BASE}/matches-view`]: {
-      matches: [row(1, 1, 'Groups', 'A'), row(2, 1, 'Groups', 'B'), row(3, 2, 'Gold')],
+      matches: [
+        row(1, 1, 'Groups', 'A'),
+        row(2, 1, 'Groups', 'B'),
+        row(3, 2, 'Bronze'),
+        row(4, 2, 'Gold'),
+        row(5, 2, 'Silver'),
+      ],
     },
     [`${BASE}/stages/1/bracket`]: {
       format: 'round-robin',
@@ -65,7 +71,11 @@ describe('loadSchedule', () => {
     },
     [`${BASE}/stages/2/bracket`]: {
       format: 'single-elimination',
-      zones: [{ zoneName: 'Gold', format: 'single-elimination', matches: [bracketMatch] }],
+      zones: [
+        { zoneName: 'Gold', format: 'single-elimination', matches: [bracketMatch] },
+        { zoneName: 'Silver', format: 'single-elimination', matches: [bracketMatch] },
+        { zoneName: 'Bronze', format: 'single-elimination', matches: [bracketMatch] },
+      ],
     },
   };
 
@@ -80,10 +90,11 @@ describe('loadSchedule', () => {
     expect(loaded?.stages.map((stage) => stage.stageName)).toEqual(['Groups', 'Cups']);
     expect(loaded?.stages[0]?.zones[0]?.kind).toBe('rows');
     expect(loaded?.stages[1]?.zones[0]?.kind).toBe('bracket');
-    expect(loaded?.stageRows).toHaveLength(3);
+    expect(loaded?.stageRows).toHaveLength(5);
+    expect(loaded?.zoneOrder).toEqual(['Groups', 'Gold', 'Silver', 'Bronze']);
   });
 
-  it('applies the zone and group to the rows and never fetches a bracket for a state filter', async () => {
+  it('applies the zone and group to rows and keeps promotion-band order available to filters', async () => {
     serve(routes);
     const loaded = await loadSchedule({
       organization: 'liga',
@@ -94,10 +105,11 @@ describe('loadSchedule', () => {
     });
 
     expect(loaded?.rows.map((one) => one.matchNumber)).toEqual([2]);
-    expect(loaded?.stageRows).toHaveLength(3);
+    expect(loaded?.stageRows).toHaveLength(5);
     expect(loaded?.stages).toHaveLength(1);
+    expect(loaded?.zoneOrder).toEqual(['Groups', 'Gold', 'Silver', 'Bronze']);
     const asked = (global.fetch as jest.Mock).mock.calls.map((call) => String(call[0]));
-    expect(asked.some((url) => url.includes('/bracket'))).toBe(false);
+    expect(asked.some((url) => url.includes('/bracket'))).toBe(true);
   });
 
   it('limits the stages to the requested one', async () => {

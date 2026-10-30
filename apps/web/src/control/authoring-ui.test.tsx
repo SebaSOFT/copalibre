@@ -402,14 +402,14 @@ describe('the tournament setup wizard screen', () => {
       name: 'Continue to the next step',
     }) as HTMLButtonElement;
     expect(continueBtn.disabled).toBe(true);
-    expect(continueBtn.getAttribute('aria-describedby')).toBe('wizard-problems');
-    expect(document.getElementById('wizard-problems')?.textContent).toContain(
-      'The name is missing',
-    );
+    expect(continueBtn.hasAttribute('aria-describedby')).toBe(false);
+    expect(document.getElementById('wizard-problems')).toBeNull();
 
     fireEvent.change(nameInput, { target: { value: 'Liga San Rafael' } });
     fireEvent.change(aliasInput, { target: { value: 'INVALID ALIAS' } });
+    fireEvent.blur(aliasInput);
     expect(continueBtn.disabled).toBe(true);
+    expect(continueBtn.getAttribute('aria-describedby')).toBe('wizard-problems');
     expect(document.getElementById('wizard-problems')?.textContent).toContain('lowercase letters');
 
     fireEvent.change(aliasInput, { target: { value: 'liga-san-rafael' } });

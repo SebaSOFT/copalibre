@@ -54,7 +54,7 @@ describe('WizardShell', () => {
     );
     const badges = container.querySelectorAll('.cl-badge');
 
-    expect(screen.getByTestId('wizard-step-scroll-cue').getAttribute('aria-hidden')).toBe('true');
+    expect(container.querySelector('ol.cl-wizard-shell__step-list--wrap')).not.toBeNull();
     expect(badges).toHaveLength(3);
     expect(badges[0]?.getAttribute('data-state')).toBe('completed');
     expect(badges[0]?.classList.contains('cl-badge--positive')).toBe(true);

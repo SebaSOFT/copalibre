@@ -65,5 +65,5 @@ test('analytics shows organization context and tournament match progress', async
   await expect(page.getByRole('heading', { level: 1, name: 'Analítica' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Resumen de torneos' })).toBeVisible();
   await expect(page.getByRole('row', { name: /Apertura 2026/ })).toContainText('5 / 8 partidos');
-  await expect(page.getByRole('row', { name: /Apertura 2026/ })).toContainText('En vivo');
+  await expect(page.getByRole('row', { name: /Apertura 2026/ })).toContainText('En curso');
 });

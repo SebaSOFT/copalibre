@@ -191,6 +191,28 @@ describe('distributionBars', () => {
     expect(distributionBars(named, { nameColumnCode: 'name' })[0]?.label).toBe('Talleres');
   });
 
+  it('uses the entrant name instead of an ordinal when a projection has no name column', () => {
+    const ranked: Pick<TableProjectionResponseData, 'rows' | 'defaultSort'> = {
+      defaultSort: base.defaultSort,
+      rows: [
+        {
+          actorId: 'club-1',
+          rank: 2,
+          sharedRank: false,
+          entrantName: 'Club Atlético',
+          cells: {
+            position: { formatted: '2' },
+            points: { raw: 6, formatted: '6' },
+          },
+        },
+      ],
+    };
+
+    expect(distributionBars(ranked, { nameColumnCode: 'position' })[0]?.label).toBe(
+      'Club Atlético',
+    );
+  });
+
   it('falls back to the actor id when no name column is given', () => {
     expect(distributionBars(base)[0]?.label).toBe('a');
   });

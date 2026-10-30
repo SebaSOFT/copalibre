@@ -101,11 +101,10 @@ test('finished multi-zone overview shows shared champions and known third place'
   await expect(podium.getByText('Bronze Club', { exact: true })).toBeVisible();
   await expect(podium.getByText('Runner Club', { exact: true })).toBeVisible();
 
-  const row = page.locator('.cl-match-schedule').getByRole('row').filter({ hasText: 'Andes' });
-  await expect(row).toContainText('Final');
-  const timestamp = row.locator('time');
-  await expect(timestamp).toHaveAttribute('datetime', match.scheduledAt);
-  await expect(timestamp).not.toContainText('2025-05-18T');
+  const result = page.locator('.cl-match-card').filter({ hasText: 'Andes' });
+  await expect(result).toContainText('Final');
+  await expect(result.getByText('Andes 2', { exact: true })).toBeVisible();
+  await expect(result.getByText('1 Concepcion', { exact: true })).toBeVisible();
 });
 
 test('single-zone overview keeps its match schedule but omits the podium', async ({
@@ -116,5 +115,8 @@ test('single-zone overview keeps its match schedule but omits the podium', async
   await page.goto(`${basePath}/single-zone`);
 
   await expect(page.locator('.cl-podium-container')).toHaveCount(0);
-  await expect(page.locator('.cl-match-schedule').getByRole('table')).toHaveCount(1);
+  const matches = page.getByRole('region', { name: 'Matches' });
+  await expect(matches.locator('.cl-match-card')).toHaveCount(1);
+  await expect(matches.locator('.cl-match-card')).toContainText('Andes');
+  await expect(matches.getByRole('link', { name: 'See every match' })).toBeVisible();
 });

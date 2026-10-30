@@ -42,15 +42,17 @@ const projection: TableProjectionResponseData = {
   projectionVersion: 7,
 };
 
-function openRow(entrantId: string): HTMLDetailsElement {
-  const tr = screen.getAllByText(entrantId)[0]?.closest('tr');
-  const detailTr = tr?.nextElementSibling;
-  const row = (detailTr?.querySelector('details') ??
-    tr?.querySelector('details') ??
-    document.querySelector(`details`)) as HTMLDetailsElement;
-  row.open = true;
-  fireEvent(row, new Event('toggle'));
-  return row;
+function tiebreakToggleFor(entrantId: string): HTMLButtonElement {
+  const table = screen.getByRole('table');
+  const tr = within(table).getAllByText(entrantId)[0]?.closest('tr');
+  if (!tr) throw new Error(`No standings row for ${entrantId}`);
+  return within(tr).getByRole('button', { name: `Tiebreak — ${entrantId}` });
+}
+
+function openRow(entrantId: string): HTMLButtonElement {
+  const toggle = tiebreakToggleFor(entrantId);
+  fireEvent.click(toggle);
+  return toggle;
 }
 
 describe('StandingsTemplate', () => {
@@ -69,6 +71,37 @@ describe('StandingsTemplate', () => {
 
     expect(screen.getByText(/Projection v7/)).toBeTruthy();
     expect(screen.getByText('Shared position')).toBeTruthy();
+    expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toContain(
+      'Position',
+    );
+    expect(document.querySelectorAll('.cl-data-table__detail-row')).toHaveLength(0);
+  });
+
+  it('opens one trace row at a time from the position cell', async () => {
+    const onExpand = jest.fn(async (actorId: string) => [`Trace for ${actorId}`]);
+    render(
+      withIntl(
+        <StandingsTemplate
+          activeLayoutCode={groupPhaseLayout.code}
+          layouts={[groupPhaseLayout]}
+          onExpand={onExpand as unknown as (actorId: string) => Promise<readonly string[]>}
+          organizationAlias="liga-mendocina"
+          projection={projection}
+          tournamentName="Apertura"
+        />,
+      ),
+    );
+
+    const first = openRow('tll');
+    expect(await screen.findByText('Trace for tll')).toBeTruthy();
+    const second = tiebreakToggleFor('ind');
+    fireEvent.click(second);
+
+    expect(first.getAttribute('aria-expanded')).toBe('false');
+    expect(second.getAttribute('aria-expanded')).toBe('true');
+    expect(await screen.findByText('Trace for ind')).toBeTruthy();
+    expect(document.querySelectorAll('.cl-data-table__detail-row')).toHaveLength(1);
+    expect(onExpand).toHaveBeenCalledTimes(2);
   });
 
   it('lets the operator dismiss an informational projection status', () => {
@@ -150,8 +183,8 @@ describe('StandingsTemplate', () => {
 
     // Collapsing and reopening must not re-fetch: the trace of a finished
     // calculation does not change while the operator reads it.
-    fireEvent(row, new Event('toggle'));
-    fireEvent(row, new Event('toggle'));
+    fireEvent.click(row);
+    fireEvent.click(row);
     await waitFor(() => expect(onExpand).toHaveBeenCalledTimes(1));
   });
 

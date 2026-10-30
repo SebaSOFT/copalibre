@@ -41,6 +41,18 @@ export interface DraftAssignment {
 
 /** A match being played, or already played, keeps its time and place: no move, no withdrawal. */
 const LOCKED_STATUSES: ReadonlySet<BuilderRow['status']> = new Set(['in-progress', 'finalized']);
+const UNASSIGNED_DAY_KEY = 'unassigned';
+const NO_VENUE_KEY = 'no-venue';
+
+interface ScheduleDisplayRow {
+  readonly row: BuilderRow;
+  readonly label: string;
+  readonly slot?: ScheduleDetailResponse['slots'][number];
+  readonly dayKey: string;
+  readonly dayLabel: string;
+  readonly venueKey: string;
+  readonly venueLabel: string;
+}
 
 const PRESET_LABELS: Record<ScheduleReasonPreset, typeof messages.scheduleReasonOther> = {
   'venue-unavailable': messages.scheduleReasonVenueUnavailable,
@@ -90,8 +102,8 @@ function assignmentFrom(
 }
 
 /**
- * Composes the calendar view, the list view, and the preview/publish panel
- * from the data `ScheduleBuilderPage` supplies:
+ * Composes the day-grouped schedule and preview/publish panel from the data
+ * `ScheduleBuilderPage` supplies:
  * every derived computation below (groups, slots, the assignment batch) is
  * a pure read of the page's fixtures/schedules/drafts, and `onPreview`/
  * `onPublish` are the only calls back to the page.
@@ -155,6 +167,8 @@ export function ScheduleBuilderTemplate({
 }): React.JSX.Element {
   const intl = useIntl();
   const [promptOpen, setPromptOpen] = useState(false);
+  const [selectedDay, setSelectedDay] = useState('all');
+  const [selectedVenue, setSelectedVenue] = useState('all');
 
   const draftFor = useCallback(
     (matchId: string): DraftAssignment => drafts[matchId] ?? EMPTY_DRAFT,
@@ -205,6 +219,14 @@ export function ScheduleBuilderTemplate({
         .filter((assignment): assignment is ScheduleAssignmentDto => assignment !== undefined),
     [groups, draftFor, placements],
   );
+  const publishHint =
+    batch.length === 0
+      ? messages.scheduleBuilderAssignBeforePreview
+      : !previewed
+        ? messages.scheduleBuilderPreviewBeforePublish
+        : !committable
+          ? messages.scheduleBuilderResolveConflictsBeforePublish
+          : undefined;
 
   const rowLabelOf = useMemo(() => {
     const labels = new Map<string, string>();
@@ -309,11 +331,6 @@ export function ScheduleBuilderTemplate({
     );
   }
 
-  /** The cross a series' rows are grouped under, so five rows never read as five matches. */
-  function crossLabel(group: (typeof groups)[number]): string {
-    return `${entrantNames.get(group.homeEntrantId ?? '')?.fullName ?? unknownName} vs ${entrantNames.get(group.awayEntrantId ?? '')?.fullName ?? unknownName}`;
-  }
-
   function entrantNode(entrantId: string | undefined): React.JSX.Element {
     const identity = entrantNames.get(entrantId ?? '');
     return (
@@ -322,16 +339,6 @@ export function ScheduleBuilderTemplate({
         fullName={identity?.fullName ?? unknownName}
         abbreviation={identity?.abbreviation}
       />
-    );
-  }
-
-  function crossNode(group: (typeof groups)[number]): React.JSX.Element {
-    return (
-      <>
-        {entrantNode(group.homeEntrantId)}
-        {' vs '}
-        {entrantNode(group.awayEntrantId)}
-      </>
     );
   }
 
@@ -346,6 +353,225 @@ export function ScheduleBuilderTemplate({
       <span className="cl-card__description">
         <FormattedMessage {...CONTINGENCY_LABELS[row.contingency]} />
       </span>
+    );
+  }
+
+  const scheduleRows = useMemo(() => {
+    const timeZone = organizationTimeZone === undefined ? {} : { timeZone: organizationTimeZone };
+    const dayKeyFormatter = new Intl.DateTimeFormat('en', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      ...timeZone,
+    });
+    const dayLabelFormatter = new Intl.DateTimeFormat(intl.locale, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      ...timeZone,
+    });
+    const collator = new Intl.Collator(intl.locale);
+
+    return groups
+      .flatMap((group) =>
+        group.rows.map((row): ScheduleDisplayRow => {
+          const draft = draftFor(row.matchId);
+          const slotId =
+            draft.withdraw === true ? undefined : draft.slotId || row.releasedSlotId || undefined;
+          const slot = slotId === undefined ? undefined : slotById.get(slotId);
+          const venue = slot && venues.find((candidate) => candidate.venueId === slot.venueId);
+          const dayParts = slot
+            ? dayKeyFormatter.formatToParts(new Date(slot.startsAt))
+            : undefined;
+          const datePart = (type: 'year' | 'month' | 'day') =>
+            dayParts?.find((part) => part.type === type)?.value ?? '';
+          const dayKey =
+            dayParts === undefined
+              ? UNASSIGNED_DAY_KEY
+              : `${datePart('year')}-${datePart('month')}-${datePart('day')}`;
+          const dayLabel = slot
+            ? dayLabelFormatter.format(new Date(slot.startsAt))
+            : intl.formatMessage(messages.scheduleBuilderUnassigned);
+          const cross = `${entrantNames.get(group.homeEntrantId ?? '')?.fullName ?? unknownName} vs ${entrantNames.get(group.awayEntrantId ?? '')?.fullName ?? unknownName}`;
+          const label = group.series
+            ? `${cross} — ${intl.formatMessage(messages.scheduleBuilderSeriesGame, {
+                number: row.number,
+                span: group.series.span,
+              })}`
+            : cross;
+
+          return {
+            row,
+            label,
+            ...(slot === undefined ? {} : { slot }),
+            dayKey,
+            dayLabel,
+            venueKey: venue?.venueId ?? NO_VENUE_KEY,
+            venueLabel: venue?.name ?? intl.formatMessage(messages.scheduleBuilderNoVenue),
+          };
+        }),
+      )
+      .sort((left, right) => {
+        const dayOrder = left.dayKey.localeCompare(right.dayKey);
+        if (dayOrder !== 0) return dayOrder;
+        if (left.venueKey === NO_VENUE_KEY && right.venueKey !== NO_VENUE_KEY) return 1;
+        if (right.venueKey === NO_VENUE_KEY && left.venueKey !== NO_VENUE_KEY) return -1;
+        const venueOrder = collator.compare(left.venueLabel, right.venueLabel);
+        if (venueOrder !== 0) return venueOrder;
+        const timeOrder = (left.slot?.startsAt ?? 0) - (right.slot?.startsAt ?? 0);
+        return timeOrder || left.label.localeCompare(right.label, intl.locale);
+      });
+  }, [groups, draftFor, slotById, venues, organizationTimeZone, intl, entrantNames, unknownName]);
+
+  const dayOptions = [
+    ...new Map(scheduleRows.map(({ dayKey, dayLabel }) => [dayKey, dayLabel])).entries(),
+  ].map(([value, label]) => ({ value, label }));
+  const venueOptions = [
+    ...new Map(scheduleRows.map(({ venueKey, venueLabel }) => [venueKey, venueLabel])).entries(),
+  ]
+    .map(([value, label]) => ({ value, label }))
+    .sort((left, right) => {
+      if (left.value === NO_VENUE_KEY) return 1;
+      if (right.value === NO_VENUE_KEY) return -1;
+      return left.label.localeCompare(right.label, intl.locale);
+    });
+
+  const visibleRows = scheduleRows.filter(
+    ({ dayKey, venueKey }) =>
+      (selectedDay === 'all' || selectedDay === dayKey) &&
+      (selectedVenue === 'all' || selectedVenue === venueKey),
+  );
+  const dayGroups = [
+    ...new Map(
+      visibleRows.map((entry) => [entry.dayKey, { key: entry.dayKey, label: entry.dayLabel }]),
+    ).values(),
+  ].map((day) => {
+    const rows = visibleRows.filter((entry) => entry.dayKey === day.key);
+    const venuesForDay = [
+      ...new Map(
+        rows.map((entry) => [entry.venueKey, { key: entry.venueKey, label: entry.venueLabel }]),
+      ).values(),
+    ].map((venue) => ({
+      ...venue,
+      rows: rows.filter((entry) => entry.venueKey === venue.key),
+    }));
+    return { ...day, venues: venuesForDay };
+  });
+
+  function scheduleEntryNode(entry: ScheduleDisplayRow): React.JSX.Element {
+    const { row, label, slot } = entry;
+    const draft = draftFor(row.matchId);
+
+    if (row.status === 'not-required') {
+      const releasedSlot = describeSlot(row.releasedSlotId);
+      return (
+        <p className="cl-card__description">
+          {label} — <FormattedMessage {...CONTINGENCY_LABELS['no-longer-required']} />{' '}
+          {releasedSlot === undefined ? (
+            <FormattedMessage {...messages.scheduleBuilderReleasedSlotUnknown} />
+          ) : (
+            <FormattedMessage
+              {...messages.scheduleBuilderReleasedSlot}
+              values={{ slot: releasedSlot }}
+            />
+          )}
+        </p>
+      );
+    }
+
+    if (LOCKED_STATUSES.has(row.status)) {
+      return (
+        <p className="cl-card__description">
+          {label} — {slot && `${formatDateTime(intl, slot.startsAt, organizationTimeZone)} — `}
+          <FormattedMessage
+            {...(row.status === 'in-progress'
+              ? messages.scheduleBuilderLiveLocked
+              : messages.scheduleBuilderConcludedLocked)}
+          />
+        </p>
+      );
+    }
+
+    if (draft.withdraw === true) {
+      return (
+        <div className="cl-schedule-builder__assignment-row">
+          <p className="cl-card__description">
+            {label} — <FormattedMessage {...messages.scheduleBuilderWithdrawn} />
+          </p>
+          <Button
+            onClick={() => onSetDraft(row.matchId, { withdraw: false })}
+            type="button"
+            variant="secondary"
+          >
+            <FormattedMessage {...messages.scheduleBuilderKeepPlacement} />
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="cl-schedule-builder__assignment-row">
+        <strong>{label}</strong>
+        <Field
+          id={`slot-${row.matchId}`}
+          label={intl.formatMessage(messages.scheduleBuilderStartTime)}
+        >
+          <Select
+            aria-label={`${intl.formatMessage(messages.scheduleBuilderStartTime)} — ${label}`}
+            id={`slot-${row.matchId}`}
+            onValueChange={(value) => onSetDraft(row.matchId, { slotId: value })}
+            options={[
+              {
+                value: '',
+                label: intl.formatMessage(messages.scheduleBuilderUnassigned),
+              },
+              ...allSlots.map((candidate) => {
+                const venue = venues.find((item) => item.venueId === candidate.venueId);
+                const isOccupied =
+                  candidate.matchCount >= (venue?.concurrentCapacity ?? 1) &&
+                  draft.slotId !== candidate.slotId;
+                return {
+                  value: candidate.slotId,
+                  label: `${formatDateTime(intl, candidate.startsAt, organizationTimeZone)}${venue ? ` @ ${venue.name}` : ''} (${candidate.matchCount}/${venue?.concurrentCapacity ?? 1})${isOccupied ? ' (Full)' : ''}`,
+                  disabled: isOccupied,
+                };
+              }),
+            ]}
+            value={draft.slotId}
+          />
+        </Field>
+
+        {contingencyNode(row)}
+
+        {placements[row.matchId] !== undefined && (
+          <Button
+            aria-label={`${intl.formatMessage(messages.scheduleBuilderWithdraw)} — ${label}`}
+            onClick={() => onSetDraft(row.matchId, { withdraw: true })}
+            type="button"
+            variant="secondary"
+          >
+            <FormattedMessage {...messages.scheduleBuilderWithdraw} />
+          </Button>
+        )}
+
+        {officials.length > 0 && (
+          <fieldset className="cl-role-user">
+            <legend className="cl-label">
+              <FormattedMessage {...messages.scheduleBuilderOfficials} />
+            </legend>
+            {officials.map((official) => (
+              <label key={official.officialId} className="cl-toggle cl-focusable">
+                <Checkbox
+                  checked={draft.officialIds.includes(official.officialId)}
+                  onCheckedChange={() => onToggleOfficial(row.matchId, official.officialId)}
+                />
+                <span>{official.displayName}</span>
+              </label>
+            ))}
+          </fieldset>
+        )}
+      </div>
     );
   }
 
@@ -364,7 +590,7 @@ export function ScheduleBuilderTemplate({
   const matchesViewHref = `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches-view?stageNumber=${stageNumber}`;
 
   const toolbarNode = (
-    <>
+    <div className="cl-table-toolbar__filters">
       <a
         className="cl-focusable"
         href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/standings`}
@@ -381,7 +607,7 @@ export function ScheduleBuilderTemplate({
       >
         <FormattedMessage {...messages.matchesViewSeeAll} />
       </a>
-    </>
+    </div>
   );
 
   const listingNode = (
@@ -392,250 +618,86 @@ export function ScheduleBuilderTemplate({
           <FormattedMessage {...messages.scheduleBuilderNoFixtures} />
         </p>
       )}
+      {fixtures.length > 0 && officials.length === 0 && (
+        <p className="cl-card__description" role="status">
+          <FormattedMessage {...messages.scheduleBuilderNoOfficialsAvailable} />
+        </p>
+      )}
 
       {fixtures.length > 0 && (
         <>
           <Card
-            aria-label={intl.formatMessage(messages.scheduleBuilderCalendarViewLabel)}
+            aria-label={intl.formatMessage(messages.scheduleBuilderDailyScheduleLabel)}
             className="cl-chamfer cl-chamfer--control"
           >
             <header className="cl-card__header">
               <h2 className="cl-card__title">
-                <FormattedMessage {...messages.scheduleBuilderCalendarViewLabel} />
+                <FormattedMessage {...messages.scheduleBuilderDailyScheduleLabel} />
               </h2>
             </header>
             <div className="cl-card__content">
-              {groups.map((group) => (
-                <section key={group.fixtureId} aria-label={crossLabel(group)}>
-                  <h3 className="cl-card__title">
-                    <FormattedMessage
-                      {...messages.scheduleBuilderFixtureRound}
-                      values={{ round: group.round }}
-                    />
-                    {' — '}
-                    {crossNode(group)}
-                  </h3>
-                  {group.series && (
-                    <p className="cl-card__description">
-                      <FormattedMessage
-                        {...messages.scheduleBuilderSeriesHeading}
-                        values={{
-                          span: group.series.span,
-                          played: group.series.matchesPlayed,
-                        }}
-                      />
-                      {group.series.explanation !== undefined && ` — ${group.series.explanation}`}
-                    </p>
-                  )}
-                  <ul>
-                    {group.rows.map((row) => {
-                      const draft = draftFor(row.matchId);
-                      // A withdrawal shows as unscheduled before it publishes, freeing its slot.
-                      const assignedSlot =
-                        draft.withdraw === true ? undefined : slotById.get(draft.slotId);
-                      const venue = assignedSlot
-                        ? venues.find((c) => c.venueId === assignedSlot.venueId)
-                        : undefined;
-                      const assignedOfficials = officials.filter((candidate) =>
-                        draft.officialIds.includes(candidate.officialId),
-                      );
-                      const releasedSlot = describeSlot(row.releasedSlotId);
-                      return (
-                        <li key={row.matchId} className="cl-role-user">
-                          <span>
-                            {group.series ? (
-                              <FormattedMessage
-                                {...messages.scheduleBuilderSeriesGame}
-                                values={{ number: row.number, span: group.series.span }}
-                              />
-                            ) : (
-                              crossNode(group)
-                            )}
-                          </span>
-                          {contingencyNode(row)}
-                          <span>
-                            {assignedSlot ? (
-                              <>
-                                {formatDateTime(intl, assignedSlot.startsAt, organizationTimeZone)}
-                                {assignedSlot.slotMinutes && ` (${assignedSlot.slotMinutes}m)`}
-                                {venue && ` @ ${venue.name}`}
-                                {assignedOfficials.length > 0 &&
-                                  ` · ${assignedOfficials.map((candidate) => candidate.displayName).join(', ')}`}
-                              </>
-                            ) : (
-                              intl.formatMessage(messages.scheduleBuilderUnassigned)
-                            )}
-                          </span>
-                          {/* An anulled game keeps its place in the view and names the slot it
-                              had held, so an organizer knows the venue and hour came back. */}
-                          {row.status === 'not-required' && (
-                            <span className="cl-card__description">
-                              {releasedSlot === undefined ? (
-                                <FormattedMessage
-                                  {...messages.scheduleBuilderReleasedSlotUnknown}
-                                />
-                              ) : (
-                                <FormattedMessage
-                                  {...messages.scheduleBuilderReleasedSlot}
-                                  values={{ slot: releasedSlot }}
-                                />
-                              )}
-                            </span>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
-              ))}
-            </div>
-          </Card>
+              <div className="cl-platform-form-grid">
+                <Field
+                  id="schedule-filter-day"
+                  label={intl.formatMessage(messages.scheduleBuilderFilterDay)}
+                >
+                  <Select
+                    aria-label={intl.formatMessage(messages.scheduleBuilderFilterDay)}
+                    id="schedule-filter-day"
+                    onValueChange={setSelectedDay}
+                    options={[
+                      {
+                        value: 'all',
+                        label: intl.formatMessage(messages.scheduleBuilderAllDays),
+                      },
+                      ...dayOptions,
+                    ]}
+                    value={selectedDay}
+                  />
+                </Field>
+                <Field
+                  id="schedule-filter-venue"
+                  label={intl.formatMessage(messages.scheduleBuilderFilterVenue)}
+                >
+                  <Select
+                    aria-label={intl.formatMessage(messages.scheduleBuilderFilterVenue)}
+                    id="schedule-filter-venue"
+                    onValueChange={setSelectedVenue}
+                    options={[
+                      {
+                        value: 'all',
+                        label: intl.formatMessage(messages.scheduleBuilderAllVenues),
+                      },
+                      ...venueOptions,
+                    ]}
+                    value={selectedVenue}
+                  />
+                </Field>
+              </div>
 
-          <Card
-            aria-label={intl.formatMessage(messages.scheduleBuilderListViewLabel)}
-            className="cl-chamfer cl-chamfer--control"
-          >
-            <header className="cl-card__header">
-              <h2 className="cl-card__title">
-                <FormattedMessage {...messages.scheduleBuilderListViewLabel} />
-              </h2>
-            </header>
-            <div className="cl-card__content">
-              {groups.map((group) => (
-                <section key={group.fixtureId} aria-label={crossLabel(group)}>
-                  <h3 className="cl-card__title">{crossNode(group)}</h3>
-                  {group.series && (
-                    <p className="cl-card__description">
-                      <FormattedMessage
-                        {...messages.scheduleBuilderSeriesHeading}
-                        values={{ span: group.series.span, played: group.series.matchesPlayed }}
-                      />
-                    </p>
-                  )}
-                  {group.rows.map((row) => {
-                    const draft = draftFor(row.matchId);
-                    // Names the cross as well as the game: two crosses each have a game
-                    // four, and a control labelled only "Game 4 of 5" tells a screen-reader
-                    // user which game but not whose.
-                    const rowLabel = group.series
-                      ? `${crossLabel(group)} — ${intl.formatMessage(
-                          messages.scheduleBuilderSeriesGame,
-                          { number: row.number, span: group.series.span },
-                        )}`
-                      : crossLabel(group);
-                    // An anulled game holds no slot and cannot be given one: the record says
-                    // it was never played, and a schedule entry would contradict that.
-                    if (row.status === 'not-required') {
-                      const releasedSlot = describeSlot(row.releasedSlotId);
-                      return (
-                        <p key={row.matchId} className="cl-card__description">
-                          {rowLabel} —{' '}
-                          <FormattedMessage {...CONTINGENCY_LABELS['no-longer-required']} />{' '}
-                          {releasedSlot === undefined ? (
-                            <FormattedMessage {...messages.scheduleBuilderReleasedSlotUnknown} />
-                          ) : (
-                            <FormattedMessage
-                              {...messages.scheduleBuilderReleasedSlot}
-                              values={{ slot: releasedSlot }}
-                            />
-                          )}
-                        </p>
-                      );
-                    }
-                    // A live or played match keeps its time and place: the record is not a plan.
-                    if (LOCKED_STATUSES.has(row.status)) {
-                      return (
-                        <p key={row.matchId} className="cl-card__description">
-                          {rowLabel} —{' '}
-                          <FormattedMessage
-                            {...(row.status === 'in-progress'
-                              ? messages.scheduleBuilderLiveLocked
-                              : messages.scheduleBuilderConcludedLocked)}
-                          />
-                        </p>
-                      );
-                    }
-                    if (draft.withdraw === true) {
-                      return (
-                        <div key={row.matchId} className="cl-schedule-builder__assignment-row">
-                          <p className="cl-card__description">
-                            {rowLabel} — <FormattedMessage {...messages.scheduleBuilderWithdrawn} />
-                          </p>
-                          <Button
-                            onClick={() => onSetDraft(row.matchId, { withdraw: false })}
-                            type="button"
-                            variant="secondary"
-                          >
-                            <FormattedMessage {...messages.scheduleBuilderKeepPlacement} />
-                          </Button>
-                        </div>
-                      );
-                    }
-                    return (
-                      <div key={row.matchId} className="cl-schedule-builder__assignment-row">
-                        <Field
-                          id={`slot-${row.matchId}`}
-                          label={intl.formatMessage(messages.scheduleBuilderStartTime)}
-                        >
-                          <Select
-                            aria-label={`${intl.formatMessage(messages.scheduleBuilderStartTime)} — ${rowLabel}`}
-                            id={`slot-${row.matchId}`}
-                            onValueChange={(val) => onSetDraft(row.matchId, { slotId: val })}
-                            options={[
-                              {
-                                value: '',
-                                label: intl.formatMessage(messages.scheduleBuilderUnassigned),
-                              },
-                              ...allSlots.map((slot) => {
-                                const venue = venues.find((v) => v.venueId === slot.venueId);
-                                const isOccupied =
-                                  slot.matchCount >= (venue?.concurrentCapacity ?? 1) &&
-                                  draft.slotId !== slot.slotId;
-                                return {
-                                  value: slot.slotId,
-                                  label: `${formatDateTime(intl, slot.startsAt, organizationTimeZone)}${venue ? ` @ ${venue.name}` : ''} (${slot.matchCount}/${venue?.concurrentCapacity ?? 1})${isOccupied ? ' (Full)' : ''}`,
-                                  disabled: isOccupied,
-                                };
-                              }),
-                            ]}
-                            value={draft.slotId}
-                          />
-                        </Field>
-
-                        {contingencyNode(row)}
-
-                        {placements[row.matchId] !== undefined && (
-                          <Button
-                            aria-label={`${intl.formatMessage(messages.scheduleBuilderWithdraw)} — ${rowLabel}`}
-                            onClick={() => onSetDraft(row.matchId, { withdraw: true })}
-                            type="button"
-                            variant="secondary"
-                          >
-                            <FormattedMessage {...messages.scheduleBuilderWithdraw} />
-                          </Button>
-                        )}
-
-                        <fieldset className="cl-role-user">
-                          <legend className="cl-label">
-                            <FormattedMessage {...messages.scheduleBuilderOfficials} />
-                          </legend>
-                          {officials.map((official) => (
-                            <label key={official.officialId} className="cl-toggle cl-focusable">
-                              <Checkbox
-                                checked={draft.officialIds.includes(official.officialId)}
-                                onCheckedChange={() =>
-                                  onToggleOfficial(row.matchId, official.officialId)
-                                }
-                              />
-                              <span>{official.displayName}</span>
-                            </label>
-                          ))}
-                        </fieldset>
-                      </div>
-                    );
-                  })}
-                </section>
-              ))}
+              {dayGroups.length === 0 ? (
+                <p className="cl-card__description">
+                  <FormattedMessage {...messages.scheduleBuilderNoMatchesForFilters} />
+                </p>
+              ) : (
+                <div>
+                  {dayGroups.map((day, dayIndex) => (
+                    <details key={day.key} open={dayIndex === 0}>
+                      <summary className="cl-card__title">{day.label}</summary>
+                      {day.venues.map((venue) => (
+                        <section key={venue.key} aria-label={venue.label}>
+                          <h3 className="cl-card__title">{venue.label}</h3>
+                          <ul>
+                            {venue.rows.map((entry) => (
+                              <li key={entry.row.matchId}>{scheduleEntryNode(entry)}</li>
+                            ))}
+                          </ul>
+                        </section>
+                      ))}
+                    </details>
+                  ))}
+                </div>
+              )}
 
               {/* Which slots a decision is about to hand back, named before it is committed —
                   an hour of venue an organizer can only give away if they know it is coming. */}
@@ -694,6 +756,11 @@ export function ScheduleBuilderTemplate({
             </header>
 
             <div className="cl-card__content">
+              {publishHint && (
+                <p className="cl-card__description" role="status">
+                  <FormattedMessage {...publishHint} />
+                </p>
+              )}
               {currentConflicts.length > 0 && (
                 <div data-arisen-conflicts="" role="status">
                   <h3 className="cl-card__title">

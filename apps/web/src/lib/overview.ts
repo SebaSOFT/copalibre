@@ -129,6 +129,48 @@ export interface OverviewInput extends RouteInput {
   readonly emblemObjectId?: string;
 }
 
+export interface OverviewMatchSummary {
+  readonly live: readonly OverviewMatch[];
+  readonly upcoming: readonly OverviewMatch[];
+  readonly latestResults: readonly OverviewMatch[];
+}
+
+/** Keeps the landing page's fixture summary bounded and ordered by kickoff, not fixture number. */
+export function summarizeOverviewMatches(
+  matches: readonly OverviewMatch[],
+  limit = 4,
+): OverviewMatchSummary {
+  const kickoffOf = (match: OverviewMatch): number => {
+    const kickoff = Date.parse(match.startsAt);
+    return Number.isFinite(kickoff) ? kickoff : Number.POSITIVE_INFINITY;
+  };
+  const compareKickoff = (left: OverviewMatch, right: OverviewMatch): number =>
+    kickoffOf(left) - kickoffOf(right) ||
+    left.stageNumber - right.stageNumber ||
+    (left.matchNumber ?? left.stageOrdinal ?? 0) - (right.matchNumber ?? right.stageOrdinal ?? 0);
+  const count = Math.max(0, Math.trunc(limit));
+
+  return {
+    live: matches
+      .filter((match) => match.state === 'live')
+      .sort(compareKickoff)
+      .slice(0, count),
+    upcoming: matches
+      .filter((match) => match.state === 'upcoming')
+      .sort(compareKickoff)
+      .slice(0, count),
+    latestResults: matches
+      .filter(
+        (match) =>
+          match.state === 'final' &&
+          match.home.score !== undefined &&
+          match.away.score !== undefined,
+      )
+      .sort((left, right) => compareKickoff(right, left))
+      .slice(0, count),
+  };
+}
+
 export function buildOverview(input: OverviewInput): OverviewModel {
   return {
     organizationAlias: input.organizationAlias,

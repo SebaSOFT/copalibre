@@ -378,7 +378,7 @@ describe('what the dashboard renders', () => {
   });
 
   it.each([
-    ['live', 'LIVE'],
+    ['live', 'In progress'],
     ['upcoming', 'Upcoming'],
     ['draft', 'Draft'],
     ['finished', 'Finished'],

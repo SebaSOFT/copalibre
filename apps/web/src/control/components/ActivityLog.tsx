@@ -1,7 +1,11 @@
 import { useContext, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { ActivityEntry } from '../lib/dashboard.js';
-import { formatActivityAction, formatActivityReason } from '../lib/activity-formatting.js';
+import {
+  formatActivityAction,
+  formatActivityReason,
+  groupConsecutiveActivity,
+} from '../lib/activity-formatting.js';
 import { formatActor } from '../lib/presentation-formatting.js';
 import { messages } from '../i18n/messages.en.js';
 import { ResponsiveTimestamp } from '../../components/ui/atoms/ResponsiveTimestamp.js';
@@ -28,34 +32,71 @@ export function ActivityLog({
   const pageHeader = useContext(PageHeaderContext);
   const [currentNow] = useState(() => now ?? Date.now());
   const locale = intl.locale || 'es';
+  const groups = groupConsecutiveActivity(entries);
 
-  const columns: readonly DataTableColumn<ActivityEntry>[] = [
+  const columns: readonly DataTableColumn<(typeof groups)[number]>[] = [
     {
       key: 'action',
       header: <FormattedMessage {...messages.auditTrailColumnAction} />,
-      render: (entry) => (
-        <strong className="cl-activity-feed__action">
-          {formatActivityAction(entry.action, locale)}
-        </strong>
-      ),
+      render: (group) => {
+        const action = (
+          <strong className="cl-activity-feed__action">
+            {formatActivityAction(group.latest.action, locale)}
+          </strong>
+        );
+
+        if (group.entries.length === 1) return action;
+
+        return (
+          <details className="cl-activity-feed__group">
+            <summary>
+              {action}{' '}
+              <span className="cl-label">
+                {intl.formatMessage(messages.dashboardActivityGroupedSummary, {
+                  count: group.entries.length,
+                })}
+              </span>
+            </summary>
+            <ul>
+              {group.entries.map((entry) => (
+                <li key={entry.auditId}>
+                  <ResponsiveTimestamp
+                    className="cl-label cl-activity-feed__time"
+                    format="relative"
+                    locale={locale}
+                    referenceDate={currentNow}
+                    timestamp={entry.occurredAt}
+                    timeZone={pageHeader?.organizationTimeZone}
+                  />
+                  {entry.reason === undefined ? null : (
+                    <span className="cl-activity-feed__reason">
+                      {formatActivityReason(entry.reason, locale)}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </details>
+        );
+      },
     },
     {
       key: 'actor',
       header: <FormattedMessage {...messages.auditTrailColumnActor} />,
-      render: (entry) => (
-        <Badge className="cl-state--muted" label={formatActor(intl, entry.actor)} />
+      render: (group) => (
+        <Badge className="cl-state--muted" label={formatActor(intl, group.latest.actor)} />
       ),
     },
     {
       key: 'occurredAt',
       header: <FormattedMessage {...messages.auditTrailColumnTime} />,
-      render: (entry) => (
+      render: (group) => (
         <ResponsiveTimestamp
           className="cl-label cl-activity-feed__time"
           format="relative"
           locale={locale}
           referenceDate={currentNow}
-          timestamp={entry.occurredAt}
+          timestamp={group.latest.occurredAt}
           timeZone={pageHeader?.organizationTimeZone}
         />
       ),
@@ -74,15 +115,15 @@ export function ActivityLog({
         ariaLabel={intl.formatMessage(messages.dashboardRecentActivity)}
         columns={columns}
         emptyMessage={intl.formatMessage(messages.dashboardNoActivityYet)}
-        renderRowDetail={(entry) =>
-          entry.reason === undefined ? null : (
+        renderRowDetail={(group) =>
+          group.entries.length > 1 || group.latest.reason === undefined ? null : (
             <span className="cl-activity-feed__reason">
-              {formatActivityReason(entry.reason, locale)}
+              {formatActivityReason(group.latest.reason, locale)}
             </span>
           )
         }
-        rowKey={(entry) => entry.auditId}
-        rows={entries}
+        rowKey={(group) => group.id}
+        rows={groups}
       />
     </section>
   );

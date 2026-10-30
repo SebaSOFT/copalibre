@@ -374,6 +374,7 @@ export const messages = defineMessages({
 
   // Tournament lifecycle labels (lib/dashboard.ts LIFECYCLE_PRESENTATION)
   lifecycleLive: { id: 'control.lifecycle.live', defaultMessage: 'LIVE' },
+  lifecycleInProgress: { id: 'control.lifecycle.inProgress', defaultMessage: 'In progress' },
   lifecycleUpcoming: { id: 'control.lifecycle.upcoming', defaultMessage: 'Upcoming' },
   lifecycleDraft: { id: 'control.lifecycle.draft', defaultMessage: 'Draft' },
   lifecycleFinished: { id: 'control.lifecycle.finished', defaultMessage: 'Finished' },
@@ -415,6 +416,10 @@ export const messages = defineMessages({
   dashboardRecentActivity: {
     id: 'control.dashboard.recentActivity',
     defaultMessage: 'Recent activity',
+  },
+  dashboardActivityGroupedSummary: {
+    id: 'control.dashboard.activityGroupedSummary',
+    defaultMessage: '{count} matching actions in 5 minutes',
   },
   dashboardNoActivityYet: {
     id: 'control.dashboard.noActivityYet',
@@ -3385,6 +3390,10 @@ export const messages = defineMessages({
     id: 'control.scheduleBuilder.listViewLabel',
     defaultMessage: 'List view',
   },
+  scheduleBuilderDailyScheduleLabel: {
+    id: 'control.scheduleBuilder.dailyScheduleLabel',
+    defaultMessage: 'Schedule by day',
+  },
   scheduleBuilderNoFixtures: {
     id: 'control.scheduleBuilder.noFixtures',
     defaultMessage: 'This stage has no fixtures yet.',
@@ -3406,10 +3415,46 @@ export const messages = defineMessages({
     defaultMessage: 'Duration (minutes)',
   },
   scheduleBuilderVenue: { id: 'control.scheduleBuilder.venue', defaultMessage: 'Venue' },
+  scheduleBuilderFilterDay: {
+    id: 'control.scheduleBuilder.filterDay',
+    defaultMessage: 'Day',
+  },
+  scheduleBuilderFilterVenue: {
+    id: 'control.scheduleBuilder.filterVenue',
+    defaultMessage: 'Venue',
+  },
+  scheduleBuilderAllDays: {
+    id: 'control.scheduleBuilder.allDays',
+    defaultMessage: 'All days',
+  },
+  scheduleBuilderAllVenues: {
+    id: 'control.scheduleBuilder.allVenues',
+    defaultMessage: 'All venues',
+  },
   scheduleBuilderNoVenue: { id: 'control.scheduleBuilder.noVenue', defaultMessage: 'No venue' },
+  scheduleBuilderNoMatchesForFilters: {
+    id: 'control.scheduleBuilder.noMatchesForFilters',
+    defaultMessage: 'No matches fit these filters.',
+  },
   scheduleBuilderOfficials: {
     id: 'control.scheduleBuilder.officials',
     defaultMessage: 'Officials',
+  },
+  scheduleBuilderNoOfficialsAvailable: {
+    id: 'control.scheduleBuilder.noOfficialsAvailable',
+    defaultMessage: 'No officials are available to assign.',
+  },
+  scheduleBuilderAssignBeforePreview: {
+    id: 'control.scheduleBuilder.assignBeforePreview',
+    defaultMessage: 'Assign at least one match to a time and venue to preview the schedule.',
+  },
+  scheduleBuilderPreviewBeforePublish: {
+    id: 'control.scheduleBuilder.previewBeforePublish',
+    defaultMessage: 'Preview the current assignments before publishing.',
+  },
+  scheduleBuilderResolveConflictsBeforePublish: {
+    id: 'control.scheduleBuilder.resolveConflictsBeforePublish',
+    defaultMessage: 'Resolve the listed conflicts before publishing.',
   },
   scheduleBuilderPreview: {
     id: 'control.scheduleBuilder.preview',

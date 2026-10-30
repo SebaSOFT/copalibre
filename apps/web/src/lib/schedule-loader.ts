@@ -14,6 +14,8 @@ export type ScheduleStateFilter = 'all' | 'live' | 'upcoming' | 'final';
 export interface LoadedSchedule {
   /** `stageName` is empty when the tournament reports none: the caller supplies the numbered fallback. */
   readonly stageOptions: readonly { readonly stageNumber: number; readonly stageName: string }[];
+  /** Promotion-band order from the stage bracket, used by the zone filter. */
+  readonly zoneOrder: readonly string[];
   /** The rows the stage and state filters returned, before any zone or group is chosen: the facets' source. */
   readonly stageRows: readonly MatchCardData[];
   /** The rows left once the zone and group are applied. */
@@ -67,9 +69,8 @@ export async function loadSchedule(args: {
   const knockoutAsBracket = state === 'all';
   const inputs: readonly ScheduleStageInput[] = await Promise.all(
     shown.map(async (one) => {
-      const raw = knockoutAsBracket
-        ? await fetchBracket(organization, tournament, one.stageNumber)
-        : undefined;
+      // State-filtered match lists still need the bracket's declared zone order for their filters.
+      const raw = await fetchBracket(organization, tournament, one.stageNumber);
       const bracket = raw ? mapBracketResponse(raw) : undefined;
       return {
         stageNumber: one.stageNumber,
@@ -82,8 +83,17 @@ export async function loadSchedule(args: {
       };
     }),
   );
+  const seenZones = new Set<string>();
+  const zoneOrder = inputs.flatMap((stage) =>
+    stage.zones.flatMap((zone) => {
+      if (zone.name === undefined || seenZones.has(zone.name)) return [];
+      seenZones.add(zone.name);
+      return [zone.name];
+    }),
+  );
   return {
     stageOptions,
+    zoneOrder,
     stageRows,
     rows,
     stages: buildSchedule({ stages: inputs, rows, knockoutAsBracket }),

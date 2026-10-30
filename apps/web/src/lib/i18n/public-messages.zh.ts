@@ -83,6 +83,7 @@ export const messages: Record<string, string> = {
   'publicWeb.ruleset.format.ffaLeague': '混战联赛',
 
   'publicWeb.standings.heading': '排名',
+  'publicWeb.standings.fullTable': '查看完整积分榜',
   'publicWeb.standings.tableLayouts': '表格布局',
   'publicWeb.standings.filterByClub': '按俱乐部筛选',
   'publicWeb.standings.filterClubLabel': '俱乐部',
@@ -226,6 +227,7 @@ export const messages: Record<string, string> = {
     'yarn workspace @copalibre/web build && yarn workspace @copalibre/web preview',
 
   'publicWeb.matchesView.pageTitle': '比赛',
+  'publicWeb.matchesView.filtersDisclosureLabel': '筛选比赛',
   'publicWeb.matchesView.filterAll': '全部',
   'publicWeb.matchesView.filterLive': '进行中',
   'publicWeb.matchesView.filterUpcoming': '即将开始',
@@ -261,6 +263,8 @@ export const messages: Record<string, string> = {
     '并列名次之间的决定因素。获授权的组织者可在控制面板查看完整说明。',
   'publicWeb.matchesView.fullTraceHeading': '完整的排名比较器追踪记录',
   'publicWeb.matchesView.seeAll': '查看所有比赛',
+  'publicWeb.overview.nextMatches': '接下来的比赛',
+  'publicWeb.overview.latestResults': '最近结果',
   'publicWeb.matchesView.versus': 'vs',
   'publicWeb.matchesView.densityToggleAriaLabel': '切换视图密度',
   'publicWeb.matchesView.detailedToggle': '详细',

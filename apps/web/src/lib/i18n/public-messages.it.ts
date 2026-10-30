@@ -83,6 +83,7 @@ export const messages: Record<string, string> = {
   'publicWeb.ruleset.format.ffaLeague': 'Campionato FFA',
 
   'publicWeb.standings.heading': 'Classifica',
+  'publicWeb.standings.fullTable': 'Vedi classifica completa',
   'publicWeb.standings.tableLayouts': 'Layout di tabella',
   'publicWeb.standings.filterByClub': 'Filtra per club',
   'publicWeb.standings.filterClubLabel': 'Club',
@@ -231,6 +232,7 @@ export const messages: Record<string, string> = {
     'yarn workspace @copalibre/web build && yarn workspace @copalibre/web preview',
 
   'publicWeb.matchesView.pageTitle': 'Partite',
+  'publicWeb.matchesView.filtersDisclosureLabel': 'Filtra le partite',
   'publicWeb.matchesView.filterAll': 'Tutte',
   'publicWeb.matchesView.filterLive': 'In diretta',
   'publicWeb.matchesView.filterUpcoming': 'In programma',
@@ -266,6 +268,8 @@ export const messages: Record<string, string> = {
     'Il fattore decisivo tra posizioni in classifica a pari merito. Un organizzatore autorizzato può vedere la spiegazione completa nel pannello di controllo.',
   'publicWeb.matchesView.fullTraceHeading': 'Traccia completa del comparatore di classifica',
   'publicWeb.matchesView.seeAll': 'Vedi tutte le partite',
+  'publicWeb.overview.nextMatches': 'Prossime partite',
+  'publicWeb.overview.latestResults': 'Ultimi risultati',
   'publicWeb.matchesView.versus': 'vs',
   'publicWeb.matchesView.densityToggleAriaLabel': 'Cambia densità di visualizzazione',
   'publicWeb.matchesView.detailedToggle': 'Dettagliato',

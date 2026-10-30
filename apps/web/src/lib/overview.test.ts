@@ -4,6 +4,8 @@ import {
   groupStandingsByZone,
   shortLabel,
   shouldShowChampionPodium,
+  summarizeOverviewMatches,
+  type OverviewMatch,
 } from './overview.js';
 import { PUBLIC_ROUTES } from './public-routes.js';
 import { sampleOverview } from './sample-data.js';
@@ -32,6 +34,74 @@ describe('the overview model', () => {
 
   it('counts what is live, so the badge carries a number and not just a colour', () => {
     expect(model.liveCount).toBe(1);
+  });
+
+  it('bounds live, upcoming and latest-result summaries in kickoff order', () => {
+    const match = (
+      matchId: string,
+      state: OverviewMatch['state'],
+      startsAt: string,
+      score?: number,
+    ): OverviewMatch => ({
+      matchId,
+      stageNumber: 1,
+      matchNumber: Number(matchId.replace('m', '')),
+      state,
+      startsAt,
+      home: { name: 'Home', ...(score === undefined ? {} : { score }) },
+      away: { name: 'Away', ...(score === undefined ? {} : { score: 1 }) },
+    });
+    const summary = summarizeOverviewMatches(
+      [
+        match('m1', 'upcoming', '2026-10-23T12:00:00Z'),
+        match('m2', 'live', '2026-10-22T12:00:00Z'),
+        match('m3', 'final', '2026-10-20T12:00:00Z', 1),
+        match('m4', 'upcoming', '2026-10-21T12:00:00Z'),
+        match('m5', 'final', '2026-10-19T12:00:00Z'),
+        match('m6', 'final', '2026-10-21T12:00:00Z', 2),
+      ],
+      1,
+    );
+
+    expect(summary.live.map((one) => one.matchId)).toEqual(['m2']);
+    expect(summary.upcoming.map((one) => one.matchId)).toEqual(['m4']);
+    expect(summary.latestResults.map((one) => one.matchId)).toEqual(['m6']);
+  });
+
+  it('keeps the default overview summary to four upcoming matches and four results', () => {
+    const upcoming = Array.from({ length: 6 }, (_, index) => ({
+      matchId: `upcoming-${index}`,
+      stageNumber: 1,
+      matchNumber: index + 1,
+      state: 'upcoming' as const,
+      startsAt: `2026-10-${String(21 + index).padStart(2, '0')}T12:00:00Z`,
+      home: { name: 'Home' },
+      away: { name: 'Away' },
+    }));
+    const results = Array.from({ length: 6 }, (_, index) => ({
+      matchId: `final-${index}`,
+      stageNumber: 1,
+      matchNumber: index + 1,
+      state: 'final' as const,
+      startsAt: `2026-10-${String(15 + index).padStart(2, '0')}T12:00:00Z`,
+      home: { name: 'Home', score: 2 },
+      away: { name: 'Away', score: 1 },
+    }));
+
+    const summary = summarizeOverviewMatches([...upcoming, ...results]);
+
+    expect(summary.upcoming.map((one) => one.matchId)).toEqual([
+      'upcoming-0',
+      'upcoming-1',
+      'upcoming-2',
+      'upcoming-3',
+    ]);
+    expect(summary.latestResults.map((one) => one.matchId)).toEqual([
+      'final-5',
+      'final-4',
+      'final-3',
+      'final-2',
+    ]);
   });
 
   it('shows the podium only for a finished overview with multiple resolved zones', () => {

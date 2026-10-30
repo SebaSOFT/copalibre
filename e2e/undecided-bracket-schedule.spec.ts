@@ -252,10 +252,7 @@ test('the broadcast list names the sources a final waits on', async ({ page }) =
   await page.goto(`/tv/${org}/tournaments/${tournament}?view=matches&lang=en&token=test`);
   const list = page.getByTestId('tv-match-list');
   await expect(list).toBeVisible();
-  await expect(list.getByText('W Semi-final 2', { exact: true })).toHaveAttribute(
-    'title',
-    'Winner of Semi-final 2',
-  );
+  await expect(list.getByRole('listitem', { name: /Winner of Semi-final 2/ })).toBeVisible();
   await page.screenshot({ path: 'docs/assets/screenshots/undecided-tv.png' });
 });
 

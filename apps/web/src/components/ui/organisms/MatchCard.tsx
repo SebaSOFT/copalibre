@@ -36,6 +36,8 @@ export interface MatchCardProps {
   readonly band?: 'panel' | 'base';
   /** Single-line ticker presentation — a dense listing's own row shape, not a smaller version of the full card. */
   readonly compact?: boolean;
+  /** Abbreviated names suit a ticker; overview summaries can request readable names. */
+  readonly compactNames?: 'abbreviated' | 'full';
   /** Heading depth in the page outline. */
   readonly headingLevel?: number;
 }
@@ -58,6 +60,7 @@ export function MatchCard({
   organizationAlias,
   band,
   compact = false,
+  compactNames = 'abbreviated',
   headingLevel = 3,
 }: MatchCardProps): React.JSX.Element {
   const MatchHeading = `h${Math.min(Math.max(headingLevel, 2), 6)}` as
@@ -81,6 +84,7 @@ export function MatchCard({
       ? rescheduledStatement(match.rescheduledFrom, match.venueName, locale, labels.rescheduled)
       : '';
   const badge = presentState(match.state, labels.state);
+  const linkedClass = reportUrl === undefined ? '' : ' cl-match-card--linked';
   const scopeLine = [
     match.zoneName,
     match.groupName,
@@ -105,13 +109,17 @@ export function MatchCard({
   if (compact) {
     const versus = labels.versus ?? 'vs';
     const homeCompactName =
-      match.homeName === undefined
-        ? homeSource.short
-        : resolveCompactEntrant(match.homeAbbreviation, match.homeName);
+      compactNames === 'full'
+        ? homeName
+        : match.homeName === undefined
+          ? homeSource.short
+          : resolveCompactEntrant(match.homeAbbreviation, match.homeName);
     const awayCompactName =
-      match.awayName === undefined
-        ? awaySource.short
-        : resolveCompactEntrant(match.awayAbbreviation, match.awayName);
+      compactNames === 'full'
+        ? awayName
+        : match.awayName === undefined
+          ? awaySource.short
+          : resolveCompactEntrant(match.awayAbbreviation, match.awayName);
     const hasScores = match.homeScore !== undefined && match.awayScore !== undefined;
     const timeStr =
       !hasScores && match.scheduledAt !== undefined
@@ -123,10 +131,17 @@ export function MatchCard({
     const compactBody = (
       <Card
         as="article"
-        className="cl-match-card cl-match-card--compact"
+        className={`cl-match-card cl-match-card--compact${compactNames === 'full' ? ' cl-match-card--compact-full-names' : ''}${linkedClass}`}
         data-match={match.matchId}
         data-schedule-version={match.scheduleVersion ?? 0}
       >
+        {reportUrl !== undefined && (
+          <a
+            aria-label={`${homeName} ${versus} ${awayName}`}
+            className="cl-match-card__hit-area"
+            href={reportUrl}
+          />
+        )}
         <span
           aria-label={badge.label}
           className={`cl-match-card__compact-dot${badge.state === 'live' ? ' cl-live-dot' : ''} ${badge.className}`.trim()}
@@ -136,7 +151,10 @@ export function MatchCard({
           <span className="cl-visually-hidden">{badge.label}</span>
         </span>
         <span className="cl-match-card__compact-content">
-          <span className="cl-match-card__compact-side">
+          <span
+            className="cl-match-card__compact-side cl-match-card__compact-side--home"
+            title={homeName}
+          >
             <EntrantEmblem
               abbreviation={match.homeAbbreviation}
               alt={homeName}
@@ -149,8 +167,11 @@ export function MatchCard({
               {hasScores ? ` ${match.homeScore}` : ''}
             </span>
           </span>{' '}
-          <span>{versus}</span>{' '}
-          <span className="cl-match-card__compact-side">
+          <span className="cl-match-card__compact-versus">{versus}</span>{' '}
+          <span
+            className="cl-match-card__compact-side cl-match-card__compact-side--away"
+            title={awayName}
+          >
             <EntrantEmblem
               abbreviation={match.awayAbbreviation}
               alt={awayName}
@@ -163,25 +184,35 @@ export function MatchCard({
               {awayCompactName}
             </span>
           </span>
-          {timeStr && <span> {timeStr}</span>}
-          {rescheduled && <span className="cl-match-card__venue"> {rescheduled}</span>}
+          {timeStr && <span className="cl-match-card__compact-time"> {timeStr}</span>}
+          {rescheduled && (
+            <span className="cl-match-card__venue cl-match-card__compact-rescheduled">
+              {rescheduled}
+            </span>
+          )}
         </span>
       </Card>
     );
 
-    return reportUrl === undefined ? compactBody : <a href={reportUrl}>{compactBody}</a>;
+    return compactBody;
   }
 
   const body = (
     <Card
       as="article"
-      className={`cl-match-card${band === undefined ? '' : band === 'base' ? ' cl-band--base' : ' cl-band'}`}
+      className={`cl-match-card${band === undefined ? '' : band === 'base' ? ' cl-band--base' : ' cl-band'}${linkedClass}`}
       data-match={match.matchId}
       data-schedule-version={match.scheduleVersion ?? 0}
     >
       <div className="cl-match-card__header">
         <MatchHeading className="cl-match-card__heading">
-          {applyTemplate(labels.matchHeading, { match: String(match.matchNumber) })}
+          {reportUrl === undefined ? (
+            applyTemplate(labels.matchHeading, { match: String(match.matchNumber) })
+          ) : (
+            <a className="cl-match-card__report-link cl-focusable" href={reportUrl}>
+              {applyTemplate(labels.matchHeading, { match: String(match.matchNumber) })}
+            </a>
+          )}
         </MatchHeading>
         <Badge className={badge.className}>
           {badge.state !== 'live' && <span aria-hidden="true">{badge.icon}</span>}
@@ -216,7 +247,7 @@ export function MatchCard({
             fullName={homeName}
             abbreviation={match.homeName === undefined ? homeSource.short : match.homeAbbreviation}
           />
-          {match.homePosition !== undefined && (
+          {match.state !== 'upcoming' && match.homePosition !== undefined && (
             <Badge
               className="cl-badge--rank"
               title={applyTemplate(labels.position, { position: match.homePosition })}
@@ -239,7 +270,7 @@ export function MatchCard({
             fullName={awayName}
             abbreviation={match.awayName === undefined ? awaySource.short : match.awayAbbreviation}
           />
-          {match.awayPosition !== undefined && (
+          {match.state !== 'upcoming' && match.awayPosition !== undefined && (
             <Badge
               className="cl-badge--rank"
               title={applyTemplate(labels.position, { position: match.awayPosition })}
@@ -317,7 +348,7 @@ export function MatchCard({
     </Card>
   );
 
-  return reportUrl === undefined ? body : <a href={reportUrl}>{body}</a>;
+  return body;
 }
 
 /**

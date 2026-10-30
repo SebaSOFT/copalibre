@@ -191,6 +191,28 @@ test('all three TV layouts meet broadcast-size minimums at 1920×1080', async ({
     await expectMinimum('.tv-scorebug__clock', 6 * vmin);
     await expectMinimum(team, 3.5 * vmin);
     await expectMinimum(table, 2.2 * vmin);
+
+    if (layout === 'kiosk') {
+      const featuredTeamName = page
+        .locator('.tv-match-spotlight__vs-grid .tv-team-side__name')
+        .first();
+      await expect(featuredTeamName).toBeVisible();
+      await expect(featuredTeamName).not.toHaveText('');
+      const textLayout = await featuredTeamName.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          clientWidth: element.clientWidth,
+          overflow: style.overflow,
+          scrollWidth: element.scrollWidth,
+          textOverflow: style.textOverflow,
+          whiteSpace: style.whiteSpace,
+        };
+      });
+      expect(textLayout.overflow).toBe('visible');
+      expect(textLayout.textOverflow).toBe('clip');
+      expect(textLayout.whiteSpace).toBe('normal');
+      expect(textLayout.scrollWidth).toBeLessThanOrEqual(textLayout.clientWidth);
+    }
   }
 });
 

@@ -655,6 +655,52 @@ export function formatActivityAction(action: string, locale = 'es'): string {
   return resolveLabel(UNKNOWN_ACTION, language);
 }
 
+export interface GroupableActivity {
+  readonly auditId: string;
+  readonly action: string;
+  readonly actor: string;
+  readonly occurredAt: string;
+}
+
+export interface ActivityGroup<T extends GroupableActivity> {
+  readonly id: string;
+  readonly latest: T;
+  readonly entries: readonly T[];
+}
+
+/** Collapses only consecutive entries with the same action and actor in one five-minute window. */
+export function groupConsecutiveActivity<T extends GroupableActivity>(
+  entries: readonly T[],
+  windowMilliseconds = 5 * 60 * 1000,
+): readonly ActivityGroup<T>[] {
+  const groups: { id: string; latest: T; entries: T[] }[] = [];
+
+  for (const entry of entries) {
+    const previousGroup = groups[groups.length - 1];
+    const firstInGroup = previousGroup?.entries[0];
+    const distance =
+      firstInGroup === undefined
+        ? Number.POSITIVE_INFINITY
+        : Date.parse(firstInGroup.occurredAt) - Date.parse(entry.occurredAt);
+    const belongsToPrevious =
+      previousGroup !== undefined &&
+      firstInGroup !== undefined &&
+      entry.action === firstInGroup.action &&
+      entry.actor === firstInGroup.actor &&
+      distance >= 0 &&
+      distance <= windowMilliseconds;
+
+    if (belongsToPrevious) {
+      previousGroup.entries.push(entry);
+      continue;
+    }
+
+    groups.push({ id: entry.auditId, latest: entry, entries: [entry] });
+  }
+
+  return groups;
+}
+
 /** Resolve technical actor identifiers to a role label; only known people retain their email. */
 export function formatActivityActor(actor: string, locale = 'es'): string {
   const language = isSupportedLanguage(locale) ? locale : 'en';

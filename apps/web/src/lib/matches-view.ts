@@ -64,6 +64,7 @@ export interface MatchCardData {
 export function distinctFacetValues(
   rows: readonly Pick<MatchCardData, 'zoneName' | 'groupName'>[],
   facet: 'zoneName' | 'groupName',
+  preferredOrder: readonly string[] = [],
 ): readonly string[] {
   const seen = new Set<string>();
   const values: string[] = [];
@@ -74,17 +75,20 @@ export function distinctFacetValues(
       values.push(value);
     }
   }
-  return values;
+  if (preferredOrder.length === 0) return values;
+  const present = new Set(values);
+  const ordered = preferredOrder.filter((value) => present.delete(value));
+  return [...ordered, ...values.filter((value) => present.has(value))];
 }
 
 /**
- * Groups matches by round, sorted ascending, each round's matches sorted by
- * match number — the shape `matches.astro` renders one round-heading
- * section per entry from.
+ * Groups matches by round, sorted ascending. Scheduled matches sort by kickoff;
+ * unscheduled matches follow by match number — the shape `matches.astro`
+ * renders one round-heading section per entry from.
  */
-export function groupMatchesByRound<T extends Pick<MatchCardData, 'round' | 'matchNumber'>>(
-  rows: readonly T[],
-): readonly { readonly round: number; readonly matches: readonly T[] }[] {
+export function groupMatchesByRound<
+  T extends Pick<MatchCardData, 'round' | 'matchNumber' | 'scheduledAt'>,
+>(rows: readonly T[]): readonly { readonly round: number; readonly matches: readonly T[] }[] {
   const byRound = new Map<number, T[]>();
   for (const row of rows) {
     const round = row.round ?? 0;
@@ -96,7 +100,17 @@ export function groupMatchesByRound<T extends Pick<MatchCardData, 'round' | 'mat
     .sort(([a], [b]) => a - b)
     .map(([round, matches]) => ({
       round,
-      matches: [...matches].sort((a, b) => a.matchNumber - b.matchNumber),
+      matches: [...matches].sort((a, b) => {
+        const aTime = a.scheduledAt === undefined ? Number.NaN : Date.parse(a.scheduledAt);
+        const bTime = b.scheduledAt === undefined ? Number.NaN : Date.parse(b.scheduledAt);
+        const aHasTime = Number.isFinite(aTime);
+        const bHasTime = Number.isFinite(bTime);
+
+        if (aHasTime && bHasTime) return aTime - bTime || a.matchNumber - b.matchNumber;
+        if (aHasTime) return -1;
+        if (bHasTime) return 1;
+        return a.matchNumber - b.matchNumber;
+      }),
     }));
 }
 

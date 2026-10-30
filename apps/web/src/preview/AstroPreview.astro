@@ -647,6 +647,7 @@ const [compactSample] = referenceJourneyBracket(true);
         buildUrl={() => '#'}
         groups={['Group A', 'Group B']}
         labels={{
+          disclosureLabel: intl.formatMessage(messages.matchesViewFiltersDisclosureLabel),
           stageFilterAriaLabel: intl.formatMessage(messages.matchesViewStageFilterAriaLabel),
           zoneFilterAriaLabel: intl.formatMessage(messages.matchesViewZoneFilterAriaLabel),
           groupFilterAriaLabel: intl.formatMessage(messages.matchesViewGroupFilterAriaLabel),
@@ -665,6 +666,7 @@ const [compactSample] = referenceJourneyBracket(true);
           },
           filters: matchCardLabels(intl).filters,
         }}
+        filtersOpen={false}
         stages={[
           { stageNumber: 1, stageName: 'Group Stage' },
           { stageNumber: 2, stageName: 'Playoffs' },
@@ -757,7 +759,6 @@ const [compactSample] = referenceJourneyBracket(true);
         intl={intl}
         localePrefix=""
         organizationAlias="reference-league"
-        showLiveDot={true}
         tournaments={tournaments}
       />
     )}

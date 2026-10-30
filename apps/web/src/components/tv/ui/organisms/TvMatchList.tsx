@@ -29,6 +29,8 @@ export function TvMatchList({
     <section aria-label={labels.fixturesTab} className="tv-match-list" data-testid="tv-match-list">
       <ul className="tv-match-list__entries">
         {entries.map((entry) => {
+          const showAbbreviations =
+            entry.home.abbreviation !== undefined && entry.away.abbreviation !== undefined;
           const score = (value: number | undefined): string =>
             value === undefined ? '–' : String(value);
           const rescheduled = rescheduledStatement(
@@ -64,7 +66,7 @@ export function TvMatchList({
                   compact
                   pending={entry.home.pending}
                   fullName={entry.home.name}
-                  abbreviation={entry.home.label}
+                  abbreviation={showAbbreviations ? entry.home.abbreviation : undefined}
                 />
               </span>
               <span aria-hidden="true" className="tv-match-list__score">
@@ -75,7 +77,7 @@ export function TvMatchList({
                   compact
                   pending={entry.away.pending}
                   fullName={entry.away.name}
-                  abbreviation={entry.away.label}
+                  abbreviation={showAbbreviations ? entry.away.abbreviation : undefined}
                 />
               </span>
               {rescheduled && <span className="tv-match-list__rescheduled">{rescheduled}</span>}

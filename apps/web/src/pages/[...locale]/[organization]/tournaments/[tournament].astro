@@ -2,18 +2,26 @@
 import EmptyState from '../../../../components/ui/molecules/EmptyState.astro';
 import Container from '../../../../components/ui/atoms/layout/Container.astro';
 import Breadcrumb from '../../../../components/ui/organisms/Breadcrumb.astro';
+import { MatchCard } from '../../../../components/ui/organisms/MatchCard.tsx';
 import { publicTrail, trailBaseOf } from '../../../../lib/breadcrumb.ts';
+import { localizedText } from '../../../../lib/localized-label.ts';
 import PublicLayout from '../../../../layouts/PublicLayout.astro';
 import TournamentHero from '../../../../components/ui/molecules/TournamentHero.astro';
 import ChampionPodium from '../../../../components/ui/organisms/ChampionPodium.astro';
-import MatchSchedule from '../../../../components/ui/organisms/MatchSchedule.astro';
 import ScoreTicker from '../../../../components/ui/organisms/ScoreTicker.astro';
 import StandingsTable from '../../../../components/ui/organisms/StandingsTable.astro';
 import BroadcastStatusPanel from '../../../../components/ui/molecules/BroadcastStatusPanel.astro';
 import RulesetBriefing from '../../../../components/ui/molecules/RulesetBriefing.astro';
 import { CompletionFigure } from '../../../../components/ui/molecules/CompletionFigure.tsx';
 import { withPodiumEmblems } from '../../../../lib/podium-emblems.ts';
-import { buildOverview, displayName, shouldShowChampionPodium } from '../../../../lib/overview.ts';
+import {
+  buildOverview,
+  displayName,
+  shouldShowChampionPodium,
+  summarizeOverviewMatches,
+  type OverviewMatch,
+} from '../../../../lib/overview.ts';
+import type { MatchCardData } from '../../../../lib/matches-view.ts';
 import {
   fetchOverview,
   fetchCompletion,
@@ -24,14 +32,13 @@ import {
 import {
   publicIntl,
   tickerChromeLabels,
+  matchCardLabels,
   tickerLabels,
   tournamentHeroLabels,
   completionFigureLabels,
   rulesetBriefingRows,
 } from '../../../../lib/i18n/public-intl.ts';
 import { buildTickerItems } from '../../../../lib/ticker-items.ts';
-import { defaultOpenStage } from '../../../../lib/match-schedule.ts';
-import { loadSchedule } from '../../../../lib/schedule-loader.ts';
 import { messages } from '../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 
@@ -92,6 +99,7 @@ const defaultLayout =
 const activeLayout =
   (requestedTab ? declaredLayouts.find((one) => one.code === requestedTab) : undefined) ??
   defaultLayout;
+const isFullLayoutView = requestedTab !== null && activeLayout?.code === requestedTab;
 
 const activeProjection = activeLayout
   ? await fetchPublicTableProjection(
@@ -103,6 +111,12 @@ const activeProjection = activeLayout
         : undefined,
       activeClubId,
     )
+  : undefined;
+const overviewProjectionLimit = 8;
+const overviewProjection = activeProjection
+  ? isFullLayoutView
+    ? activeProjection
+    : { ...activeProjection, rows: activeProjection.rows.slice(0, overviewProjectionLimit) }
   : undefined;
 
 /*
@@ -125,19 +139,6 @@ const [performerProjection, leaderProjection] = await Promise.all([
     : Promise.resolve(undefined),
 ]);
 
-// The schedule opens the stage a viewer most likely wants (the live or next one); the rest are
-// one click away, so the standings below stay within reach.
-const schedule = await loadSchedule({
-  organization: organization!,
-  tournament: tournament!,
-  state: 'all',
-  hiddenPlayerLabel: intl.formatMessage(messages.personHiddenAtRequest),
-});
-const openStage = defaultOpenStage(
-  schedule?.stageRows ?? [],
-  (schedule?.stageOptions ?? []).map((one) => one.stageNumber),
-);
-
 const tickerChrome = tickerChromeLabels(intl);
 const tickerItems = buildTickerItems({
   matches: model.matches,
@@ -149,6 +150,53 @@ const tickerItems = buildTickerItems({
 });
 
 const localePrefix = locale ? `/${locale}` : '';
+const fixtureSummary = summarizeOverviewMatches(model.matches);
+function hasPersistedMatchId(
+  match: OverviewMatch,
+): match is OverviewMatch & { readonly matchId: string } {
+  return match.matchId !== undefined;
+}
+const liveMatches = fixtureSummary.live.filter(hasPersistedMatchId);
+const nextMatches = fixtureSummary.upcoming.filter(hasPersistedMatchId);
+const latestResults = fixtureSummary.latestResults.filter(hasPersistedMatchId);
+const compactMatchLabels = matchCardLabels(intl);
+
+function matchCardDataOf(match: OverviewMatch & { readonly matchId: string }): MatchCardData {
+  return {
+    matchId: match.matchId,
+    stageNumber: match.stageNumber,
+    matchNumber: match.matchNumber ?? match.stageOrdinal ?? 0,
+    state: match.state,
+    homeName: match.home.name,
+    ...(match.home.abbreviation === undefined ? {} : { homeAbbreviation: match.home.abbreviation }),
+    ...(match.home.clubId === undefined ? {} : { homeClubId: match.home.clubId }),
+    ...(match.home.emblemObjectId === undefined
+      ? {}
+      : { homeEmblemObjectId: match.home.emblemObjectId }),
+    ...(match.state === 'upcoming' || match.home.score === undefined
+      ? {}
+      : { homeScore: match.home.score }),
+    awayName: match.away.name,
+    ...(match.away.abbreviation === undefined ? {} : { awayAbbreviation: match.away.abbreviation }),
+    ...(match.away.clubId === undefined ? {} : { awayClubId: match.away.clubId }),
+    ...(match.away.emblemObjectId === undefined
+      ? {}
+      : { awayEmblemObjectId: match.away.emblemObjectId }),
+    ...(match.state === 'upcoming' || match.away.score === undefined
+      ? {}
+      : { awayScore: match.away.score }),
+    ...(match.startsAt === '' ? {} : { scheduledAt: match.startsAt }),
+    ...(match.venueName === undefined ? {} : { venueName: match.venueName }),
+  };
+}
+
+function matchPagePath(match: OverviewMatch): string {
+  if (match.stageOrdinal === undefined) {
+    return `${localePrefix}${model.canonicalPath}/matches?stageNumber=${match.stageNumber}`;
+  }
+  return `${localePrefix}${model.canonicalPath}/stages/${match.stageNumber}/matches/${match.stageOrdinal}`;
+}
+
 const nextKickoff = model.matches
   .filter((match) => match.state === 'upcoming' && Date.parse(match.startsAt) >= Date.now())
   .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))[0];
@@ -163,6 +211,8 @@ const noLiveDescription = nextKickoff
   : intl.formatMessage(messages.interactionSeeSchedule);
 
 const canonicalPath = `${localePrefix}${model.canonicalPath}`;
+const fullLayoutHref = (layout: (typeof declaredLayouts)[number]): string =>
+  `${canonicalPath}?tab=${encodeURIComponent(layout.code)}`;
 const earliestStart = overviewData.matches
   .map((m) => m.scheduledAt)
   .filter(Boolean)
@@ -224,6 +274,76 @@ const trail = publicTrail(trailBase, []);
         />
       </Container>
     )}
+    <section aria-labelledby="overview-matches-heading">
+      <h2 id="overview-matches-heading">{intl.formatMessage(messages.matchGridHeading)}</h2>
+      {liveMatches.length > 0 && (
+        <section aria-labelledby="overview-live-heading">
+          <h3 id="overview-live-heading">{intl.formatMessage(messages.matchesViewFilterLive)}</h3>
+          <ul class="cl-match-card-grid cl-match-card-grid--compact-summary">
+            {liveMatches.map((match) => (
+              <li>
+                <MatchCard
+                  compact
+                  compactNames="full"
+                  labels={compactMatchLabels}
+                  locale={resolvedLocale}
+                  match={matchCardDataOf(match)}
+                  reportUrl={matchPagePath(match)}
+                  timeZone={model.organizationTimeZone}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {nextMatches.length > 0 && (
+        <section aria-labelledby="overview-next-heading">
+          <h3 id="overview-next-heading">{intl.formatMessage(messages.overviewNextMatches)}</h3>
+          <ul class="cl-match-card-grid cl-match-card-grid--compact-summary">
+            {nextMatches.map((match) => (
+              <li>
+                <MatchCard
+                  compact
+                  compactNames="full"
+                  labels={compactMatchLabels}
+                  locale={resolvedLocale}
+                  match={matchCardDataOf(match)}
+                  reportUrl={matchPagePath(match)}
+                  timeZone={model.organizationTimeZone}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {latestResults.length > 0 && (
+        <section aria-labelledby="overview-results-heading">
+          <h3 id="overview-results-heading">
+            {intl.formatMessage(messages.overviewLatestResults)}
+          </h3>
+          <ul class="cl-match-card-grid cl-match-card-grid--compact-summary">
+            {latestResults.map((match) => (
+              <li>
+                <MatchCard
+                  compact
+                  compactNames="full"
+                  labels={compactMatchLabels}
+                  locale={resolvedLocale}
+                  match={matchCardDataOf(match)}
+                  reportUrl={matchPagePath(match)}
+                  timeZone={model.organizationTimeZone}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      <p>
+        <a class="cl-pill cl-focusable" href={`${localePrefix}${model.canonicalPath}/matches`}>
+          {intl.formatMessage(messages.matchesViewSeeAll)}
+        </a>
+      </p>
+    </section>
     <CompletionFigure
       totalMatches={completion.totalMatches}
       resolvedMatches={completion.resolvedMatches}
@@ -241,41 +361,40 @@ const trail = publicTrail(trailBase, []);
       model={model}
       statusText={intl.formatMessage(messages.broadcastStatusDisconnected)}
     />
-    <section aria-labelledby="match-schedule-heading">
-      <h2 id="match-schedule-heading">{intl.formatMessage(messages.matchGridHeading)}</h2>
-      <MatchSchedule
-        collapsible
-        emptyLabel={intl.formatMessage(messages.matchGridEmpty)}
-        headingLevel={3}
-        intl={intl}
-        localePrefix={localePrefix}
-        openStage={openStage}
-        organizationAlias={organization!}
-        organizationTimeZone={model.organizationTimeZone}
-        stages={schedule?.stages ?? []}
-        tournamentAlias={tournament!}
-      />
-    </section>
-    <p>
-      <a
-        class="cl-pill cl-focusable"
-        href={`${locale ? `/${locale}` : ''}${model.canonicalPath}/matches`}
-      >
-        {intl.formatMessage(messages.matchesViewSeeAll)}
-      </a>
-    </p>
     <StandingsTable
       layouts={declaredLayouts}
       layout={activeLayout}
-      projection={activeProjection}
+      projection={overviewProjection}
+      showControls={isFullLayoutView}
       activeLayoutCode={activeLayout?.code}
       activeClubId={activeClubId}
       clubs={model.clubs}
       intl={intl}
-      canonicalPath={`${locale ? `/${locale}` : ''}${model.canonicalPath}`}
+      canonicalPath={canonicalPath}
       organizationAlias={organization!}
       tournamentAlias={tournament}
     />
+    {!isFullLayoutView && declaredLayouts.length > 0 && (
+      <nav
+        aria-label={intl.formatMessage(messages.standingsTableLayouts)}
+        class="cl-standings-summary-action"
+      >
+        <ul class="cl-pill-group">
+          {declaredLayouts.map((one) => (
+            <li>
+              <a
+                class="cl-pill cl-focusable"
+                data-full-layout-code={one.code}
+                href={fullLayoutHref(one)}
+              >
+                {intl.formatMessage(messages.standingsFullTable)} ·{' '}
+                {localizedText(one.label, resolvedLocale)}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    )}
     <RulesetBriefing
       heading={intl.formatMessage(messages.rulesetHeading)}
       rows={rulesetBriefingRows(intl, model)}
@@ -297,5 +416,9 @@ const trail = publicTrail(trailBase, []);
   /* Guarantees clear separation from the hero banner above. */
   :global(.cl-completion-figure) {
     margin-top: var(--cl-space-6);
+  }
+
+  .cl-standings-summary-action {
+    margin-block: var(--cl-space-3) var(--cl-space-5);
   }
 </style>

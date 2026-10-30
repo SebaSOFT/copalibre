@@ -243,7 +243,9 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/ProfileBuilderWizard.tsx', 3],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 4],
-  ['control/components/screens/StandingsTemplate.tsx', 4],
+  // Remaining inline layout is the distribution-bar chart pending its own
+  // presentation primitive; one tiebreak disclosure's inline layout was removed.
+  ['control/components/screens/StandingsTemplate.tsx', 3],
   // The GIVEN/WHEN/THEN rule composition was extracted into its own organism.
   ['control/components/TournamentSetupWizard.tsx', 9],
   // A stage is genuinely an ordered list; the layout primitives (Stack/
@@ -257,7 +259,7 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   // The step-indicator <ol>/<li>/<span> is the same ordered-list exception
   // StageListEditor.tsx's entry above documents, moved here from the three
   // wizards' own hand-rolled chrome rather than newly added.
-  ['control/components/ui/organisms/wizard-shell.tsx', 2],
+  ['control/components/ui/organisms/wizard-shell.tsx', 1],
 ]);
 
 export function checkInlineLayout(nodes) {

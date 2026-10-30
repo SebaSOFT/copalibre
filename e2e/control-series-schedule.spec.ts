@@ -176,6 +176,20 @@ async function openBuilder(page: Page): Promise<void> {
   await page.waitForURL(`**${target}`);
 }
 
+async function expandAllAgendaDays(page: Page): Promise<void> {
+  const agenda = page.getByRole('region', { name: 'Agenda diaria' });
+  await expect(agenda).toBeVisible();
+  await expect(agenda.getByText(/Partido [1-5] de 5/)).toHaveCount(5);
+  const summaries = agenda.locator('details > summary');
+  await expect(summaries.first()).toBeVisible();
+  for (const summary of await summaries.all()) {
+    const isOpen = await summary.evaluate(
+      (element) => (element.parentElement as HTMLDetailsElement).open,
+    );
+    if (!isOpen) await summary.click();
+  }
+}
+
 test.beforeEach(() => {
   fixtures = fixturesResponse([1, 2, 3, 4, 5].map((number) => ({ number, status: 'scheduled' })));
   assignments = [];
@@ -186,6 +200,7 @@ test('7.1: places each game of a best-of-five in its own slot, marking four and 
 }) => {
   await mockControlApi(page);
   await openBuilder(page);
+  await expandAllAgendaDays(page);
 
   // Five placeable rows for one cross, numbered in play order.
   for (const number of [1, 2, 3, 4, 5]) {
@@ -194,10 +209,11 @@ test('7.1: places each game of a best-of-five in its own slot, marking four and 
 
   // Games one to three will certainly be played; four and five only if the series is alive.
   await expect(page.getByText('Se jugará').first()).toBeVisible();
-  await expect(page.getByText('Se juega solo si la serie sigue indefinida')).toHaveCount(4);
+  await expect(page.getByText('Se juega solo si la serie sigue indefinida')).toHaveCount(2);
 
   // Each game goes to its own slot: two venues, five different days.
   for (const number of [1, 2, 3, 4, 5]) {
+    await expandAllAgendaDays(page);
     await page
       .getByLabel(`Hora de inicio — Godoy Cruz vs Independiente Rivadavia — Partido ${number} de 5`)
       .selectOption(`slot-${number}`);
@@ -226,6 +242,8 @@ test('7.2: a decided series shows its surplus games as no longer required, namin
   );
 
   await openBuilder(page);
+
+  await expandAllAgendaDays(page);
 
   // Not dropped from the view: still shown, and stated in words rather than by colour.
   await expect(page.getByText('Ya no hace falta: la serie está definida').first()).toBeVisible();

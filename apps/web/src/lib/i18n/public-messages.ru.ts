@@ -83,6 +83,7 @@ export const messages: Record<string, string> = {
   'publicWeb.ruleset.format.ffaLeague': 'Лига "все против всех"',
 
   'publicWeb.standings.heading': 'Турнирная таблица',
+  'publicWeb.standings.fullTable': 'Посмотреть полную таблицу',
   'publicWeb.standings.tableLayouts': 'Виды таблиц',
   'publicWeb.standings.filterByClub': 'Фильтр по клубу',
   'publicWeb.standings.filterClubLabel': 'Клуб',
@@ -230,6 +231,7 @@ export const messages: Record<string, string> = {
     'yarn workspace @copalibre/web build && yarn workspace @copalibre/web preview',
 
   'publicWeb.matchesView.pageTitle': 'Матчи',
+  'publicWeb.matchesView.filtersDisclosureLabel': 'Фильтровать матчи',
   'publicWeb.matchesView.filterAll': 'Все',
   'publicWeb.matchesView.filterLive': 'В эфире',
   'publicWeb.matchesView.filterUpcoming': 'Предстоящие',
@@ -265,6 +267,8 @@ export const messages: Record<string, string> = {
     'Решающий фактор между позициями с равными показателями. Полное объяснение доступно уполномоченному организатору в панели управления.',
   'publicWeb.matchesView.fullTraceHeading': 'Полная трассировка компаратора турнирной таблицы',
   'publicWeb.matchesView.seeAll': 'Смотреть все матчи',
+  'publicWeb.overview.nextMatches': 'Следующие матчи',
+  'publicWeb.overview.latestResults': 'Последние результаты',
   'publicWeb.matchesView.versus': 'vs',
   'publicWeb.matchesView.densityToggleAriaLabel': 'Переключить плотность отображения',
   'publicWeb.matchesView.detailedToggle': 'Подробно',

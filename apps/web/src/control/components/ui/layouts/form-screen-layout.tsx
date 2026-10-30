@@ -21,7 +21,7 @@ export interface FormScreenLayoutProps {
   readonly actions?: ReactNode;
   readonly sections: readonly FormScreenSection[];
   readonly footer: ReactNode;
-  readonly onSubmit?: (event: React.FormEvent) => void;
+  readonly onSubmit?: (event: React.SyntheticEvent<HTMLFormElement>) => void;
 }
 
 export function FormScreenLayout({

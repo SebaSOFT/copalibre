@@ -329,7 +329,7 @@ describe('ScheduleBuilderPage', () => {
     );
   });
 
-  it('renders one row per game of a series, numbered in play order, grouped under one cross (2.1, 2.2)', async () => {
+  it('renders each game of a series inside the daily schedule group (2.1, 2.2)', async () => {
     render(
       withIntl(
         <ScheduleBuilderPage
@@ -344,12 +344,13 @@ describe('ScheduleBuilderPage', () => {
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /schedule/i }));
     await screen.findAllByText(/Godoy Cruz/i);
 
-    // One group per cross, not one per game: five rows must read as one tie.
-    expect(
-      screen.getAllByRole('region', { name: /Godoy Cruz vs Independiente Rivadavia/i }),
-    ).toHaveLength(2);
+    expect(screen.getAllByRole('region', { name: 'Schedule by day' })).toHaveLength(1);
     for (const number of [1, 2, 3, 4, 5]) {
-      expect(screen.getAllByText(new RegExp(`Game ${number} of 5`)).length).toBeGreaterThan(0);
+      expect(
+        screen.getByLabelText(
+          new RegExp(`Start time — Godoy Cruz vs Independiente Rivadavia — Game ${number} of 5`),
+        ),
+      ).toBeTruthy();
     }
   });
 
@@ -369,7 +370,7 @@ describe('ScheduleBuilderPage', () => {
     await screen.findAllByText(/Godoy Cruz/i);
 
     expect(screen.getAllByText(/Will be played/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Played only if the series is still undecided/i).length).toBe(4);
+    expect(screen.getAllByText(/Played only if the series is still undecided/i).length).toBe(2);
     // Nothing carries the state in a class name alone — the words are in the document, and
     // stripping every style leaves them there.
     expect(container.textContent).toContain('Played only if the series is still undecided');

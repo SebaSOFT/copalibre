@@ -26,6 +26,8 @@ interface Props {
   /** The tournament overview's compact rows, before a table projection exists. */
   readonly previewRows?: readonly StandingsRowView[];
   readonly previewGrain?: 'series' | 'match';
+  /** Hide filtering, layout tabs, and sorting when the table is an overview summary. */
+  readonly showControls?: boolean;
   readonly headingText?: string;
   readonly activeLayoutCode?: string;
   readonly activeClubId?: string;
@@ -41,6 +43,7 @@ const {
   projection,
   previewRows,
   previewGrain,
+  showControls = true,
   headingText,
   activeLayoutCode,
   activeClubId,
@@ -155,7 +158,7 @@ const playerDialogLabels = {
     </p>
   )}
 
-  {layouts.length > 1 && (
+  {showControls && layouts.length > 1 && (
     <nav class="cl-table-tabs" aria-label={intl.formatMessage(messages.standingsTableLayouts)}>
       <ul role="tablist">
         {layouts.map((l) => {
@@ -179,7 +182,7 @@ const playerDialogLabels = {
     </nav>
   )}
 
-  {clubs.length > 0 && (
+  {showControls && clubs.length > 0 && (
     <div
       class="cl-club-filter"
       role="group"
@@ -215,7 +218,10 @@ const playerDialogLabels = {
   <div class="cl-table-container cl-table-scroll">
     {rows.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
     {rows.length > 0 && (
-      <table class="cl-table" data-sortable-table={previewRows === undefined ? true : undefined}>
+      <table
+        class="cl-table"
+        data-sortable-table={showControls && previewRows === undefined ? true : undefined}
+      >
         <thead>
           <tr>
             {columns.map((column, columnIndex) => {
@@ -223,7 +229,7 @@ const playerDialogLabels = {
               const bubbleId = `column-hint-${column.code}`;
               return (
                 <th scope="col" aria-sort="none">
-                  {previewRows !== undefined ? (
+                  {previewRows !== undefined || !showControls ? (
                     label
                   ) : hint === undefined ? (
                     <Button

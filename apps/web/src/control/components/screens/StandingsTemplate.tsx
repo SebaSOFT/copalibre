@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { seriesColor } from '@copalibre/design-tokens';
 import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -29,7 +29,7 @@ import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
-import { StandingsFigure, StandingsPanel } from '../ui/organisms/standings-panel.js';
+import { StandingsFigure, StandingsPanel, StandingsRank } from '../ui/organisms/standings-panel.js';
 
 /**
  * A5 — every declared table layout (group standings, top scorers, goalkeeper
@@ -79,6 +79,7 @@ export function StandingsTemplate({
   const intl = useIntl();
   const [traces, setTraces] = useState<Readonly<Record<string, readonly string[]>>>({});
   const [pending, setPending] = useState<readonly string[]>([]);
+  const [expandedTiebreakActorId, setExpandedTiebreakActorId] = useState<string>();
   const [sort, setSort] = useState<ActiveSort | undefined>(undefined);
   const [dismissedStatus, setDismissedStatus] = useState<string>();
 
@@ -104,10 +105,7 @@ export function StandingsTemplate({
   const nameColumnCode = projection?.columns.find((column) =>
     ['entrant-name', 'actor-name'].includes(column.code),
   )?.code;
-  const primaryNameColumn = columns[0]?.code;
-  const bars = projection
-    ? distributionBars(projection, { nameColumnCode: nameColumnCode ?? primaryNameColumn })
-    : [];
+  const bars = projection ? distributionBars(projection, { nameColumnCode }) : [];
   const isGroupPhase = projection?.target === 'group-phase';
   const chain = useMemo(() => comparatorChain(projection, columns), [projection, columns]);
   const decidingCode = chain.find((rule) => rule.triggered)?.columnCode;
@@ -116,106 +114,144 @@ export function StandingsTemplate({
   // which would assume one discipline's naming applies to every other's.
   const primaryMetricCode = projection?.defaultSort[0]?.columnCode;
 
-  const expand = (actorId: string): void => {
-    if (traces[actorId] !== undefined || pending.includes(actorId)) return;
-    setPending((current) => [...current, actorId]);
-    void Promise.resolve(onExpand?.(actorId) ?? [])
-      .then((lines) => setTraces((current) => ({ ...current, [actorId]: lines })))
-      .catch(() =>
-        setTraces((current) => ({
-          ...current,
-          [actorId]: [intl.formatMessage(messages.standingsTraceFetchFailed)],
-        })),
-      )
-      .finally(() => setPending((current) => current.filter((id) => id !== actorId)));
-  };
+  const expand = useCallback(
+    (actorId: string): void => {
+      if (traces[actorId] !== undefined || pending.includes(actorId)) return;
+      setPending((current) => [...current, actorId]);
+      void Promise.resolve(onExpand?.(actorId) ?? [])
+        .then((lines) => setTraces((current) => ({ ...current, [actorId]: lines })))
+        .catch(() =>
+          setTraces((current) => ({
+            ...current,
+            [actorId]: [intl.formatMessage(messages.standingsTraceFetchFailed)],
+          })),
+        )
+        .finally(() => setPending((current) => current.filter((id) => id !== actorId)));
+    },
+    [traces, pending, onExpand, intl],
+  );
+
+  const toggleTiebreak = useCallback(
+    (actorId: string): void => {
+      if (expandedTiebreakActorId === actorId) {
+        setExpandedTiebreakActorId(undefined);
+        return;
+      }
+      setExpandedTiebreakActorId(actorId);
+      expand(actorId);
+    },
+    [expandedTiebreakActorId, expand],
+  );
 
   const dataTableColumns: readonly DataTableColumn<TableRowResponseData>[] = useMemo(() => {
     if (!projection) return [];
-    const baseCols: DataTableColumn<TableRowResponseData>[] = columns.map((column) => ({
-      key: column.code,
-      ariaSort: ariaSortFor(sort, column.code),
-      header: (
-        <ColumnHeaderTooltip
-          description={column.label === column.shortLabel ? undefined : column.label}
-          indicator={
-            sort?.columnCode === column.code ? (
-              <span aria-hidden="true" className="cl-column-header__indicator">
-                {sort.direction === 'desc' ? '▾' : '▴'}
-              </span>
-            ) : undefined
-          }
-          label={column.shortLabel}
-          onClick={() => setSort(nextSort(sort, column.code))}
-        />
-      ),
-      render: (row: TableRowResponseData) => {
-        const cell = row.cells[column.code];
-        const isEntrantName = row.entrantName !== undefined && cell?.formatted === row.entrantName;
-        if (isEntrantName) {
-          return (
-            <span className="cl-standings-template__entrant">
-              {row.clubId !== undefined && (
-                <EntrantEmblem
-                  alt={row.entrantName}
-                  abbreviation={row.entrantAbbreviation}
-                  control
-                  decorative
-                  size={32}
-                  src={
-                    row.emblemObjectId === undefined
-                      ? undefined
-                      : clubEmblemUrl(organizationAlias, row.clubId)
-                  }
-                />
-              )}
-              <EntrantName abbreviation={row.entrantAbbreviation} fullName={row.entrantName} />
-            </span>
-          );
-        }
-        // The comparator that separated two level rows is marked in the column
-        // that did it, on the rows it decided — so "what separated them" is
-        // answered where the reader is already looking.
+    const positionColumn: DataTableColumn<TableRowResponseData> = {
+      key: 'position',
+      header: <FormattedMessage {...messages.standingsRankColumn} />,
+      render: (row) => {
+        const indicator = tiebreakIndicator(row);
+        const rowLabel =
+          row.entrantName ?? row.cells[nameColumnCode ?? '']?.formatted ?? row.actorId;
+        const expanded = expandedTiebreakActorId === row.actorId;
+        const detailId = `standings-tiebreak-${row.actorId}`;
         return (
-          <StandingsFigure
-            deciding={column.code === decidingCode && tiebreakIndicator(row).kind !== 'none'}
-            decidingLabel={intl.formatMessage(messages.standingsPanelDecidedBy)}
-            tone={column.code === primaryMetricCode ? 'emphasis' : undefined}
-          >
-            {cell?.formatted ?? '—'}
-          </StandingsFigure>
+          <>
+            <StandingsRank>{row.rank}</StandingsRank>
+            {indicator.kind !== 'none' && (
+              <span className="cl-badge">
+                <span aria-hidden="true">{indicator.icon}</span>{' '}
+                {intl.formatMessage(messages.standingsSharedRank)}
+              </span>
+            )}
+            {isGroupPhase && (
+              <Button
+                aria-controls={expanded ? detailId : undefined}
+                aria-expanded={expanded}
+                aria-label={`${intl.formatMessage(messages.standingsTiebreak)} — ${rowLabel}`}
+                onClick={() => toggleTiebreak(row.actorId)}
+                type="button"
+                variant="secondary"
+              >
+                <FormattedMessage {...messages.standingsTiebreak} />
+              </Button>
+            )}
+          </>
         );
       },
-    }));
-
-    if (isGroupPhase) {
-      baseCols.push({
-        key: 'tiebreak',
-        header: <FormattedMessage {...messages.standingsTiebreak} />,
+    };
+    const baseCols: DataTableColumn<TableRowResponseData>[] = [
+      positionColumn,
+      ...columns.map((column) => ({
+        key: column.code,
+        ariaSort: ariaSortFor(sort, column.code),
+        header: (
+          <ColumnHeaderTooltip
+            description={column.label === column.shortLabel ? undefined : column.label}
+            indicator={
+              sort?.columnCode === column.code ? (
+                <span aria-hidden="true" className="cl-column-header__indicator">
+                  {sort.direction === 'desc' ? '▾' : '▴'}
+                </span>
+              ) : undefined
+            }
+            label={column.shortLabel}
+            onClick={() => setSort(nextSort(sort, column.code))}
+          />
+        ),
         render: (row: TableRowResponseData) => {
-          const indicator = tiebreakIndicator(row);
-          return indicator.kind === 'none' ? (
-            <span>—</span>
-          ) : (
-            <span className="cl-badge">
-              <span aria-hidden="true">{indicator.icon}</span>{' '}
-              {intl.formatMessage(messages.standingsSharedRank)}
-            </span>
+          const cell = row.cells[column.code];
+          const isEntrantName =
+            row.entrantName !== undefined && cell?.formatted === row.entrantName;
+          if (isEntrantName) {
+            return (
+              <span className="cl-standings-template__entrant">
+                {row.clubId !== undefined && (
+                  <EntrantEmblem
+                    alt={row.entrantName}
+                    abbreviation={row.entrantAbbreviation}
+                    control
+                    decorative
+                    size={32}
+                    src={
+                      row.emblemObjectId === undefined
+                        ? undefined
+                        : clubEmblemUrl(organizationAlias, row.clubId)
+                    }
+                  />
+                )}
+                <EntrantName abbreviation={row.entrantAbbreviation} fullName={row.entrantName} />
+              </span>
+            );
+          }
+          // The comparator that separated two level rows is marked in the column
+          // that did it, on the rows it decided — so "what separated them" is
+          // answered where the reader is already looking.
+          return (
+            <StandingsFigure
+              deciding={column.code === decidingCode && tiebreakIndicator(row).kind !== 'none'}
+              decidingLabel={intl.formatMessage(messages.standingsPanelDecidedBy)}
+              tone={column.code === primaryMetricCode ? 'emphasis' : undefined}
+            >
+              {cell?.formatted ?? '—'}
+            </StandingsFigure>
           );
         },
-      });
-    }
+      })),
+    ];
 
     return baseCols;
   }, [
     projection,
     columns,
     sort,
+    expandedTiebreakActorId,
     isGroupPhase,
     intl,
     decidingCode,
     primaryMetricCode,
+    nameColumnCode,
     organizationAlias,
+    toggleTiebreak,
   ]);
 
   const displayTournamentName = tournamentName?.trim();
@@ -344,27 +380,15 @@ export function StandingsTemplate({
               triggered: rule.triggered,
             }))}
             title={displayTournamentName ?? localizedText(projection.label, intl.locale)}
-            renderRowDetail={
-              isGroupPhase
-                ? (row) => (
-                    <details
-                      className="cl-focusable"
-                      onToggle={(event) => {
-                        if (event.currentTarget.open) expand(row.actorId);
-                      }}
-                    >
-                      <summary style={{ cursor: 'pointer' }}>
-                        <FormattedMessage {...messages.standingsTiebreak} />
-                      </summary>
-                      <div style={{ padding: 'var(--cl-space-2) 0' }}>
-                        <TiebreakTrace
-                          lines={traces[row.actorId]}
-                          loading={pending.includes(row.actorId)}
-                        />
-                      </div>
-                    </details>
-                  )
-                : undefined
+            renderRowDetail={(row) =>
+              isGroupPhase && expandedTiebreakActorId === row.actorId ? (
+                <div id={`standings-tiebreak-${row.actorId}`}>
+                  <TiebreakTrace
+                    lines={traces[row.actorId]}
+                    loading={pending.includes(row.actorId)}
+                  />
+                </div>
+              ) : undefined
             }
             rowKey={(row) => row.actorId}
             rows={rows}
