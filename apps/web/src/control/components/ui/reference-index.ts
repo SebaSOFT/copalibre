@@ -32,6 +32,17 @@ export const REFERENCE_INDEX: readonly ReferenceIndexEntry[] = [
     consumers: ['components/ui/molecules/EmptyState.astro'],
   },
   {
+    reference: 'Tournament completion progress figure',
+    storyId: 'Public/Molecules/CompletionFigure — Playground',
+    consumers: [],
+    note: 'The state-led tournament overview now leads with the current match strip or placement honours; this progress breakdown remains a standalone public reference, but is not part of that page composition.',
+  },
+  {
+    reference: 'Single-zone tournament honour card',
+    storyId: 'Public/Astro preview — TournamentHonourBoardSingleTier',
+    consumers: ['components/ui/organisms/TournamentHonourBoard.astro'],
+  },
+  {
     reference: 'Resilient page read chrome',
     storyId: 'Admin/Templates/ReadState — Stale',
     consumers: ['control/components/pages/PreferencesPage.tsx'],

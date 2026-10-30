@@ -17,6 +17,12 @@ export function getLocaleHomePath(locale: string): string {
   return prefix ? `${prefix}/` : '/';
 }
 
+/** Preserves the active language when a server-rendered route rewrites to the static 404 page. */
+export function getLocalizedNotFoundPath(locale: string): string {
+  const supportedLocale = isSupportedLanguage(locale) ? locale : 'en';
+  return `/404?locale=${encodeURIComponent(supportedLocale)}`;
+}
+
 /**
  * Resolves a SupportedLanguage from a URL pathname.
  * Extracts the first path segment (e.g. '/es/...' -> 'es') if it is a supported language;

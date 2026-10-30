@@ -35,9 +35,7 @@ const localePrefix = getLocalePrefix(locale);
         <h1 class="cl-home-hero__title">{intl.formatMessage(messages.homeHeroTitle)}</h1>
         <p class="cl-home-hero__subtitle">{intl.formatMessage(messages.homeHeroSubtitle)}</p>
       </div>
-      <Container variant="reading">
-        <p class="cl-home-hero__description">{intl.formatMessage(messages.homeHeroDescription)}</p>
-      </Container>
+      <p class="cl-home-hero__description">{intl.formatMessage(messages.homeHeroDescription)}</p>
       <div class="cl-home-hero__badges" role="list">
         <Badge>{intl.formatMessage(messages.homeBadgeFreeSoftware)}</Badge>
         <Badge>{intl.formatMessage(messages.homeBadgeSovereign)}</Badge>
@@ -92,6 +90,7 @@ const localePrefix = getLocalePrefix(locale);
     ) : (
       <section
         class="cl-org-directory"
+        id="organizations"
         aria-label={intl.formatMessage(messages.homeOrganizationsLabel)}
       >
         <h2>{intl.formatMessage(messages.homeOrganizationsLabel)}</h2>
@@ -124,9 +123,11 @@ const localePrefix = getLocalePrefix(locale);
   }
 
   .cl-home-hero {
-    display: flex;
-    flex-direction: column;
-    gap: var(--cl-space-4);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+    align-items: end;
+    column-gap: var(--cl-space-8);
+    row-gap: var(--cl-space-4);
   }
 
   .cl-home-hero__meta {
@@ -137,7 +138,7 @@ const localePrefix = getLocalePrefix(locale);
 
   .cl-home-hero__title {
     margin: 0;
-    font-size: 2.25rem;
+    font-size: var(--cl-font-size-3xl);
     font-weight: 700;
     line-height: 1.1;
     letter-spacing: -0.02em;
@@ -152,6 +153,11 @@ const localePrefix = getLocalePrefix(locale);
   }
 
   .cl-home-hero__description {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    width: 100%;
+    max-width: var(--cl-layout-container-reading);
     margin: 0;
     font-size: 1rem;
     line-height: 1.5;
@@ -159,6 +165,7 @@ const localePrefix = getLocalePrefix(locale);
   }
 
   .cl-home-hero__badges {
+    grid-column: 1 / -1;
     display: flex;
     flex-wrap: wrap;
     gap: var(--cl-space-2);
@@ -187,7 +194,7 @@ const localePrefix = getLocalePrefix(locale);
 
   .cl-home-empty-hub__heading {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: var(--cl-font-size-2xl);
     font-weight: 700;
     color: var(--cl-text-primary);
   }
@@ -256,7 +263,7 @@ const localePrefix = getLocalePrefix(locale);
 
   .cl-org-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
     gap: var(--cl-space-4);
   }
 
@@ -289,5 +296,18 @@ const localePrefix = getLocalePrefix(locale);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  @media (max-width: 768px) {
+    .cl-home-hero {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cl-home-hero__description,
+    .cl-home-hero__badges {
+      grid-column: 1;
+      grid-row: auto;
+      justify-self: stretch;
+    }
   }
 </style>

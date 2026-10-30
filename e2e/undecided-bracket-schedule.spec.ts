@@ -213,7 +213,7 @@ test('names every undecided side on the public programme and seats the entrant i
 }) => {
   await streams(page);
   await page.goto(`${upcoming}&view=cards`);
-  const final = page.locator(`[data-match="${finalId}"]`);
+  const final = page.locator(`.cl-match-schedule [data-match="${finalId}"]`);
   await expect(source(final, 'Winner of Semi-final 1')).toBeVisible();
   await expect(source(final, 'Winner of Semi-final 2')).toBeVisible();
   await expect(final.getByText('Estadio Central')).toBeVisible();

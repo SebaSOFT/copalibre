@@ -142,6 +142,23 @@ export const messages = defineMessages({
   headerThemeSystem: { id: 'publicWeb.header.themeSystem', defaultMessage: 'System' },
   headerNavHome: { id: 'publicWeb.header.navHome', defaultMessage: 'Home' },
   headerNavTv: { id: 'publicWeb.header.navTv', defaultMessage: 'TV Streaming' },
+  headerTournamentOverview: {
+    id: 'publicWeb.header.tournamentOverview',
+    defaultMessage: 'Overview',
+  },
+  headerTournamentMatches: {
+    id: 'publicWeb.header.tournamentMatches',
+    defaultMessage: 'Matches',
+  },
+  headerTournamentStandings: {
+    id: 'publicWeb.header.tournamentStandings',
+    defaultMessage: 'Standings',
+  },
+  headerTournamentBrackets: {
+    id: 'publicWeb.header.tournamentBrackets',
+    defaultMessage: 'Brackets',
+  },
+  headerTournamentTeams: { id: 'publicWeb.header.tournamentTeams', defaultMessage: 'Teams' },
   headerNavHelp: { id: 'publicWeb.header.navHelp', defaultMessage: 'Help' },
   headerNavApiReference: {
     id: 'publicWeb.header.navApiReference',
@@ -291,6 +308,34 @@ export const messages = defineMessages({
 
   // StandingsTable.astro
   standingsHeading: { id: 'publicWeb.standings.heading', defaultMessage: 'Standings' },
+  standingsDefaultGroupLayout: {
+    id: 'publicWeb.standings.defaultGroupLayout',
+    defaultMessage: 'Group Standings',
+  },
+  standingsDefaultPlayerStatisticsLayout: {
+    id: 'publicWeb.standings.defaultPlayerStatisticsLayout',
+    defaultMessage: 'Player Statistics',
+  },
+  standingsCsvExport: {
+    id: 'publicWeb.standings.csvExport',
+    defaultMessage: 'Download CSV',
+  },
+  standingsQualificationColumn: {
+    id: 'publicWeb.standings.qualificationColumn',
+    defaultMessage: 'Qualification',
+  },
+  standingsSeedTag: {
+    id: 'publicWeb.standings.seedTag',
+    defaultMessage: 'Seed {seed}',
+  },
+  standingsPromotionLegend: {
+    id: 'publicWeb.standings.promotionLegend',
+    defaultMessage: 'Qualification bands',
+  },
+  standingsPromotionBandRange: {
+    id: 'publicWeb.standings.promotionBandRange',
+    defaultMessage: 'Seeds {first}–{last}',
+  },
   standingsFullTable: {
     id: 'publicWeb.standings.fullTable',
     defaultMessage: 'View full standings',
@@ -548,6 +593,10 @@ export const messages = defineMessages({
 
   // matches.astro / MatchCard.tsx
   matchesViewPageTitle: { id: 'publicWeb.matchesView.pageTitle', defaultMessage: 'Matches' },
+  matchesViewTableScrollHint: {
+    id: 'publicWeb.matchesView.tableScrollHint',
+    defaultMessage: 'Swipe the table horizontally to see all columns.',
+  },
   matchesViewFiltersDisclosureLabel: {
     id: 'publicWeb.matchesView.filtersDisclosureLabel',
     defaultMessage: 'Filter matches',
@@ -687,6 +736,18 @@ export const messages = defineMessages({
   overviewLatestResults: {
     id: 'publicWeb.overview.latestResults',
     defaultMessage: 'Latest results',
+  },
+  overviewNowStripHeading: {
+    id: 'publicWeb.overview.nowStripHeading',
+    defaultMessage: 'Now',
+  },
+  overviewHonourBoardHeading: {
+    id: 'publicWeb.overview.honourBoardHeading',
+    defaultMessage: 'Honour board',
+  },
+  overviewFeaturedMatchHeading: {
+    id: 'publicWeb.overview.featuredMatchHeading',
+    defaultMessage: 'Featured match',
   },
   matchesViewVersus: { id: 'publicWeb.matchesView.versus', defaultMessage: 'vs' },
   matchesViewDensityToggleAriaLabel: {
@@ -945,6 +1006,14 @@ export const messages = defineMessages({
   notFoundHomeLink: {
     id: 'publicWeb.notFound.homeLink',
     defaultMessage: 'Return to home',
+  },
+  notFoundTournamentsLink: {
+    id: 'publicWeb.notFound.tournamentsLink',
+    defaultMessage: 'Return to tournaments',
+  },
+  notFoundLiveMatchesLink: {
+    id: 'publicWeb.notFound.liveMatchesLink',
+    defaultMessage: 'View live matches',
   },
   devHelpUnavailableTitle: {
     id: 'publicWeb.devHelp.unavailableTitle',

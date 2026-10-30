@@ -1,23 +1,23 @@
 ---
 import EmptyState from '../../../../components/ui/molecules/EmptyState.astro';
 import Container from '../../../../components/ui/atoms/layout/Container.astro';
-import Breadcrumb from '../../../../components/ui/organisms/Breadcrumb.astro';
 import { MatchCard } from '../../../../components/ui/organisms/MatchCard.tsx';
 import { publicTrail, trailBaseOf } from '../../../../lib/breadcrumb.ts';
-import { localizedText } from '../../../../lib/localized-label.ts';
+import { publicTableLayoutLabel } from '../../../../lib/public-table-layout-label.ts';
 import PublicLayout from '../../../../layouts/PublicLayout.astro';
-import TournamentHero from '../../../../components/ui/molecules/TournamentHero.astro';
-import ChampionPodium from '../../../../components/ui/organisms/ChampionPodium.astro';
+import TournamentOverviewHero from '../../../../components/ui/organisms/TournamentOverviewHero.astro';
+import TournamentNowStrip from '../../../../components/ui/organisms/TournamentNowStrip.astro';
+import TournamentHonourBoard from '../../../../components/ui/organisms/TournamentHonourBoard.astro';
+import FeaturedMatchCard from '../../../../components/ui/organisms/FeaturedMatchCard.astro';
 import ScoreTicker from '../../../../components/ui/organisms/ScoreTicker.astro';
 import StandingsTable from '../../../../components/ui/organisms/StandingsTable.astro';
-import BroadcastStatusPanel from '../../../../components/ui/molecules/BroadcastStatusPanel.astro';
 import RulesetBriefing from '../../../../components/ui/molecules/RulesetBriefing.astro';
-import { CompletionFigure } from '../../../../components/ui/molecules/CompletionFigure.tsx';
 import { withPodiumEmblems } from '../../../../lib/podium-emblems.ts';
 import {
   buildOverview,
   displayName,
-  shouldShowChampionPodium,
+  overviewLeadFor,
+  sharedOverviewVenue,
   summarizeOverviewMatches,
   type OverviewMatch,
 } from '../../../../lib/overview.ts';
@@ -28,6 +28,7 @@ import {
   fetchPublicTableLayouts,
   fetchPublicTableProjection,
   mapOverviewResponse,
+  publicTableCsvUrl,
 } from '../../../../lib/public-api-client.ts';
 import {
   publicIntl,
@@ -36,9 +37,11 @@ import {
   tickerLabels,
   tournamentHeroLabels,
   completionFigureLabels,
+  resultStateLabels,
   rulesetBriefingRows,
 } from '../../../../lib/i18n/public-intl.ts';
 import { buildTickerItems } from '../../../../lib/ticker-items.ts';
+import { getLocalizedNotFoundPath } from '../../../../lib/locale.ts';
 import { messages } from '../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 
@@ -62,7 +65,7 @@ const intl = publicIntl(resolvedLocale);
 
 const overviewData = await fetchOverview(organization!, tournament!);
 if (!overviewData) {
-  return Astro.rewrite('/404');
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
@@ -78,6 +81,7 @@ const completion = completionData ?? {
   stages: [],
 };
 const completionLabels = completionFigureLabels(intl, completion);
+const stateLabels = resultStateLabels(intl);
 
 // The default table shown on the tournament landing page — the earliest
 // stage's own group-phase layout, matching what a spectator lands here
@@ -139,10 +143,25 @@ const [performerProjection, leaderProjection] = await Promise.all([
     : Promise.resolve(undefined),
 ]);
 
+const tickerPerformerProjection =
+  performerProjection === undefined
+    ? undefined
+    : {
+        ...performerProjection,
+        label: publicTableLayoutLabel(
+          {
+            code: performerProjection.layoutCode,
+            target: performerProjection.target,
+            label: performerProjection.label,
+          },
+          intl,
+        ),
+      };
+
 const tickerChrome = tickerChromeLabels(intl);
 const tickerItems = buildTickerItems({
   matches: model.matches,
-  ...(performerProjection === undefined ? {} : { performers: performerProjection }),
+  ...(tickerPerformerProjection === undefined ? {} : { performers: tickerPerformerProjection }),
   ...(leaderProjection === undefined ? {} : { leaders: leaderProjection }),
   labels: tickerLabels(intl),
   language: resolvedLocale,
@@ -160,6 +179,23 @@ const liveMatches = fixtureSummary.live.filter(hasPersistedMatchId);
 const nextMatches = fixtureSummary.upcoming.filter(hasPersistedMatchId);
 const latestResults = fixtureSummary.latestResults.filter(hasPersistedMatchId);
 const compactMatchLabels = matchCardLabels(intl);
+const overviewLead = overviewLeadFor(model.status);
+const heroLabels = tournamentHeroLabels(intl, model);
+const heroStateLabel =
+  model.status === 'live'
+    ? intl.formatMessage(messages.completionInProgress)
+    : model.status === 'finished'
+      ? stateLabels.final
+      : model.status === 'upcoming'
+        ? stateLabels.upcoming
+        : undefined;
+const sharedVenue = sharedOverviewVenue(model.matches);
+const heroFacts = [
+  ...(completion.totalMatches > 0 ? [completionLabels.summary] : []),
+  ...(sharedVenue === undefined
+    ? []
+    : [intl.formatMessage(messages.matchesViewVenueAriaLabel, { venue: sharedVenue })]),
+];
 
 function matchCardDataOf(match: OverviewMatch & { readonly matchId: string }): MatchCardData {
   return {
@@ -196,6 +232,30 @@ function matchPagePath(match: OverviewMatch): string {
   }
   return `${localePrefix}${model.canonicalPath}/stages/${match.stageNumber}/matches/${match.stageOrdinal}`;
 }
+
+const nextFeaturedMatch = overviewLead === 'schedule-preview' ? nextMatches[0] : undefined;
+const nowEntries = [
+  ...(liveMatches[0] === undefined ? [] : [{ kind: 'live' as const, match: liveMatches[0] }]),
+  ...(nextMatches[0] === undefined ? [] : [{ kind: 'upcoming' as const, match: nextMatches[0] }]),
+  ...(latestResults[0] === undefined ? [] : [{ kind: 'final' as const, match: latestResults[0] }]),
+].map((entry) => ({
+  kind: entry.kind,
+  match: matchCardDataOf(entry.match),
+  href: matchPagePath(entry.match),
+}));
+const featuredMatchIds = new Set(
+  (overviewLead === 'now-strip'
+    ? [liveMatches[0], nextMatches[0], latestResults[0]]
+    : [nextFeaturedMatch]
+  )
+    .filter((match): match is OverviewMatch & { readonly matchId: string } => match !== undefined)
+    .map((match) => match.matchId),
+);
+const remainingLiveMatches = liveMatches.filter((match) => !featuredMatchIds.has(match.matchId));
+const remainingNextMatches = nextMatches.filter((match) => !featuredMatchIds.has(match.matchId));
+const remainingLatestResults = latestResults.filter(
+  (match) => !featuredMatchIds.has(match.matchId),
+);
 
 const nextKickoff = model.matches
   .filter((match) => match.state === 'upcoming' && Date.parse(match.startsAt) >= Date.now())
@@ -246,11 +306,55 @@ const trail = publicTrail(trailBase, []);
   structuredData={structuredData}
 >
   <Container variant="public">
-    <Breadcrumb
-      items={trail}
-      ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
-      collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+    <TournamentOverviewHero
+      model={model}
+      labels={heroLabels}
+      trail={trail}
+      breadcrumbLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+      collapsedBreadcrumbLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+      stateLabel={heroStateLabel}
+      facts={heroFacts}
     />
+    {overviewLead === 'now-strip' && (
+      <TournamentNowStrip
+        heading={intl.formatMessage(messages.overviewNowStripHeading)}
+        entries={nowEntries}
+        labels={compactMatchLabels}
+        locale={resolvedLocale}
+        timeZone={model.organizationTimeZone}
+      />
+    )}
+    {overviewLead === 'honour-board' && model.winners && model.winners.length > 0 && (
+      <TournamentHonourBoard
+        heading={intl.formatMessage(messages.overviewHonourBoardHeading)}
+        winners={withPodiumEmblems(organization!, model.winners)}
+        intl={intl}
+      />
+    )}
+    {nextFeaturedMatch && (
+      <FeaturedMatchCard
+        heading={intl.formatMessage(messages.overviewFeaturedMatchHeading)}
+        match={matchCardDataOf(nextFeaturedMatch)}
+        href={matchPagePath(nextFeaturedMatch)}
+        labels={compactMatchLabels}
+        locale={resolvedLocale}
+        timeZone={model.organizationTimeZone}
+        organizationAlias={organization}
+      />
+    )}
+    {overviewLead === 'schedule-preview' &&
+      nextFeaturedMatch === undefined &&
+      model.matches.length === 0 && (
+        <Container variant="reading">
+          <EmptyState
+            icon="calendar"
+            heading={intl.formatMessage(messages.interactionNoLive)}
+            description={noLiveDescription}
+            actionLabel={intl.formatMessage(messages.interactionViewMatches)}
+            href={`${localePrefix}${model.canonicalPath}/matches`}
+          />
+        </Container>
+      )}
   </Container>
   <ScoreTicker
     emptyLabel={tickerChrome.empty}
@@ -260,27 +364,16 @@ const trail = publicTrail(trailBase, []);
     pauseLabel={tickerChrome.pause}
     resumeLabel={tickerChrome.resume}
     staleLabel={tickerChrome.stale}
+    streamPath={model.streamPath}
   />
   <Container variant="public">
-    <TournamentHero labels={tournamentHeroLabels(intl, model)} model={model} />
-    {model.liveCount === 0 && (
-      <Container variant="reading">
-        <EmptyState
-          icon="calendar"
-          heading={intl.formatMessage(messages.interactionNoLive)}
-          description={noLiveDescription}
-          actionLabel={intl.formatMessage(messages.interactionViewMatches)}
-          href={`${localePrefix}${model.canonicalPath}/matches`}
-        />
-      </Container>
-    )}
     <section aria-labelledby="overview-matches-heading">
       <h2 id="overview-matches-heading">{intl.formatMessage(messages.matchGridHeading)}</h2>
-      {liveMatches.length > 0 && (
+      {remainingLiveMatches.length > 0 && (
         <section aria-labelledby="overview-live-heading">
           <h3 id="overview-live-heading">{intl.formatMessage(messages.matchesViewFilterLive)}</h3>
           <ul class="cl-match-card-grid cl-match-card-grid--compact-summary">
-            {liveMatches.map((match) => (
+            {remainingLiveMatches.map((match) => (
               <li>
                 <MatchCard
                   compact
@@ -296,11 +389,11 @@ const trail = publicTrail(trailBase, []);
           </ul>
         </section>
       )}
-      {nextMatches.length > 0 && (
+      {remainingNextMatches.length > 0 && (
         <section aria-labelledby="overview-next-heading">
           <h3 id="overview-next-heading">{intl.formatMessage(messages.overviewNextMatches)}</h3>
           <ul class="cl-match-card-grid cl-match-card-grid--compact-summary">
-            {nextMatches.map((match) => (
+            {remainingNextMatches.map((match) => (
               <li>
                 <MatchCard
                   compact
@@ -316,13 +409,13 @@ const trail = publicTrail(trailBase, []);
           </ul>
         </section>
       )}
-      {latestResults.length > 0 && (
+      {remainingLatestResults.length > 0 && (
         <section aria-labelledby="overview-results-heading">
           <h3 id="overview-results-heading">
             {intl.formatMessage(messages.overviewLatestResults)}
           </h3>
           <ul class="cl-match-card-grid cl-match-card-grid--compact-summary">
-            {latestResults.map((match) => (
+            {remainingLatestResults.map((match) => (
               <li>
                 <MatchCard
                   compact
@@ -344,33 +437,31 @@ const trail = publicTrail(trailBase, []);
         </a>
       </p>
     </section>
-    <CompletionFigure
-      totalMatches={completion.totalMatches}
-      resolvedMatches={completion.resolvedMatches}
-      stages={completion.stages}
-      labels={completionLabels}
-    />
-    {shouldShowChampionPodium(model) && model.winners && (
-      <ChampionPodium
-        winners={withPodiumEmblems(organization!, model.winners)}
-        intl={intl}
-        prominent={true}
-      />
-    )}
-    <BroadcastStatusPanel
-      model={model}
-      statusText={intl.formatMessage(messages.broadcastStatusDisconnected)}
-    />
     <StandingsTable
       layouts={declaredLayouts}
       layout={activeLayout}
       projection={overviewProjection}
+      csvHref={
+        isFullLayoutView && activeLayout
+          ? publicTableCsvUrl(
+              organization!,
+              tournament!,
+              activeLayout.code,
+              activeLayout.target === 'group-phase' && Number.isFinite(earliestStageNumber)
+                ? earliestStageNumber
+                : undefined,
+              activeClubId,
+            )
+          : undefined
+      }
       showControls={isFullLayoutView}
       activeLayoutCode={activeLayout?.code}
       activeClubId={activeClubId}
       clubs={model.clubs}
       intl={intl}
       canonicalPath={canonicalPath}
+      sectionId="standings"
+      teamAnchorId="teams"
       organizationAlias={organization!}
       tournamentAlias={tournament}
     />
@@ -388,7 +479,7 @@ const trail = publicTrail(trailBase, []);
                 href={fullLayoutHref(one)}
               >
                 {intl.formatMessage(messages.standingsFullTable)} ·{' '}
-                {localizedText(one.label, resolvedLocale)}
+                {publicTableLayoutLabel(one, intl)}
               </a>
             </li>
           ))}
@@ -413,11 +504,6 @@ const trail = publicTrail(trailBase, []);
 </script>
 
 <style>
-  /* Guarantees clear separation from the hero banner above. */
-  :global(.cl-completion-figure) {
-    margin-top: var(--cl-space-6);
-  }
-
   .cl-standings-summary-action {
     margin-block: var(--cl-space-3) var(--cl-space-5);
   }

@@ -1,0 +1,147 @@
+---
+import type { IntlShape } from 'react-intl';
+import { Badge } from '../atoms/Badge.tsx';
+import { Card } from '../atoms/Card.tsx';
+import EmblemImage from '../atoms/EmblemImage.astro';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
+import type { PodiumZone } from '../../../lib/podium-emblems.ts';
+import ChampionPodium from './ChampionPodium.astro';
+
+interface Props {
+  readonly heading: string;
+  readonly winners: readonly PodiumZone[];
+  readonly intl: IntlShape;
+}
+
+const { heading, winners, intl } = Astro.props;
+const championsOf = (zone: PodiumZone) =>
+  zone.champions?.length ? zone.champions : [zone.champion];
+const runnerUpLabel = intl.formatMessage(messages.tournamentsRunnerUp);
+const thirdPlaceLabel = intl.formatMessage(messages.tournamentsThirdPlace);
+---
+
+{winners.length > 0 && (
+  <section class="cl-overview-honours" aria-labelledby="overview-honours-heading">
+    <h2 id="overview-honours-heading">{heading}</h2>
+    {winners.length > 1 ? (
+      <ChampionPodium intl={intl} prominent={true} winners={winners} />
+    ) : (
+      winners.map((zone) => (
+        <Card as="article" className="cl-overview-honour-card">
+          {zone.zoneName && (
+            <Badge className="cl-overview-honour-card__tier">{zone.zoneName}</Badge>
+          )}
+          <div class="cl-overview-honour-card__champions">
+            {championsOf(zone).map((champion) => (
+              <div class="cl-overview-honour-card__champion">
+                <EmblemImage
+                  alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: champion.name })}
+                  placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                  abbreviation={champion.abbreviation}
+                  decorative
+                  size={48}
+                  src={champion.emblemSrc}
+                />
+                <div class="cl-overview-honour-card__champion-copy">
+                  <span class="cl-overview-honour-card__place">
+                    {intl.formatMessage(messages.tournamentsChampion)}
+                  </span>
+                  <span class="cl-overview-honour-card__champion-name">{champion.name}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {(zone.runnerUp || zone.thirdPlace) && (
+            <dl class="cl-overview-honour-card__placements">
+              {zone.runnerUp && (
+                <div>
+                  <dt>{runnerUpLabel}</dt>
+                  <dd>{zone.runnerUp.name}</dd>
+                </div>
+              )}
+              {zone.thirdPlace && (
+                <div>
+                  <dt>{thirdPlaceLabel}</dt>
+                  <dd>{zone.thirdPlace.name}</dd>
+                </div>
+              )}
+            </dl>
+          )}
+        </Card>
+      ))
+    )}
+  </section>
+)}
+
+<style>
+  .cl-overview-honours {
+    margin-block-end: var(--cl-space-5);
+  }
+
+  .cl-overview-honour-card {
+    display: grid;
+    gap: var(--cl-space-3);
+    padding: var(--cl-space-4);
+  }
+
+  .cl-overview-honour-card__tier {
+    justify-self: start;
+  }
+
+  .cl-overview-honour-card__champions {
+    display: grid;
+    gap: var(--cl-space-2);
+  }
+
+  .cl-overview-honour-card__champion {
+    display: flex;
+    align-items: center;
+    gap: var(--cl-space-3);
+    min-width: 0;
+  }
+
+  .cl-overview-honour-card__champion-copy {
+    display: grid;
+    min-width: 0;
+  }
+
+  .cl-overview-honour-card__place {
+    color: var(--cl-text-muted);
+    font-size: var(--cl-font-size-xs);
+    letter-spacing: var(--cl-tracking-wider);
+    text-transform: uppercase;
+  }
+
+  .cl-overview-honour-card__champion-name {
+    color: var(--cl-text-primary);
+    font-family: var(--cl-font-display);
+    font-size: var(--cl-font-size-xl);
+    overflow-wrap: anywhere;
+  }
+
+  .cl-overview-honour-card__placements {
+    display: grid;
+    gap: var(--cl-space-2);
+    margin: 0;
+  }
+
+  .cl-overview-honour-card__placements > div {
+    display: grid;
+    grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
+    gap: var(--cl-space-3);
+    padding-block-start: var(--cl-space-2);
+    border-block-start: 1px solid var(--cl-border-muted);
+  }
+
+  .cl-overview-honour-card__placements dt {
+    color: var(--cl-text-muted);
+    font-size: var(--cl-font-size-xs);
+    text-transform: uppercase;
+  }
+
+  .cl-overview-honour-card__placements dd {
+    margin: 0;
+    color: var(--cl-text-secondary);
+    overflow-wrap: anywhere;
+  }
+</style>

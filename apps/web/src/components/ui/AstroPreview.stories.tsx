@@ -83,6 +83,11 @@ export const StandingsTableHints: Story = {
   args: { component: 'standings-table', height: 760 },
 };
 
+/** A stored promotion plan adds the qualification column, row rails and seed legend. */
+export const StandingsTablePromotionBands: Story = {
+  args: { component: 'standings-table-promotion', height: 760 },
+};
+
 /** A podium squeezed into a quarter-width card stacks its placings instead of breaking names. */
 export const ChampionPodiumNarrow: Story = {
   args: { component: 'champion-podium-narrow', height: 760 },
@@ -129,7 +134,7 @@ export const ScoreTickerStale: Story = {
 };
 
 /**
- * Public spectator navigation: Home and locale selection, without operator help.
+ * Public spectator navigation with the active tournament section and locale selection.
  *
  * With the frame below 768px the menu expands into the page: the content
  * beneath it moves down instead of being covered. Reload with JavaScript
@@ -243,3 +248,28 @@ export const BracketJourneyEliminated: Story = {
 };
 
 export const EmptyState: Story = { args: { component: 'empty-state', height: 340 } };
+
+/** The tournament overview's breadcrumb, display title and read-model facts. */
+export const TournamentOverviewHero: Story = {
+  args: { component: 'tournament-overview-hero', height: 320 },
+};
+
+/** Live, upcoming and latest-final cards rendered as one state-led strip. */
+export const TournamentNowStrip: Story = {
+  args: { component: 'tournament-now-strip', height: 760 },
+};
+
+/** One result card per placement tier, with the champion and placing rows. */
+export const TournamentHonourBoard: Story = {
+  args: { component: 'tournament-honour-board', height: 760 },
+};
+
+/** A single-zone finish still honours the winner without presenting a multi-zone podium. */
+export const TournamentHonourBoardSingleTier: Story = {
+  args: { component: 'tournament-honour-board-single', height: 460 },
+};
+
+/** A full-width public match selected by the schedule's featured-match rule. */
+export const FeaturedMatchCard: Story = {
+  args: { component: 'featured-match-card', height: 420 },
+};

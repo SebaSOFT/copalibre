@@ -197,6 +197,24 @@ export function buildOverview(input: OverviewInput): OverviewModel {
   };
 }
 
+export type OverviewLead = 'honour-board' | 'now-strip' | 'schedule-preview';
+
+export function overviewLeadFor(status: OverviewModel['status']): OverviewLead {
+  if (status === 'finished') return 'honour-board';
+  if (status === 'live') return 'now-strip';
+  return 'schedule-preview';
+}
+
+/** Only promote a venue to a tournament fact when every match names that same venue. */
+export function sharedOverviewVenue(matches: readonly OverviewMatch[]): string | undefined {
+  if (matches.length === 0) return undefined;
+
+  const venues = matches.map((match) => match.venueName?.trim());
+  const firstVenue = venues[0];
+  if (!firstVenue || venues.some((venue) => venue !== firstVenue)) return undefined;
+  return firstVenue;
+}
+
 /** A resolved multi-zone finish has enough independent outcomes to warrant a podium section. */
 export function shouldShowChampionPodium(
   model: Pick<OverviewModel, 'status' | 'winners'>,

@@ -2566,11 +2566,16 @@ export function createControlApiClient(input: {
       if (filter.groupId !== undefined) params.set('groupId', filter.groupId);
       if (filter.state !== undefined) params.set('state', filter.state);
       const query = params.size > 0 ? `?${params}` : '';
-      return requestJson<{ readonly matches: readonly MatchCardData[] }>(
+      return requestJson<components['schemas']['ControlMatchesViewResponse']>(
         input.fetch,
         `${tournamentPath(baseUrl, organizationAlias, tournamentAlias)}/internal-matches-view${query}`,
         { token: input.accessToken?.() },
-      );
+      ).then(({ matches }) => ({
+        matches: matches.map(({ status, ...match }): MatchCardData => ({
+          ...match,
+          state: status,
+        })),
+      }));
     },
 
     fetchCompletion: (organizationAlias, tournamentAlias) =>

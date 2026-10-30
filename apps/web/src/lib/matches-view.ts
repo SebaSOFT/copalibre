@@ -57,6 +57,58 @@ export interface MatchCardData {
 }
 
 /**
+ * The match to feature above the schedule: the highest stage's scheduled or finished final, then
+ * the earliest live match in the selected or first active stage. Other upcoming matches are omitted.
+ */
+export function featuredMatchForSchedule(
+  rows: readonly MatchCardData[],
+  stageNumbers: readonly number[],
+  requestedStageNumber?: number,
+): MatchCardData | undefined {
+  const scopedRows =
+    requestedStageNumber === undefined
+      ? rows
+      : rows.filter((row) => row.stageNumber === requestedStageNumber);
+  const finals = scopedRows.filter(
+    (row) =>
+      (row.branch === 'final' ||
+        (row.sourceFinalRound !== undefined && row.round === row.sourceFinalRound)) &&
+      (row.state === 'upcoming' || row.state === 'final'),
+  );
+  const finalStageNumber =
+    requestedStageNumber ?? Math.max(...finals.map((row) => row.stageNumber), -Infinity);
+  const finalStageRows = finals
+    .filter((row) => row.stageNumber === finalStageNumber)
+    .sort((a, b) => a.matchNumber - b.matchNumber);
+  const scheduledFinal = finalStageRows.find((row) => row.state === 'upcoming');
+  if (scheduledFinal) return scheduledFinal;
+  const finishedFinal = finalStageRows.find((row) => row.state === 'final');
+  if (finishedFinal) return finishedFinal;
+
+  const liveStage = stageNumbers.find((stageNumber) =>
+    scopedRows.some((row) => row.stageNumber === stageNumber && row.state === 'live'),
+  );
+  const stageNumber = requestedStageNumber ?? liveStage;
+  if (stageNumber === undefined) return undefined;
+
+  const stageRows = scopedRows.filter((row) => row.stageNumber === stageNumber);
+
+  const liveMatch = stageRows
+    .filter((row) => row.state === 'live')
+    .sort((a, b) => {
+      const aTime = a.scheduledAt === undefined ? Number.NaN : Date.parse(a.scheduledAt);
+      const bTime = b.scheduledAt === undefined ? Number.NaN : Date.parse(b.scheduledAt);
+      const aHasTime = Number.isFinite(aTime);
+      const bHasTime = Number.isFinite(bTime);
+      if (aHasTime && bHasTime) return aTime - bTime || a.matchNumber - b.matchNumber;
+      if (aHasTime) return -1;
+      if (bHasTime) return 1;
+      return a.matchNumber - b.matchNumber;
+    })[0];
+  return liveMatch;
+}
+
+/**
  * The distinct zone/group names present across a set of match rows, in
  * first-seen order — the facet options `MatchScheduleFilters` renders. A
  * dimension with zero or one distinct value yields no pill for it: the caller decides whether to render based on `.length > 1`.

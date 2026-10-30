@@ -88,6 +88,7 @@ describe('the reference index', () => {
         (entry) => entry.reference,
       ),
     ).toEqual([
+      'Tournament completion progress figure',
       'Generic data entity card',
       'Live match scorecard',
       'Astro preview seam',

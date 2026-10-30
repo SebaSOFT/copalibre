@@ -912,6 +912,32 @@ export function referenceTableProjection(): TableProjectionResponse {
   };
 }
 
+/** The same table with explicit saved-plan data for reviewing promotion labels. */
+export function referencePromotionTableProjection(): TableProjectionResponse {
+  const projection = referenceTableProjection();
+  const promotionBands = [
+    { label: 'Copa oro', index: 0, firstSeed: 1, lastSeed: 2 },
+    { label: 'Copa plata', index: 1, firstSeed: 3, lastSeed: 4 },
+  ];
+
+  return {
+    ...projection,
+    promotionBands,
+    rows: projection.rows.map((row, index) => {
+      const bandIndex = index < 2 ? 0 : index < 4 ? 1 : undefined;
+      const band = bandIndex === undefined ? undefined : promotionBands[bandIndex];
+      return band === undefined
+        ? row
+        : {
+            ...row,
+            promotionBandLabel: band.label,
+            promotionBandIndex: band.index,
+            promotionSeed: index + 1,
+          };
+    }),
+  };
+}
+
 /** Journey review: the same eight-entrant bracket, optionally completed. */
 export function referenceJourneyBracket(complete = false): readonly BracketMatch[] {
   const bracket = referenceBracket();

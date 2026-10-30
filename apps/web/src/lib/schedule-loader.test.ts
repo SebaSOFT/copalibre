@@ -112,6 +112,32 @@ describe('loadSchedule', () => {
     expect(asked.some((url) => url.includes('/bracket'))).toBe(true);
   });
 
+  it('filters states locally while retaining all stage rows for facets and featured matches', async () => {
+    serve({
+      ...routes,
+      [`${BASE}/matches-view`]: {
+        matches: [
+          { ...row(1, 1, 'Groups', 'A'), status: 'live' },
+          { ...row(2, 1, 'Groups', 'B'), status: 'upcoming' },
+          { ...row(3, 1, 'Groups', 'A'), status: 'final' },
+        ],
+      },
+    });
+
+    const loaded = await loadSchedule({
+      organization: 'liga',
+      tournament: 'apertura',
+      state: 'live',
+    });
+
+    expect(loaded?.stageRows.map((match) => match.state)).toEqual(['live', 'upcoming', 'final']);
+    expect(loaded?.rows.map((match) => match.state)).toEqual(['live']);
+    const matchRequest = (global.fetch as jest.Mock).mock.calls
+      .map((call) => String(call[0]))
+      .find((url) => url.includes('/matches-view'));
+    expect(matchRequest).toContain('state=all');
+  });
+
   it('limits the stages to the requested one', async () => {
     serve(routes);
     const loaded = await loadSchedule({

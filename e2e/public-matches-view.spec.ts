@@ -100,19 +100,42 @@ test('uses the centered public container at reference widths', async ({ page }) 
   await expectCenteredPageContainer(page, matchesPath);
 });
 
+test('public entrant names preserve their entered casing', async ({ page }) => {
+  await page.goto(cardsPath);
+
+  await expect(page.getByTestId('entrant-name').first()).toHaveCSS('text-transform', 'none');
+});
+
+test('the German matches view fits a 375px viewport without horizontal scrolling', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 844 });
+  await page.goto(`/de${matchesPath}`);
+
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(page.locator('.cl-match-schedule__scroll-hint')).toHaveText(
+    'Wische in der Tabelle horizontal, um alle Spalten zu sehen.',
+  );
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+});
+
 test('shows every match with venue, clock, and a one-line deciding-factor summary — no full trace', async ({
   page,
 }) => {
   await page.goto(cardsPath);
 
-  await expect(page.getByText('Club Andes', { exact: true })).toBeVisible();
-  await expect(page.getByText('Talleres', { exact: true })).toBeVisible();
-  await expect(page.getByText('Estadio Central')).toBeVisible();
-  await expect(page.getByText('Decided by: head-to-head goal difference')).toBeVisible();
+  const schedule = page.locator('.cl-match-schedule');
+  const featured = page.getByRole('region', { name: 'Featured match' });
+  await expect(featured.getByText('Talleres', { exact: true })).toBeVisible();
+  await expect(schedule.getByText('Club Andes', { exact: true })).toBeVisible();
+  await expect(schedule.getByText('Estadio Central')).toBeVisible();
+  await expect(schedule.getByText('Decided by: head-to-head goal difference')).toBeVisible();
 
   // The public card never carries the internal comparator trace lines.
   await expect(page.getByText(/ahead by|behind by/)).toHaveCount(0);
-  await expect(page.getByText('Full standings comparator trace')).toHaveCount(0);
+  await expect(page.locator('.cl-match-card__trace')).toHaveCount(0);
 });
 
 test('lists the matches as table rows by default, with the score linking to its match', async ({
@@ -137,7 +160,10 @@ test('lists the matches as table rows by default, with the score linking to its 
     'href',
     /\/stages\/1\/matches\/3$/,
   );
-  await expect(page.locator('.cl-match-card')).toHaveCount(0);
+  await expect(page.locator('.cl-match-schedule .cl-match-card')).toHaveCount(0);
+  await expect(
+    page.getByRole('region', { name: 'Featured match' }).locator('.cl-match-card'),
+  ).toHaveCount(1);
 });
 
 test('formats schedule dates and times in English and German using the organization time zone @visible-identifier-lint', async ({
@@ -193,12 +219,13 @@ test('the Live filter link narrows the server-rendered list with scripting off',
   await context.route('**/*.js', (route) => route.abort());
   await page.goto(matchesPath);
 
-  await expect(page.getByText('Club Andes', { exact: true })).toBeVisible();
+  const schedule = page.locator('.cl-match-schedule');
+  await expect(schedule.getByText('Club Andes', { exact: true })).toBeVisible();
   await page.locator('.cl-match-schedule-filters > summary').click();
   await page.getByRole('link', { name: 'Live' }).click();
 
-  await expect(page.getByText('Talleres', { exact: true })).toBeVisible();
-  await expect(page.getByText('Club Andes', { exact: true })).toHaveCount(0);
+  await expect(schedule.getByText('Talleres', { exact: true })).toBeVisible();
+  await expect(schedule.getByText('Club Andes', { exact: true })).toHaveCount(0);
 });
 
 test('the state filter renders as discrete pills with a visible active state', async ({
@@ -254,7 +281,9 @@ test.describe('density toggle', () => {
     await expect(page.locator('.cl-match-card--compact').first()).toBeVisible();
     await expect(page.locator('.cl-matches-view__grid--compact').first()).toBeVisible();
     // The full card's own structure is gone, not just visually collapsed.
-    await expect(page.locator('.cl-match-card__sides')).toHaveCount(0);
+    await expect(page.locator('.cl-matches-view__grid--compact .cl-match-card__sides')).toHaveCount(
+      0,
+    );
   });
 
   test('preserves the active state filter when toggling density, and vice versa', async ({

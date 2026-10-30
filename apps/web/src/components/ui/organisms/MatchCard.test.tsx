@@ -102,6 +102,12 @@ describe('MatchCard', () => {
     ).toEqual(['10', '8']);
   });
 
+  it('does not show placeholder dashes for an upcoming match without a score', () => {
+    const { container } = render(<MatchCard match={baseMatch()} labels={labels} locale="en" />);
+
+    expect(container.querySelectorAll('.cl-match-card__side .cl-stat-tile__value')).toHaveLength(0);
+  });
+
   it('omits the venue line when no venue is assigned', () => {
     const { rerender } = render(
       <MatchCard match={baseMatch({ venueName: 'Cancha 1' })} labels={labels} locale="en" />,
@@ -164,7 +170,7 @@ describe('MatchCard', () => {
     expect(screen.queryByTitle(/^Position/)).toBeNull();
   });
 
-  it('shows the deciding-factor line only when the response carries one', () => {
+  it('shows the deciding-factor line only for a final match that carries one', () => {
     const { rerender } = render(
       <MatchCard
         match={baseMatch({ state: 'final', decidingFactor: 'Rule 2 (Head-to-head)' })}
@@ -175,6 +181,15 @@ describe('MatchCard', () => {
     expect(screen.getByText('Decided by: Rule 2 (Head-to-head)')).toBeDefined();
 
     rerender(<MatchCard match={baseMatch({ state: 'final' })} labels={labels} locale="en" />);
+    expect(screen.queryByText(/^Decided by:/)).toBeNull();
+
+    rerender(
+      <MatchCard
+        match={baseMatch({ state: 'upcoming', decidingFactor: 'Rule 2 (Head-to-head)' })}
+        labels={labels}
+        locale="en"
+      />,
+    );
     expect(screen.queryByText(/^Decided by:/)).toBeNull();
   });
 
@@ -213,6 +228,7 @@ describe('MatchCard', () => {
     expect(screen.getByRole('link').getAttribute('href')).toBe(
       '/liga/tournaments/x/stages/1/matches/1',
     );
+    expect(screen.getByRole('link').getAttribute('aria-label')).toBe('Match 1: Norte vs Sur');
     expect(container.querySelector('.cl-match-card__heading a')).not.toBeNull();
     expect(container.querySelector('.cl-match-card')?.closest('a')).toBeNull();
   });

@@ -7,6 +7,7 @@ import {
   type PublicObjectReference,
 } from '../lib/discipline-background.ts';
 import { buildHreflangAlternates, serializeJsonLd, type JsonLdStructuredData } from '../lib/seo.ts';
+import { publicTournamentNavigation } from '../lib/public-tournament-navigation.ts';
 import type { SupportedLanguage } from '@copalibre/domain';
 
 import Container from '../components/ui/atoms/layout/Container.astro';
@@ -41,6 +42,7 @@ const {
 
 const site = Astro.site?.toString().replace(/\/$/, '') ?? '';
 const background = selectPublicDisciplineBackground(disciplineImages);
+const tournamentNavigation = publicTournamentNavigation(Astro.url.pathname, Astro.url.search);
 const resolvedOgImage =
   ogImage ??
   (background?.url
@@ -117,8 +119,12 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
     <a class="cl-skip-link cl-focusable" href="#main">
       {intl.formatMessage(messages.layoutSkipToContent)}
     </a>
-    <PublicHeader intl={intl} localeOptions={localeOptions} />
-    <main id="main">
+    <PublicHeader
+      intl={intl}
+      localeOptions={localeOptions}
+      tournamentNavigation={tournamentNavigation}
+    />
+    <main id="main" class="cl-public-reading">
       <slot />
     </main>
     <footer>
@@ -186,6 +192,11 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
     overflow-x: auto;
     scrollbar-gutter: stable;
     border-bottom: 2px solid var(--cl-border-muted);
+  }
+
+  /* Preserve organizer-entered casing for names on public reading pages. */
+  :global(main.cl-public-reading .cl-entrant-name) {
+    text-transform: none;
   }
 
   .cl-discipline-background {
