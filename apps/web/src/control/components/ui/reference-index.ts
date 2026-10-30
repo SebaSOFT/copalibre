@@ -114,6 +114,12 @@ export const REFERENCE_INDEX: readonly ReferenceIndexEntry[] = [
     consumers: ['control/components/QuickStats.tsx'],
   },
   {
+    reference: 'Generic data entity card',
+    storyId: 'Admin/Molecules/DataEntityCard — Playground',
+    consumers: [],
+    note: 'Retained as a generic Storybook reference for linked metadata; the dashboard now uses the lifecycle-aware TournamentCard organism.',
+  },
+  {
     reference: 'Editorial release composition',
     storyId: 'Admin/Molecules/EditorialCard — Playground',
     consumers: ['control/components/pages/PlatformAdministrationPage.tsx'],
@@ -161,5 +167,77 @@ export const REFERENCE_INDEX: readonly ReferenceIndexEntry[] = [
     reference: 'Contained transparent person cutout',
     storyId: 'Public/Astro preview — PersonPhotoCutout',
     consumers: ['components/ui/atoms/PersonPhotoImage.astro'],
+  },
+  {
+    reference: 'Shared page header and settings form',
+    storyId: 'Admin/Screens/PageHeaderTemplate — SettingsForm',
+    consumers: [],
+    note: 'The shared composition is available for the dashboard and configuration pages; the dashboard adoption is still in progress.',
+  },
+  {
+    reference: 'Venue list with a side form',
+    storyId: 'Admin/Screens/ListWithRailTemplate — VenueListWithForm',
+    consumers: [],
+    note: 'The dashboard adoption is still in progress; this shape is also ready for resource-management pages.',
+  },
+  {
+    reference: 'Two-pane operator workspace',
+    storyId: 'Admin/Screens/WorkspaceTemplate — SeedingWorkspace',
+    consumers: [],
+    note: 'The workspace is exercised in the component workbench and is awaiting its first production composition.',
+  },
+  {
+    reference: 'Wizard with a sticky action footer',
+    storyId: 'Admin/Screens/WizardTemplate — TournamentSetup',
+    consumers: [],
+    note: 'Existing wizards still use WizardShell directly; new wizard pages can use this template when they adopt the shared pattern.',
+  },
+  {
+    reference: 'API-bound KPI strip',
+    storyId: 'Admin/Organisms/KpiStrip — Playground',
+    consumers: ['control/components/QuickStats.tsx'],
+    note: 'Dashboard figures use named response fields; no match count is synthesized without an authoritative source.',
+  },
+  {
+    reference: 'Organization and tournament context rail header',
+    storyId: 'Admin/Organisms/ContextRailHeader — OrganizationAdmin',
+    consumers: ['control/components/ControlShell.tsx'],
+  },
+  {
+    reference: 'Search and lifecycle filters',
+    storyId: 'Admin/Organisms/FilterBar — Playground',
+    consumers: ['control/components/screens/DashboardTemplate.tsx'],
+  },
+  {
+    reference: 'Tournament summary card',
+    storyId: 'Admin/Organisms/TournamentCard — Playground',
+    consumers: ['control/components/TournamentSummaryCard.tsx'],
+    note: 'The dashboard adapter supplies live tournament data and lifecycle actions; Storybook fixture values are demonstrations.',
+  },
+  {
+    reference: 'Dirty-form save bar',
+    storyId: 'Admin/Organisms/UnsavedChangesBar — Playground',
+    consumers: [],
+    note: 'No current form adopts persistent save controls; the pattern is available to configuration screens.',
+  },
+  {
+    reference: 'Section route tabs',
+    storyId: 'Admin/Organisms/SectionTabs — Playground',
+    consumers: [],
+    note: 'No current page in this change needs section-level route navigation.',
+  },
+  {
+    reference: 'Image upload drop zone',
+    storyId: 'Admin/Organisms/DropZone — Playground',
+    consumers: [],
+    note: 'No image-editing page adopts the shared upload layout in this change.',
+  },
+  {
+    reference: 'Named entity with emblem and metadata',
+    storyId: 'Admin/Molecules/EntityIdentityCell — Playground',
+    consumers: [
+      'control/components/screens/RolesPermissionsTemplate.tsx',
+      'control/components/screens/AuditTrailTemplate.tsx',
+    ],
   },
 ];

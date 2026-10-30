@@ -187,6 +187,51 @@ export const messages = defineMessages({
   navAnalytics: { id: 'control.nav.analytics', defaultMessage: 'Analytics' },
   navResources: { id: 'control.nav.resources', defaultMessage: 'Venues & officials' },
   navAuditTrail: { id: 'control.nav.auditTrail', defaultMessage: 'Audit trail' },
+  shellNavGroupOverview: {
+    id: 'control.shell.navGroup.overview',
+    defaultMessage: 'Overview',
+  },
+  shellNavGroupTeamsRosters: {
+    id: 'control.shell.navGroup.teamsRosters',
+    defaultMessage: 'Teams and rosters',
+  },
+  shellNavGroupZonesGroups: {
+    id: 'control.shell.navGroup.zonesGroups',
+    defaultMessage: 'Zones and groups',
+  },
+  shellNavGroupSeedingBrackets: {
+    id: 'control.shell.navGroup.seedingBrackets',
+    defaultMessage: 'Seeding and brackets',
+  },
+  shellNavGroupSchedule: {
+    id: 'control.shell.navGroup.schedule',
+    defaultMessage: 'Schedule',
+  },
+  shellNavGroupVenues: {
+    id: 'control.shell.navGroup.venues',
+    defaultMessage: 'Venues',
+  },
+  shellNavGroupOfficials: {
+    id: 'control.shell.navGroup.officials',
+    defaultMessage: 'Officials',
+  },
+  shellNavGroupBroadcast: {
+    id: 'control.shell.navGroup.broadcast',
+    defaultMessage: 'Broadcast',
+  },
+  shellNavGroupAdministration: {
+    id: 'control.shell.navGroup.administration',
+    defaultMessage: 'Administration',
+  },
+  shellPreferences: { id: 'control.shell.preferences', defaultMessage: 'Preferences' },
+  shellScopeActionOpenLiveConsole: {
+    id: 'control.shell.scopeAction.openLiveConsole',
+    defaultMessage: 'Open live console',
+  },
+  shellScopeActionEditTournamentSettings: {
+    id: 'control.shell.scopeAction.editTournamentSettings',
+    defaultMessage: 'Edit tournament settings',
+  },
   navPlatformAdministration: {
     id: 'control.nav.platformAdministration',
     defaultMessage: 'Platform administration',
@@ -401,6 +446,39 @@ export const messages = defineMessages({
     id: 'control.metric.demonstration',
     defaultMessage: 'Demonstration figure',
   },
+  dashboardDescription: {
+    id: 'control.dashboard.description',
+    defaultMessage: 'Tournaments, registrations and broadcast devices for your organization.',
+  },
+  dashboardSearchLabel: {
+    id: 'control.dashboard.searchLabel',
+    defaultMessage: 'Search tournaments',
+  },
+  dashboardSearchPlaceholder: {
+    id: 'control.dashboard.searchPlaceholder',
+    defaultMessage: 'Search by tournament name',
+  },
+  dashboardFiltersLabel: {
+    id: 'control.dashboard.filtersLabel',
+    defaultMessage: 'Tournament status',
+  },
+  dashboardFilterAll: { id: 'control.dashboard.filterAll', defaultMessage: 'All' },
+  dashboardResultCount: {
+    id: 'control.dashboard.resultCount',
+    defaultMessage: '{count, plural, one {# tournament} other {# tournaments}}',
+  },
+  dashboardNoMatchingTournaments: {
+    id: 'control.dashboard.noMatchingTournaments',
+    defaultMessage: 'No tournaments match your search and filters.',
+  },
+  dashboardActiveTournamentsContext: {
+    id: 'control.dashboard.activeTournamentsContext',
+    defaultMessage: 'Currently in progress',
+  },
+  dashboardPendingRegistrationsContext: {
+    id: 'control.dashboard.pendingRegistrationsContext',
+    defaultMessage: 'Waiting for organization review',
+  },
   dashboardActiveTournaments: {
     id: 'control.dashboard.activeTournaments',
     defaultMessage: 'Active tournaments',
@@ -437,6 +515,14 @@ export const messages = defineMessages({
   dashboardNoTournamentsCta: {
     id: 'control.dashboard.noTournamentsCta',
     defaultMessage: 'Create your first tournament',
+  },
+  dashboardPairTvTournament: {
+    id: 'control.dashboard.pairTvTournament',
+    defaultMessage: 'Tournament for TV pairing',
+  },
+  dashboardPairTvNeedsTournament: {
+    id: 'control.dashboard.pairTvNeedsTournament',
+    defaultMessage: 'Create a tournament before pairing a TV screen.',
   },
   dashboardParticipantsCsv: {
     id: 'control.dashboard.participantsCsv',

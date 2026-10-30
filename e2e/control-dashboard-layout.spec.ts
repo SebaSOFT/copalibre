@@ -1,15 +1,20 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 import { expectNoVisibleIdentifiers } from './support/visible-identifiers.js';
 
 /**
- * Organization dashboard layout: summary-tile grid, page gutters, and mobile
- * scrolling.
+ * Organization dashboard layout: summary-tile grid, page gutters, scope rail,
+ * and mobile scrolling.
  */
 
 const ORG_ALIAS = 'liga-mendocina';
 const DESKTOP = { width: 1440, height: 900 } as const;
 const MOBILE = { width: 375, height: 667 } as const;
+const REVIEW_VIEWPORTS = [
+  ['mobile', MOBILE],
+  ['desktop', DESKTOP],
+] as const;
 
 /** Enough tournaments and activity that the mobile page is taller than its viewport. */
 const TOURNAMENT_COUNT = 6;
@@ -23,7 +28,7 @@ async function setupMockApi(page: Page): Promise<void> {
         organizationId: 'org-1',
         alias: `torneo-${index + 1}`,
         name: `Torneo Apertura ${index + 1}`,
-        status: 'in_progress',
+        status: 'started',
       }));
       const auditRecords = Array.from({ length: auditRecordCount }, (_, index) => ({
         auditId: `audit-${index + 1}`,
@@ -56,6 +61,16 @@ async function setupMockApi(page: Page): Promise<void> {
         }
         if (url === `/organizations/${orgAlias}/tournaments` && method === 'GET') {
           return Response.json(tournaments);
+        }
+        const tournamentSettingsPrefix = `/organizations/${orgAlias}/tournaments/`;
+        if (
+          method === 'GET' &&
+          url.startsWith(tournamentSettingsPrefix) &&
+          url.endsWith('/settings')
+        ) {
+          const alias = url.slice(tournamentSettingsPrefix.length, -'/settings'.length);
+          const tournament = tournaments.find((one) => one.alias === alias);
+          return Response.json({ name: tournament?.name ?? alias });
         }
         if (url.includes(`/organizations/${orgAlias}/audit-trail`) && method === 'GET') {
           return Response.json({
@@ -101,7 +116,8 @@ async function setupMockApi(page: Page): Promise<void> {
   );
 }
 
-async function openDashboard(page: Page): Promise<void> {
+async function openDashboard(page: Page, language: 'es' | 'de' = 'es'): Promise<void> {
+  await page.addInitScript((value) => localStorage.setItem('copalibre.language', value), language);
   await setupMockApi(page);
   const target = `/control/${ORG_ALIAS}`;
   await seedLoginTransaction(page, target);
@@ -121,14 +137,14 @@ async function openDashboard(page: Page): Promise<void> {
   await page.evaluate(() => document.fonts.ready);
 }
 
-test('4.1: summary tiles sit in a row on desktop, stack on mobile, and keep a page gutter @visible-identifier-lint', async ({
+test('summary tiles sit in a row on desktop, stack on mobile, and keep a page gutter @visible-identifier-lint', async ({
   page,
 }) => {
   await page.setViewportSize(DESKTOP);
   await openDashboard(page);
 
   const tiles = page.locator('.cl-stat-tile');
-  await expect(tiles).toHaveCount(3);
+  await expect(tiles).toHaveCount(2);
 
   const desktopBoxes = await tiles.evaluateAll((elements) =>
     elements.map((element) => element.getBoundingClientRect()).map(({ x, y }) => ({ x, y })),
@@ -138,7 +154,7 @@ test('4.1: summary tiles sit in a row on desktop, stack on mobile, and keep a pa
   expect(desktopBoxes.map((box) => box.x)).toEqual(
     [...desktopBoxes.map((box) => box.x)].sort((a, b) => a - b),
   );
-  expect(new Set(desktopBoxes.map((box) => box.x)).size).toBe(3);
+  expect(new Set(desktopBoxes.map((box) => box.x)).size).toBe(2);
 
   const desktopGutter = await page.evaluate(() => {
     const main = document.querySelector('main');
@@ -154,7 +170,7 @@ test('4.1: summary tiles sit in a row on desktop, stack on mobile, and keep a pa
   );
   // One column: every tile shares a left edge and each sits below the last.
   expect(new Set(mobileBoxes.map((box) => box.x)).size).toBe(1);
-  expect(new Set(mobileBoxes.map((box) => box.y)).size).toBe(3);
+  expect(new Set(mobileBoxes.map((box) => box.y)).size).toBe(2);
 
   const mobileGutter = await page.evaluate(() => {
     const main = document.querySelector('main');
@@ -165,9 +181,12 @@ test('4.1: summary tiles sit in a row on desktop, stack on mobile, and keep a pa
   expect(mobileGutter).toBeGreaterThan(0);
 });
 
-test('4.2: the dashboard scrolls to its last section at a mobile viewport', async ({ page }) => {
+test('the dashboard scrolls to its last section at a mobile viewport', async ({ page }) => {
   await page.setViewportSize(MOBILE);
   await openDashboard(page);
+
+  await expect(page.locator('.cl-control__mobile-header')).toBeVisible();
+  await expect(page.locator('.cl-control__nav')).toBeHidden();
 
   const scroll = await page.evaluate(() => {
     const element = document.scrollingElement ?? document.documentElement;
@@ -183,6 +202,124 @@ test('4.2: the dashboard scrolls to its last section at a mobile viewport', asyn
     () => (document.scrollingElement ?? document.documentElement).scrollTop,
   );
   expect(scrolled).toBeGreaterThan(0);
+});
+
+test('the list and TV rail stack below the container width threshold', async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await openDashboard(page);
+
+  const template = page.locator('.cl-list-with-rail-template');
+  const listing = page.locator('.cl-list-with-rail-template__list');
+  const rail = page.locator('.cl-list-with-rail-template__rail');
+  const placeTemplate = (width: number) =>
+    template.evaluate((element, nextWidth) => {
+      (element as HTMLElement).style.width = `${nextWidth}px`;
+    }, width);
+
+  await placeTemplate(1000);
+  const stacked = await Promise.all([
+    listing.evaluate((element) => element.getBoundingClientRect().top),
+    rail.evaluate((element) => element.getBoundingClientRect().top),
+  ]);
+  expect(stacked[1]).toBeGreaterThan(stacked[0]);
+
+  await placeTemplate(1024);
+  const columns = await Promise.all([
+    listing.evaluate((element) => element.getBoundingClientRect()),
+    rail.evaluate((element) => element.getBoundingClientRect()),
+  ]);
+  expect(columns[0].y).toBe(columns[1].y);
+  expect(columns[1].x).toBeGreaterThan(columns[0].x);
+});
+
+for (const language of ['es', 'de'] as const) {
+  for (const [viewportName, viewport] of REVIEW_VIEWPORTS) {
+    test(`dashboard has no horizontal overflow and passes axe in ${language} at ${viewportName}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(viewport);
+      await openDashboard(page, language);
+
+      await expect(page.getByRole('heading', { level: 1 })).toHaveCSS(
+        'text-transform',
+        'uppercase',
+      );
+
+      const scrollWidth = await page.evaluate(() =>
+        Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+      );
+      expect(scrollWidth).toBeLessThanOrEqual(viewport.width);
+
+      const { violations } = await new AxeBuilder({ page }).analyze();
+      expect(
+        violations.map(({ id, impact, nodes }) => ({
+          id,
+          impact,
+          targets: nodes.map(({ target }) => target),
+        })),
+      ).toEqual([]);
+    });
+  }
+
+  test(`dashboard filter search keeps its own row at tablet width in ${language}`, async ({
+    page,
+  }) => {
+    const tablet = { width: 768, height: 900 };
+    await page.setViewportSize(tablet);
+    await openDashboard(page, language);
+
+    const filterBar = page.locator('.cl-filter-bar');
+    const search = page.locator('.cl-filter-bar > .cl-form-field');
+    const filters = page.locator('.cl-filter-bar__filters');
+    const resultCount = page.locator('.cl-filter-bar__result-count');
+    const [barBox, searchBox, filtersBox, countBox] = await Promise.all([
+      filterBar.boundingBox(),
+      search.boundingBox(),
+      filters.boundingBox(),
+      resultCount.boundingBox(),
+    ]);
+
+    expect(barBox).not.toBeNull();
+    expect(searchBox).not.toBeNull();
+    expect(filtersBox).not.toBeNull();
+    expect(countBox).not.toBeNull();
+    if (!barBox || !searchBox || !filtersBox || !countBox) {
+      throw new Error('Dashboard filter controls must have measurable bounds');
+    }
+    expect(searchBox.width).toBeGreaterThanOrEqual(barBox.width * 0.95);
+    expect(filtersBox.y).toBeGreaterThanOrEqual(searchBox.y + searchBox.height);
+    expect(countBox.x).toBeGreaterThanOrEqual(filtersBox.x + filtersBox.width);
+    expect(
+      Math.abs(countBox.y + countBox.height - (filtersBox.y + filtersBox.height)),
+    ).toBeLessThanOrEqual(1);
+
+    const scrollWidth = await page.evaluate(() =>
+      Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+    );
+    expect(scrollWidth).toBeLessThanOrEqual(tablet.width);
+  });
+}
+
+test('the active dashboard filter reads as a cyan well', async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await openDashboard(page);
+
+  const activeFilter = page.locator('.cl-filter-bar__option[aria-pressed="true"]');
+  const primaryAction = page.locator('.cl-control__nav .cl-btn--primary').first();
+  await expect(activeFilter).toHaveCount(1);
+  await expect(activeFilter).toHaveClass(/cl-btn--secondary/);
+  const [filterColors, actionColors] = await Promise.all([
+    activeFilter.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { background: style.backgroundColor, color: style.color };
+    }),
+    primaryAction.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { background: style.backgroundColor, color: style.color };
+    }),
+  ]);
+  expect(filterColors.background).not.toBe(actionColors.background);
+  expect(filterColors.color).not.toBe(actionColors.color);
 });
 
 /**
@@ -235,7 +372,7 @@ test('tournament actions stay within two rows at 375px with public and TV shortc
   });
   expect(rows).toBeLessThanOrEqual(2);
 
-  await expect(footer.getByRole('link', { name: 'Sitio público' })).toHaveAttribute(
+  await expect(footer.getByRole('link', { name: 'Público' })).toHaveAttribute(
     'href',
     '/liga-mendocina/tournaments/torneo-1',
   );
@@ -280,8 +417,14 @@ test('the export menu works from the keyboard and gives focus back to its trigge
   await expect(trigger).toBeFocused();
 });
 
-test('a card title opens that tournament’s matches view', async ({ page }) => {
+test('the rail follows organization and tournament scope as navigation changes', async ({
+  page,
+}) => {
   await openDashboard(page);
+
+  const organizationScope = page.locator('.cl-context-rail-header[data-scope="organization"]');
+  await expect(organizationScope).toBeVisible();
+  await expect(organizationScope.getByText('Liga Mendocina')).toBeVisible();
 
   await page.getByRole('link', { name: 'Torneo Apertura 1' }).click();
 
@@ -289,6 +432,9 @@ test('a card title opens that tournament’s matches view', async ({ page }) => 
   expect(new URL(page.url()).pathname).toBe(
     `/control/${ORG_ALIAS}/tournaments/torneo-1/matches-view`,
   );
+  const tournamentScope = page.locator('.cl-context-rail-header[data-scope="tournament"]');
+  await expect(tournamentScope).toBeVisible();
+  await expect(tournamentScope.getByText('Torneo Apertura 1')).toBeVisible();
 });
 
 test('clicking "Crear torneo" from the dashboard arrives at the tournament setup wizard', async ({

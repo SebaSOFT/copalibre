@@ -58,14 +58,14 @@ test('R12: no register entry in check-atomic-composition.mjs names a path that d
 });
 
 test("R12 covers check-ui-ownership.mjs registers too, not only this script's own", () => {
-  // A path this register still carries (control/components/TournamentSummaryCard.tsx)
-  // resolves in the real graph, and checkRegisterEntriesExist reports it via
+  // A current debt path (control/components/BracketCanvas.tsx) resolves in the
+  // real graph, and checkRegisterEntriesExist reports it via
   // the same "KNOWN_HANDWRITTEN_CLASSES (check-ui-ownership.mjs)" register
   // name this script wires in — proof both registers are actually checked,
   // not just that neither happens to be stale right now.
-  assert.ok(KNOWN_HANDWRITTEN_CLASSES.has('control/components/TournamentSummaryCard.tsx'));
+  assert.ok(KNOWN_HANDWRITTEN_CLASSES.has('control/components/BracketCanvas.tsx'));
   const { nodes } = buildGraph(webSrc);
-  assert.ok(nodes.has('control/components/TournamentSummaryCard.tsx'));
+  assert.ok(nodes.has('control/components/BracketCanvas.tsx'));
 
   // And the seven paths that moved under ui/ during an earlier tier move are
   // now gone from the register entirely rather than repointed —

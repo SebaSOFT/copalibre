@@ -14,7 +14,7 @@ import { messages } from '../i18n/messages.en.js';
  * property of the data rather than of each component remembering to filter.
  */
 
-export type TournamentLifecycle = 'live' | 'upcoming' | 'draft' | 'finished';
+export type TournamentLifecycle = 'live' | 'in-progress' | 'upcoming' | 'draft' | 'finished';
 
 export interface ClassifyTournamentInput {
   readonly status?: 'draft' | 'published' | 'started' | 'finished' | 'archived' | string;
@@ -28,7 +28,8 @@ export interface ClassifyTournamentInput {
  * Classifies a tournament into its user-facing lifecycle state:
  * - 'draft': tournament in draft state
  * - 'finished': completed all stages with a result, explicitly marked finished, or archived
- * - 'live': matches in progress, or tournament started
+ * - 'live': at least one match is currently in progress
+ * - 'in-progress': tournament started, but no match is currently live
  * - 'upcoming': published but not yet started / no matches started
  */
 export function classifyTournamentLifecycle(input: ClassifyTournamentInput): TournamentLifecycle {
@@ -54,13 +55,11 @@ export function classifyTournamentLifecycle(input: ClassifyTournamentInput): Tou
     );
     if (allFinalized) return 'finished';
 
-    const hasLive = input.matches.some(
-      (m) => m.status === 'in-progress' || m.status === 'live' || m.status === 'finalized',
-    );
+    const hasLive = input.matches.some((m) => m.status === 'in-progress' || m.status === 'live');
     if (hasLive) return 'live';
   }
 
-  if (status === 'started') return 'live';
+  if (status === 'started') return 'in-progress';
 
   return 'upcoming';
 }
@@ -70,9 +69,9 @@ export interface TournamentCard {
   readonly organizationId: string;
   readonly alias: string;
   readonly name: string;
-  readonly lifecycle: TournamentLifecycle;
-  readonly matchesToday: number;
-  readonly pendingRegistrations: number;
+  readonly lifecycle?: TournamentLifecycle;
+  readonly matchesToday?: number;
+  readonly pendingRegistrations?: number;
 }
 
 export interface ActivityEntry {
@@ -85,9 +84,9 @@ export interface ActivityEntry {
 }
 
 export interface QuickStats {
-  readonly activeTournaments: number;
-  readonly pendingRegistrations: number;
-  readonly matchesToday: number;
+  readonly activeTournaments?: number;
+  readonly pendingRegistrations?: number;
+  readonly matchesToday?: number;
 }
 
 export interface DashboardModel {
@@ -107,7 +106,8 @@ export interface DashboardModel {
 export const LIFECYCLE_PRESENTATION: Readonly<
   Record<TournamentLifecycle, { readonly label: MessageDescriptor }>
 > = {
-  live: { label: messages.lifecycleInProgress },
+  live: { label: messages.lifecycleLive },
+  'in-progress': { label: messages.lifecycleInProgress },
   upcoming: { label: messages.lifecycleUpcoming },
   draft: { label: messages.lifecycleDraft },
   finished: { label: messages.lifecycleFinished },
@@ -130,15 +130,40 @@ export function buildDashboard(input: {
   );
   const activity = input.activity.filter((entry) => entry.organizationId === input.organizationId);
 
+  const hasCompleteLifecycle = tournaments.every(
+    (tournament) => tournament.lifecycle !== undefined,
+  );
+  const hasCompleteRegistrationCounts = tournaments.every(
+    (tournament) => tournament.pendingRegistrations !== undefined,
+  );
+  const hasCompleteMatchCounts =
+    tournaments.length > 0 &&
+    tournaments.every((tournament) => tournament.matchesToday !== undefined);
+
   return {
     organizationId: input.organizationId,
     tournaments,
     // Newest first: the last thing that happened is the thing being asked about.
     activity: [...activity].sort((left, right) => right.occurredAt.localeCompare(left.occurredAt)),
     stats: {
-      activeTournaments: tournaments.filter((one) => one.lifecycle === 'live').length,
-      pendingRegistrations: tournaments.reduce((sum, one) => sum + one.pendingRegistrations, 0),
-      matchesToday: tournaments.reduce((sum, one) => sum + one.matchesToday, 0),
+      ...(hasCompleteLifecycle
+        ? {
+            activeTournaments: tournaments.filter(
+              (one) => one.lifecycle === 'live' || one.lifecycle === 'in-progress',
+            ).length,
+          }
+        : {}),
+      ...(hasCompleteRegistrationCounts
+        ? {
+            pendingRegistrations: tournaments.reduce(
+              (sum, one) => sum + (one.pendingRegistrations ?? 0),
+              0,
+            ),
+          }
+        : {}),
+      ...(hasCompleteMatchCounts
+        ? { matchesToday: tournaments.reduce((sum, one) => sum + (one.matchesToday ?? 0), 0) }
+        : {}),
     },
   };
 }

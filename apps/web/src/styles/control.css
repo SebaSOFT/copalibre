@@ -263,10 +263,127 @@ body {
 
 .cl-control__nav,
 .cl-control > nav {
+  position: sticky;
+  inset-block-start: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   min-width: 0;
   padding: var(--cl-space-4);
   border-right: 1px solid var(--cl-border-muted);
   background: var(--cl-surface-panel);
+  overflow-y: auto;
+}
+
+.cl-control__nav-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 100%;
+  gap: var(--cl-space-4);
+}
+
+.cl-control__nav-groups {
+  display: grid;
+  align-content: start;
+  gap: var(--cl-space-4);
+  min-width: 0;
+}
+
+.cl-control__nav-group {
+  display: grid;
+  min-width: 0;
+  gap: var(--cl-space-1);
+}
+
+.cl-control__nav-group-title {
+  margin: 0;
+  padding-inline: var(--cl-space-3);
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+  text-transform: uppercase;
+}
+
+.cl-control__nav-group .cl-control__nav-list {
+  margin: var(--cl-space-2) 0 0;
+}
+
+.cl-control__nav-footer {
+  display: grid;
+  gap: var(--cl-space-1);
+  margin-block-start: auto;
+  padding-block-start: var(--cl-space-3);
+  border-top: 1px solid var(--cl-border-muted);
+}
+
+.cl-control__nav-footer a {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: var(--cl-touch-target);
+  padding-inline: var(--cl-space-3);
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.cl-control__nav-footer .cl-btn {
+  width: 100%;
+}
+
+.cl-context-rail-header {
+  display: grid;
+  min-width: 0;
+  gap: var(--cl-space-3);
+  padding: var(--cl-space-3);
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-raised);
+}
+
+.cl-context-rail-header__identity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--cl-space-3);
+  min-width: 0;
+}
+
+.cl-context-rail-header__copy {
+  display: grid;
+  min-width: 0;
+  gap: var(--cl-space-1);
+}
+
+.cl-context-rail-header__scope,
+.cl-context-rail-header__metadata {
+  margin: 0;
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+}
+
+.cl-context-rail-header__scope {
+  text-transform: uppercase;
+}
+
+.cl-context-rail-header__name {
+  margin: 0;
+  color: var(--cl-text-primary);
+  font-family: var(--cl-font-display);
+  font-size: var(--cl-font-size-md);
+  overflow-wrap: anywhere;
+}
+
+.cl-context-rail-header__status {
+  justify-self: start;
+}
+
+.cl-context-rail-header__action {
+  justify-content: center;
+  width: 100%;
 }
 
 .cl-control__nav-list,
@@ -303,6 +420,87 @@ body {
 .cl-form-screen {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.cl-page-header-template {
+  display: grid;
+  min-width: 0;
+  gap: var(--cl-space-6);
+}
+
+.cl-page-header-template .cl-page-header__title {
+  text-transform: uppercase;
+}
+
+.cl-page-header-template__content,
+.cl-list-with-rail-template__list,
+.cl-list-with-rail-template__rail,
+.cl-workspace-template__primary,
+.cl-workspace-template__secondary {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cl-list-with-rail-template,
+.cl-workspace-template {
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.cl-list-with-rail-template__layout,
+.cl-workspace-template__panes {
+  display: grid;
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-list-with-rail-template__layout {
+  grid-template-columns: var(--cl-layout-split-main-rail);
+}
+
+.cl-list-with-rail-template__footer {
+  margin-block-start: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-dashboard__listing {
+  display: grid;
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-dashboard__empty-results {
+  color: var(--cl-text-secondary);
+  margin: 0;
+  padding-block: var(--cl-space-3);
+}
+
+.cl-workspace-template__panes[data-split='chart-panel'] {
+  grid-template-columns: var(--cl-layout-split-chart-panel);
+}
+
+.cl-workspace-template__panes[data-split='media-form'] {
+  grid-template-columns: var(--cl-layout-split-media-form);
+}
+
+@container (max-width: 63.99rem) {
+  .cl-list-with-rail-template__layout,
+  .cl-workspace-template__panes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cl-wizard-template {
+  min-width: 0;
+}
+
+.cl-wizard-template .cl-wizard-shell__actions {
+  position: sticky;
+  z-index: 1;
+  inset-block-end: 0;
+  padding-block: var(--cl-space-3);
+  border-top: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-panel);
 }
 
 .cl-preferences-scope-label {
@@ -458,7 +656,9 @@ body {
 
 .cl-drawer__body {
   display: flex;
+  flex: 1;
   flex-direction: column;
+  min-height: 0;
   gap: var(--cl-space-3);
 }
 
@@ -500,7 +700,8 @@ body {
     flex-direction: column;
   }
 
-  .cl-control__nav {
+  .cl-control__nav,
+  .cl-control > nav {
     display: none;
   }
 
@@ -760,5 +961,297 @@ input[type='checkbox'].cl-checkbox:focus-visible {
 
   .cl-wizard-shell__actions > :last-child {
     width: 100%;
+  }
+}
+
+.cl-entity-identity-cell {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.cl-entity-identity-cell__details {
+  display: grid;
+  gap: var(--cl-space-1);
+  min-width: 0;
+}
+
+.cl-entity-identity-cell__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cl-entity-identity-cell__meta {
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.cl-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  align-items: end;
+  gap: var(--cl-space-4);
+  min-width: 0;
+}
+
+.cl-filter-bar > .cl-form-field {
+  min-width: 0;
+}
+
+.cl-filter-bar__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cl-space-2);
+  min-width: 0;
+}
+
+.cl-filter-bar__option {
+  white-space: normal;
+}
+
+.cl-filter-bar__option[aria-pressed='true'] {
+  background: var(--cl-surface-raised);
+  border-color: var(--cl-state-live);
+  color: var(--cl-state-live);
+}
+
+.cl-filter-bar__count {
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-filter-bar__result-count {
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-sm);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.cl-tournament-card {
+  display: grid;
+  gap: var(--cl-space-3);
+  min-width: 0;
+}
+
+.cl-tournament-card__header {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--cl-space-3);
+}
+
+.cl-tournament-card__title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cl-tournament-card .cl-tournament-card__title-link {
+  all: unset;
+  color: inherit;
+  cursor: pointer;
+  display: inline;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: start;
+  text-decoration: none;
+  text-transform: inherit;
+}
+
+.cl-tournament-card .cl-tournament-card__title-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.cl-tournament-card__metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cl-space-2) var(--cl-space-4);
+  min-width: 0;
+}
+
+.cl-tournament-card__metadata-item {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--cl-space-1);
+  min-width: 0;
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.cl-tournament-card__metadata-label,
+.cl-tournament-card__fact-label {
+  color: var(--cl-text-primary);
+}
+
+.cl-tournament-card__registration {
+  display: grid;
+  gap: var(--cl-space-2);
+  min-width: 0;
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-tournament-card__progress {
+  width: 100%;
+  accent-color: var(--cl-state-live);
+}
+
+.cl-tournament-card__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--cl-space-3);
+  min-width: 0;
+}
+
+.cl-tournament-card__fact {
+  display: grid;
+  align-content: start;
+  gap: var(--cl-space-1);
+  min-width: 0;
+}
+
+.cl-tournament-card__fact-label,
+.cl-tournament-card__fact-value {
+  overflow-wrap: anywhere;
+}
+
+.cl-tournament-card__fact-label {
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+}
+
+.cl-tournament-card__fact-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-tournament-card__actions {
+  justify-content: flex-end;
+}
+
+.cl-unsaved-changes-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--cl-space-4);
+  padding: var(--cl-space-4);
+  background: var(--cl-surface-panel);
+}
+
+.cl-unsaved-changes-bar__details {
+  display: grid;
+  gap: var(--cl-space-2);
+  min-width: 0;
+}
+
+.cl-unsaved-changes-bar__fields,
+.cl-unsaved-changes-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cl-space-2) var(--cl-space-4);
+}
+
+.cl-unsaved-changes-bar__fields {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-sm);
+}
+
+.cl-section-tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cl-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cl-drop-zone {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--cl-space-4);
+  min-width: 0;
+  border: 1px dashed var(--cl-border-muted);
+  background: var(--cl-surface-panel);
+  padding: var(--cl-space-4);
+}
+
+.cl-drop-zone__icon-well {
+  display: grid;
+  place-items: center;
+  inline-size: var(--cl-touch-target);
+  aspect-ratio: 1;
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-chrome);
+  color: var(--cl-state-live);
+}
+
+.cl-drop-zone__content,
+.cl-drop-zone__picker {
+  min-width: 0;
+}
+
+.cl-drop-zone__instruction {
+  font-weight: var(--cl-weight-bold);
+}
+
+.cl-drop-zone .cl-file-picker__zone {
+  border-style: dashed;
+}
+
+@media (width < 768px) {
+  .cl-filter-bar {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .cl-filter-bar__result-count {
+    justify-self: start;
+  }
+
+  .cl-tournament-card__facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cl-unsaved-changes-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cl-unsaved-changes-bar__actions {
+    justify-content: flex-end;
+  }
+}
+
+@media (width >= 768px) and (width < 1024px) {
+  .cl-filter-bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'search search'
+      'filters count';
+    align-items: start;
+  }
+
+  .cl-filter-bar > .cl-form-field {
+    grid-area: search;
+  }
+
+  .cl-filter-bar__filters {
+    grid-area: filters;
+  }
+
+  .cl-filter-bar__result-count {
+    align-self: end;
+    grid-area: count;
   }
 }

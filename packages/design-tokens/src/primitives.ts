@@ -201,6 +201,11 @@ export const LAYOUT_TOKENS = {
     md: '1.5rem',
     lg: '2rem',
   },
+  split: {
+    'main-rail': 'minmax(0, 8fr) minmax(0, 4fr)',
+    'chart-panel': 'minmax(0, 7fr) minmax(0, 5fr)',
+    'media-form': 'minmax(0, 4fr) minmax(0, 8fr)',
+  },
 } as const;
 
 export const RADIUS = {

@@ -30,6 +30,7 @@ function render(ui: ReactNode) {
 function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   return {
     listMyOrganizations: async () => [],
+    listActiveTournaments: async () => [],
     listDisciplines: async () => [],
     createTournament: async () => ({ tournamentId: 't-1', alias: 't-1', name: 'Test' }),
     listRegistrations: async () => [],
@@ -140,8 +141,10 @@ describe('DashboardPage', () => {
       );
     });
 
-    await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
-    expect(screen.getByText('Clausura 2026')).toBeDefined();
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Torneo Apertura 2026' })).toBeDefined(),
+    );
+    expect(screen.getByRole('link', { name: 'Clausura 2026' })).toBeDefined();
     expect(screen.getByTestId('pendingRegistrations').textContent).toBe('2');
     expect(
       screen.getByRole('link', { name: 'Inscripciones pendientes: 2' }).getAttribute('href'),
@@ -360,12 +363,18 @@ describe('DashboardPage', () => {
     expect(screen.queryByText('Torneo Clausura 2026')).toBeNull();
   });
 
-  it('renders an empty dashboard rather than throwing when the client offers no read', async () => {
+  it('shows a retry state instead of claiming there are no tournaments when the read is unavailable', async () => {
     await act(async () => {
-      render(<DashboardPage client={client()} organizationAlias="liga-mendocina" />);
+      render(
+        <DashboardPage
+          client={client({ listActiveTournaments: undefined })}
+          organizationAlias="liga-mendocina"
+        />,
+      );
     });
 
-    await waitFor(() => expect(screen.getByText(/no tiene torneos/)).toBeDefined());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Reintentar' })).toBeDefined());
+    expect(screen.queryByText(/no tiene torneos/)).toBeNull();
   });
 
   it.each([
@@ -450,14 +459,25 @@ describe('DashboardPage', () => {
     await act(async () => {
       render(
         <DashboardPage
-          client={client({ listActiveTournaments: async () => [tournament()] })}
+          client={client({
+            listMyOrganizations: async () => [
+              {
+                organizationId: 'org-1',
+                organizationAlias: 'liga-mendocina',
+                organizationName: 'Liga Mendocina',
+                timezone: 'America/Argentina/Buenos_Aires',
+                role: 'admin' as const,
+              },
+            ],
+            listActiveTournaments: async () => [tournament()],
+          })}
           organizationAlias="liga-mendocina"
         />,
       );
     });
 
     await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
-    const link = screen.getByRole('link', { name: 'Crear torneo' });
+    const link = await screen.findByRole('link', { name: 'Crear torneo' });
     expect(link.getAttribute('href')).toBe('/control/liga-mendocina/tournaments/new');
   });
 
@@ -471,7 +491,7 @@ describe('DashboardPage', () => {
       );
     });
 
-    const publicLink = await screen.findByRole('link', { name: 'Sitio público' });
+    const publicLink = await screen.findByRole('link', { name: /Público/ });
     const tvLink = screen.getByRole('link', { name: 'Pantalla TV' });
     expect(publicLink.getAttribute('href')).toBe('/liga-mendocina/tournaments/apertura-2026');
     expect(tvLink.getAttribute('href')).toBe('/tv/liga-mendocina/tournaments/apertura-2026');
@@ -490,9 +510,7 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(screen.getByText(/no tiene torneos/)).toBeDefined());
     const cta = screen.getByRole('link', { name: 'Creá tu primer torneo' });
     expect(cta.getAttribute('href')).toBe('/control/liga-mendocina/tournaments/new');
-    // The header action stays present too — the empty state adds a second
-    // entry point, it does not replace the first.
-    expect(screen.getByRole('link', { name: 'Crear torneo' })).toBeDefined();
+    expect(screen.queryByRole('link', { name: 'Crear torneo' })).toBeNull();
   });
 
   it('activating "Create tournament" navigates client-side via controlLinkClick, not a full page load', async () => {
@@ -500,14 +518,25 @@ describe('DashboardPage', () => {
     await act(async () => {
       render(
         <DashboardPage
-          client={client({ listActiveTournaments: async () => [tournament()] })}
+          client={client({
+            listMyOrganizations: async () => [
+              {
+                organizationId: 'org-1',
+                organizationAlias: 'liga-mendocina',
+                organizationName: 'Liga Mendocina',
+                timezone: 'America/Argentina/Buenos_Aires',
+                role: 'admin' as const,
+              },
+            ],
+            listActiveTournaments: async () => [tournament()],
+          })}
           organizationAlias="liga-mendocina"
         />,
       );
     });
 
     await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
-    const link = screen.getByRole('link', { name: 'Crear torneo' });
+    const link = await screen.findByRole('link', { name: 'Crear torneo' });
     fireEvent.click(link, { button: 0 });
 
     expect(window.location.pathname).toBe('/control/liga-mendocina/tournaments/new');

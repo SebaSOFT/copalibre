@@ -11,8 +11,7 @@ const model = buildDashboard({
       organizationId: ids.organization,
       alias: TOURNAMENT,
       name: TITLE,
-      lifecycle: 'live',
-      matchesToday: 8,
+      lifecycle: 'in-progress',
       pendingRegistrations: 12,
     },
   ],
@@ -54,7 +53,6 @@ export const DraftReadyToPublish: Story = {
           alias: TOURNAMENT,
           name: TITLE,
           lifecycle: 'draft',
-          matchesToday: 0,
           pendingRegistrations: 0,
         },
       ],
@@ -72,6 +70,32 @@ export const EmptyNoCreatePermission: Story = {
   args: {
     canCreateTournament: false,
     model: buildDashboard({ organizationId: ids.organization, tournaments: [], activity: [] }),
+  },
+};
+export const MultipleTournamentsForTvPairing: Story = {
+  args: {
+    model: buildDashboard({
+      organizationId: ids.organization,
+      tournaments: [
+        {
+          tournamentId: ids.tournament,
+          organizationId: ids.organization,
+          alias: TOURNAMENT,
+          name: TITLE,
+          lifecycle: 'in-progress',
+          pendingRegistrations: 12,
+        },
+        {
+          tournamentId: ids.second,
+          organizationId: ids.organization,
+          alias: 'copa-premier-femenina',
+          name: 'Copa Premier femenina',
+          lifecycle: 'upcoming',
+          pendingRegistrations: 0,
+        },
+      ],
+      activity: auditRecords,
+    }),
   },
 };
 export const Failed: Story = { args: { failed: true } };

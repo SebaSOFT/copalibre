@@ -30,6 +30,8 @@ export interface StatTileProps {
    * measurements.
    */
   readonly demonstrationLabel?: string;
+  /** API response field that owns this measurement, when one is available. */
+  readonly sourceField?: string;
   readonly className?: string;
 }
 
@@ -39,11 +41,15 @@ export function StatTile({
   unavailableLabel,
   description,
   demonstrationLabel,
+  sourceField,
   className = '',
 }: StatTileProps): React.JSX.Element {
   const available = value !== undefined && value !== null;
   return (
-    <div className={`cl-stat-tile cl-chamfer cl-chamfer--control ${className}`.trim()}>
+    <div
+      className={`cl-stat-tile cl-chamfer cl-chamfer--control ${className}`.trim()}
+      data-source-field={sourceField}
+    >
       {available ? (
         <div className="cl-stat-tile__value">{value}</div>
       ) : (

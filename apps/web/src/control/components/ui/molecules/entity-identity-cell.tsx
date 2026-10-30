@@ -1,32 +1,50 @@
-/**
- * Original composition — an identity chip (avatar initials + primary
- * label) for one row of any listing keyed by
- * email/principal (roles, invitations, an installation's super-admins).
- * Extracted from an inline `RoleUserCell` definition in
- * `RolesPermissionsTemplate.tsx`: single-use in that screen does not make it a
- * "page" concern — it is a table-row-cell molecule regardless of consumer
- * count. Deliberately typed on generic email/id
- * strings rather than `OrganizationRoleResponse`, unlike this same screen's
- * role-select/status-toggle cells, which stay page-local because they are
- * genuinely coupled to the organization-role domain shape (the same
- * shaping-layer distinction `table-projections.ts` draws for `DataTable`).
- */
-export interface EntityIdentityCellProps {
-  readonly email: string;
-}
+/** A compact identity cell: emblem or monogram, display name and optional metadata. */
+import type { ReactNode } from 'react';
+import { EntrantEmblem } from '../../../../components/ui/molecules/EntrantEmblem.js';
 
-export function EntityIdentityCell({ email }: EntityIdentityCellProps): React.JSX.Element {
-  const initials = email
-    .split('@')[0]
-    .split(/[._-]/)
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+type EntityIdentity =
+  | { readonly name: string; readonly email?: string }
+  | { readonly name?: never; readonly email: string };
+
+export type EntityIdentityCellProps = EntityIdentity & {
+  readonly abbreviation?: string;
+  readonly emblemSrc?: string;
+  readonly meta?: ReactNode;
+};
+
+export function EntityIdentityCell({
+  name,
+  email,
+  abbreviation,
+  emblemSrc,
+  meta,
+}: EntityIdentityCellProps): React.JSX.Element {
+  const displayName = name ?? email;
+  const monogram =
+    (abbreviation ?? displayName.split('@')[0])
+      .split(/[\s._-]+/)
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || 'U';
+
   return (
-    <div className="cl-role-user">
-      <span className="cl-role-user__avatar">{initials || 'U'}</span>
-      <strong>{email}</strong>
+    <div className="cl-role-user cl-entity-identity-cell">
+      <EntrantEmblem
+        abbreviation={monogram}
+        alt={displayName}
+        control
+        decorative
+        size={32}
+        src={emblemSrc}
+      />
+      <span className="cl-entity-identity-cell__details">
+        <strong className="cl-entity-identity-cell__name">{displayName}</strong>
+        {meta !== undefined && meta !== null && (
+          <span className="cl-entity-identity-cell__meta">{meta}</span>
+        )}
+      </span>
     </div>
   );
 }

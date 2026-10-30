@@ -9,20 +9,16 @@ import { controlLinkClick, navigateControl } from '../lib/control-navigation.js'
 import { messages } from '../i18n/messages.en.js';
 import { Button } from './ui/atoms/button.js';
 import { LinkButton } from './ui/atoms/link-button.js';
-import { DataEntityCard, type DataEntityCardAccent } from './ui/molecules/data-entity-card.js';
 import { DropdownMenu } from './ui/organisms/dropdown-menu.js';
+import { TournamentCard as TournamentCardOrganism } from './ui/organisms/tournament-card.js';
 
-/** The lifecycle's accent and badge tone, as the closed sets each accepts. */
-const TONE: Readonly<
-  Record<
-    TournamentLifecycle,
-    { readonly accent: DataEntityCardAccent; readonly badge: SemanticColor }
-  >
-> = {
-  live: { accent: 'muted', badge: 'text-muted' },
-  upcoming: { accent: 'upcoming', badge: 'state-upcoming' },
-  draft: { accent: 'muted', badge: 'text-muted' },
-  finished: { accent: 'positive', badge: 'state-positive' },
+/** The lifecycle's badge tone, from the closed semantic-color set. */
+const STATUS_COLOR: Readonly<Record<TournamentLifecycle, SemanticColor>> = {
+  live: 'state-live',
+  'in-progress': 'text-muted',
+  upcoming: 'state-upcoming',
+  draft: 'text-muted',
+  finished: 'state-positive',
 };
 
 /** The exports the dashboard already produces; named so a caller cannot invent one. */
@@ -70,7 +66,7 @@ export function TournamentSummaryCard({
   canManageTournamentLifecycle,
 }: TournamentSummaryCardProps): React.JSX.Element {
   const intl = useIntl();
-  const presentation = LIFECYCLE_PRESENTATION[card.lifecycle];
+  const lifecycle = card.lifecycle;
   const base = `/control/${organizationAlias}/tournaments/${card.alias}`;
   const broadcasterHref = `${base}/broadcaster`;
 
@@ -83,7 +79,8 @@ export function TournamentSummaryCard({
   const registrationsHref = `${base}/registrations`;
   // A draft has nothing to open yet; its own requirement asks for a way back
   // into editing, which is its settings screen.
-  const primaryHref = card.lifecycle === 'draft' ? `${base}/settings` : matchesHref;
+  const primaryHref =
+    lifecycle === undefined ? base : lifecycle === 'draft' ? `${base}/settings` : matchesHref;
   // The Tournament hub: a second entry point alongside the
   // title, since it leads somewhere the title never has — the tournament's
   // stage list, not its matches.
@@ -91,16 +88,17 @@ export function TournamentSummaryCard({
   const publicHref = `/${organizationAlias}/tournaments/${card.alias}`;
   const tvHref = `/tv/${organizationAlias}/tournaments/${card.alias}`;
   const primaryLabel =
-    card.lifecycle === 'draft'
+    lifecycle === 'draft'
       ? intl.formatMessage(messages.dashboardResumeEditing)
       : intl.formatMessage(messages.dashboardOpen);
+  const pendingRegistrationsLabel = intl.formatMessage(messages.dashboardPendingRegistrations);
 
   const secondaryActions: {
     readonly id: string;
     readonly label: (typeof messages)[keyof typeof messages];
     readonly run: (trigger?: HTMLElement | null) => void;
   }[] = [
-    ...(card.lifecycle === 'draft' && canManageTournamentLifecycle
+    ...(lifecycle === 'draft' && canManageTournamentLifecycle
       ? [
           {
             id: 'publish',
@@ -151,26 +149,52 @@ export function TournamentSummaryCard({
   ];
 
   return (
-    <DataEntityCard
-      accent={TONE[card.lifecycle].accent}
-      actions={
+    <TournamentCardOrganism
+      action={{ label: primaryLabel, href: primaryHref, onClick: controlLinkClick(primaryHref) }}
+      facts={[
+        ...(card.pendingRegistrations === undefined
+          ? []
+          : [
+              {
+                key: 'pending-registrations',
+                label: pendingRegistrationsLabel,
+                sourceField: 'pendingRegistrations',
+                value:
+                  card.pendingRegistrations > 0 ? (
+                    <LinkButton
+                      aria-label={`${pendingRegistrationsLabel}: ${card.pendingRegistrations}`}
+                      className="cl-tournament-card__fact-link"
+                      href={registrationsHref}
+                      onClick={controlLinkClick(registrationsHref)}
+                      variant="secondary"
+                    >
+                      {intl.formatNumber(card.pendingRegistrations)}
+                    </LinkButton>
+                  ) : (
+                    intl.formatNumber(card.pendingRegistrations)
+                  ),
+              },
+            ]),
+        ...(card.matchesToday === undefined
+          ? []
+          : [
+              {
+                key: 'matches-today',
+                label: intl.formatMessage(messages.dashboardMatchesToday),
+                sourceField: 'matchesToday',
+                value: intl.formatNumber(card.matchesToday),
+              },
+            ]),
+      ]}
+      metadata={[]}
+      name={card.name}
+      secondaryActions={
         <div className="cl-entity-card-actions">
-          <a
-            className="cl-btn cl-btn--primary cl-focusable"
-            href={primaryHref}
-            onClick={controlLinkClick(primaryHref)}
-          >
-            {primaryLabel}
-          </a>
-          <a
-            className="cl-btn cl-btn--secondary cl-focusable"
-            href={stagesHref}
-            onClick={controlLinkClick(stagesHref)}
-          >
+          <LinkButton href={stagesHref} onClick={controlLinkClick(stagesHref)} variant="secondary">
             {intl.formatMessage(messages.dashboardStages)}
-          </a>
+          </LinkButton>
           <LinkButton
-            aria-label={intl.formatMessage(messages.tournamentPublicSite)}
+            aria-label={intl.formatMessage(messages.tournamentPublicSiteShort)}
             href={publicHref}
             title={intl.formatMessage(messages.tournamentPublicSite)}
             variant="secondary"
@@ -210,32 +234,16 @@ export function TournamentSummaryCard({
           )}
         </div>
       }
-      badge={{
-        label: intl.formatMessage(presentation.label),
-        state: TONE[card.lifecycle].badge,
-        testId: 'lifecycle',
-      }}
-      metadata={[
-        {
-          label: intl.formatMessage(messages.dashboardMatchesToday),
-          numeric: true,
-          value: String(card.matchesToday),
-        },
-        {
-          label: intl.formatMessage(messages.dashboardPendingRegistrations),
-          numeric: true,
-          value: String(card.pendingRegistrations),
-          ...(card.pendingRegistrations > 0
-            ? {
-                href: registrationsHref,
-                onNavigate: controlLinkClick(registrationsHref),
-              }
-            : {}),
-        },
-      ]}
-      onTitleNavigate={controlLinkClick(matchesHref)}
-      title={card.name}
-      titleHref={matchesHref}
+      status={
+        lifecycle === undefined
+          ? undefined
+          : {
+              label: intl.formatMessage(LIFECYCLE_PRESENTATION[lifecycle].label),
+              color: STATUS_COLOR[lifecycle],
+              testId: 'lifecycle',
+            }
+      }
+      titleAction={{ href: matchesHref, onClick: controlLinkClick(matchesHref) }}
     />
   );
 }

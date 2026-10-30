@@ -57,6 +57,7 @@ export function documentedTokens(): Mapping {
     layout: {
       container: { ...LAYOUT_TOKENS.container },
       gutter: { ...LAYOUT_TOKENS.gutter },
+      split: { ...LAYOUT_TOKENS.split },
     },
     spacing: { ...SPACING },
   };

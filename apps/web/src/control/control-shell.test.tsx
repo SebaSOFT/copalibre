@@ -369,6 +369,15 @@ describe('the control routes', () => {
 
   it('renders the dashboard/tournaments route with the tournament authoring entry point', async () => {
     const client: ControlApiClient = minimalControlClient({
+      listMyOrganizations: async () => [
+        {
+          organizationId: 'org-1',
+          organizationAlias: 'liga-mendocina',
+          organizationName: 'Liga Mendocina',
+          timezone: 'America/Argentina/Buenos_Aires',
+          role: 'admin',
+        },
+      ],
       listActiveTournaments: async () => [],
     });
     render(<TournamentsControlRoute client={client} organizationAlias="liga-mendocina" />);

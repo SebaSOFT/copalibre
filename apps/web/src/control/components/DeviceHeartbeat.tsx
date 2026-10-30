@@ -1,4 +1,5 @@
 import { useContext } from 'react';
+import type { ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   HEARTBEAT_PRESENTATION,
@@ -30,6 +31,8 @@ export function DeviceHeartbeat({
   devices,
   now,
   pairAction,
+  pairSelector,
+  pairUnavailableDescription,
 }: {
   readonly devices: readonly {
     readonly tournamentName: string;
@@ -38,6 +41,8 @@ export function DeviceHeartbeat({
   /** The caller's clock — read once in an effect, never inside render. */
   readonly now: number;
   readonly pairAction?: EmptyStateAction;
+  readonly pairSelector?: ReactNode;
+  readonly pairUnavailableDescription?: string;
 }): React.JSX.Element {
   const intl = useIntl();
   const pageHeader = useContext(PageHeaderContext);
@@ -51,14 +56,20 @@ export function DeviceHeartbeat({
           icon="offline"
           headingLevel={3}
           heading={intl.formatMessage(messages.deviceHeartbeatEmpty)}
-          description={intl.formatMessage(messages.interactionPairDescription)}
-          {...(pairAction
-            ? { action: pairAction }
-            : {
-                reason: 'no-permission' as const,
-                whoCanAct: intl.formatMessage(messages.interactionWhoCanPair),
-              })}
-        />
+          description={
+            pairUnavailableDescription ?? intl.formatMessage(messages.interactionPairDescription)
+          }
+          {...(pairUnavailableDescription
+            ? { reason: 'informational' as const }
+            : pairAction
+              ? { action: pairAction }
+              : {
+                  reason: 'no-permission' as const,
+                  whoCanAct: intl.formatMessage(messages.interactionWhoCanPair),
+                })}
+        >
+          {pairSelector}
+        </EmptyState>
       )}
       <ul>
         {devices.map(({ tournamentName, token }) => {

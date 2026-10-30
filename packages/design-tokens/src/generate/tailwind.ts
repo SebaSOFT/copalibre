@@ -34,6 +34,7 @@ export interface TailwindTheme {
   readonly fontWeight: Record<string, string>;
   readonly spacing: Record<string, string>;
   readonly maxWidth: Record<string, string>;
+  readonly gridTemplateColumns: Record<string, string>;
   readonly borderRadius: Record<string, string>;
   readonly transitionDuration: Record<string, string>;
   readonly screens: Record<string, string>;
@@ -74,6 +75,9 @@ export function generateTailwindTheme(): TailwindTheme {
     ]),
     maxWidth: Object.fromEntries(
       Object.entries(LAYOUT_TOKENS.container).map(([name, value]) => [`cl-${name}`, value]),
+    ),
+    gridTemplateColumns: Object.fromEntries(
+      Object.entries(LAYOUT_TOKENS.split).map(([name, value]) => [`cl-${name}`, value]),
     ),
     borderRadius: Object.fromEntries(
       Object.entries(RADIUS).map(([name, value]) => [`cl-${name}`, value]),

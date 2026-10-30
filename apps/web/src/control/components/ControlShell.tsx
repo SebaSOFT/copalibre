@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import type { OrganizationRole } from '@copalibre/domain';
-import { visibleSidenav } from '../lib/dashboard.js';
+import {
+  controlNavigationGroups,
+  controlScopeAction,
+  tournamentScopeStatus,
+} from '../lib/control-shell-presentation.js';
 import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
 import { messages } from '../i18n/messages.en.js';
@@ -9,7 +12,9 @@ import { controlLinkClick, helpPageUrl } from '../lib/control-navigation.js';
 import {
   createControlApiClient,
   organizationEmblemUrl,
+  tournamentEmblemUrl,
   type MyOrganizationResponse,
+  type TournamentResponse,
   type ControlApiClient,
 } from '../lib/api-client.js';
 import { logoutNativeSession } from '../session/native-refresh.js';
@@ -32,9 +37,9 @@ import { Alert } from './ui/atoms/alert.js';
 import { Button } from './ui/atoms/button.js';
 import { Container } from './ui/atoms/layout/container.js';
 import { Icon } from './ui/atoms/icon.js';
-import { FramedImage } from './FramedImage.js';
 import { NavigationDrawer } from './ui/organisms/navigation-drawer.js';
 import { PageHeaderContext } from './ui/organisms/page-header.js';
+import { ContextRailHeader } from './ui/organisms/context-rail-header.js';
 import { SESSION_RENEWING_STATUS_EVENT } from '../session/renewal-status.js';
 
 export function ControlShell({
@@ -101,19 +106,36 @@ function ControlShellChrome({
 }): React.JSX.Element {
   const intl = useIntl();
   const isSuperAdmin = accessTokenHasScope(controlTokenStore.read(), 'copalibre.super-admin');
-  const [role, setRole] = useState<OrganizationRole | undefined>(undefined);
   const [currentOrg, setCurrentOrg] = useState<MyOrganizationResponse | undefined>(undefined);
   const [organizationLookupSettledAlias, setOrganizationLookupSettledAlias] = useState<string>();
   const tournamentHeaderKey = `${organizationAlias ?? ''}:${tournamentAlias ?? ''}`;
   const [tournamentHeader, setTournamentHeader] = useState<{
     readonly key: string;
     readonly name?: string;
+    readonly emblemObjectId?: string;
+    readonly status?: TournamentResponse['status'];
   }>();
   const canLoadTournamentHeader =
     tournamentAlias !== undefined &&
-    (client === undefined || client.fetchTournamentSettings !== undefined);
+    (client === undefined ||
+      client.fetchTournamentSettings !== undefined ||
+      client.listActiveTournaments !== undefined);
   const currentTournamentHeader =
     tournamentHeader?.key === tournamentHeaderKey ? tournamentHeader : undefined;
+  const currentOrganization =
+    currentOrg?.organizationAlias === organizationAlias ? currentOrg : undefined;
+  const role = currentOrganization?.role;
+  const navigationGroups = controlNavigationGroups(role);
+  const tournamentStatus = tournamentScopeStatus(currentTournamentHeader?.status);
+  const scopeAction =
+    organizationAlias === undefined
+      ? undefined
+      : controlScopeAction({
+          organizationAlias,
+          role,
+          tournamentAlias,
+          lifecycle: tournamentStatus?.lifecycle,
+        });
   useEffect(() => {
     if (!organizationAlias) return;
     let cancelled = false;
@@ -129,11 +151,11 @@ function ControlShellChrome({
         if (cancelled) return;
         const mine = organizations.find((one) => one.organizationAlias === organizationAlias);
         setCurrentOrg(mine);
-        setRole(mine?.role);
         setOrganizationLookupSettledAlias(organizationAlias);
       })
       .catch(() => {
         if (cancelled) return;
+        setCurrentOrg(undefined);
         setOrganizationLookupSettledAlias(organizationAlias);
         // Nav visibility is a presentation guard; a failed lookup leaves
         // every entry visible rather than blocking the shell from rendering.
@@ -151,20 +173,24 @@ function ControlShellChrome({
         fetch: globalThis.fetch.bind(globalThis),
         accessToken: () => controlTokenStore.read(),
       });
-    if (!api.fetchTournamentSettings) return;
-    void api
-      .fetchTournamentSettings(organizationAlias, tournamentAlias)
-      .then(({ name }) => {
-        if (cancelled) return;
-        const resolvedName = name.trim();
-        setTournamentHeader({
-          key: tournamentHeaderKey,
-          ...(resolvedName ? { name: resolvedName } : {}),
-        });
-      })
-      .catch(() => {
-        if (!cancelled) setTournamentHeader({ key: tournamentHeaderKey });
+    if (!api.fetchTournamentSettings && !api.listActiveTournaments) return;
+    const settingsRequest = api.fetchTournamentSettings?.(organizationAlias, tournamentAlias);
+    const tournamentsRequest = api.listActiveTournaments?.(organizationAlias);
+    void Promise.all([
+      settingsRequest?.catch(() => undefined) ?? Promise.resolve(undefined),
+      tournamentsRequest?.catch(() => undefined) ?? Promise.resolve(undefined),
+    ]).then(([settings, tournaments]) => {
+      if (cancelled) return;
+      const tournament = tournaments?.find((one) => one.alias === tournamentAlias);
+      const resolvedName = settings?.name.trim() || tournament?.name.trim();
+      const emblemObjectId = settings?.emblemObjectId ?? tournament?.emblemObjectId;
+      setTournamentHeader({
+        key: tournamentHeaderKey,
+        ...(resolvedName ? { name: resolvedName } : {}),
+        ...(emblemObjectId ? { emblemObjectId } : {}),
+        ...(tournament?.status !== undefined ? { status: tournament.status } : {}),
       });
+    });
     return () => {
       cancelled = true;
     };
@@ -192,92 +218,171 @@ function ControlShellChrome({
     window.location.assign('/control/');
   };
 
-  const orgEmblem =
-    organizationAlias && currentOrg?.emblemObjectId !== undefined
-      ? organizationEmblemUrl(organizationAlias, '', currentOrg.emblemObjectId)
-      : undefined;
-
   const brandMarkNode = (
     <div style={brandMarkRowStyle}>
-      {orgEmblem ? (
-        <FramedImage
-          alt={currentOrg?.organizationName ?? 'Organization emblem'}
-          placeholder={<img src="/copalibre-logo.svg" alt="" width="24" height="24" />}
-          size={24}
-          src={orgEmblem}
-        />
-      ) : (
-        <img src="/copalibre-logo.svg" alt="" width="24" height="24" />
-      )}
+      <img src="/copalibre-logo.svg" alt="" width="24" height="24" />
       <strong>COPALIBRE CMD</strong>
     </div>
   );
+  const contextName =
+    tournamentAlias === undefined
+      ? currentOrganization?.organizationName
+      : currentTournamentHeader?.name;
 
   const navContent = (onNavigate?: () => void) => (
-    <>
-      <div style={brandStyle}>
+    <div className="cl-control__nav-content">
+      <div className="cl-control__nav-brand" style={brandStyle}>
         {brandMarkNode}
         <span style={metaStyle}>BROADCAST OPS</span>
       </div>
-      <a
-        className="cl-focusable"
-        href={helpPageUrl(locale, `control/${helpPath}`)}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={helpLinkStyle}
-        onClick={onNavigate}
-      >
-        <FormattedMessage {...messages.shellWhatIsThisScreen} />
-      </a>
-      <ul className="cl-control__nav-list">
-        {organizationAlias &&
-          visibleSidenav(role).map((item) => (
-            <li key={item.id}>
-              <a
-                className="cl-focusable"
-                href={`/control/${organizationAlias}${item.path}`}
-                onClick={(e) => {
-                  onNavigate?.();
-                  controlLinkClick(`/control/${organizationAlias}${item.path}`)(e);
-                }}
-                style={{
-                  ...navLinkStyle,
-                  ...(item.id === active ? navLinkActiveStyle : {}),
-                }}
-              >
-                {intl.formatMessage(item.label)}
-              </a>
-            </li>
-          ))}
-        {isSuperAdmin && (
-          <li>
-            <a
-              className="cl-focusable"
-              href="/control/platform"
-              onClick={(e) => {
-                onNavigate?.();
-                controlLinkClick('/control/platform')(e);
-              }}
-              style={{
-                ...navLinkStyle,
-                ...(active === 'platform' ? navLinkActiveStyle : {}),
-              }}
-            >
-              {intl.formatMessage(messages.navPlatformAdministration)}
-            </a>
-          </li>
-        )}
-      </ul>
       {organizationAlias && (
-        <a className="cl-focusable" href={`/${organizationAlias}`} style={navLinkStyle}>
-          <FormattedMessage {...messages.shellPublicOverview} />
-        </a>
+        <ContextRailHeader
+          scope={tournamentAlias === undefined ? 'organization' : 'tournament'}
+          name={contextName}
+          monogram={contextName ? scopeMonogram(contextName) : undefined}
+          emblemSrc={
+            tournamentAlias === undefined
+              ? currentOrganization?.emblemObjectId === undefined
+                ? undefined
+                : organizationEmblemUrl(organizationAlias, '', currentOrganization.emblemObjectId)
+              : tournamentEmblemUrl(
+                  organizationAlias,
+                  tournamentAlias,
+                  '',
+                  currentTournamentHeader?.emblemObjectId,
+                )
+          }
+          status={tournamentStatus}
+          primaryAction={scopeAction}
+          onActionClick={
+            scopeAction === undefined
+              ? undefined
+              : (event) => {
+                  onNavigate?.();
+                  controlLinkClick(scopeAction.href)(event);
+                }
+          }
+        />
       )}
-      <LanguageSwitcher onChange={onLocaleChange} value={locale} />
-      <Button onClick={logout} style={logoutButtonStyle} type="button" variant="secondary">
-        <FormattedMessage {...messages.shellLogout} />
-      </Button>
-    </>
+      <div className="cl-control__nav-groups">
+        {organizationAlias &&
+          navigationGroups.map((group) => (
+            <section
+              aria-label={intl.formatMessage(group.label)}
+              className="cl-control__nav-group"
+              key={group.id}
+            >
+              <p className="cl-control__nav-group-title">{intl.formatMessage(group.label)}</p>
+              <ul className="cl-control__nav-list">
+                {group.items.map((item) => {
+                  const href = `/control/${organizationAlias}${item.path}`;
+                  return (
+                    <li key={item.id}>
+                      <a
+                        aria-current={item.id === active ? 'page' : undefined}
+                        className="cl-focusable"
+                        href={href}
+                        onClick={(event) => {
+                          onNavigate?.();
+                          controlLinkClick(href)(event);
+                        }}
+                        style={{
+                          ...navLinkStyle,
+                          ...(item.id === active ? navLinkActiveStyle : {}),
+                        }}
+                      >
+                        {intl.formatMessage(item.label)}
+                      </a>
+                    </li>
+                  );
+                })}
+                {group.id === 'administration' && isSuperAdmin && (
+                  <li>
+                    <a
+                      aria-current={active === 'platform' ? 'page' : undefined}
+                      className="cl-focusable"
+                      href="/control/platform"
+                      onClick={(event) => {
+                        onNavigate?.();
+                        controlLinkClick('/control/platform')(event);
+                      }}
+                      style={{
+                        ...navLinkStyle,
+                        ...(active === 'platform' ? navLinkActiveStyle : {}),
+                      }}
+                    >
+                      {intl.formatMessage(messages.navPlatformAdministration)}
+                    </a>
+                  </li>
+                )}
+              </ul>
+            </section>
+          ))}
+        {isSuperAdmin &&
+          (!organizationAlias ||
+            !navigationGroups.some((group) => group.id === 'administration')) && (
+            <section
+              aria-label={intl.formatMessage(messages.shellNavGroupAdministration)}
+              className="cl-control__nav-group"
+            >
+              <p className="cl-control__nav-group-title">
+                {intl.formatMessage(messages.shellNavGroupAdministration)}
+              </p>
+              <ul className="cl-control__nav-list">
+                <li>
+                  <a
+                    aria-current={active === 'platform' ? 'page' : undefined}
+                    className="cl-focusable"
+                    href="/control/platform"
+                    onClick={(event) => {
+                      onNavigate?.();
+                      controlLinkClick('/control/platform')(event);
+                    }}
+                    style={{
+                      ...navLinkStyle,
+                      ...(active === 'platform' ? navLinkActiveStyle : {}),
+                    }}
+                  >
+                    {intl.formatMessage(messages.navPlatformAdministration)}
+                  </a>
+                </li>
+              </ul>
+            </section>
+          )}
+      </div>
+      <footer className="cl-control__nav-footer">
+        <a
+          className="cl-focusable"
+          href={helpPageUrl(locale, `control/${helpPath}`)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={onNavigate}
+        >
+          <FormattedMessage {...messages.shellWhatIsThisScreen} />
+        </a>
+        {organizationAlias && (
+          <a
+            className="cl-focusable"
+            href={`/control/${organizationAlias}/preferences`}
+            onClick={(event) => {
+              onNavigate?.();
+              controlLinkClick(`/control/${organizationAlias}/preferences`)(event);
+            }}
+          >
+            <FormattedMessage {...messages.shellPreferences} />
+          </a>
+        )}
+        {organizationAlias && (
+          <a className="cl-focusable" href={`/${organizationAlias}`} onClick={onNavigate}>
+            <FormattedMessage {...messages.shellPublicOverview} />
+          </a>
+        )}
+        <LanguageSwitcher onChange={onLocaleChange} value={locale} />
+        <Button onClick={logout} style={logoutButtonStyle} type="button" variant="secondary">
+          <FormattedMessage {...messages.shellLogout} />
+        </Button>
+      </footer>
+    </div>
   );
 
   return (
@@ -322,17 +427,11 @@ function ControlShellChrome({
             <PageHeaderContext.Provider
               value={{
                 organizationAlias,
-                organizationName:
-                  currentOrg !== undefined && currentOrg.organizationAlias === organizationAlias
-                    ? currentOrg.organizationName
-                    : undefined,
+                organizationName: currentOrganization?.organizationName,
                 organizationNameFallback: intl.formatMessage(
                   messages.pageHeaderOrganizationFallback,
                 ),
-                organizationTimeZone:
-                  currentOrg !== undefined && currentOrg.organizationAlias === organizationAlias
-                    ? currentOrg.timezone
-                    : undefined,
+                organizationTimeZone: currentOrganization?.timezone,
                 tournamentAlias,
                 tournamentName: currentTournamentHeader?.name,
                 tournamentNameFallback: intl.formatMessage(messages.pageHeaderTournamentFallback),
@@ -356,6 +455,19 @@ function ControlShellChrome({
   );
 }
 
+function scopeMonogram(name: string): string | undefined {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return undefined;
+  return (
+    words.length === 1
+      ? words[0]?.slice(0, 2)
+      : words
+          .slice(0, 2)
+          .map((word) => word[0])
+          .join('')
+  )?.toUpperCase();
+}
+
 const brandStyle: React.CSSProperties = {
   display: 'grid',
   gap: 'var(--cl-space-1)',
@@ -373,15 +485,6 @@ const brandMarkRowStyle: React.CSSProperties = {
 
 const metaStyle: React.CSSProperties = {
   color: 'var(--cl-text-muted)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-xs)',
-};
-
-const helpLinkStyle: React.CSSProperties = {
-  display: 'block',
-  marginTop: 'var(--cl-space-3)',
-  color: 'var(--cl-text-muted)',
-  textDecoration: 'none',
   fontFamily: 'var(--cl-font-mono)',
   fontSize: 'var(--cl-font-size-xs)',
 };

@@ -50,6 +50,7 @@ export function ToastProvider({
 }: {
   readonly children: React.ReactNode;
 }): React.JSX.Element {
+  const inheritedToastApi = useContext(ToastContext);
   const intl = useIntl();
   const [toasts, setToasts] = useState<readonly ToastRecord[]>([]);
   const sequence = useRef(0);
@@ -113,6 +114,8 @@ export function ToastProvider({
   );
 
   const api = useMemo(() => ({ push, pushError, dismiss }), [dismiss, push, pushError]);
+
+  if (inheritedToastApi !== undefined) return <>{children}</>;
 
   return (
     <ToastContext.Provider value={api}>
