@@ -8429,7 +8429,7 @@ __metadata:
     conventional-changelog-cli: "npm:^5.0.0"
     eslint: "npm:10.11.0"
     eslint-config-prettier: "npm:^10.1.8"
-    eslint-plugin-astro: "npm:^3.0.1"
+    eslint-plugin-astro: "npm:^3.2.1"
     eslint-plugin-react: "npm:^7.37.5"
     eslint-plugin-react-hooks: "npm:^7.1.1"
     jest: "npm:^30.5.2"
@@ -9500,9 +9500,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-astro@npm:^3.0.1":
-  version: 3.1.0
-  resolution: "eslint-plugin-astro@npm:3.1.0"
+"eslint-plugin-astro@npm:^3.2.1":
+  version: 3.2.1
+  resolution: "eslint-plugin-astro@npm:3.2.1"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.5.1"
     "@jridgewell/sourcemap-codec": "npm:^1.5.0"
@@ -9512,19 +9512,23 @@ __metadata:
     globals: "npm:^17.0.0"
     postcss: "npm:^8.5.3"
     postcss-selector-parser: "npm:^7.1.0"
+    synckit: "npm:^0.11.13"
   peerDependencies:
     "@typescript-eslint/parser": ">=8.61.0"
     eslint: ">=10.0.0"
     eslint-plugin-jsx-a11y: ">=6.10.2"
+    eslint-plugin-jsx-a11y-x: ">=0.2.0"
     typescript-eslint: ">=8.61.0"
   peerDependenciesMeta:
     "@typescript-eslint/parser":
       optional: true
     eslint-plugin-jsx-a11y:
       optional: true
+    eslint-plugin-jsx-a11y-x:
+      optional: true
     typescript-eslint:
       optional: true
-  checksum: 10c0/be090c8a5fdb7bfd8b40108a552a4e5e1e33de11d651688d864203d75d7e3b735eb92b9b1911f63aaee44e65f994ec4d754d18ea9cc4a38a7a142deb1ab72f96
+  checksum: 10c0/508a2c5189836af2543b64daca9a372ba0b7d9a84dde5c74b4bde2976c5672480fcb24993fa07002e095e01412f6aea92143885694dfa208713677e1b12dfae0
   languageName: node
   linkType: hard
 
@@ -16887,7 +16891,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"synckit@npm:^0.11.8":
+"synckit@npm:^0.11.13, synckit@npm:^0.11.8":
   version: 0.11.13
   resolution: "synckit@npm:0.11.13"
   dependencies:
