@@ -389,6 +389,15 @@ test.describe('tournament overview progress and rules', () => {
     await page.goto(PAGE);
     await page.evaluate(() => document.fonts.ready);
 
+    const tickerToHeroGap = () =>
+      page.evaluate(() => {
+        const ticker = document.querySelector('.cl-ticker');
+        const hero = document.querySelector('.cl-overview-hero');
+        if (!ticker || !hero) throw new Error('Expected overview ticker and hero');
+        return hero.getBoundingClientRect().top - ticker.getBoundingClientRect().bottom;
+      });
+    expect(await tickerToHeroGap()).toBeGreaterThanOrEqual(16);
+
     const nowStrip = page.locator('.cl-overview-now');
     await expect(nowStrip).toBeVisible();
     const kickoff = nowStrip.locator('.cl-overview-now__item--upcoming').getByText(/16:00/).first();
@@ -420,6 +429,7 @@ test.describe('tournament overview progress and rules', () => {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
+    expect(await tickerToHeroGap()).toBeGreaterThanOrEqual(16);
     const mobileUpcoming = page.locator('.cl-overview-now__item--upcoming');
     await expect(mobileUpcoming).toContainText('Red Star');
     await expect(mobileUpcoming).toContainText('Corazonistas Bogotá');

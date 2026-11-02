@@ -125,7 +125,13 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
       tournamentNavigation={tournamentNavigation}
     />
     <slot name="ticker" />
-    <main id="main" class="cl-public-reading">
+    <main
+      id="main"
+      class:list={[
+        'cl-public-reading',
+        Astro.slots.has('ticker') && 'cl-public-reading--after-ticker',
+      ]}
+    >
       <slot />
     </main>
     <footer>
@@ -155,6 +161,11 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
     top: var(--cl-space-2);
     left: var(--cl-space-2);
   }
+
+  .cl-public-reading--after-ticker {
+    padding-block-start: var(--cl-space-4);
+  }
+
   :global(html),
   :global(body) {
     margin: 0;
