@@ -59,3 +59,41 @@ Club filter chips SHALL be visibly smaller than the page's primary buttons, SHAL
 #### Scenario: Chips do not compete with primary actions
 - **WHEN** chips and a primary button are on the same page
 - **THEN** the chips are smaller than the button
+
+### Requirement: Public standings expose promotion-plan bands
+
+Public group-phase team and club table projections SHALL include configured band ranges from a saved
+promotion plan. They SHALL attach band labels and seed numbers to rows only after qualification order
+is resolved. Without a saved plan, they SHALL omit promotion data.
+
+#### Scenario: A saved plan has resolved qualification order
+
+- **WHEN** a spectator requests a stage table after the promotion plan resolves
+- **THEN** the response contains the configured bands and each qualified row's band label and seed
+
+#### Scenario: A saved plan has unresolved qualification order
+
+- **WHEN** a spectator requests a stage table while the qualification cut remains tied or incomplete
+- **THEN** the response contains the configured band ranges but no row-level seed tags
+
+#### Scenario: No promotion plan exists
+
+- **WHEN** a spectator requests a stage table without a saved promotion plan
+- **THEN** the response contains no promotion bands or row-level promotion fields
+
+### Requirement: Public standings present promotion bands and export them
+
+The standings table SHALL render one rail and legend entry per supplied promotion band and show a
+qualification column only for rows with resolved promotion data. Its CSV export SHALL retain the table
+scope and include band and seed columns when promotion bands are supplied.
+
+#### Scenario: CSV exports a plan-backed table
+
+- **WHEN** a spectator downloads a CSV for a plan-backed standings table
+- **THEN** the export includes configured band and seed values for resolved rows and leaves unresolved
+  row values empty
+
+#### Scenario: CSV safely encodes user-controlled cells
+
+- **WHEN** a standings cell begins with a spreadsheet formula character
+- **THEN** the CSV export escapes the cell before download

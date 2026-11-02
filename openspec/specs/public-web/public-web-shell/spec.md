@@ -1092,3 +1092,58 @@ A public page inside a tournament SHALL draw the tournament discipline's backgro
 #### Scenario: The hero stays legible without its own image
 - **WHEN** the tournament overview renders
 - **THEN** the hero's title, emblem and live-count remain legible over the page backdrop at desktop and phone widths
+
+### Requirement: Public overviews lead with the tournament's current state
+
+A public tournament overview SHALL open with a hero panel holding a breadcrumb, a title and fact chips
+from the read model. It SHALL then show a now strip (live, upcoming, latest final) for a tournament in
+progress, or an honour board per placement tier for a completed one. It SHALL render completely
+without JavaScript.
+
+#### Scenario: In-progress overview
+
+- **WHEN** a spectator opens an in-progress tournament at 375px
+- **THEN** the first content after the hero is the now strip, with the live match first
+
+#### Scenario: Completed overview
+
+- **WHEN** a spectator opens a completed tournament with Gold, Silver and Bronze cups
+- **THEN** an honour-board card per cup shows the champion, runner-up and third place before the
+  standings
+
+#### Scenario: Without JavaScript
+
+- **WHEN** the overview loads with JavaScript disabled
+- **THEN** the hero, the lead section and the standings render completely
+
+### Requirement: Public reading pages use reading-page casing
+
+On public pages, only display and headline levels SHALL be uppercase. Entrant names, card titles and
+long-form subheadings SHALL render in sentence case. Control and TV keep their uppercase titles.
+
+#### Scenario: Entrant names on public and control
+
+- **WHEN** the same entrant name renders on a public match card and on a control match card
+- **THEN** it computes `text-transform: none` on public, and uppercase on control
+
+### Requirement: Public pages show no fabricated chrome
+
+Public pages SHALL show no telemetry strip, no footer link to a service that does not exist, and no
+fact that the read model does not provide. The 404 page SHALL be a centred panel with "404", "Page not
+found" and two actions.
+
+#### Scenario: 404
+
+- **WHEN** a missing public route is requested
+- **THEN** a centred panel shows "404", "Page not found", "Return to tournaments" and "View live
+  matches", with no telemetry or trace text
+
+### Requirement: Public typography applies documented line-height roles
+
+Public reading pages SHALL apply the line-height value declared for each typography role in
+`DESIGN.md`, including body, headings, labels and figures.
+
+#### Scenario: Mixed-size content
+
+- **WHEN** a public match card combines a heading, a state label and score figures
+- **THEN** each element computes the line-height assigned to its typography role
