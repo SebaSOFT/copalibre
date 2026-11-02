@@ -56,6 +56,10 @@ const { heading, entries, labels, locale, timeZone } = Astro.props;
     padding-inline-start: var(--cl-space-2);
   }
 
+  .cl-overview-now__item > :global(.cl-match-card) {
+    height: 100%;
+  }
+
   .cl-overview-now__item--live {
     border-inline-start-color: var(--cl-state-live);
   }

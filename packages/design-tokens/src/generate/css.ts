@@ -10,6 +10,7 @@ import {
   FIGURE_SIZE,
   FONT_SIZE,
   FONT_WEIGHTS,
+  LINE_HEIGHT,
   MOTION,
   RADIUS,
   SPACING,
@@ -108,6 +109,7 @@ export function generateCss(): string {
     `  --cl-font-mono: ${TYPOGRAPHY.mono};`,
     ...Object.entries(FONT_WEIGHTS).map(([name, value]) => `  --cl-weight-${name}: ${value};`),
     ...Object.entries(FONT_SIZE).map(([name, value]) => `  --cl-font-size-${name}: ${value};`),
+    ...Object.entries(LINE_HEIGHT).map(([name, value]) => `  --cl-line-height-${name}: ${value};`),
     ...Object.entries(FIGURE_SIZE).map(
       ([name, value]) => `  --cl-font-size-figure-${name}: ${value};`,
     ),
@@ -817,7 +819,7 @@ function components(): string {
     '.cl-reason-prompt__summary { margin: 0; font-family: var(--cl-font-mono); font-size: var(--cl-font-size-sm); }',
     '.cl-reason-prompt__hint { margin: 0; color: var(--cl-text-muted); font-size: var(--cl-font-size-xs); }',
     '.cl-select-native { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; pointer-events: none; }',
-    '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); }',
+    '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); line-height: var(--cl-line-height-label); }',
     '',
     '.cl-form-field { display: grid; gap: var(--cl-space-1); min-width: 0; }',
     '.cl-form-field__error { margin: 0; color: var(--cl-state-destructive); font-size: var(--cl-font-size-xs); }',
@@ -1113,6 +1115,7 @@ function components(): string {
     '  gap: var(--cl-space-1);',
     '  font-family: var(--cl-font-display);',
     '  font-weight: var(--cl-weight-semibold);',
+    '  line-height: var(--cl-line-height-label);',
     '  text-transform: uppercase;',
     '  padding: var(--cl-space-1) var(--cl-space-2) var(--cl-space-1) var(--cl-space-3);',
     '}',
@@ -1237,7 +1240,7 @@ function components(): string {
     '}',
     '/* Numeric columns read right-aligned against the figure above them. */',
     '.cl-table__num { text-align: right; }',
-    '.cl-tabular-nums { font-variant-numeric: tabular-nums; }',
+    '.cl-tabular-nums { font-variant-numeric: tabular-nums; line-height: var(--cl-line-height-figure); }',
     '.cl-table tbody tr:last-child th,',
     '.cl-table tbody tr:last-child td { border-block-end: none; }',
     '',
@@ -1363,6 +1366,7 @@ function components(): string {
     '  font-family: var(--cl-font-display);',
     '  font-size: var(--cl-font-size-figure-2xl);',
     '  font-weight: var(--cl-weight-bold);',
+    '  line-height: var(--cl-line-height-figure);',
     '  /* Scores that shift width as they change are scores nobody can read. */',
     '  font-variant-numeric: tabular-nums;',
     '}',
@@ -1391,6 +1395,8 @@ function components(): string {
      */
     'a { color: var(--cl-state-live); }',
     '',
+    'html { line-height: var(--cl-line-height-body); }',
+    '',
     /*
      * Headings use the display face.
      *
@@ -1404,12 +1410,12 @@ function components(): string {
      * component's or the page's call.
      */
     'h1, h2, h3, h4, h5, h6 { font-family: var(--cl-font-display); letter-spacing: var(--cl-tracking-wide); }',
-    'h1 { font-size: var(--cl-font-size-3xl); }',
-    'h2 { font-size: var(--cl-font-size-2xl); }',
-    'h3 { font-size: var(--cl-font-size-xl); }',
-    'h4 { font-size: var(--cl-font-size-lg); }',
-    'h5 { font-size: var(--cl-font-size-md); }',
-    'h6 { font-size: var(--cl-font-size-base); }',
+    'h1 { font-size: var(--cl-font-size-3xl); line-height: var(--cl-line-height-display); }',
+    'h2 { font-size: var(--cl-font-size-2xl); line-height: var(--cl-line-height-headline); }',
+    'h3 { font-size: var(--cl-font-size-xl); line-height: var(--cl-line-height-title); }',
+    'h4 { font-size: var(--cl-font-size-lg); line-height: var(--cl-line-height-title); }',
+    'h5 { font-size: var(--cl-font-size-md); line-height: var(--cl-line-height-body); }',
+    'h6 { font-size: var(--cl-font-size-base); line-height: var(--cl-line-height-body); }',
     '',
     /*
      * An alert's paragraphs carry no margin of their own — the alert is already
@@ -1438,7 +1444,7 @@ function components(): string {
     "/* The matches-view card — shared by MatchCard.tsx on both public-web and control-web, so it lives here rather than in either surface's own page-scoped styles. */",
     '.cl-match-card { display: grid; gap: var(--cl-space-3); min-width: 0; }',
     '.cl-match-card--linked { position: relative; }',
-    '.cl-match-card__heading { margin: 0; min-width: 0; font-size: var(--cl-font-size-lg); overflow-wrap: anywhere; }',
+    '.cl-match-card__heading { margin: 0; min-width: 0; font-size: var(--cl-font-size-lg); line-height: var(--cl-line-height-title); overflow-wrap: anywhere; }',
     '.cl-match-card__report-link { color: inherit; text-decoration: none; }',
     '.cl-match-card__report-link:hover, .cl-match-card__report-link:focus-visible { text-decoration: underline; }',
     '.cl-match-card__report-link::after, .cl-match-card__hit-area { position: absolute; inset: 0; z-index: 1; }',
@@ -1452,7 +1458,7 @@ function components(): string {
     // no space to wrap at, so at the 188px reference width the clock alone —
     // not the header row it sits in, which already wraps — held its full
     // unbroken width and pushed the card past the viewport.
-    '.cl-match-card__clock { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-figure-lg); color: var(--cl-state-live); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }',
+    '.cl-match-card__clock { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-figure-lg); line-height: var(--cl-line-height-figure); color: var(--cl-state-live); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }',
     // A grid of match cards, promoted out of `MatchCardGrid.astro`'s scoped
     // style so the React surfaces can compose it too. While it lived there,
     // `LiveMatchHero` had no grid to reach and stacked one full-width card per
@@ -1472,12 +1478,12 @@ function components(): string {
     // keeps that wrapper out of the flex layout, but a DOM combinator still
     // sees it — `>` never matched past it, so the name rendered at its full,
     // unconstrained width and pushed the 188px reference width sideways.
-    ".cl-match-card__side span[data-testid='entrant-name'] { flex: 1 1 auto; font-family: var(--cl-font-display); font-weight: var(--cl-weight-medium); font-size: var(--cl-font-size-lg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
-    '.cl-match-card__side .cl-stat-tile__value { flex: 0 0 auto; font-size: var(--cl-font-size-figure-2xl); background: none; padding: 0; }',
-    '.cl-match-card__scope, .cl-match-card__venue, .cl-match-card__event { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
+    ".cl-match-card__side span[data-testid='entrant-name'] { flex: 1 1 auto; font-family: var(--cl-font-display); font-weight: var(--cl-weight-medium); font-size: var(--cl-font-size-lg); line-height: var(--cl-line-height-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
+    '.cl-match-card__side .cl-stat-tile__value { flex: 0 0 auto; font-size: var(--cl-font-size-figure-2xl); line-height: var(--cl-line-height-figure); background: none; padding: 0; }',
+    '.cl-match-card__scope, .cl-match-card__venue, .cl-match-card__event { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); line-height: var(--cl-line-height-label); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
     '.cl-match-card__event { color: var(--cl-text-secondary); }',
     '.cl-match-card__series { display: grid; gap: var(--cl-space-1); padding: var(--cl-space-3); background: var(--cl-surface-chrome); border-left: 2px solid var(--cl-state-upcoming); }',
-    '.cl-match-card__series .cl-series__score { margin: 0; font-family: var(--cl-font-mono); font-size: var(--cl-font-size-figure-lg); }',
+    '.cl-match-card__series .cl-series__score { margin: 0; font-family: var(--cl-font-mono); font-size: var(--cl-font-size-figure-lg); line-height: var(--cl-line-height-figure); }',
     '.cl-match-card__series .cl-series__pending, .cl-match-card__series .cl-series__decided, .cl-match-card__series .cl-series__aggregate { margin: 0; color: var(--cl-text-secondary); font-size: var(--cl-font-size-sm); }',
     '.cl-match-card__deciding-factor { margin: 0; padding: var(--cl-space-2) var(--cl-space-3); background: var(--cl-surface-chrome); border-left: 2px solid var(--cl-focus-ring); color: var(--cl-text-secondary); font-size: var(--cl-font-size-sm); }',
     '.cl-match-card__trace { position: relative; z-index: 2; border-top: 1px solid var(--cl-border-muted); padding-top: var(--cl-space-2); }',

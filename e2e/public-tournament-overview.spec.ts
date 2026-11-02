@@ -408,6 +408,26 @@ test.describe('tournament overview progress and rules', () => {
     await expect(firstUpcoming).toContainText('Red Star');
     await expect(firstUpcoming).toContainText('Corazonistas Bogotá');
     await expect(firstUpcoming.locator('.cl-match-card')).toBeVisible();
+    const firstFinal = nowStrip.locator('.cl-overview-now__item--final .cl-match-card').first();
+    await expect(firstFinal).toBeVisible();
+    const [upcomingCardHeight, finalCardHeight] = await Promise.all([
+      firstUpcoming
+        .locator('.cl-match-card')
+        .evaluate((card) => card.getBoundingClientRect().height),
+      firstFinal.evaluate((card) => card.getBoundingClientRect().height),
+    ]);
+    expect(Math.abs(upcomingCardHeight - finalCardHeight)).toBeLessThanOrEqual(1);
+    const [headingLineHeight, scoreLineHeight] = await Promise.all([
+      firstUpcoming
+        .locator('.cl-match-card__heading')
+        .evaluate((heading) => getComputedStyle(heading).lineHeight),
+      firstFinal
+        .locator('.cl-stat-tile__value')
+        .first()
+        .evaluate((score) => getComputedStyle(score).lineHeight),
+    ]);
+    expect(headingLineHeight).not.toBe('normal');
+    expect(scoreLineHeight).not.toBe('normal');
     await expect(
       page.locator('section[aria-labelledby="overview-next-heading"] .cl-match-card--compact'),
     ).toHaveCount(3);
