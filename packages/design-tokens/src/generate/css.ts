@@ -2146,10 +2146,11 @@ function compositions(): string {
     /*
      * The public header.
      *
-     * One navigation landmark, not two. On a wide viewport it fills the row
-     * between the brand and the persistent locale and Control panel actions;
-     * below the medium breakpoint it takes a whole line of
-     * the same wrapping flex row, which makes the menu expand *in page flow*.
+     * A single-height primary row holds the brand, global destinations and
+     * persistent actions. Tournament destinations live in a full-width band
+     * below it, aligned to the same container. At the compact breakpoint both
+     * navigation groups become separate, in-flow disclosures under persistent
+     * actions.
      *
      * That is the deliberate difference from the operator surface's modal
      * drawer, which keeps its overlay, its focus trap and its return-focus
@@ -2158,20 +2159,26 @@ function compositions(): string {
      */
     '.cl-public-header { position: sticky; top: 0; z-index: 30; background: color-mix(in srgb, var(--cl-surface-base) 92%, transparent); border-block-end: 1px solid var(--cl-border-muted); backdrop-filter: blur(6px); }',
     '',
-    '.cl-public-header__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--cl-space-3); padding-block: var(--cl-space-3); min-width: 0; }',
+    '.cl-public-header__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--cl-space-4); padding-block: var(--cl-space-3); min-width: 0; }',
     '',
-    // Locale and Control panel stay visible in their own mobile row while the
-    // menu toggle opens and closes the spectator links below.
-    '.cl-public-header__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--cl-space-2); min-width: 0; }',
+    '.cl-public-header__brand { display: flex; min-width: 0; }',
     '',
-    '.cl-public-header__nav { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; justify-self: stretch; gap: var(--cl-space-2); min-width: 0; }',
+    // Locale and Control panel remain visible while the compact menu opens.
+    '.cl-public-header__actions { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: var(--cl-space-2); min-width: 0; }',
+    '',
+    '.cl-public-header__nav { display: flex; align-items: center; justify-self: stretch; min-width: 0; }',
+    '.cl-public-header__global-label { display: none; }',
     '',
     // The closed menu is closed for everyone: `hidden` takes its links out of
     // the tab order, which a `visibility` or an off-screen trick would not.
     // The reset at the top of `components()` is what makes it stick.
     '.cl-public-header__links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); width: 100%; min-width: 0; margin: 0; padding: 0; list-style: none; }',
     '',
-    '.cl-public-header__tournament-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); width: 100%; min-width: 0; margin: 0; padding: var(--cl-space-1) 0 0; list-style: none; border-block-start: 1px solid var(--cl-border-muted); }',
+    '.cl-public-header__context-band { background: var(--cl-surface-panel); border-block: 1px solid var(--cl-border-muted); }',
+    '.cl-public-header__context-row { padding-block: var(--cl-space-2); }',
+    '.cl-public-header__tournament-nav { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; }',
+    '.cl-public-header__context-label { flex: none; margin: 0; padding-inline-end: var(--cl-space-4); border-inline-end: 1px solid var(--cl-border-muted); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
+    '.cl-public-header__tournament-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); min-width: 0; margin: 0; padding: 0; list-style: none; }',
     '',
     '.cl-public-header__theme { position: relative; }',
     '.cl-public-header__theme > details > summary { display: inline-flex; align-items: center; gap: var(--cl-space-2); min-height: var(--cl-touch-target); padding-inline: var(--cl-space-2); color: var(--cl-text-secondary); font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); cursor: pointer; list-style: none; }',
@@ -2186,7 +2193,7 @@ function compositions(): string {
     '',
     '.cl-public-header__tournament-link[aria-current="page"] { color: var(--cl-text-primary); text-decoration: underline; text-decoration-color: var(--cl-primary); text-decoration-thickness: 2px; text-underline-offset: var(--cl-space-1); }',
     '',
-    '.cl-public-header__toggle { display: inline-grid; place-items: center; min-width: var(--cl-touch-target); min-height: var(--cl-touch-target); background: transparent; border: 1px solid var(--cl-border-muted); color: var(--cl-text-primary); cursor: pointer; }',
+    '.cl-public-header__toggle { display: none; place-items: center; min-width: var(--cl-touch-target); min-height: var(--cl-touch-target); background: transparent; border: 1px solid var(--cl-border-muted); color: var(--cl-text-primary); cursor: pointer; }',
     '',
     // The icon changes with the state, so the control reads as opened or closed
     // without relying on the reader remembering which way it was.
@@ -2200,21 +2207,22 @@ function compositions(): string {
     '.cl-public-header__locale > summary::-webkit-details-marker { display: none; }',
     `.cl-public-header__locale-list { position: absolute; inset-inline-end: 0; z-index: 40; min-width: max-content; width: max-content; white-space: nowrap; display: grid; gap: var(--cl-space-1); margin: var(--cl-space-1) 0 0; padding: var(--cl-space-2); list-style: none; background: var(--cl-surface-chrome); border: 1px solid var(--cl-border-muted); box-shadow: ${DIALOG_TOKENS.elevation}; }`,
     '',
-    /*
-     * At and below the inclusive medium breakpoint the navigation takes its
-     * own line below the persistent actions, which get a full row of their own.
-     */
+    /* Compact menu: persistent brand and actions lead; each navigation layer
+     * then gets its own labelled surface in document flow. */
     `@media (max-width: ${BREAKPOINTS.md}) {`,
-    '  .cl-public-header__row { grid-template-columns: minmax(0, 1fr); }',
-    '  .cl-public-header__nav { grid-column: 1; grid-row: 3; align-items: stretch; gap: var(--cl-space-3); padding-block: var(--cl-space-4); border-block-start: 1px solid var(--cl-border-muted); }',
+    '  .cl-public-header__row { grid-template-columns: minmax(0, 1fr); gap: var(--cl-space-2); padding-block: var(--cl-space-2); }',
+    '  .cl-public-header__brand { grid-column: 1; grid-row: 1; }',
     '  .cl-public-header__actions { grid-column: 1; grid-row: 2; justify-content: space-between; width: 100%; }',
-    '  .cl-public-header__links, .cl-public-header__tournament-links { flex-direction: column; align-items: stretch; gap: var(--cl-space-2); }',
-    '  .cl-public-header__tournament-links { padding-block-start: var(--cl-space-3); }',
+    '  .cl-public-header__nav { display: grid; grid-column: 1; grid-row: 3; align-items: stretch; gap: var(--cl-space-2); padding-block: var(--cl-space-3); border-block-start: 1px solid var(--cl-border-muted); }',
+    '  .cl-public-header__global-label { display: block; margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
+    '  .cl-public-header__links, .cl-public-header__tournament-links { flex-direction: column; align-items: stretch; gap: var(--cl-space-1); }',
+    '  .cl-public-header__link { width: 100%; padding-inline: var(--cl-space-2); }',
+    '  .cl-public-header__context-row { padding-block: var(--cl-space-3); }',
+    '  .cl-public-header__tournament-nav { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--cl-space-2); }',
+    '  .cl-public-header__context-label { padding: 0 0 var(--cl-space-2); border-inline-end: 0; border-block-end: 1px solid var(--cl-border-muted); }',
+    '  .cl-public-header__tournament-links { display: grid; grid-template-columns: minmax(0, 1fr); }',
+    '  .cl-public-header__tournament-link[aria-current="page"] { border-inline-start: 2px solid var(--cl-primary); }',
     '  .cl-public-header__toggle:not([hidden]) { display: inline-grid; }',
-    '}',
-    `@media (min-width: ${BREAKPOINTS.md}) {`,
-    // Nothing to disclose once every link is already in the row.
-    '  .cl-public-header__toggle { display: none; }',
     '}',
   ].join('\n');
 }

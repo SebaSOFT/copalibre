@@ -339,6 +339,8 @@ export const messages: Record<string, string> = {
   'publicWeb.header.themeSystem': 'Sistema',
   'publicWeb.header.navHome': 'Início',
   'publicWeb.header.navTv': 'TV Streaming',
+  'publicWeb.header.globalSection': 'Plataforma',
+  'publicWeb.header.tournamentSection': 'Torneio',
   'publicWeb.header.tournamentOverview': 'Visão geral',
   'publicWeb.header.tournamentMatches': 'Partidas',
   'publicWeb.header.tournamentStandings': 'Classificação',

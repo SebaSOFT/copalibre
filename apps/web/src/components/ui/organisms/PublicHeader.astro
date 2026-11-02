@@ -2,7 +2,7 @@
 /**
  * The public header.
  *
- * One navigation landmark, expanded by default. That ordering is deliberate:
+ * Both navigation landmarks, expanded by default. That ordering is deliberate:
  * the markup a browser with no JavaScript receives already has every link in
  * it, and the script's first act is to *close* the menu and reveal the control
  * that reopens it. Building it the other way round — hidden markup that script
@@ -92,8 +92,12 @@ const tournamentLinks: readonly {
 
 const controlLabel = intl.formatMessage(messages.headerControlPanel);
 const navLabel = intl.formatMessage(messages.layoutNavAriaLabel);
+const globalSectionLabel = intl.formatMessage(messages.headerGlobalSection);
+const tournamentSectionLabel = intl.formatMessage(messages.headerTournamentSection);
 const openLabel = intl.formatMessage(messages.headerOpenMenu);
 const closeLabel = intl.formatMessage(messages.headerCloseMenu);
+const controlledNavigationIds =
+  tournamentLinks.length > 0 ? 'cl-public-nav cl-public-tournament-nav' : 'cl-public-nav';
 
 /** Endonyms, so a reader looking for their own language finds it written in it. */
 const languageName = (code: string): string => {
@@ -107,9 +111,14 @@ const languageName = (code: string): string => {
 
 <header class="cl-public-header">
   <Container class="cl-public-header__row" variant="public">
-    <Logo href={homeUrl} />
+    <div class="cl-public-header__brand">
+      <Logo href={homeUrl} />
+    </div>
 
     <nav aria-label={navLabel} class="cl-public-header__nav" id="cl-public-nav">
+      <span aria-hidden="true" class="cl-public-header__global-label">
+        {globalSectionLabel}
+      </span>
       <ul class="cl-public-header__links">
         {links.map((link) => (
           <li>
@@ -146,21 +155,6 @@ const languageName = (code: string): string => {
           </details>
         </li>
       </ul>
-      {tournamentLinks.length > 0 && (
-        <ul class="cl-public-header__tournament-links">
-          {tournamentLinks.map((link) => (
-            <li>
-              <a
-                aria-current={link.section === tournamentNavigation?.current ? 'page' : undefined}
-                class="cl-public-header__link cl-public-header__tournament-link cl-focusable"
-                href={link.href}
-              >
-                {link.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
     </nav>
 
     <div class="cl-public-header__actions">
@@ -205,7 +199,7 @@ const languageName = (code: string): string => {
         never runs the script leaves it out of the tab order too.
       */}
       <button
-        aria-controls="cl-public-nav"
+        aria-controls={controlledNavigationIds}
         aria-expanded="true"
         aria-label={closeLabel}
         class="cl-public-header__toggle cl-focusable"
@@ -220,6 +214,30 @@ const languageName = (code: string): string => {
       </button>
     </div>
   </Container>
+  {tournamentLinks.length > 0 && (
+    <div class="cl-public-header__context-band" id="cl-public-tournament-nav">
+      <Container class="cl-public-header__context-row" variant="public">
+        <nav aria-label={tournamentSectionLabel} class="cl-public-header__tournament-nav">
+          <span aria-hidden="true" class="cl-public-header__context-label">
+            {tournamentSectionLabel}
+          </span>
+          <ul class="cl-public-header__tournament-links">
+            {tournamentLinks.map((link) => (
+              <li>
+                <a
+                  aria-current={link.section === tournamentNavigation?.current ? 'page' : undefined}
+                  class="cl-public-header__link cl-public-header__tournament-link cl-focusable"
+                  href={link.href}
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </Container>
+    </div>
+  )}
 </header>
 
 <script>
@@ -237,8 +255,11 @@ const languageName = (code: string): string => {
   const COMPACT = '(max-width: 768px)';
 
   function enhanceHeader(toggle: HTMLButtonElement) {
-    const nav = document.getElementById(toggle.getAttribute('aria-controls') ?? '');
-    if (!nav) return;
+    const panels = (toggle.getAttribute('aria-controls') ?? '')
+      .split(/\s+/)
+      .map((id) => document.getElementById(id))
+      .filter((panel): panel is HTMLElement => panel !== null);
+    if (panels.length === 0) return;
 
     const compact = window.matchMedia(COMPACT);
 
@@ -246,7 +267,7 @@ const languageName = (code: string): string => {
       toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
       const label = expanded ? toggle.dataset.closeLabel : toggle.dataset.openLabel;
       if (label) toggle.setAttribute('aria-label', label);
-      nav.hidden = !expanded;
+      for (const panel of panels) panel.hidden = !expanded;
     };
 
     /*
@@ -258,7 +279,6 @@ const languageName = (code: string): string => {
     const apply = () => {
       toggle.hidden = !compact.matches;
       setExpanded(!compact.matches || toggle.getAttribute('aria-expanded') === 'true');
-      if (!compact.matches) nav.hidden = false;
     };
 
     toggle.addEventListener('click', () => {

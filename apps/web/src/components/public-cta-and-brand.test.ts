@@ -242,6 +242,18 @@ describe('public layout, header, and home orientation hub', () => {
     expect(header).not.toContain('/help/api-reference/');
   });
 
+  it('separates global navigation from tournament tabs and groups both in the mobile menu', () => {
+    expect(header).toContain('cl-public-header__row');
+    expect(header).toContain('id="cl-public-nav"');
+    expect(header).toContain('cl-public-header__context-band');
+    expect(header).toContain('id="cl-public-tournament-nav"');
+    expect(header).toContain('messages.headerGlobalSection');
+    expect(header).toContain('messages.headerTournamentSection');
+    expect(header).toContain('aria-controls={controlledNavigationIds}');
+    expect(header).toContain('.split(/\\s+/)');
+    expect(header).toContain('for (const panel of panels) panel.hidden = !expanded;');
+  });
+
   it('chamfers the closed language selector with the control treatment', () => {
     expect(header).toMatch(
       /<summary[\s\S]*?class="cl-chamfer cl-chamfer--control cl-focusable"[\s\S]*?<\/summary>/,

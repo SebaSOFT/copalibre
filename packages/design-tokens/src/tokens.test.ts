@@ -1045,38 +1045,55 @@ describe('public table and pill treatments', () => {
 
   it('keeps public actions visible while mobile navigation expands in page flow', () => {
     expect(css).toContain(
-      '.cl-public-header__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto;',
+      '.cl-public-header__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--cl-space-4);',
     );
+    expect(css).toContain('.cl-public-header__brand { display: flex; min-width: 0; }');
     expect(css).toContain(
-      '.cl-public-header__nav { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; justify-self: stretch;',
+      '.cl-public-header__nav { display: flex; align-items: center; justify-self: stretch; min-width: 0; }',
     );
+    expect(css).toContain('.cl-public-header__global-label { display: none; }');
     expect(css).toContain(
       '.cl-public-header__links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); width: 100%;',
     );
     expect(css).toContain(
-      '.cl-public-header__tournament-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); width: 100%;',
+      '.cl-public-header__context-band { background: var(--cl-surface-panel); border-block: 1px solid var(--cl-border-muted); }',
+    );
+    expect(css).toContain('.cl-public-header__context-row { padding-block: var(--cl-space-2); }');
+    expect(css).toContain(
+      '.cl-public-header__tournament-nav { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; }',
+    );
+    expect(css).toContain(
+      '.cl-public-header__tournament-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); min-width: 0;',
     );
     expect(css).toContain(
       '.cl-public-header__tournament-link[aria-current="page"] { color: var(--cl-text-primary); text-decoration: underline;',
     );
     expect(css).toContain(
-      '.cl-public-header__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end;',
+      '.cl-public-header__actions { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end;',
     );
     expect(css).toContain(
-      '@media (max-width: 768px) {\n  .cl-public-header__row { grid-template-columns: minmax(0, 1fr); }',
+      '.cl-public-header__toggle { display: none; place-items: center; min-width: var(--cl-touch-target);',
     );
     expect(css).toContain(
-      '  .cl-public-header__nav { grid-column: 1; grid-row: 3; align-items: stretch;',
+      '@media (max-width: 768px) {\n  .cl-public-header__row { grid-template-columns: minmax(0, 1fr); gap: var(--cl-space-2);',
     );
+    expect(css).toContain('  .cl-public-header__brand { grid-column: 1; grid-row: 1; }');
     expect(css).toContain(
       '  .cl-public-header__actions { grid-column: 1; grid-row: 2; justify-content: space-between; width: 100%; }',
     );
+    expect(css).toContain(
+      '  .cl-public-header__nav { display: grid; grid-column: 1; grid-row: 3; align-items: stretch;',
+    );
+    expect(css).toContain('  .cl-public-header__global-label { display: block;');
     expect(css).toContain('  .cl-public-header__toggle:not([hidden]) { display: inline-grid; }');
     expect(css).toContain(
-      '@media (min-width: 768px) {\n  .cl-public-header__toggle { display: none; }',
+      '  .cl-public-header__links, .cl-public-header__tournament-links { flex-direction: column; align-items: stretch;',
     );
     expect(css).toContain(
-      '  .cl-public-header__links, .cl-public-header__tournament-links { flex-direction: column; align-items: stretch;',
+      '  .cl-public-header__tournament-nav { display: grid; grid-template-columns: minmax(0, 1fr);',
+    );
+    expect(css).toContain(
+      '  .cl-public-header__tournament-link[aria-current="page"] { border-inline-start: 2px solid var(--cl-primary); }',
     );
     expect(css).not.toContain('.cl-public-header__cta-item');
   });

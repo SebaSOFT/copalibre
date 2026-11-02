@@ -142,6 +142,11 @@ export const messages = defineMessages({
   headerThemeSystem: { id: 'publicWeb.header.themeSystem', defaultMessage: 'System' },
   headerNavHome: { id: 'publicWeb.header.navHome', defaultMessage: 'Home' },
   headerNavTv: { id: 'publicWeb.header.navTv', defaultMessage: 'TV Streaming' },
+  headerGlobalSection: { id: 'publicWeb.header.globalSection', defaultMessage: 'Platform' },
+  headerTournamentSection: {
+    id: 'publicWeb.header.tournamentSection',
+    defaultMessage: 'Tournament',
+  },
   headerTournamentOverview: {
     id: 'publicWeb.header.tournamentOverview',
     defaultMessage: 'Overview',

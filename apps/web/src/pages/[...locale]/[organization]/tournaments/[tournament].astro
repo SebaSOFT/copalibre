@@ -305,6 +305,17 @@ const trail = publicTrail(trailBase, []);
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
+  <ScoreTicker
+    slot="ticker"
+    emptyLabel={tickerChrome.empty}
+    items={tickerItems}
+    label={intl.formatMessage(messages.tickerLabel)}
+    liveBadgeLabels={tickerLabels(intl)}
+    pauseLabel={tickerChrome.pause}
+    resumeLabel={tickerChrome.resume}
+    staleLabel={tickerChrome.stale}
+    streamPath={model.streamPath}
+  />
   <Container variant="public">
     <TournamentOverviewHero
       model={model}
@@ -356,16 +367,6 @@ const trail = publicTrail(trailBase, []);
         </Container>
       )}
   </Container>
-  <ScoreTicker
-    emptyLabel={tickerChrome.empty}
-    items={tickerItems}
-    label={intl.formatMessage(messages.tickerLabel)}
-    liveBadgeLabels={tickerLabels(intl)}
-    pauseLabel={tickerChrome.pause}
-    resumeLabel={tickerChrome.resume}
-    staleLabel={tickerChrome.stale}
-    streamPath={model.streamPath}
-  />
   <Container variant="public">
     <section aria-labelledby="overview-matches-heading">
       <h2 id="overview-matches-heading">{intl.formatMessage(messages.matchGridHeading)}</h2>

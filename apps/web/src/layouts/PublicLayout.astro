@@ -124,6 +124,7 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
       localeOptions={localeOptions}
       tournamentNavigation={tournamentNavigation}
     />
+    <slot name="ticker" />
     <main id="main" class="cl-public-reading">
       <slot />
     </main>

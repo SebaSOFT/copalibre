@@ -169,6 +169,76 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     await expect(page).toHaveURL(/\/tv\?lang=en/);
   });
 
+  test('mobile public navigation separates global and tournament groups; desktop keeps one primary row', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    const toggle = page.locator('[data-public-nav-toggle]');
+    const globalNav = page.locator('#cl-public-nav');
+    const tournamentNav = page.locator('#cl-public-tournament-nav nav');
+    await expect(globalNav).toHaveAttribute('aria-label', 'Principal');
+    await expect(tournamentNav).toHaveAttribute('aria-label', 'Torneo');
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-controls', 'cl-public-nav cl-public-tournament-nav');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(globalNav).toBeHidden();
+    await expect(tournamentNav).toBeHidden();
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(globalNav).toBeVisible();
+    await expect(tournamentNav).toBeVisible();
+    await expect(page.locator('.cl-public-header__global-label')).toHaveText('Plataforma');
+    await expect(page.locator('.cl-public-header__context-label')).toHaveText('Torneo');
+    await expect(globalNav.getByRole('link', { name: 'Inicio' })).toBeVisible();
+    await expect(tournamentNav.getByRole('link', { name: 'Resumen' })).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth),
+    ).toBe(true);
+
+    await page.keyboard.press('Escape');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(toggle).toBeFocused();
+    await expect(globalNav).toBeHidden();
+    await expect(tournamentNav).toBeHidden();
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const geometry = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Missing header element: ${selector}`);
+        return element.getBoundingClientRect();
+      };
+      const row = rect('.cl-public-header__row');
+      const brand = rect('.cl-public-header__brand');
+      const global = rect('.cl-public-header__nav');
+      const actions = rect('.cl-public-header__actions');
+      const context = rect('.cl-public-header__context-band');
+      return {
+        rowHeight: row.height,
+        primaryCenterSpread:
+          Math.max(
+            brand.top + brand.height / 2,
+            global.top + global.height / 2,
+            actions.top + actions.height / 2,
+          ) -
+          Math.min(
+            brand.top + brand.height / 2,
+            global.top + global.height / 2,
+            actions.top + actions.height / 2,
+          ),
+        primaryBottom: row.bottom,
+        contextTop: context.top,
+      };
+    });
+    expect(geometry.rowHeight).toBeLessThan(80);
+    expect(geometry.primaryCenterSpread).toBeLessThan(1);
+    expect(geometry.contextTop).toBeGreaterThanOrEqual(geometry.primaryBottom);
+    await expect(toggle).toBeHidden();
+  });
+
   test('the public light theme follows the device, persists selection, and passes contrast checks', async ({
     page,
   }) => {

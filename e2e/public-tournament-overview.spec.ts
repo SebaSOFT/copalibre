@@ -524,7 +524,7 @@ test.describe('public empty states without JavaScript', () => {
   test('the tournament header links its sections in server-rendered markup', async ({ page }) => {
     await page.goto(PAGE);
 
-    const navigation = page.locator('#cl-public-nav');
+    const navigation = page.locator('#cl-public-tournament-nav nav');
     await expect(navigation.getByRole('link', { name: 'Resumen', exact: true })).toHaveAttribute(
       'aria-current',
       'page',

@@ -333,6 +333,8 @@ export const messages: Record<string, string> = {
   'publicWeb.header.themeSystem': '跟随系统',
   'publicWeb.header.navHome': '首页',
   'publicWeb.header.navTv': '电视直播',
+  'publicWeb.header.globalSection': '平台',
+  'publicWeb.header.tournamentSection': '锦标赛',
   'publicWeb.header.tournamentOverview': '概览',
   'publicWeb.header.tournamentMatches': '比赛',
   'publicWeb.header.tournamentStandings': '排名',

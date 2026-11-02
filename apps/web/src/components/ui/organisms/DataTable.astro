@@ -25,6 +25,8 @@ import EmblemImage from '../atoms/EmblemImage.astro';
 export interface DataTableColumn {
   readonly key: string;
   readonly header: unknown;
+  /** Full wording behind a compact header, exposed to assistive technology and hover. */
+  readonly headerHint?: string;
   readonly render: (row: unknown) => unknown;
   /** Optional server-rendered text with a leading emblem for identity cells. */
   readonly renderContent?: (row: unknown) => DataTableCellContent | undefined;
@@ -95,7 +97,13 @@ const modifiers = [
     <thead>
       <tr>
         {columns.map((column: DataTableColumn) => (
-          <th aria-sort={column.ariaSort} scope="col">
+          <th
+            aria-label={column.headerHint}
+            aria-sort={column.ariaSort}
+            data-column={column.key}
+            scope="col"
+            title={column.headerHint}
+          >
             {column.header}
           </th>
         ))}
@@ -151,7 +159,7 @@ const modifiers = [
                   body
                 );
               return (
-                <td>
+                <td data-column={column.key}>
                   {address ? (
                     <a aria-label={linkAriaLabel} href={address}>
                       {content}

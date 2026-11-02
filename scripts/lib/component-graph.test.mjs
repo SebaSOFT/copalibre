@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count after public layout adoption (424/1785)', () => {
+test('the graph resolves public layout adoption and compact stat-header hints (424/1786)', () => {
   const graph = buildGraph(webSrc);
   assert.equal(graph.nodes.size, 424);
-  assert.equal(graph.edges.length, 1785);
+  assert.equal(graph.edges.length, 1786);
 });
 
 test('a type-only import is not counted as a render', () => {
