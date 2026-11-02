@@ -19,6 +19,8 @@ const patchedFloors = {
   'brace-expansion': { 1: '1.1.21', 2: '2.1.7', 5: '5.0.12' },
   'body-parser': { 2: '2.4.0' },
   'fast-uri': { 3: '3.1.9', 4: '4.2.3' },
+  glob: { 14: '14.0.2' },
+  minimatch: { 11: '11.0.1' },
   qs: { 6: '6.16.0' },
   'js-yaml': { 3: '3.15.2', 4: '4.3.2', 5: '5.4.1' },
   'postcss-selector-parser': { 7: '7.1.6' },
@@ -69,10 +71,9 @@ for (const name of Object.keys(patchedFloors)) {
 }
 
 for (const [selector, name] of [
-  ['brace-expansion@npm:^1.1.7', 'brace-expansion'],
-  ['brace-expansion@npm:^2.0.1', 'brace-expansion'],
-  ['brace-expansion@npm:^2.0.2', 'brace-expansion'],
-  ['brace-expansion@npm:^5.0.8', 'brace-expansion'],
+  ['brace-expansion@npm:^5.0.12', 'brace-expansion'],
+  ['glob', 'glob'],
+  ['minimatch', 'minimatch'],
   ['fast-uri@npm:^3.0.0', 'fast-uri'],
   ['fast-uri@npm:^3.0.1', 'fast-uri'],
   ['fast-uri@npm:^4.0.0', 'fast-uri'],
