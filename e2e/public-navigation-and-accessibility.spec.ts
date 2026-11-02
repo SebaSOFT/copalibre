@@ -205,6 +205,9 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     await expect(tournamentNav).toBeHidden();
 
     await page.setViewportSize({ width: 1440, height: 900 });
+    await expect(toggle).toBeHidden();
+    await expect(globalNav).toBeVisible();
+    await expect(tournamentNav).toBeVisible();
     const geometry = await page.evaluate(() => {
       const rect = (selector: string) => {
         const element = document.querySelector(selector);
@@ -236,7 +239,6 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     expect(geometry.rowHeight).toBeLessThan(80);
     expect(geometry.primaryCenterSpread).toBeLessThan(1);
     expect(geometry.contextTop).toBeGreaterThanOrEqual(geometry.primaryBottom);
-    await expect(toggle).toBeHidden();
   });
 
   test('the public light theme follows the device, persists selection, and passes contrast checks', async ({
