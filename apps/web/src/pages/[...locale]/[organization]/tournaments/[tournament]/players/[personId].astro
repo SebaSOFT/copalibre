@@ -13,6 +13,7 @@ import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
 import { publicIntl } from '../../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import { getLocalizedNotFoundPath } from '../../../../../../lib/locale.ts';
 
 export const prerender = false;
 
@@ -27,7 +28,7 @@ const [overviewData, profile, tableLayouts] = await Promise.all([
 ]);
 
 if (!overviewData || !profile) {
-  return Astro.rewrite('/404');
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
 
 // Every effective layout a spectator could select the drilldown by — never

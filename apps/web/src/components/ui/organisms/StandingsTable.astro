@@ -6,7 +6,7 @@ import type {
   TableColumnResponse,
   TableRowResponse,
 } from '@copalibre/api/src/dto/table-projections.dto.js';
-import { localizedText } from '../../../lib/localized-label.ts';
+import { publicTableLayoutLabel } from '../../../lib/public-table-layout-label.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
 import type { ClubView, StandingsRowView } from '../../../lib/overview.ts';
@@ -34,8 +34,12 @@ interface Props {
   readonly clubs?: readonly ClubView[];
   readonly intl: IntlShape;
   readonly canonicalPath?: string;
+  readonly sectionId?: string;
+  readonly teamAnchorId?: string;
   readonly organizationAlias?: string;
   readonly tournamentAlias?: string;
+  readonly csvHref?: string;
+  readonly sourceZoneName?: string;
 }
 const {
   layouts = [],
@@ -50,16 +54,18 @@ const {
   clubs = [],
   intl,
   canonicalPath = '',
+  sectionId,
+  teamAnchorId,
   organizationAlias,
   tournamentAlias,
+  csvHref,
+  sourceZoneName,
 } = Astro.props;
 
 const effectiveLayoutCode = activeLayoutCode ?? layout?.code;
 const heading =
   headingText ??
-  (layout
-    ? localizedText(layout.label, intl.locale)
-    : intl.formatMessage(messages.standingsHeading));
+  (layout ? publicTableLayoutLabel(layout, intl) : intl.formatMessage(messages.standingsHeading));
 const rawColumns: readonly TableColumnResponse[] =
   previewRows === undefined
     ? (projection?.columns ?? [])
@@ -85,6 +91,9 @@ type DisplayRow = Pick<TableRowResponse, 'actorName' | 'cells'> &
       | 'nationality'
       | 'hiddenAtRequest'
       | 'publicProfileAvailable'
+      | 'promotionBandLabel'
+      | 'promotionBandIndex'
+      | 'promotionSeed'
     >
   >;
 const rows: readonly DisplayRow[] =
@@ -105,6 +114,12 @@ const rows: readonly DisplayRow[] =
           points: { raw: row.points, formatted: String(row.points) },
         },
       }));
+const rowClassNames = rows.map((row, index) => {
+  const classes: string[] = [];
+  if (previewRows !== undefined) classes.push(index % 2 === 0 ? 'cl-row' : 'cl-row--alt');
+  if (row.promotionBandLabel !== undefined) classes.push('cl-standings-row--promotion');
+  return classes.length > 0 ? classes.join(' ') : undefined;
+});
 const grain = projection?.grain ?? previewGrain;
 // Relabelled only under series grain — match grain keeps the discipline's own
 // wording for the column, which already reads as counting matches.
@@ -120,7 +135,21 @@ const columns =
           : column,
       )
     : rawColumns;
-const hints = columns.map((column) => columnHint(column, intl.locale));
+const promotionBands = (projection?.promotionBands ?? []).filter(
+  (band) => sourceZoneName === undefined || band.sourceZoneName === sourceZoneName,
+);
+const hasPromotionTags = rows.some((row) => row.promotionBandLabel !== undefined);
+const displayColumns = hasPromotionTags
+  ? [
+      ...columns,
+      {
+        code: '__promotion',
+        header: intl.formatMessage(messages.standingsQualificationColumn),
+        format: 'text',
+      },
+    ]
+  : columns;
+const hints = displayColumns.map((column) => columnHint(column, intl.locale));
 const legend = hints.filter((one) => one.hint !== undefined);
 const isPlayerRanking =
   layout?.target === 'player-ranking' ||
@@ -147,8 +176,15 @@ const playerDialogLabels = {
 };
 ---
 
-<section aria-labelledby="standings-heading" class="cl-standings-section">
-  <h2 id="standings-heading">{heading}</h2>
+<section id={sectionId} aria-labelledby="standings-heading" class="cl-standings-section">
+  <div class="cl-standings-header">
+    <h2 id="standings-heading">{heading}</h2>
+    {showControls && csvHref && (
+      <Button href={csvHref} variant="secondary">
+        {intl.formatMessage(messages.standingsCsvExport)}
+      </Button>
+    )}
+  </div>
 
   {grain !== undefined && (
     <p class="cl-standings-grain">
@@ -173,7 +209,7 @@ const playerDialogLabels = {
                 href={tabUrl}
                 data-layout-code={l.code}
               >
-                {localizedText(l.label, intl.locale)}
+                {publicTableLayoutLabel(l, intl)}
               </a>
             </li>
           );
@@ -215,7 +251,7 @@ const playerDialogLabels = {
     </div>
   )}
 
-  <div class="cl-table-container cl-table-scroll">
+  <div id={teamAnchorId} class="cl-table-container cl-table-scroll">
     {rows.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
     {rows.length > 0 && (
       <table
@@ -224,12 +260,12 @@ const playerDialogLabels = {
       >
         <thead>
           <tr>
-            {columns.map((column, columnIndex) => {
+            {displayColumns.map((column, columnIndex) => {
               const { label, hint } = hints[columnIndex] ?? { label: '' };
               const bubbleId = `column-hint-${column.code}`;
               return (
                 <th scope="col" aria-sort="none">
-                  {previewRows !== undefined || !showControls ? (
+                  {column.code === '__promotion' || previewRows !== undefined || !showControls ? (
                     label
                   ) : hint === undefined ? (
                     <Button
@@ -267,12 +303,27 @@ const playerDialogLabels = {
         </thead>
         <tbody>
           {rows.map((row, index) => (
-            <tr
-              class={
-                previewRows === undefined ? undefined : index % 2 === 0 ? 'cl-row' : 'cl-row--alt'
-              }
-            >
-              {columns.map((column) => {
+            <tr class={rowClassNames[index]} data-promotion-band-index={row.promotionBandIndex}>
+              {displayColumns.map((column) => {
+                if (column.code === '__promotion') {
+                  return (
+                    <td class="cl-standings-qualification-cell">
+                      <span
+                        class="cl-standings-qualification-tag"
+                        data-promotion-band-index={row.promotionBandIndex}
+                      >
+                        {row.promotionBandLabel}
+                      </span>
+                      {row.promotionSeed !== undefined && (
+                        <span class="cl-standings-qualification-seed">
+                          {intl.formatMessage(messages.standingsSeedTag, {
+                            seed: row.promotionSeed,
+                          })}
+                        </span>
+                      )}
+                    </td>
+                  );
+                }
                 const isPlayerNameCell =
                   isPlayerRanking &&
                   (column.code === 'person' ||
@@ -367,6 +418,33 @@ const playerDialogLabels = {
     )}
   </div>
 
+  {promotionBands.length > 0 && (
+    <dl
+      class="cl-standings-promotion-legend"
+      role="group"
+      aria-label={intl.formatMessage(messages.standingsPromotionLegend)}
+    >
+      {promotionBands.map((band) => (
+        <div class="cl-standings-promotion-legend__item">
+          <dt>
+            <span
+              class="cl-standings-promotion-legend__rail"
+              data-promotion-band-index={band.index}
+              aria-hidden="true"
+            />
+            {band.label}
+          </dt>
+          <dd>
+            {intl.formatMessage(messages.standingsPromotionBandRange, {
+              first: band.firstSeed,
+              last: band.lastSeed,
+            })}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  )}
+
   {legend.length > 0 && (
     <dl
       class="cl-table-legend"
@@ -388,14 +466,15 @@ const playerDialogLabels = {
         <h3 id="cl-player-dialog-title" class="cl-player-dialog__title">
           {intl.formatMessage(messages.playerProfileHeading)}
         </h3>
-        <button
+        <Button
           type="button"
+          variant="secondary"
           class="cl-player-dialog__close"
           aria-label={intl.formatMessage(messages.standingsCloseDialog)}
           data-close-dialog
         >
           ✕
-        </button>
+        </Button>
       </div>
       <div id="cl-player-dialog-body" class="cl-player-dialog__body" aria-live="polite">
         <p class="cl-player-dialog__loading">
@@ -899,5 +978,55 @@ const playerDialogLabels = {
   }
   .cl-modal-history-table th {
     background: var(--cl-surface-chrome);
+  }
+  .cl-standings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--cl-space-3);
+  }
+  .cl-standings-header h2 {
+    margin: 0;
+  }
+  .cl-standings-row--promotion > td:first-child {
+    border-inline-start: var(--cl-space-1) solid var(--cl-border-accent);
+  }
+  .cl-standings-qualification-tag,
+  .cl-standings-qualification-seed {
+    display: block;
+  }
+  .cl-standings-qualification-tag {
+    color: var(--cl-text-primary);
+    font-weight: var(--cl-weight-bold);
+  }
+  .cl-standings-qualification-seed {
+    color: var(--cl-text-secondary);
+    font-size: var(--cl-font-size-xs);
+  }
+  .cl-standings-promotion-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cl-space-3);
+    margin-block: var(--cl-space-3);
+  }
+  .cl-standings-promotion-legend__item,
+  .cl-standings-promotion-legend dt {
+    display: flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+  }
+  .cl-standings-promotion-legend dt {
+    font-weight: var(--cl-weight-bold);
+  }
+  .cl-standings-promotion-legend dd {
+    margin: 0;
+    color: var(--cl-text-secondary);
+  }
+  .cl-standings-promotion-legend__rail {
+    display: inline-block;
+    inline-size: var(--cl-space-1);
+    block-size: var(--cl-space-4);
+    background: var(--cl-border-accent);
   }
 </style>

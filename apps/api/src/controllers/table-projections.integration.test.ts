@@ -38,6 +38,7 @@ describe('table projections (integration)', () => {
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId: string;
   let tournamentId: string;
+  let stageId: string;
   let matchId: string;
   let segmentId: string;
   let entrantTalleres: string;
@@ -277,6 +278,7 @@ describe('table projections (integration)', () => {
         organizationId,
         ...AUDIT,
       });
+      stageId = stage.stageId;
       const [fixture] = await competition.createFixtures(uow, {
         stageId: stage.stageId,
         fixtures: [
@@ -393,6 +395,47 @@ describe('table projections (integration)', () => {
         ...AUDIT,
       }),
     );
+
+    const [sourceZone] = await competition.listZonesOfStage(stageId);
+    if (!sourceZone) throw new Error('Expected the stage fixture to create its source zone');
+    await withTransaction(scratch.db, async (uow) => {
+      const destinationStage = await competition.createStageInTournament(uow, {
+        tournamentId,
+        number: 2,
+        name: 'Etapa de promoción',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      await competition.createZone(uow, {
+        stageId: destinationStage.stageId,
+        number: 1,
+        name: 'Copa oro',
+        organizationId,
+        ...AUDIT,
+      });
+      await competition.createZone(uow, {
+        stageId: destinationStage.stageId,
+        number: 2,
+        name: 'Copa plata',
+        organizationId,
+        ...AUDIT,
+      });
+      await competition.createPromotionPlan(uow, {
+        zoneId: sourceZone.zoneId,
+        nextStageId: destinationStage.stageId,
+        plan: {
+          perGroupAdvance: 2,
+          combination: { mode: 'group-order' },
+          bands: [
+            { zoneRef: 'Copa oro', count: 1 },
+            { zoneRef: 'Copa plata', count: 1 },
+          ],
+        },
+        organizationId,
+        ...AUDIT,
+      });
+    });
   });
 
   afterAll(async () => {
@@ -644,6 +687,13 @@ describe('table projections (integration)', () => {
       expect(hiddenResponse.json().rows[0].entrantName).toBeUndefined();
       expect(hiddenResponse.json().rows[0].cells.player.formatted).toBe('');
 
+      const hiddenCsv = await getAnonymous(
+        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers/csv',
+      );
+      expect(hiddenCsv.statusCode).toBe(200);
+      expect(hiddenCsv.body).toContain('player,goals');
+      expect(hiddenCsv.body).not.toContain('Goleador');
+
       await withTransaction(scratch.db, async (uow) => {
         await people.setHiddenFromPublic(uow, {
           personId: personScorer,
@@ -697,6 +747,69 @@ describe('table projections (integration)', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().rows).toHaveLength(2);
+    });
+
+    it('serves a public stage table as CSV without requiring a token', async () => {
+      const response = await getAnonymous(
+        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default/csv',
+      );
+
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-type']).toContain('text/csv');
+      expect(response.headers['content-disposition']).toContain('attachment');
+      expect(response.body).toContain('rank,name,points,promotion_band,promotion_seed');
+      expect(response.body).toContain('1,Talleres,3,Copa oro,1');
+    });
+
+    it('serves a public tournament table as CSV without requiring a token', async () => {
+      const response = await getAnonymous(
+        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers/csv',
+      );
+
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-type']).toContain('text/csv');
+      expect(response.body).toContain('player,goals');
+      expect(response.body).toContain('Goleador,1');
+    });
+
+    it('projects saved promotion bands and seed tags from the public stage table', async () => {
+      const response = await getAnonymous(
+        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
+      );
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().promotionBands).toEqual([
+        { label: 'Copa oro', index: 0, firstSeed: 1, lastSeed: 1 },
+        { label: 'Copa plata', index: 1, firstSeed: 2, lastSeed: 2 },
+      ]);
+      expect(response.json().rows).toContainEqual(
+        expect.objectContaining({
+          entrantId: entrantTalleres,
+          promotionBandLabel: 'Copa oro',
+          promotionSeed: 1,
+        }),
+      );
+      expect(response.json().rows).toContainEqual(
+        expect.objectContaining({
+          entrantId: entrantIndependiente,
+          promotionBandLabel: 'Copa plata',
+          promotionSeed: 2,
+        }),
+      );
+    });
+
+    it('omits promotion bands when a public stage has no saved promotion plan', async () => {
+      const response = await getAnonymous(
+        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/2/public/tables/group-standings-default',
+      );
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().promotionBands).toBeUndefined();
+      expect(response.json().rows).toEqual(
+        expect.not.arrayContaining([
+          expect.objectContaining({ promotionBandLabel: expect.any(String) }),
+        ]),
+      );
     });
 
     it('reports an undrawn stage as one unnamed segment, not as its implicit group', async () => {

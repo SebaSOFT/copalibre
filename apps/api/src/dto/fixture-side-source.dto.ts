@@ -62,7 +62,15 @@ export const FIXTURE_SIDE_SOURCE_MODELS = [
 ];
 export const fixtureSideSourceSchema = {
   oneOf: FIXTURE_SIDE_SOURCE_MODELS.map((model) => ({ $ref: getSchemaPath(model) })),
-  discriminator: { propertyName: 'kind' },
+  discriminator: {
+    propertyName: 'kind',
+    mapping: {
+      entrant: getSchemaPath(EntrantFixtureSideSourceDto),
+      'winner-of': getSchemaPath(WinnerFixtureSideSourceDto),
+      'loser-of': getSchemaPath(LoserFixtureSideSourceDto),
+      qualifier: getSchemaPath(QualifierFixtureSideSourceDto),
+    },
+  },
 };
 
 /** Present only on persisted graph nodes; legacy responses retain their previous shape. */

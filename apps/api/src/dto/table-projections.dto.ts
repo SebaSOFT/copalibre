@@ -62,6 +62,19 @@ export class TableRowResponse {
   @ApiProperty({ description: 'True when another row holds the same rank' })
   sharedRank!: boolean;
 
+  @ApiPropertyOptional({
+    description: 'Destination zone from the saved promotion band this entrant qualifies for',
+  })
+  promotionBandLabel?: string;
+
+  @ApiPropertyOptional({
+    description: 'Zero-based position used to give each configured promotion band a visual rail',
+  })
+  promotionBandIndex?: number;
+
+  @ApiPropertyOptional({ description: '1-based seed position in the saved promotion plan' })
+  promotionSeed?: number;
+
   @ApiProperty({
     description: 'One cell per declared column, keyed by column code',
     type: TableCellResponse,
@@ -141,6 +154,25 @@ export class TableSortRuleResponse {
   direction!: string;
 }
 
+export class TablePromotionBandResponse {
+  @ApiProperty({ description: 'Destination zone name configured in the promotion plan' })
+  label!: string;
+
+  @ApiPropertyOptional({
+    description: 'Source zone whose entrants are shown in this table, when named',
+  })
+  sourceZoneName?: string;
+
+  @ApiProperty({ description: 'Zero-based position used to give each band a visual rail' })
+  index!: number;
+
+  @ApiProperty({ description: 'First seed position in this band, inclusive' })
+  firstSeed!: number;
+
+  @ApiProperty({ description: 'Last seed position in this band, inclusive' })
+  lastSeed!: number;
+}
+
 export class TableLayoutListResponse {
   @ApiProperty({ type: TableLayoutSummaryResponse, isArray: true })
   layouts!: TableLayoutSummaryResponse[];
@@ -201,4 +233,11 @@ export class TableProjectionResponse {
       'column `grain` changes the unit of. Present only alongside `grain`.',
   })
   countColumnCode?: string;
+
+  @ApiPropertyOptional({
+    type: TablePromotionBandResponse,
+    isArray: true,
+    description: 'Configured promotion bands for a stage-scoped public standings projection',
+  })
+  promotionBands?: TablePromotionBandResponse[];
 }

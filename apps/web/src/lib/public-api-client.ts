@@ -164,6 +164,24 @@ export async function fetchPublicTableProjection(
   return fetchOr404<TableProjectionResponse>(url);
 }
 
+export function publicTableCsvUrl(
+  organizationAlias: string,
+  tournamentAlias: string,
+  layoutCode: string,
+  stageNumber?: number,
+  clubId?: string,
+): string {
+  const baseUrl = getApiBaseUrl();
+  const scoped =
+    stageNumber === undefined
+      ? `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}`
+      : `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageNumber.toString())}`;
+  const params = new URLSearchParams();
+  if (clubId) params.set('clubId', clubId);
+  const query = params.size === 0 ? '' : `?${params}`;
+  return `${scoped}/public/tables/${encodeURIComponent(layoutCode)}/csv${query}`;
+}
+
 export async function fetchPlayerProfile(
   organizationAlias: string,
   tournamentAlias: string,

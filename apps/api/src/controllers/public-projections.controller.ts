@@ -1,6 +1,8 @@
-import { Controller, Get, Param, Query, Inject, Logger } from '@nestjs/common';
+import { Controller, Get, Header, Param, Query, Inject, Logger } from '@nestjs/common';
+import { QualificationError } from '@copalibre/tournament-engine';
 import { NotFoundException } from '../http/error-contract.js';
-import { ApiTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiOkResponse, ApiProduces } from '@nestjs/swagger';
+import { escapeCsvFormulaCell, stringifyCsv } from '@copalibre/domain/import-export';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import {
   Database,
@@ -59,6 +61,7 @@ import {
   reconstructChampionshipFixture,
 } from './tournament-winner-resolution.js';
 import { segmentedTableResponse, tableResponse } from './table-projections.controller.js';
+import { evaluateStoredPromotion, promotionPlanFromStored } from './promotion-plans.js';
 import { eventLabelFields, rosterRolesOf } from './public-match-labels.js';
 import { segmentSummariesOf } from './public-segments.js';
 import { publicRuleset } from './public-ruleset.js';
@@ -73,12 +76,37 @@ import {
   ageAt,
   primaryScoreOf,
   effectiveFormat,
+  isImplicitZone,
   type DisciplineDescriptor,
   type StatisticCollector,
   type Tournament,
   deriveTournamentStatus,
   runningTimers,
 } from '@copalibre/domain';
+import {
+  withPublicPromotionBands,
+  type PublicPromotionBand,
+} from '../table-projections/public-promotion-bands.js';
+
+function publicTableCsv(projection: TableProjectionResponse): string {
+  const columnCodes = projection.columns.map((column) => column.code);
+  const hasPromotionBands = (projection.promotionBands?.length ?? 0) > 0;
+  const outputColumns = hasPromotionBands
+    ? [...columnCodes, 'promotion_band', 'promotion_seed']
+    : columnCodes;
+  const rows = projection.rows.map((row) => ({
+    ...Object.fromEntries(
+      columnCodes.map((code) => [code, escapeCsvFormulaCell(row.cells[code]?.formatted ?? '')]),
+    ),
+    ...(hasPromotionBands
+      ? {
+          promotion_band: escapeCsvFormulaCell(row.promotionBandLabel ?? ''),
+          promotion_seed: row.promotionSeed === undefined ? '' : String(row.promotionSeed),
+        }
+      : {}),
+  }));
+  return stringifyCsv(outputColumns, rows);
+}
 
 @ApiTags('Public Projections')
 @Controller('organizations/:organizationAlias/public/tournaments')
@@ -1539,6 +1567,38 @@ export class PublicProjectionsController {
     return tableResponse(await this.protectPublicPersonRows(tournament, result));
   }
 
+  @Get('public/tables/:layoutCode/csv')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="standings.csv"')
+  @SecurityPlaneTag('public-read')
+  @ApiProduces('text/csv')
+  @ApiOperation({ summary: 'Download a tournament-wide public table as CSV' })
+  @ApiOkResponse({ description: 'CSV table export', schema: { type: 'string', format: 'binary' } })
+  async tournamentTableCsv(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('layoutCode') layoutCode: string,
+    @Query('clubId') clubId?: string,
+  ): Promise<string> {
+    const { tournament } = await this.resolvePublishedTournament(
+      organizationAlias,
+      tournamentAlias,
+    );
+    const result = await readTableProjection(
+      this.db,
+      {
+        organizationId: tournament.organizationId,
+        tournament: {
+          tournamentId: tournament.tournamentId,
+          disciplineRef: tournament.disciplineRef,
+        },
+        clubId,
+      },
+      layoutCode,
+    );
+    return publicTableCsv(tableResponse(await this.protectPublicPersonRows(tournament, result)));
+  }
+
   @Get('stages/:stageNumber/public/tables/:layoutCode')
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'A stage-scoped table projection (group standings, schedule tables)' })
@@ -1577,7 +1637,125 @@ export class PublicProjectionsController {
       },
       layoutCode,
     );
-    return segmentedTableResponse(await this.protectPublicPersonRows(tournament, result));
+    const protectedResult = await this.protectPublicPersonRows(tournament, result);
+    const response = segmentedTableResponse(protectedResult);
+    if (
+      result.layout.target !== 'group-phase' ||
+      (result.layout.entityGranularity !== 'team' && result.layout.entityGranularity !== 'club')
+    ) {
+      return response;
+    }
+    return withPublicPromotionBands(
+      response,
+      await this.publicPromotionBandsForStage(tournament, stage),
+    );
+  }
+
+  @Get('stages/:stageNumber/public/tables/:layoutCode/csv')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="standings.csv"')
+  @SecurityPlaneTag('public-read')
+  @ApiProduces('text/csv')
+  @ApiOperation({ summary: 'Download a stage-scoped public table as CSV' })
+  @ApiOkResponse({ description: 'CSV table export', schema: { type: 'string', format: 'binary' } })
+  async stageTableCsv(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber') stageNumberStr: string,
+    @Param('layoutCode') layoutCode: string,
+    @Query('clubId') clubId?: string,
+  ): Promise<string> {
+    const { tournament } = await this.resolvePublishedTournament(
+      organizationAlias,
+      tournamentAlias,
+    );
+    const stageNumber = parseInt(stageNumberStr, 10);
+    const stages = await new CompetitionRepository(this.db).listStagesOfTournament(
+      tournament.tournamentId,
+    );
+    const stage = stages.find((candidate) => candidate.number === stageNumber);
+    if (!stage)
+      throw new NotFoundException(`No stage ${stageNumberStr} in tournament`, {
+        errorCode: 'public-projection-not-found',
+      });
+    const result = await readSegmentedTableProjection(
+      this.db,
+      {
+        organizationId: tournament.organizationId,
+        tournament: {
+          tournamentId: tournament.tournamentId,
+          disciplineRef: tournament.disciplineRef,
+        },
+        stageId: stage.stageId,
+        clubId,
+      },
+      layoutCode,
+    );
+    const protectedResult = await this.protectPublicPersonRows(tournament, result);
+    let response = segmentedTableResponse(protectedResult);
+    if (
+      result.layout.target === 'group-phase' &&
+      (result.layout.entityGranularity === 'team' || result.layout.entityGranularity === 'club')
+    ) {
+      response = withPublicPromotionBands(
+        response,
+        await this.publicPromotionBandsForStage(tournament, stage),
+      );
+    }
+    return publicTableCsv(response);
+  }
+
+  private async publicPromotionBandsForStage(
+    tournament: Pick<Tournament, 'tournamentId' | 'disciplineRef'>,
+    stage: { readonly stageId: string; readonly number: number },
+  ): Promise<readonly PublicPromotionBand[]> {
+    const competition = new CompetitionRepository(this.db);
+    const zones = await competition.listZonesOfStage(stage.stageId);
+    const result: PublicPromotionBand[] = [];
+
+    for (const zone of zones) {
+      const saved = await competition.findPromotionPlan(zone.zoneId);
+      if (!saved) continue;
+      const plan = promotionPlanFromStored(zone.zoneId, saved.nextStageId, saved.plan);
+      if (plan.bands === undefined) continue;
+
+      let outcome;
+      try {
+        outcome = await evaluateStoredPromotion(this.db, {
+          tournamentId: tournament.tournamentId,
+          tournament,
+          sourceStageId: stage.stageId,
+          zone,
+          saved,
+        });
+      } catch (error) {
+        // A tied or unfinished qualification cut has no stable public seed order yet. Keep the
+        // configured legend, but do not mark rows as though that order were resolved.
+        if (!(error instanceof QualificationError)) throw error;
+      }
+
+      const seedByEntrant = new Map(
+        outcome?.combined.map((entrant, index) => [entrant.entrantId, index + 1]) ?? [],
+      );
+      let firstSeed = 1;
+      for (const band of plan.bands) {
+        const bandIndex = result.length;
+        const seeds = (outcome?.bands?.[band.zoneRef] ?? []).flatMap((entrant) => {
+          const seed = seedByEntrant.get(entrant.entrantId);
+          return seed === undefined ? [] : [{ entrantId: entrant.entrantId, seed }];
+        });
+        result.push({
+          label: band.zoneRef,
+          ...(isImplicitZone(zone) ? {} : { sourceZoneName: zone.name }),
+          index: bandIndex,
+          firstSeed,
+          lastSeed: firstSeed + band.count - 1,
+          seeds,
+        });
+        firstSeed += band.count;
+      }
+    }
+    return result;
   }
 
   @Get('persons/:personId/public/profile')

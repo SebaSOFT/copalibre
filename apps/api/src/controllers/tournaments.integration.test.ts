@@ -1403,6 +1403,7 @@ describe('organization-scoped tournament routes', () => {
 
   it('applies visibility rules to GET completion: allows public access for published, requires auth for draft', async () => {
     const tournaments = new TournamentRepository(scratch.db as Kysely<Database>);
+    const competition = new CompetitionRepository(scratch.db as Kysely<Database>);
     const descriptor = footballDescriptor();
     await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
       await tournaments.saveDescriptor(uow, descriptor, {
@@ -1431,6 +1432,46 @@ describe('organization-scoped tournament routes', () => {
     const created = JSON.parse(createdResponse.payload as string);
     const tournamentId = created.tournamentId;
 
+    const [stage] = await competition.listStagesOfTournament(tournamentId);
+    if (!stage) throw new Error('Expected tournament stage');
+    const [fixture] = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+    if (!fixture) throw new Error('Expected fixture');
+    const [finalizedMatch, scheduledMatch] = await withTransaction(
+      scratch.db as Kysely<Database>,
+      async (uow) => {
+        const finalized = await competition.createMatch(uow, {
+          fixtureId: fixture.fixtureId,
+          number: 1,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const scheduled = await competition.createMatch(uow, {
+          fixtureId: fixture.fixtureId,
+          number: 2,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const completed = await competition.recordResult(uow, {
+          matchId: finalized.matchId,
+          result: { sides: [], recordedAt: new Date().toISOString() },
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        return [completed, scheduled] as const;
+      },
+    );
+
     // 1. Unpublished (draft) tournament requested publicly (anonymous) -> 404
     const anonDraftResponse = await request({
       method: 'GET',
@@ -1448,8 +1489,21 @@ describe('organization-scoped tournament routes', () => {
     });
     expect(authDraftResponse.statusCode).toBe(200);
     const authDraftBody = JSON.parse(authDraftResponse.payload as string);
-    expect(authDraftBody.totalMatches).toBe(0);
+    expect(authDraftBody).toMatchObject({
+      totalMatches: 2,
+      resolvedMatches: 1,
+      scheduledMatches: 1,
+      finalizedMatches: 1,
+    });
     expect(authDraftBody.stages).toHaveLength(1);
+    expect(authDraftBody.stages[0]).toMatchObject({
+      totalMatches: 2,
+      resolvedMatches: 1,
+      scheduledMatches: 1,
+      finalizedMatches: 1,
+    });
+    expect(finalizedMatch.status).toBe('finalized');
+    expect(scheduledMatch.status).toBe('scheduled');
 
     // Publish the tournament
     await (scratch.db as Kysely<Database>)
@@ -1465,8 +1519,19 @@ describe('organization-scoped tournament routes', () => {
     });
     expect(anonPubResponse.statusCode).toBe(200);
     const anonPubBody = JSON.parse(anonPubResponse.payload as string);
-    expect(anonPubBody.totalMatches).toBe(0);
+    expect(anonPubBody).toMatchObject({
+      totalMatches: 2,
+      resolvedMatches: 1,
+      scheduledMatches: 1,
+      finalizedMatches: 1,
+    });
     expect(anonPubBody.stages).toHaveLength(1);
+    expect(anonPubBody.stages[0]).toMatchObject({
+      totalMatches: 2,
+      resolvedMatches: 1,
+      scheduledMatches: 1,
+      finalizedMatches: 1,
+    });
 
     // 4. Published tournament requested by authorized organizer -> 200
     const authPubResponse = await request({
@@ -1476,7 +1541,12 @@ describe('organization-scoped tournament routes', () => {
     });
     expect(authPubResponse.statusCode).toBe(200);
     const authPubBody = JSON.parse(authPubResponse.payload as string);
-    expect(authPubBody.totalMatches).toBe(0);
+    expect(authPubBody).toMatchObject({
+      totalMatches: 2,
+      resolvedMatches: 1,
+      scheduledMatches: 1,
+      finalizedMatches: 1,
+    });
   });
 });
 

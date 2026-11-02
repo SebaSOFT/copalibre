@@ -114,6 +114,7 @@ test('shows every match with venue/clock and the full comparator trace on a tieb
   await expect(page.getByText('Club Andes', { exact: true })).toBeVisible();
   await expect(page.getByText('Talleres', { exact: true })).toBeVisible();
   await expect(page.getByText('Estadio Central')).toBeVisible();
+  await expect(page.getByTestId('entrant-name').first()).toHaveCSS('text-transform', 'uppercase');
 
   // The full trace, not just the summary line, reaches this authorized screen —
   // collapsed by default, so open it before checking its content is present.

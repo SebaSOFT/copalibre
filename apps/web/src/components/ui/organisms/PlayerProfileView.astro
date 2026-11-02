@@ -12,6 +12,7 @@ import type {
 } from '@copalibre/api/src/dto/table-projections.dto.js';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { personPhotoUrl } from '../../../lib/public-api-client.ts';
+import { columnHint } from '../../../lib/column-hints.ts';
 import { localizedText } from '../../../lib/localized-label.ts';
 import PersonPhotoImage from '../atoms/PersonPhotoImage.astro';
 import DataTable from './DataTable.astro';
@@ -41,12 +42,16 @@ const {
 } = Astro.props;
 
 /** Tournament-total row: cells keyed directly by column code (not nested under `.cells`). */
-const totalColumns = (statistics?.columns ?? []).map((column) => ({
-  key: column.code,
-  header: localizedText(column.header, intl.locale),
-  render: (row: unknown) =>
-    (row as Record<string, TableCellResponse | undefined>)[column.code]?.formatted ?? '—',
-}));
+const totalColumns = (statistics?.columns ?? []).map((column) => {
+  const hint = columnHint(column, intl.locale);
+  return {
+    key: column.code,
+    header: hint.label,
+    ...(hint.hint === undefined ? {} : { headerHint: hint.hint }),
+    render: (row: unknown) =>
+      (row as Record<string, TableCellResponse | undefined>)[column.code]?.formatted ?? '—',
+  };
+});
 
 // Match rows only ever carry collector-kind cells — narrowed
 // to the columns actually present on a match row, in the tournament-total's
@@ -56,12 +61,16 @@ const matchCellCodes = new Set(
 );
 const matchStatColumns = (statistics?.columns ?? [])
   .filter((column) => matchCellCodes.has(column.code))
-  .map((column) => ({
-    key: column.code,
-    header: localizedText(column.header, intl.locale),
-    render: (row: unknown) =>
-      (row as PlayerStatisticsMatchRowResponse).cells[column.code]?.formatted ?? '—',
-  }));
+  .map((column) => {
+    const hint = columnHint(column, intl.locale);
+    return {
+      key: column.code,
+      header: hint.label,
+      ...(hint.hint === undefined ? {} : { headerHint: hint.hint }),
+      render: (row: unknown) =>
+        (row as PlayerStatisticsMatchRowResponse).cells[column.code]?.formatted ?? '—',
+    };
+  });
 const matchColumns = [
   {
     key: 'match',
@@ -335,6 +344,9 @@ const historyColumns = [
     display: flex;
     flex-direction: column;
     gap: 16px;
+  }
+  .cl-player-profile :global(.cl-data-table__table thead th) {
+    white-space: nowrap;
   }
   .cl-player-profile__layout-selector {
     display: flex;

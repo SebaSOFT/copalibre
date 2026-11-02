@@ -6,6 +6,7 @@ import type { TickerItem } from '../../../lib/ticker-items.ts';
 
 interface Props {
   readonly items: readonly TickerItem[];
+  readonly streamPath?: string;
   /** Accessible name for the rail; the caller holds the catalogue. */
   readonly label: string;
   /**
@@ -39,6 +40,7 @@ interface Props {
 }
 const {
   items,
+  streamPath,
   label,
   scale = 'web',
   stale = false,
@@ -61,6 +63,7 @@ const {
 <div
   class:list={['cl-ticker', `cl-ticker--${scale}`]}
   data-ticker
+  data-stream={streamPath}
   data-stale={stale ? 'true' : undefined}
   data-label-live={liveBadgeLabels?.live}
   data-label-upcoming={liveBadgeLabels?.upcoming}

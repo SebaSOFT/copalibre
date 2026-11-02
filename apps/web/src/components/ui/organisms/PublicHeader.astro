@@ -2,7 +2,7 @@
 /**
  * The public header.
  *
- * One navigation landmark, expanded by default. That ordering is deliberate:
+ * Both navigation landmarks, expanded by default. That ordering is deliberate:
  * the markup a browser with no JavaScript receives already has every link in
  * it, and the script's first act is to *close* the menu and reveal the control
  * that reopens it. Building it the other way round — hidden markup that script
@@ -21,6 +21,10 @@ import Button from '../atoms/Button.astro';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { getLocaleHomePath } from '../../../lib/locale.ts';
 import { swapLocale } from '../../../lib/locale-routing.ts';
+import type {
+  PublicTournamentNavigation,
+  PublicTournamentSection,
+} from '../../../lib/public-tournament-navigation.js';
 
 export interface LocaleOption {
   readonly locale: string;
@@ -34,8 +38,9 @@ interface Props {
    * a locale the page does not exist in.
    */
   readonly localeOptions?: readonly LocaleOption[];
+  readonly tournamentNavigation?: PublicTournamentNavigation;
 }
-const { intl, localeOptions = [] } = Astro.props;
+const { intl, localeOptions = [], tournamentNavigation } = Astro.props;
 
 const locale = intl.locale;
 const currentPathname = Astro.url.pathname;
@@ -50,11 +55,49 @@ const links = [
   // The TV display launcher: it has no locale segment, so the language travels as its query.
   { href: `/tv?lang=${locale}`, label: intl.formatMessage(messages.headerNavTv) },
 ];
+const tournamentLinks: readonly {
+  readonly section: PublicTournamentSection;
+  readonly href: string;
+  readonly label: string;
+}[] =
+  tournamentNavigation === undefined
+    ? []
+    : [
+        {
+          section: 'overview',
+          href: tournamentNavigation.tournamentPath,
+          label: intl.formatMessage(messages.headerTournamentOverview),
+        },
+        {
+          section: 'matches',
+          href: tournamentNavigation.tournamentPath + '/matches',
+          label: intl.formatMessage(messages.headerTournamentMatches),
+        },
+        {
+          section: 'standings',
+          href: tournamentNavigation.tournamentPath + '#standings',
+          label: intl.formatMessage(messages.headerTournamentStandings),
+        },
+        {
+          section: 'brackets',
+          href: tournamentNavigation.tournamentPath + '/stages/' + tournamentNavigation.stageNumber,
+          label: intl.formatMessage(messages.headerTournamentBrackets),
+        },
+        {
+          section: 'teams',
+          href: tournamentNavigation.tournamentPath + '#teams',
+          label: intl.formatMessage(messages.headerTournamentTeams),
+        },
+      ];
 
 const controlLabel = intl.formatMessage(messages.headerControlPanel);
 const navLabel = intl.formatMessage(messages.layoutNavAriaLabel);
+const globalSectionLabel = intl.formatMessage(messages.headerGlobalSection);
+const tournamentSectionLabel = intl.formatMessage(messages.headerTournamentSection);
 const openLabel = intl.formatMessage(messages.headerOpenMenu);
 const closeLabel = intl.formatMessage(messages.headerCloseMenu);
+const controlledNavigationIds =
+  tournamentLinks.length > 0 ? 'cl-public-nav cl-public-tournament-nav' : 'cl-public-nav';
 
 /** Endonyms, so a reader looking for their own language finds it written in it. */
 const languageName = (code: string): string => {
@@ -68,9 +111,14 @@ const languageName = (code: string): string => {
 
 <header class="cl-public-header">
   <Container class="cl-public-header__row" variant="public">
-    <Logo href={homeUrl} />
+    <div class="cl-public-header__brand">
+      <Logo href={homeUrl} />
+    </div>
 
     <nav aria-label={navLabel} class="cl-public-header__nav" id="cl-public-nav">
+      <span aria-hidden="true" class="cl-public-header__global-label">
+        {globalSectionLabel}
+      </span>
       <ul class="cl-public-header__links">
         {links.map((link) => (
           <li>
@@ -107,58 +155,51 @@ const languageName = (code: string): string => {
           </details>
         </li>
       </ul>
-      {/*
-        No repeated action here. The reference puts one in its drawer because
-        its drawer covers the row; this one displaces the page instead, so the
-        row — and the action in it — stays on screen the whole time. A second
-        link with the same text and destination, visible simultaneously, would
-        be a duplicate rather than a convenience.
-      */}
     </nav>
 
     <div class="cl-public-header__actions">
       {localeOptions.length > 1 && (
-        <details class="cl-public-header__locale">
-          <summary
-            aria-label={intl.formatMessage(messages.headerLanguage)}
-            class="cl-chamfer cl-chamfer--control cl-focusable"
-          >
-            <Icon name="language" size={16} />
-            <span>{locale.toUpperCase()}</span>
-            <span aria-hidden="true">⌄</span>
-          </summary>
-          <ul class="cl-public-header__locale-list cl-chamfer cl-chamfer--control">
-            {localeOptions.map((option) => (
-              <li>
-                <a
-                  aria-current={option.locale === locale ? 'true' : undefined}
-                  class="cl-public-header__link cl-focusable"
-                  href={swapLocale(currentPathname, option.locale)}
-                  hreflang={option.locale}
-                  lang={option.locale}
-                >
-                  {languageName(option.locale)}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </details>
+        <div class="cl-public-header__locale-item">
+          <details class="cl-public-header__locale">
+            <summary
+              aria-label={intl.formatMessage(messages.headerLanguage)}
+              class="cl-chamfer cl-chamfer--control cl-focusable"
+            >
+              <Icon name="language" size={16} />
+              <span>{locale.toUpperCase()}</span>
+              <span aria-hidden="true">⌄</span>
+            </summary>
+            <ul class="cl-public-header__locale-list cl-chamfer cl-chamfer--control">
+              {localeOptions.map((option) => (
+                <li>
+                  <a
+                    aria-current={option.locale === locale ? 'true' : undefined}
+                    class="cl-public-header__link cl-focusable"
+                    href={swapLocale(currentPathname, option.locale)}
+                    hreflang={option.locale}
+                    lang={option.locale}
+                  >
+                    {languageName(option.locale)}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </details>
+        </div>
       )}
-
       <a
         class="cl-public-header__cta cl-btn cl-btn--primary cl-chamfer cl-chamfer--control cl-focusable"
         href="/control/"
       >
         {controlLabel}
       </a>
-
       {/*
         Hidden until the script that gives it meaning has run — see the note at
         the top of this file. `hidden` rather than a class, so a browser that
         never runs the script leaves it out of the tab order too.
       */}
       <button
-        aria-controls="cl-public-nav"
+        aria-controls={controlledNavigationIds}
         aria-expanded="true"
         aria-label={closeLabel}
         class="cl-public-header__toggle cl-focusable"
@@ -173,6 +214,30 @@ const languageName = (code: string): string => {
       </button>
     </div>
   </Container>
+  {tournamentLinks.length > 0 && (
+    <div class="cl-public-header__context-band" id="cl-public-tournament-nav">
+      <Container class="cl-public-header__context-row" variant="public">
+        <nav aria-label={tournamentSectionLabel} class="cl-public-header__tournament-nav">
+          <span aria-hidden="true" class="cl-public-header__context-label">
+            {tournamentSectionLabel}
+          </span>
+          <ul class="cl-public-header__tournament-links">
+            {tournamentLinks.map((link) => (
+              <li>
+                <a
+                  aria-current={link.section === tournamentNavigation?.current ? 'page' : undefined}
+                  class="cl-public-header__link cl-public-header__tournament-link cl-focusable"
+                  href={link.href}
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </Container>
+    </div>
+  )}
 </header>
 
 <script>
@@ -187,19 +252,22 @@ const languageName = (code: string): string => {
     already there and already reachable; this closes it, reveals the control
     that reopens it, and keeps the two in step.
   */
-  const MEDIUM = '(min-width: 768px)';
+  const COMPACT = '(max-width: 768px)';
 
   function enhanceHeader(toggle: HTMLButtonElement) {
-    const nav = document.getElementById(toggle.getAttribute('aria-controls') ?? '');
-    if (!nav) return;
+    const panels = (toggle.getAttribute('aria-controls') ?? '')
+      .split(/\s+/)
+      .map((id) => document.getElementById(id))
+      .filter((panel): panel is HTMLElement => panel !== null);
+    if (panels.length === 0) return;
 
-    const wide = window.matchMedia(MEDIUM);
+    const compact = window.matchMedia(COMPACT);
 
     const setExpanded = (expanded: boolean) => {
       toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
       const label = expanded ? toggle.dataset.closeLabel : toggle.dataset.openLabel;
       if (label) toggle.setAttribute('aria-label', label);
-      nav.hidden = !expanded;
+      for (const panel of panels) panel.hidden = !expanded;
     };
 
     /*
@@ -209,9 +277,8 @@ const languageName = (code: string): string => {
       menu it can no longer open.
     */
     const apply = () => {
-      toggle.hidden = wide.matches;
-      setExpanded(wide.matches ? true : toggle.getAttribute('aria-expanded') === 'true');
-      if (wide.matches) nav.hidden = false;
+      toggle.hidden = !compact.matches;
+      setExpanded(!compact.matches || toggle.getAttribute('aria-expanded') === 'true');
     };
 
     toggle.addEventListener('click', () => {
@@ -221,13 +288,13 @@ const languageName = (code: string): string => {
     // Escape closes it and puts the focus back on the control that opened it,
     // rather than leaving the reader at the top of a page they did not move to.
     document.addEventListener('keydown', (event) => {
-      if (event.key !== 'Escape' || wide.matches) return;
+      if (event.key !== 'Escape' || !compact.matches) return;
       if (toggle.getAttribute('aria-expanded') !== 'true') return;
       setExpanded(false);
       toggle.focus();
     });
 
-    wide.addEventListener('change', apply);
+    compact.addEventListener('change', apply);
     setExpanded(false);
     apply();
   }

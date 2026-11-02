@@ -1,9 +1,103 @@
 import {
   applyTemplate,
   distinctFacetValues,
+  featuredMatchForSchedule,
   formatClock,
   groupMatchesByRound,
 } from './matches-view.js';
+import type { MatchCardData } from './matches-view.js';
+
+const scheduleMatch = (overrides: Partial<MatchCardData> = {}) => ({
+  matchId: 'match-1',
+  stageNumber: 1,
+  matchNumber: 1,
+  state: 'upcoming' as const,
+  ...overrides,
+});
+
+describe('featuredMatchForSchedule', () => {
+  it('features a finished final before a live match in the selected stage', () => {
+    const live = scheduleMatch({ matchId: 'live', state: 'live', matchNumber: 2 });
+    const final = scheduleMatch({
+      matchId: 'final',
+      branch: 'final',
+      state: 'final',
+      matchNumber: 3,
+    });
+
+    expect(featuredMatchForSchedule([live, final], [1], 1)).toBe(final);
+  });
+
+  it('prefers a scheduled final when a stage has a previous finished final', () => {
+    const finished = scheduleMatch({ matchId: 'finished', branch: 'final', state: 'final' });
+    const scheduled = scheduleMatch({
+      matchId: 'scheduled',
+      branch: 'final',
+      matchNumber: 2,
+    });
+
+    expect(featuredMatchForSchedule([finished, scheduled], [1], 1)).toBe(scheduled);
+  });
+
+  it('recognizes the terminal single-elimination round without a named final branch', () => {
+    const semi = scheduleMatch({ matchId: 'semi', round: 2, sourceFinalRound: 3 });
+    const final = scheduleMatch({
+      matchId: 'final',
+      matchNumber: 2,
+      round: 3,
+      sourceFinalRound: 3,
+    });
+
+    expect(featuredMatchForSchedule([semi, final], [1])).toBe(final);
+  });
+
+  it('features a later stage final ahead of earlier scheduled group matches', () => {
+    const groupMatch = scheduleMatch({ matchId: 'group-match', stageNumber: 1 });
+    const semi = scheduleMatch({
+      matchId: 'semi',
+      stageNumber: 2,
+      round: 2,
+      sourceFinalRound: 3,
+    });
+    const final = scheduleMatch({
+      matchId: 'final',
+      stageNumber: 2,
+      matchNumber: 34,
+      round: 3,
+      sourceFinalRound: 3,
+    });
+
+    expect(featuredMatchForSchedule([groupMatch, semi, final], [1, 2])).toBe(final);
+  });
+
+  it('falls back to the earliest live match in the active stage', () => {
+    const later = scheduleMatch({
+      matchId: 'later',
+      state: 'live',
+      matchNumber: 2,
+      scheduledAt: '2026-10-22T12:00:00.000Z',
+    });
+    const nextLive = scheduleMatch({
+      matchId: 'next-live',
+      state: 'live',
+      scheduledAt: '2026-10-22T11:00:00.000Z',
+    });
+
+    expect(featuredMatchForSchedule([later, nextLive], [1])).toBe(nextLive);
+  });
+
+  it('does not feature an upcoming match when no final or live match exists', () => {
+    const upcoming = scheduleMatch({ scheduledAt: '2026-10-22T11:00:00.000Z' });
+
+    expect(featuredMatchForSchedule([upcoming], [1])).toBeUndefined();
+  });
+
+  it('returns no featured match when the selected stage has no matches', () => {
+    const rows = [scheduleMatch({ stageNumber: 2 })];
+
+    expect(featuredMatchForSchedule(rows, [1, 2], 1)).toBeUndefined();
+  });
+});
 
 describe('formatClock', () => {
   it('pads under a minute and lets minutes exceed 59', () => {

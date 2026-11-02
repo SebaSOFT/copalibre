@@ -2,6 +2,8 @@ import {
   buildOverview,
   displayName,
   groupStandingsByZone,
+  overviewLeadFor,
+  sharedOverviewVenue,
   shortLabel,
   shouldShowChampionPodium,
   summarizeOverviewMatches,
@@ -22,6 +24,29 @@ describe('the overview model', () => {
   it('composes the competition name rather than storing it', () => {
     expect(displayName(model)).toBe('Torneo Apertura 2026');
     expect(displayName({ ...model, seasonName: undefined })).toBe('Torneo Apertura');
+  });
+
+  it('chooses the overview lead from tournament state', () => {
+    expect(overviewLeadFor('live')).toBe('now-strip');
+    expect(overviewLeadFor('finished')).toBe('honour-board');
+    expect(overviewLeadFor('upcoming')).toBe('schedule-preview');
+    expect(overviewLeadFor(undefined)).toBe('schedule-preview');
+  });
+
+  it('shows a tournament venue only when every match shares the same named venue', () => {
+    const fixture = (venueName?: string): OverviewMatch => ({
+      stageNumber: 1,
+      state: 'upcoming',
+      startsAt: '2026-10-22T12:00:00Z',
+      home: { name: 'Home' },
+      away: { name: 'Away' },
+      ...(venueName === undefined ? {} : { venueName }),
+    });
+
+    expect(sharedOverviewVenue([fixture(' Cancha 1 '), fixture('Cancha 1')])).toBe('Cancha 1');
+    expect(sharedOverviewVenue([fixture('Cancha 1'), fixture('Cancha 2')])).toBeUndefined();
+    expect(sharedOverviewVenue([fixture('Cancha 1'), fixture()])).toBeUndefined();
+    expect(sharedOverviewVenue([])).toBeUndefined();
   });
 
   it('omits the season entirely when a tournament has never named one', () => {

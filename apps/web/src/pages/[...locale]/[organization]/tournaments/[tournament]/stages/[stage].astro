@@ -23,6 +23,7 @@ import {
   mapOverviewResponse,
   mapBracketResponse,
   mapMatchesViewResponse,
+  publicTableCsvUrl,
 } from '../../../../../../lib/public-api-client.ts';
 import {
   publicIntl,
@@ -31,6 +32,7 @@ import {
 } from '../../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import { getLocalizedNotFoundPath } from '../../../../../../lib/locale.ts';
 
 /**
  * B3, the public bracket / stage matches view.
@@ -48,7 +50,7 @@ const labels = matchCardLabels(intl);
 
 const stageNumber = Number(stage ?? 1);
 if (Number.isNaN(stageNumber)) {
-  return Astro.rewrite('/404');
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
 
 const overviewData = await fetchOverview(organization!, tournament!);
@@ -56,7 +58,7 @@ const rawBracketData = await fetchBracket(organization!, tournament!, stageNumbe
 const bracketData = rawBracketData ? mapBracketResponse(rawBracketData) : undefined;
 
 if (!overviewData || !bracketData) {
-  return Astro.rewrite('/404');
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
 
 // Each zone is drawn by the format it plays. A stage whose zones all draw the same way keeps its
@@ -85,6 +87,9 @@ const activeClubId = Astro.url.searchParams.get('clubId') ?? undefined;
 // none, and the bracket above is its own ranking.
 const layoutsResponse = await fetchPublicTableLayouts(organization!, tournament!);
 const groupPhaseLayout = layoutsResponse?.layouts.find((one) => one.target === 'group-phase');
+const standingsCsvHref = groupPhaseLayout
+  ? publicTableCsvUrl(organization!, tournament!, groupPhaseLayout.code, stageNumber, activeClubId)
+  : undefined;
 const standingsProjection = groupPhaseLayout
   ? await fetchPublicTableProjection(
       organization!,
@@ -208,6 +213,8 @@ const zoneHeading = (name: string | undefined, index: number): string =>
                     layout={groupPhaseLayout}
                     organizationAlias={organization}
                     projection={zoneProjection(zone.zoneName)}
+                    csvHref={standingsCsvHref}
+                    sourceZoneName={zone.zoneName}
                     tournamentAlias={tournament}
                   />
                 )}
@@ -290,6 +297,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
         layout={groupPhaseLayout}
         organizationAlias={organization}
         projection={standingsProjection}
+        csvHref={standingsCsvHref}
         tournamentAlias={tournament}
       />
     )}

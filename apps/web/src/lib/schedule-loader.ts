@@ -16,9 +16,9 @@ export interface LoadedSchedule {
   readonly stageOptions: readonly { readonly stageNumber: number; readonly stageName: string }[];
   /** Promotion-band order from the stage bracket, used by the zone filter. */
   readonly zoneOrder: readonly string[];
-  /** The rows the stage and state filters returned, before any zone or group is chosen: the facets' source. */
+  /** All rows in the selected stage scope, before state, zone, or group filters. */
   readonly stageRows: readonly MatchCardData[];
-  /** The rows left once the zone and group are applied. */
+  /** The rows left once state, zone, and group filters are applied. */
   readonly rows: readonly MatchCardData[];
   readonly stages: readonly ScheduleStage[];
 }
@@ -41,7 +41,7 @@ export async function loadSchedule(args: {
     fetchCompletion(organization, tournament),
     fetchMatchesView(organization, tournament, {
       ...(stageNumber === undefined ? {} : { stageNumber }),
-      state,
+      state: 'all',
     }),
   ]);
   if (!view) return undefined;
@@ -60,7 +60,9 @@ export async function loadSchedule(args: {
           .map((stageNumber) => ({ stageNumber, stageName: '' }));
   const zoneRows =
     zone === undefined ? stageRows : stageRows.filter((row) => row.zoneName === zone);
-  const rows = group === undefined ? zoneRows : zoneRows.filter((row) => row.groupName === group);
+  const groupRows =
+    group === undefined ? zoneRows : zoneRows.filter((row) => row.groupName === group);
+  const rows = state === 'all' ? groupRows : groupRows.filter((row) => row.state === state);
 
   const shown = stageOptions.filter(
     (one) => stageNumber === undefined || one.stageNumber === stageNumber,

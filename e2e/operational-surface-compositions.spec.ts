@@ -241,6 +241,16 @@ test.describe('Public header, expanding in page flow', () => {
     expect(await page.locator('#cl-public-nav a:visible').count()).toBe(0);
   });
 
+  test('the inclusive 768px breakpoint starts with the menu collapsed', async ({ page }) => {
+    await page.setViewportSize({ width: 768, height: 900 });
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}`);
+
+    const toggle = page.locator('[data-public-nav-toggle]');
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('#cl-public-nav')).toBeHidden();
+  });
+
   test('Escape closes the menu and returns focus to the control that opened it', async ({
     page,
   }) => {

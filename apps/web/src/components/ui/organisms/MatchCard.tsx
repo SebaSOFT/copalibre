@@ -95,8 +95,12 @@ export function MatchCard({
   const hasFullTrace =
     (match.homeTrace !== undefined && match.homeTrace.length > 0) ||
     (match.awayTrace !== undefined && match.awayTrace.length > 0);
+  const showScores =
+    match.state !== 'upcoming' || (match.homeScore !== undefined && match.awayScore !== undefined);
   const homeName = match.homeName ?? homeSource.long;
   const awayName = match.awayName ?? awaySource.long;
+  const versus = labels.versus ?? 'vs';
+  const matchTitle = applyTemplate(labels.matchHeading, { match: String(match.matchNumber) });
   const homeEmblemSrc =
     organizationAlias && match.homeClubId && match.homeEmblemObjectId
       ? clubEmblemUrl(organizationAlias, match.homeClubId)
@@ -107,7 +111,6 @@ export function MatchCard({
       : undefined;
 
   if (compact) {
-    const versus = labels.versus ?? 'vs';
     const homeCompactName =
       compactNames === 'full'
         ? homeName
@@ -209,8 +212,12 @@ export function MatchCard({
           {reportUrl === undefined ? (
             applyTemplate(labels.matchHeading, { match: String(match.matchNumber) })
           ) : (
-            <a className="cl-match-card__report-link cl-focusable" href={reportUrl}>
-              {applyTemplate(labels.matchHeading, { match: String(match.matchNumber) })}
+            <a
+              aria-label={`${matchTitle}: ${homeName} ${versus} ${awayName}`}
+              className="cl-match-card__report-link cl-focusable"
+              href={reportUrl}
+            >
+              {matchTitle}
             </a>
           )}
         </MatchHeading>
@@ -255,7 +262,9 @@ export function MatchCard({
               #{match.homePosition}
             </Badge>
           )}
-          <ValueFlash className="cl-stat-tile__value cl-tabular-nums" value={match.homeScore} />
+          {showScores && (
+            <ValueFlash className="cl-stat-tile__value cl-tabular-nums" value={match.homeScore} />
+          )}
         </li>
         <li className="cl-match-card__side">
           <EntrantEmblem
@@ -278,7 +287,9 @@ export function MatchCard({
               #{match.awayPosition}
             </Badge>
           )}
-          <ValueFlash className="cl-stat-tile__value cl-tabular-nums" value={match.awayScore} />
+          {showScores && (
+            <ValueFlash className="cl-stat-tile__value cl-tabular-nums" value={match.awayScore} />
+          )}
         </li>
       </ol>
 
@@ -336,7 +347,7 @@ export function MatchCard({
         />
       )}
 
-      {match.decidingFactor !== undefined && (
+      {match.state === 'final' && match.decidingFactor !== undefined && (
         <p className="cl-match-card__deciding-factor" title={labels.decidedByAriaLabel}>
           {applyTemplate(labels.decidedBy, { factor: match.decidingFactor })}
         </p>

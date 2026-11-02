@@ -1,0 +1,91 @@
+---
+import type { OverviewModel } from '../../../lib/overview.ts';
+import type { TournamentHeroLabels } from '../../../lib/i18n/public-intl.ts';
+import type { TrailItem } from '../../../lib/breadcrumb.ts';
+import { Badge } from '../atoms/Badge.tsx';
+import Breadcrumb from './Breadcrumb.astro';
+import TournamentHero from '../molecules/TournamentHero.astro';
+
+interface Props {
+  readonly model: OverviewModel;
+  readonly labels: TournamentHeroLabels;
+  readonly trail: readonly TrailItem[];
+  readonly breadcrumbLabel: string;
+  readonly collapsedBreadcrumbLabel: string;
+  readonly facts: readonly string[];
+  readonly stateLabel?: string;
+}
+
+const { model, labels, trail, breadcrumbLabel, collapsedBreadcrumbLabel, facts, stateLabel } =
+  Astro.props;
+const stateClass =
+  model.status === 'finished'
+    ? 'cl-badge--final'
+    : model.status === 'live'
+      ? ''
+      : 'cl-badge--upcoming';
+---
+
+<section class="cl-overview-hero cl-chamfer" aria-labelledby="tournament-title">
+  <span class="cl-overview-hero__rail" aria-hidden="true"></span>
+  <Breadcrumb items={trail} ariaLabel={breadcrumbLabel} collapsedLabel={collapsedBreadcrumbLabel} />
+  <TournamentHero labels={labels} model={model} showLiveBadge={false} />
+  {(stateLabel !== undefined || facts.length > 0) && (
+    <ul class="cl-overview-hero__facts">
+      {stateLabel && (
+        <li class="cl-overview-hero__state">
+          <Badge className={stateClass}>{stateLabel}</Badge>
+        </li>
+      )}
+      {facts.map((fact) => (
+        <li>{fact}</li>
+      ))}
+    </ul>
+  )}
+</section>
+
+<style>
+  .cl-overview-hero {
+    position: relative;
+    display: grid;
+    gap: var(--cl-space-2);
+    overflow: hidden;
+    border: 1px solid var(--cl-border-muted);
+    background: var(--cl-surface-base);
+    margin-block-end: var(--cl-space-4);
+  }
+
+  .cl-overview-hero__rail {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    inline-size: var(--cl-space-8);
+    block-size: var(--cl-space-1);
+    background: var(--cl-primary);
+  }
+
+  .cl-overview-hero__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cl-space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0 var(--cl-space-5) var(--cl-space-4);
+  }
+
+  .cl-overview-hero__facts li {
+    border: 1px solid var(--cl-border-muted);
+    background: var(--cl-surface-chrome);
+    color: var(--cl-text-secondary);
+    padding: var(--cl-space-1) var(--cl-space-2);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    overflow-wrap: anywhere;
+  }
+
+  .cl-overview-hero__facts li.cl-overview-hero__state {
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+</style>

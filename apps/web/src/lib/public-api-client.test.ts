@@ -9,6 +9,7 @@ import {
   fetchOrganizationTournaments,
   fetchPublicTableLayouts,
   fetchPublicTableProjection,
+  publicTableCsvUrl,
   mapOverviewResponse,
   mapPublicWinnerZones,
   mapLiveResponse,
@@ -414,6 +415,20 @@ describe('public-api-client', () => {
       } as unknown as Response);
 
       expect(await fetchPublicTableProjection('org1', 'tourney1', 'nonexistent')).toBeUndefined();
+    });
+  });
+
+  describe('publicTableCsvUrl', () => {
+    it('builds a tournament-wide CSV URL', () => {
+      expect(publicTableCsvUrl('org1', 'tourney1', 'top-scorers')).toBe(
+        'http://api.test/organizations/org1/tournaments/tourney1/public/tables/top-scorers/csv',
+      );
+    });
+
+    it('builds a stage-scoped CSV URL and retains the club filter', () => {
+      expect(publicTableCsvUrl('org1', 'tourney1', 'group-standings-default', 2, 'club-123')).toBe(
+        'http://api.test/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default/csv?clubId=club-123',
+      );
     });
   });
 

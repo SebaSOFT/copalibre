@@ -25,12 +25,14 @@ import {
   formatDateTime,
 } from '../../../../../../../../lib/i18n/public-intl.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import { getLocalizedNotFoundPath } from '../../../../../../../../lib/locale.ts';
 
 export const prerender = false;
 
 const { locale, organization, tournament, stage, match } = Astro.params;
 const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
 const intl = publicIntl(resolvedLocale);
+const notFoundPath = getLocalizedNotFoundPath(resolvedLocale);
 const stageNumber = Number(stage);
 const matchNumber = Number(match);
 
@@ -40,12 +42,12 @@ if (
   !Number.isSafeInteger(matchNumber) ||
   matchNumber < 1
 ) {
-  return Astro.rewrite('/404');
+  return Astro.rewrite(notFoundPath);
 }
 
 const response = await fetchMatchReport(organization!, tournament!, stageNumber, matchNumber);
 if (!response) {
-  return Astro.rewrite('/404');
+  return Astro.rewrite(notFoundPath);
 }
 
 const officialRoleMessages = {

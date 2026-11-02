@@ -21,6 +21,7 @@ import {
 import { publicIntl, resultStateLabels } from '../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import { getLocalizedNotFoundPath } from '../../../../../lib/locale.ts';
 
 /**
  * B2, the live dashboard.
@@ -43,7 +44,7 @@ const liveData = await fetchLive(organization!, tournament!);
 const dashboard = liveData ? mapLiveResponse(liveData) : undefined;
 
 if (!overviewData || !dashboard) {
-  return Astro.rewrite('/404');
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));

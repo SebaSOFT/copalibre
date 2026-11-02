@@ -204,6 +204,11 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
 ---
 
 <div class="cl-match-schedule">
+  {presentation === 'rows' && stages.length > 0 && (
+    <p class="cl-match-schedule__scroll-hint" role="note">
+      {intl.formatMessage(messages.matchesViewTableScrollHint)}
+    </p>
+  )}
   {stages.length === 0 && <p class="cl-empty-state">{emptyLabel}</p>}
   {stages.map((stage) => {
     const named = stages.length > 1;
@@ -342,12 +347,39 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
   }
   .cl-match-schedule :global(.cl-data-table__table) {
     display: table;
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
   }
-  /* On a wide screen every table shares one column grid, so groups line up under each other. */
-  @media (min-width: 768px) {
+  .cl-match-schedule :global(.cl-data-table__table th) {
+    white-space: nowrap;
+  }
+  /* Wide screens share a column grid; give team names the room their score does not need. */
+  @media (min-width: 1024px) {
     .cl-match-schedule :global(.cl-data-table__table) {
       table-layout: fixed;
+      width: 100%;
+    }
+    .cl-match-schedule :global(.cl-data-table__table th[data-column='kickoff']),
+    .cl-match-schedule :global(.cl-data-table__table td[data-column='kickoff']) {
+      width: 16%;
+    }
+    .cl-match-schedule :global(.cl-data-table__table th[data-column='home']),
+    .cl-match-schedule :global(.cl-data-table__table td[data-column='home']),
+    .cl-match-schedule :global(.cl-data-table__table th[data-column='away']),
+    .cl-match-schedule :global(.cl-data-table__table td[data-column='away']) {
+      width: 22%;
+    }
+    .cl-match-schedule :global(.cl-data-table__table th[data-column='score']),
+    .cl-match-schedule :global(.cl-data-table__table td[data-column='score']) {
+      width: 11%;
+    }
+    .cl-match-schedule :global(.cl-data-table__table th[data-column='state']),
+    .cl-match-schedule :global(.cl-data-table__table td[data-column='state']) {
+      width: 14%;
+    }
+    .cl-match-schedule :global(.cl-data-table__table th[data-column='venue']),
+    .cl-match-schedule :global(.cl-data-table__table td[data-column='venue']) {
+      width: 15%;
     }
     .cl-match-schedule :global(.cl-data-table__table td) {
       overflow: hidden;
@@ -370,5 +402,16 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
     margin: 0;
     font-size: var(--cl-font-size-sm);
     color: var(--cl-text-muted);
+  }
+  .cl-match-schedule__scroll-hint {
+    display: none;
+  }
+  @media (max-width: 768px) {
+    .cl-match-schedule__scroll-hint {
+      display: block;
+      margin: 0;
+      color: var(--cl-text-muted);
+      font-size: var(--cl-font-size-sm);
+    }
   }
 </style>

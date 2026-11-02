@@ -109,23 +109,12 @@ async function mockControlCompletionApi(page: Page): Promise<void> {
 }
 
 test.describe('Tournament completion overview', () => {
-  test('public overview shows tournament completion figure and per-stage breakdown', async ({
-    page,
-  }) => {
+  test('public overview keeps the compact completion summary in its hero', async ({ page }) => {
     await page.goto(PUBLIC_TOURNAMENT_PATH);
 
-    const figure = page.locator('.cl-completion-figure');
-    await expect(figure).toBeVisible();
-
-    await expect(figure.getByRole('heading', { name: 'Tournament Progress' })).toBeVisible();
-    await expect(figure.getByText('18 of 32 matches played')).toBeVisible();
-    await expect(figure.getByText('In progress')).toBeVisible();
-    await expect(figure.getByText('◐')).toBeVisible();
-
-    await expect(figure.getByText('Group Stage')).toBeVisible();
-    await expect(figure.getByText('18 / 24')).toBeVisible();
-    await expect(figure.getByText('Playoffs')).toBeVisible();
-    await expect(figure.getByText('0 / 8')).toBeVisible();
+    const hero = page.locator('.cl-overview-hero');
+    await expect(hero.locator('.cl-overview-hero__facts')).toContainText('18 of 32 matches played');
+    await expect(page.locator('.cl-completion-figure')).toHaveCount(0);
   });
 
   test('control view shows matching completion figures for the organizer', async ({ page }) => {

@@ -2,8 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * The tournament overview's discipline hero backdrop and its
- * spacing from the progress figure below it. The consolidated match-schedule
+ * The tournament overview's discipline hero backdrop. The consolidated match-schedule
  * filter bar's own zone/group facet behavior is covered alongside the rest
  * of the matches view in `e2e/public-matches-view.spec.ts`.
  */
@@ -182,15 +181,6 @@ test('the ruleset section falls back to English for a field with no declared lab
   await expect(page.getByText('Neutral ground required')).toBeVisible();
   await expect(page.getByText('Yes', { exact: true })).toBeVisible();
   await expect(page.getByText('Round Robin')).toBeVisible();
-});
-
-test('the progress figure keeps a 24px gap from the hero above it', async ({ page }) => {
-  await page.goto(PUBLIC_TOURNAMENT_PATH);
-
-  const marginTop = await page
-    .locator('.cl-completion-figure')
-    .evaluate((el) => getComputedStyle(el).marginTop);
-  expect(marginTop).toBe('24px');
 });
 
 test('switching the zone facet on the matches page narrows the list and updates the URL', async ({

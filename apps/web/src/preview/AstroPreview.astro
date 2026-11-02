@@ -31,9 +31,13 @@ import BroadcastStatusPanel from '../components/ui/molecules/BroadcastStatusPane
 import RulesetBriefing from '../components/ui/molecules/RulesetBriefing.astro';
 import SeriesStateBar from '../components/ui/molecules/SeriesStateBar.astro';
 import TournamentHero from '../components/ui/molecules/TournamentHero.astro';
+import TournamentOverviewHero from '../components/ui/organisms/TournamentOverviewHero.astro';
 import BracketView from '../components/ui/organisms/BracketView.astro';
 import Breadcrumb from '../components/ui/organisms/Breadcrumb.astro';
 import ChampionPodium from '../components/ui/organisms/ChampionPodium.astro';
+import TournamentHonourBoard from '../components/ui/organisms/TournamentHonourBoard.astro';
+import TournamentNowStrip from '../components/ui/organisms/TournamentNowStrip.astro';
+import FeaturedMatchCard from '../components/ui/organisms/FeaturedMatchCard.astro';
 import BracketGraph from '../components/ui/organisms/BracketGraph.astro';
 import MatchNodeCompact from '../components/ui/molecules/MatchNodeCompact.astro';
 import PlacementGames from '../components/ui/molecules/PlacementGames.astro';
@@ -69,6 +73,7 @@ import {
   tickerChromeLabels,
   tickerLabels,
   tournamentHeroLabels,
+  completionFigureLabels,
 } from '../lib/i18n/public-intl.ts';
 import { messages } from '../lib/i18n/public-messages.en.ts';
 import {
@@ -81,6 +86,7 @@ import {
   referenceMatchReportModel,
   referenceOverview,
   referencePlayerProfile,
+  referencePromotionTableProjection,
   referenceSeries,
   referenceStandings,
   referenceTableLayouts,
@@ -89,6 +95,7 @@ import {
   referenceWinnerZones,
 } from '../lib/reference-fixtures.ts';
 import { displayName, type StandingsRowView } from '../lib/overview.ts';
+import type { MatchCardData } from '../lib/matches-view.ts';
 import { toSeriesInput } from '../lib/series.ts';
 import { buildTickerItems } from '../lib/ticker-items.ts';
 
@@ -133,6 +140,11 @@ const PREVIEWABLE = new Set([
   'ruleset-briefing',
   'series-state-bar',
   'tournament-hero',
+  'tournament-overview-hero',
+  'tournament-now-strip',
+  'tournament-honour-board',
+  'tournament-honour-board-single',
+  'featured-match-card',
   'champion-podium',
   'champion-podium-shared-title',
   'champion-podium-empty',
@@ -156,6 +168,7 @@ const PREVIEWABLE = new Set([
   'player-profile-view',
   'club-filter-chip',
   'standings-table',
+  'standings-table-promotion',
   'tournament-card',
   'tournament-section',
 ]);
@@ -181,6 +194,46 @@ const tickerLabel = intl.formatMessage({ id: 'ticker.label', defaultMessage: 'Li
 
 const overview = referenceOverview();
 const heroLabels = tournamentHeroLabels(intl, overview);
+const overviewHeroFacts = [
+  completionFigureLabels(intl, { totalMatches: 18, resolvedMatches: 7 }).summary,
+];
+const previewMatch = (index: number, state: MatchCardData['state']): MatchCardData => {
+  const match = overview.matches[index];
+  if (!match) throw new Error(`Missing reference match at index ${index}`);
+  return {
+    matchId: `01936f4a-210${index + 1}-7000-8000-00000000000${index + 1}`,
+    stageNumber: match.stageNumber,
+    matchNumber: match.matchNumber ?? index + 1,
+    state,
+    homeName: match.home.name,
+    ...(state === 'upcoming' || match.home.score === undefined
+      ? {}
+      : { homeScore: match.home.score }),
+    awayName: match.away.name,
+    ...(state === 'upcoming' || match.away.score === undefined
+      ? {}
+      : { awayScore: match.away.score }),
+    ...(match.startsAt === '' ? {} : { scheduledAt: match.startsAt }),
+  };
+};
+const previewNowEntries = [
+  {
+    kind: 'live' as const,
+    match: previewMatch(0, 'live'),
+    href: '/reference-league/tournaments/reference-cup/stages/1/matches/1',
+  },
+  {
+    kind: 'upcoming' as const,
+    match: previewMatch(1, 'upcoming'),
+    href: '/reference-league/tournaments/reference-cup/stages/1/matches/2',
+  },
+  {
+    kind: 'final' as const,
+    match: previewMatch(2, 'final'),
+    href: '/reference-league/tournaments/reference-cup/stages/1/matches/3',
+  },
+];
+const featuredPreviewMatch = previewMatch(2, 'final');
 const seriesBarProps = seriesStateBarLabels(intl, toSeriesInput(referenceSeries()), {
   homeName: 'Meridian Seven',
   awayName: 'Ironclad Five',
@@ -270,6 +323,11 @@ const [compactSample] = referenceJourneyBracket(true);
             locale: language,
             href: language === 'en' ? '/' : `/${language}/`,
           }))}
+          tournamentNavigation={{
+            current: 'overview',
+            stageNumber: 2,
+            tournamentPath: '/es/reference-league/tournaments/reference-cup',
+          }}
         />
       )
     }
@@ -533,6 +591,52 @@ const [compactSample] = referenceJourneyBracket(true);
       component === 'series-state-bar' && <SeriesStateBar {...seriesBarProps} />
     }
     {component === 'tournament-hero' && <TournamentHero labels={heroLabels} model={overview} />}
+    {component === 'tournament-overview-hero' && (
+      <TournamentOverviewHero
+        model={overview}
+        labels={heroLabels}
+        trail={[
+          { label: overview.organizationName, href: `/${overview.organizationAlias}` },
+          { label: displayName(overview) },
+        ]}
+        breadcrumbLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+        collapsedBreadcrumbLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+        stateLabel={heroLabels.liveCountText}
+        facts={overviewHeroFacts}
+      />
+    )}
+    {component === 'tournament-now-strip' && (
+      <TournamentNowStrip
+        heading={intl.formatMessage(messages.overviewNowStripHeading)}
+        entries={previewNowEntries}
+        labels={matchCardLabels(intl)}
+        locale={locale}
+      />
+    )}
+    {component === 'tournament-honour-board' && (
+      <TournamentHonourBoard
+        heading={intl.formatMessage(messages.overviewHonourBoardHeading)}
+        winners={referenceWinnerZones()}
+        intl={intl}
+      />
+    )}
+    {component === 'tournament-honour-board-single' && (
+      <TournamentHonourBoard
+        heading={intl.formatMessage(messages.overviewHonourBoardHeading)}
+        winners={referenceWinnerZones().slice(0, 1)}
+        intl={intl}
+      />
+    )}
+    {component === 'featured-match-card' && (
+      <FeaturedMatchCard
+        heading={intl.formatMessage(messages.overviewFeaturedMatchHeading)}
+        match={featuredPreviewMatch}
+        href="/reference-league/tournaments/reference-cup/stages/1/matches/3"
+        labels={matchCardLabels(intl)}
+        locale={locale}
+        organizationAlias="reference-league"
+      />
+    )}
     {component === 'page-header' && (
       <PageHeader
         title={displayName(overview)}
@@ -742,6 +846,19 @@ const [compactSample] = referenceJourneyBracket(true);
         layouts={referenceTableLayouts()}
         organizationAlias="reference-league"
         projection={referenceTableProjection()}
+        tournamentAlias="reference-cup"
+      />
+    )}
+    {component === 'standings-table-promotion' && (
+      <StandingsTable
+        activeLayoutCode="group-table"
+        canonicalPath="/reference-league/tournaments/reference-cup/standings"
+        clubs={referenceClubs()}
+        intl={intl}
+        layout={referenceTableLayouts()[0]}
+        layouts={referenceTableLayouts()}
+        organizationAlias="reference-league"
+        projection={referencePromotionTableProjection()}
         tournamentAlias="reference-cup"
       />
     )}

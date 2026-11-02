@@ -135,6 +135,16 @@ export const FIGURE_SIZE = {
   '2xl': '1.875rem',
 } as const;
 
+/** Line-height ratios for the typography roles documented in DESIGN.md. */
+export const LINE_HEIGHT = {
+  display: '1.1',
+  headline: '1.2',
+  title: '1.3',
+  body: '1.5',
+  label: '1.4',
+  figure: '1.2',
+} as const;
+
 /**
  * Viewport widths from the visual-identity doctrine's screenshot acceptance
  * gate: small phone, tablet, small laptop, and desktop.

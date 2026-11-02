@@ -10,6 +10,7 @@ import {
   FIGURE_SIZE,
   FONT_SIZE,
   FONT_WEIGHTS,
+  LINE_HEIGHT,
   MOTION,
   RADIUS,
   SPACING,
@@ -108,6 +109,7 @@ export function generateCss(): string {
     `  --cl-font-mono: ${TYPOGRAPHY.mono};`,
     ...Object.entries(FONT_WEIGHTS).map(([name, value]) => `  --cl-weight-${name}: ${value};`),
     ...Object.entries(FONT_SIZE).map(([name, value]) => `  --cl-font-size-${name}: ${value};`),
+    ...Object.entries(LINE_HEIGHT).map(([name, value]) => `  --cl-line-height-${name}: ${value};`),
     ...Object.entries(FIGURE_SIZE).map(
       ([name, value]) => `  --cl-font-size-figure-${name}: ${value};`,
     ),
@@ -817,7 +819,7 @@ function components(): string {
     '.cl-reason-prompt__summary { margin: 0; font-family: var(--cl-font-mono); font-size: var(--cl-font-size-sm); }',
     '.cl-reason-prompt__hint { margin: 0; color: var(--cl-text-muted); font-size: var(--cl-font-size-xs); }',
     '.cl-select-native { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; pointer-events: none; }',
-    '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); }',
+    '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); line-height: var(--cl-line-height-label); }',
     '',
     '.cl-form-field { display: grid; gap: var(--cl-space-1); min-width: 0; }',
     '.cl-form-field__error { margin: 0; color: var(--cl-state-destructive); font-size: var(--cl-font-size-xs); }',
@@ -1113,6 +1115,7 @@ function components(): string {
     '  gap: var(--cl-space-1);',
     '  font-family: var(--cl-font-display);',
     '  font-weight: var(--cl-weight-semibold);',
+    '  line-height: var(--cl-line-height-label);',
     '  text-transform: uppercase;',
     '  padding: var(--cl-space-1) var(--cl-space-2) var(--cl-space-1) var(--cl-space-3);',
     '}',
@@ -1237,7 +1240,7 @@ function components(): string {
     '}',
     '/* Numeric columns read right-aligned against the figure above them. */',
     '.cl-table__num { text-align: right; }',
-    '.cl-tabular-nums { font-variant-numeric: tabular-nums; }',
+    '.cl-tabular-nums { font-variant-numeric: tabular-nums; line-height: var(--cl-line-height-figure); }',
     '.cl-table tbody tr:last-child th,',
     '.cl-table tbody tr:last-child td { border-block-end: none; }',
     '',
@@ -1363,6 +1366,7 @@ function components(): string {
     '  font-family: var(--cl-font-display);',
     '  font-size: var(--cl-font-size-figure-2xl);',
     '  font-weight: var(--cl-weight-bold);',
+    '  line-height: var(--cl-line-height-figure);',
     '  /* Scores that shift width as they change are scores nobody can read. */',
     '  font-variant-numeric: tabular-nums;',
     '}',
@@ -1391,6 +1395,8 @@ function components(): string {
      */
     'a { color: var(--cl-state-live); }',
     '',
+    'html { line-height: var(--cl-line-height-body); }',
+    '',
     /*
      * Headings use the display face.
      *
@@ -1404,12 +1410,12 @@ function components(): string {
      * component's or the page's call.
      */
     'h1, h2, h3, h4, h5, h6 { font-family: var(--cl-font-display); letter-spacing: var(--cl-tracking-wide); }',
-    'h1 { font-size: var(--cl-font-size-3xl); }',
-    'h2 { font-size: var(--cl-font-size-2xl); }',
-    'h3 { font-size: var(--cl-font-size-xl); }',
-    'h4 { font-size: var(--cl-font-size-lg); }',
-    'h5 { font-size: var(--cl-font-size-md); }',
-    'h6 { font-size: var(--cl-font-size-base); }',
+    'h1 { font-size: var(--cl-font-size-3xl); line-height: var(--cl-line-height-display); }',
+    'h2 { font-size: var(--cl-font-size-2xl); line-height: var(--cl-line-height-headline); }',
+    'h3 { font-size: var(--cl-font-size-xl); line-height: var(--cl-line-height-title); }',
+    'h4 { font-size: var(--cl-font-size-lg); line-height: var(--cl-line-height-title); }',
+    'h5 { font-size: var(--cl-font-size-md); line-height: var(--cl-line-height-body); }',
+    'h6 { font-size: var(--cl-font-size-base); line-height: var(--cl-line-height-body); }',
     '',
     /*
      * An alert's paragraphs carry no margin of their own — the alert is already
@@ -1438,8 +1444,9 @@ function components(): string {
     "/* The matches-view card — shared by MatchCard.tsx on both public-web and control-web, so it lives here rather than in either surface's own page-scoped styles. */",
     '.cl-match-card { display: grid; gap: var(--cl-space-3); min-width: 0; }',
     '.cl-match-card--linked { position: relative; }',
-    '.cl-match-card__heading { margin: 0; min-width: 0; font-size: var(--cl-font-size-lg); overflow-wrap: anywhere; }',
-    '.cl-match-card__report-link { color: inherit; }',
+    '.cl-match-card__heading { margin: 0; min-width: 0; font-size: var(--cl-font-size-lg); line-height: var(--cl-line-height-title); overflow-wrap: anywhere; }',
+    '.cl-match-card__report-link { color: inherit; text-decoration: none; }',
+    '.cl-match-card__report-link:hover, .cl-match-card__report-link:focus-visible { text-decoration: underline; }',
     '.cl-match-card__report-link::after, .cl-match-card__hit-area { position: absolute; inset: 0; z-index: 1; }',
     '.cl-match-card__report-link::after { content: ""; }',
     // The state badge and the clock sit on one line until they cannot: at the
@@ -1451,7 +1458,7 @@ function components(): string {
     // no space to wrap at, so at the 188px reference width the clock alone —
     // not the header row it sits in, which already wraps — held its full
     // unbroken width and pushed the card past the viewport.
-    '.cl-match-card__clock { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-figure-lg); color: var(--cl-state-live); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }',
+    '.cl-match-card__clock { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-figure-lg); line-height: var(--cl-line-height-figure); color: var(--cl-state-live); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }',
     // A grid of match cards, promoted out of `MatchCardGrid.astro`'s scoped
     // style so the React surfaces can compose it too. While it lived there,
     // `LiveMatchHero` had no grid to reach and stacked one full-width card per
@@ -1471,12 +1478,12 @@ function components(): string {
     // keeps that wrapper out of the flex layout, but a DOM combinator still
     // sees it — `>` never matched past it, so the name rendered at its full,
     // unconstrained width and pushed the 188px reference width sideways.
-    ".cl-match-card__side span[data-testid='entrant-name'] { flex: 1 1 auto; font-family: var(--cl-font-display); font-weight: var(--cl-weight-medium); font-size: var(--cl-font-size-lg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
-    '.cl-match-card__side .cl-stat-tile__value { flex: 0 0 auto; font-size: var(--cl-font-size-figure-2xl); background: none; padding: 0; }',
-    '.cl-match-card__scope, .cl-match-card__venue, .cl-match-card__event { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
+    ".cl-match-card__side span[data-testid='entrant-name'] { flex: 1 1 auto; font-family: var(--cl-font-display); font-weight: var(--cl-weight-medium); font-size: var(--cl-font-size-lg); line-height: var(--cl-line-height-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
+    '.cl-match-card__side .cl-stat-tile__value { flex: 0 0 auto; font-size: var(--cl-font-size-figure-2xl); line-height: var(--cl-line-height-figure); background: none; padding: 0; }',
+    '.cl-match-card__scope, .cl-match-card__venue, .cl-match-card__event { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); line-height: var(--cl-line-height-label); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
     '.cl-match-card__event { color: var(--cl-text-secondary); }',
     '.cl-match-card__series { display: grid; gap: var(--cl-space-1); padding: var(--cl-space-3); background: var(--cl-surface-chrome); border-left: 2px solid var(--cl-state-upcoming); }',
-    '.cl-match-card__series .cl-series__score { margin: 0; font-family: var(--cl-font-mono); font-size: var(--cl-font-size-figure-lg); }',
+    '.cl-match-card__series .cl-series__score { margin: 0; font-family: var(--cl-font-mono); font-size: var(--cl-font-size-figure-lg); line-height: var(--cl-line-height-figure); }',
     '.cl-match-card__series .cl-series__pending, .cl-match-card__series .cl-series__decided, .cl-match-card__series .cl-series__aggregate { margin: 0; color: var(--cl-text-secondary); font-size: var(--cl-font-size-sm); }',
     '.cl-match-card__deciding-factor { margin: 0; padding: var(--cl-space-2) var(--cl-space-3); background: var(--cl-surface-chrome); border-left: 2px solid var(--cl-focus-ring); color: var(--cl-text-secondary); font-size: var(--cl-font-size-sm); }',
     '.cl-match-card__trace { position: relative; z-index: 2; border-top: 1px solid var(--cl-border-muted); padding-top: var(--cl-space-2); }',
@@ -2145,11 +2152,11 @@ function compositions(): string {
     /*
      * The public header.
      *
-     * One navigation landmark, not two. On a wide viewport it sits in the row
-     * between the brand and the actions; below the medium breakpoint it takes a
-     * whole line of the same wrapping flex row, which is what makes the menu
-     * expand *in page flow* — the ticker and the content below it move down
-     * rather than being covered.
+     * A single-height primary row holds the brand, global destinations and
+     * persistent actions. Tournament destinations live in a full-width band
+     * below it, aligned to the same container. At the compact breakpoint both
+     * navigation groups become separate, in-flow disclosures under persistent
+     * actions.
      *
      * That is the deliberate difference from the operator surface's modal
      * drawer, which keeps its overlay, its focus trap and its return-focus
@@ -2158,19 +2165,26 @@ function compositions(): string {
      */
     '.cl-public-header { position: sticky; top: 0; z-index: 30; background: color-mix(in srgb, var(--cl-surface-base) 92%, transparent); border-block-end: 1px solid var(--cl-border-muted); backdrop-filter: blur(6px); }',
     '',
-    '.cl-public-header__row { display: flex; align-items: center; justify-content: space-between; gap: var(--cl-space-3); padding-block: var(--cl-space-3); min-width: 0; }',
+    '.cl-public-header__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--cl-space-4); padding-block: var(--cl-space-3); min-width: 0; }',
     '',
-    // Wraps, and every child may shrink. At the 188px zoom floor the brand,
-    // the locale control, the action and the toggle cannot share one line, and
-    // a row that refused to wrap pushed the whole page sideways instead.
-    '.cl-public-header__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--cl-space-2); min-width: 0; }',
+    '.cl-public-header__brand { display: flex; min-width: 0; }',
     '',
-    '.cl-public-header__nav { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; }',
+    // Locale and Control panel remain visible while the compact menu opens.
+    '.cl-public-header__actions { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: var(--cl-space-2); min-width: 0; }',
+    '',
+    '.cl-public-header__nav { display: flex; align-items: center; justify-self: stretch; min-width: 0; }',
+    '.cl-public-header__global-label { display: none; }',
     '',
     // The closed menu is closed for everyone: `hidden` takes its links out of
     // the tab order, which a `visibility` or an off-screen trick would not.
     // The reset at the top of `components()` is what makes it stick.
-    '.cl-public-header__links { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; margin: 0; padding: 0; list-style: none; }',
+    '.cl-public-header__links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); width: 100%; min-width: 0; margin: 0; padding: 0; list-style: none; }',
+    '',
+    '.cl-public-header__context-band { background: var(--cl-surface-panel); border-block: 1px solid var(--cl-border-muted); }',
+    '.cl-public-header__context-row { padding-block: var(--cl-space-2); }',
+    '.cl-public-header__tournament-nav { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; }',
+    '.cl-public-header__context-label { flex: none; margin: 0; padding-inline-end: var(--cl-space-4); border-inline-end: 1px solid var(--cl-border-muted); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
+    '.cl-public-header__tournament-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); min-width: 0; margin: 0; padding: 0; list-style: none; }',
     '',
     '.cl-public-header__theme { position: relative; }',
     '.cl-public-header__theme > details > summary { display: inline-flex; align-items: center; gap: var(--cl-space-2); min-height: var(--cl-touch-target); padding-inline: var(--cl-space-2); color: var(--cl-text-secondary); font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); cursor: pointer; list-style: none; }',
@@ -2183,7 +2197,9 @@ function compositions(): string {
     '',
     '.cl-public-header__link:hover, .cl-public-header__link:focus-visible { color: var(--cl-text-primary); }',
     '',
-    '.cl-public-header__toggle { display: inline-grid; place-items: center; min-width: var(--cl-touch-target); min-height: var(--cl-touch-target); background: transparent; border: 1px solid var(--cl-border-muted); color: var(--cl-text-primary); cursor: pointer; }',
+    '.cl-public-header__tournament-link[aria-current="page"] { color: var(--cl-text-primary); text-decoration: underline; text-decoration-color: var(--cl-primary); text-decoration-thickness: 2px; text-underline-offset: var(--cl-space-1); }',
+    '',
+    '.cl-public-header__toggle { display: none; place-items: center; min-width: var(--cl-touch-target); min-height: var(--cl-touch-target); background: transparent; border: 1px solid var(--cl-border-muted); color: var(--cl-text-primary); cursor: pointer; }',
     '',
     // The icon changes with the state, so the control reads as opened or closed
     // without relying on the reader remembering which way it was.
@@ -2197,19 +2213,22 @@ function compositions(): string {
     '.cl-public-header__locale > summary::-webkit-details-marker { display: none; }',
     `.cl-public-header__locale-list { position: absolute; inset-inline-end: 0; z-index: 40; min-width: max-content; width: max-content; white-space: nowrap; display: grid; gap: var(--cl-space-1); margin: var(--cl-space-1) 0 0; padding: var(--cl-space-2); list-style: none; background: var(--cl-surface-chrome); border: 1px solid var(--cl-border-muted); box-shadow: ${DIALOG_TOKENS.elevation}; }`,
     '',
-    /*
-     * Below the medium breakpoint the navigation takes its own line of the
-     * wrapping row, and the CTA the row already carries is repeated at the end
-     * of it so the primary action is reachable from inside the opened menu too.
-     */
+    /* Compact menu: persistent brand and actions lead; each navigation layer
+     * then gets its own labelled surface in document flow. */
     `@media (max-width: ${BREAKPOINTS.md}) {`,
-    '  .cl-public-header__row { flex-wrap: wrap; }',
-    '  .cl-public-header__nav { order: 3; flex-basis: 100%; flex-direction: column; align-items: stretch; gap: var(--cl-space-3); padding-block: var(--cl-space-4); border-block-start: 1px solid var(--cl-border-muted); }',
-    '  .cl-public-header__links { flex-direction: column; align-items: stretch; gap: var(--cl-space-2); }',
-    '}',
-    `@media (min-width: ${BREAKPOINTS.md}) {`,
-    // Nothing to disclose once every link is already in the row.
-    '  .cl-public-header__toggle { display: none; }',
+    '  .cl-public-header__row { grid-template-columns: minmax(0, 1fr); gap: var(--cl-space-2); padding-block: var(--cl-space-2); }',
+    '  .cl-public-header__brand { grid-column: 1; grid-row: 1; }',
+    '  .cl-public-header__actions { grid-column: 1; grid-row: 2; justify-content: space-between; width: 100%; }',
+    '  .cl-public-header__nav { display: grid; grid-column: 1; grid-row: 3; align-items: stretch; gap: var(--cl-space-2); padding-block: var(--cl-space-3); border-block-start: 1px solid var(--cl-border-muted); }',
+    '  .cl-public-header__global-label { display: block; margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
+    '  .cl-public-header__links, .cl-public-header__tournament-links { flex-direction: column; align-items: stretch; gap: var(--cl-space-1); }',
+    '  .cl-public-header__link { width: 100%; padding-inline: var(--cl-space-2); }',
+    '  .cl-public-header__context-row { padding-block: var(--cl-space-3); }',
+    '  .cl-public-header__tournament-nav { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--cl-space-2); }',
+    '  .cl-public-header__context-label { padding: 0 0 var(--cl-space-2); border-inline-end: 0; border-block-end: 1px solid var(--cl-border-muted); }',
+    '  .cl-public-header__tournament-links { display: grid; grid-template-columns: minmax(0, 1fr); }',
+    '  .cl-public-header__tournament-link[aria-current="page"] { border-inline-start: 2px solid var(--cl-primary); }',
+    '  .cl-public-header__toggle:not([hidden]) { display: inline-grid; }',
     '}',
   ].join('\n');
 }

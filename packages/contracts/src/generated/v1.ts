@@ -1994,6 +1994,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables/{layoutCode}/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a tournament-wide public table as CSV */
+        get: operations["PublicProjectionsController_tournamentTableCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/public/tables/{layoutCode}": {
         parameters: {
             query?: never;
@@ -2003,6 +2020,23 @@ export interface paths {
         };
         /** A stage-scoped table projection (group standings, schedule tables) */
         get: operations["PublicProjectionsController_stageTable"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/public/tables/{layoutCode}/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a stage-scoped public table as CSV */
+        get: operations["PublicProjectionsController_stageTableCsv"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4917,6 +4951,12 @@ export interface components {
             rank: number;
             /** @description True when another row holds the same rank */
             sharedRank: boolean;
+            /** @description Destination zone from the saved promotion band this entrant qualifies for */
+            promotionBandLabel?: string;
+            /** @description Zero-based position used to give each configured promotion band a visual rail */
+            promotionBandIndex?: number;
+            /** @description 1-based seed position in the saved promotion plan */
+            promotionSeed?: number;
             /** @description One cell per declared column, keyed by column code */
             cells: components["schemas"]["TableCellResponse"];
         };
@@ -4931,6 +4971,18 @@ export interface components {
             /** @description The zone this group belongs to; absent for a stage that has only its implicit zone */
             zoneName?: string;
             rows: components["schemas"]["TableRowResponse"][];
+        };
+        TablePromotionBandResponse: {
+            /** @description Destination zone name configured in the promotion plan */
+            label: string;
+            /** @description Source zone whose entrants are shown in this table, when named */
+            sourceZoneName?: string;
+            /** @description Zero-based position used to give each band a visual rail */
+            index: number;
+            /** @description First seed position in this band, inclusive */
+            firstSeed: number;
+            /** @description Last seed position in this band, inclusive */
+            lastSeed: number;
         };
         TableProjectionResponse: {
             layoutCode: string;
@@ -4952,6 +5004,8 @@ export interface components {
             grain?: "series" | "match";
             /** @description The `code` of this layout’s column whose value is a `count`-aggregated statistic — the one column `grain` changes the unit of. Present only alongside `grain`. */
             countColumnCode?: string;
+            /** @description Configured promotion bands for a stage-scoped public standings projection */
+            promotionBands?: components["schemas"]["TablePromotionBandResponse"][];
         };
         SeedAssignmentResponse: {
             /**
@@ -7155,7 +7209,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            kind: "EntrantFixtureSideSourceDto";
+            kind: "entrant";
             /** Format: uuid */
             entrantId: string;
         };
@@ -7164,7 +7218,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            kind: "WinnerFixtureSideSourceDto";
+            kind: "winner-of";
             nodeKey: string;
             /** Format: uuid */
             matchId: string;
@@ -7177,7 +7231,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            kind: "LoserFixtureSideSourceDto";
+            kind: "loser-of";
             nodeKey: string;
             /** Format: uuid */
             matchId: string;
@@ -7190,7 +7244,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            kind: "QualifierFixtureSideSourceDto";
+            kind: "qualifier";
             /** Format: uuid */
             promotionPlanId: string;
             /** @description 1-based position in the plan's whole combined list */
@@ -11588,6 +11642,32 @@ export interface operations {
             };
         };
     };
+    PublicProjectionsController_tournamentTableCsv: {
+        parameters: {
+            query: {
+                clubId: string;
+            };
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                layoutCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV table export */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+        };
+    };
     PublicProjectionsController_stageTable: {
         parameters: {
             query: {
@@ -11610,6 +11690,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TableProjectionResponse"];
+                };
+            };
+        };
+    };
+    PublicProjectionsController_stageTableCsv: {
+        parameters: {
+            query: {
+                clubId: string;
+            };
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: string;
+                layoutCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV table export */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
         };

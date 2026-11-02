@@ -4,6 +4,7 @@ import Container from '../../../../../components/ui/atoms/layout/Container.astro
 import PageHeader from '../../../../../components/ui/organisms/PageHeader.astro';
 import { publicTrail, trailBaseOf } from '../../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../../layouts/PublicLayout.astro';
+import FeaturedMatchCard from '../../../../../components/ui/organisms/FeaturedMatchCard.astro';
 import MatchSchedule from '../../../../../components/ui/organisms/MatchSchedule.astro';
 import MatchScheduleFilters, {
   type MatchScheduleState,
@@ -14,9 +15,11 @@ import { buildOverview, displayName } from '../../../../../lib/overview.ts';
 import { publicIntl, matchCardLabels } from '../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
-import { distinctFacetValues } from '../../../../../lib/matches-view.ts';
+import { distinctFacetValues, featuredMatchForSchedule } from '../../../../../lib/matches-view.ts';
 import { offersViewChoice } from '../../../../../lib/match-schedule.ts';
 import { loadSchedule } from '../../../../../lib/schedule-loader.ts';
+import { matchReportUrl } from '../../../../../lib/bracket.ts';
+import { getLocalizedNotFoundPath } from '../../../../../lib/locale.ts';
 
 /**
  * The matches view: a tournament's schedule as tables grouped by stage, zone or group and round,
@@ -35,7 +38,7 @@ const localePrefix = locale ? `/${locale}` : '';
 
 const overviewData = await fetchOverview(organization!, tournament!);
 if (!overviewData) {
-  return Astro.rewrite('/404');
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
 const model = buildOverview(mapOverviewResponse(overviewData));
 
@@ -59,11 +62,11 @@ const schedule = await loadSchedule({
   ...(groupParam === undefined ? {} : { group: groupParam }),
 });
 if (!schedule) {
-  return Astro.rewrite('/404');
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
 
-// Zone/group facets are derived from the rows the active stage(s) and state filter already
-// returned: a stage the filter narrows to zero rows simply shows no zone/group pills.
+// Zone/group facets come from every match in the active stage(s), so a state filter does not
+// make structural choices disappear when no match in that state belongs to one facet.
 const zones = distinctFacetValues(schedule.stageRows, 'zoneName', schedule.zoneOrder);
 const zoneFiltered =
   zoneParam === undefined
@@ -75,6 +78,11 @@ const groups = distinctFacetValues(zoneFiltered, 'groupName');
 const offerView = offersViewChoice(schedule.rows.length);
 const view: MatchScheduleView = offerView && cardsRequested ? 'cards' : 'rows';
 const presentation = view === 'rows' ? 'rows' : compact ? 'compact-cards' : 'cards';
+const featuredMatch = featuredMatchForSchedule(
+  schedule.stageRows,
+  schedule.stageOptions.map((one) => one.stageNumber),
+  stageNumber,
+);
 const filtersOpen =
   stageNumber !== undefined ||
   zoneParam !== undefined ||
@@ -193,6 +201,24 @@ const trail = publicTrail(trailBase, [
       }}
       buildUrl={buildUrl}
     />
+
+    {featuredMatch && (
+      <FeaturedMatchCard
+        heading={intl.formatMessage(messages.overviewFeaturedMatchHeading)}
+        match={featuredMatch}
+        href={matchReportUrl({
+          organizationAlias: organization!,
+          tournamentAlias: tournament!,
+          stageNumber: featuredMatch.stageNumber,
+          matchNumber: featuredMatch.matchNumber,
+          localePrefix,
+        })}
+        labels={labels}
+        locale={resolvedLocale}
+        timeZone={model.organizationTimeZone}
+        organizationAlias={organization!}
+      />
+    )}
 
     {view === 'cards' && (
       <nav

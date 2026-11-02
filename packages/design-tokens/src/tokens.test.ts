@@ -7,6 +7,7 @@ import {
   FONT_SOURCE,
   ICON_TOKENS,
   LAYOUT_TOKENS,
+  LINE_HEIGHT,
   MOTION,
   SPACING,
   TOUCH_TARGET,
@@ -174,6 +175,29 @@ describe('the token source', () => {
       xl: '1.5rem',
       '2xl': '1.875rem',
     });
+  });
+
+  it('generates and applies the documented line-height roles', () => {
+    expect(LINE_HEIGHT).toEqual({
+      display: '1.1',
+      headline: '1.2',
+      title: '1.3',
+      body: '1.5',
+      label: '1.4',
+      figure: '1.2',
+    });
+
+    const css = generateCss();
+    for (const [role, value] of Object.entries(LINE_HEIGHT)) {
+      expect(css).toContain(`--cl-line-height-${role}: ${value};`);
+    }
+    expect(css).toContain('html { line-height: var(--cl-line-height-body); }');
+    expect(css).toContain(
+      'h1 { font-size: var(--cl-font-size-3xl); line-height: var(--cl-line-height-display); }',
+    );
+    expect(css).toContain(
+      '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); line-height: var(--cl-line-height-label); }',
+    );
   });
 
   it('defines exactly the visual-review breakpoint widths', () => {
@@ -446,18 +470,20 @@ describe('the CSS output', () => {
     }
   });
 
-  it('maps bare heading levels to the semantic font-size scale', () => {
-    const headingSizes = [
-      ['h1', '3xl'],
-      ['h2', '2xl'],
-      ['h3', 'xl'],
-      ['h4', 'lg'],
-      ['h5', 'md'],
-      ['h6', 'base'],
+  it('maps bare heading levels to their semantic type and line-height roles', () => {
+    const headings = [
+      ['h1', '3xl', 'display'],
+      ['h2', '2xl', 'headline'],
+      ['h3', 'xl', 'title'],
+      ['h4', 'lg', 'title'],
+      ['h5', 'md', 'body'],
+      ['h6', 'base', 'body'],
     ] as const;
 
-    for (const [heading, size] of headingSizes) {
-      expect(css).toContain(`${heading} { font-size: var(--cl-font-size-${size}); }`);
+    for (const [heading, size, lineHeight] of headings) {
+      expect(css).toContain(
+        `${heading} { font-size: var(--cl-font-size-${size}); line-height: var(--cl-line-height-${lineHeight}); }`,
+      );
     }
   });
 
@@ -1043,9 +1069,66 @@ describe('button CTA treatments', () => {
 describe('public table and pill treatments', () => {
   const css = generateCss();
 
+  it('keeps public actions visible while mobile navigation expands in page flow', () => {
+    expect(css).toContain(
+      '.cl-public-header__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--cl-space-4);',
+    );
+    expect(css).toContain('.cl-public-header__brand { display: flex; min-width: 0; }');
+    expect(css).toContain(
+      '.cl-public-header__nav { display: flex; align-items: center; justify-self: stretch; min-width: 0; }',
+    );
+    expect(css).toContain('.cl-public-header__global-label { display: none; }');
+    expect(css).toContain(
+      '.cl-public-header__links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); width: 100%;',
+    );
+    expect(css).toContain(
+      '.cl-public-header__context-band { background: var(--cl-surface-panel); border-block: 1px solid var(--cl-border-muted); }',
+    );
+    expect(css).toContain('.cl-public-header__context-row { padding-block: var(--cl-space-2); }');
+    expect(css).toContain(
+      '.cl-public-header__tournament-nav { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; }',
+    );
+    expect(css).toContain(
+      '.cl-public-header__tournament-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); min-width: 0;',
+    );
+    expect(css).toContain(
+      '.cl-public-header__tournament-link[aria-current="page"] { color: var(--cl-text-primary); text-decoration: underline;',
+    );
+    expect(css).toContain(
+      '.cl-public-header__actions { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end;',
+    );
+    expect(css).toContain(
+      '.cl-public-header__toggle { display: none; place-items: center; min-width: var(--cl-touch-target);',
+    );
+    expect(css).toContain(
+      '@media (max-width: 768px) {\n  .cl-public-header__row { grid-template-columns: minmax(0, 1fr); gap: var(--cl-space-2);',
+    );
+    expect(css).toContain('  .cl-public-header__brand { grid-column: 1; grid-row: 1; }');
+    expect(css).toContain(
+      '  .cl-public-header__actions { grid-column: 1; grid-row: 2; justify-content: space-between; width: 100%; }',
+    );
+    expect(css).toContain(
+      '  .cl-public-header__nav { display: grid; grid-column: 1; grid-row: 3; align-items: stretch;',
+    );
+    expect(css).toContain('  .cl-public-header__global-label { display: block;');
+    expect(css).toContain('  .cl-public-header__toggle:not([hidden]) { display: inline-grid; }');
+    expect(css).toContain(
+      '  .cl-public-header__links, .cl-public-header__tournament-links { flex-direction: column; align-items: stretch;',
+    );
+    expect(css).toContain(
+      '  .cl-public-header__tournament-nav { display: grid; grid-template-columns: minmax(0, 1fr);',
+    );
+    expect(css).toContain(
+      '  .cl-public-header__tournament-link[aria-current="page"] { border-inline-start: 2px solid var(--cl-primary); }',
+    );
+    expect(css).not.toContain('.cl-public-header__cta-item');
+  });
+
   it('gives every table a header treatment and tabular figures', () => {
     expect(css).toMatch(/\.cl-table \{[^}]*font-variant-numeric: tabular-nums/);
-    expect(css).toContain('.cl-tabular-nums { font-variant-numeric: tabular-nums; }');
+    expect(css).toContain(
+      '.cl-tabular-nums { font-variant-numeric: tabular-nums; line-height: var(--cl-line-height-figure); }',
+    );
     expect(css).toMatch(/\.cl-table thead th \{[^}]*var\(--cl-surface-chrome\)/);
     expect(css).toMatch(/\.cl-table thead th \{[^}]*text-transform: uppercase/);
   });
@@ -1093,6 +1176,10 @@ describe('compact match card', () => {
 
   it('keeps the report link on the title and extends its target across the card', () => {
     expect(css).toContain('.cl-match-card--linked { position: relative; }');
+    expect(css).toContain('.cl-match-card__report-link { color: inherit; text-decoration: none; }');
+    expect(css).toContain(
+      '.cl-match-card__report-link:hover, .cl-match-card__report-link:focus-visible { text-decoration: underline; }',
+    );
     expect(css).toContain('.cl-match-card__report-link::after { content: ""; }');
     expect(css).toContain(
       '.cl-match-card__report-link::after, .cl-match-card__hit-area { position: absolute; inset: 0; z-index: 1; }',
