@@ -1772,4 +1772,8 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.kpiMatches': '待安排的比赛',
   'control.scheduleBuilder.kpiPlaced': '已安排',
   'control.scheduleBuilder.kpiConflicts': '发现的冲突',
+  'control.auditTrail.showDetails': '显示详情',
+  'control.auditTrail.hideDetails': '隐藏详情',
+  'control.auditTrail.columnDetails': '详情',
+  'control.analytics.primaryLabel': '赛事状态面板',
 };

@@ -1899,4 +1899,8 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.kpiMatches': 'Matchs à placer',
   'control.scheduleBuilder.kpiPlaced': 'Placés',
   'control.scheduleBuilder.kpiConflicts': 'Conflits détectés',
+  'control.auditTrail.showDetails': 'Afficher le détail',
+  'control.auditTrail.hideDetails': 'Masquer le détail',
+  'control.auditTrail.columnDetails': 'Détail',
+  'control.analytics.primaryLabel': "Panneau d'état des tournois",
 };

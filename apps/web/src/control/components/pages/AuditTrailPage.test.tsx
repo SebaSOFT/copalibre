@@ -1,5 +1,5 @@
 import { expectFirstReadFailure } from './resilient-read.test-support.js';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { AuditTrailPage } from '../pages/AuditTrailPage.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { AuditTrailResponse, ControlApiClient } from '../../lib/api-client.js';
@@ -127,6 +127,8 @@ describe('AuditTrailPage', () => {
 
     await waitFor(() => screen.getByText('alice@copalibre.test'));
     expect(screen.queryByText(/01800000-0000-7000-8000-000000000001/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Copy actor ID' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show details' }));
     expect(screen.getByRole('button', { name: 'Copy actor ID' })).toBeDefined();
     expect(screen.getByText('Settings updated')).toBeDefined();
   });

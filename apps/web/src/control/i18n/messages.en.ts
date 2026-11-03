@@ -5554,4 +5554,11 @@ export const messages = defineMessages({
     id: 'control.scheduleBuilder.kpiConflicts',
     defaultMessage: 'Conflicts found',
   },
+  auditTrailShowDetails: { id: 'control.auditTrail.showDetails', defaultMessage: 'Show details' },
+  auditTrailHideDetails: { id: 'control.auditTrail.hideDetails', defaultMessage: 'Hide details' },
+  auditTrailColumnDetails: { id: 'control.auditTrail.columnDetails', defaultMessage: 'Details' },
+  analyticsPrimaryLabel: {
+    id: 'control.analytics.primaryLabel',
+    defaultMessage: 'Tournament status panel',
+  },
 });

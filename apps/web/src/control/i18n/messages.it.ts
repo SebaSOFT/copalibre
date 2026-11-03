@@ -1888,4 +1888,8 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.kpiMatches': 'Partite da assegnare',
   'control.scheduleBuilder.kpiPlaced': 'Assegnate',
   'control.scheduleBuilder.kpiConflicts': 'Conflitti rilevati',
+  'control.auditTrail.showDetails': 'Mostra dettagli',
+  'control.auditTrail.hideDetails': 'Nascondi dettagli',
+  'control.auditTrail.columnDetails': 'Dettagli',
+  'control.analytics.primaryLabel': 'Pannello di stato dei tornei',
 };

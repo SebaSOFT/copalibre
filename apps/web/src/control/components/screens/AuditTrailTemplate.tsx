@@ -55,6 +55,13 @@ export function AuditTrailTemplate({
 }): React.JSX.Element {
   const intl = useIntl();
   const pageHeader = useContext(PageHeaderContext);
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  const toggleExpanded = (auditId: string): void =>
+    setExpanded((current) => {
+      const next = new Set(current);
+      if (!next.delete(auditId)) next.add(auditId);
+      return next;
+    });
   const [outcomeFilter, setOutcomeFilter] = useState<'all' | AuditRecordResponse['outcome']>('all');
   const appliedCount = records.filter((record) => record.outcome === 'applied').length;
   const refusedCount = records.length - appliedCount;
@@ -113,6 +120,24 @@ export function AuditTrailTemplate({
       key: 'reason',
       header: <FormattedMessage {...messages.auditTrailColumnReason} />,
       render: (row) => formatActivityReason(row.reason, intl.locale),
+    },
+    {
+      key: 'details',
+      header: <FormattedMessage {...messages.auditTrailColumnDetails} />,
+      render: (row) => (
+        <Button
+          aria-expanded={expanded.has(row.auditId)}
+          onClick={() => toggleExpanded(row.auditId)}
+          type="button"
+          variant="secondary"
+        >
+          {intl.formatMessage(
+            expanded.has(row.auditId)
+              ? messages.auditTrailHideDetails
+              : messages.auditTrailShowDetails,
+          )}
+        </Button>
+      ),
     },
   ];
 
@@ -208,31 +233,33 @@ export function AuditTrailTemplate({
               revealed here that the row above did not already carry to this
               authorized surface.
             */
-            renderRowDetail={(row) => (
-              <div className="cl-screen-sections">
-                <div className="cl-role-user">
-                  <CopyIdButton
-                    label={intl.formatMessage(messages.auditCopyEntityId)}
-                    copiedLabel={intl.formatMessage(messages.copyIdSuccess)}
-                    failedLabel={intl.formatMessage(messages.copyIdFailure)}
-                    value={row.entityId}
-                  />
-                  <CopyIdButton
-                    label={intl.formatMessage(messages.auditCopyActorId)}
-                    copiedLabel={intl.formatMessage(messages.copyIdSuccess)}
-                    failedLabel={intl.formatMessage(messages.copyIdFailure)}
-                    value={actors?.[row.actor]?.principalId ?? row.actor}
-                  />
+            renderRowDetail={(row) =>
+              !expanded.has(row.auditId) ? undefined : (
+                <div className="cl-screen-sections">
+                  <div className="cl-role-user">
+                    <CopyIdButton
+                      label={intl.formatMessage(messages.auditCopyEntityId)}
+                      copiedLabel={intl.formatMessage(messages.copyIdSuccess)}
+                      failedLabel={intl.formatMessage(messages.copyIdFailure)}
+                      value={row.entityId}
+                    />
+                    <CopyIdButton
+                      label={intl.formatMessage(messages.auditCopyActorId)}
+                      copiedLabel={intl.formatMessage(messages.copyIdSuccess)}
+                      failedLabel={intl.formatMessage(messages.copyIdFailure)}
+                      value={actors?.[row.actor]?.principalId ?? row.actor}
+                    />
+                  </div>
+                  {row.previousState !== undefined && row.resultingState !== undefined && (
+                    <AuditLogPanel
+                      items={[toAuditLogItem(row)]}
+                      title={intl.formatMessage(messages.auditTrailCorrectionTitle)}
+                      timeZone={pageHeader?.organizationTimeZone}
+                    />
+                  )}
                 </div>
-                {row.previousState !== undefined && row.resultingState !== undefined && (
-                  <AuditLogPanel
-                    items={[toAuditLogItem(row)]}
-                    title={intl.formatMessage(messages.auditTrailCorrectionTitle)}
-                    timeZone={pageHeader?.organizationTimeZone}
-                  />
-                )}
-              </div>
-            )}
+              )
+            }
           />
         )}
         {!loading && error === undefined && total > 0 && (

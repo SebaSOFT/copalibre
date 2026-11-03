@@ -1904,4 +1904,8 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.kpiMatches': 'Zu setzende Spiele',
   'control.scheduleBuilder.kpiPlaced': 'Gesetzt',
   'control.scheduleBuilder.kpiConflicts': 'Gefundene Konflikte',
+  'control.auditTrail.showDetails': 'Details anzeigen',
+  'control.auditTrail.hideDetails': 'Details ausblenden',
+  'control.auditTrail.columnDetails': 'Details',
+  'control.analytics.primaryLabel': 'Statusbereich der Turniere',
 };

@@ -270,7 +270,7 @@ export function AnalyticsTemplate({
       <Stack className="cl-analytics" gap="6">
         <WorkspaceTemplate
           description={intl.formatMessage(messages.analyticsSubtitle)}
-          primaryLabel={intl.formatMessage(messages.analyticsStatusChart)}
+          primaryLabel={intl.formatMessage(messages.analyticsPrimaryLabel)}
           primaryPane={loading || failed ? loadingNode : chartPane}
           secondaryLabel={intl.formatMessage(messages.analyticsOperationsTitle)}
           secondaryPane={loading || failed ? loadingNode : operationsPane}

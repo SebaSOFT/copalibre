@@ -280,10 +280,7 @@ export function VenueManagementTemplate({
 
   const listingNode = (
     <div className="cl-operations__listing">
-      <section
-        aria-label={intl.formatMessage(messages.resourceManagementVenuesHeading)}
-        className="cl-operations__section"
-      >
+      <section className="cl-operations__section">
         <h2 className="cl-card__title">
           <FormattedMessage {...messages.resourceManagementVenuesHeading} />
         </h2>
@@ -303,10 +300,7 @@ export function VenueManagementTemplate({
           </p>
         )}
       </section>
-      <section
-        aria-label={intl.formatMessage(messages.resourceManagementSchedulesHeading)}
-        className="cl-operations__section"
-      >
+      <section className="cl-operations__section">
         <h2 className="cl-card__title">
           <FormattedMessage {...messages.resourceManagementSchedulesHeading} />
         </h2>
@@ -342,10 +336,7 @@ export function VenueManagementTemplate({
           </p>
         )}
       </section>
-      <section
-        aria-label={intl.formatMessage(messages.resourceManagementOfficialsHeading)}
-        className="cl-operations__section"
-      >
+      <section className="cl-operations__section">
         <h2 className="cl-card__title">
           <FormattedMessage {...messages.resourceManagementOfficialsHeading} />
         </h2>

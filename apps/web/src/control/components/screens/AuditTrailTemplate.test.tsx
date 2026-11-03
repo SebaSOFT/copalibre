@@ -159,7 +159,16 @@ describe('AuditTrailTemplate', () => {
       ),
     );
 
+    expect(screen.queryByText(/what this record changed/i)).toBeNull();
+    const toggle = screen.getByRole('button', { name: 'Show details' });
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByText(/what this record changed/i)).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide details' }));
+    expect(screen.queryByText(/what this record changed/i)).toBeNull();
   });
 
   it('renders previous and next pagination buttons with correct disabled states', () => {

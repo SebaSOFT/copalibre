@@ -1878,4 +1878,8 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.kpiMatches': 'Матчей к назначению',
   'control.scheduleBuilder.kpiPlaced': 'Назначено',
   'control.scheduleBuilder.kpiConflicts': 'Найдено конфликтов',
+  'control.auditTrail.showDetails': 'Показать подробности',
+  'control.auditTrail.hideDetails': 'Скрыть подробности',
+  'control.auditTrail.columnDetails': 'Подробности',
+  'control.analytics.primaryLabel': 'Панель состояния турниров',
 };
