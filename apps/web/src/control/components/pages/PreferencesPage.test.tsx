@@ -104,7 +104,11 @@ describe('PreferencesPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/Test PAT/i)).toBeDefined();
     });
-    expect(screen.getByText(/Vence:/)).toBeDefined();
+    expect(
+      within(screen.getByRole('region', { name: 'Tokens de acceso personal' })).getByText(
+        'copalibre.control',
+      ),
+    ).toBeDefined();
   });
 
   it('creates a new PAT', async () => {
@@ -116,7 +120,15 @@ describe('PreferencesPage', () => {
       } as any) // load available scopes
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ token: 'clpat_generated123' }),
+        json: async () => ({
+          tokenId: 'created-pat',
+          label: 'New PAT',
+          token: 'clpat_generated123',
+          scopes: ['copalibre.control'],
+          revoked: false,
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 60 * 86_400_000).toISOString(),
+        }),
       } as any) // create PAT
       .mockResolvedValueOnce({ ok: true, json: async () => [] } as any); // reload PATs
 
@@ -309,6 +321,33 @@ describe('PreferencesPage', () => {
     await screen.findByText('Organization updated.');
   });
 
+  it('offers save and reset only while the organization name has unsaved changes', async () => {
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const client = stubClient({
+      getOrganization: () => Promise.resolve(organization),
+      updateOrganizationSettings: async () => organization,
+    });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesPage client={client} isOrganizationPage organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    const nameInput = await screen.findByDisplayValue('Liga Mendocina');
+    expect(screen.queryByRole('status', { name: '1 unsaved change' })).toBeNull();
+
+    fireEvent.change(nameInput, { target: { value: 'Liga Renombrada' } });
+    expect(screen.getByRole('status', { name: '1 unsaved change' })).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    expect((nameInput as HTMLInputElement).value).toBe('Liga Mendocina');
+    expect(screen.queryByRole('status', { name: '1 unsaved change' })).toBeNull();
+  });
+
   it('shows a placeholder with no emblem, and uploads one', async () => {
     (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
@@ -423,7 +462,9 @@ describe('PreferencesPage', () => {
       </ControlIntl>,
     );
 
-    await screen.findByDisplayValue('Liga Mendocina');
+    fireEvent.change(await screen.findByDisplayValue('Liga Mendocina'), {
+      target: { value: 'Liga Renombrada' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Save organization details' }));
 
     await screen.findByText('Rechazado');
@@ -445,7 +486,9 @@ describe('PreferencesPage', () => {
       </ControlIntl>,
     );
 
-    await screen.findByDisplayValue('Liga Mendocina');
+    fireEvent.change(await screen.findByDisplayValue('Liga Mendocina'), {
+      target: { value: 'Liga Renombrada' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Save organization details' }));
 
     await screen.findByText('The request could not be completed. Try again.');
@@ -464,7 +507,9 @@ describe('PreferencesPage', () => {
       </ControlIntl>,
     );
 
-    await screen.findByDisplayValue('Liga Mendocina');
+    fireEvent.change(await screen.findByDisplayValue('Liga Mendocina'), {
+      target: { value: 'Liga Renombrada' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Save organization details' }));
 
     expect(screen.queryByText('Organization updated.')).toBeNull();

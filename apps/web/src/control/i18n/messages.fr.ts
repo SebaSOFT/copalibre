@@ -1875,4 +1875,11 @@ export const messages: Record<string, string> = {
   'control.analytics.paginationLabel': 'Pages des tournois',
   'control.pagination.previous': 'Précédent',
   'control.pagination.next': 'Suivant',
+  'control.preferences.description':
+    "Votre thème et les jetons d'accès que vous utilisez avec l'API.",
+  'control.orgPage.description':
+    "Le nom et l'emblème de l'organisation, ses statistiques et ses jetons d'accès.",
+  'control.orgIdentity.dropInstruction': 'Déposez une image ici ou choisissez un fichier.',
+  'control.preferences.patCreatedColumn': 'Créé',
+  'control.preferences.patExpiresColumn': 'Expire',
 };

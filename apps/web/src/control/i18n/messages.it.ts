@@ -1866,4 +1866,10 @@ export const messages: Record<string, string> = {
   'control.analytics.paginationLabel': 'Pagine dei tornei',
   'control.pagination.previous': 'Precedente',
   'control.pagination.next': 'Successivo',
+  'control.preferences.description': "Il tuo tema e i token di accesso che usi con l'API.",
+  'control.orgPage.description':
+    "Il nome e lo stemma dell'organizzazione, le sue statistiche e i suoi token di accesso.",
+  'control.orgIdentity.dropInstruction': "Trascina qui un'immagine o scegli un file.",
+  'control.preferences.patCreatedColumn': 'Creato',
+  'control.preferences.patExpiresColumn': 'Scade',
 };

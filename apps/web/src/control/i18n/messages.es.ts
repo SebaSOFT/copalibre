@@ -1860,4 +1860,10 @@ export const messages: Record<string, string> = {
   'control.analytics.paginationLabel': 'Páginas de torneos',
   'control.pagination.previous': 'Anterior',
   'control.pagination.next': 'Siguiente',
+  'control.preferences.description': 'Tu tema y los tokens de acceso que usás con la API.',
+  'control.orgPage.description':
+    'El nombre y el escudo de la organización, sus estadísticas y sus tokens de acceso.',
+  'control.orgIdentity.dropInstruction': 'Soltá una imagen acá o elegí un archivo.',
+  'control.preferences.patCreatedColumn': 'Creado',
+  'control.preferences.patExpiresColumn': 'Vence',
 };

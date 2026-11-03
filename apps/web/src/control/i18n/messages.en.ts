@@ -5481,4 +5481,24 @@ export const messages = defineMessages({
   },
   paginationPrevious: { id: 'control.pagination.previous', defaultMessage: 'Previous' },
   paginationNext: { id: 'control.pagination.next', defaultMessage: 'Next' },
+  preferencesDescription: {
+    id: 'control.preferences.description',
+    defaultMessage: 'Your theme and the access tokens you use with the API.',
+  },
+  orgPageDescription: {
+    id: 'control.orgPage.description',
+    defaultMessage: "The organization's name and emblem, its statistics and its access tokens.",
+  },
+  orgIdentityDropInstruction: {
+    id: 'control.orgIdentity.dropInstruction',
+    defaultMessage: 'Drop an image here, or choose a file.',
+  },
+  preferencesPatCreatedColumn: {
+    id: 'control.preferences.patCreatedColumn',
+    defaultMessage: 'Created',
+  },
+  preferencesPatExpiresColumn: {
+    id: 'control.preferences.patExpiresColumn',
+    defaultMessage: 'Expires',
+  },
 });

@@ -1753,4 +1753,9 @@ export const messages: Record<string, string> = {
   'control.analytics.paginationLabel': '赛事分页',
   'control.pagination.previous': '上一页',
   'control.pagination.next': '下一页',
+  'control.preferences.description': '你的主题以及用于 API 的访问令牌。',
+  'control.orgPage.description': '组织的名称和徽章、统计数据以及访问令牌。',
+  'control.orgIdentity.dropInstruction': '将图片拖到此处，或选择文件。',
+  'control.preferences.patCreatedColumn': '创建时间',
+  'control.preferences.patExpiresColumn': '到期时间',
 };

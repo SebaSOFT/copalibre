@@ -1881,4 +1881,11 @@ export const messages: Record<string, string> = {
   'control.analytics.paginationLabel': 'Turnierseiten',
   'control.pagination.previous': 'Zurück',
   'control.pagination.next': 'Weiter',
+  'control.preferences.description':
+    'Ihr Design und die Zugriffstoken, die Sie mit der API verwenden.',
+  'control.orgPage.description':
+    'Name und Wappen der Organisation, ihre Statistiken und ihre Zugriffstoken.',
+  'control.orgIdentity.dropInstruction': 'Ziehen Sie ein Bild hierher oder wählen Sie eine Datei.',
+  'control.preferences.patCreatedColumn': 'Erstellt',
+  'control.preferences.patExpiresColumn': 'Läuft ab',
 };

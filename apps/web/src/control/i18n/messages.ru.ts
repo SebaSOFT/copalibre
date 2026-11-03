@@ -1857,4 +1857,9 @@ export const messages: Record<string, string> = {
   'control.analytics.paginationLabel': 'Страницы турниров',
   'control.pagination.previous': 'Назад',
   'control.pagination.next': 'Далее',
+  'control.preferences.description': 'Ваша тема и токены доступа, которые вы используете с API.',
+  'control.orgPage.description': 'Название и эмблема организации, её статистика и токены доступа.',
+  'control.orgIdentity.dropInstruction': 'Перетащите изображение сюда или выберите файл.',
+  'control.preferences.patCreatedColumn': 'Создан',
+  'control.preferences.patExpiresColumn': 'Истекает',
 };
