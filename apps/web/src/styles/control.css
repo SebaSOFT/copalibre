@@ -976,6 +976,22 @@ input[type='checkbox'].cl-checkbox:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.cl-stage-identity__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--cl-space-4);
+}
+
+.cl-stage-identity__row .cl-form-field {
+  flex: 1 1 14rem;
+}
+
+.cl-stage-identity__danger {
+  padding-block-start: var(--cl-space-4);
+  border-block-start: 1px solid var(--cl-border-muted);
+}
+
 .cl-promotion {
   gap: var(--cl-space-8);
 }
