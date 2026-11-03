@@ -37,6 +37,7 @@ export function ActivityLog({
   const columns: readonly DataTableColumn<(typeof groups)[number]>[] = [
     {
       key: 'action',
+      label: intl.formatMessage(messages.auditTrailColumnAction),
       header: <FormattedMessage {...messages.auditTrailColumnAction} />,
       render: (group) => {
         const action = (
@@ -82,6 +83,7 @@ export function ActivityLog({
     },
     {
       key: 'actor',
+      label: intl.formatMessage(messages.auditTrailColumnActor),
       header: <FormattedMessage {...messages.auditTrailColumnActor} />,
       render: (group) => (
         <Badge className="cl-state--muted" label={formatActor(intl, group.latest.actor)} />
@@ -89,6 +91,7 @@ export function ActivityLog({
     },
     {
       key: 'occurredAt',
+      label: intl.formatMessage(messages.auditTrailColumnTime),
       header: <FormattedMessage {...messages.auditTrailColumnTime} />,
       render: (group) => (
         <ResponsiveTimestamp
@@ -112,6 +115,7 @@ export function ActivityLog({
         ariaLabel={intl.formatMessage(messages.dashboardRecentActivity)}
         columns={columns}
         emptyMessage={intl.formatMessage(messages.dashboardNoActivityYet)}
+        mobileMode="stacked"
         renderRowDetail={(group) =>
           group.entries.length > 1 || group.latest.reason === undefined ? null : (
             <span className="cl-activity-feed__reason">

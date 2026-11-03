@@ -92,6 +92,7 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.promotionBandRange': 'Посевы {first}–{last}',
   'publicWeb.standings.fullTable': 'Посмотреть полную таблицу',
   'publicWeb.standings.tableLayouts': 'Виды таблиц',
+  'publicWeb.standings.moreColumns': 'Другие столбцы',
   'publicWeb.standings.filterByClub': 'Фильтр по клубу',
   'publicWeb.standings.filterClubLabel': 'Клуб',
   'publicWeb.standings.columnLegend': 'Сокращения в таблице',

@@ -342,9 +342,7 @@ describe('the registration review route container', () => {
       );
     });
 
-    const summary = screen.getByLabelText('Select Team One').closest('summary');
-    expect(summary).not.toBeNull();
-    fireEvent.click(summary as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Team One' }));
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Revoke' }));
     });
@@ -443,7 +441,7 @@ describe('the registration review route container', () => {
       );
     });
 
-    fireEvent.click(screen.getByText('Person One'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Person One' }));
     fireEvent.click(screen.getByText('Argentina'));
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Save nationality' }));
@@ -678,9 +676,7 @@ describe('the registration review route container', () => {
       );
     });
 
-    const summary = screen.getByText('Team One').closest('summary');
-    expect(summary).not.toBeNull();
-    fireEvent.click(summary as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Team One' }));
     fireEvent.click(screen.getByRole('button', { name: 'Edit identity' }));
 
     const nameField = screen.getByLabelText('Name') as HTMLInputElement;
@@ -728,7 +724,7 @@ describe('the registration review route container', () => {
       );
     });
 
-    fireEvent.click(screen.getByText('Mariano Otero'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Mariano Otero' }));
     fireEvent.click(screen.getByRole('button', { name: 'Edit identity' }));
 
     const nameField = screen.getByLabelText('Name') as HTMLInputElement;
@@ -779,8 +775,8 @@ describe('the registration review route container', () => {
       );
     });
 
-    const marianoRow = screen.getByText('Mariano Otero').closest('details') as HTMLElement;
-    fireEvent.click(within(marianoRow).getByText('Mariano Otero'));
+    const marianoRow = screen.getByRole('table');
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Mariano Otero' }));
     fireEvent.click(within(marianoRow).getByText('Link identity'));
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'mariano@example.test' },
@@ -830,13 +826,14 @@ describe('the registration review route container', () => {
       );
     });
 
-    fireEvent.click(screen.getByText('Mariano Otero'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Mariano Otero' }));
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Unlink' }));
     });
 
     expect(unlinked).toEqual(['person-1']);
-    expect(screen.getAllByText('Link identity')).toHaveLength(2);
+    // Only the expanded row renders its detail now, so one row's action is on screen.
+    expect(screen.getAllByText('Link identity')).toHaveLength(1);
   });
 
   it('edits team memberships through the route and updates row state', async () => {
@@ -875,6 +872,7 @@ describe('the registration review route container', () => {
 
     await waitFor(() => expect(screen.getByText('Talleres')).toBeDefined());
 
+    fireEvent.click(screen.getByRole('button', { name: /^Show details:/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Edit members' }));
     expect(screen.getByText('Edit team members')).toBeDefined();
 

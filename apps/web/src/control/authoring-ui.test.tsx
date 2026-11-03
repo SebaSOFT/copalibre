@@ -840,7 +840,7 @@ describe('the registration review screen', () => {
       false,
     );
 
-    fireEvent.click(screen.getByText('Talleres Azul'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Talleres Azul' }));
     expect(screen.getByText('delegado@talleres.test')).toBeDefined();
   });
 
@@ -857,7 +857,7 @@ describe('the registration review screen', () => {
       ),
     );
 
-    fireEvent.click(screen.getByText('San Martín'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: San Martín' }));
 
     expect(screen.getByText(/Check-in closed/)).toBeDefined();
     expect(

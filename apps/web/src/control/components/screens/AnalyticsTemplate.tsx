@@ -285,6 +285,7 @@ export function AnalyticsTemplate({
               ariaLabel={intl.formatMessage(messages.analyticsTournamentOverview)}
               columns={columns}
               emptyMessage={intl.formatMessage(messages.analyticsNoTournaments)}
+              mobileMode="stacked"
               rowKey={({ tournament }) => tournament.tournamentId}
               rows={pageRows}
             />

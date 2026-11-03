@@ -349,6 +349,10 @@ export const messages = defineMessages({
     id: 'publicWeb.standings.tableLayouts',
     defaultMessage: 'Table layouts',
   },
+  standingsMoreColumns: {
+    id: 'publicWeb.standings.moreColumns',
+    defaultMessage: 'More columns',
+  },
   standingsFilterByClub: {
     id: 'publicWeb.standings.filterByClub',
     defaultMessage: 'Filter by club',

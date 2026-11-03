@@ -254,6 +254,7 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
                           )}
                           columns={columns}
                           compact
+                          mobileMode="stacked"
                           rows={[]}
                           sections={sectionsOf(group.rounds)}
                         />
@@ -345,13 +346,16 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
     width: 100%;
     box-sizing: border-box;
   }
-  .cl-match-schedule :global(.cl-data-table__table) {
-    display: table;
-    width: max-content;
-    min-width: 100%;
-  }
-  .cl-match-schedule :global(.cl-data-table__table th) {
-    white-space: nowrap;
+  /* Below the medium breakpoint the table is stacked cards; wider, it is one row per match. */
+  @media (width >= 768px) {
+    .cl-match-schedule :global(.cl-data-table__table) {
+      display: table;
+      width: max-content;
+      min-width: 100%;
+    }
+    .cl-match-schedule :global(.cl-data-table__table th) {
+      white-space: nowrap;
+    }
   }
   /* Wide screens share a column grid; give team names the room their score does not need. */
   @media (min-width: 1024px) {
@@ -386,9 +390,11 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
       text-overflow: ellipsis;
     }
   }
-  /* A row stays one line; a narrow screen scrolls the table inside its own region. */
-  .cl-match-schedule :global(.cl-data-table__table td) {
-    white-space: nowrap;
+  /* A row stays one line; a screen too narrow for that gets stacked cards instead. */
+  @media (width >= 768px) {
+    .cl-match-schedule :global(.cl-data-table__table td) {
+      white-space: nowrap;
+    }
   }
   details.cl-match-schedule__stage {
     margin-block-start: var(--cl-space-4);

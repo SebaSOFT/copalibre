@@ -31,6 +31,22 @@ import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
 import { StandingsFigure, StandingsPanel, StandingsRank } from '../ui/organisms/standings-panel.js';
 
+/** Layout column codes that carry the entrant's or player's name. */
+const NAME_COLUMN_CODES: ReadonlySet<string> = new Set([
+  'entrant-name',
+  'actor-name',
+  'name',
+  'team',
+  'entrant',
+]);
+
+/** Columns that stay visible on a phone; the rest move into each row's disclosure. */
+const PRIORITY_COLUMN_CODES: ReadonlySet<string> = new Set([
+  ...NAME_COLUMN_CODES,
+  'played',
+  'points',
+]);
+
 /**
  * A5 — every declared table layout (group standings, top scorers, goalkeeper
  * rankings, …) behind one tab bar, rendering whichever columns the active
@@ -103,7 +119,7 @@ export function StandingsTemplate({
   }, [projection, intl]);
   const rows = projection ? sortRows(projection.rows, sort) : [];
   const nameColumnCode = projection?.columns.find((column) =>
-    ['entrant-name', 'actor-name'].includes(column.code),
+    NAME_COLUMN_CODES.has(column.code),
   )?.code;
   const bars = projection ? distributionBars(projection, { nameColumnCode }) : [];
   const isGroupPhase = projection?.target === 'group-phase';
@@ -145,36 +161,45 @@ export function StandingsTemplate({
 
   const dataTableColumns: readonly DataTableColumn<TableRowResponseData>[] = useMemo(() => {
     if (!projection) return [];
+    // The trace toggle belongs with the entrant's name (it wraps beneath it on a phone) so the
+    // position column stays as narrow as a rank; with no name column it stays beside the rank.
+    const tiebreakButton = (row: TableRowResponseData): React.JSX.Element | null => {
+      if (!isGroupPhase) return null;
+      const rowLabel = row.entrantName ?? row.cells[nameColumnCode ?? '']?.formatted ?? row.actorId;
+      const expanded = expandedTiebreakActorId === row.actorId;
+      const detailId = `standings-tiebreak-${row.actorId}`;
+      return (
+        <Button
+          aria-controls={expanded ? detailId : undefined}
+          aria-expanded={expanded}
+          aria-label={`${intl.formatMessage(messages.standingsTiebreak)} — ${rowLabel}`}
+          onClick={() => toggleTiebreak(row.actorId)}
+          type="button"
+          variant="secondary"
+        >
+          <FormattedMessage {...messages.standingsTiebreak} />
+        </Button>
+      );
+    };
     const positionColumn: DataTableColumn<TableRowResponseData> = {
       key: 'position',
       header: <FormattedMessage {...messages.standingsRankColumn} />,
+      label: intl.formatMessage(messages.standingsRankColumn),
+      priority: 'high',
       render: (row) => {
         const indicator = tiebreakIndicator(row);
-        const rowLabel =
-          row.entrantName ?? row.cells[nameColumnCode ?? '']?.formatted ?? row.actorId;
-        const expanded = expandedTiebreakActorId === row.actorId;
-        const detailId = `standings-tiebreak-${row.actorId}`;
         return (
           <>
             <StandingsRank>{row.rank}</StandingsRank>
             {indicator.kind !== 'none' && (
-              <span className="cl-badge">
+              <span className="cl-badge cl-standings-shared-rank">
                 <span aria-hidden="true">{indicator.icon}</span>{' '}
-                {intl.formatMessage(messages.standingsSharedRank)}
+                <span className="cl-standings-shared-rank__label">
+                  {intl.formatMessage(messages.standingsSharedRank)}
+                </span>
               </span>
             )}
-            {isGroupPhase && (
-              <Button
-                aria-controls={expanded ? detailId : undefined}
-                aria-expanded={expanded}
-                aria-label={`${intl.formatMessage(messages.standingsTiebreak)} — ${rowLabel}`}
-                onClick={() => toggleTiebreak(row.actorId)}
-                type="button"
-                variant="secondary"
-              >
-                <FormattedMessage {...messages.standingsTiebreak} />
-              </Button>
-            )}
+            {nameColumnCode === undefined && tiebreakButton(row)}
           </>
         );
       },
@@ -184,6 +209,20 @@ export function StandingsTemplate({
       ...columns.map((column) => ({
         key: column.code,
         ariaSort: ariaSortFor(sort, column.code),
+        label: column.label,
+        // On a phone the table keeps the position, the entrant, matches played and the points; the
+        // other columns stay one tap away in the row's disclosure.
+        priority:
+          PRIORITY_COLUMN_CODES.has(column.code) || column.code === primaryMetricCode
+            ? ('high' as const)
+            : ('low' as const),
+        ...(column.code === nameColumnCode
+          ? {
+              nameText: (row: TableRowResponseData) =>
+                row.entrantName ?? row.cells[column.code]?.formatted ?? row.actorId,
+              nameAction: tiebreakButton,
+            }
+          : {}),
         header: (
           <ColumnHeaderTooltip
             description={column.label === column.shortLabel ? undefined : column.label}
@@ -370,6 +409,8 @@ export function StandingsTemplate({
             columns={dataTableColumns}
             compact
             emptyMessage={intl.formatMessage(messages.standingsNoResultsYet)}
+            mobileMode="priority"
+            moreColumnsLabel={intl.formatMessage(messages.dataTableMoreColumns)}
             eyebrow={localizedText(projection.label, intl.locale)}
             stickyHeader
             tableAriaLabel={intl.formatMessage(messages.standingsSectionLabel)}

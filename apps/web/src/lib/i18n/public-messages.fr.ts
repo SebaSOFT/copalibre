@@ -92,6 +92,7 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.promotionBandRange': 'Têtes de série {first}–{last}',
   'publicWeb.standings.fullTable': 'Voir le classement complet',
   'publicWeb.standings.tableLayouts': 'Dispositions de tableau',
+  'publicWeb.standings.moreColumns': 'Plus de colonnes',
   'publicWeb.standings.filterByClub': 'Filtrer par club',
   'publicWeb.standings.filterClubLabel': 'Club',
   'publicWeb.standings.columnLegend': 'Abréviations du tableau',

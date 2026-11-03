@@ -160,11 +160,13 @@ export function RolesPermissionsTemplate({
   const columns: readonly DataTableColumn<OrganizationRoleResponse>[] = [
     {
       key: 'user',
+      label: intl.formatMessage(messages.rolesColumnUser),
       header: <FormattedMessage {...messages.rolesColumnUser} />,
       render: (row) => <EntityIdentityCell email={row.email} />,
     },
     {
       key: 'role',
+      label: intl.formatMessage(messages.rolesColumnRole),
       header: <FormattedMessage {...messages.rolesColumnRole} />,
       render: (row) => (
         <RoleSelect
@@ -181,6 +183,7 @@ export function RolesPermissionsTemplate({
     },
     {
       key: 'status',
+      label: intl.formatMessage(messages.rolesColumnStatus),
       header: <FormattedMessage {...messages.rolesColumnStatus} />,
       render: (row) => (
         <RoleStatusToggle
@@ -195,6 +198,7 @@ export function RolesPermissionsTemplate({
     },
     {
       key: 'actions',
+      label: intl.formatMessage(messages.rolesColumnActions),
       header: <FormattedMessage {...messages.rolesColumnActions} />,
       render: (row) => (
         <RoleDeleteButton
@@ -273,6 +277,7 @@ export function RolesPermissionsTemplate({
             />
             <DataTable
               columns={columns}
+              mobileMode="stacked"
               emptyMessage={intl.formatMessage(
                 rows.length === 0 ? messages.rolesEmpty : messages.rolesNoMatches,
               )}

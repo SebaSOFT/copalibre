@@ -150,6 +150,7 @@ export function generateCss(): string {
     // figures. Derived from `border-muted` for the same reason the glow is
     // derived from `primary`: a second copy of the channels drifts.
     `  --cl-table-column-rule: color-mix(in srgb, var(--cl-border-muted) 55%, transparent);`,
+    `  --cl-scroll-edge: color-mix(in srgb, var(--cl-text-primary) 22%, transparent);`,
     `  --cl-glow-cyan: 0 0 20px color-mix(in srgb, var(--cl-primary) 40%, transparent);`,
     `}`,
     '',
@@ -942,6 +943,53 @@ function components(): string {
     '.cl-data-table__table td a { color: var(--cl-text-accent); font-variant-numeric: tabular-nums; }',
     '.cl-data-table__table td time { white-space: nowrap; }',
     '.cl-standings-template__entrant { display: inline-flex; align-items: center; gap: var(--cl-space-2); min-width: 0; }',
+    '',
+    /*
+     * Narrow-screen table modes. A table declares one of three: `priority` hides its low-priority
+     * columns below the medium breakpoint and moves them into a per-row disclosure; `stacked`
+     * turns each row into a card of label-value pairs; `scroll` (the default) keeps every column
+     * and scrolls inside its own box, with the first column pinned and an edge shadow showing there
+     * is more. `.cl-table` is the public standings and rosters vocabulary, `.cl-data-table` the
+     * shared organism's; both follow the same rules so a name never breaks mid-word in either.
+     */
+    '.cl-cell-name { position: relative; white-space: nowrap; overflow-wrap: normal; word-break: normal; }',
+    '.cl-cell-name__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-1) var(--cl-space-3); min-inline-size: 0; }',
+    '.cl-cell-name__row > .cl-cell-name__text { flex: 1 1 12ch; }',
+    '.cl-cell-name__text { display: block; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+    '.cl-cell-name .cl-entrant-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+    '.cl-more { display: none; }',
+    '.cl-more > summary { position: absolute; inset-block-start: var(--cl-space-1); inset-inline-end: var(--cl-space-1); display: inline-flex; align-items: center; justify-content: center; min-inline-size: var(--cl-touch-target); min-block-size: var(--cl-touch-target); list-style: none; cursor: pointer; color: var(--cl-text-accent); }',
+    '.cl-more > summary::-webkit-details-marker { display: none; }',
+    '.cl-more > summary::after { content: ""; inline-size: 0.5rem; block-size: 0.5rem; border-inline-end: 2px solid currentColor; border-block-end: 2px solid currentColor; transform: rotate(45deg); transition: transform var(--cl-motion-fast, 120ms); }',
+    '.cl-more[open] > summary::after { transform: rotate(-135deg); }',
+    '.cl-more__list { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--cl-space-1) var(--cl-space-3); margin: var(--cl-space-2) 0 0; padding-inline-end: var(--cl-touch-target); white-space: normal; }',
+    '.cl-more__list dt { color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
+    '.cl-more__list dd { margin: 0; font-variant-numeric: tabular-nums; }',
+    `@media (width < ${BREAKPOINTS.md}) {`,
+    '  .cl-cell-name { min-inline-size: 12ch; max-inline-size: 17ch; }',
+    '  .cl-table--priority .cl-cell-name { padding-inline-end: var(--cl-touch-target); }',
+    '  .cl-data-table--priority .cl-cell-name__row { padding-inline-end: var(--cl-touch-target); }',
+    '  .cl-data-table--priority :is(th, td) { padding-inline: var(--cl-space-2); }',
+    '  .cl-data-table--priority th { letter-spacing: 0; }',
+    '  .cl-data-table--priority [data-priority="low"], .cl-table--priority [data-priority="low"] { display: none; }',
+    '  .cl-standings-shared-rank__label { position: absolute; inline-size: 1px; block-size: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }',
+    '  .cl-data-table--priority .cl-more, .cl-table--priority .cl-more { display: block; }',
+    '  .cl-data-table--stacked .cl-data-table__table { display: block; inline-size: 100%; min-inline-size: 0; }',
+    '  .cl-data-table--stacked thead { position: absolute; inline-size: 1px; block-size: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }',
+    '  .cl-data-table--stacked tbody, .cl-data-table--stacked tr { display: block; }',
+    '  .cl-data-table--stacked tbody tr { padding-block: var(--cl-space-2); border-block-end: 1px solid var(--cl-border-muted); }',
+    '  .cl-data-table--stacked tbody tr:last-child { border-block-end: 0; }',
+    '  .cl-data-table--stacked .cl-data-table__table td { display: grid; grid-template-columns: minmax(7ch, 38%) minmax(0, 1fr); align-items: baseline; gap: var(--cl-space-3); padding: var(--cl-space-1) var(--cl-space-4); border: 0; overflow-wrap: anywhere; }',
+    '  .cl-data-table--stacked .cl-data-table__table td::before { content: attr(data-label); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; overflow-wrap: normal; }',
+    '  .cl-data-table--stacked .cl-data-table__table td[data-label=""], .cl-data-table--stacked .cl-data-table__table td:not([data-label]) { display: block; }',
+    '  .cl-data-table--stacked .cl-data-table__table td[data-label=""]::before, .cl-data-table--stacked .cl-data-table__table td:not([data-label])::before { content: none; }',
+    '  .cl-data-table--stacked .cl-data-table__table td > * { min-inline-size: 0; max-inline-size: 100%; }',
+    '  .cl-data-table--stacked .cl-data-table__table td { white-space: normal; }',
+    '  .cl-data-table--stacked .cl-data-table__section { display: block; }',
+    '  .cl-data-table--stacked .cl-data-table__section th { display: block; }',
+    '}',
+    '.cl-data-table--scroll, .cl-table-scroll { background: linear-gradient(to right, var(--cl-surface-panel), transparent) left center / 1.5rem 100% no-repeat local, linear-gradient(to left, var(--cl-surface-panel), transparent) right center / 1.5rem 100% no-repeat local, linear-gradient(to right, var(--cl-scroll-edge), transparent) left center / 0.75rem 100% no-repeat scroll, linear-gradient(to left, var(--cl-scroll-edge), transparent) right center / 0.75rem 100% no-repeat scroll; background-color: var(--cl-surface-panel); }',
+    '.cl-data-table--scroll .cl-data-table__table :is(th, td):first-child, .cl-table-scroll .cl-table :is(th, td):first-child { position: sticky; inset-inline-start: 0; z-index: 1; background: var(--cl-surface-panel); }',
     '',
     '.cl-modal__overlay { position: fixed; inset: 0; }',
     '.cl-modal__content { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(480px, calc(100vw - var(--cl-space-8))); max-height: 85vh; overflow-y: auto; padding: var(--cl-space-4); }',
