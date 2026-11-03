@@ -20,19 +20,21 @@ const { heading, match, href, labels, locale, timeZone, organizationAlias } = As
   <div class="cl-featured-match__heading">
     <h2 id="featured-match-heading">{heading}</h2>
   </div>
-  <MatchCard
-    labels={labels}
-    locale={locale}
-    match={match}
-    organizationAlias={organizationAlias}
-    reportUrl={href}
-    timeZone={timeZone}
-  />
+  <div class="cl-featured-match__card">
+    <MatchCard
+      labels={labels}
+      locale={locale}
+      match={match}
+      organizationAlias={organizationAlias}
+      reportUrl={href}
+      timeZone={timeZone}
+    />
+  </div>
 </section>
 
 <style>
   .cl-featured-match {
-    margin-block-end: var(--cl-space-5);
+    margin-block: var(--cl-space-5);
     padding: var(--cl-space-4);
     border: 1px solid var(--cl-border-strong);
     background: var(--cl-surface-chrome);
@@ -49,5 +51,10 @@ const { heading, match, href, labels, locale, timeZone, organizationAlias } = As
 
   .cl-featured-match__heading h2 {
     margin: 0;
+  }
+
+  /* One match never stretches across the section; it keeps the width of a card in the schedule grid. */
+  .cl-featured-match__card {
+    inline-size: min(100%, 24rem);
   }
 </style>

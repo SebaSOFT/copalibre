@@ -129,6 +129,17 @@ test('shows every match with venue, clock, and a one-line deciding-factor summar
   const schedule = page.locator('.cl-match-schedule');
   const featured = page.getByRole('region', { name: 'Featured match' });
   await expect(featured.getByText('Talleres', { exact: true })).toBeVisible();
+
+  // A single featured match keeps the width of a schedule card, and the section keeps its own
+  // space above, instead of stretching across the page.
+  const cardWidth = await featured
+    .locator('.cl-featured-match__card')
+    .evaluate((element) => element.getBoundingClientRect().width);
+  expect(cardWidth).toBeLessThanOrEqual(384);
+  const gap = await featured.evaluate((element) =>
+    Number.parseFloat(getComputedStyle(element).marginBlockStart),
+  );
+  expect(gap).toBeGreaterThan(0);
   await expect(schedule.getByText('Club Andes', { exact: true })).toBeVisible();
   await expect(schedule.getByText('Estadio Central')).toBeVisible();
   await expect(schedule.getByText('Decided by: head-to-head goal difference')).toBeVisible();
