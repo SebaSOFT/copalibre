@@ -992,6 +992,53 @@ input[type='checkbox'].cl-checkbox:focus-visible {
   border-block-start: 1px solid var(--cl-border-muted);
 }
 
+.cl-modal__content.cl-modal__content--wide {
+  width: min(56rem, calc(100vw - var(--cl-space-8)));
+}
+
+.cl-image-crop {
+  display: grid;
+  grid-template-columns: var(--cl-layout-split-main-rail);
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-image-crop__stage,
+.cl-image-crop__panel {
+  min-width: 0;
+}
+
+.cl-image-crop__panel {
+  display: grid;
+  align-content: start;
+  gap: var(--cl-space-4);
+}
+
+.cl-image-crop__previews {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--cl-space-4);
+}
+
+.cl-image-crop__preview {
+  overflow: hidden;
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-chrome);
+}
+
+.cl-image-crop__preview img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+@media (width < 768px) {
+  .cl-image-crop {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .cl-promotion {
   gap: var(--cl-space-8);
 }

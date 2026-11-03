@@ -122,7 +122,7 @@ test('selecting a file opens the crop modal; confirming it uploads and renders t
   await dialog.getByLabel('Zoom').fill('1.5');
   await dialog.getByLabel('Rotation').fill('15');
 
-  const confirmButton = dialog.getByRole('button', { name: 'Use image' });
+  const confirmButton = dialog.getByRole('button', { name: 'Apply' });
   await expect(confirmButton).toBeEnabled();
   await confirmButton.click();
 
@@ -327,7 +327,7 @@ test('uploading tournament emblem in control panel renders in tournament setting
     // removal succeeded or already in cropping phase
   }
 
-  const useImage = dialog.getByRole('button', { name: 'Use image' });
+  const useImage = dialog.getByRole('button', { name: 'Apply' });
   await expect(useImage).toBeEnabled({ timeout: 15000 });
   await useImage.click();
   await expect(dialog).toBeHidden();

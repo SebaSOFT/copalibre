@@ -22,6 +22,8 @@ export interface ModalProps {
    * literal `"Close"` in all eight languages until it became a prop.
    */
   readonly closeLabel: string;
+  /** `wide` fits a dialog with a side panel; the default suits a short confirmation. */
+  readonly size?: 'default' | 'wide';
 }
 
 export function Modal({
@@ -32,13 +34,14 @@ export function Modal({
   children,
   footer,
   closeLabel,
+  size = 'default',
 }: ModalProps): React.JSX.Element {
   return (
     <RadixDialog.Root onOpenChange={onOpenChange} open={open}>
       <RadixDialog.Portal>
         <RadixDialog.Overlay className="cl-dialog-backdrop cl-modal__overlay" />
         <RadixDialog.Content
-          className="cl-dialog-surface cl-chamfer cl-modal__content"
+          className={`cl-dialog-surface cl-chamfer cl-modal__content${size === 'wide' ? ' cl-modal__content--wide' : ''}`}
           onEscapeKeyDown={(event) => {
             // A combobox showing its suggestions closes them first; the next Escape closes
             // the dialog. Radix listens on the document ahead of the field's own handler.

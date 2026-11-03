@@ -2505,6 +2505,7 @@ export const messages = defineMessages({
   promotionSlotTotal: { id: 'control.promotion.slotTotal', defaultMessage: 'slots across bands' },
   seedingFilter: { id: 'control.seeding.filter', defaultMessage: 'Filter participants' },
   wizardNextStep: { id: 'control.wizard.nextStep', defaultMessage: 'Next: {step}' },
+  imageCropModalPreview: { id: 'control.imageCropModal.preview', defaultMessage: 'Preview' },
   unsavedChangesSummary: {
     id: 'control.unsavedChanges.summary',
     defaultMessage: '{count, plural, one {# unsaved change} other {# unsaved changes}}',
@@ -3799,7 +3800,7 @@ export const messages = defineMessages({
   imageCropModalZoom: { id: 'control.imageCropModal.zoom', defaultMessage: 'Zoom' },
   imageCropModalRotation: { id: 'control.imageCropModal.rotation', defaultMessage: 'Rotation' },
   imageCropModalCancel: { id: 'control.imageCropModal.cancel', defaultMessage: 'Cancel' },
-  imageCropModalConfirm: { id: 'control.imageCropModal.confirm', defaultMessage: 'Use image' },
+  imageCropModalConfirm: { id: 'control.imageCropModal.confirm', defaultMessage: 'Apply' },
   imageCropModalClose: { id: 'control.imageCropModal.close', defaultMessage: 'Close' },
   imageCropModalProcessing: {
     id: 'control.imageCropModal.processing',
