@@ -1872,4 +1872,10 @@ export const messages: Record<string, string> = {
   'control.resourceManagement.registerVenueHeading': 'Добавить площадку',
   'control.resourceManagement.newScheduleHeading': 'Создать расписание',
   'control.resourceManagement.addOfficialHeading': 'Добавить судью',
+  'control.scheduleBuilder.description':
+    'Назначьте каждому матчу слот, проверьте конфликты и опубликуйте.',
+  'control.scheduleBuilder.kpiLabel': 'Ход составления расписания',
+  'control.scheduleBuilder.kpiMatches': 'Матчей к назначению',
+  'control.scheduleBuilder.kpiPlaced': 'Назначено',
+  'control.scheduleBuilder.kpiConflicts': 'Найдено конфликтов',
 };

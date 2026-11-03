@@ -5537,4 +5537,21 @@ export const messages = defineMessages({
     id: 'control.resourceManagement.addOfficialHeading',
     defaultMessage: 'Register an official',
   },
+  scheduleBuilderDescription: {
+    id: 'control.scheduleBuilder.description',
+    defaultMessage: 'Place each match in a slot, check conflicts, then publish.',
+  },
+  scheduleBuilderKpiLabel: {
+    id: 'control.scheduleBuilder.kpiLabel',
+    defaultMessage: 'Schedule progress',
+  },
+  scheduleBuilderKpiMatches: {
+    id: 'control.scheduleBuilder.kpiMatches',
+    defaultMessage: 'Matches to place',
+  },
+  scheduleBuilderKpiPlaced: { id: 'control.scheduleBuilder.kpiPlaced', defaultMessage: 'Placed' },
+  scheduleBuilderKpiConflicts: {
+    id: 'control.scheduleBuilder.kpiConflicts',
+    defaultMessage: 'Conflicts found',
+  },
 });

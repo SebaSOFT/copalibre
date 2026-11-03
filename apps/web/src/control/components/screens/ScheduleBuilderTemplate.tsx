@@ -29,7 +29,8 @@ import {
   type ReasonPromptResult,
 } from '../ui/organisms/schedule-reason-prompt.js';
 import { messages } from '../../i18n/messages.en.js';
-import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { PageHeaderTemplate } from './PageHeaderTemplate.js';
+import { KpiStrip } from '../ui/organisms/kpi-strip.js';
 import { formatDateTime } from '../../lib/presentation-formatting.js';
 
 export interface DraftAssignment {
@@ -576,16 +577,33 @@ export function ScheduleBuilderTemplate({
   }
 
   const stageHubHref = `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}`;
-  const breadcrumbNode = (
-    <span>
-      {organizationAlias} / {tournamentAlias} /{' '}
-      <a className="cl-focusable" href={stageHubHref} onClick={controlLinkClick(stageHubHref)}>
-        <FormattedMessage {...messages.stageHubBreadcrumbLink} values={{ stageNumber }} />
-      </a>
-    </span>
-  );
-
+  const stageLabel = intl.formatMessage(messages.stageHubBreadcrumbLink, { stageNumber });
   const titleNode = <FormattedMessage {...messages.scheduleBuilderTitle} />;
+
+  const schedulableRows = groups
+    .flatMap((group) => group.rows)
+    .filter((row) => row.status !== 'not-required' && !LOCKED_STATUSES.has(row.status));
+
+  const actionsNode =
+    fixtures.length > 0 ? (
+      <>
+        <Button
+          disabled={batch.length === 0}
+          onClick={() => onPreview(batch)}
+          type="button"
+          variant="secondary"
+        >
+          <FormattedMessage {...messages.scheduleBuilderPreview} />
+        </Button>
+        <Button
+          disabled={!previewed || !committable || batch.length === 0}
+          onClick={requestPublish}
+          type="button"
+        >
+          <FormattedMessage {...messages.scheduleBuilderPublish} />
+        </Button>
+      </>
+    ) : undefined;
 
   const matchesViewHref = `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches-view?stageNumber=${stageNumber}`;
 
@@ -612,6 +630,37 @@ export function ScheduleBuilderTemplate({
 
   const listingNode = (
     <div className="cl-screen-sections">
+      {toolbarNode}
+      {fixtures.length > 0 && (
+        <KpiStrip
+          ariaLabel={intl.formatMessage(messages.scheduleBuilderKpiLabel)}
+          metrics={[
+            {
+              key: 'matches',
+              label: intl.formatMessage(messages.scheduleBuilderKpiMatches),
+              sourceField: 'matches',
+              formatValue: (value) => String(value),
+            },
+            {
+              key: 'placed',
+              label: intl.formatMessage(messages.scheduleBuilderKpiPlaced),
+              sourceField: 'placed',
+              formatValue: (value) => String(value),
+            },
+            {
+              key: 'conflicts',
+              label: intl.formatMessage(messages.scheduleBuilderKpiConflicts),
+              sourceField: 'conflicts',
+              formatValue: (value) => String(value),
+            },
+          ]}
+          source={{
+            matches: schedulableRows.length,
+            placed: batch.length,
+            ...(previewed ? { conflicts: conflicts.length } : {}),
+          }}
+        />
+      )}
       {concurrentNotice && <Alert tone="warning">{concurrentNotice}</Alert>}
       {fixtures.length === 0 && (
         <p className="cl-card__description">
@@ -736,25 +785,6 @@ export function ScheduleBuilderTemplate({
           </Card>
 
           <Card className="cl-chamfer cl-chamfer--control">
-            <header className="cl-card__header">
-              <div className="cl-role-user">
-                <Button
-                  disabled={batch.length === 0}
-                  onClick={() => onPreview(batch)}
-                  type="button"
-                >
-                  <FormattedMessage {...messages.scheduleBuilderPreview} />
-                </Button>
-                <Button
-                  disabled={!previewed || !committable || batch.length === 0}
-                  onClick={requestPublish}
-                  type="button"
-                >
-                  <FormattedMessage {...messages.scheduleBuilderPublish} />
-                </Button>
-              </div>
-            </header>
-
             <div className="cl-card__content">
               {publishHint && (
                 <p className="cl-card__description" role="status">
@@ -832,11 +862,13 @@ export function ScheduleBuilderTemplate({
   );
 
   return (
-    <ListScreenLayout
-      breadcrumb={breadcrumbNode}
-      listing={listingNode}
+    <PageHeaderTemplate
+      actions={actionsNode}
+      breadcrumbs={[{ label: stageLabel, href: stageHubHref }]}
+      description={<FormattedMessage {...messages.scheduleBuilderDescription} />}
       title={titleNode}
-      toolbar={toolbarNode}
-    />
+    >
+      {listingNode}
+    </PageHeaderTemplate>
   );
 }

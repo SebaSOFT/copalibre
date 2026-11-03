@@ -1870,4 +1870,10 @@ export const messages: Record<string, string> = {
   'control.resourceManagement.registerVenueHeading': 'Registrar um local',
   'control.resourceManagement.newScheduleHeading': 'Criar um calendário',
   'control.resourceManagement.addOfficialHeading': 'Registrar um árbitro',
+  'control.scheduleBuilder.description':
+    'Coloque cada partida em um horário, verifique os conflitos e publique.',
+  'control.scheduleBuilder.kpiLabel': 'Andamento do calendário',
+  'control.scheduleBuilder.kpiMatches': 'Partidas a posicionar',
+  'control.scheduleBuilder.kpiPlaced': 'Posicionadas',
+  'control.scheduleBuilder.kpiConflicts': 'Conflitos encontrados',
 };

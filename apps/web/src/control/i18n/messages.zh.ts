@@ -1767,4 +1767,9 @@ export const messages: Record<string, string> = {
   'control.resourceManagement.registerVenueHeading': '登记场地',
   'control.resourceManagement.newScheduleHeading': '创建赛程',
   'control.resourceManagement.addOfficialHeading': '登记裁判',
+  'control.scheduleBuilder.description': '为每场比赛安排时段，检查冲突后发布。',
+  'control.scheduleBuilder.kpiLabel': '赛程进度',
+  'control.scheduleBuilder.kpiMatches': '待安排的比赛',
+  'control.scheduleBuilder.kpiPlaced': '已安排',
+  'control.scheduleBuilder.kpiConflicts': '发现的冲突',
 };

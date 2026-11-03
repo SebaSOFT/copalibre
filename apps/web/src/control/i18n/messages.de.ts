@@ -1898,4 +1898,10 @@ export const messages: Record<string, string> = {
   'control.resourceManagement.registerVenueHeading': 'Spielort erfassen',
   'control.resourceManagement.newScheduleHeading': 'Zeitplan erstellen',
   'control.resourceManagement.addOfficialHeading': 'Offiziellen erfassen',
+  'control.scheduleBuilder.description':
+    'Setzen Sie jedes Spiel in einen Zeitslot, prüfen Sie Konflikte und veröffentlichen Sie.',
+  'control.scheduleBuilder.kpiLabel': 'Fortschritt des Zeitplans',
+  'control.scheduleBuilder.kpiMatches': 'Zu setzende Spiele',
+  'control.scheduleBuilder.kpiPlaced': 'Gesetzt',
+  'control.scheduleBuilder.kpiConflicts': 'Gefundene Konflikte',
 };

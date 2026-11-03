@@ -1882,4 +1882,10 @@ export const messages: Record<string, string> = {
   'control.resourceManagement.registerVenueHeading': 'Registra una sede',
   'control.resourceManagement.newScheduleHeading': 'Crea un calendario',
   'control.resourceManagement.addOfficialHeading': 'Registra un ufficiale',
+  'control.scheduleBuilder.description':
+    'Assegna ogni partita a una fascia oraria, controlla i conflitti e pubblica.',
+  'control.scheduleBuilder.kpiLabel': 'Avanzamento del calendario',
+  'control.scheduleBuilder.kpiMatches': 'Partite da assegnare',
+  'control.scheduleBuilder.kpiPlaced': 'Assegnate',
+  'control.scheduleBuilder.kpiConflicts': 'Conflitti rilevati',
 };

@@ -1893,4 +1893,10 @@ export const messages: Record<string, string> = {
   'control.resourceManagement.registerVenueHeading': 'Enregistrer un lieu',
   'control.resourceManagement.newScheduleHeading': 'Créer un calendrier',
   'control.resourceManagement.addOfficialHeading': 'Enregistrer un officiel',
+  'control.scheduleBuilder.description':
+    'Placez chaque match dans un créneau, vérifiez les conflits, puis publiez.',
+  'control.scheduleBuilder.kpiLabel': 'Avancement du calendrier',
+  'control.scheduleBuilder.kpiMatches': 'Matchs à placer',
+  'control.scheduleBuilder.kpiPlaced': 'Placés',
+  'control.scheduleBuilder.kpiConflicts': 'Conflits détectés',
 };
