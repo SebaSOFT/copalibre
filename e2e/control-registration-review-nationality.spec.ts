@@ -149,7 +149,7 @@ test('uploads a person photo through the crop modal from the registration review
   } catch {
     // removal succeeded or already in cropping state
   }
-  const useImage = dialog.getByRole('button', { name: 'Usar imagen' });
+  const useImage = dialog.getByRole('button', { name: 'Aplicar' });
   await expect(useImage).toBeEnabled({ timeout: 15000 });
   await useImage.click();
   await expect(dialog).toBeHidden();

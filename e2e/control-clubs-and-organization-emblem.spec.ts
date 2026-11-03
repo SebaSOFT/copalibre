@@ -11,7 +11,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 /**
  * A real, tiny, decodable PNG (1×1) — the crop modal opens every selected
  * file as a real `<img>` (a genuine browser decode, unlike a unit test), so
- * placeholder text bytes that aren't a real image would leave "Use image"
+ * placeholder text bytes that aren't a real image would leave "Apply"
  * disabled forever.
  */
 const ONE_PIXEL_PNG_BASE64 =
@@ -226,7 +226,7 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   } catch {
     // removal succeeded or already in cropping state
   }
-  const useImage = clubDialog.getByRole('button', { name: 'Usar imagen' });
+  const useImage = clubDialog.getByRole('button', { name: 'Aplicar' });
   await expect(useImage).toBeEnabled({ timeout: 15000 });
   await useImage.click();
   await expect(page.getByText('Escudo subido.')).toBeVisible();
@@ -260,7 +260,7 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   } catch {
     // removal succeeded or already in cropping state
   }
-  const orgUseImage = orgDialog.getByRole('button', { name: 'Usar imagen' });
+  const orgUseImage = orgDialog.getByRole('button', { name: 'Aplicar' });
   await expect(orgUseImage).toBeEnabled({ timeout: 15000 });
   await orgUseImage.click();
   await expect(page.getByText('Escudo subido.')).toBeVisible();
