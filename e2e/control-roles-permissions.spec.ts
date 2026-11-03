@@ -122,7 +122,6 @@ test('admin invites a referee and changes a user status immediately', async ({ p
   await page.waitForURL(`**${target}`);
   await expect(page.getByText('referee@example.test')).toBeVisible();
 
-  await page.getByText('Invitar usuario').click();
   await page.getByLabel('Rol de invitación').selectOption('club-admin');
   await page.screenshot({
     path: 'docs/assets/screenshots/control-roles-after.png',
@@ -131,7 +130,7 @@ test('admin invites a referee and changes a user status immediately', async ({ p
   await page.getByLabel('Correo electrónico').fill('new-referee@example.test');
   await page.getByLabel('Rol de invitación').selectOption('referee');
   await page.getByText('Enviar invitación').click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByLabel('Correo electrónico')).toHaveValue('');
 
   const accepted = await page.evaluate(async () => {
     const response = await fetch('/invitations/accept', { method: 'POST', body: '{}' });
@@ -159,11 +158,10 @@ test('admin creates a pending invitation and rescinds it', async ({ page }) => {
   await page.waitForURL(`**${target}`);
   await expect(page.getByText('referee@example.test')).toBeVisible();
 
-  await page.getByText('Invitar usuario').click();
   await page.getByLabel('Correo electrónico').fill('pendiente@example.test');
   await page.getByLabel('Rol de invitación').selectOption('viewer');
   await page.getByText('Enviar invitación').click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByLabel('Correo electrónico')).toHaveValue('');
 
   await expect(page.getByText('pendiente@example.test')).toBeVisible();
   await page.getByLabel('Retirar invitación de pendiente@example.test').click();
