@@ -2,7 +2,6 @@ import { createServer, type Server } from 'node:http';
 import AxeBuilder from '@axe-core/playwright';
 import { resolveSemantic } from '@copalibre/design-tokens';
 import { expect, test } from './fixtures.js';
-import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
  * End-to-end tests for public navigation and accessibility hardening:

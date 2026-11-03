@@ -113,8 +113,9 @@ test('an administrator opens the audit surface and sees applied and refused acti
 
   await expect(page.getByText('alice@copalibre.test')).toBeVisible();
   await expect(page.getByText('bob@copalibre.test')).toBeVisible();
-  await expect(page.getByText('Aplicado')).toBeVisible();
-  await expect(page.getByText('Rechazado')).toBeVisible();
+  const trail = page.getByRole('table');
+  await expect(trail.getByText('Aplicado')).toBeVisible();
+  await expect(trail.getByText('Rechazado')).toBeVisible();
   await expect(
     page.getByText('El rol en la organización no está autorizado para esta ruta'),
   ).toBeVisible();
