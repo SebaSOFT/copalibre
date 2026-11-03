@@ -3,7 +3,6 @@ import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { type PromotionPreviewResponse, type ZoneResponse } from '../../lib/api-client.js';
 import { Button } from '../ui/atoms/button.js';
-import { Card } from '../ui/atoms/card.js';
 import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
 import { UnsavedChangesBar } from '../ui/organisms/unsaved-changes-bar.js';
 import type { QualifiedEntrantResponse } from '../../lib/api-client.js';
