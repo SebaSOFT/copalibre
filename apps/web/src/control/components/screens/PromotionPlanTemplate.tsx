@@ -63,6 +63,106 @@ function initialFormState(zone: ZoneResponse | undefined): {
   };
 }
 
+function bandsDiffer(current: readonly BandRow[], initial: readonly BandRow[]): boolean {
+  if (current.length !== initial.length) return true;
+  return current.some(
+    (row, index) => row.zoneRef !== initial[index]?.zoneRef || row.count !== initial[index]?.count,
+  );
+}
+
+function BandCards({
+  bands,
+  onAdd,
+  onRemove,
+  onUpdate,
+}: {
+  readonly bands: readonly BandRow[];
+  readonly onAdd: () => void;
+  readonly onRemove: (key: string) => void;
+  readonly onUpdate: (key: string, patch: Partial<BandRow>) => void;
+}): React.JSX.Element {
+  const intl = useIntl();
+  return (
+    <ul className="cl-zone-group__cards">
+      {bands.map((row) => (
+        <li className="cl-zone-group__card cl-chamfer cl-chamfer--control" key={row.key}>
+          <Input
+            aria-label={intl.formatMessage(messages.promotionBandZoneRef)}
+            onChange={(event) => onUpdate(row.key, { zoneRef: event.target.value })}
+            placeholder={intl.formatMessage(messages.promotionBandZoneRef)}
+            value={row.zoneRef}
+          />
+          <Input
+            aria-label={intl.formatMessage(messages.promotionBandCount)}
+            min="1"
+            onChange={(event) => onUpdate(row.key, { count: event.target.value })}
+            type="number"
+            value={row.count}
+          />
+          <div className="cl-zone-group__card-foot">
+            <Button onClick={() => onRemove(row.key)} type="button" variant="secondary">
+              <FormattedMessage {...messages.promotionRemoveBand} />
+            </Button>
+          </div>
+        </li>
+      ))}
+      <li className="cl-zone-group__card cl-zone-group__card--add">
+        <Button onClick={onAdd} type="button" variant="secondary">
+          <FormattedMessage {...messages.promotionAddBand} />
+        </Button>
+      </li>
+    </ul>
+  );
+}
+
+/** The projected candidate order, with the band each candidate lands in when the plan declares bands. */
+function CandidateTable({
+  entrantLabel,
+  preview,
+}: {
+  readonly entrantLabel: (entrantId: string) => string;
+  readonly preview: PromotionPreviewResponse;
+}): React.JSX.Element {
+  const intl = useIntl();
+  const bandOf = new Map<string, string>();
+  for (const [bandRef, entrants] of Object.entries(preview.bands ?? {})) {
+    for (const entrant of entrants) bandOf.set(entrant.entrantId, bandRef);
+  }
+  type Row = { entrant: QualifiedEntrantResponse; position: number };
+  const columns: DataTableColumn<Row>[] = [
+    {
+      key: 'position',
+      header: intl.formatMessage(messages.promotionColumnPosition),
+      render: ({ position }) => position,
+    },
+    {
+      key: 'entrant',
+      header: intl.formatMessage(messages.promotionColumnEntrant),
+      render: ({ entrant }) => entrantLabel(entrant.entrantId),
+    },
+    {
+      key: 'rank',
+      header: intl.formatMessage(messages.promotionColumnGroupRank),
+      render: ({ entrant }) => entrant.rank,
+    },
+  ];
+  if (bandOf.size > 0) {
+    columns.push({
+      key: 'band',
+      header: intl.formatMessage(messages.promotionColumnBand),
+      render: ({ entrant }) => bandOf.get(entrant.entrantId) ?? '—',
+    });
+  }
+  return (
+    <DataTable
+      ariaLabel={intl.formatMessage(messages.promotionReviewHeading)}
+      columns={columns}
+      rowKey={({ entrant }) => entrant.entrantId}
+      rows={preview.combined.map((entrant, index) => ({ entrant, position: index + 1 }))}
+    />
+  );
+}
+
 /**
  * Composes the screen from the data `PromotionPlanPage` supplies: the plan-configuration form and band rows below are this
  * component's own screen state, seeded once from the zone's existing plan;
@@ -112,66 +212,19 @@ export function PromotionPlanTemplate({
   }
 
   const hasPlan = zone !== undefined && 'promotionPlan' in zone && zone.promotionPlan !== undefined;
-  const dirty =
-    !hasPlan ||
-    nextStageNumber !== initial.nextStageNumber ||
-    perGroupAdvance !== initial.perGroupAdvance ||
-    bands.length !== initial.bands.length ||
-    bands.some((row, index) => {
-      const before = initial.bands[index];
-      return before === undefined || row.zoneRef !== before.zoneRef || row.count !== before.count;
-    });
+  const nextChanged = !hasPlan || nextStageNumber !== initial.nextStageNumber;
+  const advanceChanged = !hasPlan || perGroupAdvance !== initial.perGroupAdvance;
+  const bandsChanged = bandsDiffer(bands, initial.bands);
+  const dirty = nextChanged || advanceChanged || bandsChanged;
   const changedFields = [
-    ...(!hasPlan || nextStageNumber !== initial.nextStageNumber
-      ? [{ id: 'next', label: intl.formatMessage(messages.promotionNextStageNumber) }]
-      : []),
-    ...(!hasPlan || perGroupAdvance !== initial.perGroupAdvance
-      ? [{ id: 'advance', label: intl.formatMessage(messages.promotionPerGroupAdvance) }]
-      : []),
-    ...(bands.length !== initial.bands.length ||
-    bands.some((row, index) => {
-      const before = initial.bands[index];
-      return before === undefined || row.zoneRef !== before.zoneRef || row.count !== before.count;
-    })
-      ? [{ id: 'bands', label: intl.formatMessage(messages.promotionBandsHeading) }]
-      : []),
-  ];
+    nextChanged && { id: 'next', label: intl.formatMessage(messages.promotionNextStageNumber) },
+    advanceChanged && {
+      id: 'advance',
+      label: intl.formatMessage(messages.promotionPerGroupAdvance),
+    },
+    bandsChanged && { id: 'bands', label: intl.formatMessage(messages.promotionBandsHeading) },
+  ].filter((field): field is { id: string; label: string } => field !== false);
   const slotTotal = bands.reduce((sum, row) => sum + (Number.parseInt(row.count, 10) || 0), 0);
-
-  const bandOf = new Map<string, string>();
-  for (const [bandRef, entrants] of Object.entries(preview?.bands ?? {})) {
-    for (const entrant of entrants) bandOf.set(entrant.entrantId, bandRef);
-  }
-  const candidateColumns: readonly DataTableColumn<{
-    entrant: QualifiedEntrantResponse;
-    position: number;
-  }>[] = [
-    {
-      key: 'position',
-      header: intl.formatMessage(messages.promotionColumnPosition),
-      render: ({ position }) => position,
-    },
-    {
-      key: 'entrant',
-      header: intl.formatMessage(messages.promotionColumnEntrant),
-      render: ({ entrant }) => entrantLabel(entrant.entrantId),
-    },
-    {
-      key: 'rank',
-      header: intl.formatMessage(messages.promotionColumnGroupRank),
-      render: ({ entrant }) => entrant.rank,
-    },
-    ...(bandOf.size > 0
-      ? [
-          {
-            key: 'band',
-            header: intl.formatMessage(messages.promotionColumnBand),
-            render: ({ entrant }: { entrant: QualifiedEntrantResponse }) =>
-              bandOf.get(entrant.entrantId) ?? '—',
-          },
-        ]
-      : []),
-  ];
 
   const breadcrumbNode = (
     <span>
@@ -232,35 +285,7 @@ export function PromotionPlanTemplate({
           <h2 className="cl-promotion__heading">
             <FormattedMessage {...messages.promotionBandsHeading} />
           </h2>
-          <ul className="cl-zone-group__cards">
-            {bands.map((row) => (
-              <li className="cl-zone-group__card cl-chamfer cl-chamfer--control" key={row.key}>
-                <Input
-                  aria-label={intl.formatMessage(messages.promotionBandZoneRef)}
-                  onChange={(event) => updateBand(row.key, { zoneRef: event.target.value })}
-                  placeholder={intl.formatMessage(messages.promotionBandZoneRef)}
-                  value={row.zoneRef}
-                />
-                <Input
-                  aria-label={intl.formatMessage(messages.promotionBandCount)}
-                  min="1"
-                  onChange={(event) => updateBand(row.key, { count: event.target.value })}
-                  type="number"
-                  value={row.count}
-                />
-                <div className="cl-zone-group__card-foot">
-                  <Button onClick={() => removeBand(row.key)} type="button" variant="secondary">
-                    <FormattedMessage {...messages.promotionRemoveBand} />
-                  </Button>
-                </div>
-              </li>
-            ))}
-            <li className="cl-zone-group__card cl-zone-group__card--add">
-              <Button onClick={addBand} type="button" variant="secondary">
-                <FormattedMessage {...messages.promotionAddBand} />
-              </Button>
-            </li>
-          </ul>
+          <BandCards bands={bands} onAdd={addBand} onRemove={removeBand} onUpdate={updateBand} />
         </section>
 
         <section aria-label={intl.formatMessage(messages.promotionReviewHeading)}>
@@ -274,12 +299,7 @@ export function PromotionPlanTemplate({
             <Alert tone="destructive">{previewError.message}</Alert>
           )}
           {preview && !previewError && (
-            <DataTable
-              ariaLabel={intl.formatMessage(messages.promotionReviewHeading)}
-              columns={candidateColumns}
-              rowKey={({ entrant }) => entrant.entrantId}
-              rows={preview.combined.map((entrant, index) => ({ entrant, position: index + 1 }))}
-            />
+            <CandidateTable entrantLabel={entrantLabel} preview={preview} />
           )}
         </section>
 
