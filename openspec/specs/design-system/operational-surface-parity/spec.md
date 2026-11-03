@@ -467,3 +467,24 @@ permitted by the viewer's role.
 - **WHEN** an admin opens any page of a tournament in configuration
 - **THEN** the rail header shows that tournament's emblem or monogram, name, discipline and an
   "In configuration" badge
+
+### Requirement: Tournament setup screens use the shared setup compositions
+
+Tournament settings, ruleset, wizards, zones and groups, promotion plan, seeding builder and image crop SHALL compose the `0384` templates. Editable settings SHALL show the unsaved-changes bar while dirty. Wizards SHALL show the stepper and a sticky footer naming the next step. Seeding SHALL use the two-pane workspace.
+
+#### Scenario: Dirty ruleset
+
+- **WHEN** an operator changes two ruleset values
+- **THEN** a sticky bar shows "2 unsaved changes", names the fields, and offers Reset and Save changes
+
+#### Scenario: Wizard footer names the next step
+
+- **WHEN** an organizer completes step 1 of the tournament wizard
+- **THEN** the sticky footer shows "Next: " followed by the next step's name beside the primary action,
+  and the caption is absent on the last step
+
+#### Scenario: Seeding workspace at 768px
+
+- **WHEN** the seeding builder renders at 768px
+- **THEN** the seed list stacks above the bracket canvas, the canvas scrolls inside its own box, and the
+  page does not scroll horizontally
