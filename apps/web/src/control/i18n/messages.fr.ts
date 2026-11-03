@@ -1883,4 +1883,14 @@ export const messages: Record<string, string> = {
   'control.orgIdentity.dropInstruction': 'Déposez une image ici ou choisissez un fichier.',
   'control.preferences.patCreatedColumn': 'Créé',
   'control.preferences.patExpiresColumn': 'Expire',
+  'control.resourceManagement.description':
+    'Où les matchs se jouent, quand ils peuvent être programmés et qui les arbitre.',
+  'control.resourceManagement.venueMeta': 'Capacité {count}',
+  'control.resourceManagement.officialsKpiLabel': 'Résumé des officiels',
+  'control.resourceManagement.kpiOfficials': 'Officiels',
+  'control.resourceManagement.kpiReferees': 'Arbitres',
+  'control.resourceManagement.railLabel': 'Enregistrer lieux, calendriers et officiels',
+  'control.resourceManagement.registerVenueHeading': 'Enregistrer un lieu',
+  'control.resourceManagement.newScheduleHeading': 'Créer un calendrier',
+  'control.resourceManagement.addOfficialHeading': 'Enregistrer un officiel',
 };

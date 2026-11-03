@@ -1862,4 +1862,14 @@ export const messages: Record<string, string> = {
   'control.orgIdentity.dropInstruction': 'Перетащите изображение сюда или выберите файл.',
   'control.preferences.patCreatedColumn': 'Создан',
   'control.preferences.patExpiresColumn': 'Истекает',
+  'control.resourceManagement.description':
+    'Где проходят матчи, когда их можно назначать и кто их судит.',
+  'control.resourceManagement.venueMeta': 'Вместимость {count}',
+  'control.resourceManagement.officialsKpiLabel': 'Сводка по судьям',
+  'control.resourceManagement.kpiOfficials': 'Судьи',
+  'control.resourceManagement.kpiReferees': 'Главные судьи',
+  'control.resourceManagement.railLabel': 'Добавить площадки, расписания и судей',
+  'control.resourceManagement.registerVenueHeading': 'Добавить площадку',
+  'control.resourceManagement.newScheduleHeading': 'Создать расписание',
+  'control.resourceManagement.addOfficialHeading': 'Добавить судью',
 };

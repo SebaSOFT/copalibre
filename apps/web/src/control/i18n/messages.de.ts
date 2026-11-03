@@ -1888,4 +1888,14 @@ export const messages: Record<string, string> = {
   'control.orgIdentity.dropInstruction': 'Ziehen Sie ein Bild hierher oder wählen Sie eine Datei.',
   'control.preferences.patCreatedColumn': 'Erstellt',
   'control.preferences.patExpiresColumn': 'Läuft ab',
+  'control.resourceManagement.description':
+    'Wo Spiele stattfinden, wann sie angesetzt werden können und wer sie leitet.',
+  'control.resourceManagement.venueMeta': 'Kapazität {count}',
+  'control.resourceManagement.officialsKpiLabel': 'Übersicht der Offiziellen',
+  'control.resourceManagement.kpiOfficials': 'Offizielle',
+  'control.resourceManagement.kpiReferees': 'Schiedsrichter',
+  'control.resourceManagement.railLabel': 'Spielorte, Zeitpläne und Offizielle erfassen',
+  'control.resourceManagement.registerVenueHeading': 'Spielort erfassen',
+  'control.resourceManagement.newScheduleHeading': 'Zeitplan erstellen',
+  'control.resourceManagement.addOfficialHeading': 'Offiziellen erfassen',
 };

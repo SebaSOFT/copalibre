@@ -5501,4 +5501,40 @@ export const messages = defineMessages({
     id: 'control.preferences.patExpiresColumn',
     defaultMessage: 'Expires',
   },
+  resourceManagementDescription: {
+    id: 'control.resourceManagement.description',
+    defaultMessage: 'Where matches are played, when they can be scheduled and who officiates them.',
+  },
+  resourceManagementVenueMeta: {
+    id: 'control.resourceManagement.venueMeta',
+    defaultMessage: 'Capacity {count}',
+  },
+  resourceManagementOfficialsKpiLabel: {
+    id: 'control.resourceManagement.officialsKpiLabel',
+    defaultMessage: 'Officials summary',
+  },
+  resourceManagementKpiOfficials: {
+    id: 'control.resourceManagement.kpiOfficials',
+    defaultMessage: 'Officials',
+  },
+  resourceManagementKpiReferees: {
+    id: 'control.resourceManagement.kpiReferees',
+    defaultMessage: 'Referees',
+  },
+  resourceManagementRailLabel: {
+    id: 'control.resourceManagement.railLabel',
+    defaultMessage: 'Register venues, schedules and officials',
+  },
+  resourceManagementRegisterVenueHeading: {
+    id: 'control.resourceManagement.registerVenueHeading',
+    defaultMessage: 'Register a venue',
+  },
+  resourceManagementNewScheduleHeading: {
+    id: 'control.resourceManagement.newScheduleHeading',
+    defaultMessage: 'Create a schedule',
+  },
+  resourceManagementAddOfficialHeading: {
+    id: 'control.resourceManagement.addOfficialHeading',
+    defaultMessage: 'Register an official',
+  },
 });

@@ -1866,4 +1866,14 @@ export const messages: Record<string, string> = {
   'control.orgIdentity.dropInstruction': 'Soltá una imagen acá o elegí un archivo.',
   'control.preferences.patCreatedColumn': 'Creado',
   'control.preferences.patExpiresColumn': 'Vence',
+  'control.resourceManagement.description':
+    'Dónde se juegan los partidos, cuándo se pueden programar y quién los arbitra.',
+  'control.resourceManagement.venueMeta': 'Capacidad {count}',
+  'control.resourceManagement.officialsKpiLabel': 'Resumen de árbitros',
+  'control.resourceManagement.kpiOfficials': 'Árbitros',
+  'control.resourceManagement.kpiReferees': 'Árbitros principales',
+  'control.resourceManagement.railLabel': 'Registrar sedes, calendarios y árbitros',
+  'control.resourceManagement.registerVenueHeading': 'Registrar una sede',
+  'control.resourceManagement.newScheduleHeading': 'Crear un calendario',
+  'control.resourceManagement.addOfficialHeading': 'Registrar un árbitro',
 };

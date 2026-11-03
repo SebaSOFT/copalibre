@@ -599,6 +599,31 @@ body {
   min-width: 0;
 }
 
+.cl-operations__rows {
+  display: grid;
+  gap: var(--cl-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-operations__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-3);
+  min-width: 0;
+  padding-block: var(--cl-space-3);
+  border-block-end: 1px solid var(--cl-border-muted);
+}
+
+.cl-operations__rail-stack {
+  display: grid;
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
 .cl-dashboard__empty-results {
   color: var(--cl-text-secondary);
   margin: 0;

@@ -1872,4 +1872,14 @@ export const messages: Record<string, string> = {
   'control.orgIdentity.dropInstruction': "Trascina qui un'immagine o scegli un file.",
   'control.preferences.patCreatedColumn': 'Creato',
   'control.preferences.patExpiresColumn': 'Scade',
+  'control.resourceManagement.description':
+    'Dove si giocano le partite, quando possono essere programmate e chi le arbitra.',
+  'control.resourceManagement.venueMeta': 'Capacità {count}',
+  'control.resourceManagement.officialsKpiLabel': 'Riepilogo degli ufficiali',
+  'control.resourceManagement.kpiOfficials': 'Ufficiali',
+  'control.resourceManagement.kpiReferees': 'Arbitri',
+  'control.resourceManagement.railLabel': 'Registra sedi, calendari e ufficiali',
+  'control.resourceManagement.registerVenueHeading': 'Registra una sede',
+  'control.resourceManagement.newScheduleHeading': 'Crea un calendario',
+  'control.resourceManagement.addOfficialHeading': 'Registra un ufficiale',
 };

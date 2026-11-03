@@ -1758,4 +1758,13 @@ export const messages: Record<string, string> = {
   'control.orgIdentity.dropInstruction': '将图片拖到此处，或选择文件。',
   'control.preferences.patCreatedColumn': '创建时间',
   'control.preferences.patExpiresColumn': '到期时间',
+  'control.resourceManagement.description': '比赛在哪里进行、何时可以安排以及由谁执法。',
+  'control.resourceManagement.venueMeta': '容量 {count}',
+  'control.resourceManagement.officialsKpiLabel': '裁判概览',
+  'control.resourceManagement.kpiOfficials': '裁判',
+  'control.resourceManagement.kpiReferees': '主裁判',
+  'control.resourceManagement.railLabel': '登记场地、赛程和裁判',
+  'control.resourceManagement.registerVenueHeading': '登记场地',
+  'control.resourceManagement.newScheduleHeading': '创建赛程',
+  'control.resourceManagement.addOfficialHeading': '登记裁判',
 };
