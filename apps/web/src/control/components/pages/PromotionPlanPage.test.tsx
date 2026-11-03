@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { PromotionPlanPage } from '../pages/PromotionPlanPage.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { ControlApiClient } from '../../lib/api-client.js';
@@ -71,5 +71,30 @@ describe('PromotionPlanPage', () => {
     // A plan that was never saved offers its defaults for saving straight away.
     expect(screen.getByRole('button', { name: 'Save promotion plan' })).toBeDefined();
     expect(screen.queryByText(/entrant-[12]/)).toBeNull();
+  });
+  it('totals the slots from the band counts it holds and shows no total without bands', async () => {
+    render(
+      withIntl(
+        <PromotionPlanPage
+          client={stubClient()}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+          zoneNumber={1}
+        />,
+      ),
+    );
+
+    await screen.findByRole('button', { name: 'Add band' });
+    expect(screen.queryByText('slots across bands')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add band' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add band' }));
+    const counts = screen.getAllByLabelText('Count');
+    fireEvent.change(counts[0] as HTMLElement, { target: { value: '3' } });
+    fireEvent.change(counts[1] as HTMLElement, { target: { value: '2' } });
+
+    const total = screen.getByText('slots across bands').closest('p');
+    expect(total?.textContent).toBe('5slots across bands');
   });
 });

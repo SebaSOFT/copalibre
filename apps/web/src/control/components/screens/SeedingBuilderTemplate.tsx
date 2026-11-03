@@ -230,7 +230,7 @@ export function SeedingBuilderTemplate({
       </h2>
       {canvasZones.length > 1 && (
         <SectionTabList
-          ariaLabel={intl.formatMessage(messages.seedingGeneratedBracket)}
+          ariaLabel={intl.formatMessage(messages.zoneGroupSelectZone)}
           currentTabId={String(shownZoneIndex)}
           idPrefix="seeding-zone"
           onSelect={(id) => setActiveZoneIndex(Number(id))}
@@ -322,7 +322,7 @@ export function SeedingBuilderTemplate({
       breadcrumbs={breadcrumbs}
       primaryLabel={intl.formatMessage(messages.seedingOrder)}
       primaryPane={seedPane}
-      secondaryLabel={intl.formatMessage(messages.seedingGeneratedBracket)}
+      secondaryLabel={intl.formatMessage(messages.seedingTitle)}
       secondaryPane={canvasPane}
       split="media-form"
       title={titleNode}

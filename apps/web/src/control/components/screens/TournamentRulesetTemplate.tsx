@@ -338,12 +338,18 @@ export function TournamentRulesetTemplate({
           />
         )}
 
-        <DataTable
-          ariaLabel={intl.formatMessage(messages.rulesetOverridesFields)}
-          columns={columns}
-          rowKey={({ field }) => field}
-          rows={visible}
-        />
+        <div
+          aria-labelledby={categories.length > 1 ? `ruleset-${activeCategory}-tab` : undefined}
+          id={`ruleset-${activeCategory}-panel`}
+          role={categories.length > 1 ? 'tabpanel' : undefined}
+        >
+          <DataTable
+            ariaLabel={intl.formatMessage(messages.rulesetOverridesFields)}
+            columns={columns}
+            rowKey={({ field }) => field}
+            rows={visible}
+          />
+        </div>
 
         <Form
           onSubmit={(event) => {
@@ -400,6 +406,7 @@ export function TournamentRulesetTemplate({
           <TournamentSummary
             collapseRules
             discipline={{ fieldPolicies, defaults: mergedConfig }}
+            headingLevel={2}
             facts={{
               name: settings?.name ?? tournamentAlias,
               region: settings?.region,
