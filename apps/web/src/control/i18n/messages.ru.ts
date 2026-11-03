@@ -849,6 +849,13 @@ export const messages: Record<string, string> = {
   'control.ruleset.sections': 'Категории регламента',
   'control.ruleset.source.default': 'Значение дисциплины',
   'control.ruleset.action.override': 'Заменить значение',
+  'control.zoneGroup.groupCountFact':
+    '{count, plural, one {# группа} few {# группы} many {# групп} other {# групп}}',
+  'control.promotion.column.position': 'Позиция',
+  'control.promotion.column.entrant': 'Участник',
+  'control.promotion.column.groupRank': 'Место в группе',
+  'control.promotion.column.band': 'Полоса',
+  'control.promotion.slotTotal': 'мест по всем полосам',
   'control.settings.preview': 'Предпросмотр',
   'control.settings.sections': 'Разделы настроек турнира',
   'control.settings.tab.general': 'Настройки',

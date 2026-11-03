@@ -45,7 +45,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('ZoneGroupPage', () => {
-  it('renders within ListScreenLayout structure and displays zones and groups', async () => {
+  it('renders within the page-header template and displays zones and groups as cards', async () => {
     const { container } = render(
       withIntl(
         <ZoneGroupPage
@@ -59,9 +59,9 @@ describe('ZoneGroupPage', () => {
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /zones and groups/i }));
     await screen.findAllByText('Zona Campeonato');
-    expect(container.querySelector('.cl-list-screen')).not.toBeNull();
+    expect(container.querySelector('.cl-page-header-template')).not.toBeNull();
     expect(container.querySelector('.cl-page-header')).not.toBeNull();
-    expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
+    expect(container.querySelectorAll('.cl-zone-group__card').length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText('Zona Campeonato').length).toBeGreaterThanOrEqual(1);
   });
 

@@ -2491,6 +2491,18 @@ export const messages = defineMessages({
     defaultMessage: 'Discipline default',
   },
   rulesetActionOverride: { id: 'control.ruleset.action.override', defaultMessage: 'Replace value' },
+  zoneGroupGroupCountFact: {
+    id: 'control.zoneGroup.groupCountFact',
+    defaultMessage: '{count, plural, one {# group} other {# groups}}',
+  },
+  promotionColumnPosition: { id: 'control.promotion.column.position', defaultMessage: 'Position' },
+  promotionColumnEntrant: { id: 'control.promotion.column.entrant', defaultMessage: 'Entrant' },
+  promotionColumnGroupRank: {
+    id: 'control.promotion.column.groupRank',
+    defaultMessage: 'Position in group',
+  },
+  promotionColumnBand: { id: 'control.promotion.column.band', defaultMessage: 'Band' },
+  promotionSlotTotal: { id: 'control.promotion.slotTotal', defaultMessage: 'slots across bands' },
   unsavedChangesSummary: {
     id: 'control.unsavedChanges.summary',
     defaultMessage: '{count, plural, one {# unsaved change} other {# unsaved changes}}',

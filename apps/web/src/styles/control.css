@@ -935,6 +935,121 @@ input[type='checkbox'].cl-checkbox:focus-visible {
   flex: 1 1 16rem;
 }
 
+.cl-promotion {
+  gap: var(--cl-space-8);
+}
+
+.cl-promotion__heading {
+  margin-block-end: var(--cl-space-4);
+}
+
+.cl-control .cl-promotion__parameters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  align-items: end;
+  gap: var(--cl-space-4);
+  max-inline-size: 45rem;
+}
+
+.cl-promotion__total {
+  display: flex;
+  align-items: baseline;
+  gap: var(--cl-space-2);
+  margin: 0;
+  color: var(--cl-text-secondary);
+}
+
+.cl-promotion__total-figure {
+  color: var(--cl-text-primary);
+  font-size: var(--cl-font-size-figure-lg);
+  font-weight: var(--cl-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-zone-group {
+  gap: var(--cl-space-8);
+}
+
+.cl-zone-group__heading {
+  margin-block-end: var(--cl-space-2);
+}
+
+.cl-zone-group__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: var(--cl-space-4);
+  margin: var(--cl-space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-zone-group__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cl-space-3);
+  min-width: 0;
+  padding: var(--cl-space-4);
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-panel);
+}
+
+.cl-zone-group__card--add {
+  justify-content: center;
+  border-style: dashed;
+  background: transparent;
+}
+
+.cl-zone-group__card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--cl-space-2);
+}
+
+.cl-zone-group__count {
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+}
+
+.cl-zone-group__rename {
+  display: grid;
+  gap: var(--cl-space-2);
+}
+
+.cl-zone-group__rename .cl-btn,
+.cl-zone-group__card--add .cl-btn {
+  justify-self: start;
+}
+
+.cl-zone-group__entrants {
+  display: grid;
+  gap: var(--cl-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-zone-group__entrants li {
+  padding-block: var(--cl-space-1);
+  border-block-end: 1px solid var(--cl-border-muted);
+  overflow-wrap: anywhere;
+}
+
+.cl-zone-group__card-foot {
+  margin-block-start: auto;
+}
+
+.cl-zone-group__assign {
+  inline-size: min(100%, 45rem);
+  justify-self: start;
+}
+
+.cl-zone-group__assign .cl-role-user {
+  justify-content: flex-start;
+}
+
 .cl-tournament-settings__emblem-actions {
   display: flex;
   flex-direction: column;
