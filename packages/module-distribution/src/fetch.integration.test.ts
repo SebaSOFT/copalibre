@@ -9,6 +9,8 @@ import {
 } from './fetch.js';
 import { describeWhenReachable } from './test-support/network-probe.js';
 
+// These tests clone the real curated repository, so their time is set by the network, not the
+// code under test. CI runners have taken over 30 s for a single clone, hence the 120 s bound.
 const SUITE = 'fetchModule / listPublishedVersions (integration, real repository)';
 const describeNetwork = await describeWhenReachable(CURATED_MODULE_REPOSITORY.repositoryUrl, SUITE);
 
@@ -72,7 +74,7 @@ describeNetwork(SUITE, () => {
     for (const { versions } of results) {
       expect(versions).toContain('1.0.0');
     }
-  }, 30_000);
+  }, 120_000);
 
   it('lists no versions for an alias nothing has ever published', async () => {
     const versions = await listPublishedVersions(CURATED_MODULE_REPOSITORY, 'no-such-module-alias');
@@ -92,7 +94,7 @@ describeNetwork(SUITE, () => {
     expect(fetched.directory.endsWith(join('disciplines', 'orbital-frisbee'))).toBe(true);
     await expect(access(join(fetched.directory, 'manifest.json'))).resolves.toBeUndefined();
     await expect(access(join(fetched.directory, 'artifact.json'))).resolves.toBeUndefined();
-  }, 30_000);
+  }, 120_000);
 
   it('fetches and checks out a real tournament-profile module by tag', async () => {
     const fetched = await fetchModule(
@@ -107,7 +109,7 @@ describeNetwork(SUITE, () => {
     expect(fetched.directory.endsWith(join('profiles', 'weekend-cup'))).toBe(true);
     await expect(access(join(fetched.directory, 'manifest.json'))).resolves.toBeUndefined();
     await expect(access(join(fetched.directory, 'artifact.json'))).resolves.toBeUndefined();
-  }, 30_000);
+  }, 120_000);
 
   it('fetches and checks out newly published tournament profiles (double-elimination and heats)', async () => {
     const doubleElim = await fetchModule(
@@ -135,7 +137,7 @@ describeNetwork(SUITE, () => {
     expect(heats.directory.endsWith(join('profiles', 'heats-and-finals'))).toBe(true);
     await expect(access(join(heats.directory, 'manifest.json'))).resolves.toBeUndefined();
     await expect(access(join(heats.directory, 'artifact.json'))).resolves.toBeUndefined();
-  }, 30_000);
+  }, 120_000);
 
   it('rejects a version range no published version satisfies, leaving no checkout behind', async () => {
     await expect(
@@ -147,5 +149,5 @@ describeNetwork(SUITE, () => {
     await expect(
       fetchModule(CURATED_MODULE_REPOSITORY, 'no-such-module-alias', undefined, workspaceDirectory),
     ).rejects.toThrow(/No published version/);
-  }, 30_000);
+  }, 120_000);
 });
