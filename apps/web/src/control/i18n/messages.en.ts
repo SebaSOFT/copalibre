@@ -2503,6 +2503,7 @@ export const messages = defineMessages({
   },
   promotionColumnBand: { id: 'control.promotion.column.band', defaultMessage: 'Band' },
   promotionSlotTotal: { id: 'control.promotion.slotTotal', defaultMessage: 'slots across bands' },
+  seedingFilter: { id: 'control.seeding.filter', defaultMessage: 'Filter participants' },
   unsavedChangesSummary: {
     id: 'control.unsavedChanges.summary',
     defaultMessage: '{count, plural, one {# unsaved change} other {# unsaved changes}}',

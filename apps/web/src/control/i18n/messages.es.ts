@@ -856,6 +856,7 @@ export const messages: Record<string, string> = {
   'control.promotion.column.groupRank': 'Posición en el grupo',
   'control.promotion.column.band': 'Banda',
   'control.promotion.slotTotal': 'cupos entre bandas',
+  'control.seeding.filter': 'Filtrar participantes',
   'control.settings.preview': 'Vista previa',
   'control.settings.sections': 'Secciones de configuración del torneo',
   'control.settings.tab.general': 'Configuración',

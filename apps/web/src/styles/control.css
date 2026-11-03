@@ -935,6 +935,47 @@ input[type='checkbox'].cl-checkbox:focus-visible {
   flex: 1 1 16rem;
 }
 
+.cl-seeding__list,
+.cl-seeding__canvas {
+  display: grid;
+  align-content: start;
+  gap: var(--cl-space-4);
+  min-width: 0;
+}
+
+.cl-seeding__seeds {
+  display: grid;
+  gap: var(--cl-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-seeding__seed {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--cl-space-3);
+  padding-block: var(--cl-space-2);
+  border-block-end: 1px solid var(--cl-border-muted);
+}
+
+.cl-seeding__seed-tag {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: var(--cl-space-8);
+  padding-inline: var(--cl-space-2);
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-chrome);
+  font-family: var(--cl-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-seeding__seed-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .cl-promotion {
   gap: var(--cl-space-8);
 }

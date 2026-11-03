@@ -49,10 +49,8 @@ describe('PromotionPlanPage', () => {
       ),
     );
 
-    await screen.findByText((_, element) => element?.textContent === '1. Club Atlético');
-    expect(
-      screen.getByText((_, element) => element?.textContent === '2. Deportivo Cuyo'),
-    ).toBeTruthy();
+    await screen.findByRole('cell', { name: 'Club Atlético' });
+    expect(screen.getByRole('cell', { name: 'Deportivo Cuyo' })).toBeTruthy();
     expect(screen.queryByText(/entrant[12]/)).toBeNull();
   });
 
@@ -103,7 +101,7 @@ describe('PromotionPlanPage', () => {
     await waitFor(() =>
       expect(screen.queryByText('No promotion plan saved for this zone yet.')).not.toBeNull(),
     );
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('localizes the real server 404 the backend sends for an unconfigured plan', async () => {
@@ -134,7 +132,7 @@ describe('PromotionPlanPage', () => {
     await waitFor(() =>
       expect(screen.queryByText('No promotion plan saved for this zone yet.')).not.toBeNull(),
     );
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryByText('No promotion plan for zone 1')).toBeNull();
   });
 
@@ -195,10 +193,8 @@ describe('PromotionPlanPage', () => {
       ),
     );
 
-    await screen.findByText((_, element) => element?.textContent === '1. Club Atlético');
-    expect(
-      screen.getByText((_, element) => element?.textContent === '2. Deportivo Cuyo'),
-    ).toBeTruthy();
+    await screen.findByRole('cell', { name: 'Club Atlético' });
+    expect(screen.getByRole('cell', { name: 'Deportivo Cuyo' })).toBeTruthy();
     expect(screen.queryByText(/entrant1/)).toBeNull();
   });
 
@@ -250,7 +246,7 @@ describe('PromotionPlanPage', () => {
       combination: { mode: 'group-order' },
     });
     await screen.findByText('Plan saved.');
-    await screen.findByText((_, element) => element?.textContent === '1. Club Atlético');
+    await screen.findByRole('cell', { name: 'Club Atlético' });
   });
 
   it('adds and removes promotion bands', async () => {
