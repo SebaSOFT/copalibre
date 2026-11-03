@@ -216,6 +216,7 @@ body {
 }
 
 .cl-role-cell {
+  max-inline-size: 16rem;
   display: flex;
   align-items: flex-start;
   flex-wrap: wrap;
@@ -477,6 +478,40 @@ body {
   display: grid;
   gap: var(--cl-space-6);
   min-width: 0;
+}
+
+/*
+ * Where the rail sits beside the list, cells wrap inside the column instead of stretching the
+ * table past it, so no column is clipped. Narrower than that the table keeps its natural width
+ * and scrolls inside its own frame.
+ */
+@media (width >= 64rem) {
+  .cl-operations__listing .cl-data-table__table {
+    width: 100%;
+  }
+
+  .cl-operations__listing .cl-entity-identity-cell__details,
+  .cl-operations__listing .cl-entity-identity-cell__name {
+    min-inline-size: max-content;
+    overflow-wrap: normal;
+  }
+}
+
+.cl-operations__listing .cl-data-table__table .cl-btn,
+.cl-operations__listing .cl-data-table__table .cl-role-status {
+  white-space: nowrap;
+}
+
+.cl-operations__listing .cl-data-table__table th,
+.cl-operations__listing .cl-data-table__table .cl-state--refused,
+.cl-operations__listing .cl-data-table__table .cl-state--positive {
+  white-space: nowrap;
+}
+
+.cl-operations__listing .cl-list-screen__pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--cl-space-3);
 }
 
 .cl-operations__section {
