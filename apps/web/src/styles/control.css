@@ -893,6 +893,48 @@ input[type='checkbox'].cl-checkbox:focus-visible {
   }
 }
 
+.cl-ruleset {
+  display: grid;
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-ruleset__parameter {
+  display: grid;
+  gap: var(--cl-space-1);
+  min-width: 0;
+}
+
+.cl-ruleset__key {
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+/* The table sizes to its widest cell, so a long value is capped and wraps instead of pushing Source and Action off-screen. */
+.cl-ruleset__current {
+  display: block;
+  max-inline-size: 26rem;
+  overflow-wrap: anywhere;
+}
+
+.cl-ruleset__value {
+  min-width: 0;
+  max-inline-size: 26rem;
+}
+
+.cl-ruleset__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--cl-space-4);
+}
+
+.cl-ruleset__add .cl-form-field {
+  flex: 1 1 16rem;
+}
+
 .cl-tournament-settings__emblem-actions {
   display: flex;
   flex-direction: column;

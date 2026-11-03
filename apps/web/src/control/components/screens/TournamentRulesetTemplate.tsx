@@ -5,12 +5,19 @@ import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Form } from '../ui/atoms/form.js';
 import { Field } from '../ui/molecules/field.js';
+import { Badge } from '../ui/atoms/badge.js';
+import { Label } from '../ui/atoms/label.js';
+import { LinkButton } from '../ui/atoms/link-button.js';
+import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
+import { SectionTabList } from '../ui/organisms/section-tabs.js';
+import { UnsavedChangesBar } from '../ui/organisms/unsaved-changes-bar.js';
 import { RulesetFieldControl } from '../ui/molecules/ruleset-field-control.js';
-import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { PageHeaderTemplate } from './PageHeaderTemplate.js';
 import { TournamentSummary } from '../ui/organisms/tournament-summary.js';
 import {
   chooseControlKind,
   fieldValueAt,
+  formatFieldValue,
   mergeOverrides,
   observedFieldValue,
 } from '../../lib/discipline-summary.js';
@@ -30,6 +37,25 @@ interface FieldDraft {
 
 function toDrafts(overrides: Readonly<Record<string, unknown>>): FieldDraft[] {
   return Object.entries(overrides).map(([field, value]) => ({ field, value }));
+}
+
+type RulesetCategory = 'format' | 'scoring' | 'tiebreakers' | 'registration' | 'other';
+
+const CATEGORY_ORDER: readonly RulesetCategory[] = [
+  'format',
+  'scoring',
+  'tiebreakers',
+  'registration',
+  'other',
+];
+
+/** Groups a field by its declared path alone; a path it does not recognise lands in `other`. */
+function categoryOf(field: string): RulesetCategory {
+  if (/^(registration|checkIn)\b/.test(field)) return 'registration';
+  if (/^(scoring\.|pointsPer)/.test(field)) return 'scoring';
+  if (/^tiebreakers?\b/.test(field)) return 'tiebreakers';
+  if (/^(format|segments|series|winCondition|tableLayouts|neutral)/.test(field)) return 'format';
+  return 'other';
 }
 
 function asBoolean(value: unknown): boolean | undefined {
@@ -79,6 +105,7 @@ export function TournamentRulesetTemplate({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [saved, setSaved] = useState(false);
+  const [category, setCategory] = useState<'all' | RulesetCategory>('all');
 
   function changedOverrides(): Record<string, unknown> {
     const changed: Record<string, unknown> = {};
@@ -95,197 +122,324 @@ export function TournamentRulesetTemplate({
   );
 
   const settingsHref = `/control/${organizationAlias}/tournaments/${tournamentAlias}/settings`;
+  const mergedConfig = mergeOverrides(resolvedDefaults, overrides, resolvedFieldPolicies);
+  const changed = changedOverrides();
+  const changedKeys = Object.keys(changed);
+
+  interface RulesetRow {
+    readonly field: string;
+    /** Index in `drafts` when the tournament overrides this field; absent: the discipline default applies. */
+    readonly index?: number;
+  }
+  const draftFields = new Set(drafts.map((draft) => draft.field));
+  const allRows: readonly RulesetRow[] = [
+    ...Object.keys(resolvedFieldPolicies)
+      .filter(
+        (field) =>
+          draftFields.has(field) ||
+          (field !== 'customScripts' &&
+            field !== 'registration.capacity' &&
+            chooseControlKind(
+              resolvedFieldPolicies[field],
+              observedFieldValue(overrides, resolvedDefaults, field),
+              field,
+            ) !== undefined),
+      )
+      .map((field) => ({ field, index: drafts.findIndex((draft) => draft.field === field) })),
+    ...drafts
+      .map((draft, index) => ({ field: draft.field, index }))
+      .filter(({ field }) => !(field in resolvedFieldPolicies)),
+  ].map((row) => (row.index === undefined || row.index < 0 ? { field: row.field } : row));
+
+  const categories = CATEGORY_ORDER.filter((id) =>
+    allRows.some((row) => categoryOf(row.field) === id),
+  );
+  const activeCategory = category === 'all' || categories.includes(category) ? category : 'all';
+  const visible = allRows.filter(
+    (row) => activeCategory === 'all' || categoryOf(row.field) === activeCategory,
+  );
+  const categoryLabel: Record<RulesetCategory, string> = {
+    format: intl.formatMessage(messages.rulesetTabFormat),
+    scoring: intl.formatMessage(messages.rulesetTabScoring),
+    tiebreakers: intl.formatMessage(messages.rulesetTabTiebreakers),
+    registration: intl.formatMessage(messages.rulesetTabRegistration),
+    other: intl.formatMessage(messages.rulesetTabOther),
+  };
+
+  function save(): void {
+    if (changedKeys.length === 0) return;
+    setBusy(true);
+    setError(undefined);
+    setSaved(false);
+    void onSave?.({ overrides: changed })
+      .then(() => setSaved(true))
+      .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause)))
+      .finally(() => setBusy(false));
+  }
+
+  function previewChanges(): void {
+    setBusy(true);
+    setError(undefined);
+    void onPreview?.({ overrides: changed })
+      .then(setPreview)
+      .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause)))
+      .finally(() => setBusy(false));
+  }
+
+  function labelOf(field: string): string {
+    const policy = resolvedFieldPolicies[field];
+    return policy !== undefined ? resolveFieldPolicyLabel(field, policy, language) : field;
+  }
+
+  const columns: readonly DataTableColumn<RulesetRow>[] = [
+    {
+      key: 'parameter',
+      header: intl.formatMessage(messages.rulesetColumnParameter),
+      render: ({ field }) => (
+        <div className="cl-ruleset__parameter">
+          <strong>{labelOf(field)}</strong>
+          {labelOf(field) !== field && <code className="cl-ruleset__key">{field}</code>}
+        </div>
+      ),
+    },
+    {
+      key: 'value',
+      header: intl.formatMessage(messages.rulesetColumnValue),
+      render: ({ field, index }) => {
+        const draft = index === undefined ? undefined : drafts[index];
+        if (draft === undefined || index === undefined) {
+          return (
+            <span className="cl-ruleset__current">
+              {formatFieldValue(fieldValueAt(mergedConfig, field), intl)}
+            </span>
+          );
+        }
+        const policy = resolvedFieldPolicies[field];
+        const label = labelOf(field);
+        const controlKind = chooseControlKind(policy, draft.value, field);
+        const editor = (
+          <RulesetFieldControl
+            addLabel={intl.formatMessage(messages.rulesetFieldListAdd)}
+            availableFormats={availableFormats}
+            disciplineDefaultValue={fieldValueAt(resolvedDefaults, field)}
+            dotPath={field}
+            id={`ruleset-field-${index}`}
+            inheritedHeading={intl.formatMessage(messages.rulesetFieldInheritedHeading)}
+            label={label}
+            onChange={(value) =>
+              setDrafts((current) =>
+                current.map((entry, entryIndex) =>
+                  entryIndex === index ? { ...entry, value } : entry,
+                ),
+              )
+            }
+            overrideValue={draft.value}
+            policy={policy}
+            removeLabel={intl.formatMessage(messages.rulesetOverridesRemoveField)}
+            unknownTypeText={intl.formatMessage(messages.rulesetFieldUnknownType)}
+            unrecognizedText={intl.formatMessage(messages.rulesetFieldUnrecognized)}
+          />
+        );
+        return controlKind === 'raw-json' ? (
+          editor
+        ) : (
+          <div className="cl-ruleset__value">
+            <Label className="cl-visually-hidden" htmlFor={`ruleset-field-${index}`}>
+              {label}
+            </Label>
+            {editor}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'source',
+      header: intl.formatMessage(messages.rulesetColumnSource),
+      render: ({ field, index }) =>
+        index === undefined ? (
+          <Badge
+            className="cl-state--muted"
+            label={intl.formatMessage(messages.rulesetSourceDefault)}
+          />
+        ) : field in changed ? (
+          <Badge
+            className="cl-state--upcoming"
+            label={intl.formatMessage(messages.rulesetSourceModified)}
+          />
+        ) : (
+          <Badge label={intl.formatMessage(messages.rulesetSourceOverride)} />
+        ),
+    },
+    {
+      key: 'action',
+      header: intl.formatMessage(messages.rulesetColumnAction),
+      render: ({ field, index }) =>
+        index === undefined ? (
+          <Button
+            onClick={() =>
+              setDrafts((current) => [
+                ...current,
+                { field, value: observedFieldValue(overrides, resolvedDefaults, field) },
+              ])
+            }
+            type="button"
+            variant="secondary"
+          >
+            <FormattedMessage {...messages.rulesetActionOverride} />
+          </Button>
+        ) : (
+          <Button
+            onClick={() =>
+              setDrafts((current) => current.filter((_entry, entryIndex) => entryIndex !== index))
+            }
+            type="button"
+            variant="secondary"
+          >
+            <FormattedMessage {...messages.rulesetOverridesRemoveField} />
+          </Button>
+        ),
+    },
+  ];
 
   return (
-    <ListScreenLayout
-      breadcrumb={
+    <PageHeaderTemplate
+      actions={
+        <div className="cl-tournament-settings__header-actions">
+          <LinkButton
+            href={settingsHref}
+            onClick={controlLinkClick(settingsHref)}
+            variant="secondary"
+          >
+            <FormattedMessage {...messages.tournamentSettingsLink} />
+          </LinkButton>
+          <Button disabled={busy} onClick={previewChanges} type="button" variant="secondary">
+            <FormattedMessage {...messages.settingsPreview} />
+          </Button>
+        </div>
+      }
+      legacyBreadcrumb={
         <span>
           {organizationAlias} &gt; {tournamentAlias}
         </span>
       }
-      listing={
+      title={<FormattedMessage {...messages.rulesetOverridesTitle} />}
+    >
+      <div className="cl-ruleset">
+        {categories.length > 1 && (
+          <SectionTabList
+            ariaLabel={intl.formatMessage(messages.rulesetSections)}
+            currentTabId={activeCategory}
+            idPrefix="ruleset"
+            onSelect={(id) => setCategory(categories.find((entry) => entry === id) ?? 'all')}
+            tabs={[
+              { id: 'all', label: intl.formatMessage(messages.rulesetTabAll) },
+              ...categories.map((id) => ({ id, label: categoryLabel[id] })),
+            ]}
+          />
+        )}
+
+        <DataTable
+          ariaLabel={intl.formatMessage(messages.rulesetOverridesFields)}
+          columns={columns}
+          rowKey={({ field }) => field}
+          rows={visible}
+        />
+
         <Form
-          className="cl-platform-form-grid"
           onSubmit={(event) => {
             event.preventDefault();
-            const changed = changedOverrides();
-            if (Object.keys(changed).length === 0) return;
-            setBusy(true);
-            setError(undefined);
-            setSaved(false);
-            void onSave?.({ overrides: changed })
-              .then(() => setSaved(true))
-              .catch((cause: unknown) =>
-                setError(cause instanceof Error ? cause.message : String(cause)),
-              )
-              .finally(() => setBusy(false));
+            const field = newField.trim();
+            if (field === '' || drafts.some((draft) => draft.field === field)) return;
+            const initialValue = observedFieldValue(overrides, resolvedDefaults, field);
+            setDrafts((current) => [...current, { field, value: initialValue }]);
+            setNewField('');
           }}
         >
-          <a className="cl-focusable" href={settingsHref} onClick={controlLinkClick(settingsHref)}>
-            <FormattedMessage {...messages.tournamentSettingsLink} />
-          </a>
-
-          {fieldPolicies !== undefined && (
-            <TournamentSummary
-              discipline={{
-                fieldPolicies,
-                defaults: mergeOverrides(resolvedDefaults, overrides, resolvedFieldPolicies),
-              }}
-              facts={{
-                name: settings?.name ?? tournamentAlias,
-                region: settings?.region,
-                capacity: settings?.capacity,
-                checkInClosesAt: settings?.checkInClosesAt,
-                publicRegistration: asBoolean(
-                  fieldValueAt(
-                    mergeOverrides(resolvedDefaults, overrides, resolvedFieldPolicies),
-                    'registration.publicOpen',
-                  ),
-                ),
-                requiresCheckIn: asBoolean(
-                  fieldValueAt(
-                    mergeOverrides(resolvedDefaults, overrides, resolvedFieldPolicies),
-                    'registration.requiresCheckIn',
-                  ),
-                ),
-              }}
-              sections={['rules']}
-            />
-          )}
-
-          <ul aria-label={intl.formatMessage(messages.rulesetOverridesFields)}>
-            {drafts.map((draft, index) => {
-              const policy = resolvedFieldPolicies[draft.field];
-              const label =
-                policy !== undefined
-                  ? resolveFieldPolicyLabel(draft.field, policy, language)
-                  : draft.field;
-              const controlKind = chooseControlKind(policy, draft.value, draft.field);
-              const editor = (
-                <RulesetFieldControl
-                  addLabel={intl.formatMessage(messages.rulesetFieldListAdd)}
-                  availableFormats={availableFormats}
-                  disciplineDefaultValue={fieldValueAt(resolvedDefaults, draft.field)}
-                  dotPath={draft.field}
-                  id={`ruleset-field-${index}`}
-                  inheritedHeading={intl.formatMessage(messages.rulesetFieldInheritedHeading)}
-                  label={label}
-                  onChange={(value) =>
-                    setDrafts((current) =>
-                      current.map((entry, entryIndex) =>
-                        entryIndex === index ? { ...entry, value } : entry,
-                      ),
-                    )
-                  }
-                  overrideValue={draft.value}
-                  policy={policy}
-                  removeLabel={intl.formatMessage(messages.rulesetOverridesRemoveField)}
-                  unknownTypeText={intl.formatMessage(messages.rulesetFieldUnknownType)}
-                  unrecognizedText={intl.formatMessage(messages.rulesetFieldUnrecognized)}
-                />
-              );
-              return (
-                <li key={draft.field}>
-                  {controlKind === 'raw-json' ? (
-                    <div>
-                      <strong>{label}</strong>
-                      {editor}
-                    </div>
-                  ) : (
-                    <Field id={`ruleset-field-${index}`} label={label}>
-                      {editor}
-                    </Field>
-                  )}
-                  <Button
-                    onClick={() =>
-                      setDrafts((current) =>
-                        current.filter((_entry, entryIndex) => entryIndex !== index),
-                      )
-                    }
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage {...messages.rulesetOverridesRemoveField} />
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
-
-          <Field
-            id="ruleset-new-field-name"
-            label={intl.formatMessage(messages.rulesetOverridesNewFieldLabel)}
-          >
-            <input
-              className="cl-input cl-input--default cl-focusable"
+          <div className="cl-ruleset__add">
+            <Field
               id="ruleset-new-field-name"
-              onChange={(event) => setNewField(event.target.value)}
-              placeholder="scoring.pointsPerWin"
-              value={newField}
-            />
-          </Field>
-          <Button
-            disabled={newField.trim() === ''}
-            onClick={() => {
-              const field = newField.trim();
-              if (field === '' || drafts.some((draft) => draft.field === field)) return;
-              const initialValue = observedFieldValue(overrides, resolvedDefaults, field);
-              setDrafts((current) => [...current, { field, value: initialValue }]);
-              setNewField('');
-            }}
-            type="button"
-            variant="secondary"
-          >
-            <FormattedMessage {...messages.rulesetOverridesAddField} />
-          </Button>
-
-          <div className="cl-role-user">
-            <Button
-              onClick={() => {
-                const changed = changedOverrides();
-                setBusy(true);
-                setError(undefined);
-                void onPreview?.({ overrides: changed })
-                  .then(setPreview)
-                  .catch((cause: unknown) =>
-                    setError(cause instanceof Error ? cause.message : String(cause)),
-                  )
-                  .finally(() => setBusy(false));
-              }}
-              type="button"
-              variant="secondary"
+              label={intl.formatMessage(messages.rulesetOverridesNewFieldLabel)}
             >
-              <FormattedMessage {...messages.settingsPreview} />
-            </Button>
-            <Button disabled={busy || blockedField !== undefined} type="submit">
-              <FormattedMessage {...messages.settingsSave} />
+              <input
+                className="cl-input cl-input--default cl-focusable"
+                id="ruleset-new-field-name"
+                onChange={(event) => setNewField(event.target.value)}
+                placeholder="scoring.pointsPerWin"
+                value={newField}
+              />
+            </Field>
+            <Button disabled={newField.trim() === ''} type="submit" variant="secondary">
+              <FormattedMessage {...messages.rulesetOverridesAddField} />
             </Button>
           </div>
-
-          {preview.length > 0 && (
-            <ul aria-label={intl.formatMessage(messages.settingsPreview)}>
-              {preview.map((field) => (
-                <li key={field.field}>
-                  <strong>{field.field}</strong>:{' '}
-                  {field.blocked
-                    ? field.reason
-                    : intl.formatMessage(messages.settingsMutationClass, {
-                        mutationClass: field.mutationClass ?? 'safe',
-                      })}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {error !== undefined && <Alert tone="destructive">{error}</Alert>}
-          {saved && (
-            <Alert tone="success">
-              <FormattedMessage {...messages.settingsSaved} />
-            </Alert>
-          )}
         </Form>
-      }
-      title={<FormattedMessage {...messages.rulesetOverridesTitle} />}
-    />
+
+        {preview.length > 0 && (
+          <ul aria-label={intl.formatMessage(messages.settingsPreview)}>
+            {preview.map((field) => (
+              <li key={field.field}>
+                <strong>{field.field}</strong>:{' '}
+                {field.blocked
+                  ? field.reason
+                  : intl.formatMessage(messages.settingsMutationClass, {
+                      mutationClass: field.mutationClass ?? 'safe',
+                    })}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {error !== undefined && <Alert tone="destructive">{error}</Alert>}
+        {saved && (
+          <Alert tone="success">
+            <FormattedMessage {...messages.settingsSaved} />
+          </Alert>
+        )}
+
+        {fieldPolicies !== undefined && (
+          <TournamentSummary
+            collapseRules
+            discipline={{ fieldPolicies, defaults: mergedConfig }}
+            facts={{
+              name: settings?.name ?? tournamentAlias,
+              region: settings?.region,
+              capacity: settings?.capacity,
+              checkInClosesAt: settings?.checkInClosesAt,
+              publicRegistration: asBoolean(fieldValueAt(mergedConfig, 'registration.publicOpen')),
+              requiresCheckIn: asBoolean(
+                fieldValueAt(mergedConfig, 'registration.requiresCheckIn'),
+              ),
+            }}
+            sections={['rules']}
+          />
+        )}
+
+        <UnsavedChangesBar
+          changedFields={changedKeys.map((field) => {
+            const policy = resolvedFieldPolicies[field];
+            return {
+              id: field,
+              label:
+                policy !== undefined ? resolveFieldPolicyLabel(field, policy, language) : field,
+            };
+          })}
+          dirty={changedKeys.length > 0}
+          fieldsLabel={intl.formatMessage(messages.unsavedChangesFields)}
+          onReset={() => {
+            setDrafts(toDrafts(overrides));
+            setPreview([]);
+            setError(undefined);
+            setSaved(false);
+          }}
+          onSave={save}
+          resetLabel={intl.formatMessage(messages.unsavedChangesReset)}
+          saveDisabled={busy || blockedField !== undefined}
+          saveLabel={intl.formatMessage(messages.unsavedChangesSave)}
+          summary={intl.formatMessage(messages.unsavedChangesSummary, {
+            count: changedKeys.length,
+          })}
+        />
+      </div>
+    </PageHeaderTemplate>
   );
 }
