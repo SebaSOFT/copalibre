@@ -5436,4 +5436,23 @@ export const messages = defineMessages({
     id: 'control.roles.scopeTournament',
     defaultMessage: 'Tournament: {name}',
   },
+  auditTrailKpiLabel: { id: 'control.auditTrail.kpiLabel', defaultMessage: 'Audit trail summary' },
+  auditTrailKpiEvents: { id: 'control.auditTrail.kpiEvents', defaultMessage: 'Events' },
+  auditTrailKpiApplied: {
+    id: 'control.auditTrail.kpiApplied',
+    defaultMessage: 'Applied on this page',
+  },
+  auditTrailKpiRefused: {
+    id: 'control.auditTrail.kpiRefused',
+    defaultMessage: 'Refused on this page',
+  },
+  auditTrailFiltersLabel: {
+    id: 'control.auditTrail.filtersLabel',
+    defaultMessage: 'Filter by result',
+  },
+  auditTrailFilterAll: { id: 'control.auditTrail.filterAll', defaultMessage: 'All' },
+  auditTrailResultCount: {
+    id: 'control.auditTrail.resultCount',
+    defaultMessage: '{count, plural, one {# event on this page} other {# events on this page}}',
+  },
 });

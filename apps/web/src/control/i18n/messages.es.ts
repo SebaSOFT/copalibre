@@ -1841,4 +1841,12 @@ export const messages: Record<string, string> = {
   'control.roles.scopeOrganization': 'Toda la organización',
   'control.roles.scopeClub': 'Club: {name}',
   'control.roles.scopeTournament': 'Torneo: {name}',
+  'control.auditTrail.kpiLabel': 'Resumen del registro de auditoría',
+  'control.auditTrail.kpiEvents': 'Eventos',
+  'control.auditTrail.kpiApplied': 'Aplicados en esta página',
+  'control.auditTrail.kpiRefused': 'Rechazados en esta página',
+  'control.auditTrail.filtersLabel': 'Filtrar por resultado',
+  'control.auditTrail.filterAll': 'Todos',
+  'control.auditTrail.resultCount':
+    '{count, plural, one {# evento en esta página} other {# eventos en esta página}}',
 };

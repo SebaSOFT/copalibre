@@ -1735,4 +1735,11 @@ export const messages: Record<string, string> = {
   'control.roles.scopeOrganization': '整个组织',
   'control.roles.scopeClub': '俱乐部：{name}',
   'control.roles.scopeTournament': '赛事：{name}',
+  'control.auditTrail.kpiLabel': '审计记录概览',
+  'control.auditTrail.kpiEvents': '事件',
+  'control.auditTrail.kpiApplied': '本页已应用',
+  'control.auditTrail.kpiRefused': '本页已拒绝',
+  'control.auditTrail.filtersLabel': '按结果筛选',
+  'control.auditTrail.filterAll': '全部',
+  'control.auditTrail.resultCount': '本页共 {count} 个事件',
 };

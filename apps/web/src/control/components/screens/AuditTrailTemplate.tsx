@@ -1,12 +1,12 @@
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { AuditRecordResponse } from '../../lib/api-client.js';
 import { messages } from '../../i18n/messages.en.js';
 import { Button } from '../ui/atoms/button.js';
-import { Input } from '../ui/atoms/input.js';
 import { Badge } from '../ui/atoms/badge.js';
-import { Field } from '../ui/molecules/field.js';
-import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { PageHeaderTemplate } from './PageHeaderTemplate.js';
+import { FilterBar } from '../ui/organisms/filter-bar.js';
+import { KpiStrip } from '../ui/organisms/kpi-strip.js';
 import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
 import { AuditLogPanel } from '../ui/organisms/audit-log-panel.js';
 import { toAuditLogItem } from '../../lib/audit-log.js';
@@ -29,7 +29,6 @@ export interface AuditActorProfile {
  * requirement's "readable through a surface", not a management screen.
  */
 export function AuditTrailTemplate({
-  organizationAlias,
   records,
   actors,
   loading,
@@ -42,7 +41,6 @@ export function AuditTrailTemplate({
   onPreviousPage,
   onNextPage,
 }: {
-  readonly organizationAlias: string;
   readonly records: readonly AuditRecordResponse[];
   readonly actors?: Readonly<Record<string, AuditActorProfile>>;
   readonly loading: boolean;
@@ -57,6 +55,13 @@ export function AuditTrailTemplate({
 }): React.JSX.Element {
   const intl = useIntl();
   const pageHeader = useContext(PageHeaderContext);
+  const [outcomeFilter, setOutcomeFilter] = useState<'all' | AuditRecordResponse['outcome']>('all');
+  const appliedCount = records.filter((record) => record.outcome === 'applied').length;
+  const refusedCount = records.length - appliedCount;
+  const visibleRecords =
+    outcomeFilter === 'all'
+      ? records
+      : records.filter((record) => record.outcome === outcomeFilter);
 
   const columns: readonly DataTableColumn<AuditRecordResponse>[] = [
     {
@@ -115,30 +120,74 @@ export function AuditTrailTemplate({
   const end = Math.min(offset + limit, total);
 
   return (
-    <ListScreenLayout
+    <PageHeaderTemplate
+      description={<FormattedMessage {...messages.auditTrailDescription} />}
       title={<FormattedMessage {...messages.auditTrailTitle} />}
-      breadcrumb={
-        <FormattedMessage {...messages.auditTrailBreadcrumb} values={{ organizationAlias }} />
-      }
-      toolbar={
-        <Field
-          id="audit-trail-actor-filter"
-          label={intl.formatMessage(messages.auditTrailActorFilterLabel)}
-        >
-          <Input
-            id="audit-trail-actor-filter"
-            value={actorFilter}
-            onChange={(event) => onActorFilterChange(event.target.value)}
-          />
-          {actorFilter !== '' && (
+    >
+      <div className="cl-operations__listing">
+        <KpiStrip
+          ariaLabel={intl.formatMessage(messages.auditTrailKpiLabel)}
+          metrics={[
+            {
+              key: 'events',
+              label: intl.formatMessage(messages.auditTrailKpiEvents),
+              sourceField: 'events',
+              formatValue: (value) => String(value),
+            },
+            {
+              key: 'applied',
+              label: intl.formatMessage(messages.auditTrailKpiApplied),
+              sourceField: 'applied',
+              formatValue: (value) => String(value),
+            },
+            {
+              key: 'refused',
+              label: intl.formatMessage(messages.auditTrailKpiRefused),
+              sourceField: 'refused',
+              formatValue: (value) => String(value),
+            },
+          ]}
+          source={{ events: total, applied: appliedCount, refused: refusedCount }}
+        />
+        <FilterBar
+          filtersLabel={intl.formatMessage(messages.auditTrailFiltersLabel)}
+          onOptionChange={(id) =>
+            setOutcomeFilter(id === 'all' ? 'all' : (id as 'applied' | 'refused'))
+          }
+          onSearchChange={onActorFilterChange}
+          options={[
+            {
+              id: 'all',
+              label: intl.formatMessage(messages.auditTrailFilterAll),
+              count: records.length,
+            },
+            {
+              id: 'applied',
+              label: intl.formatMessage(messages.auditTrailOutcomeApplied),
+              count: appliedCount,
+            },
+            {
+              id: 'refused',
+              label: intl.formatMessage(messages.auditTrailOutcomeRefused),
+              count: refusedCount,
+            },
+          ]}
+          resultCount={intl.formatMessage(messages.auditTrailResultCount, {
+            count: visibleRecords.length,
+          })}
+          searchId="audit-trail-actor-filter"
+          searchLabel={intl.formatMessage(messages.auditTrailActorFilterLabel)}
+          searchValue={actorFilter}
+          selectedOptionId={outcomeFilter}
+        />
+        {actorFilter !== '' && (
+          <div>
             <Button type="button" variant="secondary" onClick={() => onActorFilterChange('')}>
               <FormattedMessage {...messages.auditTrailActorFilterClear} />
             </Button>
-          )}
-        </Field>
-      }
-      listing={
-        loading ? (
+          </div>
+        )}
+        {loading ? (
           <p>
             <FormattedMessage {...messages.auditTrailLoading} />
           </p>
@@ -147,7 +196,7 @@ export function AuditTrailTemplate({
         ) : (
           <DataTable
             columns={columns}
-            rows={records}
+            rows={visibleRecords}
             rowKey={(row) => row.auditId}
             emptyMessage={intl.formatMessage(messages.auditTrailEmpty)}
             ariaLabel={intl.formatMessage(messages.auditTrailTitle)}
@@ -185,11 +234,9 @@ export function AuditTrailTemplate({
               </div>
             )}
           />
-        )
-      }
-      pagination={
-        !loading && error === undefined && total > 0 ? (
-          <>
+        )}
+        {!loading && error === undefined && total > 0 && (
+          <div className="cl-list-screen__pagination">
             <Button
               type="button"
               variant="secondary"
@@ -209,9 +256,9 @@ export function AuditTrailTemplate({
             >
               <FormattedMessage {...messages.auditTrailNextPage} />
             </Button>
-          </>
-        ) : undefined
-      }
-    />
+          </div>
+        )}
+      </div>
+    </PageHeaderTemplate>
   );
 }

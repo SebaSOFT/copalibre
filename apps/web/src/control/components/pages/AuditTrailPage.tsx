@@ -69,7 +69,6 @@ export function AuditTrailPage({
   return (
     <ReadState {...read} title={intl.formatMessage(messages.auditTrailTitle)}>
       <AuditTrailTemplate
-        organizationAlias={organizationAlias}
         records={records}
         actors={actors}
         loading={false}

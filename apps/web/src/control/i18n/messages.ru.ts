@@ -1838,4 +1838,12 @@ export const messages: Record<string, string> = {
   'control.roles.scopeOrganization': 'Вся организация',
   'control.roles.scopeClub': 'Клуб: {name}',
   'control.roles.scopeTournament': 'Турнир: {name}',
+  'control.auditTrail.kpiLabel': 'Сводка журнала аудита',
+  'control.auditTrail.kpiEvents': 'События',
+  'control.auditTrail.kpiApplied': 'Применено на этой странице',
+  'control.auditTrail.kpiRefused': 'Отклонено на этой странице',
+  'control.auditTrail.filtersLabel': 'Фильтр по результату',
+  'control.auditTrail.filterAll': 'Все',
+  'control.auditTrail.resultCount':
+    '{count, plural, one {# событие на этой странице} few {# события на этой странице} many {# событий на этой странице} other {# события на этой странице}}',
 };
