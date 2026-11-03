@@ -140,6 +140,7 @@ export function DescriptorBuilderWizard({
         text: `[${failure.stage}${failure.field ? `:${failure.field}` : ''}] ${failure.message}`,
       }))}
       failuresTestId="descriptor-server-failures"
+      nextStepCaption={(step) => intl.formatMessage(messages.wizardNextStep, { step })}
       onBack={() => patch({ step: previousStep(state) })}
       primaryAction={
         isLastStep

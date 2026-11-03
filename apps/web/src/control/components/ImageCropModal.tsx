@@ -41,6 +41,7 @@ export function ImageCropModal({
   const [removalPhase, setRemovalPhase] = useState<'removing' | 'failed' | 'cropping'>('removing');
   const [removalProgress, setRemovalProgress] = useState(0);
   const [cropSrc, setCropSrc] = useState<string | undefined>(undefined);
+  const [preview, setPreview] = useState<string | undefined>(undefined);
   const removalTask = useRef<BackgroundRemovalTask | undefined>(undefined);
   const cropObjectUrl = useRef<string | undefined>(undefined);
 
@@ -91,6 +92,26 @@ export function ImageCropModal({
       cropObjectUrl.current = undefined;
     };
   }, [imageSrc, removalAttempt, removeBackground]);
+
+  // The side panel previews the crop at the sizes the image is rendered at. Rendering runs after
+  // the operator pauses, so dragging the crop never waits on a canvas.
+  useEffect(() => {
+    if (!croppedAreaPixels || !cropSrc || removalPhase !== 'cropping') return undefined;
+    let active = true;
+    const timer = setTimeout(() => {
+      void cropToPng(cropSrc, croppedAreaPixels, rotation)
+        .then((output) => {
+          if (active) setPreview(`data:${output.contentType};base64,${output.contentBase64}`);
+        })
+        .catch(() => {
+          if (active) setPreview(undefined);
+        });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [croppedAreaPixels, cropSrc, removalPhase, rotation]);
 
   const handleConfirm = async (): Promise<void> => {
     if (!croppedAreaPixels || busy || !cropSrc || removalPhase !== 'cropping') return;
@@ -151,64 +172,87 @@ export function ImageCropModal({
         if (!open) handleCancel();
       }}
       open
+      size="wide"
       title={intl.formatMessage(messages.imageCropModalTitle)}
     >
-      {removalPhase === 'removing' ? (
-        <section aria-live="polite" aria-busy="true">
-          <p>{intl.formatMessage(messages.imageCropModalRemoving)}</p>
-          <progress
-            aria-label={intl.formatMessage(messages.imageCropModalRemoving)}
-            max={100}
-            value={removalProgress}
-          />
-          <span>{removalProgress}%</span>
-        </section>
-      ) : removalPhase === 'failed' ? (
-        <p className="cl-form-field__error" role="alert">
-          {intl.formatMessage(messages.imageCropModalRemovalFailed)}
-        </p>
-      ) : (
-        <div className="cl-image-frame">
-          <Cropper
-            aspect={4 / 5}
-            crop={crop}
-            image={cropSrc ?? imageSrc}
-            onCropChange={setCrop}
-            onCropComplete={(_area: Area, areaPixels: Area) => setCroppedAreaPixels(areaPixels)}
-            onRotationChange={setRotation}
-            onZoomChange={setZoom}
-            rotation={rotation}
-            zoom={zoom}
-          />
+      <div className="cl-image-crop">
+        <div className="cl-image-crop__stage">
+          {removalPhase === 'removing' ? (
+            <section aria-live="polite" aria-busy="true">
+              <p>{intl.formatMessage(messages.imageCropModalRemoving)}</p>
+              <progress
+                aria-label={intl.formatMessage(messages.imageCropModalRemoving)}
+                max={100}
+                value={removalProgress}
+              />
+              <span>{removalProgress}%</span>
+            </section>
+          ) : removalPhase === 'failed' ? (
+            <p className="cl-form-field__error" role="alert">
+              {intl.formatMessage(messages.imageCropModalRemovalFailed)}
+            </p>
+          ) : (
+            <div className="cl-image-frame">
+              <Cropper
+                aspect={4 / 5}
+                crop={crop}
+                image={cropSrc ?? imageSrc}
+                onCropChange={setCrop}
+                onCropComplete={(_area: Area, areaPixels: Area) => setCroppedAreaPixels(areaPixels)}
+                onRotationChange={setRotation}
+                onZoomChange={setZoom}
+                rotation={rotation}
+                zoom={zoom}
+              />
+            </div>
+          )}
         </div>
-      )}
-
-      {removalPhase === 'cropping' && (
-        <div style={controlsStyle}>
-          <Field id="crop-zoom" label={intl.formatMessage(messages.imageCropModalZoom)}>
-            <Input
-              id="crop-zoom"
-              max={3}
-              min={1}
-              onChange={(event) => setZoom(Number(event.target.value))}
-              step={0.01}
-              type="range"
-              value={zoom}
-            />
-          </Field>
-          <Field id="crop-rotation" label={intl.formatMessage(messages.imageCropModalRotation)}>
-            <Input
-              id="crop-rotation"
-              max={360}
-              min={0}
-              onChange={(event) => setRotation(Number(event.target.value))}
-              step={1}
-              type="range"
-              value={rotation}
-            />
-          </Field>
-        </div>
-      )}
+        {removalPhase === 'cropping' && (
+          <aside
+            aria-label={intl.formatMessage(messages.imageCropModalPreview)}
+            className="cl-image-crop__panel"
+          >
+            <h3 className="cl-image-crop__panel-title">
+              {intl.formatMessage(messages.imageCropModalPreview)}
+            </h3>
+            <div className="cl-image-crop__previews">
+              {[96, 48].map((width) => (
+                <div
+                  className="cl-image-crop__preview"
+                  key={width}
+                  style={{ inlineSize: `${width}px`, blockSize: `${(width * 5) / 4}px` }}
+                >
+                  {preview !== undefined && <img alt="" src={preview} />}
+                </div>
+              ))}
+            </div>
+            <div style={controlsStyle}>
+              <Field id="crop-zoom" label={intl.formatMessage(messages.imageCropModalZoom)}>
+                <Input
+                  id="crop-zoom"
+                  max={3}
+                  min={1}
+                  onChange={(event) => setZoom(Number(event.target.value))}
+                  step={0.01}
+                  type="range"
+                  value={zoom}
+                />
+              </Field>
+              <Field id="crop-rotation" label={intl.formatMessage(messages.imageCropModalRotation)}>
+                <Input
+                  id="crop-rotation"
+                  max={360}
+                  min={0}
+                  onChange={(event) => setRotation(Number(event.target.value))}
+                  step={1}
+                  type="range"
+                  value={rotation}
+                />
+              </Field>
+            </div>
+          </aside>
+        )}
+      </div>
 
       {error && (
         <p className="cl-form-field__error" role="alert">

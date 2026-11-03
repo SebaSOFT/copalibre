@@ -150,9 +150,9 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
     });
     fireEvent.load(img);
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
-    fireEvent.click(screen.getByText('Use image'));
+    fireEvent.click(screen.getByText('Apply'));
 
     await waitFor(() => expect(onUploadPhoto).toHaveBeenCalled());
     const [personId, request] = onUploadPhoto.mock.calls[0] as [string, UploadImageRequest];
@@ -189,9 +189,9 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
     });
     fireEvent.load(img);
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
-    fireEvent.click(screen.getByText('Use image'));
+    fireEvent.click(screen.getByText('Apply'));
 
     await waitFor(() => expect(onUploadPhoto).toHaveBeenCalled());
   });

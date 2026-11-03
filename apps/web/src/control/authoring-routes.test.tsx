@@ -464,10 +464,10 @@ describe('the registration review route container', () => {
     });
     fireEvent.load(img);
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
     await act(async () => {
-      fireEvent.click(screen.getByText('Use image'));
+      fireEvent.click(screen.getByText('Apply'));
     });
     await waitFor(() => expect(photoCalls).toHaveLength(1));
   });

@@ -87,6 +87,7 @@ test('edits a ruleset override from the tournament ruleset screen and sees the c
   // The plain-language rule context shows alongside the
   // existing edit field, reflecting the tournament's current override, and
   // its tournament-facts block shows the sibling settings fetch.
+  await page.getByText('Reglamento completo').click();
   await expect(page.getByText('Reglas')).toBeVisible();
   await expect(page.getByRole('heading', { name: /Apertura/ })).toBeVisible();
   // Shown twice now: the read-only summary's label, and the editor field's own label.
@@ -146,10 +147,11 @@ test('renders typed controls for boolean/format/union-list fields, saves only th
   // A boolean field is a real checkbox, never a JSON-text input.
   await expect(page.getByRole('checkbox').first()).toBeVisible();
   // A union-list field's "current value" already shows the inherited items.
+  await page.getByText('Reglamento completo').click();
   await expect(page.getByText('Valor actual: points, score-difference')).toBeVisible();
 
   // Adding one tiebreaker sends only that addition, not the inherited list.
-  const tiebreakersRow = page.getByRole('listitem').filter({ hasText: 'Tiebreakers' });
+  const tiebreakersRow = page.getByRole('row').filter({ hasText: 'Tiebreakers' });
   await tiebreakersRow.getByRole('textbox', { name: 'Tiebreakers' }).fill('goals-against');
   await tiebreakersRow.getByRole('button', { name: 'Agregar' }).click();
   await page.getByRole('button', { name: 'Guardar' }).click();

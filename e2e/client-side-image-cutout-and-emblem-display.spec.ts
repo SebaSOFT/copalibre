@@ -167,7 +167,7 @@ test.describe('client-side image cutout and emblem display', () => {
       // Background removal finished without error
     }
 
-    const useImage = dialog.getByRole('button', { name: 'Usar imagen' });
+    const useImage = dialog.getByRole('button', { name: 'Aplicar' });
     await expect(useImage).toBeEnabled({ timeout: 15000 });
     await useImage.click();
 

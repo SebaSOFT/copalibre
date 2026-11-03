@@ -12,7 +12,7 @@ import { DecisionHint } from '../ui/atoms/decision-hint.js';
 import { Field } from '../ui/molecules/field.js';
 import { messages } from '../../i18n/messages.en.js';
 import { resolveDecisionDescription } from '../../lib/wizard.js';
-import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { PageHeaderTemplate } from './PageHeaderTemplate.js';
 import { formatEnum } from '../../lib/presentation-formatting.js';
 import { ConsequenceDialog } from '../ui/organisms/consequence-dialog.js';
 import type { StageDeletionResponse } from '../../lib/api-client.js';
@@ -76,50 +76,6 @@ function StageIdentitySection({
           </h2>
         </header>
         <div className="cl-card__content">
-          <Field id="stage-rename" label={intl.formatMessage(messages.stageRenameLabel)}>
-            <Input
-              id="stage-rename"
-              onChange={(event) => setName(event.target.value)}
-              value={name}
-            />
-          </Field>
-          <Button
-            disabled={name.trim() === ''}
-            onClick={() => void onRename(name)}
-            type="button"
-            variant="secondary"
-          >
-            <FormattedMessage {...messages.stageRenameSubmit} />
-          </Button>
-
-          <Field id="stage-format" label={intl.formatMessage(messages.stageFormatLabel)}>
-            <Select
-              aria-describedby={formatHintText === undefined ? undefined : 'stage-format-hint'}
-              disabled={seeded}
-              id="stage-format"
-              onValueChange={setFormat}
-              options={formatOptions.map((value) => ({
-                value,
-                label: formatEnum(intl, 'format', value),
-              }))}
-              value={format}
-            />
-          </Field>
-          {formatHintText !== undefined && (
-            <DecisionHint id="stage-format-hint" text={formatHintText} />
-          )}
-          <Button
-            disabled={seeded || format.trim() === ''}
-            onClick={() => void onChangeFormat(format)}
-            type="button"
-            variant="secondary"
-          >
-            <FormattedMessage {...messages.stageFormatSubmit} />
-          </Button>
-
-          <Button onClick={() => void onDelete()} type="button" variant="destructive-outline">
-            <FormattedMessage {...messages.stageDelete} />
-          </Button>
           {seeded && !dismissedSeededNotice && (
             <Alert
               dismissLabel={intl.formatMessage(messages.toastDismiss)}
@@ -129,6 +85,56 @@ function StageIdentitySection({
               <FormattedMessage {...messages.stageSeededExplanation} />
             </Alert>
           )}
+          <div className="cl-stage-identity__row">
+            <Field id="stage-rename" label={intl.formatMessage(messages.stageRenameLabel)}>
+              <Input
+                id="stage-rename"
+                onChange={(event) => setName(event.target.value)}
+                value={name}
+              />
+            </Field>
+            <Button
+              disabled={name.trim() === ''}
+              onClick={() => void onRename(name)}
+              type="button"
+              variant="secondary"
+            >
+              <FormattedMessage {...messages.stageRenameSubmit} />
+            </Button>
+          </div>
+
+          <div className="cl-stage-identity__row">
+            <Field id="stage-format" label={intl.formatMessage(messages.stageFormatLabel)}>
+              <Select
+                aria-describedby={formatHintText === undefined ? undefined : 'stage-format-hint'}
+                disabled={seeded}
+                id="stage-format"
+                onValueChange={setFormat}
+                options={formatOptions.map((value) => ({
+                  value,
+                  label: formatEnum(intl, 'format', value),
+                }))}
+                value={format}
+              />
+            </Field>
+            <Button
+              disabled={seeded || format.trim() === ''}
+              onClick={() => void onChangeFormat(format)}
+              type="button"
+              variant="secondary"
+            >
+              <FormattedMessage {...messages.stageFormatSubmit} />
+            </Button>
+          </div>
+          {formatHintText !== undefined && (
+            <DecisionHint id="stage-format-hint" text={formatHintText} />
+          )}
+
+          <div className="cl-stage-identity__danger">
+            <Button onClick={() => void onDelete()} type="button" variant="destructive-outline">
+              <FormattedMessage {...messages.stageDelete} />
+            </Button>
+          </div>
         </div>
       </Card>
     </Container>
@@ -353,7 +359,9 @@ export function StageHubTemplate({
 
   return (
     <>
-      <ListScreenLayout breadcrumbs={breadcrumbs} listing={listingNode} title={titleNode} />
+      <PageHeaderTemplate breadcrumbs={breadcrumbs} title={titleNode}>
+        {listingNode}
+      </PageHeaderTemplate>
       <ConsequenceDialog
         busy={deleteBusy}
         cancelLabel={intl.formatMessage(messages.dashboardExportColumnsCancel)}

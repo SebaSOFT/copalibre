@@ -394,8 +394,8 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
 
   await expect(page.getByText('Plan guardado.')).toBeVisible();
   const review = page.getByRole('region', { name: 'Revisión — orden de candidatos calculado' });
-  await expect(review.getByText(/1\.\s*Deportivo Norte/)).toBeVisible();
-  await expect(review.getByText(/2\.\s*Atlético Sur/)).toBeVisible();
+  await expect(review.getByRole('row', { name: /^1\s+Deportivo Norte/ })).toBeVisible();
+  await expect(review.getByRole('row', { name: /^2\s+Atlético Sur/ })).toBeVisible();
 
   // Reviewing the plan writes nothing to the next stage's seeding; the
   // seeding-builder pre-fill remains deferred.

@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useState } from 'react';
 import { useIntl } from 'react-intl';
-import { SectionTabs } from './section-tabs.js';
+import { SectionTabList, SectionTabs } from './section-tabs.js';
 import { storyText } from '../story-text.js';
 
 const meta = {
@@ -31,6 +32,27 @@ export const Playground: Story = {
             href: '#venues',
           },
           { id: 'roles', label: intl.formatMessage(storyText.rolesTitle), href: '#roles' },
+        ]}
+      />
+    );
+  },
+};
+
+export const InPlaceTabs: Story = {
+  args: { ariaLabel: '', tabs: [], currentTabId: '' },
+  render: function Render() {
+    const intl = useIntl();
+    const [current, setCurrent] = useState('tournaments');
+    return (
+      <SectionTabList
+        ariaLabel={intl.formatMessage(storyText.settingsTitle)}
+        currentTabId={current}
+        idPrefix="story"
+        onSelect={setCurrent}
+        tabs={[
+          { id: 'tournaments', label: intl.formatMessage(storyText.tournaments) },
+          { id: 'venues', label: intl.formatMessage(storyText.venuesAndOfficials) },
+          { id: 'roles', label: intl.formatMessage(storyText.rolesTitle) },
         ]}
       />
     );

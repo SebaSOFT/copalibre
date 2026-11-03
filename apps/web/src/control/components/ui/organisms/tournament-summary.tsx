@@ -49,6 +49,8 @@ export interface TournamentSummaryProps {
   readonly sections?: readonly DisciplineSummarySection[];
   readonly className?: string;
   readonly headingLevel?: 2 | 3;
+  /** Folds the discipline sections behind a disclosure, so a long rules list does not push the page's own controls out of view. */
+  readonly collapseRules?: boolean;
 }
 
 export function TournamentSummary({
@@ -57,6 +59,7 @@ export function TournamentSummary({
   sections,
   className = '',
   headingLevel = 3,
+  collapseRules = false,
 }: TournamentSummaryProps): React.JSX.Element {
   const intl = useIntl();
 
@@ -151,7 +154,16 @@ export function TournamentSummary({
         </CardContent>
       </Card>
 
-      <DisciplineSummary data={discipline} headingLevel={headingLevel} sections={sections} />
+      {collapseRules ? (
+        <details className="cl-tournament-summary__rules">
+          <summary className="cl-focusable">
+            <FormattedMessage {...messages.tournamentSummaryFullRules} />
+          </summary>
+          <DisciplineSummary data={discipline} headingLevel={headingLevel} sections={sections} />
+        </details>
+      ) : (
+        <DisciplineSummary data={discipline} headingLevel={headingLevel} sections={sections} />
+      )}
     </Stack>
   );
 }

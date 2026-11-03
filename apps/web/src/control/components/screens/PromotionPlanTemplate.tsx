@@ -3,11 +3,13 @@ import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { type PromotionPreviewResponse, type ZoneResponse } from '../../lib/api-client.js';
 import { Button } from '../ui/atoms/button.js';
-import { Card } from '../ui/atoms/card.js';
+import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
+import { UnsavedChangesBar } from '../ui/organisms/unsaved-changes-bar.js';
+import type { QualifiedEntrantResponse } from '../../lib/api-client.js';
 import { Input } from '../ui/atoms/input.js';
 import { Field } from '../ui/molecules/field.js';
 import { messages } from '../../i18n/messages.en.js';
-import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { PageHeaderTemplate } from './PageHeaderTemplate.js';
 
 export interface BandRow {
   readonly key: string;
@@ -61,6 +63,106 @@ function initialFormState(zone: ZoneResponse | undefined): {
   };
 }
 
+function bandsDiffer(current: readonly BandRow[], initial: readonly BandRow[]): boolean {
+  if (current.length !== initial.length) return true;
+  return current.some(
+    (row, index) => row.zoneRef !== initial[index]?.zoneRef || row.count !== initial[index]?.count,
+  );
+}
+
+function BandCards({
+  bands,
+  onAdd,
+  onRemove,
+  onUpdate,
+}: {
+  readonly bands: readonly BandRow[];
+  readonly onAdd: () => void;
+  readonly onRemove: (key: string) => void;
+  readonly onUpdate: (key: string, patch: Partial<BandRow>) => void;
+}): React.JSX.Element {
+  const intl = useIntl();
+  return (
+    <ul className="cl-zone-group__cards">
+      {bands.map((row) => (
+        <li className="cl-zone-group__card cl-chamfer cl-chamfer--control" key={row.key}>
+          <Input
+            aria-label={intl.formatMessage(messages.promotionBandZoneRef)}
+            onChange={(event) => onUpdate(row.key, { zoneRef: event.target.value })}
+            placeholder={intl.formatMessage(messages.promotionBandZoneRef)}
+            value={row.zoneRef}
+          />
+          <Input
+            aria-label={intl.formatMessage(messages.promotionBandCount)}
+            min="1"
+            onChange={(event) => onUpdate(row.key, { count: event.target.value })}
+            type="number"
+            value={row.count}
+          />
+          <div className="cl-zone-group__card-foot">
+            <Button onClick={() => onRemove(row.key)} type="button" variant="secondary">
+              <FormattedMessage {...messages.promotionRemoveBand} />
+            </Button>
+          </div>
+        </li>
+      ))}
+      <li className="cl-zone-group__card cl-zone-group__card--add">
+        <Button onClick={onAdd} type="button" variant="secondary">
+          <FormattedMessage {...messages.promotionAddBand} />
+        </Button>
+      </li>
+    </ul>
+  );
+}
+
+/** The projected candidate order, with the band each candidate lands in when the plan declares bands. */
+function CandidateTable({
+  entrantLabel,
+  preview,
+}: {
+  readonly entrantLabel: (entrantId: string) => string;
+  readonly preview: PromotionPreviewResponse;
+}): React.JSX.Element {
+  const intl = useIntl();
+  const bandOf = new Map<string, string>();
+  for (const [bandRef, entrants] of Object.entries(preview.bands ?? {})) {
+    for (const entrant of entrants) bandOf.set(entrant.entrantId, bandRef);
+  }
+  type Row = { entrant: QualifiedEntrantResponse; position: number };
+  const columns: DataTableColumn<Row>[] = [
+    {
+      key: 'position',
+      header: intl.formatMessage(messages.promotionColumnPosition),
+      render: ({ position }) => position,
+    },
+    {
+      key: 'entrant',
+      header: intl.formatMessage(messages.promotionColumnEntrant),
+      render: ({ entrant }) => entrantLabel(entrant.entrantId),
+    },
+    {
+      key: 'rank',
+      header: intl.formatMessage(messages.promotionColumnGroupRank),
+      render: ({ entrant }) => entrant.rank,
+    },
+  ];
+  if (bandOf.size > 0) {
+    columns.push({
+      key: 'band',
+      header: intl.formatMessage(messages.promotionColumnBand),
+      render: ({ entrant }) => bandOf.get(entrant.entrantId) ?? '—',
+    });
+  }
+  return (
+    <DataTable
+      ariaLabel={intl.formatMessage(messages.promotionReviewHeading)}
+      columns={columns}
+      rowKey={({ entrant }) => entrant.entrantId}
+      rows={preview.combined.map((entrant, index) => ({ entrant, position: index + 1 }))}
+    />
+  );
+}
+
 /**
  * Composes the screen from the data `PromotionPlanPage` supplies: the plan-configuration form and band rows below are this
  * component's own screen state, seeded once from the zone's existing plan;
@@ -109,6 +211,21 @@ export function PromotionPlanTemplate({
     await onSave(nextStageNumber, perGroupAdvance, bands);
   }
 
+  const hasPlan = zone !== undefined && 'promotionPlan' in zone && zone.promotionPlan !== undefined;
+  const nextChanged = !hasPlan || nextStageNumber !== initial.nextStageNumber;
+  const advanceChanged = !hasPlan || perGroupAdvance !== initial.perGroupAdvance;
+  const bandsChanged = bandsDiffer(bands, initial.bands);
+  const dirty = nextChanged || advanceChanged || bandsChanged;
+  const changedFields = [
+    nextChanged && { id: 'next', label: intl.formatMessage(messages.promotionNextStageNumber) },
+    advanceChanged && {
+      id: 'advance',
+      label: intl.formatMessage(messages.promotionPerGroupAdvance),
+    },
+    bandsChanged && { id: 'bands', label: intl.formatMessage(messages.promotionBandsHeading) },
+  ].filter((field): field is { id: string; label: string } => field !== false);
+  const slotTotal = bands.reduce((sum, row) => sum + (Number.parseInt(row.count, 10) || 0), 0);
+
   const breadcrumbNode = (
     <span>
       {intl.formatMessage(messages.promotionBreadcrumb, {
@@ -118,21 +235,17 @@ export function PromotionPlanTemplate({
     </span>
   );
 
-  const titleNode = <FormattedMessage {...messages.promotionTitle} />;
-
-  const listingNode = (
-    <div className="cl-screen-sections">
-      <Card
-        aria-label={intl.formatMessage(messages.promotionConfigHeading)}
-        className="cl-chamfer cl-chamfer--control"
-      >
-        <header className="cl-card__header">
-          <h2 className="cl-card__title">
+  return (
+    <PageHeaderTemplate
+      legacyBreadcrumb={breadcrumbNode}
+      title={<FormattedMessage {...messages.promotionTitle} />}
+    >
+      <div className="cl-screen-sections cl-promotion">
+        <section aria-label={intl.formatMessage(messages.promotionConfigHeading)}>
+          <h2 className="cl-promotion__heading">
             <FormattedMessage {...messages.promotionConfigHeading} />
           </h2>
-        </header>
-        <div className="cl-card__content">
-          <div className="cl-platform-form-grid">
+          <div className="cl-promotion__parameters">
             <Field
               id="promotion-next-stage"
               label={intl.formatMessage(messages.promotionNextStageNumber)}
@@ -159,56 +272,26 @@ export function PromotionPlanTemplate({
                 value={perGroupAdvance}
               />
             </Field>
+            {bands.length > 0 && (
+              <p className="cl-promotion__total">
+                <span className="cl-promotion__total-figure">{slotTotal}</span>
+                <span>{intl.formatMessage(messages.promotionSlotTotal)}</span>
+              </p>
+            )}
           </div>
+        </section>
 
-          <div>
-            <h3 className="cl-label">
-              <FormattedMessage {...messages.promotionBandsHeading} />
-            </h3>
-            <ul>
-              {bands.map((row) => (
-                <li key={row.key} className="cl-role-user">
-                  <Input
-                    aria-label={intl.formatMessage(messages.promotionBandZoneRef)}
-                    onChange={(event) => updateBand(row.key, { zoneRef: event.target.value })}
-                    placeholder={intl.formatMessage(messages.promotionBandZoneRef)}
-                    value={row.zoneRef}
-                  />
-                  <Input
-                    aria-label={intl.formatMessage(messages.promotionBandCount)}
-                    min="1"
-                    onChange={(event) => updateBand(row.key, { count: event.target.value })}
-                    type="number"
-                    value={row.count}
-                  />
-                  <Button onClick={() => removeBand(row.key)} type="button" variant="secondary">
-                    <FormattedMessage {...messages.promotionRemoveBand} />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-            <Button onClick={addBand} type="button" variant="secondary">
-              <FormattedMessage {...messages.promotionAddBand} />
-            </Button>
-          </div>
-        </div>
-        <footer className="cl-card__footer">
-          <Button onClick={() => void savePlan()} type="button">
-            <FormattedMessage {...messages.promotionSavePlan} />
-          </Button>
-        </footer>
-      </Card>
+        <section aria-label={intl.formatMessage(messages.promotionBandsHeading)}>
+          <h2 className="cl-promotion__heading">
+            <FormattedMessage {...messages.promotionBandsHeading} />
+          </h2>
+          <BandCards bands={bands} onAdd={addBand} onRemove={removeBand} onUpdate={updateBand} />
+        </section>
 
-      <Card
-        aria-label={intl.formatMessage(messages.promotionReviewHeading)}
-        className="cl-chamfer cl-chamfer--control"
-      >
-        <header className="cl-card__header">
-          <h2 className="cl-card__title">
+        <section aria-label={intl.formatMessage(messages.promotionReviewHeading)}>
+          <h2 className="cl-promotion__heading">
             <FormattedMessage {...messages.promotionReviewHeading} />
           </h2>
-        </header>
-        <div className="cl-card__content">
           {previewError?.tone === 'info' && (
             <p className="cl-card__description">{previewError.message}</p>
           )}
@@ -216,18 +299,27 @@ export function PromotionPlanTemplate({
             <Alert tone="destructive">{previewError.message}</Alert>
           )}
           {preview && !previewError && (
-            <ol className="cl-platform-update-list">
-              {preview.combined.map((entrant, index) => (
-                <li key={entrant.entrantId}>
-                  <strong>{index + 1}.</strong> {entrantLabel(entrant.entrantId)}
-                </li>
-              ))}
-            </ol>
+            <CandidateTable entrantLabel={entrantLabel} preview={preview} />
           )}
-        </div>
-      </Card>
-    </div>
-  );
+        </section>
 
-  return <ListScreenLayout breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
+        <UnsavedChangesBar
+          changedFields={changedFields}
+          dirty={dirty}
+          fieldsLabel={intl.formatMessage(messages.unsavedChangesFields)}
+          onReset={() => {
+            setNextStageNumber(initial.nextStageNumber);
+            setPerGroupAdvance(initial.perGroupAdvance);
+            setBands(initial.bands);
+          }}
+          onSave={() => void savePlan()}
+          resetLabel={intl.formatMessage(messages.unsavedChangesReset)}
+          saveLabel={intl.formatMessage(messages.promotionSavePlan)}
+          summary={intl.formatMessage(messages.unsavedChangesSummary, {
+            count: Math.max(changedFields.length, 1),
+          })}
+        />
+      </div>
+    </PageHeaderTemplate>
+  );
 }

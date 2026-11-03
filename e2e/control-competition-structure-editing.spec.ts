@@ -213,6 +213,7 @@ test('shows the plain-language summary on the settings screen and updates it aft
   await page.waitForURL(`**${target}`);
 
   await expect(page.getByText('Región: Cuyo')).toBeVisible();
+  await page.getByText('Reglamento completo').click();
   await expect(page.getByText('Points per win')).toBeVisible();
 
   await page.getByLabel('Región').fill('Mendoza');

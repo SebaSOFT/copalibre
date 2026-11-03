@@ -219,7 +219,7 @@ describe('TournamentRulesetPage', () => {
 
     await screen.findByText(/audited correction workflow/);
     expect(
-      (screen.getByRole('button', { name: 'Save settings' }) as HTMLButtonElement).disabled,
+      (screen.getByRole('button', { name: 'Save changes' }) as HTMLButtonElement).disabled,
     ).toBe(true);
     expect(updateRulesetOverrides).not.toHaveBeenCalled();
   });
@@ -249,7 +249,7 @@ describe('TournamentRulesetPage', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add field' }));
     fireEvent.change(screen.getByLabelText('Points per loss'), { target: { value: '2' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
       expect(updateRulesetOverrides).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', {
@@ -318,7 +318,7 @@ describe('TournamentRulesetPage', () => {
     await screen.findByLabelText('Points per win');
     fireEvent.change(screen.getByLabelText('Points per win'), { target: { value: '4' } });
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     // Neither call throws or crashes the screen; the fields remain as edited.
     await waitFor(() =>
@@ -341,9 +341,90 @@ describe('TournamentRulesetPage', () => {
     );
 
     await screen.findByLabelText('Points per win');
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    // With nothing changed there is no save control to press.
+    expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
 
     expect(updateRulesetOverrides).not.toHaveBeenCalled();
+  });
+
+  it('marks an edited parameter Modified, lists it in the unsaved bar, and Reset restores it', async () => {
+    render(
+      withIntl(
+        <TournamentRulesetPage
+          client={stubClient()}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    const input = (await screen.findByLabelText('Points per win')) as HTMLInputElement;
+    expect(screen.queryByText('Modified')).toBeNull();
+    expect(screen.getAllByText('Tournament value').length).toBeGreaterThan(0);
+
+    fireEvent.change(input, { target: { value: '4' } });
+    expect(screen.getByText('Modified')).toBeDefined();
+    expect(screen.getByRole('status').textContent).toContain('1 unsaved change');
+    expect(screen.getByRole('list', { name: 'Changed fields' }).textContent).toContain(
+      'Points per win',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    expect((screen.getByLabelText('Points per win') as HTMLInputElement).value).toBe('3');
+    expect(screen.queryByText('Modified')).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('lists a declared field the tournament has not overridden as a discipline default, and replaces it on request', async () => {
+    const updateRulesetOverrides = jest.fn<NonNullable<ControlApiClient['updateRulesetOverrides']>>(
+      () =>
+        Promise.resolve({
+          overrides: { 'scoring.pointsPerWin': 3, 'scoring.pointsPerDraw': 1 },
+          fieldPolicies: {},
+          disciplineDefaults: {},
+        }),
+    );
+    render(
+      withIntl(
+        <TournamentRulesetPage
+          client={stubClient({ updateRulesetOverrides })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await screen.findByLabelText('Points per win');
+    expect(screen.getByText('Discipline default')).toBeDefined();
+    expect(screen.queryByLabelText('Points per loss')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Replace value' }));
+    const lossInput = screen.getByLabelText('Points per loss');
+    expect(screen.queryByRole('button', { name: 'Replace value' })).toBeNull();
+    fireEvent.change(lossInput, { target: { value: '1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() =>
+      expect(updateRulesetOverrides).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', {
+        overrides: { 'scoring.pointsPerLoss': 1 },
+      }),
+    );
+  });
+
+  it('shows the parameter table with its key column headers', async () => {
+    render(
+      withIntl(
+        <TournamentRulesetPage
+          client={stubClient()}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await screen.findByLabelText('Points per win');
+    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
+    expect(headers).toEqual(['Parameter', 'Value', 'Source', 'Action']);
   });
 
   it('does not expose an undeclared null value as raw JSON', async () => {
@@ -421,7 +502,7 @@ describe('TournamentRulesetPage', () => {
 
     await screen.findByLabelText('Points per win');
     fireEvent.change(screen.getByLabelText('Points per win'), { target: { value: '4' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByText('conflict')).toBeDefined();
   });
@@ -534,7 +615,7 @@ describe('TournamentRulesetPage', () => {
 
     await screen.findByLabelText('Neutral ground required');
     fireEvent.click(screen.getByRole('checkbox'));
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
       expect(updateRulesetOverrides).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', {
@@ -575,7 +656,7 @@ describe('TournamentRulesetPage', () => {
       target: { value: 'goals-against' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
       expect(updateRulesetOverrides).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', {

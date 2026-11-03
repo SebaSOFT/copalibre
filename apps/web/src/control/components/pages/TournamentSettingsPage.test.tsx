@@ -134,7 +134,9 @@ describe('TournamentSettingsPage', () => {
     );
 
     fireEvent.click(screen.getByRole('tab', { name: 'Privacy' }));
-    expect(screen.getByRole('tablist').closest('.cl-list-screen__toolbar')).not.toBeNull();
+    expect(
+      screen.getByRole('tablist').closest('.cl-tournament-settings__form-content'),
+    ).not.toBeNull();
     expect(screen.getByRole('tabpanel').getAttribute('id')).toBe('tournament-privacy-panel');
     expect(screen.queryByText('Copa Verano')).toBeNull();
     const includesMinors = screen.getByLabelText('Participants include minors');
@@ -143,7 +145,7 @@ describe('TournamentSettingsPage', () => {
 
     fireEvent.click(includesMinors);
     expect((showYouthProfiles as HTMLInputElement).disabled).toBe(false);
-    fireEvent.click(screen.getByRole('button', { name: 'Save privacy settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledWith({ includesMinors: true }));
   });
@@ -270,7 +272,7 @@ describe('TournamentSettingsPage', () => {
 
     await screen.findByText(/already accepted/);
     expect(
-      (screen.getByRole('button', { name: 'Save settings' }) as HTMLButtonElement).disabled,
+      (screen.getByRole('button', { name: 'Save changes' }) as HTMLButtonElement).disabled,
     ).toBe(true);
     expect(updateTournamentSettings).not.toHaveBeenCalled();
   });
@@ -326,7 +328,7 @@ describe('TournamentSettingsPage', () => {
 
     await screen.findByDisplayValue('Copa Verano');
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano 2' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByText('conflict')).toBeDefined();
   });
@@ -386,7 +388,7 @@ describe('TournamentSettingsPage', () => {
     await screen.findByDisplayValue('Copa Verano');
     fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'Europe' } });
     fireEvent.change(screen.getByLabelText('Capacity'), { target: { value: '8' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
       expect(updateTournamentSettings).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', {
@@ -426,7 +428,7 @@ describe('TournamentSettingsPage', () => {
 
     await screen.findByDisplayValue('Copa Verano');
     fireEvent.click(screen.getByLabelText('Feature on the organization’s public page'));
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     // Only the changed field travels: an unchanged flag is not a proposed edit.
     await waitFor(() =>
@@ -481,7 +483,7 @@ describe('TournamentSettingsPage', () => {
     ).toBeDefined();
 
     fireEvent.change(field, { target: { value: '' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() =>
       expect(updateTournamentSettings).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', {
         minimumRestMinutes: null,
@@ -502,7 +504,7 @@ describe('TournamentSettingsPage', () => {
     fireEvent.change(screen.getByLabelText('Minimum rest between matches (minutes)'), {
       target: { value: '90' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() =>
       expect(updateTournamentSettings).toHaveBeenLastCalledWith('liga-mendocina', 'apertura-2026', {
         minimumRestMinutes: 90,
@@ -544,7 +546,7 @@ describe('TournamentSettingsPage', () => {
     await screen.findByDisplayValue('Copa Verano');
     fireEvent.change(screen.getByLabelText('Capacity'), { target: { value: '' } });
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano 2' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
       expect(updateTournamentSettings).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', {
@@ -579,7 +581,7 @@ describe('TournamentSettingsPage', () => {
 
     await screen.findByDisplayValue('Copa Verano');
     fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'Europe' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
       expect(updateTournamentSettings).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', {
@@ -692,9 +694,9 @@ describe('TournamentSettingsPage', () => {
     fireEvent.load(img);
 
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
-    fireEvent.click(screen.getByText('Use image'));
+    fireEvent.click(screen.getByText('Apply'));
 
     await waitFor(() =>
       expect(uploadTournamentEmblem).toHaveBeenCalledWith(
@@ -797,9 +799,9 @@ describe('TournamentSettingsPage', () => {
     fireEvent.load(img);
 
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
-    fireEvent.click(screen.getByText('Use image'));
+    fireEvent.click(screen.getByText('Apply'));
 
     expect(await screen.findByText('Upload failed')).toBeDefined();
   });
@@ -844,9 +846,9 @@ describe('TournamentSettingsPage', () => {
     fireEvent.load(img);
 
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
-    fireEvent.click(screen.getByText('Use image'));
+    fireEvent.click(screen.getByText('Apply'));
 
     expect(await screen.findByText('non-error string upload')).toBeDefined();
   });
@@ -901,9 +903,97 @@ describe('TournamentSettingsPage', () => {
     );
 
     await screen.findByDisplayValue('Copa Verano');
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano 2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(updateTournamentSettings).toHaveBeenCalled());
+  });
+
+  it('keeps the full rules folded behind a disclosure so the form stays in view', async () => {
+    render(
+      withIntl(
+        <TournamentSettingsPage
+          client={stubClient()}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await screen.findByDisplayValue('Copa Verano');
+    const disclosure = screen.getByText('Full rules').closest('details');
+    expect(disclosure).not.toBeNull();
+    expect(disclosure?.hasAttribute('open')).toBe(false);
+  });
+
+  it('shows the unsaved-changes bar only while the form is dirty, naming each changed field', async () => {
+    render(
+      withIntl(
+        <TournamentSettingsPage
+          client={stubClient()}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await screen.findByDisplayValue('Copa Verano');
+    expect(screen.queryByRole('status')).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano 2' } });
+    fireEvent.change(screen.getByLabelText('Capacity'), { target: { value: '32' } });
+    const bar = screen.getByRole('status');
+    expect(bar.textContent).toContain('2 unsaved changes');
+    const changed = Array.from(
+      screen.getByRole('list', { name: 'Changed fields' }).querySelectorAll('li'),
+    ).map((item) => item.textContent);
+    expect(changed).toEqual(['Name', 'Capacity']);
+
+    // A change on the privacy tab counts toward the same bar.
+    fireEvent.click(screen.getByRole('tab', { name: 'Privacy' }));
+    fireEvent.click(screen.getByLabelText('Participants include minors'));
+    expect(screen.getByRole('status').textContent).toContain('3 unsaved changes');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    expect(screen.queryByRole('status')).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: 'Settings' }));
+    expect(screen.getByDisplayValue('Copa Verano')).toBeDefined();
+    expect(screen.getByDisplayValue('16')).toBeDefined();
+  });
+
+  it('sends every changed field, across both tabs, in one save', async () => {
+    const updateTournamentSettings = jest.fn<
+      NonNullable<ControlApiClient['updateTournamentSettings']>
+    >(() =>
+      Promise.resolve({
+        name: 'Copa Verano 2',
+        featured: false,
+        includesMinors: true,
+        showYouthProfiles: false,
+      }),
+    );
+    render(
+      withIntl(
+        <TournamentSettingsPage
+          client={stubClient({ updateTournamentSettings })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await screen.findByDisplayValue('Copa Verano');
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano 2' } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Privacy' }));
+    fireEvent.click(screen.getByLabelText('Participants include minors'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() =>
+      expect(updateTournamentSettings).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', {
+        name: 'Copa Verano 2',
+        includesMinors: true,
+      }),
+    );
   });
 
   it('handles empty response from fresh settings after delete emblem', async () => {
@@ -1024,9 +1114,9 @@ describe('TournamentSettingsPage', () => {
     fireEvent.load(img);
 
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
-    fireEvent.click(screen.getByText('Use image'));
+    fireEvent.click(screen.getByText('Apply'));
 
     await waitFor(() => expect(uploadTournamentEmblem).toHaveBeenCalled());
   });

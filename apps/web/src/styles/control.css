@@ -487,10 +487,13 @@ body {
   grid-template-columns: var(--cl-layout-split-media-form);
 }
 
+/* The data-split selectors above out-rank a bare class, so the stacked layout names them too. */
 @container (max-width: 63.99rem) {
   .cl-list-with-rail-template__layout,
-  .cl-workspace-template__panes {
+  .cl-workspace-template__panes,
+  .cl-workspace-template__panes[data-split] {
     grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--cl-space-8);
   }
 }
 
@@ -854,54 +857,314 @@ input[type='checkbox'].cl-checkbox:focus-visible {
   border-bottom: 1px solid var(--cl-border-muted);
 }
 
-.cl-tournament-settings__form-content,
-.cl-tournament-settings__settings-panel {
+.cl-tournament-settings__form-content {
   display: grid;
   gap: var(--cl-space-6);
   min-width: 0;
 }
 
-.cl-tournament-settings__related-links {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--cl-space-4);
-}
-
-.cl-tournament-settings__identity-grid {
+.cl-tournament-settings__fields {
   display: grid;
-  grid-template-columns: minmax(10rem, 0.6fr) minmax(0, 2.4fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
   gap: var(--cl-space-4);
   min-width: 0;
 }
 
-.cl-tournament-settings__identity-fields,
-.cl-tournament-settings__schedule-grid {
+.cl-tournament-settings__field--wide {
+  grid-column: 1 / -1;
+}
+
+/* Help sits one step above the 12px floor so a two-line hint stays readable in a half-width column. */
+.cl-tournament-settings__fields .cl-form-field__help {
+  font-size: var(--cl-font-size-sm);
+}
+
+.cl-tournament-settings__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cl-space-3);
+}
+
+@media (width < 768px) {
+  .cl-tournament-settings__header-actions {
+    margin-block-start: var(--cl-space-2);
+  }
+}
+
+.cl-ruleset {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-ruleset__parameter {
+  display: grid;
+  gap: var(--cl-space-1);
+  min-width: 0;
+}
+
+.cl-ruleset__key {
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+/* The table sizes to its widest cell, so a long value is capped and wraps instead of pushing Source and Action off-screen. */
+.cl-ruleset__current {
+  display: block;
+  max-inline-size: 26rem;
+  overflow-wrap: anywhere;
+}
+
+.cl-ruleset__value {
+  min-width: 0;
+  max-inline-size: 26rem;
+}
+
+.cl-ruleset__add {
+  display: flex;
+  flex-wrap: wrap;
   align-items: end;
+  gap: var(--cl-space-4);
+}
+
+.cl-ruleset__add .cl-form-field {
+  flex: 1 1 16rem;
+}
+
+.cl-seeding__list,
+.cl-seeding__canvas {
+  display: grid;
+  align-content: start;
   gap: var(--cl-space-4);
   min-width: 0;
 }
 
-.cl-tournament-settings__emblem-section,
+.cl-seeding__seeds {
+  display: grid;
+  gap: var(--cl-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-seeding__seed {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--cl-space-3);
+  padding-block: var(--cl-space-2);
+  border-block-end: 1px solid var(--cl-border-muted);
+}
+
+.cl-seeding__seed-tag {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: var(--cl-space-8);
+  padding-inline: var(--cl-space-2);
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-chrome);
+  font-family: var(--cl-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-seeding__seed-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cl-stage-identity__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--cl-space-4);
+}
+
+.cl-stage-identity__row .cl-form-field {
+  flex: 1 1 14rem;
+}
+
+.cl-stage-identity__danger {
+  padding-block-start: var(--cl-space-4);
+  border-block-start: 1px solid var(--cl-border-muted);
+}
+
+.cl-modal__content.cl-modal__content--wide {
+  width: min(56rem, calc(100vw - var(--cl-space-8)));
+}
+
+.cl-image-crop {
+  display: grid;
+  grid-template-columns: var(--cl-layout-split-main-rail);
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-image-crop__stage,
+.cl-image-crop__panel {
+  min-width: 0;
+}
+
+.cl-image-crop__panel {
+  display: grid;
+  align-content: start;
+  gap: var(--cl-space-4);
+}
+
+.cl-image-crop__previews {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--cl-space-4);
+}
+
+.cl-image-crop__preview {
+  overflow: hidden;
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-chrome);
+}
+
+.cl-image-crop__preview img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+@media (width < 768px) {
+  .cl-image-crop {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cl-promotion {
+  gap: var(--cl-space-8);
+}
+
+.cl-promotion__heading {
+  margin-block-end: var(--cl-space-4);
+}
+
+.cl-control .cl-promotion__parameters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  align-items: end;
+  gap: var(--cl-space-4);
+  max-inline-size: 45rem;
+}
+
+.cl-promotion__total {
+  display: flex;
+  align-items: baseline;
+  gap: var(--cl-space-2);
+  margin: 0;
+  color: var(--cl-text-secondary);
+}
+
+.cl-promotion__total-figure {
+  color: var(--cl-text-primary);
+  font-size: var(--cl-font-size-figure-lg);
+  font-weight: var(--cl-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-zone-group {
+  gap: var(--cl-space-8);
+}
+
+.cl-zone-group__heading {
+  margin-block-end: var(--cl-space-2);
+}
+
+.cl-zone-group__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: var(--cl-space-4);
+  margin: var(--cl-space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-zone-group__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cl-space-3);
+  min-width: 0;
+  padding: var(--cl-space-4);
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-panel);
+}
+
+.cl-zone-group__card--add {
+  justify-content: center;
+  border-style: dashed;
+  background: transparent;
+}
+
+.cl-zone-group__card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--cl-space-2);
+}
+
+.cl-zone-group__count {
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+}
+
+.cl-zone-group__rename {
+  display: grid;
+  gap: var(--cl-space-2);
+}
+
+.cl-zone-group__rename .cl-btn,
+.cl-zone-group__card--add .cl-btn {
+  justify-self: start;
+}
+
+.cl-zone-group__entrants {
+  display: grid;
+  gap: var(--cl-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-zone-group__entrants li {
+  padding-block: var(--cl-space-1);
+  border-block-end: 1px solid var(--cl-border-muted);
+  overflow-wrap: anywhere;
+}
+
+.cl-zone-group__card-foot {
+  margin-block-start: auto;
+}
+
+.cl-zone-group__assign {
+  inline-size: min(100%, 45rem);
+  justify-self: start;
+}
+
+.cl-zone-group__assign .cl-role-user {
+  justify-content: flex-start;
+}
+
 .cl-tournament-settings__emblem-actions {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--cl-space-2);
   min-width: 0;
 }
 
 .cl-tournament-settings__emblem-heading {
+  font-size: var(--cl-font-size-md);
   font-weight: var(--cl-weight-bold);
-}
-
-.cl-tournament-settings__emblem-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--cl-space-4);
 }
 
 .cl-tournament-settings__featured {
@@ -911,20 +1174,8 @@ input[type='checkbox'].cl-checkbox:focus-visible {
   min-height: var(--cl-touch-target);
 }
 
-@media (width < 1024px) {
-  .cl-tournament-settings__identity-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .cl-tournament-settings__identity-fields,
-  .cl-tournament-settings__schedule-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (width < 768px) {
-  .cl-tournament-settings__identity-fields,
-  .cl-tournament-settings__schedule-grid {
+  .cl-tournament-settings__fields {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -934,10 +1185,25 @@ input[type='checkbox'].cl-checkbox:focus-visible {
 }
 
 .cl-wizard-shell__actions {
+  position: sticky;
+  bottom: var(--cl-space-4);
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: var(--cl-space-3);
   margin-top: var(--cl-space-6);
+  padding-block: var(--cl-space-3);
+  background: var(--cl-surface-panel);
+}
+
+.cl-wizard-shell__next {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+  text-align: end;
+  text-transform: uppercase;
 }
 
 @media (width < 768px) {
@@ -961,6 +1227,10 @@ input[type='checkbox'].cl-checkbox:focus-visible {
   .cl-wizard-shell__actions > :first-child {
     align-self: flex-start;
     white-space: nowrap;
+  }
+
+  .cl-wizard-shell__next {
+    text-align: start;
   }
 
   .cl-wizard-shell__actions > :last-child {
@@ -1138,13 +1408,26 @@ input[type='checkbox'].cl-checkbox:focus-visible {
 
 .cl-unsaved-changes-bar {
   position: sticky;
-  bottom: 0;
+  bottom: var(--cl-space-4);
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: var(--cl-space-4);
   padding: var(--cl-space-4);
-  background: var(--cl-surface-panel);
+  border-color: var(--cl-border-strong);
+  background: var(--cl-surface-raised);
+}
+
+.cl-tournament-summary__rules > summary {
+  display: list-item;
+  list-style-position: inside;
+  padding-block: var(--cl-space-3);
+  font-weight: var(--cl-weight-bold);
+  cursor: pointer;
+}
+
+.cl-tournament-summary__rules[open] > summary {
+  margin-block-end: var(--cl-space-4);
 }
 
 .cl-unsaved-changes-bar__details {

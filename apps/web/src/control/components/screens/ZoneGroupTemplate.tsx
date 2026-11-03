@@ -15,7 +15,6 @@ import { formatEnum } from '../../lib/presentation-formatting.js';
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
-import { Container } from '../ui/atoms/layout/container.js';
 import { Badge } from '../ui/atoms/badge.js';
 import { Input } from '../ui/atoms/input.js';
 import { Label } from '../ui/atoms/label.js';
@@ -23,7 +22,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/atoms/radio.js';
 import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
 import { messages } from '../../i18n/messages.en.js';
-import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { PageHeaderTemplate } from './PageHeaderTemplate.js';
 
 type AssignMode = 'draw' | 'manual';
 
@@ -180,51 +179,66 @@ export function ZoneGroupTemplate({
   const selectedZone = zones.find((z) => z.number === selectedZoneNumber);
 
   const listingNode = (
-    <Container variant="form">
-      <div className="cl-screen-sections">
-        <Card
-          aria-label={intl.formatMessage(messages.zoneGroupZonesHeading)}
-          className="cl-chamfer cl-chamfer--control"
-        >
-          <header className="cl-card__header">
-            <h2 className="cl-card__title">
-              <FormattedMessage {...messages.zoneGroupZonesHeading} />
-            </h2>
-          </header>
-          <div className="cl-card__content">
-            <p className="cl-form-field__help" role="note">
-              {intl.formatMessage(messages.zoneGroupDeleteHelp)}
-            </p>
-            <ul>
-              {zones.map((zone) => (
-                <li key={zone.number} className="cl-role-user">
-                  <strong>{zone.number}.</strong> {zone.name}
-                  {api.renameZone && (
-                    <>
-                      <Input
-                        aria-label={intl.formatMessage(messages.zoneGroupRenameZoneLabel, {
-                          name: zone.name,
-                        })}
-                        onChange={(event) =>
-                          setZoneNameDrafts((current) => ({
-                            ...current,
-                            [zone.number]: event.target.value,
-                          }))
-                        }
-                        value={zoneNameDrafts[zone.number] ?? zone.name}
-                      />
-                      <Button
-                        onClick={() =>
-                          void onRenameZone(zone.number, zoneNameDrafts[zone.number] ?? zone.name)
-                        }
-                        type="button"
-                        variant="secondary"
-                      >
-                        <FormattedMessage {...messages.zoneGroupRenameZone} />
-                      </Button>
-                    </>
+    <>
+      <div className="cl-screen-sections cl-zone-group">
+        <section aria-label={intl.formatMessage(messages.zoneGroupZonesHeading)}>
+          <h2 className="cl-zone-group__heading">
+            <FormattedMessage {...messages.zoneGroupZonesHeading} />
+          </h2>
+          <p className="cl-form-field__help" role="note">
+            {intl.formatMessage(messages.zoneGroupDeleteHelp)}
+          </p>
+          <ul className="cl-zone-group__cards">
+            {zones.map((zone) => (
+              <li className="cl-zone-group__card cl-chamfer cl-chamfer--control" key={zone.number}>
+                <div className="cl-zone-group__card-head">
+                  <span>
+                    <strong>{zone.number}.</strong> {zone.name}
+                  </span>
+                  {zone.number === selectedZoneNumber && groups.length > 0 && (
+                    <span className="cl-zone-group__count">
+                      {intl.formatMessage(messages.zoneGroupGroupCountFact, {
+                        count: groups.length,
+                      })}
+                    </span>
                   )}
-                  {api.deleteZone && (
+                </div>
+                {api.renameZone && (
+                  <div className="cl-zone-group__rename">
+                    <Input
+                      aria-label={intl.formatMessage(messages.zoneGroupRenameZoneLabel, {
+                        name: zone.name,
+                      })}
+                      onChange={(event) =>
+                        setZoneNameDrafts((current) => ({
+                          ...current,
+                          [zone.number]: event.target.value,
+                        }))
+                      }
+                      value={zoneNameDrafts[zone.number] ?? zone.name}
+                    />
+                    <Button
+                      onClick={() =>
+                        void onRenameZone(zone.number, zoneNameDrafts[zone.number] ?? zone.name)
+                      }
+                      type="button"
+                      variant="secondary"
+                    >
+                      <FormattedMessage {...messages.zoneGroupRenameZone} />
+                    </Button>
+                  </div>
+                )}
+                {api.configureZone && onConfigureZone && stageFormat !== undefined && (
+                  <ZoneConfiguration
+                    availableFormats={availableFormats}
+                    locked={stageSeeded}
+                    onConfigure={(request) => onConfigureZone(zone.number, request)}
+                    stageFormat={stageFormat}
+                    zone={zone}
+                  />
+                )}
+                {api.deleteZone && (
+                  <div className="cl-zone-group__card-foot">
                     <Button
                       onClick={() => void onDeleteZone(zone.number)}
                       type="button"
@@ -232,21 +246,12 @@ export function ZoneGroupTemplate({
                     >
                       <FormattedMessage {...messages.zoneGroupDelete} />
                     </Button>
-                  )}
-                  {api.configureZone && onConfigureZone && stageFormat !== undefined && (
-                    <ZoneConfiguration
-                      availableFormats={availableFormats}
-                      locked={stageSeeded}
-                      onConfigure={(request) => onConfigureZone(zone.number, request)}
-                      stageFormat={stageFormat}
-                      zone={zone}
-                    />
-                  )}
-                </li>
-              ))}
-            </ul>
+                  </div>
+                )}
+              </li>
+            ))}
             {api.createZone && (
-              <div className="cl-platform-form-grid">
+              <li className="cl-zone-group__card cl-zone-group__card--add">
                 <Input
                   aria-label={intl.formatMessage(messages.zoneGroupNewZoneName)}
                   onChange={(event) => setNewZoneName(event.target.value)}
@@ -256,14 +261,14 @@ export function ZoneGroupTemplate({
                 <Button onClick={() => void createZone()} type="button" variant="secondary">
                   <FormattedMessage {...messages.zoneGroupAddZone} />
                 </Button>
-              </div>
+              </li>
             )}
-          </div>
-        </Card>
+          </ul>
+        </section>
 
         <Card
           aria-label={intl.formatMessage(messages.zoneGroupAssignZonesHeading)}
-          className="cl-chamfer cl-chamfer--control"
+          className="cl-chamfer cl-chamfer--control cl-zone-group__assign"
         >
           <header className="cl-card__header">
             <h2 className="cl-card__title">
@@ -379,67 +384,65 @@ export function ZoneGroupTemplate({
               />
             </Field>
 
-            <Card
-              aria-label={intl.formatMessage(messages.zoneGroupGroupsHeading)}
-              className="cl-chamfer cl-chamfer--control"
-            >
-              <header className="cl-card__header">
-                <h2 className="cl-card__title">
-                  <FormattedMessage {...messages.zoneGroupGroupsHeading} />
-                </h2>
-              </header>
-              <div className="cl-card__content">
-                <p className="cl-form-field__help" role="note">
-                  {intl.formatMessage(messages.zoneGroupDeleteHelp)}
-                </p>
-                <ul>
-                  {groups.map((group) => (
-                    <li key={group.number} className="cl-role-user">
-                      <strong>{group.number}.</strong> {group.name}
-                      {group.entrantIds && group.entrantIds.length > 0 ? (
-                        <span className="cl-role-user">
-                          {group.entrantIds.map((entrantId) => (
-                            <Badge
-                              key={entrantId}
-                              label={entrantLabel(entrantId)}
-                              variant="section"
-                            />
-                          ))}
-                        </span>
-                      ) : (
-                        <small className="cl-role-user__id">
-                          <FormattedMessage {...messages.zoneGroupNoEntrantsAssigned} />
-                        </small>
-                      )}
-                      {api.renameGroup && (
-                        <>
-                          <Input
-                            aria-label={intl.formatMessage(messages.zoneGroupRenameGroupLabel, {
-                              name: group.name,
-                            })}
-                            onChange={(event) =>
-                              setGroupNameDrafts((current) => ({
-                                ...current,
-                                [group.number]: event.target.value,
-                              }))
-                            }
-                            value={groupNameDrafts[group.number] ?? group.name}
-                          />
-                          <Button
-                            onClick={() =>
-                              void onRenameGroup(
-                                group.number,
-                                groupNameDrafts[group.number] ?? group.name,
-                              )
-                            }
-                            type="button"
-                            variant="secondary"
-                          >
-                            <FormattedMessage {...messages.zoneGroupRenameGroup} />
-                          </Button>
-                        </>
-                      )}
-                      {api.deleteGroup && (
+            <section aria-label={intl.formatMessage(messages.zoneGroupGroupsHeading)}>
+              <h2 className="cl-zone-group__heading">
+                <FormattedMessage {...messages.zoneGroupGroupsHeading} />
+              </h2>
+              <p className="cl-form-field__help" role="note">
+                {intl.formatMessage(messages.zoneGroupDeleteHelp)}
+              </p>
+              <ul className="cl-zone-group__cards">
+                {groups.map((group) => (
+                  <li
+                    className="cl-zone-group__card cl-chamfer cl-chamfer--control"
+                    key={group.number}
+                  >
+                    <div className="cl-zone-group__card-head">
+                      <span>
+                        <strong>{group.number}.</strong> {group.name}
+                      </span>
+                    </div>
+                    {group.entrantIds && group.entrantIds.length > 0 ? (
+                      <ul className="cl-zone-group__entrants">
+                        {group.entrantIds.map((entrantId) => (
+                          <li key={entrantId}>{entrantLabel(entrantId)}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <small className="cl-role-user__id">
+                        <FormattedMessage {...messages.zoneGroupNoEntrantsAssigned} />
+                      </small>
+                    )}
+                    {api.renameGroup && (
+                      <div className="cl-zone-group__rename">
+                        <Input
+                          aria-label={intl.formatMessage(messages.zoneGroupRenameGroupLabel, {
+                            name: group.name,
+                          })}
+                          onChange={(event) =>
+                            setGroupNameDrafts((current) => ({
+                              ...current,
+                              [group.number]: event.target.value,
+                            }))
+                          }
+                          value={groupNameDrafts[group.number] ?? group.name}
+                        />
+                        <Button
+                          onClick={() =>
+                            void onRenameGroup(
+                              group.number,
+                              groupNameDrafts[group.number] ?? group.name,
+                            )
+                          }
+                          type="button"
+                          variant="secondary"
+                        >
+                          <FormattedMessage {...messages.zoneGroupRenameGroup} />
+                        </Button>
+                      </div>
+                    )}
+                    {api.deleteGroup && (
+                      <div className="cl-zone-group__card-foot">
                         <Button
                           onClick={() => void onDeleteGroup(group.number)}
                           type="button"
@@ -447,12 +450,12 @@ export function ZoneGroupTemplate({
                         >
                           <FormattedMessage {...messages.zoneGroupDelete} />
                         </Button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                      </div>
+                    )}
+                  </li>
+                ))}
                 {api.createGroup && (
-                  <div className="cl-platform-form-grid">
+                  <li className="cl-zone-group__card cl-zone-group__card--add">
                     <Input
                       aria-label={intl.formatMessage(messages.zoneGroupNewGroupName)}
                       onChange={(event) => setNewGroupName(event.target.value)}
@@ -462,14 +465,14 @@ export function ZoneGroupTemplate({
                     <Button onClick={() => void createGroup()} type="button" variant="secondary">
                       <FormattedMessage {...messages.zoneGroupAddGroup} />
                     </Button>
-                  </div>
+                  </li>
                 )}
-              </div>
-            </Card>
+              </ul>
+            </section>
 
             <Card
               aria-label={intl.formatMessage(messages.zoneGroupAssignGroupsHeading)}
-              className="cl-chamfer cl-chamfer--control"
+              className="cl-chamfer cl-chamfer--control cl-zone-group__assign"
             >
               <header className="cl-card__header">
                 <h2 className="cl-card__title">
@@ -591,10 +594,14 @@ export function ZoneGroupTemplate({
           </>
         )}
       </div>
-    </Container>
+    </>
   );
 
-  return <ListScreenLayout breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
+  return (
+    <PageHeaderTemplate legacyBreadcrumb={breadcrumbNode} title={titleNode}>
+      {listingNode}
+    </PageHeaderTemplate>
+  );
 }
 
 const INHERIT = '__inherit__';

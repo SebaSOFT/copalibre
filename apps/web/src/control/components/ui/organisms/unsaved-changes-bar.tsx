@@ -13,6 +13,7 @@ export interface UnsavedChangesBarProps {
   readonly changedFields: readonly UnsavedChangesBarField[];
   readonly resetLabel: string;
   readonly saveLabel: string;
+  readonly saveDisabled?: boolean;
   readonly onReset: () => void;
   readonly onSave: () => void;
 }
@@ -25,6 +26,7 @@ export function UnsavedChangesBar({
   changedFields,
   resetLabel,
   saveLabel,
+  saveDisabled = false,
   onReset,
   onSave,
 }: UnsavedChangesBarProps): React.JSX.Element | null {
@@ -46,7 +48,7 @@ export function UnsavedChangesBar({
         <Button onClick={onReset} type="button" variant="secondary">
           {resetLabel}
         </Button>
-        <Button onClick={onSave} type="button">
+        <Button disabled={saveDisabled} onClick={onSave} type="button">
           {saveLabel}
         </Button>
       </div>
