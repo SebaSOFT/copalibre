@@ -333,7 +333,7 @@ test('uploading tournament emblem in control panel renders in tournament setting
   await expect(dialog).toBeHidden();
 
   await expect(page.getByText('Tournament emblem uploaded.')).toBeVisible();
-  const emblemImg = page.locator('.cl-tournament-settings__emblem-section .cl-image-frame img');
+  const emblemImg = page.locator('.cl-workspace-template__primary .cl-image-frame img');
   await expect(emblemImg).toBeVisible();
   expect(await emblemImg.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
   await expect(emblemImg).toHaveAttribute(

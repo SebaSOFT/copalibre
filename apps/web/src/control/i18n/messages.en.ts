@@ -2463,6 +2463,17 @@ export const messages = defineMessages({
     defaultMessage:
       'Player names, photos, nationality and profile pages become public, and tournament statistics can contribute to career pages.',
   },
+  tournamentSummaryFullRules: {
+    id: 'control.tournamentSummary.fullRules',
+    defaultMessage: 'Full rules',
+  },
+  unsavedChangesSummary: {
+    id: 'control.unsavedChanges.summary',
+    defaultMessage: '{count, plural, one {# unsaved change} other {# unsaved changes}}',
+  },
+  unsavedChangesFields: { id: 'control.unsavedChanges.fields', defaultMessage: 'Changed fields' },
+  unsavedChangesReset: { id: 'control.unsavedChanges.reset', defaultMessage: 'Reset' },
+  unsavedChangesSave: { id: 'control.unsavedChanges.save', defaultMessage: 'Save changes' },
   settingsPrivacySave: {
     id: 'control.settings.privacy.save',
     defaultMessage: 'Save privacy settings',

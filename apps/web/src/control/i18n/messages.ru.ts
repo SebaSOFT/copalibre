@@ -828,6 +828,12 @@ export const messages: Record<string, string> = {
   'control.settings.capacityLabel': 'Вместимость',
   'control.settings.checkInClosesAtLabel': 'Окончание регистрации',
   'control.settings.featuredLabel': 'Выделить на публичной странице организации',
+  'control.unsavedChanges.summary':
+    '{count, plural, one {# несохранённое изменение} few {# несохранённых изменения} many {# несохранённых изменений} other {# несохранённых изменений}}',
+  'control.unsavedChanges.fields': 'Изменённые поля',
+  'control.unsavedChanges.reset': 'Сбросить',
+  'control.unsavedChanges.save': 'Сохранить изменения',
+  'control.tournamentSummary.fullRules': 'Полные правила',
   'control.settings.preview': 'Предпросмотр',
   'control.settings.sections': 'Разделы настроек турнира',
   'control.settings.tab.general': 'Настройки',

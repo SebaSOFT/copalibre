@@ -829,6 +829,12 @@ export const messages: Record<string, string> = {
   'control.settings.capacityLabel': 'Capacidad',
   'control.settings.checkInClosesAtLabel': 'Cierre de check-in',
   'control.settings.featuredLabel': 'Destacar en la página pública de la organización',
+  'control.unsavedChanges.summary':
+    '{count, plural, one {# cambio sin guardar} other {# cambios sin guardar}}',
+  'control.unsavedChanges.fields': 'Campos modificados',
+  'control.unsavedChanges.reset': 'Restablecer',
+  'control.unsavedChanges.save': 'Guardar cambios',
+  'control.tournamentSummary.fullRules': 'Reglamento completo',
   'control.settings.preview': 'Vista previa',
   'control.settings.sections': 'Secciones de configuración del torneo',
   'control.settings.tab.general': 'Configuración',
