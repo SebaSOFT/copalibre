@@ -27,7 +27,6 @@ describe('roles and permissions control', () => {
           }
           onDelete={async () => undefined}
           onInvite={async () => undefined}
-          organizationAlias="liga-mendocina"
           rows={rows}
         />,
       ),
@@ -60,13 +59,10 @@ describe('roles and permissions control', () => {
           onChange={async () => undefined}
           onDelete={async () => undefined}
           onInvite={async (email, role, status) => void invitations.push({ email, role, status })}
-          organizationAlias="liga-mendocina"
           rows={rows}
         />,
       ),
     );
-
-    fireEvent.click(screen.getByText('Invite user'));
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'viewer@example.test' },
     });
@@ -96,13 +92,10 @@ describe('roles and permissions control', () => {
           onInvite={async (email, role, status, scope) =>
             void invitations.push({ email, role, status, scope })
           }
-          organizationAlias="liga-mendocina"
           rows={rows}
         />,
       ),
     );
-
-    fireEvent.click(screen.getByText('Invite user'));
     expect(screen.queryByLabelText('Club administered')).toBeNull();
 
     fireEvent.change(screen.getByLabelText('Invitation role'), {
@@ -142,7 +135,6 @@ describe('roles and permissions control', () => {
           onInvite={async (email, role, status, scope) =>
             void invitations.push({ email, role, status, scope })
           }
-          organizationAlias="liga-mendocina"
           rows={rows}
           tournaments={[
             { tournamentId: 'tournament-1', alias: 'apertura', name: 'Apertura' },
@@ -151,8 +143,6 @@ describe('roles and permissions control', () => {
         />,
       ),
     );
-
-    fireEvent.click(screen.getByText('Invite user'));
     expect(screen.queryByLabelText('Tournament administered')).toBeNull();
 
     fireEvent.change(screen.getByLabelText('Invitation role'), {
@@ -192,13 +182,10 @@ describe('roles and permissions control', () => {
           onChange={async () => undefined}
           onDelete={async () => undefined}
           onInvite={async () => undefined}
-          organizationAlias="liga-mendocina"
           rows={rows}
         />,
       ),
     );
-
-    fireEvent.click(screen.getByText('Invite user'));
     fireEvent.change(screen.getByLabelText('Invitation role'), {
       target: { value: 'club-admin' },
     });
@@ -258,8 +245,6 @@ describe('roles and permissions control', () => {
     await screen.findByText('referee@example.test');
     await waitFor(() => expect(listClubs).toHaveBeenCalledWith('liga-mendocina'));
     await waitFor(() => expect(listActiveTournaments).toHaveBeenCalledWith('liga-mendocina'));
-
-    fireEvent.click(screen.getByText('Invite user'));
     fireEvent.change(screen.getByLabelText('Invitation role'), {
       target: { value: 'tournament-admin' },
     });
@@ -321,7 +306,6 @@ describe('roles and permissions control', () => {
     render(withIntl(<RolesPermissionsPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('referee@example.test');
-    fireEvent.click(screen.getByText('Invite user'));
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'nuevo@example.test' },
     });
@@ -352,7 +336,6 @@ describe('roles and permissions control', () => {
     render(withIntl(<RolesPermissionsPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('referee@example.test');
-    fireEvent.click(screen.getByText('Invite user'));
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'viewer@example.test' },
     });
@@ -368,6 +351,96 @@ describe('roles and permissions control', () => {
     await waitFor(() => expect(screen.getByText('viewer@example.test')).toBeDefined());
   });
 
+  it('summarises operators and pending invitations from the loaded lists', () => {
+    render(
+      withIntl(
+        <RolesPermissionsTemplate
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          pendingInvitations={[
+            {
+              invitationId: 'invite-1',
+              recipientEmail: 'nuevo@example.test',
+              role: 'viewer',
+              status: 'active',
+              expiresAt: '2099-01-01T00:00:00.000Z',
+            },
+          ]}
+          rows={rows}
+        />,
+      ),
+    );
+
+    const summary = within(screen.getByRole('group', { name: 'Operators summary' }));
+    expect(summary.getByText('Operators')).toBeTruthy();
+    expect(summary.getByText('Pending invitations')).toBeTruthy();
+  });
+
+  it('omits the pending-invitations figure until that list has loaded', () => {
+    render(
+      withIntl(
+        <RolesPermissionsTemplate
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          rows={rows}
+        />,
+      ),
+    );
+
+    const summary = within(screen.getByRole('group', { name: 'Operators summary' }));
+    expect(summary.queryByText('Pending invitations')).toBeNull();
+  });
+
+  it('filters operators by role and by email, and names each role’s scope', () => {
+    const admin = {
+      ...rows[0],
+      assignmentId: 'assignment-2',
+      email: 'admin@example.test',
+      role: 'admin' as const,
+    };
+    const clubAdmin = {
+      ...rows[0],
+      assignmentId: 'assignment-3',
+      email: 'club@example.test',
+      role: 'club-admin' as const,
+      clubId: 'club-1',
+    };
+    render(
+      withIntl(
+        <RolesPermissionsTemplate
+          clubs={[{ clubId: 'club-1', organizationId: 'org-1', name: 'Club Uno' }]}
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          rows={[...rows, admin, clubAdmin]}
+        />,
+      ),
+    );
+
+    const table = (): ReturnType<typeof within> => within(screen.getByRole('table'));
+    expect(table().getByText('Club: Club Uno')).toBeTruthy();
+    expect(table().getAllByText('Whole organization')).toHaveLength(2);
+    expect(screen.getByText('3 operators')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Admin' }));
+    expect(table().getByText('admin@example.test')).toBeTruthy();
+    expect(table().queryByText('referee@example.test')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    fireEvent.change(screen.getByLabelText('Search operators'), { target: { value: 'club@' } });
+    expect(table().getByText('club@example.test')).toBeTruthy();
+    expect(table().queryByText('admin@example.test')).toBeNull();
+    expect(screen.getByText('1 operator')).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('Search operators'), { target: { value: 'nobody' } });
+    expect(screen.getByText('No operators match this filter.')).toBeTruthy();
+  });
+
   it('offers club-admin as an assignable role', () => {
     render(
       withIntl(
@@ -376,7 +449,6 @@ describe('roles and permissions control', () => {
           onChange={async () => undefined}
           onDelete={async () => undefined}
           onInvite={async () => undefined}
-          organizationAlias="liga-mendocina"
           rows={rows}
         />,
       ),
@@ -395,7 +467,6 @@ describe('roles and permissions control', () => {
           onChange={async () => undefined}
           onDelete={async () => undefined}
           onInvite={async () => undefined}
-          organizationAlias="liga-mendocina"
           rows={rows}
         />,
       ),
@@ -414,7 +485,6 @@ describe('roles and permissions control', () => {
           onChange={async () => undefined}
           onDelete={async () => undefined}
           onInvite={async () => undefined}
-          organizationAlias="liga-mendocina"
           rows={[adminRow]}
         />,
       ),
@@ -481,7 +551,6 @@ describe('roles and permissions control', () => {
           onDelete={async () => undefined}
           onInvite={async () => undefined}
           onRescindInvitation={async (invitationId) => void rescinded.push(invitationId)}
-          organizationAlias="liga-mendocina"
           pendingInvitations={[
             {
               invitationId: 'invite-1',
@@ -511,7 +580,6 @@ describe('roles and permissions control', () => {
           onChange={async () => undefined}
           onDelete={async () => undefined}
           onInvite={async () => undefined}
-          organizationAlias="liga-mendocina"
           pendingInvitations={[
             {
               invitationId: 'invite-1',
@@ -541,7 +609,6 @@ describe('roles and permissions control', () => {
           onChange={async () => undefined}
           onDelete={async () => undefined}
           onInvite={async () => undefined}
-          organizationAlias="liga-mendocina"
           pendingInvitations={[]}
           rows={rows}
         />,
@@ -558,7 +625,6 @@ describe('roles and permissions control', () => {
           onChange={async () => undefined}
           onDelete={async () => undefined}
           onInvite={async () => undefined}
-          organizationAlias="liga-mendocina"
           rows={rows}
         />,
       ),
@@ -609,14 +675,14 @@ describe('roles and permissions control', () => {
           onChange={async () => undefined}
           onDelete={async () => undefined}
           onInvite={async () => undefined}
-          organizationAlias="liga-mendocina"
           rows={rows}
         />,
       ),
     );
 
+    const operators = (): ReturnType<typeof within> => within(screen.getByRole('table'));
     expect(
-      screen.getByText(
+      operators().getByText(
         'Operates a live match — recording events, controlling the clock, resolving timers, and selecting a roster.',
       ),
     ).toBeTruthy();
@@ -628,19 +694,18 @@ describe('roles and permissions control', () => {
           onChange={async () => undefined}
           onDelete={async () => undefined}
           onInvite={async () => undefined}
-          organizationAlias="liga-mendocina"
           rows={[{ ...rows[0], role: 'viewer' }]}
         />,
       ),
     );
 
     expect(
-      screen.getByText(
+      operators().getByText(
         "The least-privileged organization role — belongs to the organization's taxonomy without granting any operator authority.",
       ),
     ).toBeTruthy();
     expect(
-      screen.queryByText(
+      operators().queryByText(
         'Operates a live match — recording events, controlling the clock, resolving timers, and selecting a roster.',
       ),
     ).toBeNull();
@@ -664,13 +729,14 @@ describe('roles and permissions control', () => {
             onChange={async () => undefined}
             onDelete={async () => undefined}
             onInvite={async () => undefined}
-            organizationAlias="liga-mendocina"
             rows={[{ ...rows[0], role: role as (typeof rows)[0]['role'] }]}
           />,
         ),
       );
 
-      const link = screen.getByText('Learn more').closest('a') as HTMLAnchorElement;
+      const link = within(screen.getByRole('table'))
+        .getByText('Learn more')
+        .closest('a') as HTMLAnchorElement;
       expect(link.getAttribute('href')).toBe(path);
       expect(link.getAttribute('target')).toBe('_blank');
       expect(link.getAttribute('rel')).toBe('noopener noreferrer');
@@ -678,7 +744,7 @@ describe('roles and permissions control', () => {
     }
   });
 
-  it('shows the invite dialog’s role hint and link, matching the selected role', () => {
+  it('shows the invite form’s role hint and link, matching the selected role', () => {
     render(
       withIntl(
         <RolesPermissionsTemplate
@@ -686,14 +752,11 @@ describe('roles and permissions control', () => {
           onChange={async () => undefined}
           onDelete={async () => undefined}
           onInvite={async () => undefined}
-          organizationAlias="liga-mendocina"
           rows={rows}
         />,
       ),
     );
-
-    fireEvent.click(screen.getByText('Invite user'));
-    const dialog = within(screen.getByRole('dialog'));
+    const dialog = within(screen.getByRole('complementary', { name: 'Invite user' }));
 
     expect(
       dialog.getByText(
@@ -731,7 +794,6 @@ describe('roles and permissions control', () => {
           onChange={async () => undefined}
           onDelete={async () => undefined}
           onInvite={async () => undefined}
-          organizationAlias="liga-mendocina"
           rows={[admin1, admin2]}
         />,
       ),

@@ -486,7 +486,6 @@ export const messages: Record<string, string> = {
   'control.roles.loadFailed': 'Не удалось загрузить пользователей.',
   'control.roles.changeFailed': 'Не удалось применить изменение.',
   'control.roles.sectionLabel': 'Роли и права',
-  'control.roles.breadcrumb': '{organizationAlias} / Организация',
   'control.roles.title': 'Роли и права',
   'control.roles.addUser': 'Пригласить пользователя',
   'control.roles.columnUser': 'Пользователь',
@@ -1825,4 +1824,18 @@ export const messages: Record<string, string> = {
   'control.copyId.failure': 'Не удалось скопировать ID',
   'control.auditTrail.copyEntityId': 'Копировать ID записи',
   'control.auditTrail.copyActorId': 'Копировать ID автора',
+  'control.roles.description':
+    'Выберите, кто может управлять этой организацией и что может делать каждая роль.',
+  'control.roles.kpiLabel': 'Сводка по операторам',
+  'control.roles.kpiOperators': 'Операторы',
+  'control.roles.searchLabel': 'Поиск операторов',
+  'control.roles.searchPlaceholder': 'Адрес электронной почты',
+  'control.roles.filtersLabel': 'Фильтр по роли',
+  'control.roles.filterAll': 'Все',
+  'control.roles.resultCount':
+    '{count, plural, one {# оператор} few {# оператора} many {# операторов} other {# оператора}}',
+  'control.roles.noMatches': 'Нет операторов, подходящих под этот фильтр.',
+  'control.roles.scopeOrganization': 'Вся организация',
+  'control.roles.scopeClub': 'Клуб: {name}',
+  'control.roles.scopeTournament': 'Турнир: {name}',
 };

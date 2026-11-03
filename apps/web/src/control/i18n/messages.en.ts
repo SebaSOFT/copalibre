@@ -1428,10 +1428,6 @@ export const messages = defineMessages({
     defaultMessage: 'Could not apply the change.',
   },
   rolesSectionLabel: { id: 'control.roles.sectionLabel', defaultMessage: 'Roles and permissions' },
-  rolesBreadcrumb: {
-    id: 'control.roles.breadcrumb',
-    defaultMessage: '{organizationAlias} / Organization',
-  },
   rolesTitle: { id: 'control.roles.title', defaultMessage: 'Roles and permissions' },
   rolesAddUser: { id: 'control.roles.addUser', defaultMessage: 'Invite user' },
   rolesColumnUser: { id: 'control.roles.columnUser', defaultMessage: 'User' },
@@ -5410,4 +5406,34 @@ export const messages = defineMessages({
   copyIdFailure: { id: 'control.copyId.failure', defaultMessage: 'Could not copy ID' },
   auditCopyEntityId: { id: 'control.auditTrail.copyEntityId', defaultMessage: 'Copy record ID' },
   auditCopyActorId: { id: 'control.auditTrail.copyActorId', defaultMessage: 'Copy actor ID' },
+  rolesDescription: {
+    id: 'control.roles.description',
+    defaultMessage: 'Choose who can operate this organization and what each role can do.',
+  },
+  rolesKpiLabel: { id: 'control.roles.kpiLabel', defaultMessage: 'Operators summary' },
+  rolesKpiOperators: { id: 'control.roles.kpiOperators', defaultMessage: 'Operators' },
+  rolesSearchLabel: { id: 'control.roles.searchLabel', defaultMessage: 'Search operators' },
+  rolesSearchPlaceholder: {
+    id: 'control.roles.searchPlaceholder',
+    defaultMessage: 'Email address',
+  },
+  rolesFiltersLabel: { id: 'control.roles.filtersLabel', defaultMessage: 'Filter by role' },
+  rolesFilterAll: { id: 'control.roles.filterAll', defaultMessage: 'All' },
+  rolesResultCount: {
+    id: 'control.roles.resultCount',
+    defaultMessage: '{count, plural, one {# operator} other {# operators}}',
+  },
+  rolesNoMatches: {
+    id: 'control.roles.noMatches',
+    defaultMessage: 'No operators match this filter.',
+  },
+  rolesScopeOrganization: {
+    id: 'control.roles.scopeOrganization',
+    defaultMessage: 'Whole organization',
+  },
+  rolesScopeClub: { id: 'control.roles.scopeClub', defaultMessage: 'Club: {name}' },
+  rolesScopeTournament: {
+    id: 'control.roles.scopeTournament',
+    defaultMessage: 'Tournament: {name}',
+  },
 });

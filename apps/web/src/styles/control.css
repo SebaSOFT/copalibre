@@ -473,6 +473,48 @@ body {
   min-width: 0;
 }
 
+.cl-operations__listing {
+  display: grid;
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-operations__section {
+  display: grid;
+  gap: var(--cl-space-3);
+  min-width: 0;
+}
+
+.cl-operations__invitations {
+  display: grid;
+  gap: var(--cl-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-operations__invitations > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-3);
+  min-width: 0;
+}
+
+.cl-operations__rail-card {
+  min-width: 0;
+}
+
+.cl-role-cell__scope {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+  overflow-wrap: anywhere;
+}
+
 .cl-dashboard__empty-results {
   color: var(--cl-text-secondary);
   margin: 0;
