@@ -1647,7 +1647,7 @@ export const messages: Record<string, string> = {
   'invitation.acceptFailed': 'Die Einladung konnte nicht angenommen werden ({status}).',
   'invitation.unexpectedError': 'Unerwarteter Fehler beim Annehmen der Einladung.',
   'invitation.title': 'Einladung annehmen',
-  'invitation.subtitle': 'Richte dein CopaLibre-Administratorkonto ein',
+  'invitation.subtitle': 'Wähle ein Passwort, um deiner Organisation auf CopaLibre beizutreten',
   'invitation.successHeading': 'Konto eingerichtet!',
   'invitation.successBody': 'Weiterleitung zur Steuerungskonsole…',
   'invitation.nameLabel': 'Vollständiger Name (optional)',

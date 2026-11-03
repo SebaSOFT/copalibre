@@ -1544,7 +1544,7 @@ export const messages: Record<string, string> = {
   'invitation.acceptFailed': '接受邀请失败（{status}）。',
   'invitation.unexpectedError': '接受邀请时发生意外错误。',
   'invitation.title': '接受邀请',
-  'invitation.subtitle': '设置您的 CopaLibre 管理员账户',
+  'invitation.subtitle': '设置密码，加入你在 CopaLibre 的组织',
   'invitation.successHeading': '账户设置完成！',
   'invitation.successBody': '正在跳转到控制台…',
   'invitation.nameLabel': '全名（可选）',

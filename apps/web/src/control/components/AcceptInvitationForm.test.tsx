@@ -22,7 +22,7 @@ describe('AcceptInvitationForm', () => {
   it('can omit its card heading when the page header already names the screen', () => {
     render(withIntl(<AcceptInvitationForm initialToken="valid-token" showTitle={false} />));
     expect(screen.queryByRole('heading', { name: 'Accept invitation' })).toBeNull();
-    expect(screen.getByText('Set up your CopaLibre administrator account')).toBeTruthy();
+    expect(screen.getByText('Choose a password to join your organization on CopaLibre')).toBeTruthy();
   });
 
   it('initializes from window.location.search when initialToken is not passed', () => {

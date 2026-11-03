@@ -1621,7 +1621,7 @@ export const messages: Record<string, string> = {
   'invitation.acceptFailed': 'Falha ao aceitar o convite ({status}).',
   'invitation.unexpectedError': 'Erro inesperado ao aceitar o convite.',
   'invitation.title': 'Aceitar convite',
-  'invitation.subtitle': 'Configure sua conta de administrador do CopaLibre',
+  'invitation.subtitle': 'Escolha uma senha para entrar na sua organização no CopaLibre',
   'invitation.successHeading': 'Conta configurada!',
   'invitation.successBody': 'Redirecionando para o painel de controle…',
   'invitation.nameLabel': 'Nome completo (opcional)',

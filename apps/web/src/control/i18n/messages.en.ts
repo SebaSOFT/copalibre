@@ -4798,7 +4798,7 @@ export const messages = defineMessages({
   invitationTitle: { id: 'invitation.title', defaultMessage: 'Accept invitation' },
   invitationSubtitle: {
     id: 'invitation.subtitle',
-    defaultMessage: 'Set up your CopaLibre administrator account',
+    defaultMessage: 'Choose a password to join your organization on CopaLibre',
   },
   invitationSuccessHeading: {
     id: 'invitation.successHeading',
