@@ -68,6 +68,8 @@ export interface WizardShellProps {
   readonly afterFailures?: ReactNode;
   readonly onBack: () => void;
   readonly backLabel: string;
+  /** Names the step the primary action leads to ("Next: Privacy"); omitted on the last step. */
+  readonly nextStepCaption?: (stepLabel: string) => string;
   readonly primaryAction: WizardShellPrimaryAction;
   readonly children: ReactNode;
 }
@@ -89,11 +91,13 @@ export function WizardShell({
   afterFailures,
   onBack,
   backLabel,
+  nextStepCaption,
   primaryAction,
   children,
 }: WizardShellProps): React.JSX.Element {
   const badge = stepIndicatorVariant === 'badge';
   const currentStepIndex = steps.findIndex((step) => step.id === currentStepId);
+  const nextStep = steps[currentStepIndex + 1];
 
   return (
     <Container variant="form">
@@ -217,6 +221,9 @@ export function WizardShell({
             <Button onClick={onBack} type="button" variant="secondary">
               {backLabel}
             </Button>
+            {nextStep !== undefined && nextStepCaption !== undefined && (
+              <span className="cl-wizard-shell__next">{nextStepCaption(nextStep.label)}</span>
+            )}
             <Button
               aria-describedby={
                 primaryAction.disabled && problems.length > 0 ? 'wizard-problems' : undefined

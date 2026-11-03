@@ -849,6 +849,7 @@ export const messages: Record<string, string> = {
   'control.promotion.column.band': 'Faixa',
   'control.promotion.slotTotal': 'vagas entre faixas',
   'control.seeding.filter': 'Filtrar participantes',
+  'control.wizard.nextStep': 'Próximo: {step}',
   'control.settings.preview': 'Pré-visualizar',
   'control.settings.sections': 'Seções das configurações do torneio',
   'control.settings.tab.general': 'Configurações',

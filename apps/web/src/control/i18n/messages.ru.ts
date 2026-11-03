@@ -857,6 +857,7 @@ export const messages: Record<string, string> = {
   'control.promotion.column.band': 'Полоса',
   'control.promotion.slotTotal': 'мест по всем полосам',
   'control.seeding.filter': 'Фильтр участников',
+  'control.wizard.nextStep': 'Далее: {step}',
   'control.settings.preview': 'Предпросмотр',
   'control.settings.sections': 'Разделы настроек турнира',
   'control.settings.tab.general': 'Настройки',

@@ -1138,10 +1138,25 @@ input[type='checkbox'].cl-checkbox:focus-visible {
 }
 
 .cl-wizard-shell__actions {
+  position: sticky;
+  bottom: var(--cl-space-4);
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: var(--cl-space-3);
   margin-top: var(--cl-space-6);
+  padding-block: var(--cl-space-3);
+  background: var(--cl-surface-panel);
+}
+
+.cl-wizard-shell__next {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+  text-align: end;
+  text-transform: uppercase;
 }
 
 @media (width < 768px) {
@@ -1165,6 +1180,10 @@ input[type='checkbox'].cl-checkbox:focus-visible {
   .cl-wizard-shell__actions > :first-child {
     align-self: flex-start;
     white-space: nowrap;
+  }
+
+  .cl-wizard-shell__next {
+    text-align: start;
   }
 
   .cl-wizard-shell__actions > :last-child {

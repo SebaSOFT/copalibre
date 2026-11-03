@@ -34,6 +34,17 @@ describe('WizardShell', () => {
     expect(screen.getByText('Step content')).toBeDefined();
   });
 
+  it('names the step the primary action leads to, and omits the caption on the last step', () => {
+    const caption = (label: string): string => `Next: ${label}`;
+    const { rerender } = render(
+      <WizardShell {...baseProps({ currentStepId: 'name', nextStepCaption: caption })} />,
+    );
+    expect(screen.getByText('Next: Rules')).toBeDefined();
+
+    rerender(<WizardShell {...baseProps({ currentStepId: 'rules', nextStepCaption: caption })} />);
+    expect(screen.queryByText(/^Next:/)).toBeNull();
+  });
+
   it('marks the current step with aria-current="step"', () => {
     render(<WizardShell {...baseProps()} />);
     const current = screen.getByText('Rules').closest('li')?.querySelector('[aria-current]');

@@ -818,6 +818,7 @@ export const messages: Record<string, string> = {
   'control.promotion.column.band': '分档',
   'control.promotion.slotTotal': '各档名额合计',
   'control.seeding.filter': '筛选参赛者',
+  'control.wizard.nextStep': '下一步:{step}',
   'control.settings.preview': '预览',
   'control.settings.sections': '赛事设置部分',
   'control.settings.tab.general': '设置',

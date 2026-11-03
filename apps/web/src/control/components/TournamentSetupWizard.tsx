@@ -182,6 +182,7 @@ export function TournamentSetupWizard({
       backLabel={intl.formatMessage(messages.wizardBack)}
       breadcrumb={intl.formatMessage(messages.wizardBreadcrumb)}
       currentStepId={state.step}
+      nextStepCaption={(step) => intl.formatMessage(messages.wizardNextStep, { step })}
       onBack={() => {
         setShowValidation(false);
         if (state.step === 'privacy' && privacyReturnToSummary) {
