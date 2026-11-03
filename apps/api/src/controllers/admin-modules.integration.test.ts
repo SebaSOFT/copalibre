@@ -21,6 +21,8 @@ import { DATABASE } from '../database.token.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
 import { AdminModulesController } from './admin-modules.controller.js';
 
+// These tests clone the real curated repository, so their time is set by the network, not the
+// code under test. CI runners have taken over 30 s for a single clone, hence the 120 s bound.
 const subjects: Record<string, AuthenticatedSubject> = {
   admin: { subjectId: 'oidc-super-admin', scopes: [SUPER_ADMIN_SCOPE] },
   orgAdmin: { subjectId: 'oidc-org-admin', scopes: ['copalibre.control'] },
@@ -156,7 +158,7 @@ describe('AdminModulesController (integration)', () => {
       'orbital-frisbee',
     );
     expect(installed).toHaveLength(0);
-  }, 30_000);
+  }, 120_000);
 
   it('installs, lists, verifies, and removes a real curated tournament profile end to end', async () => {
     const install = await inject('admin', 'POST', '/admin/modules', {
@@ -189,7 +191,7 @@ describe('AdminModulesController (integration)', () => {
       'double-elimination-bracket',
     );
     expect(installed).toHaveLength(0);
-  }, 30_000);
+  }, 120_000);
 
   it('404s a document request for a discipline that is not installed', async () => {
     const response = await inject('admin', 'GET', '/admin/modules/not-installed/document');
