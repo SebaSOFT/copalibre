@@ -16,13 +16,11 @@ import { ClubEmblemPlaceholder } from '../placeholders.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
 import { Checkbox } from '../ui/atoms/checkbox.js';
-import { FilePicker } from '../ui/atoms/file-picker.js';
 import { Form } from '../ui/atoms/form.js';
 import { filePickerLabels } from '../../lib/file-picker-labels.js';
 import { Input } from '../ui/atoms/input.js';
 import { Select } from '../ui/atoms/select.js';
 import { Inline } from '../ui/atoms/layout/inline.js';
-import { Container } from '../ui/atoms/layout/container.js';
 import { Stack } from '../ui/atoms/layout/stack.js';
 import { Field } from '../ui/molecules/field.js';
 import { FieldSet } from '../ui/molecules/field-set.js';
@@ -35,7 +33,10 @@ import {
   type PatRevocationPreview,
   type PatResponse,
 } from '../pages/PreferencesPage.js';
-import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { PageHeaderTemplate } from './PageHeaderTemplate.js';
+import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
+import { DropZone } from '../ui/organisms/drop-zone.js';
+import { UnsavedChangesBar } from '../ui/organisms/unsaved-changes-bar.js';
 import {
   applyThemePreference,
   isThemePreference,
@@ -43,7 +44,8 @@ import {
   type ThemePreference,
 } from '../../../lib/theme-preference.js';
 
-const preferencesSectionPadding = 'clamp(var(--cl-space-3), 4vw, var(--cl-space-6))';
+/** The sizes the emblem renders at across the product, largest first. */
+const EMBLEM_PREVIEW_SIZES = [64, 48, 32] as const;
 
 function OrganizationIdentitySection({
   api,
@@ -70,15 +72,16 @@ function OrganizationIdentitySection({
 }): React.JSX.Element | null {
   const intl = useIntl();
   if (organizationAlias === undefined) return null;
+  const emblemSrc =
+    optimisticEmblemSrc ??
+    (organization?.emblemObjectId !== undefined
+      ? organizationEmblemUrl(organizationAlias)
+      : undefined);
 
   return (
     <Card
       aria-label={intl.formatMessage(controlMessages.orgIdentityHeading)}
-      className="cl-chamfer cl-chamfer--control"
-      style={{
-        marginTop: '2rem',
-        padding: preferencesSectionPadding,
-      }}
+      className="cl-chamfer cl-chamfer--control cl-preferences-panel"
     >
       <h2>
         <FormattedMessage {...controlMessages.orgIdentityHeading} />
@@ -92,29 +95,42 @@ function OrganizationIdentitySection({
         <Alert tone="destructive">{orgLoadError}</Alert>
       ) : (
         <Stack gap="4">
-          <FramedImage
-            key={optimisticEmblemSrc ? 'optimistic' : (organization?.emblemObjectId ?? 'none')}
-            alt={intl.formatMessage(controlMessages.orgIdentityEmblemAlt)}
-            placeholder={
-              <ClubEmblemPlaceholder
+          <div className="cl-preferences-emblem-sizes">
+            {emblemSrc === undefined ? (
+              <FramedImage
+                alt={intl.formatMessage(controlMessages.orgIdentityEmblemAlt)}
+                placeholder={
+                  <ClubEmblemPlaceholder
+                    size={64}
+                    title={intl.formatMessage(controlMessages.orgIdentityEmblemPlaceholderAlt)}
+                  />
+                }
                 size={64}
-                title={intl.formatMessage(controlMessages.orgIdentityEmblemPlaceholderAlt)}
+                src={undefined}
               />
-            }
-            size={64}
-            src={
-              optimisticEmblemSrc ??
-              (organization?.emblemObjectId !== undefined
-                ? organizationEmblemUrl(organizationAlias)
-                : undefined)
-            }
-          />
+            ) : (
+              EMBLEM_PREVIEW_SIZES.map((size) => (
+                <FramedImage
+                  key={`${size}:${emblemSrc}`}
+                  alt={
+                    size === EMBLEM_PREVIEW_SIZES[0]
+                      ? intl.formatMessage(controlMessages.orgIdentityEmblemAlt)
+                      : ''
+                  }
+                  placeholder={null}
+                  size={size}
+                  src={emblemSrc}
+                />
+              ))
+            )}
+          </div>
 
           {api.uploadOrganizationEmblem && (
-            <FilePicker
+            <DropZone
               accept="image/*"
               aria-label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
               id="org-emblem-upload"
+              instruction={intl.formatMessage(controlMessages.orgIdentityDropInstruction)}
               label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
               onChange={(files) => {
                 const file = files?.[0];
@@ -131,19 +147,26 @@ function OrganizationIdentitySection({
               void onSaveOrganizationName();
             }}
           >
-            <Inline align="end" gap="4" wrap>
-              <Field id="org-name" label={intl.formatMessage(controlMessages.orgIdentityName)}>
-                <Input
-                  id="org-name"
-                  onChange={(event) => onChangeOrgName(event.target.value)}
-                  type="text"
-                  value={orgName}
-                />
-              </Field>
-              <Button type="submit">
-                <FormattedMessage {...controlMessages.orgIdentitySave} />
-              </Button>
-            </Inline>
+            <Field id="org-name" label={intl.formatMessage(controlMessages.orgIdentityName)}>
+              <Input
+                id="org-name"
+                onChange={(event) => onChangeOrgName(event.target.value)}
+                type="text"
+                value={orgName}
+              />
+            </Field>
+            <UnsavedChangesBar
+              changedFields={[
+                { id: 'name', label: intl.formatMessage(controlMessages.orgIdentityName) },
+              ]}
+              dirty={organization !== undefined && orgName !== organization.name}
+              fieldsLabel={intl.formatMessage(controlMessages.unsavedChangesFields)}
+              onReset={() => onChangeOrgName(organization?.name ?? '')}
+              onSave={() => void onSaveOrganizationName()}
+              resetLabel={intl.formatMessage(controlMessages.unsavedChangesReset)}
+              saveLabel={intl.formatMessage(controlMessages.orgIdentitySave)}
+              summary={intl.formatMessage(controlMessages.unsavedChangesSummary, { count: 1 })}
+            />
           </Form>
         </Stack>
       )}
@@ -172,11 +195,7 @@ function OrganizationStorageSection({
   return (
     <Card
       aria-label={intl.formatMessage(controlMessages.storageUsageHeading)}
-      className="cl-chamfer cl-chamfer--control"
-      style={{
-        marginTop: '2rem',
-        padding: preferencesSectionPadding,
-      }}
+      className="cl-chamfer cl-chamfer--control cl-preferences-panel"
     >
       <h2>
         <FormattedMessage {...controlMessages.storageUsageHeading} />
@@ -192,7 +211,7 @@ function OrganizationStorageSection({
       ) : storageError ? (
         <Alert tone="destructive">{storageError}</Alert>
       ) : storageUsage !== undefined ? (
-        <p style={{ marginTop: '1rem', fontWeight: 600 }}>
+        <p className="cl-preferences-storage-summary">
           <FormattedMessage
             {...controlMessages.storageUsageSummary}
             values={{
@@ -251,11 +270,7 @@ function StatisticsRebuildSection({
   return (
     <Card
       aria-label={intl.formatMessage(controlMessages.statisticsRebuildHeading)}
-      className="cl-chamfer cl-chamfer--control"
-      style={{
-        marginTop: '2rem',
-        padding: preferencesSectionPadding,
-      }}
+      className="cl-chamfer cl-chamfer--control cl-preferences-panel"
     >
       <h2>
         <FormattedMessage {...controlMessages.statisticsRebuildHeading} />
@@ -276,15 +291,7 @@ function StatisticsRebuildSection({
         </Alert>
       )}
 
-      <div
-        style={{
-          display: 'flex',
-          gap: '1rem',
-          alignItems: 'flex-end',
-          marginTop: '1rem',
-          flexWrap: 'wrap',
-        }}
-      >
+      <Inline align="end" gap="4" wrap>
         <Field
           id="rebuild-tournament"
           label={intl.formatMessage(controlMessages.statisticsRebuildTournamentLabel)}
@@ -304,7 +311,7 @@ function StatisticsRebuildSection({
         >
           <FormattedMessage {...controlMessages.statisticsRebuildTrigger} />
         </Button>
-      </div>
+      </Inline>
     </Card>
   );
 }
@@ -461,16 +468,51 @@ export function PreferencesTemplate({
   }
 
   const activeTokens = tokens.filter((token) => !token.revoked);
+  const formatTokenDate = (value: string): string =>
+    new Date(value).toLocaleDateString(intl.locale);
+  const tokenColumns: readonly DataTableColumn<PatResponse>[] = [
+    {
+      key: 'label',
+      header: intl.formatMessage(controlMessages.preferencesPatLabel),
+      render: (token) => <strong>{token.label}</strong>,
+    },
+    {
+      key: 'created',
+      header: intl.formatMessage(controlMessages.preferencesPatCreatedColumn),
+      render: (token) => formatTokenDate(token.createdAt),
+    },
+    {
+      key: 'expires',
+      header: intl.formatMessage(controlMessages.preferencesPatExpiresColumn),
+      render: (token) => formatTokenDate(token.expiresAt),
+    },
+    {
+      key: 'scopes',
+      header: intl.formatMessage(controlMessages.preferencesPatScopes),
+      render: (token) => (
+        <span className="cl-preferences-scope-label">{token.scopes.join(', ')}</span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: intl.formatMessage(controlMessages.rolesColumnActions),
+      render: (token) => (
+        <Button
+          onClick={() => void requestPatRevoke(token.tokenId, token.label)}
+          type="button"
+          variant="destructive-outline"
+        >
+          <FormattedMessage {...controlMessages.preferencesPatRevoke} />
+        </Button>
+      ),
+    },
+  ];
   const listingNode = (
-    <Container variant="form">
+    <div className="cl-operations__listing">
       <Stack gap="0">
         <Card
           aria-label={intl.formatMessage(controlMessages.preferencesThemeTitle)}
-          className="cl-chamfer cl-chamfer--control"
-          style={{
-            marginTop: '2rem',
-            padding: preferencesSectionPadding,
-          }}
+          className="cl-chamfer cl-chamfer--control cl-preferences-panel"
         >
           <Field
             id="theme-preference"
@@ -519,13 +561,7 @@ export function PreferencesTemplate({
           setRebuildTournamentAlias={setRebuildTournamentAlias}
         />
 
-        <Card
-          className="cl-chamfer cl-chamfer--control"
-          style={{
-            marginTop: '2rem',
-            padding: preferencesSectionPadding,
-          }}
-        >
+        <Card className="cl-chamfer cl-chamfer--control cl-preferences-panel">
           <h2>
             <FormattedMessage {...controlMessages.preferencesPatTitle} />
           </h2>
@@ -558,7 +594,7 @@ export function PreferencesTemplate({
                   min={1}
                   onChange={(e) => setExpiresInDays(parseInt(e.target.value))}
                   required
-                  style={{ width: '80px' }}
+                  className="cl-preferences-expiry-input"
                   type="number"
                   value={expiresInDays}
                 />
@@ -600,33 +636,15 @@ export function PreferencesTemplate({
           </Form>
 
           {newToken && (
-            <div
-              style={{
-                marginTop: '1.5rem',
-                padding: '1rem',
-                border: '1px solid var(--cl-state-live)',
-                background: 'var(--cl-surface-base)',
-              }}
-            >
+            <div className="cl-preferences-token-created">
               <strong>
                 <FormattedMessage {...controlMessages.preferencesPatCreated} />
               </strong>
-              <code
-                style={{
-                  display: 'block',
-                  padding: '1rem',
-                  backgroundColor: 'var(--c-surface-sunken)',
-                  borderRadius: '0.25rem',
-                  marginTop: '0.5rem',
-                  wordBreak: 'break-all',
-                }}
-              >
-                {newToken.token}
-              </code>
+              <code className="cl-preferences-token-created__value">{newToken.token}</code>
             </div>
           )}
 
-          <div style={{ marginTop: '2rem' }}>
+          <div className="cl-preferences-token-list">
             {loading ? (
               <p>
                 <FormattedMessage {...controlMessages.preferencesTokensLoading} />
@@ -643,44 +661,12 @@ export function PreferencesTemplate({
                 }}
               />
             ) : (
-              <ul style={{ listStyle: 'none', padding: 0 }}>
-                {activeTokens.map((token) => (
-                  <li
-                    key={token.tokenId}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      padding: '1rem',
-                      borderBottom: '1px solid var(--cl-border-muted)',
-                    }}
-                  >
-                    <div>
-                      <strong>{token.label}</strong>
-                      <div
-                        style={{
-                          fontSize: 'var(--cl-font-size-sm)',
-                          color: 'var(--cl-text-secondary)',
-                          marginTop: '0.25rem',
-                        }}
-                      >
-                        <FormattedMessage
-                          {...controlMessages.preferencesPatExpiresAt}
-                          values={{
-                            date: new Date(token.expiresAt).toLocaleDateString(intl.locale),
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      onClick={() => void requestPatRevoke(token.tokenId, token.label)}
-                      type="button"
-                      variant="destructive-outline"
-                    >
-                      <FormattedMessage {...controlMessages.preferencesPatRevoke} />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
+              <DataTable
+                ariaLabel={intl.formatMessage(controlMessages.preferencesPatTitle)}
+                columns={tokenColumns}
+                rowKey={(token) => token.tokenId}
+                rows={activeTokens}
+              />
             )}
           </div>
         </Card>
@@ -703,17 +689,23 @@ export function PreferencesTemplate({
           />
         )}
       </Stack>
-    </Container>
+    </div>
   );
 
   return (
     <>
-      <ListScreenLayout
-        listing={listingNode}
+      <PageHeaderTemplate
+        description={intl.formatMessage(
+          isOrganizationPage
+            ? controlMessages.orgPageDescription
+            : controlMessages.preferencesDescription,
+        )}
         title={intl.formatMessage(
           isOrganizationPage ? controlMessages.navOrganization : controlMessages.preferencesTitle,
         )}
-      />
+      >
+        {listingNode}
+      </PageHeaderTemplate>
       <ConsequenceDialog
         open={pendingRebuild !== undefined}
         onOpenChange={(open) => {

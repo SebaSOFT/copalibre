@@ -81,7 +81,6 @@ export function RolesPermissionsPage({
         error={undefined}
         grantableRoles={grantableRoles}
         loading={false}
-        organizationAlias={organizationAlias}
         pendingInvitations={pendingInvitations}
         rows={rows}
         tournaments={tournaments}

@@ -145,7 +145,6 @@ describe('Spanish catalog reproduces pre-extraction wording', () => {
           onChange={async () => undefined}
           onDelete={async () => undefined}
           onInvite={async () => undefined}
-          organizationAlias="liga-mendocina"
           rows={[]}
         />,
       ),

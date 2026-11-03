@@ -238,8 +238,6 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/screens/LiveConsoleTemplate.tsx', 2],
   ['control/components/NativeAuthRoutes.tsx', 7],
   ['control/components/screens/PlatformAdministrationTemplate.tsx', 1],
-  // Historical screen-level card and token-list layout remains inline pending CSS consolidation.
-  ['control/components/screens/PreferencesTemplate.tsx', 10],
   ['control/components/ProfileBuilderWizard.tsx', 3],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 4],
@@ -322,8 +320,6 @@ export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['components/ui/AstroPreview.tsx', 1],
   ['control/components/ControlApp.tsx', 8],
   ['control/components/NativeAuthRoutes.tsx', 7],
-  // Historical preference-panel and token presentation values remain inline pending CSS consolidation.
-  ['control/components/screens/PreferencesTemplate.tsx', 9],
   ['control/components/RosterRoleSelector.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 1],
   ['control/components/TournamentSetupWizard.tsx', 1],
@@ -478,20 +474,11 @@ export function checkI18nPlacement(nodes) {
  * (via the icon slot `Select` gained) — nothing else survived, since
  * the raw `<select>`, the inline-styled chrome and the glyph's non-semantic
  * `--cl-state-live` use were exactly the drift this change removes elsewhere.
- *
- * `pagination.tsx` was not adopted, despite being a
- * candidate: the two screens whose `ListScreenLayout.pagination` slot is filled
- * today don't share its shape. `RegistrationReviewTemplate.tsx` renders a
- * bare `{page} / {pageCount}` status with no forward/back controls at all —
- * adopting the molecule would mean building page-navigation that does
- * not exist yet, a feature addition, not a refactor. `AuditTrailTemplate.tsx`
- * already has forward/back buttons, but shows a translated "{start}–{end}
- * of {total}" status — `Pagination`'s middle slot is fixed as `{page} /
- * {pageCount}`, so adopting it verbatim would replace shipped, catalogued
- * copy with different text in every locale. Left as recorded debt.
  */
 export const KNOWN_ORPHANS = new Map([
-  ['control/components/ui/molecules/pagination.tsx', 1],
+  // `box.tsx` lost its only consumer when the analytics screen moved onto the
+  // workspace template; it is kept until a screen needs a padded wrapper again.
+  ['control/components/ui/atoms/layout/box.tsx', 1],
   ['control/components/ui/story-matrix.tsx', 1],
   ['control/components/ui/layouts/form-screen-layout.tsx', 1],
   // The layout primitives shipped before their consumers adopted

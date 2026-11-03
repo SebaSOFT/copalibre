@@ -8,7 +8,7 @@ import { AnalyticsTemplate } from '../screens/AnalyticsTemplate.js';
 import { useResilientRead } from './use-resilient-read.js';
 
 /**
- * Fetches: the tournament and storage-usage loads
+ * Fetches: the tournament load and each tournament's completion
  * live here; `AnalyticsTemplate` composes the screen from the resulting
  * data.
  */
@@ -34,12 +34,8 @@ export function AnalyticsPage({
     `control-analytics:${organizationAlias}`,
     async () => {
       const listTournaments = api.listActiveTournaments;
-      const getStorage = api.getStorageUsage;
-      const [tournaments, storage] = await Promise.all([
-        listTournaments ? listTournaments(organizationAlias) : Promise.resolve([]),
-        getStorage ? getStorage(organizationAlias) : Promise.resolve(undefined),
-      ]);
-      return { tournaments, storage };
+      const tournaments = listTournaments ? await listTournaments(organizationAlias) : [];
+      return { tournaments };
     },
     {
       thing: intl.formatMessage(messages.analyticsSubtitle),
@@ -80,7 +76,6 @@ export function AnalyticsPage({
         onRetry={read.retry}
         organizationAlias={organizationAlias}
         staleSince={read.status === 'stale' ? read.staleSince : completionStaleSince}
-        storage={data?.storage}
         tournaments={data?.tournaments ?? []}
       />
       {(data?.tournaments ?? []).map((tournament) => (

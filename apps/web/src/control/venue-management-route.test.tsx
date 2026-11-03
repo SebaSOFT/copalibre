@@ -575,7 +575,9 @@ describe('VenueManagementPage', () => {
     });
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
-    const scheduleRegion = await screen.findByRole('region', { name: 'Schedules' });
+    const scheduleRegion = (
+      await screen.findByRole('heading', { level: 2, name: 'Schedules' })
+    ).closest('section') as HTMLElement;
     fireEvent.click(within(scheduleRegion).getByText('Edit schedule'));
 
     const editCard = await screen.findByRole('region', { name: 'Edit schedule' });
@@ -618,7 +620,9 @@ describe('VenueManagementPage', () => {
     });
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
-    const scheduleRegion = await screen.findByRole('region', { name: 'Schedules' });
+    const scheduleRegion = (
+      await screen.findByRole('heading', { level: 2, name: 'Schedules' })
+    ).closest('section') as HTMLElement;
     await act(async () => {
       fireEvent.click(within(scheduleRegion).getByText('Delete schedule'));
     });
@@ -667,7 +671,9 @@ describe('VenueManagementPage', () => {
     });
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
-    const scheduleRegion = await screen.findByRole('region', { name: 'Schedules' });
+    const scheduleRegion = (
+      await screen.findByRole('heading', { level: 2, name: 'Schedules' })
+    ).closest('section') as HTMLElement;
     await act(async () => {
       fireEvent.click(within(scheduleRegion).getByText('Delete schedule'));
     });

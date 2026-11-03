@@ -1,5 +1,5 @@
 import { expectFirstReadFailure } from './resilient-read.test-support.js';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { AuditTrailPage } from '../pages/AuditTrailPage.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { AuditTrailResponse, ControlApiClient } from '../../lib/api-client.js';
@@ -47,8 +47,9 @@ describe('AuditTrailPage', () => {
     expect(screen.getByRole('heading', { level: 1, name: /audit trail/i })).toBeDefined();
     expect(screen.queryByText('user:alice')).toBeNull();
     expect(screen.queryByText('user:bob')).toBeNull();
-    expect(screen.getByText('Applied')).toBeDefined();
-    expect(screen.getByText('Refused')).toBeDefined();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Applied')).toBeDefined();
+    expect(table.getByText('Refused')).toBeDefined();
     expect(
       screen.getByText('Subject organization role is not authorized for this route'),
     ).toBeDefined();
@@ -126,6 +127,8 @@ describe('AuditTrailPage', () => {
 
     await waitFor(() => screen.getByText('alice@copalibre.test'));
     expect(screen.queryByText(/01800000-0000-7000-8000-000000000001/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Copy actor ID' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show details' }));
     expect(screen.getByRole('button', { name: 'Copy actor ID' })).toBeDefined();
     expect(screen.getByText('Settings updated')).toBeDefined();
   });

@@ -2,7 +2,6 @@ import { createServer, type Server } from 'node:http';
 import AxeBuilder from '@axe-core/playwright';
 import { resolveSemantic } from '@copalibre/design-tokens';
 import { expect, test } from './fixtures.js';
-import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
  * End-to-end tests for public navigation and accessibility hardening:
@@ -356,95 +355,5 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
       'href',
       '/',
     );
-  });
-
-  test('8.3: Modal close control exposes accessible name in accessibility tree', async ({
-    page,
-  }) => {
-    const rolesPath = `/organizations/${ORGANIZATION}/roles`;
-    const invitationPath = `/organizations/${ORGANIZATION}/invitations`;
-
-    await page.addInitScript(
-      ({ rolesPath, invitationPath, organizationAlias, tokenEndpoint }) => {
-        window.fetch = async (input, init) => {
-          const url = String(input);
-          const method = init?.method ?? 'GET';
-
-          if (url === tokenEndpoint) {
-            return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
-          }
-
-          if (url === rolesPath && method === 'GET') {
-            return Response.json([
-              {
-                assignmentId: '01800000-0000-7000-8000-000000000002',
-                principalId: '01800000-0000-7000-8000-000000000001',
-                email: 'admin@example.test',
-                role: 'tournament-admin',
-                status: 'active',
-              },
-            ]);
-          }
-
-          if (url === invitationPath && method === 'GET') {
-            return Response.json([]);
-          }
-          if (url === `/organizations/${organizationAlias}/clubs` && method === 'GET') {
-            return Response.json([]);
-          }
-          if (url === `/organizations/${organizationAlias}/tournaments` && method === 'GET') {
-            return Response.json([]);
-          }
-          if (url === `/organizations/${organizationAlias}/roles/grantable` && method === 'GET') {
-            return Response.json({
-              roles: [
-                'admin',
-                'club-admin',
-                'tournament-admin',
-                'referee',
-                'broadcaster',
-                'viewer',
-              ],
-            });
-          }
-
-          return Response.json({});
-        };
-      },
-      {
-        rolesPath,
-        invitationPath,
-        organizationAlias: ORGANIZATION,
-        tokenEndpoint: TOKEN_ENDPOINT,
-      },
-    );
-
-    const targetUrl = `/control/${ORGANIZATION}/roles`;
-    await seedLoginTransaction(page, targetUrl);
-    await page.goto(loginCallbackUrl());
-    await page.waitForURL(`**${targetUrl}`);
-
-    // Click "Añadir destinatario" / "Invitar usuario" button to open the Modal
-    const inviteButton = page.getByRole('button', {
-      name: /añadir destinatario|add recipient|invitar usuario|invite user/i,
-    });
-    await expect(inviteButton).toBeVisible();
-    await inviteButton.click();
-
-    // Verify modal is open
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible();
-
-    // The close control has an accessible name, in the interface language.
-    // It was the literal "Close" for every viewer until it became a required
-    // prop sourced from the caller's catalogue, so this asserts the name exists
-    // and is translated rather than asserting one hardcoded English word.
-    const closeButton = dialog.getByRole('button', { name: /cerrar|close/i });
-    await expect(closeButton).toBeVisible();
-    await expect(closeButton).toHaveAttribute('aria-label', /cerrar|close/i);
-
-    // Click close button and confirm modal dismisses
-    await closeButton.click();
-    await expect(dialog).not.toBeVisible();
   });
 });

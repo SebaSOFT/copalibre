@@ -1428,10 +1428,6 @@ export const messages = defineMessages({
     defaultMessage: 'Could not apply the change.',
   },
   rolesSectionLabel: { id: 'control.roles.sectionLabel', defaultMessage: 'Roles and permissions' },
-  rolesBreadcrumb: {
-    id: 'control.roles.breadcrumb',
-    defaultMessage: '{organizationAlias} / Organization',
-  },
   rolesTitle: { id: 'control.roles.title', defaultMessage: 'Roles and permissions' },
   rolesAddUser: { id: 'control.roles.addUser', defaultMessage: 'Invite user' },
   rolesColumnUser: { id: 'control.roles.columnUser', defaultMessage: 'User' },
@@ -4802,7 +4798,7 @@ export const messages = defineMessages({
   invitationTitle: { id: 'invitation.title', defaultMessage: 'Accept invitation' },
   invitationSubtitle: {
     id: 'invitation.subtitle',
-    defaultMessage: 'Set up your CopaLibre administrator account',
+    defaultMessage: 'Choose a password to join your organization on CopaLibre',
   },
   invitationSuccessHeading: {
     id: 'invitation.successHeading',
@@ -5410,4 +5406,159 @@ export const messages = defineMessages({
   copyIdFailure: { id: 'control.copyId.failure', defaultMessage: 'Could not copy ID' },
   auditCopyEntityId: { id: 'control.auditTrail.copyEntityId', defaultMessage: 'Copy record ID' },
   auditCopyActorId: { id: 'control.auditTrail.copyActorId', defaultMessage: 'Copy actor ID' },
+  rolesDescription: {
+    id: 'control.roles.description',
+    defaultMessage: 'Choose who can operate this organization and what each role can do.',
+  },
+  rolesKpiLabel: { id: 'control.roles.kpiLabel', defaultMessage: 'Operators summary' },
+  rolesKpiOperators: { id: 'control.roles.kpiOperators', defaultMessage: 'Operators' },
+  rolesSearchLabel: { id: 'control.roles.searchLabel', defaultMessage: 'Search operators' },
+  rolesSearchPlaceholder: {
+    id: 'control.roles.searchPlaceholder',
+    defaultMessage: 'Email address',
+  },
+  rolesFiltersLabel: { id: 'control.roles.filtersLabel', defaultMessage: 'Filter by role' },
+  rolesFilterAll: { id: 'control.roles.filterAll', defaultMessage: 'All' },
+  rolesResultCount: {
+    id: 'control.roles.resultCount',
+    defaultMessage: '{count, plural, one {# operator} other {# operators}}',
+  },
+  rolesNoMatches: {
+    id: 'control.roles.noMatches',
+    defaultMessage: 'No operators match this filter.',
+  },
+  rolesScopeOrganization: {
+    id: 'control.roles.scopeOrganization',
+    defaultMessage: 'Whole organization',
+  },
+  rolesScopeClub: { id: 'control.roles.scopeClub', defaultMessage: 'Club: {name}' },
+  rolesScopeTournament: {
+    id: 'control.roles.scopeTournament',
+    defaultMessage: 'Tournament: {name}',
+  },
+  auditTrailKpiLabel: { id: 'control.auditTrail.kpiLabel', defaultMessage: 'Audit trail summary' },
+  auditTrailKpiEvents: { id: 'control.auditTrail.kpiEvents', defaultMessage: 'Events' },
+  auditTrailKpiApplied: {
+    id: 'control.auditTrail.kpiApplied',
+    defaultMessage: 'Applied on this page',
+  },
+  auditTrailKpiRefused: {
+    id: 'control.auditTrail.kpiRefused',
+    defaultMessage: 'Refused on this page',
+  },
+  auditTrailFiltersLabel: {
+    id: 'control.auditTrail.filtersLabel',
+    defaultMessage: 'Filter by result',
+  },
+  auditTrailFilterAll: { id: 'control.auditTrail.filterAll', defaultMessage: 'All' },
+  auditTrailResultCount: {
+    id: 'control.auditTrail.resultCount',
+    defaultMessage: '{count, plural, one {# event on this page} other {# events on this page}}',
+  },
+  analyticsKpiLabel: { id: 'control.analytics.kpiLabel', defaultMessage: 'Tournament summary' },
+  analyticsInProgress: { id: 'control.analytics.inProgress', defaultMessage: 'In progress' },
+  analyticsOperationsTitle: {
+    id: 'control.analytics.operationsTitle',
+    defaultMessage: 'Match progress',
+  },
+  analyticsMatchesResolvedRatio: {
+    id: 'control.analytics.matchesResolvedRatio',
+    defaultMessage: 'Matches resolved',
+  },
+  analyticsTournamentsFinishedRatio: {
+    id: 'control.analytics.tournamentsFinishedRatio',
+    defaultMessage: 'Tournaments finished',
+  },
+  analyticsRatioOf: { id: 'control.analytics.ratioOf', defaultMessage: '{value} / {total}' },
+  analyticsColumnAction: { id: 'control.analytics.column.action', defaultMessage: 'Open' },
+  analyticsOpenTournament: {
+    id: 'control.analytics.openTournament',
+    defaultMessage: 'Open {name}',
+  },
+  analyticsPaginationLabel: {
+    id: 'control.analytics.paginationLabel',
+    defaultMessage: 'Tournaments pages',
+  },
+  paginationPrevious: { id: 'control.pagination.previous', defaultMessage: 'Previous' },
+  paginationNext: { id: 'control.pagination.next', defaultMessage: 'Next' },
+  preferencesDescription: {
+    id: 'control.preferences.description',
+    defaultMessage: 'Your theme and the access tokens you use with the API.',
+  },
+  orgPageDescription: {
+    id: 'control.orgPage.description',
+    defaultMessage: "The organization's name and emblem, its statistics and its access tokens.",
+  },
+  orgIdentityDropInstruction: {
+    id: 'control.orgIdentity.dropInstruction',
+    defaultMessage: 'Drop an image here, or choose a file.',
+  },
+  preferencesPatCreatedColumn: {
+    id: 'control.preferences.patCreatedColumn',
+    defaultMessage: 'Created',
+  },
+  preferencesPatExpiresColumn: {
+    id: 'control.preferences.patExpiresColumn',
+    defaultMessage: 'Expires',
+  },
+  resourceManagementDescription: {
+    id: 'control.resourceManagement.description',
+    defaultMessage: 'Where matches are played, when they can be scheduled and who officiates them.',
+  },
+  resourceManagementVenueMeta: {
+    id: 'control.resourceManagement.venueMeta',
+    defaultMessage: 'Capacity {count}',
+  },
+  resourceManagementOfficialsKpiLabel: {
+    id: 'control.resourceManagement.officialsKpiLabel',
+    defaultMessage: 'Officials summary',
+  },
+  resourceManagementKpiOfficials: {
+    id: 'control.resourceManagement.kpiOfficials',
+    defaultMessage: 'Officials',
+  },
+  resourceManagementKpiReferees: {
+    id: 'control.resourceManagement.kpiReferees',
+    defaultMessage: 'Referees',
+  },
+  resourceManagementRailLabel: {
+    id: 'control.resourceManagement.railLabel',
+    defaultMessage: 'Register venues, schedules and officials',
+  },
+  resourceManagementRegisterVenueHeading: {
+    id: 'control.resourceManagement.registerVenueHeading',
+    defaultMessage: 'Register a venue',
+  },
+  resourceManagementNewScheduleHeading: {
+    id: 'control.resourceManagement.newScheduleHeading',
+    defaultMessage: 'Create a schedule',
+  },
+  resourceManagementAddOfficialHeading: {
+    id: 'control.resourceManagement.addOfficialHeading',
+    defaultMessage: 'Register an official',
+  },
+  scheduleBuilderDescription: {
+    id: 'control.scheduleBuilder.description',
+    defaultMessage: 'Place each match in a slot, check conflicts, then publish.',
+  },
+  scheduleBuilderKpiLabel: {
+    id: 'control.scheduleBuilder.kpiLabel',
+    defaultMessage: 'Schedule progress',
+  },
+  scheduleBuilderKpiMatches: {
+    id: 'control.scheduleBuilder.kpiMatches',
+    defaultMessage: 'Matches to place',
+  },
+  scheduleBuilderKpiPlaced: { id: 'control.scheduleBuilder.kpiPlaced', defaultMessage: 'Placed' },
+  scheduleBuilderKpiConflicts: {
+    id: 'control.scheduleBuilder.kpiConflicts',
+    defaultMessage: 'Conflicts found',
+  },
+  auditTrailShowDetails: { id: 'control.auditTrail.showDetails', defaultMessage: 'Show details' },
+  auditTrailHideDetails: { id: 'control.auditTrail.hideDetails', defaultMessage: 'Hide details' },
+  auditTrailColumnDetails: { id: 'control.auditTrail.columnDetails', defaultMessage: 'Details' },
+  analyticsPrimaryLabel: {
+    id: 'control.analytics.primaryLabel',
+    defaultMessage: 'Tournament status panel',
+  },
 });

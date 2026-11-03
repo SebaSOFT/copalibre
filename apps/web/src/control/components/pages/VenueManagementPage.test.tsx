@@ -44,7 +44,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('VenueManagementPage', () => {
-  it('renders within ListScreenLayout structure and displays venues and officials', async () => {
+  it('renders the list and rail layout and displays venues and officials', async () => {
     const { container } = render(
       withIntl(<VenueManagementPage client={stubClient()} organizationAlias="liga-mendocina" />),
     );
@@ -53,9 +53,11 @@ describe('VenueManagementPage', () => {
       screen.getByRole('heading', { level: 1, name: /venues, schedules & officials/i }),
     );
     await screen.findByText(/Estadio Feliciano Gambarte/i);
-    expect(container.querySelector('.cl-list-screen')).not.toBeNull();
+    expect(container.querySelector('.cl-list-with-rail-template')).not.toBeNull();
     expect(container.querySelector('.cl-page-header')).not.toBeNull();
-    expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
+    expect(container.querySelector('.cl-list-with-rail-template__list')).not.toBeNull();
+    expect(container.querySelector('.cl-list-with-rail-template__rail')).not.toBeNull();
+    expect(screen.getByRole('group', { name: 'Officials summary' })).toBeDefined();
     expect(screen.getByText(/Estadio Feliciano Gambarte/i)).toBeDefined();
     expect(screen.getByText(/Patricio Loustau/i)).toBeDefined();
   });

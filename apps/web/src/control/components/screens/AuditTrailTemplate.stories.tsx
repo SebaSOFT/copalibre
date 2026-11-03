@@ -2,13 +2,12 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
 import { AuditTrailTemplate } from '../screens/AuditTrailTemplate.js';
 import { messages } from '../../i18n/messages.en.js';
-import { ORG, auditRecords } from '../screen-story-fixtures.js';
+import { auditRecords } from '../screen-story-fixtures.js';
 
 const meta = {
   title: 'Admin/Screens/AuditTrailTemplate',
   component: AuditTrailTemplate,
   args: {
-    organizationAlias: ORG,
     records: auditRecords,
     loading: false,
     total: 1,

@@ -216,6 +216,7 @@ body {
 }
 
 .cl-role-cell {
+  max-inline-size: 16rem;
   display: flex;
   align-items: flex-start;
   flex-wrap: wrap;
@@ -468,6 +469,191 @@ body {
 }
 
 .cl-dashboard__listing {
+  display: grid;
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-operations__listing {
+  display: grid;
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+/*
+ * Where the rail sits beside the list, cells wrap inside the column instead of stretching the
+ * table past it, so no column is clipped. Narrower than that the table keeps its natural width
+ * and scrolls inside its own frame.
+ */
+@media (width >= 1024px) {
+  .cl-operations__listing .cl-data-table__table {
+    width: 100%;
+  }
+
+  .cl-operations__listing .cl-entity-identity-cell__details,
+  .cl-operations__listing .cl-entity-identity-cell__name {
+    min-inline-size: max-content;
+    overflow-wrap: normal;
+  }
+}
+
+.cl-operations__listing .cl-data-table__table .cl-btn,
+.cl-operations__listing .cl-data-table__table .cl-role-status {
+  white-space: nowrap;
+}
+
+.cl-operations__listing .cl-data-table__table th,
+.cl-operations__listing .cl-data-table__table .cl-state--refused,
+.cl-operations__listing .cl-data-table__table .cl-state--positive {
+  white-space: nowrap;
+}
+
+.cl-operations__listing .cl-list-screen__pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--cl-space-3);
+}
+
+.cl-operations__section {
+  display: grid;
+  gap: var(--cl-space-3);
+  min-width: 0;
+}
+
+.cl-operations__invitations {
+  display: grid;
+  gap: var(--cl-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-operations__invitations > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-3);
+  min-width: 0;
+}
+
+.cl-operations__rail-card {
+  min-width: 0;
+}
+
+.cl-role-cell__scope {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.cl-ratio-bar {
+  display: grid;
+  gap: var(--cl-space-1);
+  min-width: 0;
+}
+
+.cl-ratio-bar__track {
+  inline-size: 100%;
+  block-size: var(--cl-space-2);
+  appearance: none;
+  border: 0;
+  background: var(--cl-surface-row);
+  accent-color: var(--cl-border-accent);
+}
+
+.cl-ratio-bar__track::-webkit-progress-bar {
+  background: var(--cl-surface-row);
+}
+
+.cl-ratio-bar__track::-webkit-progress-value {
+  background: var(--cl-border-accent);
+}
+
+.cl-ratio-bar__track::-moz-progress-bar {
+  background: var(--cl-border-accent);
+}
+
+.cl-ratio-bar__value {
+  color: var(--cl-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+}
+
+.cl-preferences-panel {
+  display: grid;
+  gap: var(--cl-space-4);
+  padding: clamp(var(--cl-space-3), 4vw, var(--cl-space-6));
+  min-width: 0;
+}
+
+.cl-preferences-panel > h2,
+.cl-preferences-panel > p {
+  margin: 0;
+}
+
+.cl-operations__listing > div > .cl-preferences-panel + .cl-preferences-panel,
+.cl-operations__listing .cl-preferences-panel {
+  margin-block-start: var(--cl-space-6);
+}
+
+.cl-preferences-emblem-sizes {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--cl-space-4);
+}
+
+.cl-preferences-storage-summary {
+  font-weight: var(--cl-weight-bold);
+}
+
+.cl-preferences-expiry-input {
+  inline-size: 5rem;
+}
+
+.cl-preferences-token-created {
+  display: grid;
+  gap: var(--cl-space-2);
+  padding: var(--cl-space-4);
+  border: 1px solid var(--cl-state-live);
+  background: var(--cl-surface-base);
+}
+
+.cl-preferences-token-created__value {
+  display: block;
+  padding: var(--cl-space-3);
+  background: var(--cl-surface-row);
+  font-family: var(--cl-font-mono);
+  word-break: break-all;
+}
+
+.cl-preferences-token-list {
+  min-width: 0;
+}
+
+.cl-operations__rows {
+  display: grid;
+  gap: var(--cl-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-operations__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-3);
+  min-width: 0;
+  padding-block: var(--cl-space-3);
+  border-block-end: 1px solid var(--cl-border-muted);
+}
+
+.cl-operations__rail-stack {
   display: grid;
   gap: var(--cl-space-6);
   min-width: 0;

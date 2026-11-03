@@ -22,7 +22,7 @@ const completion: TournamentCompletionResponse = {
 };
 
 describe('AnalyticsTemplate', () => {
-  it('renders organization context, KPI values, and tournament progress with readable status', () => {
+  it('renders the KPI summary, the match-progress bars and tournament progress with readable status', () => {
     render(
       withIntl(
         <AnalyticsTemplate
@@ -32,14 +32,21 @@ describe('AnalyticsTemplate', () => {
           onRetry={() => undefined}
           organizationAlias="liga-mendocina"
           staleSince={undefined}
-          storage={undefined}
           tournaments={[tournament]}
         />,
       ),
     );
 
-    expect(screen.getByText('liga-mendocina / Analytics')).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Analytics' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Tournament summary' })).toBeTruthy();
     expect(screen.getByText('Total tournaments')).toBeTruthy();
+    expect(
+      screen.getByRole('progressbar', { name: 'Matches resolved' }).getAttribute('value'),
+    ).toBe('5');
+    expect(screen.getByText('Matches resolved: 5 / 8')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Open Apertura 2026' }).getAttribute('href')).toBe(
+      '/control/liga-mendocina/tournaments/apertura-2026',
+    );
     expect(screen.getByText('Apertura 2026')).toBeTruthy();
     expect(screen.getAllByText('In progress').length).toBeGreaterThan(0);
     expect(screen.getByText('5 / 8 matches')).toBeTruthy();
@@ -70,7 +77,6 @@ describe('AnalyticsTemplate', () => {
           onRetry={() => undefined}
           organizationAlias="liga-mendocina"
           staleSince={undefined}
-          storage={undefined}
           tournaments={[tournament, draft, archived]}
         />,
       ),
@@ -87,7 +93,7 @@ describe('AnalyticsTemplate', () => {
     expect(within(chartTable).getByRole('row', { name: 'Archived 1' })).toBeTruthy();
   });
 
-  it('renders an empty matrix and explicit unavailable storage state', () => {
+  it('renders an empty matrix without match-progress bars', () => {
     render(
       withIntl(
         <AnalyticsTemplate
@@ -97,18 +103,46 @@ describe('AnalyticsTemplate', () => {
           onRetry={() => undefined}
           organizationAlias="liga-mendocina"
           staleSince={undefined}
-          storage={undefined}
           tournaments={[]}
         />,
       ),
     );
 
     expect(screen.getAllByText('No tournaments found.').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('0')).toHaveLength(2);
+    expect(screen.getAllByText('0')).toHaveLength(3);
+    expect(screen.queryByRole('progressbar')).toBeNull();
     expect(
       within(screen.getByRole('region', { name: 'Tournament overview' })).queryAllByRole('row'),
     ).toHaveLength(1);
-    expect(screen.getAllByText('No data').length).toBeGreaterThan(0);
+  });
+
+  it('pages the tournament table ten rows at a time', () => {
+    const many: TournamentResponse[] = Array.from({ length: 12 }, (_, index) => ({
+      ...tournament,
+      tournamentId: `019927d0-0000-7000-8000-0000000002${String(index).padStart(2, '0')}`,
+      alias: `cup-${index}`,
+      name: `Cup ${index + 1}`,
+    }));
+    render(
+      withIntl(
+        <AnalyticsTemplate
+          completionByTournament={{}}
+          failed={false}
+          loading={false}
+          onRetry={() => undefined}
+          organizationAlias="liga-mendocina"
+          staleSince={undefined}
+          tournaments={many}
+        />,
+      ),
+    );
+
+    const overview = (): ReturnType<typeof within> =>
+      within(screen.getByRole('region', { name: 'Tournament overview' }));
+    expect(overview().getAllByRole('row')).toHaveLength(11);
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(overview().getAllByRole('row')).toHaveLength(3);
+    expect(overview().getByText('Cup 12')).toBeTruthy();
   });
 
   it('uses upcoming and final signal tokens while keeping lifecycle text visible', () => {
@@ -134,7 +168,6 @@ describe('AnalyticsTemplate', () => {
           onRetry={() => undefined}
           organizationAlias="liga-mendocina"
           staleSince={undefined}
-          storage={undefined}
           tournaments={[published, finished]}
         />,
       ),
@@ -156,7 +189,6 @@ describe('AnalyticsTemplate', () => {
           onRetry={() => undefined}
           organizationAlias="liga-mendocina"
           staleSince={undefined}
-          storage={undefined}
           tournaments={[]}
         />,
       ),

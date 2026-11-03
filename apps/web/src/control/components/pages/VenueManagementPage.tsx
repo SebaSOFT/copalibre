@@ -286,7 +286,6 @@ export function VenueManagementPage({
         onSaveOfficial={saveOfficial}
         onSaveSchedule={saveSchedule}
         onSaveVenue={saveVenue}
-        organizationAlias={organizationAlias}
         schedules={schedules}
         venues={venues}
       />
