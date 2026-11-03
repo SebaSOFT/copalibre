@@ -128,7 +128,7 @@ test('selecting a file opens the crop modal; confirming it uploads and renders t
 
   await expect(dialog).toBeHidden();
   await expect(page.getByText('Emblem uploaded.')).toBeVisible();
-  const emblem = page.locator('.cl-image-frame img');
+  const emblem = page.locator('.cl-image-frame img').first();
   await expect(emblem).toBeVisible();
   expect(await emblem.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
 });

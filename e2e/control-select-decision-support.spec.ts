@@ -168,19 +168,20 @@ test('the role Select explains the assigned role and links to that role’s own 
   await page.waitForURL(`**${target}`);
 
   await expect(page.getByText('referee@example.test')).toBeVisible();
+  const operators = page.getByRole('table');
   await expect(
-    page.getByText(
+    operators.getByText(
       'Opera un partido en vivo: registra eventos, controla el reloj, resuelve cronómetros y selecciona la plantilla.',
     ),
   ).toBeVisible();
-  const learnMoreLink = page.getByRole('link', { name: 'Más información' });
+  const learnMoreLink = operators.getByRole('link', { name: 'Más información' });
   await expect(learnMoreLink).toHaveAttribute('href', '/es/help/roles/referee/');
   await expect(learnMoreLink).toHaveAttribute('target', '_blank');
 
   await page.getByLabel('Rol de referee@example.test').selectOption('viewer');
 
   await expect(
-    page.getByText(
+    operators.getByText(
       'El rol de organización con menos privilegios: pertenece a la organización sin otorgar ninguna autoridad operativa.',
     ),
   ).toBeVisible();

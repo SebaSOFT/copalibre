@@ -485,7 +485,7 @@ body {
  * table past it, so no column is clipped. Narrower than that the table keeps its natural width
  * and scrolls inside its own frame.
  */
-@media (width >= 64rem) {
+@media (width >= 1024px) {
   .cl-operations__listing .cl-data-table__table {
     width: 100%;
   }

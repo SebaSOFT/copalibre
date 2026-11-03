@@ -117,7 +117,7 @@ test('user can generate and revoke PAT', async ({ page }) => {
   // Revoke the original token
   // Using a simpler approach since there's multiple Revoke buttons now
   await page
-    .locator('li')
+    .getByRole('row')
     .filter({ hasText: 'E2E Test Token' })
     .getByRole('button', { name: 'Revocar' })
     .click();
