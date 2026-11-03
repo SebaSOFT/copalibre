@@ -1855,4 +1855,15 @@ export const messages: Record<string, string> = {
   'control.auditTrail.filterAll': 'Tutti',
   'control.auditTrail.resultCount':
     '{count, plural, one {# evento in questa pagina} other {# eventi in questa pagina}}',
+  'control.analytics.kpiLabel': 'Riepilogo dei tornei',
+  'control.analytics.inProgress': 'In corso',
+  'control.analytics.operationsTitle': 'Avanzamento delle partite',
+  'control.analytics.matchesResolvedRatio': 'Partite concluse',
+  'control.analytics.tournamentsFinishedRatio': 'Tornei conclusi',
+  'control.analytics.ratioOf': '{value} / {total}',
+  'control.analytics.column.action': 'Apri',
+  'control.analytics.openTournament': 'Apri {name}',
+  'control.analytics.paginationLabel': 'Pagine dei tornei',
+  'control.pagination.previous': 'Precedente',
+  'control.pagination.next': 'Successivo',
 };

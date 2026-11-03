@@ -5455,4 +5455,30 @@ export const messages = defineMessages({
     id: 'control.auditTrail.resultCount',
     defaultMessage: '{count, plural, one {# event on this page} other {# events on this page}}',
   },
+  analyticsKpiLabel: { id: 'control.analytics.kpiLabel', defaultMessage: 'Tournament summary' },
+  analyticsInProgress: { id: 'control.analytics.inProgress', defaultMessage: 'In progress' },
+  analyticsOperationsTitle: {
+    id: 'control.analytics.operationsTitle',
+    defaultMessage: 'Match progress',
+  },
+  analyticsMatchesResolvedRatio: {
+    id: 'control.analytics.matchesResolvedRatio',
+    defaultMessage: 'Matches resolved',
+  },
+  analyticsTournamentsFinishedRatio: {
+    id: 'control.analytics.tournamentsFinishedRatio',
+    defaultMessage: 'Tournaments finished',
+  },
+  analyticsRatioOf: { id: 'control.analytics.ratioOf', defaultMessage: '{value} / {total}' },
+  analyticsColumnAction: { id: 'control.analytics.column.action', defaultMessage: 'Open' },
+  analyticsOpenTournament: {
+    id: 'control.analytics.openTournament',
+    defaultMessage: 'Open {name}',
+  },
+  analyticsPaginationLabel: {
+    id: 'control.analytics.paginationLabel',
+    defaultMessage: 'Tournaments pages',
+  },
+  paginationPrevious: { id: 'control.pagination.previous', defaultMessage: 'Previous' },
+  paginationNext: { id: 'control.pagination.next', defaultMessage: 'Next' },
 });

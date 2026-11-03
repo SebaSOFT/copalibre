@@ -1864,4 +1864,15 @@ export const messages: Record<string, string> = {
   'control.auditTrail.filterAll': 'Tous',
   'control.auditTrail.resultCount':
     '{count, plural, one {# événement sur cette page} other {# événements sur cette page}}',
+  'control.analytics.kpiLabel': 'Résumé des tournois',
+  'control.analytics.inProgress': 'En cours',
+  'control.analytics.operationsTitle': 'Avancement des matchs',
+  'control.analytics.matchesResolvedRatio': 'Matchs terminés',
+  'control.analytics.tournamentsFinishedRatio': 'Tournois terminés',
+  'control.analytics.ratioOf': '{value} / {total}',
+  'control.analytics.column.action': 'Ouvrir',
+  'control.analytics.openTournament': 'Ouvrir {name}',
+  'control.analytics.paginationLabel': 'Pages des tournois',
+  'control.pagination.previous': 'Précédent',
+  'control.pagination.next': 'Suivant',
 };

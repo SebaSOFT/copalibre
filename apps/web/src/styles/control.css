@@ -515,6 +515,39 @@ body {
   overflow-wrap: anywhere;
 }
 
+.cl-ratio-bar {
+  display: grid;
+  gap: var(--cl-space-1);
+  min-width: 0;
+}
+
+.cl-ratio-bar__track {
+  inline-size: 100%;
+  block-size: var(--cl-space-2);
+  appearance: none;
+  border: 0;
+  background: var(--cl-surface-row);
+  accent-color: var(--cl-border-accent);
+}
+
+.cl-ratio-bar__track::-webkit-progress-bar {
+  background: var(--cl-surface-row);
+}
+
+.cl-ratio-bar__track::-webkit-progress-value {
+  background: var(--cl-border-accent);
+}
+
+.cl-ratio-bar__track::-moz-progress-bar {
+  background: var(--cl-border-accent);
+}
+
+.cl-ratio-bar__value {
+  color: var(--cl-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+}
+
 .cl-dashboard__empty-results {
   color: var(--cl-text-secondary);
   margin: 0;
