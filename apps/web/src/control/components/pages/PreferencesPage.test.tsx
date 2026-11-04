@@ -1,7 +1,6 @@
 import { expectFirstReadFailure } from './resilient-read.test-support.js';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { jest } from '@jest/globals';
 import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { PAT_PATH, PreferencesPage } from '../pages/PreferencesPage.js';
@@ -115,7 +114,10 @@ describe('PreferencesPage', () => {
 
   it('asks for tokens on a path the API contract declares', () => {
     const contract = JSON.parse(
-      readFileSync(join(process.cwd(), '..', '..', 'packages/contracts/openapi/v1.json'), 'utf8'),
+      readFileSync(
+        new URL('../../../../../../packages/contracts/openapi/v1.json', import.meta.url),
+        'utf8',
+      ),
     ) as { paths: Record<string, unknown> };
 
     for (const path of [

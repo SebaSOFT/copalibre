@@ -201,8 +201,23 @@ const FORM_CONTROL_STATES: Record<FormControlState, FormControlTokenSet> = {
 export const INPUT_TOKENS: InputTokens = FORM_CONTROL_STATES;
 export const SELECT_TOKENS: SelectTokens = FORM_CONTROL_STATES;
 export const TEXTAREA_TOKENS: TextareaTokens = FORM_CONTROL_STATES;
-export const CHECKBOX_TOKENS: CheckboxTokens = FORM_CONTROL_STATES;
-export const RADIO_TOKENS: RadioTokens = FORM_CONTROL_STATES;
+
+/**
+ * These states paint the visible `1.25rem` box, not the 44px target around it. The box sits on the
+ * base ground, where a text control takes the raised chrome fill. With no fill of its own to show
+ * against a panel, its outline carries the control, so the resting border is `border-strong`:
+ * `border-control` is 1.34:1 on a dark panel, under the 3:1 a control boundary needs. Disabled
+ * matches every other form control.
+ */
+const CHOICE_CONTROL_STATES: Record<FormControlState, FormControlTokenSet> = {
+  default: { ...FORM_CONTROL_STATES.default, background: 'surface-base', border: 'border-strong' },
+  focus: { ...FORM_CONTROL_STATES.focus, background: 'surface-base' },
+  error: { ...FORM_CONTROL_STATES.error, background: 'surface-base' },
+  disabled: FORM_CONTROL_STATES.disabled,
+};
+
+export const CHECKBOX_TOKENS: CheckboxTokens = CHOICE_CONTROL_STATES;
+export const RADIO_TOKENS: RadioTokens = CHOICE_CONTROL_STATES;
 
 export const FILE_PICKER_TOKENS: FilePickerTokens = {
   ...FORM_CONTROL_STATES,

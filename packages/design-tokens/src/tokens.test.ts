@@ -775,6 +775,42 @@ describe('the CSS output', () => {
     expect(css).toContain('min-height: var(--cl-touch-target);');
   });
 
+  it('keeps the checkbox and radio target apart from the box they show', () => {
+    expect(css).toMatch(
+      /\.cl-checkbox, \.cl-radio \{[^}]*flex: none;[^}]*width: var\(--cl-touch-target\);[^}]*height: var\(--cl-touch-target\);[^}]*background: transparent;/,
+    );
+    expect(css).toMatch(
+      /\.cl-checkbox__box, \.cl-radio__box \{[^}]*width: 1\.25rem;[^}]*height: 1\.25rem;/,
+    );
+    expect(css).toContain(
+      '.cl-toggle > .cl-checkbox, .cl-toggle > .cl-radio {\n  margin-inline: calc((1.25rem - var(--cl-touch-target)) / 2);',
+    );
+    expect(css).toContain(
+      '.cl-toggle:has(> .cl-checkbox, > .cl-radio) {\n  padding-inline-end: calc((var(--cl-touch-target) - 1.25rem) / 2);',
+    );
+  });
+
+  it('puts the focus ring on the checkbox and radio box, not on the target', () => {
+    expect(css).toMatch(
+      /\.cl-checkbox\.cl-focusable:focus-visible, \.cl-radio\.cl-focusable:focus-visible \{\s*box-shadow: none;/,
+    );
+    expect(css).toMatch(
+      /\.cl-checkbox:focus-visible \.cl-checkbox__box, \.cl-radio:focus-visible \.cl-radio__box \{\s*box-shadow: 0 0 0 /,
+    );
+  });
+
+  it('keeps a checked checkbox or radio readable in forced colours', () => {
+    expect(css).toMatch(
+      /@media \(forced-colors: active\) \{\s*\.cl-checkbox__indicator, \.cl-radio__indicator \{\s*forced-color-adjust: none;\s*background-color: CanvasText;/,
+    );
+  });
+
+  it('holds a fit column to its content only where the cell is a table cell', () => {
+    expect(css).toContain(
+      `@media (width >= ${BREAKPOINTS.md}) { .cl-data-table__table [data-fit] { width: 1%; } }`,
+    );
+  });
+
   it('gives focus a two-layer ring', () => {
     // One ring vanishes against whichever surface happens to match it.
     expect(css).toContain('.cl-focusable:focus-visible');
@@ -815,6 +851,14 @@ describe('the CSS output', () => {
       'selection-present',
     ]) {
       expect(css).toContain(`.cl-file-picker--${state} {`);
+    }
+  });
+
+  it('paints a resting checkbox or radio box on the base ground with a boundary that reads', () => {
+    for (const tokens of [CHECKBOX_TOKENS, RADIO_TOKENS]) {
+      expect(tokens.default.background).toBe('surface-base');
+      expect(tokens.default.border).toBe('border-strong');
+      expect(tokens.disabled.background).toBe('surface-panel');
     }
   });
 

@@ -244,6 +244,7 @@ function OutboxFailuresCard({
   const failureColumns: readonly DataTableColumn<DiagnosticsFailure>[] = [
     {
       key: 'select',
+      fit: true,
       header: (
         <Checkbox
           aria-label={intl.formatMessage(messages.platformDiagnosticsSelectAllEvents)}

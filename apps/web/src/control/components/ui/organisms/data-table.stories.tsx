@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
 import { DataTable, type DataTableColumn, type DataTableProps } from './data-table.js';
 import { Badge } from '../atoms/badge.js';
+import { Checkbox } from '../atoms/checkbox.js';
 import { storyText } from '../story-text.js';
 
 interface StandingRow {
@@ -54,6 +55,31 @@ export const WithRows: Story = {
         ariaLabel={intl.formatMessage(storyText.rolesTitle)}
         caption={intl.formatMessage(storyText.rolesTitle)}
         columns={useColumns()}
+        rowKey={(row) => row.id}
+        rows={ROWS}
+      />
+    );
+  },
+};
+
+/** A `fit` column stays as wide as its control; the spare width goes to the other columns. */
+export const SelectionColumn: Story = {
+  render: function Render() {
+    const intl = useIntl();
+    const noop = () => undefined;
+    const label = intl.formatMessage(storyText.tournaments);
+    return (
+      <DataTable
+        ariaLabel={intl.formatMessage(storyText.rolesTitle)}
+        columns={[
+          {
+            key: 'select',
+            fit: true,
+            header: <Checkbox aria-label={label} checked={false} onCheckedChange={noop} />,
+            render: () => <Checkbox aria-label={label} checked={false} onCheckedChange={noop} />,
+          },
+          ...useColumns(),
+        ]}
         rowKey={(row) => row.id}
         rows={ROWS}
       />

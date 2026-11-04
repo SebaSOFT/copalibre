@@ -79,3 +79,17 @@ creation until at least one scope is chosen.
 
 - **WHEN** a user submits the token form without choosing a scope
 - **THEN** the form refuses and asks for at least one scope
+
+### Requirement: Personal access token requests use the served API path
+
+The control panel SHALL request personal access tokens on the path the API serves, and a failed token read SHALL affect only the token section.
+
+#### Scenario: Preferences loads
+
+- **WHEN** an administrator opens Organization or Preferences
+- **THEN** the page renders with its token list and no error state
+
+#### Scenario: Token read fails
+
+- **WHEN** the token read answers an error
+- **THEN** organization settings stay usable, the token section keeps its skeleton, and a toast offers Retry

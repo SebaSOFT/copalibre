@@ -80,3 +80,17 @@ export const Matrix: Story = {
     );
   },
 };
+
+/** The ring follows the visible box, not the 44px target around it. */
+export const Focused: Story = {
+  render: function Render() {
+    return (
+      <RadioGroup value="other">
+        <RadioGroupItem aria-label="Focused option" value="target" id="radio-focused" />
+      </RadioGroup>
+    );
+  },
+  play: ({ canvasElement }) => {
+    canvasElement.querySelector<HTMLElement>('[role="radio"]')?.focus();
+  },
+};
