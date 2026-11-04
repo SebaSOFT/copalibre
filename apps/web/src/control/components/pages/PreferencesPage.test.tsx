@@ -1,8 +1,10 @@
 import { expectFirstReadFailure } from './resilient-read.test-support.js';
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { jest } from '@jest/globals';
 import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import { PreferencesPage } from '../pages/PreferencesPage.js';
+import { PAT_PATH, PreferencesPage } from '../pages/PreferencesPage.js';
 import { ControlIntl as BaseControlIntl } from '../../i18n/ControlIntl.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import { ControlApiError } from '../../lib/api-client.js';
@@ -61,12 +63,12 @@ describe('PreferencesPage', () => {
             ? input.url
             : String((input as any)?.href ?? input);
       if (url.startsWith('blob:')) return defaultFetch(...args);
-      if (url.endsWith('/api/auth/pat/scopes'))
+      if (url.endsWith('/auth/pat/scopes'))
         return Promise.resolve({
           ok: true,
           json: async () => ({ scopes: ['copalibre.control'] }),
         } as any);
-      if (url.endsWith('/api/auth/pat') && args[1]?.method !== 'POST')
+      if (url.endsWith('/auth/pat') && args[1]?.method !== 'POST')
         return Promise.resolve({ ok: true, json: async () => [] } as any);
       return undefined as any;
     }) as any;
@@ -109,6 +111,44 @@ describe('PreferencesPage', () => {
         'copalibre.control',
       ),
     ).toBeDefined();
+  });
+
+  it('asks for tokens on a path the API contract declares', () => {
+    const contract = JSON.parse(
+      readFileSync(join(process.cwd(), '..', '..', 'packages/contracts/openapi/v1.json'), 'utf8'),
+    ) as { paths: Record<string, unknown> };
+
+    for (const path of [
+      PAT_PATH,
+      `${PAT_PATH}/scopes`,
+      `${PAT_PATH}/{tokenId}`,
+      `${PAT_PATH}/{tokenId}/restore`,
+    ]) {
+      expect(contract.paths[path]).toBeDefined();
+    }
+  });
+
+  it('keeps organization settings usable when the token read fails', async () => {
+    const client = {
+      getOrganization: jest.fn(async () => ({
+        organizationId: 'org-id',
+        alias: 'liga',
+        name: 'Liga Mendocina',
+        primaryLanguage: 'es',
+        timezone: 'UTC',
+      })),
+    } as unknown as ControlApiClient;
+    const patFetch = jest.fn(async () => ({ ok: false, status: 404 }) as Response);
+
+    render(
+      <ControlIntl locale="es">
+        <PreferencesPage client={client} organizationAlias="liga" patFetch={patFetch} />
+      </ControlIntl>,
+    );
+
+    expect(await screen.findByDisplayValue('Liga Mendocina')).toBeDefined();
+    expect(await screen.findByRole('heading', { name: 'Tokens de acceso personal' })).toBeDefined();
+    expect(screen.queryByRole('form', { name: 'Tokens de acceso personal' })).toBeNull();
   });
 
   it('creates a new PAT', async () => {

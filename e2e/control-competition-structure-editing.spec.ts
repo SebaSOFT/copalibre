@@ -19,7 +19,7 @@ async function withTokenEndpoint(page: Page): Promise<void> {
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url === '/api/auth/pat/scopes') {
+        if (url === '/auth/pat/scopes') {
           return Response.json({ scopes: [] });
         }
         const handler = (window as unknown as { __route?: (u: string, i?: RequestInit) => unknown })
@@ -236,7 +236,7 @@ test('deletes an unreferenced upload from the storage-usage screen and the usage
   ];
   await page.exposeFunction('__route', (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
-    if (url === '/api/auth/pat' && method === 'GET') return { body: [] };
+    if (url === '/auth/pat' && method === 'GET') return { body: [] };
     if (url === `/organizations/${ORG_ALIAS}` && method === 'GET') {
       return {
         body: {
