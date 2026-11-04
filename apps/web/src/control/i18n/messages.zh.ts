@@ -520,6 +520,7 @@ export const messages: Record<string, string> = {
   'control.roles.inviteDialog.submit': '发送邀请',
   'control.roles.selectClubPlaceholder': '选择俱乐部…',
   'control.roles.selectTournamentPlaceholder': '选择赛事…',
+  'control.select.placeholder': '请选择…',
 
   'control.auditTrail.title': '审计记录',
   'control.auditTrail.description':

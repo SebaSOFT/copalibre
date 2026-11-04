@@ -33,6 +33,12 @@ export interface SelectProps {
    * the trigger exactly as it renders today.
    */
   readonly icon?: React.ReactNode;
+  /**
+   * Shown when nothing is selected. The page supplies the text, because an
+   * atom holds no i18n. An option whose value is `''` and has a label is a real
+   * choice and shows that label instead.
+   */
+  readonly placeholder?: string;
 }
 
 export function Select({
@@ -46,13 +52,20 @@ export function Select({
   id,
   name,
   icon,
+  placeholder,
+  title,
   'aria-label': ariaLabel,
   'aria-describedby': ariaDescribedBy,
   ...rest
 }: SelectProps): React.JSX.Element {
   const state = disabled ? 'disabled' : invalid ? 'error' : 'default';
   const triggerRef = React.useRef<HTMLButtonElement>(null);
-  const activeBadge = options.find((option) => option.value === value)?.badge;
+  const activeOption = options.find((option) => option.value === value);
+  const activeBadge = activeOption?.badge;
+  const activeLabel = activeOption?.label ? activeOption.label : undefined;
+  // Radix renders nothing for the value `''`, even when an option carries it.
+  const emptyText = activeLabel ?? placeholder;
+  const showsPlaceholder = value === '' && activeLabel === undefined;
 
   React.useLayoutEffect(() => {
     const el = triggerRef.current;
@@ -129,10 +142,16 @@ export function Select({
           aria-hidden="true"
           tabIndex={-1}
           className={`cl-select cl-select--${state} ${className}`}
+          title={title ?? activeLabel}
           {...rest}
         >
           {icon}
-          <RadixSelect.Value />
+          {/* Radix drops `className` from `Value`, so the styling sits on a wrapper. */}
+          <span
+            className={`cl-select__value${showsPlaceholder ? ' cl-select__value--placeholder' : ''}`}
+          >
+            <RadixSelect.Value placeholder={emptyText} />
+          </span>
           {activeBadge ? <span className="cl-select__badge">{activeBadge}</span> : null}
           <RadixSelect.Icon className="cl-select__icon">▾</RadixSelect.Icon>
         </RadixSelect.Trigger>
@@ -171,6 +190,11 @@ export function Select({
         required={required}
         value={value}
       >
+        {placeholder !== undefined && activeOption === undefined && value === '' ? (
+          <option disabled hidden value="">
+            {placeholder}
+          </option>
+        ) : null}
         {options.map((option) => (
           <option disabled={option.disabled} key={option.value} value={option.value}>
             {option.label}

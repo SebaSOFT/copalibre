@@ -100,6 +100,7 @@ export function DashboardTemplate({
             label: name,
             value: tournamentId,
           }))}
+          placeholder={intl.formatMessage(messages.selectPlaceholder)}
           value={selectedPairTournament?.tournamentId ?? ''}
         />
       </Field>

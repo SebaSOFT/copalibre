@@ -234,6 +234,7 @@ export function ProfileBuilderWizard({
                     label: discipline.alias,
                   })),
               ]}
+              placeholder={intl.formatMessage(messages.selectPlaceholder)}
               value={state.disciplineAlias}
             />
             <DecisionHint

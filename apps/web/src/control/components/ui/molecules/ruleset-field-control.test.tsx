@@ -20,6 +20,7 @@ const TEXT_PROPS = {
   label: 'Story field',
   addLabel: 'Add',
   removeLabel: 'Remove',
+  selectPlaceholder: 'Select…',
   inheritedHeading: 'Already includes:',
   unrecognizedText: 'Not governed by a known rule policy',
   unknownTypeText: 'Unknown type',

@@ -523,6 +523,7 @@ function SeriesValueFields({
               value: resolutionClass,
               label: intl.formatMessage(SERIES_CLASS_LABELS[resolutionClass]),
             }))}
+            placeholder={intl.formatMessage(messages.selectPlaceholder)}
             value={series.resolutionClass ?? ''}
           />
         </Field>
@@ -772,6 +773,7 @@ function WeightedAllocationFields({
             id={`stage-${stageNumber}-allocation-attribute`}
             onValueChange={(val) => onChange({ ...allocation, attributeKey: val })}
             options={attributeKeys.map((key) => ({ value: key, label: key }))}
+            placeholder={intl.formatMessage(messages.selectPlaceholder)}
             value={allocation.attributeKey ?? ''}
           />
         ) : (

@@ -623,6 +623,10 @@ uppercase display face, 44px targets, state always spelled out in words as well 
   `0.75rem` beneath the field.
 - **Disabled:** Panel Ink fill with Muted Steel text.
 - **Labels:** Mono, uppercase, `0.75rem`. Help text and decision hints in Muted Steel at `0.75rem`.
+- **Select:** Reads like Input: the value sits left on one line, and a long value clips with an ellipsis
+  instead of growing past `44px`, with the whole text in the title. With no value it shows placeholder
+  text in Muted Steel, supplied by the page. An option with an empty value and a label is a real choice
+  and shows that label in normal text.
 - **Checkbox / radio:** `1.25rem` square with all four corners cut, centred in a `44px` target that
   paints nothing. Base-ink fill and an emphasised-structure border, because at this size the outline
   alone has to carry the control; hover moves the border toward cyan; checked fills Signal Cyan with a

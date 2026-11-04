@@ -445,6 +445,7 @@ export function MatchConsoleTemplate({
                 value: segment.segmentId,
                 label: `${segmentTypeText(segment)} ${segment.number} · ${segmentStateText(segment.state)}`,
               }))}
+              placeholder={intl.formatMessage(messages.selectPlaceholder)}
               value={selectedSegmentId}
             />
           </Field>

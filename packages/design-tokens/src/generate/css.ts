@@ -827,9 +827,16 @@ function components(): string {
     '  }',
     '}',
     '.cl-select { font-family: var(--cl-font-mono); }',
-    '.cl-select__icon { margin-inline-start: var(--cl-space-2); transition: transform 0.15s ease; }',
+    // The trigger is a button, which centres its text and wraps a long label
+    // onto a second line, growing past the 44px control height. It reads like
+    // Input instead: left-aligned, one line, clipped. The atom keeps the full
+    // label in `title`.
+    'button.cl-select { display: flex; align-items: center; text-align: start; }',
+    '.cl-select__value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+    '.cl-select__value--placeholder { color: var(--cl-text-muted); }',
+    '.cl-select__icon { flex: none; margin-inline-start: var(--cl-space-2); transition: transform 0.15s ease; }',
     '.cl-select[data-state="open"] .cl-select__icon { transform: rotate(180deg); }',
-    '.cl-select__badge { margin-inline-start: var(--cl-space-2); font-size: var(--cl-font-size-xs); font-family: var(--cl-font-mono); text-transform: uppercase; letter-spacing: var(--cl-tracking-wider); color: var(--cl-text-muted); }',
+    '.cl-select__badge { flex: none; margin-inline-start: var(--cl-space-2); font-size: var(--cl-font-size-xs); font-family: var(--cl-font-mono); text-transform: uppercase; letter-spacing: var(--cl-tracking-wider); color: var(--cl-text-muted); }',
     // `popper` positioning exposes the trigger's width, so the panel lines up
     // with the box it belongs to rather than sizing itself to its longest
     // option. `max-height` is the space Radix measured to the viewport edge.
@@ -850,7 +857,7 @@ function components(): string {
     // sized off-screen instead, so a mouse click lands on the visible,
     // styled trigger while Tab/keyboard/AT users still reach it directly
     // (replacing the earlier overlay).
-    '.cl-select-wrapper { position: relative; display: inline-block; width: 100%; }',
+    '.cl-select-wrapper { position: relative; display: inline-block; width: 100%; min-width: 0; }',
     // `Combobox`: a text field whose suggestions narrow as one types. The list
     // reads like an open `Select` panel so the two never look like different
     // controls; the active option carries the same live rail.

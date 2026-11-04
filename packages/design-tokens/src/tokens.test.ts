@@ -939,6 +939,12 @@ describe('the CSS output', () => {
 
   it('gives the custom select popover the control chamfer, mono typography, and a cyan active cue', () => {
     expect(css).toContain('.cl-select { font-family: var(--cl-font-mono); }');
+    expect(css).toContain(
+      'button.cl-select { display: flex; align-items: center; text-align: start; }',
+    );
+    expect(css).toContain(
+      '.cl-select__value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+    );
     expect(css).toContain('.cl-select__content {');
     expect(css).toContain('font-family: var(--cl-font-mono)');
     expect(css).toContain(
