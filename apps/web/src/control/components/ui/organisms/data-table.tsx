@@ -37,6 +37,11 @@ export interface DataTableColumn<Row> {
    * wraps beneath it when there is not. Only read on a column that sets `nameText`.
    */
   readonly nameAction?: (row: Row) => ReactNode;
+  /**
+   * Holds the column to the width of its content, for a column that is one small control such as
+   * a row's selection checkbox. Without it the column takes a share of the table's spare width.
+   */
+  readonly fit?: boolean;
 }
 
 export interface DataTableProps<Row> {
@@ -101,6 +106,7 @@ export function DataTable<Row>({
             {columns.map((column) => (
               <th
                 aria-sort={column.ariaSort}
+                data-fit={column.fit ? '' : undefined}
                 data-priority={column.priority}
                 key={column.key}
                 role={stacked ? 'columnheader' : undefined}
@@ -125,6 +131,7 @@ export function DataTable<Row>({
                     return (
                       <td
                         className={isName ? 'cl-cell-name' : undefined}
+                        data-fit={column.fit ? '' : undefined}
                         data-label={columnLabel(column)}
                         data-priority={column.priority}
                         key={column.key}

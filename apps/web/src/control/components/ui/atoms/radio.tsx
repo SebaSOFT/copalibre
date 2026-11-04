@@ -52,14 +52,12 @@ export function RadioGroupItem({
       value={value}
       id={id}
       disabled={disabled}
-      className={`cl-radio cl-radio--${state} cl-focusable ${className}`}
+      className={`cl-radio cl-focusable ${className}`}
       {...props}
     >
-      <RadixRadioGroup.Indicator className="cl-radio__indicator">
-        <span className="cl-radio__mark" aria-hidden="true">
-          ■
-        </span>
-      </RadixRadioGroup.Indicator>
+      <span className={`cl-radio__box cl-radio--${state}`}>
+        <RadixRadioGroup.Indicator className="cl-radio__indicator" />
+      </span>
     </RadixRadioGroup.Item>
   );
 }

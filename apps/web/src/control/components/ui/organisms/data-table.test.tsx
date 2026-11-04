@@ -184,3 +184,22 @@ describe('DataTable', () => {
     expect(screen.queryByText('Detail for b')).toBeNull();
   });
 });
+
+describe('a fit column', () => {
+  const fitColumns: readonly DataTableColumn<Club>[] = [
+    { key: 'select', fit: true, header: 'Select', render: () => 'x' },
+    { key: 'name', header: 'Club', render: (club) => club.name },
+  ];
+
+  it('marks its header and its cells, and leaves other columns alone', () => {
+    render(<DataTable columns={fitColumns} rowKey={(club) => club.id} rows={clubs} />);
+    expect(screen.getByRole('columnheader', { name: 'Select' }).hasAttribute('data-fit')).toBe(
+      true,
+    );
+    expect(screen.getByRole('columnheader', { name: 'Club' }).hasAttribute('data-fit')).toBe(false);
+    const [firstRow] = screen.getAllByRole('row').slice(1);
+    const [selectCell, nameCell] = within(firstRow as HTMLElement).getAllByRole('cell');
+    expect(selectCell?.hasAttribute('data-fit')).toBe(true);
+    expect(nameCell?.hasAttribute('data-fit')).toBe(false);
+  });
+});

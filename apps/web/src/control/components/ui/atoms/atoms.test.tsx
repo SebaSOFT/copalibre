@@ -81,7 +81,24 @@ describe('form-control atoms', () => {
 
   it('renders the disabled state class for Checkbox', () => {
     render(<Checkbox aria-label="Active" checked={false} disabled onCheckedChange={() => {}} />);
-    expect(screen.getByRole('checkbox').className).toContain('cl-checkbox--disabled');
+    const box = screen.getByRole('checkbox').querySelector('.cl-checkbox__box');
+    expect(box?.className).toContain('cl-checkbox--disabled');
+  });
+
+  it('keeps the state class off the Checkbox target, which paints nothing', () => {
+    render(<Checkbox aria-label="Active" checked={false} onCheckedChange={() => {}} />);
+    const target = screen.getByRole('checkbox');
+    expect(target.className).not.toContain('cl-checkbox--');
+    expect(target.querySelector('.cl-checkbox__box')?.className).toContain('cl-checkbox--default');
+  });
+
+  it('draws the Checkbox mark only while checked', () => {
+    const { rerender } = render(
+      <Checkbox aria-label="Active" checked={false} onCheckedChange={() => {}} />,
+    );
+    expect(screen.getByRole('checkbox').querySelector('.cl-checkbox__indicator')).toBeNull();
+    rerender(<Checkbox aria-label="Active" checked onCheckedChange={() => {}} />);
+    expect(screen.getByRole('checkbox').querySelector('.cl-checkbox__indicator')).not.toBeNull();
   });
 
   it('renders a Select trigger with the caller-supplied options', () => {
@@ -164,9 +181,12 @@ describe('form-control atoms', () => {
     const r3 = screen.getByLabelText('Option 3');
 
     expect(r1.className).toContain('cl-radio');
-    expect(r1.className).toContain('cl-radio--default');
+    expect(r1.className).not.toContain('cl-radio--');
+    expect(r1.querySelector('.cl-radio__box')?.className).toContain('cl-radio--default');
+    expect(r1.querySelector('.cl-radio__indicator')).not.toBeNull();
     expect(r1.getAttribute('aria-checked')).toBe('true');
-    expect(r3.className).toContain('cl-radio--disabled');
+    expect(r2.querySelector('.cl-radio__indicator')).toBeNull();
+    expect(r3.querySelector('.cl-radio__box')?.className).toContain('cl-radio--disabled');
 
     fireEvent.click(r2);
     expect(onValueChange).toHaveBeenCalledWith('opt2');

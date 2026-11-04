@@ -623,9 +623,12 @@ uppercase display face, 44px targets, state always spelled out in words as well 
   `0.75rem` beneath the field.
 - **Disabled:** Panel Ink fill with Muted Steel text.
 - **Labels:** Mono, uppercase, `0.75rem`. Help text and decision hints in Muted Steel at `0.75rem`.
-- **Checkbox / radio:** `1.25rem` square with all four corners cut, base-ink fill, structure border;
-  hover moves the border toward cyan; checked fills Signal Cyan with a Deep Ink glyph — a polygon
-  checkmark or a `0.5rem` dot.
+- **Checkbox / radio:** `1.25rem` square with all four corners cut, centred in a `44px` target that
+  paints nothing. Base-ink fill and an emphasised-structure border, because at this size the outline
+  alone has to carry the control; hover moves the border toward cyan; checked fills Signal Cyan with a
+  Deep Ink glyph — a polygon checkmark or a `0.5rem` square; disabled takes the panel fill. The focus ring
+  follows the box, not the target. Beside a label the box aligns with the fields around it and the
+  target overhangs.
 - **File picker:** A dashed-border drop zone on panel ink; drag-active takes the hovered surface with a
   cyan border, selection-present takes the raised cyan well with emphasised structure.
 

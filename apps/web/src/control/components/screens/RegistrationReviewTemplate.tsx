@@ -442,6 +442,7 @@ export function RegistrationReviewTemplate({
   const registrationColumns: readonly DataTableColumn<ReviewRegistrationRow>[] = [
     {
       key: 'select',
+      fit: true,
       header: (
         <Checkbox
           aria-label={intl.formatMessage(messages.reviewSelectVisible)}
