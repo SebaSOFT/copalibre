@@ -91,7 +91,7 @@ describe('the operator standings screen Phase → Zone → Group navigation', ()
     renderPage(client);
     await flush();
     const select = await screen.findByLabelText('Group');
-    const optionLabels = Array.from(select.querySelectorAll('option')).map(
+    const optionLabels = Array.from(select.querySelectorAll('option:not([hidden])')).map(
       (option) => option.textContent,
     );
     // Arbitrary Z (2 zones) and G (2 then 1 groups) — every group surfaces, each

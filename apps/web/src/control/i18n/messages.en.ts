@@ -1548,6 +1548,7 @@ export const messages = defineMessages({
     id: 'control.roles.selectTournamentPlaceholder',
     defaultMessage: 'Select tournament…',
   },
+  selectPlaceholder: { id: 'control.select.placeholder', defaultMessage: 'Select…' },
 
   // AuditTrailPage.tsx
   auditTrailTitle: { id: 'control.auditTrail.title', defaultMessage: 'Audit trail' },

@@ -543,6 +543,7 @@ export const messages: Record<string, string> = {
   'control.roles.inviteDialog.submit': 'Einladung senden',
   'control.roles.selectClubPlaceholder': 'Verein auswählen…',
   'control.roles.selectTournamentPlaceholder': 'Turnier auswählen…',
+  'control.select.placeholder': 'Auswählen…',
 
   'control.auditTrail.title': 'Prüfprotokoll',
   'control.auditTrail.description':

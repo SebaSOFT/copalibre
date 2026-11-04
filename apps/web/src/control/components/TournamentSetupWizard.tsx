@@ -415,6 +415,7 @@ function DisciplineStep({
               : ` — ${localizedText(discipline.description, intl.locale)}`
           } · ${discipline.version}`,
         }))}
+        placeholder={intl.formatMessage(messages.selectPlaceholder)}
         value={state.descriptorId ?? ''}
       />
       <DecisionHint
@@ -586,6 +587,7 @@ function RulesetStep({
               overrideValue={state.ruleOverrides[dotPath]}
               policy={policy}
               removeLabel={intl.formatMessage(messages.rulesetOverridesRemoveField)}
+              selectPlaceholder={intl.formatMessage(messages.selectPlaceholder)}
               unknownTypeText={intl.formatMessage(messages.rulesetFieldUnknownType)}
               unrecognizedText={intl.formatMessage(messages.rulesetFieldUnrecognized)}
             />
@@ -1095,6 +1097,7 @@ function ElementAuthoringFields({
   readonly onValueChange: (key: string, value: string) => void;
   readonly onOptionsChange: (key: string, value: string) => void;
 }): React.JSX.Element {
+  const intl = useIntl();
   return (
     <fieldset
       style={{
@@ -1124,6 +1127,7 @@ function ElementAuthoringFields({
                       label: String(choice),
                     })),
                   ]}
+                  placeholder={intl.formatMessage(messages.selectPlaceholder)}
                   value={values[key] ?? ''}
                 />
               ) : (

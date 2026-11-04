@@ -236,6 +236,7 @@ export function TournamentRulesetTemplate({
             overrideValue={draft.value}
             policy={policy}
             removeLabel={intl.formatMessage(messages.rulesetOverridesRemoveField)}
+            selectPlaceholder={intl.formatMessage(messages.selectPlaceholder)}
             unknownTypeText={intl.formatMessage(messages.rulesetFieldUnknownType)}
             unrecognizedText={intl.formatMessage(messages.rulesetFieldUnrecognized)}
           />

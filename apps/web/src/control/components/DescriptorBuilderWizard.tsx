@@ -537,6 +537,7 @@ export function DescriptorBuilderWizard({
                       label: segment.name,
                     })),
                   ]}
+                  placeholder={intl.formatMessage(messages.selectPlaceholder)}
                   value={state.segmentName}
                 />
               </Field>

@@ -380,6 +380,7 @@ export function ZoneGroupTemplate({
                   value: String(zone.number),
                   label: zone.name,
                 }))}
+                placeholder={intl.formatMessage(messages.selectPlaceholder)}
                 value={selectedZoneNumber !== undefined ? String(selectedZoneNumber) : ''}
               />
             </Field>

@@ -57,6 +57,7 @@ export interface RulesetFieldControlProps {
   readonly onChange: (value: unknown) => void;
   readonly addLabel: string;
   readonly removeLabel: string;
+  readonly selectPlaceholder: string;
   readonly inheritedHeading: string;
   readonly unrecognizedText: string;
   readonly unknownTypeText: string;
@@ -73,6 +74,7 @@ export function RulesetFieldControl({
   onChange,
   addLabel,
   removeLabel,
+  selectPlaceholder,
   inheritedHeading,
   unrecognizedText,
   unknownTypeText,
@@ -116,6 +118,7 @@ export function RulesetFieldControl({
           id={id}
           onValueChange={onChange}
           options={availableFormats.map((format) => ({ value: format, label: format }))}
+          placeholder={selectPlaceholder}
           value={typeof observedValue === 'string' ? observedValue : ''}
         />
       );

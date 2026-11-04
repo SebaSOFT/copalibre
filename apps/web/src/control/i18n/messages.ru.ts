@@ -540,6 +540,7 @@ export const messages: Record<string, string> = {
   'control.roles.inviteDialog.submit': 'Отправить приглашение',
   'control.roles.selectClubPlaceholder': 'Выберите клуб…',
   'control.roles.selectTournamentPlaceholder': 'Выберите турнир…',
+  'control.select.placeholder': 'Выберите…',
 
   'control.auditTrail.title': 'Журнал аудита',
   'control.auditTrail.description':

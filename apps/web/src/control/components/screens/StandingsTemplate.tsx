@@ -354,6 +354,7 @@ export function StandingsTemplate({
               value: option.groupId,
               label: option.label,
             }))}
+            placeholder={intl.formatMessage(messages.selectPlaceholder)}
             value={groupSelector.selectedGroupId ?? ''}
           />
         </Field>

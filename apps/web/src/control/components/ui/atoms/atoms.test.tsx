@@ -154,6 +154,73 @@ describe('form-control atoms', () => {
     expect(trigger?.textContent).toBe('Admin▾');
   });
 
+  it('shows the placeholder when a Select has no value', () => {
+    const { container } = render(
+      <Select
+        aria-label="Group"
+        onValueChange={() => {}}
+        options={[{ value: 'a', label: 'Group A' }]}
+        placeholder="Select…"
+        value=""
+      />,
+    );
+    const value = container.querySelector('button.cl-select .cl-select__value');
+    expect(value?.textContent).toBe('Select…');
+    expect(value?.className).toContain('cl-select__value--placeholder');
+    expect(screen.getByRole('combobox', { name: 'Group' })).toHaveProperty('value', '');
+  });
+
+  it('shows the label of an empty-value option as a real choice, not as a placeholder', () => {
+    const { container } = render(
+      <Select
+        aria-label="Staff"
+        onValueChange={() => {}}
+        options={[
+          { value: '', label: 'No attribution' },
+          { value: 'p1', label: 'Referee' },
+        ]}
+        placeholder="Select…"
+        value=""
+      />,
+    );
+    const value = container.querySelector('button.cl-select .cl-select__value');
+    expect(value?.textContent).toBe('No attribution');
+    expect(value?.className).not.toContain('cl-select__value--placeholder');
+  });
+
+  it('falls back to the placeholder when the empty-value option has no label', () => {
+    const { container } = render(
+      <Select
+        aria-label="Segment"
+        onValueChange={() => {}}
+        options={[
+          { value: '', label: '' },
+          { value: '1', label: 'First half' },
+        ]}
+        placeholder="Select…"
+        value=""
+      />,
+    );
+    const value = container.querySelector('button.cl-select .cl-select__value');
+    expect(value?.textContent).toBe('Select…');
+    expect(value?.className).toContain('cl-select__value--placeholder');
+  });
+
+  it('keeps the whole label of a Select in the title, so a clipped value stays readable', () => {
+    const { container } = render(
+      <Select
+        aria-label="Series"
+        disabled
+        onValueChange={() => {}}
+        options={[{ value: 'best-of', label: 'Best of — first side to win the majority' }]}
+        value="best-of"
+      />,
+    );
+    expect(container.querySelector('button.cl-select')?.getAttribute('title')).toBe(
+      'Best of — first side to win the majority',
+    );
+  });
+
   it('renders the error and disabled state classes for Select', () => {
     const { rerender } = render(
       <Select aria-label="Role" invalid onValueChange={() => {}} options={[]} value="" />,

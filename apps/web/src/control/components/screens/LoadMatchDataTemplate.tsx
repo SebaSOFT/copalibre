@@ -473,6 +473,7 @@ export function LoadMatchDataTemplate({
                           label: resolveLabel(definition.label, language),
                         }),
                       )}
+                      placeholder={intl.formatMessage(messages.selectPlaceholder)}
                       value={row.definitionCode}
                     />
                   </Field>
@@ -491,6 +492,7 @@ export function LoadMatchDataTemplate({
                           label: `${segmentIndex + 1}. ${segment.type || '—'}`,
                         })),
                       ]}
+                      placeholder={intl.formatMessage(messages.selectPlaceholder)}
                       value={row.segmentNumber}
                     />
                   </Field>
