@@ -602,10 +602,6 @@ export const messages = defineMessages({
 
   // matches.astro / MatchCard.tsx
   matchesViewPageTitle: { id: 'publicWeb.matchesView.pageTitle', defaultMessage: 'Matches' },
-  matchesViewTableScrollHint: {
-    id: 'publicWeb.matchesView.tableScrollHint',
-    defaultMessage: 'Swipe the table horizontally to see all columns.',
-  },
   matchesViewFiltersDisclosureLabel: {
     id: 'publicWeb.matchesView.filtersDisclosureLabel',
     defaultMessage: 'Filter matches',

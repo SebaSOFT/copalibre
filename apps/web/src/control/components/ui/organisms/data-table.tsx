@@ -57,7 +57,7 @@ export interface DataTableProps<Row> {
   readonly moreColumnsLabel?: string;
 }
 
-function columnLabel<Row>(column: DataTableColumn<Row>): string {
+function columnLabel(column: { readonly label?: string; readonly header: ReactNode }): string {
   return column.label ?? (typeof column.header === 'string' ? column.header : '');
 }
 

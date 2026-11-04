@@ -1880,7 +1880,7 @@ export const messages: Record<string, string> = {
   'control.auditTrail.hideDetails': 'Ocultar detalhes',
   'control.auditTrail.columnDetails': 'Detalhes',
   'control.analytics.primaryLabel': 'Painel de estado dos torneios',
-  "control.dataTable.moreColumns": "Mais colunas",
-  "control.dataTable.showDetails": "Mostrar detalhes",
-  "control.dataTable.hideDetails": "Ocultar detalhes",
+  'control.dataTable.moreColumns': 'Mais colunas',
+  'control.dataTable.showDetails': 'Mostrar detalhes',
+  'control.dataTable.hideDetails': 'Ocultar detalhes',
 };

@@ -5561,7 +5561,7 @@ export const messages = defineMessages({
     id: 'control.analytics.primaryLabel',
     defaultMessage: 'Tournament status panel',
   },
-  dataTableMoreColumns: { id: "control.dataTable.moreColumns", defaultMessage: "More columns" },
-  dataTableShowDetails: { id: "control.dataTable.showDetails", defaultMessage: "Show details" },
-  dataTableHideDetails: { id: "control.dataTable.hideDetails", defaultMessage: "Hide details" },
+  dataTableMoreColumns: { id: 'control.dataTable.moreColumns', defaultMessage: 'More columns' },
+  dataTableShowDetails: { id: 'control.dataTable.showDetails', defaultMessage: 'Show details' },
+  dataTableHideDetails: { id: 'control.dataTable.hideDetails', defaultMessage: 'Hide details' },
 });

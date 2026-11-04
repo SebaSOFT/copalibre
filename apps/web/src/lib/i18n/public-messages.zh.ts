@@ -235,7 +235,6 @@ export const messages: Record<string, string> = {
     'yarn workspace @copalibre/web build && yarn workspace @copalibre/web preview',
 
   'publicWeb.matchesView.pageTitle': '比赛',
-  'publicWeb.matchesView.tableScrollHint': '横向滑动表格以查看所有列。',
   'publicWeb.matchesView.filtersDisclosureLabel': '筛选比赛',
   'publicWeb.matchesView.filterAll': '全部',
   'publicWeb.matchesView.filterLive': '进行中',

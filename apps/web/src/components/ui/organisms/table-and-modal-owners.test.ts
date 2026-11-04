@@ -85,3 +85,51 @@ describe('Modal.astro', () => {
     expect(modal).toContain('cl-modal__body');
   });
 });
+
+describe('DataTable.astro narrow-screen modes', () => {
+  const matchSchedule = readFileSync(join(here, 'MatchSchedule.astro'), 'utf8');
+  const standings = readFileSync(join(here, 'StandingsTable.astro'), 'utf8');
+
+  it('declares scroll, priority and stacked, defaulting to scroll', () => {
+    expect(dataTable).toContain(
+      "export type DataTableMobileMode = 'scroll' | 'priority' | 'stacked';",
+    );
+    expect(dataTable).toContain("mobileMode = 'scroll'");
+    expect(dataTable).toContain('`cl-data-table--${mobileMode}`');
+  });
+
+  it('labels every cell and marks priority so the stylesheet can stack or hide columns', () => {
+    expect(dataTable).toContain('data-label={labelOf(column)}');
+    expect(dataTable).toContain('data-priority={column.priority}');
+  });
+
+  it('keeps the table semantics a stacked layout would otherwise drop', () => {
+    expect(dataTable).toContain("role={stacked ? 'cell' : undefined}");
+    expect(dataTable).toContain("role={stacked ? 'columnheader' : undefined}");
+  });
+
+  it('offers the hidden columns in a disclosure that needs no JavaScript', () => {
+    expect(dataTable).toContain('<details class="cl-more">');
+    expect(dataTable).not.toMatch(/<script[\s>]/);
+  });
+
+  it('shows whole names in a stacked card instead of the short form', () => {
+    expect(dataTable).toMatch(
+      /\.cl-data-table--stacked \.cl-data-table__short \{\s*display: none;/,
+    );
+  });
+
+  it('stacks the fixtures and gives the wide layout alone its one-line rows', () => {
+    expect(matchSchedule).toContain('mobileMode="stacked"');
+    expect(matchSchedule).toMatch(
+      /@media \(width >= 768px\) \{\s*\.cl-match-schedule :global\(\.cl-data-table__table td\) \{\s*white-space: nowrap;/,
+    );
+  });
+
+  it('keeps the standings position, name, played and points on a phone and the rest in a disclosure', () => {
+    expect(standings).toContain("const PRIORITY_CODES = new Set(['rank', 'played', 'points'");
+    expect(standings).toContain('data-priority={priorityOf(column.code)}');
+    expect(standings).toContain('<details class="cl-more">');
+    expect(standings).toContain('cl-cell-name__text');
+  });
+});

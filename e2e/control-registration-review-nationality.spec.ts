@@ -102,7 +102,7 @@ test('sets a nationality and sees the flag, then sees a placeholder photo on the
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByText('Elías Salomón').click();
+  await page.getByRole('button', { name: 'Mostrar detalles: Elías Salomón' }).click();
   await page.getByLabel('País').fill('Argent');
   await page.getByRole('option', { name: /Argentina/ }).click();
   await page.getByRole('button', { name: 'Guardar' }).click();
@@ -131,7 +131,7 @@ test('uploads a person photo through the crop modal from the registration review
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByText('Elías Salomón').click();
+  await page.getByRole('button', { name: 'Mostrar detalles: Elías Salomón' }).click();
   await expect(page.getByRole('img', { name: 'Subir foto' })).toBeVisible();
 
   await page.getByLabel('Subir foto').setInputFiles({

@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectNoBrokenWords, expectTablesFitTheirFrame } from './support/table-assertions.js';
 
 /**
  * Operations and administration screens on the shared list, rail and summary compositions:
@@ -220,6 +221,13 @@ for (const language of LANGUAGES) {
 
         const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
         expect(scrollWidth).toBeLessThanOrEqual(viewport.width);
+
+        // Roles, audit and analytics stack their rows on a phone: nothing scrolls sideways and
+        // no word breaks in the middle.
+        if (viewportName === 'mobile') {
+          await expectTablesFitTheirFrame(page, 'stacked');
+          await expectNoBrokenWords(page, '.cl-data-table');
+        }
 
         const { violations } = await new AxeBuilder({ page }).analyze();
         expect(

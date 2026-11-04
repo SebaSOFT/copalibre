@@ -239,8 +239,6 @@ export const messages: Record<string, string> = {
     'yarn workspace @copalibre/web build && yarn workspace @copalibre/web preview',
 
   'publicWeb.matchesView.pageTitle': 'Матчи',
-  'publicWeb.matchesView.tableScrollHint':
-    'Прокрутите таблицу по горизонтали, чтобы увидеть все столбцы.',
   'publicWeb.matchesView.filtersDisclosureLabel': 'Фильтровать матчи',
   'publicWeb.matchesView.filterAll': 'Все',
   'publicWeb.matchesView.filterLive': 'В эфире',

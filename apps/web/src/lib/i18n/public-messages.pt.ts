@@ -240,8 +240,6 @@ export const messages: Record<string, string> = {
     'yarn workspace @copalibre/web build && yarn workspace @copalibre/web preview',
 
   'publicWeb.matchesView.pageTitle': 'Partidas',
-  'publicWeb.matchesView.tableScrollHint':
-    'Deslize a tabela horizontalmente para ver todas as colunas.',
   'publicWeb.matchesView.filtersDisclosureLabel': 'Filtrar partidas',
   'publicWeb.matchesView.filterAll': 'Todas',
   'publicWeb.matchesView.filterLive': 'Ao vivo',

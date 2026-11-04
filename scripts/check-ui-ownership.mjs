@@ -232,7 +232,7 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   ['control/components/BracketCanvas.tsx', 2],
   ['control/components/screens/LiveConsoleTemplate.tsx', 2],
   ['control/components/screens/LoadMatchDataTemplate.tsx', 1],
-  ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
+  ['control/components/screens/RegistrationReviewTemplate.tsx', 2],
   ['control/components/RosterRoleSelector.tsx', 2],
   // cl-card was replaced with Card in SeedingBuilderTemplate.tsx.
   // `StageSettingsSection`'s hand-written `cl-card` moved to

@@ -1154,6 +1154,45 @@ describe('public table and pill treatments', () => {
     expect(css).toMatch(/\.cl-table-scroll \{[^}]*overflow-x: auto/);
   });
 
+  describe('narrow-screen table modes', () => {
+    const narrow = css.slice(css.indexOf('@media (width < 768px) {\n  .cl-cell-name'));
+    const narrowBlock = narrow.slice(0, narrow.indexOf('\n}\n') + 3);
+
+    it('hides low-priority columns below the medium breakpoint and shows the row disclosure', () => {
+      expect(narrowBlock).toContain('.cl-data-table--priority [data-priority="low"]');
+      expect(narrowBlock).toContain('.cl-table--priority [data-priority="low"] { display: none; }');
+      expect(narrowBlock).toContain('.cl-data-table--priority .cl-more');
+      // The disclosure is out of the way on a wide screen.
+      expect(css).toContain('.cl-more { display: none; }');
+    });
+
+    it('turns each row into a card of label–value pairs in stacked mode', () => {
+      expect(narrowBlock).toContain('.cl-data-table--stacked .cl-data-table__table td::before');
+      expect(narrowBlock).toContain('content: attr(data-label)');
+      // The header row stays for assistive technology, visually hidden rather than removed.
+      expect(narrowBlock).toMatch(/\.cl-data-table--stacked thead \{[^}]*clip-path: inset\(50%\)/);
+      expect(narrowBlock).not.toMatch(/\.cl-data-table--stacked thead \{[^}]*display: none/);
+    });
+
+    it('never breaks a name mid-word: it truncates with an ellipsis', () => {
+      expect(css).toMatch(/\.cl-cell-name \{[^}]*white-space: nowrap; overflow-wrap: normal/);
+      expect(css).toMatch(/\.cl-cell-name__text \{[^}]*text-overflow: ellipsis/);
+      expect(css).toMatch(/\.cl-cell-name \.cl-entrant-name \{[^}]*text-overflow: ellipsis/);
+    });
+
+    it('pins the first column of a scrolling table and shades the edge with more to scroll', () => {
+      expect(css).toMatch(
+        /\.cl-data-table--scroll \.cl-data-table__table :is\(th, td\):first-child[^{]*\{[^}]*position: sticky/,
+      );
+      expect(css).toMatch(
+        /\.cl-data-table--scroll, \.cl-table-scroll \{[^}]*var\(--cl-scroll-edge\)/,
+      );
+      expect(css).toMatch(
+        /--cl-scroll-edge: color-mix\(in srgb, var\(--cl-text-primary\) \d+%, transparent\)/,
+      );
+    });
+  });
+
   it('renders pills as bounded, gapped controls meeting the touch target', () => {
     expect(css).toMatch(/\.cl-pill-group \{[^}]*gap: var\(--cl-space-2\)/);
     expect(css).toMatch(/\.cl-pill \{[^}]*min-height: var\(--cl-touch-target\)/);

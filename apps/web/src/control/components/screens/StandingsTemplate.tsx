@@ -38,6 +38,8 @@ const NAME_COLUMN_CODES: ReadonlySet<string> = new Set([
   'name',
   'team',
   'entrant',
+  'player',
+  'person',
 ]);
 
 /** Columns that stay visible on a phone; the rest move into each row's disclosure. */

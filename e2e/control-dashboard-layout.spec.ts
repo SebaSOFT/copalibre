@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectNoBrokenWords, expectTablesFitTheirFrame } from './support/table-assertions.js';
 import { expectNoVisibleIdentifiers } from './support/visible-identifiers.js';
 
 /**
@@ -447,4 +448,28 @@ test('clicking "Crear torneo" from the dashboard arrives at the tournament setup
   await page.waitForURL(`**/control/${ORG_ALIAS}/tournaments/new`);
   expect(new URL(page.url()).pathname).toBe(`/control/${ORG_ALIAS}/tournaments/new`);
   await expect(page.getByLabel('Nombre')).toBeVisible();
+});
+
+test('recent activity stacks into labelled cards on a phone in German, with nothing cut off', async ({
+  page,
+}) => {
+  await page.setViewportSize(MOBILE);
+  await openDashboard(page, 'de');
+
+  const feed = page.locator('.cl-activity-feed');
+  await expect(feed.getByRole('table')).toBeVisible();
+  await expectTablesFitTheirFrame(page, 'stacked');
+  await expectNoBrokenWords(page, '.cl-activity-feed');
+
+  // Each event reads as action, actor and time, each beside its label.
+  const firstCard = feed.getByRole('row').nth(1);
+  const labels = await firstCard
+    .getByRole('cell')
+    .evaluateAll((cells) => cells.map((cell) => cell.getAttribute('data-label')));
+  expect(labels).toEqual(['Aktion', 'Wer', 'Wann']);
+
+  const { violations } = await new AxeBuilder({ page })
+    .withRules(['th-has-data-cells', 'scope-attr-valid'])
+    .analyze();
+  expect(violations).toEqual([]);
 });

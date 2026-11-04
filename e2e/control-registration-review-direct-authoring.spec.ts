@@ -1,5 +1,7 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectNoBrokenWords, expectTablesFitTheirFrame } from './support/table-assertions.js';
 import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
 
 /**
@@ -141,7 +143,7 @@ test('registers a walk-up entrant from the registration review screen, with no C
   await dialog.getByRole('button', { name: 'Registrar' }).click();
   await expect(dialog).toBeHidden();
 
-  const row = page.locator('summary', { hasText: 'Walk-up Person' });
+  const row = page.getByRole('row', { name: /Walk-up Person/ });
   await expect(row).toBeVisible();
   await expect(row.getByText('Pendiente')).toBeVisible();
 });
@@ -164,7 +166,7 @@ test("edits a directly-added team's name from the screen and sees the change imm
   await page.waitForURL(`**${target}`);
 
   await expectNoVisibleIdentifiers(page, FIXTURE_ALIASES);
-  await page.getByText('Talleres', { exact: true }).click();
+  await page.getByRole('button', { name: 'Mostrar detalles: Talleres' }).click();
   await page.getByRole('button', { name: 'Editar identidad', exact: true }).click();
 
   const dialog = page.getByRole('dialog', { name: 'Editar identidad' });
@@ -174,4 +176,49 @@ test("edits a directly-added team's name from the screen and sees the change imm
 
   await expect(dialog).toBeHidden();
   await expect(page.getByText('Talleres FC')).toBeVisible();
+});
+
+test('registration review is a table with scoped headers that stacks on a phone in German', async ({
+  page,
+}) => {
+  await page.addInitScript(() => localStorage.setItem('copalibre.language', 'de'));
+  await mockRegistrationApi(page, [
+    {
+      entrantId: 'entrant-1',
+      tournamentId: 't-1',
+      status: 'pending',
+      teamId: TEAM_ID,
+      displayName: 'Club Atlético Estudiantil de la Ciudad de San Miguel de Tucumán',
+    },
+    {
+      entrantId: 'entrant-2',
+      tournamentId: 't-1',
+      status: 'accepted',
+      teamId: 'team-2',
+      displayName: 'Talleres',
+    },
+  ]);
+  await page.setViewportSize({ width: 375, height: 667 });
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/registrations';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const table = page.getByRole('table');
+  await expect(table).toBeVisible();
+  const headers = table.getByRole('columnheader');
+  await expect(headers).toHaveCount(5);
+  const scopes = await headers.evaluateAll((cells) =>
+    cells.map((cell) => cell.getAttribute('scope')),
+  );
+  expect(scopes).toEqual(['col', 'col', 'col', 'col', 'col']);
+
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+  await expectTablesFitTheirFrame(page, 'stacked');
+  await expectNoBrokenWords(page, '.cl-data-table');
+
+  const { violations } = await new AxeBuilder({ page })
+    .withRules(['th-has-data-cells', 'scope-attr-valid', 'empty-table-header'])
+    .analyze();
+  expect(violations).toEqual([]);
 });

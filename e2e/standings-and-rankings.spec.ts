@@ -2,6 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 import type { Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectNoBrokenWords, expectTablesFitTheirFrame } from './support/table-assertions.js';
 
 /**
  * A5 (Control Web) and B2 (public tournament page) rendering declared table
@@ -291,15 +292,17 @@ test('A5: renders the discipline’s own GF/GC/Dif/Avg columns, switches to a fr
   // Table cells specifically — the distribution chart above repeats the
   // same leader's name and value as its own bar label.
   const table = page.locator('.cl-chamfer--control');
-  await expect(table.getByText('Talleres')).toBeVisible();
-  await expect(table.getByText('9', { exact: true })).toBeVisible();
-  await expect(table.getByText('4.00', { exact: true })).toBeVisible();
+  await expect(table.getByText('Talleres', { exact: true })).toBeVisible();
+  // A low-priority column's value is listed twice (the cell, and the row's phone disclosure,
+  // which is out of the way on a wide screen), so assert on the table cells.
+  await expect(table.getByRole('cell', { name: '9', exact: true })).toBeVisible();
+  await expect(table.getByRole('cell', { name: '4.00', exact: true })).toBeVisible();
 
   // Switching tabs reads a different declared layout, including a composite
   // fraction cell no group-standings column ever produces.
   await page.getByRole('tab', { name: 'Top Scorers' }).click();
-  await expect(table.getByText('Goleador Uno')).toBeVisible();
-  await expect(table.getByText('4/5')).toBeVisible();
+  await expect(table.getByText('Goleador Uno', { exact: true })).toBeVisible();
+  await expect(table.getByRole('cell', { name: '4/5', exact: true })).toBeVisible();
 
   const [download] = await Promise.all([
     page.waitForEvent('download'),
@@ -559,6 +562,30 @@ test.describe('B2: public tournament page', () => {
 
   test.afterAll(async () => {
     await new Promise<void>((resolve) => apiServer.close(() => resolve()));
+  });
+
+  test('keeps the name on a phone in German and moves the other columns into a disclosure', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 844 });
+    await page.goto(`/de/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    const table = page.locator('.cl-table--priority').first();
+    await expect(table.getByRole('cell', { name: /Talleres/ })).toBeVisible();
+    // GF is a low-priority column: its header and cells are out of the way on a phone…
+    await expect(table.getByRole('columnheader', { name: 'GF' })).toBeHidden();
+
+    // …and its value is one tap away in the row's disclosure.
+    const row = table.getByRole('row').filter({ hasText: 'Talleres' });
+    await row.locator('summary').click();
+    const detail = row.locator('.cl-more__list');
+    await expect(detail.getByText('GF', { exact: true })).toBeVisible();
+
+    await expectNoBrokenWords(page, '.cl-table-scroll');
+    await expectTablesFitTheirFrame(page, 'priority');
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
   });
 
   test('renders the discipline’s own GF/GC/Dif/Avg columns for a spectator', async ({ page }) => {

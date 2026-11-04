@@ -1903,7 +1903,7 @@ export const messages: Record<string, string> = {
   'control.auditTrail.hideDetails': 'Masquer le détail',
   'control.auditTrail.columnDetails': 'Détail',
   'control.analytics.primaryLabel': "Panneau d'état des tournois",
-  "control.dataTable.moreColumns": "Plus de colonnes",
-  "control.dataTable.showDetails": "Afficher les détails",
-  "control.dataTable.hideDetails": "Masquer les détails",
+  'control.dataTable.moreColumns': 'Plus de colonnes',
+  'control.dataTable.showDetails': 'Afficher les détails',
+  'control.dataTable.hideDetails': 'Masquer les détails',
 };
