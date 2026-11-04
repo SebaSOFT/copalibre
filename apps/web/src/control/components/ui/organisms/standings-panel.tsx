@@ -14,7 +14,7 @@
  */
 import { useId, type ReactNode } from 'react';
 import { Badge } from '../atoms/badge.js';
-import { DataTable, type DataTableColumn } from './data-table.js';
+import { DataTable, type DataTableColumn, type DataTableMobileMode } from './data-table.js';
 import { TiebreakerSequence, type TiebreakerRuleItem } from '../molecules/tiebreaker-sequence.js';
 
 export interface StandingsPanelProps<Row> {
@@ -41,6 +41,9 @@ export interface StandingsPanelProps<Row> {
   /** Denser rows (~44px) and a `position: sticky` header — see `DataTable`'s own props for the same opt-in. */
   readonly compact?: boolean;
   readonly stickyHeader?: boolean;
+  /** How the table behaves below the medium breakpoint — see `DataTable`. */
+  readonly mobileMode?: DataTableMobileMode;
+  readonly moreColumnsLabel?: string;
   /**
    * The configured tiebreaker chain, in the order the organizer configured it.
    * Omitted where the format declares none — an empty footer would imply the
@@ -69,6 +72,8 @@ export function StandingsPanel<Row>({
   renderRowDetail,
   compact = false,
   stickyHeader = false,
+  mobileMode,
+  moreColumnsLabel,
   tiebreakers,
   tiebreakerTitle,
   auditProofCode,
@@ -106,6 +111,8 @@ export function StandingsPanel<Row>({
         compact={compact}
         {...(emptyMessage === undefined ? {} : { emptyMessage })}
         {...(renderRowDetail === undefined ? {} : { renderRowDetail })}
+        {...(mobileMode === undefined ? {} : { mobileMode })}
+        {...(moreColumnsLabel === undefined ? {} : { moreColumnsLabel })}
         rowKey={rowKey}
         rows={rows}
         stickyHeader={stickyHeader}

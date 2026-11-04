@@ -349,6 +349,10 @@ export const messages = defineMessages({
     id: 'publicWeb.standings.tableLayouts',
     defaultMessage: 'Table layouts',
   },
+  standingsMoreColumns: {
+    id: 'publicWeb.standings.moreColumns',
+    defaultMessage: 'More columns',
+  },
   standingsFilterByClub: {
     id: 'publicWeb.standings.filterByClub',
     defaultMessage: 'Filter by club',
@@ -598,10 +602,6 @@ export const messages = defineMessages({
 
   // matches.astro / MatchCard.tsx
   matchesViewPageTitle: { id: 'publicWeb.matchesView.pageTitle', defaultMessage: 'Matches' },
-  matchesViewTableScrollHint: {
-    id: 'publicWeb.matchesView.tableScrollHint',
-    defaultMessage: 'Swipe the table horizontally to see all columns.',
-  },
   matchesViewFiltersDisclosureLabel: {
     id: 'publicWeb.matchesView.filtersDisclosureLabel',
     defaultMessage: 'Filter matches',

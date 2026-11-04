@@ -1886,4 +1886,7 @@ export const messages: Record<string, string> = {
   'control.auditTrail.hideDetails': 'Ocultar detalle',
   'control.auditTrail.columnDetails': 'Detalle',
   'control.analytics.primaryLabel': 'Panel de estado de los torneos',
+  'control.dataTable.moreColumns': 'Más columnas',
+  'control.dataTable.showDetails': 'Mostrar detalles',
+  'control.dataTable.hideDetails': 'Ocultar detalles',
 };

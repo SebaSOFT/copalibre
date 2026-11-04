@@ -1908,4 +1908,7 @@ export const messages: Record<string, string> = {
   'control.auditTrail.hideDetails': 'Details ausblenden',
   'control.auditTrail.columnDetails': 'Details',
   'control.analytics.primaryLabel': 'Statusbereich der Turniere',
+  'control.dataTable.moreColumns': 'Weitere Spalten',
+  'control.dataTable.showDetails': 'Details anzeigen',
+  'control.dataTable.hideDetails': 'Details ausblenden',
 };

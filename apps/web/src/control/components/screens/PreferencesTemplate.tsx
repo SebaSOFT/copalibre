@@ -474,21 +474,25 @@ export function PreferencesTemplate({
     {
       key: 'label',
       header: intl.formatMessage(controlMessages.preferencesPatLabel),
+      label: intl.formatMessage(controlMessages.preferencesPatLabel),
       render: (token) => <strong>{token.label}</strong>,
     },
     {
       key: 'created',
       header: intl.formatMessage(controlMessages.preferencesPatCreatedColumn),
+      label: intl.formatMessage(controlMessages.preferencesPatCreatedColumn),
       render: (token) => formatTokenDate(token.createdAt),
     },
     {
       key: 'expires',
       header: intl.formatMessage(controlMessages.preferencesPatExpiresColumn),
+      label: intl.formatMessage(controlMessages.preferencesPatExpiresColumn),
       render: (token) => formatTokenDate(token.expiresAt),
     },
     {
       key: 'scopes',
       header: intl.formatMessage(controlMessages.preferencesPatScopes),
+      label: intl.formatMessage(controlMessages.preferencesPatScopes),
       render: (token) => (
         <span className="cl-preferences-scope-label">{token.scopes.join(', ')}</span>
       ),
@@ -496,6 +500,7 @@ export function PreferencesTemplate({
     {
       key: 'actions',
       header: intl.formatMessage(controlMessages.rolesColumnActions),
+      label: intl.formatMessage(controlMessages.rolesColumnActions),
       render: (token) => (
         <Button
           onClick={() => void requestPatRevoke(token.tokenId, token.label)}
@@ -664,6 +669,7 @@ export function PreferencesTemplate({
               <DataTable
                 ariaLabel={intl.formatMessage(controlMessages.preferencesPatTitle)}
                 columns={tokenColumns}
+                mobileMode="stacked"
                 rowKey={(token) => token.tokenId}
                 rows={activeTokens}
               />

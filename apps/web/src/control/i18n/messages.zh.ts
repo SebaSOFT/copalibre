@@ -1776,4 +1776,7 @@ export const messages: Record<string, string> = {
   'control.auditTrail.hideDetails': '隐藏详情',
   'control.auditTrail.columnDetails': '详情',
   'control.analytics.primaryLabel': '赛事状态面板',
+  'control.dataTable.moreColumns': '更多列',
+  'control.dataTable.showDetails': '显示详情',
+  'control.dataTable.hideDetails': '隐藏详情',
 };

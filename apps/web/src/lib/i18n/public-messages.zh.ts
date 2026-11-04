@@ -92,6 +92,7 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.promotionBandRange': '种子位 {first}–{last}',
   'publicWeb.standings.fullTable': '查看完整积分榜',
   'publicWeb.standings.tableLayouts': '表格布局',
+  'publicWeb.standings.moreColumns': '更多列',
   'publicWeb.standings.filterByClub': '按俱乐部筛选',
   'publicWeb.standings.filterClubLabel': '俱乐部',
   'publicWeb.standings.columnLegend': '表格缩写说明',
@@ -234,7 +235,6 @@ export const messages: Record<string, string> = {
     'yarn workspace @copalibre/web build && yarn workspace @copalibre/web preview',
 
   'publicWeb.matchesView.pageTitle': '比赛',
-  'publicWeb.matchesView.tableScrollHint': '横向滑动表格以查看所有列。',
   'publicWeb.matchesView.filtersDisclosureLabel': '筛选比赛',
   'publicWeb.matchesView.filterAll': '全部',
   'publicWeb.matchesView.filterLive': '进行中',

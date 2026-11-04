@@ -61,6 +61,7 @@ export function QualificationTemplate({
     {
       key: 'position',
       header: intl.formatMessage(messages.qualificationPositionColumn),
+      priority: 'high',
       render: (row) => positionText(row),
     },
     ...(preview?.positions.some((row) => row.zoneName !== undefined)
@@ -68,6 +69,7 @@ export function QualificationTemplate({
           {
             key: 'zone',
             header: intl.formatMessage(messages.qualificationZoneColumn),
+            priority: 'low' as const,
             render: (row: QualificationPositionResponse) => row.zoneName ?? '',
           },
         ]
@@ -75,6 +77,8 @@ export function QualificationTemplate({
     {
       key: 'entrant',
       header: intl.formatMessage(messages.qualificationEntrantColumn),
+      priority: 'high',
+      nameText: (row) => nameOf(row.entrantId),
       render: (row) => (
         <span data-qualification-entrant={row.position}>{nameOf(row.entrantId)}</span>
       ),
@@ -84,6 +88,7 @@ export function QualificationTemplate({
           {
             key: 'confirmed',
             header: intl.formatMessage(messages.qualificationConfirmedColumn),
+            priority: 'low' as const,
             render: (row: QualificationPositionResponse) => nameOf(row.confirmedEntrantId),
           },
         ]
@@ -142,6 +147,8 @@ export function QualificationTemplate({
             <DataTable
               ariaLabel={intl.formatMessage(messages.qualificationTitle)}
               columns={columns}
+              mobileMode="priority"
+              moreColumnsLabel={intl.formatMessage(messages.dataTableMoreColumns)}
               rowKey={(row) => `${row.promotionPlanId}:${row.position}`}
               rows={preview.positions}
             />

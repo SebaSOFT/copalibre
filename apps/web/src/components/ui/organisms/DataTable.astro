@@ -43,7 +43,15 @@ export interface DataTableColumn {
   readonly abbreviation?: (row: unknown) => string | undefined;
   /** Wraps the cell's text in `<time datetime>` when it returns an ISO instant. */
   readonly datetime?: (row: unknown) => string | undefined;
+  /** Plain-text name of the column for a stacked card and a row's disclosure; defaults to the header. */
+  readonly label?: string;
+  /** `low` columns hide below the medium breakpoint in `priority` mode. Defaults to `high`. */
+  readonly priority?: 'high' | 'low';
+  /** Marks the row's name column: it truncates with an ellipsis rather than breaking mid-word. */
+  readonly name?: boolean;
 }
+
+export type DataTableMobileMode = 'scroll' | 'priority' | 'stacked';
 
 export interface DataTableCellContent {
   readonly text: string;
@@ -72,15 +80,36 @@ export interface Props {
   readonly compact?: boolean;
   /** Opt-in `position: sticky` header, anchored while a tall table scrolls past it. */
   readonly stickyHeader?: boolean;
+  /** How the table behaves below the medium breakpoint. Defaults to `scroll`. */
+  readonly mobileMode?: DataTableMobileMode;
+  /** The row disclosure's accessible name; wording a `priority` table needs. */
+  readonly moreColumnsLabel?: string;
 }
 
-const { columns, rows, sections, caption, emptyMessage, ariaLabel, compact, stickyHeader } =
-  Astro.props;
+const {
+  columns,
+  rows,
+  sections,
+  caption,
+  emptyMessage,
+  ariaLabel,
+  compact,
+  stickyHeader,
+  mobileMode = 'scroll',
+  moreColumnsLabel = '',
+} = Astro.props;
+const stacked = mobileMode === 'stacked';
+const lowColumns = mobileMode === 'priority' ? columns.filter((c) => c.priority === 'low') : [];
+const nameIndex = columns.findIndex((column) => column.name === true);
+const hostIndex = nameIndex >= 0 ? nameIndex : 0;
+const labelOf = (column: DataTableColumn): string =>
+  column.label ?? (typeof column.header === 'string' ? column.header : '');
 const bodies: readonly DataTableSection[] = sections ?? [{ rows }];
 const rowCount = bodies.reduce((total, body) => total + body.rows.length, 0);
 const modifiers = [
   compact ? 'cl-data-table--compact' : '',
   stickyHeader ? 'cl-data-table--sticky' : '',
+  `cl-data-table--${mobileMode}`,
 ]
   .filter(Boolean)
   .join(' ');
@@ -92,15 +121,17 @@ const modifiers = [
   role="region"
   tabindex="0"
 >
-  <table class="cl-data-table__table">
+  <table class="cl-data-table__table" role={stacked ? 'table' : undefined}>
     {caption ? <caption class="cl-data-table__caption">{caption}</caption> : null}
-    <thead>
-      <tr>
+    <thead role={stacked ? 'rowgroup' : undefined}>
+      <tr role={stacked ? 'row' : undefined}>
         {columns.map((column: DataTableColumn) => (
           <th
             aria-label={column.headerHint}
             aria-sort={column.ariaSort}
             data-column={column.key}
+            data-priority={column.priority}
+            role={stacked ? 'columnheader' : undefined}
             scope="col"
             title={column.headerHint}
           >
@@ -110,17 +141,17 @@ const modifiers = [
       </tr>
     </thead>
     {bodies.map((body) => (
-      <tbody>
+      <tbody role={stacked ? 'rowgroup' : undefined}>
         {body.heading ? (
-          <tr class="cl-data-table__section">
+          <tr class="cl-data-table__section" role={stacked ? 'row' : undefined}>
             <th colspan={columns.length} scope="rowgroup">
               {body.heading}
             </th>
           </tr>
         ) : null}
         {body.rows.map((row) => (
-          <tr>
-            {columns.map((column: DataTableColumn) => {
+          <tr role={stacked ? 'row' : undefined}>
+            {columns.map((column: DataTableColumn, columnIndex: number) => {
               const text = column.render(row) as string;
               const address = column.href?.(row);
               const linkAriaLabel = column.linkAriaLabel?.(row);
@@ -158,15 +189,48 @@ const modifiers = [
                 ) : (
                   body
                 );
+              const linked = address ? (
+                <a aria-label={linkAriaLabel} href={address}>
+                  {content}
+                </a>
+              ) : (
+                content
+              );
+              const nameOfRow = richContent?.text ?? text;
               return (
-                <td data-column={column.key}>
-                  {address ? (
-                    <a aria-label={linkAriaLabel} href={address}>
-                      {content}
-                    </a>
+                <td
+                  class={column.name ? 'cl-cell-name' : undefined}
+                  data-column={column.key}
+                  data-label={labelOf(column)}
+                  data-priority={column.priority}
+                  role={stacked ? 'cell' : undefined}
+                >
+                  {column.name ? (
+                    <span class="cl-cell-name__row">
+                      <span class="cl-cell-name__text" title={nameOfRow}>
+                        {linked}
+                      </span>
+                    </span>
                   ) : (
-                    content
+                    linked
                   )}
+                  {columnIndex === hostIndex && lowColumns.length > 0 ? (
+                    <details class="cl-more">
+                      <summary>
+                        <span class="cl-visually-hidden">
+                          {nameOfRow ? `${moreColumnsLabel}: ${nameOfRow}` : moreColumnsLabel}
+                        </span>
+                      </summary>
+                      <dl class="cl-more__list">
+                        {lowColumns.map((low: DataTableColumn) => (
+                          <>
+                            <dt>{labelOf(low)}</dt>
+                            <dd>{(low.renderContent?.(row)?.text ?? low.render(row)) as string}</dd>
+                          </>
+                        ))}
+                      </dl>
+                    </details>
+                  ) : null}
                 </td>
               );
             })}
@@ -192,12 +256,27 @@ const modifiers = [
     display: none;
     text-decoration: none;
   }
+  .cl-cell-name .cl-data-table__cell-content {
+    max-inline-size: 100%;
+  }
+  .cl-cell-name .cl-data-table__cell-content > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   @media (width < 768px) {
     .cl-data-table__full:has(+ .cl-data-table__short) {
       display: none;
     }
     .cl-data-table__short {
       display: inline;
+    }
+    /* A stacked card has the room: it shows the whole text, not the short form. */
+    .cl-data-table--stacked .cl-data-table__full:has(+ .cl-data-table__short) {
+      display: inline;
+    }
+    .cl-data-table--stacked .cl-data-table__short {
+      display: none;
     }
   }
 </style>

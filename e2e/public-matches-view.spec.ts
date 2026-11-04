@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
+import { expectNoBrokenWords, expectTablesFitTheirFrame } from './support/table-assertions.js';
 import { expectNoVisibleIdentifiers } from './support/visible-identifiers.js';
 import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 
@@ -113,12 +114,28 @@ test('the German matches view fits a 375px viewport without horizontal scrolling
   await page.goto(`/de${matchesPath}`);
 
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  await expect(page.locator('.cl-match-schedule__scroll-hint')).toHaveText(
-    'Wische in der Tabelle horizontal, um alle Spalten zu sehen.',
-  );
+  // The fixtures are stacked cards on a phone, so no table asks to be scrolled sideways.
+  const scrolls = await page
+    .locator('.cl-data-table')
+    .evaluateAll((tables) => tables.filter((t) => t.scrollWidth > t.clientWidth).length);
+  expect(scrolls).toBe(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
+});
+
+test('stacks each match into a labelled card on a phone in German, with whole team names', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 844 });
+  await page.goto(`/de${matchesPath}`);
+
+  await expectTablesFitTheirFrame(page, 'stacked');
+  await expectNoBrokenWords(page, '.cl-match-schedule');
+  const homeCell = page.locator('td[data-column="home"]').first();
+  await expect(homeCell.getByText('Club Andes')).toBeVisible();
+  const label = await homeCell.evaluate((cell) => getComputedStyle(cell, '::before').content);
+  expect(label).toBe('"Heim"');
 });
 
 test('shows every match with venue, clock, and a one-line deciding-factor summary — no full trace', async ({

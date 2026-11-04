@@ -150,6 +150,20 @@ const displayColumns = hasPromotionTags
     ]
   : columns;
 const hints = displayColumns.map((column) => columnHint(column, intl.locale));
+// On a phone the table keeps the position, the name, matches played and the points; every other
+// column stays one tap away in a disclosure in the name cell, which a sort carries along.
+const moreColumnsLabel = intl.formatMessage(messages.standingsMoreColumns);
+const NAME_CODES = ['name', 'entrant', 'team', 'person', 'player'];
+const PRIORITY_CODES = new Set(['rank', 'played', 'points', ...NAME_CODES]);
+const priorityOf = (code: string): 'low' | undefined =>
+  PRIORITY_CODES.has(code) ? undefined : 'low';
+const lowColumnIndexes = displayColumns.flatMap((column, index) =>
+  priorityOf(column.code) === 'low' ? [index] : [],
+);
+const hostColumnIndex = Math.max(
+  0,
+  displayColumns.findIndex((column) => NAME_CODES.includes(column.code)),
+);
 const legend = hints.filter((one) => one.hint !== undefined);
 const isPlayerRanking =
   layout?.target === 'player-ranking' ||
@@ -255,7 +269,7 @@ const playerDialogLabels = {
     {rows.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
     {rows.length > 0 && (
       <table
-        class="cl-table"
+        class="cl-table cl-table--priority"
         data-sortable-table={showControls && previewRows === undefined ? true : undefined}
       >
         <thead>
@@ -264,7 +278,7 @@ const playerDialogLabels = {
               const { label, hint } = hints[columnIndex] ?? { label: '' };
               const bubbleId = `column-hint-${column.code}`;
               return (
-                <th scope="col" aria-sort="none">
+                <th scope="col" aria-sort="none" data-priority={priorityOf(column.code)}>
                   {column.code === '__promotion' || previewRows !== undefined || !showControls ? (
                     label
                   ) : hint === undefined ? (
@@ -304,10 +318,10 @@ const playerDialogLabels = {
         <tbody>
           {rows.map((row, index) => (
             <tr class={rowClassNames[index]} data-promotion-band-index={row.promotionBandIndex}>
-              {displayColumns.map((column) => {
+              {displayColumns.map((column, columnIndex) => {
                 if (column.code === '__promotion') {
                   return (
-                    <td class="cl-standings-qualification-cell">
+                    <td class="cl-standings-qualification-cell" data-priority="low">
                       <span
                         class="cl-standings-qualification-tag"
                         data-promotion-band-index={row.promotionBandIndex}
@@ -345,19 +359,8 @@ const playerDialogLabels = {
                     ? `/api/player-profile?organization=${encodeURIComponent(organizationAlias)}&tournament=${encodeURIComponent(tournamentAlias)}&personId=${encodeURIComponent(row.actorId)}`
                     : playerPageUrl;
 
-                return (
-                  <td
-                    class={
-                      isPlayerNameCell || isNameCell
-                        ? undefined
-                        : column.format === 'text'
-                          ? 'cl-table__num'
-                          : 'cl-table__num cl-tabular-nums'
-                    }
-                    data-sort-value={cellMissing ? undefined : String(cellRaw)}
-                    data-sort-type={typeof cellRaw === 'number' ? 'number' : 'text'}
-                    data-sort-missing={cellMissing ? 'true' : undefined}
-                  >
+                const cellBody = (
+                  <>
                     {isPlayerNameCell && row.hiddenAtRequest ? (
                       intl.formatMessage(messages.personHiddenAtRequest)
                     ) : isPlayerNameCell && row.actorId && row.publicProfileAvailable !== false ? (
@@ -407,6 +410,51 @@ const playerDialogLabels = {
                       </span>
                     ) : (
                       cellFormatted
+                    )}
+                  </>
+                );
+                return (
+                  <td
+                    class={
+                      isPlayerNameCell || isNameCell
+                        ? 'cl-cell-name'
+                        : column.format === 'text'
+                          ? 'cl-table__num'
+                          : 'cl-table__num cl-tabular-nums'
+                    }
+                    data-priority={priorityOf(column.code)}
+                    data-sort-value={cellMissing ? undefined : String(cellRaw)}
+                    data-sort-type={typeof cellRaw === 'number' ? 'number' : 'text'}
+                    data-sort-missing={cellMissing ? 'true' : undefined}
+                  >
+                    {isPlayerNameCell || isNameCell ? (
+                      <span class="cl-cell-name__row">
+                        <span class="cl-cell-name__text">{cellBody}</span>
+                      </span>
+                    ) : (
+                      cellBody
+                    )}
+                    {columnIndex === hostColumnIndex && lowColumnIndexes.length > 0 && (
+                      <details class="cl-more">
+                        <summary>
+                          <span class="cl-visually-hidden">
+                            {`${moreColumnsLabel}: ${row.entrantName ?? row.actorName ?? cellFormatted}`}
+                          </span>
+                        </summary>
+                        <dl class="cl-more__list">
+                          {lowColumnIndexes.map((index) => (
+                            <>
+                              <dt>{hints[index]?.label}</dt>
+                              <dd>
+                                {displayColumns[index]?.code === '__promotion'
+                                  ? (row.promotionBandLabel ?? '—')
+                                  : (row.cells[displayColumns[index]?.code ?? '']?.formatted ??
+                                    '—')}
+                              </dd>
+                            </>
+                          ))}
+                        </dl>
+                      </details>
                     )}
                   </td>
                 );

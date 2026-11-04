@@ -37,6 +37,7 @@ import { PersonPhotoPlaceholder } from '../placeholders.js';
 import { FieldValue } from '../ui/molecules/field-value.js';
 import { Modal } from '../ui/organisms/modal.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
 import type { PlayerRole } from '@copalibre/domain';
 import {
   RosterRoleSelector,
@@ -167,6 +168,7 @@ export function RegistrationReviewTemplate({
   );
 
   const [addOpen, setAddOpen] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<ReadonlySet<string>>(() => new Set());
   const [editingRow, setEditingRow] = useState<ReviewRegistrationRow | undefined>(undefined);
   const [linkingRow, setLinkingRow] = useState<ReviewRegistrationRow | undefined>(undefined);
   const [editingMembersRow, setEditingMembersRow] = useState<ReviewRegistrationRow | undefined>(
@@ -246,250 +248,288 @@ export function RegistrationReviewTemplate({
     </TableToolbar>
   );
 
-  const tableNode = (
-    <div
-      aria-label={intl.formatMessage(messages.reviewSectionLabel)}
-      className="cl-data-table"
-      role="region"
-      tabIndex={0}
-    >
-      <div className="cl-role-user">
+  const toggleExpanded = (entrantId: string): void =>
+    setExpandedRows((current) => {
+      const next = new Set(current);
+      if (next.has(entrantId)) next.delete(entrantId);
+      else next.add(entrantId);
+      return next;
+    });
+
+  const renderRegistrationDetail = (row: ReviewRegistrationRow): React.JSX.Element => {
+    const teamMembershipEnabled = teamMembershipActionsEnabled({
+      requiresCheckIn: row.requiresCheckIn,
+      checkInClosesAt: row.checkInClosesAt,
+      status: row.status,
+      now,
+    });
+    const personId = row.personId;
+    return (
+      <div className="cl-card__content">
+        <CopyIdButton
+          copiedLabel={intl.formatMessage(messages.copyIdSuccess)}
+          failedLabel={intl.formatMessage(messages.copyIdFailure)}
+          label={intl.formatMessage(messages.copyIdButton)}
+          value={row.entrantId}
+        />
+        <FieldValue label={intl.formatMessage(messages.reviewContact)} value={row.contactEmail} />
+        <div className="cl-review-team-roster">
+          <span className="cl-label">
+            <FormattedMessage {...messages.reviewTeamMembers} />
+          </span>
+          {row.teamMembersDetailed && row.teamMembersDetailed.length > 0 ? (
+            <ul
+              className="cl-roster-badge-list"
+              style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 'var(--cl-space-2) 0',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 'var(--cl-space-2)',
+              }}
+            >
+              {row.teamMembersDetailed.map((member) => (
+                <li
+                  key={member.personId}
+                  className="cl-roster-badge-item"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 'var(--cl-space-1)',
+                  }}
+                >
+                  <span>
+                    {member.displayName || intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
+                  </span>
+                  <span
+                    className={`cl-badge ${ROSTER_ROLE_ACCENTS[member.role as PlayerRole] ?? 'cl-state--muted'}`}
+                    data-testid={`role-badge-${member.personId}`}
+                  >
+                    {rosterRoleLabel(member.role as PlayerRole, intl)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p style={{ margin: 'var(--cl-space-1) 0' }}>
+              {row.teamMembers.length === 0
+                ? intl.formatMessage(messages.reviewTeamMembersUnavailable)
+                : row.teamMembers.join(', ')}
+            </p>
+          )}
+        </div>
+        <FieldValue label={intl.formatMessage(messages.reviewExperience)} value={row.experience} />
+        {personId !== undefined && (
+          <Card className="cl-chamfer cl-chamfer--control">
+            <span className="cl-label">{intl.formatMessage(messages.reviewNationalityLabel)}</span>
+            <CountrySelect
+              onChange={(code) =>
+                setNationalityDraft((current) => ({ ...current, [personId]: code }))
+              }
+              value={nationalityDraft[personId] ?? row.nationality}
+            />
+            <Button
+              onClick={() =>
+                void onSetNationality?.(
+                  personId,
+                  nationalityDraft[personId] ?? row.nationality ?? null,
+                )
+              }
+              type="button"
+              variant="secondary"
+            >
+              <FormattedMessage {...messages.reviewSaveNationality} />
+            </Button>
+            <FramedImage
+              alt={intl.formatMessage(messages.reviewUploadPhoto)}
+              placeholder={
+                <PersonPhotoPlaceholder
+                  size={64}
+                  title={intl.formatMessage(messages.reviewUploadPhoto)}
+                />
+              }
+              size={64}
+              src={
+                optimisticPhotos[personId] ??
+                (row.photoObjectId !== undefined
+                  ? personPhotoUrl(organizationAlias, personId)
+                  : undefined)
+              }
+            />
+            <FilePicker
+              accept="image/*"
+              aria-label={intl.formatMessage(messages.reviewUploadPhoto)}
+              id={`review-photo-${personId}`}
+              label={intl.formatMessage(messages.reviewUploadPhoto)}
+              onChange={(files) => {
+                const file = files?.[0];
+                if (!file) return;
+                setPhotoCrop({ personId, src: URL.createObjectURL(file) });
+              }}
+              {...filePickerLabels(intl, { accept: 'image/*' })}
+            />
+            <a
+              className="cl-focusable"
+              href={`/control/${organizationAlias}/persons/${personId}`}
+              onClick={controlLinkClick(`/control/${organizationAlias}/persons/${personId}`)}
+            >
+              <FormattedMessage {...messages.reviewViewProfile} />
+            </a>
+          </Card>
+        )}
+        <div className="cl-role-user">
+          <Button type="button" variant="secondary">
+            <FormattedMessage {...messages.reviewMessage} />
+          </Button>
+          {(row.teamId !== undefined ||
+            row.teamMembers.length > 0 ||
+            (row.teamMembersDetailed && row.teamMembersDetailed.length > 0)) && (
+            <Button
+              disabled={!teamMembershipEnabled}
+              onClick={() => setEditingMembersRow(row)}
+              type="button"
+              variant="secondary"
+            >
+              <FormattedMessage {...messages.reviewEditMembers} />
+            </Button>
+          )}
+          {(row.personId !== undefined || row.teamId !== undefined) && (
+            <Button onClick={() => setEditingRow(row)} type="button" variant="secondary">
+              <FormattedMessage {...messages.reviewEditIdentity} />
+            </Button>
+          )}
+          {row.personId !== undefined &&
+            (row.hasIdentityLink ? (
+              <Button
+                onClick={() => void onUnlinkIdentity?.(row.personId as string)}
+                type="button"
+                variant="destructive-outline"
+              >
+                <FormattedMessage {...messages.reviewUnlinkIdentity} />
+              </Button>
+            ) : (
+              <Button onClick={() => setLinkingRow(row)} type="button" variant="secondary">
+                <FormattedMessage {...messages.reviewLinkIdentity} />
+              </Button>
+            ))}
+          <Button
+            onClick={() =>
+              void onReview?.(row.entrantId, {
+                decision: 'withdrawn',
+                reason: 'Revoked from registration review',
+              })
+            }
+            type="button"
+            variant="destructive-outline"
+          >
+            <FormattedMessage {...messages.reviewRevoke} />
+          </Button>
+        </div>
+        {!teamMembershipEnabled && !dismissedLockNotice && (
+          <Alert
+            dismissLabel={intl.formatMessage(messages.toastDismiss)}
+            onDismiss={() => setDismissedLockNotice(true)}
+            tone="warning"
+          >
+            {intl.formatMessage(LOCK_EXPLANATION)}
+          </Alert>
+        )}
+      </div>
+    );
+  };
+
+  const registrationColumns: readonly DataTableColumn<ReviewRegistrationRow>[] = [
+    {
+      key: 'select',
+      header: (
         <Checkbox
           aria-label={intl.formatMessage(messages.reviewSelectVisible)}
           checked={allVisibleSelected}
           onCheckedChange={() => setState((current) => toggleAllVisible(current, rows))}
         />
-        <span>
-          <FormattedMessage {...messages.reviewColumnName} />
-        </span>
-        <span>
-          <FormattedMessage {...messages.reviewColumnStatus} />
-        </span>
-        <span>
-          <FormattedMessage {...messages.reviewColumnSubmitted} />
-        </span>
-      </div>
-      {visible.map((row) => {
-        const teamMembershipEnabled = teamMembershipActionsEnabled({
-          requiresCheckIn: row.requiresCheckIn,
-          checkInClosesAt: row.checkInClosesAt,
-          status: row.status,
-          now,
-        });
-        const personId = row.personId;
-        return (
-          <details className="cl-focusable" key={row.entrantId}>
-            <summary className="cl-role-user">
-              <Checkbox
-                aria-label={intl.formatMessage(messages.reviewSelectRow, {
-                  displayName: row.displayName,
-                })}
-                checked={selected.has(row.entrantId)}
-                onCheckedChange={() => setState((current) => toggleRow(current, row.entrantId))}
-                onClick={(event: React.MouseEvent) => event.stopPropagation()}
-              />
-              <span>
-                <strong>
-                  {row.nationality !== undefined && (
-                    <span aria-hidden="true">{countryFlag(row.nationality)} </span>
-                  )}
-                  {row.displayName}
-                </strong>
-              </span>
-              <span className="cl-badge">{intl.formatMessage(STATUS_LABELS[row.status])}</span>
-              <time className="cl-label" dateTime={row.submittedAt}>
-                {formatDateTime(intl, row.submittedAt, pageHeader?.organizationTimeZone)}
-              </time>
-            </summary>
-            <div className="cl-card__content">
-              <CopyIdButton
-                copiedLabel={intl.formatMessage(messages.copyIdSuccess)}
-                failedLabel={intl.formatMessage(messages.copyIdFailure)}
-                label={intl.formatMessage(messages.copyIdButton)}
-                value={row.entrantId}
-              />
-              <FieldValue
-                label={intl.formatMessage(messages.reviewContact)}
-                value={row.contactEmail}
-              />
-              <div className="cl-review-team-roster">
-                <span className="cl-label">
-                  <FormattedMessage {...messages.reviewTeamMembers} />
-                </span>
-                {row.teamMembersDetailed && row.teamMembersDetailed.length > 0 ? (
-                  <ul
-                    className="cl-roster-badge-list"
-                    style={{
-                      listStyle: 'none',
-                      padding: 0,
-                      margin: 'var(--cl-space-2) 0',
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: 'var(--cl-space-2)',
-                    }}
-                  >
-                    {row.teamMembersDetailed.map((member) => (
-                      <li
-                        key={member.personId}
-                        className="cl-roster-badge-item"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 'var(--cl-space-1)',
-                        }}
-                      >
-                        <span>
-                          {member.displayName ||
-                            intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
-                        </span>
-                        <span
-                          className={`cl-badge ${ROSTER_ROLE_ACCENTS[member.role as PlayerRole] ?? 'cl-state--muted'}`}
-                          data-testid={`role-badge-${member.personId}`}
-                        >
-                          {rosterRoleLabel(member.role as PlayerRole, intl)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p style={{ margin: 'var(--cl-space-1) 0' }}>
-                    {row.teamMembers.length === 0
-                      ? intl.formatMessage(messages.reviewTeamMembersUnavailable)
-                      : row.teamMembers.join(', ')}
-                  </p>
-                )}
-              </div>
-              <FieldValue
-                label={intl.formatMessage(messages.reviewExperience)}
-                value={row.experience}
-              />
-              {personId !== undefined && (
-                <Card className="cl-chamfer cl-chamfer--control">
-                  <span className="cl-label">
-                    {intl.formatMessage(messages.reviewNationalityLabel)}
-                  </span>
-                  <CountrySelect
-                    onChange={(code) =>
-                      setNationalityDraft((current) => ({ ...current, [personId]: code }))
-                    }
-                    value={nationalityDraft[personId] ?? row.nationality}
-                  />
-                  <Button
-                    onClick={() =>
-                      void onSetNationality?.(
-                        personId,
-                        nationalityDraft[personId] ?? row.nationality ?? null,
-                      )
-                    }
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage {...messages.reviewSaveNationality} />
-                  </Button>
-                  <FramedImage
-                    alt={intl.formatMessage(messages.reviewUploadPhoto)}
-                    placeholder={
-                      <PersonPhotoPlaceholder
-                        size={64}
-                        title={intl.formatMessage(messages.reviewUploadPhoto)}
-                      />
-                    }
-                    size={64}
-                    src={
-                      optimisticPhotos[personId] ??
-                      (row.photoObjectId !== undefined
-                        ? personPhotoUrl(organizationAlias, personId)
-                        : undefined)
-                    }
-                  />
-                  <FilePicker
-                    accept="image/*"
-                    aria-label={intl.formatMessage(messages.reviewUploadPhoto)}
-                    id={`review-photo-${personId}`}
-                    label={intl.formatMessage(messages.reviewUploadPhoto)}
-                    onChange={(files) => {
-                      const file = files?.[0];
-                      if (!file) return;
-                      setPhotoCrop({ personId, src: URL.createObjectURL(file) });
-                    }}
-                    {...filePickerLabels(intl, { accept: 'image/*' })}
-                  />
-                  <a
-                    className="cl-focusable"
-                    href={`/control/${organizationAlias}/persons/${personId}`}
-                    onClick={controlLinkClick(`/control/${organizationAlias}/persons/${personId}`)}
-                  >
-                    <FormattedMessage {...messages.reviewViewProfile} />
-                  </a>
-                </Card>
-              )}
-              <div className="cl-role-user">
-                <Button type="button" variant="secondary">
-                  <FormattedMessage {...messages.reviewMessage} />
-                </Button>
-                {(row.teamId !== undefined ||
-                  row.teamMembers.length > 0 ||
-                  (row.teamMembersDetailed && row.teamMembersDetailed.length > 0)) && (
-                  <Button
-                    disabled={!teamMembershipEnabled}
-                    onClick={() => setEditingMembersRow(row)}
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage {...messages.reviewEditMembers} />
-                  </Button>
-                )}
-                {(row.personId !== undefined || row.teamId !== undefined) && (
-                  <Button onClick={() => setEditingRow(row)} type="button" variant="secondary">
-                    <FormattedMessage {...messages.reviewEditIdentity} />
-                  </Button>
-                )}
-                {row.personId !== undefined &&
-                  (row.hasIdentityLink ? (
-                    <Button
-                      onClick={() => void onUnlinkIdentity?.(row.personId as string)}
-                      type="button"
-                      variant="destructive-outline"
-                    >
-                      <FormattedMessage {...messages.reviewUnlinkIdentity} />
-                    </Button>
-                  ) : (
-                    <Button onClick={() => setLinkingRow(row)} type="button" variant="secondary">
-                      <FormattedMessage {...messages.reviewLinkIdentity} />
-                    </Button>
-                  ))}
-                <Button
-                  onClick={() =>
-                    void onReview?.(row.entrantId, {
-                      decision: 'withdrawn',
-                      reason: 'Revoked from registration review',
-                    })
-                  }
-                  type="button"
-                  variant="destructive-outline"
-                >
-                  <FormattedMessage {...messages.reviewRevoke} />
-                </Button>
-              </div>
-              {!teamMembershipEnabled && !dismissedLockNotice && (
-                <Alert
-                  dismissLabel={intl.formatMessage(messages.toastDismiss)}
-                  onDismiss={() => setDismissedLockNotice(true)}
-                  tone="warning"
-                >
-                  {intl.formatMessage(LOCK_EXPLANATION)}
-                </Alert>
-              )}
-            </div>
-          </details>
-        );
-      })}
-      {visible.length === 0 && (
-        <p className="cl-card__description">
-          <FormattedMessage {...messages.reviewEmptyFilter} />
-        </p>
-      )}
-    </div>
+      ),
+      label: '',
+      render: (row) => (
+        <Checkbox
+          aria-label={intl.formatMessage(messages.reviewSelectRow, {
+            displayName: row.displayName,
+          })}
+          checked={selected.has(row.entrantId)}
+          onCheckedChange={() => setState((current) => toggleRow(current, row.entrantId))}
+        />
+      ),
+    },
+    {
+      key: 'name',
+      header: <FormattedMessage {...messages.reviewColumnName} />,
+      label: intl.formatMessage(messages.reviewColumnName),
+      nameText: (row) => row.displayName,
+      render: (row) => (
+        <strong>
+          {row.nationality !== undefined && (
+            <span aria-hidden="true">{countryFlag(row.nationality)} </span>
+          )}
+          {row.displayName}
+        </strong>
+      ),
+    },
+    {
+      key: 'status',
+      header: <FormattedMessage {...messages.reviewColumnStatus} />,
+      label: intl.formatMessage(messages.reviewColumnStatus),
+      render: (row) => (
+        <span className="cl-badge">{intl.formatMessage(STATUS_LABELS[row.status])}</span>
+      ),
+    },
+    {
+      key: 'submitted',
+      header: <FormattedMessage {...messages.reviewColumnSubmitted} />,
+      label: intl.formatMessage(messages.reviewColumnSubmitted),
+      render: (row) => (
+        <time className="cl-label" dateTime={row.submittedAt}>
+          {formatDateTime(intl, row.submittedAt, pageHeader?.organizationTimeZone)}
+        </time>
+      ),
+    },
+    {
+      key: 'details',
+      header: <FormattedMessage {...messages.auditTrailColumnDetails} />,
+      label: '',
+      render: (row) => (
+        <Button
+          aria-expanded={expandedRows.has(row.entrantId)}
+          aria-label={`${intl.formatMessage(
+            expandedRows.has(row.entrantId)
+              ? messages.dataTableHideDetails
+              : messages.dataTableShowDetails,
+          )}: ${row.displayName}`}
+          onClick={() => toggleExpanded(row.entrantId)}
+          type="button"
+          variant="secondary"
+        >
+          {intl.formatMessage(
+            expandedRows.has(row.entrantId)
+              ? messages.dataTableHideDetails
+              : messages.dataTableShowDetails,
+          )}
+        </Button>
+      ),
+    },
+  ];
+
+  const tableNode = (
+    <DataTable
+      ariaLabel={intl.formatMessage(messages.reviewSectionLabel)}
+      columns={registrationColumns}
+      emptyMessage={intl.formatMessage(messages.reviewEmptyFilter)}
+      mobileMode="stacked"
+      renderRowDetail={(row) =>
+        expandedRows.has(row.entrantId) ? renderRegistrationDetail(row) : undefined
+      }
+      rowKey={(row) => row.entrantId}
+      rows={visible}
+    />
   );
 
   const listingNode = (

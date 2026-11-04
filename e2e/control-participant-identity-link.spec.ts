@@ -60,7 +60,7 @@ test('pre-links a participant to the wrong email, unlinks, then re-links to the 
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByText('Persona a Corregir').click();
+  await page.getByRole('button', { name: 'Mostrar detalles: Persona a Corregir' }).click();
   await page.getByText('Vincular identidad').click();
   const linkDialog = page.getByRole('dialog');
   await expect(linkDialog).toBeVisible();

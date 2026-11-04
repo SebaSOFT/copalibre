@@ -73,6 +73,7 @@ export function AuditTrailTemplate({
   const columns: readonly DataTableColumn<AuditRecordResponse>[] = [
     {
       key: 'occurredAt',
+      label: intl.formatMessage(messages.auditTrailColumnTime),
       header: <FormattedMessage {...messages.auditTrailColumnTime} />,
       render: (row) => (
         <ResponsiveTimestamp
@@ -84,6 +85,7 @@ export function AuditTrailTemplate({
     },
     {
       key: 'actor',
+      label: intl.formatMessage(messages.auditTrailColumnActor),
       header: <FormattedMessage {...messages.auditTrailColumnActor} />,
       render: (row) => {
         const actorProfile = actors?.[row.actor];
@@ -98,6 +100,7 @@ export function AuditTrailTemplate({
     },
     {
       key: 'action',
+      label: intl.formatMessage(messages.auditTrailColumnAction),
       header: <FormattedMessage {...messages.auditTrailColumnAction} />,
       render: (row) => (
         <Badge label={formatActivityAction(row.action, intl.locale)} variant="section" />
@@ -105,6 +108,7 @@ export function AuditTrailTemplate({
     },
     {
       key: 'outcome',
+      label: intl.formatMessage(messages.auditTrailColumnOutcome),
       header: <FormattedMessage {...messages.auditTrailColumnOutcome} />,
       render: (row) => (
         <span className={row.outcome === 'refused' ? 'cl-state--refused' : 'cl-state--positive'}>
@@ -118,11 +122,13 @@ export function AuditTrailTemplate({
     },
     {
       key: 'reason',
+      label: intl.formatMessage(messages.auditTrailColumnReason),
       header: <FormattedMessage {...messages.auditTrailColumnReason} />,
       render: (row) => formatActivityReason(row.reason, intl.locale),
     },
     {
       key: 'details',
+      label: intl.formatMessage(messages.auditTrailColumnDetails),
       header: <FormattedMessage {...messages.auditTrailColumnDetails} />,
       render: (row) => (
         <Button
@@ -222,6 +228,7 @@ export function AuditTrailTemplate({
           <DataTable
             columns={columns}
             rows={visibleRecords}
+            mobileMode="stacked"
             rowKey={(row) => row.auditId}
             emptyMessage={intl.formatMessage(messages.auditTrailEmpty)}
             ariaLabel={intl.formatMessage(messages.auditTrailTitle)}

@@ -488,3 +488,28 @@ Tournament settings, ruleset, wizards, zones and groups, promotion plan, seeding
 - **WHEN** the seeding builder renders at 768px
 - **THEN** the seed list stacks above the bracket canvas, the canvas scrolls inside its own box, and the
   page does not scroll horizontally
+
+### Requirement: Operations and administration screens use the shared list and filter compositions
+
+Venues, schedule, officials, roles and permissions, analytics, audit trail, preferences and invitation acceptance SHALL compose the `0384` templates. Create and edit forms SHALL sit in the right rail at 1024px and above, and stack below the list under 1024px. Lists SHALL use the filter bar. Role names SHALL match the product's role taxonomy verbatim.
+
+#### Scenario: Venues at 1440px
+
+- **WHEN** an admin opens venue management at 1440px
+- **THEN** venue cards occupy the main column and the "Register venue" form occupies the right rail
+
+#### Scenario: Venues at 768px
+
+- **WHEN** the same page renders at 768px
+- **THEN** the form stacks below the list with no horizontal page overflow
+
+#### Scenario: Audit row expands to a comparison
+
+- **WHEN** an operator expands an audit row for a corrected result
+- **THEN** a structured before/after comparison appears, and no hash or ledger column is shown
+
+#### Scenario: Role names
+
+- **WHEN** the roles page lists operators
+- **THEN** each role reads exactly as in the taxonomy, for example `tournament-admin`, with its scope on
+  the line below

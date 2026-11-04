@@ -92,6 +92,7 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.promotionBandRange': 'Têtes de série {first}–{last}',
   'publicWeb.standings.fullTable': 'Voir le classement complet',
   'publicWeb.standings.tableLayouts': 'Dispositions de tableau',
+  'publicWeb.standings.moreColumns': 'Plus de colonnes',
   'publicWeb.standings.filterByClub': 'Filtrer par club',
   'publicWeb.standings.filterClubLabel': 'Club',
   'publicWeb.standings.columnLegend': 'Abréviations du tableau',
@@ -238,8 +239,6 @@ export const messages: Record<string, string> = {
     'yarn workspace @copalibre/web build && yarn workspace @copalibre/web preview',
 
   'publicWeb.matchesView.pageTitle': 'Matchs',
-  'publicWeb.matchesView.tableScrollHint':
-    'Faites défiler le tableau horizontalement pour voir toutes les colonnes.',
   'publicWeb.matchesView.filtersDisclosureLabel': 'Filtrer les matchs',
   'publicWeb.matchesView.filterAll': 'Tous',
   'publicWeb.matchesView.filterLive': 'En direct',

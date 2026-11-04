@@ -283,10 +283,10 @@ test.describe('Control Panel Activity Feed and Theme Polish', () => {
     await page.goto(loginCallbackUrl());
     await page.waitForURL(`**${target}`);
 
-    // Expand the team entrant accordion
-    const summary = page.locator('summary', { hasText: 'Boca Juniors' });
-    await expect(summary).toBeVisible();
-    await summary.click();
+    // Open the team entrant's detail row
+    const toggle = page.getByRole('button', { name: 'Mostrar detalles: Boca Juniors' });
+    await expect(toggle).toBeVisible();
+    await toggle.click();
 
     // Check initial members are displayed with Jugador badges
     await expect(page.getByText('Carlos Bianchi')).toBeVisible();

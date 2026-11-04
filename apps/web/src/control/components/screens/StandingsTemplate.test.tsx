@@ -328,7 +328,9 @@ describe('StandingsTemplate', () => {
     // The distribution chart repeats the same name as its lone bar label,
     // so this is at least one match rather than exactly one.
     expect(screen.getAllByText('Arquero Uno').length).toBeGreaterThan(0);
-    expect(screen.getByText('4')).toBeTruthy();
+    // A low-priority column's value is also listed in its row's disclosure (hidden by the
+    // stylesheet on a phone-sized table's wide layout), so it can appear twice.
+    expect(screen.getAllByText('4').length).toBeGreaterThan(0);
     expect(screen.getByText('0.80')).toBeTruthy();
     // Short headers render in the column header row, not the full label.
     expect(screen.getByRole('button', { name: 'GC' })).toBeTruthy();

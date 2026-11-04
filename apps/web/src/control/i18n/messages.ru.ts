@@ -1882,4 +1882,7 @@ export const messages: Record<string, string> = {
   'control.auditTrail.hideDetails': 'Скрыть подробности',
   'control.auditTrail.columnDetails': 'Подробности',
   'control.analytics.primaryLabel': 'Панель состояния турниров',
+  'control.dataTable.moreColumns': 'Другие столбцы',
+  'control.dataTable.showDetails': 'Показать подробности',
+  'control.dataTable.hideDetails': 'Скрыть подробности',
 };
