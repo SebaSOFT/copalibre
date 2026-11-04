@@ -15,6 +15,9 @@ import { PreferencesTemplate } from '../screens/PreferencesTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
 
+/** The API serves tokens from its root. The gateway passes `/api` through, so it is not a prefix. */
+export const PAT_PATH = '/auth/pat';
+
 export function formatStorageBytes(bytes: number): string {
   const ONE_MB = 1024 * 1024;
   const ONE_GB = 1024 * 1024 * 1024;
@@ -86,42 +89,47 @@ export function PreferencesPage({
   const read = useResilientRead(
     `control-preferences:${organizationAlias ?? 'personal'}`,
     async () => {
+      const [organization, storageUsage, unreferencedObjects] = await Promise.all([
+        organizationAlias === undefined ? undefined : api.getOrganization?.(organizationAlias),
+        organizationAlias === undefined ? undefined : api.getStorageUsage?.(organizationAlias),
+        organizationAlias === undefined
+          ? []
+          : (api.listUnreferencedObjects?.(organizationAlias) ?? []),
+      ]);
+      return { organization, storageUsage, unreferencedObjects };
+    },
+    {
+      thing: intl.formatMessage(controlMessages.preferencesTitle),
+      // Every section has its own empty state, so the page itself is never empty.
+      isEmpty: () => false,
+    },
+  );
+  // Tokens read apart from the rest: a failure here must not take down the organization settings.
+  const tokenRead = useResilientRead(
+    'control-preferences-tokens',
+    async () => {
       const token = controlTokenStore.read();
-      const [response, scopeResponse, organization, storageUsage, unreferencedObjects] =
-        await Promise.all([
-          requestPat('/api/auth/pat', {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          }),
-          requestPat('/api/auth/pat/scopes', {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          }),
-          organizationAlias === undefined ? undefined : api.getOrganization?.(organizationAlias),
-          organizationAlias === undefined ? undefined : api.getStorageUsage?.(organizationAlias),
-          organizationAlias === undefined
-            ? []
-            : (api.listUnreferencedObjects?.(organizationAlias) ?? []),
-        ]);
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const [response, scopeResponse] = await Promise.all([
+        requestPat(PAT_PATH, { headers }),
+        requestPat(`${PAT_PATH}/scopes`, { headers }),
+      ]);
       if (!response.ok || !scopeResponse.ok)
         throw new Error('Personal access tokens could not be loaded');
       const tokens = (await response.json()) as readonly PatResponse[];
       const patScopes = ((await scopeResponse.json()) as PatScopeOptionsResponse).scopes;
-      return { tokens, patScopes, organization, storageUsage, unreferencedObjects };
+      return { tokens, patScopes };
     },
     {
-      thing: intl.formatMessage(controlMessages.preferencesTitle),
-      isEmpty: (value) => value.tokens.length === 0 && value.organization === undefined,
+      thing: intl.formatMessage(controlMessages.preferencesPatTitle),
+      isEmpty: (value) => value.tokens.length === 0,
     },
   );
-  const {
-    tokens = [],
-    patScopes = [],
-    organization,
-    storageUsage,
-    unreferencedObjects = [],
-  } = read.data ?? {};
+  const { organization, storageUsage, unreferencedObjects = [] } = read.data ?? {};
+  const { tokens = [], patScopes = [] } = tokenRead.data ?? {};
   const orgName = orgNameEdit ?? organization?.name ?? '';
   const setTokens = (change: (current: readonly PatResponse[]) => readonly PatResponse[]): void =>
-    read.update((current) => ({ ...current, tokens: change(current.tokens) }));
+    tokenRead.update((current) => ({ ...current, tokens: change(current.tokens) }));
   const setOrganization = (organization: OrganizationResponse): void =>
     read.update((current) => ({ ...current, organization }));
   const setUnreferencedObjects = (
@@ -148,7 +156,7 @@ export function PreferencesPage({
     if (!label.trim() || scopes.length === 0) return false;
 
     const token = controlTokenStore.read();
-    const res = await requestPat('/api/auth/pat', {
+    const res = await requestPat(PAT_PATH, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -170,7 +178,7 @@ export function PreferencesPage({
     const token = controlTokenStore.read();
     const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
     try {
-      const previewResponse = await requestPat(`/api/auth/pat/${tokenId}?dryRun=true`, {
+      const previewResponse = await requestPat(`${PAT_PATH}/${tokenId}?dryRun=true`, {
         method: 'DELETE',
         headers,
       });
@@ -178,7 +186,7 @@ export function PreferencesPage({
       const preview = (await previewResponse.json()) as PatRevocationPreview;
       if (!preview.reversible) return preview;
 
-      const response = await requestPat(`/api/auth/pat/${tokenId}`, {
+      const response = await requestPat(`${PAT_PATH}/${tokenId}`, {
         method: 'DELETE',
         headers,
       });
@@ -211,7 +219,7 @@ export function PreferencesPage({
   async function confirmPatRevoke(tokenId: string): Promise<void> {
     const token = controlTokenStore.read();
     try {
-      const response = await requestPat(`/api/auth/pat/${tokenId}`, {
+      const response = await requestPat(`${PAT_PATH}/${tokenId}`, {
         method: 'DELETE',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -230,7 +238,7 @@ export function PreferencesPage({
   async function restorePat(tokenId: string): Promise<void> {
     const token = controlTokenStore.read();
     try {
-      const response = await requestPat(`/api/auth/pat/${tokenId}/restore`, {
+      const response = await requestPat(`${PAT_PATH}/${tokenId}/restore`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -345,7 +353,7 @@ export function PreferencesPage({
       <PreferencesTemplate
         api={api}
         isOrganizationPage={isOrganizationPage}
-        loading={false}
+        loading={tokenRead.status === 'loading' || tokenRead.status === 'failed-empty'}
         newToken={newToken}
         onChangeOrgName={setOrgName}
         onCreatePat={createPat}

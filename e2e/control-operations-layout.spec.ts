@@ -180,8 +180,8 @@ async function mockApi(page: Page): Promise<{ readonly createdVenues: Venue[] }>
     }
     if (url === `${orgPath}/storage-usage`)
       return { body: { totalBytes: 4_500_000, objectCount: 12 } };
-    if (url === '/api/auth/pat/scopes') return { body: { scopes: ['copalibre.control'] } };
-    if (url === '/api/auth/pat') return { body: [] };
+    if (url === '/auth/pat/scopes') return { body: { scopes: ['copalibre.control'] } };
+    if (url === '/auth/pat') return { body: [] };
     if (url.endsWith('/clubs') || url.endsWith('/invitations') || url.endsWith('/schedules')) {
       return { body: [] };
     }

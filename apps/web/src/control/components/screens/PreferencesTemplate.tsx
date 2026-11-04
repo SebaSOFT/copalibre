@@ -34,6 +34,7 @@ import {
   type PatResponse,
 } from '../pages/PreferencesPage.js';
 import { PageHeaderTemplate } from './PageHeaderTemplate.js';
+import { Skeleton } from '../ui/atoms/skeleton.js';
 import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
 import { DropZone } from '../ui/organisms/drop-zone.js';
 import { UnsavedChangesBar } from '../ui/organisms/unsaved-changes-bar.js';
@@ -574,71 +575,76 @@ export function PreferencesTemplate({
             <FormattedMessage {...controlMessages.preferencesPatDescription} />
           </p>
 
-          <Form
-            aria-label={intl.formatMessage(controlMessages.preferencesPatTitle)}
-            className="cl-preferences-pat-form"
-            onSubmit={handleCreate}
-          >
-            <Inline align="end" gap="4" wrap>
-              <Field id="pat-label" label={intl.formatMessage(controlMessages.preferencesPatLabel)}>
-                <Input
+          {!loading && (
+            <Form
+              aria-label={intl.formatMessage(controlMessages.preferencesPatTitle)}
+              className="cl-preferences-pat-form"
+              onSubmit={handleCreate}
+            >
+              <Inline align="end" gap="4" wrap>
+                <Field
                   id="pat-label"
-                  onChange={(e) => setLabel(e.target.value)}
-                  required
-                  type="text"
-                  value={label}
-                />
-              </Field>
-              <Field
-                id="pat-expires"
-                label={intl.formatMessage(controlMessages.preferencesPatExpiresIn)}
-              >
-                <Input
+                  label={intl.formatMessage(controlMessages.preferencesPatLabel)}
+                >
+                  <Input
+                    id="pat-label"
+                    onChange={(e) => setLabel(e.target.value)}
+                    required
+                    type="text"
+                    value={label}
+                  />
+                </Field>
+                <Field
                   id="pat-expires"
-                  max={365}
-                  min={1}
-                  onChange={(e) => setExpiresInDays(parseInt(e.target.value))}
-                  required
-                  className="cl-preferences-expiry-input"
-                  type="number"
-                  value={expiresInDays}
-                />
-              </Field>
-            </Inline>
-            <FieldSet legend={intl.formatMessage(controlMessages.preferencesPatScopes)}>
-              {patScopes.length === 0 ? (
-                <p>{intl.formatMessage(controlMessages.preferencesPatNoScopes)}</p>
-              ) : (
-                <Stack gap="2">
-                  {patScopes.map((scope) => (
-                    <Label key={scope} className="cl-toggle cl-focusable">
-                      <Checkbox
-                        aria-label={scope}
-                        checked={selectedPatScopes.includes(scope)}
-                        id={`pat-scope-${scope}`}
-                        onCheckedChange={(checked) =>
-                          setSelectedPatScopes((current) =>
-                            checked
-                              ? [...current, scope]
-                              : current.filter((selected) => selected !== scope),
-                          )
-                        }
-                      />
-                      <span className="cl-preferences-scope-label">{scope}</span>
-                    </Label>
-                  ))}
-                </Stack>
+                  label={intl.formatMessage(controlMessages.preferencesPatExpiresIn)}
+                >
+                  <Input
+                    id="pat-expires"
+                    max={365}
+                    min={1}
+                    onChange={(e) => setExpiresInDays(parseInt(e.target.value))}
+                    required
+                    className="cl-preferences-expiry-input"
+                    type="number"
+                    value={expiresInDays}
+                  />
+                </Field>
+              </Inline>
+              <FieldSet legend={intl.formatMessage(controlMessages.preferencesPatScopes)}>
+                {patScopes.length === 0 ? (
+                  <p>{intl.formatMessage(controlMessages.preferencesPatNoScopes)}</p>
+                ) : (
+                  <Stack gap="2">
+                    {patScopes.map((scope) => (
+                      <Label key={scope} className="cl-toggle cl-focusable">
+                        <Checkbox
+                          aria-label={scope}
+                          checked={selectedPatScopes.includes(scope)}
+                          id={`pat-scope-${scope}`}
+                          onCheckedChange={(checked) =>
+                            setSelectedPatScopes((current) =>
+                              checked
+                                ? [...current, scope]
+                                : current.filter((selected) => selected !== scope),
+                            )
+                          }
+                        />
+                        <span className="cl-preferences-scope-label">{scope}</span>
+                      </Label>
+                    ))}
+                  </Stack>
+                )}
+              </FieldSet>
+              {selectedPatScopes.length === 0 && patScopes.length > 0 && (
+                <p role="status">
+                  {intl.formatMessage(controlMessages.preferencesPatScopesRequired)}
+                </p>
               )}
-            </FieldSet>
-            {selectedPatScopes.length === 0 && patScopes.length > 0 && (
-              <p role="status">
-                {intl.formatMessage(controlMessages.preferencesPatScopesRequired)}
-              </p>
-            )}
-            <Button disabled={!label.trim() || selectedPatScopes.length === 0} type="submit">
-              <FormattedMessage {...controlMessages.preferencesPatCreate} />
-            </Button>
-          </Form>
+              <Button disabled={!label.trim() || selectedPatScopes.length === 0} type="submit">
+                <FormattedMessage {...controlMessages.preferencesPatCreate} />
+              </Button>
+            </Form>
+          )}
 
           {newToken && (
             <div className="cl-preferences-token-created">
@@ -651,9 +657,10 @@ export function PreferencesTemplate({
 
           <div className="cl-preferences-token-list">
             {loading ? (
-              <p>
-                <FormattedMessage {...controlMessages.preferencesTokensLoading} />
-              </p>
+              <Skeleton
+                label={intl.formatMessage(controlMessages.preferencesTokensLoading)}
+                variant="block"
+              />
             ) : activeTokens.length === 0 ? (
               <EmptyState
                 icon="user"

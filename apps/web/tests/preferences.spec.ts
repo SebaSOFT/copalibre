@@ -35,7 +35,7 @@ async function mockPreferencesApi(page: Page): Promise<void> {
         }
 
         // Mock the PAT API under /api
-        if (url === '/api/auth/pat/scopes' && method === 'GET') {
+        if (url === '/auth/pat/scopes' && method === 'GET') {
           return Response.json({ scopes: ['api'] });
         }
         if (url.includes('/auth/pat') && method === 'GET') {
