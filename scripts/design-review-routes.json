@@ -1,0 +1,178 @@
+{
+  "surfaces": {
+    "public": { "widths": [375, 768, 1024, 1440], "phoneWidth": true },
+    "help": { "widths": [375, 768, 1024, 1440], "phoneWidth": true },
+    "auth": { "widths": [375, 768, 1024, 1440], "phoneWidth": true },
+    "control": { "widths": [768, 1024, 1440], "phoneWidth": false },
+    "tv": { "widths": [1280, 1920], "phoneWidth": false }
+  },
+  "routes": [
+    { "id": "public-home", "surface": "public", "path": "/{locale}/" },
+    { "id": "public-organization", "surface": "public", "path": "/{locale}/{org}" },
+    {
+      "id": "public-tournament",
+      "surface": "public",
+      "path": "/{locale}/{org}/tournaments/{tournament}"
+    },
+    {
+      "id": "public-live",
+      "surface": "public",
+      "path": "/{locale}/{org}/tournaments/{tournament}/live"
+    },
+    {
+      "id": "public-matches",
+      "surface": "public",
+      "path": "/{locale}/{org}/tournaments/{tournament}/matches"
+    },
+    {
+      "id": "public-stage-groups",
+      "surface": "public",
+      "path": "/{locale}/{org}/tournaments/{tournament}/stages/1"
+    },
+    {
+      "id": "public-stage-cups",
+      "surface": "public",
+      "path": "/{locale}/{org}/tournaments/{tournament}/stages/2"
+    },
+    {
+      "id": "public-match",
+      "surface": "public",
+      "path": "/{locale}/{org}/tournaments/{tournament}/stages/1/matches/1"
+    },
+    {
+      "id": "public-player",
+      "surface": "public",
+      "path": "/{locale}/{org}/tournaments/{tournament}/players/{person}"
+    },
+    {
+      "id": "public-not-found",
+      "surface": "public",
+      "path": "/{locale}/design-review-missing-page",
+      "expectNotFound": true
+    },
+    { "id": "help-home", "surface": "help", "path": "/{locale}/help/" },
+    { "id": "auth-login", "surface": "auth", "path": "/control/login" },
+    { "id": "auth-forgot-password", "surface": "auth", "path": "/control/forgot-password" },
+    { "id": "auth-reset-password", "surface": "auth", "path": "/control/reset-password" },
+    { "id": "auth-invitation", "surface": "auth", "path": "/invitations/accept" },
+    { "id": "control-dashboard", "surface": "control", "path": "/control/{org}" },
+    { "id": "control-tournaments", "surface": "control", "path": "/control/{org}/tournaments" },
+    {
+      "id": "control-tournament-new",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/new"
+    },
+    { "id": "control-live", "surface": "control", "path": "/control/{org}/live" },
+    { "id": "control-organization", "surface": "control", "path": "/control/{org}/organization" },
+    { "id": "control-analytics", "surface": "control", "path": "/control/{org}/analytics" },
+    { "id": "control-roles", "surface": "control", "path": "/control/{org}/roles" },
+    { "id": "control-audit-trail", "surface": "control", "path": "/control/{org}/audit-trail" },
+    { "id": "control-preferences", "surface": "control", "path": "/control/{org}/preferences" },
+    { "id": "control-clubs", "surface": "control", "path": "/control/{org}/clubs" },
+    {
+      "id": "control-club-members",
+      "surface": "control",
+      "path": "/control/{org}/clubs/{club}/portal/members"
+    },
+    {
+      "id": "control-club-roster",
+      "surface": "control",
+      "path": "/control/{org}/clubs/{club}/portal/tournaments/{tournament}/roster"
+    },
+    { "id": "control-resources", "surface": "control", "path": "/control/{org}/resources" },
+    { "id": "control-person", "surface": "control", "path": "/control/{org}/persons/{person}" },
+    {
+      "id": "control-tournament-hub",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}"
+    },
+    {
+      "id": "control-registrations",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/registrations"
+    },
+    {
+      "id": "control-settings",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/settings"
+    },
+    {
+      "id": "control-ruleset",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/ruleset"
+    },
+    {
+      "id": "control-reports",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/reports"
+    },
+    {
+      "id": "control-matches-view",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/matches-view"
+    },
+    {
+      "id": "control-broadcaster",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/broadcaster"
+    },
+    {
+      "id": "control-match-console",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/matches/{match}"
+    },
+    {
+      "id": "control-load-match",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/matches/{match}/load"
+    },
+    {
+      "id": "control-stage-hub",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/stages/1"
+    },
+    {
+      "id": "control-seeding",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/stages/1/seeding"
+    },
+    {
+      "id": "control-standings",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/stages/1/standings"
+    },
+    {
+      "id": "control-zones",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/stages/1/zones"
+    },
+    {
+      "id": "control-schedule",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/stages/1/schedule"
+    },
+    {
+      "id": "control-qualification",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/stages/1/qualification"
+    },
+    {
+      "id": "control-promotion",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/stages/1/zones/1/promotion"
+    },
+    { "id": "control-platform", "surface": "control", "path": "/control/platform" },
+    {
+      "id": "control-discipline",
+      "surface": "control",
+      "path": "/control/platform/disciplines/{discipline}"
+    },
+    { "id": "tv-home", "surface": "tv", "path": "/tv/" },
+    { "id": "tv-tournament", "surface": "tv", "path": "/tv/{org}/tournaments/{tournament}" },
+    {
+      "id": "tv-match",
+      "surface": "tv",
+      "path": "/tv/{org}/tournaments/{tournament}/stages/1/matches/{match}"
+    }
+  ]
+}
