@@ -2,12 +2,17 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   ALL_LANGUAGES,
+  baseUrlFor,
+  EMAIL_WIDTHS,
+  expandEmailPass,
   EXTENDED_WIDTH,
   expandExtendedPass,
   expandFirstPass,
+  filterCaptures,
   groupByContext,
   isWrongPage,
   loadManifest,
+  parseHeader,
   resolvePath,
   selectOverflowing,
   viewportFor,
@@ -108,4 +113,50 @@ test('TV uses broadcast heights and other surfaces a fixed review height', () =>
   assert.deepEqual(viewportFor('tv', 1920), { width: 1920, height: 1080 });
   assert.deepEqual(viewportFor('tv', 1280), { width: 1280, height: 720 });
   assert.deepEqual(viewportFor('control', 1024), { width: 1024, height: 900 });
+});
+
+test('a pass narrows to one route, language and width', () => {
+  const captures = expandFirstPass(loadManifest(), ids);
+  const narrowed = filterCaptures(captures, {
+    route: 'public-home',
+    language: 'es',
+    width: '375',
+  });
+  assert.equal(narrowed.length, 1);
+  assert.equal(narrowed[0].path, '/es/');
+});
+
+test('Storybook states carry the language and resolve against the Storybook server', () => {
+  const captures = expandFirstPass(loadManifest(), ids);
+  const story = filterCaptures(captures, { surface: 'storybook', language: 'de' })[0];
+  assert.match(story.path, /globals=locale:de/);
+  const options = { baseUrl: 'http://site', storybookUrl: 'http://storybook' };
+  assert.equal(baseUrlFor(story, options), 'http://storybook');
+  assert.equal(baseUrlFor({ surface: 'public' }, options), 'http://site');
+});
+
+test('the manifest names error, empty, offline and loading stories', () => {
+  const stories = loadManifest().routes.filter((route) => route.surface === 'storybook');
+  for (const state of [/failed/, /empty/, /offline/, /loading/]) {
+    assert.ok(
+      stories.some((story) => state.test(story.id)),
+      String(state),
+    );
+  }
+});
+
+test('each email is captured once per email width', () => {
+  const emails = [{ template: 'invitation', language: 'es', subject: 's', html: '<p></p>' }];
+  const captures = expandEmailPass(emails);
+  assert.deepEqual(
+    captures.map((capture) => capture.width),
+    EMAIL_WIDTHS,
+  );
+  assert.ok(captures.every((capture) => capture.id === 'email-invitation'));
+});
+
+test('a header flag becomes a header map, and a malformed one is an error', () => {
+  assert.deepEqual(parseHeader('x-port:3101'), { 'x-port': '3101' });
+  assert.equal(parseHeader(undefined), undefined);
+  assert.throws(() => parseHeader('nocolon'), /name:value/);
 });

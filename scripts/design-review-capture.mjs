@@ -15,8 +15,14 @@ import { fileURLToPath } from 'node:url';
  * Usage:
  *   COPALIBRE_REVIEW_EMAIL=... COPALIBRE_REVIEW_PASSWORD_FILE=... \
  *   node scripts/design-review-capture.mjs --ids ids.json --out <dir> \
- *     [--base-url http://localhost:4321] [--color-scheme dark|light]
- *     [--surface <name>[,<name>...]] [--route <id>[,<id>...]] [--extended]
+ *     [--base-url http://localhost:4321] [--storybook-url http://localhost:6006]
+ *     [--color-scheme dark|light] [--surface <name>[,<name>...]] [--route <id>[,<id>...]]
+ *     [--language <code>[,<code>...]] [--width <px>[,<px>...]]
+ *     [--header <name>:<value>] [--extended]
+ *
+ * Emails need no running server, so they have their own pass. It renders each
+ * template through the worker's builders, in eight languages at both email widths:
+ *   node scripts/design-review-capture.mjs --emails --out <dir>
  *
  * Help is generated only by a production build, so capture that surface from a
  * preview server through --base-url: the dev server answers it with a placeholder.
@@ -25,6 +31,7 @@ import { fileURLToPath } from 'node:url';
 export const FIRST_PASS_LANGUAGES = ['es', 'de'];
 export const ALL_LANGUAGES = ['en', 'es', 'pt', 'fr', 'it', 'de', 'ru', 'zh'];
 export const EXTENDED_WIDTH = 188;
+export const EMAIL_WIDTHS = [600, 375];
 
 const DEFAULT_MANIFEST = join(dirname(fileURLToPath(import.meta.url)), 'design-review-routes.json');
 const TV_HEIGHTS = { 1280: 720, 1920: 1080 };
@@ -69,6 +76,18 @@ export function hasOverflow(entry) {
   return entry.pageOverflow || entry.elements.length > 0;
 }
 
+/** Narrows a pass to the requested surfaces, routes, languages and widths. */
+export function filterCaptures(captures, filters = {}) {
+  const allows = (list, value) => !list || list.split(',').includes(String(value));
+  return captures.filter(
+    (capture) =>
+      allows(filters.surface, capture.surface) &&
+      allows(filters.route, capture.id) &&
+      allows(filters.language, capture.language) &&
+      allows(filters.width, capture.width),
+  );
+}
+
 /** The route ids that earn the extended pass: phone-width surfaces that overflowed. */
 export function selectOverflowing(manifest, entries) {
   const flagged = entries
@@ -97,6 +116,11 @@ export function viewportFor(surface, width) {
     width,
     height: surface === 'tv' ? (TV_HEIGHTS[width] ?? DEFAULT_HEIGHT) : DEFAULT_HEIGHT,
   };
+}
+
+/** Storybook answers on its own server, so its stories never resolve against the site. */
+export function baseUrlFor(capture, options) {
+  return capture.surface === 'storybook' ? options.storybookUrl : options.baseUrl;
 }
 
 export function screenshotName(capture) {
@@ -185,6 +209,7 @@ async function capturePass(browser, captures, options) {
       viewport: viewportFor(surface, width),
       locale: language,
       colorScheme: options.colorScheme,
+      ...(options.headers ? { extraHTTPHeaders: options.headers } : {}),
     });
     await context.addInitScript((value) => {
       localStorage.setItem('copalibre.language', value);
@@ -207,7 +232,7 @@ async function capturePass(browser, captures, options) {
         if (capture.surface === 'control') {
           await navigateInApp(page, capture.path);
         } else {
-          const response = await page.goto(`${options.baseUrl}${capture.path}`, {
+          const response = await page.goto(`${baseUrlFor(capture, options)}${capture.path}`, {
             waitUntil: 'networkidle',
           });
           httpStatus = response?.status();
@@ -223,36 +248,99 @@ async function capturePass(browser, captures, options) {
 }
 
 function parseArguments(argv) {
-  const values = { baseUrl: 'http://localhost:4321', colorScheme: 'dark', extended: false };
+  const values = {
+    baseUrl: 'http://localhost:4321',
+    storybookUrl: 'http://localhost:6006',
+    colorScheme: 'dark',
+    extended: false,
+    emails: false,
+  };
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
     if (flag === '--extended') values.extended = true;
+    else if (flag === '--emails') values.emails = true;
     else if (flag === '--ids') values.ids = argv[(index += 1)];
     else if (flag === '--out') values.out = argv[(index += 1)];
     else if (flag === '--base-url') values.baseUrl = argv[(index += 1)];
     else if (flag === '--color-scheme') values.colorScheme = argv[(index += 1)];
     else if (flag === '--surface') values.surface = argv[(index += 1)];
     else if (flag === '--route') values.route = argv[(index += 1)];
+    else if (flag === '--language') values.language = argv[(index += 1)];
+    else if (flag === '--width') values.width = argv[(index += 1)];
+    else if (flag === '--storybook-url') values.storybookUrl = argv[(index += 1)];
+    else if (flag === '--header') values.header = argv[(index += 1)];
     else throw new Error(`unknown flag: ${flag}`);
   }
-  if (!values.ids || !values.out) throw new Error('--ids and --out are required');
+  if (!values.out) throw new Error('--out is required');
+  if (!values.ids && !values.emails) throw new Error('--ids is required unless --emails is set');
   return values;
+}
+
+/** `name:value` as a header map, for a server that routes on a request header. */
+export function parseHeader(value) {
+  if (!value) return undefined;
+  const separator = value.indexOf(':');
+  if (separator < 1) throw new Error(`--header needs name:value, got "${value}"`);
+  return { [value.slice(0, separator)]: value.slice(separator + 1) };
+}
+
+/** One capture per email and width: the HTML has no server, so it loads as page content. */
+export function expandEmailPass(emails, widths = EMAIL_WIDTHS) {
+  return emails.flatMap((email) =>
+    widths.map((width) => ({
+      id: `email-${email.template}`,
+      surface: 'email',
+      language: email.language,
+      width,
+      subject: email.subject,
+      html: email.html,
+    })),
+  );
+}
+
+async function captureEmails(browser, outDirectory) {
+  const { tsImport } = await import('tsx/esm/api');
+  const { renderReviewEmails } = await tsImport('./design-review-emails.ts', import.meta.url);
+  const results = [];
+  for (const capture of expandEmailPass(renderReviewEmails())) {
+    const { html, ...entry } = capture;
+    const context = await browser.newContext({ viewport: { width: entry.width, height: 900 } });
+    const page = await context.newPage();
+    // Remote images point at an installation that is not running, so they show as blocked.
+    await page.route(/^https?:/, (route) => route.abort());
+    await page.setContent(html, { waitUntil: 'load' });
+    results.push(await record(page, entry, outDirectory));
+    await context.close();
+  }
+  return results;
 }
 
 async function main() {
   const args = parseArguments(process.argv.slice(2));
-  const manifest = loadManifest();
-  const ids = JSON.parse(readFileSync(args.ids, 'utf8'));
   const outDirectory = args.out;
   mkdirSync(outDirectory, { recursive: true });
   const reportPath = join(outDirectory, 'overflow-report.json');
 
   const { chromium } = await import('@playwright/test');
   const browser = await chromium.launch();
+
+  if (args.emails) {
+    const entries = await captureEmails(browser, outDirectory);
+    await browser.close();
+    writeFileSync(reportPath, `${JSON.stringify({ entries }, null, 2)}\n`);
+    const overflowing = entries.filter(hasOverflow).length;
+    process.stdout.write(`${entries.length} email captures, ${overflowing} overflowing\n`);
+    return;
+  }
+
+  const manifest = loadManifest();
+  const ids = JSON.parse(readFileSync(args.ids, 'utf8'));
   const passwordFile = process.env.COPALIBRE_REVIEW_PASSWORD_FILE;
   const options = {
     baseUrl: args.baseUrl,
+    storybookUrl: args.storybookUrl,
     colorScheme: args.colorScheme,
+    headers: parseHeader(args.header),
     outDirectory,
     credentials: {
       email: process.env.COPALIBRE_REVIEW_EMAIL,
@@ -260,11 +348,7 @@ async function main() {
     },
   };
 
-  const firstPass = expandFirstPass(manifest, ids).filter(
-    (capture) =>
-      (!args.surface || args.surface.split(',').includes(capture.surface)) &&
-      (!args.route || args.route.split(',').includes(capture.id)),
-  );
+  const firstPass = filterCaptures(expandFirstPass(manifest, ids), args);
   const entries = await capturePass(browser, firstPass, options);
   const flagged = selectOverflowing(manifest, entries);
   const extended = args.extended
