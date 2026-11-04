@@ -1155,7 +1155,11 @@ describe('public table and pill treatments', () => {
   });
 
   describe('narrow-screen table modes', () => {
-    const narrow = css.slice(css.indexOf('@media (width < 768px) {\n  .cl-cell-name'));
+    const narrow = css.slice(
+      css.indexOf(
+        '@media (width < 768px) {\n  .cl-data-table:not(.cl-data-table--stacked) .cl-cell-name',
+      ),
+    );
     const narrowBlock = narrow.slice(0, narrow.indexOf('\n}\n') + 3);
 
     it('hides low-priority columns below the medium breakpoint and shows the row disclosure', () => {
@@ -1172,6 +1176,14 @@ describe('public table and pill treatments', () => {
       // The header row stays for assistive technology, visually hidden rather than removed.
       expect(narrowBlock).toMatch(/\.cl-data-table--stacked thead \{[^}]*clip-path: inset\(50%\)/);
       expect(narrowBlock).not.toMatch(/\.cl-data-table--stacked thead \{[^}]*display: none/);
+    });
+
+    it('lets a stacked card show its name over two lines before it truncates', () => {
+      expect(narrowBlock).toMatch(
+        /\.cl-data-table--stacked \.cl-cell-name__text \{[^}]*-webkit-line-clamp: 2/,
+      );
+      // The one-line width cap belongs to tables that keep their columns, not to cards.
+      expect(narrowBlock).toContain('.cl-data-table:not(.cl-data-table--stacked) .cl-cell-name');
     });
 
     it('never breaks a name mid-word: it truncates with an ellipsis', () => {
