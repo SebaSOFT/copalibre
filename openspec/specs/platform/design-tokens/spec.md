@@ -875,3 +875,26 @@ Generated and application stylesheets SHALL use only the four breakpoint tokens 
 
 - **WHEN** a stylesheet adds `@media (max-width: 600px)`
 - **THEN** `check:integrity` fails and suggests the nearest breakpoint token
+
+### Requirement: Data tables declare a narrow-screen mode and never break words
+
+Every tabular dataset SHALL render as a `table` with scoped headers. Below 768px it SHALL use its
+declared mode: priority columns with row detail, stacked label–value rows, or contained scroll with a
+sticky first column and a visible edge affordance. Names and headers SHALL NOT break mid-word. A name
+that does not fit SHALL truncate with an ellipsis and keep its full accessible name.
+
+#### Scenario: Standings on a phone
+
+- **WHEN** the standings render at 375px
+- **THEN** the club name column shows whole words with an ellipsis where needed, and played and points
+  remain visible
+
+#### Scenario: Activity on a phone
+
+- **WHEN** the dashboard activity renders at 375px
+- **THEN** each event is a stacked card showing action, actor and time, with nothing cut off
+
+#### Scenario: Registration review structure
+
+- **WHEN** registration review renders
+- **THEN** it is a `table` whose header cells have `scope="col"`

@@ -1,0 +1,457 @@
+{
+  "surfaces": {
+    "public": {
+      "widths": [375, 768, 1024, 1440],
+      "phoneWidth": true
+    },
+    "help": {
+      "widths": [375, 768, 1024, 1440],
+      "phoneWidth": true
+    },
+    "auth": {
+      "widths": [375, 768, 1024, 1440],
+      "phoneWidth": true
+    },
+    "control": {
+      "widths": [768, 1024, 1440],
+      "phoneWidth": false
+    },
+    "tv": {
+      "widths": [1280, 1920],
+      "phoneWidth": false
+    },
+    "storybook": {
+      "widths": [1024],
+      "phoneWidth": false
+    }
+  },
+  "routes": [
+    {
+      "id": "public-home",
+      "surface": "public",
+      "path": "/{locale}/"
+    },
+    {
+      "id": "public-organization",
+      "surface": "public",
+      "path": "/{locale}/{org}"
+    },
+    {
+      "id": "public-tournament",
+      "surface": "public",
+      "path": "/{locale}/{org}/tournaments/{tournament}"
+    },
+    {
+      "id": "public-live",
+      "surface": "public",
+      "path": "/{locale}/{org}/tournaments/{tournament}/live"
+    },
+    {
+      "id": "public-matches",
+      "surface": "public",
+      "path": "/{locale}/{org}/tournaments/{tournament}/matches"
+    },
+    {
+      "id": "public-stage-groups",
+      "surface": "public",
+      "path": "/{locale}/{org}/tournaments/{tournament}/stages/1"
+    },
+    {
+      "id": "public-stage-cups",
+      "surface": "public",
+      "path": "/{locale}/{org}/tournaments/{tournament}/stages/2"
+    },
+    {
+      "id": "public-match",
+      "surface": "public",
+      "path": "/{locale}/{org}/tournaments/{tournament}/stages/1/matches/1"
+    },
+    {
+      "id": "public-player",
+      "surface": "public",
+      "path": "/{locale}/{org}/tournaments/{tournament}/players/{person}"
+    },
+    {
+      "id": "public-not-found",
+      "surface": "public",
+      "path": "/{locale}/{org}/tournaments/design-review-missing-page",
+      "expectNotFound": true
+    },
+    {
+      "id": "public-unknown-organization",
+      "surface": "public",
+      "path": "/{locale}/design-review-missing-page",
+      "expectNotFound": true
+    },
+    {
+      "id": "help-home",
+      "surface": "help",
+      "path": "/{locale}/help/"
+    },
+    {
+      "id": "auth-login",
+      "surface": "auth",
+      "path": "/control/login"
+    },
+    {
+      "id": "auth-forgot-password",
+      "surface": "auth",
+      "path": "/control/forgot-password"
+    },
+    {
+      "id": "auth-reset-password",
+      "surface": "auth",
+      "path": "/control/reset-password"
+    },
+    {
+      "id": "auth-invitation",
+      "surface": "auth",
+      "path": "/invitations/accept"
+    },
+    {
+      "id": "control-dashboard",
+      "surface": "control",
+      "path": "/control/{org}"
+    },
+    {
+      "id": "control-tournaments",
+      "surface": "control",
+      "path": "/control/{org}/tournaments"
+    },
+    {
+      "id": "control-tournament-new",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/new"
+    },
+    {
+      "id": "control-live",
+      "surface": "control",
+      "path": "/control/{org}/live"
+    },
+    {
+      "id": "control-organization",
+      "surface": "control",
+      "path": "/control/{org}/organization"
+    },
+    {
+      "id": "control-analytics",
+      "surface": "control",
+      "path": "/control/{org}/analytics"
+    },
+    {
+      "id": "control-roles",
+      "surface": "control",
+      "path": "/control/{org}/roles"
+    },
+    {
+      "id": "control-audit-trail",
+      "surface": "control",
+      "path": "/control/{org}/audit-trail"
+    },
+    {
+      "id": "control-preferences",
+      "surface": "control",
+      "path": "/control/{org}/preferences"
+    },
+    {
+      "id": "control-clubs",
+      "surface": "control",
+      "path": "/control/{org}/clubs"
+    },
+    {
+      "id": "control-club-members",
+      "surface": "control",
+      "path": "/control/{org}/clubs/{club}/portal/members"
+    },
+    {
+      "id": "control-club-roster",
+      "surface": "control",
+      "path": "/control/{org}/clubs/{club}/portal/tournaments/{tournament}/roster"
+    },
+    {
+      "id": "control-resources",
+      "surface": "control",
+      "path": "/control/{org}/resources"
+    },
+    {
+      "id": "control-person",
+      "surface": "control",
+      "path": "/control/{org}/persons/{person}"
+    },
+    {
+      "id": "control-tournament-hub",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}"
+    },
+    {
+      "id": "control-registrations",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/registrations"
+    },
+    {
+      "id": "control-settings",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/settings"
+    },
+    {
+      "id": "control-ruleset",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/ruleset"
+    },
+    {
+      "id": "control-reports",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/reports"
+    },
+    {
+      "id": "control-matches-view",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/matches-view"
+    },
+    {
+      "id": "control-broadcaster",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/broadcaster"
+    },
+    {
+      "id": "control-match-console",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/matches/{match}"
+    },
+    {
+      "id": "control-load-match",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/matches/{match}/load"
+    },
+    {
+      "id": "control-stage-hub",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/stages/1"
+    },
+    {
+      "id": "control-seeding",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/stages/1/seeding"
+    },
+    {
+      "id": "control-standings",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/stages/1/standings"
+    },
+    {
+      "id": "control-zones",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/stages/1/zones"
+    },
+    {
+      "id": "control-schedule",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/stages/1/schedule"
+    },
+    {
+      "id": "control-qualification",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/stages/1/qualification"
+    },
+    {
+      "id": "control-promotion",
+      "surface": "control",
+      "path": "/control/{org}/tournaments/{tournament}/stages/1/zones/1/promotion"
+    },
+    {
+      "id": "control-platform",
+      "surface": "control",
+      "path": "/control/platform"
+    },
+    {
+      "id": "control-discipline",
+      "surface": "control",
+      "path": "/control/platform/disciplines/{discipline}"
+    },
+    {
+      "id": "tv-home",
+      "surface": "tv",
+      "path": "/tv/"
+    },
+    {
+      "id": "tv-tournament",
+      "surface": "tv",
+      "path": "/tv/{org}/tournaments/{tournament}"
+    },
+    {
+      "id": "tv-match",
+      "surface": "tv",
+      "path": "/tv/{org}/tournaments/{tournament}/stages/1/matches/1"
+    },
+    {
+      "id": "story-admin-templates-readstate--loading",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-templates-readstate--loading&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-templates-readstate--failed",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-templates-readstate--failed&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-templates-readstate--stale",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-templates-readstate--stale&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-templates-readstate--empty",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-templates-readstate--empty&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-molecules-emptystate--reference-no-tournaments",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-molecules-emptystate--reference-no-tournaments&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-molecules-emptystate--no-permission",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-molecules-emptystate--no-permission&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-molecules-emptystate--informational",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-molecules-emptystate--informational&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-molecules-stalemark--reference-stale-data",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-molecules-stalemark--reference-stale-data&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-organisms-connectionstatus--reference-offline-status",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-organisms-connectionstatus--reference-offline-status&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-organisms-datatable--empty",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-organisms-datatable--empty&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-organisms-pageheader--loading",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-organisms-pageheader--loading&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-layouts-authscreenlayout--with-error",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-layouts-authscreenlayout--with-error&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-screens-dashboardpage--empty",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-screens-dashboardpage--empty&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-screens-dashboardpage--loading",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-screens-dashboardpage--loading&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-screens-dashboardpage--failed",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-screens-dashboardpage--failed&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-screens-liveconsolepage--empty",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-screens-liveconsolepage--empty&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-screens-liveconsolepage--loading",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-screens-liveconsolepage--loading&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-screens-liveconsolepage--failed",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-screens-liveconsolepage--failed&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-screens-matchesviewpage--empty",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-screens-matchesviewpage--empty&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-screens-matchesviewpage--loading",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-screens-matchesviewpage--loading&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-screens-matchesviewpage--failed",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-screens-matchesviewpage--failed&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-screens-schedulebuilderpage--empty",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-screens-schedulebuilderpage--empty&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-screens-schedulebuilderpage--loading",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-screens-schedulebuilderpage--loading&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-screens-schedulebuilderpage--failed",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-screens-schedulebuilderpage--failed&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-screens-preferencespage--empty",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-screens-preferencespage--empty&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-screens-preferencespage--loading",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-screens-preferencespage--loading&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-admin-screens-preferencespage--failed",
+      "surface": "storybook",
+      "path": "/iframe.html?id=admin-screens-preferencespage--failed&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-public-astro-preview--empty-state",
+      "surface": "storybook",
+      "path": "/iframe.html?id=public-astro-preview--empty-state&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-public-astro-preview--score-ticker-empty",
+      "surface": "storybook",
+      "path": "/iframe.html?id=public-astro-preview--score-ticker-empty&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-public-astro-preview--score-ticker-stale",
+      "surface": "storybook",
+      "path": "/iframe.html?id=public-astro-preview--score-ticker-stale&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-public-astro-preview--champion-podium-empty",
+      "surface": "storybook",
+      "path": "/iframe.html?id=public-astro-preview--champion-podium-empty&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-tv-kiosk-full-frame-widget-tvstandingstable--unavailable",
+      "surface": "storybook",
+      "path": "/iframe.html?id=tv-kiosk-full-frame-widget-tvstandingstable--unavailable&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-tv-kiosk-full-frame-widget-tvfactsview--empty",
+      "surface": "storybook",
+      "path": "/iframe.html?id=tv-kiosk-full-frame-widget-tvfactsview--empty&viewMode=story&globals=locale:{locale}"
+    },
+    {
+      "id": "story-tv-kiosk-full-frame-widget-tvperformersview--empty",
+      "surface": "storybook",
+      "path": "/iframe.html?id=tv-kiosk-full-frame-widget-tvperformersview--empty&viewMode=story&globals=locale:{locale}"
+    }
+  ]
+}

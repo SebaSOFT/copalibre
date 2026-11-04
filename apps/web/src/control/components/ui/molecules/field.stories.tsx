@@ -171,6 +171,137 @@ export const Required: Story = {
 };
 
 /**
+ * Every state of one field, side by side. A field's height should not depend on
+ * which state it is in: compare the boxes, and the control's position inside them.
+ */
+export const StateHeights: Story = {
+  args: { id: '', label: '' },
+  render: function Render() {
+    const intl = useIntl();
+    const label = intl.formatMessage(storyText.settingsTitle);
+    const shortHelp = intl.formatMessage(storyText.saved);
+    const longHelp = intl.formatMessage(storyText.longHelp);
+    const error = intl.formatMessage(storyText.empty);
+    const noop = () => undefined;
+    const options = [{ value: 'a', label: intl.formatMessage(storyText.tournaments) }];
+    return (
+      <StoryMatrix
+        minColumn="260px"
+        cells={[
+          {
+            label: 'resting',
+            children: (
+              <Field id="h-resting" label={label}>
+                <Input id="h-resting" />
+              </Field>
+            ),
+          },
+          {
+            label: 'short help',
+            children: (
+              <Field helpText={shortHelp} id="h-short-help" label={label}>
+                <Input id="h-short-help" />
+              </Field>
+            ),
+          },
+          {
+            label: 'long help',
+            children: (
+              <Field helpText={longHelp} id="h-long-help" label={label}>
+                <Input id="h-long-help" />
+              </Field>
+            ),
+          },
+          {
+            label: 'error',
+            children: (
+              <Field errorText={error} id="h-error" label={label}>
+                <Input aria-describedby="h-error-error" id="h-error" invalid />
+              </Field>
+            ),
+          },
+          {
+            label: 'long error',
+            children: (
+              <Field errorText={longHelp} id="h-long-error" label={label}>
+                <Input aria-describedby="h-long-error-error" id="h-long-error" invalid />
+              </Field>
+            ),
+          },
+          {
+            label: 'required',
+            children: (
+              <Field id="h-required" label={label} required>
+                <Input id="h-required" required />
+              </Field>
+            ),
+          },
+          {
+            label: 'disabled',
+            children: (
+              <Field id="h-disabled" label={label}>
+                <Input disabled id="h-disabled" />
+              </Field>
+            ),
+          },
+          {
+            label: 'select',
+            children: (
+              <Field id="h-select" label={label}>
+                <Select onValueChange={noop} options={options} value="a" />
+              </Field>
+            ),
+          },
+          {
+            label: 'select with help',
+            children: (
+              <Field helpText={longHelp} id="h-select-help" label={label}>
+                <Select onValueChange={noop} options={options} value="a" />
+              </Field>
+            ),
+          },
+        ]}
+      />
+    );
+  },
+};
+
+/**
+ * Three fields in one form row, each in a different state. The controls should
+ * stay on one line, and the row should not grow when one field gains a message.
+ */
+export const RowAlignment: Story = {
+  args: { id: '', label: '' },
+  render: function Render() {
+    const intl = useIntl();
+    const label = intl.formatMessage(storyText.settingsTitle);
+    const longLabel = intl.formatMessage(storyText.longHelp);
+    const error = intl.formatMessage(storyText.empty);
+    return (
+      <div
+        data-testid="field-row"
+        style={{
+          display: 'grid',
+          gap: 'var(--cl-space-4)',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          maxWidth: '720px',
+        }}
+      >
+        <Field id="r-resting" label={label}>
+          <Input id="r-resting" />
+        </Field>
+        <Field id="r-long-label" label={longLabel}>
+          <Input id="r-long-label" />
+        </Field>
+        <Field errorText={error} id="r-error" label={label}>
+          <Input aria-describedby="r-error-error" id="r-error" invalid />
+        </Field>
+      </div>
+    );
+  },
+};
+
+/**
  * A long label and a long error at the narrowest declared width. Select the
  * "Zoom floor — 188px" viewport and switch languages to confirm neither
  * wraps into the control below it or the field beside it.

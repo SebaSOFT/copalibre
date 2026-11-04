@@ -342,6 +342,7 @@ jobs:
           node --test scripts/classify-ci-paths.test.mjs
           node --test scripts/check-copy-voice.test.mjs
           node --test scripts/list-changed-strings.test.mjs
+          node --test scripts/design-review-capture.test.mjs
           yarn workspace @copalibre/domain test:coverage --maxWorkers=2
           yarn workspace @copalibre/rules test:coverage --maxWorkers=2
           yarn workspace @copalibre/tournament-engine test:coverage --maxWorkers=2

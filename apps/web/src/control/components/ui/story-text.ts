@@ -57,6 +57,8 @@ export const storyText = {
   openMatchConsole: messages.loadMatchDataBackToConsole,
   /** A long action label, the worst case for a button at 188px. */
   savePromotionPlan: messages.promotionSavePlan,
+  /** A real multi-line field hint, the worst case for a field's height. */
+  longHelp: messages.settingsMinimumRestHelp,
   /** Empty- and loading-state text, which tables and lists need. */
   empty: messages.rolesEmpty,
   loading: messages.reportLoading,
