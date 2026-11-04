@@ -895,3 +895,41 @@ rather than one always-visible field per language.
 - **WHEN** all eight of the platform's supported languages are passed to the language-tab
   control
 - **THEN** the tabs render on a single row, shrinking to their content rather than wrapping
+
+### Requirement: Checkbox and radio separate target from visible box
+
+Checkbox and radio controls SHALL show a `1.25rem` box inside a target of at least 44px.
+
+#### Scenario: Measured at rest
+
+- **WHEN** a checkbox renders in a table
+- **THEN** its visible box measures `1.25rem`, its target measures at least 44px, and the target paints no fill or border
+
+#### Scenario: Long label
+
+- **WHEN** a checkbox sits beside a label long enough to wrap
+- **THEN** its target still measures at least 44px
+
+#### Scenario: Focused
+
+- **WHEN** a checkbox has keyboard focus
+- **THEN** the ring follows the visible box
+
+#### Scenario: Resting boundary
+
+- **WHEN** an unchecked checkbox or radio rests on a panel in either theme
+- **THEN** its border reaches at least 3:1 against that panel
+
+#### Scenario: Beside a label
+
+- **WHEN** a checkbox or radio sits in a label row
+- **THEN** its box aligns with the fields around it
+
+### Requirement: Selection columns stay narrow
+
+A data table SHALL let a column hold to the width of its content, so a selection column takes no share of the table's spare width.
+
+#### Scenario: Wide table
+
+- **WHEN** a table with a fit column is wider than its content
+- **THEN** the fit column stays as wide as its control and its padding
