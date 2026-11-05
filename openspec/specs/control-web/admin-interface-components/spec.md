@@ -1004,3 +1004,36 @@ Control SHALL separate a filter bar from its results, and a card's stacked form 
 
 - **WHEN** the match console shows its clock card
 - **THEN** a 12px gap separates the clock form from the clock commands
+
+### Requirement: Field height does not depend on its state
+
+A form field SHALL keep the same height in every state: resting, focus, disabled, loading, with help text, and with an error of any length.
+
+#### Scenario: An error appears
+
+- **WHEN** a field in a row gains an error message
+- **THEN** neither that field nor any neighbouring field changes height or position
+
+#### Scenario: Long help text
+
+- **WHEN** a field has help text longer than one line
+- **THEN** the field keeps its height and the full text opens from an icon beside the label
+
+#### Scenario: Stretched row
+
+- **WHEN** fields of different content share a row
+- **THEN** every input keeps the 44px control height
+
+### Requirement: Popover atom explains content on demand
+
+The interface SHALL provide one reusable popover atom that opens from its trigger by click, tap or keyboard, closes on Escape or an outside click, returns focus to its trigger, and stays inside the viewport.
+
+#### Scenario: Keyboard use
+
+- **WHEN** a person opens a popover with the keyboard and presses Escape
+- **THEN** the popover closes and focus returns to its trigger
+
+#### Scenario: Near a screen edge
+
+- **WHEN** a popover would open past the edge of the viewport
+- **THEN** it repositions and its whole text stays visible

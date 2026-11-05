@@ -39,11 +39,15 @@ Activating a standings tab or a club filter on a public table SHALL update the s
 - **THEN** reloading the same URL shows the same filtered table
 
 ### Requirement: Abbreviated column headers explain themselves
-Every abbreviated column header of a public table SHALL expose the column's full label on hover and keyboard focus and to assistive technology, and the table SHALL list the abbreviations in a legend visible without hovering. The wording SHALL come from the discipline's own data (a long header, or the label of the statistic the column counts, or the headers of the columns a computed column is made of) in the page's language, never from platform-side terms.
+Every abbreviated column header of a public table SHALL expose the column's full label in a popover from an information icon beside the header and to assistive technology, and the table SHALL list the abbreviations in a legend visible without hovering. The wording SHALL come from the discipline's own data (a long header, or the label of the statistic the column counts, or the headers of the columns a computed column is made of) in the page's language, never from platform-side terms.
+
+#### Scenario: A header expands from its icon
+- **WHEN** a viewer taps, clicks, hovers or activates by keyboard the information icon of an abbreviated header
+- **THEN** its full label is shown, and the column's sort order does not change
 
 #### Scenario: A header expands on focus
 - **WHEN** a viewer focuses an abbreviated header
-- **THEN** its full label is announced and shown
+- **THEN** its full label is announced, and focusing its information icon lets the viewer open it
 
 #### Scenario: A legend is always visible
 - **WHEN** a table has abbreviated headers
