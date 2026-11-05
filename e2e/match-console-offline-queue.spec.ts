@@ -236,6 +236,24 @@ test('queues a recorded event while offline, then drains it once back online', a
   await expect(page.locator('.cl-connection-status')).toContainText('Last synced');
 });
 
+test('the clock form and the clock commands keep a gap between them', async ({ page }) => {
+  await mockMatchConsole(page);
+  await seedLoginTransaction(
+    page,
+    `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`,
+  );
+  await page.goto(loginCallbackUrl());
+  await selectEnglish(page);
+  const applyClock = page.getByRole('button', { name: 'Apply clock' });
+  await applyClock.waitFor();
+
+  const gap = await applyClock.evaluate((button) => {
+    const commands = document.querySelector('.cl-clock-commands') as HTMLElement;
+    return commands.getBoundingClientRect().top - button.getBoundingClientRect().bottom;
+  });
+  expect(gap).toBe(12);
+});
+
 test('a queued action survives a refresh while offline, and drains once back online', async ({
   page,
 }) => {
