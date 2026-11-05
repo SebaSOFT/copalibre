@@ -728,6 +728,32 @@ describe('the CSS output', () => {
     );
   });
 
+  it('pads the card header like the card body and runs the strip to the card edge', () => {
+    const block = (selector: string) =>
+      css.slice(css.indexOf(`${selector} {`), css.indexOf('}', css.indexOf(`${selector} {`)));
+
+    expect(block('.cl-card')).toContain('padding: var(--cl-space-4);');
+    expect(block('.cl-card__header')).toContain('padding: var(--cl-space-4);');
+
+    const strip = block('.cl-card > .cl-card__header:first-child');
+    expect(strip).toContain('max-width: none;');
+    expect(strip).toContain('margin-block-start: calc(-1 * var(--cl-space-4) - 1px);');
+    expect(strip).toContain(
+      'margin-inline: calc(-1 * var(--cl-space-4)) calc(-1 * var(--cl-space-4) - 1px);',
+    );
+    // The state rail is the border on that side; a second line would sit beside it.
+    expect(strip).toContain('border-inline-start: 0;');
+  });
+
+  it('cuts the header strip where it meets a chamfered corner', () => {
+    const selector = '.cl-card:is(.cl-chamfer, .cl-chamfer-tr) > .cl-card__header:first-child';
+    const start = css.indexOf(`${selector} {`);
+    expect(start).toBeGreaterThan(-1);
+    expect(start).toBeGreaterThan(css.indexOf('@supports (corner-top-right-shape: bevel)'));
+    expect(start).toBeLessThan(css.indexOf('@supports (corner-shape: bevel)'));
+    expect(css.slice(start, css.indexOf('}', start))).toContain('corner-top-right-shape: bevel;');
+  });
+
   it("lets the level rules win over a card's own styling", () => {
     // `.cl-card` outweighs a `:where()` rule, so a background declared there
     // would pin every card to one shade and silently defeat alternation.

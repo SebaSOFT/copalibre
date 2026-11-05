@@ -400,13 +400,14 @@ body {
   list-style: none;
 }
 
+/* Ties with the card header strip's own rule, which is wider than its parent on purpose. */
 .cl-control__main,
 .cl-control > main,
 .cl-control > main > *:not(.cl-container),
 .cl-control > main > * > *,
 .cl-control-screen,
 .cl-control-screen > *:not(.cl-form-screen):not(.cl-container),
-.cl-control-screen > * > *:not(.cl-form-screen):not(.cl-container),
+.cl-control-screen > * > *:not(.cl-form-screen):not(.cl-container):not(.cl-card__header),
 .cl-list-screen,
 .cl-list-screen > *:not(.cl-container),
 .cl-form-screen > *:not(.cl-container),

@@ -374,6 +374,13 @@ function chamfer(): string {
     '    corner-top-right-shape: bevel;',
     '    corner-bottom-left-shape: bevel;',
     '  }',
+    // The card does not clip its children, so a header strip that reaches the
+    // cut corner has to make the same cut or its fill shows past the bevel.
+    // One rule serves both tiers: `corner-shape` implies this longhand.
+    '  .cl-card:is(.cl-chamfer, .cl-chamfer-tr) > .cl-card__header:first-child {',
+    `    border-top-right-radius: ${size};`,
+    '    corner-top-right-shape: bevel;',
+    '  }',
     '}',
     '',
     '@supports (corner-shape: bevel) {',
@@ -554,7 +561,20 @@ function components(): string {
     '}',
     ...cards,
     '',
-    '.cl-card__header { display: grid; gap: var(--cl-space-1); margin-block-end: var(--cl-space-3); }',
+    '.cl-card__header { display: grid; gap: var(--cl-space-1); margin-block-end: var(--cl-space-3); padding: var(--cl-space-4); min-width: 0; }',
+    // The strip leaves the card's padding and takes that padding on itself, so
+    // the title stays on the body's left edge instead of sitting one inset
+    // further in. The extra pixel lays its hairline over the card's own at the
+    // top and right. The left edge stops at the state rail, which is already
+    // the border there. A header below other content has no edge to reach.
+    // `max-width` lifts Control's overflow guards, which hold every descendant
+    // to its parent's width and would stop the strip short of the right edge.
+    '.cl-card > .cl-card__header:first-child {',
+    '  max-width: none;',
+    '  margin-block-start: calc(-1 * var(--cl-space-4) - 1px);',
+    '  margin-inline: calc(-1 * var(--cl-space-4)) calc(-1 * var(--cl-space-4) - 1px);',
+    '  border-inline-start: 0;',
+    '}',
     // A card's title is often a single long compound — `Turniereinstellungen`,
     // `Plattformverwaltung` — which has no break opportunity and sets the
     // card's min-content width above the viewport at the 188px reference,
