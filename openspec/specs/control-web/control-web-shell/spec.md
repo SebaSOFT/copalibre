@@ -370,12 +370,12 @@ own.
 ### Requirement: Interactive Column Headers with Descriptions and Tri-State Bidirectional Ordering
 Column headers in the canonical table molecule SHALL support:
 1. Column name / label.
-2. Descriptive tooltip explaining metric definitions or acronyms (e.g. "Partidos Jugados", "Diferencia de Gol") accessible on hover, focus, and via `aria-describedby`.
+2. Description explaining metric definitions or acronyms (e.g. "Partidos Jugados", "Diferencia de Gol"), shown in a popover from an information icon beside the label. The sort control references the text via `aria-describedby`.
 3. Tri-state bidirectional ordering: `none` (original/natural standings order), `ascending`, and `descending`, communicating with the sorting algorithm and updating `aria-sort`.
 
 #### Scenario: Inspecting column description tooltip
-- **WHEN** an operator or spectator hovers over or focuses a column header with a description
-- **THEN** an accessible tooltip displays the full metric description without obscuring adjacent headers.
+- **WHEN** an operator or spectator hovers over, clicks, taps or activates by keyboard the information icon of a column header with a description
+- **THEN** an accessible popover displays the full metric description, and the column's sort order does not change
 
 #### Scenario: Tri-state column reordering
 - **WHEN** an operator or spectator repeatedly clicks a sortable column header

@@ -473,3 +473,30 @@ test('recent activity stacks into labelled cards on a phone in German, with noth
     .analyze();
   expect(violations).toEqual([]);
 });
+
+for (const colorScheme of ['dark', 'light'] as const) {
+  test(`the scope rail meets AA contrast in the ${colorScheme} theme`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme });
+    await openDashboard(page);
+    await expect(page.locator('.cl-context-rail-header__scope')).toBeVisible();
+
+    const { violations } = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
+    expect(violations.map(({ nodes }) => nodes.map(({ target }) => target))).toEqual([]);
+  });
+}
+
+for (const colorScheme of ['dark', 'light'] as const) {
+  test(`the scope rail status meets AA contrast in the ${colorScheme} theme`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme });
+    await openDashboard(page);
+    await page.getByRole('link', { name: 'Torneo Apertura 1' }).first().click();
+    const status = page.locator('.cl-context-rail-header__status');
+    await expect(status).toBeVisible();
+
+    const { violations } = await new AxeBuilder({ page })
+      .include('.cl-context-rail-header')
+      .withRules(['color-contrast'])
+      .analyze();
+    expect(violations.map(({ nodes }) => nodes.map(({ target }) => target))).toEqual([]);
+  });
+}

@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
@@ -355,6 +356,17 @@ test('TV dashboard fits the frame and rotates overflowing standings without scro
       await expectNoScroll();
     }
   }
+});
+
+test('TV live status badge meets AA contrast', async ({ page }) => {
+  await page.goto(`${TV_PATH}?layout=dashboard&lang=es`);
+  await expect(page.locator('.tv-scorebug__badge--live').first()).toBeVisible();
+
+  const { violations } = await new AxeBuilder({ page })
+    .include('.tv-scorebug__badge--live')
+    .withRules(['color-contrast'])
+    .analyze();
+  expect(violations.map(({ nodes }) => nodes.map(({ target }) => target))).toEqual([]);
 });
 
 test('TV upcoming status badge uses the semantic amber token', async ({ page }) => {

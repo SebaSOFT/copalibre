@@ -166,7 +166,8 @@
 .tv-scorebug__badge--live {
   background: color-mix(in srgb, var(--cl-state-destructive) 15%, transparent);
   border-color: var(--tv-live-red);
-  color: var(--cl-state-destructive);
+  /* Red on its own tint falls below AA; the border and the tint carry the signal. */
+  color: var(--cl-text-primary);
 }
 
 .tv-scorebug__badge--final {

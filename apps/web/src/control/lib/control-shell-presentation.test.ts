@@ -1,3 +1,4 @@
+import { CONTRAST_GATES, contrastRatio, resolveSemantic } from '@copalibre/design-tokens';
 import {
   controlNavigationGroups,
   controlScopeAction,
@@ -26,11 +27,23 @@ describe('control shell presentation', () => {
     ]);
   });
 
+  it('keeps every status readable on the raised well of the rail in both themes', () => {
+    const statuses = ['draft', 'published', 'started', 'finished', 'archived'] as const;
+    for (const theme of ['dark', 'light'] as const) {
+      for (const status of statuses) {
+        const color = tournamentScopeStatus(status)?.color ?? 'text-primary';
+        expect(
+          contrastRatio(resolveSemantic(color, theme), resolveSemantic('surface-raised', theme)),
+        ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+      }
+    }
+  });
+
   it('uses only status values supplied by the tournament response', () => {
     expect(tournamentScopeStatus(undefined)).toBeUndefined();
     expect(tournamentScopeStatus('started')).toMatchObject({
       lifecycle: 'in-progress',
-      color: 'text-muted',
+      color: 'text-secondary',
     });
     expect(tournamentScopeStatus('draft')).toMatchObject({
       lifecycle: 'draft',

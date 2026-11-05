@@ -63,7 +63,8 @@ export interface ControlScopeStatus {
 
 const LIFECYCLE_COLORS: Readonly<Record<TournamentLifecycle, SemanticColor>> = {
   live: 'state-live',
-  'in-progress': 'text-muted',
+  // The rail sits on the raised well, where the muted label colour falls below AA.
+  'in-progress': 'text-secondary',
   upcoming: 'state-upcoming',
   draft: 'state-upcoming',
   finished: 'state-positive',

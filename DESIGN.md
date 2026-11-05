@@ -332,7 +332,7 @@ where something is true about the state of the tournament.
 - **Paper White** (`text-50`): Body text and headings.
 - **Cool Grey** (`text-200`): Secondary text — alert bodies, series detail, broadcast org lines.
 - **Muted Steel** (`text-400`): Labels, table headers, metadata, help text, and emphasised structure.
-  Never body copy.
+  Never body copy, and never on the raised well, where it reaches 4.04:1: labels there use `text-secondary`.
 
 ### Light Theme (L3 Sunlight)
 
@@ -601,6 +601,8 @@ uppercase display face, 44px targets, state always spelled out in words as well 
 - **Style:** Barlow Condensed 600, uppercase, padded `4px 8px`, inline-flex with a `4px` gap for an
   optional icon.
 - **Contract:** A label is required. `assertBadge` throws `BadgeContractError` on an empty one.
+- **Tinted state badges:** Text must clear 4.5:1 on the tint over the lightest surface beneath it. Red does
+  not on the TV live badge, so its text is `text-primary` and the border and tint carry the state.
 
 ### Cards / Containers
 
