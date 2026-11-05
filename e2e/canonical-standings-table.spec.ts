@@ -174,6 +174,24 @@ test.describe('canonical standings table', () => {
     await expect(icon).toBeFocused();
   });
 
+  test('a click keeps a hover-opened description open after the pointer leaves', async ({
+    page,
+  }) => {
+    await openStandings(page);
+    const icon = page.getByRole('button', { name: 'Acerca de Dif' });
+    const popover = page.getByRole('dialog', { name: 'Acerca de Dif' });
+
+    await icon.hover();
+    await expect(popover).toBeVisible();
+    await icon.click();
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(300);
+    await expect(popover).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(popover).toHaveCount(0);
+  });
+
   test('carries no aria-sort/tooltip wiring for a column with no description', async ({ page }) => {
     await openStandings(page);
     const teamHeader = page.getByRole('button', { name: 'Team' });

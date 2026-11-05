@@ -2069,6 +2069,9 @@ function compositions(): string {
     // The label sorts and the icon beside it explains, so a header holds two
     // sibling controls and never one nested in the other.
     '.cl-column-header-tooltip { display: inline-flex; align-items: center; gap: 2px; }',
+    // The label gives up its 44px width, so label and icon fit the column the
+    // label alone used to need. It stays 44px tall, the axis a table constrains.
+    '.cl-column-header-tooltip .cl-table__sort { min-width: 0; }',
     // The target overhangs up and down only: sideways it would cover the label
     // that sorts, or the next column's.
     '.cl-column-header-tooltip .cl-popover__trigger::before { inset: -14px -4px; }',
