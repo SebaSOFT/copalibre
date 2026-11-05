@@ -933,3 +933,27 @@ A data table SHALL let a column hold to the width of its content, so a selection
 
 - **WHEN** a table with a fit column is wider than its content
 - **THEN** the fit column stays as wide as its control and its padding
+
+### Requirement: Select presents like Input
+
+A select SHALL align its value as Input does, SHALL show placeholder text when it has no value, SHALL show the label of an option whose value is empty, and SHALL keep the 44px control height whatever the length of its value.
+
+#### Scenario: No value
+
+- **WHEN** a select has no selected value
+- **THEN** it shows its placeholder text
+
+#### Scenario: Disabled
+
+- **WHEN** a select is disabled
+- **THEN** it measures the same height as an enabled select
+
+#### Scenario: Empty-value option
+
+- **WHEN** a select has no selected value and an option with an empty value carries a label
+- **THEN** it shows that label as a selected value, not as placeholder text
+
+#### Scenario: Long value
+
+- **WHEN** a select's value is longer than the control
+- **THEN** the value stays on one line, clips with an ellipsis, keeps its whole text in the title, and the control keeps the same height
