@@ -41,8 +41,8 @@ test('fresh Compose installation exposes generic OIDC PKCE login', async ({ page
 
   // The deployment's served origin owns the control sessionStorage.
   await page.goto('http://localhost:4321/control/');
-  await expect(page).toHaveTitle('Sign in — CopaLibre');
-  await expect(page.getByRole('heading', { name: 'Sign in to operate' })).toBeVisible();
+  await expect(page).toHaveTitle('Iniciar sesión — CopaLibre');
+  await expect(page.getByRole('heading', { name: 'Iniciá sesión para operar' })).toBeVisible();
   await page.getByRole('button', { name: 'Continue with identity provider' }).click();
 
   await page.waitForURL('https://identity.example/authorize**');

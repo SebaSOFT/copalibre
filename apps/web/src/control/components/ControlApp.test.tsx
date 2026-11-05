@@ -191,9 +191,13 @@ describe('ControlApp', () => {
       'Standings — apertura-2026',
       'Posiciones',
     ],
-    ['/control/login', 'Sign in — CopaLibre', 'Sign in to operate'],
-    ['/control/forgot-password', 'Recover password — CopaLibre', 'Recover password'],
-    ['/control/reset-password', 'Reset password — CopaLibre', 'Invalid recovery link'],
+    ['/control/login', 'Iniciar sesión — CopaLibre', 'Iniciá sesión para operar'],
+    ['/control/forgot-password', 'Recuperar contraseña — CopaLibre', 'Recuperar contraseña'],
+    [
+      '/control/reset-password',
+      'Restablecer contraseña — CopaLibre',
+      'El enlace de recuperación no es válido',
+    ],
     [
       '/control/liga-mendocina/preferences',
       'Personal preferences — CopaLibre',
@@ -333,7 +337,7 @@ describe('ControlApp session guard and callback', () => {
 
     render(<ControlApp />);
 
-    expect(screen.getByText('Sign in to operate', { exact: false })).toBeDefined();
+    expect(screen.getByText('Iniciá sesión para operar', { exact: false })).toBeDefined();
   });
 
   it('renders normally when a valid session exists', async () => {

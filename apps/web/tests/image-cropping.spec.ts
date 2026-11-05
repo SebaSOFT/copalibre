@@ -82,6 +82,7 @@ test('selecting a file opens the crop modal; confirming it uploads and renders t
   // its translated label) so the rest of this spec's English assertions
   // hold regardless of that default.
   await page.getByLabel('Idioma').selectOption('en');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 
   await expect(page.getByRole('img', { name: 'No emblem uploaded' })).toBeVisible();
 

@@ -1,6 +1,6 @@
 import { parseControlPath, type ControlRoute } from '@copalibre/routing';
 import { useEffect, useState } from 'react';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import {
   AnalyticsControlRoute,
   AuditTrailControlRoute,
@@ -36,7 +36,7 @@ import {
 } from './ControlRoutes.js';
 
 import type { SupportedLanguage } from '../../lib/language-preference.js';
-import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
+import { activeControlLanguage, CATALOGS, ControlIntl } from '../i18n/ControlIntl.js';
 import { messages } from '../i18n/messages.en.js';
 import { createControlApiClient, type MyOrganizationResponse } from '../lib/api-client.js';
 import {
@@ -380,7 +380,16 @@ function renderForScreen(route: ControlRoute): React.JSX.Element {
  * control route at hydration the last time this file reached for it (see the
  * comment in `../lib/api-client.ts` recording the same finding). A real
  * per-locale catalogue for document titles is separate work.
+ *
+ * The auth screens are the exception, because a visitor meets them before
+ * anything else: their titles are plain catalogue text with no arguments, so
+ * `authTitle` reads the active catalogue directly and needs no formatter.
  */
+function authTitle(message: MessageDescriptor): string {
+  const translated = CATALOGS[activeControlLanguage()]?.[String(message.id)];
+  return `${translated ?? String(message.defaultMessage)} — CopaLibre`;
+}
+
 /**
  * One entry per `ControlRoute['screen']`, typed so TypeScript's own exhaustiveness
  * check — not a `switch`'s `default` fallback — catches a screen added without a
@@ -423,9 +432,9 @@ const TITLE_BY_SCREEN: TitleByScreen = {
   promotionPlan: (route) => `Promotion plan — ${route.tournamentAlias}`,
   qualification: (route) => `Qualification — ${route.tournamentAlias}`,
   schedule: (route) => `Schedule — ${route.tournamentAlias}`,
-  login: () => 'Sign in — CopaLibre',
-  'forgot-password': () => 'Recover password — CopaLibre',
-  'reset-password': () => 'Reset password — CopaLibre',
+  login: () => authTitle(messages.authLoginSubmit),
+  'forgot-password': () => authTitle(messages.authForgotTitle),
+  'reset-password': () => authTitle(messages.authResetSubmit),
   platformAdministration: () => 'Platform administration — CopaLibre',
   disciplineDocument: (route) => `Discipline — ${route.disciplineAlias}`,
   preferences: () => 'Personal preferences — CopaLibre',

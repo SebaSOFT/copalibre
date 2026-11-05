@@ -6,7 +6,7 @@ import { LiveConsoleTemplate } from '../components/screens/LiveConsoleTemplate.j
 import { RolesPermissionsTemplate } from '../components/screens/RolesPermissionsTemplate.js';
 import { tournament } from '../components/screen-story-fixtures.js';
 import { ToastProvider } from '../components/ToastProvider.js';
-import { activeControlLanguage } from './ControlIntl.js';
+import { activeControlLanguage, ControlIntl } from './ControlIntl.js';
 import { messages } from './messages.en.js';
 import { messages as esMessages } from './messages.es.js';
 import { messages as frMessages } from './messages.fr.js';
@@ -74,6 +74,43 @@ describe('message-catalog completeness', () => {
     for (const value of Object.values(NON_ENGLISH_CATALOGS[lang])) {
       expect(value).toBeTruthy();
     }
+  });
+});
+
+describe('auth catalogue', () => {
+  const authIds = Object.values(messages)
+    .map((descriptor) => descriptor.id)
+    .filter((id): id is string => id?.startsWith('auth.') === true);
+
+  it('covers every auth screen string', () => {
+    expect(authIds).toContain('auth.loginTitle');
+    expect(authIds).toContain('auth.passwordWithMinimum');
+  });
+
+  it.each(Object.keys(NON_ENGLISH_CATALOGS))('%s translates every auth string', (lang) => {
+    for (const id of authIds) {
+      expect(NON_ENGLISH_CATALOGS[lang][id]).toBeTruthy();
+    }
+  });
+});
+
+describe('document language', () => {
+  afterEach(() => {
+    localStorage.clear();
+    document.documentElement.lang = '';
+  });
+
+  it('declares the active interface language', () => {
+    localStorage.setItem('copalibre.language', 'de');
+    render(<ControlIntl>content</ControlIntl>);
+    expect(document.documentElement.lang).toBe('de');
+  });
+
+  it('follows a language change without a reload', () => {
+    const { rerender } = render(<ControlIntl locale="es">content</ControlIntl>);
+    expect(document.documentElement.lang).toBe('es');
+    rerender(<ControlIntl locale="fr">content</ControlIntl>);
+    expect(document.documentElement.lang).toBe('fr');
   });
 });
 

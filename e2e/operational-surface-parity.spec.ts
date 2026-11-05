@@ -33,9 +33,9 @@ test('blocked font delivery preserves readable labels and focus at the zoom floo
   await page.setViewportSize({ width: 188, height: 900 });
   await page.goto('/control/login');
   await page.evaluate(() => document.fonts.ready);
-  await expect(page.getByLabel('Email', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
-  const input = page.getByLabel('Email', { exact: true });
+  await expect(page.getByLabel('Correo electrónico', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Contraseña', { exact: true })).toBeVisible();
+  const input = page.getByLabel('Correo electrónico', { exact: true });
   await input.focus();
   await expect(input).toBeFocused();
   expect(await input.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe('none');
@@ -305,9 +305,9 @@ test('ControlApp hydrates without a bundling-crash console error', async ({ page
   });
 
   await page.goto('/control/login');
-  await expect(page.getByLabel('Email', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+  await expect(page.getByLabel('Correo electrónico', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Contraseña', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Iniciar sesión' })).toBeVisible();
 
   const bundlingErrors = errors.filter((text) => /node:/i.test(text) || /externalized/i.test(text));
   expect(bundlingErrors).toEqual([]);
