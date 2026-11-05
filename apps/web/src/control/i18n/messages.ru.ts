@@ -1823,6 +1823,7 @@ export const messages: Record<string, string> = {
   'control.copyId.button': 'Копировать ID',
   'control.copyId.success': 'ID скопирован',
   'control.copyId.failure': 'Не удалось скопировать ID',
+  'control.info.about': 'Подробнее: {subject}',
   'control.auditTrail.copyEntityId': 'Копировать ID записи',
   'control.auditTrail.copyActorId': 'Копировать ID автора',
   'control.roles.description':

@@ -93,6 +93,7 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.fullTable': 'Vedi classifica completa',
   'publicWeb.standings.tableLayouts': 'Layout di tabella',
   'publicWeb.standings.moreColumns': 'Altre colonne',
+  'publicWeb.standings.columnInfo': 'Informazioni su {column}',
   'publicWeb.standings.filterByClub': 'Filtra per club',
   'publicWeb.standings.filterClubLabel': 'Club',
   'publicWeb.standings.columnLegend': 'Abbreviazioni della tabella',

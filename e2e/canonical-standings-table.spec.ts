@@ -117,7 +117,7 @@ test.describe('canonical standings table', () => {
     page,
   }) => {
     await openStandings(page);
-    const header = page.getByRole('button', { name: 'GF' });
+    const header = page.getByRole('button', { name: 'GF', exact: true });
     const th = page.locator('th', { has: header });
     const columnIndex = await th.evaluate((element) =>
       Array.from(element.parentElement?.children ?? []).indexOf(element),
@@ -151,20 +151,45 @@ test.describe('canonical standings table', () => {
     expect(await rowsInOrder()).toEqual(['12', '6']);
   });
 
-  test('reveals a column description tooltip on hover and on keyboard focus', async ({ page }) => {
+  test('reveals a column description from its icon, by hover and by keyboard', async ({ page }) => {
     await openStandings(page);
-    const header = page.getByRole('button', { name: 'Dif' });
-    await expect(page.getByRole('tooltip')).toHaveCount(0);
+    const sort = page.getByRole('button', { name: 'Dif', exact: true });
+    const icon = page.getByRole('button', { name: 'Acerca de Dif' });
+    const popover = page.getByRole('dialog', { name: 'Acerca de Dif' });
+    await expect(popover).toHaveCount(0);
+    await expect(sort).toHaveAccessibleDescription('Goal Difference');
 
-    await header.hover();
-    const tooltip = page.getByRole('tooltip');
-    await expect(tooltip).toBeVisible();
-    await expect(tooltip).toHaveText('Goal Difference');
+    await icon.hover();
+    await expect(popover).toBeVisible();
+    await expect(popover).toHaveText('Goal Difference');
 
     // Move away, then reach it by keyboard alone.
     await page.mouse.move(0, 0);
-    await header.focus();
-    await expect(page.getByRole('tooltip')).toBeVisible();
+    await expect(popover).toHaveCount(0);
+    await icon.focus();
+    await page.keyboard.press('Enter');
+    await expect(popover).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(popover).toHaveCount(0);
+    await expect(icon).toBeFocused();
+  });
+
+  test('a click keeps a hover-opened description open after the pointer leaves', async ({
+    page,
+  }) => {
+    await openStandings(page);
+    const icon = page.getByRole('button', { name: 'Acerca de Dif' });
+    const popover = page.getByRole('dialog', { name: 'Acerca de Dif' });
+
+    await icon.hover();
+    await expect(popover).toBeVisible();
+    await icon.click();
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(300);
+    await expect(popover).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(popover).toHaveCount(0);
   });
 
   test('carries no aria-sort/tooltip wiring for a column with no description', async ({ page }) => {
@@ -172,7 +197,6 @@ test.describe('canonical standings table', () => {
     const teamHeader = page.getByRole('button', { name: 'Team' });
     const th = page.locator('th', { has: teamHeader });
     await expect(th).toHaveAttribute('aria-sort', 'none');
-    await teamHeader.hover();
-    await expect(page.getByRole('tooltip')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Acerca de Team' })).toHaveCount(0);
   });
 });

@@ -228,6 +228,7 @@ export function StandingsTemplate({
         header: (
           <ColumnHeaderTooltip
             description={column.label === column.shortLabel ? undefined : column.label}
+            infoLabel={intl.formatMessage(messages.infoAbout, { subject: column.shortLabel })}
             indicator={
               sort?.columnCode === column.code ? (
                 <span aria-hidden="true" className="cl-column-header__indicator">

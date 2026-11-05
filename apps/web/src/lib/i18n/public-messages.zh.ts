@@ -93,6 +93,7 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.fullTable': '查看完整积分榜',
   'publicWeb.standings.tableLayouts': '表格布局',
   'publicWeb.standings.moreColumns': '更多列',
+  'publicWeb.standings.columnInfo': '关于{column}',
   'publicWeb.standings.filterByClub': '按俱乐部筛选',
   'publicWeb.standings.filterClubLabel': '俱乐部',
   'publicWeb.standings.columnLegend': '表格缩写说明',

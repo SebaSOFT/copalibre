@@ -9,6 +9,7 @@ export const ICON_REGISTRY = {
   event: { set: 'lucide', name: 'activity' },
   export: { set: 'lucide', name: 'download' },
   'external-link': { set: 'lucide', name: 'external-link' },
+  info: { set: 'lucide', name: 'info' },
   language: { set: 'lucide', name: 'languages' },
   menu: { set: 'lucide', name: 'menu' },
   more: { set: 'lucide', name: 'ellipsis' },

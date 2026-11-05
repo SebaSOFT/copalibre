@@ -23,9 +23,10 @@ describe('Field', () => {
         <Input id="b" onChange={() => {}} value="" />
       </Field>,
     );
-    // Same structural shape: a label, the control, then an optional message slot.
-    expect(withoutError.querySelectorAll('.cl-form-field > *').length).toBe(2);
+    // Same structural shape in every state: the label row, the control, the message line.
+    expect(withoutError.querySelectorAll('.cl-form-field > *').length).toBe(3);
     expect(withError.querySelectorAll('.cl-form-field > *').length).toBe(3);
+    expect(withoutError.querySelector('.cl-form-field__message')).not.toBeNull();
   });
 
   it('shows the error message with role=alert, not the help text', () => {
@@ -48,13 +49,13 @@ describe('Field', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('renders no message slot when there is neither an error nor help text', () => {
+  it('keeps an empty message line when there is neither an error nor help text', () => {
     const { container } = render(
       <Field id="e" label="Correo">
         <Input id="e" onChange={() => {}} value="" />
       </Field>,
     );
-    expect(container.querySelectorAll('.cl-form-field > *').length).toBe(2);
+    expect(container.querySelector('.cl-form-field__message')?.childElementCount).toBe(0);
   });
 
   it('shows a required indicator, purely visual, when required is set', () => {
@@ -73,6 +74,81 @@ describe('Field', () => {
     const indicator = required.querySelector('.cl-form-field__required');
     expect(indicator).not.toBeNull();
     expect(indicator?.getAttribute('aria-hidden')).toBe('true');
+  });
+});
+
+describe('Field message', () => {
+  const widths = (scrollWidth: number): (() => void) => {
+    const scroll = jest.spyOn(HTMLElement.prototype, 'scrollWidth', 'get');
+    const client = jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get');
+    scroll.mockReturnValue(scrollWidth);
+    client.mockReturnValue(100);
+    return () => {
+      scroll.mockRestore();
+      client.mockRestore();
+    };
+  };
+
+  it('links help and error to the control, keeping an id the caller already set', () => {
+    render(
+      <>
+        <Field helpText="Ayuda" id="p" label="Uno">
+          <Input id="p" onChange={() => {}} value="" />
+        </Field>
+        <Field errorText="Mal" id="q" label="Dos">
+          <Input aria-describedby="otro q-error" id="q" onChange={() => {}} value="" />
+        </Field>
+      </>,
+    );
+    expect(screen.getByLabelText('Uno').getAttribute('aria-describedby')).toBe('p-help');
+    expect(screen.getByLabelText('Dos').getAttribute('aria-describedby')).toBe('otro q-error');
+  });
+
+  it('adds no description to a field with no message', () => {
+    render(
+      <Field id="r" label="Tres">
+        <Input id="r" onChange={() => {}} value="" />
+      </Field>,
+    );
+    expect(screen.getByLabelText('Tres').getAttribute('aria-describedby')).toBeNull();
+  });
+
+  it('shows no icon while the message fits', () => {
+    const restore = widths(100);
+    render(
+      <Field helpText="Corta" id="s" label="Cuatro">
+        <Input id="s" onChange={() => {}} value="" />
+      </Field>,
+    );
+    expect(screen.queryByRole('button')).toBeNull();
+    restore();
+  });
+
+  it('opens long help from an icon beside the label', () => {
+    const restore = widths(300);
+    const { container } = render(
+      <Field helpText="Una ayuda larga" id="t" label="Cinco">
+        <Input id="t" onChange={() => {}} value="" />
+      </Field>,
+    );
+    expect(
+      container.querySelector('.cl-form-field__label-row button')?.getAttribute('aria-label'),
+    ).toBe('Una ayuda larga');
+    expect(container.querySelector('.cl-form-field__message button')).toBeNull();
+    restore();
+  });
+
+  it('keeps a long error in the line, with its icon and whole text', () => {
+    const restore = widths(300);
+    const { container } = render(
+      <Field errorText="Un error largo" helpText="Ayuda" id="u" label="Seis">
+        <Input id="u" onChange={() => {}} value="" />
+      </Field>,
+    );
+    expect(container.querySelector('.cl-form-field__message button')).not.toBeNull();
+    expect(container.querySelector('.cl-form-field__label-row button')).toBeNull();
+    expect(screen.getByRole('alert').textContent).toBe('Un error largo');
+    restore();
   });
 });
 

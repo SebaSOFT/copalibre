@@ -1722,6 +1722,7 @@ export const messages: Record<string, string> = {
   'control.copyId.button': '复制 ID',
   'control.copyId.success': '已复制 ID',
   'control.copyId.failure': '无法复制 ID',
+  'control.info.about': '关于{subject}',
   'control.auditTrail.copyEntityId': '复制记录 ID',
   'control.auditTrail.copyActorId': '复制操作人 ID',
   'control.roles.description': '选择谁可以管理此组织，以及每个角色可以做什么。',

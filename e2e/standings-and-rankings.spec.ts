@@ -285,10 +285,10 @@ test('A5: renders the discipline’s own GF/GC/Dif/Avg columns, switches to a fr
   await page.waitForURL(`**${target}`);
 
   // The discipline's own declared columns, not a hardcoded control-web list.
-  await expect(page.getByRole('button', { name: 'GF' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'GC' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Dif' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Avg' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'GF', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'GC', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Dif', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Avg', exact: true })).toBeVisible();
   // Table cells specifically — the distribution chart above repeats the
   // same leader's name and value as its own bar label.
   const table = page.locator('.cl-chamfer--control');
@@ -727,11 +727,20 @@ test.describe('B2: public tournament page', () => {
     await expect(page).toHaveURL(/tab=group-standings-default/);
 
     // `ga` declares a short header: it shows GC, its long header is the hint.
-    await page.getByRole('button', { name: 'GC', exact: true }).focus();
-    await expect(page.getByRole('tooltip', { name: 'GA' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'GC', exact: true })).toHaveAccessibleDescription(
+      'GA',
+    );
     // `gf` is explained by its own description.
-    await page.getByRole('button', { name: 'GF', exact: true }).focus();
-    await expect(page.getByRole('tooltip', { name: 'Goals for' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'GF', exact: true })).toHaveAccessibleDescription(
+      'Goals for',
+    );
+    // The icon is an island: retry until it has hydrated.
+    const popover = page.getByRole('dialog', { name: 'About GF' });
+    await expect(async () => {
+      await page.getByRole('button', { name: 'About GF' }).click();
+      await expect(popover).toBeVisible({ timeout: 500 });
+    }).toPass();
+    await expect(popover).toHaveText('Goals for');
 
     const legend = page.getByRole('group', { name: 'Table abbreviations' });
     await expect(legend).toContainText('GF');
@@ -739,6 +748,26 @@ test.describe('B2: public tournament page', () => {
     await expect(legend).toContainText('GC');
     // A header that already says everything gets no legend entry.
     await expect(legend).not.toContainText('Team');
+  });
+
+  test.describe('Column hints on a touch screen', () => {
+    test.use({ hasTouch: true, viewport: { width: 768, height: 1024 } });
+
+    test('a tap on the icon opens a column hint without sorting', async ({ page }) => {
+      await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+      await page.locator('[data-full-layout-code="group-standings-default"]').click();
+      await expect(page).toHaveURL(/tab=group-standings-default/);
+
+      const icon = page.locator('th:visible .cl-popover__trigger').first();
+      const header = icon.locator('xpath=ancestor::th');
+      await expect(icon).toBeVisible();
+      // The icon is an island: retry until it has hydrated.
+      await expect(async () => {
+        await icon.tap();
+        await expect(page.getByRole('dialog')).toBeVisible({ timeout: 500 });
+      }).toPass();
+      await expect(header).toHaveAttribute('aria-sort', 'none');
+    });
   });
 
   test('club chips are compact, show the stored abbreviation, and mark selection by more than colour', async ({
