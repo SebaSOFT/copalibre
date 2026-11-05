@@ -957,3 +957,17 @@ A select SHALL align its value as Input does, SHALL show placeholder text when i
 
 - **WHEN** a select's value is longer than the control
 - **THEN** the value stays on one line, clips with an ellipsis, keeps its whole text in the title, and the control keeps the same height
+
+### Requirement: Inputs declare their font size
+
+Inputs, selects and text areas SHALL use the declared input font size of 16px on every surface.
+
+#### Scenario: Auth at 375px
+
+- **WHEN** a person focuses the email field on a phone
+- **THEN** the computed font size is 16px
+
+#### Scenario: Control form
+
+- **WHEN** a person opens a Control form
+- **THEN** inputs use the same size and keep the 44px height
