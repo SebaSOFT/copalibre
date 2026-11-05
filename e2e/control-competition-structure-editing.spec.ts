@@ -131,6 +131,53 @@ test('renames a zone from the zone-management screen and sees the change immedia
   await expect(page.getByLabel('Renombrar zona Zona 1 (corregida)')).toBeVisible();
 });
 
+test('keeps every settings field the same height, at rest and after a refused save', async ({
+  page,
+}) => {
+  await withTokenEndpoint(page);
+  await page.exposeFunction('__route', (url: string, init?: RequestInit) => {
+    const method = init?.method ?? 'GET';
+    if (url.endsWith('/settings') && method === 'GET') {
+      return { body: { name: 'Copa Alta', region: 'Cuyo', capacity: 16 } };
+    }
+    if (url.endsWith('/settings/preview') && method === 'POST') {
+      return {
+        body: {
+          fields: [
+            {
+              field: 'registration.capacity',
+              blocked: true,
+              reason: 'Cannot be reduced to 1: 10 entrant(s) are already accepted',
+            },
+          ],
+        },
+      };
+    }
+    return undefined;
+  });
+
+  const target = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/settings`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+  await expect(page.getByLabel('Capacidad')).toBeVisible();
+
+  const fieldHeights = (): Promise<number[]> =>
+    page
+      .locator('.cl-tournament-settings__fields .cl-form-field:has(input.cl-input)')
+      .evaluateAll((fields) => fields.map((field) => field.getBoundingClientRect().height));
+
+  const atRest = await fieldHeights();
+  expect(atRest.length).toBeGreaterThan(1);
+  expect(new Set(atRest).size).toBe(1);
+
+  await page.getByLabel('Capacidad').fill('1');
+  await page.getByRole('button', { name: 'Vista previa' }).click();
+  await expect(page.getByText(/already accepted/)).toBeVisible();
+
+  expect(await fieldHeights()).toEqual(atRest);
+});
+
 test('refuses a capacity reduction below the current entrant count before the save request is sent', async ({
   page,
 }) => {

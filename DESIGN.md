@@ -628,6 +628,10 @@ uppercase display face, 44px targets, state always spelled out in words as well 
   `0.75rem` beneath the field.
 - **Disabled:** Panel Ink fill with Muted Steel text.
 - **Labels:** Mono, uppercase, `0.75rem`. Help text and decision hints in Muted Steel at `0.75rem`.
+- **Stable height:** A field keeps one height in every state. One message line is always reserved under
+  the control, and a message clips to it with an ellipsis. A message that overflows opens whole from an
+  information icon, beside the label for help and in the line for an error. A page never sets its own
+  message size or field layout.
 - **Select:** Reads like Input: the value sits left on one line, and a long value clips with an ellipsis
   instead of growing past `44px`, with the whole text in the title. With no value it shows placeholder
   text in Muted Steel, supplied by the page. An option with an empty value and a label is a real choice
@@ -662,6 +666,18 @@ uppercase display face, 44px targets, state always spelled out in words as well 
   Its options remain a `44px` target and the selected choice uses the theme-aware accent tokens.
 - **Public shell:** A single logo lock-up in the header and a one-line footer. A skip link sits offscreen
   until focused, then lands at `8px / 8px` on panel ink.
+
+### Popovers
+
+- **Use:** A short explanation behind a `1rem` information icon: a field message that overflows, or a
+  column's full name. Text only; anything with controls is a dialog.
+- **Trigger:** Muted Steel, Signal Cyan on hover and while open, Dispute Red for an error. The target
+  overhangs to `44px` in the constrained axis. In a table header it overhangs vertically only, so it never
+  covers the label that sorts.
+- **Surface:** The dialog surface with the control chamfer, in body type at `0.875rem`, at most `20rem` wide.
+  It repositions to stay inside the viewport.
+- **Opening:** Click, tap or keyboard, and mouse hover where the caller asks for it. Escape or an outside
+  click closes it, and focus returns to the icon. A click keeps a hover-opened popover open.
 
 ### Dialogs / Modals
 

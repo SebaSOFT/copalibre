@@ -353,6 +353,10 @@ export const messages = defineMessages({
     id: 'publicWeb.standings.moreColumns',
     defaultMessage: 'More columns',
   },
+  standingsColumnInfo: {
+    id: 'publicWeb.standings.columnInfo',
+    defaultMessage: 'About {column}',
+  },
   standingsFilterByClub: {
     id: 'publicWeb.standings.filterByClub',
     defaultMessage: 'Filter by club',

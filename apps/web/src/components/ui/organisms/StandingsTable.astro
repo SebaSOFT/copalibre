@@ -15,6 +15,7 @@ import Button from '../atoms/Button.astro';
 import ClubFilterChip from '../molecules/ClubFilterChip.astro';
 import { EntrantName } from '../atoms/EntrantName.tsx';
 import EmblemImage from '../atoms/EmblemImage.astro';
+import { Popover } from '../atoms/Popover.tsx';
 import { ResponsivePlayerName } from '../atoms/ResponsivePlayerName.tsx';
 
 interface Props {
@@ -294,20 +295,25 @@ const playerDialogLabels = {
                     <span class="cl-column-header-tooltip">
                       <Button
                         type="button"
-                        class="cl-table__sort cl-column-header-tooltip__trigger"
+                        class="cl-table__sort"
                         data-table-sort-button
                         data-column-code={column.code}
                         aria-describedby={bubbleId}
                       >
                         {label}
                       </Button>
-                      <span
-                        class="cl-column-header-tooltip__bubble cl-table__hint"
-                        id={bubbleId}
-                        role="tooltip"
-                      >
+                      <span class="cl-visually-hidden" id={bubbleId}>
                         {hint}
                       </span>
+                      <Popover
+                        client:visible
+                        openOnHover
+                        triggerLabel={intl.formatMessage(messages.standingsColumnInfo, {
+                          column: label,
+                        })}
+                      >
+                        {hint}
+                      </Popover>
                     </span>
                   )}
                 </th>
@@ -884,17 +890,6 @@ const playerDialogLabels = {
   }
   .cl-table-legend dd {
     margin: 0;
-  }
-  /* The bubble opens under the header: the table's own scroll box would clip one opening above it. */
-  .cl-table__hint {
-    bottom: auto;
-    top: calc(100% + var(--cl-space-2));
-    left: 0;
-    transform: none;
-  }
-  th:last-child .cl-table__hint {
-    left: auto;
-    right: 0;
   }
   .cl-club-filter__label {
     font-size: var(--cl-font-size-sm);

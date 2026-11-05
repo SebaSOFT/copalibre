@@ -1827,6 +1827,7 @@ export const messages: Record<string, string> = {
   'control.copyId.button': 'Copiar ID',
   'control.copyId.success': 'ID copiado',
   'control.copyId.failure': 'No se pudo copiar el ID',
+  'control.info.about': 'Acerca de {subject}',
   'control.auditTrail.copyEntityId': 'Copiar ID del registro',
   'control.auditTrail.copyActorId': 'Copiar ID del actor',
   'control.roles.description':

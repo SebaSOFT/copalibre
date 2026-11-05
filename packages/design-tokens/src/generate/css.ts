@@ -903,7 +903,12 @@ function components(): string {
     '.cl-select-native { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; pointer-events: none; }',
     '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); line-height: var(--cl-line-height-label); }',
     '',
-    '.cl-form-field { display: grid; gap: var(--cl-space-1); min-width: 0; }',
+    '.cl-form-field { display: grid; align-content: start; gap: var(--cl-space-1); min-width: 0; }',
+    '.cl-form-field__label-row { display: flex; align-items: center; gap: var(--cl-space-1); min-width: 0; }',
+    // One reserved line in every state, so a message never moves the form.
+    // The clip is scoped here: screens reuse the two text classes elsewhere.
+    '.cl-form-field__message { display: flex; align-items: center; gap: var(--cl-space-1); min-width: 0; height: calc(var(--cl-font-size-xs) * 1.5); }',
+    '.cl-form-field__message > .cl-form-field__error, .cl-form-field__message > .cl-form-field__help { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.5; }',
     '.cl-form-field__error { margin: 0; color: var(--cl-state-destructive); font-size: var(--cl-font-size-xs); }',
     '.cl-form-field__help { margin: 0; color: var(--cl-text-muted); font-size: var(--cl-font-size-xs); }',
     '.cl-form-field__required { color: var(--cl-state-destructive); }',
@@ -2061,35 +2066,23 @@ function compositions(): string {
     '.cl-column-header__indicator { font-size: var(--cl-font-size-xs); color: var(--cl-text-muted); }',
     'th[aria-sort="ascending"] .cl-column-header__indicator, th[aria-sort="descending"] .cl-column-header__indicator { color: var(--cl-text-accent); }',
     '',
-    // A description trigger beside a header label: a dotted underline is the
-    // "there is more here" affordance, the bubble itself only exists in the
-    // DOM (and only paints) while hovered or focused.
-    '.cl-column-header-tooltip { position: relative; display: inline-flex; }',
-    '.cl-column-header-tooltip__trigger { background: transparent; border: none; color: inherit; font: inherit; padding: 0; cursor: help; text-decoration: underline dotted; text-underline-offset: 3px; }',
-    '.cl-column-header-tooltip__bubble {',
-    '  position: absolute;',
-    '  bottom: calc(100% + var(--cl-space-2));',
-    '  left: 50%;',
-    '  transform: translateX(-50%);',
-    '  z-index: 20;',
-    '  width: max-content;',
-    '  max-width: 220px;',
-    '  padding: var(--cl-space-2) var(--cl-space-3);',
-    '  background: var(--cl-surface-chrome);',
-    '  border: 1px solid var(--cl-border-muted);',
-    '  color: var(--cl-text-primary);',
-    '  font-family: var(--cl-font-body);',
-    '  font-size: var(--cl-font-size-xs);',
-    '  text-transform: none;',
-    '  letter-spacing: normal;',
-    '  font-weight: normal;',
-    '  pointer-events: none;',
-    '  opacity: 0;',
-    '  visibility: hidden;',
-    '  transition: opacity var(--cl-motion-fast) var(--cl-motion-easing);',
-    '}',
-    '.cl-column-header-tooltip__trigger:hover + .cl-column-header-tooltip__bubble, .cl-column-header-tooltip__trigger:focus-visible + .cl-column-header-tooltip__bubble { opacity: 1; visibility: visible; }',
-    '@media (prefers-reduced-motion: reduce) { .cl-column-header-tooltip__bubble { transition: none; } }',
+    // The label sorts and the icon beside it explains, so a header holds two
+    // sibling controls and never one nested in the other.
+    '.cl-column-header-tooltip { display: inline-flex; align-items: center; gap: 2px; }',
+    // The target overhangs up and down only: sideways it would cover the label
+    // that sorts, or the next column's.
+    '.cl-column-header-tooltip .cl-popover__trigger::before { inset: -14px -4px; }',
+    '',
+    // A floating explanation on the dialog surface. The trigger paints 16px and
+    // its target overhangs to 44px, as the checkbox's does.
+    // Doubled so it outranks Control's `button` target rule: the target is the
+    // `::before` below, and a 44px box here would grow the field it sits in.
+    '.cl-popover__trigger.cl-popover__trigger { position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center; width: 1rem; min-width: 0; height: 1rem; min-height: 0; padding: 0; border: none; background: transparent; color: var(--cl-text-muted); cursor: help; }',
+    ".cl-popover__trigger::before { content: ''; position: absolute; inset: -14px; }",
+    ".cl-popover__trigger.cl-popover__trigger:hover, .cl-popover__trigger.cl-popover__trigger[data-state='open'] { color: var(--cl-text-accent); }",
+    ".cl-popover__trigger.cl-popover__trigger[data-tone='error'] { color: var(--cl-state-destructive); }",
+    '.cl-popover__content { z-index: 40; max-width: min(20rem, calc(100vw - var(--cl-space-8))); padding: var(--cl-space-2) var(--cl-space-3); color: var(--cl-text-primary); font-family: var(--cl-font-body); font-size: var(--cl-font-size-sm); font-weight: normal; letter-spacing: normal; text-transform: none; overflow-wrap: anywhere; }',
+    ".cl-popover__content[data-tone='error'] { color: var(--cl-state-destructive); }",
     '',
     /*
      * Numbered steps. The marker is a flex peer of the heading rather than a

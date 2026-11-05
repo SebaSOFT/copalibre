@@ -171,8 +171,9 @@ export const Required: Story = {
 };
 
 /**
- * Every state of one field, side by side. A field's height should not depend on
- * which state it is in: compare the boxes, and the control's position inside them.
+ * Every state of one field, side by side. Each one has the same height, and the
+ * control sits at the same position: a message lives in a line that is always
+ * there, and one that overflows opens whole from an information icon.
  */
 export const StateHeights: Story = {
   args: { id: '', label: '' },

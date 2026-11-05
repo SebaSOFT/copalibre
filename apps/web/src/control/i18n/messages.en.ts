@@ -5405,6 +5405,7 @@ export const messages = defineMessages({
   copyIdButton: { id: 'control.copyId.button', defaultMessage: 'Copy ID' },
   copyIdSuccess: { id: 'control.copyId.success', defaultMessage: 'ID copied' },
   copyIdFailure: { id: 'control.copyId.failure', defaultMessage: 'Could not copy ID' },
+  infoAbout: { id: 'control.info.about', defaultMessage: 'About {subject}' },
   auditCopyEntityId: { id: 'control.auditTrail.copyEntityId', defaultMessage: 'Copy record ID' },
   auditCopyActorId: { id: 'control.auditTrail.copyActorId', defaultMessage: 'Copy actor ID' },
   rolesDescription: {

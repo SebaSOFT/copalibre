@@ -6,25 +6,37 @@ describe('ColumnHeaderTooltip', () => {
     render(<ColumnHeaderTooltip label="Rank" />);
     const trigger = screen.getByRole('button', { name: 'Rank' });
     expect(trigger.getAttribute('aria-describedby')).toBeNull();
-    expect(screen.queryByRole('tooltip')).toBeNull();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
-  it('links the trigger to its description bubble via aria-describedby', () => {
-    render(<ColumnHeaderTooltip description="Points" label="PTS" />);
+  it('links the sort button to the description via aria-describedby', () => {
+    render(<ColumnHeaderTooltip description="Points" infoLabel="About PTS" label="PTS" />);
     const trigger = screen.getByRole('button', { name: 'PTS' });
-    const bubbleId = trigger.getAttribute('aria-describedby');
-    expect(bubbleId).not.toBeNull();
-    const bubble = screen.getByRole('tooltip');
-    expect(bubble.id).toBe(bubbleId);
-    expect(bubble.textContent).toBe('Points');
+    const descriptionId = trigger.getAttribute('aria-describedby');
+    expect(document.getElementById(descriptionId ?? '')?.textContent).toBe('Points');
   });
 
-  it('reaches the description on keyboard focus, not only pointer hover', () => {
-    render(<ColumnHeaderTooltip description="Goal Difference" label="GD" />);
-    const trigger = screen.getByRole('button', { name: 'GD' });
-    trigger.focus();
-    expect(document.activeElement).toBe(trigger);
-    expect(screen.getByRole('tooltip').textContent).toBe('Goal Difference');
+  it('opens the description from its icon without sorting', () => {
+    let clicks = 0;
+    render(
+      <ColumnHeaderTooltip
+        description="Goal Difference"
+        infoLabel="About GD"
+        label="GD"
+        onClick={() => (clicks += 1)}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'About GD' }));
+    expect(screen.getByRole('dialog').textContent).toBe('Goal Difference');
+    expect(clicks).toBe(0);
+  });
+
+  it('keeps the two controls as siblings, never one inside the other', () => {
+    const { container } = render(
+      <ColumnHeaderTooltip description="Points" infoLabel="About PTS" label="PTS" />,
+    );
+    expect(container.querySelectorAll('button button')).toHaveLength(0);
+    expect(container.querySelectorAll('button')).toHaveLength(2);
   });
 
   it('fires the caller-supplied handler on activation, for sort wiring', () => {

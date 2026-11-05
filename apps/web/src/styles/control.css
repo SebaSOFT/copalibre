@@ -1062,11 +1062,6 @@ input[type='checkbox'].cl-checkbox:focus-visible {
   grid-column: 1 / -1;
 }
 
-/* Help sits one step above the 12px floor so a two-line hint stays readable in a half-width column. */
-.cl-tournament-settings__fields .cl-form-field__help {
-  font-size: var(--cl-font-size-sm);
-}
-
 .cl-tournament-settings__header-actions {
   display: flex;
   flex-wrap: wrap;
