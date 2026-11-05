@@ -618,6 +618,8 @@ uppercase display face, 44px targets, state always spelled out in words as well 
 
 - **Style:** Chrome fill, `1px` control border, control chamfer (`8px` top-right / bottom-left),
   `44px` minimum height, `8px 12px` padding. Native pickers follow the active theme's `color-scheme`.
+- **Font size:** `--cl-font-size-base` (`1rem`, `16px`) on Input, Select and Textarea, on every surface.
+  One size, not a denser one for Control: under `16px` iOS zooms the page when a field takes focus.
 - **Focus:** Border shifts to the focus ring colour and the two-layer ring draws outside the box.
 - **Error:** Border and ring both become Dispute Red; the error message renders in the same red at
   `0.75rem` beneath the field.

@@ -230,6 +230,23 @@ test('Control routes remain visible without page overflow at every reference wid
   }
 });
 
+test('Control forms use the declared input font size and keep the control height', async ({
+  page,
+}) => {
+  await installResponsiveControlFixture(page);
+  await seedLoginTransaction(page, '/control/liga-mendocina/tournaments/new');
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL('**/control/liga-mendocina/tournaments/new');
+
+  const controls = page.locator('main').locator('input.cl-input, button.cl-select');
+  await expect(controls.first()).toBeVisible();
+  for (const control of await controls.all()) {
+    await expect(control).toHaveCSS('font-size', '16px');
+    await expect(control).toHaveCSS('min-height', '44px');
+    expect((await control.boundingBox())?.height).toBe(44);
+  }
+});
+
 test('Control dashboard, settings and venues remain readable at 200% text size', async ({
   page,
 }) => {
@@ -411,6 +428,16 @@ for (const path of [
     }
   });
 }
+
+test('the sign-in email field stays at 16px on a phone, so iOS does not zoom on focus', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/control/login');
+  const email = page.locator('input[type="email"]');
+  await email.focus();
+  await expect(email).toHaveCSS('font-size', '16px');
+});
 
 for (const path of [
   '/',

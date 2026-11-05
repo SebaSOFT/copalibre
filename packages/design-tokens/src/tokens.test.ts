@@ -937,6 +937,12 @@ describe('the CSS output', () => {
     }
   });
 
+  it('sets the declared font size on every input atom', () => {
+    const rule = css.match(/\.cl-input, \.cl-select, \.cl-textarea \{[^}]*\}/)?.[0];
+    expect(rule).toContain('font-size: var(--cl-font-size-base);');
+    expect(FONT_SIZE.base).toBe('1rem');
+  });
+
   it('gives the custom select popover the control chamfer, mono typography, and a cyan active cue', () => {
     expect(css).toContain('.cl-select { font-family: var(--cl-font-mono); }');
     expect(css).toContain(
