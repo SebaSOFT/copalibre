@@ -365,7 +365,8 @@ body {
 .cl-context-rail-header__scope,
 .cl-context-rail-header__metadata {
   margin: 0;
-  color: var(--cl-text-muted);
+  /* The rail sits on the raised well, where the muted label colour falls below AA. */
+  color: var(--cl-text-secondary);
   font-family: var(--cl-font-mono);
   font-size: var(--cl-font-size-xs);
 }

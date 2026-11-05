@@ -626,6 +626,41 @@ describe('the CSS output', () => {
     }
   });
 
+  it('keeps status text at AA on the raised well in both themes', () => {
+    // The context rail and the public in-progress badge print labels on this
+    // well. `text-muted` measured 4.04:1 here in the dark theme, so these
+    // labels use `text-secondary`.
+    for (const theme of ['dark', 'light'] as const) {
+      expect(
+        contrastRatio(
+          resolveSemantic('text-secondary', theme),
+          resolveSemantic('surface-raised', theme),
+        ),
+      ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+    }
+  });
+
+  it('keeps the TV live badge text at AA on its red tint over every TV surface', () => {
+    // The badge paints 15% `state-destructive` over whatever surface holds it,
+    // and TV is always dark. The worst case is the lightest surface beneath it.
+    const tint = resolveSemantic('state-destructive', 'dark');
+    const channels = (value: string) =>
+      [1, 3, 5].map((offset) => parseInt(value.slice(offset, offset + 2), 16));
+    for (const level of ['surface-base', 'surface-panel', 'surface-chrome'] as const) {
+      const surface = channels(resolveSemantic(level, 'dark'));
+      const tinted = `#${channels(tint)
+        .map((channel, index) =>
+          Math.round(channel * 0.15 + (surface[index] ?? 0) * 0.85)
+            .toString(16)
+            .padStart(2, '0'),
+        )
+        .join('')}`;
+      expect(contrastRatio(resolveSemantic('text-primary', 'dark'), tinted)).toBeGreaterThanOrEqual(
+        CONTRAST_GATES.normalText,
+      );
+    }
+  });
+
   it('keeps TV possession and timed-penalty text readable on their opaque ink-950 well', () => {
     // The TV scorebug and lower third render each marker as `state-positive` or
     // `state-upcoming` text over an opaque `ink-950` background —

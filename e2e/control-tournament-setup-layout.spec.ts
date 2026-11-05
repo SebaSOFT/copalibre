@@ -217,3 +217,17 @@ test('the creation wizard names the next step once the first step is complete', 
 
   await expect(page.getByText('Siguiente: Disciplina')).toBeVisible();
 });
+
+for (const colorScheme of ['dark', 'light'] as const) {
+  test(`the tournament overview meets AA contrast in the ${colorScheme} theme`, async ({
+    page,
+  }) => {
+    await mockApi(page);
+    await page.emulateMedia({ colorScheme });
+    await open(page, `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}`, 'es');
+    await expect(page.locator('.cl-context-rail-header__scope').first()).toBeVisible();
+
+    const { violations } = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
+    expect(violations.map(({ nodes }) => nodes.map(({ target }) => target))).toEqual([]);
+  });
+}

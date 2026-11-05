@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 import { expectCenteredPageContainer } from './support/public-layout-widths.js';
@@ -73,6 +74,24 @@ test.describe('organization page tournament cards', () => {
     await expect(section.locator('.cl-badge-in-progress')).toHaveText('In progress');
     await expect(section.locator('.cl-badge-live, .cl-live-pulse')).toHaveCount(0);
   });
+
+  for (const colorScheme of ['dark', 'light'] as const) {
+    test(`the in-progress badge meets AA contrast in the ${colorScheme} theme`, async ({
+      page,
+      workerPort,
+    }) => {
+      await page.emulateMedia({ colorScheme });
+      await page.setExtraHTTPHeaders({ 'x-copalibre-api-port': String(workerPort) });
+      await page.goto(`/${organization}`);
+      await expect(page.locator('.cl-badge-in-progress').first()).toBeVisible();
+
+      const { violations } = await new AxeBuilder({ page })
+        .include('.cl-badge-in-progress')
+        .withRules(['color-contrast'])
+        .analyze();
+      expect(violations.map(({ nodes }) => nodes.map(({ target }) => target))).toEqual([]);
+    });
+  }
 
   test('uses the centered public container at reference widths', async ({ page, workerPort }) => {
     await page.setExtraHTTPHeaders({ 'x-copalibre-api-port': String(workerPort) });
