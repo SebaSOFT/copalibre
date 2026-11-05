@@ -434,44 +434,44 @@ export function MatchConsoleTemplate({
             <FormattedMessage {...messages.matchConsoleClockAndPeriod} />
           </h2>
         </header>
-        <div className="cl-platform-form-grid">
-          <Field id="console-segment" label={intl.formatMessage(messages.matchConsoleSegment)}>
-            <Select
-              aria-label={intl.formatMessage(messages.matchConsoleActiveSegment)}
-              disabled={!canControlClock}
-              id="console-segment"
-              onValueChange={setSelectedSegmentId}
-              options={projection.segments.map((segment) => ({
-                value: segment.segmentId,
-                label: `${segmentTypeText(segment)} ${segment.number} · ${segmentStateText(segment.state)}`,
-              }))}
-              placeholder={intl.formatMessage(messages.selectPlaceholder)}
-              value={selectedSegmentId}
-            />
-          </Field>
-          <Field
-            id="console-elapsed-seconds"
-            label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
-          >
-            <Input
-              aria-label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
-              disabled={!canControlClock}
-              id="console-elapsed-seconds"
-              min="0"
-              onChange={(event) => setElapsedSeconds(event.target.value)}
-              type="number"
-              value={elapsedSeconds}
-            />
-          </Field>
-          <Button
-            disabled={!canControlClock || selectedSegmentId === ''}
-            onClick={() => onApplyClock(selectedSegmentId, Number(elapsedSeconds))}
-            type="button"
-          >
-            <FormattedMessage {...messages.matchConsoleApplyClock} />
-          </Button>
-        </div>
         <div className="cl-card__content">
+          <div className="cl-platform-form-grid">
+            <Field id="console-segment" label={intl.formatMessage(messages.matchConsoleSegment)}>
+              <Select
+                aria-label={intl.formatMessage(messages.matchConsoleActiveSegment)}
+                disabled={!canControlClock}
+                id="console-segment"
+                onValueChange={setSelectedSegmentId}
+                options={projection.segments.map((segment) => ({
+                  value: segment.segmentId,
+                  label: `${segmentTypeText(segment)} ${segment.number} · ${segmentStateText(segment.state)}`,
+                }))}
+                placeholder={intl.formatMessage(messages.selectPlaceholder)}
+                value={selectedSegmentId}
+              />
+            </Field>
+            <Field
+              id="console-elapsed-seconds"
+              label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
+            >
+              <Input
+                aria-label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
+                disabled={!canControlClock}
+                id="console-elapsed-seconds"
+                min="0"
+                onChange={(event) => setElapsedSeconds(event.target.value)}
+                type="number"
+                value={elapsedSeconds}
+              />
+            </Field>
+            <Button
+              disabled={!canControlClock || selectedSegmentId === ''}
+              onClick={() => onApplyClock(selectedSegmentId, Number(elapsedSeconds))}
+              type="button"
+            >
+              <FormattedMessage {...messages.matchConsoleApplyClock} />
+            </Button>
+          </div>
           {/* The whistle, not a correction: these record the moment the clock
               actually changed, while "apply clock" above stays the way to fix a
               value that was recorded wrong. Both land in one audit trail. */}

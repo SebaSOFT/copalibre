@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
 const css = readFileSync('packages/design-tokens/generated/copalibre.css', 'utf8');
+const controlCss = readFileSync('apps/web/src/styles/control.css', 'utf8');
 
 test('calibrated hover fills are not brightened again by the generic button rule', async ({
   page,
@@ -190,6 +191,60 @@ test('content alternates through wrappers and chrome stays lifted at every depth
       expect(value.border).toBe('1px');
     }
   }
+});
+
+test('a card header strip reaches the card edge and keeps its title on the body edge', async ({
+  page,
+}) => {
+  await page.setContent(
+    `<main style="width: 480px"><div class="cl-control-screen"><section class="cl-card cl-card--live cl-chamfer cl-chamfer--control">
+      <header class="cl-card__header"><h3 class="cl-card__title">Title</h3></header>
+      <div class="cl-card__content">Body</div>
+    </section></div></main>`,
+  );
+  await page.addStyleTag({ content: css });
+  await page.addStyleTag({ content: controlCss });
+  const geometry = await page.locator('.cl-card').evaluate((card) => {
+    const header = card.querySelector('.cl-card__header') as HTMLElement;
+    const title = card.querySelector('.cl-card__title') as HTMLElement;
+    const body = card.querySelector('.cl-card__content') as HTMLElement;
+    const box = card.getBoundingClientRect();
+    const strip = header.getBoundingClientRect();
+    const rail = parseFloat(getComputedStyle(card).borderLeftWidth);
+    const style = getComputedStyle(header);
+    return {
+      left: strip.left - box.left,
+      top: strip.top - box.top,
+      right: box.right - strip.right,
+      rail,
+      titleToBody: title.getBoundingClientRect().left - body.getBoundingClientRect().left,
+      titleInset: title.getBoundingClientRect().top - strip.top - parseFloat(style.borderTopWidth),
+      paddings: [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft],
+      cut: style.borderTopRightRadius,
+    };
+  });
+  expect(geometry.left).toBe(geometry.rail);
+  expect(geometry.top).toBe(0);
+  expect(geometry.right).toBe(0);
+  expect(geometry.titleToBody).toBe(0);
+  expect(geometry.titleInset).toBe(16);
+  expect(geometry.paddings).toEqual(['16px', '16px', '16px', '16px']);
+  expect(geometry.cut).not.toBe('0px');
+});
+
+test('a card header below other content stays inside the card padding', async ({ page }) => {
+  await page.setContent(
+    `<main style="width: 480px"><section class="cl-card">
+      <p>Lead</p>
+      <header class="cl-card__header">Header</header>
+    </section></main>`,
+  );
+  await page.addStyleTag({ content: css });
+  const offset = await page.locator('.cl-card').evaluate((card) => {
+    const strip = (card.querySelector('.cl-card__header') as HTMLElement).getBoundingClientRect();
+    return card.getBoundingClientRect().right - strip.right;
+  });
+  expect(offset).toBe(17);
 });
 
 test('single chamfers and badge reset unused corners in the longhand-only tier', async ({

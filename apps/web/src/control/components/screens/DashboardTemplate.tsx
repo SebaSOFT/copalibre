@@ -13,6 +13,7 @@ import { DeviceHeartbeat } from '../DeviceHeartbeat.js';
 import { QuickStats } from '../QuickStats.js';
 import { TournamentSummaryCard } from '../TournamentSummaryCard.js';
 import { Card } from '../ui/atoms/card.js';
+import { Stack } from '../ui/atoms/layout/stack.js';
 import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
 import { FilterBar } from '../ui/organisms/filter-bar.js';
@@ -197,23 +198,25 @@ export function DashboardTemplate({
               <h2>
                 <FormattedMessage {...messages.dashboardTournaments} />
               </h2>
-              <FilterBar
-                filtersLabel={intl.formatMessage(messages.dashboardFiltersLabel)}
-                onOptionChange={(id) => {
-                  if (selectableFilters.has(id)) setSelectedFilter(id as TournamentFilter);
-                }}
-                onSearchChange={setSearchValue}
-                options={options}
-                resultCount={intl.formatMessage(messages.dashboardResultCount, {
-                  count: filteredTournaments.length,
-                })}
-                searchId="dashboard-tournament-search"
-                searchLabel={intl.formatMessage(messages.dashboardSearchLabel)}
-                searchPlaceholder={intl.formatMessage(messages.dashboardSearchPlaceholder)}
-                searchValue={searchValue}
-                selectedOptionId={selectedFilter}
-              />
-              {tournamentResults}
+              <Stack gap="4">
+                <FilterBar
+                  filtersLabel={intl.formatMessage(messages.dashboardFiltersLabel)}
+                  onOptionChange={(id) => {
+                    if (selectableFilters.has(id)) setSelectedFilter(id as TournamentFilter);
+                  }}
+                  onSearchChange={setSearchValue}
+                  options={options}
+                  resultCount={intl.formatMessage(messages.dashboardResultCount, {
+                    count: filteredTournaments.length,
+                  })}
+                  searchId="dashboard-tournament-search"
+                  searchLabel={intl.formatMessage(messages.dashboardSearchLabel)}
+                  searchPlaceholder={intl.formatMessage(messages.dashboardSearchPlaceholder)}
+                  searchValue={searchValue}
+                  selectedOptionId={selectedFilter}
+                />
+                {tournamentResults}
+              </Stack>
             </div>
           </div>
         }

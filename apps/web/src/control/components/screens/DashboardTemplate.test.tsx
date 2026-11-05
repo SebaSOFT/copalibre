@@ -25,6 +25,32 @@ function modelWith(tournaments: Parameters<typeof buildDashboard>[0]['tournament
   return buildDashboard({ organizationId: ids.organization, tournaments, activity: [] });
 }
 
+describe('DashboardTemplate listing', () => {
+  it('stacks the filter bar and its results so a gap separates them', () => {
+    const { container } = render(
+      withIntl(
+        <DashboardTemplate
+          {...baseProps}
+          model={modelWith([
+            {
+              tournamentId: ids.tournament,
+              organizationId: ids.organization,
+              alias: 'copa-premier',
+              name: 'Copa Premier',
+              lifecycle: 'in-progress',
+              pendingRegistrations: 0,
+            },
+          ])}
+        />,
+      ),
+    );
+
+    const stack = container.querySelector('.cl-filter-bar')?.parentElement;
+    expect(stack?.classList.contains('cl-stack')).toBe(true);
+    expect(stack?.querySelector(':scope > .cl-entity-card-grid')).not.toBeNull();
+  });
+});
+
 describe('DashboardTemplate TV pairing', () => {
   it('explains the prerequisite without repeating the create action', () => {
     render(withIntl(<DashboardTemplate {...baseProps} model={modelWith([])} />));

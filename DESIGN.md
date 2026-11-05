@@ -612,6 +612,9 @@ uppercase display face, 44px targets, state always spelled out in words as well 
   paired with the card's own label. This rail is the card's state cue.
 - **Internal Padding:** `16px`; header gap `4px` with `12px` beneath, content gap `12px`, footer gap `8px`
   with `16px` above.
+- **Header strip:** Runs to the card's top and right edges and to the state rail, takes the corner cut it
+  reaches, and pads its content `16px` on every side, so the title shares the body's left edge. A header
+  below other content in the card stays inside the card's padding.
 - **Title:** Display face, uppercase, `overflow-wrap: anywhere`.
 
 ### Inputs / Fields
