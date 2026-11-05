@@ -568,6 +568,10 @@ function components(): string {
     '.cl-input, .cl-select, .cl-textarea {',
     '  min-height: var(--cl-touch-target);',
     '  font-family: var(--cl-font-body);',
+    // Form controls do not inherit the page's size: without this they fall to
+    // the browser default of 13.33px, and iOS zooms the page when focusing a
+    // field under 16px.
+    '  font-size: var(--cl-font-size-base);',
     '  border: 1px solid;',
     '  padding: var(--cl-space-2) var(--cl-space-3);',
     // A bare <input>/<select>/<textarea> has a UA-stylesheet intrinsic
