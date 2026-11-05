@@ -971,3 +971,36 @@ Inputs, selects and text areas SHALL use the declared input font size of 16px on
 
 - **WHEN** a person opens a Control form
 - **THEN** inputs use the same size and keep the 44px height
+
+### Requirement: Card header has inner padding
+
+A card header SHALL pad its content to line up with the card body.
+
+#### Scenario: Header with a title
+
+- **WHEN** a card renders with a header
+- **THEN** the title has inner padding on every side and aligns with the body text
+
+#### Scenario: Header strip reaches the card edge
+
+- **WHEN** a card's header is its first child
+- **THEN** the strip runs to the card's top and right edges and to the state rail, and follows the corner cut it reaches
+
+#### Scenario: Header below other content
+
+- **WHEN** a card's header follows other content in the card
+- **THEN** the strip stays inside the card's padding
+
+### Requirement: Adjacent operator blocks keep a gap
+
+Control SHALL separate a filter bar from its results, and a card's stacked form and command blocks, with a gap from the spacing scale.
+
+#### Scenario: Filter bar above its results
+
+- **WHEN** the dashboard lists tournaments under its filter bar
+- **THEN** a 16px gap separates the bar from the results
+
+#### Scenario: Clock form above clock commands
+
+- **WHEN** the match console shows its clock card
+- **THEN** a 12px gap separates the clock form from the clock commands
