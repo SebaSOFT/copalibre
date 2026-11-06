@@ -364,24 +364,26 @@ describe('MatchCard undecided sides', () => {
 
 describe('resolveCompactEntrant', () => {
   it('prefers a persisted abbreviation, trimmed, over any derivation', () => {
-    expect(resolveCompactEntrant('  CAI  ', 'Club Atlético Independiente')).toBe('CAI');
+    expect(resolveCompactEntrant('A definir', '  CAI  ', 'Club Atlético Independiente')).toBe(
+      'CAI',
+    );
   });
 
   it('uses the full display name when no abbreviation is stored', () => {
-    expect(resolveCompactEntrant(undefined, 'San Juan')).toBe('San Juan');
-    expect(resolveCompactEntrant(undefined, 'Club Atlético Independiente')).toBe(
+    expect(resolveCompactEntrant('A definir', undefined, 'San Juan')).toBe('San Juan');
+    expect(resolveCompactEntrant('A definir', undefined, 'Club Atlético Independiente')).toBe(
       'Club Atlético Independiente',
     );
   });
 
   it('does not truncate or change the case of a display name', () => {
-    expect(resolveCompactEntrant(undefined, 'River')).toBe('River');
-    expect(resolveCompactEntrant(undefined, 'Huracán')).toBe('Huracán');
+    expect(resolveCompactEntrant('A definir', undefined, 'River')).toBe('River');
+    expect(resolveCompactEntrant('A definir', undefined, 'Huracán')).toBe('Huracán');
   });
 
-  it('falls back to TBD with neither an abbreviation nor a name', () => {
-    expect(resolveCompactEntrant(undefined, undefined)).toBe('TBD');
-    expect(resolveCompactEntrant('', '')).toBe('TBD');
+  it('falls back to the undecided text with neither an abbreviation nor a name', () => {
+    expect(resolveCompactEntrant('A definir', undefined, undefined)).toBe('A definir');
+    expect(resolveCompactEntrant('A definir', '', '')).toBe('A definir');
   });
 });
 

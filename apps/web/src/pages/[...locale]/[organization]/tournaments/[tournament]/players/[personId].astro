@@ -46,7 +46,7 @@ const statistics = activeStatisticsLayout
   ? await fetchPlayerStatistics(organization!, tournament!, personId!, activeStatisticsLayout.code)
   : undefined;
 
-const model = buildOverview(mapOverviewResponse(overviewData));
+const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
 const title = `${profile.displayName} — ${displayName(model)}`;
 const localePrefix = locale ? `/${locale}` : '';
 const tournamentCanonicalPath = `${localePrefix}${model.canonicalPath}`;

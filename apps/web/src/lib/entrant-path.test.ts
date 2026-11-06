@@ -105,9 +105,10 @@ describe('entrant journey', () => {
     }));
     // This fixture has only entrant/winner/loser slots, all representable on both surfaces.
     const control = wire as Parameters<typeof canvasEntrantPath>[0];
-    const mapped = mapBracketResponse({
-      zones: [{ matches: wire }],
-    } as unknown as Parameters<typeof mapBracketResponse>[0]).zones[0];
+    const mapped = mapBracketResponse(
+      { zones: [{ matches: wire }] } as unknown as Parameters<typeof mapBracketResponse>[0],
+      'A definir',
+    ).zones[0];
     if (mapped === undefined) throw new Error('expected a zone');
     const publicMatches = mapped.matches;
     expect(publicMatches[0]?.matchId).toBe('WB-R1-M1');

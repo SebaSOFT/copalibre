@@ -55,7 +55,9 @@ if (Number.isNaN(stageNumber)) {
 
 const overviewData = await fetchOverview(organization!, tournament!);
 const rawBracketData = await fetchBracket(organization!, tournament!, stageNumber);
-const bracketData = rawBracketData ? mapBracketResponse(rawBracketData) : undefined;
+const bracketData = rawBracketData
+  ? mapBracketResponse(rawBracketData, intl.formatMessage(messages.resultStateTbd))
+  : undefined;
 
 if (!overviewData || !bracketData) {
   return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));

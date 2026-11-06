@@ -260,3 +260,17 @@ play an affected match, and active `tournament-admin` assignments of its tournam
 
 - **WHEN** a tournament admin who also holds a club-admin assignment moves a match of their own club
 - **THEN** that person receives no email for the batch
+
+### Requirement: Emails show readable expiry dates
+
+Emails SHALL state an expiry as a localized date and time, never as a raw timestamp.
+
+#### Scenario: Spanish invitation
+
+- **WHEN** an invitation is rendered in Spanish
+- **THEN** the expiry reads as a Spanish date and time
+
+#### Scenario: Images blocked
+
+- **WHEN** a client blocks images
+- **THEN** the organization name appears once in the header

@@ -238,9 +238,9 @@ export function mapOverviewResponse(
   response: PublicOverviewResponse,
   language: SupportedLanguage = 'en',
 ): OverviewInput {
-  const hiddenPlayerLabel = publicIntl(language).formatMessage(
-    publicMessages.personHiddenAtRequest,
-  );
+  const intl = publicIntl(language);
+  const hiddenPlayerLabel = intl.formatMessage(publicMessages.personHiddenAtRequest);
+  const undecidedSide = intl.formatMessage(publicMessages.resultStateTbd);
   return {
     organizationAlias: response.organizationAlias,
     tournamentAlias: response.tournamentAlias,
@@ -270,7 +270,7 @@ export function mapOverviewResponse(
       ...(m.stageOrdinal === undefined ? {} : { stageOrdinal: m.stageOrdinal }),
       stageNumber: m.stageNumber,
       home: {
-        name: m.homeHiddenAtRequest ? hiddenPlayerLabel : (m.homeName ?? 'TBD'),
+        name: m.homeHiddenAtRequest ? hiddenPlayerLabel : (m.homeName ?? undecidedSide),
         abbreviation: m.homeAbbreviation,
         clubId: m.homeClubId,
         emblemObjectId: m.homeEmblemObjectId,
@@ -278,7 +278,7 @@ export function mapOverviewResponse(
         entrantId: m.homeEntrantId,
       },
       away: {
-        name: m.awayHiddenAtRequest ? hiddenPlayerLabel : (m.awayName ?? 'TBD'),
+        name: m.awayHiddenAtRequest ? hiddenPlayerLabel : (m.awayName ?? undecidedSide),
         abbreviation: m.awayAbbreviation,
         clubId: m.awayClubId,
         emblemObjectId: m.awayEmblemObjectId,

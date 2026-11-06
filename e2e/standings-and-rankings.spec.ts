@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 import type { Page } from '@playwright/test';
@@ -87,6 +88,20 @@ const groupStandingsFixture = {
   ],
   projectionVersion: 3,
 };
+
+/** The columns the shipped football module declares, so a language it lacks fails here. */
+const footballColumns = (
+  JSON.parse(
+    readFileSync(
+      new URL('../packages/module-catalogue/disciplines/football.json', import.meta.url),
+      'utf8',
+    ),
+  ) as {
+    tableLayouts: { code: string; columns: { code: string; header: object; format: string }[] }[];
+  }
+).tableLayouts
+  .find((layout) => layout.code === 'group-standings-default')
+  ?.columns.map(({ code, header, format }) => ({ code, header, format }));
 
 const topScorersFixture = {
   layoutCode: 'top-scorers',
@@ -323,6 +338,7 @@ test('A5: renders the discipline’s own GF/GC/Dif/Avg columns, switches to a fr
  */
 test.describe('B2: public tournament page', () => {
   let apiServer: Server;
+  let groupStandingsResponse: object = groupStandingsFixture;
 
   test.beforeAll(async ({ workerPort }) => {
     const overview = {
@@ -508,7 +524,7 @@ test.describe('B2: public tournament page', () => {
         return;
       }
       if (req.url === `${STAGE}/public/tables/group-standings-default`) {
-        res.end(JSON.stringify(groupStandingsFixture));
+        res.end(JSON.stringify(groupStandingsResponse));
         return;
       }
       if (req.url === `${TOURNAMENT}/public/tables/top-scorers`) {
@@ -563,6 +579,21 @@ test.describe('B2: public tournament page', () => {
 
   test.afterAll(async () => {
     await new Promise<void>((resolve) => apiServer.close(() => resolve()));
+  });
+
+  test('heads the shipped football columns in German', async ({ page }) => {
+    groupStandingsResponse = { ...groupStandingsFixture, columns: footballColumns };
+    try {
+      await page.goto(`/de/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+      const table = page.locator('.cl-table').first();
+      for (const header of ['Pl.', 'Mannschaft', 'Sp', 'S', 'U', 'N', 'T', 'GT', 'TD', 'Pkt']) {
+        await expect(table.getByRole('columnheader', { name: header, exact: true })).toBeVisible();
+      }
+      await expect(table.getByRole('columnheader', { name: 'GF', exact: true })).toHaveCount(0);
+    } finally {
+      groupStandingsResponse = groupStandingsFixture;
+    }
   });
 
   test('keeps the name on a phone in German and moves the other columns into a disclosure', async ({

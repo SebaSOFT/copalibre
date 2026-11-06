@@ -85,6 +85,7 @@ describe('loadSchedule', () => {
       organization: 'liga',
       tournament: 'apertura',
       state: 'all',
+      undecidedSide: 'A definir',
     });
 
     expect(loaded?.stages.map((stage) => stage.stageName)).toEqual(['Groups', 'Cups']);
@@ -100,6 +101,7 @@ describe('loadSchedule', () => {
       organization: 'liga',
       tournament: 'apertura',
       state: 'final',
+      undecidedSide: 'A definir',
       zone: 'Groups',
       group: 'B',
     });
@@ -128,6 +130,7 @@ describe('loadSchedule', () => {
       organization: 'liga',
       tournament: 'apertura',
       state: 'live',
+      undecidedSide: 'A definir',
     });
 
     expect(loaded?.stageRows.map((match) => match.state)).toEqual(['live', 'upcoming', 'final']);
@@ -144,6 +147,7 @@ describe('loadSchedule', () => {
       organization: 'liga',
       tournament: 'apertura',
       state: 'all',
+      undecidedSide: 'A definir',
       stageNumber: 2,
     });
     expect(loaded?.stages.map((stage) => stage.stageNumber)).toEqual([2]);
@@ -155,6 +159,7 @@ describe('loadSchedule', () => {
       organization: 'liga',
       tournament: 'apertura',
       state: 'all',
+      undecidedSide: 'A definir',
     });
     expect(loaded?.stageOptions).toEqual([
       { stageNumber: 1, stageName: '' },
@@ -165,7 +170,12 @@ describe('loadSchedule', () => {
   it('is undefined when the matches view is not served', async () => {
     serve({});
     expect(
-      await loadSchedule({ organization: 'liga', tournament: 'apertura', state: 'all' }),
+      await loadSchedule({
+        organization: 'liga',
+        tournament: 'apertura',
+        state: 'all',
+        undecidedSide: 'A definir',
+      }),
     ).toBeUndefined();
   });
 });

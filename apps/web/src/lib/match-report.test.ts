@@ -1,6 +1,10 @@
 import { describe, expect, it } from '@jest/globals';
 import type { PublicMatchReportResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
-import { buildMatchReport } from './match-report.js';
+import {
+  buildMatchReport,
+  type MatchReportModel,
+  type MatchReportOptions,
+} from './match-report.js';
 import { publicIntl, sideSourceLabels } from './i18n/public-intl.js';
 
 const report = (): PublicMatchReportResponse => ({
@@ -53,9 +57,15 @@ const report = (): PublicMatchReportResponse => ({
   ],
 });
 
+const build = (
+  response: PublicMatchReportResponse,
+  options: Partial<MatchReportOptions> = {},
+): MatchReportModel =>
+  buildMatchReport(response, { sideSource: sideSourceLabels(publicIntl('en')), ...options });
+
 describe('buildMatchReport', () => {
   it('groups an immediately declared workflow outcome without inventing a relationship', () => {
-    const model = buildMatchReport(report());
+    const model = build(report());
 
     expect(model.timeline).toHaveLength(2);
     expect(model.timeline[0]).toMatchObject({ kind: 'workflow' });
@@ -72,21 +82,21 @@ describe('buildMatchReport', () => {
       awaySource: { kind: 'loser-of', nodeKey: 'SE-R1-M2', matchId: 'm', round: 1, position: 2 },
     } as PublicMatchReportResponse;
 
+    expect(build(undecided, { sideSource: sideSourceLabels(publicIntl('es')) }).away.name).toBe(
+      'Perdedor de Ronda 1, partido 2',
+    );
     expect(
-      buildMatchReport(undecided, { sideSource: sideSourceLabels(publicIntl('es')) }).away.name,
-    ).toBe('Perdedor de Ronda 1, partido 2');
-    expect(
-      buildMatchReport(undecided, {
+      build(undecided, {
         sideSource: sideSourceLabels(publicIntl('en')),
         sourceFinalRound: 2,
       }).away.name,
     ).toBe('Loser of Semi-final 2');
-    expect(buildMatchReport(undecided).away.name).toBe('TBD');
-    expect(buildMatchReport(undecided).home.name).toBe('Comets');
+    expect(build({ ...undecided, awaySource: undefined }).away.name).toBe('Awaiting participant');
+    expect(build(undecided).home.name).toBe('Comets');
   });
 
   it('keeps empty upcoming roster and timeline sections explicit in the model', () => {
-    const model = buildMatchReport({
+    const model = build({
       ...report(),
       status: 'upcoming',
       rosters: { home: [], away: [] },
@@ -120,7 +130,7 @@ describe('buildMatchReport', () => {
       ],
     };
     const label = 'Participante oculto por solicitud propia';
-    const model = buildMatchReport(response, { hiddenPersonLabel: label });
+    const model = build(response, { hiddenPersonLabel: label });
 
     expect(model.home.name).toBe(label);
     expect(model.home.roster[0]?.name).toBe(label);
@@ -129,7 +139,7 @@ describe('buildMatchReport', () => {
   });
 
   it('preserves final status so the page can suppress scheduling placeholder banners', () => {
-    const model = buildMatchReport({ ...report(), status: 'final', scheduledAt: undefined });
+    const model = build({ ...report(), status: 'final', scheduledAt: undefined });
 
     // A final match must carry status 'final' — the page template uses this to
     // gate "Schedule not yet available" and "Schedule has not yet been published"
@@ -139,7 +149,7 @@ describe('buildMatchReport', () => {
   });
 
   it('preserves live status so the page can suppress scheduling placeholder banners', () => {
-    const model = buildMatchReport({ ...report(), status: 'live', scheduledAt: undefined });
+    const model = build({ ...report(), status: 'live', scheduledAt: undefined });
 
     expect(model.status).toBe('live');
     expect(model.scheduledAt).toBeUndefined();
@@ -180,29 +190,26 @@ describe('buildMatchReport labels', () => {
   });
 
   it('shows the descriptor labels in the page language', () => {
-    const model = buildMatchReport(localized(), { locale: 'es' });
+    const model = build(localized(), { locale: 'es' });
 
     expect(model.timeline[0]?.events[0]?.label).toBe('Gol');
     expect(model.home.roster[0]?.roleLabels).toEqual(['Arquero', 'Captain', 'Unlisted role']);
   });
 
   it('keeps English when no language is requested', () => {
-    const model = buildMatchReport(localized());
+    const model = build(localized());
 
     expect(model.timeline[0]?.events[0]?.label).toBe('Goal');
     expect(model.home.roster[0]?.roleLabels[0]).toBe('Goalkeeper');
   });
 
   it('names official roles through the supplied resolver, humanizing unknown codes', () => {
-    const model = buildMatchReport(localized(), {
+    const model = build(localized(), {
       locale: 'es',
       officialRoleLabel: (code) => (code === 'referee' ? 'Árbitro' : `?${code}`),
     });
 
     expect(model.officials[0]?.roleLabels).toEqual(['Árbitro', '?table-official']);
-    expect(buildMatchReport(localized()).officials[0]?.roleLabels).toEqual([
-      'Referee',
-      'Table official',
-    ]);
+    expect(build(localized()).officials[0]?.roleLabels).toEqual(['Referee', 'Table official']);
   });
 });

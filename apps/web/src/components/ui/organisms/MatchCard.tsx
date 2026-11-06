@@ -47,8 +47,12 @@ export interface MatchCardProps {
  * exists, then the full display name. It never creates initials or clips a
  * persisted abbreviation; CSS may ellipsize only the surrounding ticker text.
  */
-export function resolveCompactEntrant(abbreviation?: string, fullName?: string): string {
-  return abbreviation?.trim() || fullName || 'TBD';
+export function resolveCompactEntrant(
+  undecided: string,
+  abbreviation?: string,
+  fullName?: string,
+): string {
+  return abbreviation?.trim() || fullName || undecided;
 }
 
 export function MatchCard({
@@ -116,13 +120,13 @@ export function MatchCard({
         ? homeName
         : match.homeName === undefined
           ? homeSource.short
-          : resolveCompactEntrant(match.homeAbbreviation, match.homeName);
+          : resolveCompactEntrant(homeSource.short, match.homeAbbreviation, match.homeName);
     const awayCompactName =
       compactNames === 'full'
         ? awayName
         : match.awayName === undefined
           ? awaySource.short
-          : resolveCompactEntrant(match.awayAbbreviation, match.awayName);
+          : resolveCompactEntrant(awaySource.short, match.awayAbbreviation, match.awayName);
     const hasScores = match.homeScore !== undefined && match.awayScore !== undefined;
     const timeStr =
       !hasScores && match.scheduledAt !== undefined

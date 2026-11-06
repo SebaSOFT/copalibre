@@ -33,7 +33,7 @@ export interface MatchReportOptions {
   /** Localized label for a person who opted out of public identification. */
   readonly hiddenPersonLabel?: string;
   /** Words an undecided side by its source; without it the side reads as an unknown entrant. */
-  readonly sideSource?: SideSourceMessages;
+  readonly sideSource: SideSourceMessages;
   /** The stage's single-elimination depth, so a source names "Semi-final 2" as every surface does. */
   readonly sourceFinalRound?: number;
 }
@@ -72,20 +72,18 @@ export interface MatchReportModel {
  */
 export function buildMatchReport(
   response: PublicMatchReportResponse,
-  options: MatchReportOptions = {},
+  options: MatchReportOptions,
 ): MatchReportModel {
   const locale = options.locale ?? 'en';
   const hiddenPersonLabel = options.hiddenPersonLabel ?? 'Player hidden at their request';
   const sideName = (source: PublicMatchReportResponse['homeSource']): string =>
-    options.sideSource === undefined
-      ? 'TBD'
-      : formatSideSource(
-          source,
-          options.sideSource,
-          source === undefined
-            ? undefined
-            : sourceMatchLabel(source, options.sideSource, options.sourceFinalRound),
-        ).long;
+    formatSideSource(
+      source,
+      options.sideSource,
+      source === undefined
+        ? undefined
+        : sourceMatchLabel(source, options.sideSource, options.sourceFinalRound),
+    ).long;
   const officialRoleLabel = options.officialRoleLabel ?? humanizeCode;
   const roleDeclarations = new Map(
     (response.rosterRoles ?? []).map((role) => [role.code, role.label]),

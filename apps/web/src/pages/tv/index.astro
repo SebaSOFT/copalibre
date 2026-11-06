@@ -11,6 +11,8 @@ import {
 import { TV_BACKGROUNDS } from '../../lib/tv-background.ts';
 import { selectDisciplineBackground } from '../../lib/discipline-background.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import { publicIntl } from '../../lib/i18n/public-intl.ts';
+import { messages } from '../../lib/i18n/public-messages.en.ts';
 import { TV_LAUNCHER_LABELS } from '../../lib/tv-launcher-labels.ts';
 import {
   courtOptions,
@@ -37,6 +39,7 @@ const params = Astro.url.searchParams;
 const langParam = params.get('lang');
 const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam : 'en';
 const t = TV_LAUNCHER_LABELS[language];
+const undecidedSide = publicIntl(language).formatMessage(messages.resultStateTbd);
 let organizationsResponse;
 try {
   organizationsResponse = await fetchOrganizations();
@@ -91,8 +94,8 @@ if (selectedOrganization && selectedTournament) {
       ...(match.round === undefined ? {} : { round: match.round }),
       ...(match.zoneName === undefined ? {} : { zone: match.zoneName }),
       ...(match.groupName === undefined ? {} : { group: match.groupName }),
-      home: match.homeName ?? 'TBD',
-      away: match.awayName ?? 'TBD',
+      home: match.homeName ?? undecidedSide,
+      away: match.awayName ?? undecidedSide,
       ...(match.venueName === undefined ? {} : { venue: match.venueName }),
     }));
   } catch {
