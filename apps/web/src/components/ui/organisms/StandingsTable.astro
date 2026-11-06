@@ -542,6 +542,13 @@ const playerDialogLabels = {
 </section>
 
 <script>
+  import {
+    buildPlayerDialogContent,
+    playerDialogMessage,
+    type PlayerDialogLabels,
+    type PlayerDialogProfile,
+  } from '../../../lib/player-dialog-content.ts';
+
   function initTableSorting(root: ParentNode = document) {
     root.querySelectorAll<HTMLTableElement>('[data-sortable-table]').forEach((table) => {
       const body = table.tBodies.item(0);
@@ -595,20 +602,6 @@ const playerDialogLabels = {
     });
   }
 
-  interface PlayerDialogLabels {
-    fallbackTitle: string;
-    loadingPlaceholder: string;
-    loadingFetch: string;
-    careerStatisticsHeading: string;
-    competitionHistoryHeading: string;
-    columnTournament: string;
-    columnTeam: string;
-    columnRole: string;
-    noCareerStatistics: string;
-    noCompetitionHistory: string;
-    loadError: string;
-  }
-
   function readPlayerDialogLabels(root: ParentNode): PlayerDialogLabels {
     const fallback: PlayerDialogLabels = {
       fallbackTitle: 'Player Profile',
@@ -650,93 +643,21 @@ const playerDialogLabels = {
       link.addEventListener('click', async (e) => {
         e.preventDefault();
         const profileUrl = link.dataset.profileUrl || link.href;
-        if (body)
-          body.innerHTML = `<p class="cl-player-dialog__loading">${labels.loadingFetch}</p>`;
+        body?.replaceChildren(
+          playerDialogMessage(document, 'cl-player-dialog__loading', labels.loadingFetch),
+        );
         if (typeof dialog.showModal === 'function') {
           dialog.showModal();
         }
 
         try {
-          interface HistoryItem {
-            tournamentName: string;
-            teamName: string;
-            role: string;
-            entrantAbbreviation?: string;
-          }
-          interface StatItem {
-            label: string;
-            value: number;
-          }
-          interface DisciplineTotals {
-            statistics?: StatItem[];
-          }
-          interface ProfileData {
-            displayName?: string;
-            nationality?: string;
-            age?: number;
-            careerStatistics?: DisciplineTotals[];
-            competitionHistory?: HistoryItem[];
-          }
-
           const res = await fetch(profileUrl);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data: ProfileData = await res.json();
+          const data = (await res.json()) as PlayerDialogProfile;
           if (title) title.textContent = data.displayName || labels.fallbackTitle;
-          if (body) {
-            const metaTags = [
-              data.nationality
-                ? `<span class="cl-player-profile__tag">${data.nationality}</span>`
-                : '',
-              data.age !== undefined
-                ? `<span class="cl-player-profile__tag">Age: ${data.age}</span>`
-                : '',
-            ]
-              .filter(Boolean)
-              .join(' ');
-
-            const statsItems = (data.careerStatistics || [])
-              .flatMap((d: DisciplineTotals) =>
-                (d.statistics || []).map(
-                  (s: StatItem) => `
-                  <div class="cl-stat-item">
-                    <span class="cl-stat-label">${s.label}</span>
-                    <strong class="cl-stat-val">${s.value}</strong>
-                  </div>
-                `,
-                ),
-              )
-              .join('');
-
-            const historyRows = (data.competitionHistory || [])
-              .map(
-                (h: HistoryItem) => `
-                <tr>
-                  <td><strong>${h.tournamentName}</strong></td>
-                  <td>${h.teamName}${h.entrantAbbreviation ? ` (${h.entrantAbbreviation})` : ''}</td>
-                  <td>${h.role}</td>
-                </tr>
-              `,
-              )
-              .join('');
-
-            // An absence is stated, never rendered as zero — a person
-            // with no recorded roster history gets an explicit "none
-            // recorded" line, the same wording PlayerProfileView.astro (the
-            // standalone profile page) already used for this.
-            body.innerHTML = `
-              <div class="cl-modal-profile">
-                ${metaTags ? `<div class="cl-modal-meta">${metaTags}</div>` : ''}
-                <h4 class="cl-modal-section-title">${labels.careerStatisticsHeading}</h4>
-                ${statsItems ? `<div class="cl-modal-stats-grid">${statsItems}</div>` : `<p class="cl-modal-empty">${labels.noCareerStatistics}</p>`}
-                <h4 class="cl-modal-section-title">${labels.competitionHistoryHeading}</h4>
-                ${historyRows ? `<table class="cl-modal-history-table"><thead><tr><th>${labels.columnTournament}</th><th>${labels.columnTeam}</th><th>${labels.columnRole}</th></tr></thead><tbody>${historyRows}</tbody></table>` : `<p class="cl-modal-empty">${labels.noCompetitionHistory}</p>`}
-              </div>
-            `;
-          }
+          body?.replaceChildren(buildPlayerDialogContent(document, data, labels));
         } catch {
-          if (body) {
-            body.innerHTML = `<p class="cl-inline-alert">${labels.loadError}</p>`;
-          }
+          body?.replaceChildren(playerDialogMessage(document, 'cl-inline-alert', labels.loadError));
         }
       });
     });

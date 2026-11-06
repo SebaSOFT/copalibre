@@ -86,7 +86,7 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // adopted at the cost of losing working navigation (each file's own
   // docstring carries the same reasoning). `StandingsTable.astro`'s count
   // also carries its player-profile `<dialog>`/close `<button>`: a native
-  // dialog populated by a client script's `innerHTML`, not `Modal.astro`'s
+  // dialog populated by a client script, not `Modal.astro`'s
   // shape, and not adopted here for the same reason the icon-only buttons
   // below are recorded rather than fixed.
   //
@@ -303,13 +303,12 @@ export function withoutStyleBlocks(content) {
 /**
  * Blanks `<script>` blocks, preserving offsets like `withoutStyleBlocks`.
  *
- * A vanilla client-side `<script>` sometimes builds markup with a JS template
- * string (`` `<table>...</table>` `` assigned to `innerHTML`) for content a
- * server-rendered Astro template cannot express — dynamically fetched data
- * inserted after the page has already loaded. That string is not this file
- * composing a raw element; it is JavaScript text that happens to look like
- * one, and no `DataTable`/`Modal` organism could replace it, since neither
- * renders outside Astro's own template syntax
+ * A vanilla client-side `<script>` can hold JavaScript text that looks like
+ * markup, for content a server-rendered Astro template cannot express —
+ * dynamically fetched data inserted after the page has already loaded. That
+ * text is not this file composing a raw element, and no `DataTable`/`Modal`
+ * organism could replace it, since neither renders outside Astro's own
+ * template syntax
  * (found while narrowing the `ui/` directory skip this replaces).
  */
 export function withoutScriptBlocks(content) {
