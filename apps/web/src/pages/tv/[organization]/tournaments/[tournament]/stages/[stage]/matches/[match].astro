@@ -5,8 +5,8 @@ import {
   tvDashboardLabels,
   tvStatisticsLabels,
 } from '../../../../../../../../lib/i18n/public-intl.ts';
+import { loadTvLanguage } from '../../../../../../../../lib/tv-language.ts';
 import { messages } from '../../../../../../../../lib/i18n/public-messages.en.ts';
-import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import { TvDashboard } from '../../../../../../../../components/tv/TvDashboard.tsx';
 import { tvStreamPath } from '@copalibre/routing';
 import { sampleDashboard } from '../../../../../../../../lib/live-sample.ts';
@@ -54,8 +54,7 @@ const stageNumber = Number(stage ?? '1');
 const matchOrdinal = Number(match ?? '1');
 const streamPath = tvStreamPath({ organizationAlias, tournamentAlias });
 /* Same query-param language the tournament kiosk takes; TV routes carry no locale segment. */
-const langParam = Astro.url.searchParams.get('lang');
-const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam : 'en';
+const language = await loadTvLanguage(Astro.url.searchParams.get('lang'), organizationAlias);
 const intl = publicIntl(language);
 
 // Reuses the same fetch the public match report page makes (`fetchMatchReport`) — a second
@@ -220,6 +219,7 @@ const organizationDisplayName = organizationName ?? intl.formatMessage(messages.
 ---
 
 <TvLayout
+  language={language}
   title={`TV — ${tournamentDisplayName} — Partido ${matchOrdinal}`}
   overlayMode={overlayMode}
   chromaKey={chromaKey}

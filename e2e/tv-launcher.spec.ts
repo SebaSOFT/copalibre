@@ -50,7 +50,10 @@ test.beforeAll(async ({ workerPort }) => {
     const [path] = (req.url ?? '').split('?');
     if (path === '/organizations') {
       res.end(
-        JSON.stringify([{ organizationId: 'o1', alias: ORGANIZATION, name: 'Liga Mendocina' }]),
+        JSON.stringify([
+          { organizationId: 'o1', alias: ORGANIZATION, name: 'Liga Mendocina' },
+          { organizationId: 'o2', alias: 'liga-sur', name: 'Liga Sur', primaryLanguage: 'es' },
+        ]),
       );
     } else if (path === `/organizations/${ORGANIZATION}/public/tournaments`) {
       res.end(
@@ -126,6 +129,14 @@ test('choosing a language rewrites the launcher’s labels without reloading and
     /lang=es/,
   );
   expect(new URL(page.url()).searchParams.get('lang')).toBe('es');
+});
+
+test('starts on the language of the selected organization', async ({ page }) => {
+  await page.goto('/tv?organization=liga-sur');
+  await expect(page.locator('[data-launcher-language]')).toHaveValue('es');
+
+  await page.goto('/tv?organization=liga-sur&lang=de');
+  await expect(page.locator('[data-launcher-language]')).toHaveValue('de');
 });
 
 test('stages show their names and matches are grouped with round, names and identifier', async ({

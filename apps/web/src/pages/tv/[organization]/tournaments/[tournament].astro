@@ -38,8 +38,8 @@ import {
   tvMultiCourtGridLabels,
   tvStatisticsLabels,
 } from '../../../../lib/i18n/public-intl.ts';
+import { loadTvLanguage } from '../../../../lib/tv-language.ts';
 import { messages } from '../../../../lib/i18n/public-messages.en.ts';
-import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import {
   fetchPublicTableLayouts,
   fetchPublicTableProjection,
@@ -65,11 +65,10 @@ const streamPath = tvStreamPath({ organizationAlias, tournamentAlias });
 
 /*
   A TV route carries no locale segment, so the language comes from the query the
-  same way `mode` and `chroma` already do. English is the default a venue gets
-  without asking, not a claim that TV is English-only.
+  same way `mode` and `chroma` already do. A kiosk with no `lang` speaks the
+  organization's language.
 */
-const langParam = Astro.url.searchParams.get('lang');
-const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam : 'en';
+const language = await loadTvLanguage(Astro.url.searchParams.get('lang'), organizationAlias);
 const intl = publicIntl(language);
 
 let dashboard: LiveDashboard = {
@@ -328,6 +327,7 @@ const tickerItems =
 ---
 
 <TvLayout
+  language={language}
   title={`TV — ${tournamentDisplayName}`}
   overlayMode={overlayMode}
   chromaKey={chromaKey}
