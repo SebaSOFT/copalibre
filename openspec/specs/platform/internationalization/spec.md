@@ -255,3 +255,17 @@ catalogue, distinct from the translation-accuracy review.
 - **WHEN** a string is reviewed
 - **THEN** the scan finds text with no catalogue key, while the accuracy review assumes a key exists
   and checks only its translated value
+
+### Requirement: Control and auth speak the active language
+
+Control and the auth screens SHALL declare the active interface language on the document and SHALL render their text in that language.
+
+#### Scenario: Spanish login
+
+- **WHEN** a person with Spanish selected opens login
+- **THEN** every string is Spanish and the document language is `es`
+
+#### Scenario: Language changes
+
+- **WHEN** a person changes the language in Control
+- **THEN** the document language updates without a reload
