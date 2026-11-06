@@ -118,7 +118,9 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
     requested.push(path ?? '');
-    if (path === `${BASE}/overview`) res.end(JSON.stringify(overview));
+    if (path === '/organizations') {
+      res.end(JSON.stringify([{ alias: ORGANIZATION, primaryLanguage: 'es' }]));
+    } else if (path === `${BASE}/overview`) res.end(JSON.stringify(overview));
     else if (path === `${BASE}/live`) res.end(JSON.stringify({ matches: [] }));
     else if (path === `${BASE}/matches-view`) res.end(JSON.stringify(matchesView));
     else if (path === `${BASE}/stages/1/bracket`)
@@ -162,6 +164,25 @@ test('a match beyond the stage is reported as missing instead of showing another
   await expect(page.getByTestId('tv-match-not-found')).toContainText('Este partido no existe');
   await expect(page.getByTestId('tv-match-spotlight')).toHaveCount(0);
   await expect(page.getByTestId('tv-champion-panel')).toHaveCount(0);
+});
+
+test('a kiosk with no lang speaks the organization language, and lang overrides it', async ({
+  page,
+}) => {
+  await page.goto(`${TV}?view=standings`);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'es');
+  await expect(
+    page.getByRole('heading', { name: 'Estadísticas y tablas del torneo' }),
+  ).toBeVisible();
+
+  await page.goto(`${TV}?view=standings&lang=de`);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await expect(
+    page.getByRole('heading', { name: 'Turnierstatistiken und -tabellen' }),
+  ).toBeVisible();
+
+  await page.goto(`${TV}/stages/1/matches/34`);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'es');
 });
 
 test('the standings view shows the standings, not the recap of a finished tournament', async ({

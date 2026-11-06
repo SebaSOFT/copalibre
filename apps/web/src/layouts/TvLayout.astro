@@ -15,6 +15,8 @@ export type { TvOverlayMode } from '../lib/tv-background.ts';
 
 interface Props {
   readonly title: string;
+  /** The language the page is written in. */
+  readonly language: string;
   /**
    * Decided on the server, never from `window`: a broadcast consumer reads the
    * first response (OBS/vMix capture the document, and a still capture may never
@@ -29,7 +31,14 @@ interface Props {
   readonly disciplineImages?: readonly PublicObjectReference[];
 }
 
-const { title, overlayMode, chromaKey, background: backgroundProp, disciplineImages } = Astro.props;
+const {
+  title,
+  language,
+  overlayMode,
+  chromaKey,
+  background: backgroundProp,
+  disciplineImages,
+} = Astro.props;
 const rootClass = overlayMode ? `tv-overlay tv-overlay--${overlayMode}` : '';
 const { background, chromaKey: safeChromaKey } = resolveTvBackground({
   searchParams: Astro.url.searchParams,
@@ -43,7 +52,7 @@ const disciplineBackdrop =
 
 <!doctype html>
 <html
-  lang="en"
+  lang={language}
   class={rootClass}
   data-theme="dark"
   data-tv-background={background}
