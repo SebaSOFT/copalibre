@@ -29,7 +29,7 @@ export function invitationEmailHandler(
   };
 }
 
-/** Password-reset email: principal-scoped, so English with the Copa Libre mark only. */
+/** Password-reset email: principal-scoped, so English with the CopaLibre mark only. */
 export function passwordResetEmailHandler(
   config: EmailDeliveryConfig,
   dependencies: EmailHandlerDependencies,

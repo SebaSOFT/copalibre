@@ -1,3 +1,4 @@
+import { SUPPORTED_LANGUAGES } from '@copalibre/domain';
 import type { ClaimedJob } from '@copalibre/persistence';
 import {
   EmailRejectedError,
@@ -9,6 +10,8 @@ import {
   type EmailDeliveryConfig,
   type FetchLike,
 } from './email-delivery.js';
+
+const ISO_TIMESTAMP = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 
 const base: EmailDeliveryConfig = {
   provider: 'resend',
@@ -161,7 +164,7 @@ describe('password-reset email delivery', () => {
 });
 
 describe('invitation and reset emails carry the shared layout', () => {
-  it('speaks the organization language with its header, and signs as Copa Libre', () => {
+  it('speaks the organization language with its header, and signs as CopaLibre', () => {
     const message = invitationMessage(base, job().payload as never, {
       language: 'es',
       organization: { alias: 'liga', name: 'Liga', hasEmblem: true },
@@ -172,12 +175,32 @@ describe('invitation and reset emails carry the shared layout', () => {
     expect(message.text).toContain('token=opaque-token');
   });
 
-  it('keeps the reset link and expiry, in English, under the Copa Libre mark only', () => {
+  it('keeps the reset link and expiry, in English, under the CopaLibre mark only', () => {
     const message = passwordResetMessage(base, passwordResetJob().payload as never);
     expect(message.subject).toBe('CopaLibre password reset');
     expect(message.html).not.toContain('/emblem');
-    expect(message.text).toContain('2026-08-13T21:00:00.000Z');
+    expect(message.text).toContain('This link expires on Aug 13, 2026, 9:00 PM UTC.');
     expect(message.text).toContain('If you did not request this');
+  });
+
+  it('states an invitation expiry in the organization language and time zone', () => {
+    const message = invitationMessage(base, passwordResetJob().payload as never, {
+      language: 'es',
+      timeZone: 'America/Argentina/San_Juan',
+    });
+    expect(message.text).toContain('Esta invitación vence el 13 ago 2026, 18:00 GMT-3.');
+  });
+
+  it('states the zone it used when the organization has none, and never a raw timestamp', () => {
+    for (const language of SUPPORTED_LANGUAGES) {
+      const invitation = invitationMessage(base, passwordResetJob().payload as never, { language });
+      expect(invitation.text).not.toMatch(ISO_TIMESTAMP);
+      expect(invitation.html).not.toMatch(ISO_TIMESTAMP);
+      expect(invitation.text).toMatch(/UTC/);
+    }
+    const reset = passwordResetMessage(base, passwordResetJob().payload as never);
+    expect(reset.text).not.toMatch(ISO_TIMESTAMP);
+    expect(reset.html).not.toMatch(ISO_TIMESTAMP);
   });
 });
 

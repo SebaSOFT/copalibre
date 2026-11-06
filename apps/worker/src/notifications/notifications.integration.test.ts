@@ -167,7 +167,7 @@ describe('email notifications through the relay (integration)', () => {
           alias,
           name,
           primary_language,
-          timezone: 'UTC',
+          timezone: primary_language === 'es' ? 'America/Argentina/San_Juan' : 'UTC',
           created_at: new Date(),
         })
         .execute();
@@ -443,11 +443,12 @@ describe('email notifications through the relay (integration)', () => {
 
     expect(sent).toHaveLength(1);
     expect(sent[0]?.subject).toBe('Invitación a CopaLibre');
+    expect(sent[0]?.text).toContain('Esta invitación vence el 30 nov 2026, 21:00 GMT-3.');
     expect(sent[0]?.html).toContain('token=opaque');
     expect(sent[0]?.html).toContain('>Liga &lt;Cuyana&gt;</span>');
   });
 
-  it('sends the password reset in English with the Copa Libre mark only, once', async () => {
+  it('sends the password reset in English with the CopaLibre mark only, once', async () => {
     // A reset is published under the system organization, which has no `organizations` row, so it
     // reaches the handler directly, as the dispatcher would hand it over. The marker still needs a
     // real outbox row, so one is published under an organization this test then ignores.
@@ -476,7 +477,7 @@ describe('email notifications through the relay (integration)', () => {
 
     expect(sent).toHaveLength(1);
     expect(sent[0]?.subject).toBe('CopaLibre password reset');
-    expect(sent[0]?.html).toContain('alt="Copa Libre" width="40"');
+    expect(sent[0]?.html).toContain('alt="CopaLibre" width="40"');
     expect(sent[0]?.html).toContain('token=reset-token');
   });
 });
