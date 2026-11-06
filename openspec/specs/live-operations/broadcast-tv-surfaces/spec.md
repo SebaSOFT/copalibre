@@ -699,3 +699,17 @@ chamfer SHALL degrade to square corners.
 
 - **WHEN** the TV dashboard opens in Chromium 100
 - **THEN** the score, clock, standings and ticker render in the fallback layout with no overflow
+
+### Requirement: TV defaults to the organization language
+
+TV SHALL use the organization's primary language when no language is requested.
+
+#### Scenario: No lang
+
+- **WHEN** a kiosk opens for a Spanish organization with no `lang`
+- **THEN** the display is in Spanish
+
+#### Scenario: Explicit lang
+
+- **WHEN** the URL sets `lang=de`
+- **THEN** the display is in German
