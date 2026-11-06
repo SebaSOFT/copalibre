@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   controlNavigationGroups,
@@ -196,6 +196,7 @@ function ControlShellChrome({
     };
   }, [client, organizationAlias, tournamentAlias, tournamentHeaderKey]);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
   const [sessionReconnecting, setSessionReconnecting] = useState(false);
   useEffect(() => {
     const onRenewalStatus = (event: Event): void => {
@@ -390,6 +391,17 @@ function ControlShellChrome({
     // to every screen under this shell — never the
     // public/marketing Astro surfaces, which never render this component.
     <div className="cl-control" data-density="control">
+      {/* Focus moves by hand, so client-side navigation never sees a hash. */}
+      <a
+        className="cl-skip-link cl-focusable"
+        href="#main"
+        onClick={(event) => {
+          event.preventDefault();
+          mainRef.current?.focus();
+        }}
+      >
+        <FormattedMessage {...messages.shellSkipToContent} />
+      </a>
       <header className="cl-control__mobile-header">
         {brandMarkNode}
         <Button
@@ -416,7 +428,7 @@ function ControlShellChrome({
       <nav aria-label={intl.formatMessage(messages.shellSections)} className="cl-control__nav">
         {navContent()}
       </nav>
-      <main className="cl-control__main">
+      <main className="cl-control__main" id="main" ref={mainRef} tabIndex={-1}>
         <Container variant="control">
           {sessionReconnecting && (
             <Alert block live="polite" tone="warning">

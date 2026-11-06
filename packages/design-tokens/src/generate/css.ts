@@ -1580,6 +1580,23 @@ function components(): string {
     `    0 0 0 ${FOCUS_RING.outerWidth} var(--cl-focus-ring);`,
     '}',
     '',
+    // Shared by the public layout and the Control shell: off-screen until it
+    // takes keyboard focus, so it costs a sighted mouse user nothing.
+    '.cl-skip-link {',
+    '  position: absolute;',
+    '  top: -9999px;',
+    '  left: -9999px;',
+    '  z-index: 9999;',
+    '  padding: var(--cl-space-2) var(--cl-space-4);',
+    '  background: var(--cl-surface-panel);',
+    '  color: var(--cl-text-primary);',
+    '  border: 1px solid var(--cl-border-muted);',
+    '  border-radius: var(--cl-radius-md);',
+    '  text-decoration: none;',
+    '  font-weight: var(--cl-weight-medium);',
+    '}',
+    '.cl-skip-link:focus { top: var(--cl-space-2); left: var(--cl-space-2); }',
+    '',
     // The atom's own base styling: `display: block`
     // so a caller's flex/grid item sizes it normally rather than by its
     // inline default, and `min-width: 0` so the resize-observer truncation

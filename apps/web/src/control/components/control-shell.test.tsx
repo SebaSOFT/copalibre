@@ -13,6 +13,24 @@ describe('the Control-web data-density scope', () => {
   });
 });
 
+describe('the Control skip link', () => {
+  it('is the first focus stop and moves focus to the main region', async () => {
+    const { container } = render(
+      <ControlShell active="tournaments" helpPath="tournaments">
+        <p>Contenido</p>
+      </ControlShell>,
+    );
+    const firstFocusable = container.querySelector<HTMLElement>('a[href], button');
+    expect(firstFocusable?.textContent).toBe('Saltar al contenido');
+    expect(firstFocusable?.getAttribute('href')).toBe('#main');
+
+    firstFocusable?.click();
+
+    expect(document.activeElement).toBe(screen.getByRole('main'));
+    expect(window.location.hash).toBe('');
+  });
+});
+
 describe('the control context rail', () => {
   const organizationAlias = 'liga-san-juan';
   const tournamentAlias = 'copa-premier';
