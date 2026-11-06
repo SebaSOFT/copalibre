@@ -473,45 +473,41 @@ const playerDialogLabels = {
   </div>
 
   {promotionBands.length > 0 && (
-    <dl
-      class="cl-standings-promotion-legend"
-      role="group"
-      aria-label={intl.formatMessage(messages.standingsPromotionLegend)}
-    >
-      {promotionBands.map((band) => (
-        <div class="cl-standings-promotion-legend__item">
-          <dt>
-            <span
-              class="cl-standings-promotion-legend__rail"
-              data-promotion-band-index={band.index}
-              aria-hidden="true"
-            />
-            {band.label}
-          </dt>
-          <dd>
-            {intl.formatMessage(messages.standingsPromotionBandRange, {
-              first: band.firstSeed,
-              last: band.lastSeed,
-            })}
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <div role="group" aria-label={intl.formatMessage(messages.standingsPromotionLegend)}>
+      <dl class="cl-standings-promotion-legend">
+        {promotionBands.map((band) => (
+          <div class="cl-standings-promotion-legend__item">
+            <dt>
+              <span
+                class="cl-standings-promotion-legend__rail"
+                data-promotion-band-index={band.index}
+                aria-hidden="true"
+              />
+              {band.label}
+            </dt>
+            <dd>
+              {intl.formatMessage(messages.standingsPromotionBandRange, {
+                first: band.firstSeed,
+                last: band.lastSeed,
+              })}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   )}
 
   {legend.length > 0 && (
-    <dl
-      class="cl-table-legend"
-      role="group"
-      aria-label={intl.formatMessage(messages.standingsColumnLegend)}
-    >
-      {legend.map((one) => (
-        <div class="cl-table-legend__item">
-          <dt>{one.label}</dt>
-          <dd>{one.hint}</dd>
-        </div>
-      ))}
-    </dl>
+    <div role="group" aria-label={intl.formatMessage(messages.standingsColumnLegend)}>
+      <dl class="cl-table-legend">
+        {legend.map((one) => (
+          <div class="cl-table-legend__item">
+            <dt>{one.label}</dt>
+            <dd>{one.hint}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   )}
 
   <dialog id="cl-player-dialog" class="cl-player-dialog" aria-labelledby="cl-player-dialog-title">

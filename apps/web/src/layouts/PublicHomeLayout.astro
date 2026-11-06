@@ -36,11 +36,17 @@ const localePrefix = getLocalePrefix(locale);
         <p class="cl-home-hero__subtitle">{intl.formatMessage(messages.homeHeroSubtitle)}</p>
       </div>
       <p class="cl-home-hero__description">{intl.formatMessage(messages.homeHeroDescription)}</p>
-      <div class="cl-home-hero__badges" role="list">
-        <Badge>{intl.formatMessage(messages.homeBadgeFreeSoftware)}</Badge>
-        <Badge>{intl.formatMessage(messages.homeBadgeSovereign)}</Badge>
-        <Badge>{intl.formatMessage(messages.homeBadgeDisciplines)}</Badge>
-      </div>
+      <ul class="cl-home-hero__badges">
+        <li>
+          <Badge>{intl.formatMessage(messages.homeBadgeFreeSoftware)}</Badge>
+        </li>
+        <li>
+          <Badge>{intl.formatMessage(messages.homeBadgeSovereign)}</Badge>
+        </li>
+        <li>
+          <Badge>{intl.formatMessage(messages.homeBadgeDisciplines)}</Badge>
+        </li>
+      </ul>
     </header>
 
     {organizations.length === 0 ? (
@@ -170,6 +176,9 @@ const localePrefix = getLocalePrefix(locale);
     flex-wrap: wrap;
     gap: var(--cl-space-2);
     align-items: center;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 
   .cl-home-empty-hub {

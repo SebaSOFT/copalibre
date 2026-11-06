@@ -28,7 +28,7 @@ const { href, label, active, filter, club = false, abbreviation, emblemSrc } = A
 <a
   href={href}
   class={`cl-club-chip cl-chamfer cl-focusable${active ? ' cl-club-chip--active' : ''}`}
-  aria-pressed={active ? 'true' : 'false'}
+  aria-current={active ? 'true' : undefined}
   data-club-filter={filter}
   title={club ? label : undefined}
 >

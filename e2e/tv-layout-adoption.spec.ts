@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
+import { expectNoSeriousSemanticViolations } from './support/semantic-axe.js';
 
 const ORGANIZATION = 'panamericano-demo';
 const TOURNAMENT = 'panamericano-clubes-2025';
@@ -367,6 +368,13 @@ test('TV live status badge meets AA contrast', async ({ page }) => {
     .withRules(['color-contrast'])
     .analyze();
   expect(violations.map(({ nodes }) => nodes.map(({ target }) => target))).toEqual([]);
+});
+
+test('the TV dashboard passes the semantic accessibility rules', async ({ page }) => {
+  await page.goto(`${TV_PATH}?layout=dashboard&lang=es`);
+  await expect(page.locator('.tv-scorebug__clock').first()).toHaveAttribute('role', 'timer');
+
+  await expectNoSeriousSemanticViolations(page);
 });
 
 test('TV upcoming status badge uses the semantic amber token', async ({ page }) => {

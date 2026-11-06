@@ -2,6 +2,7 @@ import { createServer, type Server } from 'node:http';
 import AxeBuilder from '@axe-core/playwright';
 import { resolveSemantic } from '@copalibre/design-tokens';
 import { expect, test } from './fixtures.js';
+import { expectNoSeriousSemanticViolations } from './support/semantic-axe.js';
 
 /**
  * End-to-end tests for public navigation and accessibility hardening:
@@ -152,6 +153,13 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
 
     const missingRouteResponse = await page.goto('/some-missing-page');
     expect(missingRouteResponse?.status()).toBe(404);
+  });
+
+  test('the home page passes the semantic accessibility rules', async ({ page }) => {
+    await page.goto('/es');
+    await expect(page.locator('.cl-home-hero__badges > li')).toHaveCount(3);
+
+    await expectNoSeriousSemanticViolations(page);
   });
 
   test('the main menu links to the TV display launcher in the page’s language', async ({
