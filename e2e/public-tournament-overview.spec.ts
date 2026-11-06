@@ -2,6 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
 import { expectCenteredPageContainer } from './support/public-layout-widths.js';
+import { expectNoSeriousSemanticViolations } from './support/semantic-axe.js';
 
 /**
  * The tournament overview's state-first lead, compact completion fact, rules
@@ -482,6 +483,13 @@ test.describe('tournament overview progress and rules', () => {
     ]);
     expect(heroBox && containerBox).not.toBeNull();
     expect(heroBox?.width).toBeCloseTo((containerBox?.width ?? 0) - padding, 0);
+  });
+
+  test('the overview passes the semantic accessibility rules', async ({ page }) => {
+    await page.goto(PAGE);
+    await expect(page.locator('h1').first()).toBeVisible();
+
+    await expectNoSeriousSemanticViolations(page);
   });
 
   test('uses the centered public container at reference widths', async ({ page }) => {

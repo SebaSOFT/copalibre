@@ -129,7 +129,7 @@ const languageName = (code: string): string => {
         ))}
         <li class="cl-public-header__theme" data-public-theme-picker hidden>
           <details>
-            <summary aria-label={intl.formatMessage(messages.headerTheme)}>
+            <summary>
               <span>{intl.formatMessage(messages.headerTheme)}</span>
               <span aria-hidden="true">·</span>
               <span data-theme-current>{intl.formatMessage(messages.headerThemeSystem)}</span>
@@ -161,11 +161,9 @@ const languageName = (code: string): string => {
       {localeOptions.length > 1 && (
         <div class="cl-public-header__locale-item">
           <details class="cl-public-header__locale">
-            <summary
-              aria-label={intl.formatMessage(messages.headerLanguage)}
-              class="cl-chamfer cl-chamfer--control cl-focusable"
-            >
+            <summary class="cl-chamfer cl-chamfer--control cl-focusable">
               <Icon name="language" size={16} />
+              <span class="cl-visually-hidden">{intl.formatMessage(messages.headerLanguage)}</span>
               <span>{locale.toUpperCase()}</span>
               <span aria-hidden="true">⌄</span>
             </summary>

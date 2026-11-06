@@ -3,6 +3,7 @@ import { expect, test } from './fixtures.js';
 import type { Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 import { expectNoBrokenWords, expectTablesFitTheirFrame } from './support/table-assertions.js';
+import { expectNoSeriousSemanticViolations } from './support/semantic-axe.js';
 
 /**
  * A5 (Control Web) and B2 (public tournament page) rendering declared table
@@ -680,6 +681,17 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByText('Events are not yet available.')).toBeVisible();
   });
 
+  test('the standings table with its club filter and legend passes the semantic accessibility rules', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    await page.locator('[data-full-layout-code="group-standings-default"]').click();
+    await expect(page.locator('a[data-club-filter="all"]')).toHaveAttribute('aria-current', 'true');
+    await expect(page.locator('.cl-table-legend')).toBeVisible();
+
+    await expectNoSeriousSemanticViolations(page);
+  });
+
   test('a tab and a club chip change the table in place, without a reload or a scroll jump', async ({
     page,
   }) => {
@@ -710,7 +722,7 @@ test.describe('B2: public tournament page', () => {
       await page.evaluate(() => (window as unknown as { __sameDocument?: boolean }).__sameDocument),
     ).toBe(true);
     await expect(page.getByRole('link', { name: 'Club Atlético Independiente' })).toHaveAttribute(
-      'aria-pressed',
+      'aria-current',
       'true',
     );
     await expect(page.getByRole('tab', { name: 'Top Scorers' })).toHaveAttribute(

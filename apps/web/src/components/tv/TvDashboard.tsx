@@ -856,6 +856,7 @@ export function TvDashboard({
               <span
                 className="tv-scorebug__clock"
                 data-time={displayedClock}
+                role="timer"
                 aria-label={
                   showsWallClock
                     ? `${dashboardLabels.clockLabel} ${displayedClock}`
