@@ -85,13 +85,13 @@ yarn workspace @copalibre/design-tokens refresh:design
 
 Full descriptive documentation and `.impeccable/design.json` sidecar refresh (`/impeccable document`) follows integration and lands on the next feature branch. The normative-source note under `DESIGN.md`'s H1 is preserved by the refresh mechanism.
 
-**Mechanical design checks.** Run Impeccable detector checks locally:
+**Mechanical design checks.** Run Impeccable detector checks locally, on the files a change touches:
 
 ```bash
-npx impeccable detect
+npx impeccable detect apps/web/src/control/components/ControlShell.tsx
 ```
 
-Suppression justifications are recorded in `.impeccable/config.json`.
+Pass paths: with no target it walks the whole repository and takes far longer than a session should wait. On `.astro`, `.tsx` and `.css` sources it runs regex rules only, so contrast and small-text rules need a URL of a running server. Suppression justifications are recorded in `.impeccable/config.json`.
 
 **Design review rules.** `DESIGN.md` is the design contract; where a generic design heuristic disagrees with it, `DESIGN.md` wins and the review records "contract holds" instead of changing the design. Four traits are deliberate brand choices, never findings: the ink ground with a single cyan accent, tracked uppercase labels, monospace data labels, and middle-dot meta strings. Review UI work with the user-level skills `impeccable`, `ui-ux-pro-max` and `frontend-design` (installed under `~/.agents/skills/`) in addition to the detector above.
 
@@ -222,6 +222,10 @@ Preserve system traceability. Mutations that affect tournament state require exp
 
 This pillar governs interaction design, not just data modeling: a live-operations surface (e.g., the Live Match Operations Console's event recording) must render each discipline's own one-tap event flows from its `DisciplineDescriptor` config — never ship one sport's example (e.g., football's goal/foul/offside) as the hardcoded flow for every discipline. Any sport-specific example given during design work (football, basketball, etc.) is illustrative of the _pattern_ the config-driven engine must support, not the target sport to build for.
 
+Treat stored text as hostile in the browser. Names and labels are written by operators, including club administrators, and public pages share an origin with Control. A client script never hands them to an HTML parser: build DOM nodes and use `textContent`. `scripts/check-html-sinks.mjs` fails on `innerHTML`, `insertAdjacentHTML`, `document.write` and `dangerouslySetInnerHTML`, and keeps a register of reviewed `set:html` uses.
+
+Replacing an `innerHTML` template with DOM nodes drops the whitespace between inline elements, so `AR Age: 28` becomes `ARAge: 28`. Assert the container's `textContent`, not each node's. An Astro component's scoped `<style>` does not reach nodes a script creates, nor markup assigned through `innerHTML`.
+
 Versioned first-party modules are JSON from `packages/module-catalogue/`, installed only through `apps/seed`; migrations and application startup never seed them. SQLite integration parsing must preserve `{{ ... }}` rule expressions as strings rather than treating them as nested JSON.
 
 ## Domain Language and Data Evolution
@@ -233,6 +237,10 @@ Term migrations that rename tables, capabilities, or wire fields must provide re
 ## Tests and Contracts
 
 Add `*.test.ts(x)` beside unit-tested code and `*.integration.test.ts` for database or HTTP behavior. Test server-side authorization and validation even when the UI hides controls. A decorated controller must be registered in `AppModule`, listed in `OPENAPI_CONTROLLERS`, and declare schemas for every 2xx response; regenerate and commit `packages/contracts/openapi/v1.json` and generated types afterward. Fixtures must use lowercase kebab-case aliases and UUIDv7 opaque IDs; URL encoding never makes an invalid alias valid. For intentional incompatible API changes, bump `OPENAPI_VERSION`'s major version and generate with explicit breaking-change acceptance.
+
+`apps/web` has no `jest-dom`, so use plain matchers on `textContent` and `document.activeElement`. Control's tests render in Spanish.
+
+Do not assert a short-lived class with `toHaveClass`. `cl-flash-on-change` lives 600ms and Playwright's polling backs off to 1s, so it can miss the class and fail at random. Record it with a `MutationObserver` from `page.addInitScript`, and read any computed style in that callback.
 
 ## Help and API Reference
 
@@ -258,10 +266,10 @@ Before creating or updating a PR, you MUST guarantee the CI will pass by running
 - `yarn test` and/or `yarn test:integration` (for backend)
 - `yarn test:e2e` (for frontend)
 - `yarn workspace @copalibre/design-tokens scan:forbidden` and `yarn workspace @copalibre/design-tokens check:integrity` (the `forbidden-token-scan` job runs both). The `--cl-*` custom-property namespace is reserved for declared design tokens, so name a component-local property without that prefix.
-- `node scripts/check-change-number-references.mjs`, and every `node --test` suite under `scripts/`, `scripts/lib/` and `apps/web/scripts/`
+- `node scripts/check-change-number-references.mjs`, `node scripts/check-html-sinks.mjs`, and every `node --test` suite under `scripts/`, `scripts/lib/` and `apps/web/scripts/`
 - `openspec validate --specs --strict` (the `enterprise-readiness-doc-lint` job runs it): the accepted spec baseline stays strictly valid. Keep a requirement's statement to its normative sentences (under 500 characters) and put examples and cases in scenarios
 
-Running `yarn test:e2e` rewrites some tracked screenshots under `docs/assets/screenshots` (the `tv-mixed-stage-*` and `control-series-progress-*` families). Restore them with `git checkout` before committing unless the change meant to refresh them.
+Running `yarn test:e2e` rewrites many tracked screenshots under `docs/assets/screenshots`, across dozens of families. Run `git checkout -- docs/assets/screenshots` before committing unless the change meant to refresh them; that leaves new, untracked captures alone.
 
 Crucially, if you modify **any** infrastructure or deployment file, you MUST explicitly run the repository's custom validation scripts locally before committing:
 
@@ -311,6 +319,8 @@ Before every commit, run `node --test scripts/lib/component-graph.test.mjs`. Whe
 
 Tracked content never cites an OpenSpec change by number or numbered directory name, and no tracked file name starts with one: `openspec/changes/` is git-ignored, so a citation points at something a fresh clone does not have. The same holds for a change's planning documents: do not cite a task number or point at a change's design, tasks or proposal file as the source of a rationale. Describe the behavior or the rationale in words (comments, test and story titles, docs, workflow notes, accepted specs). Change ids belong only in branch names, the local change directory, PR descriptions and commit history; `CHANGELOG.md`, database migrations and lockfiles are exempt. `node scripts/check-change-number-references.mjs` enforces this (the `enterprise-readiness-doc-lint` job in `ci.yml` runs it); run it before every commit.
 
+To capture real screens, the demo organization's alias is `panamericano-demo`, so Control opens at `/control/panamericano-demo`. The demo has no leaderboard players, so the public player dialog needs the fixture in `e2e/standings-and-rankings.spec.ts`. Starting `apps/api` by hand needs the authentication variables `hybridEnvironment` sets in `apps/copalibre/src/commands/dev-command.ts`.
+
 ## Tooling Reference
 
 Concrete usage notes for the tools this project's workflow depends on. Skills are user-level, not
@@ -342,6 +352,10 @@ actually exposes before assuming a name.
   earlier answer.
 - If the harness wires a `UserPromptSubmit` hook that surfaces matching indexed symbols, treat those as
   already-read context instead of re-deriving them by hand. Not every harness configures one.
+
+### Shell
+
+The shell is zsh. An unquoted `?` or `*` that matches no file aborts the whole command line, including anything chained after it, so quote URLs. `echo ===` fails too.
 
 ### rtk (Rust Token Killer)
 
