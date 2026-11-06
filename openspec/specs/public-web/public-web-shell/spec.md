@@ -1147,3 +1147,12 @@ Public reading pages SHALL apply the line-height value declared for each typogra
 
 - **WHEN** a public match card combines a heading, a state label and score figures
 - **THEN** each element computes the line-height assigned to its typography role
+
+### Requirement: Public markup passes the accessibility rules
+
+Public pages SHALL use valid list, description-list and ARIA semantics.
+
+#### Scenario: axe on public routes
+
+- **WHEN** axe runs on home, overview and stage
+- **THEN** it reports no critical or serious semantic violation
