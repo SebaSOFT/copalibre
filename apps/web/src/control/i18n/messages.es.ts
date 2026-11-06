@@ -57,6 +57,7 @@ export const messages: Record<string, string> = {
   'control.bracket.highlightHint':
     'Seleccioná un participante para seguir su recorrido. Seleccioná de nuevo o presioná Escape para quitar el resaltado. Los partidos futuros muestran su posible recorrido si gana.',
   'control.shell.sections': 'Secciones',
+  'control.shell.skipToContent': 'Saltar al contenido',
   'control.shell.whatIsThisScreen': '¿Qué es esta pantalla?',
   'control.shell.openNavigation': 'Abrir menú de navegación',
   'control.shell.language': 'Idioma',

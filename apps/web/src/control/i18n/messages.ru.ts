@@ -58,6 +58,7 @@ export const messages: Record<string, string> = {
   'control.bracket.highlightHint':
     'Выберите участника, чтобы увидеть его путь. Нажмите повторно или Escape для сброса. Будущие матчи показывают возможный путь при победах.',
   'control.shell.sections': 'Разделы',
+  'control.shell.skipToContent': 'Перейти к содержимому',
   'control.shell.whatIsThisScreen': 'Что это за экран?',
   'control.shell.openNavigation': 'Открыть меню навигации',
   'control.shell.language': 'Язык',

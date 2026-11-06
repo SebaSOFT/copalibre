@@ -154,6 +154,7 @@ export const messages = defineMessages({
   },
   // Shell
   shellSections: { id: 'control.shell.sections', defaultMessage: 'Sections' },
+  shellSkipToContent: { id: 'control.shell.skipToContent', defaultMessage: 'Skip to content' },
   shellWhatIsThisScreen: {
     id: 'control.shell.whatIsThisScreen',
     defaultMessage: 'What is this screen?',

@@ -53,6 +53,7 @@ export const messages: Record<string, string> = {
   'control.bracket.highlightHint':
     '选择参赛者查看其路线。再次选择或按 Escape 清除。未来比赛显示继续获胜时的可能路线。',
   'control.shell.sections': '版块',
+  'control.shell.skipToContent': '跳至内容',
   'control.shell.whatIsThisScreen': '这是什么界面？',
   'control.shell.openNavigation': '打开导航菜单',
   'control.shell.language': '语言',

@@ -418,6 +418,28 @@ test('the export menu works from the keyboard and gives focus back to its trigge
   await expect(trigger).toBeFocused();
 });
 
+test('the skip link is the first Tab stop and moves focus past the rail', async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await openDashboard(page);
+  const skipLink = page.getByRole('link', { name: 'Saltar al contenido' });
+
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press('Tab');
+  await expect(skipLink).toBeFocused();
+  await expect(skipLink).toBeInViewport();
+
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('main')).toBeFocused();
+  await expect(skipLink).not.toBeInViewport();
+  expect(new URL(page.url()).hash).toBe('');
+
+  await page.keyboard.press('Tab');
+  const nextStopIsInMain = await page.evaluate(
+    () => document.activeElement?.closest('main') !== null,
+  );
+  expect(nextStopIsInMain).toBe(true);
+});
+
 test('the rail follows organization and tournament scope as navigation changes', async ({
   page,
 }) => {

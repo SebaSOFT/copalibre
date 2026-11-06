@@ -55,6 +55,7 @@ export const messages: Record<string, string> = {
   'control.bracket.highlightHint':
     'Wählen Sie einen Teilnehmer, um seinen Weg zu verfolgen. Erneut auswählen oder Escape drücken, um die Markierung aufzuheben. Zukünftige Spiele zeigen den möglichen Weg bei weiteren Siegen.',
   'control.shell.sections': 'Bereiche',
+  'control.shell.skipToContent': 'Zum Inhalt springen',
   'control.shell.whatIsThisScreen': 'Was ist dieser Bildschirm?',
   'control.shell.openNavigation': 'Navigationsmenü öffnen',
   'control.shell.language': 'Sprache',

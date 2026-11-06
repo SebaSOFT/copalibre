@@ -402,6 +402,11 @@ body {
 }
 
 /* Ties with the card header strip's own rule, which is wider than its parent on purpose. */
+/* The skip link's target: a region, not a control, so it takes no ring. */
+.cl-control__main:focus {
+  outline: none;
+}
+
 .cl-control__main,
 .cl-control > main,
 .cl-control > main > *:not(.cl-container),
