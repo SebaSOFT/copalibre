@@ -22,7 +22,7 @@ export type SchedulePresetReason = (typeof SCHEDULE_PRESET_REASONS)[number];
  * spec requires human confirmation before they are published.
  */
 export interface EmailCopy {
-  /** Footer line beside the Copa Libre logo. */
+  /** Footer line beside the CopaLibre logo. */
   readonly sentBy: string;
   readonly tournamentCreated: {
     readonly subject: (tournament: string) => string;
@@ -86,7 +86,7 @@ export interface EmailCopy {
 }
 
 const en: EmailCopy = {
-  sentBy: 'Sent by Copa Libre',
+  sentBy: 'Sent by CopaLibre',
   tournamentCreated: {
     subject: (tournament) => `New tournament: ${tournament}`,
     heading: 'New tournament created',
@@ -117,14 +117,14 @@ const en: EmailCopy = {
     heading: 'You have been invited to CopaLibre.',
     body: 'Use the link below to accept the invitation.',
     action: 'Accept invitation',
-    expires: (at) => `This invitation expires at ${at}.`,
+    expires: (at) => `This invitation expires on ${at}.`,
   },
   passwordReset: {
     subject: 'CopaLibre password reset',
     heading: 'A password reset was requested for your CopaLibre account.',
     body: 'Use the link below to choose a new password.',
     action: 'Reset your password',
-    expires: (at) => `This link expires at ${at}.`,
+    expires: (at) => `This link expires on ${at}.`,
     ignore: 'If you did not request this, you can ignore this email.',
   },
   reschedule: {
@@ -154,7 +154,7 @@ const en: EmailCopy = {
 };
 
 const es: EmailCopy = {
-  sentBy: 'Enviado por Copa Libre',
+  sentBy: 'Enviado por CopaLibre',
   tournamentCreated: {
     subject: (tournament) => `Nuevo torneo: ${tournament}`,
     heading: 'Nuevo torneo creado',
@@ -222,7 +222,7 @@ const es: EmailCopy = {
 };
 
 const fr: EmailCopy = {
-  sentBy: 'Envoyé par Copa Libre',
+  sentBy: 'Envoyé par CopaLibre',
   tournamentCreated: {
     subject: (tournament) => `Nouveau tournoi : ${tournament}`,
     heading: 'Nouveau tournoi créé',
@@ -290,7 +290,7 @@ const fr: EmailCopy = {
 };
 
 const pt: EmailCopy = {
-  sentBy: 'Enviado pela Copa Libre',
+  sentBy: 'Enviado pela CopaLibre',
   tournamentCreated: {
     subject: (tournament) => `Novo torneio: ${tournament}`,
     heading: 'Novo torneio criado',
@@ -358,7 +358,7 @@ const pt: EmailCopy = {
 };
 
 const it: EmailCopy = {
-  sentBy: 'Inviato da Copa Libre',
+  sentBy: 'Inviato da CopaLibre',
   tournamentCreated: {
     subject: (tournament) => `Nuovo torneo: ${tournament}`,
     heading: 'Nuovo torneo creato',
@@ -428,7 +428,7 @@ const it: EmailCopy = {
 };
 
 const de: EmailCopy = {
-  sentBy: 'Gesendet von Copa Libre',
+  sentBy: 'Gesendet von CopaLibre',
   tournamentCreated: {
     subject: (tournament) => `Neues Turnier: ${tournament}`,
     heading: 'Neues Turnier erstellt',
@@ -496,7 +496,7 @@ const de: EmailCopy = {
 };
 
 const ru: EmailCopy = {
-  sentBy: 'Отправлено Copa Libre',
+  sentBy: 'Отправлено CopaLibre',
   tournamentCreated: {
     subject: (tournament) => `Новый турнир: ${tournament}`,
     heading: 'Создан новый турнир',
@@ -564,7 +564,7 @@ const ru: EmailCopy = {
 };
 
 const zh: EmailCopy = {
-  sentBy: '由 Copa Libre 发送',
+  sentBy: '由 CopaLibre 发送',
   tournamentCreated: {
     subject: (tournament) => `新赛事：${tournament}`,
     heading: '已创建新赛事',

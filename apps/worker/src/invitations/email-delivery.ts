@@ -1,6 +1,7 @@
 import type { SupportedLanguage } from '@copalibre/domain';
 import nodemailer from 'nodemailer';
 import { emailCopy } from '../notifications/email-copy.js';
+import { formatEmailExpiry } from '../notifications/email-date.js';
 import { renderEmail, type EmailOrganization } from '../notifications/email-layout.js';
 
 export type EmailProvider = 'resend' | 'brevo' | 'mailgun' | 'smtp';
@@ -45,10 +46,12 @@ export type FetchLike = typeof fetch;
  */
 export class EmailRejectedError extends Error {}
 
-/** Who and in which language an email speaks; absent means English with the Copa Libre mark only. */
+/** Who and in which language an email speaks; absent means English with the CopaLibre mark only. */
 export interface EmailBrandingContext {
   readonly organization?: EmailOrganization;
   readonly language?: SupportedLanguage;
+  /** The organization's IANA zone, for dates in its emails; absent means UTC. */
+  readonly timeZone?: string;
 }
 
 export function emailDeliveryConfigFromEnv(
@@ -95,7 +98,7 @@ export function invitationMessage(
   const copy = emailCopy(language).invitation;
   const url = new URL('/invitations/accept', config.appUrl);
   url.searchParams.set('token', payload.token);
-  const expiresAt = new Date(payload.expiresAt).toISOString();
+  const expiresAt = formatEmailExpiry(payload.expiresAt, language, context.timeZone ?? 'UTC');
   return renderEmail(config, {
     to: payload.recipientEmail,
     subject: copy.subject,
@@ -203,7 +206,7 @@ export function passwordResetMessage(
   const copy = emailCopy('en').passwordReset;
   const url = new URL('/control/reset-password', config.appUrl);
   url.searchParams.set('token', payload.token);
-  const expiresAt = new Date(payload.expiresAt).toISOString();
+  const expiresAt = formatEmailExpiry(payload.expiresAt, 'en', 'UTC');
   return renderEmail(config, {
     to: payload.recipientEmail,
     subject: copy.subject,
