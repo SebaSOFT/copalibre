@@ -202,3 +202,22 @@ refresh SHALL make the client retry after `Retry-After` without ending the sessi
 
 - **WHEN** the API starts with native login enabled and the probe token fails verification
 - **THEN** the API exits with an error naming the verifier configuration
+
+### Requirement: Invitation acceptance keeps its token until submission
+
+The invitation acceptance screen SHALL NOT offer a form before the form can submit its token, and SHALL explain that JavaScript is needed when it is unavailable.
+
+#### Scenario: Scripts still loading
+
+- **WHEN** a person opens an invitation link and the client scripts have not loaded
+- **THEN** no form can be submitted and the link keeps its token
+
+#### Scenario: Scripts loaded
+
+- **WHEN** the person submits the form
+- **THEN** the request carries the token from the link
+
+#### Scenario: JavaScript unavailable
+
+- **WHEN** a person opens an invitation link with JavaScript disabled
+- **THEN** the page states that accepting the invitation requires JavaScript
