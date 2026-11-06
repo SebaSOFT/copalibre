@@ -1,11 +1,11 @@
 {
   "alias": "tennis",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "name": { "en": "Tennis", "es": "Tenis" },
   "description": {
     "en": "Individual or team racket discipline with sets, games, points, tiebreaks, and match statistics."
   },
-  "images": [{ "key": "modules/tennis/1.2.0/tennis-01.jpg" }],
+  "images": [{ "key": "modules/tennis/1.3.0/tennis-01.jpg" }],
   "attribution": {
     "author": "CopaLibre",
     "licence": "AGPL-3.0-only",
@@ -115,41 +115,117 @@
   "statistics": [
     {
       "code": "matches-won",
-      "label": { "en": "Matches won", "es": "Partidos ganados" },
+      "label": {
+        "en": "Matches won",
+        "es": "Partidos ganados",
+        "fr": "Matchs gagnés",
+        "de": "Gewonnene Matches",
+        "it": "Partite vinte",
+        "pt": "Partidas vencidas",
+        "ru": "Выигранные матчи",
+        "zh": "胜场"
+      },
       "aggregation": "sum"
     },
     {
       "code": "matches-lost",
-      "label": { "en": "Matches lost", "es": "Partidos perdidos" },
+      "label": {
+        "en": "Matches lost",
+        "es": "Partidos perdidos",
+        "fr": "Matchs perdus",
+        "de": "Verlorene Matches",
+        "it": "Partite perse",
+        "pt": "Partidas perdidas",
+        "ru": "Проигранные матчи",
+        "zh": "负场"
+      },
       "aggregation": "sum"
     },
     {
       "code": "sets-won",
-      "label": { "en": "Sets won", "es": "Sets ganados" },
+      "label": {
+        "en": "Sets won",
+        "es": "Sets ganados",
+        "fr": "Sets gagnés",
+        "de": "Gewonnene Sätze",
+        "it": "Set vinti",
+        "pt": "Sets vencidos",
+        "ru": "Выигранные сеты",
+        "zh": "胜盘"
+      },
       "aggregation": "sum"
     },
     {
       "code": "sets-lost",
-      "label": { "en": "Sets lost", "es": "Sets perdidos" },
+      "label": {
+        "en": "Sets lost",
+        "es": "Sets perdidos",
+        "fr": "Sets perdus",
+        "de": "Verlorene Sätze",
+        "it": "Set persi",
+        "pt": "Sets perdidos",
+        "ru": "Проигранные сеты",
+        "zh": "负盘"
+      },
       "aggregation": "sum"
     },
     {
       "code": "games-won",
-      "label": { "en": "Games won", "es": "Juegos ganados" },
+      "label": {
+        "en": "Games won",
+        "es": "Juegos ganados",
+        "fr": "Jeux gagnés",
+        "de": "Gewonnene Spiele",
+        "it": "Game vinti",
+        "pt": "Games vencidos",
+        "ru": "Выигранные геймы",
+        "zh": "胜局"
+      },
       "aggregation": "sum"
     },
     {
       "code": "games-lost",
-      "label": { "en": "Games lost", "es": "Juegos perdidos" },
+      "label": {
+        "en": "Games lost",
+        "es": "Juegos perdidos",
+        "fr": "Jeux perdus",
+        "de": "Verlorene Spiele",
+        "it": "Game persi",
+        "pt": "Games perdidos",
+        "ru": "Проигранные геймы",
+        "zh": "负局"
+      },
       "aggregation": "sum"
     },
-    { "code": "played", "label": { "en": "Played", "es": "Jugados" }, "aggregation": "count" }
+    {
+      "code": "played",
+      "label": {
+        "en": "Played",
+        "es": "Jugados",
+        "fr": "Joués",
+        "de": "Gespielt",
+        "it": "Giocate",
+        "pt": "Jogos",
+        "ru": "Игры",
+        "zh": "已赛"
+      },
+      "aggregation": "count"
+    }
   ],
   "tableLayouts": [
     {
       "code": "group-standings-default",
       "target": "group-phase",
-      "label": { "en": "Group Standings", "es": "Tabla de Posiciones" },
+      "label": {
+        "en": "Group Standings",
+        "es": "Tabla de Posiciones",
+        "fr": "Classement du groupe",
+        "de": "Gruppentabelle",
+        "it": "Classifica del girone",
+        "pt": "Classificação do grupo",
+        "ru": "Таблица группы",
+        "zh": "小组积分榜"
+      },
       "entityGranularity": "team",
       "defaultSort": [
         { "columnCode": "matches-won", "direction": "desc" },
@@ -158,49 +234,121 @@
       "columns": [
         {
           "code": "rank",
-          "header": { "en": "Pos", "es": "#" },
+          "header": {
+            "en": "Pos",
+            "es": "#",
+            "fr": "Pos",
+            "de": "Pl.",
+            "it": "Pos",
+            "pt": "Pos",
+            "ru": "№",
+            "zh": "排名"
+          },
           "source": { "kind": "rank" },
           "format": "number"
         },
         {
           "code": "name",
-          "header": { "en": "Player", "es": "Jugador" },
+          "header": {
+            "en": "Player",
+            "es": "Jugador",
+            "fr": "Joueur",
+            "de": "Spieler",
+            "it": "Giocatore",
+            "pt": "Jogador",
+            "ru": "Игрок",
+            "zh": "球员"
+          },
           "source": { "kind": "entrant-name" },
           "format": "text"
         },
         {
           "code": "played",
-          "header": { "en": "P", "es": "PJ" },
+          "header": {
+            "en": "P",
+            "es": "PJ",
+            "fr": "J",
+            "de": "Sp",
+            "it": "G",
+            "pt": "J",
+            "ru": "И",
+            "zh": "赛"
+          },
           "source": { "kind": "collector", "code": "played" },
           "format": "number"
         },
         {
           "code": "matches-won",
-          "header": { "en": "MW", "es": "PG" },
+          "header": {
+            "en": "MW",
+            "es": "PG",
+            "fr": "MG",
+            "de": "MG",
+            "it": "PV",
+            "pt": "PV",
+            "ru": "МВ",
+            "zh": "胜场"
+          },
           "source": { "kind": "collector", "code": "matches-won" },
           "format": "number"
         },
         {
           "code": "matches-lost",
-          "header": { "en": "ML", "es": "PP" },
+          "header": {
+            "en": "ML",
+            "es": "PP",
+            "fr": "MP",
+            "de": "MV",
+            "it": "PP",
+            "pt": "PP",
+            "ru": "МП",
+            "zh": "负场"
+          },
           "source": { "kind": "collector", "code": "matches-lost" },
           "format": "number"
         },
         {
           "code": "sw",
-          "header": { "en": "SW", "es": "SG" },
+          "header": {
+            "en": "SW",
+            "es": "SG",
+            "fr": "SG",
+            "de": "SG",
+            "it": "SV",
+            "pt": "SV",
+            "ru": "СВ",
+            "zh": "胜盘"
+          },
           "source": { "kind": "collector", "code": "sets-won" },
           "format": "number"
         },
         {
           "code": "sl",
-          "header": { "en": "SL", "es": "SP" },
+          "header": {
+            "en": "SL",
+            "es": "SP",
+            "fr": "SP",
+            "de": "SV",
+            "it": "SP",
+            "pt": "SP",
+            "ru": "СП",
+            "zh": "负盘"
+          },
           "source": { "kind": "collector", "code": "sets-lost" },
           "format": "number"
         },
         {
           "code": "sets-diff",
-          "header": { "en": "Diff", "es": "Dif" },
+          "header": {
+            "en": "Diff",
+            "es": "Dif",
+            "fr": "Diff",
+            "de": "Diff",
+            "it": "Diff",
+            "pt": "Dif",
+            "ru": "Разн.",
+            "zh": "净胜盘"
+          },
           "source": { "kind": "computed", "expression": "sw - sl" },
           "format": "number"
         }

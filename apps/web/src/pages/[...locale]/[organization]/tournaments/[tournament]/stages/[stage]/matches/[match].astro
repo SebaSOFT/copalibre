@@ -67,7 +67,7 @@ let bracketMatches: ReturnType<typeof mapBracketResponse>['zones'][number]['matc
 if (selectStageLayout(response.stageFormat) === 'bracket') {
   const rawBracket = await fetchBracket(organization!, tournament!, stageNumber);
   if (rawBracket) {
-    const { zones } = mapBracketResponse(rawBracket);
+    const { zones } = mapBracketResponse(rawBracket, intl.formatMessage(messages.resultStateTbd));
     const ownZone = zones.find((zone) => zone.matches.some((m) => m.matchNumber === matchNumber));
     bracketMatches = ownZone?.matches ?? [];
   }

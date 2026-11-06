@@ -16,6 +16,7 @@ export interface BracketZone {
 
 function mapBracketZoneMatches(
   matches: PublicBracketResponse['zones'][number]['matches'],
+  undecidedSide: string,
 ): readonly BracketMatch[] {
   const finalRound = finalRoundOf(matches);
   // Sources are scoped to one zone; positions from another zone can collide.
@@ -76,7 +77,7 @@ function mapBracketZoneMatches(
       return {
         kind: 'entrant',
         entrantId: s.entrantId,
-        name: s.name ?? 'TBD',
+        name: s.name ?? undecidedSide,
         abbreviation: s.abbreviation,
         clubId: s.clubId,
         emblemObjectId: s.emblemObjectId,
@@ -89,7 +90,10 @@ function mapBracketZoneMatches(
   }));
 }
 
-export function mapBracketResponse(response: PublicBracketResponse): {
+export function mapBracketResponse(
+  response: PublicBracketResponse,
+  undecidedSide: string,
+): {
   format?: string;
   zones: readonly BracketZone[];
 } {
@@ -99,7 +103,7 @@ export function mapBracketResponse(response: PublicBracketResponse): {
       zoneId: zone.zoneId,
       zoneName: zone.zoneName,
       format: zone.format,
-      matches: mapBracketZoneMatches(zone.matches),
+      matches: mapBracketZoneMatches(zone.matches, undecidedSide),
     })),
   };
 }

@@ -625,7 +625,11 @@ describe('public-api-client', () => {
       const result = mapOverviewResponse(
         response as unknown as Parameters<typeof mapOverviewResponse>[0],
       );
-      expect(result.matches[0].home.name).toBe('TBD');
+      expect(result.matches[0].home.name).toBe('To be determined');
+      expect(
+        mapOverviewResponse(response as unknown as Parameters<typeof mapOverviewResponse>[0], 'es')
+          .matches[0].home.name,
+      ).toBe('A definir');
       expect(result.matches[0].startsAt).toBe('');
       expect(result.standings[0].played).toBe(0);
     });
@@ -825,6 +829,7 @@ describe('public-api-client', () => {
       };
       const result = mapBracketResponse(
         response as unknown as Parameters<typeof mapBracketResponse>[0],
+        'A definir',
       );
       const matches = zoneAt(result, 0).matches;
       expect(matches[0].matchNumber).toBe(1);
@@ -846,7 +851,7 @@ describe('public-api-client', () => {
       });
       expect(matches[0].slots[3]).toEqual({
         kind: 'entrant',
-        name: 'TBD',
+        name: 'A definir',
         abbreviation: undefined,
         clubId: undefined,
         emblemObjectId: undefined,
@@ -874,6 +879,7 @@ describe('public-api-client', () => {
       };
       const result = mapBracketResponse(
         response as unknown as Parameters<typeof mapBracketResponse>[0],
+        'A definir',
       );
       expect(zoneAt(result, 0).matches[0].matchNumber).toBe(17);
     });
@@ -897,6 +903,7 @@ describe('public-api-client', () => {
       };
       const result = mapBracketResponse(
         response as unknown as Parameters<typeof mapBracketResponse>[0],
+        'A definir',
       );
       expect(zoneAt(result, 0).matches[0].matchNumber).toBe(1);
     });
@@ -922,6 +929,7 @@ describe('public-api-client', () => {
       };
       const result = mapBracketResponse(
         response as unknown as Parameters<typeof mapBracketResponse>[0],
+        'A definir',
       );
       const matches = zoneAt(result, 0).matches;
       expect(matches[0].slots[0]).toEqual({ kind: 'winner-of' });
@@ -956,7 +964,10 @@ describe('public-api-client', () => {
           },
         ],
       };
-      const result = mapBracketResponse(response as Parameters<typeof mapBracketResponse>[0]);
+      const result = mapBracketResponse(
+        response as Parameters<typeof mapBracketResponse>[0],
+        'A definir',
+      );
       expect(zoneAt(result, 0).matches[1]?.slots).toEqual([
         { kind: 'winner-of', matchId: 'WB-R1-M2', matchNumber: 2, round: 1, position: 2 },
         { kind: 'loser-of', matchId: '3', matchNumber: 3 },
@@ -1014,6 +1025,7 @@ describe('public-api-client', () => {
       };
       const result = mapBracketResponse(
         response as unknown as Parameters<typeof mapBracketResponse>[0],
+        'A definir',
       );
       expect(result.zones).toHaveLength(2);
       expect(zoneAt(result, 0).zoneName).toBe('Copa de Oro');

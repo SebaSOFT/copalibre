@@ -204,7 +204,7 @@ if (presentation !== 'lower') {
   try {
     const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, stageNumber);
     if (rawBracket) {
-      const mapped = mapBracketResponse(rawBracket);
+      const mapped = mapBracketResponse(rawBracket, intl.formatMessage(messages.resultStateTbd));
       const zones = bracketZonesOf(mapped);
       if (zones.length > 0) {
         initialBracket = { stageNumber, zones };

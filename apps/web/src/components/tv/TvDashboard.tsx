@@ -666,6 +666,7 @@ export function TvDashboard({
     language,
   );
   const bracketStage = spotlightMatch?.stageNumber;
+  const undecidedSide = dashboardLabels.resultState.tbd;
   useEffect(() => {
     if (presentation === 'lower' || !organizationAlias || !tournamentAlias || !bracketStage) return;
     const refreshBracket = async () => {
@@ -677,7 +678,10 @@ export function TvDashboard({
           if (bracketDataRef.current) setBracketStale(true);
           return;
         }
-        const mapped = mapBracketResponse((await response.json()) as PublicBracketResponse);
+        const mapped = mapBracketResponse(
+          (await response.json()) as PublicBracketResponse,
+          undecidedSide,
+        );
         const zones = bracketZonesOf(mapped);
         const nextBracket = zones.length > 0 ? { stageNumber: bracketStage, zones } : undefined;
         bracketDataRef.current = nextBracket;
@@ -690,7 +694,14 @@ export function TvDashboard({
     void refreshBracket();
     const timer = window.setInterval(() => void refreshBracket(), Math.max(pollIntervalMs, 15_000));
     return () => window.clearInterval(timer);
-  }, [organizationAlias, tournamentAlias, bracketStage, presentation, pollIntervalMs]);
+  }, [
+    organizationAlias,
+    tournamentAlias,
+    bracketStage,
+    presentation,
+    pollIntervalMs,
+    undecidedSide,
+  ]);
   const visibleBracket = bracketData?.stageNumber === bracketStage ? bracketData : undefined;
   // The match's own clock when it has one; otherwise the wall clock of a tournament still being
   // played. A finished tournament carries a date instead, below.

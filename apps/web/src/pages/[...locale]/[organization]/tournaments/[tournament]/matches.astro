@@ -40,7 +40,7 @@ const overviewData = await fetchOverview(organization!, tournament!);
 if (!overviewData) {
   return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
-const model = buildOverview(mapOverviewResponse(overviewData));
+const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
 
 const stateParam = Astro.url.searchParams.get('state');
 const state: MatchScheduleState =
@@ -57,6 +57,7 @@ const schedule = await loadSchedule({
   tournament: tournament!,
   state,
   hiddenPlayerLabel: intl.formatMessage(messages.personHiddenAtRequest),
+  undecidedSide: intl.formatMessage(messages.resultStateTbd),
   ...(stageNumber === undefined ? {} : { stageNumber }),
   ...(zoneParam === undefined ? {} : { zone: zoneParam }),
   ...(groupParam === undefined ? {} : { group: groupParam }),

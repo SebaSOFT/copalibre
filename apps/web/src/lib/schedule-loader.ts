@@ -35,8 +35,18 @@ export async function loadSchedule(args: {
   readonly zone?: string;
   readonly group?: string;
   readonly hiddenPlayerLabel?: string;
+  readonly undecidedSide: string;
 }): Promise<LoadedSchedule | undefined> {
-  const { organization, tournament, stageNumber, state, zone, group, hiddenPlayerLabel } = args;
+  const {
+    organization,
+    tournament,
+    stageNumber,
+    state,
+    zone,
+    group,
+    hiddenPlayerLabel,
+    undecidedSide,
+  } = args;
   const [completion, view] = await Promise.all([
     fetchCompletion(organization, tournament),
     fetchMatchesView(organization, tournament, {
@@ -73,7 +83,7 @@ export async function loadSchedule(args: {
     shown.map(async (one) => {
       // State-filtered match lists still need the bracket's declared zone order for their filters.
       const raw = await fetchBracket(organization, tournament, one.stageNumber);
-      const bracket = raw ? mapBracketResponse(raw) : undefined;
+      const bracket = raw ? mapBracketResponse(raw, undecidedSide) : undefined;
       return {
         stageNumber: one.stageNumber,
         stageName: one.stageName,

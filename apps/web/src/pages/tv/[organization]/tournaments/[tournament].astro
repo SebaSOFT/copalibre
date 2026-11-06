@@ -261,7 +261,9 @@ if (presentation !== 'lower' && featuredStage !== undefined) {
   try {
     const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, featuredStage);
     if (rawBracket) {
-      const zones = bracketZonesOf(mapBracketResponse(rawBracket));
+      const zones = bracketZonesOf(
+        mapBracketResponse(rawBracket, intl.formatMessage(messages.resultStateTbd)),
+      );
       if (zones.length > 0) initialBracket = { stageNumber: featuredStage, zones };
     }
   } catch {
