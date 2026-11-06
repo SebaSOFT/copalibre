@@ -269,3 +269,23 @@ Control and the auth screens SHALL declare the active interface language on the 
 
 - **WHEN** a person changes the language in Control
 - **THEN** the document language updates without a reload
+
+### Requirement: Public fallbacks follow the page language
+
+Undecided sides and standings columns SHALL render in the page language.
+
+#### Scenario: Spanish Live
+
+- **WHEN** a side is undecided
+- **THEN** the page shows the Spanish text, not TBD
+
+#### Scenario: German standings
+
+- **WHEN** a visitor opens standings in German for a tournament on the current descriptor version
+- **THEN** the column headers are German
+- **AND** the hint behind each abbreviated header is German
+
+#### Scenario: A started tournament keeps its frozen module version
+
+- **WHEN** a tournament started on a descriptor version without German headers is opened in German
+- **THEN** its column headers fall back to English
