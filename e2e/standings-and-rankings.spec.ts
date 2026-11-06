@@ -989,6 +989,32 @@ test.describe('B2: public tournament page', () => {
     await expect(page.locator('.cl-image-frame img')).toBeVisible();
   });
 
+  test('the player dialog shows a stored name as text and never runs it', async ({ page }) => {
+    const storedName = 'Casa de Italia <img src=x onerror=window.__storedNameRan=true>';
+    await page.route('**/api/player-profile**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          displayName: 'Goleador Uno',
+          competitionHistory: [{ tournamentName: 'Copa', teamName: storedName, role: 'player' }],
+        }),
+      }),
+    );
+
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    await page.locator('[data-full-layout-code="top-scorers"]').click();
+    await page.getByRole('link', { name: 'Goleador Uno' }).click();
+
+    const dialog = page.locator('#cl-player-dialog');
+    await expect(dialog.getByRole('cell', { name: storedName })).toBeVisible();
+    await expect(dialog.locator('#cl-player-dialog-body img')).toHaveCount(0);
+    const ran = await page.evaluate(
+      () => (window as unknown as { __storedNameRan?: boolean }).__storedNameRan,
+    );
+    expect(ran).toBeUndefined();
+  });
+
   test('shows tournament-total and match-by-match statistics, excluding composite columns from match rows, and switches declared layouts', async ({
     page,
   }) => {

@@ -425,3 +425,12 @@ browser URL editing.
 - **WHEN** an authenticated operator navigates any control panel screen
 - **THEN** the shared shell navigation renders a "Ver sitio público" navigation link leading to the
   organization's public overview
+
+### Requirement: Control offers a skip link
+
+Control SHALL offer a skip link as the first focus stop, which moves focus to the main content.
+
+#### Scenario: Keyboard user
+
+- **WHEN** a person presses Tab on a Control page
+- **THEN** the first stop is the skip link, and activating it moves focus to the main region
