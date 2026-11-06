@@ -1,15 +1,9 @@
-import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { AcceptInvitationForm } from './AcceptInvitationForm.js';
 import { AuthScreenLayout } from './ui/layouts/auth-screen-layout.js';
 import { ControlIntl } from '../i18n/ControlIntl.js';
 import { messages as catalog } from '../i18n/messages.en.js';
 import { PageHeader } from './ui/organisms/page-header.js';
-
-// Same id/text as NativeAuthRoutes.tsx's `auth.tagline` — reused rather than
-// duplicated under a second id for identical copy.
-const messages = defineMessages({
-  tagline: { id: 'auth.tagline', defaultMessage: 'Tournament operations' },
-});
 
 function AcceptInvitationContent({
   initialToken,
@@ -18,7 +12,7 @@ function AcceptInvitationContent({
 }): React.JSX.Element {
   const intl = useIntl();
   return (
-    <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
+    <AuthScreenLayout tagline={intl.formatMessage(catalog.authTagline)}>
       <PageHeader title={<FormattedMessage {...catalog.invitationTitle} />} />
       <AcceptInvitationForm initialToken={initialToken} showTitle={false} />
     </AuthScreenLayout>

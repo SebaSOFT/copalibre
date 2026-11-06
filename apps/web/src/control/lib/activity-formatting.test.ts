@@ -156,6 +156,21 @@ describe('activity-formatting', () => {
       expect(formatActivityReason(undefined, 'es')).toBe('');
     });
 
+    it('translates the API refusal the audit trail used to show in English', () => {
+      expect(formatActivityReason('Requested organization does not exist', 'es')).toBe(
+        'La organización solicitada no existe',
+      );
+      expect(formatActivityReason('Requested organization does not exist', 'de')).toBe(
+        'Die angeforderte Organisation existiert nicht',
+      );
+    });
+
+    it('translates a reason that carries a suffix through its known prefix', () => {
+      expect(
+        formatActivityReason('Subject has no participant identity in this organization', 'es'),
+      ).toBe('La cuenta no está vinculada a un participante');
+    });
+
     it('localizes a refusal reason into a non-es/en language', () => {
       expect(formatActivityReason('Subject is not scoped to this organization', 'fr')).toBe(
         "L'utilisateur n'appartient pas à cette organisation",

@@ -898,3 +898,17 @@ that does not fit SHALL truncate with an ellipsis and keep its full accessible n
 
 - **WHEN** registration review renders
 - **THEN** it is a `table` whose header cells have `scope="col"`
+
+### Requirement: Status text meets AA contrast
+
+Status text on raised wells and live badges SHALL reach a contrast of at least 4.5:1 in both themes.
+
+#### Scenario: Context rail
+
+- **WHEN** the context rail shows its scope label
+- **THEN** the contrast is at least 4.5:1
+
+#### Scenario: Token check
+
+- **WHEN** a token change lowers one of these pairs
+- **THEN** the token contrast check fails
