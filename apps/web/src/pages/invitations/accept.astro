@@ -16,7 +16,7 @@ const token = Astro.url.searchParams.get('token') ?? '';
  * stands in for `resolveLanguage`'s `browserLanguages` input; a q-value-aware
  * parse is unnecessary precision for a document `lang`/`title` that a
  * client-side language switch or a stored preference (both already handled
- * by `ControlIntl`, once `AcceptInvitationScreen` hydrates) can immediately
+ * by `ControlIntl`, once `AcceptInvitationScreen` mounts) can immediately
  * override.
  */
 const acceptLanguageHeader = Astro.request.headers.get('accept-language') ?? '';
@@ -45,8 +45,17 @@ const intl = createIntl(
     The screen's layout is the auth template's, the same one login,
     forgot-password and reset-password use: `html, body`'s shared background
     and color already come from control.css, loaded above.
+
+    Client-only, like every other Control screen: a form rendered here would exist
+    before React owns it, and a submit in that window is a native GET that drops the
+    token from the URL. The document language and title above stay server-rendered.
   -->
   <body>
-    <AcceptInvitationScreen client:load initialToken={token} />
+    <AcceptInvitationScreen client:only="react" initialToken={token} />
+    <noscript>
+      <main class="cl-auth-screen">
+        <p>{intl.formatMessage(messages.invitationRequiresJavascript)}</p>
+      </main>
+    </noscript>
   </body>
 </html>

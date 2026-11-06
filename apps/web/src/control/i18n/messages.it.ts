@@ -1645,6 +1645,8 @@ export const messages: Record<string, string> = {
   'control.rulesetField.unknownType': 'Questo tipo di valore non dispone di un editor supportato.',
 
   // invitation.* (AcceptInvitationForm.tsx / accept.astro)
+  'invitation.requiresJavascript':
+    'Per accettare l’invito serve JavaScript. Attivalo e riapri il link.',
   'invitation.missingToken': 'Il token di invito non è stato trovato nel link.',
   'invitation.passwordTooShort': 'La password deve contenere almeno 8 caratteri.',
   'invitation.passwordMismatch': 'Le password non coincidono.',

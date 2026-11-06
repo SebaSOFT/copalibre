@@ -1557,6 +1557,7 @@ export const messages: Record<string, string> = {
   'control.rulesetField.unknownType': '此值类型没有受支持的编辑器。',
 
   // invitation.* (AcceptInvitationForm.tsx / accept.astro)
+  'invitation.requiresJavascript': '接受邀请需要 JavaScript。请启用后重新打开链接。',
   'invitation.missingToken': '链接中未找到邀请令牌。',
   'invitation.passwordTooShort': '密码至少需要8个字符。',
   'invitation.passwordMismatch': '两次输入的密码不一致。',

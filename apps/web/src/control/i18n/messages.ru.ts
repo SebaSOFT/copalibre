@@ -1640,6 +1640,8 @@ export const messages: Record<string, string> = {
   'control.rulesetField.unknownType': 'Для этого типа значения нет поддерживаемого редактора.',
 
   // invitation.* (AcceptInvitationForm.tsx / accept.astro)
+  'invitation.requiresJavascript':
+    'Чтобы принять приглашение, нужен JavaScript. Включите его и откройте ссылку снова.',
   'invitation.missingToken': 'Токен приглашения не найден в ссылке.',
   'invitation.passwordTooShort': 'Пароль должен содержать не менее 8 символов.',
   'invitation.passwordMismatch': 'Пароли не совпадают.',

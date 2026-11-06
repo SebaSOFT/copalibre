@@ -1653,6 +1653,8 @@ export const messages: Record<string, string> = {
     'Aucun éditeur compatible ne prend en charge ce type de valeur.',
 
   // invitation.* (AcceptInvitationForm.tsx / accept.astro)
+  'invitation.requiresJavascript':
+    'Accepter l’invitation nécessite JavaScript. Activez-le et rouvrez le lien.',
   'invitation.missingToken': "Le jeton d'invitation est introuvable dans le lien.",
   'invitation.passwordTooShort': 'Le mot de passe doit contenir au moins 8 caractères.',
   'invitation.passwordMismatch': 'Les mots de passe ne correspondent pas.',

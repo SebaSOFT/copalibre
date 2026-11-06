@@ -4809,6 +4809,11 @@ export const messages = defineMessages({
   },
 
   // Invitation acceptance (AcceptInvitationForm.tsx / accept.astro)
+  invitationRequiresJavascript: {
+    id: 'invitation.requiresJavascript',
+    defaultMessage:
+      'Accepting an invitation requires JavaScript. Turn it on and open the link again.',
+  },
   invitationMissingToken: {
     id: 'invitation.missingToken',
     defaultMessage: 'The invitation token was not found in the link.',
