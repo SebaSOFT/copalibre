@@ -1,5 +1,6 @@
 import { expect, test } from './fixtures.js';
 import type { Page } from '@playwright/test';
+import { recordedFlashes, recordFlashes } from './support/flash-recorder.js';
 
 /**
  * The `?layout=multicourt` grid mode on the `/tv/**` kiosk route — the same unattended-surface constraints as `broadcast-tv.spec.ts`
@@ -10,6 +11,7 @@ import type { Page } from '@playwright/test';
 
 const MATCH_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const TV_PATH = '/tv/liga-mendocina/tournaments/apertura-2026';
+const COURT_CARD_VALUE = `[data-testid="tv-court-card-${MATCH_ID}"] .tv-court-card__value`;
 
 async function mockOpenStream(page: Page): Promise<void> {
   await page.addInitScript(() => {
@@ -88,13 +90,16 @@ test('renders the multi-court grid, with the live match on its own court card (9
 test('a live SSE event updates its own court card without navigating away (9.2)', async ({
   page,
 }) => {
+  await recordFlashes(page, COURT_CARD_VALUE);
   await mockStreamDeliveringOneScoreEvent(page);
   await page.goto(`${TV_PATH}?layout=multicourt&token=kiosk-token`);
 
   const card = page.getByTestId(`tv-court-card-${MATCH_ID}`);
   await expect(card).toBeVisible();
   const score = card.locator('.tv-court-card__value').filter({ hasText: '9' });
-  await expect(score).toHaveClass(/cl-flash-on-change/, { timeout: 10_000 });
+  await expect
+    .poll(() => recordedFlashes(page), { timeout: 10_000 })
+    .toContainEqual(expect.objectContaining({ text: '9' }));
   await expect(score).not.toHaveClass(/cl-flash-on-change/, { timeout: 2_000 });
 
   // Still the same kiosk route — a live event never triggers a navigation.
@@ -103,33 +108,18 @@ test('a live SSE event updates its own court card without navigating away (9.2)'
 
 test('holds a static flash under reduced motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  await recordFlashes(page, COURT_CARD_VALUE);
   await mockStreamDeliveringOneScoreEvent(page);
   await page.goto(`${TV_PATH}?layout=multicourt&token=kiosk-token`);
 
-  const score = page
-    .getByTestId(`tv-court-card-${MATCH_ID}`)
-    .locator('.tv-court-card__value')
-    .filter({ hasText: '9' });
-  await expect(score).toHaveClass(/cl-flash-on-change/, { timeout: 10_000 });
-  const style = await score.evaluate((element) => {
-    const computed = getComputedStyle(element);
-    return {
-      animationDuration: computed.animationDuration,
-      backgroundColor: computed.backgroundColor,
-      expectedFlashColor: (() => {
-        const probe = element.ownerDocument.createElement('span');
-        probe.style.color = 'var(--cl-color-cyan-950)';
-        element.ownerDocument.body.append(probe);
-        const color = getComputedStyle(probe).color;
-        probe.remove();
-        return color;
-      })(),
-      transitionDuration: computed.transitionDuration,
-    };
-  });
-  expect(style.animationDuration).toBe('0s');
-  expect(style.transitionDuration).toBe('0s');
-  expect(style.backgroundColor).toBe(style.expectedFlashColor);
+  await expect
+    .poll(() => recordedFlashes(page), { timeout: 10_000 })
+    .toContainEqual(expect.objectContaining({ text: '9' }));
+  const flashes = await recordedFlashes(page);
+  const style = flashes.find((flash) => flash.text === '9');
+  expect(style?.animationDuration).toBe('0s');
+  expect(style?.transitionDuration).toBe('0s');
+  expect(style?.backgroundColor).toBe(style?.expectedFlashColor);
 });
 
 test('the default single-spotlight kiosk view is unaffected when no layout param is present (9.3)', async ({

@@ -1,6 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures.js';
+import { recordedFlashes, recordFlashes } from './support/flash-recorder.js';
 
 /**
  * The live-patched score ticker on the public tournament overview page —
@@ -115,6 +116,7 @@ test.describe('public score ticker live reactivity', () => {
   });
 
   test('a live SSE event updates the ticker score without navigating away', async ({ page }) => {
+    await recordFlashes(page, `.cl-ticker__item[data-match-id="${MATCH_ID}"] .cl-ticker__figure`);
     await mockStreamDeliveringOneScoreEvent(page);
     await page.goto(OVERVIEW_PATH);
 
@@ -124,7 +126,9 @@ test.describe('public score ticker live reactivity', () => {
     // observable as a cue.
     const figure = item.locator('.cl-ticker__figure');
     await expect(figure).toHaveText('2 : 1', { timeout: 10_000 });
-    await expect(figure).toHaveClass(/cl-flash-on-change/);
+    await expect
+      .poll(() => recordedFlashes(page))
+      .toContainEqual(expect.objectContaining({ text: '2 : 1' }));
     await expect(figure).not.toHaveClass(/cl-flash-on-change/, { timeout: 2_000 });
 
     // Still the same overview page — a live event never triggers a navigation.
