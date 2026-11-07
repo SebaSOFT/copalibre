@@ -878,3 +878,21 @@ SHALL issue an audited invitation and SHALL never set a password.
 - **WHEN** an operator runs `copalibre organization add-admin --organization panamericano-demo --email ops@example.org`
 - **THEN** an invitation is created and audited, and the invitee sets their own password through
   acceptance
+
+### Requirement: The web role serves nothing under /api
+
+The web app SHALL serve no route of its own under `/api`. That prefix belongs to the API. Public API paths SHALL stay reachable on the app origin.
+
+#### Scenario: Public API path on the app origin
+
+- **WHEN** a browser requests a public API path under `/organizations` on the app origin
+- **THEN** the API answers it, not the web renderer
+
+### Requirement: copalibre status accepts only the API's health answer
+
+`copalibre status` SHALL report the gateway healthy only when the health response identifies the API role. A successful response from any other role or page SHALL NOT report the gateway healthy.
+
+#### Scenario: Another role answers
+
+- **WHEN** an operator runs `copalibre status` and the probe gets a 200 that does not identify the API
+- **THEN** the gateway is not reported healthy
