@@ -291,7 +291,10 @@ async function probeGateway(
 ): Promise<{ readonly ok: boolean; readonly error?: string }> {
   try {
     const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    return response.ok ? { ok: true } : { ok: false, error: `HTTP ${response.status}` };
+    if (!response.ok) return { ok: false, error: `HTTP ${response.status}` };
+    // A web fallback can answer 200, so only the API's own body counts as healthy.
+    const body = (await response.json()) as { readonly role?: unknown };
+    return body.role === 'api' ? { ok: true } : { ok: false, error: 'not answered by the API' };
   } catch (error) {
     return { ok: false, error: (error as Error).message };
   }
