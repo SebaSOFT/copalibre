@@ -1,4 +1,5 @@
-import { Controller, Get, Header, Param, Query, Inject, Logger } from '@nestjs/common';
+import { Controller, Get, Header, Param, Query, Inject, Logger, Res } from '@nestjs/common';
+import type { FastifyReply } from 'fastify';
 import { QualificationError } from '@copalibre/tournament-engine';
 import { NotFoundException } from '../http/error-contract.js';
 import { ApiTags, ApiOperation, ApiOkResponse, ApiProduces } from '@nestjs/swagger';
@@ -1766,6 +1767,7 @@ export class PublicProjectionsController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('personId') personId: string,
+    @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<PublicPersonProfileResponse> {
     const { tournament } = await this.resolvePublishedTournament(
       organizationAlias,
@@ -1855,6 +1857,8 @@ export class PublicProjectionsController {
       };
     });
 
+    // Set here, not with @Header: Nest applies that before the handler, so a 404 would carry it.
+    reply.header('Cache-Control', 'public, max-age=60');
     return {
       personId: person.personId,
       displayName: person.displayName,

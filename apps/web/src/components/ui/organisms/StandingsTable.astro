@@ -362,7 +362,7 @@ const playerDialogLabels = {
                 }`;
                 const apiProfileUrl =
                   organizationAlias && tournamentAlias && row.actorId
-                    ? `/api/player-profile?organization=${encodeURIComponent(organizationAlias)}&tournament=${encodeURIComponent(tournamentAlias)}&personId=${encodeURIComponent(row.actorId)}`
+                    ? `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(row.actorId)}/public/profile`
                     : playerPageUrl;
 
                 const cellBody = (
