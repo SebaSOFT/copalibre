@@ -364,11 +364,16 @@ test.describe('match card timestamp locale', () => {
   // byte-identical to each other (no hydration-time re-render).
   test.use({ locale: 'fr-FR' });
 
-  test('renders and hydrates in the route locale, not the browser locale', async ({ page }) => {
+  test('renders and hydrates in the route locale, not the browser locale', async ({
+    browser,
+    page,
+  }) => {
     const consoleErrors: string[] = [];
+    const pageErrors: string[] = [];
     page.on('console', (msg) => {
       if (msg.type() === 'error') consoleErrors.push(msg.text());
     });
+    page.on('pageerror', (error) => pageErrors.push(error.message));
     const spanishMonth = new Intl.DateTimeFormat('es', { month: 'short' }).format(
       new Date(liveMatch.scheduledAt),
     );
@@ -376,15 +381,21 @@ test.describe('match card timestamp locale', () => {
       new Date(liveMatch.scheduledAt),
     );
 
-    await page.route('**/*.js', (route) => route.abort());
-    await page.goto(`/es${cardsPath}`);
-    const ssrText = await page
+    const scriptless = await browser.newContext({ javaScriptEnabled: false, locale: 'fr-FR' });
+    const serverPage = await scriptless.newPage();
+    await serverPage.goto(`/es${cardsPath}`);
+    const ssrText = await serverPage
       .locator('.cl-match-card__venue time.cl-responsive-timestamp')
       .first()
       .textContent();
+    await scriptless.close();
 
-    await page.unroute('**/*.js');
     await page.goto(`/es${cardsPath}`);
+    // Astro removes `ssr` as each island hydrates. A production React build
+    // reports a mismatch as an uncaught numbered error, not a console message.
+    await expect(page.locator('astro-island').first()).toBeAttached();
+    await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)));
     const hydratedText = await page
       .locator('.cl-match-card__venue time.cl-responsive-timestamp')
       .first()
@@ -396,5 +407,6 @@ test.describe('match card timestamp locale', () => {
     expect(
       consoleErrors.filter((text) => /hydrat/i.test(text) || /did not match/i.test(text)),
     ).toEqual([]);
+    expect(pageErrors).toEqual([]);
   });
 });

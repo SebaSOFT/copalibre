@@ -101,3 +101,41 @@ scope and include band and seed columns when promotion bands are supplied.
 
 - **WHEN** a standings cell begins with a spreadsheet formula character
 - **THEN** the CSV export escapes the cell before download
+
+### Requirement: The player dialog shows stored text as text
+
+The player dialog SHALL show every value it receives as literal text. No tournament name, team name, abbreviation, role, nationality, statistic label or statistic value SHALL be interpreted as markup, whatever it contains.
+
+#### Scenario: Team name holding markup
+
+- **WHEN** a spectator opens the dialog for a player whose team name holds an image tag with an event handler
+- **THEN** the dialog shows those characters as text, creates no image, and runs no handler
+
+#### Scenario: Every field holding markup
+
+- **WHEN** each text field of the profile holds markup
+- **THEN** the dialog body contains only the elements it always builds, and every field reads as sent
+
+#### Scenario: Ordinary profile
+
+- **WHEN** a spectator opens the dialog for a player with statistics and history
+- **THEN** the dialog shows the same sections, tags, table and classes as before
+
+#### Scenario: No history
+
+- **WHEN** the player has no statistics or no recorded history
+- **THEN** the dialog shows its localized empty messages
+
+#### Scenario: Failed load
+
+- **WHEN** the profile request fails
+- **THEN** the dialog shows its localized error message
+
+### Requirement: Public web code adds no unreviewed HTML sink
+
+The automated checks SHALL fail when web application code assigns HTML to an element or injects it through a framework, unless that use is listed with the reason it is safe.
+
+#### Scenario: New sink
+
+- **WHEN** a source file under `apps/web/src` gains an `innerHTML` assignment, `insertAdjacentHTML`, `document.write`, `dangerouslySetInnerHTML` or an unlisted `set:html`
+- **THEN** the check fails and names the file and line
