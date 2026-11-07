@@ -15,7 +15,7 @@ import { PreferencesTemplate } from '../screens/PreferencesTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
 
-/** The API serves tokens from its root. The gateway passes `/api` through, so it is not a prefix. */
+/** The API serves tokens from its root, with no prefix. */
 export const PAT_PATH = '/auth/pat';
 
 export function formatStorageBytes(bytes: number): string {

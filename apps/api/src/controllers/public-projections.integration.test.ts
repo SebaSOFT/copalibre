@@ -837,6 +837,14 @@ describe('public projections routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
+    expect(response.headers['cache-control']).toBe('public, max-age=60');
+    const withCredentials = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/persons/${person.personId}/public/profile`,
+      token: 'not-a-real-token',
+    });
+    expect(withCredentials.statusCode).toBe(200);
+    expect(withCredentials.payload).toBe(response.payload);
     const body = JSON.parse(response.payload as string);
     expect(body.personId).toBe(person.personId);
     expect(body.displayName).toBe('Esteban Paredes');
@@ -1011,6 +1019,7 @@ describe('public projections routes', () => {
       url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/persons/01890000-0000-7000-8000-999999999999/public/profile`,
     });
     expect(unknownResponse.statusCode).toBe(404);
+    expect(String(unknownResponse.headers['cache-control'] ?? '')).not.toContain('public');
   });
 
   describe('player statistics drilldown', () => {
@@ -3388,6 +3397,7 @@ describe('public privacy read models', () => {
       url: `/organizations/liga-orbital/tournaments/${setup.youth.alias}/persons/${setup.personId}/public/profile`,
     });
     expect(protectedProfile.statusCode).toBe(404);
+    expect(String(protectedProfile.headers['cache-control'] ?? '')).not.toContain('public');
   });
 });
 

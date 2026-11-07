@@ -170,7 +170,7 @@ describe('event streams (integration)', () => {
   it('serves the long poll from the same replay resolution', async () => {
     const response = await inject({
       method: 'GET',
-      url: '/api/events?organization=liga&wait=0',
+      url: '/events/poll?organization=liga&wait=0',
       headers: { authorization: 'Bearer good' },
     });
 
@@ -190,7 +190,7 @@ describe('event streams (integration)', () => {
       (
         await inject({
           method: 'GET',
-          url: '/api/events?organization=liga&wait=0',
+          url: '/events/poll?organization=liga&wait=0',
           headers: { authorization: 'Bearer good' },
         })
       ).body,
@@ -200,7 +200,7 @@ describe('event streams (integration)', () => {
       (
         await inject({
           method: 'GET',
-          url: `/api/events?organization=liga&wait=0&after=${first.cursor ?? ''}`,
+          url: `/events/poll?organization=liga&wait=0&after=${first.cursor ?? ''}`,
           headers: { authorization: 'Bearer good' },
         })
       ).body,
@@ -213,7 +213,7 @@ describe('event streams (integration)', () => {
   });
 
   it('refuses the long poll without a bearer token', async () => {
-    const response = await inject({ method: 'GET', url: '/api/events?organization=liga' });
+    const response = await inject({ method: 'GET', url: '/events/poll?organization=liga' });
 
     expect(response.statusCode).toBe(401);
   });

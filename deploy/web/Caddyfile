@@ -37,9 +37,9 @@
 		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
 	}
 
-	# Dynamic root, sitemap, and player-profile routes rendered on demand by web-ssr
+	# Dynamic root and sitemap routes rendered on demand by web-ssr
 	@ssrRoot {
-		path / /sitemap.xml /api/player-profile
+		path / /sitemap.xml
 	}
 	handle @ssrRoot {
 		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}

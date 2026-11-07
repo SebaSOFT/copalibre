@@ -58,7 +58,7 @@ describe('copalibre status', () => {
       const run = jest.fn<ProcessRunner['run']>(async () => 0);
       const output = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
       const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
-      jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok', { status: 200 }));
+      jest.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ role: 'api' }));
       try {
         await expect(runCli(['status', '--json'], {}, { run, capture })).resolves.toBe(0);
         expect(capture).toHaveBeenCalledWith('docker', ['compose', 'ps', '--format', 'json'], {
@@ -98,7 +98,7 @@ describe('copalibre status', () => {
       const run = jest.fn<ProcessRunner['run']>(async () => 0);
       const output = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
       const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
-      jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok', { status: 200 }));
+      jest.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ role: 'api' }));
       try {
         await expect(runCli(['status', '--dev', '--json'], {}, { run, capture })).resolves.toBe(0);
         expect(capture).toHaveBeenCalledWith(
@@ -145,6 +145,26 @@ describe('copalibre status', () => {
       jest
         .spyOn(globalThis, 'fetch')
         .mockResolvedValue(new Response('unavailable', { status: 503 }));
+      try {
+        await expect(runCli(['status'], {}, { run, capture })).resolves.toBe(1);
+      } finally {
+        stdout.mockRestore();
+        stderr.mockRestore();
+      }
+    });
+  });
+
+  it.each([
+    ['another role', () => Response.json({ role: 'web' })],
+    ['a web page', () => new Response('<!doctype html>', { status: 200 })],
+  ])('does not report the gateway healthy when %s answers 200', async (_name, answer) => {
+    await withDirectory(async (directory) => {
+      await writeFile(join(directory, 'docker-compose.yml'), 'services: {}\n');
+      const capture = jest.fn<NonNullable<ProcessRunner['capture']>>(async () => composeOutput());
+      const run = jest.fn<ProcessRunner['run']>(async () => 0);
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      jest.spyOn(globalThis, 'fetch').mockResolvedValue(answer());
       try {
         await expect(runCli(['status'], {}, { run, capture })).resolves.toBe(1);
       } finally {

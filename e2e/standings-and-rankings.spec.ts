@@ -16,6 +16,7 @@ import { expectNoSeriousSemanticViolations } from './support/semantic-axe.js';
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
 const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const PLAYER_PROFILE_PATH = `**${TOURNAMENT}/persons/p-1/public/profile`;
 const STAGE = `${TOURNAMENT}/stages/1`;
 const RESPONSIVE_WIDTHS = [375, 768, 1024, 1440, 188] as const;
 
@@ -962,6 +963,13 @@ test.describe('B2: public tournament page', () => {
         }),
     );
 
+    // The preview server has no proxy, so the browser's call to the API is answered here.
+    const profileRequests: string[] = [];
+    await page.route(PLAYER_PROFILE_PATH, (route) => {
+      profileRequests.push(new URL(route.request().url()).pathname);
+      return route.fulfill({ json: playerProfileFixture });
+    });
+
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
     await page.locator('[data-full-layout-code="top-scorers"]').click();
     await expect(page).toHaveURL(/tab=top-scorers/);
@@ -977,6 +985,9 @@ test.describe('B2: public tournament page', () => {
     await expect(dialog.getByText('Age: 28')).toBeVisible();
     await expect(dialog.getByText('Career Statistics')).toBeVisible();
     await expect(dialog.getByText('Competition History')).toBeVisible();
+    expect(profileRequests).toEqual([
+      `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/persons/p-1/public/profile`,
+    ]);
 
     // Close modal
     await dialog.getByRole('button', { name: 'Close dialog' }).click();
@@ -991,7 +1002,7 @@ test.describe('B2: public tournament page', () => {
 
   test('the player dialog shows a stored name as text and never runs it', async ({ page }) => {
     const storedName = 'Casa de Italia <img src=x onerror=window.__storedNameRan=true>';
-    await page.route('**/api/player-profile**', (route) =>
+    await page.route(PLAYER_PROFILE_PATH, (route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -1049,6 +1060,10 @@ test.describe('B2: public tournament page', () => {
   });
 
   test('states an absence, not zeroes, for a player with no roster history', async ({ page }) => {
+    await page.route(`**${TOURNAMENT}/persons/p-2/public/profile`, (route) =>
+      route.fulfill({ json: playerProfileFixtureNoStats }),
+    );
+
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
     await page.locator('[data-full-layout-code="top-scorers"]').click();
     await expect(page).toHaveURL(/tab=top-scorers/);
