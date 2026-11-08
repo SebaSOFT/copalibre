@@ -1,3 +1,4 @@
+import { apiEndpoint } from './api-client.js';
 import { parseArgs } from 'node:util';
 import type {
   StatisticsRebuildOptions,
@@ -46,7 +47,7 @@ export async function runStatisticsRebuildOverHttp(
   options: StatisticsRebuildOptions,
   requestFetch: typeof fetch = fetch,
 ): Promise<StatisticsRebuildResult> {
-  const target = new URL(
+  const target = apiEndpoint(
     `/organizations/${encodeURIComponent(options.organization)}/statistics/rebuild`,
     apiUrl,
   );

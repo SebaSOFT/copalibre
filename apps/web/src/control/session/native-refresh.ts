@@ -1,3 +1,4 @@
+import { API_PATH_PREFIX } from '../../lib/api-path.js';
 import type { SilentRenewalOutcome, SilentRenewalRetry } from './renewal-outcome.js';
 
 interface NativeRefreshResponse {
@@ -28,7 +29,7 @@ function retryAt(response: Response, now: number): number {
 export async function refreshNativeSession(
   fetchImpl: typeof fetch = globalThis.fetch.bind(globalThis),
 ): Promise<SilentRenewalOutcome | SilentRenewalRetry | undefined> {
-  const response = await fetchImpl('/auth/refresh', {
+  const response = await fetchImpl(`${API_PATH_PREFIX}/auth/refresh`, {
     method: 'POST',
     credentials: 'include',
   });
@@ -47,7 +48,7 @@ export async function logoutNativeSession(
   fetchImpl: typeof fetch = globalThis.fetch.bind(globalThis),
 ): Promise<void> {
   try {
-    await fetchImpl('/auth/logout', { method: 'POST', credentials: 'include' });
+    await fetchImpl(`${API_PATH_PREFIX}/auth/logout`, { method: 'POST', credentials: 'include' });
   } catch {
     // The local session is what actually matters; a failed revocation call
     // never blocks the operator from being signed out on this device.

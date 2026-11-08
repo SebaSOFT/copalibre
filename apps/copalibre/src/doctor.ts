@@ -643,7 +643,7 @@ export async function validateSmokeTests(
 
   // 2. Auth / JWKS endpoint
   try {
-    const res = await dependencies.fetch(`${apiUrl}/.well-known/jwks.json`);
+    const res = await dependencies.fetch(`${apiUrl}/api/auth/jwks.json`);
     if (res.ok) {
       const body = (await res.json()) as { keys?: unknown[] };
       if (Array.isArray(body?.keys)) {
@@ -660,7 +660,7 @@ export async function validateSmokeTests(
       checks.push(
         fail(
           'smoke:auth',
-          `Auth endpoint returned HTTP ${res.status} at ${apiUrl}/.well-known/jwks.json`,
+          `Auth endpoint returned HTTP ${res.status} at ${apiUrl}/api/auth/jwks.json`,
         ),
       );
     }
@@ -668,14 +668,14 @@ export async function validateSmokeTests(
     checks.push(
       fail(
         'smoke:auth',
-        `Auth endpoint unreachable at ${apiUrl}/.well-known/jwks.json: ${errorMessage(error)}`,
+        `Auth endpoint unreachable at ${apiUrl}/api/auth/jwks.json: ${errorMessage(error)}`,
       ),
     );
   }
 
   // 3. Organization discovery
   try {
-    const res = await dependencies.fetch(`${apiUrl}/organizations?mine=true`);
+    const res = await dependencies.fetch(`${apiUrl}/api/organizations?mine=true`);
     if (res.ok || res.status === 401) {
       checks.push(
         pass('smoke:organizations', `Organizations endpoint responded with HTTP ${res.status}`),

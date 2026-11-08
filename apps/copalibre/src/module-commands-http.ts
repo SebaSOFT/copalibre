@@ -6,6 +6,8 @@
  * otherwise.
  */
 
+import { apiEndpoint } from './api-client.js';
+
 export interface ModuleListEntry {
   readonly alias: string;
   readonly version: string;
@@ -66,7 +68,7 @@ export async function listModulesOverHttp(
   outdated: boolean,
   requestFetch: typeof fetch = fetch,
 ): Promise<readonly ModuleListEntry[] | readonly OutdatedModuleEntry[]> {
-  const target = new URL('/admin/modules', apiUrl);
+  const target = apiEndpoint('/admin/modules', apiUrl);
   if (outdated) target.searchParams.set('outdated', 'true');
   const response = await requestFetch(target, {
     headers: authorized(token),
@@ -86,7 +88,7 @@ export async function installModuleOverHttp(
   },
   requestFetch: typeof fetch = fetch,
 ): Promise<InstallModuleReport> {
-  const target = new URL('/admin/modules', apiUrl);
+  const target = apiEndpoint('/admin/modules', apiUrl);
   const response = await requestFetch(target, {
     method: 'POST',
     headers: { ...authorized(token), 'content-type': 'application/json' },
@@ -102,7 +104,7 @@ export async function removeModuleOverHttp(
   alias: string,
   requestFetch: typeof fetch = fetch,
 ): Promise<RemoveModuleReport> {
-  const target = new URL(`/admin/modules/${encodeURIComponent(alias)}`, apiUrl);
+  const target = apiEndpoint(`/admin/modules/${encodeURIComponent(alias)}`, apiUrl);
   const response = await requestFetch(target, {
     method: 'DELETE',
     headers: authorized(token),
@@ -116,7 +118,7 @@ export async function verifyModulesOverHttp(
   token: string,
   requestFetch: typeof fetch = fetch,
 ): Promise<readonly ModuleVerifyResult[]> {
-  const target = new URL('/admin/modules/verify', apiUrl);
+  const target = apiEndpoint('/admin/modules/verify', apiUrl);
   const response = await requestFetch(target, {
     method: 'POST',
     headers: authorized(token),

@@ -60,7 +60,10 @@ export function renderEmail(config: EmailDeliveryConfig, content: EmailContent):
     : undefined;
   const emblemUrl =
     organization?.hasEmblem === true
-      ? new URL(`/organizations/${encodeURIComponent(organization.alias)}/emblem`, config.appUrl)
+      ? new URL(
+          `/api/organizations/${encodeURIComponent(organization.alias)}/emblem`,
+          config.appUrl,
+        )
       : undefined;
   const logoUrl = new URL(LOGO_PATH, config.appUrl).toString();
 

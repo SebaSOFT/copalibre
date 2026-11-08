@@ -1,3 +1,4 @@
+import { API_PATH_PREFIX } from '../../lib/api-path.js';
 import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { beginOidcLogin } from '../session/oidc-login.js';
@@ -34,7 +35,7 @@ export function LoginRoute(): React.JSX.Element {
     setLoading(true);
 
     try {
-      const res = await fetch('/auth/login', {
+      const res = await fetch(`${API_PATH_PREFIX}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -130,7 +131,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
     setLoading(true);
 
     try {
-      const res = await fetch('/auth/forgot-password', {
+      const res = await fetch(`${API_PATH_PREFIX}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -196,7 +197,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
     setLoading(true);
 
     try {
-      const res = await fetch('/auth/reset-password', {
+      const res = await fetch(`${API_PATH_PREFIX}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword: password }),

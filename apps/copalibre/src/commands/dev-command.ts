@@ -105,7 +105,7 @@ export function hybridEnvironment(environment: NodeJS.ProcessEnv): NodeJS.Proces
     COPALIBRE_API_URL: apiUrl,
     COPALIBRE_BOOTSTRAP_TOKEN:
       environment.COPALIBRE_BOOTSTRAP_TOKEN ?? 'copalibre_dev_bootstrap_only',
-    COPALIBRE_JWKS_URI: environment.COPALIBRE_JWKS_URI ?? `${apiUrl}/.well-known/jwks.json`,
+    COPALIBRE_JWKS_URI: environment.COPALIBRE_JWKS_URI ?? `${apiUrl}/api/auth/jwks.json`,
     COPALIBRE_JWT_ISSUER: environment.COPALIBRE_JWT_ISSUER ?? nativeIssuer,
     COPALIBRE_NATIVE_JWT_ISSUER: nativeIssuer,
     COPALIBRE_JWT_AUDIENCE: environment.COPALIBRE_JWT_AUDIENCE ?? 'copalibre',

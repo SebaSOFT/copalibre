@@ -18,6 +18,11 @@ interface ProblemBody {
   readonly message?: string;
 }
 
+/** `COPALIBRE_API_URL` stays an origin; the API's `/api` prefix is added here, once. */
+export function apiEndpoint(path: string, baseUrl: string): URL {
+  return new URL(`/api${path}`, baseUrl);
+}
+
 /**
  * Minimal fetch wrapper shared by the five tournament-operational MCP tools
  * and the CLI's `organization`/`tournament` commands — ~30
@@ -32,7 +37,7 @@ async function request(
   body?: unknown,
 ): Promise<unknown> {
   const doFetch = config.fetchImplementation ?? fetch;
-  const response = await doFetch(new URL(path, config.baseUrl), {
+  const response = await doFetch(apiEndpoint(path, config.baseUrl), {
     method,
     headers: {
       Authorization: `Bearer ${config.token}`,

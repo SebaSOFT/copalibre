@@ -1,3 +1,4 @@
+import { apiEndpoint } from './api-client.js';
 import { parseArgs } from 'node:util';
 import { createInterface } from 'node:readline/promises';
 import { readCredential, writeCredential, type StoredCredential } from './credentials.js';
@@ -106,7 +107,7 @@ export async function login(
   const token = options.token ?? (await readToken());
   if (!token) throw new Error('No token provided');
 
-  const target = new URL('/organizations?mine=true', options.apiUrl);
+  const target = apiEndpoint('/organizations?mine=true', options.apiUrl);
   const response = await requestFetch(target, {
     headers: { authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(10_000),

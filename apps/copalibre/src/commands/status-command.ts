@@ -93,7 +93,7 @@ export class StatusCommand extends Command<CliContext> {
       mode === 'dev'
         ? 'http://127.0.0.1:3001'
         : `http://127.0.0.1:${environment.COPALIBRE_PORT ?? '8080'}`;
-    const healthUrl = mode === 'dev' ? `${gatewayUrl}/health` : `${gatewayUrl}/api/health`;
+    const healthUrl = `${gatewayUrl}/api/health`;
     const gateway = await probeGateway(healthUrl);
     const healthy = gateway.ok && services.every(isRunningAndHealthy);
     const publishedPorts = collectPublishedPorts(services);
