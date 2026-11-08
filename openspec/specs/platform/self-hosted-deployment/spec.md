@@ -69,7 +69,7 @@ provisioning container.
 
 #### Scenario: Single-port ingress routing
 - **WHEN** an operator starts the Docker Compose stack with default configuration
-- **THEN** only the edge reverse proxy port is published to the host, and browser calls to `/api/auth/login`, `/organizations?mine=true`, and `/control/platform` resolve through the same origin without CORS or 404 proxy errors.
+- **THEN** only the edge reverse proxy port is published to the host, and browser calls to `/api/auth/login`, `/api/organizations?mine=true`, and `/control/platform` resolve through the same origin without CORS or 404 proxy errors.
 
 #### Scenario: Automatic Compose override discovery
 - **WHEN** an operator creates `docker-compose.override.yml` in the installation directory
@@ -86,8 +86,7 @@ provisioning container.
 
 #### Scenario: Routing to the API
 
-- **WHEN** a request path starts with `/api`, `/auth`, `/organizations`, `/objects`, `/admin`,
-  `/installation` or `/.well-known`
+- **WHEN** a request path starts with `/api`
 - **THEN** the edge proxy routes it to the `api` service on port 3001
 
 #### Scenario: Routing events and everything else
@@ -711,7 +710,7 @@ application servers without manual intervention, when all infrastructure contain
 The application SHALL keep emblem and discipline-background URLs on the browser's application origin and route their requests to the API in local development and supported self-hosted proxy topologies. The proxy SHALL preserve the API's status, response bytes, and content type rather than serving a web fallback document.
 
 #### Scenario: Local development serves emblems and discipline backgrounds
-- **WHEN** a browser requests emblem upload, supported deletion, or read under `/organizations/*`, or requests a discipline background through `/objects/discipline-background-image`
+- **WHEN** a browser requests emblem upload, supported deletion, or read under `/api/organizations/*`, or requests a discipline background through `/api/objects/discipline-background-image`
 - **THEN** the local Astro development proxy forwards each request to the API and preserves its authorization, status, response bytes, and content type
 
 #### Scenario: Local development uses a configured loopback hostname
@@ -719,11 +718,11 @@ The application SHALL keep emblem and discipline-background URLs on the browser'
 - **THEN** the development web server accepts that hostname while retaining localhost as its default, and the same-origin emblem and discipline-background paths continue to use the local API proxy
 
 #### Scenario: Self-hosted gateway serves all media operations
-- **WHEN** a browser requests emblem upload, supported deletion, or read under `/organizations/*`, or a discipline background under `/objects/*` on the single-origin gateway
+- **WHEN** a browser requests emblem upload, supported deletion, or read under `/api/organizations/*`, or a discipline background under `/api/objects/*` on the single-origin gateway
 - **THEN** the gateway forwards the request to the API and preserves its authorization, status, response bytes, and content type
 
 #### Scenario: Self-hosted web edge serves all media operations
-- **WHEN** the browser requests emblem upload, supported deletion, or read under `/organizations/*`, or a discipline background under `/objects/*` through the self-hosted web edge
+- **WHEN** the browser requests emblem upload, supported deletion, or read under `/api/organizations/*`, or a discipline background under `/api/objects/*` through the self-hosted web edge
 - **THEN** the request reaches the API before static or SSR fallback and preserves its authorization, status, response bytes, and content type
 
 #### Scenario: Kubernetes web edge resolves the release-scoped API service
@@ -896,3 +895,36 @@ The web app SHALL serve no route of its own under `/api`. That prefix belongs to
 
 - **WHEN** an operator runs `copalibre status` and the probe gets a 200 that does not identify the API
 - **THEN** the gateway is not reported healthy
+
+### Requirement: API routing is one prefix
+
+Every API route SHALL live under `/api`, including its health and readiness probes. Shipped proxy configurations SHALL route the API with that one prefix and SHALL NOT list individual API paths. `COPALIBRE_API_URL` SHALL stay an origin, with no path. API paths that other requirements name, such as `/auth/login`, are relative to this prefix.
+
+#### Scenario: API path on the app origin
+
+- **WHEN** a client requests a path under `/api` through the gateway or the web role
+- **THEN** the API answers it
+
+#### Scenario: Unknown API path
+
+- **WHEN** a client requests an unknown path under `/api`
+- **THEN** the API answers 404, not the web app
+
+#### Scenario: Former root path
+
+- **WHEN** a client requests `/organizations` at the root of the API service
+- **THEN** the API answers 404
+
+### Requirement: Well-known paths stay public and static
+
+`/.well-known/*` SHALL stay public at the root of the app origin and SHALL be served from static files only. A missing file SHALL answer 404, never a page of the application. TLS certificates and their ACME challenges SHALL belong to the TLS edge in front of the gateway.
+
+#### Scenario: Published file
+
+- **WHEN** a client requests a file that exists under `/.well-known/`
+- **THEN** the web role serves that file
+
+#### Scenario: Missing file
+
+- **WHEN** a client requests a missing path under `/.well-known/`
+- **THEN** the response is 404 and carries no application page

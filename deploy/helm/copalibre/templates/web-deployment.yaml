@@ -65,3 +65,16 @@ spec:
             periodSeconds: 5
           resources:
             {{- toYaml (.Values.web.resources | default dict) | nindent 12 }}
+          {{- with .Values.web.wellKnown.configMap }}
+          volumeMounts:
+            - name: well-known
+              mountPath: /srv/.well-known
+              readOnly: true
+          {{- end }}
+      {{- with .Values.web.wellKnown.configMap }}
+      volumes:
+        # Each key is published as one public file under /.well-known/.
+        - name: well-known
+          configMap:
+            name: {{ . | quote }}
+      {{- end }}

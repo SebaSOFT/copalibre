@@ -84,6 +84,11 @@ web:
   # API routes served through the app origin (emblems and discipline images).
   # Empty means the release-scoped API Service this chart creates.
   apiUpstream: ''
+  # Name of an existing ConfigMap whose keys are published as files under
+  # /.well-known/ (security.txt and similar), mounted read-only. Everything in
+  # it is public. Empty mounts nothing.
+  wellKnown:
+    configMap: ''
   env:
     COPALIBRE_JWT_ISSUER: ''
     COPALIBRE_OIDC_CLIENT_ID: ''

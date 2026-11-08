@@ -90,6 +90,30 @@ Use `deploy/proxy/Caddyfile` or `deploy/proxy/nginx.conf`, set public URLs and p
 Verify the live address with
 `copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check`.
 
+## Well-Known Files
+
+The web container serves the installation's `well-known/` directory as `/.well-known/` on the
+application origin, read-only. `copalibre init` creates it empty and CopaLibre ships nothing in it.
+**Everything placed there is public**: never put credentials, backups or private keys in it.
+
+To publish a security contact (RFC 9116), write `well-known/security.txt`. `Contact` and `Expires`
+are required; renew `Expires` before it passes, within a year:
+
+```text
+Contact: mailto:security@example.org
+Expires: 2027-11-08T00:00:00.000Z
+Preferred-Languages: es, en
+```
+
+A file is served as soon as it is written, with no restart; a name with no file answers 404.
+Check it with `curl -i https://app.example/.well-known/security.txt`. Other names, such as
+`assetlinks.json`, work the same way. Extensionless files such as `apple-app-site-association`
+are served as `application/octet-stream`. ACME challenges stay at the TLS edge.
+
+`copalibre init --repair` creates a missing `well-known/` directory and leaves existing files alone.
+It does not edit an existing `docker-compose.yml`, so an installation created before this release
+needs the mount added by hand (see [Upgrading](#upgrading)).
+
 ## Managing An Installation Without Database Access
 
 `copalibre create-admin` always runs from any machine with no database connection, as a pure
@@ -249,6 +273,11 @@ against a partially upgraded database to fit the budget.
    configuration changes to the existing installation. Preserve volume identities and secrets.
    For installations using MinIO, migrate objects to the configured replacement before switching
    storage endpoints; a PostgreSQL backup does not contain those objects.
+   For installations whose `web` service lacks the well-known mount, run `mkdir -p well-known` and
+   add this line under that service's `volumes:`, after `./modules`:
+   ```yaml
+   - ./well-known:/srv/.well-known:ro
+   ```
 3. Set **both** image references in `.env`:
    ```dotenv
    COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.6

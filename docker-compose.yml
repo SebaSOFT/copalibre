@@ -189,6 +189,8 @@ services:
       - '4321:4321'
     volumes:
       - ./modules:/var/lib/copalibre/modules:ro
+      # Everything in ./well-known is public under /.well-known/ (security.txt and similar).
+      - ./well-known:/srv/.well-known:ro
     healthcheck:
       test: ['CMD-SHELL', 'wget -q --spider http://127.0.0.1:4321/']
       interval: 5s

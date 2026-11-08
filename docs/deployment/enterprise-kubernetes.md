@@ -279,6 +279,31 @@ nothing in this chart installs them.
   `ingress.annotations` for a different controller.
 - **External Secrets Operator**, required by `externalSecrets.enabled`.
 
+## Well-known files
+
+The web role serves `/srv/.well-known` as `/.well-known/` on the application
+origin, static and read-only; a name with no file answers 404. The chart ships
+nothing there. To publish files such as `security.txt` (RFC 9116), create a
+ConfigMap whose keys are the file names and name it in
+`web.wellKnown.configMap`. **Everything in that ConfigMap is public**: never
+put credentials in it. A Secret is not supported for that reason.
+
+```bash
+cat > security.txt <<'TXT'
+Contact: mailto:security@example.org
+Expires: 2027-11-08T00:00:00.000Z
+TXT
+kubectl create configmap copalibre-well-known --from-file=security.txt
+helm upgrade copalibre deploy/helm/copalibre --reuse-values \
+  --set web.wellKnown.configMap=copalibre-well-known
+```
+
+`Contact` and `Expires` are required; renew `Expires` before it passes, within
+a year. Kubernetes refreshes a mounted ConfigMap's files in place after an
+update, so editing it needs no restart once the delay of the kubelet sync has
+passed. Empty `web.wellKnown.configMap` (the default) mounts nothing. ACME
+challenges stay with the ingress or its certificate manager.
+
 ## Managed external dependencies
 
 `packages/persistence` already targets PostgreSQL and S3-compatible object
