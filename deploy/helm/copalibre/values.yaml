@@ -18,10 +18,10 @@ roles:
     port: 3001
     replicas: 1
     service: true
-    # api alone can distinguish "up" from "ready to serve" (GET /ready checks
+    # api alone can distinguish "up" from "ready to serve" (GET /api/ready checks
     # the DB schema version); the other roles only have GET /health.
-    probePath: /health
-    readinessPath: /ready
+    probePath: /api/health
+    readinessPath: /api/ready
     resources: {}
   events:
     port: 3002

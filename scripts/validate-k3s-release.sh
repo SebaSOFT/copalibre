@@ -205,7 +205,7 @@ test_rolling_update() {
   # DNS name, so the request actually goes through kube-proxy's real
   # endpoint routing the way a real client's traffic would.
   kubectl run copalibre-validate-poller --image=curlimages/curl:latest --restart=Never \
-    --command -- sh -c "while true; do curl -sf -o /dev/null http://${RELEASE_NAME}-api:3001/health || echo fail; sleep 0.5; done"
+    --command -- sh -c "while true; do curl -sf -o /dev/null http://${RELEASE_NAME}-api:3001/api/health || echo fail; sleep 0.5; done"
   kubectl wait --for=condition=ready --timeout=60s pod/copalibre-validate-poller
 
   helm upgrade "${RELEASE_NAME}" "${ROOT_DIR}/deploy/helm/copalibre" \
