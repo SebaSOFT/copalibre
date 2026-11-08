@@ -1,3 +1,4 @@
+import { API_PATH_PREFIX } from '../../../lib/api-path.js';
 import { useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { messages as controlMessages } from '../../i18n/messages.en.js';
@@ -16,7 +17,7 @@ import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
 
 /** The API serves tokens from its root, with no prefix. */
-export const PAT_PATH = '/auth/pat';
+export const PAT_PATH = `${API_PATH_PREFIX}/auth/pat`;
 
 export function formatStorageBytes(bytes: number): string {
   const ONE_MB = 1024 * 1024;

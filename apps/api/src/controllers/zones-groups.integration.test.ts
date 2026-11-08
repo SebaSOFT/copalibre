@@ -34,8 +34,8 @@ function descriptor(): DisciplineDescriptor {
 }
 
 describe('zone and group draw routes (integration)', () => {
-  const base = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/1`;
-  const manualBase = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/2`;
+  const base = `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/1`;
+  const manualBase = `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/2`;
   let harness: Awaited<ReturnType<typeof buildTestApp>>;
   let zoneIds: readonly string[] = [];
   let stageOneId = '';
@@ -410,7 +410,7 @@ describe('zone and group draw routes (integration)', () => {
     // stage 2 with two bands — reused here rather than re-created.
     const targetingStageTwo = await harness.request({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/2/promotion-plans`,
+      url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/2/promotion-plans`,
       token: 'organizer-org1',
     });
     expect(targetingStageTwo.statusCode).toBe(200);
@@ -445,7 +445,7 @@ describe('zone and group draw routes (integration)', () => {
         ...AUDIT,
       }),
     );
-    const secondBase = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/10`;
+    const secondBase = `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/10`;
     const enrollment = new EnrollmentRepository(harness.scratch.db);
     const repechajeEntrantIds: string[] = [];
     for (const name of ['Chimbas', '9 de Julio']) {
@@ -561,7 +561,7 @@ describe('zone and group draw routes (integration)', () => {
 
     const afterSecondPlan = await harness.request({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/2/promotion-plans`,
+      url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/2/promotion-plans`,
       token: 'organizer-org1',
     });
     expect(afterSecondPlan.statusCode).toBe(200);
@@ -591,7 +591,7 @@ describe('zone and group draw routes (integration)', () => {
         ...AUDIT,
       }),
     );
-    const manualStageBase = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/3`;
+    const manualStageBase = `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/3`;
     const entrantIds = (
       await new EnrollmentRepository(harness.scratch.db).listEntrants(tournamentId)
     )

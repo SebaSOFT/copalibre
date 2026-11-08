@@ -25,6 +25,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * A `live`-cadence collector's total is current before a match ends; a
@@ -65,6 +66,7 @@ describe('live-cadence statistics inside the event-recording transaction (integr
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -234,7 +236,7 @@ describe('live-cadence statistics inside the event-recording transaction (integr
   it("updates a live collector's total inside the recording transaction, before the match ends, and leaves a default-cadence collector's total absent until finalize", async () => {
     const response = await (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: `/organizations/liga-live/tournaments/apertura-live/matches/${matchId}/events`,
+      url: `/api/organizations/liga-live/tournaments/apertura-live/matches/${matchId}/events`,
       headers: {
         authorization: 'Bearer referee',
         'idempotency-key': '01890000-0000-7000-8000-0000000000a1',

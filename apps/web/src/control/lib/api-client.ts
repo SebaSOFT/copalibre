@@ -15,6 +15,7 @@ import type { DisciplineOption, TournamentProfileOption } from './wizard.js';
 import type { MatchCardData } from '../../lib/matches-view.js';
 import type { QualifierLabel, SideSource } from '../../lib/side-source.js';
 import { renewSessionOnce } from '../session/silent-renewal.js';
+import { API_PATH_PREFIX } from '../../lib/api-path.js';
 
 export interface ControlApiClient {
   /** Every organization the authenticated caller belongs to, with their role. */
@@ -2267,7 +2268,8 @@ export function createControlApiClient(input: {
   readonly baseUrl?: string;
   readonly accessToken?: () => string | undefined;
 }): ControlApiClient & MatchConsoleApiClient {
-  const baseUrl = input.baseUrl ?? '';
+  const origin = input.baseUrl ?? '';
+  const baseUrl = `${origin}${API_PATH_PREFIX}`;
 
   return {
     listMyOrganizations: () =>
@@ -3177,12 +3179,12 @@ export function createControlApiClient(input: {
       ),
 
     controlStream: (organizationAlias) => ({
-      url: `${baseUrl}/events/control/${encodeURIComponent(organizationAlias)}`,
+      url: `${origin}/events/control/${encodeURIComponent(organizationAlias)}`,
       accessToken: input.accessToken,
     }),
 
     matchConsoleStream: (organizationAlias) => ({
-      url: `${baseUrl}/events/control/${encodeURIComponent(organizationAlias)}`,
+      url: `${origin}/events/control/${encodeURIComponent(organizationAlias)}`,
       accessToken: input.accessToken,
     }),
 
@@ -3487,7 +3489,7 @@ export function personPhotoUrl(
   objectId?: string,
 ): string {
   const query = objectId ? `?v=${encodeURIComponent(objectId)}` : '';
-  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/photo${query}`;
+  return `${baseUrl}${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/photo${query}`;
 }
 
 export function clubEmblemUrl(
@@ -3497,7 +3499,7 @@ export function clubEmblemUrl(
   objectId?: string,
 ): string {
   const query = objectId ? `?v=${encodeURIComponent(objectId)}` : '';
-  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem${query}`;
+  return `${baseUrl}${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem${query}`;
 }
 
 export function organizationEmblemUrl(
@@ -3506,7 +3508,7 @@ export function organizationEmblemUrl(
   objectId?: string,
 ): string {
   const query = objectId ? `?v=${encodeURIComponent(objectId)}` : '';
-  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/emblem${query}`;
+  return `${baseUrl}${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/emblem${query}`;
 }
 
 export function tournamentEmblemUrl(
@@ -3516,7 +3518,7 @@ export function tournamentEmblemUrl(
   objectId?: string,
 ): string {
   const query = objectId ? `?v=${encodeURIComponent(objectId)}` : '';
-  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem${query}`;
+  return `${baseUrl}${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem${query}`;
 }
 
 async function requestText(

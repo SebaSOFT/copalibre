@@ -149,7 +149,7 @@ confirma que o esquema aplicado corresponde a esta instalação — tudo em uma 
 
 Após um `pg_restore` bem-sucedido, `restore` executa automaticamente `copalibre migrate` e então
 abre uma conexão para verificar que a versão do esquema aplicado corresponde exatamente ao que esta
-instalação espera (a mesma verificação que `GET /ready` usa) — assim uma restauração nunca deixa o
+instalação espera (a mesma verificação que `GET /api/ready` usa) — assim uma restauração nunca deixa o
 código e o banco de dados silenciosamente dessincronizados. Se a migração falhar, `restore` relata
 isso com seu código de saída sem afirmar sucesso; tente novamente com `copalibre migrate` e depois
 `copalibre doctor`.

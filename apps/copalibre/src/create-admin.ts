@@ -1,3 +1,4 @@
+import { apiEndpoint } from './api-client.js';
 import { parseArgs } from 'node:util';
 
 export interface CreateAdminRequest {
@@ -36,7 +37,7 @@ export async function createInitialAdministrator(
     environment.COPALIBRE_BOOTSTRAP_TOKEN,
     'COPALIBRE_BOOTSTRAP_TOKEN',
   );
-  const target = new URL('/installation/bootstrap/admin', apiUrl);
+  const target = apiEndpoint('/installation/bootstrap/admin', apiUrl);
   const response = await requestFetch(target, {
     method: 'POST',
     headers: {

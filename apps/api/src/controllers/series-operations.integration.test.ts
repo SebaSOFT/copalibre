@@ -22,6 +22,7 @@ import { MatchControlController } from './match-control.controller.js';
 import { PublicProjectionsController } from './public-projections.controller.js';
 import { SeedingController } from './seeding.controller.js';
 import { StagesController } from './stages.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * Series operations end to end, through the real HTTP stack.
@@ -86,9 +87,9 @@ describe('series operations (integration)', () => {
   const organizationAlias = 'liga-series';
   const tournamentAlias = 'copa-series';
 
-  const stagesBase = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages`;
+  const stagesBase = `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages`;
   const matchBase = (matchId: string) =>
-    `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}`;
+    `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}`;
 
   function request(options: {
     method: 'GET' | 'POST';
@@ -170,6 +171,7 @@ describe('series operations (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -429,7 +431,7 @@ describe('series operations (integration)', () => {
   it('6.3: reports series state in play order on the public projection', async () => {
     const bracket = await request({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/1/bracket`,
+      url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/1/bracket`,
     });
 
     expect(bracket.statusCode).toBe(200);

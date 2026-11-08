@@ -9,7 +9,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT = 'apertura-2026';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const LAUNCHER = `/tv?organization=${ORGANIZATION}&tournament=${TOURNAMENT}`;
 
 const row = (
@@ -48,14 +48,14 @@ test.beforeAll(async ({ workerPort }) => {
   server = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
-    if (path === '/organizations') {
+    if (path === '/api/organizations') {
       res.end(
         JSON.stringify([
           { organizationId: 'o1', alias: ORGANIZATION, name: 'Liga Mendocina' },
           { organizationId: 'o2', alias: 'liga-sur', name: 'Liga Sur', primaryLanguage: 'es' },
         ]),
       );
-    } else if (path === `/organizations/${ORGANIZATION}/public/tournaments`) {
+    } else if (path === `/api/organizations/${ORGANIZATION}/public/tournaments`) {
       res.end(
         JSON.stringify({
           organizationAlias: ORGANIZATION,

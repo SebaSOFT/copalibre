@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/health": {
+    "/api/health": {
       "get": {
         "description": "Reports the process role and release version. Deliberately public and dependency-free so it stays answerable during a dependency outage.",
         "operationId": "HealthController_health",
@@ -24,7 +24,7 @@
         ]
       }
     },
-    "/ready": {
+    "/api/ready": {
       "get": {
         "description": "Fails with 503 when the database schema does not match the version this release expects, so an operator who skipped \"copalibre migrate\" gets a failing probe instead of a half-working API.",
         "operationId": "HealthController_ready",
@@ -50,7 +50,7 @@
         ]
       }
     },
-    "/admin/diagnostics/summary": {
+    "/api/admin/diagnostics/summary": {
       "get": {
         "operationId": "DiagnosticsController_summary",
         "parameters": [],
@@ -77,7 +77,7 @@
         ]
       }
     },
-    "/admin/diagnostics/outbox/retry": {
+    "/api/admin/diagnostics/outbox/retry": {
       "post": {
         "operationId": "DiagnosticsController_retry",
         "parameters": [],
@@ -114,7 +114,7 @@
         ]
       }
     },
-    "/organizations": {
+    "/api/organizations": {
       "get": {
         "description": "When called without filters, returns public organizations with at least one published tournament. When called with \"?mine=true\", returns organizations the authenticated caller belongs to.",
         "operationId": "OrganizationsController_list",
@@ -206,7 +206,7 @@
         ]
       }
     },
-    "/organizations/{alias}": {
+    "/api/organizations/{alias}": {
       "get": {
         "description": "Public projection; returns only published organization data.",
         "operationId": "OrganizationsController_findByAlias",
@@ -238,7 +238,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/settings": {
+    "/api/organizations/{organizationAlias}/settings": {
       "patch": {
         "description": "Requires the organization admin role. Language/timezone are presentation-layer defaults only; never reinterprets stored data.",
         "operationId": "OrganizationsController_updateSettings",
@@ -305,7 +305,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/storage-usage": {
+    "/api/organizations/{organizationAlias}/storage-usage": {
       "get": {
         "description": "Requires the organization admin role. Returns the total bytes and object count for all stored objects in passed status.",
         "operationId": "OrganizationsController_getStorageUsage",
@@ -362,7 +362,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/storage-usage/objects": {
+    "/api/organizations/{organizationAlias}/storage-usage/objects": {
       "get": {
         "description": "Cleanup candidates for the storage-usage screen — an object still referenced as an entity's current emblem or photo never appears here.",
         "operationId": "OrganizationsController_listUnreferencedObjects",
@@ -422,7 +422,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/storage-usage/objects/{objectId}": {
+    "/api/organizations/{organizationAlias}/storage-usage/objects/{objectId}": {
       "delete": {
         "description": "Refused, naming what references it, while it is an entity's current emblem or photo.",
         "operationId": "OrganizationsController_deleteObject",
@@ -507,7 +507,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/custom-script-vocabulary": {
+    "/api/organizations/{organizationAlias}/tournaments/custom-script-vocabulary": {
       "get": {
         "operationId": "TournamentsController_customScriptVocabulary",
         "parameters": [
@@ -563,7 +563,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}": {
       "get": {
         "description": "A tournament alias is unique only within its organization, so both aliases are required.",
         "operationId": "TournamentsController_findByScopedAlias",
@@ -603,7 +603,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/completion": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/completion": {
       "get": {
         "description": "Available publicly for published tournaments, and with organization-scoped authorization for unpublished tournaments.",
         "operationId": "TournamentsController_completion",
@@ -643,7 +643,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/export": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/export": {
       "get": {
         "operationId": "TournamentsController_exportConfiguration",
         "parameters": [
@@ -707,7 +707,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/internal-matches-view": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/internal-matches-view": {
       "get": {
         "operationId": "TournamentsController_matchesView",
         "parameters": [
@@ -771,7 +771,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrant-attribute-keys": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrant-attribute-keys": {
       "get": {
         "operationId": "TournamentsController_entrantAttributeKeys",
         "parameters": [
@@ -845,7 +845,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments": {
+    "/api/organizations/{organizationAlias}/tournaments": {
       "post": {
         "description": "Requires the copalibre.control scope and a token scoped to the target organization.",
         "operationId": "TournamentsController_create",
@@ -970,7 +970,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/settings": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/settings": {
       "get": {
         "operationId": "TournamentsController_settings",
         "parameters": [
@@ -1147,7 +1147,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/settings/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/settings/preview": {
       "post": {
         "description": "Reports, per field, whether the proposed name/region/capacity/checkInClosesAt values are safe, require a rebuild, or are blocked because a result already exists or the record is otherwise incoherent (e.g. a capacity below the current accepted-entrant count) — never applies anything itself.",
         "operationId": "TournamentsController_previewSettingsMutation",
@@ -1232,7 +1232,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/ruleset-overrides": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/ruleset-overrides": {
       "get": {
         "operationId": "TournamentsController_rulesetOverrides",
         "parameters": [
@@ -1409,7 +1409,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/ruleset-overrides/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/ruleset-overrides/preview": {
       "post": {
         "description": "Reports, per touched field, whether the proposed value is safe, requires a rebuild, or is blocked because a result already exists or the field names no declared policy — never applies anything itself.",
         "operationId": "TournamentsController_previewRulesetOverrides",
@@ -1504,7 +1504,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/custom-scripts": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/custom-scripts": {
       "get": {
         "operationId": "TournamentsController_customScripts",
         "parameters": [
@@ -1650,7 +1650,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/publish": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/publish": {
       "post": {
         "description": "Transitions draft to published. Audited with previous and resulting state; publishing is not destructive, so no confirmation flag is required.",
         "operationId": "TournamentsController_publish",
@@ -1715,7 +1715,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/archive": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/archive": {
       "post": {
         "description": "Transitions finished to archived, legal only from finished. Changes default visibility only — no result, standing, registration, or audit data is affected, and the tournament's own canonical URL keeps resolving.",
         "operationId": "TournamentsController_archive",
@@ -1780,7 +1780,7 @@
         ]
       }
     },
-    "/tournament-profiles/compatible": {
+    "/api/tournament-profiles/compatible": {
       "get": {
         "description": "Queries installed tournament profiles whose capability requirements are satisfied by the given descriptor and whose declared stages are supported.",
         "operationId": "TournamentProfilesController_listCompatible",
@@ -1834,7 +1834,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/photo": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/photo": {
       "get": {
         "operationId": "TournamentMediaController_servePublicPersonPhoto",
         "parameters": [
@@ -1882,7 +1882,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/emblem": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/emblem": {
       "post": {
         "operationId": "TournamentMediaController_uploadEmblem",
         "parameters": [
@@ -2016,7 +2016,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations": {
       "get": {
         "description": "Scoped to the named tournament; another tournament’s entrants are never included.",
         "operationId": "RegistrationsController_list",
@@ -2084,7 +2084,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/review": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/review": {
       "post": {
         "description": "Audited individually with prior and resulting state.",
         "operationId": "RegistrationsController_review",
@@ -2147,7 +2147,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/bulk-review": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/bulk-review": {
       "post": {
         "description": "One audit row per registration, never one for the batch: \"approved 40\" does not answer \"why is this team in the draw\".",
         "operationId": "RegistrationsController_bulkReview",
@@ -2202,7 +2202,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/persons": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/persons": {
       "post": {
         "description": "The walk-up case a CSV row was never meant for: one person, registered through the same path — PersonRepository.register, then registerEntrant — a CSV row already takes. A person later named again in an imported file, matching on natural key or alias, is recognised rather than duplicated.",
         "operationId": "RegistrationsController_createPerson",
@@ -2267,7 +2267,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/teams": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/teams": {
       "post": {
         "description": "The late-substitute case a CSV row was never meant for: one team, registered through the same path — EnrollmentRepository.createTeam, then registerEntrant — a CSV row already takes. A team later named again in an imported file, matching on alias, is recognised rather than duplicated.",
         "operationId": "RegistrationsController_createTeam",
@@ -2332,7 +2332,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/persons/{personId}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/persons/{personId}": {
       "patch": {
         "description": "Corrects the person’s own identity fields in place; their existing entrant registration, roster memberships and history stay attached to the same person.",
         "operationId": "RegistrationsController_updatePersonIdentity",
@@ -2466,7 +2466,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/teams/{teamId}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/teams/{teamId}": {
       "patch": {
         "description": "Corrects the team’s own identity fields in place; its existing entrant registration, roster and history stay attached to the same team.",
         "operationId": "RegistrationsController_updateTeamIdentity",
@@ -2600,7 +2600,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/team-memberships": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/team-memberships": {
       "post": {
         "description": "Refused once check-in has closed for a checked-in entrant, whatever a stale console still offers.",
         "operationId": "RegistrationsController_editTeamMemberships",
@@ -2663,7 +2663,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrants/{entrantId}/abbreviation": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrants/{entrantId}/abbreviation": {
       "patch": {
         "operationId": "EntrantsController_setAbbreviation",
         "parameters": [
@@ -2765,7 +2765,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrants/needing-abbreviation": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrants/needing-abbreviation": {
       "get": {
         "operationId": "EntrantsController_needingAbbreviation",
         "parameters": [
@@ -2832,7 +2832,7 @@
         ]
       }
     },
-    "/disciplines": {
+    "/api/disciplines": {
       "get": {
         "description": "The wizard filters formats from this response. A client-side list disagrees with the installation the day a module is added.",
         "operationId": "DisciplinesController_list",
@@ -2858,7 +2858,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule": {
       "get": {
         "description": "Instants are epoch milliseconds; rendering them for a person is the surface's job.",
         "operationId": "SchedulesController_read",
@@ -2987,7 +2987,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule/preview": {
       "post": {
         "description": "Runs the identical conflict detection the commit runs, against the identical state, and reports instead of writing — including which already-published matches the batch would move.",
         "operationId": "SchedulesController_preview",
@@ -3070,7 +3070,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/schedule": {
+    "/api/organizations/{organizationAlias}/schedule": {
       "get": {
         "description": "Assignments whose start falls in `[from, to)` (epoch milliseconds, at most 31 days), optionally narrowed to a tournament, stage or venue, each with its estimated end.",
         "operationId": "OrganizationScheduleController_read",
@@ -3166,7 +3166,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/schedule/reasons/recent": {
+    "/api/organizations/{organizationAlias}/schedule/reasons/recent": {
       "get": {
         "description": "The organization's ten most recent distinct typed reasons, newest first. Preset reasons are not repeated here: the builder offers those from its own translated list.",
         "operationId": "OrganizationScheduleController_recentReasons",
@@ -3223,7 +3223,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}": {
       "get": {
         "description": "Timers are derived from the event log at read time — nothing stores a countdown, so two surfaces reading the same match agree by construction.",
         "operationId": "MatchControlController_state",
@@ -3271,7 +3271,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/console": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/console": {
       "get": {
         "description": "Returns operator-only state after organization role and match-assignment checks. Public reads remain sanitized and never include capabilities, rosters, or descriptor input metadata.",
         "operationId": "MatchControlController_console",
@@ -3344,7 +3344,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/commands/{command}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/commands/{command}": {
       "post": {
         "description": "Pausing stops the clock, not the competition: a paused match is still in progress, and ending a segment closes that half rather than the match. Start/pause/resume/end name the segment they act on and share the clock-control capability with manual adjustment; finalizing needs its own — recording events never implies declaring a result.",
         "operationId": "MatchControlController_command",
@@ -3443,7 +3443,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/clock": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/clock": {
       "post": {
         "operationId": "MatchControlController_adjustClock",
         "parameters": [
@@ -3524,7 +3524,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/timers/{timerId}/resolve": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/timers/{timerId}/resolve": {
       "post": {
         "operationId": "MatchControlController_resolveTimer",
         "parameters": [
@@ -3603,7 +3603,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters": {
       "get": {
         "description": "On-field state is folded from recorded substitution events over the selection’s starting state — the same resolution the console projection applies.",
         "operationId": "MatchControlController_rosters",
@@ -3669,7 +3669,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters/{entrantId}/candidates": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters/{entrantId}/candidates": {
       "get": {
         "operationId": "MatchControlController_rosterCandidates",
         "parameters": [
@@ -3742,7 +3742,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters/{entrantId}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters/{entrantId}": {
       "put": {
         "description": "Replaces the entrant’s prior selection, audited on every write. Refuses a person absent from the entrant’s registered players, a duplicate person or shirt number within the submission, and removing a person already attributed by a recorded event — adding is always permitted, at any point in the match.",
         "operationId": "MatchControlController_setRoster",
@@ -3842,7 +3842,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/events": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/events": {
       "post": {
         "description": "Validated against the discipline’s own event definitions: permitted segment, required actor, and a payload matching the declared schema. A side is an entrant id.",
         "operationId": "MatchControlController_recordEvent",
@@ -3934,7 +3934,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/bulk-load": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/bulk-load": {
       "post": {
         "description": "For a match played without a live console session: roster selection, segment creation, and every event are sequenced inside one transaction, through the same unmodified validation and finalization the live console already uses. Commits entirely or not at all.",
         "operationId": "MatchControlController_bulkLoad",
@@ -4037,7 +4037,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections/preview": {
       "post": {
         "description": "Reports whose numbers move and whether a started downstream stage blocks the rebuild — from the same function the commit uses, so a preview cannot promise what the commit refuses.",
         "operationId": "MatchControlController_previewCorrection",
@@ -4120,7 +4120,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections": {
       "post": {
         "description": "The only write path over a finalized outcome. The prior result, the replacement, the actor and the reason are kept together, and a started downstream stage is not rebuilt behind anyone’s back.",
         "operationId": "MatchControlController_correct",
@@ -4264,7 +4264,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/imports": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/imports": {
       "post": {
         "operationId": "DataImportExportController_create",
         "parameters": [
@@ -4318,7 +4318,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/imports/{importId}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/imports/{importId}": {
       "get": {
         "operationId": "DataImportExportController_preview",
         "parameters": [
@@ -4370,7 +4370,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/imports/{importId}/commit": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/imports/{importId}/commit": {
       "post": {
         "operationId": "DataImportExportController_commit",
         "parameters": [
@@ -4432,7 +4432,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/exports/participants/{target}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/exports/participants/{target}": {
       "get": {
         "operationId": "DataExportController_participants",
         "parameters": [
@@ -4502,7 +4502,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/exports/results": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/exports/results": {
       "get": {
         "operationId": "DataExportController_results",
         "parameters": [
@@ -4547,7 +4547,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/exports/standings": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/exports/standings": {
       "get": {
         "operationId": "DataExportController_standings",
         "parameters": [
@@ -4592,7 +4592,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/standings": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/standings": {
       "get": {
         "description": "Rows come from the published projection; the trace is the rules engine’s own explanation, verbatim.",
         "operationId": "StandingsController_standings",
@@ -4675,7 +4675,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/standings/entrants/{entrantId}/trace": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/standings/entrants/{entrantId}/trace": {
       "get": {
         "description": "Empty for a row no tiebreak comparator had to separate — the screen shows no expander for it.",
         "operationId": "StandingsController_trace",
@@ -4766,7 +4766,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables": {
       "get": {
         "operationId": "TableProjectionsController_tableLayouts",
         "parameters": [
@@ -4840,7 +4840,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables/{layoutCode}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables/{layoutCode}": {
       "get": {
         "operationId": "TableProjectionsController_tournamentTable",
         "parameters": [
@@ -4922,7 +4922,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables/{layoutCode}/csv": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables/{layoutCode}/csv": {
       "get": {
         "operationId": "TableProjectionsController_tournamentTableCsv",
         "parameters": [
@@ -5005,7 +5005,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/tables/{layoutCode}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/tables/{layoutCode}": {
       "get": {
         "operationId": "TableProjectionsController_stageTable",
         "parameters": [
@@ -5095,7 +5095,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/tables/{layoutCode}/csv": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/tables/{layoutCode}/csv": {
       "get": {
         "operationId": "TableProjectionsController_stageTableCsv",
         "parameters": [
@@ -5186,7 +5186,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/seeding": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/seeding": {
       "get": {
         "description": "Structure comes from the engine; status and scores from the recorded matches.",
         "operationId": "SeedingController_seeding",
@@ -5370,7 +5370,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/qualification/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/qualification/preview": {
       "post": {
         "operationId": "QualificationController_preview",
         "parameters": [
@@ -5452,7 +5452,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/qualification/confirm": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/qualification/confirm": {
       "post": {
         "description": "Re-evaluates every plan inside one transaction, stores each confirmed position → entrant map, and resolves every qualifier side through the audited entrant writer. Refused while the prior stage is incomplete, while a cut line is tied, or when `expected` no longer matches the standings.",
         "operationId": "QualificationController_confirm",
@@ -5555,7 +5555,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages": {
       "get": {
         "description": "Number, name and format for every stage, plus whether each already holds a generated fixture — an organizer’s stage list carries no more sensitivity than its zone list.",
         "operationId": "StagesController_list",
@@ -5691,7 +5691,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}": {
       "patch": {
         "description": "A rename applies regardless of whether the stage is seeded. A format change is refused once the stage already holds a generated fixture, naming that fixtures already exist.",
         "operationId": "StagesController_update",
@@ -5917,7 +5917,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/series/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/series/preview": {
       "post": {
         "description": "Reports, per field, whether the proposed span/resolutionClass/neutralGround values are safe, require a rebuild (naming how many fixtures it would invalidate), or are blocked because the series already has a result — never applies anything itself.",
         "operationId": "StagesController_previewSeriesMutation",
@@ -6010,7 +6010,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/configuration": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/configuration": {
       "get": {
         "operationId": "StagesController_configuration",
         "parameters": [
@@ -6193,7 +6193,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/configuration/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/configuration/preview": {
       "post": {
         "description": "Reports, per touched field, whether the proposed value is safe, requires a rebuild (naming how many fixtures it would invalidate), or is blocked — never applies anything itself.",
         "operationId": "StagesController_previewConfigurationMutation",
@@ -6286,7 +6286,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/fixtures": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/fixtures": {
       "get": {
         "description": "What a schedule builder assigns a time and venue to — distinct from the bracket graph’s own node ids, which are never persisted.",
         "operationId": "StagesController_fixtures",
@@ -6369,7 +6369,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/rounds/next": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/rounds/next": {
       "post": {
         "description": "Scoped to one zone: validates that all matches in the zone’s current round are finalized, calculates standings from that zone’s results, and generates pairings among that zone’s entrants only. A stage with several zones requires `zoneNumber`.",
         "operationId": "StagesController_nextRound",
@@ -6482,7 +6482,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens": {
       "get": {
         "operationId": "DisplayTokenController_list",
         "parameters": [
@@ -6581,7 +6581,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens/{displayTokenId}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens/{displayTokenId}": {
       "delete": {
         "operationId": "DisplayTokenController_revoke",
         "parameters": [
@@ -6633,7 +6633,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/roles": {
+    "/api/organizations/{organizationAlias}/roles": {
       "get": {
         "operationId": "OrganizationAccessController_list",
         "parameters": [
@@ -6672,7 +6672,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/roles/grantable": {
+    "/api/organizations/{organizationAlias}/roles/grantable": {
       "get": {
         "operationId": "OrganizationAccessController_grantable",
         "parameters": [],
@@ -6699,7 +6699,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/invitations": {
+    "/api/organizations/{organizationAlias}/invitations": {
       "get": {
         "description": "Not yet accepted, not rescinded, not expired.",
         "operationId": "OrganizationAccessController_listInvitations",
@@ -6783,7 +6783,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/invitations/{invitationId}": {
+    "/api/organizations/{organizationAlias}/invitations/{invitationId}": {
       "delete": {
         "description": "Requires the same role-granting authority the invitation itself required. Takes effect immediately — the token stops resolving from this point on, regardless of the invitation's stated expiry.",
         "operationId": "OrganizationAccessController_rescindInvitation",
@@ -6828,7 +6828,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/roles/{assignmentId}": {
+    "/api/organizations/{organizationAlias}/roles/{assignmentId}": {
       "patch": {
         "operationId": "OrganizationAccessController_change",
         "parameters": [
@@ -6924,7 +6924,7 @@
         ]
       }
     },
-    "/invitations/accept": {
+    "/api/invitations/accept": {
       "post": {
         "operationId": "InvitationAcceptanceController_accept",
         "parameters": [],
@@ -6961,7 +6961,7 @@
         ]
       }
     },
-    "/installation/super-admins": {
+    "/api/installation/super-admins": {
       "get": {
         "operationId": "InstallationRoleController_list",
         "parameters": [],
@@ -7026,7 +7026,7 @@
         ]
       }
     },
-    "/installation/super-admins/{assignmentId}": {
+    "/api/installation/super-admins/{assignmentId}": {
       "patch": {
         "operationId": "InstallationRoleController_changeStatus",
         "parameters": [
@@ -7106,7 +7106,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/participant/registrations": {
+    "/api/organizations/{organizationAlias}/participant/registrations": {
       "get": {
         "operationId": "ParticipantsController_registrations",
         "parameters": [
@@ -7145,7 +7145,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/participant/team-memberships": {
+    "/api/organizations/{organizationAlias}/participant/team-memberships": {
       "get": {
         "operationId": "ParticipantsController_teamMemberships",
         "parameters": [
@@ -7184,7 +7184,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/participant/reported-results": {
+    "/api/organizations/{organizationAlias}/participant/reported-results": {
       "get": {
         "operationId": "ParticipantsController_reportedResults",
         "parameters": [
@@ -7223,7 +7223,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/participants/{personId}/identity-link": {
+    "/api/organizations/{organizationAlias}/participants/{personId}/identity-link": {
       "post": {
         "operationId": "ParticipantIdentityLinksController_link",
         "parameters": [
@@ -7320,7 +7320,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/reports": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/reports": {
       "post": {
         "description": "A candidate input to the operator-authorized correction workflow — never a direct change to the recorded result.",
         "operationId": "ParticipantReportsController_submitReport",
@@ -7383,7 +7383,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/disputes": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/disputes": {
       "post": {
         "description": "The recorded result is unchanged by this call; it becomes actionable only through an operator-authorized correction citing this dispute.",
         "operationId": "ParticipantReportsController_submitDispute",
@@ -7446,7 +7446,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/reports": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/reports": {
       "get": {
         "operationId": "ReportReviewController_listPending",
         "parameters": [
@@ -7493,7 +7493,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/reports/{reportId}/review": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/reports/{reportId}/review": {
       "post": {
         "description": "Never applies a correction by itself — the recorded result is unaffected either way.",
         "operationId": "ReportReviewController_review",
@@ -7556,7 +7556,7 @@
         ]
       }
     },
-    "/installation/bootstrap/admin": {
+    "/api/installation/bootstrap/admin": {
       "post": {
         "description": "Available only before the installation contains an organization. Requires the out-of-band bootstrap secret and returns a one-time OIDC invitation setup link.",
         "operationId": "InstallationBootstrapController_createAdmin",
@@ -7609,7 +7609,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/public/tournaments": {
+    "/api/organizations/{organizationAlias}/public/tournaments": {
       "get": {
         "operationId": "PublicTournamentListingController_listTournaments",
         "parameters": [
@@ -7640,7 +7640,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/overview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/overview": {
       "get": {
         "operationId": "PublicProjectionsController_overview",
         "parameters": [
@@ -7679,7 +7679,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/matches/{matchNumber}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/matches/{matchNumber}": {
       "get": {
         "operationId": "PublicProjectionsController_matchReport",
         "parameters": [
@@ -7734,7 +7734,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/live": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/live": {
       "get": {
         "operationId": "PublicProjectionsController_live",
         "parameters": [
@@ -7773,7 +7773,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/bracket": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/bracket": {
       "get": {
         "operationId": "PublicProjectionsController_bracket",
         "parameters": [
@@ -7820,7 +7820,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches-view": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches-view": {
       "get": {
         "operationId": "PublicProjectionsController_matchesView",
         "parameters": [
@@ -7859,7 +7859,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables": {
       "get": {
         "operationId": "PublicProjectionsController_tableLayouts",
         "parameters": [
@@ -7898,7 +7898,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables/{layoutCode}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables/{layoutCode}": {
       "get": {
         "operationId": "PublicProjectionsController_tournamentTable",
         "parameters": [
@@ -7953,7 +7953,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables/{layoutCode}/csv": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables/{layoutCode}/csv": {
       "get": {
         "operationId": "PublicProjectionsController_tournamentTableCsv",
         "parameters": [
@@ -8009,7 +8009,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/public/tables/{layoutCode}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/public/tables/{layoutCode}": {
       "get": {
         "operationId": "PublicProjectionsController_stageTable",
         "parameters": [
@@ -8072,7 +8072,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/public/tables/{layoutCode}/csv": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/public/tables/{layoutCode}/csv": {
       "get": {
         "operationId": "PublicProjectionsController_stageTableCsv",
         "parameters": [
@@ -8136,7 +8136,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/public/profile": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/public/profile": {
       "get": {
         "operationId": "PublicProjectionsController_playerProfile",
         "parameters": [
@@ -8183,7 +8183,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/public/statistics": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/public/statistics": {
       "get": {
         "operationId": "PublicProjectionsController_playerStatistics",
         "parameters": [
@@ -8238,7 +8238,7 @@
         ]
       }
     },
-    "/objects/discipline-background-image": {
+    "/api/objects/discipline-background-image": {
       "get": {
         "operationId": "PublicObjectsController_disciplineBackgroundImage",
         "parameters": [
@@ -8270,7 +8270,7 @@
         ]
       }
     },
-    "/auth/login": {
+    "/api/auth/login": {
       "post": {
         "operationId": "NativeAuthController_login",
         "parameters": [],
@@ -8302,7 +8302,7 @@
         ]
       }
     },
-    "/auth/jwks.json": {
+    "/api/auth/jwks.json": {
       "get": {
         "operationId": "NativeAuthController_jwks",
         "parameters": [],
@@ -8324,7 +8324,7 @@
         ]
       }
     },
-    "/auth/accept-invitation": {
+    "/api/auth/accept-invitation": {
       "post": {
         "operationId": "NativeAuthController_acceptInvitation",
         "parameters": [],
@@ -8356,7 +8356,7 @@
         ]
       }
     },
-    "/auth/refresh": {
+    "/api/auth/refresh": {
       "post": {
         "operationId": "NativeAuthController_refresh",
         "parameters": [],
@@ -8378,7 +8378,7 @@
         ]
       }
     },
-    "/auth/logout": {
+    "/api/auth/logout": {
       "post": {
         "operationId": "NativeAuthController_logout",
         "parameters": [],
@@ -8400,7 +8400,7 @@
         ]
       }
     },
-    "/auth/forgot-password": {
+    "/api/auth/forgot-password": {
       "post": {
         "operationId": "NativeAuthController_forgotPassword",
         "parameters": [],
@@ -8432,7 +8432,7 @@
         ]
       }
     },
-    "/auth/reset-password": {
+    "/api/auth/reset-password": {
       "post": {
         "operationId": "NativeAuthController_resetPassword",
         "parameters": [],
@@ -8464,29 +8464,7 @@
         ]
       }
     },
-    "/.well-known/jwks.json": {
-      "get": {
-        "operationId": "WellKnownController_jwks",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/JwksResponse"
-                }
-              }
-            }
-          }
-        },
-        "summary": "JSON Web Key Set for local token verification",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
-    "/auth/pat/scopes": {
+    "/api/auth/pat/scopes": {
       "get": {
         "operationId": "PersonalAccessTokenController_scopes",
         "parameters": [],
@@ -8513,7 +8491,7 @@
         ]
       }
     },
-    "/auth/pat": {
+    "/api/auth/pat": {
       "get": {
         "operationId": "PersonalAccessTokenController_list",
         "parameters": [],
@@ -8578,7 +8556,7 @@
         ]
       }
     },
-    "/auth/pat/{tokenId}": {
+    "/api/auth/pat/{tokenId}": {
       "delete": {
         "operationId": "PersonalAccessTokenController_revoke",
         "parameters": [
@@ -8614,7 +8592,7 @@
         ]
       }
     },
-    "/auth/pat/{tokenId}/restore": {
+    "/api/auth/pat/{tokenId}/restore": {
       "post": {
         "operationId": "PersonalAccessTokenController_restore",
         "parameters": [
@@ -8650,7 +8628,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/statistics/rebuild": {
+    "/api/organizations/{organizationAlias}/statistics/rebuild": {
       "post": {
         "description": "Organization-wide by default, or narrowed to one tournament. Idempotent — the same delete-then-insert write path the event-driven trigger already uses.",
         "operationId": "AdminStatisticsController_rebuild",
@@ -8717,7 +8695,7 @@
         ]
       }
     },
-    "/admin/modules": {
+    "/api/admin/modules": {
       "get": {
         "operationId": "AdminModulesController_list",
         "parameters": [],
@@ -8832,7 +8810,7 @@
         ]
       }
     },
-    "/admin/modules/{alias}": {
+    "/api/admin/modules/{alias}": {
       "delete": {
         "operationId": "AdminModulesController_remove",
         "parameters": [
@@ -8888,7 +8866,7 @@
         ]
       }
     },
-    "/admin/modules/{alias}/document": {
+    "/api/admin/modules/{alias}/document": {
       "get": {
         "operationId": "AdminModulesController_document",
         "parameters": [
@@ -8954,7 +8932,7 @@
         ]
       }
     },
-    "/admin/modules/verify": {
+    "/api/admin/modules/verify": {
       "post": {
         "operationId": "AdminModulesController_verify",
         "parameters": [],
@@ -9004,7 +8982,7 @@
         ]
       }
     },
-    "/admin/authored-modules/validate": {
+    "/api/admin/authored-modules/validate": {
       "post": {
         "operationId": "AuthoredModulesController_validate",
         "parameters": [],
@@ -9061,7 +9039,7 @@
         ]
       }
     },
-    "/admin/authored-modules": {
+    "/api/admin/authored-modules": {
       "post": {
         "operationId": "AuthoredModulesController_install",
         "parameters": [],
@@ -9118,7 +9096,7 @@
         ]
       }
     },
-    "/admin/authored-modules/submit": {
+    "/api/admin/authored-modules/submit": {
       "post": {
         "operationId": "AuthoredModulesController_submit",
         "parameters": [],
@@ -9175,7 +9153,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/persons/{personId}": {
+    "/api/organizations/{organizationAlias}/persons/{personId}": {
       "get": {
         "operationId": "PersonMediaController_getPerson",
         "parameters": [
@@ -9219,7 +9197,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/persons/{personId}/photo": {
+    "/api/organizations/{organizationAlias}/persons/{personId}/photo": {
       "post": {
         "operationId": "PersonMediaController_uploadPhoto",
         "parameters": [
@@ -9311,7 +9289,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/persons/{personId}/nationality": {
+    "/api/organizations/{organizationAlias}/persons/{personId}/nationality": {
       "patch": {
         "operationId": "PersonMediaController_setNationality",
         "parameters": [
@@ -9365,7 +9343,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/persons/{personId}/public-visibility": {
+    "/api/organizations/{organizationAlias}/persons/{personId}/public-visibility": {
       "patch": {
         "operationId": "PersonMediaController_setPublicVisibility",
         "parameters": [
@@ -9419,7 +9397,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/clubs/{clubId}/emblem": {
+    "/api/organizations/{organizationAlias}/clubs/{clubId}/emblem": {
       "post": {
         "operationId": "ClubMediaController_uploadEmblem",
         "parameters": [
@@ -9503,7 +9481,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/emblem": {
+    "/api/organizations/{organizationAlias}/emblem": {
       "post": {
         "operationId": "OrganizationMediaController_uploadEmblem",
         "parameters": [
@@ -9579,7 +9557,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/clubs": {
+    "/api/organizations/{organizationAlias}/clubs": {
       "get": {
         "operationId": "ClubsController_list",
         "parameters": [
@@ -9662,7 +9640,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/clubs/{clubId}": {
+    "/api/organizations/{organizationAlias}/clubs/{clubId}": {
       "patch": {
         "operationId": "ClubsController_update",
         "parameters": [
@@ -9716,7 +9694,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/clubs/{clubId}/members": {
+    "/api/organizations/{organizationAlias}/clubs/{clubId}/members": {
       "get": {
         "operationId": "ClubPortalController_listMembers",
         "parameters": [
@@ -9815,7 +9793,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/clubs/{clubId}/members/{personId}": {
+    "/api/organizations/{organizationAlias}/clubs/{clubId}/members/{personId}": {
       "patch": {
         "operationId": "ClubPortalController_updateMember",
         "parameters": [
@@ -9877,7 +9855,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/clubs/{clubId}/teams": {
+    "/api/organizations/{organizationAlias}/clubs/{clubId}/teams": {
       "get": {
         "operationId": "ClubPortalController_listTeams",
         "parameters": [
@@ -9976,7 +9954,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/clubs/{clubId}/tournaments/{tournamentAlias}/registrations": {
+    "/api/organizations/{organizationAlias}/clubs/{clubId}/tournaments/{tournamentAlias}/registrations": {
       "post": {
         "description": "Registers the named team as a pending entrant (organizer review, unchanged, decides the rest) and applies the submitted squad in the same transaction. Every named person must already be one of the club's own members.",
         "operationId": "ClubPortalController_submitRegistration",
@@ -10039,7 +10017,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/venues": {
+    "/api/organizations/{organizationAlias}/venues": {
       "get": {
         "operationId": "ResourcesController_listVenues",
         "parameters": [
@@ -10122,7 +10100,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/venues/{venueId}": {
+    "/api/organizations/{organizationAlias}/venues/{venueId}": {
       "patch": {
         "operationId": "ResourcesController_updateVenue",
         "parameters": [
@@ -10218,7 +10196,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/venues/{venueId}/restore": {
+    "/api/organizations/{organizationAlias}/venues/{venueId}/restore": {
       "post": {
         "operationId": "ResourcesController_restoreVenue",
         "parameters": [
@@ -10262,7 +10240,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/officials": {
+    "/api/organizations/{organizationAlias}/officials": {
       "get": {
         "operationId": "ResourcesController_listOfficials",
         "parameters": [
@@ -10345,7 +10323,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/officials/{officialId}": {
+    "/api/organizations/{organizationAlias}/officials/{officialId}": {
       "patch": {
         "operationId": "ResourcesController_updateOfficial",
         "parameters": [
@@ -10399,7 +10377,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/schedules": {
+    "/api/organizations/{organizationAlias}/schedules": {
       "get": {
         "operationId": "ResourcesController_listSchedules",
         "parameters": [
@@ -10482,7 +10460,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/schedules/{scheduleId}": {
+    "/api/organizations/{organizationAlias}/schedules/{scheduleId}": {
       "patch": {
         "operationId": "ResourcesController_updateSchedule",
         "parameters": [
@@ -10589,7 +10567,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/audit-trail": {
+    "/api/organizations/{organizationAlias}/audit-trail": {
       "get": {
         "description": "What happened, chronologically newest first: applied changes and refused attempts alike. Optionally narrowed to one actor via ?actor=. Paginated via ?limit=&offset=.",
         "operationId": "AuditTrailController_trail",
@@ -10626,7 +10604,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones": {
       "get": {
         "operationId": "ZonesGroupsController_listZones",
         "parameters": [
@@ -10786,7 +10764,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}": {
       "patch": {
         "operationId": "ZonesGroupsController_renameZone",
         "parameters": [
@@ -10985,7 +10963,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/configuration": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/configuration": {
       "put": {
         "description": "A zone without its own format plays its stage’s. Refused once the stage holds a fixture, and for a format the tournament’s discipline does not offer.",
         "operationId": "ZonesGroupsController_configureZone",
@@ -11106,7 +11084,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/restore": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/restore": {
       "post": {
         "operationId": "ZonesGroupsController_restoreZone",
         "parameters": [
@@ -11176,7 +11154,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/entrants": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/entrants": {
       "get": {
         "operationId": "ZonesGroupsController_zoneEntrants",
         "parameters": [
@@ -11244,7 +11222,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups": {
       "get": {
         "operationId": "ZonesGroupsController_listGroups",
         "parameters": [
@@ -11420,7 +11398,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/{groupNumber}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/{groupNumber}": {
       "patch": {
         "operationId": "ZonesGroupsController_renameGroup",
         "parameters": [
@@ -11635,7 +11613,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/{groupNumber}/restore": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/{groupNumber}/restore": {
       "post": {
         "operationId": "ZonesGroupsController_restoreGroup",
         "parameters": [
@@ -11713,7 +11691,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/draw/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/draw/preview": {
       "post": {
         "operationId": "ZonesGroupsController_previewZones",
         "parameters": [
@@ -11805,7 +11783,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/draw": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/draw": {
       "post": {
         "operationId": "ZonesGroupsController_confirmZones",
         "parameters": [
@@ -11907,7 +11885,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/draw/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/draw/preview": {
       "post": {
         "operationId": "ZonesGroupsController_previewGroups",
         "parameters": [
@@ -12007,7 +11985,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/draw": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/draw": {
       "post": {
         "operationId": "ZonesGroupsController_confirmGroups",
         "parameters": [
@@ -12117,7 +12095,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/assign": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/assign": {
       "post": {
         "operationId": "ZonesGroupsController_assignZonesManually",
         "parameters": [
@@ -12219,7 +12197,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/assign": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/assign": {
       "post": {
         "operationId": "ZonesGroupsController_assignGroupsManually",
         "parameters": [
@@ -12329,7 +12307,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/promotion-plan": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/promotion-plan": {
       "post": {
         "operationId": "ZonesGroupsController_savePromotionPlan",
         "parameters": [
@@ -12439,7 +12417,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/promotion-preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/promotion-preview": {
       "get": {
         "operationId": "ZonesGroupsController_previewPromotion",
         "parameters": [
@@ -12539,7 +12517,7 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/promotion-plans": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/promotion-plans": {
       "get": {
         "description": "The reverse of \"zones/:zoneNumber/promotion-plan\": every zone, in any prior stage, whose stored plan names this stage as its `nextStageNumber`, with its promotion preview already computed and ordered by zone number. A zone whose plan cannot currently be resolved into a preview (e.g. its source group standings are not ready yet) is omitted, not reported as an error — this route never fails for that reason, it simply returns fewer entries.",
         "operationId": "ZonesGroupsController_promotionPlansTargetingStage",
@@ -12629,7 +12607,7 @@
   "info": {
     "title": "CopaLibre API",
     "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
-    "version": "8.0.0",
+    "version": "9.0.0",
     "contact": {}
   },
   "tags": [],

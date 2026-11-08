@@ -20,6 +20,7 @@ import { DATABASE } from '../database.token.js';
 import { SeedingController } from './seeding.controller.js';
 import { StagesController } from './stages.controller.js';
 import { TournamentsController } from './tournaments.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * Stage creation through the real HTTP stack.
@@ -120,6 +121,7 @@ describe('stage creation routes (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -216,7 +218,7 @@ describe('stage creation routes (integration)', () => {
     });
   }
 
-  const base = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages`;
+  const base = `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages`;
 
   it('creates stage 1 from accepted registrations with defaulted number, name and format', async () => {
     const response = await request({ method: 'POST', url: base, token: 'organizer', payload: {} });
@@ -452,7 +454,7 @@ describe('stage creation routes (integration)', () => {
       });
     });
 
-    const formatBase = `/organizations/${organizationAlias}/tournaments/${formatTournamentAlias}/stages`;
+    const formatBase = `/api/organizations/${organizationAlias}/tournaments/${formatTournamentAlias}/stages`;
     const created = await request({
       method: 'POST',
       url: formatBase,
@@ -500,7 +502,7 @@ describe('stage creation routes (integration)', () => {
         });
       });
 
-      const emptyBase = `/organizations/${organizationAlias}/tournaments/${emptyTournamentAlias}/stages`;
+      const emptyBase = `/api/organizations/${organizationAlias}/tournaments/${emptyTournamentAlias}/stages`;
       const created = await request({
         method: 'POST',
         url: emptyBase,
@@ -521,7 +523,7 @@ describe('stage creation routes (integration)', () => {
 
   describe('series declaration', () => {
     const seriesTournamentAlias = 'apertura-0066-series';
-    const seriesBase = `/organizations/${organizationAlias}/tournaments/${seriesTournamentAlias}/stages`;
+    const seriesBase = `/api/organizations/${organizationAlias}/tournaments/${seriesTournamentAlias}/stages`;
     let seriesTournamentId = '';
     let homeEntrantId = '';
     let awayEntrantId = '';
@@ -878,7 +880,7 @@ describe('stage creation routes (integration)', () => {
 
   describe('stage allocation', () => {
     const allocationTournamentAlias = 'apertura-0235-allocation';
-    const allocationBase = `/organizations/${organizationAlias}/tournaments/${allocationTournamentAlias}/stages`;
+    const allocationBase = `/api/organizations/${organizationAlias}/tournaments/${allocationTournamentAlias}/stages`;
     let allocationTournamentId = '';
     let higherRatedEntrantId = '';
     let lowerRatedEntrantId = '';
@@ -1054,7 +1056,7 @@ describe('stage creation routes (integration)', () => {
     it("lists this tournament's numeric entrant-attribute keys, sorted, isolated from other tournaments", async () => {
       const response = await request({
         method: 'GET',
-        url: `/organizations/${organizationAlias}/tournaments/${allocationTournamentAlias}/entrant-attribute-keys`,
+        url: `/api/organizations/${organizationAlias}/tournaments/${allocationTournamentAlias}/entrant-attribute-keys`,
         token: 'organizer',
       });
       expect(response.statusCode).toBe(200);
@@ -1064,7 +1066,7 @@ describe('stage creation routes (integration)', () => {
       // entrant attributes with this one.
       const isolated = await request({
         method: 'GET',
-        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/entrant-attribute-keys`,
+        url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/entrant-attribute-keys`,
         token: 'organizer',
       });
       expect(isolated.statusCode).toBe(200);

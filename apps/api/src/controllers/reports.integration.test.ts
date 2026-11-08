@@ -28,6 +28,7 @@ import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
 import { ParticipantReportsController, ReportReviewController } from './reports.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * The report/dispute submission and review endpoints through the real HTTP
@@ -276,6 +277,7 @@ describe('report/dispute submission and review (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
@@ -291,9 +293,9 @@ describe('report/dispute submission and review (integration)', () => {
   }
 
   const reportsPath = () =>
-    `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/reports`;
+    `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/reports`;
   const disputesPath = () =>
-    `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/disputes`;
+    `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/disputes`;
 
   it("persists a participant's own report, linked to the match, with no standings change (6.1)", async () => {
     const response = await inject({
@@ -388,7 +390,7 @@ describe('report/dispute submission and review (integration)', () => {
   it('lets an operator list and dismiss a pending report without changing the result (7.2-adjacent, 6.4)', async () => {
     const list = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/reports`,
+      url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/reports`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(list.statusCode).toBe(200);
@@ -401,7 +403,7 @@ describe('report/dispute submission and review (integration)', () => {
 
     const dismiss = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/reports/${target.reportId}/review`,
+      url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/reports/${target.reportId}/review`,
       headers: { authorization: 'Bearer organizer' },
       payload: { status: 'dismissed', reviewNote: 'Duplicate of another submission' },
     });
@@ -417,7 +419,7 @@ describe('report/dispute submission and review (integration)', () => {
     // Sanity: the endpoint is org-scoped even though this suite only builds one.
     const response = await inject({
       method: 'GET',
-      url: `/organizations/no-such-org/tournaments/${tournamentAlias}/reports`,
+      url: `/api/organizations/no-such-org/tournaments/${tournamentAlias}/reports`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(response.statusCode).toBe(403);

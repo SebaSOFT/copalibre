@@ -13,7 +13,7 @@ test('a started tournament without a match in play has a neutral live-console st
     if (url === TOKEN_ENDPOINT) {
       return route.fulfill({ json: { access_token: 'live-console-e2e-token', expires_in: 3600 } });
     }
-    if (path === `/organizations/${ORG_ALIAS}/tournaments`) {
+    if (path === `/api/organizations/${ORG_ALIAS}/tournaments`) {
       return route.fulfill({
         json: [
           {
@@ -26,7 +26,7 @@ test('a started tournament without a match in play has a neutral live-console st
         ],
       });
     }
-    if (path.startsWith('/organizations/')) return route.fulfill({ json: [] });
+    if (path.startsWith('/api/organizations/')) return route.fulfill({ json: [] });
     return route.continue();
   });
 

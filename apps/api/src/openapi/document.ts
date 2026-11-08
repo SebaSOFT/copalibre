@@ -36,8 +36,11 @@ import { FIXTURE_SIDE_SOURCE_MODELS } from '../dto/fixture-side-source.dto.js';
  *
  * Bumped to 8.0.0 because personal access token creation now requires an explicit
  * `scopes` array; callers can no longer inherit every scope from their session.
+ *
+ * Bumped to 9.0.0 because every path moved under `/api`, and `/.well-known/jwks.json`
+ * was removed in favor of `/api/auth/jwks.json`.
  */
-export const OPENAPI_VERSION = '8.0.0';
+export const OPENAPI_VERSION = '9.0.0';
 
 export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()

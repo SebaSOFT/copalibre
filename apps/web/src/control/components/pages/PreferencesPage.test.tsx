@@ -62,12 +62,12 @@ describe('PreferencesPage', () => {
             ? input.url
             : String((input as any)?.href ?? input);
       if (url.startsWith('blob:')) return defaultFetch(...args);
-      if (url.endsWith('/auth/pat/scopes'))
+      if (url.endsWith('/api/auth/pat/scopes'))
         return Promise.resolve({
           ok: true,
           json: async () => ({ scopes: ['copalibre.control'] }),
         } as any);
-      if (url.endsWith('/auth/pat') && args[1]?.method !== 'POST')
+      if (url.endsWith('/api/auth/pat') && args[1]?.method !== 'POST')
         return Promise.resolve({ ok: true, json: async () => [] } as any);
       return undefined as any;
     }) as any;

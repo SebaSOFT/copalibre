@@ -17,7 +17,7 @@ afterAll(async () => {
 
 describe('scheduling routes', () => {
   const scheduleUrl = (stageId: string, suffix = '') =>
-    `/organizations/liga-orbital/tournaments/no-such-copa/stages/${stageId}/schedule${suffix}`;
+    `/api/organizations/liga-orbital/tournaments/no-such-copa/stages/${stageId}/schedule${suffix}`;
 
   it('404s a schedule under a tournament that does not exist', async () => {
     const response = await request({ method: 'GET', url: scheduleUrl('stage-1') });

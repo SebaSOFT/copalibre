@@ -170,7 +170,7 @@ describe('invitation and reset emails carry the shared layout', () => {
       organization: { alias: 'liga', name: 'Liga', hasEmblem: true },
     });
     expect(message.subject).toBe('Invitación a CopaLibre');
-    expect(message.html).toContain('/organizations/liga/emblem');
+    expect(message.html).toContain('/api/organizations/liga/emblem');
     expect(message.html).toContain('https://www.copalibre.app');
     expect(message.text).toContain('token=opaque-token');
   });

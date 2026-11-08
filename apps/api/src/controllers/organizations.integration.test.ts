@@ -54,7 +54,7 @@ describe('CORS policy', () => {
 
 describe('baseline security response headers', () => {
   it('carries the three baseline headers on a 2xx response', async () => {
-    const response = await request({ method: 'GET', url: '/organizations/liga-orbital' });
+    const response = await request({ method: 'GET', url: '/api/organizations/liga-orbital' });
     expect(response.statusCode).toBe(200);
     expect(response.headers['x-content-type-options']).toBe('nosniff');
     expect(response.headers['x-frame-options']).toBe('DENY');
@@ -62,7 +62,7 @@ describe('baseline security response headers', () => {
   });
 
   it('carries the three baseline headers on a 4xx response', async () => {
-    const response = await request({ method: 'GET', url: '/organizations/no-such-org' });
+    const response = await request({ method: 'GET', url: '/api/organizations/no-such-org' });
     expect(response.statusCode).toBe(404);
     expect(response.headers['x-content-type-options']).toBe('nosniff');
     expect(response.headers['x-frame-options']).toBe('DENY');
@@ -72,27 +72,27 @@ describe('baseline security response headers', () => {
 
 describe('public-read plane', () => {
   it('serves the liveness probe anonymously', async () => {
-    const response = await request({ method: 'GET', url: '/health' });
+    const response = await request({ method: 'GET', url: '/api/health' });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ role: 'api' });
   });
 
   it('reads an organization by alias with no token', async () => {
-    const response = await request({ method: 'GET', url: '/organizations/liga-orbital' });
+    const response = await request({ method: 'GET', url: '/api/organizations/liga-orbital' });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ alias: 'liga-orbital', name: 'Liga Orbital' });
   });
 
   it('lists public organizations with at least one published tournament', async () => {
     // Initially no published tournaments -> empty list
-    const initial = await request({ method: 'GET', url: '/organizations' });
+    const initial = await request({ method: 'GET', url: '/api/organizations' });
     expect(initial.statusCode).toBe(200);
     expect(initial.json()).toEqual([]);
 
     // Create a draft-only organization
     await request({
       method: 'POST',
-      url: '/organizations',
+      url: '/api/organizations',
       token: 'super-admin',
       payload: { alias: 'draft-only-org', name: 'Draft Only Org' },
     });
@@ -108,7 +108,7 @@ describe('public-read plane', () => {
     );
     await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'torneo-publicado',
@@ -123,11 +123,11 @@ describe('public-read plane', () => {
     });
     await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments/torneo-publicado/publish',
+      url: '/api/organizations/liga-orbital/tournaments/torneo-publicado/publish',
       token: 'organizer-org1',
     });
 
-    const listing = await request({ method: 'GET', url: '/organizations' });
+    const listing = await request({ method: 'GET', url: '/api/organizations' });
     expect(listing.statusCode).toBe(200);
     const orgs = listing.json();
     expect(orgs).toHaveLength(1);
@@ -141,7 +141,7 @@ describe('public-read plane', () => {
   });
 
   it('404s an unknown alias', async () => {
-    const response = await request({ method: 'GET', url: '/organizations/no-such-org' });
+    const response = await request({ method: 'GET', url: '/api/organizations/no-such-org' });
     expect(response.statusCode).toBe(404);
     expect(response.json()).toMatchObject({
       statusCode: 404,
@@ -155,7 +155,7 @@ describe('admin-control plane', () => {
   it('401s with no token', async () => {
     const response = await request({
       method: 'POST',
-      url: '/organizations',
+      url: '/api/organizations',
       payload: { alias: 'nueva-liga', name: 'Nueva Liga' },
     });
     expect(response.statusCode).toBe(401);
@@ -164,7 +164,7 @@ describe('admin-control plane', () => {
   it('401s with an unverifiable token', async () => {
     const response = await request({
       method: 'POST',
-      url: '/organizations',
+      url: '/api/organizations',
       token: 'forged',
       payload: { alias: 'nueva-liga', name: 'Nueva Liga' },
     });
@@ -174,7 +174,7 @@ describe('admin-control plane', () => {
   it('403s a verified token that lacks the control scope', async () => {
     const response = await request({
       method: 'POST',
-      url: '/organizations',
+      url: '/api/organizations',
       token: 'participant-org1',
       payload: { alias: 'nueva-liga', name: 'Nueva Liga' },
     });
@@ -184,7 +184,7 @@ describe('admin-control plane', () => {
   it('creates an organization with a super-admin-scoped token', async () => {
     const response = await request({
       method: 'POST',
-      url: '/organizations',
+      url: '/api/organizations',
       token: 'super-admin',
       payload: { alias: 'club-cometa', name: 'Club Cometa' },
     });
@@ -195,7 +195,7 @@ describe('admin-control plane', () => {
   it('400s an organization created without a name, before reaching the controller', async () => {
     const response = await request({
       method: 'POST',
-      url: '/organizations',
+      url: '/api/organizations',
       token: 'super-admin',
       payload: { alias: 'club-sin-nombre' },
     });
@@ -205,7 +205,7 @@ describe('admin-control plane', () => {
   it('rejects an extra undocumented property with 400 when creating an organization', async () => {
     const response = await request({
       method: 'POST',
-      url: '/organizations',
+      url: '/api/organizations',
       token: 'super-admin',
       payload: {
         alias: 'club-propiedad-extra',
@@ -222,7 +222,7 @@ describe('admin-control plane', () => {
   it('defaults a new organization to Spanish and UTC when not specified', async () => {
     const response = await request({
       method: 'POST',
-      url: '/organizations',
+      url: '/api/organizations',
       token: 'super-admin',
       payload: { alias: 'club-default-locale', name: 'Club Default Locale' },
     });
@@ -233,7 +233,7 @@ describe('admin-control plane', () => {
   it('creates an organization with an explicit primary language and timezone', async () => {
     const response = await request({
       method: 'POST',
-      url: '/organizations',
+      url: '/api/organizations',
       token: 'super-admin',
       payload: {
         alias: 'club-explicit-locale',
@@ -249,7 +249,7 @@ describe('admin-control plane', () => {
   it('409s an organization created with an unsupported primary language', async () => {
     const response = await request({
       method: 'POST',
-      url: '/organizations',
+      url: '/api/organizations',
       token: 'super-admin',
       payload: { alias: 'club-bad-locale', name: 'Club Bad Locale', primaryLanguage: 'ja' },
     });
@@ -259,7 +259,7 @@ describe('admin-control plane', () => {
   it('403s an organizer scoped to a different organization', async () => {
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org2',
       payload: {
         alias: 'copa-ajena',
@@ -280,7 +280,7 @@ describe('admin-control plane', () => {
   it('400s a tournament referencing an unknown descriptor', async () => {
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-sin-disciplina',
@@ -309,7 +309,7 @@ describe('admin-control plane', () => {
 
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-versionada',
@@ -344,7 +344,7 @@ describe('token transport rules', () => {
   it('treats a token passed as a query parameter as unauthenticated', async () => {
     const response = await request({
       method: 'POST',
-      url: '/organizations?access_token=organizer-org1',
+      url: '/api/organizations?access_token=organizer-org1',
       payload: { alias: 'via-query', name: 'Via Query' },
     });
     expect(response.statusCode).toBe(401);
@@ -353,7 +353,7 @@ describe('token transport rules', () => {
   it('rejects a non-bearer authorization scheme', async () => {
     const response = await (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: '/organizations',
+      url: '/api/organizations',
       headers: { authorization: 'Basic organizer-org1' },
       payload: { alias: 'via-basic', name: 'Via Basic' } as never,
     });

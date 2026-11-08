@@ -58,7 +58,7 @@ describePostgres(
     let request: Awaited<ReturnType<typeof buildTestApp>>['request'];
     let dataset: DemoDataset;
 
-    const base = `/organizations/panamericano-demo/tournaments/${ALIAS}`;
+    const base = `/api/organizations/panamericano-demo/tournaments/${ALIAS}`;
     const get = async <T>(url: string): Promise<T> => {
       const response = await request({ method: 'GET', url });
       expect(response.statusCode).toBe(200);
@@ -97,7 +97,7 @@ describePostgres(
 
     it('lists the tournament as published', async () => {
       const listing = await get<{ tournaments: { alias: string; name: string }[] }>(
-        '/organizations/panamericano-demo/public/tournaments',
+        '/api/organizations/panamericano-demo/public/tournaments',
       );
       expect(listing.tournaments).toEqual([
         expect.objectContaining({ alias: ALIAS, name: dataset.tournament.name }),
@@ -200,7 +200,7 @@ describePostgres(
     let app: INestApplication;
     let scratch: Awaited<ReturnType<typeof buildTestApp>>['scratch'];
     let request: Awaited<ReturnType<typeof buildTestApp>>['request'];
-    const base = `/organizations/panamericano-demo/tournaments/${ALIAS}`;
+    const base = `/api/organizations/panamericano-demo/tournaments/${ALIAS}`;
 
     beforeAll(async () => {
       ({ app, scratch, request } = await buildTestApp([PublicProjectionsController]));

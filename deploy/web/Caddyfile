@@ -2,7 +2,7 @@
 # docker-compose.yml's own service name, so Compose needs no variable at all;
 # Kubernetes overrides it, because the chart's Service is release-scoped
 # ({release}-web-ssr) and no hostname baked into this image could name it.
-# COPALIBRE_WEB_API_UPSTREAM follows the same pattern for browser media routes.
+# COPALIBRE_WEB_API_UPSTREAM follows the same pattern for the API.
 :4321 {
 	root * /srv
 
@@ -17,6 +17,19 @@
 		respond "{\"oidcIssuer\":\"{$COPALIBRE_JWT_ISSUER}\",\"oidcClientId\":\"{$COPALIBRE_OIDC_CLIENT_ID}\"}" 200
 	}
 
+	# First, because /api/tournaments would otherwise look like an organization's tournaments.
+	@api path /api /api/*
+	handle @api {
+		reverse_proxy {$COPALIBRE_WEB_API_UPSTREAM:api:3001}
+	}
+
+	# RFC 8615 files stay public at the root. No fallback here: a missing
+	# file answers 404, not the home page with 200.
+	@wellKnown path /.well-known /.well-known/*
+	handle @wellKnown {
+		file_server
+	}
+
 	@ssr path_regexp ^(?:/(?:es|fr|pt|it|de|ru|zh))?/[^/]+/tournaments(?:/.*)?$
 	handle @ssr {
 		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
@@ -26,12 +39,12 @@
 	# @ssr above, matched separately because it has no /tournaments/
 	# segment to anchor on: just an optional locale prefix plus one alias
 	# segment. That shape would otherwise also swallow every reserved
-	# top-level path below (/control, /help, /tv, /api,
+	# top-level path (/control, /help, /tv, /api, /.well-known,
 	# /runtime-config.json), so those are excluded explicitly rather than
 	# relied upon to lose priority by file order.
 	@ssrOrg {
 		path_regexp ^(?:/(?:es|fr|pt|it|de|ru|zh))?/[^/]+/?$
-		not path /control /control/* /help /help/* /tv /tv/* /api /api/* /organizations /organizations/* /objects /objects/* /disciplines /disciplines/* /tournament-profiles /tournament-profiles/* /runtime-config.json
+		not path /control /control/* /help /help/* /tv /tv/* /api /api/* /.well-known /.well-known/* /runtime-config.json
 	}
 	handle @ssrOrg {
 		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
@@ -43,23 +56,6 @@
 	}
 	handle @ssrRoot {
 		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
-	}
-
-	# Browser-facing organization APIs include emblem upload/read/delete paths.
-	# Keep them on the app origin, but send them to the API before SSR/static fallback.
-	@organizationMedia {
-		path /organizations /organizations/*
-	}
-	handle @organizationMedia {
-		reverse_proxy {$COPALIBRE_WEB_API_UPSTREAM:api:3001}
-	}
-
-	# Discipline background URLs are public API assets, not static web files.
-	@disciplineMedia {
-		path /objects /objects/*
-	}
-	handle @disciplineMedia {
-		reverse_proxy {$COPALIBRE_WEB_API_UPSTREAM:api:3001}
 	}
 
 	@ssrTv {

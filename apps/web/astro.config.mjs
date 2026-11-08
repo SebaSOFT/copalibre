@@ -219,13 +219,6 @@ export default defineConfig({
       // hostname configured for this local site without accepting every host.
       allowedHosts: [siteHostname],
       proxy: {
-        '/auth': 'http://localhost:3001',
-        '/organizations': 'http://localhost:3001',
-        '/disciplines': 'http://localhost:3001',
-        '/tournament-profiles': 'http://localhost:3001',
-        '/admin': 'http://localhost:3001',
-        '/installation': 'http://localhost:3001',
-        '/objects': 'http://localhost:3001',
         '/api': 'http://localhost:3001',
       },
     },

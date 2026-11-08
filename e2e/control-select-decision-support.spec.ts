@@ -16,7 +16,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 
 const ORG = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const TOURNAMENT = `/organizations/${ORG}/tournaments/${TOURNAMENT_ALIAS}`;
+const TOURNAMENT = `/api/organizations/${ORG}/tournaments/${TOURNAMENT_ALIAS}`;
 const STAGE = `${TOURNAMENT}/stages/1`;
 
 async function mockStageApi(page: Page): Promise<void> {
@@ -46,7 +46,7 @@ async function mockStageApi(page: Page): Promise<void> {
         if (url === `${tournament}/stages` && method === 'GET') {
           return Response.json([initialStage]);
         }
-        if (url === `/organizations/${organizationAlias}/roles` && method === 'GET') {
+        if (url === `/api/organizations/${organizationAlias}/roles` && method === 'GET') {
           return Response.json([
             {
               assignmentId: '01800000-0000-7000-8000-000000000002',
@@ -57,16 +57,16 @@ async function mockStageApi(page: Page): Promise<void> {
             },
           ]);
         }
-        if (url === `/organizations/${organizationAlias}/invitations` && method === 'GET') {
+        if (url === `/api/organizations/${organizationAlias}/invitations` && method === 'GET') {
           return Response.json([]);
         }
-        if (url === `/organizations/${organizationAlias}/clubs` && method === 'GET') {
+        if (url === `/api/organizations/${organizationAlias}/clubs` && method === 'GET') {
           return Response.json([]);
         }
-        if (url === `/organizations/${organizationAlias}/tournaments` && method === 'GET') {
+        if (url === `/api/organizations/${organizationAlias}/tournaments` && method === 'GET') {
           return Response.json([]);
         }
-        if (url === `/organizations/${organizationAlias}/roles/grantable` && method === 'GET') {
+        if (url === `/api/organizations/${organizationAlias}/roles/grantable` && method === 'GET') {
           return Response.json({
             roles: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
           });
@@ -137,16 +137,16 @@ async function mockRolesApi(page: Page): Promise<void> {
             status: 'active',
           });
         }
-        if (url === '/organizations/liga-mendocina/invitations' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/invitations' && method === 'GET') {
           return Response.json([]);
         }
         if (
-          url === '/organizations/liga-mendocina/clubs' ||
-          url === '/organizations/liga-mendocina/tournaments'
+          url === '/api/organizations/liga-mendocina/clubs' ||
+          url === '/api/organizations/liga-mendocina/tournaments'
         ) {
           return Response.json([]);
         }
-        if (url === '/organizations/liga-mendocina/roles/grantable' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/roles/grantable' && method === 'GET') {
           return Response.json({
             roles: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
           });
@@ -154,7 +154,7 @@ async function mockRolesApi(page: Page): Promise<void> {
         return new Response('Not found', { status: 404 });
       };
     },
-    { rolesPath: '/organizations/liga-mendocina/roles', tokenEndpoint: TOKEN_ENDPOINT },
+    { rolesPath: '/api/organizations/liga-mendocina/roles', tokenEndpoint: TOKEN_ENDPOINT },
   );
 }
 

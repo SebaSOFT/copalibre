@@ -139,3 +139,37 @@ The automated checks SHALL fail when web application code assigns HTML to an ele
 
 - **WHEN** a source file under `apps/web/src` gains an `innerHTML` assignment, `insertAdjacentHTML`, `document.write`, `dangerouslySetInnerHTML` or an unlisted `set:html`
 - **THEN** the check fails and names the file and line
+
+### Requirement: The player dialog reads the public profile from the API
+
+The player dialog SHALL request the profile from the API's public profile path on the app origin. It SHALL NOT depend on a
+route served by the web app, or on an API origin given at runtime.
+
+#### Scenario: Spectator opens the dialog
+
+- **WHEN** a spectator opens a player from the standings table
+- **THEN** the browser requests `/organizations/{organization}/tournaments/{tournament}/persons/{person}/public/profile` on the same origin and the dialog shows the response
+
+#### Scenario: Profile is not available
+
+- **WHEN** the API answers 404 because the person does not exist or is hidden from the public
+- **THEN** the dialog shows its existing error state
+
+### Requirement: The public player profile does not depend on the caller
+
+A successful public player profile response SHALL be publicly cacheable for 60 seconds and SHALL be the same with or without credentials. An error response SHALL NOT be publicly cacheable.
+
+#### Scenario: Successful response
+
+- **WHEN** a client reads a visible profile
+- **THEN** the response carries `Cache-Control: public, max-age=60`
+
+#### Scenario: Request with credentials
+
+- **WHEN** a client reads the same profile with and without an access token
+- **THEN** the two response bodies are identical
+
+#### Scenario: Hidden person
+
+- **WHEN** a client reads a profile the tournament does not show publicly
+- **THEN** the API answers 404 without `Cache-Control: public`

@@ -12,7 +12,7 @@ import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-i
  * server's own words.
  */
 
-const TOURNAMENT = '/organizations/liga-mendocina/tournaments/apertura-2026';
+const TOURNAMENT = '/api/organizations/liga-mendocina/tournaments/apertura-2026';
 const STAGE = `${TOURNAMENT}/stages/1`;
 
 /** The declared layouts a tab bar reads — one 'group-phase' layout is enough for this spec. */
@@ -232,7 +232,7 @@ async function mockControlApi(
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
 
-        if (url === '/organizations?mine=true' && method === 'GET') {
+        if (url === '/api/organizations?mine=true' && method === 'GET') {
           return Response.json([
             {
               organizationId: 'org-1',

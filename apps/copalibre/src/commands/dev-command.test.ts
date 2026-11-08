@@ -7,7 +7,7 @@ describe('hybridEnvironment', () => {
   it('points native auth at the local API key set by default', () => {
     expect(hybridEnvironment({})).toMatchObject({
       COPALIBRE_API_URL: 'http://localhost:3001',
-      COPALIBRE_JWKS_URI: 'http://localhost:3001/.well-known/jwks.json',
+      COPALIBRE_JWKS_URI: 'http://localhost:3001/api/auth/jwks.json',
       COPALIBRE_JWT_ISSUER: 'http://localhost:8080',
       COPALIBRE_NATIVE_JWT_ISSUER: 'http://localhost:8080',
     });

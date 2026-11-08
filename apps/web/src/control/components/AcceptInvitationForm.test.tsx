@@ -85,7 +85,7 @@ describe('AcceptInvitationForm', () => {
 
     await waitFor(() => {
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        '/auth/accept-invitation',
+        '/api/auth/accept-invitation',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({

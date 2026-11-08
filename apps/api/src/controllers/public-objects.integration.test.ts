@@ -57,7 +57,7 @@ describe('public discipline background images (integration)', () => {
   it('serves a referenced image anonymously with immutable cache headers', async () => {
     const response = await harness.request({
       method: 'GET',
-      url: `/objects/discipline-background-image?key=${encodeURIComponent(REFERENCED_KEY)}`,
+      url: `/api/objects/discipline-background-image?key=${encodeURIComponent(REFERENCED_KEY)}`,
     });
 
     expect(response.statusCode).toBe(200);
@@ -70,7 +70,7 @@ describe('public discipline background images (integration)', () => {
     storage.getCalls.length = 0;
     const response = await harness.request({
       method: 'GET',
-      url: `/objects/discipline-background-image?key=${encodeURIComponent(UNREFERENCED_KEY)}`,
+      url: `/api/objects/discipline-background-image?key=${encodeURIComponent(UNREFERENCED_KEY)}`,
     });
 
     expect(response.statusCode).toBe(404);
@@ -80,14 +80,14 @@ describe('public discipline background images (integration)', () => {
   it('returns not-found for unknown and deleted referenced objects', async () => {
     const unknown = await harness.request({
       method: 'GET',
-      url: '/objects/discipline-background-image?key=unknown',
+      url: '/api/objects/discipline-background-image?key=unknown',
     });
     expect(unknown.statusCode).toBe(404);
 
     storage.objects.delete(REFERENCED_KEY);
     const deleted = await harness.request({
       method: 'GET',
-      url: `/objects/discipline-background-image?key=${encodeURIComponent(REFERENCED_KEY)}`,
+      url: `/api/objects/discipline-background-image?key=${encodeURIComponent(REFERENCED_KEY)}`,
     });
     expect(deleted.statusCode).toBe(404);
   });
@@ -95,7 +95,7 @@ describe('public discipline background images (integration)', () => {
   it('refuses a key that names a module namespace other than its own descriptor’s', async () => {
     const response = await harness.request({
       method: 'GET',
-      url: `/objects/discipline-background-image?key=${encodeURIComponent(MISATTRIBUTED_KEY)}`,
+      url: `/api/objects/discipline-background-image?key=${encodeURIComponent(MISATTRIBUTED_KEY)}`,
     });
 
     // Serving it would put one discipline's imagery behind another's tournament —

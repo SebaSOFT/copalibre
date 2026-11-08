@@ -130,7 +130,7 @@ CopaLibre 版本）。应用保留策略：成功备份后，删除超出 `--ret
 - `--dry-run`：打印恢复计划而不实际运行
 - `--allow-newer-backup`：恢复由比当前运行版本更新的 CopaLibre 版本生成的备份包（默认拒绝）
 
-成功执行 `pg_restore` 后，`restore` 会自动运行 `copalibre migrate`，然后建立连接以验证应用后的架构版本是否与本实例的预期完全一致（与 `GET /ready` 所用的检查相同）——因此一次恢复绝不会让代码与数据库悄悄地失去同步。如果迁移失败，`restore` 会通过其退出码报告失败，而不会谎称成功；请重试 `copalibre migrate`，然后运行 `copalibre doctor`。
+成功执行 `pg_restore` 后，`restore` 会自动运行 `copalibre migrate`，然后建立连接以验证应用后的架构版本是否与本实例的预期完全一致（与 `GET /api/ready` 所用的检查相同）——因此一次恢复绝不会让代码与数据库悄悄地失去同步。如果迁移失败，`restore` 会通过其退出码报告失败，而不会谎称成功；请重试 `copalibre migrate`，然后运行 `copalibre doctor`。
 
 如果备份包清单记录的 CopaLibre 版本比当前运行的版本更新，则在触碰数据库之前就会被拒绝，并同时列出两个版本——请先升级本实例，或者如果你确实打算继续，可传入 `--allow-newer-backup`。
 

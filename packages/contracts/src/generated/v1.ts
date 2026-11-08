@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/health": {
+    "/api/health": {
         parameters: {
             query?: never;
             header?: never;
@@ -24,7 +24,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/ready": {
+    "/api/ready": {
         parameters: {
             query?: never;
             header?: never;
@@ -44,7 +44,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/diagnostics/summary": {
+    "/api/admin/diagnostics/summary": {
         parameters: {
             query?: never;
             header?: never;
@@ -61,7 +61,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/diagnostics/outbox/retry": {
+    "/api/admin/diagnostics/outbox/retry": {
         parameters: {
             query?: never;
             header?: never;
@@ -78,7 +78,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations": {
+    "/api/organizations": {
         parameters: {
             query?: never;
             header?: never;
@@ -102,7 +102,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{alias}": {
+    "/api/organizations/{alias}": {
         parameters: {
             query?: never;
             header?: never;
@@ -122,7 +122,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/settings": {
+    "/api/organizations/{organizationAlias}/settings": {
         parameters: {
             query?: never;
             header?: never;
@@ -142,7 +142,7 @@ export interface paths {
         patch: operations["OrganizationsController_updateSettings"];
         trace?: never;
     };
-    "/organizations/{organizationAlias}/storage-usage": {
+    "/api/organizations/{organizationAlias}/storage-usage": {
         parameters: {
             query?: never;
             header?: never;
@@ -162,7 +162,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/storage-usage/objects": {
+    "/api/organizations/{organizationAlias}/storage-usage/objects": {
         parameters: {
             query?: never;
             header?: never;
@@ -182,7 +182,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/storage-usage/objects/{objectId}": {
+    "/api/organizations/{organizationAlias}/storage-usage/objects/{objectId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -202,7 +202,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/custom-script-vocabulary": {
+    "/api/organizations/{organizationAlias}/tournaments/custom-script-vocabulary": {
         parameters: {
             query?: never;
             header?: never;
@@ -219,7 +219,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}": {
         parameters: {
             query?: never;
             header?: never;
@@ -239,7 +239,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/completion": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/completion": {
         parameters: {
             query?: never;
             header?: never;
@@ -259,7 +259,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/export": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/export": {
         parameters: {
             query?: never;
             header?: never;
@@ -276,7 +276,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/internal-matches-view": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/internal-matches-view": {
         parameters: {
             query?: never;
             header?: never;
@@ -293,7 +293,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrant-attribute-keys": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrant-attribute-keys": {
         parameters: {
             query?: never;
             header?: never;
@@ -310,7 +310,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments": {
+    "/api/organizations/{organizationAlias}/tournaments": {
         parameters: {
             query?: never;
             header?: never;
@@ -334,7 +334,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/settings": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/settings": {
         parameters: {
             query?: never;
             header?: never;
@@ -355,7 +355,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/settings/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/settings/preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -375,7 +375,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/ruleset-overrides": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/ruleset-overrides": {
         parameters: {
             query?: never;
             header?: never;
@@ -396,7 +396,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/ruleset-overrides/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/ruleset-overrides/preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -416,7 +416,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/custom-scripts": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/custom-scripts": {
         parameters: {
             query?: never;
             header?: never;
@@ -434,7 +434,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/publish": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/publish": {
         parameters: {
             query?: never;
             header?: never;
@@ -454,7 +454,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/archive": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/archive": {
         parameters: {
             query?: never;
             header?: never;
@@ -474,7 +474,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/tournament-profiles/compatible": {
+    "/api/tournament-profiles/compatible": {
         parameters: {
             query?: never;
             header?: never;
@@ -494,7 +494,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/photo": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/photo": {
         parameters: {
             query?: never;
             header?: never;
@@ -511,7 +511,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/emblem": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/emblem": {
         parameters: {
             query?: never;
             header?: never;
@@ -530,7 +530,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations": {
         parameters: {
             query?: never;
             header?: never;
@@ -550,7 +550,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/review": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/review": {
         parameters: {
             query?: never;
             header?: never;
@@ -570,7 +570,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/bulk-review": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/bulk-review": {
         parameters: {
             query?: never;
             header?: never;
@@ -590,7 +590,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/persons": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/persons": {
         parameters: {
             query?: never;
             header?: never;
@@ -610,7 +610,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/teams": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/teams": {
         parameters: {
             query?: never;
             header?: never;
@@ -630,7 +630,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/persons/{personId}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/persons/{personId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -654,7 +654,7 @@ export interface paths {
         patch: operations["RegistrationsController_updatePersonIdentity"];
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/teams/{teamId}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/teams/{teamId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -678,7 +678,7 @@ export interface paths {
         patch: operations["RegistrationsController_updateTeamIdentity"];
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/team-memberships": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/team-memberships": {
         parameters: {
             query?: never;
             header?: never;
@@ -698,7 +698,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrants/{entrantId}/abbreviation": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrants/{entrantId}/abbreviation": {
         parameters: {
             query?: never;
             header?: never;
@@ -715,7 +715,7 @@ export interface paths {
         patch: operations["EntrantsController_setAbbreviation"];
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrants/needing-abbreviation": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrants/needing-abbreviation": {
         parameters: {
             query?: never;
             header?: never;
@@ -732,7 +732,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/disciplines": {
+    "/api/disciplines": {
         parameters: {
             query?: never;
             header?: never;
@@ -752,7 +752,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule": {
         parameters: {
             query?: never;
             header?: never;
@@ -776,7 +776,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule/preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -796,7 +796,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/schedule": {
+    "/api/organizations/{organizationAlias}/schedule": {
         parameters: {
             query?: never;
             header?: never;
@@ -816,7 +816,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/schedule/reasons/recent": {
+    "/api/organizations/{organizationAlias}/schedule/reasons/recent": {
         parameters: {
             query?: never;
             header?: never;
@@ -836,7 +836,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -856,7 +856,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/console": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/console": {
         parameters: {
             query?: never;
             header?: never;
@@ -876,7 +876,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/commands/{command}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/commands/{command}": {
         parameters: {
             query?: never;
             header?: never;
@@ -896,7 +896,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/clock": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/clock": {
         parameters: {
             query?: never;
             header?: never;
@@ -913,7 +913,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/timers/{timerId}/resolve": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/timers/{timerId}/resolve": {
         parameters: {
             query?: never;
             header?: never;
@@ -930,7 +930,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters": {
         parameters: {
             query?: never;
             header?: never;
@@ -950,7 +950,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters/{entrantId}/candidates": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters/{entrantId}/candidates": {
         parameters: {
             query?: never;
             header?: never;
@@ -967,7 +967,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters/{entrantId}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters/{entrantId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -987,7 +987,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/events": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/events": {
         parameters: {
             query?: never;
             header?: never;
@@ -1007,7 +1007,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/bulk-load": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/bulk-load": {
         parameters: {
             query?: never;
             header?: never;
@@ -1027,7 +1027,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections/preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -1047,7 +1047,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections": {
         parameters: {
             query?: never;
             header?: never;
@@ -1071,7 +1071,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/imports": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/imports": {
         parameters: {
             query?: never;
             header?: never;
@@ -1088,7 +1088,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/imports/{importId}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/imports/{importId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1105,7 +1105,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/imports/{importId}/commit": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/imports/{importId}/commit": {
         parameters: {
             query?: never;
             header?: never;
@@ -1122,7 +1122,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/exports/participants/{target}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/exports/participants/{target}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1139,7 +1139,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/exports/results": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/exports/results": {
         parameters: {
             query?: never;
             header?: never;
@@ -1156,7 +1156,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/exports/standings": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/exports/standings": {
         parameters: {
             query?: never;
             header?: never;
@@ -1173,7 +1173,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/standings": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/standings": {
         parameters: {
             query?: never;
             header?: never;
@@ -1193,7 +1193,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/standings/entrants/{entrantId}/trace": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/standings/entrants/{entrantId}/trace": {
         parameters: {
             query?: never;
             header?: never;
@@ -1213,7 +1213,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables": {
         parameters: {
             query?: never;
             header?: never;
@@ -1230,7 +1230,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables/{layoutCode}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables/{layoutCode}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1247,7 +1247,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables/{layoutCode}/csv": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables/{layoutCode}/csv": {
         parameters: {
             query?: never;
             header?: never;
@@ -1264,7 +1264,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/tables/{layoutCode}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/tables/{layoutCode}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1281,7 +1281,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/tables/{layoutCode}/csv": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/tables/{layoutCode}/csv": {
         parameters: {
             query?: never;
             header?: never;
@@ -1298,7 +1298,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/seeding": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/seeding": {
         parameters: {
             query?: never;
             header?: never;
@@ -1322,7 +1322,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/qualification/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/qualification/preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -1339,7 +1339,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/qualification/confirm": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/qualification/confirm": {
         parameters: {
             query?: never;
             header?: never;
@@ -1359,7 +1359,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages": {
         parameters: {
             query?: never;
             header?: never;
@@ -1383,7 +1383,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1407,7 +1407,7 @@ export interface paths {
         patch: operations["StagesController_update"];
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/series/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/series/preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -1427,7 +1427,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/configuration": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/configuration": {
         parameters: {
             query?: never;
             header?: never;
@@ -1448,7 +1448,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/configuration/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/configuration/preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -1468,7 +1468,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/fixtures": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/fixtures": {
         parameters: {
             query?: never;
             header?: never;
@@ -1488,7 +1488,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/rounds/next": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/rounds/next": {
         parameters: {
             query?: never;
             header?: never;
@@ -1508,7 +1508,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens": {
         parameters: {
             query?: never;
             header?: never;
@@ -1526,7 +1526,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens/{displayTokenId}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens/{displayTokenId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1543,7 +1543,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/roles": {
+    "/api/organizations/{organizationAlias}/roles": {
         parameters: {
             query?: never;
             header?: never;
@@ -1560,7 +1560,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/roles/grantable": {
+    "/api/organizations/{organizationAlias}/roles/grantable": {
         parameters: {
             query?: never;
             header?: never;
@@ -1577,7 +1577,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/invitations": {
+    "/api/organizations/{organizationAlias}/invitations": {
         parameters: {
             query?: never;
             header?: never;
@@ -1598,7 +1598,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/invitations/{invitationId}": {
+    "/api/organizations/{organizationAlias}/invitations/{invitationId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1618,7 +1618,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/roles/{assignmentId}": {
+    "/api/organizations/{organizationAlias}/roles/{assignmentId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1636,7 +1636,7 @@ export interface paths {
         patch: operations["OrganizationAccessController_change"];
         trace?: never;
     };
-    "/invitations/accept": {
+    "/api/invitations/accept": {
         parameters: {
             query?: never;
             header?: never;
@@ -1653,7 +1653,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/installation/super-admins": {
+    "/api/installation/super-admins": {
         parameters: {
             query?: never;
             header?: never;
@@ -1671,7 +1671,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/installation/super-admins/{assignmentId}": {
+    "/api/installation/super-admins/{assignmentId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1689,7 +1689,7 @@ export interface paths {
         patch: operations["InstallationRoleController_changeStatus"];
         trace?: never;
     };
-    "/organizations/{organizationAlias}/participant/registrations": {
+    "/api/organizations/{organizationAlias}/participant/registrations": {
         parameters: {
             query?: never;
             header?: never;
@@ -1706,7 +1706,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/participant/team-memberships": {
+    "/api/organizations/{organizationAlias}/participant/team-memberships": {
         parameters: {
             query?: never;
             header?: never;
@@ -1723,7 +1723,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/participant/reported-results": {
+    "/api/organizations/{organizationAlias}/participant/reported-results": {
         parameters: {
             query?: never;
             header?: never;
@@ -1740,7 +1740,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/participants/{personId}/identity-link": {
+    "/api/organizations/{organizationAlias}/participants/{personId}/identity-link": {
         parameters: {
             query?: never;
             header?: never;
@@ -1761,7 +1761,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/reports": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/reports": {
         parameters: {
             query?: never;
             header?: never;
@@ -1781,7 +1781,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/disputes": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/disputes": {
         parameters: {
             query?: never;
             header?: never;
@@ -1801,7 +1801,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/reports": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/reports": {
         parameters: {
             query?: never;
             header?: never;
@@ -1818,7 +1818,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/reports/{reportId}/review": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/reports/{reportId}/review": {
         parameters: {
             query?: never;
             header?: never;
@@ -1838,7 +1838,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/installation/bootstrap/admin": {
+    "/api/installation/bootstrap/admin": {
         parameters: {
             query?: never;
             header?: never;
@@ -1858,7 +1858,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/public/tournaments": {
+    "/api/organizations/{organizationAlias}/public/tournaments": {
         parameters: {
             query?: never;
             header?: never;
@@ -1875,7 +1875,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/overview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/overview": {
         parameters: {
             query?: never;
             header?: never;
@@ -1892,7 +1892,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/matches/{matchNumber}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/matches/{matchNumber}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1909,7 +1909,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/live": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/live": {
         parameters: {
             query?: never;
             header?: never;
@@ -1926,7 +1926,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/bracket": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/bracket": {
         parameters: {
             query?: never;
             header?: never;
@@ -1943,7 +1943,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches-view": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches-view": {
         parameters: {
             query?: never;
             header?: never;
@@ -1960,7 +1960,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables": {
         parameters: {
             query?: never;
             header?: never;
@@ -1977,7 +1977,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables/{layoutCode}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables/{layoutCode}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1994,7 +1994,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables/{layoutCode}/csv": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables/{layoutCode}/csv": {
         parameters: {
             query?: never;
             header?: never;
@@ -2011,7 +2011,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/public/tables/{layoutCode}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/public/tables/{layoutCode}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2028,7 +2028,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/public/tables/{layoutCode}/csv": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/public/tables/{layoutCode}/csv": {
         parameters: {
             query?: never;
             header?: never;
@@ -2045,7 +2045,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/public/profile": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/public/profile": {
         parameters: {
             query?: never;
             header?: never;
@@ -2062,7 +2062,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/public/statistics": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/public/statistics": {
         parameters: {
             query?: never;
             header?: never;
@@ -2079,7 +2079,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/objects/discipline-background-image": {
+    "/api/objects/discipline-background-image": {
         parameters: {
             query?: never;
             header?: never;
@@ -2096,7 +2096,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/login": {
+    "/api/auth/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -2113,7 +2113,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/jwks.json": {
+    "/api/auth/jwks.json": {
         parameters: {
             query?: never;
             header?: never;
@@ -2130,7 +2130,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/accept-invitation": {
+    "/api/auth/accept-invitation": {
         parameters: {
             query?: never;
             header?: never;
@@ -2147,7 +2147,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/refresh": {
+    "/api/auth/refresh": {
         parameters: {
             query?: never;
             header?: never;
@@ -2164,7 +2164,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/logout": {
+    "/api/auth/logout": {
         parameters: {
             query?: never;
             header?: never;
@@ -2181,7 +2181,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/forgot-password": {
+    "/api/auth/forgot-password": {
         parameters: {
             query?: never;
             header?: never;
@@ -2198,7 +2198,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/reset-password": {
+    "/api/auth/reset-password": {
         parameters: {
             query?: never;
             header?: never;
@@ -2215,24 +2215,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/.well-known/jwks.json": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** JSON Web Key Set for local token verification */
-        get: operations["WellKnownController_jwks"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/pat/scopes": {
+    "/api/auth/pat/scopes": {
         parameters: {
             query?: never;
             header?: never;
@@ -2249,7 +2232,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/pat": {
+    "/api/auth/pat": {
         parameters: {
             query?: never;
             header?: never;
@@ -2267,7 +2250,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/pat/{tokenId}": {
+    "/api/auth/pat/{tokenId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2284,7 +2267,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/pat/{tokenId}/restore": {
+    "/api/auth/pat/{tokenId}/restore": {
         parameters: {
             query?: never;
             header?: never;
@@ -2301,7 +2284,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/statistics/rebuild": {
+    "/api/organizations/{organizationAlias}/statistics/rebuild": {
         parameters: {
             query?: never;
             header?: never;
@@ -2321,7 +2304,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/modules": {
+    "/api/admin/modules": {
         parameters: {
             query?: never;
             header?: never;
@@ -2339,7 +2322,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/modules/{alias}": {
+    "/api/admin/modules/{alias}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2356,7 +2339,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/modules/{alias}/document": {
+    "/api/admin/modules/{alias}/document": {
         parameters: {
             query?: never;
             header?: never;
@@ -2373,7 +2356,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/modules/verify": {
+    "/api/admin/modules/verify": {
         parameters: {
             query?: never;
             header?: never;
@@ -2390,7 +2373,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/authored-modules/validate": {
+    "/api/admin/authored-modules/validate": {
         parameters: {
             query?: never;
             header?: never;
@@ -2407,7 +2390,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/authored-modules": {
+    "/api/admin/authored-modules": {
         parameters: {
             query?: never;
             header?: never;
@@ -2424,7 +2407,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/authored-modules/submit": {
+    "/api/admin/authored-modules/submit": {
         parameters: {
             query?: never;
             header?: never;
@@ -2441,7 +2424,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/persons/{personId}": {
+    "/api/organizations/{organizationAlias}/persons/{personId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2458,7 +2441,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/persons/{personId}/photo": {
+    "/api/organizations/{organizationAlias}/persons/{personId}/photo": {
         parameters: {
             query?: never;
             header?: never;
@@ -2476,7 +2459,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/persons/{personId}/nationality": {
+    "/api/organizations/{organizationAlias}/persons/{personId}/nationality": {
         parameters: {
             query?: never;
             header?: never;
@@ -2493,7 +2476,7 @@ export interface paths {
         patch: operations["PersonMediaController_setNationality"];
         trace?: never;
     };
-    "/organizations/{organizationAlias}/persons/{personId}/public-visibility": {
+    "/api/organizations/{organizationAlias}/persons/{personId}/public-visibility": {
         parameters: {
             query?: never;
             header?: never;
@@ -2510,7 +2493,7 @@ export interface paths {
         patch: operations["PersonMediaController_setPublicVisibility"];
         trace?: never;
     };
-    "/organizations/{organizationAlias}/clubs/{clubId}/emblem": {
+    "/api/organizations/{organizationAlias}/clubs/{clubId}/emblem": {
         parameters: {
             query?: never;
             header?: never;
@@ -2528,7 +2511,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/emblem": {
+    "/api/organizations/{organizationAlias}/emblem": {
         parameters: {
             query?: never;
             header?: never;
@@ -2546,7 +2529,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/clubs": {
+    "/api/organizations/{organizationAlias}/clubs": {
         parameters: {
             query?: never;
             header?: never;
@@ -2564,7 +2547,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/clubs/{clubId}": {
+    "/api/organizations/{organizationAlias}/clubs/{clubId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2581,7 +2564,7 @@ export interface paths {
         patch: operations["ClubsController_update"];
         trace?: never;
     };
-    "/organizations/{organizationAlias}/clubs/{clubId}/members": {
+    "/api/organizations/{organizationAlias}/clubs/{clubId}/members": {
         parameters: {
             query?: never;
             header?: never;
@@ -2599,7 +2582,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/clubs/{clubId}/members/{personId}": {
+    "/api/organizations/{organizationAlias}/clubs/{clubId}/members/{personId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2616,7 +2599,7 @@ export interface paths {
         patch: operations["ClubPortalController_updateMember"];
         trace?: never;
     };
-    "/organizations/{organizationAlias}/clubs/{clubId}/teams": {
+    "/api/organizations/{organizationAlias}/clubs/{clubId}/teams": {
         parameters: {
             query?: never;
             header?: never;
@@ -2634,7 +2617,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/clubs/{clubId}/tournaments/{tournamentAlias}/registrations": {
+    "/api/organizations/{organizationAlias}/clubs/{clubId}/tournaments/{tournamentAlias}/registrations": {
         parameters: {
             query?: never;
             header?: never;
@@ -2654,7 +2637,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/venues": {
+    "/api/organizations/{organizationAlias}/venues": {
         parameters: {
             query?: never;
             header?: never;
@@ -2672,7 +2655,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/venues/{venueId}": {
+    "/api/organizations/{organizationAlias}/venues/{venueId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2690,7 +2673,7 @@ export interface paths {
         patch: operations["ResourcesController_updateVenue"];
         trace?: never;
     };
-    "/organizations/{organizationAlias}/venues/{venueId}/restore": {
+    "/api/organizations/{organizationAlias}/venues/{venueId}/restore": {
         parameters: {
             query?: never;
             header?: never;
@@ -2707,7 +2690,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/officials": {
+    "/api/organizations/{organizationAlias}/officials": {
         parameters: {
             query?: never;
             header?: never;
@@ -2725,7 +2708,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/officials/{officialId}": {
+    "/api/organizations/{organizationAlias}/officials/{officialId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2742,7 +2725,7 @@ export interface paths {
         patch: operations["ResourcesController_updateOfficial"];
         trace?: never;
     };
-    "/organizations/{organizationAlias}/schedules": {
+    "/api/organizations/{organizationAlias}/schedules": {
         parameters: {
             query?: never;
             header?: never;
@@ -2760,7 +2743,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/schedules/{scheduleId}": {
+    "/api/organizations/{organizationAlias}/schedules/{scheduleId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2781,7 +2764,7 @@ export interface paths {
         patch: operations["ResourcesController_updateSchedule"];
         trace?: never;
     };
-    "/organizations/{organizationAlias}/audit-trail": {
+    "/api/organizations/{organizationAlias}/audit-trail": {
         parameters: {
             query?: never;
             header?: never;
@@ -2801,7 +2784,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones": {
         parameters: {
             query?: never;
             header?: never;
@@ -2819,7 +2802,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2840,7 +2823,7 @@ export interface paths {
         patch: operations["ZonesGroupsController_renameZone"];
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/configuration": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/configuration": {
         parameters: {
             query?: never;
             header?: never;
@@ -2860,7 +2843,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/restore": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/restore": {
         parameters: {
             query?: never;
             header?: never;
@@ -2877,7 +2860,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/entrants": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/entrants": {
         parameters: {
             query?: never;
             header?: never;
@@ -2894,7 +2877,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups": {
         parameters: {
             query?: never;
             header?: never;
@@ -2912,7 +2895,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/{groupNumber}": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/{groupNumber}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2933,7 +2916,7 @@ export interface paths {
         patch: operations["ZonesGroupsController_renameGroup"];
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/{groupNumber}/restore": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/{groupNumber}/restore": {
         parameters: {
             query?: never;
             header?: never;
@@ -2950,7 +2933,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/draw/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/draw/preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -2967,7 +2950,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/draw": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/draw": {
         parameters: {
             query?: never;
             header?: never;
@@ -2984,7 +2967,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/draw/preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/draw/preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -3001,7 +2984,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/draw": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/draw": {
         parameters: {
             query?: never;
             header?: never;
@@ -3018,7 +3001,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/assign": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/assign": {
         parameters: {
             query?: never;
             header?: never;
@@ -3035,7 +3018,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/assign": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/assign": {
         parameters: {
             query?: never;
             header?: never;
@@ -3052,7 +3035,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/promotion-plan": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/promotion-plan": {
         parameters: {
             query?: never;
             header?: never;
@@ -3069,7 +3052,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/promotion-preview": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/promotion-preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -3086,7 +3069,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/promotion-plans": {
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/promotion-plans": {
         parameters: {
             query?: never;
             header?: never;
@@ -11936,25 +11919,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthSuccessResponse"];
-                };
-            };
-        };
-    };
-    WellKnownController_jwks: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JwksResponse"];
                 };
             };
         };

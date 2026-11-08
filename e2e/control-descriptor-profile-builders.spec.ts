@@ -64,9 +64,9 @@ async function mockBuilderApi(page: Page): Promise<void> {
         if (url === tokenEndpoint) {
           return Response.json({ access_token: accessToken, expires_in: 3600 });
         }
-        if (url === '/installation/super-admins') return Response.json([]);
-        if (url === '/admin/modules') return Response.json(modules);
-        if (url === '/disciplines') {
+        if (url === '/api/installation/super-admins') return Response.json([]);
+        if (url === '/api/admin/modules') return Response.json(modules);
+        if (url === '/api/disciplines') {
           return Response.json(
             Object.entries(installedDocuments).map(([alias, document]) => ({
               descriptorId: alias,
@@ -77,11 +77,11 @@ async function mockBuilderApi(page: Page): Promise<void> {
             })),
           );
         }
-        if (url === '/admin/authored-modules/validate' && method === 'POST') {
+        if (url === '/api/admin/authored-modules/validate' && method === 'POST') {
           const body = JSON.parse(String(init?.body));
           return Response.json(validateAuthored(body));
         }
-        if (url === '/admin/authored-modules' && method === 'POST') {
+        if (url === '/api/admin/authored-modules' && method === 'POST') {
           const body = JSON.parse(String(init?.body));
           const result = validateAuthored(body);
           if (!result.ok) {

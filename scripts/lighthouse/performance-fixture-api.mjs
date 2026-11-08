@@ -183,7 +183,7 @@ export async function startPerformanceFixtureApi() {
   const server = createServer(async (request, response) => {
     const url = new URL(request.url ?? '/', 'http://127.0.0.1');
     const pathname = decodeURIComponent(url.pathname);
-    const root = `/organizations/${dataset.organization.alias}`;
+    const root = `/api/organizations/${dataset.organization.alias}`;
     const tournamentRoot = `${root}/tournaments/${dataset.tournament.alias}`;
 
     if (pathname === `${tournamentRoot}/overview`) {

@@ -20,6 +20,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * Structured rosters and goalkeeper auto-population,
@@ -66,6 +67,7 @@ describe('structured rosters and goalkeeper auto-population (integration)', () =
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -362,7 +364,8 @@ describe('structured rosters and goalkeeper auto-population (integration)', () =
     expect(persisted.payload).toMatchObject({ goalkeeperId: benchGoalkeeperHome });
   });
 
-  const base = () => `/organizations/liga-rosters/tournaments/apertura-rosters/matches/${matchId}`;
+  const base = () =>
+    `/api/organizations/liga-rosters/tournaments/apertura-rosters/matches/${matchId}`;
 
   // A fresh key per call (recordEvent/setRoster now check one too, not
   // just finalize) — a fixed key would make every subsequent POST here

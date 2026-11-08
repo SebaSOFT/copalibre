@@ -20,7 +20,7 @@ import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-i
 
 const ORG = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const TOURNAMENT = `/organizations/${ORG}/tournaments/${TOURNAMENT_ALIAS}`;
+const TOURNAMENT = `/api/organizations/${ORG}/tournaments/${TOURNAMENT_ALIAS}`;
 const STAGE = `${TOURNAMENT}/stages/1`;
 const STAGE_2 = `${TOURNAMENT}/stages/2`;
 
@@ -247,7 +247,7 @@ test('creates a second zone and group, assigns entrants manually, and reflects i
     requestLog.some(
       (entry) =>
         entry ===
-        'POST /organizations/liga-mendocina/tournaments/apertura-2026/stages/1/zones/assign',
+        'POST /api/organizations/liga-mendocina/tournaments/apertura-2026/stages/1/zones/assign',
     ),
   ).toBe(true);
 

@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 const matchId = '00000000-0000-7000-8000-000000000001';
-const matchPath = `/organizations/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+const matchPath = `/api/organizations/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
 
 interface CapturedRequest {
   readonly url: string;

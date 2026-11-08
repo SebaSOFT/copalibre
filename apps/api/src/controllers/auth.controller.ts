@@ -90,7 +90,7 @@ const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 function serializeRefreshCookie(value: string, maxAgeSeconds: number): string {
   const attributes = [
     `${REFRESH_COOKIE_NAME}=${value}`,
-    'Path=/auth',
+    'Path=/api/auth',
     'HttpOnly',
     'SameSite=Strict',
     `Max-Age=${maxAgeSeconds}`,
@@ -613,18 +613,6 @@ function toPatResponse(pat: {
     createdAt: pat.createdAt,
     ...(pat.lastUsedAt === undefined ? {} : { lastUsedAt: pat.lastUsedAt }),
   };
-}
-
-@ApiTags('auth')
-@Controller('.well-known')
-export class WellKnownController {
-  @Get('jwks.json')
-  @SecurityPlaneTag('public-read')
-  @ApiOperation({ summary: 'JSON Web Key Set for local token verification' })
-  @ApiOkResponse({ type: JwksResponse })
-  jwks(): { readonly keys: readonly Record<string, unknown>[] } {
-    return getLocalKeys().jwks;
-  }
 }
 
 /**

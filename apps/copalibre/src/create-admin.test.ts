@@ -52,7 +52,7 @@ describe('create-admin', () => {
     ).resolves.toEqual({ setupUrl: 'https://copalibre.example/invitations/accept?token=one' });
 
     expect(requestFetch).toHaveBeenCalledWith(
-      new URL('http://localhost:3001/installation/bootstrap/admin'),
+      new URL('http://localhost:3001/api/installation/bootstrap/admin'),
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({

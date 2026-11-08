@@ -21,6 +21,7 @@ import { humanizeFieldPath, resolveLabel, type SupportedLanguage } from '@copali
 import type { OverviewInput, MatchState } from './overview.js';
 import type { LiveDashboard } from './live-state.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { API_PATH_PREFIX } from './api-path.ts';
 export { mapBracketResponse } from './bracket-projection.js';
 export type { BracketZone } from './bracket-projection.js';
 export { clubEmblemUrl, organizationEmblemUrl } from './public-image-paths.js';
@@ -34,11 +35,11 @@ export const requestApiStorage = new AsyncLocalStorage<{ apiBaseUrl?: string }>(
 export function getApiBaseUrl(): string {
   const store = requestApiStorage.getStore();
   if (store?.apiBaseUrl) {
-    return store.apiBaseUrl;
+    return `${store.apiBaseUrl}${API_PATH_PREFIX}`;
   }
   // We avoid process.env in Astro client code, but this file is strictly server-only
   // because it runs inside the Astro SSR environment during page rendering.
-  return process.env.COPALIBRE_API_INTERNAL_URL || 'http://127.0.0.1:3001';
+  return `${process.env.COPALIBRE_API_INTERNAL_URL || 'http://127.0.0.1:3001'}${API_PATH_PREFIX}`;
 }
 
 /**
@@ -448,7 +449,7 @@ export async function fetchOrganizationTournaments(
  * directly, not this SSR-only client.
  */
 export function tournamentEmblemUrl(organizationAlias: string, tournamentAlias: string): string {
-  return `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`;
+  return `${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`;
 }
 
 export function personPhotoUrl(
@@ -456,5 +457,5 @@ export function personPhotoUrl(
   tournamentAlias: string,
   personId: string,
 ): string {
-  return `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(personId)}/photo`;
+  return `${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(personId)}/photo`;
 }

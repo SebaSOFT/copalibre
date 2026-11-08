@@ -108,7 +108,7 @@ describe('organization-scoped tournament routes', () => {
     });
     const createdResponse = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-export-multi',
@@ -148,19 +148,19 @@ describe('organization-scoped tournament routes', () => {
 
     const noToken = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/copa-export-multi/export',
+      url: '/api/organizations/liga-orbital/tournaments/copa-export-multi/export',
     });
     expect(noToken.statusCode).toBe(401);
     const foreign = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/copa-export-multi/export',
+      url: '/api/organizations/liga-orbital/tournaments/copa-export-multi/export',
       token: 'organizer-org2',
     });
     expect(foreign.statusCode).toBe(403);
 
     const response = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/copa-export-multi/export',
+      url: '/api/organizations/liga-orbital/tournaments/copa-export-multi/export',
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
@@ -230,7 +230,7 @@ describe('organization-scoped tournament routes', () => {
     });
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${tournament.alias}/export`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournament.alias}/export`,
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
@@ -321,7 +321,7 @@ describe('organization-scoped tournament routes', () => {
     );
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${seeded.tournament.alias}/export`,
+      url: `/api/organizations/liga-orbital/tournaments/${seeded.tournament.alias}/export`,
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
@@ -340,20 +340,20 @@ describe('organization-scoped tournament routes', () => {
   it('exposes the exact authorized hook-script vocabulary', async () => {
     const noToken = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/custom-script-vocabulary',
+      url: '/api/organizations/liga-orbital/tournaments/custom-script-vocabulary',
     });
     expect(noToken.statusCode).toBe(401);
 
     const foreignOrganization = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/custom-script-vocabulary',
+      url: '/api/organizations/liga-orbital/tournaments/custom-script-vocabulary',
       token: 'organizer-org2',
     });
     expect(foreignOrganization.statusCode).toBe(403);
 
     const response = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/custom-script-vocabulary',
+      url: '/api/organizations/liga-orbital/tournaments/custom-script-vocabulary',
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
@@ -401,7 +401,7 @@ describe('organization-scoped tournament routes', () => {
 
     const createdResponse = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-custom-scripts',
@@ -419,7 +419,7 @@ describe('organization-scoped tournament routes', () => {
 
     const read = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
+      url: '/api/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
       token: 'organizer-org1',
     });
     expect(read.statusCode).toBe(200);
@@ -427,7 +427,7 @@ describe('organization-scoped tournament routes', () => {
 
     const foreignUpdate = await request({
       method: 'PUT',
-      url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
+      url: '/api/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
       token: 'organizer-org2',
       payload: { customScripts: [] },
     });
@@ -436,7 +436,7 @@ describe('organization-scoped tournament routes', () => {
     const updatedAttachment = notifyAttachment('Updated event message');
     const updated = await request({
       method: 'PUT',
-      url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
+      url: '/api/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
       token: 'organizer-org1',
       payload: { customScripts: [updatedAttachment] },
     });
@@ -448,7 +448,7 @@ describe('organization-scoped tournament routes', () => {
   it('400s a custom-scripts replacement without a customScripts array, before reaching the controller', async () => {
     const response = await request({
       method: 'PUT',
-      url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
+      url: '/api/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
       token: 'organizer-org1',
       payload: {},
     });
@@ -458,7 +458,7 @@ describe('organization-scoped tournament routes', () => {
   it('rejects an extra undocumented property with 400 when replacing custom scripts', async () => {
     const updated = await request({
       method: 'PUT',
-      url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
+      url: '/api/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
       token: 'organizer-org1',
       payload: { customScripts: [], unexpectedField: 'dropped' },
     });
@@ -489,7 +489,7 @@ describe('organization-scoped tournament routes', () => {
     invalidAction.type = 'launch-fireworks';
     const refused = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-invalid-script',
@@ -519,7 +519,7 @@ describe('organization-scoped tournament routes', () => {
     message.options = { expression: true };
     const unpublishedRefusal = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-unpublished-expression',
@@ -591,7 +591,7 @@ describe('organization-scoped tournament routes', () => {
 
     const blocked = await request({
       method: 'PUT',
-      url: '/organizations/liga-orbital/tournaments/copa-script-lock/custom-scripts',
+      url: '/api/organizations/liga-orbital/tournaments/copa-script-lock/custom-scripts',
       token: 'organizer-org1',
       payload: { customScripts: [] },
     });
@@ -602,7 +602,7 @@ describe('organization-scoped tournament routes', () => {
   it('404s a tournament alias that exists in no organization', async () => {
     const response = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/no-such-copa',
+      url: '/api/organizations/liga-orbital/tournaments/no-such-copa',
     });
     expect(response.statusCode).toBe(404);
   });
@@ -629,7 +629,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${draftTournament.alias}`,
+      url: `/api/organizations/liga-orbital/tournaments/${draftTournament.alias}`,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -668,7 +668,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}`,
+      url: `/api/organizations/liga-orbital/tournaments/${publishedTournament.alias}`,
     });
     expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.payload as string).alias).toBe(publishedTournament.alias);
@@ -695,7 +695,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${draft.alias}`,
+      url: `/api/organizations/liga-orbital/tournaments/${draft.alias}`,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -740,13 +740,13 @@ describe('organization-scoped tournament routes', () => {
 
     const noToken = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
     });
     expect(noToken.statusCode).toBe(401);
 
     const response = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
@@ -770,7 +770,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-completa',
@@ -814,7 +814,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-overrides',
@@ -849,7 +849,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-rejected-override',
@@ -885,7 +885,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-multi-fase',
@@ -958,7 +958,7 @@ describe('organization-scoped tournament routes', () => {
     ) {
       return request({
         method: 'POST',
-        url: '/organizations/liga-orbital/tournaments',
+        url: '/api/organizations/liga-orbital/tournaments',
         token: 'organizer-org1',
         payload: {
           alias,
@@ -1096,7 +1096,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-with-profile',
@@ -1211,7 +1211,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${created.alias}/settings`,
+      url: `/api/organizations/liga-orbital/tournaments/${created.alias}/settings`,
       token: 'organizer-org1',
       payload: { includesMinors: true },
     });
@@ -1358,7 +1358,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/tournament-profiles/compatible?descriptorId=${descriptor.descriptorId}&descriptorVersion=${descriptor.version}&format=single-elimination`,
+      url: `/api/tournament-profiles/compatible?descriptorId=${descriptor.descriptorId}&descriptorVersion=${descriptor.version}&format=single-elimination`,
     });
 
     expect(response.statusCode).toBe(200);
@@ -1383,7 +1383,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload,
     });
@@ -1415,7 +1415,7 @@ describe('organization-scoped tournament routes', () => {
 
     const createdResponse = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'completion-visibility-test',
@@ -1475,7 +1475,7 @@ describe('organization-scoped tournament routes', () => {
     // 1. Unpublished (draft) tournament requested publicly (anonymous) -> 404
     const anonDraftResponse = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+      url: '/api/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
     });
     expect(anonDraftResponse.statusCode).toBe(404);
     const anonDraftBody = JSON.parse(anonDraftResponse.payload as string);
@@ -1484,7 +1484,7 @@ describe('organization-scoped tournament routes', () => {
     // 2. Unpublished (draft) tournament requested by authorized organizer -> 200
     const authDraftResponse = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+      url: '/api/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
       token: 'organizer-org1',
     });
     expect(authDraftResponse.statusCode).toBe(200);
@@ -1515,7 +1515,7 @@ describe('organization-scoped tournament routes', () => {
     // 3. Published tournament requested publicly (anonymous) -> 200
     const anonPubResponse = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+      url: '/api/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
     });
     expect(anonPubResponse.statusCode).toBe(200);
     const anonPubBody = JSON.parse(anonPubResponse.payload as string);
@@ -1536,7 +1536,7 @@ describe('organization-scoped tournament routes', () => {
     // 4. Published tournament requested by authorized organizer -> 200
     const authPubResponse = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+      url: '/api/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
       token: 'organizer-org1',
     });
     expect(authPubResponse.statusCode).toBe(200);

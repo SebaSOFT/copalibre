@@ -153,7 +153,7 @@ einem einzigen Aufruf.
 
 Nach einem erfolgreichen `pg_restore` führt `restore` automatisch `copalibre migrate` aus und öffnet
 dann eine Verbindung, um zu überprüfen, dass die angewendete Schemaversion genau der entspricht, die
-diese Installation erwartet (dieselbe Prüfung, die `GET /ready` verwendet) — so lässt eine
+diese Installation erwartet (dieselbe Prüfung, die `GET /api/ready` verwendet) — so lässt eine
 Wiederherstellung Code und Datenbank nie stillschweigend auseinanderlaufen. Schlägt die Migration
 fehl, meldet `restore` dies mit seinem Exit-Code, ohne Erfolg zu behaupten; versuchen Sie es erneut
 mit `copalibre migrate` und dann `copalibre doctor`.

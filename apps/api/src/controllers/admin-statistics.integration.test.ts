@@ -24,6 +24,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { AdminStatisticsController } from './admin-statistics.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 const AUDIT = { actor: 'user:admin-statistics-test', authorizationContext: 'scope:test' };
 
@@ -208,6 +209,7 @@ describe('AdminStatisticsController (integration)', () => {
       imports: [AdminStatisticsTestModule],
     }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
   });
@@ -220,7 +222,7 @@ describe('AdminStatisticsController (integration)', () => {
   function rebuild(token: string, dryRun?: boolean) {
     return (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: '/organizations/liga-admin-http/statistics/rebuild',
+      url: '/api/organizations/liga-admin-http/statistics/rebuild',
       headers: { authorization: `Bearer ${token}` },
       payload: dryRun === undefined ? {} : { dryRun },
     });
@@ -287,7 +289,7 @@ describe('AdminStatisticsController (integration)', () => {
   it('refuses with no bearer token at all', async () => {
     const response = await (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: '/organizations/liga-admin-http/statistics/rebuild',
+      url: '/api/organizations/liga-admin-http/statistics/rebuild',
       payload: {},
     });
     expect(response.statusCode).toBe(401);
@@ -296,7 +298,7 @@ describe('AdminStatisticsController (integration)', () => {
   it('404s an unknown organization alias', async () => {
     const response = await (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: '/organizations/no-such-organization/statistics/rebuild',
+      url: '/api/organizations/no-such-organization/statistics/rebuild',
       headers: { authorization: 'Bearer admin' },
       payload: {},
     });

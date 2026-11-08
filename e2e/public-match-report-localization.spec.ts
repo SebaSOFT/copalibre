@@ -15,7 +15,7 @@ const TOURNAMENT_ALIAS = 'apertura-2026';
 const STAGE = '1';
 const MATCH = '5';
 
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 
 const populatedMatchReport = {
   organizationAlias: ORGANIZATION,

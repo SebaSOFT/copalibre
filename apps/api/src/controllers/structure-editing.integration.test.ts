@@ -116,7 +116,7 @@ describe('tournament settings edit and preview', () => {
     const { tournamentAlias } = await seedTournament();
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
@@ -131,7 +131,7 @@ describe('tournament settings edit and preview', () => {
     const { tournamentAlias } = await seedTournament();
     const preview = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/settings/preview`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/settings/preview`,
       token: 'organizer-org1',
       payload: { region: 'Europe' },
     });
@@ -142,7 +142,7 @@ describe('tournament settings edit and preview', () => {
 
     const applied = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
       token: 'organizer-org1',
       payload: { region: 'Europe' },
     });
@@ -157,7 +157,7 @@ describe('tournament settings edit and preview', () => {
 
     const preview = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/settings/preview`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/settings/preview`,
       token: 'organizer-org1',
       payload: { capacity: 1 },
     });
@@ -170,7 +170,7 @@ describe('tournament settings edit and preview', () => {
 
     const applied = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
       token: 'organizer-org1',
       payload: { capacity: 1 },
     });
@@ -179,7 +179,7 @@ describe('tournament settings edit and preview', () => {
 
     const settings = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
       token: 'organizer-org1',
     });
     expect(settings.json().capacity).toBe(4);
@@ -189,7 +189,7 @@ describe('tournament settings edit and preview', () => {
     const { tournamentAlias } = await seedTournament();
     const response = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
       token: 'organizer-org1',
       payload: { name: 'Copa Estructura (renombrada)' },
     });
@@ -220,7 +220,7 @@ describe('stage editing', () => {
 
     const response = await request({
       method: 'PATCH',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
       token: 'organizer-org1',
       payload: { format: 'single-elimination' },
     });
@@ -234,7 +234,7 @@ describe('stage editing', () => {
 
     const renamed = await request({
       method: 'PATCH',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
       token: 'organizer-org1',
       payload: { name: 'Fase de grupos (corregida)' },
     });
@@ -243,7 +243,7 @@ describe('stage editing', () => {
 
     const removed = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
       token: 'organizer-org1',
       payload: { confirmationName: 'Fase de grupos (corregida)' },
     });
@@ -285,7 +285,7 @@ describe('stage editing', () => {
 
     const removed = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
       token: 'organizer-org1',
       payload: { confirmationName: stage.name },
     });
@@ -309,7 +309,7 @@ describe('stage editing', () => {
 
     const formatChange = await request({
       method: 'PATCH',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
       token: 'organizer-org1',
       payload: { format: 'single-elimination' },
     });
@@ -318,7 +318,7 @@ describe('stage editing', () => {
 
     const preview = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}?dryRun=true`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}?dryRun=true`,
       token: 'organizer-org1',
     });
     expect(preview.statusCode).toBe(200);
@@ -336,7 +336,7 @@ describe('stage editing', () => {
 
     const wrongConfirmation = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
       token: 'organizer-org1',
       payload: { confirmationName: 'Otra etapa' },
     });
@@ -345,7 +345,7 @@ describe('stage editing', () => {
 
     const removed = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
       token: 'organizer-org1',
       payload: { confirmationName: stage.name },
     });
@@ -415,7 +415,7 @@ describe('zone and group editing', () => {
 
     const renamedZone = await request({
       method: 'PATCH',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}`,
       token: 'organizer-org1',
       payload: { name: 'Zona 1 (corregida)' },
     });
@@ -424,7 +424,7 @@ describe('zone and group editing', () => {
 
     const renamedGroup = await request({
       method: 'PATCH',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/groups/${group.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/groups/${group.number}`,
       token: 'organizer-org1',
       payload: { name: 'Grupo A (corregido)' },
     });
@@ -462,14 +462,14 @@ describe('zone and group editing', () => {
 
     const removedGroup = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/groups/${group.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/groups/${group.number}`,
       token: 'organizer-org1',
     });
     expect(removedGroup.statusCode).toBe(200);
 
     const removedZone = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}`,
       token: 'organizer-org1',
     });
     expect(removedZone.statusCode).toBe(200);
@@ -485,7 +485,7 @@ describe('zone and group editing', () => {
 
     const removedGroup = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/groups/${group.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/groups/${group.number}`,
       token: 'organizer-org1',
     });
     expect(removedGroup.statusCode).toBe(200);
@@ -494,7 +494,7 @@ describe('zone and group editing', () => {
 
     const restoredGroup = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/groups/${group.number}/restore`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/groups/${group.number}/restore`,
       token: 'organizer-org1',
     });
     expect(restoredGroup.statusCode).toBe(200);
@@ -502,7 +502,7 @@ describe('zone and group editing', () => {
 
     const removedZone = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}`,
       token: 'organizer-org1',
     });
     expect(removedZone.statusCode).toBe(200);
@@ -511,7 +511,7 @@ describe('zone and group editing', () => {
 
     const restoredZone = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/restore`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/restore`,
       token: 'organizer-org1',
     });
     expect(restoredZone.statusCode).toBe(200);

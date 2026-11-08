@@ -29,12 +29,12 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: async (input, init) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
+        if (url === '/api/disciplines') return json([]);
         calls.push({ url, body: init?.body ? JSON.parse(String(init.body)) : undefined });
-        if (url === '/installation/super-admins') return json([]);
-        if (url === '/admin/modules') return json([]);
-        if (url === '/disciplines') return json([]);
-        if (url === '/organizations') {
+        if (url === '/api/installation/super-admins') return json([]);
+        if (url === '/api/admin/modules') return json([]);
+        if (url === '/api/disciplines') return json([]);
+        if (url === '/api/organizations') {
           return json(
             {
               organizationId: '01800000-0000-7000-8000-000000000002',
@@ -46,7 +46,7 @@ describe('platform administration console', () => {
             201,
           );
         }
-        if (url === '/organizations/liga-sur/invitations') {
+        if (url === '/api/organizations/liga-sur/invitations') {
           return json({ invitationId: 'invite-1', expiresAt: '2099-01-01T00:00:00.000Z' }, 201);
         }
         return json({ message: 'not found' }, 404);
@@ -69,10 +69,12 @@ describe('platform administration console', () => {
     );
 
     expect(
-      calls.filter((call) => call.url === '/organizations' || call.url.includes('/invitations')),
+      calls.filter(
+        (call) => call.url === '/api/organizations' || call.url.includes('/invitations'),
+      ),
     ).toEqual([
       {
-        url: '/organizations',
+        url: '/api/organizations',
         body: {
           alias: 'liga-sur',
           name: 'Liga Sur',
@@ -81,7 +83,7 @@ describe('platform administration console', () => {
         },
       },
       {
-        url: '/organizations/liga-sur/invitations',
+        url: '/api/organizations/liga-sur/invitations',
         body: { email: 'admin@liga.test', role: 'admin', status: 'active' },
       },
     ]);
@@ -95,14 +97,14 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: async (input, init) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
+        if (url === '/api/disciplines') return json([]);
         const method = init?.method ?? 'GET';
         requests.push({
           url,
           method,
           ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}),
         });
-        if (url === '/admin/modules?outdated=true')
+        if (url === '/api/admin/modules?outdated=true')
           return json([
             {
               alias: 'football',
@@ -111,9 +113,9 @@ describe('platform administration console', () => {
               upgrade: 'minor',
             },
           ]);
-        if (url === '/admin/modules/verify')
+        if (url === '/api/admin/modules/verify')
           return json([{ alias: 'football', version: '1.0.0', ok: true, failures: [] }]);
-        if (url === '/admin/modules' && method === 'POST')
+        if (url === '/api/admin/modules' && method === 'POST')
           return json(
             {
               kind: 'discipline',
@@ -123,8 +125,8 @@ describe('platform administration console', () => {
             },
             201,
           );
-        if (url === '/admin/modules') return json([installedModule]);
-        if (url === '/installation/super-admins') return json([]);
+        if (url === '/api/admin/modules') return json([installedModule]);
+        if (url === '/api/installation/super-admins') return json([]);
         return json({}, 200);
       },
     });
@@ -142,7 +144,7 @@ describe('platform administration console', () => {
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Install module' })));
     expect(screen.getByLabelText('Alternate source (one use only)')).toHaveProperty('value', '');
     expect(
-      requests.find((request) => request.method === 'POST' && request.url === '/admin/modules')
+      requests.find((request) => request.method === 'POST' && request.url === '/api/admin/modules')
         ?.body,
     ).toMatchObject({ source: 'file:///modules/football' });
 
@@ -151,16 +153,16 @@ describe('platform administration console', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Check for updates' })),
     );
     expect(await screen.findByText(/1.0.0 → 1.1.0/)).toBeDefined();
-    expect(requests.some((request) => request.url === '/admin/modules/verify')).toBe(true);
+    expect(requests.some((request) => request.url === '/api/admin/modules/verify')).toBe(true);
   });
 
   it('shows API conflict text verbatim', async () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
-        if (url === '/admin/modules') return json([]);
-        if (url === '/installation/super-admins') return json([]);
+        if (url === '/api/disciplines') return json([]);
+        if (url === '/api/admin/modules') return json([]);
+        if (url === '/api/installation/super-admins') return json([]);
         return json({ message: 'Alias already belongs to another organization' }, 409);
       }),
     });
@@ -181,11 +183,11 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
-        if (url === '/admin/modules' && (init?.method ?? 'GET') === 'GET') {
+        if (url === '/api/disciplines') return json([]);
+        if (url === '/api/admin/modules' && (init?.method ?? 'GET') === 'GET') {
           return json([installedModule]);
         }
-        if (url === '/installation/super-admins') return json([]);
+        if (url === '/api/installation/super-admins') return json([]);
         return json(
           { message: 'Cannot remove "football": referenced by started tournament(s): apertura' },
           409,
@@ -209,11 +211,11 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
+        if (url === '/api/disciplines') return json([]);
         const method = init?.method ?? 'GET';
-        if (url === '/admin/modules') return json([]);
-        if (url === '/installation/super-admins' && method === 'GET') return json(superAdmins);
-        if (url === '/installation/super-admins' && method === 'POST') {
+        if (url === '/api/admin/modules') return json([]);
+        if (url === '/api/installation/super-admins' && method === 'GET') return json(superAdmins);
+        if (url === '/api/installation/super-admins' && method === 'POST') {
           const body = JSON.parse(String(init?.body));
           const created = {
             assignmentId: '01800000-0000-7000-8000-000000000009',
@@ -223,7 +225,7 @@ describe('platform administration console', () => {
           superAdmins = [...superAdmins, created];
           return json(created, 201);
         }
-        if (url.startsWith('/installation/super-admins/') && method === 'DELETE') {
+        if (url.startsWith('/api/installation/super-admins/') && method === 'DELETE') {
           return json(
             { message: 'The installation must always keep at least one active super-admin' },
             409,
@@ -255,9 +257,9 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
-        if (url === '/admin/modules') return json([]);
-        if (url === '/installation/super-admins') return json({ message: 'Forbidden' }, 403);
+        if (url === '/api/disciplines') return json([]);
+        if (url === '/api/admin/modules') return json([]);
+        if (url === '/api/installation/super-admins') return json({ message: 'Forbidden' }, 403);
         return json({}, 200);
       }),
     });
@@ -271,10 +273,10 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
-        if (url === '/admin/modules') return json([]);
-        if (url === '/installation/super-admins') return json([]);
-        if (url === '/organizations/liga-sur/roles') {
+        if (url === '/api/disciplines') return json([]);
+        if (url === '/api/admin/modules') return json([]);
+        if (url === '/api/installation/super-admins') return json([]);
+        if (url === '/api/organizations/liga-sur/roles') {
           return json([
             {
               assignmentId: '01800000-0000-7000-8000-000000000010',
@@ -308,11 +310,11 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
+        if (url === '/api/disciplines') return json([]);
         const method = init?.method ?? 'GET';
-        if (url === '/admin/modules' && method === 'GET') return json([installedModule]);
-        if (url === '/installation/super-admins') return json([]);
-        if (url === '/admin/modules/football' && method === 'DELETE') {
+        if (url === '/api/admin/modules' && method === 'GET') return json([installedModule]);
+        if (url === '/api/installation/super-admins') return json([]);
+        if (url === '/api/admin/modules/football' && method === 'DELETE') {
           removeRequests.push(url);
           return json({ alias: 'football', removedCount: 1 });
         }
@@ -330,11 +332,11 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
+        if (url === '/api/disciplines') return json([]);
         const method = init?.method ?? 'GET';
-        if (url === '/admin/modules' && method === 'GET') return json([installedModule]);
-        if (url === '/installation/super-admins') return json([]);
-        if (url === '/admin/modules/verify')
+        if (url === '/api/admin/modules' && method === 'GET') return json([installedModule]);
+        if (url === '/api/installation/super-admins') return json([]);
+        if (url === '/api/admin/modules/verify')
           return json([
             {
               alias: 'football',
@@ -343,7 +345,7 @@ describe('platform administration console', () => {
               failures: [{ message: 'Missing required capability: statistics' }],
             },
           ]);
-        if (url === '/admin/modules' && method === 'POST') {
+        if (url === '/api/admin/modules' && method === 'POST') {
           return json({ message: 'Module already installed' }, 409);
         }
         return json({}, 200);
@@ -371,15 +373,15 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
+        if (url === '/api/disciplines') return json([]);
         const method = init?.method ?? 'GET';
-        if (url === '/admin/modules' && method === 'GET') return json([]);
-        if (url === '/installation/super-admins') return json([]);
-        if (url === '/disciplines') return json([]);
-        if (url === '/admin/authored-modules/validate' && method === 'POST') {
+        if (url === '/api/admin/modules' && method === 'GET') return json([]);
+        if (url === '/api/installation/super-admins') return json([]);
+        if (url === '/api/disciplines') return json([]);
+        if (url === '/api/admin/authored-modules/validate' && method === 'POST') {
           return json({ ok: true, failures: [] });
         }
-        if (url === '/admin/authored-modules' && method === 'POST') {
+        if (url === '/api/admin/authored-modules' && method === 'POST') {
           const body = JSON.parse(String(init?.body));
           installed.push(body);
           return json(
@@ -440,13 +442,13 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
+        if (url === '/api/disciplines') return json([]);
         const method = init?.method ?? 'GET';
-        if (url === '/admin/modules' && method === 'GET') {
+        if (url === '/api/admin/modules' && method === 'GET') {
           return json([{ ...installedModule, sourceKind: 'authored' as const }]);
         }
-        if (url === '/installation/super-admins') return json([]);
-        if (url === '/admin/authored-modules/submit' && method === 'POST') {
+        if (url === '/api/installation/super-admins') return json([]);
+        if (url === '/api/admin/authored-modules/submit' && method === 'POST') {
           return json(
             {
               pullRequestUrl: 'https://github.com/SebaSOFT/copalibre-modules/pull/1',
@@ -471,10 +473,10 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
-        if (url === '/admin/modules') return json([]);
-        if (url === '/installation/super-admins') return json([]);
-        if (url === '/disciplines') {
+        if (url === '/api/disciplines') return json([]);
+        if (url === '/api/admin/modules') return json([]);
+        if (url === '/api/installation/super-admins') return json([]);
+        if (url === '/api/disciplines') {
           return json([
             {
               descriptorId: 'd-1',
@@ -547,18 +549,18 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
+        if (url === '/api/disciplines') return json([]);
         const method = init?.method ?? 'GET';
         requests.push({
           url,
           method,
           body: init?.body ? JSON.parse(String(init.body)) : undefined,
         });
-        if (url === '/admin/modules') return json([]);
-        if (url === '/installation/super-admins') return json([]);
-        if (url === '/disciplines') return json([]);
-        if (url === '/admin/diagnostics/summary') return json(diagnosticsSummary);
-        if (url === '/admin/diagnostics/outbox/retry') {
+        if (url === '/api/admin/modules') return json([]);
+        if (url === '/api/installation/super-admins') return json([]);
+        if (url === '/api/disciplines') return json([]);
+        if (url === '/api/admin/diagnostics/summary') return json(diagnosticsSummary);
+        if (url === '/api/admin/diagnostics/outbox/retry') {
           return json({
             retried: ['019927d0-0000-7000-8000-000000000101'],
             skipped: [],
@@ -597,7 +599,7 @@ describe('platform administration console', () => {
       fireEvent.click(confirmBtn);
     });
 
-    const retryRequest = requests.find((r) => r.url === '/admin/diagnostics/outbox/retry');
+    const retryRequest = requests.find((r) => r.url === '/api/admin/diagnostics/outbox/retry');
     expect(retryRequest).toBeDefined();
     expect(retryRequest?.method).toBe('POST');
     expect(retryRequest?.body).toEqual({
@@ -625,11 +627,11 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
-        if (url === '/admin/modules') return json([]);
-        if (url === '/installation/super-admins') return json([]);
-        if (url === '/disciplines') return json([]);
-        if (url === '/admin/diagnostics/summary') {
+        if (url === '/api/disciplines') return json([]);
+        if (url === '/api/admin/modules') return json([]);
+        if (url === '/api/installation/super-admins') return json([]);
+        if (url === '/api/disciplines') return json([]);
+        if (url === '/api/admin/diagnostics/summary') {
           return json({ message: 'Diagnostics probe timeout' }, 504);
         }
         return json({}, 200);
@@ -677,12 +679,12 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
-        if (url === '/admin/modules') return json([]);
-        if (url === '/installation/super-admins') return json([]);
-        if (url === '/disciplines') return json([]);
-        if (url === '/admin/diagnostics/summary') return json(diagnosticsSummary);
-        if (url === '/admin/diagnostics/outbox/retry') {
+        if (url === '/api/disciplines') return json([]);
+        if (url === '/api/admin/modules') return json([]);
+        if (url === '/api/installation/super-admins') return json([]);
+        if (url === '/api/disciplines') return json([]);
+        if (url === '/api/admin/diagnostics/summary') return json(diagnosticsSummary);
+        if (url === '/api/admin/diagnostics/outbox/retry') {
           return json({ message: 'Outbox locked by background processor' }, 409);
         }
         return json({}, 200);
@@ -730,11 +732,11 @@ describe('platform administration console', () => {
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
-        if (url === '/admin/modules') return json([]);
-        if (url === '/installation/super-admins') return json([]);
-        if (url === '/disciplines') return json([]);
-        if (url === '/admin/diagnostics/summary') {
+        if (url === '/api/disciplines') return json([]);
+        if (url === '/api/admin/modules') return json([]);
+        if (url === '/api/installation/super-admins') return json([]);
+        if (url === '/api/disciplines') return json([]);
+        if (url === '/api/admin/diagnostics/summary') {
           pollCount += 1;
           return json(diagnosticsSummary);
         }

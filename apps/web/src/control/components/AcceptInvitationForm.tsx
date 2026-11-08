@@ -1,3 +1,4 @@
+import { API_PATH_PREFIX } from '../../lib/api-path.js';
 import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { controlTokenStore } from '../session/token-store.js';
@@ -88,7 +89,7 @@ export function AcceptInvitationForm({
     setError(null);
 
     try {
-      const response = await fetch('/auth/accept-invitation', {
+      const response = await fetch(`${API_PATH_PREFIX}/auth/accept-invitation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

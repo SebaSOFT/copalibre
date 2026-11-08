@@ -32,7 +32,7 @@ describe('email layout', () => {
 
   it('shows the organization emblem, escaped name and public page link in the header', () => {
     const { html } = renderEmail(config, content);
-    expect(html).toContain('src="https://liga.example/organizations/liga-mendocina/emblem"');
+    expect(html).toContain('src="https://liga.example/api/organizations/liga-mendocina/emblem"');
     expect(html).toContain('>Liga &lt;Mendocina&gt; &amp; Co</span>');
     expect(html).toContain('href="https://liga.example/liga-mendocina"');
   });

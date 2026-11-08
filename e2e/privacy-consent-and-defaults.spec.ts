@@ -4,7 +4,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-juvenil';
-const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const TOURNAMENT = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const DASHBOARD = `/control/${ORGANIZATION}`;
 const RESOURCES = `/control/${ORGANIZATION}/resources`;
 const PLAYER_ID = '0199f110-0000-7000-8000-000000000041';
@@ -134,7 +134,7 @@ async function mockDashboardApi(page: Page): Promise<void> {
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url === '/organizations?mine=true') {
+        if (url === '/api/organizations?mine=true') {
           return Response.json([
             {
               organizationId: 'org-1',
@@ -144,18 +144,21 @@ async function mockDashboardApi(page: Page): Promise<void> {
             },
           ]);
         }
-        if (url === `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/settings`) {
+        if (
+          url === `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/settings`
+        ) {
           return Response.json({ includesMinors: true, showYouthProfiles: false });
         }
         if (
-          url === `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/publish` &&
+          url ===
+            `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/publish` &&
           method === 'POST'
         ) {
           return (window as Window & { __markYouthTournamentPublished: () => Promise<void> })
             .__markYouthTournamentPublished()
             .then(() => Response.json({ status: 'published' }));
         }
-        if (url === `/organizations/${organizationAlias}/tournaments` && method === 'GET') {
+        if (url === `/api/organizations/${organizationAlias}/tournaments` && method === 'GET') {
           return Response.json([
             {
               tournamentId: 'tournament-youth',
@@ -199,7 +202,7 @@ async function mockResourceApi(page: Page): Promise<void> {
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url === '/organizations?mine=true') {
+        if (url === '/api/organizations?mine=true') {
           return Response.json([
             {
               organizationId: 'org-1',
@@ -209,7 +212,7 @@ async function mockResourceApi(page: Page): Promise<void> {
             },
           ]);
         }
-        if (url === `/organizations/${organizationAlias}/venues` && method === 'GET') {
+        if (url === `/api/organizations/${organizationAlias}/venues` && method === 'GET') {
           return Response.json(
             state.venueDeleted
               ? []
@@ -224,12 +227,15 @@ async function mockResourceApi(page: Page): Promise<void> {
                 ],
           );
         }
-        if (url === `/organizations/${organizationAlias}/venues/venue-1` && method === 'DELETE') {
+        if (
+          url === `/api/organizations/${organizationAlias}/venues/venue-1` &&
+          method === 'DELETE'
+        ) {
           state.venueDeleted = true;
           return Response.json({ success: true });
         }
         if (
-          url === `/organizations/${organizationAlias}/venues/venue-1/restore` &&
+          url === `/api/organizations/${organizationAlias}/venues/venue-1/restore` &&
           method === 'POST'
         ) {
           state.venueDeleted = false;
@@ -241,8 +247,8 @@ async function mockResourceApi(page: Page): Promise<void> {
             concurrentCapacity: 1,
           });
         }
-        if (url === `/organizations/${organizationAlias}/officials`) return Response.json([]);
-        if (url === `/organizations/${organizationAlias}/schedules` && method === 'GET') {
+        if (url === `/api/organizations/${organizationAlias}/officials`) return Response.json([]);
+        if (url === `/api/organizations/${organizationAlias}/schedules` && method === 'GET') {
           return Response.json(
             state.scheduleDeleted
               ? []
@@ -267,11 +273,11 @@ async function mockResourceApi(page: Page): Promise<void> {
                 ],
           );
         }
-        if (url === `/organizations/${organizationAlias}/schedules/schedule-1?dryRun=true`) {
+        if (url === `/api/organizations/${organizationAlias}/schedules/schedule-1?dryRun=true`) {
           return Response.json({ dryRun: true, success: false, slots: 4, matchesUnassigned: 2 });
         }
         if (
-          url === `/organizations/${organizationAlias}/schedules/schedule-1` &&
+          url === `/api/organizations/${organizationAlias}/schedules/schedule-1` &&
           method === 'DELETE'
         ) {
           if (
@@ -349,7 +355,7 @@ test('shows schedule deletion counts and enables confirmation only after typing 
   );
   expect(requests).toContainEqual(
     expect.objectContaining({
-      url: `/organizations/${ORGANIZATION}/schedules/schedule-1`,
+      url: `/api/organizations/${ORGANIZATION}/schedules/schedule-1`,
       method: 'DELETE',
       body: { confirmationName: 'Horario Copa' },
     }),

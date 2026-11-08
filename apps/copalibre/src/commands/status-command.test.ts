@@ -118,12 +118,12 @@ describe('copalibre status', () => {
           {},
         );
         expect(globalThis.fetch).toHaveBeenCalledWith(
-          'http://127.0.0.1:3001/health',
+          'http://127.0.0.1:3001/api/health',
           expect.objectContaining({ signal: expect.any(AbortSignal) }),
         );
         expect(JSON.parse(String(output.mock.calls.at(-1)?.[0]))).toMatchObject({
           mode: 'dev',
-          gateway: { url: 'http://127.0.0.1:3001', healthUrl: 'http://127.0.0.1:3001/health' },
+          gateway: { url: 'http://127.0.0.1:3001', healthUrl: 'http://127.0.0.1:3001/api/health' },
           healthy: true,
         });
       } finally {

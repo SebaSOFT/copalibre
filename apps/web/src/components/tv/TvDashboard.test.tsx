@@ -70,9 +70,9 @@ describe('TvDashboard', () => {
     {
       clubId: 'club-boca',
       name: 'Boca Juniors',
-      emblemUrl: '/organizations/o/clubs/boca/emblem',
+      emblemUrl: '/api/organizations/o/clubs/boca/emblem',
     },
-    { name: 'River Plate', emblemUrl: '/organizations/o/clubs/river/emblem' },
+    { name: 'River Plate', emblemUrl: '/api/organizations/o/clubs/river/emblem' },
   ];
 
   const fixtureMatch = (
@@ -328,7 +328,7 @@ describe('TvDashboard', () => {
     // The visible name supplies the accessible label; the adjacent emblem is decorative.
     const emblem = championPanel.querySelector('.tv-champion__emblem-wrap img');
     expect(emblem?.getAttribute('alt')).toBe('');
-    expect(emblem?.getAttribute('src')).toBe('/organizations/o/clubs/boca/emblem');
+    expect(emblem?.getAttribute('src')).toBe('/api/organizations/o/clubs/boca/emblem');
   });
 
   it('renders live match spotlight when a live match is in progress', () => {

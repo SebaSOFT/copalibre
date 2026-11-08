@@ -32,7 +32,7 @@ let scratch: Awaited<ReturnType<typeof buildTestApp>>['scratch'];
 let organizationId = '';
 let request: Awaited<ReturnType<typeof buildTestApp>>['request'];
 const tournamentAlias = 'copa-alta-directa';
-const base = `/organizations/liga-orbital/tournaments/${tournamentAlias}/registrations`;
+const base = `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/registrations`;
 
 beforeAll(async () => {
   ({ app, scratch, organizationId, request } = await buildTestApp([

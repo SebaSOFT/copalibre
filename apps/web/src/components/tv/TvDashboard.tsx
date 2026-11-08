@@ -1,3 +1,4 @@
+import { API_PATH_PREFIX } from '../../lib/api-path.ts';
 import type { PublicMatchesViewResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import { measureSchedule, animateSchedule } from '../../lib/schedule-travel.js';
 import type { PreviousPlacement } from '../../lib/reschedule.js';
@@ -299,7 +300,7 @@ export function TvDashboard({
   const refreshProjection = useCallback(async (): Promise<readonly LiveMatch[] | undefined> => {
     if (!organizationAlias || !tournamentAlias) return undefined;
     try {
-      const base = `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}`;
+      const base = `${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}`;
       const [res, scheduleResponse] = await Promise.all(
         ['live', 'matches-view'].map((path) => fetch(`${base}/${path}`)),
       );
@@ -672,7 +673,7 @@ export function TvDashboard({
     const refreshBracket = async () => {
       try {
         const response = await fetch(
-          `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${bracketStage}/bracket`,
+          `${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${bracketStage}/bracket`,
         );
         if (!response.ok) {
           if (bracketDataRef.current) setBracketStale(true);

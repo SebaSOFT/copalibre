@@ -21,6 +21,7 @@ import { OBJECT_STORAGE } from '../object-storage.token.js';
 import { OrganizationAccessController } from './organization-access.controller.js';
 import { OrganizationsController } from './organizations.controller.js';
 import { ParticipantsController } from './participants.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /** Never actually invoked in these access-guard tests — DI just needs something to inject. */
 const noopObjectStorage: ObjectStorageAdapter = {
@@ -84,6 +85,7 @@ describe('organization access guards (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [AccessTestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
   });
@@ -96,33 +98,33 @@ describe('organization access guards (integration)', () => {
   it('rejects a participant token that attempts a participant route without an identity link', async () => {
     const response = await request(
       'participant',
-      `/organizations/liga-segura/participant/registrations`,
+      `/api/organizations/liga-segura/participant/registrations`,
     );
     expect(response.statusCode).toBe(403);
     expect(response.json().message).toContain('participant identity');
   });
 
   it('rejects a participant token on an operator-only route', async () => {
-    const response = await request('participant', `/organizations/liga-segura/roles`);
+    const response = await request('participant', `/api/organizations/liga-segura/roles`);
     expect(response.statusCode).toBe(403);
     expect(response.json().message).toContain('copalibre.control');
   });
 
   it('rejects an inactive organization user after authentication', async () => {
-    const response = await request('inactive', `/organizations/liga-segura/roles`);
+    const response = await request('inactive', `/api/organizations/liga-segura/roles`);
     expect(response.statusCode).toBe(403);
     expect(response.json().message).toContain('no active organization role');
   });
 
   it('allows the active organization admin', async () => {
-    const response = await request('admin', `/organizations/liga-segura/roles`);
+    const response = await request('admin', `/api/organizations/liga-segura/roles`);
     expect(response.statusCode).toBe(200);
     expect(response.json()).toHaveLength(2);
   });
 
   describe('GET /organizations?mine=true', () => {
     it('lists exactly the organizations with an active assignment, with roles', async () => {
-      const response = await request('admin', '/organizations?mine=true');
+      const response = await request('admin', '/api/organizations?mine=true');
       expect(response.statusCode).toBe(200);
       expect(response.json()).toEqual([
         {
@@ -136,13 +138,13 @@ describe('organization access guards (integration)', () => {
     });
 
     it('excludes an inactive assignment, leaving an empty list', async () => {
-      const response = await request('inactive', '/organizations?mine=true');
+      const response = await request('inactive', '/api/organizations?mine=true');
       expect(response.statusCode).toBe(200);
       expect(response.json()).toEqual([]);
     });
 
     it('answers 200 with an empty list for a caller with no installation principal at all', async () => {
-      const response = await request('noPrincipal', '/organizations?mine=true');
+      const response = await request('noPrincipal', '/api/organizations?mine=true');
       expect(response.statusCode).toBe(200);
       expect(response.json()).toEqual([]);
     });
@@ -150,7 +152,7 @@ describe('organization access guards (integration)', () => {
 
   describe('organization settings', () => {
     it('lets the active organization admin update the primary language', async () => {
-      const response = await patch('admin', `/organizations/liga-segura/settings`, {
+      const response = await patch('admin', `/api/organizations/liga-segura/settings`, {
         primaryLanguage: 'fr',
       });
       expect(response.statusCode).toBe(200);
@@ -158,21 +160,21 @@ describe('organization access guards (integration)', () => {
     });
 
     it('refuses an inactive organization user', async () => {
-      const response = await patch('inactive', `/organizations/liga-segura/settings`, {
+      const response = await patch('inactive', `/api/organizations/liga-segura/settings`, {
         primaryLanguage: 'en',
       });
       expect(response.statusCode).toBe(403);
     });
 
     it('refuses a participant token', async () => {
-      const response = await patch('participant', `/organizations/liga-segura/settings`, {
+      const response = await patch('participant', `/api/organizations/liga-segura/settings`, {
         primaryLanguage: 'en',
       });
       expect(response.statusCode).toBe(403);
     });
 
     it('409s an unsupported primary language', async () => {
-      const response = await patch('admin', `/organizations/liga-segura/settings`, {
+      const response = await patch('admin', `/api/organizations/liga-segura/settings`, {
         primaryLanguage: 'ja',
       });
       expect(response.statusCode).toBe(409);
@@ -203,7 +205,7 @@ describe('organization access guards (integration)', () => {
       );
       await repo.markPassed(passed.objectId);
 
-      const response = await request('admin', `/organizations/liga-segura/storage-usage`);
+      const response = await request('admin', `/api/organizations/liga-segura/storage-usage`);
       expect(response.statusCode).toBe(200);
       expect(response.json()).toEqual({
         totalBytes: 1048576,
@@ -212,17 +214,17 @@ describe('organization access guards (integration)', () => {
     });
 
     it('refuses an inactive organization user with 403', async () => {
-      const response = await request('inactive', `/organizations/liga-segura/storage-usage`);
+      const response = await request('inactive', `/api/organizations/liga-segura/storage-usage`);
       expect(response.statusCode).toBe(403);
     });
 
     it('refuses a participant token with 403', async () => {
-      const response = await request('participant', `/organizations/liga-segura/storage-usage`);
+      const response = await request('participant', `/api/organizations/liga-segura/storage-usage`);
       expect(response.statusCode).toBe(403);
     });
 
     it('refuses an unknown organization alias with 403', async () => {
-      const response = await request('admin', `/organizations/no-such-org/storage-usage`);
+      const response = await request('admin', `/api/organizations/no-such-org/storage-usage`);
       expect(response.statusCode).toBe(403);
       expect(response.json().message).toContain('Requested organization does not exist');
     });

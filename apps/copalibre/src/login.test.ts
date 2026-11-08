@@ -93,7 +93,7 @@ describe('login', () => {
       );
 
       expect(requestFetch).toHaveBeenCalledWith(
-        new URL('/organizations?mine=true', 'https://copalibre.example'),
+        new URL('/api/organizations?mine=true', 'https://copalibre.example'),
         expect.objectContaining({ headers: { authorization: 'Bearer clpat_x' } }),
       );
     });

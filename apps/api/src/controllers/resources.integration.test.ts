@@ -19,6 +19,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { ResourcesController } from './resources.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /** Venue/official list/create/edit through the real HTTP stack. */
 
@@ -102,6 +103,7 @@ describe('venue/official list/create/edit (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
@@ -119,7 +121,7 @@ describe('venue/official list/create/edit (integration)', () => {
   it('refuses an unauthenticated venue listing', async () => {
     const response = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/venues`,
+      url: `/api/organizations/${organizationAlias}/venues`,
     });
     expect(response.statusCode).toBe(401);
   });
@@ -127,7 +129,7 @@ describe('venue/official list/create/edit (integration)', () => {
   it('lists an empty venue roster, creates a venue with details, then lists it', async () => {
     const empty = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/venues`,
+      url: `/api/organizations/${organizationAlias}/venues`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(empty.statusCode).toBe(200);
@@ -135,7 +137,7 @@ describe('venue/official list/create/edit (integration)', () => {
 
     const created = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/venues`,
+      url: `/api/organizations/${organizationAlias}/venues`,
       headers: { authorization: 'Bearer organizer' },
       payload: {
         alias: 'cancha-1',
@@ -154,7 +156,7 @@ describe('venue/official list/create/edit (integration)', () => {
 
     const listed = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/venues`,
+      url: `/api/organizations/${organizationAlias}/venues`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(listed.statusCode).toBe(200);
@@ -164,7 +166,7 @@ describe('venue/official list/create/edit (integration)', () => {
   it('soft-deletes and restores an unused venue with audit and outbox records', async () => {
     const created = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/venues`,
+      url: `/api/organizations/${organizationAlias}/venues`,
       headers: { authorization: 'Bearer organizer' },
       payload: { alias: 'cancha-recuperable', name: 'Cancha Recuperable', concurrentCapacity: 1 },
     });
@@ -173,7 +175,7 @@ describe('venue/official list/create/edit (integration)', () => {
 
     const removed = await inject({
       method: 'DELETE',
-      url: `/organizations/${organizationAlias}/venues/${venue.venueId}`,
+      url: `/api/organizations/${organizationAlias}/venues/${venue.venueId}`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(removed.statusCode).toBe(200);
@@ -181,7 +183,7 @@ describe('venue/official list/create/edit (integration)', () => {
 
     const hidden = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/venues`,
+      url: `/api/organizations/${organizationAlias}/venues`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(hidden.statusCode).toBe(200);
@@ -189,13 +191,13 @@ describe('venue/official list/create/edit (integration)', () => {
 
     const unauthenticatedRestore = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/venues/${venue.venueId}/restore`,
+      url: `/api/organizations/${organizationAlias}/venues/${venue.venueId}/restore`,
     });
     expect(unauthenticatedRestore.statusCode).toBe(401);
 
     const restored = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/venues/${venue.venueId}/restore`,
+      url: `/api/organizations/${organizationAlias}/venues/${venue.venueId}/restore`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(restored.statusCode).toBe(200);
@@ -203,7 +205,7 @@ describe('venue/official list/create/edit (integration)', () => {
 
     const visible = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/venues`,
+      url: `/api/organizations/${organizationAlias}/venues`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(visible.json()).toEqual(expect.arrayContaining([expect.objectContaining(venue)]));
@@ -246,7 +248,7 @@ describe('venue/official list/create/edit (integration)', () => {
   it('creates a virtual venue — a server is a venue the same way a court is', async () => {
     const created = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/venues`,
+      url: `/api/organizations/${organizationAlias}/venues`,
       headers: { authorization: 'Bearer organizer' },
       payload: {
         alias: 'servidor-1',
@@ -262,7 +264,7 @@ describe('venue/official list/create/edit (integration)', () => {
   it('creates a venue with no details at all, unaffected by the field', async () => {
     const created = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/venues`,
+      url: `/api/organizations/${organizationAlias}/venues`,
       headers: { authorization: 'Bearer organizer' },
       payload: { alias: 'cancha-sin-detalles', name: 'Cancha Sin Detalles', concurrentCapacity: 1 },
     });
@@ -273,7 +275,7 @@ describe('venue/official list/create/edit (integration)', () => {
   it('edits a venue’s name, capacity, and details', async () => {
     const created = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/venues`,
+      url: `/api/organizations/${organizationAlias}/venues`,
       headers: { authorization: 'Bearer organizer' },
       payload: { alias: 'cancha-editable', name: 'Cancha Editable', concurrentCapacity: 1 },
     });
@@ -281,7 +283,7 @@ describe('venue/official list/create/edit (integration)', () => {
 
     const updated = await inject({
       method: 'PATCH',
-      url: `/organizations/${organizationAlias}/venues/${venue.venueId}`,
+      url: `/api/organizations/${organizationAlias}/venues/${venue.venueId}`,
       headers: { authorization: 'Bearer organizer' },
       payload: { name: 'Cancha Renombrada', concurrentCapacity: 3, details: { surface: 'grass' } },
     });
@@ -297,7 +299,7 @@ describe('venue/official list/create/edit (integration)', () => {
   it('404s an edit for an unknown venue', async () => {
     const response = await inject({
       method: 'PATCH',
-      url: `/organizations/${organizationAlias}/venues/00000000-0000-7000-8000-000000000099`,
+      url: `/api/organizations/${organizationAlias}/venues/00000000-0000-7000-8000-000000000099`,
       headers: { authorization: 'Bearer organizer' },
       payload: { name: 'Nadie' },
     });
@@ -307,7 +309,7 @@ describe('venue/official list/create/edit (integration)', () => {
   it('refuses creating a venue with a malformed alias', async () => {
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/venues`,
+      url: `/api/organizations/${organizationAlias}/venues`,
       headers: { authorization: 'Bearer organizer' },
       payload: { alias: 'Not A Valid Alias!', name: 'Cancha Inválida', concurrentCapacity: 1 },
     });
@@ -317,7 +319,7 @@ describe('venue/official list/create/edit (integration)', () => {
   it('lists an empty official roster, creates an official, then lists it', async () => {
     const empty = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/officials`,
+      url: `/api/organizations/${organizationAlias}/officials`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(empty.statusCode).toBe(200);
@@ -325,7 +327,7 @@ describe('venue/official list/create/edit (integration)', () => {
 
     const created = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/officials`,
+      url: `/api/organizations/${organizationAlias}/officials`,
       headers: { authorization: 'Bearer organizer' },
       payload: { displayName: 'Ana Gómez', roles: ['referee'] },
     });
@@ -335,7 +337,7 @@ describe('venue/official list/create/edit (integration)', () => {
 
     const listed = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/officials`,
+      url: `/api/organizations/${organizationAlias}/officials`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(listed.statusCode).toBe(200);
@@ -345,7 +347,7 @@ describe('venue/official list/create/edit (integration)', () => {
   it('edits an official’s name and roles', async () => {
     const created = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/officials`,
+      url: `/api/organizations/${organizationAlias}/officials`,
       headers: { authorization: 'Bearer organizer' },
       payload: { displayName: 'Beto Ruiz', roles: ['referee'] },
     });
@@ -353,7 +355,7 @@ describe('venue/official list/create/edit (integration)', () => {
 
     const updated = await inject({
       method: 'PATCH',
-      url: `/organizations/${organizationAlias}/officials/${official.officialId}`,
+      url: `/api/organizations/${organizationAlias}/officials/${official.officialId}`,
       headers: { authorization: 'Bearer organizer' },
       payload: { displayName: 'Beto Ruiz Renombrado', roles: ['referee', 'observer'] },
     });
@@ -368,7 +370,7 @@ describe('venue/official list/create/edit (integration)', () => {
   it('404s an edit for an unknown official', async () => {
     const response = await inject({
       method: 'PATCH',
-      url: `/organizations/${organizationAlias}/officials/00000000-0000-7000-8000-000000000099`,
+      url: `/api/organizations/${organizationAlias}/officials/00000000-0000-7000-8000-000000000099`,
       headers: { authorization: 'Bearer organizer' },
       payload: { displayName: 'Nadie' },
     });
@@ -378,7 +380,7 @@ describe('venue/official list/create/edit (integration)', () => {
   it('refuses creating an official with no roles', async () => {
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/officials`,
+      url: `/api/organizations/${organizationAlias}/officials`,
       headers: { authorization: 'Bearer organizer' },
       payload: { displayName: 'Sin Rol', roles: [] },
     });
@@ -388,7 +390,7 @@ describe('venue/official list/create/edit (integration)', () => {
   it('400s a venue created without a concurrent capacity, before reaching the controller', async () => {
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/venues`,
+      url: `/api/organizations/${organizationAlias}/venues`,
       headers: { authorization: 'Bearer organizer' },
       payload: { alias: 'cancha-sin-capacidad', name: 'Cancha Sin Capacidad' },
     });
@@ -398,7 +400,7 @@ describe('venue/official list/create/edit (integration)', () => {
   it('rejects an extra undocumented property with 400 when creating an official', async () => {
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/officials`,
+      url: `/api/organizations/${organizationAlias}/officials`,
       headers: { authorization: 'Bearer organizer' },
       payload: { displayName: 'Celia Prueba', roles: ['observer'], unexpectedField: 'dropped' },
     });
@@ -416,7 +418,7 @@ describe('venue/official list/create/edit (integration)', () => {
     // 1. Create venue first
     const venueRes = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/venues`,
+      url: `/api/organizations/${organizationAlias}/venues`,
       headers: { authorization: 'Bearer organizer' },
       payload: { alias: 'cancha-grid', name: 'Cancha Grid', concurrentCapacity: 1 },
     });
@@ -426,7 +428,7 @@ describe('venue/official list/create/edit (integration)', () => {
     // 2. Create schedule
     const createRes = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/schedules`,
+      url: `/api/organizations/${organizationAlias}/schedules`,
       headers: { authorization: 'Bearer organizer' },
       payload: {
         name: 'Horario Fin de Semana',
@@ -445,7 +447,7 @@ describe('venue/official list/create/edit (integration)', () => {
     // 3. List schedules
     const listRes = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/schedules`,
+      url: `/api/organizations/${organizationAlias}/schedules`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(listRes.statusCode).toBe(200);
@@ -455,7 +457,7 @@ describe('venue/official list/create/edit (integration)', () => {
     // 4. Update schedule name
     const updateRes = await inject({
       method: 'PATCH',
-      url: `/organizations/${organizationAlias}/schedules/${created.scheduleId}`,
+      url: `/api/organizations/${organizationAlias}/schedules/${created.scheduleId}`,
       headers: { authorization: 'Bearer organizer' },
       payload: { name: 'Horario Modificado' },
     });
@@ -465,7 +467,7 @@ describe('venue/official list/create/edit (integration)', () => {
     // 5. Preview deletion and prove the schedule remains unchanged
     const previewRes = await inject({
       method: 'DELETE',
-      url: `/organizations/${organizationAlias}/schedules/${created.scheduleId}?dryRun=true`,
+      url: `/api/organizations/${organizationAlias}/schedules/${created.scheduleId}?dryRun=true`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(previewRes.statusCode).toBe(200);
@@ -477,7 +479,7 @@ describe('venue/official list/create/edit (integration)', () => {
     });
     const stillListed = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/schedules`,
+      url: `/api/organizations/${organizationAlias}/schedules`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(
@@ -488,14 +490,14 @@ describe('venue/official list/create/edit (integration)', () => {
 
     const missingNameRes = await inject({
       method: 'DELETE',
-      url: `/organizations/${organizationAlias}/schedules/${created.scheduleId}`,
+      url: `/api/organizations/${organizationAlias}/schedules/${created.scheduleId}`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(missingNameRes.statusCode).toBe(409);
 
     const wrongNameRes = await inject({
       method: 'DELETE',
-      url: `/organizations/${organizationAlias}/schedules/${created.scheduleId}`,
+      url: `/api/organizations/${organizationAlias}/schedules/${created.scheduleId}`,
       headers: { authorization: 'Bearer organizer' },
       payload: { confirmationName: 'Horario Fin de Semana' },
     });
@@ -504,7 +506,7 @@ describe('venue/official list/create/edit (integration)', () => {
     // 6. Confirm removal
     const deleteRes = await inject({
       method: 'DELETE',
-      url: `/organizations/${organizationAlias}/schedules/${created.scheduleId}`,
+      url: `/api/organizations/${organizationAlias}/schedules/${created.scheduleId}`,
       headers: { authorization: 'Bearer organizer' },
       payload: { confirmationName: 'Horario Modificado' },
     });

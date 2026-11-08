@@ -126,7 +126,7 @@ web:
     COPALIBRE_JWT_ISSUER: http://oidc.invalid
     COPALIBRE_OIDC_CLIENT_ID: copalibre-failover
 roles:
-  api: { port: 3001, replicas: 2, service: true, probePath: /health, readinessPath: /ready }
+  api: { port: 3001, replicas: 2, service: true, probePath: /api/health, readinessPath: /api/ready }
   events: { port: 3002, replicas: 2, service: true, probePath: /health }
   worker: { port: 3003, replicas: 2, service: false, probePath: /health }
   scheduler: { port: 3004, replicas: 1, service: false, probePath: /health }
@@ -190,7 +190,7 @@ main() {
 
   log "Starting an in-cluster poller against the api Service (through kube-proxy, not port-forward — a pinned port-forward tunnel can't tell a dropped Service request apart from its own tunnel breaking when the node it happened to route through disappears)"
   kubectl run copalibre-failover-poller --image=curlimages/curl:latest --restart=Never \
-    --command -- sh -c "while true; do curl -sf -o /dev/null http://${RELEASE_NAME}-api:3001/health || echo fail; sleep 0.5; done"
+    --command -- sh -c "while true; do curl -sf -o /dev/null http://${RELEASE_NAME}-api:3001/api/health || echo fail; sleep 0.5; done"
   kubectl wait --for=condition=ready --timeout=60s pod/copalibre-failover-poller
 
   log "Terminating node ${target_node} (docker stop ${target_container}) to simulate node loss"

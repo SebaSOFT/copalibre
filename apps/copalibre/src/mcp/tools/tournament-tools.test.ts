@@ -34,7 +34,7 @@ describe('tournamentTools', () => {
     await tool.handler({ alias: 'liga' });
 
     const [url, init] = fetchImplementation.mock.calls[0] as [URL, RequestInit];
-    expect(url.pathname).toBe('/organizations/liga');
+    expect(url.pathname).toBe('/api/organizations/liga');
     expect(init.method).toBe('GET');
   });
 
@@ -47,7 +47,7 @@ describe('tournamentTools', () => {
     await tool.handler({ organization_alias: 'liga' });
 
     const [url] = fetchImplementation.mock.calls[0] as [URL, RequestInit];
-    expect(url.pathname).toBe('/organizations/liga/tournaments');
+    expect(url.pathname).toBe('/api/organizations/liga/tournaments');
   });
 
   it('copalibre_get_tournament GETs the scoped-alias route', async () => {
@@ -59,7 +59,7 @@ describe('tournamentTools', () => {
     await tool.handler({ organization_alias: 'liga', tournament_alias: 'copa' });
 
     const [url] = fetchImplementation.mock.calls[0] as [URL, RequestInit];
-    expect(url.pathname).toBe('/organizations/liga/tournaments/copa');
+    expect(url.pathname).toBe('/api/organizations/liga/tournaments/copa');
   });
 
   it('copalibre_create_tournament POSTs the camelCase request body', async () => {
@@ -80,7 +80,7 @@ describe('tournamentTools', () => {
     });
 
     const [url, init] = fetchImplementation.mock.calls[0] as [URL, RequestInit];
-    expect(url.pathname).toBe('/organizations/liga/tournaments');
+    expect(url.pathname).toBe('/api/organizations/liga/tournaments');
     expect(init.method).toBe('POST');
     expect(JSON.parse(init.body as string)).toEqual({
       alias: 'copa',
@@ -102,7 +102,7 @@ describe('tournamentTools', () => {
     await tool.handler({ organization_alias: 'liga', tournament_alias: 'copa' });
 
     const [url, init] = fetchImplementation.mock.calls[0] as [URL, RequestInit];
-    expect(url.pathname).toBe('/organizations/liga/tournaments/copa/publish');
+    expect(url.pathname).toBe('/api/organizations/liga/tournaments/copa/publish');
     expect(init.method).toBe('POST');
     expect(init.body).toBeUndefined();
   });

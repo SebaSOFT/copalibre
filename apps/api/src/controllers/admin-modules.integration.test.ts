@@ -20,6 +20,7 @@ import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
 import { AdminModulesController } from './admin-modules.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 // These tests clone the real curated repository, so their time is set by the network, not the
 // code under test. CI runners have taken over 30 s for a single clone, hence the 120 s bound.
@@ -74,6 +75,7 @@ describe('AdminModulesController (integration)', () => {
       imports: [AdminModulesTestModule],
     }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -99,20 +101,22 @@ describe('AdminModulesController (integration)', () => {
   }
 
   it('refuses a non-super-admin caller, installing nothing', async () => {
-    const response = await inject('orgAdmin', 'GET', '/admin/modules');
+    const response = await inject('orgAdmin', 'GET', '/api/admin/modules');
     expect(response.statusCode).toBe(403);
   });
 
   it('refuses with no bearer token at all', async () => {
     const response = await (app as NestFastifyApplication).inject({
       method: 'GET',
-      url: '/admin/modules',
+      url: '/api/admin/modules',
     });
     expect(response.statusCode).toBe(401);
   });
 
   it('installs, lists, verifies, and removes a real curated module end to end', async () => {
-    const install = await inject('admin', 'POST', '/admin/modules', { alias: 'orbital-frisbee' });
+    const install = await inject('admin', 'POST', '/api/admin/modules', {
+      alias: 'orbital-frisbee',
+    });
     expect(install.statusCode).toBe(201);
     expect(install.json()).toMatchObject({
       kind: 'discipline',
@@ -120,19 +124,19 @@ describe('AdminModulesController (integration)', () => {
       version: '1.0.0',
     });
 
-    const list = await inject('admin', 'GET', '/admin/modules');
+    const list = await inject('admin', 'GET', '/api/admin/modules');
     expect(list.statusCode).toBe(200);
     expect(list.json()).toEqual([
       expect.objectContaining({ alias: 'orbital-frisbee', sourceKind: 'curated' }),
     ]);
 
-    const verify = await inject('admin', 'POST', '/admin/modules/verify');
+    const verify = await inject('admin', 'POST', '/api/admin/modules/verify');
     expect(verify.statusCode).toBe(200);
     expect(verify.json()).toEqual([
       expect.objectContaining({ alias: 'orbital-frisbee', ok: true, failures: [] }),
     ]);
 
-    const document = await inject('admin', 'GET', '/admin/modules/orbital-frisbee/document');
+    const document = await inject('admin', 'GET', '/api/admin/modules/orbital-frisbee/document');
     expect(document.statusCode).toBe(200);
     const documentBody = document.json();
     expect(documentBody).toMatchObject({ alias: 'orbital-frisbee', version: '1.0.0' });
@@ -146,11 +150,11 @@ describe('AdminModulesController (integration)', () => {
     const documentForbidden = await inject(
       'orgAdmin',
       'GET',
-      '/admin/modules/orbital-frisbee/document',
+      '/api/admin/modules/orbital-frisbee/document',
     );
     expect(documentForbidden.statusCode).toBe(403);
 
-    const remove = await inject('admin', 'DELETE', '/admin/modules/orbital-frisbee');
+    const remove = await inject('admin', 'DELETE', '/api/admin/modules/orbital-frisbee');
     expect(remove.statusCode).toBe(200);
     expect(remove.json()).toEqual({ alias: 'orbital-frisbee', removedCount: 1 });
 
@@ -161,7 +165,7 @@ describe('AdminModulesController (integration)', () => {
   }, 120_000);
 
   it('installs, lists, verifies, and removes a real curated tournament profile end to end', async () => {
-    const install = await inject('admin', 'POST', '/admin/modules', {
+    const install = await inject('admin', 'POST', '/api/admin/modules', {
       alias: 'double-elimination-bracket',
     });
     expect(install.statusCode).toBe(201);
@@ -171,19 +175,19 @@ describe('AdminModulesController (integration)', () => {
       version: '1.0.0',
     });
 
-    const list = await inject('admin', 'GET', '/admin/modules');
+    const list = await inject('admin', 'GET', '/api/admin/modules');
     expect(list.statusCode).toBe(200);
     expect(list.json()).toEqual([
       expect.objectContaining({ alias: 'double-elimination-bracket', sourceKind: 'curated' }),
     ]);
 
-    const verify = await inject('admin', 'POST', '/admin/modules/verify');
+    const verify = await inject('admin', 'POST', '/api/admin/modules/verify');
     expect(verify.statusCode).toBe(200);
     expect(verify.json()).toEqual([
       expect.objectContaining({ alias: 'double-elimination-bracket', ok: true, failures: [] }),
     ]);
 
-    const remove = await inject('admin', 'DELETE', '/admin/modules/double-elimination-bracket');
+    const remove = await inject('admin', 'DELETE', '/api/admin/modules/double-elimination-bracket');
     expect(remove.statusCode).toBe(200);
     expect(remove.json()).toEqual({ alias: 'double-elimination-bracket', removedCount: 1 });
 
@@ -194,12 +198,12 @@ describe('AdminModulesController (integration)', () => {
   }, 120_000);
 
   it('404s a document request for a discipline that is not installed', async () => {
-    const response = await inject('admin', 'GET', '/admin/modules/not-installed/document');
+    const response = await inject('admin', 'GET', '/api/admin/modules/not-installed/document');
     expect(response.statusCode).toBe(404);
   });
 
   it('refuses an unallow-listed alternate source, installing nothing', async () => {
-    const response = await inject('admin', 'POST', '/admin/modules', {
+    const response = await inject('admin', 'POST', '/api/admin/modules', {
       alias: 'orbital-frisbee',
       source: 'https://github.com/SebaSOFT/copalibre-modules.git',
     });
@@ -212,12 +216,12 @@ describe('AdminModulesController (integration)', () => {
   });
 
   it('400s an install without an alias, before reaching the controller', async () => {
-    const response = await inject('admin', 'POST', '/admin/modules', { range: '^1.0.0' });
+    const response = await inject('admin', 'POST', '/api/admin/modules', { range: '^1.0.0' });
     expect(response.statusCode).toBe(400);
   });
 
   it('rejects an extra undocumented property with 400 when installing a module', async () => {
-    const install = await inject('admin', 'POST', '/admin/modules', {
+    const install = await inject('admin', 'POST', '/api/admin/modules', {
       alias: 'orbital-frisbee',
       unexpectedField: 'dropped',
     });

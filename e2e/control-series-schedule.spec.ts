@@ -99,21 +99,22 @@ async function mockControlApi(page: Page): Promise<void> {
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url === `/organizations/${orgAlias}/venues` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/venues` && method === 'GET') {
           return Response.json(
             await (window as unknown as { __venues: () => Promise<unknown> }).__venues(),
           );
         }
-        if (url === `/organizations/${orgAlias}/officials` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/officials` && method === 'GET') {
           return Response.json([]);
         }
-        if (url === `/organizations/${orgAlias}/schedules` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/schedules` && method === 'GET') {
           return Response.json(
             await (window as unknown as { __schedules: () => Promise<unknown> }).__schedules(),
           );
         }
         if (
-          url === `/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/1/fixtures` &&
+          url ===
+            `/api/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/1/fixtures` &&
           method === 'GET'
         ) {
           return Response.json(
@@ -121,7 +122,7 @@ async function mockControlApi(page: Page): Promise<void> {
           );
         }
 
-        const scheduleBase = `/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/${stageId}/schedule`;
+        const scheduleBase = `/api/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/${stageId}/schedule`;
         if (url === scheduleBase && method === 'GET') {
           return Response.json(
             await (window as unknown as { __schedule: () => Promise<unknown> }).__schedule(),

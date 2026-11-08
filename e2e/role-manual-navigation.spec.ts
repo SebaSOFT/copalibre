@@ -5,7 +5,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 // actually see — the control panel's own navigation, and the
 // help site's role manuals.
 
-const organizationsPath = '/organizations?mine=true';
+const organizationsPath = '/api/organizations?mine=true';
 
 async function mockOrganizationRole(page: Page, role: string): Promise<void> {
   await page.addInitScript(
@@ -95,12 +95,12 @@ test('a club-admin is refused a control outside their club, naming ownership (7.
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url === '/organizations/liga-mendocina/clubs' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/clubs' && method === 'GET') {
           return Response.json([
             { clubId: 'club-2', organizationId: 'org-1', name: 'Casa de Italia' },
           ]);
         }
-        if (url === '/organizations?mine=true' && method === 'GET') {
+        if (url === '/api/organizations?mine=true' && method === 'GET') {
           return Response.json([
             {
               organizationId: 'org-1',
@@ -110,7 +110,7 @@ test('a club-admin is refused a control outside their club, naming ownership (7.
             },
           ]);
         }
-        if (url === '/organizations/liga-mendocina/clubs/club-2' && method === 'PATCH') {
+        if (url === '/api/organizations/liga-mendocina/clubs/club-2' && method === 'PATCH') {
           return Response.json(
             { message: 'subject is not scoped to administer this club' },
             { status: 403 },
@@ -143,26 +143,26 @@ test('inviting a tournament-admin requires selecting a tournament (7.4)', async 
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url === '/organizations/liga-mendocina/roles' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/roles' && method === 'GET') {
           return Response.json([]);
         }
-        if (url === '/organizations/liga-mendocina/invitations' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/invitations' && method === 'GET') {
           return Response.json([]);
         }
-        if (url === '/organizations/liga-mendocina/clubs' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/clubs' && method === 'GET') {
           return Response.json([]);
         }
-        if (url === '/organizations/liga-mendocina/roles/grantable' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/roles/grantable' && method === 'GET') {
           return Response.json({
             roles: ['admin', 'club-admin', 'tournament-admin', 'referee', 'viewer'],
           });
         }
-        if (url === '/organizations/liga-mendocina/tournaments' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/tournaments' && method === 'GET') {
           return Response.json([
             { tournamentId: 'tournament-1', alias: 'apertura', name: 'Apertura' },
           ]);
         }
-        if (url === '/organizations/liga-mendocina/invitations' && method === 'POST') {
+        if (url === '/api/organizations/liga-mendocina/invitations' && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as { tournamentId?: string };
           if (!body.tournamentId) {
             return Response.json({ message: 'requires naming a tournament' }, { status: 409 });

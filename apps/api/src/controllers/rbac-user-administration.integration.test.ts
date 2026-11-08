@@ -19,6 +19,7 @@ import {
   InstallationRoleController,
   OrganizationAccessController,
 } from './organization-access.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 const subjects: Record<string, AuthenticatedSubject> = {
   admin: { subjectId: 'oidc-rbac-admin', scopes: ['copalibre.control'] },
@@ -97,6 +98,7 @@ describe('RBAC user administration (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [RbacTestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
   });
@@ -108,7 +110,7 @@ describe('RBAC user administration (integration)', () => {
 
   describe('grantable roles', () => {
     it("lists the organization admin's grantable roles per the hierarchy", async () => {
-      const response = await request('admin', `/organizations/liga-rbac-api/roles/grantable`);
+      const response = await request('admin', `/api/organizations/liga-rbac-api/roles/grantable`);
       expect(response.statusCode).toBe(200);
       expect(response.json()).toEqual({
         roles: ['admin', 'club-admin', 'tournament-admin', 'referee', 'broadcaster', 'viewer'],
@@ -116,14 +118,17 @@ describe('RBAC user administration (integration)', () => {
     });
 
     it('refuses a club-admin (no grant authority, not even reaching the hierarchy check)', async () => {
-      const response = await request('clubAdmin', `/organizations/liga-rbac-api/roles/grantable`);
+      const response = await request(
+        'clubAdmin',
+        `/api/organizations/liga-rbac-api/roles/grantable`,
+      );
       expect(response.statusCode).toBe(403);
     });
   });
 
   describe('organization admin hierarchy', () => {
     it('lets an organization admin invite a club-admin', async () => {
-      const response = await post('admin', `/organizations/liga-rbac-api/invitations`, {
+      const response = await post('admin', `/api/organizations/liga-rbac-api/invitations`, {
         email: 'new-club-admin@example.test',
         role: 'club-admin',
         status: 'active',
@@ -133,7 +138,7 @@ describe('RBAC user administration (integration)', () => {
     });
 
     it('refuses inviting a tournament-admin with no tournament named', async () => {
-      const response = await post('admin', `/organizations/liga-rbac-api/invitations`, {
+      const response = await post('admin', `/api/organizations/liga-rbac-api/invitations`, {
         email: 'new-tournament-admin@example.test',
         role: 'tournament-admin',
         status: 'active',
@@ -142,7 +147,7 @@ describe('RBAC user administration (integration)', () => {
     });
 
     it('refuses inviting a club-admin with no club named', async () => {
-      const response = await post('admin', `/organizations/liga-rbac-api/invitations`, {
+      const response = await post('admin', `/api/organizations/liga-rbac-api/invitations`, {
         email: 'new-club-admin-unscoped@example.test',
         role: 'club-admin',
         status: 'active',
@@ -151,7 +156,7 @@ describe('RBAC user administration (integration)', () => {
     });
 
     it('refuses naming a tournament for a role that is not tournament-scoped', async () => {
-      const response = await post('admin', `/organizations/liga-rbac-api/invitations`, {
+      const response = await post('admin', `/api/organizations/liga-rbac-api/invitations`, {
         email: 'new-referee-with-tournament@example.test',
         role: 'referee',
         status: 'active',
@@ -161,7 +166,7 @@ describe('RBAC user administration (integration)', () => {
     });
 
     it('lets an organization admin invite a referee', async () => {
-      const response = await post('admin', `/organizations/liga-rbac-api/invitations`, {
+      const response = await post('admin', `/api/organizations/liga-rbac-api/invitations`, {
         email: 'new-referee@example.test',
         role: 'referee',
         status: 'active',
@@ -174,7 +179,7 @@ describe('RBAC user administration (integration)', () => {
     it('refuses demoting the sole active admin with 409', async () => {
       const response = await patch(
         'admin',
-        `/organizations/liga-rbac-api/roles/${adminAssignmentId}`,
+        `/api/organizations/liga-rbac-api/roles/${adminAssignmentId}`,
         {
           role: 'viewer',
           status: 'active',
@@ -186,7 +191,7 @@ describe('RBAC user administration (integration)', () => {
     it('refuses deleting the sole active admin with 409', async () => {
       const response = await del(
         'admin',
-        `/organizations/liga-rbac-api/roles/${adminAssignmentId}`,
+        `/api/organizations/liga-rbac-api/roles/${adminAssignmentId}`,
       );
       expect(response.statusCode).toBe(409);
     });
@@ -194,7 +199,7 @@ describe('RBAC user administration (integration)', () => {
 
   describe('installation super-admin endpoints (RequireSuperAdmin only)', () => {
     it('refuses a caller without the super-admin scope with 403', async () => {
-      const response = await request('noScope', '/installation/super-admins');
+      const response = await request('noScope', '/api/installation/super-admins');
       expect(response.statusCode).toBe(403);
     });
 
@@ -213,17 +218,17 @@ describe('RBAC user administration (integration)', () => {
         })
         .execute();
 
-      const created = await post('superAdmin', '/installation/super-admins', { principalId });
+      const created = await post('superAdmin', '/api/installation/super-admins', { principalId });
       expect(created.statusCode).toBe(201);
       const assignmentId = created.json().assignmentId as string;
 
-      const listed = await request('superAdmin', '/installation/super-admins');
+      const listed = await request('superAdmin', '/api/installation/super-admins');
       expect(listed.statusCode).toBe(200);
       expect(listed.json()).toContainEqual(
         expect.objectContaining({ assignmentId, principalId, status: 'active' }),
       );
 
-      const removed = await del('superAdmin', `/installation/super-admins/${assignmentId}`);
+      const removed = await del('superAdmin', `/api/installation/super-admins/${assignmentId}`);
       expect(removed.statusCode).toBe(409);
     });
   });

@@ -26,6 +26,7 @@ import { ClubsController } from './clubs.controller.js';
 import { DisplayTokenController } from './broadcast.controller.js';
 import { OrganizationAccessController } from './organization-access.controller.js';
 import { OrganizationsController } from './organizations.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /** Never actually invoked in these role-scope tests — DI just needs something to inject. */
 const noopObjectStorage: ObjectStorageAdapter = {
@@ -183,6 +184,7 @@ describe('club and tournament resource scope (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [RoleScopeTestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -197,7 +199,7 @@ describe('club and tournament resource scope (integration)', () => {
     it('is admitted to the club it administers', async () => {
       const response = await patch(
         'clubAdminA',
-        `/organizations/${organizationAlias}/clubs/${clubAId}`,
+        `/api/organizations/${organizationAlias}/clubs/${clubAId}`,
         {
           name: 'Club A Renamed',
         },
@@ -208,7 +210,7 @@ describe('club and tournament resource scope (integration)', () => {
     it('is refused on a club it does not administer', async () => {
       const response = await patch(
         'clubAdminA',
-        `/organizations/${organizationAlias}/clubs/${clubBId}`,
+        `/api/organizations/${organizationAlias}/clubs/${clubBId}`,
         {
           name: 'Club B Renamed',
         },
@@ -221,7 +223,7 @@ describe('club and tournament resource scope (integration)', () => {
     it('updates a club no assignment scopes it to, unlike club-admin', async () => {
       const response = await patch(
         'admin',
-        `/organizations/${organizationAlias}/clubs/${clubBId}`,
+        `/api/organizations/${organizationAlias}/clubs/${clubBId}`,
         {
           name: 'Club B Renamed By Admin',
         },
@@ -234,7 +236,7 @@ describe('club and tournament resource scope (integration)', () => {
     it('is admitted within the tournament its assignment names', async () => {
       const response = await request(
         'tournamentAdminA',
-        `/organizations/${organizationAlias}/tournaments/${tournamentAAlias}/display-tokens`,
+        `/api/organizations/${organizationAlias}/tournaments/${tournamentAAlias}/display-tokens`,
       );
       expect(response.statusCode).toBe(200);
     });
@@ -242,7 +244,7 @@ describe('club and tournament resource scope (integration)', () => {
     it('is refused against a different tournament in the same organization', async () => {
       const response = await request(
         'tournamentAdminA',
-        `/organizations/${organizationAlias}/tournaments/${tournamentBAlias}/display-tokens`,
+        `/api/organizations/${organizationAlias}/tournaments/${tournamentBAlias}/display-tokens`,
       );
       expect(response.statusCode).toBe(403);
     });
@@ -252,7 +254,7 @@ describe('club and tournament resource scope (integration)', () => {
     it('is refused user administration', async () => {
       const response = await request(
         'tournamentAdminA',
-        `/organizations/${organizationAlias}/roles/grantable`,
+        `/api/organizations/${organizationAlias}/roles/grantable`,
       );
       expect(response.statusCode).toBe(403);
     });
@@ -260,7 +262,7 @@ describe('club and tournament resource scope (integration)', () => {
     it('is refused organization settings', async () => {
       const response = await patch(
         'tournamentAdminA',
-        `/organizations/${organizationAlias}/settings`,
+        `/api/organizations/${organizationAlias}/settings`,
         {
           name: 'Renamed by tournament-admin',
         },
@@ -271,7 +273,7 @@ describe('club and tournament resource scope (integration)', () => {
     it('is refused club management', async () => {
       const response = await patch(
         'tournamentAdminA',
-        `/organizations/${organizationAlias}/clubs/${clubAId}`,
+        `/api/organizations/${organizationAlias}/clubs/${clubAId}`,
         { name: 'Renamed by tournament-admin' },
       );
       expect(response.statusCode).toBe(403);

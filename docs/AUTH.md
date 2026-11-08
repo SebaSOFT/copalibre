@@ -26,13 +26,13 @@ For machine-to-machine integrations (like MCP), operators can generate PATs from
 - At runtime, the API guard detects the `clpat_` prefix and validates it statefully via a database lookup, allowing immediate revocation.
 
 **Native Local JWTs**
-The native login flow (`/auth/login`) issues one-hour JWTs using **RS256**. The API reads the
+The native login flow (`/api/auth/login`) issues one-hour JWTs using **RS256**. The API reads the
 private key and matching public JWKS from `COPALIBRE_JWT_PRIVATE_KEY_FILE` and
 `COPALIBRE_JWKS_FILE`, or from `jwt-private.pem`/`jwks.json` in its working directory or
 `/var/lib/copalibre`. `copalibre init` creates these files on the host; ensure the API container
 can read the matching pair through your deployment mounts. If absent, the API generates temporary
 in-memory keys, so restarts invalidate existing tokens and replicas cannot reliably share identity.
-The public keys are served at `/.well-known/jwks.json` and `/auth/jwks.json`. Native tokens use
+The public keys are served at `/api/auth/jwks.json`. Every API route lives under `/api`. Native tokens use
 `COPALIBRE_NATIVE_JWT_ISSUER` (default `http://localhost:8080`) and are verified against the API's
 loaded local public key set. OIDC tokens use `COPALIBRE_JWT_ISSUER` and the remote JWKS. Both paths
 enforce the same algorithm allowlist, audience, expiry and clock-tolerance rules. The API checks the
@@ -84,10 +84,10 @@ in memory and tab-scoped `sessionStorage`, so a reload can recover an unexpired 
 persist access tokens in `localStorage`.
 
 Native login, invitation acceptance and refresh issue a rotating opaque refresh cookie,
-`copalibre_refresh_token`, scoped to `/auth`, with `HttpOnly`, `SameSite=Strict`, a 30-day lifetime,
-and `Secure` in production. `POST /auth/refresh` consumes the stored hashed refresh credential and
-issues a new cookie/access token; `POST /auth/logout` revokes the presented refresh credential and
-clears the cookie. Browser code cannot read the refresh cookie. Serve `/auth/*` through the application
+`copalibre_refresh_token`, scoped to `/api/auth`, with `HttpOnly`, `SameSite=Strict`, a 30-day lifetime,
+and `Secure` in production. `POST /api/auth/refresh` consumes the stored hashed refresh credential and
+issues a new cookie/access token; `POST /api/auth/logout` revokes the presented refresh credential and
+clears the cookie. Browser code cannot read the refresh cookie. Serve `/api/*` through the application
 origin and HTTPS in production so the cookie reaches the intended API.
 
 OIDC renewal uses the identity provider's silent authorization flow (`prompt=none`) with PKCE;

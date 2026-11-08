@@ -54,13 +54,18 @@ Bearer` header, not native `EventSource`, at `GET /events/control/{organizationA
 - **THEN** no access token or refresh credential appears anywhere in the request URL or query string
 
 ### Requirement: Long-polling fallback
-The system SHALL provide `GET /api/events?after=<cursor>&wait=<seconds>` with the same
+The system SHALL provide `GET /events/poll?after=<cursor>&wait=<seconds>` with the same
 authorization, cursor, replay, and projection semantics as the SSE contract, for clients or networks
 incompatible with persistent streaming.
 
 #### Scenario: Long-poll returns events and next cursor
 - **WHEN** a client calls the long-poll endpoint with a valid `after` cursor
 - **THEN** the response includes any events after that cursor and the next durable cursor to use on the following call
+
+#### Scenario: Long poll shares the event streams' routing
+
+- **WHEN** a client calls `/events/poll` on any host that carries the event streams
+- **THEN** the events service answers it, with no routing rule of its own
 
 ### Requirement: Public stream abuse controls
 Public SSE connections SHALL be subject to per-IP and per-resource connection limits and bounded

@@ -10,7 +10,7 @@ import type { Locator, Page } from '@playwright/test';
  */
 const org = 'liga-eliminatoria';
 const tournament = 'copa-invierno';
-const base = `/organizations/${org}/tournaments/${tournament}`;
+const base = `/api/organizations/${org}/tournaments/${tournament}`;
 const finalId = '0199c000-0000-7000-8000-000000000007';
 const kickoff = Date.UTC(2026, 10, 14, 18);
 let semisPlayed = false;

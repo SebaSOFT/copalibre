@@ -13,7 +13,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT = 'apertura-2026';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 
 const overview = {
   organizationAlias: ORGANIZATION,
@@ -153,7 +153,7 @@ test.beforeAll(async ({ workerPort }) => {
 
     if (
       path === `${BASE}/overview` ||
-      path === `/organizations/${ORGANIZATION}/public/tournaments/${TOURNAMENT}/overview`
+      path === `/api/organizations/${ORGANIZATION}/public/tournaments/${TOURNAMENT}/overview`
     ) {
       res.end(JSON.stringify(overview));
       return;

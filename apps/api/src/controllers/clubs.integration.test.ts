@@ -19,6 +19,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { ClubsController } from './clubs.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /** Club list/create/edit through the real HTTP stack. */
 
@@ -102,6 +103,7 @@ describe('club list/create/edit (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
@@ -119,7 +121,7 @@ describe('club list/create/edit (integration)', () => {
   it('refuses an unauthenticated list', async () => {
     const response = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/clubs`,
+      url: `/api/organizations/${organizationAlias}/clubs`,
     });
     expect(response.statusCode).toBe(401);
   });
@@ -127,7 +129,7 @@ describe('club list/create/edit (integration)', () => {
   it('lists an empty club roster, creates a club, then lists it', async () => {
     const empty = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/clubs`,
+      url: `/api/organizations/${organizationAlias}/clubs`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(empty.statusCode).toBe(200);
@@ -135,7 +137,7 @@ describe('club list/create/edit (integration)', () => {
 
     const created = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/clubs`,
+      url: `/api/organizations/${organizationAlias}/clubs`,
       headers: { authorization: 'Bearer organizer' },
       payload: { name: 'Casa de Italia', abbreviation: 'C I' },
     });
@@ -146,7 +148,7 @@ describe('club list/create/edit (integration)', () => {
 
     const listed = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/clubs`,
+      url: `/api/organizations/${organizationAlias}/clubs`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(listed.statusCode).toBe(200);
@@ -156,7 +158,7 @@ describe('club list/create/edit (integration)', () => {
   it('edits a club’s name, alias, and abbreviation', async () => {
     const created = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/clubs`,
+      url: `/api/organizations/${organizationAlias}/clubs`,
       headers: { authorization: 'Bearer organizer' },
       payload: { name: 'Club Atenas' },
     });
@@ -164,7 +166,7 @@ describe('club list/create/edit (integration)', () => {
 
     const updated = await inject({
       method: 'PATCH',
-      url: `/organizations/${organizationAlias}/clubs/${club.clubId}`,
+      url: `/api/organizations/${organizationAlias}/clubs/${club.clubId}`,
       headers: { authorization: 'Bearer organizer' },
       payload: { name: 'Club Atenas Renombrado', abbreviation: 'CAR' },
     });
@@ -179,7 +181,7 @@ describe('club list/create/edit (integration)', () => {
   it('404s an edit for an unknown club', async () => {
     const response = await inject({
       method: 'PATCH',
-      url: `/organizations/${organizationAlias}/clubs/00000000-0000-7000-8000-000000000099`,
+      url: `/api/organizations/${organizationAlias}/clubs/00000000-0000-7000-8000-000000000099`,
       headers: { authorization: 'Bearer organizer' },
       payload: { name: 'Nadie' },
     });
@@ -189,7 +191,7 @@ describe('club list/create/edit (integration)', () => {
   it('refuses creating a club with a malformed alias', async () => {
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/clubs`,
+      url: `/api/organizations/${organizationAlias}/clubs`,
       headers: { authorization: 'Bearer organizer' },
       payload: { name: 'Club Inválido', alias: 'Not A Valid Alias!' },
     });
@@ -199,7 +201,7 @@ describe('club list/create/edit (integration)', () => {
   it('400s a club created without a name, before reaching the controller', async () => {
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/clubs`,
+      url: `/api/organizations/${organizationAlias}/clubs`,
       headers: { authorization: 'Bearer organizer' },
       payload: { abbreviation: 'SN' },
     });
@@ -209,7 +211,7 @@ describe('club list/create/edit (integration)', () => {
   it('rejects an extra undocumented property with 400 when creating a club', async () => {
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/clubs`,
+      url: `/api/organizations/${organizationAlias}/clubs`,
       headers: { authorization: 'Bearer organizer' },
       payload: { name: 'Club Propiedad Extra', unexpectedField: 'dropped' },
     });

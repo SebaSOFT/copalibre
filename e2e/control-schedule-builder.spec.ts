@@ -192,7 +192,7 @@ test('publishes an undecided eight-entrant final through the real API and retain
           const path = String(input);
           if (path === tokenEndpoint)
             return Response.json({ access_token: 'organizer-org1', expires_in: 3600 });
-          if (!path.startsWith('/organizations/')) return originalFetch(input, init);
+          if (!path.startsWith('/api/organizations/')) return originalFetch(input, init);
           const response = await (
             window as unknown as {
               __realBracketApi: (
@@ -236,7 +236,7 @@ test('publishes an undecided eight-entrant final through the real API and retain
     await page.getByRole('button', { name: 'Publicar calendario', exact: true }).click();
     await expect(page.getByText('Horario publicado.')).toBeVisible();
     const stored = await fetch(
-      `${api.url}/organizations/liga-orbital/tournaments/undecided-cup/stages/${api.stageId}/schedule`,
+      `${api.url}/api/organizations/liga-orbital/tournaments/undecided-cup/stages/${api.stageId}/schedule`,
     );
     expect((await stored.json()).assignments).toEqual([
       expect.objectContaining({ matchId: api.matchId, slotId: expect.any(String) }),
@@ -322,7 +322,7 @@ async function realApi(
         const path = String(input);
         if (path === tokenEndpoint)
           return Response.json({ access_token: 'organizer-org1', expires_in: 3600 });
-        if (!path.startsWith('/organizations/')) return originalFetch(input, init);
+        if (!path.startsWith('/api/organizations/')) return originalFetch(input, init);
         const response = await (
           window as unknown as {
             __realBracketApi: (
@@ -420,7 +420,7 @@ test('reports a rest conflict a quarter-final result makes real, without moving 
     await expect(arisen.getByText(/^Club 1 no tiene el descanso exigido entre/)).toBeVisible();
     const stored = await (
       await fetch(
-        `${real.api.url}/organizations/liga-orbital/tournaments/undecided-cup/stages/${real.api.stageId}/schedule`,
+        `${real.api.url}/api/organizations/liga-orbital/tournaments/undecided-cup/stages/${real.api.stageId}/schedule`,
       )
     ).json();
     expect(stored.assignments).toHaveLength(2);
@@ -525,12 +525,12 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
 
-        if (url === `/organizations/${orgAlias}/venues` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/venues` && method === 'GET') {
           return Response.json(
             await (window as unknown as { __venues: () => Promise<unknown> }).__venues(),
           );
         }
-        if (url === `/organizations/${orgAlias}/venues` && method === 'POST') {
+        if (url === `/api/organizations/${orgAlias}/venues` && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as {
             alias: string;
             name: string;
@@ -543,17 +543,17 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
             { status: 201 },
           );
         }
-        if (url === `/organizations/${orgAlias}/schedules` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/schedules` && method === 'GET') {
           return Response.json(
             await (window as unknown as { __schedules: () => Promise<unknown> }).__schedules(),
           );
         }
-        if (url === `/organizations/${orgAlias}/officials` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/officials` && method === 'GET') {
           return Response.json(
             await (window as unknown as { __officials: () => Promise<unknown> }).__officials(),
           );
         }
-        if (url === `/organizations/${orgAlias}/officials` && method === 'POST') {
+        if (url === `/api/organizations/${orgAlias}/officials` && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as {
             displayName: string;
             roles: readonly string[];
@@ -566,14 +566,14 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
           );
         }
 
-        const fixturesUrl = `/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/1/fixtures`;
+        const fixturesUrl = `/api/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/1/fixtures`;
         if (url === fixturesUrl && method === 'GET') {
           return Response.json(
             await (window as unknown as { __fixtures: () => Promise<unknown> }).__fixtures(),
           );
         }
 
-        const scheduleBase = `/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/${stageId}/schedule`;
+        const scheduleBase = `/api/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/${stageId}/schedule`;
         if (url === scheduleBase && method === 'GET') {
           return Response.json(
             await (window as unknown as { __schedule: () => Promise<unknown> }).__schedule(),
@@ -593,10 +593,10 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
             ).__publish(JSON.parse(String(init?.body))),
           );
         }
-        if (url === `/organizations/${orgAlias}/schedule/reasons/recent` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/schedule/reasons/recent` && method === 'GET') {
           return Response.json({ reasons: ['Cancha 1 sin luz'] });
         }
-        const settingsUrl = `/organizations/${orgAlias}/tournaments/${tournamentAlias}/settings`;
+        const settingsUrl = `/api/organizations/${orgAlias}/tournaments/${tournamentAlias}/settings`;
         if (url === settingsUrl && method === 'GET') {
           return Response.json(
             await (window as unknown as { __settings: () => Promise<unknown> }).__settings(),

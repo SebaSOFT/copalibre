@@ -37,7 +37,7 @@ const schedules = new ScheduleRepository(db);
 const alias = 'undecided-cup';
 // `arisen-conflict`: a rest rule, and a quarter-final published right before its semi-final.
 const scenario = process.env.PERSISTED_BRACKET_SCENARIO;
-const base = `/organizations/liga-orbital/tournaments/${alias}`;
+const base = `/api/organizations/liga-orbital/tournaments/${alias}`;
 const entrantIds = [];
 const descriptor = footballDescriptor();
 const stage = await withTransaction(db, async (uow) => {

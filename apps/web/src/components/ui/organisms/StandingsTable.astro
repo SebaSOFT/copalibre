@@ -8,6 +8,7 @@ import type {
 } from '@copalibre/api/src/dto/table-projections.dto.js';
 import { publicTableLayoutLabel } from '../../../lib/public-table-layout-label.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
+import { API_PATH_PREFIX } from '../../../lib/api-path.ts';
 import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
 import type { ClubView, StandingsRowView } from '../../../lib/overview.ts';
 import { columnHint } from '../../../lib/column-hints.ts';
@@ -362,7 +363,7 @@ const playerDialogLabels = {
                 }`;
                 const apiProfileUrl =
                   organizationAlias && tournamentAlias && row.actorId
-                    ? `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(row.actorId)}/public/profile`
+                    ? `${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(row.actorId)}/public/profile`
                     : playerPageUrl;
 
                 const cellBody = (

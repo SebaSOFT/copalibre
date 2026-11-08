@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
 import { API_BODY_LIMIT_BYTES } from './http-body-limit.js';
+import { applyApiPathPrefix } from './http/api-path-prefix.js';
 import { DEFAULT_PORT } from './role.js';
 import { createApiValidationPipe } from './http/validation.js';
 
@@ -15,6 +16,7 @@ async function bootstrap(): Promise<void> {
     // into one bucket.
     new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES, trustProxy: true }),
   );
+  applyApiPathPrefix(app);
   // Baseline security response headers. `contentSecurityPolicy: false` is
   // explicit: a real CSP directive set is deferred (needs an audit across
   // every script/style surface first), and leaving it unconfigured would

@@ -84,7 +84,7 @@ describe('registration review routes', () => {
 
     const needs = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/copa-abreviaturas-rutas/entrants/needing-abbreviation',
+      url: '/api/organizations/liga-orbital/tournaments/copa-abreviaturas-rutas/entrants/needing-abbreviation',
       token: 'organizer-org1',
     });
     expect(needs.statusCode).toBe(200);
@@ -94,7 +94,7 @@ describe('registration review routes', () => {
 
     const duplicate = await request({
       method: 'PATCH',
-      url: `/organizations/liga-orbital/tournaments/copa-abreviaturas-rutas/entrants/${seeded.unresolved.entrantId}/abbreviation`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-abreviaturas-rutas/entrants/${seeded.unresolved.entrantId}/abbreviation`,
       token: 'organizer-org1',
       payload: { abbreviation: seeded.first.abbreviation },
     });
@@ -102,7 +102,7 @@ describe('registration review routes', () => {
 
     const resolved = await request({
       method: 'PATCH',
-      url: `/organizations/liga-orbital/tournaments/copa-abreviaturas-rutas/entrants/${seeded.unresolved.entrantId}/abbreviation`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-abreviaturas-rutas/entrants/${seeded.unresolved.entrantId}/abbreviation`,
       token: 'organizer-org1',
       payload: { abbreviation: 'C I 2' },
     });
@@ -111,7 +111,7 @@ describe('registration review routes', () => {
 
     const malformed = await request({
       method: 'PATCH',
-      url: `/organizations/liga-orbital/tournaments/copa-abreviaturas-rutas/entrants/${seeded.unresolved.entrantId}/abbreviation`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-abreviaturas-rutas/entrants/${seeded.unresolved.entrantId}/abbreviation`,
       token: 'organizer-org1',
       payload: { abbreviation: 'not valid' },
     });
@@ -192,7 +192,7 @@ describe('registration review routes', () => {
 
     const listBefore = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/copa-registros/registrations',
+      url: '/api/organizations/liga-orbital/tournaments/copa-registros/registrations',
       token: 'organizer-org1',
     });
     expect(listBefore.statusCode).toBe(200);
@@ -217,7 +217,7 @@ describe('registration review routes', () => {
 
     const bulk = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments/copa-registros/registrations/bulk-review',
+      url: '/api/organizations/liga-orbital/tournaments/copa-registros/registrations/bulk-review',
       token: 'organizer-org1',
       payload: {
         entrantIds: [seeded.first.entrantId, seeded.second.entrantId, seeded.outsider.entrantId],
@@ -302,7 +302,7 @@ describe('registration review routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-check-in/registrations/${seeded.entrantId}/team-memberships`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-check-in/registrations/${seeded.entrantId}/team-memberships`,
       token: 'organizer-org1',
       payload: { personIds: [] },
     });
@@ -380,7 +380,7 @@ describe('registration review routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-membresia/registrations/${seeded.entrant.entrantId}/team-memberships`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-membresia/registrations/${seeded.entrant.entrantId}/team-memberships`,
       token: 'organizer-org1',
       payload: { personIds: [seeded.kept.personId, seeded.added.personId] },
     });
@@ -478,7 +478,7 @@ describe('registration review routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-membresia-estable/registrations/${seeded.entrant.entrantId}/team-memberships`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-membresia-estable/registrations/${seeded.entrant.entrantId}/team-memberships`,
       token: 'organizer-org1',
       payload: { personIds: [seeded.person.personId] },
     });
@@ -542,7 +542,7 @@ describe('registration review routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-roles-test/registrations/${seeded.entrant.entrantId}/team-memberships`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-roles-test/registrations/${seeded.entrant.entrantId}/team-memberships`,
       token: 'organizer-org1',
       payload: {
         members: [
@@ -569,7 +569,7 @@ describe('registration review routes', () => {
 
     const updateResponse = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-roles-test/registrations/${seeded.entrant.entrantId}/team-memberships`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-roles-test/registrations/${seeded.entrant.entrantId}/team-memberships`,
       token: 'organizer-org1',
       payload: {
         members: [
@@ -591,7 +591,7 @@ describe('registration review routes', () => {
 
     const getResponse = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/copa-roles-test/registrations',
+      url: '/api/organizations/liga-orbital/tournaments/copa-roles-test/registrations',
       token: 'organizer-org1',
     });
     expect(getResponse.statusCode).toBe(200);
@@ -655,7 +655,7 @@ describe('registration review routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-individual/registrations/${seeded.entrantId}/team-memberships`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-individual/registrations/${seeded.entrantId}/team-memberships`,
       token: 'organizer-org1',
       payload: { personIds: [] },
     });
@@ -708,7 +708,7 @@ describe('registration review routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-id-desconocido/registrations/${seeded.entrant.entrantId}/team-memberships`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-id-desconocido/registrations/${seeded.entrant.entrantId}/team-memberships`,
       token: 'organizer-org1',
       payload: {
         personIds: [seeded.person.personId, '00000000-0000-4000-8000-000000000000'],
@@ -734,7 +734,7 @@ describe('disciplines listing', () => {
       }),
     );
 
-    const response = await request({ method: 'GET', url: '/disciplines' });
+    const response = await request({ method: 'GET', url: '/api/disciplines' });
     expect(response.statusCode).toBe(200);
 
     const football = (
@@ -769,7 +769,7 @@ describe('disciplines listing', () => {
       }),
     );
 
-    const response = await request({ method: 'GET', url: '/disciplines' });
+    const response = await request({ method: 'GET', url: '/api/disciplines' });
     expect(response.statusCode).toBe(200);
 
     const football = (

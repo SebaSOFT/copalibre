@@ -164,7 +164,7 @@ upgrade_step() {
   fi
 
   kubectl run "copalibre-upgrade-safety-poller-${tag}" --image=curlimages/curl:latest --restart=Never \
-    --command -- sh -c "while true; do curl -sf -o /dev/null http://${RELEASE_NAME}-api:3001/health || echo fail; sleep 0.5; done"
+    --command -- sh -c "while true; do curl -sf -o /dev/null http://${RELEASE_NAME}-api:3001/api/health || echo fail; sleep 0.5; done"
   kubectl wait --for=condition=ready --timeout=60s "pod/copalibre-upgrade-safety-poller-${tag}"
 
   helm upgrade "${RELEASE_NAME}" "${chart_dir}" --values /tmp/copalibre-upgrade-safety-values.yaml --wait --timeout 5m

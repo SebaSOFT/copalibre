@@ -23,6 +23,7 @@ import { SeedingController, toBracketMatch } from './seeding.controller.js';
 import { StandingsController } from './standings.controller.js';
 import { PublicProjectionsController } from './public-projections.controller.js';
 import type { PublicSeriesStateResponse } from '../dto/public-tournament.dto.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * Standings and seeding through the real HTTP stack.
@@ -104,6 +105,7 @@ describe('standings and seeding routes (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -251,7 +253,7 @@ describe('standings and seeding routes (integration)', () => {
     });
   }
 
-  const base = '/organizations/liga-mendocina/tournaments/apertura-2026/stages/1';
+  const base = '/api/organizations/liga-mendocina/tournaments/apertura-2026/stages/1';
 
   it('serves a projection version the client can key off', async () => {
     const response = await request({ method: 'GET', url: `${base}/standings`, token: 'organizer' });
@@ -277,7 +279,7 @@ describe('standings and seeding routes (integration)', () => {
   it('refuses the standings of a stage that does not exist', async () => {
     const response = await request({
       method: 'GET',
-      url: '/organizations/liga-mendocina/tournaments/apertura-2026/stages/9/standings',
+      url: '/api/organizations/liga-mendocina/tournaments/apertura-2026/stages/9/standings',
       token: 'organizer',
     });
 
@@ -441,7 +443,7 @@ describe('standings and seeding routes (integration)', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-mendocina/tournaments/apertura-2026/stages/3/seeding`,
+      url: `/api/organizations/liga-mendocina/tournaments/apertura-2026/stages/3/seeding`,
       token: 'organizer',
     });
 
@@ -806,7 +808,7 @@ describe('standings and seeding routes (integration)', () => {
   });
 
   it('serves series progress on the seeding read matching the public projection for a series-declared stage', async () => {
-    const seriesBase = '/organizations/liga-mendocina/tournaments/apertura-2026/stages/2';
+    const seriesBase = '/api/organizations/liga-mendocina/tournaments/apertura-2026/stages/2';
 
     // 1. Seed the stage: 4 entrants in single-elimination with span 3 creates 2 semifinal fixtures with 3 games each.
     const seedResponse = await request({

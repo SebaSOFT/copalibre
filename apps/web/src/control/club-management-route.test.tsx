@@ -296,13 +296,13 @@ describe('ClubManagementPage', () => {
     await screen.findByText('Casa de Italia');
     const clubRow = screen.getByText('Casa de Italia').closest('li');
     expect(clubRow?.querySelector('.cl-entrant-emblem img')?.getAttribute('src')).toContain(
-      '/organizations/liga-mendocina/clubs/club-1/emblem',
+      '/api/organizations/liga-mendocina/clubs/club-1/emblem',
     );
 
     fireEvent.click(screen.getByText('Edit club'));
     const selectedEmblem = await screen.findByRole('img', { name: 'Casa de Italia' });
     expect(selectedEmblem.querySelector('img')?.getAttribute('src')).toContain(
-      '/organizations/liga-mendocina/clubs/club-1/emblem',
+      '/api/organizations/liga-mendocina/clubs/club-1/emblem',
     );
   });
 

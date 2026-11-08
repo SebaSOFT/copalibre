@@ -15,6 +15,7 @@ import { API_BODY_LIMIT_BYTES } from '../http-body-limit.js';
 import { InvitationAcceptanceController } from './organization-access.controller.js';
 import { InstallationBootstrapController } from './installation-bootstrap.controller.js';
 import { AUTH_THROTTLE_LIMIT as BOOTSTRAP_THROTTLE_LIMIT } from './auth.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 class BootstrapTokenVerifier {
   verify(token: string): Promise<AuthenticatedSubject> {
@@ -58,6 +59,7 @@ describe('installation bootstrap (integration)', () => {
     app = moduleRef.createNestApplication<NestFastifyApplication>(
       new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES, trustProxy: true }),
     );
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -73,7 +75,7 @@ describe('installation bootstrap (integration)', () => {
   it('creates and accepts exactly one first administrator through audit and outbox', async () => {
     const created = await request({
       method: 'POST',
-      url: '/installation/bootstrap/admin',
+      url: '/api/installation/bootstrap/admin',
       headers: { 'x-copalibre-bootstrap-token': 'bootstrap-secret' },
       payload: {
         organizationAlias: 'liga-orbital',
@@ -89,7 +91,7 @@ describe('installation bootstrap (integration)', () => {
 
     const accepted = await request({
       method: 'POST',
-      url: '/invitations/accept',
+      url: '/api/invitations/accept',
       headers: { authorization: 'Bearer accept-invitation' },
       payload: { token: invitationToken },
     });
@@ -114,7 +116,7 @@ describe('installation bootstrap (integration)', () => {
 
     const rejected = await request({
       method: 'POST',
-      url: '/installation/bootstrap/admin',
+      url: '/api/installation/bootstrap/admin',
       headers: { 'x-copalibre-bootstrap-token': 'bootstrap-secret' },
       payload: {
         organizationAlias: 'segunda-liga',
@@ -130,7 +132,7 @@ describe('installation bootstrap (integration)', () => {
   it('rejects a bootstrap payload missing the administrator email with 400', async () => {
     const response = await request({
       method: 'POST',
-      url: '/installation/bootstrap/admin',
+      url: '/api/installation/bootstrap/admin',
       headers: { 'x-copalibre-bootstrap-token': 'bootstrap-secret' },
       payload: {
         organizationAlias: 'liga-validacion',
@@ -158,7 +160,7 @@ describe('installation bootstrap (integration)', () => {
     const attempt = () =>
       request({
         method: 'POST',
-        url: '/installation/bootstrap/admin',
+        url: '/api/installation/bootstrap/admin',
         headers: {
           'x-copalibre-bootstrap-token': 'wrong-secret',
           'x-forwarded-for': '10.9.1.1',

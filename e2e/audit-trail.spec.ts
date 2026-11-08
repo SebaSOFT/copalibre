@@ -7,9 +7,9 @@ import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-i
 // through yet — GET .../corrections is API-only — so that scenario is
 // covered at the integration level instead (series-operations.integration.test.ts).
 
-const organizationsPath = '/organizations?mine=true';
-const apiAuditTrailPath = '/organizations/liga-mendocina/audit-trail';
-const apiRolesPath = '/organizations/liga-mendocina/roles';
+const organizationsPath = '/api/organizations?mine=true';
+const apiAuditTrailPath = '/api/organizations/liga-mendocina/audit-trail';
+const apiRolesPath = '/api/organizations/liga-mendocina/roles';
 const controlAuditTrailPath = '/control/liga-mendocina/audit-trail';
 
 async function mockAuditTrailApi(page: Page, role: string): Promise<void> {

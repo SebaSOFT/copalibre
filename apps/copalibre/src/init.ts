@@ -22,7 +22,7 @@ export const LOCAL_DEFAULTS = {
   POSTGRES_PASSWORD: 'copalibre_dev_password',
   POSTGRES_DB: 'copalibre',
   COPALIBRE_BOOTSTRAP_TOKEN: 'copalibre_bootstrap_token_secret',
-  COPALIBRE_JWKS_URI: 'http://api:3001/.well-known/jwks.json',
+  COPALIBRE_JWKS_URI: 'http://api:3001/api/auth/jwks.json',
   COPALIBRE_JWT_ISSUER: 'http://localhost:8080',
   COPALIBRE_NATIVE_JWT_ISSUER: 'http://localhost:8080',
   COPALIBRE_JWT_AUDIENCE: 'copalibre',
@@ -313,8 +313,8 @@ export async function writeInstallationAssets(
 \t\t}
 \t}
 
-\t# Microservice API endpoints (incluye rutas base y subrutas)
-\t@api path /api /api/* /auth /auth/* /organizations /organizations/* /objects /objects/* /admin /admin/* /installation /installation/* /.well-known /.well-known/* /disciplines /disciplines/* /tournament-profiles /tournament-profiles/*
+\t# REST API
+\t@api path /api /api/*
 \thandle @api {
 \t\treverse_proxy api:3001
 \t}

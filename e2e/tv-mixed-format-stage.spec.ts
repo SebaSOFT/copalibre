@@ -16,7 +16,7 @@ import { expect, test } from './fixtures.js';
 const ORGANIZATION = 'panamericano-demo';
 const TOURNAMENT = 'panamericano-clubes-2025';
 const tvPath = `/tv/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
-const base = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const base = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const EMBLEMS = path.resolve(
   import.meta.dirname,
   '../packages/demo-datasets/datasets/panamericano-clubes-2025/emblems',
@@ -264,7 +264,7 @@ const bracket = {
 let server: Server;
 test.beforeAll(async ({ workerPort }) => {
   server = createServer((req, res) => {
-    if (req.url?.startsWith('/objects/discipline-background-image')) {
+    if (req.url?.startsWith('/api/objects/discipline-background-image')) {
       res.setHeader('content-type', 'image/jpeg');
       res.end(BACKDROP);
       return;
@@ -272,11 +272,11 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     if (req.url === `${base}/overview`) res.end(JSON.stringify(overview));
     else if (
-      req.url === `/organizations/${ORGANIZATION}/tournaments/${FINISHED_TOURNAMENT}/overview`
+      req.url === `/api/organizations/${ORGANIZATION}/tournaments/${FINISHED_TOURNAMENT}/overview`
     )
       res.end(JSON.stringify(finishedOverview));
     else if (
-      req.url?.startsWith(`/organizations/${ORGANIZATION}/tournaments/${FINISHED_TOURNAMENT}/`)
+      req.url?.startsWith(`/api/organizations/${ORGANIZATION}/tournaments/${FINISHED_TOURNAMENT}/`)
     )
       res.end(JSON.stringify({ matches: [] }));
     else if (req.url === `${base}/live`) res.end(JSON.stringify({ matches: [] }));
@@ -365,9 +365,9 @@ test('every image the kiosk asks for loads from the web application alone', asyn
       ),
     )
     .toEqual([]);
-  // The discipline backdrop is requested through the web application's own `/objects` route.
+  // The discipline backdrop is requested through the web application's own `/api/objects` route.
   await expect(
-    page.locator('img[src*="/objects/discipline-background-image"]').first(),
+    page.locator('img[src*="/api/objects/discipline-background-image"]').first(),
   ).toBeAttached();
 });
 

@@ -6,9 +6,9 @@ async function mockForgotPasswordApi(page: Page): Promise<void> {
       const url = String(input);
       const method = init?.method ?? 'GET';
       if (
-        (url === '/auth/forgot-password' ||
+        (url === '/api/auth/forgot-password' ||
           url === '/api/auth/forgot-password' ||
-          url.endsWith('/auth/forgot-password')) &&
+          url.endsWith('/api/auth/forgot-password')) &&
         method === 'POST'
       ) {
         const body = JSON.parse(String(init?.body));

@@ -35,14 +35,14 @@ async function mockPreferencesApi(page: Page): Promise<void> {
         }
 
         // Mock the PAT API under /api
-        if (url === '/auth/pat/scopes' && method === 'GET') {
+        if (url === '/api/auth/pat/scopes' && method === 'GET') {
           return Response.json({ scopes: ['api'] });
         }
-        if (url.includes('/auth/pat') && method === 'GET') {
+        if (url.includes('/api/auth/pat') && method === 'GET') {
           return Response.json(tokens);
         }
 
-        if (url.includes('/auth/pat') && method === 'POST') {
+        if (url.includes('/api/auth/pat') && method === 'POST') {
           const body = JSON.parse(String(init?.body));
           const newToken = {
             tokenId: 'token-2',
@@ -57,7 +57,7 @@ async function mockPreferencesApi(page: Page): Promise<void> {
           return Response.json(newToken, { status: 201 });
         }
 
-        if (url.includes('/auth/pat/') && method === 'DELETE') {
+        if (url.includes('/api/auth/pat/') && method === 'DELETE') {
           if (url.endsWith('?dryRun=true')) {
             return Response.json({ reversible: true });
           }
@@ -66,7 +66,7 @@ async function mockPreferencesApi(page: Page): Promise<void> {
           return Response.json({ reversible: true });
         }
 
-        if (url.endsWith('/organizations/liga-mendocina')) {
+        if (url.endsWith('/api/organizations/liga-mendocina')) {
           return Response.json({
             organizationId: 'org-1',
             alias: 'liga-mendocina',
@@ -75,10 +75,10 @@ async function mockPreferencesApi(page: Page): Promise<void> {
             timezone: 'America/Argentina/Buenos_Aires',
           });
         }
-        if (url.endsWith('/organizations/liga-mendocina/storage-usage')) {
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage')) {
           return Response.json({ totalBytes: 0, objectCount: 0 });
         }
-        if (url.endsWith('/organizations/liga-mendocina/storage-usage/objects')) {
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage/objects')) {
           return Response.json([]);
         }
 

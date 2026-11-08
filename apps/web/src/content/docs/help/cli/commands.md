@@ -171,7 +171,7 @@ applied schema matches this installation — all in one invocation.
 
 After a successful `pg_restore`, `restore` automatically runs `copalibre migrate` and then opens a
 connection to verify the applied schema version exactly matches what this installation expects (the
-same check `GET /ready` uses) — so a restore never leaves code and the database silently
+same check `GET /api/ready` uses) — so a restore never leaves code and the database silently
 desynchronized. If migration fails, `restore` reports it with its exit code without claiming
 success; retry with `copalibre migrate` and then `copalibre doctor`.
 

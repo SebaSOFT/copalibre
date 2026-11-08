@@ -12,7 +12,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-transmision';
 const TOURNAMENT = 'playoffs-emision';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const TV_PATH = `/tv/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 
 const HOME_ID = 'entrant-home';

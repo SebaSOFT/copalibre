@@ -83,12 +83,18 @@ describe('public projections routes', () => {
     });
   });
 
+  it('serves nothing outside the /api prefix', async () => {
+    const path = '/organizations/liga-orbital/public/tournaments';
+    expect((await request({ method: 'GET', url: `/api${path}` })).statusCode).toBe(200);
+    expect((await request({ method: 'GET', url: path })).statusCode).toBe(404);
+  });
+
   it('404s on draft tournament for every route', async () => {
     const routes = ['overview', 'live', 'stages/1/bracket', 'stages/1/matches/1'];
     for (const route of routes) {
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/${draftTournament.alias}/${route}`,
+        url: `/api/organizations/liga-orbital/tournaments/${draftTournament.alias}/${route}`,
       });
       expect(response.statusCode).toBe(404);
     }
@@ -97,19 +103,19 @@ describe('public projections routes', () => {
   it('404s on nonexistent organization/tournament/stage', async () => {
     const responseOrg = await request({
       method: 'GET',
-      url: `/organizations/unknown-org/tournaments/${publishedTournament.alias}/overview`,
+      url: `/api/organizations/unknown-org/tournaments/${publishedTournament.alias}/overview`,
     });
     expect(responseOrg.statusCode).toBe(404);
 
     const responseTourn = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/unknown-tourn/overview`,
+      url: `/api/organizations/liga-orbital/tournaments/unknown-tourn/overview`,
     });
     expect(responseTourn.statusCode).toBe(404);
 
     const responseStage = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/999/bracket`,
+      url: `/api/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/999/bracket`,
     });
     expect(responseStage.statusCode).toBe(404);
   });
@@ -117,7 +123,7 @@ describe('public projections routes', () => {
   it('returns real data with entrant names resolved for published tournament', async () => {
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/overview`,
+      url: `/api/organizations/liga-orbital/tournaments/${publishedTournament.alias}/overview`,
     });
     expect(response.statusCode).toBe(200);
     const data = JSON.parse(response.payload as string);
@@ -192,7 +198,7 @@ describe('public projections routes', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/live`,
+      url: `/api/organizations/liga-orbital/tournaments/${publishedTournament.alias}/live`,
     });
     expect(response.statusCode).toBe(200);
     const data = JSON.parse(response.payload as string) as {
@@ -247,7 +253,7 @@ describe('public projections routes', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${published.alias}/overview`,
+      url: `/api/organizations/liga-orbital/tournaments/${published.alias}/overview`,
     });
     expect(response.statusCode).toBe(200);
     const data = JSON.parse(response.payload as string);
@@ -278,7 +284,7 @@ describe('public projections routes', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${published.alias}/overview`,
+      url: `/api/organizations/liga-orbital/tournaments/${published.alias}/overview`,
     });
     const data = JSON.parse(response.payload as string);
     expect(Object.keys(data.ruleset).length).toBeGreaterThan(0);
@@ -318,7 +324,7 @@ describe('public projections routes', () => {
       return { stage, match };
     });
 
-    const base = `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/${stage.number}/matches`;
+    const base = `/api/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/${stage.number}/matches`;
     const response = await request({ method: 'GET', url: `${base}/${match.number}` });
     expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.payload as string)).toMatchObject({
@@ -337,7 +343,7 @@ describe('public projections routes', () => {
       (
         await request({
           method: 'GET',
-          url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/999/matches/1`,
+          url: `/api/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/999/matches/1`,
         })
       ).statusCode,
     ).toBe(404);
@@ -589,7 +595,7 @@ describe('public projections routes', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/${stage.number}/matches/${match.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/${stage.number}/matches/${match.number}`,
     });
 
     expect(response.statusCode).toBe(200);
@@ -728,7 +734,7 @@ describe('public projections routes', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/${stage.number}/matches/${match.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/${stage.number}/matches/${match.number}`,
     });
 
     expect(response.statusCode).toBe(200);
@@ -833,14 +839,14 @@ describe('public projections routes', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/persons/${person.personId}/public/profile`,
+      url: `/api/organizations/liga-orbital/tournaments/${publishedTournament.alias}/persons/${person.personId}/public/profile`,
     });
 
     expect(response.statusCode).toBe(200);
     expect(response.headers['cache-control']).toBe('public, max-age=60');
     const withCredentials = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/persons/${person.personId}/public/profile`,
+      url: `/api/organizations/liga-orbital/tournaments/${publishedTournament.alias}/persons/${person.personId}/public/profile`,
       token: 'not-a-real-token',
     });
     expect(withCredentials.statusCode).toBe(200);
@@ -997,7 +1003,7 @@ describe('public projections routes', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/persons/${person.personId}/public/profile`,
+      url: `/api/organizations/liga-orbital/tournaments/${publishedTournament.alias}/persons/${person.personId}/public/profile`,
     });
 
     expect(response.statusCode).toBe(200);
@@ -1016,7 +1022,7 @@ describe('public projections routes', () => {
   it('404s on player profile when person is not found or belongs to another organization', async () => {
     const unknownResponse = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/persons/01890000-0000-7000-8000-999999999999/public/profile`,
+      url: `/api/organizations/liga-orbital/tournaments/${publishedTournament.alias}/persons/01890000-0000-7000-8000-999999999999/public/profile`,
     });
     expect(unknownResponse.statusCode).toBe(404);
     expect(String(unknownResponse.headers['cache-control'] ?? '')).not.toContain('public');
@@ -1356,7 +1362,7 @@ describe('public projections routes', () => {
     it('projects the tournament total with composite columns and one row per finalized match without them', async () => {
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/${scorerId}/public/statistics?layout=player-stats`,
+        url: `/api/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/${scorerId}/public/statistics?layout=player-stats`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -1390,7 +1396,7 @@ describe('public projections routes', () => {
     it('defaults to the tournament’s first effective person-granularity layout when no layout is given', async () => {
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/${scorerId}/public/statistics`,
+        url: `/api/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/${scorerId}/public/statistics`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -1400,7 +1406,7 @@ describe('public projections routes', () => {
     it('404s a team-granularity (non-person) layout named for the drilldown', async () => {
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/${scorerId}/public/statistics?layout=team-standings-drilldown`,
+        url: `/api/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/${scorerId}/public/statistics?layout=team-standings-drilldown`,
       });
       expect(response.statusCode).toBe(404);
     });
@@ -1408,7 +1414,7 @@ describe('public projections routes', () => {
     it('404s an undeclared layout code', async () => {
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/${scorerId}/public/statistics?layout=nonexistent`,
+        url: `/api/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/${scorerId}/public/statistics?layout=nonexistent`,
       });
       expect(response.statusCode).toBe(404);
     });
@@ -1416,7 +1422,7 @@ describe('public projections routes', () => {
     it('404s an unpublished (draft) tournament', async () => {
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/${drilldownDraftTournament.alias}/persons/${scorerId}/public/statistics`,
+        url: `/api/organizations/liga-orbital/tournaments/${drilldownDraftTournament.alias}/persons/${scorerId}/public/statistics`,
       });
       expect(response.statusCode).toBe(404);
     });
@@ -1424,7 +1430,7 @@ describe('public projections routes', () => {
     it('404s an unknown or cross-organization person', async () => {
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/01890000-0000-7000-8000-999999999999/public/statistics`,
+        url: `/api/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/01890000-0000-7000-8000-999999999999/public/statistics`,
       });
       expect(response.statusCode).toBe(404);
     });
@@ -1432,7 +1438,7 @@ describe('public projections routes', () => {
     it('has no inferred tournament total or match rows for a person never named on a match roster', async () => {
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/${benchedId}/public/statistics?layout=player-stats`,
+        url: `/api/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/${benchedId}/public/statistics?layout=player-stats`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -1446,7 +1452,7 @@ describe('public projections routes', () => {
     it('returns only published tournaments and excludes drafts', async () => {
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/public/tournaments`,
+        url: `/api/organizations/liga-orbital/public/tournaments`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -1463,7 +1469,7 @@ describe('public projections routes', () => {
     it('404s on unknown organization', async () => {
       const response = await request({
         method: 'GET',
-        url: `/organizations/nonexistent-org-alias/public/tournaments`,
+        url: `/api/organizations/nonexistent-org-alias/public/tournaments`,
       });
       expect(response.statusCode).toBe(404);
     });
@@ -1491,7 +1497,7 @@ describe('public projections routes', () => {
 
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/public/tournaments`,
+        url: `/api/organizations/liga-orbital/public/tournaments`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -1642,7 +1648,7 @@ describe('public projections routes', () => {
 
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/public/tournaments`,
+        url: `/api/organizations/liga-orbital/public/tournaments`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -2016,7 +2022,7 @@ describe('public projections routes', () => {
 
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/public/tournaments`,
+        url: `/api/organizations/liga-orbital/public/tournaments`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -2218,7 +2224,7 @@ describe('public projections routes', () => {
 
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/public/tournaments`,
+        url: `/api/organizations/liga-orbital/public/tournaments`,
       });
       expect(response.statusCode).toBe(200);
       const found = JSON.parse(response.payload as string).tournaments.find(
@@ -2382,7 +2388,7 @@ describe('public projections routes', () => {
 
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/public/tournaments`,
+        url: `/api/organizations/liga-orbital/public/tournaments`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -2427,7 +2433,7 @@ describe('public projections routes', () => {
 
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/public/tournaments`,
+        url: `/api/organizations/liga-orbital/public/tournaments`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -2574,7 +2580,7 @@ describe('public projections routes', () => {
 
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/${created.alias}/stages/1/bracket`,
+        url: `/api/organizations/liga-orbital/tournaments/${created.alias}/stages/1/bracket`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -2690,7 +2696,7 @@ describe('public projections routes', () => {
 
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/${created.alias}/stages/1/bracket`,
+        url: `/api/organizations/liga-orbital/tournaments/${created.alias}/stages/1/bracket`,
       });
       expect(response.statusCode).toBe(200);
       const zone = response.json().zones[0];
@@ -2714,7 +2720,7 @@ describe('public projections routes', () => {
     it('gives every zone a distinct, stage-wide matchNumber that matchReport() resolves back to the same match', async () => {
       const response = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/copa-multizona-bracket/stages/1/bracket`,
+        url: `/api/organizations/liga-orbital/tournaments/copa-multizona-bracket/stages/1/bracket`,
       });
       expect(response.statusCode).toBe(200);
       const body = response.json();
@@ -2742,7 +2748,7 @@ describe('public projections routes', () => {
 
       const goldReport = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/copa-multizona-bracket/stages/1/matches/${goldNumber}`,
+        url: `/api/organizations/liga-orbital/tournaments/copa-multizona-bracket/stages/1/matches/${goldNumber}`,
       });
       expect(goldReport.statusCode).toBe(200);
       const goldReportBody = goldReport.json();
@@ -2752,7 +2758,7 @@ describe('public projections routes', () => {
 
       const silverReport = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/copa-multizona-bracket/stages/1/matches/${silverNumber}`,
+        url: `/api/organizations/liga-orbital/tournaments/copa-multizona-bracket/stages/1/matches/${silverNumber}`,
       });
       expect(silverReport.statusCode).toBe(200);
       const silverReportBody = silverReport.json();
@@ -2895,7 +2901,7 @@ describe('public projections routes', () => {
       for (const matchNumber of [1, 2, 3]) {
         const response = await request({
           method: 'GET',
-          url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/1/matches/${matchNumber}`,
+          url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/1/matches/${matchNumber}`,
         });
         expect(response.statusCode).toBe(200);
         const body = response.json();
@@ -2907,7 +2913,7 @@ describe('public projections routes', () => {
 
       const notFound = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/1/matches/4`,
+        url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/1/matches/4`,
       });
       expect(notFound.statusCode).toBe(404);
     });
@@ -2915,7 +2921,7 @@ describe('public projections routes', () => {
     it('carries on the overview the stage ordinal the public match route addresses each match by', async () => {
       const overview = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/overview`,
+        url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/overview`,
       });
       expect(overview.statusCode).toBe(200);
       const body = overview.json() as {
@@ -2934,7 +2940,7 @@ describe('public projections routes', () => {
       for (const match of stageOne) {
         const report = await request({
           method: 'GET',
-          url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/1/matches/${match.stageOrdinal}`,
+          url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/1/matches/${match.stageOrdinal}`,
         });
         expect(report.statusCode).toBe(200);
         const reported = report.json();
@@ -2946,7 +2952,7 @@ describe('public projections routes', () => {
     it('reports the same matchNumber for a match whether the matches-view request is group-filtered or not', async () => {
       const unfiltered = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/matches-view?stageNumber=1`,
+        url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/matches-view?stageNumber=1`,
       });
       expect(unfiltered.statusCode).toBe(200);
       const unfilteredByMatchId = new Map<string, number>(
@@ -2957,7 +2963,7 @@ describe('public projections routes', () => {
 
       const filtered = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/matches-view?stageNumber=1&groupId=${groupAId}`,
+        url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/matches-view?stageNumber=1&groupId=${groupAId}`,
       });
       expect(filtered.statusCode).toBe(200);
       const filteredMatches = filtered.json().matches as { matchId: string; matchNumber: number }[];
@@ -2968,7 +2974,7 @@ describe('public projections routes', () => {
 
       const otherGroupFiltered = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/matches-view?stageNumber=1&groupId=${groupBId}`,
+        url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/matches-view?stageNumber=1&groupId=${groupBId}`,
       });
       expect(otherGroupFiltered.statusCode).toBe(200);
       const otherGroupMatches = otherGroupFiltered.json().matches as {
@@ -3152,7 +3158,7 @@ describe('public privacy read models', () => {
 
   it('keeps youth names and match results while removing public profile access', async () => {
     const tournament = await createPrivacyTournament('privacy-youth-public', true);
-    const root = `/organizations/liga-orbital/tournaments/${tournament.tournament.alias}`;
+    const root = `/api/organizations/liga-orbital/tournaments/${tournament.tournament.alias}`;
 
     const [overview, match, bracket, profile, statistics] = await Promise.all([
       request({ method: 'GET', url: `${root}/overview` }),
@@ -3205,7 +3211,7 @@ describe('public privacy read models', () => {
 
   it('replaces an opted-out adult identity without changing results and 404s profile routes', async () => {
     const tournament = await createPrivacyTournament('privacy-adult-opt-out', false, true);
-    const root = `/organizations/liga-orbital/tournaments/${tournament.tournament.alias}`;
+    const root = `/api/organizations/liga-orbital/tournaments/${tournament.tournament.alias}`;
 
     const [overview, match, bracket, profile, statistics] = await Promise.all([
       request({ method: 'GET', url: `${root}/overview` }),
@@ -3375,7 +3381,7 @@ describe('public privacy read models', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${setup.adult.alias}/persons/${setup.personId}/public/profile`,
+      url: `/api/organizations/liga-orbital/tournaments/${setup.adult.alias}/persons/${setup.personId}/public/profile`,
     });
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.payload as string);
@@ -3394,7 +3400,7 @@ describe('public privacy read models', () => {
     expect(JSON.stringify(body.careerStatistics)).not.toContain('99');
     const protectedProfile = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${setup.youth.alias}/persons/${setup.personId}/public/profile`,
+      url: `/api/organizations/liga-orbital/tournaments/${setup.youth.alias}/persons/${setup.personId}/public/profile`,
     });
     expect(protectedProfile.statusCode).toBe(404);
     expect(String(protectedProfile.headers['cache-control'] ?? '')).not.toContain('public');
@@ -3503,7 +3509,7 @@ describe('overview standings of a mixed-format stage', () => {
   const overviewStandings = async (alias: string) => {
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${alias}/overview`,
+      url: `/api/organizations/liga-orbital/tournaments/${alias}/overview`,
     });
     expect(response.statusCode).toBe(200);
     return JSON.parse(response.payload as string).standingsPreview as {

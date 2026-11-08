@@ -657,7 +657,7 @@ describe('what the dashboard renders', () => {
         // The device-heartbeat panel and the nav's own role lookup also
         // fetch on mount; only exports are this test's concern, so their
         // requests are answered but not counted.
-        if (url.includes('/display-tokens') || url === '/organizations?mine=true') {
+        if (url.includes('/display-tokens') || url === '/api/organizations?mine=true') {
           return new Response('[]', { headers: { 'content-type': 'application/json' } });
         }
         requests.push(url);
@@ -755,11 +755,11 @@ describe('what the dashboard renders', () => {
 
       await waitFor(() => expect(click).toHaveBeenCalledTimes(5));
       expect(requests).toEqual([
-        '/organizations/liga-mendocina/tournaments/apertura-2026/exports/participants/individual?excludePersonalData=displayName',
-        '/organizations/liga-mendocina/tournaments/apertura-2026/exports/participants/team',
-        '/organizations/liga-mendocina/tournaments/apertura-2026/exports/results',
-        '/organizations/liga-mendocina/tournaments/apertura-2026/exports/standings',
-        '/organizations/liga-mendocina/tournaments/apertura-2026/export',
+        '/api/organizations/liga-mendocina/tournaments/apertura-2026/exports/participants/individual?excludePersonalData=displayName',
+        '/api/organizations/liga-mendocina/tournaments/apertura-2026/exports/participants/team',
+        '/api/organizations/liga-mendocina/tournaments/apertura-2026/exports/results',
+        '/api/organizations/liga-mendocina/tournaments/apertura-2026/exports/standings',
+        '/api/organizations/liga-mendocina/tournaments/apertura-2026/export',
       ]);
       expect(createObjectUrl).toHaveBeenCalledTimes(5);
       expect(createObjectUrl).toHaveBeenCalledWith(

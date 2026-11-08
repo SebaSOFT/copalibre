@@ -23,6 +23,7 @@ import { MatchControlController } from './match-control.controller.js';
 import { PublicProjectionsController } from './public-projections.controller.js';
 import { StandingsController } from './standings.controller.js';
 import { TableProjectionsController } from './table-projections.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * Table projections through the real HTTP stack, against real
@@ -149,6 +150,7 @@ describe('table projections (integration)', () => {
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -361,7 +363,7 @@ describe('table projections (integration)', () => {
     // finalize/refold step.
     const eventResponse = await (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: `/organizations/liga-tablas/tournaments/apertura-tablas/matches/${matchId}/events`,
+      url: `/api/organizations/liga-tablas/tournaments/apertura-tablas/matches/${matchId}/events`,
       headers: {
         authorization: 'Bearer referee',
         'idempotency-key': '01890000-0000-7000-8000-0000000000d1',
@@ -452,7 +454,7 @@ describe('table projections (integration)', () => {
   }
 
   it('lists every table layout in effect for a tab bar to render', async () => {
-    const response = await get('/organizations/liga-tablas/tournaments/apertura-tablas/tables');
+    const response = await get('/api/organizations/liga-tablas/tournaments/apertura-tablas/tables');
 
     expect(response.statusCode).toBe(200);
     expect(response.json().layouts).toEqual([
@@ -473,7 +475,7 @@ describe('table projections (integration)', () => {
 
   it('projects a stage-scoped, statistics-sourced group-standings table', async () => {
     const response = await get(
-      '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/tables/group-standings-default',
+      '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/tables/group-standings-default',
     );
 
     expect(response.statusCode).toBe(200);
@@ -495,7 +497,7 @@ describe('table projections (integration)', () => {
 
   it('projects a tournament-wide, collector-sourced top-scorers table', async () => {
     const response = await get(
-      '/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers',
+      '/api/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers',
     );
 
     expect(response.statusCode).toBe(200);
@@ -524,7 +526,7 @@ describe('table projections (integration)', () => {
 
   it('serves the same tournament-wide table as CSV', async () => {
     const response = await get(
-      '/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers/csv',
+      '/api/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers/csv',
     );
 
     expect(response.statusCode).toBe(200);
@@ -535,7 +537,7 @@ describe('table projections (integration)', () => {
 
   it('404s an unknown layout code', async () => {
     const response = await get(
-      '/organizations/liga-tablas/tournaments/apertura-tablas/tables/nonexistent-layout',
+      '/api/organizations/liga-tablas/tournaments/apertura-tablas/tables/nonexistent-layout',
     );
 
     expect(response.statusCode).toBe(404);
@@ -568,7 +570,7 @@ describe('table projections (integration)', () => {
     });
 
     const overridden = await get(
-      '/organizations/liga-tablas/tournaments/apertura-override/tables/top-scorers-override',
+      '/api/organizations/liga-tablas/tournaments/apertura-override/tables/top-scorers-override',
     );
     expect(overridden.statusCode).toBe(200);
     expect(overridden.json().layoutCode).toBe('top-scorers-override');
@@ -576,7 +578,7 @@ describe('table projections (integration)', () => {
     // The discipline's own default is no longer reachable — a `replaced`
     // override replaces the whole array, it does not merge into it.
     const replaced = await get(
-      '/organizations/liga-tablas/tournaments/apertura-override/tables/top-scorers',
+      '/api/organizations/liga-tablas/tournaments/apertura-override/tables/top-scorers',
     );
     expect(replaced.statusCode).toBe(404);
   });
@@ -584,7 +586,7 @@ describe('table projections (integration)', () => {
   it('401s without a token', async () => {
     const response = await (app as NestFastifyApplication).inject({
       method: 'GET',
-      url: '/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers',
+      url: '/api/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers',
     });
     expect(response.statusCode).toBe(401);
   });
@@ -596,7 +598,7 @@ describe('table projections (integration)', () => {
 
     it('serves persisted entrant abbreviations and club identity in public standings and matches', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/overview',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/overview',
       );
 
       expect(response.statusCode).toBe(200);
@@ -615,7 +617,7 @@ describe('table projections (integration)', () => {
       );
 
       const matchesView = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/matches-view?stageNumber=1',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/matches-view?stageNumber=1',
       );
       expect(matchesView.statusCode).toBe(200);
       expect(matchesView.json().matches[0]).toMatchObject({
@@ -625,7 +627,7 @@ describe('table projections (integration)', () => {
       });
 
       const standings = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
       );
       expect(standings.statusCode).toBe(200);
       expect(standings.json().rows).toContainEqual(
@@ -639,7 +641,7 @@ describe('table projections (integration)', () => {
 
     it('lists table layouts with no token at all', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables',
       );
 
       expect(response.statusCode).toBe(200);
@@ -651,7 +653,7 @@ describe('table projections (integration)', () => {
 
     it('projects a tournament-wide table with no token at all', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
       );
 
       expect(response.statusCode).toBe(200);
@@ -672,7 +674,7 @@ describe('table projections (integration)', () => {
       );
 
       const hiddenResponse = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
       );
       expect(hiddenResponse.statusCode).toBe(200);
       expect(hiddenResponse.json().rows[0]).toMatchObject({
@@ -688,7 +690,7 @@ describe('table projections (integration)', () => {
       expect(hiddenResponse.json().rows[0].cells.player.formatted).toBe('');
 
       const hiddenCsv = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers/csv',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers/csv',
       );
       expect(hiddenCsv.statusCode).toBe(200);
       expect(hiddenCsv.body).toContain('player,goals');
@@ -711,7 +713,7 @@ describe('table projections (integration)', () => {
       });
 
       const youthResponse = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
       );
       expect(youthResponse.statusCode).toBe(200);
       expect(youthResponse.json().rows[0]).toMatchObject({
@@ -727,14 +729,14 @@ describe('table projections (integration)', () => {
 
     it('filters a tournament-wide table by clubId without changing computed ranking', async () => {
       const matching = await getAnonymous(
-        `/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?clubId=${clubTalleresId}`,
+        `/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?clubId=${clubTalleresId}`,
       );
       expect(matching.statusCode).toBe(200);
       expect(matching.json().rows).toHaveLength(1);
       expect(matching.json().rows[0]).toMatchObject({ actorId: personScorer, rank: 1 });
 
       const nonMatching = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?clubId=00000000-0000-0000-0000-000000000000',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?clubId=00000000-0000-0000-0000-000000000000',
       );
       expect(nonMatching.statusCode).toBe(200);
       expect(nonMatching.json().rows).toHaveLength(0);
@@ -742,7 +744,7 @@ describe('table projections (integration)', () => {
 
     it('projects a stage-scoped table with no token at all', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
       );
 
       expect(response.statusCode).toBe(200);
@@ -751,7 +753,7 @@ describe('table projections (integration)', () => {
 
     it('serves a public stage table as CSV without requiring a token', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default/csv',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default/csv',
       );
 
       expect(response.statusCode).toBe(200);
@@ -763,7 +765,7 @@ describe('table projections (integration)', () => {
 
     it('serves a public tournament table as CSV without requiring a token', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers/csv',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers/csv',
       );
 
       expect(response.statusCode).toBe(200);
@@ -774,7 +776,7 @@ describe('table projections (integration)', () => {
 
     it('projects saved promotion bands and seed tags from the public stage table', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
       );
 
       expect(response.statusCode).toBe(200);
@@ -800,7 +802,7 @@ describe('table projections (integration)', () => {
 
     it('omits promotion bands when a public stage has no saved promotion plan', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/2/public/tables/group-standings-default',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/2/public/tables/group-standings-default',
       );
 
       expect(response.statusCode).toBe(200);
@@ -824,7 +826,7 @@ describe('table projections (integration)', () => {
       // has a scope. Reporting that group's identity would put its fixed
       // internal name in front of a reader as though it were a real group.
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
       );
 
       expect(response.statusCode).toBe(200);
@@ -838,7 +840,7 @@ describe('table projections (integration)', () => {
 
     it('leaves a tournament-wide table unsegmented, having no stage to group by', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
       );
 
       expect(response.statusCode).toBe(200);
@@ -847,14 +849,14 @@ describe('table projections (integration)', () => {
 
     it('filters a stage-scoped table by clubId without throwing', async () => {
       const matching = await getAnonymous(
-        `/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?clubId=${clubTalleresId}`,
+        `/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?clubId=${clubTalleresId}`,
       );
       expect(matching.statusCode).toBe(200);
       expect(matching.json().rows).toHaveLength(1);
       expect(matching.json().rows[0]).toMatchObject({ actorId: entrantTalleres });
 
       const nonMatching = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?clubId=00000000-0000-0000-0000-000000000000',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?clubId=00000000-0000-0000-0000-000000000000',
       );
       expect(nonMatching.statusCode).toBe(200);
       expect(nonMatching.json().rows).toHaveLength(0);
@@ -865,20 +867,20 @@ describe('table projections (integration)', () => {
       // controllers first hit registering `tables` at the same path: the
       // admin route still refuses an anonymous caller...
       const adminSide = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers',
       );
       expect(adminSide.statusCode).toBe(401);
 
       // ...while the public route serves it, both reachable on the same app.
       const publicSide = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
       );
       expect(publicSide.statusCode).toBe(200);
     });
 
     it('404s an unpublished (draft) tournament rather than exposing its tables', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-override/public/tables',
+        '/api/organizations/liga-tablas/tournaments/apertura-override/public/tables',
       );
       expect(response.statusCode).toBe(404);
     });

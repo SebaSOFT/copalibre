@@ -154,23 +154,23 @@ async function mockControlApi(
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
 
-        if (url === '/disciplines') {
+        if (url === '/api/disciplines') {
           return Response.json(disciplines);
         }
 
-        if (url === '/organizations/liga-mendocina/tournaments/custom-script-vocabulary') {
+        if (url === '/api/organizations/liga-mendocina/tournaments/custom-script-vocabulary') {
           return Response.json(hookVocabulary);
         }
 
-        if (url.startsWith('/tournament-profiles/compatible')) {
+        if (url.startsWith('/api/tournament-profiles/compatible')) {
           return Response.json(profiles ?? []);
         }
 
-        if (url === '/organizations/liga-mendocina/tournaments' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/tournaments' && method === 'GET') {
           return Response.json(createdTournaments);
         }
 
-        if (url === '/organizations/liga-mendocina/tournaments' && method === 'POST') {
+        if (url === '/api/organizations/liga-mendocina/tournaments' && method === 'POST') {
           if (createRefusal) {
             return Response.json({ message: createRefusal }, { status: 400 });
           }
@@ -187,7 +187,7 @@ async function mockControlApi(
         }
 
         if (
-          url === '/organizations/liga-mendocina/tournaments/apertura-2026/custom-scripts' &&
+          url === '/api/organizations/liga-mendocina/tournaments/apertura-2026/custom-scripts' &&
           method === 'PUT'
         ) {
           return Response.json(
@@ -197,7 +197,7 @@ async function mockControlApi(
         }
 
         if (
-          url === '/organizations/liga-mendocina/tournaments/apertura-2026/export' &&
+          url === '/api/organizations/liga-mendocina/tournaments/apertura-2026/export' &&
           method === 'GET'
         ) {
           return Response.json({
@@ -216,24 +216,24 @@ async function mockControlApi(
 
         if (
           url ===
-          '/organizations/liga-mendocina/tournaments/apertura-local/registrations?status=pending'
+          '/api/organizations/liga-mendocina/tournaments/apertura-local/registrations?status=pending'
         ) {
           return Response.json([]);
         }
 
         if (
           url ===
-          '/organizations/liga-mendocina/tournaments/apertura-2026/registrations?status=pending'
+          '/api/organizations/liga-mendocina/tournaments/apertura-2026/registrations?status=pending'
         ) {
           return Response.json(registrations);
         }
 
-        if (url === '/organizations/liga-mendocina/tournaments/apertura-2026/registrations') {
+        if (url === '/api/organizations/liga-mendocina/tournaments/apertura-2026/registrations') {
           return Response.json(registrations);
         }
         if (
           url ===
-            '/organizations/liga-mendocina/tournaments/apertura-2026/entrants/needing-abbreviation' &&
+            '/api/organizations/liga-mendocina/tournaments/apertura-2026/entrants/needing-abbreviation' &&
           method === 'GET'
         ) {
           return Response.json([]);
@@ -241,14 +241,14 @@ async function mockControlApi(
 
         if (
           url ===
-          '/organizations/liga-mendocina/tournaments/apertura-2026/registrations/entrant-001/review'
+          '/api/organizations/liga-mendocina/tournaments/apertura-2026/registrations/entrant-001/review'
         ) {
           return Response.json({ ...registrations[0], status: 'withdrawn' });
         }
 
         if (
           url ===
-          '/organizations/liga-mendocina/tournaments/apertura-2026/registrations/bulk-review'
+          '/api/organizations/liga-mendocina/tournaments/apertura-2026/registrations/bulk-review'
         ) {
           return Response.json({
             applied: registrations.map((row) => ({ ...row, status: 'accepted' })),
@@ -316,7 +316,7 @@ test('downloads tournament configuration JSON from the dashboard', async ({ page
     .poll(() => capturedRequests(page))
     .toContainEqual(
       expect.objectContaining({
-        url: '/organizations/liga-mendocina/tournaments/apertura-2026/export',
+        url: '/api/organizations/liga-mendocina/tournaments/apertura-2026/export',
         method: 'GET',
       }),
     );
@@ -382,7 +382,7 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
     .poll(() => capturedRequests(page))
     .toContainEqual(
       expect.objectContaining({
-        url: '/organizations/liga-mendocina/tournaments',
+        url: '/api/organizations/liga-mendocina/tournaments',
         method: 'POST',
         body: expect.objectContaining({
           alias: 'apertura-local',
@@ -453,7 +453,7 @@ test('sets a discipline-declared rule field during creation, beyond format/regis
     .poll(() => capturedRequests(page))
     .toContainEqual(
       expect.objectContaining({
-        url: '/organizations/liga-mendocina/tournaments',
+        url: '/api/organizations/liga-mendocina/tournaments',
         method: 'POST',
         body: expect.objectContaining({
           ruleOverrides: { 'scoring.pointsPerWin': 4 },
@@ -505,7 +505,7 @@ test('authors a three-stage tournament with a mix of allocation modes, and every
     .poll(() => capturedRequests(page))
     .toContainEqual(
       expect.objectContaining({
-        url: '/organizations/liga-mendocina/tournaments',
+        url: '/api/organizations/liga-mendocina/tournaments',
         method: 'POST',
         body: expect.objectContaining({
           stages: [
@@ -621,7 +621,7 @@ test('instantiates a tournament from a profile, previewing its stages read-only 
     .poll(() => capturedRequests(page))
     .toContainEqual(
       expect.objectContaining({
-        url: '/organizations/liga-mendocina/tournaments',
+        url: '/api/organizations/liga-mendocina/tournaments',
         method: 'POST',
         body: expect.objectContaining({
           profileId: 'profile-001',
@@ -867,7 +867,7 @@ test('blocks a custom-script edit after a qualifying result', async ({ page }) =
 
   const response = await page.evaluate(async () => {
     const result = await fetch(
-      '/organizations/liga-mendocina/tournaments/apertura-2026/custom-scripts',
+      '/api/organizations/liga-mendocina/tournaments/apertura-2026/custom-scripts',
       {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
@@ -882,7 +882,7 @@ test('blocks a custom-script edit after a qualifying result', async ({ page }) =
     .poll(() => capturedRequests(page))
     .toContainEqual(
       expect.objectContaining({
-        url: '/organizations/liga-mendocina/tournaments/apertura-2026/custom-scripts',
+        url: '/api/organizations/liga-mendocina/tournaments/apertura-2026/custom-scripts',
         method: 'PUT',
         body: { customScripts: [] },
       }),
@@ -906,7 +906,7 @@ test('bulk-approves visible registrations from the review queue', async ({ page 
     .poll(() => capturedRequests(page))
     .toContainEqual(
       expect.objectContaining({
-        url: '/organizations/liga-mendocina/tournaments/apertura-2026/registrations/bulk-review',
+        url: '/api/organizations/liga-mendocina/tournaments/apertura-2026/registrations/bulk-review',
         method: 'POST',
         body: {
           entrantIds: ['entrant-001', 'entrant-002'],
@@ -935,7 +935,7 @@ test('revokes an expanded registration from the review queue', async ({ page }) 
     .poll(() => capturedRequests(page))
     .toContainEqual(
       expect.objectContaining({
-        url: '/organizations/liga-mendocina/tournaments/apertura-2026/registrations/entrant-001/review',
+        url: '/api/organizations/liga-mendocina/tournaments/apertura-2026/registrations/entrant-001/review',
         method: 'POST',
         body: {
           decision: 'withdrawn',
@@ -1049,7 +1049,7 @@ test('declares a stage zone plan with a league zone overriding the stage format'
     .poll(() => capturedRequests(page))
     .toContainEqual(
       expect.objectContaining({
-        url: '/organizations/liga-mendocina/tournaments',
+        url: '/api/organizations/liga-mendocina/tournaments',
         method: 'POST',
         body: expect.objectContaining({
           stages: [

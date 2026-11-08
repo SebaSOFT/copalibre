@@ -25,10 +25,10 @@ async function mockOrganizationApi(
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url.includes('/auth/pat') && method === 'GET') {
+        if (url.includes('/api/auth/pat') && method === 'GET') {
           return Response.json([]);
         }
-        if (url.endsWith('/organizations/liga-mendocina') && method === 'GET') {
+        if (url.endsWith('/api/organizations/liga-mendocina') && method === 'GET') {
           return Response.json({
             organizationId: 'org-1',
             alias: 'liga-mendocina',
@@ -38,13 +38,13 @@ async function mockOrganizationApi(
             ...(emblemObjectId === undefined ? {} : { emblemObjectId }),
           });
         }
-        if (url.endsWith('/organizations/liga-mendocina/storage-usage')) {
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage')) {
           return Response.json({ totalBytes: 0, objectCount: 0 });
         }
-        if (url.endsWith('/organizations/liga-mendocina/storage-usage/objects')) {
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage/objects')) {
           return Response.json([]);
         }
-        if (url.endsWith('/organizations/liga-mendocina/emblem') && method === 'POST') {
+        if (url.endsWith('/api/organizations/liga-mendocina/emblem') && method === 'POST') {
           emblemObjectId = 'obj-1';
           window.__e2eEmblemUploadCount = (window.__e2eEmblemUploadCount ?? 0) + 1;
           return Response.json({ objectId: emblemObjectId }, { status: 201 });
@@ -175,10 +175,10 @@ test('club emblem renders as visible image in control panel clubs list', async (
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url.includes('/auth/pat')) {
+        if (url.includes('/api/auth/pat')) {
           return Response.json([]);
         }
-        if (url.endsWith('/organizations/liga-mendocina')) {
+        if (url.endsWith('/api/organizations/liga-mendocina')) {
           return Response.json({
             organizationId: 'org-1',
             alias: 'liga-mendocina',
@@ -187,13 +187,13 @@ test('club emblem renders as visible image in control panel clubs list', async (
             timezone: 'America/Argentina/San_Juan',
           });
         }
-        if (url.endsWith('/organizations/liga-mendocina/storage-usage')) {
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage')) {
           return Response.json({ totalBytes: 0, objectCount: 0 });
         }
-        if (url.endsWith('/organizations/liga-mendocina/storage-usage/objects')) {
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage/objects')) {
           return Response.json([]);
         }
-        if (url.endsWith('/organizations/liga-mendocina/clubs')) {
+        if (url.endsWith('/api/organizations/liga-mendocina/clubs')) {
           return Response.json([
             {
               clubId: 'club-1',
@@ -204,15 +204,15 @@ test('club emblem renders as visible image in control panel clubs list', async (
             },
           ]);
         }
-        if (url.endsWith('/organizations')) {
+        if (url.endsWith('/api/organizations')) {
           return Response.json([
             { organizationId: 'org-1', organizationAlias: 'liga-mendocina', role: 'admin' },
           ]);
         }
-        if (url.endsWith('/organizations/liga-mendocina/storage-usage')) {
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage')) {
           return Response.json({ totalBytes: 0, objectCount: 0 });
         }
-        if (url.endsWith('/organizations/liga-mendocina/storage-usage/objects')) {
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage/objects')) {
           return Response.json([]);
         }
         return originalFetch(input, init);
@@ -240,7 +240,7 @@ test('club emblem renders as visible image in control panel clubs list', async (
   await expect(emblemImg).toHaveJSProperty('naturalWidth', 1);
   await expect(emblemImg).toHaveAttribute(
     'src',
-    '/organizations/liga-mendocina/clubs/club-1/emblem',
+    '/api/organizations/liga-mendocina/clubs/club-1/emblem',
   );
 });
 
@@ -259,10 +259,10 @@ test('uploading tournament emblem in control panel renders in tournament setting
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url.includes('/auth/pat')) {
+        if (url.includes('/api/auth/pat')) {
           return Response.json([]);
         }
-        if (url.endsWith('/organizations/liga-mendocina')) {
+        if (url.endsWith('/api/organizations/liga-mendocina')) {
           return Response.json({
             organizationId: 'org-1',
             alias: 'liga-mendocina',

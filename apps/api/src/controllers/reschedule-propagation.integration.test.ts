@@ -31,7 +31,7 @@ it('projects the same previous placement on overview, matches view and report, c
         reason: { text: 'Cambio de cancha' },
       }),
     );
-  const base = '/organizations/liga-orbital/tournaments/copa-reprogramada';
+  const base = '/api/organizations/liga-orbital/tournaments/copa-reprogramada';
   await place(seeded.first.slotId);
   let report = await request({ method: 'GET', url: `${base}/stages/1/matches/1` });
   expect(report.statusCode).toBe(200);

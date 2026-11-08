@@ -8,7 +8,9 @@ async function mockLoginApi(page: Page): Promise<void> {
       const url = String(input);
       const method = init?.method ?? 'GET';
       if (
-        (url === '/auth/login' || url === '/api/auth/login' || url.endsWith('/auth/login')) &&
+        (url === '/api/auth/login' ||
+          url === '/api/auth/login' ||
+          url.endsWith('/api/auth/login')) &&
         method === 'POST'
       ) {
         return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });

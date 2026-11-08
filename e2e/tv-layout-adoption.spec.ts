@@ -5,7 +5,7 @@ import { expectNoSeriousSemanticViolations } from './support/semantic-axe.js';
 
 const ORGANIZATION = 'panamericano-demo';
 const TOURNAMENT = 'panamericano-clubes-2025';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const TV_PATH = `/tv/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 
 const longNames = [

@@ -616,7 +616,6 @@ describe('control api client endpoints', () => {
     const calls: { url: string; init?: RequestInit }[] = [];
     const client = createControlApiClient({
       accessToken: () => 'secret-token',
-      baseUrl: '/api',
       fetch: ((url: string, init?: RequestInit) => {
         calls.push({ url, init });
         return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));

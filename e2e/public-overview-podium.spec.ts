@@ -38,10 +38,10 @@ test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     const path = (req.url ?? '').split('?')[0] ?? '';
-    const tournament = path.startsWith(`/organizations/${organization}/tournaments/single-zone`)
+    const tournament = path.startsWith(`/api/organizations/${organization}/tournaments/single-zone`)
       ? 'single-zone'
       : 'multi-zone';
-    const route = `/organizations/${organization}/tournaments/${tournament}`;
+    const route = `/api/organizations/${organization}/tournaments/${tournament}`;
     if (path === `${route}/overview`) {
       res.end(
         JSON.stringify({

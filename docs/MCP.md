@@ -46,13 +46,13 @@ drafting a discipline's `artifact.json`.
 `COPALIBRE_API_URL` are set — without them, none of these appear in the server's tool list, and no
 HTTP request is ever attempted):
 
-| Tool                           | HTTP equivalent                                                               |
-| ------------------------------ | ----------------------------------------------------------------------------- |
-| `copalibre_get_organization`   | `GET /organizations/:alias`                                                   |
-| `copalibre_list_tournaments`   | `GET /organizations/:organizationAlias/tournaments`                           |
-| `copalibre_get_tournament`     | `GET /organizations/:organizationAlias/tournaments/:tournamentAlias`          |
-| `copalibre_create_tournament`  | `POST /organizations/:organizationAlias/tournaments`                          |
-| `copalibre_publish_tournament` | `POST /organizations/:organizationAlias/tournaments/:tournamentAlias/publish` |
+| Tool                           | HTTP equivalent                                                                   |
+| ------------------------------ | --------------------------------------------------------------------------------- |
+| `copalibre_get_organization`   | `GET /api/organizations/:alias`                                                   |
+| `copalibre_list_tournaments`   | `GET /api/organizations/:organizationAlias/tournaments`                           |
+| `copalibre_get_tournament`     | `GET /api/organizations/:organizationAlias/tournaments/:tournamentAlias`          |
+| `copalibre_create_tournament`  | `POST /api/organizations/:organizationAlias/tournaments`                          |
+| `copalibre_publish_tournament` | `POST /api/organizations/:organizationAlias/tournaments/:tournamentAlias/publish` |
 
 This is a curated starting set, not an exhaustive wrapper of every `apps/api` endpoint.
 

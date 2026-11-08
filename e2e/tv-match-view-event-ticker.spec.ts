@@ -9,7 +9,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const TV_MATCH_PATH = `/tv/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/matches/1`;
 
 const overview = {
