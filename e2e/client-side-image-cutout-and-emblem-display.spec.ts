@@ -189,11 +189,6 @@ test.describe('client-side image cutout and emblem display', () => {
         const parsed = new URL(url);
         if (parsed.hostname.includes('localhost') || parsed.hostname.includes('127.0.0.1'))
           return false;
-        if (
-          parsed.hostname.includes('fonts.googleapis.com') ||
-          parsed.hostname.includes('fonts.gstatic.com')
-        )
-          return false;
         return true;
       } catch {
         return false;
