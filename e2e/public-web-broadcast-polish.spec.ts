@@ -136,39 +136,43 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
 
-    if (path === `/organizations/${ORGANIZATION}/public/tournaments`) {
+    if (path === `/api/organizations/${ORGANIZATION}/public/tournaments`) {
       res.end(JSON.stringify(organizationTournaments));
       return;
     }
 
     if (
-      path === `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/overview` ||
-      path === `/organizations/${ORGANIZATION}/public/tournaments/${TOURNAMENT_ALIAS}/overview`
+      path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/overview` ||
+      path === `/api/organizations/${ORGANIZATION}/public/tournaments/${TOURNAMENT_ALIAS}/overview`
     ) {
       res.end(JSON.stringify(overview));
       return;
     }
 
     if (
-      path === `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/bracket`
+      path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/bracket`
     ) {
       res.end(JSON.stringify(roundRobinBracket));
       return;
     }
 
-    if (path === `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches-view`) {
+    if (
+      path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches-view`
+    ) {
       res.end(JSON.stringify({ matches: stageMatches }));
       return;
     }
 
-    if (path === `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/public/tables`) {
+    if (
+      path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/public/tables`
+    ) {
       res.end(JSON.stringify({ layouts: [] }));
       return;
     }
 
     if (
       path ===
-      `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/persons/${PERSON_ID}/public/profile`
+      `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/persons/${PERSON_ID}/public/profile`
     ) {
       res.end(JSON.stringify(playerProfile));
       return;

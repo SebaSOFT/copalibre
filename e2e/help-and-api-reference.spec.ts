@@ -59,7 +59,7 @@ test('public home page renders hero orientation hub with zero organizations', as
 }) => {
   const apiServer: Server = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
-    if (req.url === '/organizations') {
+    if (req.url === '/api/organizations') {
       res.end('[]');
       return;
     }

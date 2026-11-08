@@ -731,7 +731,7 @@ describe('TournamentAuthoringTemplate component', () => {
     const mockClient = createControlApiClient({
       fetch: async (input) => {
         const url = String(input);
-        if (url === '/disciplines') return json([]);
+        if (url === '/api/disciplines') return json([]);
         if (url.endsWith('/custom-script-vocabulary')) {
           return json({ hooks: ['event.recorded'], entries: [] });
         }
@@ -773,12 +773,12 @@ describe('TournamentAuthoringTemplate component', () => {
         const url = String(input);
         const body = init?.body ? JSON.parse(String(init.body)) : undefined;
         calls.push({ url, body });
-        if (url === '/disciplines') return json(sampleDisciplines());
+        if (url === '/api/disciplines') return json(sampleDisciplines());
         if (url.endsWith('/custom-script-vocabulary')) {
           return json({ hooks: ['event.recorded'], entries: [] });
         }
-        if (url.startsWith('/tournament-profiles/compatible')) return json([]);
-        if (url === '/organizations/liga-mendocina/tournaments') {
+        if (url.startsWith('/api/tournament-profiles/compatible')) return json([]);
+        if (url === '/api/organizations/liga-mendocina/tournaments') {
           return json(
             {
               tournamentId: 't-1',
@@ -811,7 +811,7 @@ describe('TournamentAuthoringTemplate component', () => {
     await waitFor(() => {
       expect(screen.getByText(/Tournament created: liga-a/i)).toBeDefined();
     });
-    expect(calls.some((c) => c.url === '/organizations/liga-mendocina/tournaments')).toBe(true);
+    expect(calls.some((c) => c.url === '/api/organizations/liga-mendocina/tournaments')).toBe(true);
   });
 });
 

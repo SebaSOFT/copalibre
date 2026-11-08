@@ -11,7 +11,7 @@ async function openAnalytics(page: Page): Promise<void> {
     if (url === TOKEN_ENDPOINT) {
       return route.fulfill({ json: { access_token: 'analytics-e2e-token', expires_in: 3600 } });
     }
-    if (path === `/organizations/${ORG_ALIAS}/tournaments`) {
+    if (path === `/api/organizations/${ORG_ALIAS}/tournaments`) {
       return route.fulfill({
         json: [
           {
@@ -45,16 +45,16 @@ async function openAnalytics(page: Page): Promise<void> {
         ],
       });
     }
-    if (path === `/organizations/${ORG_ALIAS}/storage-usage`) {
+    if (path === `/api/organizations/${ORG_ALIAS}/storage-usage`) {
       return route.fulfill({ json: { totalBytes: 0, objectCount: 0 } });
     }
     if (
-      path.startsWith(`/organizations/${ORG_ALIAS}/tournaments/`) &&
+      path.startsWith(`/api/organizations/${ORG_ALIAS}/tournaments/`) &&
       path.endsWith('/completion')
     ) {
       return route.fulfill({ json: { totalMatches: 0, resolvedMatches: 0, liveMatches: 0 } });
     }
-    if (path.startsWith('/organizations/')) return route.fulfill({ json: [] });
+    if (path.startsWith('/api/organizations/')) return route.fulfill({ json: [] });
     return route.continue();
   });
 

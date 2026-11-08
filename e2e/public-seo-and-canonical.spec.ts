@@ -92,23 +92,23 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
 
-    if (path === '/organizations') {
+    if (path === '/api/organizations') {
       res.end(JSON.stringify(organizationsList));
       return;
     }
-    if (path === `/organizations/${ORGANIZATION}/public/tournaments`) {
+    if (path === `/api/organizations/${ORGANIZATION}/public/tournaments`) {
       res.end(JSON.stringify(organizationTournaments));
       return;
     }
-    if (path === `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/overview`) {
+    if (path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/overview`) {
       res.end(JSON.stringify(overview));
       return;
     }
-    if (path === `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/live`) {
+    if (path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/live`) {
       res.end(JSON.stringify(liveDashboard));
       return;
     }
-    if (path === `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/tables`) {
+    if (path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/tables`) {
       res.end(JSON.stringify({ layouts: [] }));
       return;
     }

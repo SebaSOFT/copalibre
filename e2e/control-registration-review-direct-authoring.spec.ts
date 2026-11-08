@@ -31,7 +31,7 @@ async function mockRegistrationApi(
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url.includes('/organizations?mine=true')) {
+        if (url.includes('/api/organizations?mine=true')) {
           return Response.json([
             {
               organizationId: 'org-1',

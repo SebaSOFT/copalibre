@@ -147,7 +147,7 @@ describe('JerseyGrid', () => {
     });
     const image = document.querySelector<HTMLImageElement>('.cl-entrant-emblem img');
     if (!image) throw new Error('club emblem image was not rendered');
-    expect(image.src).toContain('/organizations/liga-orbital/clubs/club-1/emblem');
+    expect(image.src).toContain('/api/organizations/liga-orbital/clubs/club-1/emblem');
   });
 
   it('falls back to the placeholder if the emblem image fails to load', () => {

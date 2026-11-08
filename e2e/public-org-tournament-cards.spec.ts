@@ -40,7 +40,7 @@ test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     const path = (req.url ?? '').split('?')[0] ?? '';
-    if (path === `/organizations/${organization}/public/tournaments`) {
+    if (path === `/api/organizations/${organization}/public/tournaments`) {
       res.end(
         JSON.stringify({
           organizationAlias: organization,

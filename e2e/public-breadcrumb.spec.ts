@@ -3,7 +3,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT = 'apertura-2026';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const MATCH_PATH = `/es/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/2/matches/3`;
 
 const matchReport = {

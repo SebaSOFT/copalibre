@@ -6,7 +6,9 @@ async function mockLoginApi(page: Page): Promise<void> {
       const url = String(input);
       const method = init?.method ?? 'GET';
       if (
-        (url === '/auth/login' || url === '/api/auth/login' || url.endsWith('/auth/login')) &&
+        (url === '/api/auth/login' ||
+          url === '/api/auth/login' ||
+          url.endsWith('/api/auth/login')) &&
         method === 'POST'
       ) {
         const body = JSON.parse(String(init?.body));

@@ -5,7 +5,7 @@ import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT = 'apertura-2026';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const PAGE = `/${ORGANIZATION}/tournaments/${TOURNAMENT}/live`;
 
 const organizations = [
@@ -66,11 +66,11 @@ test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
-    if (path === '/organizations') {
+    if (path === '/api/organizations') {
       res.end(JSON.stringify(organizations));
       return;
     }
-    if (path === `/organizations/${ORGANIZATION}/public/tournaments`) {
+    if (path === `/api/organizations/${ORGANIZATION}/public/tournaments`) {
       res.end(JSON.stringify(tournaments));
       return;
     }

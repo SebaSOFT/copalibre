@@ -50,7 +50,7 @@ async function setupMockApi(page: Page): Promise<void> {
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url === '/organizations?mine=true' && method === 'GET') {
+        if (url === '/api/organizations?mine=true' && method === 'GET') {
           return Response.json([
             {
               organizationId: 'org-1',
@@ -60,10 +60,10 @@ async function setupMockApi(page: Page): Promise<void> {
             },
           ]);
         }
-        if (url === `/organizations/${orgAlias}/tournaments` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/tournaments` && method === 'GET') {
           return Response.json(tournaments);
         }
-        const tournamentSettingsPrefix = `/organizations/${orgAlias}/tournaments/`;
+        const tournamentSettingsPrefix = `/api/organizations/${orgAlias}/tournaments/`;
         if (
           method === 'GET' &&
           url.startsWith(tournamentSettingsPrefix) &&
@@ -73,7 +73,7 @@ async function setupMockApi(page: Page): Promise<void> {
           const tournament = tournaments.find((one) => one.alias === alias);
           return Response.json({ name: tournament?.name ?? alias });
         }
-        if (url.includes(`/organizations/${orgAlias}/audit-trail`) && method === 'GET') {
+        if (url.includes(`/api/organizations/${orgAlias}/audit-trail`) && method === 'GET') {
           return Response.json({
             records: auditRecords,
             total: auditRecords.length,
@@ -89,7 +89,7 @@ async function setupMockApi(page: Page): Promise<void> {
         if (url.includes('/registrations') || url.includes('/display-tokens')) {
           return Response.json([]);
         }
-        if (url === '/disciplines' && method === 'GET') {
+        if (url === '/api/disciplines' && method === 'GET') {
           return Response.json([
             {
               descriptorId: 'football.default',
@@ -99,7 +99,7 @@ async function setupMockApi(page: Page): Promise<void> {
             },
           ]);
         }
-        if (url === `/organizations/${orgAlias}/tournaments/custom-script-vocabulary`) {
+        if (url === `/api/organizations/${orgAlias}/tournaments/custom-script-vocabulary`) {
           return Response.json({ hooks: [], entries: [] });
         }
         if (url === `/events/control/${orgAlias}`) {

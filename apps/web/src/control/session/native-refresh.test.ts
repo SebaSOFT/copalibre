@@ -17,7 +17,7 @@ describe('refreshNativeSession', () => {
     const outcome = await refreshNativeSession(fetchMock);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/auth/refresh',
+      '/api/auth/refresh',
       expect.objectContaining({ method: 'POST', credentials: 'include' }),
     );
     expect(outcome).toMatchObject({ accessToken: 'fresh-jwt' });
@@ -54,7 +54,7 @@ describe('logoutNativeSession', () => {
     const fetchMock = jest.fn<typeof fetch>(async () => response({ message: 'Logged out.' }));
     await logoutNativeSession(fetchMock);
     expect(fetchMock).toHaveBeenCalledWith(
-      '/auth/logout',
+      '/api/auth/logout',
       expect.objectContaining({ method: 'POST', credentials: 'include' }),
     );
   });

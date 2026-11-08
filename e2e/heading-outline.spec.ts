@@ -8,7 +8,7 @@ const TOURNAMENT = 'apertura-2026';
 const PERSON_ID = '01936f4a-8001-7000-8000-000000000001';
 const CLUB_ID = '00000000-0000-7000-8000-000000000101';
 const MATCH_ID = '00000000-0000-7000-8000-000000000041';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const TOURNAMENT_ROUTE = `/es/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 
 const organizations = [
@@ -295,11 +295,11 @@ test.beforeAll(async ({ workerPort }) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     const path = url.pathname;
 
-    if (path === '/organizations') {
+    if (path === '/api/organizations') {
       res.end(JSON.stringify(organizations));
       return;
     }
-    if (path === `/organizations/${ORGANIZATION}/public/tournaments`) {
+    if (path === `/api/organizations/${ORGANIZATION}/public/tournaments`) {
       res.end(JSON.stringify(organizationTournaments));
       return;
     }
@@ -467,7 +467,7 @@ test('every authenticated control route renders a complete heading outline', asy
           await new Promise((resolve) => window.setTimeout(resolve, 250));
           return Response.json({ access_token: accessToken, expires_in: 3600 });
         }
-        if (url.pathname === '/organizations' && url.searchParams.get('mine') === 'true') {
+        if (url.pathname === '/api/organizations' && url.searchParams.get('mine') === 'true') {
           return Response.json([
             {
               organizationId: '00000000-0000-7000-8000-000000000001',

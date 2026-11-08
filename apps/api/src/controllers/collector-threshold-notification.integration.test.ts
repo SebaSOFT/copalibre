@@ -20,6 +20,7 @@ import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
 import { TournamentsController } from './tournaments.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * End-to-end coverage of the wiring: `collectorThresholdRules` declared on
@@ -44,7 +45,7 @@ describe('collector-threshold notifications across a stage (integration)', () =>
   let stage2MatchId = '';
   let stage2SegmentId = '';
   const base = (matchId: string) =>
-    `/organizations/liga-prueba-ct/tournaments/apertura-ct/matches/${matchId}`;
+    `/api/organizations/liga-prueba-ct/tournaments/apertura-ct/matches/${matchId}`;
 
   beforeAll(async () => {
     scratch = await createMigratedDatabase('collector-threshold');
@@ -69,6 +70,7 @@ describe('collector-threshold notifications across a stage (integration)', () =>
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -194,7 +196,7 @@ describe('collector-threshold notifications across a stage (integration)', () =>
     // organizer override at all, and no test-only `saveCompiledRuleset` call.
     const createResponse = await (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: '/organizations/liga-prueba-ct/tournaments',
+      url: '/api/organizations/liga-prueba-ct/tournaments',
       headers: { authorization: 'Bearer admin' },
       payload: {
         alias: 'apertura-ct',

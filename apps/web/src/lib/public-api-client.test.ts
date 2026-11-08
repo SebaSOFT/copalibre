@@ -46,7 +46,7 @@ describe('public-api-client', () => {
       const result = await fetchOverview('org1', 'tourney1');
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/overview',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/overview',
       );
     });
 
@@ -91,7 +91,7 @@ describe('public-api-client', () => {
       const result = await fetchCompletion('org1', 'tourney1');
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/completion',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/completion',
       );
     });
 
@@ -130,7 +130,7 @@ describe('public-api-client', () => {
       const result = await fetchLive('org1', 'tourney1');
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/live',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/live',
       );
     });
 
@@ -167,7 +167,7 @@ describe('public-api-client', () => {
       const result = await fetchBracket('org1', 'tourney1', 1);
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/stages/1/bracket',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/stages/1/bracket',
       );
     });
 
@@ -206,7 +206,7 @@ describe('public-api-client', () => {
       const result = await fetchMatchesView('org1', 'tourney1');
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/matches-view',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/matches-view',
       );
     });
 
@@ -223,7 +223,7 @@ describe('public-api-client', () => {
         state: 'live',
       });
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/matches-view?stageNumber=2&groupId=group-1&state=live',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/matches-view?stageNumber=2&groupId=group-1&state=live',
       );
     });
 
@@ -300,7 +300,7 @@ describe('public-api-client', () => {
 
       expect(await fetchMatchReport('org1', 'tourney1', 2, 3)).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/stages/2/matches/3',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/stages/2/matches/3',
       );
     });
 
@@ -325,7 +325,7 @@ describe('public-api-client', () => {
       const result = await fetchPublicTableLayouts('org1', 'tourney1');
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/public/tables',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/public/tables',
       );
     });
 
@@ -351,7 +351,7 @@ describe('public-api-client', () => {
       const result = await fetchPublicTableProjection('org1', 'tourney1', 'top-scorers');
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/public/tables/top-scorers',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/public/tables/top-scorers',
       );
     });
 
@@ -364,7 +364,7 @@ describe('public-api-client', () => {
 
       await fetchPublicTableProjection('org1', 'tourney1', 'group-standings-default', 2);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default',
       );
     });
 
@@ -385,7 +385,7 @@ describe('public-api-client', () => {
       );
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/public/tables/top-scorers?clubId=club-123',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/public/tables/top-scorers?clubId=club-123',
       );
     });
 
@@ -404,7 +404,7 @@ describe('public-api-client', () => {
         'club-123',
       );
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default?clubId=club-123',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default?clubId=club-123',
       );
     });
 
@@ -421,13 +421,13 @@ describe('public-api-client', () => {
   describe('publicTableCsvUrl', () => {
     it('builds a tournament-wide CSV URL', () => {
       expect(publicTableCsvUrl('org1', 'tourney1', 'top-scorers')).toBe(
-        'http://api.test/organizations/org1/tournaments/tourney1/public/tables/top-scorers/csv',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/public/tables/top-scorers/csv',
       );
     });
 
     it('builds a stage-scoped CSV URL and retains the club filter', () => {
       expect(publicTableCsvUrl('org1', 'tourney1', 'group-standings-default', 2, 'club-123')).toBe(
-        'http://api.test/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default/csv?clubId=club-123',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default/csv?clubId=club-123',
       );
     });
   });
@@ -449,7 +449,9 @@ describe('public-api-client', () => {
 
       const result = await fetchOrganizationTournaments('org1');
       expect(result).toEqual(mockData);
-      expect(fetch).toHaveBeenCalledWith('http://api.test/organizations/org1/public/tournaments');
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/api/organizations/org1/public/tournaments',
+      );
     });
 
     it('returns undefined on 404', async () => {
@@ -464,18 +466,20 @@ describe('public-api-client', () => {
 
   describe('emblem URL builders', () => {
     it('builds a same-origin organization emblem URL', () => {
-      expect(organizationEmblemUrl('liga-mendocina')).toBe('/organizations/liga-mendocina/emblem');
+      expect(organizationEmblemUrl('liga-mendocina')).toBe(
+        '/api/organizations/liga-mendocina/emblem',
+      );
     });
 
     it('builds a same-origin club emblem URL', () => {
       expect(clubEmblemUrl('liga-mendocina', 'club-1')).toBe(
-        '/organizations/liga-mendocina/clubs/club-1/emblem',
+        '/api/organizations/liga-mendocina/clubs/club-1/emblem',
       );
     });
 
     it('builds a same-origin tournament emblem URL', () => {
       expect(tournamentEmblemUrl('liga-mendocina', 'apertura-2026')).toBe(
-        '/organizations/liga-mendocina/tournaments/apertura-2026/emblem',
+        '/api/organizations/liga-mendocina/tournaments/apertura-2026/emblem',
       );
     });
   });

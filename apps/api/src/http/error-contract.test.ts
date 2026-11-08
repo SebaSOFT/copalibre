@@ -106,7 +106,7 @@ describe('refusalEntryFor', () => {
     );
     const entry = refusalEntryFor(response, {
       method: 'POST',
-      url: '/organizations/liga-orbital/clubs',
+      url: '/api/organizations/liga-orbital/clubs',
       subject: { subjectId: 'user-1', organizationId: 'org-1', scopes: ['copalibre.control'] },
     });
 
@@ -118,13 +118,13 @@ describe('refusalEntryFor', () => {
       actor: 'user:user-1',
       authorizationContext: 'copalibre.control',
       reason: 'Requires capability "org.manage-clubs"',
-      previousState: { method: 'POST', path: '/organizations/liga-orbital/clubs' },
+      previousState: { method: 'POST', path: '/api/organizations/liga-orbital/clubs' },
     });
   });
 
   it('names the actor absence, never an invented one, for an unauthenticated refusal', () => {
     const response = apiErrorResponse(new UnauthorizedException('Missing bearer token'));
-    const entry = refusalEntryFor(response, { method: 'GET', url: '/organizations' });
+    const entry = refusalEntryFor(response, { method: 'GET', url: '/api/organizations' });
 
     expect(entry?.actor).toBe('unauthenticated');
     expect(entry?.action).toBe('authorization.refused');
@@ -139,7 +139,7 @@ describe('refusalEntryFor', () => {
     );
     const entry = refusalEntryFor(response, {
       method: 'PATCH',
-      url: '/organizations/liga-orbital/tournaments/open-cup/stages/1/series',
+      url: '/api/organizations/liga-orbital/tournaments/open-cup/stages/1/series',
       subject: { subjectId: 'user-1', organizationId: 'org-1', scopes: [] },
     });
 

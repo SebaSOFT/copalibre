@@ -37,7 +37,7 @@ function serve(routes: Readonly<Record<string, unknown>>): void {
   }) as unknown as typeof fetch;
 }
 
-const BASE = '/organizations/liga/tournaments/apertura';
+const BASE = '/api/organizations/liga/tournaments/apertura';
 
 describe('loadSchedule', () => {
   const originalFetch = global.fetch;

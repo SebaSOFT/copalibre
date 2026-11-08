@@ -136,6 +136,6 @@ test('the Caddyfile addresses renderer and API through install-specific placehol
   );
   assert.equal(
     upstreams.filter((upstream) => upstream === '{$COPALIBRE_WEB_API_UPSTREAM:api:3001}').length,
-    2,
+    1,
   );
 });

@@ -11,7 +11,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const MULTI_ZONE_ROUTE = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`;
 const SINGLE_ZONE_ROUTE = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/2`;
 

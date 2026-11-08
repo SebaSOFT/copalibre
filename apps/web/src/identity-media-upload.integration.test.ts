@@ -108,7 +108,7 @@ describe('identity media upload integration', () => {
       };
 
       const client = createControlApiClient({
-        baseUrl: 'http://localhost:3000/api/v1',
+        baseUrl: 'http://localhost:3000',
         fetch: trackingFetch as typeof fetch,
         accessToken: () => 'bearer-test-token-123',
       });
@@ -132,23 +132,23 @@ describe('identity media upload integration', () => {
 
       // Verify request endpoints and methods
       expect(recordedRequests[0].url).toBe(
-        'http://localhost:3000/api/v1/organizations/acme-org/emblem',
+        'http://localhost:3000/api/organizations/acme-org/emblem',
       );
       expect(recordedRequests[0].method).toBe('POST');
       expect(recordedRequests[0].headers.get('authorization')).toBe('Bearer bearer-test-token-123');
 
       expect(recordedRequests[1].url).toBe(
-        'http://localhost:3000/api/v1/organizations/acme-org/clubs/club-789/emblem',
+        'http://localhost:3000/api/organizations/acme-org/clubs/club-789/emblem',
       );
       expect(recordedRequests[1].method).toBe('POST');
 
       expect(recordedRequests[2].url).toBe(
-        'http://localhost:3000/api/v1/organizations/acme-org/tournaments/winter-cup/emblem',
+        'http://localhost:3000/api/organizations/acme-org/tournaments/winter-cup/emblem',
       );
       expect(recordedRequests[2].method).toBe('POST');
 
       expect(recordedRequests[3].url).toBe(
-        'http://localhost:3000/api/v1/organizations/acme-org/persons/player-456/photo',
+        'http://localhost:3000/api/organizations/acme-org/persons/player-456/photo',
       );
       expect(recordedRequests[3].method).toBe('POST');
 

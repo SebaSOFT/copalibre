@@ -25,10 +25,10 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
         if (url === tokenEndpoint) {
           return Response.json({ access_token: accessToken, expires_in: 3600 });
         }
-        if (url === '/installation/super-admins' && method === 'GET') {
+        if (url === '/api/installation/super-admins' && method === 'GET') {
           return Response.json(superAdmins);
         }
-        if (url === '/installation/super-admins' && method === 'POST') {
+        if (url === '/api/installation/super-admins' && method === 'POST') {
           const body = JSON.parse(String(init?.body));
           const created = {
             assignmentId: '01800000-0000-7000-8000-000000000009',
@@ -38,7 +38,7 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
           superAdmins = [...superAdmins, created];
           return Response.json(created, { status: 201 });
         }
-        if (url.startsWith('/installation/super-admins/') && method === 'DELETE') {
+        if (url.startsWith('/api/installation/super-admins/') && method === 'DELETE') {
           const assignmentId = url.split('/').at(-1);
           superAdmins = superAdmins.filter((row) => row.assignmentId !== assignmentId);
           return Response.json(
@@ -46,7 +46,7 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             { status: 409 },
           );
         }
-        if (url === '/organizations/liga-sur/roles' && method === 'GET') {
+        if (url === '/api/organizations/liga-sur/roles' && method === 'GET') {
           return Response.json([
             {
               assignmentId: '01800000-0000-7000-8000-000000000010',
@@ -57,12 +57,12 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             },
           ]);
         }
-        if (url === '/organizations/liga-sur/roles/grantable' && method === 'GET') {
+        if (url === '/api/organizations/liga-sur/roles/grantable' && method === 'GET') {
           return Response.json({
             roles: ['super-admin', 'admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
           });
         }
-        if (url === '/organizations?mine=true') {
+        if (url === '/api/organizations?mine=true') {
           return Response.json([
             {
               organizationId: '01800000-0000-7000-8000-000000000002',
@@ -72,14 +72,14 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             },
           ]);
         }
-        if (url === '/organizations' && method === 'POST') {
+        if (url === '/api/organizations' && method === 'POST') {
           const body = JSON.parse(String(init?.body));
           return Response.json(
             { organizationId: '01800000-0000-7000-8000-000000000003', ...body },
             { status: 201 },
           );
         }
-        if (url === '/organizations/copa-norte/invitations' && method === 'POST') {
+        if (url === '/api/organizations/copa-norte/invitations' && method === 'POST') {
           return Response.json(
             {
               invitationId: '01800000-0000-7000-8000-000000000004',
@@ -88,7 +88,7 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             { status: 201 },
           );
         }
-        if (url === '/admin/modules?outdated=true') {
+        if (url === '/api/admin/modules?outdated=true') {
           return Response.json([
             {
               alias: 'football',
@@ -98,7 +98,7 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             },
           ]);
         }
-        if (url === '/admin/modules/verify' && method === 'POST') {
+        if (url === '/api/admin/modules/verify' && method === 'POST') {
           return Response.json(
             modules.map((module_) => ({
               alias: module_.alias,
@@ -108,7 +108,7 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             })),
           );
         }
-        if (url === '/admin/modules' && method === 'POST') {
+        if (url === '/api/admin/modules' && method === 'POST') {
           const body = JSON.parse(String(init?.body));
           modules = [
             ...modules,
@@ -131,12 +131,12 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             { status: 201 },
           );
         }
-        if (url.startsWith('/admin/modules/') && method === 'DELETE') {
+        if (url.startsWith('/api/admin/modules/') && method === 'DELETE') {
           const alias = decodeURIComponent(url.split('/').at(-1) ?? '');
           modules = modules.filter((module_) => module_.alias !== alias);
           return Response.json({ alias, removedCount: 1 });
         }
-        if (url === '/admin/modules/football/document' && method === 'GET') {
+        if (url === '/api/admin/modules/football/document' && method === 'GET') {
           return Response.json({
             descriptorId: '01800000-0000-7000-8000-000000000001',
             alias: 'football',
@@ -169,7 +169,7 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             },
           });
         }
-        if (url === '/admin/diagnostics/summary' && method === 'GET') {
+        if (url === '/api/admin/diagnostics/summary' && method === 'GET') {
           return Response.json({
             status: 'degraded',
             version: '1.1.0',
@@ -219,14 +219,14 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             },
           });
         }
-        if (url === '/admin/diagnostics/outbox/retry' && method === 'POST') {
+        if (url === '/api/admin/diagnostics/outbox/retry' && method === 'POST') {
           const body = JSON.parse(String(init?.body));
           return Response.json({
             retried: body.eventIds ?? ['01800000-0000-7000-8000-000000000099'],
             skipped: [],
           });
         }
-        if (url === '/admin/modules') return Response.json(modules);
+        if (url === '/api/admin/modules') return Response.json(modules);
         return Response.json([]);
       };
     },

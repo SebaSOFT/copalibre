@@ -24,11 +24,11 @@ const zone = (): PublicTournamentWinnerZoneResponse => ({
 describe('withPodiumEmblems', () => {
   it('resolves a same-origin emblem URL for each placing whose club has an emblem', () => {
     const [resolved] = withPodiumEmblems('liga uno', [zone()]);
-    expect(resolved?.champion.emblemSrc).toBe('/organizations/liga%20uno/clubs/club-a/emblem');
+    expect(resolved?.champion.emblemSrc).toBe('/api/organizations/liga%20uno/clubs/club-a/emblem');
     expect(resolved?.champions?.[0]?.emblemSrc).toBe(
-      '/organizations/liga%20uno/clubs/club-a/emblem',
+      '/api/organizations/liga%20uno/clubs/club-a/emblem',
     );
-    expect(resolved?.runnerUp?.emblemSrc).toBe('/organizations/liga%20uno/clubs/club-c/emblem');
+    expect(resolved?.runnerUp?.emblemSrc).toBe('/api/organizations/liga%20uno/clubs/club-c/emblem');
   });
 
   it('leaves a placing without an uploaded emblem for the placeholder shield', () => {
@@ -50,7 +50,7 @@ describe('withListingPodiumEmblems', () => {
   it('adds emblem URLs to the winners of a finished item', () => {
     const resolved = withListingPodiumEmblems('liga', item([zone()]));
     expect(resolved.winners?.[0]).toMatchObject({
-      champion: { emblemSrc: '/organizations/liga/clubs/club-a/emblem' },
+      champion: { emblemSrc: '/api/organizations/liga/clubs/club-a/emblem' },
     });
   });
 });

@@ -14,7 +14,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 
 const ORG = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const TOURNAMENT = `/organizations/${ORG}/tournaments/${TOURNAMENT_ALIAS}`;
+const TOURNAMENT = `/api/organizations/${ORG}/tournaments/${TOURNAMENT_ALIAS}`;
 const STAGE = `${TOURNAMENT}/stages/1`;
 
 async function mockControlApi(page: Page): Promise<void> {
@@ -44,7 +44,7 @@ async function mockControlApi(page: Page): Promise<void> {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
 
-        if (url.includes('/organizations?mine=true')) {
+        if (url.includes('/api/organizations?mine=true')) {
           return Response.json([
             {
               organizationId: 'org-1',

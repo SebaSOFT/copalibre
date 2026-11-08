@@ -11,7 +11,7 @@ import { expectNoSeriousSemanticViolations } from './support/semantic-axe.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const TOURNAMENT = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const PAGE = `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 
 const overview = {

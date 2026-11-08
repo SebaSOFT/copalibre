@@ -10,7 +10,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT = 'apertura-2026';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const TV = `/tv/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const ZONE = 'America/Argentina/San_Juan';
 const MATCHES = 36;
@@ -118,7 +118,7 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
     requested.push(path ?? '');
-    if (path === '/organizations') {
+    if (path === '/api/organizations') {
       res.end(JSON.stringify([{ alias: ORGANIZATION, primaryLanguage: 'es' }]));
     } else if (path === `${BASE}/overview`) res.end(JSON.stringify(overview));
     else if (path === `${BASE}/live`) res.end(JSON.stringify({ matches: [] }));

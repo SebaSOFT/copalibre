@@ -21,7 +21,7 @@ const AUDIT = { actor: 'user:seed', authorizationContext: 'seed' };
 /** Two groups of four play a round robin; the top two of each feed a four-team cup. */
 describe('next stage generated ahead and confirmed (integration)', () => {
   let harness: Awaited<ReturnType<typeof buildTestApp>>;
-  const tournamentBase = (alias: string) => `/organizations/liga-orbital/tournaments/${alias}`;
+  const tournamentBase = (alias: string) => `/api/organizations/liga-orbital/tournaments/${alias}`;
   const request = (
     method: 'GET' | 'POST',
     url: string,

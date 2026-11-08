@@ -68,12 +68,10 @@ test('fresh Compose installation exposes generic OIDC PKCE login', async ({ page
   expect(stored.refreshToken).toBeNull();
 });
 
-test('Compose web edge forwards emblem and discipline-image paths to the API', async ({
-  request,
-}) => {
+test('Compose web edge forwards /api media paths to the API', async ({ request }) => {
   for (const origin of ['http://localhost:4321', 'http://localhost:8080']) {
     const background = await request.get(
-      `${origin}/objects/discipline-background-image?key=unknown`,
+      `${origin}/api/objects/discipline-background-image?key=unknown`,
     );
     expect(background.status(), `${origin} discipline image route`).toBe(404);
     expect(background.headers()['content-type']).toContain('application/json');
@@ -81,19 +79,19 @@ test('Compose web edge forwards emblem and discipline-image paths to the API', a
       errorCode: 'discipline-background-image-not-found',
     });
 
-    const emblemRead = await request.get(`${origin}/organizations/no-such-org/emblem`);
+    const emblemRead = await request.get(`${origin}/api/organizations/no-such-org/emblem`);
     expect(emblemRead.status(), `${origin} emblem read route`).toBe(404);
     expect(emblemRead.headers()['content-type']).toContain('application/json');
     expect(await emblemRead.json()).toMatchObject({ errorCode: 'identity-media-not-found' });
 
-    const emblemUpload = await request.post(`${origin}/organizations/no-such-org/emblem`, {
+    const emblemUpload = await request.post(`${origin}/api/organizations/no-such-org/emblem`, {
       data: {},
     });
     expect(emblemUpload.status(), `${origin} emblem upload route`).toBe(401);
     expect(emblemUpload.headers()['content-type']).toContain('application/json');
 
     const emblemRemoval = await request.delete(
-      `${origin}/organizations/no-such-org/tournaments/no-such-tournament/emblem`,
+      `${origin}/api/organizations/no-such-org/tournaments/no-such-tournament/emblem`,
     );
     expect(emblemRemoval.status(), `${origin} emblem removal route`).toBe(401);
     expect(emblemRemoval.headers()['content-type']).toContain('application/json');

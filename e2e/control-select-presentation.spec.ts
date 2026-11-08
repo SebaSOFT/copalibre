@@ -17,7 +17,7 @@ async function mockSeededStage(page: Page): Promise<void> {
     const stageId = '01935bd3-7b4a-7a19-9c20-5a1a44600003';
     window.fetch = async (input) => {
       const url = String(input).split('?')[0] ?? '';
-      if (String(input).includes('/organizations?mine=true')) {
+      if (String(input).includes('/api/organizations?mine=true')) {
         return Response.json([
           {
             organizationId: 'org-1',
@@ -51,7 +51,7 @@ async function mockSeededStage(page: Page): Promise<void> {
           },
         ]);
       }
-      if (url.endsWith('/organizations/liga-mendocina')) {
+      if (url.endsWith('/api/organizations/liga-mendocina')) {
         return Response.json({
           organizationId: 'org-1',
           alias: 'liga-mendocina',

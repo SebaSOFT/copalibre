@@ -152,7 +152,7 @@ describe('ruleset-override edit and preview', () => {
     const { tournamentAlias } = await seedTournament();
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
@@ -172,7 +172,7 @@ describe('ruleset-override edit and preview', () => {
 
     const preview = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides/preview`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides/preview`,
       token: 'organizer-org1',
       payload: { overrides: { tiebreakers: ['points', 'goals-for'] } },
     });
@@ -183,7 +183,7 @@ describe('ruleset-override edit and preview', () => {
 
     const applied = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
       token: 'organizer-org1',
       payload: { overrides: { tiebreakers: ['points', 'goals-for'] } },
     });
@@ -200,7 +200,7 @@ describe('ruleset-override edit and preview', () => {
 
     const read = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
       token: 'organizer-org1',
     });
     expect(read.json().overrides).toMatchObject({
@@ -219,7 +219,7 @@ describe('ruleset-override edit and preview', () => {
     // compiler (packages/domain) does that union later, at compile time.
     const applied = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
       token: 'organizer-org1',
       payload: { overrides: { tiebreakers: ['goals-against'] } },
     });
@@ -228,7 +228,7 @@ describe('ruleset-override edit and preview', () => {
 
     const read = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
       token: 'organizer-org1',
     });
     expect(read.json().overrides.tiebreakers).toEqual(['goals-against']);
@@ -243,13 +243,13 @@ describe('ruleset-override edit and preview', () => {
     const { tournamentAlias } = await seedTournament();
     await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides/preview`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides/preview`,
       token: 'organizer-org1',
       payload: { overrides: { 'scoring.pointsPerWin': 10 } },
     });
     const read = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
       token: 'organizer-org1',
     });
     expect(read.json().overrides['scoring.pointsPerWin']).toBe(3);
@@ -261,7 +261,7 @@ describe('ruleset-override edit and preview', () => {
 
     const preview = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides/preview`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides/preview`,
       token: 'organizer-org1',
       payload: { overrides: { 'scoring.pointsPerWin': 5 } },
     });
@@ -274,7 +274,7 @@ describe('ruleset-override edit and preview', () => {
 
     const applied = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
       token: 'organizer-org1',
       payload: { overrides: { 'scoring.pointsPerWin': 5 } },
     });
@@ -283,7 +283,7 @@ describe('ruleset-override edit and preview', () => {
 
     const read = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
       token: 'organizer-org1',
     });
     expect(read.json().overrides['scoring.pointsPerWin']).toBe(3);
@@ -295,7 +295,7 @@ describe('ruleset-override edit and preview', () => {
 
     const applied = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
       token: 'organizer-org1',
       payload: {
         overrides: {
@@ -308,7 +308,7 @@ describe('ruleset-override edit and preview', () => {
 
     const read = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
       token: 'organizer-org1',
     });
     expect(read.json().overrides).toMatchObject({
@@ -321,7 +321,7 @@ describe('ruleset-override edit and preview', () => {
     const { tournamentAlias } = await seedTournament();
     const response = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
       token: 'organizer-org1',
       payload: { overrides: { 'registration.capacity': 8 } },
     });

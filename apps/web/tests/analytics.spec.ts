@@ -13,7 +13,7 @@ test('analytics shows organization context and tournament match progress', async
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url.includes('/organizations?mine=true')) {
+        if (url.includes('/api/organizations?mine=true')) {
           return Response.json([
             {
               organizationId: 'org-1',
@@ -23,7 +23,9 @@ test('analytics shows organization context and tournament match progress', async
             },
           ]);
         }
-        if (url.includes('/organizations/liga-mendocina/tournaments/apertura-2026/completion')) {
+        if (
+          url.includes('/api/organizations/liga-mendocina/tournaments/apertura-2026/completion')
+        ) {
           return Response.json({
             totalMatches: 8,
             resolvedMatches: 5,
@@ -34,10 +36,10 @@ test('analytics shows organization context and tournament match progress', async
             stages: [],
           });
         }
-        if (url.endsWith('/organizations/liga-mendocina/storage-usage')) {
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage')) {
           return Response.json({ totalBytes: 0, objectCount: 0 });
         }
-        if (url.includes('/organizations/liga-mendocina/tournaments')) {
+        if (url.includes('/api/organizations/liga-mendocina/tournaments')) {
           return Response.json([
             {
               tournamentId: '019927d0-0000-7000-8000-000000000002',

@@ -50,7 +50,7 @@ async function installResponsiveControlFixture(page: Page): Promise<void> {
             .replaceAll('=', '');
           return Response.json({ access_token: `e2e.${payload}.scope`, expires_in: 3600 });
         }
-        if (url === '/organizations/liga-mendocina/tournaments' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/tournaments' && method === 'GET') {
           return Response.json([
             {
               tournamentId: '019cf000-0000-7000-8000-000000000001',
@@ -62,7 +62,7 @@ async function installResponsiveControlFixture(page: Page): Promise<void> {
             },
           ]);
         }
-        if (url === '/disciplines') {
+        if (url === '/api/disciplines') {
           return Response.json([
             {
               descriptorId: 'football.default',

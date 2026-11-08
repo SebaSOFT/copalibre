@@ -20,6 +20,7 @@ import { DATABASE } from '../database.token.js';
 import { PublicProjectionsController } from './public-projections.controller.js';
 import { SeedingController } from './seeding.controller.js';
 import { StagesController } from './stages.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * Publishing a seed order generates one fixture graph per zone, each in the zone's effective
@@ -101,7 +102,7 @@ describe('seeding generates fixtures per zone (integration)', () => {
   let rulesetId = '';
   const organizationAlias = 'liga-zonas';
   const tournamentAlias = 'copa-zonas';
-  const stagesBase = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages`;
+  const stagesBase = `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages`;
   let mixedStageNumber = 0;
 
   /** Entrant ids by team name, e.g. `a1`..`a4` (knockout zone 1), `b1`..`b4` (zone 2), `r1`..`r6`. */
@@ -196,6 +197,7 @@ describe('seeding generates fixtures per zone (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();

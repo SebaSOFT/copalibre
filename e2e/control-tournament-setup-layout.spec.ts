@@ -101,7 +101,7 @@ async function mockApi(page: Page): Promise<{ readonly saved: Record<string, unk
         },
       };
     }
-    if (url === '/organizations?mine=true' && method === 'GET') {
+    if (url === '/api/organizations?mine=true' && method === 'GET') {
       return {
         body: [
           {
@@ -113,7 +113,7 @@ async function mockApi(page: Page): Promise<{ readonly saved: Record<string, unk
         ],
       };
     }
-    if (url === '/disciplines' && method === 'GET') {
+    if (url === '/api/disciplines' && method === 'GET') {
       return {
         body: [
           {

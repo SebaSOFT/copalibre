@@ -23,6 +23,7 @@ import { DATABASE } from '../database.token.js';
 import { createApiValidationPipe } from '../http/validation.js';
 import { MatchControlController } from './match-control.controller.js';
 import { PublicProjectionsController } from './public-projections.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
 const subjects: Record<string, AuthenticatedSubject> = {
@@ -44,8 +45,9 @@ describe('public live projection timed penalties (integration)', () => {
   let matchId = '';
   let segmentId = '';
   const entrantIds: string[] = [];
-  const consoleBase = () => `/organizations/liga-prueba/tournaments/apertura/matches/${matchId}`;
-  const publicLiveUrl = () => `/organizations/liga-prueba/tournaments/apertura/live`;
+  const consoleBase = () =>
+    `/api/organizations/liga-prueba/tournaments/apertura/matches/${matchId}`;
+  const publicLiveUrl = () => `/api/organizations/liga-prueba/tournaments/apertura/live`;
 
   async function request(method: 'GET' | 'POST', url: string, token?: string, payload?: unknown) {
     return (app as NestFastifyApplication).inject({
@@ -115,6 +117,7 @@ describe('public live projection timed penalties (integration)', () => {
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();

@@ -10,7 +10,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT = 'apertura-2026';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const TV = `/tv/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 
 const side = (id: string, name: string, abbreviation: string, score: number) => ({

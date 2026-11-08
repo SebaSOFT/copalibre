@@ -503,7 +503,7 @@ describe('copalibre doctor', () => {
           headers: { 'content-type': 'application/json' },
         });
       }
-      if (url.includes('/organizations')) {
+      if (url.includes('/api/organizations')) {
         return new Response(JSON.stringify({ organizations: [] }), { status: 200 });
       }
       if (url.includes('/events/')) {
@@ -536,7 +536,7 @@ describe('copalibre doctor', () => {
       if (url.includes('/jwks.json')) {
         return new Response(JSON.stringify({}), { status: 200 }); // missing keys array
       }
-      if (url.includes('/organizations')) {
+      if (url.includes('/api/organizations')) {
         return new Response('Server Error', { status: 500 });
       }
       if (url.includes('/events/')) {

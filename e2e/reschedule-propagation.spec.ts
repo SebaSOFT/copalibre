@@ -5,7 +5,7 @@ import type { Page } from '@playwright/test';
 
 const org = 'liga-reprogramacion';
 const tournament = 'copa-primavera';
-const base = `/organizations/${org}/tournaments/${tournament}`;
+const base = `/api/organizations/${org}/tournaments/${tournament}`;
 const target = `/control/${org}/tournaments/${tournament}/stages/1/schedule`;
 const matchId = '0199a000-0000-7000-8000-000000000001';
 const stageId = '0199a000-0000-7000-8000-000000000002';
@@ -151,8 +151,8 @@ async function builder(page: Page, subject: string): Promise<void> {
         access_token: `header.${Buffer.from(JSON.stringify({ sub: subject })).toString('base64url')}.signature`,
         expires_in: 3600,
       });
-    if (!path.startsWith('/organizations/')) return route.continue();
-    if (path === `/organizations/${org}/venues`)
+    if (!path.startsWith('/api/organizations/')) return route.continue();
+    if (path === `/api/organizations/${org}/venues`)
       return json(
         [1, 2].map((court) => ({
           venueId: `venue-${court}`,
@@ -162,8 +162,8 @@ async function builder(page: Page, subject: string): Promise<void> {
           concurrentCapacity: 1,
         })),
       );
-    if (path === `/organizations/${org}/officials`) return json([]);
-    if (path === `/organizations/${org}/schedules`)
+    if (path === `/api/organizations/${org}/officials`) return json([]);
+    if (path === `/api/organizations/${org}/schedules`)
       return json([{ scheduleId: 'schedule', name: 'Sábado', slotMinutes: 90, slots }]);
     if (path === `${base}/stages/1/fixtures`)
       return json({

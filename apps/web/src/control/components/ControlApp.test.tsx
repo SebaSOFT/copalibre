@@ -395,7 +395,7 @@ describe('ControlApp default-returnTo login landing', () => {
         if (url === 'https://identity.example/token') {
           return json({ access_token: 'fresh-access-token', expires_in: 3600 });
         }
-        if (url.includes('/organizations?mine=true')) {
+        if (url.includes('/api/organizations?mine=true')) {
           if (myOrganizations === 'error') {
             return new Response('boom', { status: 500 });
           }
@@ -500,7 +500,7 @@ describe('ControlApp default-returnTo login landing', () => {
           return json({ access_token: 'fresh-access-token', expires_in: 3600 });
         }
         if (
-          url.includes('/organizations?mine=true') &&
+          url.includes('/api/organizations?mine=true') &&
           window.location.pathname !== '/control/liga-mendocina'
         ) {
           organizationsRequestedBeforeRedirect = true;

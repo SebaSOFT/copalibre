@@ -22,6 +22,7 @@ import { OBJECT_STORAGE } from '../../object-storage.token.js';
 import { DiagnosticsController } from './diagnostics.controller.js';
 import { DiagnosticsService } from './diagnostics.service.js';
 import { OutboxInspectorService } from './outbox-inspector.service.js';
+import { applyApiPathPrefix } from '../../http/api-path-prefix.js';
 
 const subjects: Record<string, AuthenticatedSubject> = {
   admin: { subjectId: 'oidc-super-admin', scopes: [SUPER_ADMIN_SCOPE] },
@@ -71,6 +72,8 @@ describe('DiagnosticsController (integration)', () => {
     }).compile();
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -98,11 +101,11 @@ describe('DiagnosticsController (integration)', () => {
   it('refuses unauthenticated and non-super-admin callers', async () => {
     const unauth = await (app as NestFastifyApplication).inject({
       method: 'GET',
-      url: '/admin/diagnostics/summary',
+      url: '/api/admin/diagnostics/summary',
     });
     expect(unauth.statusCode).toBe(401);
 
-    const forbidden = await inject('orgAdmin', 'GET', '/admin/diagnostics/summary');
+    const forbidden = await inject('orgAdmin', 'GET', '/api/admin/diagnostics/summary');
     expect(forbidden.statusCode).toBe(403);
   });
 
@@ -119,7 +122,7 @@ describe('DiagnosticsController (integration)', () => {
     });
 
     // 2. Fetch summary initially
-    const initial = await inject('admin', 'GET', '/admin/diagnostics/summary');
+    const initial = await inject('admin', 'GET', '/api/admin/diagnostics/summary');
     expect(initial.statusCode).toBe(200);
     const initialJson = initial.json();
     expect(initialJson.status).toBe('healthy');
@@ -163,15 +166,15 @@ describe('DiagnosticsController (integration)', () => {
 
     // 4. Invalidate and re-check summary: status should be degraded due to dead letter
     // Wait slightly or call retry directly
-    const degradedSummary = await inject('admin', 'GET', '/admin/diagnostics/summary');
+    const degradedSummary = await inject('admin', 'GET', '/api/admin/diagnostics/summary');
     expect(degradedSummary.statusCode).toBe(200);
     // Note: service caches for 5s, but retry invalidates cache
-    const retryForbidden = await inject('orgAdmin', 'POST', '/admin/diagnostics/outbox/retry', {
+    const retryForbidden = await inject('orgAdmin', 'POST', '/api/admin/diagnostics/outbox/retry', {
       eventIds: [eventId],
     });
     expect(retryForbidden.statusCode).toBe(403);
 
-    const retryResponse = await inject('admin', 'POST', '/admin/diagnostics/outbox/retry', {
+    const retryResponse = await inject('admin', 'POST', '/api/admin/diagnostics/outbox/retry', {
       eventIds: [eventId],
     });
     expect(retryResponse.statusCode).toBe(200);
@@ -200,7 +203,7 @@ describe('DiagnosticsController (integration)', () => {
     expect(auditRow?.actor).toBe('user:oidc-super-admin');
 
     // 7. Retrying again skips the event
-    const secondRetry = await inject('admin', 'POST', '/admin/diagnostics/outbox/retry', {
+    const secondRetry = await inject('admin', 'POST', '/api/admin/diagnostics/outbox/retry', {
       eventIds: [eventId],
     });
     expect(secondRetry.statusCode).toBe(200);

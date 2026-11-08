@@ -22,7 +22,7 @@ const AUDIT = { actor: 'user:seed', authorizationContext: 'seed' };
 
 describe('persisted bracket activation through HTTP', () => {
   let harness: Awaited<ReturnType<typeof buildTestApp>>;
-  const tournamentBase = (alias: string) => `/organizations/liga-orbital/tournaments/${alias}`;
+  const tournamentBase = (alias: string) => `/api/organizations/liga-orbital/tournaments/${alias}`;
   const matchBase = (alias: string, matchId: string) =>
     `${tournamentBase(alias)}/matches/${matchId}`;
   const request = (method: 'GET' | 'POST', url: string, payload?: unknown) =>

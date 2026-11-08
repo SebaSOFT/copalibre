@@ -29,7 +29,7 @@ async function mockIdentityUploadApi(page: import('@playwright/test').Page): Pro
           return Response.json({ access_token: 'e2e-token', expires_in: 3600 });
         }
 
-        if (url === `/organizations/${orgAlias}` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}` && method === 'GET') {
           return Response.json({
             organizationId: 'org-test-1',
             alias: orgAlias,
@@ -39,18 +39,18 @@ async function mockIdentityUploadApi(page: import('@playwright/test').Page): Pro
           });
         }
 
-        if (url === '/auth/pat/scopes' && method === 'GET') {
+        if (url === '/api/auth/pat/scopes' && method === 'GET') {
           return Response.json({ scopes: [] });
         }
-        if (url === '/auth/pat' && method === 'GET') return Response.json([]);
-        if (url === `/organizations/${orgAlias}/storage-usage` && method === 'GET') {
+        if (url === '/api/auth/pat' && method === 'GET') return Response.json([]);
+        if (url === `/api/organizations/${orgAlias}/storage-usage` && method === 'GET') {
           return Response.json({ totalBytes: 0, objectCount: 0 });
         }
-        if (url === `/organizations/${orgAlias}/storage-usage/objects` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/storage-usage/objects` && method === 'GET') {
           return Response.json([]);
         }
 
-        if (url === `/organizations/${orgAlias}/emblem` && method === 'POST') {
+        if (url === `/api/organizations/${orgAlias}/emblem` && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as {
             contentType: string;
             contentBase64: string;
@@ -63,13 +63,13 @@ async function mockIdentityUploadApi(page: import('@playwright/test').Page): Pro
           return Response.json({ objectId: 'org-emblem-obj' });
         }
 
-        if (url === `/organizations/${orgAlias}/clubs` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/clubs` && method === 'GET') {
           return Response.json([
             { clubId: 'club-alpha', organizationId: 'org-test-1', name: 'Club Alpha' },
           ]);
         }
 
-        if (url === `/organizations/${orgAlias}/clubs/club-alpha/emblem` && method === 'POST') {
+        if (url === `/api/organizations/${orgAlias}/clubs/club-alpha/emblem` && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as {
             contentType: string;
             contentBase64: string;
@@ -175,7 +175,7 @@ test.describe('client-side image cutout and emblem display', () => {
 
     // Verify exactly one confirmed submission
     expect(submittedUploads).toHaveLength(1);
-    expect(submittedUploads[0].endpoint).toContain(`/organizations/${ORG_ALIAS}/emblem`);
+    expect(submittedUploads[0].endpoint).toContain(`/api/organizations/${ORG_ALIAS}/emblem`);
     expect(submittedUploads[0].contentType).toBe('image/png');
     expect(submittedUploads[0].contentBase64.length).toBeGreaterThan(0);
 

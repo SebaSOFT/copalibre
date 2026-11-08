@@ -67,7 +67,7 @@ describe('CSV import routes', () => {
     });
 
     const baseUrl =
-      '/organizations/liga-orbital/tournaments/copa-export-individual/exports/participants/individual';
+      '/api/organizations/liga-orbital/tournaments/copa-export-individual/exports/participants/individual';
     const complete = await request({ method: 'GET', url: baseUrl, token: 'organizer-org1' });
     expect(complete.statusCode).toBe(200);
     expect(complete.body).toBe(
@@ -118,7 +118,7 @@ describe('CSV import routes', () => {
 
     const created = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments/copa-importacion/imports',
+      url: '/api/organizations/liga-orbital/tournaments/copa-importacion/imports',
       token: 'organizer-org1',
       payload: {
         target: 'team',
@@ -143,7 +143,7 @@ describe('CSV import routes', () => {
 
     const preview = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}`,
       token: 'organizer-org1',
     });
     expect(preview.statusCode).toBe(200);
@@ -155,7 +155,7 @@ describe('CSV import routes', () => {
 
     const committed = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}/commit`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}/commit`,
       token: 'organizer-org1',
       payload: { sourceHash: created.json().sourceHash },
     });
@@ -170,7 +170,7 @@ describe('CSV import routes', () => {
 
     const stale = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}/commit`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}/commit`,
       token: 'organizer-org1',
       payload: { sourceHash: created.json().sourceHash },
     });
@@ -178,7 +178,7 @@ describe('CSV import routes', () => {
 
     const participantExport = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/copa-importacion/exports/participants/team',
+      url: '/api/organizations/liga-orbital/tournaments/copa-importacion/exports/participants/team',
       token: 'organizer-org1',
     });
     expect(participantExport.statusCode).toBe(200);
@@ -186,7 +186,7 @@ describe('CSV import routes', () => {
 
     const reimport = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments/copa-importacion/imports',
+      url: '/api/organizations/liga-orbital/tournaments/copa-importacion/imports',
       token: 'organizer-org1',
       payload: { target: 'team', sourceCsv: participantExport.body },
     });
@@ -202,14 +202,14 @@ describe('CSV import routes', () => {
     );
     const recommitted = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-importacion/imports/${reimport.json().importId}/commit`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-importacion/imports/${reimport.json().importId}/commit`,
       token: 'organizer-org1',
       payload: { sourceHash: reimport.json().sourceHash },
     });
     expect(recommitted.statusCode).toBe(200);
     const roundTrip = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/copa-importacion/exports/participants/team',
+      url: '/api/organizations/liga-orbital/tournaments/copa-importacion/exports/participants/team',
       token: 'organizer-org1',
     });
     expect(roundTrip.body).toBe(participantExport.body);
@@ -218,7 +218,7 @@ describe('CSV import routes', () => {
   it('never commits a preview containing invalid rows', async () => {
     const created = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments/copa-importacion/imports',
+      url: '/api/organizations/liga-orbital/tournaments/copa-importacion/imports',
       token: 'organizer-org1',
       payload: { target: 'team', sourceCsv: 'alias,name\nINVALID,\n' },
     });
@@ -234,7 +234,7 @@ describe('CSV import routes', () => {
     );
     const committed = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}/commit`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}/commit`,
       token: 'organizer-org1',
       payload: { sourceHash: created.json().sourceHash },
     });
@@ -251,7 +251,7 @@ describe('CSV import routes', () => {
     ].join('\n');
     const created = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments/copa-importacion/imports',
+      url: '/api/organizations/liga-orbital/tournaments/copa-importacion/imports',
       token: 'organizer-org1',
       payload: { target: 'team', sourceCsv },
     });
@@ -270,7 +270,7 @@ describe('CSV import routes', () => {
 
     const committed = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}/commit`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}/commit`,
       token: 'organizer-org1',
       payload: { sourceHash: created.json().sourceHash },
     });
@@ -305,7 +305,7 @@ describe('CSV import routes', () => {
   it('rejects a source larger than 4 MiB before creating a durable job', async () => {
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments/copa-importacion/imports',
+      url: '/api/organizations/liga-orbital/tournaments/copa-importacion/imports',
       token: 'organizer-org1',
       payload: { target: 'team', sourceCsv: 'x'.repeat(4 * 1024 * 1024 + 1) },
     });
@@ -318,7 +318,7 @@ describe('CSV import routes', () => {
     const sourceCsv = 'alias,name\nequipo-formula,=SUM(A1:A2)\n';
     const created = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments/copa-importacion/imports',
+      url: '/api/organizations/liga-orbital/tournaments/copa-importacion/imports',
       token: 'organizer-org1',
       payload: { target: 'team', sourceCsv },
     });
@@ -337,7 +337,7 @@ describe('CSV import routes', () => {
 
     const committed = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}/commit`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}/commit`,
       token: 'organizer-org1',
       payload: { sourceHash: created.json().sourceHash },
     });
@@ -345,7 +345,7 @@ describe('CSV import routes', () => {
 
     const exported = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/copa-importacion/exports/participants/team',
+      url: '/api/organizations/liga-orbital/tournaments/copa-importacion/exports/participants/team',
       token: 'organizer-org1',
     });
     expect(exported.statusCode).toBe(200);
@@ -404,7 +404,7 @@ describe('team-membership CSV import target', () => {
 
     const created = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments/copa-membresia-csv/imports',
+      url: '/api/organizations/liga-orbital/tournaments/copa-membresia-csv/imports',
       token: 'organizer-org1',
       payload: { target: 'team-membership', sourceCsv },
     });
@@ -424,7 +424,7 @@ describe('team-membership CSV import target', () => {
 
     const committed = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-membresia-csv/imports/${created.json().importId}/commit`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-membresia-csv/imports/${created.json().importId}/commit`,
       token: 'organizer-org1',
       payload: { sourceHash: created.json().sourceHash },
     });
@@ -448,7 +448,7 @@ describe('team-membership CSV import target', () => {
 
     const created = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments/copa-membresia-roles-csv/imports',
+      url: '/api/organizations/liga-orbital/tournaments/copa-membresia-roles-csv/imports',
       token: 'organizer-org1',
       payload: { target: 'team-membership', sourceCsv },
     });
@@ -468,7 +468,7 @@ describe('team-membership CSV import target', () => {
 
     const committed = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-membresia-roles-csv/imports/${created.json().importId}/commit`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-membresia-roles-csv/imports/${created.json().importId}/commit`,
       token: 'organizer-org1',
       payload: { sourceHash: created.json().sourceHash },
     });
@@ -493,7 +493,7 @@ describe('team-membership CSV import target', () => {
 
     const created = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments/copa-membresia-invalida/imports',
+      url: '/api/organizations/liga-orbital/tournaments/copa-membresia-invalida/imports',
       token: 'organizer-org1',
       payload: { target: 'team-membership', sourceCsv },
     });
@@ -512,14 +512,14 @@ describe('team-membership CSV import target', () => {
 
     const preview = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/copa-membresia-invalida/imports/${created.json().importId}`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-membresia-invalida/imports/${created.json().importId}`,
       token: 'organizer-org1',
     });
     expect(preview.json()).toMatchObject({ status: 'invalid' });
 
     const committed = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-membresia-invalida/imports/${created.json().importId}/commit`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-membresia-invalida/imports/${created.json().importId}/commit`,
       token: 'organizer-org1',
       payload: { sourceHash: created.json().sourceHash },
     });
@@ -543,7 +543,7 @@ describe('team-membership CSV import target', () => {
 
     const created = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments/copa-membresia-carrera/imports',
+      url: '/api/organizations/liga-orbital/tournaments/copa-membresia-carrera/imports',
       token: 'organizer-org1',
       payload: { target: 'team-membership', sourceCsv },
     });
@@ -572,7 +572,7 @@ describe('team-membership CSV import target', () => {
 
     const committed = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-membresia-carrera/imports/${created.json().importId}/commit`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-membresia-carrera/imports/${created.json().importId}/commit`,
       token: 'organizer-org1',
       payload: { sourceHash: created.json().sourceHash },
     });
@@ -610,7 +610,7 @@ describe('team-membership CSV import target', () => {
     const sourceCsv = `teamAlias,alias,displayName\n${foreignAlias},sofia-luna,Sofia Luna\n`;
     const created = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments/copa-membresia-cruzada/imports',
+      url: '/api/organizations/liga-orbital/tournaments/copa-membresia-cruzada/imports',
       token: 'organizer-org1',
       payload: { target: 'team-membership', sourceCsv },
     });
@@ -632,7 +632,7 @@ describe('team-membership CSV import target', () => {
 
     const committed = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/copa-membresia-cruzada/imports/${created.json().importId}/commit`,
+      url: `/api/organizations/liga-orbital/tournaments/copa-membresia-cruzada/imports/${created.json().importId}/commit`,
       token: 'organizer-org1',
       payload: { sourceHash: created.json().sourceHash },
     });
@@ -652,7 +652,7 @@ describe('team-membership CSV import target', () => {
     async function importOnce() {
       const created = await request({
         method: 'POST',
-        url: '/organizations/liga-orbital/tournaments/copa-membresia-reimport/imports',
+        url: '/api/organizations/liga-orbital/tournaments/copa-membresia-reimport/imports',
         token: 'organizer-org1',
         payload: { target: 'team-membership', sourceCsv },
       });
@@ -669,7 +669,7 @@ describe('team-membership CSV import target', () => {
       );
       return request({
         method: 'POST',
-        url: `/organizations/liga-orbital/tournaments/copa-membresia-reimport/imports/${created.json().importId}/commit`,
+        url: `/api/organizations/liga-orbital/tournaments/copa-membresia-reimport/imports/${created.json().importId}/commit`,
         token: 'organizer-org1',
         payload: { sourceHash: created.json().sourceHash },
       });

@@ -25,7 +25,7 @@ async function mockArchiveApi(page: Page): Promise<void> {
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url === '/organizations/liga-mendocina/tournaments' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/tournaments' && method === 'GET') {
           return Response.json([
             {
               tournamentId: 't-2025',

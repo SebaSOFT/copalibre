@@ -18,6 +18,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { AuditTrailController } from './audit-trail.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * The audit trail's reader-facing surface, through the real HTTP stack:
@@ -121,6 +122,7 @@ describe('audit trail surface (integration)', () => {
       imports: [AuditTrailTestModule],
     }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -140,7 +142,7 @@ describe('audit trail surface (integration)', () => {
   }
 
   it('an administrator sees applied and refused actions, scoped to their own organization', async () => {
-    const response = await request('admin', `/organizations/${organizationAlias}/audit-trail`);
+    const response = await request('admin', `/api/organizations/${organizationAlias}/audit-trail`);
     expect(response.statusCode).toBe(200);
     const body = response.json();
     expect(body.records.length).toBeGreaterThan(0);
@@ -161,7 +163,7 @@ describe('audit trail surface (integration)', () => {
   it('paginates via limit/offset and reports the true total', async () => {
     const page = await request(
       'admin',
-      `/organizations/${organizationAlias}/audit-trail?limit=1&offset=0`,
+      `/api/organizations/${organizationAlias}/audit-trail?limit=1&offset=0`,
     );
     expect(page.statusCode).toBe(200);
     const body = page.json();
@@ -223,7 +225,7 @@ describe('audit trail surface (integration)', () => {
 
     const response = await request(
       'admin',
-      `/organizations/${organizationAlias}/audit-trail?limit=10`,
+      `/api/organizations/${organizationAlias}/audit-trail?limit=10`,
     );
     expect(response.statusCode).toBe(200);
     const body = response.json();
@@ -248,7 +250,10 @@ describe('audit trail surface (integration)', () => {
       .select((eb) => eb.fn.countAll<string>().as('count'))
       .executeTakeFirstOrThrow();
 
-    const response = await request('referee', `/organizations/${organizationAlias}/audit-trail`);
+    const response = await request(
+      'referee',
+      `/api/organizations/${organizationAlias}/audit-trail`,
+    );
     expect(response.statusCode).toBe(403);
 
     const after = await scratch.db

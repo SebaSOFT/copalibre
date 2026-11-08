@@ -48,7 +48,7 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
 
-        if (url === '/organizations?mine=true' && method === 'GET') {
+        if (url === '/api/organizations?mine=true' && method === 'GET') {
           return Response.json([
             {
               organizationId: 'org-1',
@@ -58,31 +58,31 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
             },
           ]);
         }
-        if (url === '/auth/pat/scopes' && method === 'GET') {
+        if (url === '/api/auth/pat/scopes' && method === 'GET') {
           return Response.json({ scopes: [] });
         }
-        if (url === '/auth/pat' && method === 'GET') return Response.json([]);
-        if (url === `/organizations/${orgAlias}/storage-usage` && method === 'GET') {
+        if (url === '/api/auth/pat' && method === 'GET') return Response.json([]);
+        if (url === `/api/organizations/${orgAlias}/storage-usage` && method === 'GET') {
           return Response.json({ totalBytes: 0, objectCount: 0 });
         }
-        if (url === `/organizations/${orgAlias}/storage-usage/objects` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/storage-usage/objects` && method === 'GET') {
           return Response.json([]);
         }
 
-        if (url === `/organizations/${orgAlias}` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}` && method === 'GET') {
           const org = await (
             window as unknown as { __organization: () => Promise<unknown> }
           ).__organization();
           return Response.json(org);
         }
-        if (url === `/organizations/${orgAlias}/emblem` && method === 'POST') {
+        if (url === `/api/organizations/${orgAlias}/emblem` && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as { filename: string };
           const created = await (
             window as unknown as { __uploadOrgEmblem: (filename: string) => Promise<unknown> }
           ).__uploadOrgEmblem(body.filename);
           return Response.json(created);
         }
-        if (url === `/organizations/${orgAlias}/statistics/rebuild` && method === 'POST') {
+        if (url === `/api/organizations/${orgAlias}/statistics/rebuild` && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as {
             dryRun?: boolean;
             tournamentAlias?: string;
@@ -98,11 +98,11 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
           });
         }
 
-        if (url === `/organizations/${orgAlias}/clubs` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/clubs` && method === 'GET') {
           const listed = await (window as unknown as { __clubs: () => Promise<unknown> }).__clubs();
           return Response.json(listed);
         }
-        if (url === `/organizations/${orgAlias}/clubs` && method === 'POST') {
+        if (url === `/api/organizations/${orgAlias}/clubs` && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as { name: string };
           if (body.name === 'Club duplicado') {
             return Response.json(

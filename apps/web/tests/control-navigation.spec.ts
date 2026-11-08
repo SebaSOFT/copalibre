@@ -15,7 +15,7 @@ async function mockControlApis(page: Page, includeTournament = false): Promise<v
 
     window.fetch = async (input) => {
       const url = String(input);
-      if (url.includes('/organizations?mine=true')) {
+      if (url.includes('/api/organizations?mine=true')) {
         return Response.json([
           {
             organizationId: 'org-1',
@@ -25,7 +25,7 @@ async function mockControlApis(page: Page, includeTournament = false): Promise<v
           },
         ]);
       }
-      if (url.includes('/organizations/liga-mendocina/tournaments')) {
+      if (url.includes('/api/organizations/liga-mendocina/tournaments')) {
         return Response.json(
           includeTournament
             ? [
@@ -40,7 +40,7 @@ async function mockControlApis(page: Page, includeTournament = false): Promise<v
             : [],
         );
       }
-      if (url.includes('/organizations/liga-mendocina/storage/usage')) {
+      if (url.includes('/api/organizations/liga-mendocina/storage/usage')) {
         return Response.json({
           totalBytes: 1048576,
           objectCount: 4,
@@ -49,8 +49,8 @@ async function mockControlApis(page: Page, includeTournament = false): Promise<v
         });
       }
       if (
-        url.endsWith('/organizations/liga-mendocina') ||
-        url.includes('/organizations/liga-mendocina?')
+        url.endsWith('/api/organizations/liga-mendocina') ||
+        url.includes('/api/organizations/liga-mendocina?')
       ) {
         return Response.json({
           organizationId: 'org-1',

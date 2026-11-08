@@ -17,7 +17,7 @@ import { recordedFlashes, recordFlashes } from './support/flash-recorder.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const TOURNAMENT = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const OVERVIEW_PATH = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const MATCH_ID = 'match-live-1';
 const HOME_ENTRANT_ID = 'entrant-home';

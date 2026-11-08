@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
-const rolesPath = '/organizations/liga-mendocina/roles';
-const invitationPath = '/organizations/liga-mendocina/invitations';
+const rolesPath = '/api/organizations/liga-mendocina/roles';
+const invitationPath = '/api/organizations/liga-mendocina/invitations';
 
 async function mockRolesApi(page: Page, viewer = false): Promise<void> {
   await page.addInitScript(
@@ -47,13 +47,13 @@ async function mockRolesApi(page: Page, viewer = false): Promise<void> {
         if (url === invitationPath && method === 'GET') {
           return Response.json(pendingInvitations);
         }
-        if (url === '/organizations/liga-mendocina/clubs' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/clubs' && method === 'GET') {
           return Response.json([]);
         }
-        if (url === '/organizations/liga-mendocina/tournaments' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/tournaments' && method === 'GET') {
           return Response.json([]);
         }
-        if (url === '/organizations/liga-mendocina/roles/grantable' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/roles/grantable' && method === 'GET') {
           return Response.json({
             roles: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
           });
@@ -77,7 +77,9 @@ async function mockRolesApi(page: Page, viewer = false): Promise<void> {
             { status: 201 },
           );
         }
-        const rescindMatch = /^\/organizations\/liga-mendocina\/invitations\/([^/]+)$/.exec(url);
+        const rescindMatch = /^\/api\/organizations\/liga-mendocina\/invitations\/([^/]+)$/.exec(
+          url,
+        );
         if (rescindMatch && method === 'DELETE') {
           const invitationId = rescindMatch[1];
           const rescinded = pendingInvitations.find(

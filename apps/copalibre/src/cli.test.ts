@@ -603,7 +603,10 @@ describe('runCli', () => {
           );
           expect(result).toBe(0);
           expect(fetchSpy).toHaveBeenCalledWith(
-            new URL('/organizations/liga-orbital/statistics/rebuild', 'https://copalibre.example'),
+            new URL(
+              '/api/organizations/liga-orbital/statistics/rebuild',
+              'https://copalibre.example',
+            ),
             expect.objectContaining({
               method: 'POST',
               headers: expect.objectContaining({ authorization: 'Bearer clpat_x' }),
@@ -641,7 +644,7 @@ describe('runCli', () => {
           const result = await runCli(['module', 'list'], {}, { run: jest.fn(async () => 0) });
           expect(result).toBe(0);
           expect(fetchSpy).toHaveBeenCalledWith(
-            new URL('/admin/modules', 'https://copalibre.example'),
+            new URL('/api/admin/modules', 'https://copalibre.example'),
             expect.objectContaining({
               headers: expect.objectContaining({ authorization: 'Bearer clpat_x' }),
             }),
@@ -730,7 +733,7 @@ describe('runCli', () => {
           );
           expect(result).toBe(0);
           expect(fetchSpy).toHaveBeenCalledWith(
-            new URL('/organizations/liga-orbital', 'https://copalibre.example'),
+            new URL('/api/organizations/liga-orbital', 'https://copalibre.example'),
             expect.objectContaining({
               headers: expect.objectContaining({ Authorization: 'Bearer clpat_x' }),
             }),
@@ -815,7 +818,7 @@ describe('runCli', () => {
           );
           expect(result).toBe(0);
           expect(fetchSpy).toHaveBeenCalledWith(
-            new URL('/organizations/liga-orbital/tournaments', 'https://copalibre.example'),
+            new URL('/api/organizations/liga-orbital/tournaments', 'https://copalibre.example'),
             expect.objectContaining({
               headers: expect.objectContaining({ Authorization: 'Bearer clpat_x' }),
             }),
@@ -858,7 +861,10 @@ describe('runCli', () => {
           );
           expect(result).toBe(0);
           expect(fetchSpy).toHaveBeenCalledWith(
-            new URL('/organizations/liga-orbital/tournaments/copa', 'https://copalibre.example'),
+            new URL(
+              '/api/organizations/liga-orbital/tournaments/copa',
+              'https://copalibre.example',
+            ),
             expect.objectContaining({
               headers: expect.objectContaining({ Authorization: 'Bearer clpat_x' }),
             }),
@@ -946,7 +952,7 @@ describe('runCli', () => {
           expect(result).toBe(0);
           const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
           expect(url).toEqual(
-            new URL('/organizations/liga-orbital/tournaments', 'https://copalibre.example'),
+            new URL('/api/organizations/liga-orbital/tournaments', 'https://copalibre.example'),
           );
           expect(init.method).toBe('POST');
           expect(JSON.parse(init.body as string)).toEqual({
@@ -999,7 +1005,7 @@ describe('runCli', () => {
           const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
           expect(url).toEqual(
             new URL(
-              '/organizations/liga-orbital/tournaments/copa/publish',
+              '/api/organizations/liga-orbital/tournaments/copa/publish',
               'https://copalibre.example',
             ),
           );
@@ -1117,7 +1123,10 @@ describe('runCli', () => {
           );
           expect(result).toBe(0);
           expect(fetchSpy).toHaveBeenCalledWith(
-            new URL('/organizations/liga-orbital/statistics/rebuild', 'https://copalibre.example'),
+            new URL(
+              '/api/organizations/liga-orbital/statistics/rebuild',
+              'https://copalibre.example',
+            ),
             expect.objectContaining({ method: 'POST' }),
           );
         } finally {
@@ -1137,7 +1146,7 @@ describe('runCli', () => {
           const result = await runCli(['module', 'list'], {}, { run: jest.fn(async () => 0) });
           expect(result).toBe(0);
           expect(fetchSpy).toHaveBeenCalledWith(
-            new URL('/admin/modules', 'https://copalibre.example'),
+            new URL('/api/admin/modules', 'https://copalibre.example'),
             expect.objectContaining({
               headers: expect.objectContaining({ authorization: 'Bearer clpat_x' }),
             }),

@@ -17,6 +17,7 @@ import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { DataExportController } from './data-export.controller.js';
 import { TournamentsController } from './tournaments.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * Tournament archival through the real HTTP stack: the
@@ -102,6 +103,7 @@ describe('tournament archival (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });
@@ -149,7 +151,7 @@ describe('tournament archival (integration)', () => {
 
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/tournaments/draft-tournament/archive`,
+      url: `/api/organizations/${organizationAlias}/tournaments/draft-tournament/archive`,
       headers: { authorization: 'Bearer organizer-1' },
     });
 
@@ -165,7 +167,7 @@ describe('tournament archival (integration)', () => {
 
     const archiveResponse = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/tournaments/copa-finished/archive`,
+      url: `/api/organizations/${organizationAlias}/tournaments/copa-finished/archive`,
       headers: { authorization: 'Bearer organizer-1' },
     });
     expect(archiveResponse.statusCode).toBe(200);
@@ -173,7 +175,7 @@ describe('tournament archival (integration)', () => {
 
     const listResponse = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/tournaments`,
+      url: `/api/organizations/${organizationAlias}/tournaments`,
       headers: { authorization: 'Bearer organizer-1' },
     });
     expect(listResponse.statusCode).toBe(200);
@@ -183,7 +185,7 @@ describe('tournament archival (integration)', () => {
     // The tournament's own detail route is not a listing — it still resolves.
     const detailResponse = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/tournaments/copa-finished`,
+      url: `/api/organizations/${organizationAlias}/tournaments/copa-finished`,
     });
     expect(detailResponse.statusCode).toBe(200);
     expect((detailResponse.json() as { status: string }).status).toBe('archived');
@@ -193,7 +195,7 @@ describe('tournament archival (integration)', () => {
     // proving the request succeeds rather than being refused for its state.
     const exportResponse = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/tournaments/copa-finished/exports/results`,
+      url: `/api/organizations/${organizationAlias}/tournaments/copa-finished/exports/results`,
       headers: { authorization: 'Bearer organizer-1' },
     });
     expect(exportResponse.statusCode).toBe(200);
@@ -204,20 +206,20 @@ describe('tournament archival (integration)', () => {
 
     const before = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/tournaments/copa-export-parity/exports/participants/individual`,
+      url: `/api/organizations/${organizationAlias}/tournaments/copa-export-parity/exports/participants/individual`,
       headers: { authorization: 'Bearer organizer-1' },
     });
     expect(before.statusCode).toBe(200);
 
     await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/tournaments/copa-export-parity/archive`,
+      url: `/api/organizations/${organizationAlias}/tournaments/copa-export-parity/archive`,
       headers: { authorization: 'Bearer organizer-1' },
     });
 
     const after = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/tournaments/copa-export-parity/exports/participants/individual`,
+      url: `/api/organizations/${organizationAlias}/tournaments/copa-export-parity/exports/participants/individual`,
       headers: { authorization: 'Bearer organizer-1' },
     });
     expect(after.statusCode).toBe(200);

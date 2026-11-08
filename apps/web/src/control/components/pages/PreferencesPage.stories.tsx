@@ -56,7 +56,7 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : '';
       return new Response(
         JSON.stringify(
-          url.endsWith('/auth/pat/scopes')
+          url.endsWith('/api/auth/pat/scopes')
             ? { scopes: ['copalibre.control', 'copalibre.participant'] }
             : mode === 'empty'
               ? []

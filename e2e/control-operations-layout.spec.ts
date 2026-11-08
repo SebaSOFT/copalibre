@@ -54,7 +54,7 @@ async function mockApi(page: Page): Promise<{ readonly createdVenues: Venue[] }>
     },
     { tokenEndpoint: TOKEN_ENDPOINT },
   );
-  const orgPath = `/organizations/${ORG_ALIAS}`;
+  const orgPath = `/api/organizations/${ORG_ALIAS}`;
   const venues: Venue[] = [
     {
       venueId: 'venue-1',
@@ -67,7 +67,7 @@ async function mockApi(page: Page): Promise<{ readonly createdVenues: Venue[] }>
   ];
   await page.exposeFunction('__route', (url: string, init?: { method?: string; body?: string }) => {
     const method = init?.method ?? 'GET';
-    if (url === '/organizations?mine=true') {
+    if (url === '/api/organizations?mine=true') {
       return {
         body: [
           {
@@ -180,8 +180,8 @@ async function mockApi(page: Page): Promise<{ readonly createdVenues: Venue[] }>
     }
     if (url === `${orgPath}/storage-usage`)
       return { body: { totalBytes: 4_500_000, objectCount: 12 } };
-    if (url === '/auth/pat/scopes') return { body: { scopes: ['copalibre.control'] } };
-    if (url === '/auth/pat') return { body: [] };
+    if (url === '/api/auth/pat/scopes') return { body: { scopes: ['copalibre.control'] } };
+    if (url === '/api/auth/pat') return { body: [] };
     if (url.endsWith('/clubs') || url.endsWith('/invitations') || url.endsWith('/schedules')) {
       return { body: [] };
     }

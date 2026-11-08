@@ -15,7 +15,7 @@ import { expectNoSeriousSemanticViolations } from './support/semantic-axe.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const TOURNAMENT = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const PLAYER_PROFILE_PATH = `**${TOURNAMENT}/persons/p-1/public/profile`;
 const STAGE = `${TOURNAMENT}/stages/1`;
 const RESPONSIVE_WIDTHS = [375, 768, 1024, 1440, 188] as const;
@@ -504,7 +504,7 @@ test.describe('B2: public tournament page', () => {
 
     apiServer = createServer((req, res) => {
       res.setHeader('content-type', 'application/json');
-      if (req.url === `/organizations/${ORGANIZATION}/public/tournaments`) {
+      if (req.url === `/api/organizations/${ORGANIZATION}/public/tournaments`) {
         res.end(JSON.stringify(organizationTournaments));
         return;
       }
@@ -986,7 +986,7 @@ test.describe('B2: public tournament page', () => {
     await expect(dialog.getByText('Career Statistics')).toBeVisible();
     await expect(dialog.getByText('Competition History')).toBeVisible();
     expect(profileRequests).toEqual([
-      `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/persons/p-1/public/profile`,
+      `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/persons/p-1/public/profile`,
     ]);
 
     // Close modal

@@ -27,6 +27,7 @@ import { OBJECT_STORAGE } from '../object-storage.token.js';
 import { NativeAuthController, PersonalAccessTokenController } from './auth.controller.js';
 import { OrganizationsController } from './organizations.controller.js';
 import { createTokenVerifierFromEnv } from '../modules/core.module.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 const TOKENS: Readonly<Record<string, AuthenticatedSubject>> = {
   'admin-token': {
@@ -86,6 +87,7 @@ describe('Auth Controllers', () => {
       // per-IP rate-limit bucket — follows X-Forwarded-For in these tests.
       new FastifyAdapter({ trustProxy: true }),
     );
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -136,10 +138,20 @@ describe('Auth Controllers', () => {
         .execute();
     });
 
+    it('serves the key set only under /api', async () => {
+      const served = await request({ method: 'GET', url: '/api/auth/jwks.json' });
+      expect(served.statusCode).toBe(200);
+      expect((served.json() as { keys: unknown[] }).keys.length).toBeGreaterThan(0);
+
+      for (const url of ['/auth/jwks.json', '/.well-known/jwks.json']) {
+        expect((await request({ method: 'GET', url })).statusCode).toBe(404);
+      }
+    });
+
     it('POST /auth/login returns 200 with an access token for valid credentials', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email, password },
       });
       expect(response.statusCode).toBe(200);
@@ -149,7 +161,7 @@ describe('Auth Controllers', () => {
     it('POST /auth/login returns 401 for invalid credentials', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email, password: 'wrong-password' },
       });
       expect(response.statusCode).toBe(401);
@@ -160,7 +172,7 @@ describe('Auth Controllers', () => {
     it('POST /auth/login without a password returns 400 from validation', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email },
       });
       expect(response.statusCode).toBe(400);
@@ -169,7 +181,7 @@ describe('Auth Controllers', () => {
     it('POST /auth/login rejects an undocumented extra property with 400', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email, password: 'wrong-password', isAdmin: true },
       });
       expect(response.statusCode).toBe(400);
@@ -180,7 +192,7 @@ describe('Auth Controllers', () => {
     it('POST /auth/forgot-password returns 200', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/forgot-password',
+        url: '/api/auth/forgot-password',
         payload: { email },
       });
       expect(response.statusCode).toBe(200);
@@ -189,7 +201,7 @@ describe('Auth Controllers', () => {
     it('POST /auth/forgot-password enqueues a password-reset-requested outbox event carrying the reset token', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/forgot-password',
+        url: '/api/auth/forgot-password',
         payload: { email },
       });
       expect(response.statusCode).toBe(200);
@@ -221,7 +233,7 @@ describe('Auth Controllers', () => {
 
       const response = await request({
         method: 'POST',
-        url: '/auth/forgot-password',
+        url: '/api/auth/forgot-password',
         payload: { email: 'nobody-registered@example.com' },
       });
       expect(response.statusCode).toBe(200);
@@ -246,7 +258,7 @@ describe('Auth Controllers', () => {
 
       const response = await request({
         method: 'POST',
-        url: '/auth/reset-password',
+        url: '/api/auth/reset-password',
         payload: { token: rawToken, newPassword: 'new-secret-password' },
       });
       expect(response.statusCode).toBe(200);
@@ -308,13 +320,14 @@ describe('Auth Controllers', () => {
         nativeApp = moduleRef.createNestApplication<NestFastifyApplication>(
           new FastifyAdapter({ trustProxy: true }),
         );
+        applyApiPathPrefix(nativeApp);
         nativeApp.useGlobalPipes(createApiValidationPipe());
         await nativeApp.init();
         await nativeApp.getHttpAdapter().getInstance().ready();
 
         const login = await nativeApp.inject({
           method: 'POST',
-          url: '/auth/login',
+          url: '/api/auth/login',
           headers: { 'x-forwarded-for': '10.9.4.1' },
           payload: { email, password },
         });
@@ -322,7 +335,7 @@ describe('Auth Controllers', () => {
         const accessToken = JSON.parse(login.payload).accessToken as string;
         const organizations = await nativeApp.inject({
           method: 'GET',
-          url: '/organizations?mine=true',
+          url: '/api/organizations?mine=true',
           headers: { authorization: `Bearer ${accessToken}` },
         });
         expect(organizations.statusCode).toBe(200);
@@ -349,7 +362,7 @@ describe('Auth Controllers', () => {
       const ip = '10.9.1.1';
       const response = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email, password },
         ip,
       });
@@ -359,20 +372,20 @@ describe('Auth Controllers', () => {
       expect(raw).toContain('copalibre_refresh_token=');
       expect(raw).toContain('HttpOnly');
       expect(raw).toContain('SameSite=Strict');
-      expect(raw).toContain('Path=/auth');
+      expect(raw).toContain('Path=/api/auth');
     });
 
     it('POST /auth/refresh with a valid cookie returns a fresh access token and rotates the cookie', async () => {
       const ip = '10.9.1.2';
       const login = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email, password },
         ip,
       });
       const cookie = refreshCookieFrom(login);
 
-      const refreshed = await request({ method: 'POST', url: '/auth/refresh', cookie, ip });
+      const refreshed = await request({ method: 'POST', url: '/api/auth/refresh', cookie, ip });
       expect(refreshed.statusCode).toBe(200);
       expect(JSON.parse(refreshed.payload).accessToken).toBeDefined();
       const rotatedCookie = refreshCookieFrom(refreshed);
@@ -394,7 +407,7 @@ describe('Auth Controllers', () => {
         .execute();
       const login = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email: rateLimitEmail, password: rateLimitPassword },
         ip: '10.9.1.8',
       });
@@ -403,7 +416,7 @@ describe('Auth Controllers', () => {
       for (let attempt = 0; attempt < 30; attempt++) {
         const refreshed = await request({
           method: 'POST',
-          url: '/auth/refresh',
+          url: '/api/auth/refresh',
           cookie,
           ip: `10.9.2.${attempt + 1}`,
         });
@@ -412,13 +425,13 @@ describe('Auth Controllers', () => {
       }
 
       expect(
-        (await request({ method: 'POST', url: '/auth/refresh', cookie, ip: '10.9.3.1' }))
+        (await request({ method: 'POST', url: '/api/auth/refresh', cookie, ip: '10.9.3.1' }))
           .statusCode,
       ).toBe(429);
     });
 
     it('POST /auth/refresh with no cookie returns 401', async () => {
-      const response = await request({ method: 'POST', url: '/auth/refresh', ip: '10.9.1.3' });
+      const response = await request({ method: 'POST', url: '/api/auth/refresh', ip: '10.9.1.3' });
       expect(response.statusCode).toBe(401);
     });
 
@@ -426,16 +439,16 @@ describe('Auth Controllers', () => {
       const ip = '10.9.1.4';
       const login = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email, password },
         ip,
       });
       const cookie = refreshCookieFrom(login);
 
-      const first = await request({ method: 'POST', url: '/auth/refresh', cookie, ip });
+      const first = await request({ method: 'POST', url: '/api/auth/refresh', cookie, ip });
       expect(first.statusCode).toBe(200);
 
-      const replay = await request({ method: 'POST', url: '/auth/refresh', cookie, ip });
+      const replay = await request({ method: 'POST', url: '/api/auth/refresh', cookie, ip });
       expect(replay.statusCode).toBe(401);
     });
 
@@ -443,13 +456,13 @@ describe('Auth Controllers', () => {
       const ip = '10.9.1.5';
       const login = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email, password },
         ip,
       });
       const cookie = refreshCookieFrom(login);
 
-      const logout = await request({ method: 'POST', url: '/auth/logout', cookie, ip });
+      const logout = await request({ method: 'POST', url: '/api/auth/logout', cookie, ip });
       expect(logout.statusCode).toBe(200);
       const clearedCookie = logout.headers['set-cookie'];
       const raw = Array.isArray(clearedCookie) ? clearedCookie[0] : clearedCookie;
@@ -457,7 +470,7 @@ describe('Auth Controllers', () => {
 
       const refreshAfterLogout = await request({
         method: 'POST',
-        url: '/auth/refresh',
+        url: '/api/auth/refresh',
         cookie,
         ip,
       });
@@ -465,7 +478,7 @@ describe('Auth Controllers', () => {
     });
 
     it('POST /auth/logout with no cookie still returns 200', async () => {
-      const response = await request({ method: 'POST', url: '/auth/logout', ip: '10.9.1.6' });
+      const response = await request({ method: 'POST', url: '/api/auth/logout', ip: '10.9.1.6' });
       expect(response.statusCode).toBe(200);
     });
   });
@@ -496,7 +509,7 @@ describe('Auth Controllers', () => {
     it('POST /auth/pat creates a token', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
         payload: {
           label: 'Test Token',
@@ -514,7 +527,7 @@ describe('Auth Controllers', () => {
     it('GET /auth/pat lists it', async () => {
       const response = await request({
         method: 'GET',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
       });
       expect(response.statusCode).toBe(200);
@@ -526,7 +539,7 @@ describe('Auth Controllers', () => {
     it('dry-runs, revokes, and restores an unused PAT without preview writes', async () => {
       const preview = await request({
         method: 'DELETE',
-        url: `/auth/pat/${tokenId}?dryRun=true`,
+        url: `/api/auth/pat/${tokenId}?dryRun=true`,
         token: 'admin-token',
       });
       expect(preview.statusCode).toBe(200);
@@ -544,7 +557,7 @@ describe('Auth Controllers', () => {
 
       const response = await request({
         method: 'DELETE',
-        url: `/auth/pat/${tokenId}`,
+        url: `/api/auth/pat/${tokenId}`,
         token: 'admin-token',
       });
       expect(response.statusCode).toBe(200);
@@ -556,14 +569,14 @@ describe('Auth Controllers', () => {
 
       const getResponse = await request({
         method: 'GET',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
       });
       expect(JSON.parse(getResponse.payload)).toHaveLength(0);
 
       const restored = await request({
         method: 'POST',
-        url: `/auth/pat/${tokenId}/restore`,
+        url: `/api/auth/pat/${tokenId}/restore`,
         token: 'admin-token',
       });
       expect(restored.statusCode).toBe(200);
@@ -573,7 +586,7 @@ describe('Auth Controllers', () => {
     it('dry-runs and confirms an in-use PAT revoke as irreversible', async () => {
       const created = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
         payload: { label: 'Used Token', scopes: ['copalibre.control'], expiresInDays: 30 },
       });
@@ -584,7 +597,7 @@ describe('Auth Controllers', () => {
 
       const preview = await request({
         method: 'DELETE',
-        url: `/auth/pat/${usedTokenId}?dryRun=true`,
+        url: `/api/auth/pat/${usedTokenId}?dryRun=true`,
         token: 'admin-token',
       });
       expect(preview.statusCode).toBe(200);
@@ -602,7 +615,7 @@ describe('Auth Controllers', () => {
 
       const revoked = await request({
         method: 'DELETE',
-        url: `/auth/pat/${usedTokenId}`,
+        url: `/api/auth/pat/${usedTokenId}`,
         token: 'admin-token',
       });
       expect(revoked.statusCode).toBe(200);
@@ -640,7 +653,7 @@ describe('Auth Controllers', () => {
     it('POST /auth/pat with a subset of the caller scopes creates exactly those scopes', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'superadmin-token',
         payload: { label: 'Subset Token', scopes: ['copalibre.control'], expiresInDays: 30 },
       });
@@ -651,7 +664,7 @@ describe('Auth Controllers', () => {
     it('GET /auth/pat/scopes returns only grantable caller scopes', async () => {
       const response = await request({
         method: 'GET',
-        url: '/auth/pat/scopes',
+        url: '/api/auth/pat/scopes',
         token: 'superadmin-token',
       });
       expect(response.statusCode).toBe(200);
@@ -662,7 +675,7 @@ describe('Auth Controllers', () => {
       const before = await patCount('550e8400-e29b-41d4-a716-446655440000');
       const response = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
         payload: { label: 'Default Scopes Token', expiresInDays: 30 },
       });
@@ -674,7 +687,7 @@ describe('Auth Controllers', () => {
       const before = await patCount('550e8400-e29b-41d4-a716-446655440000');
       const response = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
         payload: {
           label: 'Escalation Attempt',
@@ -690,7 +703,7 @@ describe('Auth Controllers', () => {
       const before = await patCount('550e8400-e29b-41d4-a716-446655440001');
       const response = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'superadmin-token',
         payload: {
           label: 'Privileged Escalation Attempt',
@@ -706,7 +719,7 @@ describe('Auth Controllers', () => {
       const before = await patCount('550e8400-e29b-41d4-a716-446655440000');
       const nullResponse = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
         payload: { label: 'Null Scopes Token', scopes: null, expiresInDays: 30 },
       });
@@ -714,7 +727,7 @@ describe('Auth Controllers', () => {
 
       const emptyResponse = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
         payload: { label: 'Empty Scopes Token', scopes: [], expiresInDays: 30 },
       });
@@ -726,7 +739,7 @@ describe('Auth Controllers', () => {
       const before = await patCount('550e8400-e29b-41d4-a716-446655440000');
       const response = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
         payload: { label: 'Bad Shape', scopes: [42], expiresInDays: 30 },
       });
@@ -743,7 +756,7 @@ describe('Auth Controllers', () => {
       return (payload) =>
         (app as NestFastifyApplication).inject({
           method: 'POST',
-          url: '/auth/login',
+          url: '/api/auth/login',
           headers: { 'x-forwarded-for': ip },
           payload: payload as never,
         }) as unknown as Promise<{ statusCode: number }>;
@@ -804,24 +817,24 @@ describe('Auth Controllers', () => {
           payload: payload as never,
         });
       for (let i = 0; i < AUTH_THROTTLE_LIMIT; i++) {
-        const response = await injectIp('/auth/forgot-password', { email: 'test@example.com' });
+        const response = await injectIp('/api/auth/forgot-password', { email: 'test@example.com' });
         expect(response.statusCode).toBe(200);
       }
       expect(
-        (await injectIp('/auth/forgot-password', { email: 'test@example.com' })).statusCode,
+        (await injectIp('/api/auth/forgot-password', { email: 'test@example.com' })).statusCode,
       ).toBe(429);
 
       // Separate route, separate bucket — but the same per-IP window applies.
       // A too-short password keeps the response deterministic (400) while the
       // request is still being evaluated.
       for (let i = 0; i < AUTH_THROTTLE_LIMIT; i++) {
-        const response = await injectIp('/auth/reset-password', {
+        const response = await injectIp('/api/auth/reset-password', {
           token: 'irrelevant',
           newPassword: 'short',
         });
         expect(response.statusCode).toBe(400);
       }
-      const overLimit = await injectIp('/auth/reset-password', {
+      const overLimit = await injectIp('/api/auth/reset-password', {
         token: 'irrelevant',
         newPassword: 'short',
       });
@@ -831,7 +844,7 @@ describe('Auth Controllers', () => {
     it('rejects undeclared body properties with 400 before handler execution on unauthenticated endpoints', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: {
           email: 'test@example.com',
           password: 'password123',
@@ -847,7 +860,7 @@ describe('Auth Controllers', () => {
     it('rejects undeclared body properties on protected token creation endpoint', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
         payload: {
           label: 'Test PAT',

@@ -89,7 +89,7 @@ async function setupMockApi(page: Page): Promise<void> {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
 
-        if (url === '/organizations?mine=true' && method === 'GET') {
+        if (url === '/api/organizations?mine=true' && method === 'GET') {
           return Response.json([
             {
               organizationId: 'org-1',
@@ -100,7 +100,7 @@ async function setupMockApi(page: Page): Promise<void> {
           ]);
         }
 
-        if (url === `/organizations/${orgAlias}` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}` && method === 'GET') {
           return Response.json({
             organizationId: 'org-1',
             alias: orgAlias,
@@ -110,7 +110,7 @@ async function setupMockApi(page: Page): Promise<void> {
           });
         }
 
-        if (url === `/organizations/${orgAlias}/tournaments` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/tournaments` && method === 'GET') {
           return Response.json([
             {
               tournamentId: 't-1',
@@ -123,7 +123,7 @@ async function setupMockApi(page: Page): Promise<void> {
         }
 
         if (
-          url === `/organizations/${orgAlias}/tournaments/${tournamentAlias}` &&
+          url === `/api/organizations/${orgAlias}/tournaments/${tournamentAlias}` &&
           method === 'GET'
         ) {
           return Response.json({
@@ -135,7 +135,7 @@ async function setupMockApi(page: Page): Promise<void> {
           });
         }
 
-        if (url.includes(`/organizations/${orgAlias}/audit-trail`) && method === 'GET') {
+        if (url.includes(`/api/organizations/${orgAlias}/audit-trail`) && method === 'GET') {
           const loaded = await (
             window as unknown as { __getAuditTrail: () => Promise<unknown> }
           ).__getAuditTrail();
@@ -198,18 +198,18 @@ async function setupMockApi(page: Page): Promise<void> {
           });
         }
 
-        if (url.endsWith(`/organizations/${orgAlias}/clubs`) && method === 'GET') {
+        if (url.endsWith(`/api/organizations/${orgAlias}/clubs`) && method === 'GET') {
           return Response.json([]);
         }
 
-        if (url.endsWith(`/organizations/${orgAlias}/venues`) && method === 'GET') {
+        if (url.endsWith(`/api/organizations/${orgAlias}/venues`) && method === 'GET') {
           return Response.json([]);
         }
 
-        if (url.endsWith(`/organizations/${orgAlias}/officials`) && method === 'GET') {
+        if (url.endsWith(`/api/organizations/${orgAlias}/officials`) && method === 'GET') {
           return Response.json([]);
         }
-        if (url.endsWith(`/organizations/${orgAlias}/schedules`) && method === 'GET') {
+        if (url.endsWith(`/api/organizations/${orgAlias}/schedules`) && method === 'GET') {
           return Response.json([]);
         }
 

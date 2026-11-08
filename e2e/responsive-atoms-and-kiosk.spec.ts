@@ -10,7 +10,7 @@ const ORGANIZATION = 'responsive-atoms-org';
 const TOURNAMENT = 'responsive-atoms-2026';
 const TV_PATH = `/tv/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const PUBLIC_BASE = `/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
-const API_BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const API_BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 
 const HOME_NAME = 'Club Atlético Independiente de Avellaneda';
 const AWAY_NAME = 'Club Atlético Talleres de Córdoba';

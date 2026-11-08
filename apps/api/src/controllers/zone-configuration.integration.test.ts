@@ -34,7 +34,7 @@ function descriptor(): DisciplineDescriptor {
 }
 
 describe('zone format and series configuration (integration)', () => {
-  const base = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages`;
+  const base = `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages`;
   let harness: Awaited<ReturnType<typeof buildTestApp>>;
   let tournamentId = '';
 

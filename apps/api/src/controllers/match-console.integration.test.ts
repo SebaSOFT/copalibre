@@ -25,6 +25,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
 const subjects: Record<string, AuthenticatedSubject> = {
@@ -88,7 +89,7 @@ describe('live match console (integration)', () => {
   let timerId = '';
   let rosteredPersonId = '';
   const entrantIds: string[] = [];
-  const base = () => `/organizations/liga-prueba/tournaments/apertura/matches/${matchId}`;
+  const base = () => `/api/organizations/liga-prueba/tournaments/apertura/matches/${matchId}`;
 
   beforeAll(async () => {
     scratch = await createMigratedDatabase('match-console');
@@ -114,6 +115,7 @@ describe('live match console (integration)', () => {
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -921,7 +923,7 @@ describe('live match console — real catalogue foul/throw-in vocabulary', () =>
   let segmentId = '';
   let rosteredPersonId = '';
   const entrantIds: string[] = [];
-  const base = () => `/organizations/liga-catalogo/tournaments/apertura/matches/${matchId}`;
+  const base = () => `/api/organizations/liga-catalogo/tournaments/apertura/matches/${matchId}`;
 
   beforeAll(async () => {
     scratch = await createMigratedDatabase('match-console-foul-vocabulary');
@@ -947,6 +949,7 @@ describe('live match console — real catalogue foul/throw-in vocabulary', () =>
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -1204,7 +1207,7 @@ describe('org-admin match authority without prior match assignment', () => {
   let segmentId = '';
   let personId = '';
   const entrantIds: string[] = [];
-  const base = () => `/organizations/liga-admin/tournaments/apertura/matches/${matchId}`;
+  const base = () => `/api/organizations/liga-admin/tournaments/apertura/matches/${matchId}`;
 
   beforeAll(async () => {
     scratch = await createMigratedDatabase('match-console-org-admin');
@@ -1230,6 +1233,7 @@ describe('org-admin match authority without prior match assignment', () => {
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();

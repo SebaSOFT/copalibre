@@ -22,6 +22,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * A single recorded event with a declared `awardTo`/`target: { payloadField }`
@@ -66,6 +67,7 @@ describe('target attribution inside the event-recording transaction (integration
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -296,7 +298,7 @@ describe('target attribution inside the event-recording transaction (integration
   it('snapshots segmentElapsedSeconds, tags the payload-named assist provider, and updates their live total — all from one request', async () => {
     const response = await (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: `/organizations/liga-target/tournaments/apertura-target/matches/${matchId}/events`,
+      url: `/api/organizations/liga-target/tournaments/apertura-target/matches/${matchId}/events`,
       headers: {
         authorization: 'Bearer referee',
         'idempotency-key': '01890000-0000-7000-8000-0000000000c1',

@@ -139,7 +139,7 @@ async function seedTournament(alias: string, minimumRestMinutes?: number) {
 }
 
 const scheduleUrl = (tournamentAlias: string, stageId: string, suffix = '') =>
-  `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageId}/schedule${suffix}`;
+  `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageId}/schedule${suffix}`;
 
 describe('schedule integrity routes', () => {
   it('applies the tournament rest rule and ignores one sent in the body', async () => {
@@ -290,7 +290,7 @@ describe('schedule integrity routes', () => {
     const query = `from=${OPENS}&to=${OPENS + 4 * HOUR}&venue=${grid.venueIds[1]}`;
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/schedule?${query}`,
+      url: `/api/organizations/liga-orbital/schedule?${query}`,
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
@@ -311,7 +311,7 @@ describe('schedule integrity routes', () => {
 
     const tooLong = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/schedule?from=${OPENS}&to=${OPENS + 40 * 24 * HOUR}`,
+      url: `/api/organizations/liga-orbital/schedule?from=${OPENS}&to=${OPENS + 40 * 24 * HOUR}`,
       token: 'organizer-org1',
     });
     expect(tooLong.statusCode).toBe(400);
@@ -319,14 +319,14 @@ describe('schedule integrity routes', () => {
     for (const token of ['participant-org1', 'organizer-org2']) {
       const refused = await request({
         method: 'GET',
-        url: `/organizations/liga-orbital/schedule?${query}`,
+        url: `/api/organizations/liga-orbital/schedule?${query}`,
         token,
       });
       expect([403, 404]).toContain(refused.statusCode);
     }
     const anonymous = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/schedule?${query}`,
+      url: `/api/organizations/liga-orbital/schedule?${query}`,
     });
     expect(anonymous.statusCode).toBe(401);
   });
@@ -334,7 +334,7 @@ describe('schedule integrity routes', () => {
   it('offers the organization recent typed reasons', async () => {
     const response = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/schedule/reasons/recent',
+      url: '/api/organizations/liga-orbital/schedule/reasons/recent',
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
