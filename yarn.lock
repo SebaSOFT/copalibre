@@ -1643,6 +1643,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@copalibre/design-tokens@workspace:packages/design-tokens"
   dependencies:
+    "@fontsource-variable/jetbrains-mono": "npm:5.3.0"
+    "@fontsource-variable/noto-sans-sc": "npm:5.3.1"
+    "@fontsource-variable/roboto": "npm:5.3.0"
+    "@fontsource-variable/roboto-condensed": "npm:5.3.0"
+    "@fontsource/barlow": "npm:5.3.0"
+    "@fontsource/barlow-condensed": "npm:5.3.0"
     "@types/jest": "npm:^30.0.0"
     jest: "npm:^30.5.2"
     ts-jest: "npm:^29.4.15"
@@ -2902,6 +2908,48 @@ __metadata:
   version: 0.2.12
   resolution: "@floating-ui/utils@npm:0.2.12"
   checksum: 10c0/bb910b90d56991a62011afaf5f8e0c4b7fb6dab69403f4dd17fbd6eb25560b28d533dff9791f270b4f459852e9006a1077b5d73cbedb5e34d9424afc6a828314
+  languageName: node
+  linkType: hard
+
+"@fontsource-variable/jetbrains-mono@npm:5.3.0":
+  version: 5.3.0
+  resolution: "@fontsource-variable/jetbrains-mono@npm:5.3.0"
+  checksum: 10c0/ba983321b530a56696b12390a377c79a962376a33359eeda37c9a2141450802e0b630e6c232d90aab0281179e623d01c77d1bc8059ce595fe865fbc6d6022ffb
+  languageName: node
+  linkType: hard
+
+"@fontsource-variable/noto-sans-sc@npm:5.3.1":
+  version: 5.3.1
+  resolution: "@fontsource-variable/noto-sans-sc@npm:5.3.1"
+  checksum: 10c0/5911690b2b43187a986783c0666bab074fd92815dc3fe845c99c1bf145d45a240fb8648ac50938750ba84f11795841a7bed15c8f9e66b76a32837c9cb28065ec
+  languageName: node
+  linkType: hard
+
+"@fontsource-variable/roboto-condensed@npm:5.3.0":
+  version: 5.3.0
+  resolution: "@fontsource-variable/roboto-condensed@npm:5.3.0"
+  checksum: 10c0/5943d1c78139125be8c3bafc933596bd772168713e36bf3c06a40d7db466d52156ae006ac49ab67c6d57886efbb043687604cdb944d29efc55fb430818b95e12
+  languageName: node
+  linkType: hard
+
+"@fontsource-variable/roboto@npm:5.3.0":
+  version: 5.3.0
+  resolution: "@fontsource-variable/roboto@npm:5.3.0"
+  checksum: 10c0/22c7b705afc0acd44c4d80ceac3151d2005b90a7c61709ad61cf07446bdcb7fd2b1ce91b634c4bbfca590eea68e2b33ad931bd51007d175e2fe38bb3ce8ab101
+  languageName: node
+  linkType: hard
+
+"@fontsource/barlow-condensed@npm:5.3.0":
+  version: 5.3.0
+  resolution: "@fontsource/barlow-condensed@npm:5.3.0"
+  checksum: 10c0/0b2a913cc5e75ca66cdeddbc5304be3fff5dbb374f70e82cdf515f4fec32871bb5dd50e16fe3faf2bc2f656b387be475dd95d039463a035b583209d625c94643
+  languageName: node
+  linkType: hard
+
+"@fontsource/barlow@npm:5.3.0":
+  version: 5.3.0
+  resolution: "@fontsource/barlow@npm:5.3.0"
+  checksum: 10c0/2efe5abb3dac2ef2eb3ae9a3fd5acdc6955daf85efc1b5439081003e2d67ea90d62aae1d54fd1dcf6fc0eccfc815174bb77e70120a4973c0142431827d0b9c6d
   languageName: node
   linkType: hard
 

@@ -56,36 +56,57 @@ export type ColorPrimitive = keyof typeof COLOR_PRIMITIVES;
 export type ColorTheme = 'dark' | 'light';
 
 /**
- * Where the Latin and script-specific brand faces come from.
+ * Where the Latin and script-specific brand faces come from: package
+ * stylesheets the generated CSS imports first, which the web build bundles and
+ * serves from the application's own origin.
  *
- * They were named in `TYPOGRAPHY` from the beginning and never loaded: no
- * `@font-face`, no link, no files. Every surface silently fell back to a system
- * sans, which is why nothing matched the identity the marketing site shows —
- * measured before this was added, all three families rendered the same string
- * at an identical width, which only happens when none of them is present.
+ * They were named in `TYPOGRAPHY` from the beginning and once never loaded at
+ * all: every surface fell back to a system sans. They then came from a
+ * third-party font host, which made every page wait on it (a hanging host
+ * timed out page loads everywhere), sent visitors' addresses to it, and left
+ * an installation with no internet egress without its faces. Nothing here may
+ * name another origin.
  *
- * `display=swap` so text is readable while the faces arrive rather than
- * invisible; the fallback stacks in `TYPOGRAPHY` are what renders until then.
+ * Each stylesheet splits its family by `unicode-range`, so a page downloads
+ * only the scripts it shows. Every face uses `font-display: swap`; the
+ * fallback stacks in `TYPOGRAPHY` render until it arrives.
  *
- * Weights are the four `FONT_WEIGHTS` defines, all of which the stylesheet
- * references: 400 as the body default, 500, 600 and 700 by name.
+ * Weights are the four `FONT_WEIGHTS` defines. Barlow has no variable build,
+ * so it takes one stylesheet per weight; the others use their variable build,
+ * one file per script covering the whole range, whose family name carries the
+ * `Variable` suffix the package declares.
  */
-export const FONT_SOURCE =
-  'https://fonts.googleapis.com/css2?' +
-  'family=Barlow:wght@400;500;600;700&' +
-  'family=Barlow+Condensed:wght@400;500;600;700&' +
-  'family=JetBrains+Mono:wght@400;500;600;700&' +
-  'family=Roboto+Condensed:wght@400;500;600;700&' +
-  'family=Roboto:wght@400;500;600;700&' +
-  'family=Noto+Sans+SC:wght@400;500;600;700&' +
-  'display=swap';
+export const FONT_STYLESHEETS = [
+  '@fontsource/barlow/400.css',
+  '@fontsource/barlow/500.css',
+  '@fontsource/barlow/600.css',
+  '@fontsource/barlow/700.css',
+  '@fontsource/barlow-condensed/400.css',
+  '@fontsource/barlow-condensed/500.css',
+  '@fontsource/barlow-condensed/600.css',
+  '@fontsource/barlow-condensed/700.css',
+  '@fontsource-variable/jetbrains-mono/wght.css',
+  '@fontsource-variable/roboto-condensed/wght.css',
+  '@fontsource-variable/roboto/wght.css',
+  '@fontsource-variable/noto-sans-sc/wght.css',
+] as const;
+
+/** The family each stylesheet in `FONT_STYLESHEETS` declares. */
+export const FONT_FAMILIES = [
+  'Barlow',
+  'Barlow Condensed',
+  'JetBrains Mono Variable',
+  'Roboto Condensed Variable',
+  'Roboto Variable',
+  'Noto Sans SC Variable',
+] as const;
 
 export const TYPOGRAPHY = {
   /** Scores, team names, ranks, state labels. Tabular figures are not optional. */
   display:
-    "'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif",
-  body: "'Barlow', 'Roboto', 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', sans-serif",
-  mono: "'JetBrains Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', monospace",
+    "'Barlow Condensed', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif",
+  body: "'Barlow', 'Roboto Variable', 'Noto Sans SC Variable', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  mono: "'JetBrains Mono Variable', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace",
 } as const;
 
 export const FONT_WEIGHTS = {

@@ -36,37 +36,37 @@ colors:
   light-red-800: "#B01818"
 typography:
   display:
-    fontFamily: "'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif"
+    fontFamily: "'Barlow Condensed', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif"
     fontSize: "clamp(1.602rem, 1.436rem + 0.7088vw, 2.074rem)"
     fontWeight: "700"
     lineHeight: "1.1"
     letterSpacing: "0.04em"
   headline:
-    fontFamily: "'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif"
+    fontFamily: "'Barlow Condensed', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif"
     fontSize: "clamp(1.266rem, 1.204rem + 0.262vw, 1.44rem)"
     fontWeight: "600"
     lineHeight: "1.2"
     letterSpacing: "0.04em"
   title:
-    fontFamily: "'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif"
+    fontFamily: "'Barlow Condensed', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif"
     fontSize: "clamp(1.125rem, 1.099rem + 0.1127vw, 1.2rem)"
     fontWeight: "600"
     lineHeight: "1.3"
     letterSpacing: "0.04em"
   body:
-    fontFamily: "'Barlow', 'Roboto', 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', sans-serif"
+    fontFamily: "'Barlow', 'Roboto Variable', 'Noto Sans SC Variable', system-ui, -apple-system, 'Segoe UI', sans-serif"
     fontSize: "1rem"
     fontWeight: "400"
     lineHeight: "1.5"
     letterSpacing: "0"
   label:
-    fontFamily: "'JetBrains Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', monospace"
+    fontFamily: "'JetBrains Mono Variable', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace"
     fontSize: "0.75rem"
     fontWeight: "500"
     lineHeight: "1.4"
     letterSpacing: "0.05em"
   figure:
-    fontFamily: "'JetBrains Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', monospace"
+    fontFamily: "'JetBrains Mono Variable', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace"
     fontSize: "1.25rem"
     fontWeight: "500"
     lineHeight: "1.2"
@@ -897,8 +897,12 @@ in sentence case on public reading pages.
 Declare script-specific fallbacks through `unicode-range`. Barlow and Barlow Condensed remain the
 Latin faces; Roboto Condensed handles Cyrillic display text and Roboto handles Cyrillic body text.
 Noto Sans SC handles Chinese display and body text, and Chinese glyphs in mono content; figures keep
-`tabular-nums`. Latin-only pages do not download Cyrillic or CJK font files because Google Fonts
-delivers the fallback faces in script-specific subsets.
+`tabular-nums`. Latin-only pages do not download Cyrillic or CJK font files because each face is
+split into script-specific subsets.
+
+Every face is served from the application's own origin, bundled from pinned font packages. Never load
+a face from a third-party host: a page must finish loading, in its brand faces, with no internet
+egress.
 
 ## Reading Width
 
