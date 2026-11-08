@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -149,6 +149,16 @@ describe('writeInstallationAssets', () => {
     expect(JSON.parse(tennisManifest).alias).toBe('tennis');
   });
 
+  it('creates an empty well-known directory, since every file in it is public', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    const assetsDir = await stubAssetsDir();
+
+    await writeInstallationAssets(cwd, { assetsDir });
+
+    expect((await stat(join(cwd, 'well-known'))).isDirectory()).toBe(true);
+    expect(await readdir(join(cwd, 'well-known'))).toEqual([]);
+  });
+
   it('exports copalibre-nginx.conf when proxy is set to nginx', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
     const assetsDir = await stubAssetsDir();
@@ -258,6 +268,29 @@ describe('repairInstallationAssets', () => {
     await expect(readFile(join(cwd, 'modules', 'README.md'), 'utf8')).resolves.toContain(
       'Directory Layout',
     );
+  });
+
+  it('creates a missing well-known directory and keeps published files in an existing one', async () => {
+    const assetsDir = await stubAssetsDir();
+    const freshCwd = await mkdtemp(join(tmpdir(), 'copalibre-repair-'));
+    await writeFile(join(freshCwd, 'jwt-private.pem'), generateRsaKeypair().privateKeyPem);
+
+    const fresh = await repairInstallationAssets(freshCwd, { assetsDir });
+
+    expect(fresh.createdAssets).toContain(join(freshCwd, 'well-known'));
+    expect(await readdir(join(freshCwd, 'well-known'))).toEqual([]);
+
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-repair-'));
+    await writeFile(join(cwd, 'jwt-private.pem'), generateRsaKeypair().privateKeyPem);
+    await mkdir(join(cwd, 'well-known'));
+    const securityTxt =
+      'Contact: mailto:security@example.test\nExpires: 2027-11-08T00:00:00.000Z\n';
+    await writeFile(join(cwd, 'well-known', 'security.txt'), securityTxt);
+
+    const repaired = await repairInstallationAssets(cwd, { assetsDir });
+
+    expect(repaired.createdAssets).not.toContain(join(cwd, 'well-known'));
+    expect(await readFile(join(cwd, 'well-known', 'security.txt'), 'utf8')).toBe(securityTxt);
   });
 
   it('returns paste-ready snippets for services missing from the existing Compose file', async () => {

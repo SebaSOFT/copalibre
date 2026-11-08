@@ -205,6 +205,12 @@ export interface ReadAssetDependencies {
 }
 
 /**
+ * Installation directory the web role publishes under `/.well-known/`. It starts
+ * empty: every file placed there is public, so `init` writes nothing into it.
+ */
+export const WELL_KNOWN_DIR = 'well-known';
+
+/**
  * Reads one of the embedded compose assets: `sea.getAsset()` when running as
  * a packaged single-executable binary (the asset is bundled into the binary
  * itself, `build-binary.mjs`'s SEA config), otherwise a plain read from
@@ -355,6 +361,7 @@ export async function writeInstallationAssets(
 
   // Scaffold local ./modules hierarchy and starter disciplines
   await scaffoldLocalModules(cwd, options.starterDisciplines ?? ['football', 'tennis']);
+  await mkdir(join(cwd, WELL_KNOWN_DIR), { recursive: true });
 
   // Handle proxy configuration export
   let proxyConfigFile: string | undefined;
@@ -593,6 +600,12 @@ async function ensureRepairAssets(
     await mkdir(dirname(gatewayCaddyFile), { recursive: true });
     await writeFile(gatewayCaddyFile, await readAsset('Caddyfile', options.assetsDir), 'utf8');
     createdAssets.push(gatewayCaddyFile);
+  }
+
+  const wellKnownDir = join(cwd, WELL_KNOWN_DIR);
+  if (!existsSync(wellKnownDir)) {
+    await mkdir(wellKnownDir, { recursive: true });
+    createdAssets.push(wellKnownDir);
   }
 
   const modulesDir = join(cwd, 'modules');
