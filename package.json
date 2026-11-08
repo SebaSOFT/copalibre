@@ -40,7 +40,7 @@
     "license-checker-rseidelsohn": "^5.0.1",
     "prettier": "^3.9.6",
     "prettier-plugin-astro": "^0.14.1",
-    "ts-jest": "^29.4.12",
+    "ts-jest": "^29.4.15",
     "tsx": "^4.23.15",
     "typescript": "^5",
     "typescript-eslint": "^8.65.0",

@@ -24,7 +24,7 @@
     "@types/pg": "^8.20.0",
     "better-sqlite3": "^13.0.2",
     "jest": "^30.5.2",
-    "ts-jest": "^29.4.12"
+    "ts-jest": "^29.4.15"
   },
   "type": "module"
 }
