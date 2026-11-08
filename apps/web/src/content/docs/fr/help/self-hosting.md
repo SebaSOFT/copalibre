@@ -68,6 +68,8 @@ La passerelle expose HTTP sur `http://localhost:8080` (`COPALIBRE_PORT`). Compos
 
 Dirigez le domaine de l’application vers `gateway:80` dans le réseau Compose, ou `127.0.0.1:8080` pour un proxy sur l’hôte. La passerelle distribue API, authentification, SSE et web sur la même origine ; le conteneur web transmet les pages dynamiques à `web-ssr`. Utilisez `deploy/proxy/Caddyfile` ou `deploy/proxy/nginx.conf`, configurez TLS et les URL publiques, et désactivez la mise en tampon SSE. Les domaines API/events séparés sont facultatifs avec une origine unique.
 
+CopaLibre ne charge aucune police, aucun script ni aucun style depuis une autre origine. Le conteneur web sert ses fichiers de police sous `/_astro/` en `font/woff2` et `font/woff`. Gardez ces chemins derrière le proxy avec leur `Content-Type` : une règle de fichiers statiques d’un panneau d’hébergement pour `.woff2`, `.css` ou `.js` casse l’application.
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```

@@ -68,6 +68,8 @@ mkdir my-league && cd my-league
 
 Направьте домен приложения на `gateway:80` в сети Compose или `127.0.0.1:8080`, если прокси работает на хосте. Шлюз маршрутизирует API, аутентификацию, SSE и web на одном origin; web-контейнер передаёт динамические страницы в `web-ssr`. Используйте `deploy/proxy/Caddyfile` или `deploy/proxy/nginx.conf`, настройте TLS и публичные URL, отключите буферизацию SSE. Отдельные домены API/events необязательны при едином origin.
 
+CopaLibre не загружает шрифты, скрипты и стили с других источников. Веб-контейнер отдаёт свои файлы шрифтов из `/_astro/` с типами `font/woff2` и `font/woff`. Проксируйте эти пути, сохраняя их `Content-Type`: правило панели хостинга, отдающее `.woff2`, `.css` или `.js` как статические файлы, ломает приложение.
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```

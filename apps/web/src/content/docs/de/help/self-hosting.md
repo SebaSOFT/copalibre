@@ -70,6 +70,8 @@ Das Gateway veröffentlicht HTTP unter `http://localhost:8080` (`COPALIBRE_PORT`
 
 Leiten Sie den Anwendungs-Hostnamen an `gateway:80` im Compose-Netz oder an `127.0.0.1:8080` bei einem Proxy auf dem Host. Das Gateway verteilt API, Authentifizierung, SSE und Web auf derselben Origin; der Webcontainer leitet dynamische Seiten an `web-ssr`. Verwenden Sie `deploy/proxy/Caddyfile` oder `deploy/proxy/nginx.conf`, konfigurieren Sie TLS und öffentliche URLs und deaktivieren Sie SSE-Pufferung. Separate API/events-Hostnamen sind bei einer gemeinsamen Origin optional.
 
+CopaLibre lädt keine Schriften, Skripte oder Stile von einem anderen Ursprung. Der Web-Container liefert seine Schriftdateien unter `/_astro/` als `font/woff2` und `font/woff` aus. Leiten Sie diese Pfade samt ihrem `Content-Type` weiter: Eine Regel für statische Dateien eines Hosting-Panels für `.woff2`, `.css` oder `.js` macht die Anwendung unbrauchbar.
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```

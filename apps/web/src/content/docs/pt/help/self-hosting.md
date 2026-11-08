@@ -68,6 +68,8 @@ O gateway publica HTTP em `http://localhost:8080` (`COPALIBRE_PORT`). Compose ta
 
 Encaminhe o domínio da aplicação para `gateway:80` na rede Compose, ou `127.0.0.1:8080` se o proxy estiver no host. O gateway distribui API, autenticação, SSE e web na mesma origem; o contêiner web encaminha páginas dinâmicas para `web-ssr`. Use `deploy/proxy/Caddyfile` ou `deploy/proxy/nginx.conf`, configure TLS e URLs públicas e mantenha SSE sem buffer. Os domínios API/events separados são opcionais com uma única origem.
 
+O CopaLibre não carrega fontes, scripts nem estilos de outra origem. O contêiner web serve seus arquivos de fonte em `/_astro/` como `font/woff2` e `font/woff`. Mantenha esses caminhos no proxy com o seu `Content-Type`: uma regra de arquivos estáticos de um painel de hospedagem para `.woff2`, `.css` ou `.js` quebra a aplicação.
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```

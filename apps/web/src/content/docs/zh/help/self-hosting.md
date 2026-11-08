@@ -65,6 +65,8 @@ mkdir my-league && cd my-league
 
 将应用域名转发到 Compose 网络内的 `gateway:80`；若代理运行在主机上，则使用 `127.0.0.1:8080`。网关处理同源 API、认证、SSE 和网页路由；web 容器将动态页面转发到 `web-ssr`。使用 `deploy/proxy/Caddyfile` 或 `deploy/proxy/nginx.conf`，配置 TLS 和公开 URL，并关闭 SSE 缓冲。同源部署不必使用独立的 API/events 域名。
 
+CopaLibre 不从其他来源加载字体、脚本或样式。Web 容器在 `/_astro/` 下以 `font/woff2` 和 `font/woff` 提供字体文件。请保持这些路径经由代理转发并保留其 `Content-Type`：主机面板针对 `.woff2`、`.css` 或 `.js` 的静态文件规则会使应用无法正常工作。
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```

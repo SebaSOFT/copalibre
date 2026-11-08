@@ -68,6 +68,8 @@ El gateway publica HTTP en `http://localhost:8080` (`COPALIBRE_PORT`). Compose t
 
 Enrute el host de la aplicación a `gateway:80` dentro de la red Compose, o a `127.0.0.1:8080` si el proxy corre en el host. El gateway distribuye API, autenticación, SSE y web en el mismo origen; el contenedor web reenvía las páginas dinámicas a `web-ssr`. Use `deploy/proxy/Caddyfile` o `deploy/proxy/nginx.conf`, configure TLS y URL públicas, y mantenga SSE sin buffer. Los hosts API/events separados son opcionales cuando se usa un solo origen.
 
+CopaLibre no carga fuentes, scripts ni estilos desde otro origen. El contenedor web sirve sus archivos de fuente bajo `/_astro/` como `font/woff2` y `font/woff`. Mantenga esas rutas proxificadas con su `Content-Type`: una regla de archivos estáticos de un panel de hosting para `.woff2`, `.css` o `.js` rompe la aplicación.
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```
