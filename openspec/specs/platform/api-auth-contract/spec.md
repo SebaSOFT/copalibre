@@ -105,3 +105,21 @@ declared on the DTO.
 
 - **WHEN** a client sends a write request whose body matches its DTO's declared shape exactly
 - **THEN** the API processes the request identically to its behavior before this validation existed
+
+### Requirement: JWKS location
+
+The API SHALL publish its JSON Web Key Set at `/api/auth/jwks.json` and SHALL NOT serve one under `/.well-known`. The default `COPALIBRE_JWKS_URI` SHALL name that path.
+
+#### Scenario: Reading the key set
+
+- **WHEN** a client requests `/api/auth/jwks.json`
+- **THEN** the API answers the key set without credentials
+
+### Requirement: Refresh cookie path
+
+The refresh cookie SHALL carry `Path=/api/auth`, so the browser sends it only to authentication routes.
+
+#### Scenario: Refresh cookie is issued
+
+- **WHEN** a person signs in
+- **THEN** the `Set-Cookie` header carries `Path=/api/auth` and `HttpOnly`
