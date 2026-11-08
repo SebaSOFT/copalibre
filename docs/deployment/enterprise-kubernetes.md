@@ -167,7 +167,7 @@ Inspect the revision-suffixed `my-copalibre-migrate-<revision>` and `my-copalibr
 Job logs and confirm worker/events/scheduler rollout too. Check API readiness, native/OIDC login,
 public tournament pages, uploads and live SSE through ingress. Keep TLS secrets, DNS names and
 unbuffered SSE settings intact. **The Helm ingress sends its web hostname directly to the web
-Service, unlike the Compose gateway.** Verify app-origin `/auth/*`, `/api/*` and `/events/*` routing
+Service, unlike the Compose gateway.** Verify app-origin `/api/*` and `/events/*` routing
 in your ingress configuration; the default separate-host rules do not supply those paths on the web
 hostname. Treat a failed login or SSE check as a failed upgrade, even if all pods are Ready.
 

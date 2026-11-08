@@ -81,8 +81,11 @@ The gateway publishes HTTP on `COPALIBRE_PORT` (8080 by default); Compose also p
 and web service ports. Restrict access to those ports according to your deployment network.
 Compose does not terminate TLS. Put Caddy or NGINX at the public edge and route the application
 hostname through `gateway:80` on the Compose network, or `127.0.0.1:8080` from a proxy running on
-the host. The gateway dispatches same-origin API, authentication, SSE and web traffic; the web
-container dispatches dynamic pages to `web-ssr:3005`. Do not duplicate its route list at the edge.
+the host. The gateway has two rules: `/events/*` goes to `events:3002` and `/api/*` to `api:3001`. Everything
+else goes to the web container, which dispatches dynamic pages to `web-ssr:3005` and serves
+`/.well-known/*` from static files only, answering 404 when no file exists. Do not duplicate the
+routes at the edge. Certificates belong to that edge: it answers ACME challenges before a request
+reaches CopaLibre.
 Use `deploy/proxy/Caddyfile` or `deploy/proxy/nginx.conf`, set public URLs and preserve unbuffered SSE.
 Verify the live address with
 `copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check`.
@@ -129,11 +132,11 @@ The help site defaults to English at `/help/`, with translated pages at
 A few endpoints bound request volume to blunt automated abuse. Limits are counted per API
 process and reset on restart:
 
-| Endpoint group                                                                                                      | Key                                        | Limit         |
-| ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------- |
-| `POST /auth/login`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `POST /installation/bootstrap/admin` | client IP, per endpoint                    | 5 per 60 s    |
-| Person photo / club emblem / organization emblem uploads; module install/verify                                     | authenticated principal, per endpoint      | 20 per 60 s   |
-| Every other route (safety net)                                                                                      | client IP, or principal when authenticated | 1000 per 60 s |
+| Endpoint group                                                                                                       | Key                                        | Limit         |
+| -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------- |
+| `POST /api/auth/login`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/installation/bootstrap/admin` | client IP, per endpoint                    | 5 per 60 s    |
+| Person photo / club emblem / organization emblem uploads; module install/verify                                      | authenticated principal, per endpoint      | 20 per 60 s   |
+| Every other route (safety net)                                                                                       | client IP, or principal when authenticated | 1000 per 60 s |
 
 Exceeding a limit returns `429` with `Retry-After` headers. If an operator troubleshooting sees
 unexpected 429s — e.g. during a bulk photo-upload session, which allows 20 uploads per principal
@@ -316,7 +319,7 @@ running:
    claiming success; re-run `copalibre migrate` to retry, then `copalibre doctor` to check the
    installation before serving traffic again.
 3. **Verify.** `restore` then opens a database connection and confirms the applied schema version
-   exactly matches what this code expects (`isSchemaReady`) — the same check `GET /ready` already
+   exactly matches what this code expects (`isSchemaReady`) — the same check `GET /api/ready` already
    uses to refuse traffic from a database it does not recognize. `restore` prints the concrete
    outcome instead of leaving that gap to be discovered later via a failing readiness probe.
 

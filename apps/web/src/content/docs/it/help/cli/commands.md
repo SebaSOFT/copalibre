@@ -151,7 +151,7 @@ conferma che lo schema applicato corrisponda a questa installazione — tutto in
 
 Dopo un `pg_restore` riuscito, `restore` esegue automaticamente `copalibre migrate` e quindi apre
 una connessione per verificare che la versione dello schema applicato corrisponda esattamente a
-quella che questa installazione si aspetta (lo stesso controllo che usa `GET /ready`) — così un
+quella che questa installazione si aspetta (lo stesso controllo che usa `GET /api/ready`) — così un
 ripristino non lascia mai silenziosamente il codice e il database disallineati. Se la migrazione
 fallisce, `restore` lo segnala con il suo codice di uscita senza dichiarare successo; riprova con
 `copalibre migrate` e poi `copalibre doctor`.
