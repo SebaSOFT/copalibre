@@ -13,6 +13,7 @@ import { TokenVerifier } from '../../auth/token-verifier.js';
 import { DATABASE } from '../../database.token.js';
 import { OBJECT_STORAGE } from '../../object-storage.token.js';
 import { API_BODY_LIMIT_BYTES } from '../../http-body-limit.js';
+import { applyApiPathPrefix } from '../../http/api-path-prefix.js';
 import { ApiExceptionFilter } from '../../http/error-contract.js';
 import { createApiValidationPipe } from '../../http/validation.js';
 
@@ -112,6 +113,7 @@ export async function buildTestApp(
   const app = moduleRef.createNestApplication<NestFastifyApplication>(
     new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES }),
   );
+  applyApiPathPrefix(app);
   await app.register(helmet, {
     contentSecurityPolicy: false,
     xFrameOptions: { action: 'deny' },

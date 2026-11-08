@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import {
   NativeAuthController,
   PersonalAccessTokenController,
-  WellKnownController,
 } from '../controllers/auth.controller.js';
 import {
   InstallationRoleController,
@@ -15,7 +14,6 @@ import { CoreModule } from './core.module.js';
   imports: [CoreModule],
   controllers: [
     NativeAuthController,
-    WellKnownController,
     PersonalAccessTokenController,
     OrganizationAccessController,
     InvitationAcceptanceController,

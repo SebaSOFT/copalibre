@@ -48,7 +48,6 @@ import {
 import {
   NativeAuthController,
   PersonalAccessTokenController,
-  WellKnownController,
 } from '../controllers/auth.controller.js';
 import {
   ClubMediaController,
@@ -99,7 +98,6 @@ export const OPENAPI_CONTROLLERS = [
   PublicProjectionsController,
   PublicObjectsController,
   NativeAuthController,
-  WellKnownController,
   PersonalAccessTokenController,
   AdminStatisticsController,
   AdminModulesController,
