@@ -46,6 +46,14 @@ monouso: `docs/deployment/enterprise-kubernetes.md` nel repository.
 - `--context <ctx>`: kube-context da registrare (predefinito: nessuno — passalo esplicitamente ogni
   volta)
 
+Opzioni di identità:
+
+- `--oidc-issuer <url>`: accesso tramite un provider OIDC esterno con questo emittente esatto (`iss`). Senza questa opzione, CopaLibre usa il proprio provider integrato. `init` scrive anche l'origine dell'emittente in `COPALIBRE_CSP_IDENTITY_ORIGIN`, così la politica di sicurezza dei contenuti consente l'accesso.
+- `--oidc-client-id <id>`: ID client registrato per CopaLibre presso il provider. Obbligatorio con `--oidc-issuer`.
+- `--oidc-jwks-uri <url>`: insieme di chiavi del provider (predefinito: letto dal suo documento di discovery OpenID).
+
+In modalità interattiva, `init` chiede se usi un provider esterno e poi chiede questi valori.
+
 Opzioni email e riparazione:
 
 - `--repair`: crea backup di `.env` e `docker-compose.yml`, aggiunge valori e risorse mancanti e preserva il Compose esistente. I servizi predefiniti assenti vengono mostrati con snippet YAML da verificare e applicare manualmente.

@@ -1,8 +1,12 @@
+import { jest } from '@jest/globals';
 import { mkdir, mkdtemp, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  discoverJwksUri,
+  externalOidcEnvironment,
   formatRequiredSecrets,
+  resolveOidcOptions,
   generateRsaKeypair,
   readAsset,
   repairInstallationAssets,
@@ -347,5 +351,80 @@ describe('readAsset SEA-vs-relative-path resolution', () => {
     const content = await readAsset('docker-compose.yml', assetsDir, { isSea: () => false });
 
     expect(content).toBe('services: {}\n');
+  });
+});
+
+describe('external OIDC in copalibre init', () => {
+  const oidc = {
+    issuer: 'https://id.example/realms/copa',
+    clientId: 'copalibre',
+    jwksUri: 'https://id.example/realms/copa/protocol/openid-connect/certs',
+  };
+
+  it('writes the provider and its origin for the Content Security Policy', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    const assetsDir = await stubAssetsDir();
+
+    await writeInstallationAssets(cwd, { assetsDir, appUrl: 'https://play.example', oidc });
+
+    const env = await readFile(join(cwd, '.env'), 'utf8');
+    expect(env).toContain('COPALIBRE_JWT_ISSUER=https://id.example/realms/copa');
+    expect(env).toContain(`COPALIBRE_JWKS_URI=${oidc.jwksUri}`);
+    expect(env).toContain('COPALIBRE_OIDC_CLIENT_ID=copalibre');
+    expect(env).toContain('COPALIBRE_CSP_IDENTITY_ORIGIN=https://id.example\n');
+    expect(env).toContain('COPALIBRE_NATIVE_JWT_ISSUER=https://play.example');
+  });
+
+  it('leaves the policy origin empty for the built-in provider', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    const assetsDir = await stubAssetsDir();
+
+    await writeInstallationAssets(cwd, { assetsDir, appUrl: 'https://play.example' });
+
+    expect(await readFile(join(cwd, '.env'), 'utf8')).toContain('COPALIBRE_CSP_IDENTITY_ORIGIN=\n');
+  });
+
+  it('adds no policy origin for an issuer on the application origin', () => {
+    expect(
+      externalOidcEnvironment(
+        { ...oidc, issuer: 'https://play.example/oidc' },
+        'https://play.example/',
+      ).COPALIBRE_CSP_IDENTITY_ORIGIN,
+    ).toBe('');
+  });
+
+  it('validates the flags', () => {
+    expect(resolveOidcOptions(undefined, undefined, undefined)).toBeUndefined();
+    expect(() => resolveOidcOptions(undefined, 'copalibre', undefined)).toThrow(
+      'require --oidc-issuer',
+    );
+    expect(() => resolveOidcOptions('id.example', 'copalibre', oidc.jwksUri)).toThrow(
+      '--oidc-issuer must be an http(s) URL',
+    );
+    expect(() => resolveOidcOptions(oidc.issuer, undefined, oidc.jwksUri)).toThrow(
+      '--oidc-client-id is required',
+    );
+    expect(() => resolveOidcOptions(oidc.issuer, 'copalibre', undefined)).toThrow(
+      '--oidc-jwks-uri is required',
+    );
+    expect(resolveOidcOptions(` ${oidc.issuer} `, 'copalibre', oidc.jwksUri)).toEqual(oidc);
+  });
+
+  it('reads the key set from the discovery document, and gives up quietly', async () => {
+    const fetchDocument = jest.fn(async () => Response.json({ jwks_uri: oidc.jwksUri }));
+    await expect(
+      discoverJwksUri(`${oidc.issuer}/`, fetchDocument as unknown as typeof fetch),
+    ).resolves.toBe(oidc.jwksUri);
+    expect(fetchDocument).toHaveBeenCalledWith(
+      `${oidc.issuer}/.well-known/openid-configuration`,
+      expect.anything(),
+    );
+
+    const unreachable = jest.fn(async () => {
+      throw new Error('offline');
+    });
+    await expect(
+      discoverJwksUri(oidc.issuer, unreachable as unknown as typeof fetch),
+    ).resolves.toBeUndefined();
   });
 });

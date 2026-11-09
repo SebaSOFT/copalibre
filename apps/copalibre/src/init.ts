@@ -27,6 +27,9 @@ export const LOCAL_DEFAULTS = {
   COPALIBRE_NATIVE_JWT_ISSUER: 'http://localhost:8080',
   COPALIBRE_JWT_AUDIENCE: 'copalibre',
   COPALIBRE_OIDC_CLIENT_ID: 'copalibre-local',
+  // Origin of an external OIDC provider, allowed by the web role's Content
+  // Security Policy for sign-in. Empty with the built-in provider.
+  COPALIBRE_CSP_IDENTITY_ORIGIN: '',
   COPALIBRE_EMAIL_PROVIDER: 'smtp',
   COPALIBRE_EMAIL_FROM: 'noreply@copalibre.local',
   COPALIBRE_SMTP_URL: 'smtp://host.docker.internal:1025',
@@ -248,6 +251,91 @@ export interface WriteInstallationAssetsOptions {
   readonly emailFrom?: string;
   readonly emailCredential?: string;
   readonly emailDomain?: string;
+  /** An external OIDC provider; absent means the built-in identity provider. */
+  readonly oidc?: ExternalOidcOptions;
+}
+
+export interface ExternalOidcOptions {
+  /** The provider's exact `iss`. */
+  readonly issuer: string;
+  readonly clientId: string;
+  readonly jwksUri: string;
+}
+
+/**
+ * The environment an external OIDC provider needs: its issuer, key set and
+ * client, and its origin for the web role's Content Security Policy, which
+ * otherwise blocks sign-in and silent renewal in the browser. An issuer on the
+ * application's own origin needs no extra policy origin.
+ */
+export function externalOidcEnvironment(
+  oidc: ExternalOidcOptions,
+  appUrl: string = LOCAL_DEFAULTS.COPALIBRE_APP_URL,
+): Record<string, string> {
+  const issuerOrigin = new URL(oidc.issuer).origin;
+  return {
+    COPALIBRE_JWT_ISSUER: oidc.issuer,
+    COPALIBRE_JWKS_URI: oidc.jwksUri,
+    COPALIBRE_OIDC_CLIENT_ID: oidc.clientId,
+    COPALIBRE_CSP_IDENTITY_ORIGIN: issuerOrigin === new URL(appUrl).origin ? '' : issuerOrigin,
+  };
+}
+
+/**
+ * Validates the OIDC flags or answers. No issuer means the built-in identity
+ * provider; an issuer needs a client ID and a key set, and must be a URL.
+ */
+export function resolveOidcOptions(
+  issuer: string | undefined,
+  clientId: string | undefined,
+  jwksUri: string | undefined,
+): ExternalOidcOptions | undefined {
+  if (!issuer?.trim()) {
+    if (clientId?.trim() || jwksUri?.trim()) {
+      throw new Error('--oidc-client-id and --oidc-jwks-uri require --oidc-issuer');
+    }
+    return undefined;
+  }
+  for (const [flag, value] of [
+    ['--oidc-issuer', issuer],
+    ['--oidc-jwks-uri', jwksUri],
+  ] as const) {
+    if (value === undefined || !value.trim()) continue;
+    if (!/^https?:\/\//.test(value.trim()) || !URL.canParse(value.trim())) {
+      throw new Error(`${flag} must be an http(s) URL`);
+    }
+  }
+  if (!clientId?.trim()) throw new Error('--oidc-client-id is required with --oidc-issuer');
+  if (!jwksUri?.trim()) {
+    throw new Error(
+      '--oidc-jwks-uri is required: the issuer publishes no OpenID discovery document with a jwks_uri',
+    );
+  }
+  return { issuer: issuer.trim(), clientId: clientId.trim(), jwksUri: jwksUri.trim() };
+}
+
+/**
+ * Reads `jwks_uri` from the issuer's OpenID discovery document, so an operator
+ * normally types only the issuer. Undefined when the document is unreachable
+ * or has no key set; the caller then asks for it.
+ */
+export async function discoverJwksUri(
+  issuer: string,
+  fetchImplementation: typeof fetch = fetch,
+): Promise<string | undefined> {
+  try {
+    const discovery = new URL(
+      `${issuer.replace(/\/$/, '')}/.well-known/openid-configuration`,
+    ).toString();
+    const response = await fetchImplementation(discovery, { signal: AbortSignal.timeout(5_000) });
+    if (!response.ok) return undefined;
+    const document = (await response.json()) as { jwks_uri?: unknown };
+    return typeof document.jwks_uri === 'string' && document.jwks_uri
+      ? document.jwks_uri
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export interface WriteInstallationAssetsResult {
@@ -353,6 +441,9 @@ export async function writeInstallationAssets(
     overrides.COPALIBRE_API_URL = options.apiUrl;
   }
   Object.assign(overrides, emailEnvironmentOverrides(options));
+  if (options.oidc) {
+    Object.assign(overrides, externalOidcEnvironment(options.oidc, options.appUrl));
+  }
 
   const extraLines = options.moduleDev
     ? ['COMPOSE_FILE=docker-compose.yml:docker-compose.module-dev.yml']

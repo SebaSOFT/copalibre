@@ -6,8 +6,10 @@ import { Command, Option } from 'clipanion';
 import type { CliContext } from '../cli-context.js';
 import { runCommand } from '../command-support.js';
 import {
+  discoverJwksUri,
   formatRequiredSecrets,
   repairInstallationAssets,
+  resolveOidcOptions,
   writeInstallationAssets,
 } from '../init.js';
 import { writeKubernetesInstallationAssets } from '../kubernetes-init.js';
@@ -42,6 +44,9 @@ export class InitCommand extends Command<CliContext> {
           'email-from': { type: 'string' },
           'email-credential': { type: 'string' },
           'email-domain': { type: 'string' },
+          'oidc-issuer': { type: 'string' },
+          'oidc-client-id': { type: 'string' },
+          'oidc-jwks-uri': { type: 'string' },
         },
         strict: true,
       });
@@ -83,6 +88,9 @@ export class InitCommand extends Command<CliContext> {
       let emailFrom = parsed.values['email-from'];
       let emailCredential = parsed.values['email-credential'];
       let emailDomain = parsed.values['email-domain'];
+      let oidcIssuer = parsed.values['oidc-issuer'];
+      let oidcClientId = parsed.values['oidc-client-id'];
+      let oidcJwksUri = parsed.values['oidc-jwks-uri'];
 
       const isInteractive = process.stdin.isTTY && !parsed.values['non-interactive'];
       const hasExistingInstallation = [
@@ -145,6 +153,24 @@ export class InitCommand extends Command<CliContext> {
             const enteredApiUrl = await rl.question(`Public API URL [${appUrl}]: `);
             apiUrl = enteredApiUrl.trim() || appUrl;
           }
+          if (!oidcIssuer) {
+            const wantsOidc = await rl.question(
+              'Sign in through an external OIDC identity provider? [y/N] ',
+            );
+            if (/^y(es)?$/i.test(wantsOidc.trim())) {
+              oidcIssuer = (await rl.question('OIDC issuer URL (its exact "iss"): ')).trim();
+            }
+          }
+          if (oidcIssuer && !oidcClientId) {
+            oidcClientId = (await rl.question('OIDC client ID for CopaLibre: ')).trim();
+          }
+          if (oidcIssuer && !oidcJwksUri) {
+            const discovered = await discoverJwksUri(oidcIssuer);
+            const enteredJwks = await rl.question(
+              discovered ? `OIDC JWKS URI [${discovered}]: ` : 'OIDC JWKS URI: ',
+            );
+            oidcJwksUri = enteredJwks.trim() || discovered;
+          }
           if (!starterDisciplines) {
             const enteredDisciplines = await rl.question(
               'Starter sport disciplines to provision [football, tennis]: ',
@@ -201,6 +227,8 @@ export class InitCommand extends Command<CliContext> {
       }
 
       validateEmailOptions(emailProvider, emailCredential, emailDomain);
+      if (oidcIssuer && !oidcJwksUri) oidcJwksUri = await discoverJwksUri(oidcIssuer);
+      const oidc = resolveOidcOptions(oidcIssuer, oidcClientId, oidcJwksUri);
 
       const result = await writeInstallationAssets(process.cwd(), {
         moduleDev: parsed.values['module-dev'],
@@ -212,6 +240,7 @@ export class InitCommand extends Command<CliContext> {
         emailFrom,
         emailCredential,
         emailDomain,
+        ...(oidc ? { oidc } : {}),
       });
 
       const lines = [
