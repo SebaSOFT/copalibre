@@ -95,7 +95,10 @@ export async function runDoctor(
   if (isHybridDevelopmentEnvironment(environment)) {
     checks.push(...(await validateDevelopmentRoleHeartbeats(environment, dependencies.fetch)));
   }
-  if (options.checkProxy) checks.push(await validateReverseProxy(options, dependencies));
+  if (options.checkProxy) {
+    checks.push(await validateReverseProxy(options, dependencies));
+    checks.push(await validateEdgeSecurityHeaders(options, dependencies));
+  }
   if (options.smoke) checks.push(...(await validateSmokeTests(environment, dependencies)));
   return { checks, ok: checks.every((check) => check.status !== 'fail') };
 }
@@ -125,7 +128,49 @@ export function validateRequiredConfiguration(
     checks.push(fail('oidc-config', errorMessage(error)));
   }
   checks.push(validateEmailConfiguration(environment));
+  checks.push(validateCspIdentityOrigin(environment));
   return checks;
+}
+
+function originOf(value: string | undefined): string | undefined {
+  try {
+    return value?.trim() ? new URL(value.trim()).origin : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The web role's Content Security Policy allows connections, frames and form
+ * posts to the application origin only, plus COPALIBRE_CSP_IDENTITY_ORIGIN.
+ * An external OIDC issuer missing from it means sign-in and silent renewal
+ * are blocked in the browser while every server-side check still passes.
+ */
+export function validateCspIdentityOrigin(environment: NodeJS.ProcessEnv): DoctorCheck {
+  const issuer = originOf(environment.COPALIBRE_JWT_ISSUER);
+  const application = originOf(environment.COPALIBRE_APP_URL);
+  const configured = environment.COPALIBRE_CSP_IDENTITY_ORIGIN?.trim() ?? '';
+  if (!issuer || !application) {
+    return skip('csp-identity-origin', 'Issuer or application URL is not set');
+  }
+  if (issuer === application) {
+    return configured
+      ? warn(
+          'csp-identity-origin',
+          `COPALIBRE_CSP_IDENTITY_ORIGIN is set to ${configured}, but the issuer is the application itself; leave it empty`,
+        )
+      : pass('csp-identity-origin', 'The built-in identity provider needs no extra policy origin');
+  }
+  return configured === issuer
+    ? pass(
+        'csp-identity-origin',
+        `The Content Security Policy allows the identity provider ${issuer}`,
+      )
+    : fail(
+        'csp-identity-origin',
+        `Sign-in will be blocked by the Content Security Policy: set COPALIBRE_CSP_IDENTITY_ORIGIN=${issuer}` +
+          (configured ? ` (currently ${configured})` : ''),
+      );
 }
 
 /** Validates an installation's parsed `.env` before the host starts Compose. */
@@ -474,6 +519,32 @@ export async function validateReverseProxy(
   }
 }
 
+/**
+ * The edge must pass the web role's Content Security Policy through: a proxy
+ * that strips or replaces it removes the protection with nothing visibly
+ * broken. `/runtime-config.json` is answered by the web role itself, so it
+ * always carries the header.
+ */
+export async function validateEdgeSecurityHeaders(
+  options: DoctorOptions,
+  dependencies: Pick<DoctorDependencies, 'fetch'>,
+): Promise<DoctorCheck> {
+  if (!options.proxyUrl) return skip('edge-security-headers', '--proxy-url is required');
+  const target = new URL('/runtime-config.json', options.proxyUrl).toString();
+  try {
+    const response = await dependencies.fetch(target, { signal: AbortSignal.timeout(5_000) });
+    const policy = response.headers.get('content-security-policy') ?? '';
+    if (!response.ok) throw new Error(`returned HTTP ${response.status}`);
+    if (!policy.includes("frame-ancestors 'self'"))
+      throw new Error('the Content Security Policy is missing or was replaced');
+    if (response.headers.get('x-content-type-options') !== 'nosniff')
+      throw new Error('X-Content-Type-Options: nosniff is missing');
+    return pass('edge-security-headers', "The edge passes the web role's security headers through");
+  } catch (error) {
+    return fail('edge-security-headers', `${target}: ${errorMessage(error)}`);
+  }
+}
+
 async function validateHeartbeatDelivery(response: Response): Promise<void> {
   const reader = response.body?.getReader();
   if (!reader) throw new Error('does not provide an SSE response body');
@@ -733,6 +804,10 @@ function fail(name: string, message: string): DoctorCheck {
 
 function skip(name: string, message: string): DoctorCheck {
   return { name, status: 'skip', message };
+}
+
+function warn(name: string, message: string): DoctorCheck {
+  return { name, status: 'warn', message };
 }
 
 function isEmailProvider(value: string | undefined): value is EmailProvider {

@@ -13,6 +13,8 @@ import {
   validateReverseProxy,
   validateServicePorts,
   type DoctorDependencies,
+  validateCspIdentityOrigin,
+  validateEdgeSecurityHeaders,
 } from './doctor.js';
 
 const environment: NodeJS.ProcessEnv = {
@@ -21,6 +23,7 @@ const environment: NodeJS.ProcessEnv = {
   COPALIBRE_BOOTSTRAP_TOKEN: 'opaque-bootstrap-token',
   COPALIBRE_JWKS_URI: 'https://identity.example/jwks.json',
   COPALIBRE_JWT_ISSUER: 'https://identity.example',
+  COPALIBRE_CSP_IDENTITY_ORIGIN: 'https://identity.example',
   COPALIBRE_JWT_AUDIENCE: 'copalibre',
   COPALIBRE_OIDC_CLIENT_ID: 'copalibre-web',
   COPALIBRE_EMAIL_PROVIDER: 'smtp',
@@ -38,9 +41,9 @@ function dependencies(overrides: Partial<DoctorDependencies> = {}): DoctorDepend
     probeModuleAssets: jest.fn(async () => ({ inspected: 0, problems: [] })),
     objectStorageRoundTrip: jest.fn(async () => undefined),
     fetch: jest.fn(async (input: string | URL | Request) => {
-      // The JWKS content check and the SSE proxy-conformance check share this
-      // default mock; discriminate by URL so each gets a response shaped for
-      // what it validates.
+      // The JWKS content check, the SSE proxy-conformance check and the edge
+      // security-header check share this default mock; discriminate by URL so
+      // each gets a response shaped for what it validates.
       if (String(input).includes('/jwks')) {
         return new Response(
           JSON.stringify({
@@ -48,6 +51,14 @@ function dependencies(overrides: Partial<DoctorDependencies> = {}): DoctorDepend
           }),
           { headers: { 'content-type': 'application/json' } },
         );
+      }
+      if (String(input).endsWith('/runtime-config.json')) {
+        return new Response('{}', {
+          headers: {
+            'content-security-policy': "default-src 'self'; frame-ancestors 'self'",
+            'x-content-type-options': 'nosniff',
+          },
+        });
       }
       return new Response(': copalibre-proxy-check-1\n\n: copalibre-proxy-check-2\n\n', {
         headers: {
@@ -644,5 +655,67 @@ describe('validateModuleAssets', () => {
     expect(check?.status).toBe('warn');
     expect(check?.message).toContain('rink-hockey@1.0.0 background.jpg');
     expect(report.ok).toBe(report.checks.every((candidate) => candidate.status !== 'fail'));
+  });
+});
+
+describe('Content Security Policy configuration', () => {
+  const base = { COPALIBRE_APP_URL: 'https://app.example' };
+
+  it('passes the built-in provider with no extra origin', () => {
+    expect(
+      validateCspIdentityOrigin({ ...base, COPALIBRE_JWT_ISSUER: 'https://app.example' }),
+    ).toMatchObject({ status: 'pass' });
+  });
+
+  it('fails an external issuer the policy does not allow, naming the value to set', () => {
+    expect(
+      validateCspIdentityOrigin({
+        ...base,
+        COPALIBRE_JWT_ISSUER: 'https://id.example/realms/copa',
+      }),
+    ).toMatchObject({
+      status: 'fail',
+      message: expect.stringContaining('COPALIBRE_CSP_IDENTITY_ORIGIN=https://id.example'),
+    });
+  });
+
+  it('passes an external issuer whose origin is configured', () => {
+    expect(
+      validateCspIdentityOrigin({
+        ...base,
+        COPALIBRE_JWT_ISSUER: 'https://id.example/realms/copa',
+        COPALIBRE_CSP_IDENTITY_ORIGIN: 'https://id.example',
+      }),
+    ).toMatchObject({ status: 'pass' });
+  });
+
+  it('warns about an origin the built-in provider does not need', () => {
+    expect(
+      validateCspIdentityOrigin({
+        ...base,
+        COPALIBRE_JWT_ISSUER: 'https://app.example',
+        COPALIBRE_CSP_IDENTITY_ORIGIN: 'https://id.example',
+      }),
+    ).toMatchObject({ status: 'warn' });
+  });
+
+  it('requires the edge to pass the web role policy through', async () => {
+    const respond = (headers: Record<string, string>) =>
+      dependencies({ fetch: jest.fn(async () => new Response('{}', { headers })) });
+    const options = { proxyUrl: 'https://app.example/events/proxy-check' };
+
+    await expect(
+      validateEdgeSecurityHeaders(
+        options,
+        respond({
+          'content-security-policy': "default-src 'self'; frame-ancestors 'self'",
+          'x-content-type-options': 'nosniff',
+        }),
+      ),
+    ).resolves.toMatchObject({ status: 'pass' });
+    await expect(validateEdgeSecurityHeaders(options, respond({}))).resolves.toMatchObject({
+      status: 'fail',
+      message: expect.stringContaining('/runtime-config.json'),
+    });
   });
 });

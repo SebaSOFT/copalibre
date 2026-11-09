@@ -7,6 +7,7 @@ const environment: NodeJS.ProcessEnv = {
   COPALIBRE_BOOTSTRAP_TOKEN: 'opaque-bootstrap-token',
   COPALIBRE_JWKS_URI: 'https://identity.example/jwks.json',
   COPALIBRE_JWT_ISSUER: 'https://identity.example',
+  COPALIBRE_CSP_IDENTITY_ORIGIN: 'https://identity.example',
   COPALIBRE_JWT_AUDIENCE: 'copalibre',
   COPALIBRE_OIDC_CLIENT_ID: 'copalibre-web',
   COPALIBRE_EMAIL_PROVIDER: 'smtp',
