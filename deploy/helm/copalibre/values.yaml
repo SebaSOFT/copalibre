@@ -92,6 +92,10 @@ web:
   env:
     COPALIBRE_JWT_ISSUER: ''
     COPALIBRE_OIDC_CLIENT_ID: ''
+    # Origin of an external OIDC provider for the Content Security Policy.
+    # Empty derives it from COPALIBRE_JWT_ISSUER when that issuer's origin
+    # differs from env.COPALIBRE_APP_URL; the built-in provider needs none.
+    COPALIBRE_CSP_IDENTITY_ORIGIN: ''
 
 # Shared by every role in `roles` above (envFrom a ConfigMap + Secret built
 # from this map — see templates/configmap.yaml and templates/secret.yaml).

@@ -28,9 +28,16 @@ spec:
               containerPort: {{ .Values.web.port }}
           env:
             {{- range $key, $value := .Values.web.env }}
+            {{- if ne $key "COPALIBRE_CSP_IDENTITY_ORIGIN" }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+            {{- end }}
+            # The Content Security Policy allows an external OIDC provider's
+            # origin for sign-in. Set explicitly, or derived from the issuer
+            # when its origin is not the application's own.
+            - name: COPALIBRE_CSP_IDENTITY_ORIGIN
+              value: {{ include "copalibre.cspIdentityOrigin" . | quote }}
             # The Caddyfile's own default is docker-compose.yml's service name,
             # which nothing in Kubernetes can resolve — this chart's Service is
             # release-scoped. Always set, never left to the image's default.

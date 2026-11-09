@@ -185,6 +185,9 @@ services:
     environment:
       COPALIBRE_JWT_ISSUER: ${COPALIBRE_JWT_ISSUER:?Set COPALIBRE_JWT_ISSUER in .env}
       COPALIBRE_OIDC_CLIENT_ID: ${COPALIBRE_OIDC_CLIENT_ID:?Set COPALIBRE_OIDC_CLIENT_ID in .env}
+      # Origin of an external OIDC provider, which the Content Security Policy
+      # must allow for sign-in. Empty with the built-in identity provider.
+      COPALIBRE_CSP_IDENTITY_ORIGIN: ${COPALIBRE_CSP_IDENTITY_ORIGIN:-}
     ports:
       - '4321:4321'
     volumes:

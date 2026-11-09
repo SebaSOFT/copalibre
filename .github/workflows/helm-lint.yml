@@ -17,6 +17,8 @@ on:
       - 'scripts/check-helm-compose-parity.test.mjs'
       - 'scripts/check-helm-enterprise-templates.test.mjs'
       - 'scripts/check-helm-web-ssr.test.mjs'
+      - 'scripts/check-helm-well-known.test.mjs'
+      - 'scripts/check-helm-csp-identity-origin.test.mjs'
       - 'scripts/check-copalibre-cli-compose-parity.mjs'
       - 'scripts/check-copalibre-kubernetes-init.test.mjs'
       - 'apps/copalibre/scripts/build-assets.mjs'
@@ -72,6 +74,11 @@ jobs:
       # renderer present in Compose and absent from the chart is what made
       # every dynamic public route 502 on Kubernetes.
       - run: node --test scripts/check-helm-web-ssr.test.mjs
+      # Operators publish /.well-known/ files from a ConfigMap of their own.
+      - run: node --test scripts/check-helm-well-known.test.mjs
+      # The Content Security Policy's identity origin: explicit, derived from
+      # an external issuer, or empty for the built-in provider.
+      - run: node --test scripts/check-helm-csp-identity-origin.test.mjs
       # apps/copalibre embeds docker-compose.yml/docker-compose.module-dev.yml
       # as CLI assets — built here so the parity check below has something
       # real to compare against, not a stale or absent dist/assets.
