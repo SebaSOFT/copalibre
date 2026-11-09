@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves public layout adoption, compact stat-header hints and the tournament settings workspace (420/1821)', () => {
+test('the graph resolves public layout adoption, compact stat-header hints and the tournament settings workspace (421/1823)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 420);
-  assert.equal(graph.edges.length, 1821);
+  assert.equal(graph.nodes.size, 421);
+  assert.equal(graph.edges.length, 1823);
 });
 
 test('a type-only import is not counted as a render', () => {
