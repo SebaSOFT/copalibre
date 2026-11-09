@@ -47,6 +47,12 @@ JWKS outage doesn't immediately invalidate live sessions.
 **A token in the query string is ignored.** `?access_token=…` leaves the request unauthenticated on
 purpose: URLs leak into proxy logs, browser history, metrics, traces, screenshots and error reports.
 
+`copalibre init --oidc-issuer <url> --oidc-client-id <id>`, or a yes to its identity provider question,
+writes the OIDC variables and `COPALIBRE_CSP_IDENTITY_ORIGIN`. The web role's Content Security Policy
+allows connections, frames and form posts to the application origin only; the identity provider's origin
+must be added there, or the browser blocks sign-in and silent renewal. The Helm chart derives it from the
+issuer. `copalibre doctor` reports a missing or mismatched value.
+
 The audience remains required. External OIDC is enabled when `COPALIBRE_JWKS_URI` and
 `COPALIBRE_JWT_ISSUER` are configured; native-only deployments can omit both and still verify local
 sessions. The API refuses to start without the audience or a valid native signing probe, so a
@@ -101,6 +107,7 @@ again. The server continues to authorize every request independently of browser 
 | --------------------------------------- | ---------------------------- | ------------------------------------------------------- |
 | `COPALIBRE_JWKS_URI`                    | OIDC only                    | External identity provider JWKS endpoint                |
 | `COPALIBRE_JWT_ISSUER`                  | OIDC only                    | Exact external-provider `iss`                           |
+| `COPALIBRE_CSP_IDENTITY_ORIGIN`         | OIDC only (web role)         | Issuer origin the Content Security Policy allows        |
 | `COPALIBRE_NATIVE_JWT_ISSUER`           | no (`http://localhost:8080`) | Exact expected `iss` for locally signed native sessions |
 | `COPALIBRE_JWT_AUDIENCE`                | yes                          | Exact expected `aud`                                    |
 | `COPALIBRE_JWT_PRIVATE_KEY_FILE`        | native deployments           | Persistent RS256 private key file                       |

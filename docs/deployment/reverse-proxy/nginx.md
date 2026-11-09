@@ -74,6 +74,14 @@ If you serve the built web files from NGINX yourself instead of the web containe
 `mime.types` maps `woff2` to `font/woff2` and `woff` to `font/woff`. Recent NGINX releases already
 do.
 
+## Security headers
+
+The web container sends a `Content-Security-Policy` and its companion headers on every page;
+server-rendered pages carry two policies, and a browser needs both. NGINX passes upstream headers through, so the shipped configurations need nothing more. Do not
+use `proxy_hide_header Content-Security-Policy`, and do not `add_header` a policy of your own: that
+adds a third policy or, in a hosting panel's template, can replace the application's.
+`copalibre doctor --check-proxy` fails when the policy does not reach the browser.
+
 ## SSE conformance
 
 The `events.copalibre.example` block sets `proxy_buffering off`, `proxy_cache off`, and

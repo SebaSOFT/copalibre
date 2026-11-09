@@ -94,6 +94,37 @@ Use `deploy/proxy/Caddyfile` or `deploy/proxy/nginx.conf`, set public URLs and p
 Verify the live address with
 `copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check`.
 
+## Content Security Policy
+
+The web container enforces a Content Security Policy on every page, from the first start. There is
+no report-only mode to turn on. The policy has two parts:
+
+- **Inline scripts:** each page lists the hash of every inline script the build produced, and a
+  script that is not on the list does not run. No `unsafe-inline` and no `unsafe-eval` apply to
+  scripts.
+- **Everything else:** connections, frames and form posts may reach the application's own origin
+  only, plus an external identity provider when you configure one. Other sites cannot embed the
+  application in a frame. Images, fonts and styles load from the application origin.
+
+The API sends its own policy, which denies everything, because it never serves a page.
+
+**External OIDC.** Run `copalibre init` and answer yes to the external identity provider question,
+or pass `--oidc-issuer <url> --oidc-client-id <id>`. `init` writes the issuer, its key set (read from
+the provider's OpenID discovery document unless you pass `--oidc-jwks-uri`), the client ID, and
+`COPALIBRE_CSP_IDENTITY_ORIGIN`, the issuer's origin. Without that variable the policy blocks
+sign-in and silent renewal in the browser, while every server-side check still passes.
+`copalibre doctor` reports an issuer whose origin the policy does not allow. For an existing
+installation, set it in `.env`:
+
+```dotenv
+COPALIBRE_CSP_IDENTITY_ORIGIN=https://id.example
+```
+
+**At the edge.** Pass the `Content-Security-Policy` header through unchanged. Do not remove it,
+replace it or add a second, looser one at the proxy; on server-rendered pages the application sends
+two policies and needs both. `copalibre doctor --check-proxy --proxy-url <url>` reads
+`/runtime-config.json` through your proxy and fails when the policy is missing.
+
 ## Well-Known Files
 
 The web container serves the installation's `well-known/` directory as `/.well-known/` on the
@@ -277,6 +308,10 @@ against a partially upgraded database to fit the budget.
    configuration changes to the existing installation. Preserve volume identities and secrets.
    For installations using MinIO, migrate objects to the configured replacement before switching
    storage endpoints; a PostgreSQL backup does not contain those objects.
+   For installations using an external OIDC provider, add `COPALIBRE_CSP_IDENTITY_ORIGIN` with the
+   issuer's origin to `.env`, and pass it to the `web` service's `environment:` as
+   `COPALIBRE_CSP_IDENTITY_ORIGIN: ${COPALIBRE_CSP_IDENTITY_ORIGIN:-}`; otherwise the Content
+   Security Policy blocks sign-in.
    For installations whose `web` service lacks the well-known mount, run `mkdir -p well-known` and
    add this line under that service's `volumes:`, after `./modules`:
    ```yaml

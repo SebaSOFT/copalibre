@@ -70,6 +70,8 @@ mkdir my-league && cd my-league
 
 CopaLibre не загружает шрифты, скрипты и стили с других источников. Веб-контейнер отдаёт свои файлы шрифтов из `/_astro/` с типами `font/woff2` и `font/woff`. Проксируйте эти пути, сохраняя их `Content-Type`: правило панели хостинга, отдающее `.woff2`, `.css` или `.js` как статические файлы, ломает приложение.
 
+Каждая страница применяет политику безопасности контента: выполняются только скрипты самой сборки, а браузер подключается только к источнику приложения. Внешний OIDC-провайдер настраивается через `copalibre init` (он спросит об этом, или используйте `--oidc-issuer` и `--oidc-client-id`); `init` задаёт `COPALIBRE_CSP_IDENTITY_ORIGIN`, чтобы вход был разрешён. Пропускайте заголовок `Content-Security-Policy` через прокси без изменений; `copalibre doctor --check-proxy` это проверяет.
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```

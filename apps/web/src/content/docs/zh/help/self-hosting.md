@@ -67,6 +67,8 @@ mkdir my-league && cd my-league
 
 CopaLibre 不从其他来源加载字体、脚本或样式。Web 容器在 `/_astro/` 下以 `font/woff2` 和 `font/woff` 提供字体文件。请保持这些路径经由代理转发并保留其 `Content-Type`：主机面板针对 `.woff2`、`.css` 或 `.js` 的静态文件规则会使应用无法正常工作。
 
+每个页面都执行内容安全策略：只有构建自身的脚本可以运行，浏览器只连接到应用的源。使用外部 OIDC 提供方时，请通过 `copalibre init` 配置（它会询问，或使用 `--oidc-issuer` 和 `--oidc-client-id`）；`init` 会设置 `COPALIBRE_CSP_IDENTITY_ORIGIN` 以允许登录。请让代理原样传递 `Content-Security-Policy` 头；`copalibre doctor --check-proxy` 会检查这一点。
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```
