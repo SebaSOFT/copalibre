@@ -1,6 +1,6 @@
 import {
   BREAKPOINTS,
-  FONT_SOURCE,
+  FONT_STYLESHEETS,
   ICON_TOKENS,
   LAYOUT_TOKENS,
   CHART_TOKENS,
@@ -75,9 +75,10 @@ export function generateCss(): string {
      * It lives here rather than in each layout's `<head>` because this session
      * found the same defect four times — styling that only one layout loaded,
      * so every other surface silently went without it. Every surface already
-     * imports this stylesheet; none of them can forget to.
+     * imports this stylesheet; none of them can forget to. The imports are
+     * package paths the web build resolves and bundles, never another origin.
      */
-    `@import url('${FONT_SOURCE}');`,
+    ...FONT_STYLESHEETS.map((stylesheet) => `@import '${stylesheet}';`),
     '',
     header(),
     `:root {`,

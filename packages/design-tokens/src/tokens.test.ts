@@ -4,7 +4,9 @@ import {
   CONTROL_DENSITY_SPACING,
   FIGURE_SIZE,
   FONT_SIZE,
-  FONT_SOURCE,
+  FONT_FAMILIES,
+  FONT_STYLESHEETS,
+  FONT_WEIGHTS,
   ICON_TOKENS,
   LAYOUT_TOKENS,
   LINE_HEIGHT,
@@ -34,12 +36,15 @@ import {
 } from './components.js';
 import { FORBIDDEN, formatHits, scanForForbidden } from './forbidden.js';
 import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { generateCss } from './generate/css.js';
 import { generateTailwindModule, generateTailwindTheme } from './generate/tailwind.js';
 import { generateStyleGuide } from './generate/style-guide.js';
 import { designTokenDifferences, readDesignTokens } from './design-document.js';
+
+const require = createRequire(import.meta.url);
 
 describe('committed design documentation', () => {
   it('matches the token source in both directions from any working directory', () => {
@@ -222,14 +227,11 @@ describe('script-aware typography', () => {
   it('delivers every named web face and keeps CSS and Tailwind stacks in order', () => {
     expect(TYPOGRAPHY).toEqual({
       display:
-        "'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif",
-      body: "'Barlow', 'Roboto', 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', sans-serif",
-      mono: "'JetBrains Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', monospace",
+        "'Barlow Condensed', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif",
+      body: "'Barlow', 'Roboto Variable', 'Noto Sans SC Variable', system-ui, -apple-system, 'Segoe UI', sans-serif",
+      mono: "'JetBrains Mono Variable', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace",
     });
 
-    const importedFamilies = new URL(FONT_SOURCE).searchParams
-      .getAll('family')
-      .map((family) => family.split(':', 1)[0]);
     const platformFallbacks = new Set(['Arial Narrow', 'Segoe UI', 'SFMono-Regular']);
     const namedWebFamilies = [
       ...new Set(
@@ -238,16 +240,18 @@ describe('script-aware typography', () => {
           .filter((family) => family !== undefined && !platformFallbacks.has(family)),
       ),
     ];
+    expect(namedWebFamilies.sort()).toEqual([...FONT_FAMILIES].sort());
 
-    expect(importedFamilies).toEqual([
-      'Barlow',
-      'Barlow Condensed',
-      'JetBrains Mono',
-      'Roboto Condensed',
-      'Roboto',
-      'Noto Sans SC',
-    ]);
-    expect(namedWebFamilies.sort()).toEqual(importedFamilies.sort());
+    const declaredFamilies = new Set(
+      FONT_STYLESHEETS.flatMap((stylesheet) =>
+        [
+          ...readFileSync(require.resolve(stylesheet), 'utf8').matchAll(
+            /font-family:\s*'([^']+)'/g,
+          ),
+        ].map(([, family]) => family),
+      ),
+    );
+    expect([...declaredFamilies].sort()).toEqual([...FONT_FAMILIES].sort());
 
     const css = generateCss();
     for (const [role, stack] of Object.entries(TYPOGRAPHY)) {
@@ -256,23 +260,43 @@ describe('script-aware typography', () => {
     expect(generateTailwindTheme().fontFamily).toEqual({
       display: [
         'Barlow Condensed',
-        'Roboto Condensed',
-        'Noto Sans SC',
+        'Roboto Condensed Variable',
+        'Noto Sans SC Variable',
         'Arial Narrow',
         'system-ui',
         'sans-serif',
       ],
       body: [
         'Barlow',
-        'Roboto',
-        'Noto Sans SC',
+        'Roboto Variable',
+        'Noto Sans SC Variable',
         'system-ui',
         '-apple-system',
         'Segoe UI',
         'sans-serif',
       ],
-      mono: ['JetBrains Mono', 'Noto Sans SC', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+      mono: [
+        'JetBrains Mono Variable',
+        'Noto Sans SC Variable',
+        'ui-monospace',
+        'SFMono-Regular',
+        'monospace',
+      ],
     });
+  });
+
+  it('imports every face from a bundled package, first and never from another origin', () => {
+    const css = generateCss();
+    const leadingImports = css.split('\n').slice(0, FONT_STYLESHEETS.length);
+    expect(leadingImports).toEqual(
+      FONT_STYLESHEETS.map((stylesheet) => `@import '${stylesheet}';`),
+    );
+    expect(css).not.toMatch(/@import\s+url\(/);
+    expect(css).not.toMatch(/https?:\/\/[^\s'"]*font/i);
+    for (const weight of Object.values(FONT_WEIGHTS)) {
+      expect(FONT_STYLESHEETS).toContain(`@fontsource/barlow/${weight}.css`);
+      expect(FONT_STYLESHEETS).toContain(`@fontsource/barlow-condensed/${weight}.css`);
+    }
   });
 
   it('removes uppercase tracking for Chinese-language content', () => {

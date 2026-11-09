@@ -86,6 +86,10 @@ else goes to the web container, which dispatches dynamic pages to `web-ssr:3005`
 `/.well-known/*` from static files only, answering 404 when no file exists. Do not duplicate the
 routes at the edge. Certificates belong to that edge: it answers ACME challenges before a request
 reaches CopaLibre.
+The application loads no font, script or style from another origin. Its font files are served by the
+web container from `/_astro/` as `font/woff2` and `font/woff`. The edge must proxy those paths and
+keep their `Content-Type`; a hosting panel's static-file rule for `.woff2` or `.css` breaks the app
+([details](deployment/reverse-proxy/nginx.md#static-assets-and-font-types)).
 Use `deploy/proxy/Caddyfile` or `deploy/proxy/nginx.conf`, set public URLs and preserve unbuffered SSE.
 Verify the live address with
 `copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check`.

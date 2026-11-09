@@ -17,6 +17,21 @@
 		respond "{\"oidcIssuer\":\"{$COPALIBRE_JWT_ISSUER}\",\"oidcClientId\":\"{$COPALIBRE_OIDC_CLIENT_ID}\"}" 200
 	}
 
+	# Font files are bundled into the build and served from this origin.
+	# Declared here rather than left to the base image's /etc/mime.types,
+	# which a different base may lack: without it they go out as
+	# application/octet-stream. file_server keeps a type already set.
+	@woff2 {
+		path *.woff2
+		file
+	}
+	header @woff2 Content-Type font/woff2
+	@woff {
+		path *.woff
+		file
+	}
+	header @woff Content-Type font/woff
+
 	# First, because /api/tournaments would otherwise look like an organization's tournaments.
 	@api path /api /api/*
 	handle @api {

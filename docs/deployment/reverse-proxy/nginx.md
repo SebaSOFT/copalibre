@@ -58,6 +58,22 @@ If only the proxy reload fails, keep its previous known-good configuration and d
 If the application upgrade fails after migration, use the documented backup recovery procedure;
 reverting proxy routes or old container tags does not roll back the database.
 
+## Static assets and font types
+
+CopaLibre serves its own fonts from the application origin, under `/_astro/` with the scripts and
+styles. The web container sends them as `font/woff2` and `font/woff`. NGINX passes that
+`Content-Type` through on proxied responses, so the shipped configurations need nothing more.
+
+Hosting panels such as CloudPanel or Plesk often add a static-file block like
+`location ~* \.(css|js|woff2?)$` that serves those extensions from a local directory. On a
+CopaLibre host that block answers 404 for every script, style and font. Remove it or exclude the
+CopaLibre server from it, and do not override `Content-Type` with `default_type` or
+`proxy_hide_header`.
+
+If you serve the built web files from NGINX yourself instead of the web container, make sure
+`mime.types` maps `woff2` to `font/woff2` and `woff` to `font/woff`. Recent NGINX releases already
+do.
+
 ## SSE conformance
 
 The `events.copalibre.example` block sets `proxy_buffering off`, `proxy_cache off`, and

@@ -58,6 +58,13 @@ If only the proxy reload fails, keep its previous known-good configuration and d
 If the application upgrade fails after migration, use the documented backup recovery procedure;
 reverting proxy routes or old container tags does not roll back the database.
 
+## Static assets and font types
+
+CopaLibre serves its own fonts from the application origin, under `/_astro/` with the scripts and
+styles. The web container sends them as `font/woff2` and `font/woff`, and `reverse_proxy` passes that
+`Content-Type` through. Do not add a `file_server` or `header Content-Type` rule for those paths on
+the edge.
+
 ## SSE conformance
 
 The `{$COPALIBRE_EVENTS_HOST}` block matches `/events/*` and sets `flush_interval -1`, which flushes

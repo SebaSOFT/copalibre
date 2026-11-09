@@ -40,4 +40,27 @@ describe('reverse-proxy example configs', () => {
     expect(templateConf).toContain('proxy_set_header Upgrade $http_upgrade;');
     expect(templateConf).toMatch(/proxy_set_header\s+Connection\s+\$connection_upgrade;/);
   });
+
+  it('every nginx example keeps font files proxied with the Content-Type the app sends', () => {
+    const configs = [
+      join(PROXY_DIR, 'nginx.conf'),
+      join(ROOT, '../../../deploy/templates/nginx/copalibre.conf'),
+    ].map((file) => readFileSync(file, 'utf8'));
+    const initSource = readFileSync(join(ROOT, 'init.ts'), 'utf8');
+
+    for (const config of [...configs, initSource]) {
+      expect(config).toContain('font/woff2');
+      expect(config).not.toMatch(/^\s*location\s+~\*?\s+[^{]*woff/m);
+      expect(config).not.toMatch(/^\s*(default_type|types\s*\{|proxy_hide_header\s+Content-Type)/m);
+    }
+  });
+
+  it('the web role declares font types itself instead of relying on the base image', () => {
+    const webCaddyfile = readFileSync(join(ROOT, '../../../deploy/web/Caddyfile'), 'utf8');
+
+    expect(webCaddyfile).toMatch(/@woff2\s*\{\s*path \*\.woff2\s+file\s*\}/);
+    expect(webCaddyfile).toContain('header @woff2 Content-Type font/woff2');
+    expect(webCaddyfile).toMatch(/@woff\s*\{\s*path \*\.woff\s+file\s*\}/);
+    expect(webCaddyfile).toContain('header @woff Content-Type font/woff');
+  });
 });

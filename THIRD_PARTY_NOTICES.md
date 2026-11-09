@@ -64,6 +64,21 @@ remain with their respective projects.
 | `@tabler/icons`       | 3.49.0  | MIT     |
 | `@tabler/icons-react` | 3.49.0  | MIT     |
 
+## Font dependencies
+
+These packages are dependencies of `@copalibre/design-tokens`; their font files are bundled into the
+web build and served from the application's own origin. They are licensed under the SIL Open Font
+License 1.1, whose text ships in each package's `LICENSE` file. The fonts are not sold on their own.
+
+| Package                                 | Version | Licence | Copyright                               |
+| --------------------------------------- | ------- | ------- | --------------------------------------- |
+| `@fontsource/barlow`                    | 5.3.0   | OFL-1.1 | 2017 The Barlow Project Authors         |
+| `@fontsource/barlow-condensed`          | 5.3.0   | OFL-1.1 | 2017 The Barlow Project Authors         |
+| `@fontsource-variable/jetbrains-mono`   | 5.3.0   | OFL-1.1 | 2020 The JetBrains Mono Project Authors |
+| `@fontsource-variable/roboto`           | 5.3.0   | OFL-1.1 | 2011 The Roboto Project Authors         |
+| `@fontsource-variable/roboto-condensed` | 5.3.0   | OFL-1.1 | 2011 Google Inc.                        |
+| `@fontsource-variable/noto-sans-sc`     | 5.3.1   | OFL-1.1 | Google Inc.                             |
+
 ## `packages/demo-datasets/datasets/`
 
 Demo data copied from a public results portal for use as development sample data, with player surnames and

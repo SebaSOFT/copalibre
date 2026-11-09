@@ -928,3 +928,25 @@ Every API route SHALL live under `/api`, including its health and readiness prob
 
 - **WHEN** a client requests a missing path under `/.well-known/`
 - **THEN** the response is 404 and carries no application page
+
+### Requirement: Operators publish well-known files without rebuilding
+
+A Compose installation SHALL mount its `well-known/` directory, read-only, as the web role's `/.well-known/` directory.
+`copalibre init` SHALL create that directory empty, and `copalibre init --repair` SHALL create it when absent and SHALL keep its
+contents. The product SHALL
+ship no file there.
+
+#### Scenario: Publishing security.txt
+
+- **WHEN** an operator places `security.txt` in the installation's `well-known/` directory
+- **THEN** `/.well-known/security.txt` serves that file on the app origin, with no image rebuild and no restart
+
+#### Scenario: Fresh installation
+
+- **WHEN** an operator runs `copalibre init` in an empty directory
+- **THEN** `well-known/` exists and is empty, and `/.well-known/security.txt` answers 404
+
+#### Scenario: Repair keeps published files
+
+- **WHEN** an operator runs `copalibre init --repair` on an installation with files in `well-known/`
+- **THEN** those files are unchanged

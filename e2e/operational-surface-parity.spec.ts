@@ -29,7 +29,7 @@ test('calibrated hover fills are not brightened again by the generic button rule
 test('blocked font delivery preserves readable labels and focus at the zoom floor', async ({
   page,
 }) => {
-  await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) => route.abort());
+  await page.route(/\.woff2?(?:\?|$)/, (route) => route.abort());
   await page.setViewportSize({ width: 188, height: 900 });
   await page.goto('/control/login');
   await page.evaluate(() => document.fonts.ready);
@@ -56,13 +56,13 @@ test('Cyrillic and Chinese script fallbacks measure differently from the system 
     const samples = [
       {
         language: 'ru',
-        family: 'Roboto Condensed',
+        family: 'Roboto Condensed Variable',
         weight: 700,
         text: 'ФИНАЛЬНЫЙ МАТЧ МЕЖДУНАРОДНОГО ТУРНИРА',
       },
       {
         language: 'zh',
-        family: 'Noto Sans SC',
+        family: 'Noto Sans SC Variable',
         weight: 700,
         text: '国际锦标赛 INTERNATIONAL 2026',
       },
@@ -109,34 +109,28 @@ test('Cyrillic and Chinese script fallbacks measure differently from the system 
 });
 
 test('an English page does not request Cyrillic or CJK font files', async ({ page }) => {
-  const fontCssResponsePromise = page.waitForResponse((response) =>
-    response.url().startsWith('https://fonts.googleapis.com/css2?'),
-  );
+  // Each face is split by unicode-range into files named after their subset: `-cyrillic-`,
+  // `-greek-` and numbered CJK chunks such as `noto-sans-sc-42-`. A Latin page must fetch only
+  // the Latin ones.
   const requestedFontFiles: string[] = [];
   page.on('request', (request) => {
-    if (request.url().startsWith('https://fonts.gstatic.com/')) {
-      requestedFontFiles.push(request.url());
-    }
+    if (request.resourceType() === 'font') requestedFontFiles.push(request.url());
   });
 
   await page.goto('/control/login');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-  const fontCssResponse = await fontCssResponsePromise;
+  // The form renders after hydration; wait for a face to load before reading the requests.
+  await page.waitForFunction(() =>
+    [...document.fonts].some((face) => face.family === 'Barlow' && face.status === 'loaded'),
+  );
   await page.evaluate(() => document.fonts.ready);
 
-  const fontCss = await fontCssResponse.text();
-  const scriptFallbackFamilies = new Set(['Roboto', 'Roboto Condensed', 'Noto Sans SC']);
-  const scriptFallbackFiles = new Set(
-    [...fontCss.matchAll(/@font-face\s*\{([^}]+)\}/g)].flatMap(([, face]) => {
-      const family = face.match(/font-family:\s*['"]([^'"]+)['"];?/i)?.[1];
-      const source = face.match(/src:\s*url\(([^)]+)\)/i)?.[1];
-      if (!family || !scriptFallbackFamilies.has(family) || !source) return [];
-      return [new URL(source.replace(/^['"]|['"]$/g, ''), fontCssResponse.url()).href];
-    }),
-  );
-
-  expect(scriptFallbackFiles.size).toBeGreaterThan(0);
-  expect(requestedFontFiles.filter((url) => scriptFallbackFiles.has(url))).toEqual([]);
+  const fileNames = requestedFontFiles.map((url) => new URL(url).pathname.split('/').pop() ?? '');
+  expect(fileNames.length).toBeGreaterThan(0);
+  expect(fileNames.filter((name) => /-latin-/.test(name)).length).toBeGreaterThan(0);
+  expect(
+    fileNames.filter((name) => /-(cyrillic|greek)(-ext)?-|noto-sans-sc-\d+-/.test(name)),
+  ).toEqual([]);
 });
 
 test('content alternates through wrappers and chrome stays lifted at every depth', async ({

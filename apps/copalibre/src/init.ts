@@ -408,6 +408,10 @@ server {
     proxy_send_timeout 86400s;
   }
 
+  # Keep every path proxied, static assets included: /_astro/* carries the
+  # scripts, styles and font files (.woff2, .woff) the app serves itself, with
+  # their own Content-Type (font/woff2, font/woff). Do not add a static location
+  # that serves them from local disk, and do not override their Content-Type.
   location / {
     proxy_pass http://127.0.0.1:8080;
     proxy_http_version 1.1;
