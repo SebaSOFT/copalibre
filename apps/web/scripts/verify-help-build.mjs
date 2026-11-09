@@ -45,7 +45,14 @@ const starlightSource = readTree(STARLIGHT_ROOT)
 
 check('help route renders Starlight navigation', help.includes('/help/getting-started/'));
 check('help route renders Pagefind search', help.includes('pagefind'));
-check('help route enables Astro view transitions', help.includes('astro-view-transitions-enabled'));
+check(
+  'help route leaves Astro client routing off so the page policy stays in force',
+  !help.includes('astro-view-transitions-enabled'),
+);
+check(
+  'help route carries a hashed Content Security Policy',
+  /http-equiv="content-security-policy"[^>]*sha256-/.test(help),
+);
 check('help document renders a table of contents', gettingStarted.includes('On this page'));
 check('Pagefind output exists', existsSync(join(DIST, 'pagefind')));
 check(

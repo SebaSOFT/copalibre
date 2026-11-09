@@ -11,7 +11,7 @@ const intl = createIntl({ locale: 'en' });
     <meta charset="utf-8" />
     <meta name="robots" content="noindex" />
     <title>{intl.formatMessage(messages.invitationSuccessBody)}</title>
-    <script is:inline>
+    <script>
       const target = new URL('/control/login', window.location.origin);
       const returnTo = new URLSearchParams(window.location.search).get('returnTo');
       if (returnTo !== null) target.searchParams.set('returnTo', returnTo);
