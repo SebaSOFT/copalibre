@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 
 /**
  * The invitation-accept screen composes the owned Card atom and the shared auth

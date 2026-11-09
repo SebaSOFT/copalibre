@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../../../e2e/csp-guard.js';
 
 const VIEWPORT_WIDTHS = [1440, 767, 374, 188] as const;
 

@@ -14,7 +14,9 @@ test('navigates help content and searches through Starlight', async ({ page }) =
   await page.goto('/help/');
 
   await expect(page.getByRole('heading', { name: 'CopaLibre Help' })).toBeVisible();
-  await expect(page.locator('meta[name="astro-view-transitions-enabled"]')).toHaveCount(1);
+  // Client routing stays off: it would run the next page's scripts under this page's policy.
+  await expect(page.locator('meta[name="astro-view-transitions-enabled"]')).toHaveCount(0);
+  await expect(page.locator('meta[http-equiv="content-security-policy"]')).toHaveCount(1);
 
   await page.getByRole('link', { name: 'Your first tournament', exact: true }).click();
   await expect(page).toHaveURL(/\/help\/getting-started\/$/);

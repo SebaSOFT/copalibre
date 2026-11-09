@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './csp-guard.js';
 
 const TARGET = '/control/panamericano-demo';
 const TOKEN_STORAGE_KEY = 'copalibre:session:v1';

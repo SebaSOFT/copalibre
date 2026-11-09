@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './csp-guard.js';
 
 /**
  * A submit that reaches the browser before React owns the form is a native GET,
