@@ -775,7 +775,8 @@ SHALL offer a table view of the same data.
 
 The generated font stacks SHALL name Roboto Condensed (display) and Roboto (body) for Cyrillic, and
 Noto Sans SC for Chinese, after the Latin faces, and SHALL deliver them through the same stylesheet,
-split by `unicode-range`. Latin text SHALL keep rendering in Barlow, Barlow Condensed and JetBrains
+split by `unicode-range`. A stack MAY name a face by the family name its package declares, such as a variable
+build's. Latin text SHALL keep rendering in Barlow, Barlow Condensed and JetBrains
 Mono. Under `:lang(zh)`, uppercase tracking SHALL be normal.
 
 #### Scenario: Russian heading
@@ -912,3 +913,21 @@ Status text on raised wells and live badges SHALL reach a contrast of at least 4
 
 - **WHEN** a token change lowers one of these pairs
 - **THEN** the token contrast check fails
+
+### Requirement: Brand faces are served from the application origin
+
+The generated stylesheet SHALL deliver every brand and fallback face from files bundled into the web build and served on
+the application origin. No page SHALL request a stylesheet or font file from another origin, and every page SHALL
+finish loading when all other origins are unreachable. The faces SHALL come from pinned packages whose license the
+license check allows, and `THIRD_PARTY_NOTICES.md` SHALL list each one.
+
+#### Scenario: No third-party font request
+
+- **WHEN** a public page, Control login, a TV page and a help page load
+- **THEN** every stylesheet and font file they request is on the application origin
+
+#### Scenario: Installation with no internet egress
+
+- **WHEN** every origin other than the application is blocked and a public page, Control login, a TV page and a help
+  page load
+- **THEN** each page fires `load` and its Latin text renders in Barlow, not in a system face

@@ -950,3 +950,26 @@ ship no file there.
 
 - **WHEN** an operator runs `copalibre init --repair` on an installation with files in `well-known/`
 - **THEN** those files are unchanged
+
+### Requirement: Font files keep their media type through every shipped proxy
+
+The web role SHALL serve existing `.woff2` files as `font/woff2` and `.woff` files as `font/woff`, declared in its own
+configuration rather than taken from the base image. Every shipped edge configuration (the reverse-proxy examples and the
+template `copalibre init --proxy nginx` writes) SHALL proxy those paths with no static-file rule and no `Content-Type`
+override.
+
+#### Scenario: Base image without a media-type table
+
+- **WHEN** the web role runs on a base image with no `/etc/mime.types` and a browser requests a bundled `.woff2` file
+- **THEN** the response is 200 with `Content-Type: font/woff2`
+
+#### Scenario: Missing font file
+
+- **WHEN** a request names a `.woff2` file that does not exist
+- **THEN** the response is 404 and carries no font media type
+
+#### Scenario: Generated NGINX template
+
+- **WHEN** an operator runs `copalibre init --proxy nginx`
+- **THEN** the written configuration proxies `/_astro/` font files to the gateway, has no `location` that serves `.woff2`
+  from disk, and documents the font media types
