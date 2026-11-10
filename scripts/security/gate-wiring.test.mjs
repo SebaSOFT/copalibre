@@ -63,3 +63,12 @@ test('the deployment job probes the installation behind the shipped TLS edge', (
   const probe = steps.find((step) => /runtime-probes\.mjs/.test(step.run ?? ''));
   assert.notEqual(probe['continue-on-error'], true);
 });
+
+test('release candidates record the full verdict with the deployment evidence', () => {
+  const job = workflow('ci.yml').jobs['security-release'];
+  assert.ok(job, 'ci.yml has a security-release job');
+  assert.match(String(job.if), /release_candidate == 'true'/);
+  assert.ok([job.needs].flat().includes('deployment-e2e'));
+  const runs = job.steps.map((step) => step.run ?? '').join('\n');
+  assert.match(runs, /run\.mjs --mode release[\s\S]*--runtime-evidence security-runtime/);
+});
