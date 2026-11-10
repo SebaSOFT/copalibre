@@ -59,6 +59,23 @@ export function appendEdgeHeaders(response, edgeHeaders) {
   };
 }
 
+/**
+ * Picks the Caddy header block for a request path, as the web role does: the
+ * background-removal worker gets its own policy, every other path the page
+ * policy.
+ *
+ * @param {Record<string, string | undefined>} environment
+ * @returns {Promise<(url: string) => Record<string, string>>}
+ */
+export async function edgeHeadersByPath(environment) {
+  const { readWebSecurityHeaders, readWorkerSecurityHeaders } =
+    await import('./web-security-headers.mjs');
+  const page = readWebSecurityHeaders(environment);
+  const worker = readWorkerSecurityHeaders(environment);
+  return (url) =>
+    worker.paths.test(new URL(url, 'http://localhost').pathname) ? worker.headers : page;
+}
+
 async function main() {
   // Set before importing the built entry point: its own top-level code
   // self-starts a second server on the same port unless this is disabled
@@ -71,14 +88,14 @@ async function main() {
   const port = process.env.PORT ? Number(process.env.PORT) : 4321;
   const host = process.env.HOST ?? '0.0.0.0';
 
-  const edgeHeaders =
+  const edgeHeadersFor =
     process.env.COPALIBRE_WEB_EDGE_HEADERS === '1'
-      ? (await import('./web-security-headers.mjs')).readWebSecurityHeaders(process.env)
+      ? await edgeHeadersByPath(process.env)
       : undefined;
 
   const server = createServer((request, response) => {
     applySecurityHeaders(response);
-    if (edgeHeaders) appendEdgeHeaders(response, edgeHeaders);
+    if (edgeHeadersFor) appendEdgeHeaders(response, edgeHeadersFor(request.url ?? '/'));
     handler(request, response);
   });
 

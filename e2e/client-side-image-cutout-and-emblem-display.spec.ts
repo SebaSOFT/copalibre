@@ -1,3 +1,4 @@
+import sharp from 'sharp';
 import { expect, test } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
@@ -97,6 +98,57 @@ async function mockIdentityUploadApi(page: import('@playwright/test').Page): Pro
   );
 }
 
+/** 256×256: a dark disc on a uniform light background, the shape the cutout model isolates. */
+async function opaqueFixturePng(): Promise<Buffer> {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256">
+    <rect width="256" height="256" fill="#e6e6e6"/>
+    <circle cx="128" cy="128" r="72" fill="#1f3a93"/>
+  </svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
+/**
+ * Share of mostly transparent pixels (alpha below 128) in each 16×16 corner of a PNG, and the alpha of
+ * its centre pixel. The model leaves faint, semi-transparent speckle in the background, so "mostly
+ * transparent" is the measure; the opaque fixture scores 0 everywhere.
+ */
+async function cutoutAlpha(png: Buffer): Promise<{ corners: number[]; centre: number }> {
+  const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const size = 16;
+  const origins = [
+    [0, 0],
+    [info.width - size, 0],
+    [0, info.height - size],
+    [info.width - size, info.height - size],
+  ];
+  const corners = origins.map(([x0, y0]) => {
+    let transparent = 0;
+    for (let y = y0; y < y0 + size; y++) {
+      for (let x = x0; x < x0 + size; x++) {
+        if (data[(y * info.width + x) * info.channels + 3] < 128) transparent++;
+      }
+    }
+    return transparent / (size * size);
+  });
+  const centre =
+    data[
+      (Math.floor(info.height / 2) * info.width + Math.floor(info.width / 2)) * info.channels + 3
+    ];
+  return { corners, centre };
+}
+
+function thirdPartyRequests(urls: readonly string[]): string[] {
+  return urls.filter((url) => {
+    if (url.startsWith('blob:') || url.startsWith('data:')) return false;
+    try {
+      const { hostname } = new URL(url);
+      return !hostname.includes('localhost') && !hostname.includes('127.0.0.1');
+    } catch {
+      return false;
+    }
+  });
+}
+
 test.describe('client-side image cutout and emblem display', () => {
   test('handles modal cancellation without submitting unconfirmed upload', async ({ page }) => {
     await mockIdentityUploadApi(page);
@@ -122,12 +174,14 @@ test.describe('client-side image cutout and emblem display', () => {
     expect(submittedUploads).toHaveLength(0);
   });
 
-  test('executes image upload with fallback to original and verifies confirmed upload', async ({
+  test('removes the background of an opaque image and uploads a transparent PNG', async ({
     page,
   }) => {
+    // Model download and CPU inference on first run.
+    test.setTimeout(180_000);
     const requestedUrls: string[] = [];
     const failedLocalModelRequests: string[] = [];
-    const consoleErrors: string[] = [];
+    const runtimeErrors: string[] = [];
 
     page.on('request', (request) => requestedUrls.push(request.url()));
     page.on('response', (response) => {
@@ -140,8 +194,57 @@ test.describe('client-side image cutout and emblem display', () => {
       }
     });
     page.on('console', (msg) => {
-      if (msg.type() === 'error') consoleErrors.push(msg.text());
+      if (msg.type() === 'error') runtimeErrors.push(msg.text());
     });
+    page.on('pageerror', (error) => runtimeErrors.push(error.message));
+    page.on('worker', (worker) => {
+      worker.on('console', (msg) => {
+        if (msg.type() === 'error') runtimeErrors.push(msg.text());
+      });
+    });
+
+    await mockIdentityUploadApi(page);
+    const preferencesTarget = `/control/${ORG_ALIAS}/preferences`;
+    await seedLoginTransaction(page, preferencesTarget);
+    await page.goto(loginCallbackUrl());
+    await page.waitForURL(`**${preferencesTarget}`);
+
+    await page.getByLabel('Subir escudo').setInputFiles({
+      name: 'org-emblem.png',
+      mimeType: 'image/png',
+      buffer: await opaqueFixturePng(),
+    });
+
+    const dialog = page.getByRole('dialog', { name: 'Ajustar imagen' });
+    await expect(dialog).toBeVisible();
+
+    const useImage = dialog.getByRole('button', { name: 'Aplicar' });
+    await expect(useImage).toBeEnabled({ timeout: 150_000 });
+    // A real cutout never offers the fallback.
+    await expect(dialog.getByRole('button', { name: 'Conservar original' })).toHaveCount(0);
+    await useImage.click();
+
+    await expect(page.getByText('Escudo subido.')).toBeVisible();
+
+    expect(submittedUploads).toHaveLength(1);
+    expect(submittedUploads[0].endpoint).toContain(`/api/organizations/${ORG_ALIAS}/emblem`);
+    expect(submittedUploads[0].contentType).toBe('image/png');
+
+    const { corners, centre } = await cutoutAlpha(
+      Buffer.from(submittedUploads[0].contentBase64, 'base64'),
+    );
+    for (const share of corners) expect(share).toBeGreaterThanOrEqual(0.9);
+    // The disc, the foreground, stays opaque.
+    expect(centre).toBeGreaterThanOrEqual(200);
+
+    expect(failedLocalModelRequests).toHaveLength(0);
+    expect(runtimeErrors.filter((text) => /_Ort|onnx|session/i.test(text))).toEqual([]);
+    expect(thirdPartyRequests(requestedUrls)).toHaveLength(0);
+  });
+
+  test('keeps the original only after a removal failure the operator sees', async ({ page }) => {
+    // Every model chunk fails, so the worker cannot create a session.
+    await page.route('**/background-removal/**', (route) => route.fulfill({ status: 500 }));
 
     await mockIdentityUploadApi(page);
     const preferencesTarget = `/control/${ORG_ALIAS}/preferences`;
@@ -157,44 +260,20 @@ test.describe('client-side image cutout and emblem display', () => {
 
     const dialog = page.getByRole('dialog', { name: 'Ajustar imagen' });
     await expect(dialog).toBeVisible();
+    await expect(dialog.getByText('No se pudo eliminar el fondo.', { exact: false })).toBeVisible({
+      timeout: 30_000,
+    });
+    // Nothing is uploaded until the operator chooses.
+    expect(submittedUploads).toHaveLength(0);
 
-    // Progress or keep-original fallback handling
-    const keepOriginal = dialog.getByRole('button', { name: 'Conservar original' });
-    try {
-      await keepOriginal.waitFor({ state: 'visible', timeout: 4000 });
-      await keepOriginal.click();
-    } catch {
-      // Background removal finished without error
-    }
-
+    await dialog.getByRole('button', { name: 'Conservar original' }).click();
     const useImage = dialog.getByRole('button', { name: 'Aplicar' });
-    await expect(useImage).toBeEnabled({ timeout: 15000 });
+    await expect(useImage).toBeEnabled({ timeout: 15_000 });
     await useImage.click();
 
     await expect(page.getByText('Escudo subido.')).toBeVisible();
-
-    // Verify exactly one confirmed submission
     expect(submittedUploads).toHaveLength(1);
-    expect(submittedUploads[0].endpoint).toContain(`/api/organizations/${ORG_ALIAS}/emblem`);
     expect(submittedUploads[0].contentType).toBe('image/png');
-    expect(submittedUploads[0].contentBase64.length).toBeGreaterThan(0);
-
-    // Verify no failed local model requests
-    expect(failedLocalModelRequests).toHaveLength(0);
-
-    // Verify no remote third-party source-image transfers
-    const thirdPartyRequests = requestedUrls.filter((url) => {
-      if (url.startsWith('blob:') || url.startsWith('data:')) return false;
-      try {
-        const parsed = new URL(url);
-        if (parsed.hostname.includes('localhost') || parsed.hostname.includes('127.0.0.1'))
-          return false;
-        return true;
-      } catch {
-        return false;
-      }
-    });
-    expect(thirdPartyRequests).toHaveLength(0);
   });
 
   test('verifies square emblem display atom dimensions and containment', async ({ page }) => {
