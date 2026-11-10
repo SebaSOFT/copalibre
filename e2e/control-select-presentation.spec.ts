@@ -1,19 +1,12 @@
 import { expect, test, type Page } from './csp-guard.js';
+import { signInWithSessionCookie } from './support/control-login.js';
 
 const ZONES_PATH = '/control/liga-mendocina/tournaments/apertura-2026/stages/1/zones';
 
 /** A stage that already holds fixtures, so every zone select renders disabled. */
 async function mockSeededStage(page: Page): Promise<void> {
+  await signInWithSessionCookie(page);
   await page.addInitScript(() => {
-    const payload = btoa(JSON.stringify({ scp: 'copalibre.control' }));
-    window.sessionStorage.setItem(
-      'copalibre:session:v1',
-      JSON.stringify({
-        token: `header.${payload}.signature`,
-        expiresAtMs: Date.now() + 3600 * 1000,
-      }),
-    );
-
     const stageId = '01935bd3-7b4a-7a19-9c20-5a1a44600003';
     window.fetch = async (input) => {
       const url = String(input).split('?')[0] ?? '';

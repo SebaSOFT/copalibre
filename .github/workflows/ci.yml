@@ -1164,8 +1164,12 @@ jobs:
           done
           ../copalibre doctor
           ../copalibre start
-          ../copalibre create-admin --organization-alias integrity-league --organization-name "Integrity League" --email admin@example.test
-      - name: Verify Compose login and PKCE
+          ../copalibre create-admin --organization-alias integrity-league --organization-name "Integrity League" --email admin@example.test | tee create-admin.out
+          # The one-time setup link lets the login spec sign in natively and
+          # inspect the session cookies the gateway actually delivers.
+          echo "COPALIBRE_E2E_SETUP_URL=$(grep -o 'http[^ ]*token=[^ ]*' create-admin.out | head -n 1)" >> "$GITHUB_ENV"
+          grep -q '^COPALIBRE_SESSION_COOKIE_SECURE=true$' .env
+      - name: Verify Compose login, PKCE and session cookies
         run: yarn playwright test --config playwright.compose.config.ts e2e/deployment-login.spec.ts
       - name: Show container logs on failure
         if: failure()
@@ -1190,6 +1194,9 @@ jobs:
       # Compose interpolates this even when the optional object-storage profile is not started.
       GARAGE_RPC_SECRET: c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
       COPALIBRE_APP_URL: http://web:4321
+      # Plain HTTP on a hostname other than localhost: browsers would refuse
+      # Secure cookies there, and doctor checks the setting against the URL.
+      COPALIBRE_SESSION_COOKIE_SECURE: 'false'
       COPALIBRE_API_URL: http://api:3001
       COPALIBRE_BOOTSTRAP_TOKEN: copalibre_ci_bootstrap_only
       # See deployment-e2e's identical comment: a real JWKS-serving stub, not
