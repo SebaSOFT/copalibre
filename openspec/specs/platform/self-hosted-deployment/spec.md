@@ -990,3 +990,47 @@ not remove or override `Content-Security-Policy`.
 
 - **WHEN** the chart renders with `web.env.COPALIBRE_JWT_ISSUER` set to `https://id.example/realms/copa`
 - **THEN** the web role receives `COPALIBRE_CSP_IDENTITY_ORIGIN=https://id.example`
+
+### Requirement: The web hostname serves the event streams
+Every supported deployment SHALL route `/events` and `/events/*` on the hostname that serves Control to the
+events service, without response buffering, so the browser reaches `/api` and `/events` same-origin. This holds
+for the Docker Compose gateway, the web role on Kubernetes, each shipped reverse-proxy example and the local
+development server.
+
+#### Scenario: Kubernetes web hostname streams Control events
+- **WHEN** Control, served from the Helm chart's web hostname, opens `/events/control/<organization>`
+- **THEN** the web role proxies it to the events service and the stream delivers events, with the session
+  cookie sent same-origin
+
+#### Scenario: Local development streams through the dev server
+- **WHEN** an operator runs the web app in development and opens a Control screen with a live stream
+- **THEN** the dev server proxies `/events` to the local events service
+
+### Requirement: Installation tooling configures the session cookie
+`copalibre init` SHALL ask, in its interactive flow, the public URL and whether HTTPS is in use, accept both as
+flags in non-interactive mode, and write the session cookie setting to the installation's environment.
+`copalibre upgrade` SHALL add the setting to an existing installation that lacks it, derived from the scheme of
+`COPALIBRE_APP_URL`, and report the value it wrote. `copalibre doctor` SHALL warn when the setting disagrees with
+that scheme.
+
+#### Scenario: A guided install over HTTPS
+- **WHEN** an operator runs `copalibre init` and answers a public URL with HTTPS in use
+- **THEN** the written environment enables `Secure` session cookies
+
+#### Scenario: An existing installation is upgraded
+- **WHEN** `copalibre upgrade` runs on an installation whose `.env` has no session cookie setting
+- **THEN** it adds the setting derived from `COPALIBRE_APP_URL` and prints it
+
+#### Scenario: A mismatch is reported
+- **WHEN** `COPALIBRE_APP_URL` uses `https` and the setting disables `Secure`, or the reverse
+- **THEN** `copalibre doctor` reports a warning naming both values
+
+### Requirement: Operators can see which cookies the application sets
+The operator documentation SHALL list every cookie the application sets — the session cookie, the CSRF cookie and
+the native refresh cookie — with its purpose, lifetime, attributes and the reason it is strictly necessary and
+needs no consent prompt.
+
+#### Scenario: The cookie list matches the code
+- **WHEN** the documentation check runs
+- **THEN** every cookie name the API sets appears in the operator cookie list, and the list names no cookie the
+  API does not set

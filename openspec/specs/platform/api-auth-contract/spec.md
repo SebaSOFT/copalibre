@@ -44,12 +44,17 @@ authorization policy applied after authentication, never in transport or protoco
 - **THEN** the API serves the response without requiring authentication
 
 ### Requirement: Access token never required in a URL
-The API SHALL accept the access token only via the `Authorization: Bearer` header; it SHALL NOT
-accept an access or refresh token as a query parameter for any endpoint.
+The API SHALL accept the access token only via the `Authorization: Bearer` header or, for a browser session,
+the session cookie; it SHALL NOT accept an access or refresh token as a query parameter for any endpoint.
 
 #### Scenario: Token passed as a query parameter is ignored
-- **WHEN** a request presents an otherwise-valid token as `?access_token=...` with no Authorization header
+- **WHEN** a request presents an otherwise-valid token as `?access_token=...` with no Authorization header and no
+  session cookie
 - **THEN** the API treats the request as unauthenticated
+
+#### Scenario: The session cookie authenticates a safe request
+- **WHEN** a `GET` request carries a valid session cookie and no `Authorization` header
+- **THEN** the API resolves the principal from the cookie's token exactly as it would from the header
 
 ### Requirement: Generated, versioned OpenAPI artifact
 The API SHALL produce a versioned OpenAPI document during build that is contract-linted and checked
@@ -62,14 +67,6 @@ for breaking changes before being published for client-code generation or docume
 #### Scenario: Generated client types match the OpenAPI document
 - **WHEN** `packages/contracts` types are regenerated from the current OpenAPI artifact
 - **THEN** the generated types compile against every existing controller's actual request/response shapes
-
-### Requirement: Access JWT held only in memory on browser clients
-Browser clients SHALL hold the access JWT in memory only; they SHALL NOT persist a long-lived
-access JWT to `localStorage` or any other durable browser storage.
-
-#### Scenario: Page reload requires reauthentication in strict stateless mode
-- **WHEN** the strict stateless browser mode is active and the page is reloaded
-- **THEN** the client has no access token available and must reauthenticate, with no token recoverable from `localStorage`
 
 ### Requirement: Local JWT and PAT Support
 The authentication contract MUST support both local JWTs and Personal Access Tokens (PATs) in
@@ -123,3 +120,55 @@ The refresh cookie SHALL carry `Path=/api/auth`, so the browser sends it only to
 
 - **WHEN** a person signs in
 - **THEN** the `Set-Cookie` header carries `Path=/api/auth` and `HttpOnly`
+
+### Requirement: Browser access JWT held only in an HttpOnly session cookie
+For a browser session, the API SHALL deliver the access JWT only as a session cookie with `HttpOnly`,
+`SameSite=Strict`, `Path=/`, no `Domain` attribute, and `Max-Age` equal to the seconds left until the token's
+`exp`. When the installation is configured for HTTPS, the cookie SHALL also carry `Secure` and be named with the
+`__Host-` prefix. The API SHALL NOT return that token in any response body to a browser session.
+
+#### Scenario: The cookie is issued with its attributes over HTTPS
+- **WHEN** a browser session is established on an installation configured for HTTPS
+- **THEN** `Set-Cookie` names the cookie with the `__Host-` prefix and carries `HttpOnly`, `Secure`,
+  `SameSite=Strict` and `Path=/`, and no `Domain`
+
+#### Scenario: Plain HTTP drops only what HTTP cannot carry
+- **WHEN** a browser session is established on an installation configured without HTTPS
+- **THEN** the cookie carries `HttpOnly`, `SameSite=Strict` and `Path=/`, without `Secure` and without the
+  `__Host-` prefix
+
+#### Scenario: The cookie expires with the token
+- **WHEN** the session cookie is issued for a token that expires in N seconds
+- **THEN** its `Max-Age` is N, and a request after that time is unauthenticated
+
+### Requirement: Cookie-authenticated unsafe requests require a CSRF token
+When a request with a method other than `GET`, `HEAD` or `OPTIONS` is authenticated by the session cookie, the
+API SHALL require an `X-CopaLibre-CSRF` header whose value equals the CSRF cookie's value and verifies as signed
+by the installation and bound to the current session. The CSRF cookie SHALL be readable by script,
+`SameSite=Strict`, `Path=/`, and carry `Secure` when the installation uses HTTPS. A request authenticated by
+`Authorization: Bearer` SHALL NOT need it.
+
+#### Scenario: A forged cross-site request is refused
+- **WHEN** an unsafe request arrives with a valid session cookie and no CSRF header, or a header that does not
+  match the cookie
+- **THEN** the API answers 403 with the standard error envelope and performs nothing
+
+#### Scenario: A CSRF value from another session is refused
+- **WHEN** the CSRF header and cookie match each other but were issued for a different session
+- **THEN** the API answers 403
+
+#### Scenario: A Bearer client needs no CSRF token
+- **WHEN** a personal access token client sends an unsafe request with `Authorization: Bearer` and no cookie
+- **THEN** the API processes it under the existing authorization rules
+
+### Requirement: Personal access tokens are accepted only as Bearer
+The API and the events service SHALL accept a personal access token only from the `Authorization: Bearer`
+header. A personal access token presented in the session cookie SHALL be treated as unauthenticated.
+
+#### Scenario: A PAT in the cookie is refused
+- **WHEN** a request carries a personal access token value in the session cookie and no `Authorization` header
+- **THEN** the request is unauthenticated
+
+#### Scenario: Header wins over cookie
+- **WHEN** a request carries both an `Authorization: Bearer` header and a session cookie
+- **THEN** the API authenticates with the header only
