@@ -787,13 +787,18 @@
       "item": "vulnerable-dependencies",
       "level": "release",
       "owner": "release manager",
-      "summary": "Candidate images for both architectures are scanned for OS and package vulnerabilities before publication.",
+      "summary": "Candidate images for both architectures are scanned with the pinned Trivy before publication, and the registry receives exactly the scanned bytes.",
       "surfaces": ["Dockerfile"],
       "checks": [
         {
           "kind": "runtime",
           "id": "candidate-image-scan",
-          "blocker": "no pinned image scanner is wired yet"
+          "blocker": "scripts/release/candidate-images.sh scan writes this evidence in the release job"
+        },
+        {
+          "kind": "test",
+          "file": "scripts/security/gate-wiring.test.mjs",
+          "name": "release publishes only the candidate images it built and scanned"
         }
       ]
     },

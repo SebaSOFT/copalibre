@@ -8,7 +8,7 @@ function workflow(name) {
 }
 
 const PUBLISHES =
-  /docker buildx build[^\n]*--push|git push|gh release (create|upload)|smithery mcp publish/;
+  /docker buildx build[^\n]*--push|candidate-images\.sh publish|git push|gh release (create|upload)|smithery mcp publish/;
 
 test('release blocks on the static security gate before anything is published', () => {
   const steps = workflow('release.yml').jobs.release.steps;
@@ -35,4 +35,22 @@ test('every pull request runs the static gate, whatever paths changed', () => {
   const runs = job.steps.map((step) => step.run ?? '').join('\n');
   assert.match(runs, /node --test scripts\/security\/\*\.test\.mjs/);
   assert.match(runs, /run\.mjs --mode static/);
+});
+
+test('release publishes only the candidate images it built and scanned', () => {
+  const steps = workflow('release.yml').jobs.release.steps;
+  const runs = steps.map((step) => step.run ?? '');
+  const index = (pattern) => runs.findIndex((run) => pattern.test(run));
+  const build = index(/candidate-images\.sh build/);
+  const scan = index(/candidate-images\.sh scan/);
+  const publish = index(/candidate-images\.sh publish/);
+  const login = steps.findIndex((step) =>
+    String(step.uses ?? '').startsWith('docker/login-action@'),
+  );
+  assert.ok(build >= 0 && build < scan && scan < publish, 'build, then scan, then publish');
+  assert.ok(login > scan && login < publish, 'registry credentials arrive after the scan');
+  assert.ok(!runs.some((run) => /--push\b/.test(run)), 'nothing pushes straight from a build');
+  for (const position of [build, scan, publish]) {
+    assert.notEqual(steps[position]['continue-on-error'], true);
+  }
 });

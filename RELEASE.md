@@ -37,11 +37,15 @@ and it's what `.github/workflows/release.yml` reads to decide what to tag and pu
 `release.yml` reads the version from `apps/copalibre/package.json`. If a `v{version}` git tag doesn't
 already exist, it:
 
-- creates and pushes that tag,
-- builds and pushes both release images —
+- rechecks registry and Dependabot advisories, runs the static security gate and the Git-history
+  secret scan, and stops on any failure (see [docs/security/README.md](docs/security/README.md)),
+- builds both release images once, as OCI archives for amd64 and arm64 —
   [`ghcr.io/sebasoft/copalibre`](https://ghcr.io/sebasoft/copalibre) (the multi-role runtime image) and
   [`ghcr.io/sebasoft/copalibre-web`](https://ghcr.io/sebasoft/copalibre-web) (the static web image) —
-  each tagged with the exact version and with `latest`,
+  scans them with Trivy, stopping on a fixable high or critical advisory not reviewed in
+  `.trivyignore.yaml`, records the full security verdict, then pushes those same archives, tagged
+  with the exact version and with `latest`, and checks the registry holds the digests it scanned,
+- creates and pushes that tag,
 - creates a GitHub Release with auto-generated notes,
 - packages the standalone MCPB bundle (`copalibre.mcpb`) with matching manifest version, attaches it to the GitHub Release, and publishes it to Smithery using `SMITHERY_API_KEY`.
 
