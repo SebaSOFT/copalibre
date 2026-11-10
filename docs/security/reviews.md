@@ -11,13 +11,13 @@ anything was removed.
 
 **Removed, no use found:**
 
-| Workspace              | Dependency                                        |
-| ---------------------- | ------------------------------------------------- |
-| `apps/events`          | `jose`, `supertest`, `@types/supertest`           |
-| `apps/api`             | `supertest`, `@types/supertest`                   |
-| `apps/scheduler`       | `@copalibre/domain`, `@nestjs/testing`            |
-| `apps/worker`          | `@copalibre/tournament-engine`, `@nestjs/testing` |
-| `packages/persistence` | `@copalibre/routing`                              |
+| Workspace              | Dependency                              |
+| ---------------------- | --------------------------------------- |
+| `apps/events`          | `jose`, `supertest`, `@types/supertest` |
+| `apps/api`             | `supertest`, `@types/supertest`         |
+| `apps/scheduler`       | `@copalibre/domain`                     |
+| `apps/worker`          | `@copalibre/tournament-engine`          |
+| `packages/persistence` | `@copalibre/routing`                    |
 
 `argon2` moved from `packages/auth`, which never imported it, to `apps/api`, which does.
 
