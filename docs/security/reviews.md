@@ -23,22 +23,23 @@ anything was removed.
 
 **Kept, used in a way the analyzer does not see:**
 
-| Workspace                | Dependency                                                                   | Use                                                                                                    |
-| ------------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `packages/design-tokens` | the `@fontsource` packages                                                   | font file paths in `primitives.ts`                                                                     |
-| `packages/demo-datasets` | `@imgly/background-removal`, `onnxruntime-web`, `esbuild`, `playwright-core` | the cutout browser script                                                                              |
-| `apps/copalibre`         | `postject`                                                                   | `scripts/build-binary.mjs`                                                                             |
-| `apps/web`               | `jsdom`, `@testing-library/jest-dom`                                         | Jest environment and setup file                                                                        |
-| root                     | `@lhci/cli`, `lighthouse`, `puppeteer-core`                                  | `scripts/lighthouse/`, run by CI                                                                       |
-| `apps/web`               | `cookie` 2.0.1                                                               | Pins the version Astro's prerenderer imports `parseCookie` from; without it the Docker web build fails |
+| Workspace                       | Dependency                                                                   | Use                                                                                                                |
+| ------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `packages/design-tokens`        | the `@fontsource` packages                                                   | font file paths in `primitives.ts`                                                                                 |
+| `packages/demo-datasets`        | `@imgly/background-removal`, `onnxruntime-web`, `esbuild`, `playwright-core` | the cutout browser script                                                                                          |
+| `apps/copalibre`                | `postject`                                                                   | `scripts/build-binary.mjs`                                                                                         |
+| `apps/web`                      | `jsdom`, `@testing-library/jest-dom`                                         | Jest environment and setup file                                                                                    |
+| root                            | `@lhci/cli`, `lighthouse`, `puppeteer-core`                                  | `scripts/lighthouse/`, run by CI                                                                                   |
+| `apps/scheduler`, `apps/worker` | `@nestjs/testing`                                                            | `scripts/nestjs-major-alignment.test.mjs` requires every NestJS app to declare it, so all resolve one NestJS major |
+| `apps/web`                      | `cookie` 2.0.1                                                               | Pins the version Astro's prerenderer imports `parseCookie` from; without it the Docker web build fails             |
 
 **Not addressed here:** knip also lists 268 imports of packages a workspace does not declare,
 mostly `kysely` and `fastify`, which resolve through the workspace root. They are not unused
 packages; declaring them is a separate cleanup.
 
 After the removals: typecheck, unit tests, license check, third-party notices, the registry audit
-and the runtime image build pass. Removing `cookie` broke that image build, which is how it was
-found to be needed.
+and the runtime image build pass. Removing `cookie` broke that image build and removing `@nestjs/testing` broke the NestJS
+alignment check, which is how both were found to be needed.
 
 ## Trust boundaries, 2026-11-10
 
