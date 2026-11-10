@@ -775,15 +775,40 @@
     {
       "id": "upload-bypass-runtime",
       "item": "upload-limits",
-      "level": "release",
-      "owner": "release manager",
-      "summary": "Direct API uploads that are oversized, MIME-spoofed, path-traversing or decompression bombs fail on every upload route.",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Direct API uploads that are oversized, of another format than declared, of an unaccepted format, outside the dimensions or carrying a traversal name are refused or neutralized before anything is published; module packages cannot name files outside themselves.",
       "surfaces": ["apps/api", "deployment"],
       "checks": [
         {
-          "kind": "runtime",
-          "id": "upload-bypass-runtime",
-          "blocker": "import and module upload routes are not yet covered"
+          "kind": "test",
+          "file": "apps/api/src/controllers/identity-media.integration.test.ts",
+          "name": "refuses an image larger than the decoded size limit before storing anything"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/identity-media.integration.test.ts",
+          "name": "refuses an image format uploads do not take"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/identity-media.integration.test.ts",
+          "name": "refuses a person photo upload with the wrong height"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/identity-media.integration.test.ts",
+          "name": "keeps a traversal filename inside the person and serves the decoded type, not the declared one"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/data-import-export.integration.test.ts",
+          "name": "rejects a source larger than 4 MiB before creating a durable job"
+        },
+        {
+          "kind": "test",
+          "file": "packages/module-distribution/src/assets.test.ts",
+          "name": "refuses %s, which leaves the assets directory"
         }
       ]
     },

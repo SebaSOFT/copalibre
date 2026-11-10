@@ -396,6 +396,25 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     expect(served.headers['x-content-type-options']).toBe('nosniff');
   });
 
+  it('refuses an image larger than the decoded size limit before storing anything', async () => {
+    const count = async () =>
+      (await db.selectFrom('object_metadata').select('object_id').execute()).length;
+    const before = await count();
+    const upload = await inject({
+      method: 'POST',
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: {
+        filename: 'photo.png',
+        contentType: 'image/png',
+        contentBase64: Buffer.alloc(10 * 1024 * 1024 + 1).toString('base64'),
+      },
+    });
+    expect(upload.statusCode).toBeGreaterThanOrEqual(400);
+    expect(upload.statusCode).toBeLessThan(500);
+    expect(await count()).toBe(before);
+  });
+
   it('refuses an image format uploads do not take', async () => {
     const tiff = await sharp({
       create: { width: 410, height: 512, channels: 3, background: { r: 0, g: 0, b: 0 } },
