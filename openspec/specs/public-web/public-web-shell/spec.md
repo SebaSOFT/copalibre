@@ -951,13 +951,17 @@ public page's JSON-LD structured-data `<script>` tag SHALL be escaped so it cann
   any name that needed no escaping
 
 ### Requirement: Public pages carry baseline security response headers
-Every response the public site serves SHALL include `X-Content-Type-Options: nosniff`,
-`X-Frame-Options: DENY`, and `Referrer-Policy: strict-origin-when-cross-origin`.
+Every response the public site serves, prerendered or server-rendered, SHALL include `X-Content-Type-Options: nosniff`,
+`X-Frame-Options: SAMEORIGIN`, and `Referrer-Policy: strict-origin-when-cross-origin`.
 
 #### Scenario: A visitor requests any public page
 - **WHEN** an anonymous visitor requests any public route, prerendered or server-rendered
-- **THEN** the response includes `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and
+- **THEN** the response includes `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, and
   `Referrer-Policy: strict-origin-when-cross-origin`
+
+#### Scenario: Control previews a TV overlay
+- **WHEN** the Broadcaster Studio frames a server-rendered TV overlay URL of the same origin
+- **THEN** the overlay renders inside the frame
 
 ### Requirement: The public overview's ruleset section shows the tournament's effective configuration
 The tournament overview page's ruleset section SHALL show each field's effective value — the
