@@ -6,7 +6,6 @@ import {
   type BulkLoadMatchDataRequest,
   type MatchConsoleApiClient,
 } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { useToast } from '../ToastProvider.js';
 import { LoadMatchDataTemplate } from '../screens/LoadMatchDataTemplate.js';
 import { Alert } from '../ui/atoms/alert.js';
@@ -41,7 +40,6 @@ export function LoadMatchDataPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

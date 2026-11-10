@@ -7,7 +7,6 @@ import {
   type ClubResponse,
   type ControlApiClient,
 } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { useToast } from '../ToastProvider.js';
 import { ClubManagementTemplate } from '../screens/ClubManagementTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
@@ -38,7 +37,6 @@ export function ClubManagementPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

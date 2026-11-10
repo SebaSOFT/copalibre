@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type SetStateAction } from 'r
 import { useIntl } from 'react-intl';
 import { useToast } from '../ToastProvider.js';
 import { messages } from '../../i18n/messages.en.js';
-import { controlTokenStore } from '../../session/token-store.js';
+import { controlSession } from '../../session/session-store.js';
 
 export type ResilientReadStatus = 'loading' | 'ready' | 'stale' | 'failed-empty' | 'empty';
 
@@ -45,7 +45,8 @@ export function replaceResilientReadCache<T>(key: string, data: T): void {
 }
 
 function scopedReadKey(key: string): string {
-  return JSON.stringify([controlTokenStore.read(), key]);
+  // Keyed by who is signed in, so one operator never sees another's cached reads.
+  return JSON.stringify([controlSession.read()?.subject, key]);
 }
 
 function cacheRead<T>(key: string, data: T): void {

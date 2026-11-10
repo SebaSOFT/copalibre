@@ -8,7 +8,6 @@ import {
   type OrganizationRoleResponse,
   type PendingOrganizationInvitationResponse,
 } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { RolesPermissionsTemplate } from '../screens/RolesPermissionsTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
@@ -26,7 +25,6 @@ export function RolesPermissionsPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

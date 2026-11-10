@@ -69,6 +69,8 @@ CopaLibre 不从其他来源加载字体、脚本或样式。Web 容器在 `/_as
 
 每个页面都执行内容安全策略：只有构建自身的脚本可以运行，浏览器只连接到应用的源。使用外部 OIDC 提供方时，请通过 `copalibre init` 配置（它会询问，或使用 `--oidc-issuer` 和 `--oidc-client-id`）；`init` 会设置 `COPALIBRE_CSP_IDENTITY_ORIGIN` 以允许登录。请让代理原样传递 `Content-Security-Policy` 头；`copalibre doctor --check-proxy` 会检查这一点。
 
+登录 Control 时会设置三个严格必要的 cookie，公开页面上一个都没有：会话 cookie（HTTPS 下为 `__Host-copalibre_session`，纯 HTTP 下为 `copalibre_session`），它把访问令牌保存在任何脚本都读不到的地方；`copalibre_csrf`；以及使用邮箱和密码登录时的 `copalibre_refresh_token`。它们无需征求同意。`copalibre init` 会询问是否使用 HTTPS 并写入 `COPALIBRE_SESSION_COOKIE_SECURE`；请让 `/api` 和 `/events` 保持在 Control 的主机名上，并让代理原样传递 `Set-Cookie`。
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```

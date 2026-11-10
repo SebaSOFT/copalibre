@@ -1,4 +1,4 @@
-import { controlTokenStore, readAuthMethod, clearAuthMethod } from './token-store.js';
+import { controlSession } from './session-store.js';
 import { refreshNativeSession } from './native-refresh.js';
 import { renewOidcSessionSilently } from './oidc-silent-renew.js';
 import type { SilentRenewalResult } from './renewal-outcome.js';
@@ -33,8 +33,7 @@ export function cancelScheduledRenewal(): void {
 function giveUp(browser: SilentRenewalBrowser): undefined {
   cancelScheduledRenewal();
   setSessionReconnecting(false);
-  controlTokenStore.clear();
-  clearAuthMethod();
+  controlSession.clear();
   browser.navigate(
     `/control/login?returnTo=${encodeURIComponent(browser.currentPath())}&reason=session_expired`,
   );
@@ -52,7 +51,7 @@ export function renewSessionOnce(
 ): Promise<SilentRenewalResult | undefined> {
   if (inFlight !== undefined) return inFlight;
 
-  const method = readAuthMethod();
+  const method = controlSession.method();
   const attempt = method === 'native' ? refreshNativeSession() : renewOidcSessionSilently();
 
   inFlight = attempt
@@ -64,8 +63,8 @@ export function renewSessionOnce(
         return outcome;
       }
       setSessionReconnecting(false);
-      controlTokenStore.write(outcome.accessToken, outcome.expiresAtMs);
-      scheduleSilentRenewal(outcome.expiresAtMs, browser);
+      controlSession.write(outcome.session);
+      scheduleSilentRenewal(outcome.session.expiresAtMs, browser);
       return outcome;
     })
     .catch(() => giveUp(browser))

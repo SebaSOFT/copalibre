@@ -12649,7 +12649,7 @@
   },
   "info": {
     "title": "CopaLibre API",
-    "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
+    "description": "Self-hosted tournament management API.\n\nAuthentication is a JWT, validated against the operator-selected\nidentity provider’s JWKS. API clients and personal access tokens send\nit as `Authorization: Bearer`. A browser session never holds it in\nscript: the API keeps it in an HttpOnly, SameSite=Strict session\ncookie, and unsafe cookie-authenticated requests must echo the\n`copalibre_csrf` cookie in the `X-CopaLibre-CSRF` header. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same\ntransport and differ only in authorization policy.",
     "version": "10.0.0",
     "contact": {}
   },

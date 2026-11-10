@@ -110,7 +110,6 @@ describe('identity media upload integration', () => {
       const client = createControlApiClient({
         baseUrl: 'http://localhost:3000',
         fetch: trackingFetch as typeof fetch,
-        accessToken: () => 'bearer-test-token-123',
       });
 
       const uploadBody = {
@@ -135,7 +134,7 @@ describe('identity media upload integration', () => {
         'http://localhost:3000/api/organizations/acme-org/emblem',
       );
       expect(recordedRequests[0].method).toBe('POST');
-      expect(recordedRequests[0].headers.get('authorization')).toBe('Bearer bearer-test-token-123');
+      expect(recordedRequests[0].headers.get('authorization')).toBeNull();
 
       expect(recordedRequests[1].url).toBe(
         'http://localhost:3000/api/organizations/acme-org/clubs/club-789/emblem',

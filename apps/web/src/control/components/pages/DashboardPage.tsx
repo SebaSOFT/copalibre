@@ -3,7 +3,6 @@ import { useIntl } from 'react-intl';
 import { RealtimeClient } from '@copalibre/realtime';
 import { capabilitiesForRole, type OrganizationRole } from '@copalibre/domain';
 import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { messages } from '../../i18n/messages.en.js';
 import { useResilientRead } from './use-resilient-read.js';
 import {
@@ -32,7 +31,6 @@ export function DashboardPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );
@@ -119,7 +117,6 @@ export function DashboardPage({
 
     const realtime = new RealtimeClient({
       url: stream.url,
-      accessToken: stream.accessToken,
       heartbeatTimeoutMs: 15_000,
     });
     void realtime.connect({

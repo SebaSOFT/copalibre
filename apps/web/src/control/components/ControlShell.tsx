@@ -17,14 +17,9 @@ import {
   type TournamentResponse,
   type ControlApiClient,
 } from '../lib/api-client.js';
-import { logoutNativeSession } from '../session/native-refresh.js';
+import { logoutSession } from '../session/native-refresh.js';
 import { cancelScheduledRenewal } from '../session/silent-renewal.js';
-import {
-  accessTokenHasScope,
-  clearAuthMethod,
-  controlTokenStore,
-  readAuthMethod,
-} from '../session/token-store.js';
+import { controlSession, sessionHasScope } from '../session/session-store.js';
 import {
   writeStoredLanguagePreference,
   type SupportedLanguage,
@@ -105,7 +100,7 @@ function ControlShellChrome({
   readonly children: React.ReactNode;
 }): React.JSX.Element {
   const intl = useIntl();
-  const isSuperAdmin = accessTokenHasScope(controlTokenStore.read(), 'copalibre.super-admin');
+  const isSuperAdmin = sessionHasScope(controlSession.read(), 'copalibre.super-admin');
   const [currentOrg, setCurrentOrg] = useState<MyOrganizationResponse | undefined>(undefined);
   const [organizationLookupSettledAlias, setOrganizationLookupSettledAlias] = useState<string>();
   const tournamentHeaderKey = `${organizationAlias ?? ''}:${tournamentAlias ?? ''}`;
@@ -143,7 +138,6 @@ function ControlShellChrome({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       })
     )
       .listMyOrganizations()
@@ -171,7 +165,6 @@ function ControlShellChrome({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       });
     if (!api.fetchTournamentSettings && !api.listActiveTournaments) return;
     const settingsRequest = api.fetchTournamentSettings?.(organizationAlias, tournamentAlias);
@@ -207,16 +200,15 @@ function ControlShellChrome({
     return () => window.removeEventListener(SESSION_RENEWING_STATUS_EVENT, onRenewalStatus);
   }, []);
   const logout = (): void => {
-    // Only a native session has anything server-side to revoke; an OIDC
-    // session's refresh mechanism belongs to the identity provider, not this
-    // API — nothing here is capable of revoking that.
-    if (readAuthMethod() === 'native') void logoutNativeSession();
+    // Native and OIDC sessions alike: the API clears the HttpOnly session
+    // cookie, which nothing on this page can. A native session's refresh
+    // cookie is revoked too; an OIDC provider's own session is the provider's.
     cancelScheduledRenewal();
-    controlTokenStore.clear();
-    clearAuthMethod();
+    controlSession.clear();
     // A real navigation: /control/ (login) is a separate page from this
-    // shell, same boundary as the unauthenticated-visit guard.
-    window.location.assign('/control/');
+    // shell, same boundary as the unauthenticated-visit guard. It waits for
+    // the logout answer, so the cookies are gone before the next page loads.
+    void logoutSession().finally(() => window.location.assign('/control/'));
   };
 
   const brandMarkNode = (

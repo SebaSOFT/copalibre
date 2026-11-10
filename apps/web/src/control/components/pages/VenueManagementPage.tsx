@@ -7,7 +7,6 @@ import {
   type OfficialRole,
   type ScheduleDeletionResponse,
 } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { useToast } from '../ToastProvider.js';
 import { VenueManagementTemplate } from '../screens/VenueManagementTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
@@ -32,7 +31,6 @@ export function VenueManagementPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

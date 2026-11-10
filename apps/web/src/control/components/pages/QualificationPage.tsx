@@ -6,7 +6,6 @@ import {
   createControlApiClient,
   type ControlApiClient,
 } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { useToast } from '../ToastProvider.js';
 import {
   QualificationTemplate,
@@ -43,7 +42,6 @@ export function QualificationPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

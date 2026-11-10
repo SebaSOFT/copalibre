@@ -4,7 +4,8 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { beginOidcLogin } from '../session/oidc-login.js';
 import { navigateControl } from '../lib/control-navigation.js';
 import { controlApiErrorFromResponse } from '../lib/api-client.js';
-import { controlTokenStore, recordAuthMethod } from '../session/token-store.js';
+import { csrfHeaders } from '../session/csrf.js';
+import { controlSession, parseSessionMetadata } from '../session/session-store.js';
 import { Button } from './ui/atoms/button.js';
 import { Input } from './ui/atoms/input.js';
 import { Field } from './ui/molecules/field.js';
@@ -35,9 +36,12 @@ export function LoginRoute(): React.JSX.Element {
     setLoading(true);
 
     try {
+      // A still-valid session cookie makes this request cookie-authenticated,
+      // so it carries the CSRF header whenever one exists.
       const res = await fetch(`${API_PATH_PREFIX}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders('POST') },
         body: JSON.stringify({ email, password }),
       });
 
@@ -45,9 +49,12 @@ export function LoginRoute(): React.JSX.Element {
         throw await controlApiErrorFromResponse(res);
       }
 
-      const data = await res.json();
-      controlTokenStore.write(data.accessToken, Date.now() + data.expiresIn * 1000);
-      recordAuthMethod('native');
+      // The token stays in the HttpOnly cookie the API just set; the body
+      // carries only who signed in, with which scopes, until when.
+      const session = parseSessionMetadata(await res.json());
+      if (session === undefined)
+        throw new Error(intl.formatMessage(messages.apiErrorInternalServer));
+      controlSession.write(session);
 
       const searchParams = new URLSearchParams(window.location.search);
       const returnTo = searchParams.get('returnTo') || '/control/';

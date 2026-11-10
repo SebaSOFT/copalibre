@@ -72,6 +72,8 @@ CopaLibre не загружает шрифты, скрипты и стили с 
 
 Каждая страница применяет политику безопасности контента: выполняются только скрипты самой сборки, а браузер подключается только к источнику приложения. Внешний OIDC-провайдер настраивается через `copalibre init` (он спросит об этом, или используйте `--oidc-issuer` и `--oidc-client-id`); `init` задаёт `COPALIBRE_CSP_IDENTITY_ORIGIN`, чтобы вход был разрешён. Пропускайте заголовок `Content-Security-Policy` через прокси без изменений; `copalibre doctor --check-proxy` это проверяет.
 
+Вход в Control устанавливает три строго необходимых cookie, ни одного на публичных страницах: cookie сессии (`__Host-copalibre_session` при HTTPS, `copalibre_session` при обычном HTTP), который хранит токен доступа там, где его не прочитает ни один скрипт; `copalibre_csrf`; и при входе по электронной почте и паролю — `copalibre_refresh_token`. Запрос согласия для них не нужен. `copalibre init` спрашивает, используется ли HTTPS, и записывает `COPALIBRE_SESSION_COOKIE_SECURE`; держите `/api` и `/events` на имени хоста Control и пропускайте `Set-Cookie` через прокси без изменений.
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```

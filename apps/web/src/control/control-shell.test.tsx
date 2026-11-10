@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useIntl, type MessageDescriptor } from 'react-intl';
 import { ControlShell } from './components/ControlShell.js';
@@ -22,12 +23,11 @@ import {
 import { mutationFeedback } from './lib/mutation-feedback.js';
 import { TournamentSetupWizard } from './components/TournamentSetupWizard.js';
 import { withIntl } from './i18n/test-support.js';
-import {
-  clearAuthMethod,
-  controlTokenStore,
-  readAuthMethod,
-  recordAuthMethod,
-} from './session/token-store.js';
+import { controlSession, type AuthMethod } from './session/session-store.js';
+
+function signIn(scopes: readonly string[], method: AuthMethod = 'native'): void {
+  controlSession.write({ subject: 'p-1', scopes, expiresAtMs: Date.now() + 60_000, method });
+}
 
 /**
  * The shell, the routes and the wizard's later steps.
@@ -66,11 +66,10 @@ function jsonResponse(body: unknown, status = 200): Response {
 // tests that mount a leaf component directly, bypassing `ControlShell`, wrap
 // with `withIntl()` and assert English.
 describe('the control shell', () => {
-  afterEach(() => controlTokenStore.clear());
+  afterEach(() => controlSession.clear());
 
-  it('shows platform administration only when the token carries the super-admin scope', () => {
-    const payload = btoa(JSON.stringify({ scp: 'copalibre.control copalibre.super-admin' }));
-    controlTokenStore.write(`header.${payload}.signature`, Date.now() + 60_000);
+  it('shows platform administration only when the session carries the super-admin scope', () => {
+    signIn(['copalibre.control', 'copalibre.super-admin']);
     render(
       <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
         <p>contenido</p>
@@ -161,10 +160,12 @@ describe('the control shell', () => {
   });
 
   it.each(['native', 'oidc'] as const)(
-    'logout clears the session and its recorded auth method for a %s session',
-    (method) => {
-      recordAuthMethod(method);
-      controlTokenStore.write('a-token', Date.now() + 60_000);
+    'logout clears the session and asks the API to clear its cookies for a %s session',
+    async (method) => {
+      signIn(['copalibre.control'], method);
+      const original = globalThis.fetch;
+      const fetchMock = jest.fn(async () => jsonResponse({ message: 'Logged out.' }));
+      Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
 
       const { unmount } = render(
         <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
@@ -174,10 +175,17 @@ describe('the control shell', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
 
-      expect(controlTokenStore.read()).toBeUndefined();
-      expect(readAuthMethod()).toBeUndefined();
+      expect(controlSession.read()).toBeUndefined();
+      expect(controlSession.method()).toBeUndefined();
+      // Both methods: only the API can clear the HttpOnly session cookie.
+      await waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith(
+          '/api/auth/logout',
+          expect.objectContaining({ method: 'POST', credentials: 'same-origin' }),
+        ),
+      );
       unmount();
-      clearAuthMethod();
+      Object.defineProperty(globalThis, 'fetch', { configurable: true, value: original });
     },
   );
 
@@ -199,7 +207,7 @@ describe('the control shell', () => {
 });
 
 describe('the control shell — role-driven navigation', () => {
-  afterEach(() => controlTokenStore.clear());
+  afterEach(() => controlSession.clear());
 
   function stubMyOrganizationsFetch(role: string): () => void {
     const original = globalThis.fetch;
@@ -559,10 +567,9 @@ describe('the wizard beyond the first step', () => {
 });
 
 describe('the API client', () => {
-  it('sends the token as a header and never in the URL', async () => {
+  it('sends no token at all: the same-origin session cookie authenticates', async () => {
     const calls: { url: string; init?: RequestInit }[] = [];
     const client = createControlApiClient({
-      accessToken: () => 'secret-token',
       fetch: (async (url: string, init?: RequestInit) => {
         calls.push({ url, init });
         return jsonResponse([]);
@@ -572,8 +579,9 @@ describe('the API client', () => {
     await client.listRegistrations('liga-mendocina', 'apertura-2026', 'pending');
 
     expect(calls[0]?.url).toContain('status=pending');
-    expect(calls[0]?.url).not.toContain('secret-token');
-    expect(new Headers(calls[0]?.init?.headers).get('authorization')).toBe('Bearer secret-token');
+    expect(calls[0]?.url).not.toMatch(/token/i);
+    expect(new Headers(calls[0]?.init?.headers).get('authorization')).toBeNull();
+    expect(calls[0]?.init?.credentials).toBe('same-origin');
   });
 
   it('reports the server’s reason, not just the status', async () => {

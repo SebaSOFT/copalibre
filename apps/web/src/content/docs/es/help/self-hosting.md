@@ -72,6 +72,8 @@ CopaLibre no carga fuentes, scripts ni estilos desde otro origen. El contenedor 
 
 Cada página aplica una política de seguridad de contenido: solo corren los scripts del propio build y el navegador se conecta únicamente al origen de la aplicación. Con un proveedor OIDC externo, configúrelo con `copalibre init` (lo pregunta, o use `--oidc-issuer` y `--oidc-client-id`); `init` define `COPALIBRE_CSP_IDENTITY_ORIGIN` para permitir el inicio de sesión. Deje pasar el encabezado `Content-Security-Policy` sin cambios por el proxy; `copalibre doctor --check-proxy` lo verifica.
 
+Iniciar sesión en Control define tres cookies estrictamente necesarias, ninguna en las páginas públicas: la cookie de sesión (`__Host-copalibre_session` con HTTPS, `copalibre_session` con HTTP sin cifrar), que guarda el token de acceso donde ningún script puede leerlo; `copalibre_csrf`; y, al ingresar con correo y contraseña, `copalibre_refresh_token`. No requieren aviso de consentimiento. `copalibre init` pregunta si se usa HTTPS y escribe `COPALIBRE_SESSION_COOKIE_SECURE`; mantenga `/api` y `/events` en el nombre de host de Control y deje pasar `Set-Cookie` sin cambios por el proxy.
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```

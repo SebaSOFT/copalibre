@@ -20,7 +20,6 @@ describe('the control API client', () => {
   it('uses installation-wide organization and module administration endpoints', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({
-      accessToken: () => 'super-token',
       fetch: async (input, init) => {
         calls.push({
           url: String(input),
@@ -93,12 +92,16 @@ describe('the control API client', () => {
 
   it('creates a tournament with the descriptor version and explicit registration toggles', async () => {
     let body = '';
-    let authorization = '';
+    let authorization: string | null = '';
+    let csrf: string | null = '';
+    let credentials: RequestCredentials | undefined;
+    document.cookie = 'copalibre_csrf=csrf-value-1';
     const client = createControlApiClient({
-      accessToken: () => 'token-1',
       fetch: async (_url, init) => {
         body = String(init?.body);
-        authorization = new Headers(init?.headers).get('authorization') ?? '';
+        authorization = new Headers(init?.headers).get('authorization');
+        csrf = new Headers(init?.headers).get('x-copalibre-csrf');
+        credentials = init?.credentials;
         return response({
           tournamentId: 't-1',
           alias: 'copa-verano',
@@ -119,7 +122,11 @@ describe('the control API client', () => {
       customScripts: [],
     });
 
-    expect(authorization).toBe('Bearer token-1');
+    // The session cookie authenticates; the unsafe method echoes the CSRF cookie.
+    expect(authorization).toBeNull();
+    expect(csrf).toBe('csrf-value-1');
+    expect(credentials).toBe('same-origin');
+    document.cookie = 'copalibre_csrf=; max-age=0';
     expect(JSON.parse(body)).toMatchObject({
       descriptorVersion: '1.0.0',
       stages: [{ number: 1, format: 'round-robin' }],
@@ -224,7 +231,6 @@ describe('the control API client', () => {
       sourceHash: 'source-hash',
     };
     const client = createControlApiClient({
-      accessToken: () => 'token-1',
       fetch: async (url, init) => {
         calls.push({ url: String(url), init });
         if (String(url).includes('/exports/')) return textResponse('stageId,standings\n');
@@ -289,14 +295,14 @@ describe('the control API client', () => {
     ]);
     expect(JSON.parse(String(calls[0]?.init?.body))).toMatchObject({ target: 'team' });
     expect(JSON.parse(String(calls[2]?.init?.body))).toEqual({ sourceHash: 'source-hash' });
-    expect(new Headers(calls[3]?.init?.headers).get('authorization')).toBe('Bearer token-1');
-    expect(new Headers(calls[4]?.init?.headers).get('authorization')).toBe('Bearer token-1');
+    expect(new Headers(calls[3]?.init?.headers).get('authorization')).toBeNull();
+    expect(calls[3]?.init?.credentials).toBe('same-origin');
+    expect(calls[4]?.init?.credentials).toBe('same-origin');
   });
 
   it('fetches storage usage for an organization', async () => {
     let requestedUrl = '';
     const client = createControlApiClient({
-      accessToken: () => 'token-admin',
       fetch: async (input) => {
         requestedUrl = String(input);
         return response({ totalBytes: 104857600, objectCount: 12 });
@@ -315,7 +321,6 @@ describe('the control API client', () => {
   it('calls competition, privacy, resource-removal, and object-cleanup endpoints', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({
-      accessToken: () => 'token-admin',
       fetch: async (input, init) => {
         calls.push({
           url: String(input),
@@ -511,7 +516,6 @@ describe('the control API client', () => {
 
   it("parses a stage's availableFormats/formatDescriptions through unresolved", async () => {
     const client = createControlApiClient({
-      accessToken: () => 'token-admin',
       fetch: async () =>
         response([
           {
@@ -543,7 +547,6 @@ describe('the control API client', () => {
   it('calls the ruleset-override and stage-configuration editing endpoints', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({
-      accessToken: () => 'token-admin',
       fetch: async (input, init) => {
         calls.push({
           url: String(input),
@@ -614,7 +617,6 @@ describe('the control API client', () => {
   it('calls the invitation-rescission, identity-unlink and person/team removal endpoints', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({
-      accessToken: () => 'token-admin',
       fetch: async (input, init) => {
         calls.push({
           url: String(input),
@@ -676,7 +678,6 @@ describe('the control API client', () => {
   it('builds the internal matches-view query string from whichever filters are given', async () => {
     const calls: string[] = [];
     const client = createControlApiClient({
-      accessToken: () => 'token',
       fetch: async (input) => {
         calls.push(String(input));
         return response({ matches: [] });
@@ -704,7 +705,6 @@ describe('the control API client', () => {
   it('manages tournament emblems and formats tournament emblem URLs', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({
-      accessToken: () => 'token',
       fetch: async (input, init) => {
         calls.push({
           url: String(input),
@@ -756,10 +756,10 @@ describe('the control API client', () => {
     );
   });
 
-  it('fetches tournament completion with authorization token', async () => {
-    const calls: Array<{ url: string; method: string; token?: string }> = [];
+  it('fetches tournament completion with the session cookie and no Authorization header', async () => {
+    const calls: Array<{ url: string; method: string; token?: string; csrf?: string }> = [];
+    document.cookie = 'copalibre_csrf=csrf-value-2';
     const client = createControlApiClient({
-      accessToken: () => 'control-token',
       fetch: async (input, init) => {
         const headers =
           init?.headers instanceof Headers ? init.headers : new Headers(init?.headers);
@@ -767,6 +767,7 @@ describe('the control API client', () => {
           url: String(input),
           method: init?.method ?? 'GET',
           token: headers.get('authorization') ?? undefined,
+          csrf: headers.get('x-copalibre-csrf') ?? undefined,
         });
         return response({
           totalMatches: 10,
@@ -790,8 +791,11 @@ describe('the control API client', () => {
       {
         url: '/api/organizations/liga-orbital/tournaments/copa-verano/completion',
         method: 'GET',
-        token: 'Bearer control-token',
+        token: undefined,
+        // A safe method never carries the CSRF header.
+        csrf: undefined,
       },
     ]);
+    document.cookie = 'copalibre_csrf=; max-age=0';
   });
 });

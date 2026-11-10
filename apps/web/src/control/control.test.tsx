@@ -7,16 +7,6 @@ Object.defineProperty(globalThis, 'TextEncoder', { value: TextEncoder, configura
 Object.defineProperty(globalThis, 'TextDecoder', { value: TextDecoder, configurable: true });
 import { createPkcePair, authorizationUrl, verifyCallbackState } from './session/pkce.js';
 import {
-  FORBIDDEN_STORAGE_KEYS,
-  accessTokenExpiresAtMs,
-  accessTokenHasScope,
-  clearAuthMethod,
-  createTokenStore,
-  readAuthMethod,
-  recordAuthMethod,
-  reloadBehaviour,
-} from './session/token-store.js';
-import {
   buildDashboard,
   classifyTournamentLifecycle,
   isMember,
@@ -55,121 +45,6 @@ function entry(overrides: Partial<ActivityEntry> = {}): ActivityEntry {
     ...overrides,
   };
 }
-
-describe('the access token is never written down', () => {
-  it('reads RFC 9068 scopes without treating malformed tokens as authorized', () => {
-    const payload = btoa(JSON.stringify({ scp: 'copalibre.control copalibre.super-admin' }))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-    expect(accessTokenHasScope(`header.${payload}.signature`, 'copalibre.super-admin')).toBe(true);
-    expect(accessTokenHasScope('opaque-test-token', 'copalibre.super-admin')).toBe(false);
-  });
-
-  it('keeps the token in memory and forgets it on clear', () => {
-    const store = createTokenStore(() => 1000);
-    store.write('secret', 5000);
-
-    expect(store.read()).toBe('secret');
-    store.clear();
-    expect(store.read()).toBeUndefined();
-  });
-
-  it('treats an expired token as absent', () => {
-    let now = 1000;
-    const store = createTokenStore(() => now);
-    store.write('secret', 2000);
-
-    now = 3000;
-    expect(store.read()).toBeUndefined();
-    expect(store.isExpired()).toBe(true);
-  });
-
-  it('touches no persistent storage at all', () => {
-    const store = createTokenStore();
-    store.write('secret', Date.now() + 60_000);
-
-    // Storage is readable by any script that reaches the page; a module
-    // variable dies with the tab.
-    for (const key of FORBIDDEN_STORAGE_KEYS) {
-      expect(globalThis.localStorage.getItem(key)).toBeNull();
-      expect(globalThis.sessionStorage.getItem(key)).toBeNull();
-    }
-    expect(globalThis.localStorage.length).toBe(0);
-    expect(globalThis.sessionStorage.length).toBe(0);
-    expect(globalThis.document.cookie).toBe('');
-  });
-
-  it('reloads differently per mode, decided in one place', () => {
-    expect(reloadBehaviour('strict-stateless')).toBe('reauthenticate');
-    expect(reloadBehaviour('pragmatic-persistent')).toBe('silent-renew');
-  });
-
-  it('reads the exp claim in milliseconds, for scheduling silent renewal', () => {
-    const payload = btoa(JSON.stringify({ exp: 1_800_000_000 }))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-    expect(accessTokenExpiresAtMs(`header.${payload}.signature`)).toBe(1_800_000_000_000);
-    expect(accessTokenExpiresAtMs('opaque-test-token')).toBeUndefined();
-    expect(accessTokenExpiresAtMs(undefined)).toBeUndefined();
-    // Malformed base64 in the payload segment: atob/JSON.parse throw, not treated as a valid expiry.
-    expect(accessTokenExpiresAtMs('header.not-valid-base64!!!.signature')).toBeUndefined();
-  });
-
-  it('remembers which login mechanism established the session, and forgets it on clear', () => {
-    expect(readAuthMethod(undefined)).toBeUndefined();
-    recordAuthMethod('native', undefined);
-    expect(readAuthMethod(undefined)).toBe('native');
-    clearAuthMethod(undefined);
-    expect(readAuthMethod(undefined)).toBeUndefined();
-  });
-
-  it('treats a storage that throws on read the same as no stored auth method', () => {
-    const throwingStorage: Storage = {
-      getItem: () => {
-        throw new Error('storage unavailable');
-      },
-      setItem: () => {},
-      removeItem: () => {},
-      clear: () => {},
-      key: () => null,
-      length: 0,
-    };
-    expect(readAuthMethod(throwingStorage)).toBeUndefined();
-  });
-
-  it('restores unexpired session from sessionStorage across reloads when storage is configured', () => {
-    const fakeStorage = new Map<string, string>();
-    const storage: Storage = {
-      getItem: (k) => fakeStorage.get(k) ?? null,
-      setItem: (k, v) => fakeStorage.set(k, v),
-      removeItem: (k) => {
-        fakeStorage.delete(k);
-      },
-      clear: () => fakeStorage.clear(),
-      key: (i) => Array.from(fakeStorage.keys())[i] ?? null,
-      get length() {
-        return fakeStorage.size;
-      },
-    };
-
-    let now = 1000;
-    const store1 = createTokenStore(() => now, { storage });
-    store1.write('jwt-token-123', 5000);
-    expect(store1.read()).toBe('jwt-token-123');
-
-    // Simulate page reload by creating a new store instance connected to the same storage
-    const store2 = createTokenStore(() => now, { storage });
-    expect(store2.read()).toBe('jwt-token-123');
-    expect(store2.isExpired()).toBe(false);
-
-    // After expiration:
-    now = 6000;
-    expect(store2.read()).toBeUndefined();
-    expect(store2.isExpired()).toBe(true);
-  });
-});
 
 describe('PKCE', () => {
   it('derives a challenge from a fresh verifier', async () => {

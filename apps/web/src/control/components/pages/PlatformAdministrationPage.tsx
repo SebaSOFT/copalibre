@@ -12,7 +12,6 @@ import {
   type OutdatedModuleResponse,
 } from '../../lib/api-client.js';
 import type { DisciplineOption } from '../../lib/wizard.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { PlatformAdministrationTemplate } from '../screens/PlatformAdministrationTemplate.js';
 import { useToast } from '../ToastProvider.js';
 import { ReadState } from '../ui/layouts/read-state.js';
@@ -39,7 +38,6 @@ export function PlatformAdministrationPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

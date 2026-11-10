@@ -7,7 +7,6 @@ import {
   type CsvImportPreviewResponse,
   type RegistrationResponse,
 } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import {
   RegistrationReviewTemplate,
   type ReviewRegistrationRow,
@@ -36,7 +35,6 @@ export function RegistrationReviewPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

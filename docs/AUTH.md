@@ -7,7 +7,10 @@ Established with the API auth contract (stateless API nodes, security planes) an
 
 ## Access tokens
 
-All authenticated requests use `Authorization: Bearer <JWT>`. The API validates:
+API clients and personal access tokens authenticate with `Authorization: Bearer <token>`. A Control
+browser session authenticates with the same JWT held in an `HttpOnly` session cookie (see
+[Browser flow](#browser-flow)); the header wins when a request carries both. Either way the API
+validates:
 
 - asymmetric signature against the configured trust source: the local signing key for native
   sessions, or the provider's JWKS (`COPALIBRE_JWKS_URI`) for external OIDC sessions;
@@ -24,6 +27,7 @@ For machine-to-machine integrations (like MCP), operators can generate PATs from
 - The raw token is shown only once during creation.
 - The backend stores a SHA-256 hash in the `personal_access_tokens` table.
 - At runtime, the API guard detects the `clpat_` prefix and validates it statefully via a database lookup, allowing immediate revocation.
+- A PAT is accepted only as `Authorization: Bearer`. One found in the session cookie leaves the request unauthenticated.
 
 **Native Local JWTs**
 The native login flow (`/api/auth/login`) issues one-hour JWTs using **RS256**. The API reads the
@@ -73,7 +77,7 @@ forgetting the tag cannot accidentally publish an endpoint.
 | `admin-control`             | required | `copalibre.control`     | organization scope; destructive actions require explicit confirmation |
 | `integration`               | required | `copalibre.integration` | organization scope plus narrow per-operation scopes                   |
 
-`authenticated-interaction` and `admin-control` share this same bearer transport and differ **only**
+`authenticated-interaction` and `admin-control` share this same transport and differ **only**
 in authorization policy: a participant token and an organizer token look identical at the transport
 layer.
 
@@ -85,21 +89,40 @@ Fine-grained permissions live in the policy layer, never in token claims — per
 
 ## Browser flow
 
-OIDC browsers use **Authorization Code + PKCE**. The current control panel keeps its access token
-in memory and tab-scoped `sessionStorage`, so a reload can recover an unexpired session; it does not
-persist access tokens in `localStorage`.
+Control never holds the access token where a script can read it. Public pages share the origin with
+Control, so anything a script could read — `localStorage`, `sessionStorage`, a readable cookie, a
+module variable — a script on any page could read too.
 
-Native login, invitation acceptance and refresh issue a rotating opaque refresh cookie,
-`copalibre_refresh_token`, scoped to `/api/auth`, with `HttpOnly`, `SameSite=Strict`, a 30-day lifetime,
-and `Secure` in production. `POST /api/auth/refresh` consumes the stored hashed refresh credential and
-issues a new cookie/access token; `POST /api/auth/logout` revokes the presented refresh credential and
-clears the cookie. Browser code cannot read the refresh cookie. Serve `/api/*` through the application
-origin and HTTPS in production so the cookie reaches the intended API.
+- **Native sign-in.** `POST /api/auth/login`, `POST /api/auth/accept-invitation` and
+  `POST /api/auth/refresh` set the session cookie (the access JWT), the CSRF cookie and the refresh
+  cookie, and answer with session metadata only: `subject`, `scopes`, `expiresAt`, `method`.
+- **OIDC sign-in.** The browser completes Authorization Code + PKCE with the provider, then posts the
+  provider's access token once to `POST /api/auth/session` as `Authorization: Bearer` and drops it.
+  The API verifies it like any Bearer token — refusing personal access tokens and native tokens —
+  and sets the session and CSRF cookies. A token whose cookie would exceed 4096 bytes is refused
+  with `auth-token-too-large`. Silent renewal (`prompt=none`) hands each fresh token over the same
+  way. Register `/control/silent-renew-callback` alongside the ordinary callback at the provider.
+- **After a reload.** Control calls `GET /api/auth/session`, which the cookie authenticates, to learn
+  who is signed in, with which scopes and until when. A 401 means signed out.
+- **Event streams.** `/events/control/*` is same-origin, so the browser sends the session cookie;
+  no token appears in a header or a URL.
+- **Sign-out.** `POST /api/auth/logout` revokes the native refresh credential, if any, and clears all
+  three cookies, for native and OIDC sessions alike.
 
-OIDC renewal uses the identity provider's silent authorization flow (`prompt=none`) with PKCE;
-it does not use CopaLibre's native refresh cookie. Register `/control/silent-renew-callback` alongside
-the ordinary callback at the provider. If silent renewal cannot complete, the operator must sign in
-again. The server continues to authorize every request independently of browser session storage.
+The session cookie is `HttpOnly`, `SameSite=Strict`, `Path=/`, has no `Domain`, and expires with the
+token. Over HTTPS it is `Secure` and named `__Host-copalibre_session`; on a plain-HTTP installation it
+is `copalibre_session`. `COPALIBRE_SESSION_COOKIE_SECURE` selects between the two for every cookie;
+the [operator cookie list](self-hosting.md#cookies) states each cookie's purpose and lifetime.
+
+**CSRF.** `SameSite=Strict` is the first defence. The second is a signed double-submit token: the
+`copalibre_csrf` cookie holds a random value and its HMAC, keyed from the installation's native
+signing key and bound to the session's token (its `jti`, or a hash of the token). Every
+cookie-authenticated request with a method other than `GET`, `HEAD` or `OPTIONS` must send the same
+value in `X-CopaLibre-CSRF`; otherwise the API answers 403 `auth-csrf`. A Bearer request carries no
+ambient credential and needs no CSRF token.
+
+The API stays stateless: the cookie is the JWT every node already verifies. Revoking an access token
+before its expiry is not supported; the token's short lifetime bounds it.
 
 ## Environment
 
@@ -114,6 +137,7 @@ again. The server continues to authorize every request independently of browser 
 | `COPALIBRE_JWKS_FILE`                   | native deployments           | Matching persistent public JWKS file                    |
 | `COPALIBRE_JWKS_CACHE_MAX_AGE_MS`       | no (600000)                  | Key cache lifetime / rotation overlap                   |
 | `COPALIBRE_JWT_CLOCK_TOLERANCE_SECONDS` | no (5)                       | Clock-skew tolerance                                    |
+| `COPALIBRE_SESSION_COOKIE_SECURE`       | no (`true`)                  | `Secure` and the `__Host-` prefix on session cookies    |
 
 ## The OpenAPI artifact
 

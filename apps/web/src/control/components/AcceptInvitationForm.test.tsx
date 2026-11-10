@@ -3,7 +3,7 @@ import { jest } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AcceptInvitationForm } from './AcceptInvitationForm.js';
 import { withIntl } from '../i18n/test-support.js';
-import { controlTokenStore } from '../session/token-store.js';
+import { controlSession } from '../session/session-store.js';
 
 describe('AcceptInvitationForm', () => {
   let navigateMock: jest.Mock<any>;
@@ -67,7 +67,12 @@ describe('AcceptInvitationForm', () => {
   it('handles successful invitation acceptance and redirect', async () => {
     (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ accessToken: 'sample-jwt-token', expiresIn: 3600 }),
+      json: async () => ({
+        subject: 'p-invited',
+        scopes: ['copalibre.control'],
+        expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+        method: 'native',
+      }),
     } as any);
 
     render(withIntl(<AcceptInvitationForm initialToken="valid-token" navigate={navigateMock} />));
@@ -99,11 +104,11 @@ describe('AcceptInvitationForm', () => {
 
     expect(await screen.findByText('Account set up!')).toBeTruthy();
 
-    // The access token establishes a real session via controlTokenStore —
-    // never a raw, readable-by-any-script localStorage/sessionStorage write.
+    // The API keeps the token in its HttpOnly cookie; Control records only
+    // the session metadata, in memory — never a storage write.
     expect(localStorage.getItem('copalibre_access_token')).toBeNull();
-    expect(sessionStorage.getItem('copalibre_access_token')).toBeNull();
-    expect(controlTokenStore.read()).toBe('sample-jwt-token');
+    expect(sessionStorage.length).toBe(0);
+    expect(controlSession.read()?.subject).toBe('p-invited');
 
     await waitFor(
       () => {

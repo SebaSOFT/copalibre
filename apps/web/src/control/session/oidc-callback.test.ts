@@ -21,16 +21,27 @@ function response(body: unknown, status = 200): Response {
   });
 }
 
+const SESSION_BODY = {
+  subject: 'idp-subject',
+  scopes: ['copalibre.control'],
+  expiresAt: '2030-01-01T00:00:00.000Z',
+  method: 'oidc',
+};
+
 function browser(input: {
   readonly search: string;
   readonly storedTransaction?: OidcTransaction | null;
   readonly tokenResponse?: Response;
+  readonly handoverResponse?: Response;
 }): {
   readonly runtime: OidcCallbackBrowser;
   readonly fetch: jest.MockedFunction<typeof fetch>;
   readonly removeSessionItem: jest.Mock;
 } {
-  const fetchMock = jest.fn<typeof fetch>(async () => {
+  const fetchMock = jest.fn<typeof fetch>(async (url) => {
+    if (String(url) === '/api/auth/session') {
+      return input.handoverResponse ?? response(SESSION_BODY);
+    }
     if (!input.tokenResponse) throw new Error('Unexpected fetch');
     return input.tokenResponse;
   });
@@ -52,18 +63,22 @@ function browser(input: {
 }
 
 describe('OIDC callback', () => {
-  it('exchanges a valid code for a token and returns the stored return destination', async () => {
+  it('exchanges a valid code, hands the token to the API and returns only session metadata', async () => {
     const fixture = browser({
       search: '?code=auth-code-1&state=state-123',
       tokenResponse: response({ access_token: 'token-xyz', expires_in: 3600 }),
     });
 
-    const before = Date.now();
     const result = await completeOidcLogin(fixture.runtime);
 
-    expect(result.accessToken).toBe('token-xyz');
-    expect(result.expiresAtMs).toBeGreaterThanOrEqual(before + 3600 * 1000);
+    expect(result.session).toMatchObject({ subject: 'idp-subject', method: 'oidc' });
+    expect(JSON.stringify(result)).not.toContain('token-xyz');
     expect(result.returnTo).toBe('/control/liga-mendocina/');
+
+    const [handoverUrl, handoverInit] = fixture.fetch.mock.calls[1] as [string, RequestInit];
+    expect(handoverUrl).toBe('/api/auth/session');
+    expect(handoverInit).toMatchObject({ method: 'POST', credentials: 'same-origin' });
+    expect(new Headers(handoverInit.headers).get('authorization')).toBe('Bearer token-xyz');
     expect(fixture.removeSessionItem).toHaveBeenCalledWith(TRANSACTION_KEY);
 
     const [url, init] = fixture.fetch.mock.calls[0] as [string, RequestInit];
@@ -130,13 +145,14 @@ describe('OIDC callback', () => {
     );
   });
 
-  it('rejects a token response with no usable expiry', async () => {
+  it('reports a refused handover, so the operator sees that sign-in failed', async () => {
     const fixture = browser({
       search: '?code=auth-code-1&state=state-123',
-      tokenResponse: response({ access_token: 'token-xyz' }),
+      tokenResponse: response({ access_token: 'token-xyz', expires_in: 3600 }),
+      handoverResponse: response({ message: 'Invalid bearer token' }, 401),
     });
     await expect(completeOidcLogin(fixture.runtime)).rejects.toThrow(
-      'Token response has no usable expiry',
+      'The API refused the identity provider token',
     );
   });
 });
