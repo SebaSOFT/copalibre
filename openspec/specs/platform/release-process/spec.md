@@ -155,3 +155,68 @@ package's declared `peerDependencies` range. The list SHALL start with `@imgly/b
 - **WHEN** Dependabot proposes an update to either package
 - **THEN** its configuration groups `onnxruntime-web` with `@imgly/background-removal`, so no pull request bumps
   the runtime alone
+
+### Requirement: Dependency remediation starts from a current complete inventory
+
+Dependency remediation SHALL enumerate all pages of current open Dependabot alerts and registry advisories at application start, covering all severities, workspaces, development and transitive dependencies. Evidence SHALL identify retrieval time, source revision and default-branch revision. A planning-time snapshot SHALL NOT limit remediation scope. Unavailable or incomplete advisory data SHALL block a clean verdict.
+
+#### Scenario: New advisory appears after planning
+
+- **WHEN** an advisory absent from the proposal snapshot is open when implementation begins
+- **THEN** remediation includes it with the same investigation, fix and verification obligations as earlier advisories
+
+#### Scenario: Incomplete or failed advisory retrieval
+
+- **WHEN** authentication, pagination, response validation or registry access fails
+- **THEN** the assessment reports incomplete evidence rather than zero advisories or success
+
+### Requirement: Every affected dependency instance is remediated
+
+Remediation SHALL verify every affected locked instance and applicable resolution against advisory ranges, including duplicate versions, supported major lines and development tools. Dependency upgrades, removals and replacements SHALL retain required application behavior. Unresolved vulnerabilities SHALL remain explicit blockers; dismissal, suppression or an accepted-risk record SHALL NOT constitute a fix.
+
+#### Scenario: Duplicate vulnerable transitive dependency
+
+- **WHEN** a patched direct dependency coexists with a vulnerable nested copy or resolution
+- **THEN** remediation remains incomplete until each affected instance is patched or safely removed
+
+#### Scenario: No safe published fix exists
+
+- **WHEN** upstream provides no compatible fix and parent upgrade or replacement cannot safely remove the exposure
+- **THEN** the report records the affected paths, investigated alternatives and blocker
+- **AND** it does not claim all advisories solved or create an unapproved exception
+
+#### Scenario: A dependency has been safely removed
+
+- **WHEN** a dependency is removed from all relevant manifests, resolved paths and shipped/tooling artifacts and behavior verification passes
+- **THEN** the report records removal as remediation with evidence rather than treating an absent lock entry as inherently vulnerable or automatically safe
+
+### Requirement: Remediation completion uses refreshed advisory evidence
+
+Before declaring local remediation complete, verification SHALL refresh Dependabot and registry inventories, reconcile additions and reopened alerts, and pass immutable installation, advisory and regression checks for the final source revision. Any later dependency change SHALL invalidate affected evidence. Reports SHALL retain per-alert fix, dependency-path and verification evidence.
+
+#### Scenario: Advisory is disclosed while implementation is in progress
+
+- **WHEN** the final refresh finds a new or reopened applicable advisory
+- **THEN** it enters remediation and blocks a clean local verdict until resolved
+
+#### Scenario: All current affected instances are resolved
+
+- **WHEN** final refreshed inventories show no unresolved applicable vulnerability and all required verification passes
+- **THEN** the report may declare the checkout remediated at its recorded timestamp and source revision
+- **AND** release publication still requires its existing fresh audits
+
+### Requirement: Local remediation and GitHub closure are reported separately
+
+Remediation reports SHALL distinguish vulnerable checkout, verified local fix pending default-branch delivery, removed dependency, unresolved blocker and GitHub-confirmed closure. A passing checkout or merge to a nondefault branch SHALL NOT be reported as GitHub closure. Existing release/merge authorization SHALL remain unchanged.
+
+#### Scenario: Main still contains an older lockfile
+
+- **WHEN** local verification proves a fix but Dependabot reports an open alert against the older default branch
+- **THEN** the report records patched-in-checkout and pending-main status with both revisions
+- **AND** it does not downgrade the dependency, dismiss the alert or claim default-branch closure
+
+#### Scenario: Default branch has received the approved remediation
+
+- **WHEN** the approved release reaches the default branch and GitHub has processed the updated dependency graph
+- **THEN** a fresh API query records each alert's actual state and unresolved or newly opened alerts remain visible
+- **AND** the closure check does not itself authorize merging or publishing
