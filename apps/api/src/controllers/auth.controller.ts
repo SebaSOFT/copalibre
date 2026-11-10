@@ -390,13 +390,8 @@ export class NativeAuthController {
     let principalId: string;
     try {
       const consumed = await withTransaction(this.db, (uow) =>
-        new AuthVerificationTokenRepository(this.db).consume(uow, rawToken),
+        new AuthVerificationTokenRepository(this.db).consume(uow, rawToken, 'session-refresh'),
       );
-      if (consumed.kind !== 'session-refresh') {
-        throw new UnauthorizedException('Invalid refresh session', {
-          errorCode: 'auth-unauthorized',
-        });
-      }
       principalId = consumed.principalId;
     } catch (error) {
       if (error instanceof NotFoundError) {
@@ -439,7 +434,7 @@ export class NativeAuthController {
     if (rawToken) {
       try {
         await withTransaction(this.db, (uow) =>
-          new AuthVerificationTokenRepository(this.db).consume(uow, rawToken),
+          new AuthVerificationTokenRepository(this.db).consume(uow, rawToken, 'session-refresh'),
         );
       } catch (error) {
         // Already consumed, expired, or unknown — logout still clears the
@@ -509,14 +504,26 @@ export class NativeAuthController {
 
     const passwordHash = await argon2.hash(body.newPassword);
 
-    await withTransaction(this.db, async (uow) => {
-      const verification = await new AuthVerificationTokenRepository(this.db).consume(
-        uow,
-        body.token,
-      );
-      if (verification.kind !== 'password-reset') {
-        throw new BadRequestException('Invalid reset token', { errorCode: 'auth-bad-request' });
+    try {
+      await this.applyPasswordReset(body.token, passwordHash);
+    } catch (error) {
+      // Unknown, expired, already used or another kind of token: the caller's
+      // fault, not a server error, and one answer for all of them.
+      if (error instanceof NotFoundError) {
+        throw new BadRequestException('Reset token is invalid or expired', {
+          errorCode: 'auth-bad-request',
+        });
       }
+      throw error;
+    }
+
+    return { message: 'Password has been reset successfully.' };
+  }
+
+  private async applyPasswordReset(rawToken: string, passwordHash: string): Promise<void> {
+    await withTransaction(this.db, async (uow) => {
+      const tokens = new AuthVerificationTokenRepository(this.db);
+      const verification = await tokens.consume(uow, rawToken, 'password-reset');
 
       await uow.tx
         .updateTable('identity_principals')
@@ -532,9 +539,9 @@ export class NativeAuthController {
         actor: `principal:${verification.principalId}`,
         authorizationContext: 'self-service:password-reset',
       });
+      // Whoever knew the old password may hold a refresh cookie; a reset ends it.
+      await tokens.revokeSessionRefreshTokens(uow, verification.principalId);
     });
-
-    return { message: 'Password has been reset successfully.' };
   }
 }
 

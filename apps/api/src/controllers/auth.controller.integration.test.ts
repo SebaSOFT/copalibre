@@ -290,6 +290,51 @@ describe('Auth Controllers', () => {
       const valid = await argon2.verify(principal?.password_hash ?? '', 'new-secret-password');
       expect(valid).toBe(true);
     });
+
+    it('POST /auth/reset-password ends the refresh sessions opened before it', async () => {
+      const repository = new AuthVerificationTokenRepository(scratch.db);
+      const refresh = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        repository.create(uow, { principalId, kind: 'session-refresh', ttlMs: 60_000 }),
+      );
+      const reset = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        repository.create(uow, { principalId, kind: 'password-reset', ttlMs: 60_000 }),
+      );
+
+      const response = await request({
+        method: 'POST',
+        url: '/api/auth/reset-password',
+        payload: { token: reset.rawToken, newPassword: 'another-secret-password' },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const renewed = await request({
+        method: 'POST',
+        url: '/api/auth/refresh',
+        cookie: `copalibre_refresh_token=${refresh.rawToken}`,
+      });
+      expect(renewed.statusCode).toBe(401);
+    });
+
+    it('POST /auth/reset-password refuses a refresh credential and leaves it usable', async () => {
+      const repository = new AuthVerificationTokenRepository(scratch.db);
+      const refresh = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        repository.create(uow, { principalId, kind: 'session-refresh', ttlMs: 60_000 }),
+      );
+
+      const response = await request({
+        method: 'POST',
+        url: '/api/auth/reset-password',
+        payload: { token: refresh.rawToken, newPassword: 'hijacked-password' },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(JSON.parse(response.payload)).toMatchObject({ errorCode: 'auth-bad-request' });
+
+      await expect(
+        withTransaction(scratch.db as Kysely<Database>, (uow) =>
+          repository.consume(uow, refresh.rawToken, 'session-refresh'),
+        ),
+      ).resolves.toMatchObject({ principalId });
+    });
   });
 
   describe('native session silent renewal', () => {
