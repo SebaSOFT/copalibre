@@ -1,0 +1,15 @@
+# Reviewed gitleaks matches, one fingerprint each: commit:file:rule:line.
+# Every entry is a synthetic test value, not a credential. A new match still fails the scan.
+# Reviewed 2026-11-10 over every ref (scripts/security, docs/security/README.md).
+
+# redaction canaries in the security gate's own tests
+04d675a586bf912c78298d9258e47a226ac3f8c5:scripts/security/evaluate.test.mjs:aws-access-token:224
+04d675a586bf912c78298d9258e47a226ac3f8c5:scripts/security/evaluate.test.mjs:generic-api-key:240
+04d675a586bf912c78298d9258e47a226ac3f8c5:scripts/security/evaluate.test.mjs:jwt:222
+
+# test fixture value
+09412e54b87527def6b0ef1777ba7085c7635b42:apps/web/src/control/components/pages/PreferencesPage.test.tsx:generic-api-key:126
+74c6a8d7c861ee26b2ad0ee756dce0e4b749a47f:apps/api/src/controllers/auth.controller.test.ts:generic-api-key:41
+74c6a8d7c861ee26b2ad0ee756dce0e4b749a47f:apps/web/tests/preferences.spec.ts:generic-api-key:42
+ff6a18094ea1c9ea99a645b3e360c30345783fa6:apps/web/src/control/components/PreferencesRoute.test.tsx:generic-api-key:46
+ff6a18094ea1c9ea99a645b3e360c30345783fa6:apps/web/tests/preferences.spec.ts:generic-api-key:44

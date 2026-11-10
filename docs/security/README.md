@@ -66,3 +66,18 @@ refused.
 The runner removes anything shaped like a credential from script output before it reaches a
 report: private key blocks, personal access tokens, JWTs, GitHub tokens, AWS keys and quoted or
 `KEY=value` secrets. A scanner's own output is redacted the same way.
+
+## Secret history
+
+`git-history-secrets` runs [gitleaks](https://github.com/gitleaks/gitleaks) over every ref and its
+whole history with `--redact`, so no matched value reaches a log or report. Release jobs install the
+pinned version with `scripts/security/install-gitleaks.sh`, which checks the archive's SHA-256 first;
+locally, put the same version on `PATH`. The scan covers only the refs this checkout has: run it from
+a full clone (`fetch-depth: 0` in CI). History that was deleted from the remote cannot be scanned.
+
+A match that review shows is not a credential, such as a synthetic test value, goes into
+`.gitleaksignore` by its fingerprint (commit, file, rule and line), under a comment saying why. Every
+other match fails the control. A real credential is never ignored: it becomes a finding with
+`kind: "credential"`, which no exception can accept, and stays blocking until an attestation records
+that it was revoked, replaced and that the old value is refused. Deleting it from the tree or from
+history does not close it.

@@ -86,6 +86,12 @@ jobs:
       # verdict is produced and kept with every run, but does not block yet:
       # its runtime controls need the production-profile deployment, and
       # enforcement switches on once they pass (docs/security/README.md).
+      - name: Install the pinned secret scanner
+        if: steps.check.outputs.exists != 'true'
+        run: |
+          scripts/security/install-gitleaks.sh "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - name: Security gate (static)
         if: steps.check.outputs.exists != 'true'
         run: node scripts/security/run.mjs --mode static --out security-report/static
