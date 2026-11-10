@@ -17,15 +17,16 @@ the digests of the candidate artifacts the report describes.
 
 ## Records
 
-| File                   | Holds                                                                     |
-| ---------------------- | ------------------------------------------------------------------------- |
-| `controls.json`        | The checklist and one or more controls per item, each with its checks     |
-| `findings.json`        | Every reproduced finding, its severity, status and regression tests       |
-| `exceptions.json`      | Owner-approved acceptance of an open medium or low finding                |
-| `attestations.json`    | Manual evidence: reviews, credential incidents, operator actions          |
-| `attack-surface.md`    | Entry points, uploads, outbound connections and the trust-boundary review |
-| `reviews.md`           | Evidence behind the manual attestations                                   |
-| `incident-response.md` | What raises a security alert, who responds and how                        |
+| File                       | Holds                                                                     |
+| -------------------------- | ------------------------------------------------------------------------- |
+| `controls.json`            | The checklist and one or more controls per item, each with its checks     |
+| `findings.json`            | Every reproduced finding, its severity, status and regression tests       |
+| `exceptions.json`          | Owner-approved acceptance of an open medium or low finding                |
+| `attestations.json`        | Manual evidence: reviews, credential incidents, operator actions          |
+| `attack-surface.md`        | Entry points, uploads, outbound connections and the trust-boundary review |
+| `reviews.md`               | Evidence behind the manual attestations                                   |
+| `incident-response.md`     | What raises a security alert, who responds and how                        |
+| `assessment-2026-11.es.md` | The November 2026 assessment, in Spanish                                  |
 
 ### Controls
 
