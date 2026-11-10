@@ -265,7 +265,8 @@ describe('Auth Controllers', () => {
         .select('password_hash')
         .where('principal_id', '=', olderId)
         .executeTakeFirstOrThrow();
-      expect(stored.password_hash).toMatch(/^\$argon2id\$v=19\$m=65536,p=4,t=3\$/);
+      const parameters = /^\$argon2id\$v=19\$([^$]+)\$/.exec(stored.password_hash ?? '')?.[1];
+      expect(new Set(parameters?.split(','))).toEqual(new Set(['m=65536', 't=3', 'p=4']));
       await expect(argon2.verify(stored.password_hash ?? '', password)).resolves.toBe(true);
     });
 

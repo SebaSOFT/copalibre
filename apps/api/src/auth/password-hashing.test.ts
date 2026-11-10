@@ -10,7 +10,9 @@ describe('password hashing', () => {
   it('writes Argon2id hashes with the pinned parameters and a fresh salt', async () => {
     const first = await hashPassword('correct horse battery staple');
     const second = await hashPassword('correct horse battery staple');
-    expect(first).toMatch(/^\$argon2id\$v=19\$m=65536,p=4,t=3\$/);
+    // Parameter order in the PHC string differs between argon2 releases.
+    const parameters = /^\$argon2id\$v=19\$([^$]+)\$/.exec(first)?.[1];
+    expect(new Set(parameters?.split(','))).toEqual(new Set(['m=65536', 't=3', 'p=4']));
     expect(first).not.toBe(second);
     expect(PASSWORD_HASH_OPTIONS.memoryCost).toBeGreaterThanOrEqual(19 * 1024);
   });
