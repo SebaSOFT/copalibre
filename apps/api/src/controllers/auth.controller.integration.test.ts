@@ -206,6 +206,70 @@ describe('Auth Controllers', () => {
       expect(body.message).toContain('property isAdmin should not exist');
     });
 
+    it('POST /auth/login answers an unknown email exactly like a wrong password', async () => {
+      const unknown = await request({
+        method: 'POST',
+        url: '/api/auth/login',
+        ip: '198.51.100.61',
+        payload: { email: 'nobody-here@example.com', password },
+      });
+      const wrong = await request({
+        method: 'POST',
+        url: '/api/auth/login',
+        ip: '198.51.100.62',
+        payload: { email, password: 'wrong-password' },
+      });
+      expect(unknown.statusCode).toBe(401);
+      expect(JSON.parse(unknown.payload)).toEqual(JSON.parse(wrong.payload));
+    });
+
+    it('POST /auth/login refuses a password longer than the limit before hashing it', async () => {
+      const response = await request({
+        method: 'POST',
+        url: '/api/auth/login',
+        ip: '198.51.100.63',
+        payload: { email, password: 'x'.repeat(1025) },
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('POST /auth/login rehashes a password stored with older parameters', async () => {
+      const olderEmail = 'older-hash@example.com';
+      const olderId = newId();
+      await (scratch.db as Kysely<Database>)
+        .insertInto('identity_principals')
+        .values({
+          principal_id: olderId,
+          email: olderEmail,
+          password_hash: await argon2.hash(password, {
+            type: argon2.argon2id,
+            memoryCost: 19 * 1024,
+            timeCost: 2,
+            parallelism: 1,
+          }),
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .execute();
+
+      const response = await request({
+        method: 'POST',
+        url: '/api/auth/login',
+        ip: '198.51.100.64',
+        payload: { email: olderEmail, password },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const stored = await (scratch.db as Kysely<Database>)
+        .selectFrom('identity_principals')
+        .select('password_hash')
+        .where('principal_id', '=', olderId)
+        .executeTakeFirstOrThrow();
+      const parameters = /^\$argon2id\$v=19\$([^$]+)\$/.exec(stored.password_hash ?? '')?.[1];
+      expect(new Set(parameters?.split(','))).toEqual(new Set(['m=65536', 't=3', 'p=4']));
+      await expect(argon2.verify(stored.password_hash ?? '', password)).resolves.toBe(true);
+    });
+
     it('POST /auth/forgot-password returns 200', async () => {
       const response = await request({
         method: 'POST',
@@ -289,6 +353,51 @@ describe('Auth Controllers', () => {
       expect(principal?.password_hash).toBeDefined();
       const valid = await argon2.verify(principal?.password_hash ?? '', 'new-secret-password');
       expect(valid).toBe(true);
+    });
+
+    it('POST /auth/reset-password ends the refresh sessions opened before it', async () => {
+      const repository = new AuthVerificationTokenRepository(scratch.db);
+      const refresh = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        repository.create(uow, { principalId, kind: 'session-refresh', ttlMs: 60_000 }),
+      );
+      const reset = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        repository.create(uow, { principalId, kind: 'password-reset', ttlMs: 60_000 }),
+      );
+
+      const response = await request({
+        method: 'POST',
+        url: '/api/auth/reset-password',
+        payload: { token: reset.rawToken, newPassword: 'another-secret-password' },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const renewed = await request({
+        method: 'POST',
+        url: '/api/auth/refresh',
+        cookie: `copalibre_refresh_token=${refresh.rawToken}`,
+      });
+      expect(renewed.statusCode).toBe(401);
+    });
+
+    it('POST /auth/reset-password refuses a refresh credential and leaves it usable', async () => {
+      const repository = new AuthVerificationTokenRepository(scratch.db);
+      const refresh = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        repository.create(uow, { principalId, kind: 'session-refresh', ttlMs: 60_000 }),
+      );
+
+      const response = await request({
+        method: 'POST',
+        url: '/api/auth/reset-password',
+        payload: { token: refresh.rawToken, newPassword: 'hijacked-password' },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(JSON.parse(response.payload)).toMatchObject({ errorCode: 'auth-bad-request' });
+
+      await expect(
+        withTransaction(scratch.db as Kysely<Database>, (uow) =>
+          repository.consume(uow, refresh.rawToken, 'session-refresh'),
+        ),
+      ).resolves.toMatchObject({ principalId });
     });
   });
 

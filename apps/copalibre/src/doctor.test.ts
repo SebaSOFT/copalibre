@@ -15,6 +15,7 @@ import {
   type DoctorDependencies,
   validateCspIdentityOrigin,
   validateSessionCookieSetting,
+  validateTrustedProxiesSetting,
   validateEdgeSecurityHeaders,
 } from './doctor.js';
 
@@ -763,6 +764,24 @@ describe('Content Security Policy configuration', () => {
     await expect(validateEdgeSecurityHeaders(options, respond({}))).resolves.toMatchObject({
       status: 'fail',
       message: expect.stringContaining('/runtime-config.json'),
+    });
+  });
+});
+
+describe('trusted proxies check', () => {
+  it('passes the default and names what it trusts', () => {
+    expect(validateTrustedProxiesSetting({})).toMatchObject({
+      status: 'pass',
+      message: expect.stringContaining('uniquelocal'),
+    });
+  });
+
+  it('fails a setting the API would refuse at startup', () => {
+    expect(validateTrustedProxiesSetting({ COPALIBRE_TRUSTED_PROXIES: '0.0.0.0/0' })).toMatchObject(
+      { status: 'fail' },
+    );
+    expect(validateTrustedProxiesSetting({ COPALIBRE_TRUSTED_PROXIES: 'true' })).toMatchObject({
+      status: 'fail',
     });
   });
 });

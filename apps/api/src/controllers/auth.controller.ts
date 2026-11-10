@@ -1,4 +1,4 @@
-import * as argon2 from 'argon2';
+import { hashPassword, passwordNeedsRehash, verifyPassword } from '../auth/password-hashing.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { decodeJwt, importPKCS8, SignJWT } from 'jose';
 import {
@@ -163,17 +163,22 @@ export class NativeAuthController {
       .where('email', '=', body.email.toLowerCase().trim())
       .executeTakeFirst();
 
-    if (!principal?.password_hash) {
+    // An unknown email still pays for one hash verification, so the response
+    // time does not reveal which accounts exist.
+    const valid = await verifyPassword(principal?.password_hash, body.password);
+    if (!principal?.password_hash || !valid) {
       throw new UnauthorizedException('Invalid email or password', {
         errorCode: 'auth-unauthorized',
       });
     }
 
-    const valid = await argon2.verify(principal.password_hash, body.password);
-    if (!valid) {
-      throw new UnauthorizedException('Invalid email or password', {
-        errorCode: 'auth-unauthorized',
-      });
+    if (passwordNeedsRehash(principal.password_hash)) {
+      // Made with older parameters: replace it now that the password is known.
+      await this.db
+        .updateTable('identity_principals')
+        .set({ password_hash: await hashPassword(body.password), updated_at: new Date() })
+        .where('principal_id', '=', principal.principal_id)
+        .execute();
     }
 
     const accessToken = await issueLocalJwt(this.db, principal.principal_id, principal.email);
@@ -329,7 +334,7 @@ export class NativeAuthController {
       });
     }
 
-    const passwordHash = await argon2.hash(body.password);
+    const passwordHash = await hashPassword(body.password);
     const email = invitation.recipient_email.toLowerCase().trim();
 
     const principal = await withTransaction(this.db, async (uow) => {
@@ -390,13 +395,8 @@ export class NativeAuthController {
     let principalId: string;
     try {
       const consumed = await withTransaction(this.db, (uow) =>
-        new AuthVerificationTokenRepository(this.db).consume(uow, rawToken),
+        new AuthVerificationTokenRepository(this.db).consume(uow, rawToken, 'session-refresh'),
       );
-      if (consumed.kind !== 'session-refresh') {
-        throw new UnauthorizedException('Invalid refresh session', {
-          errorCode: 'auth-unauthorized',
-        });
-      }
       principalId = consumed.principalId;
     } catch (error) {
       if (error instanceof NotFoundError) {
@@ -439,7 +439,7 @@ export class NativeAuthController {
     if (rawToken) {
       try {
         await withTransaction(this.db, (uow) =>
-          new AuthVerificationTokenRepository(this.db).consume(uow, rawToken),
+          new AuthVerificationTokenRepository(this.db).consume(uow, rawToken, 'session-refresh'),
         );
       } catch (error) {
         // Already consumed, expired, or unknown — logout still clears the
@@ -507,16 +507,28 @@ export class NativeAuthController {
       });
     }
 
-    const passwordHash = await argon2.hash(body.newPassword);
+    const passwordHash = await hashPassword(body.newPassword);
 
-    await withTransaction(this.db, async (uow) => {
-      const verification = await new AuthVerificationTokenRepository(this.db).consume(
-        uow,
-        body.token,
-      );
-      if (verification.kind !== 'password-reset') {
-        throw new BadRequestException('Invalid reset token', { errorCode: 'auth-bad-request' });
+    try {
+      await this.applyPasswordReset(body.token, passwordHash);
+    } catch (error) {
+      // Unknown, expired, already used or another kind of token: the caller's
+      // fault, not a server error, and one answer for all of them.
+      if (error instanceof NotFoundError) {
+        throw new BadRequestException('Reset token is invalid or expired', {
+          errorCode: 'auth-bad-request',
+        });
       }
+      throw error;
+    }
+
+    return { message: 'Password has been reset successfully.' };
+  }
+
+  private async applyPasswordReset(rawToken: string, passwordHash: string): Promise<void> {
+    await withTransaction(this.db, async (uow) => {
+      const tokens = new AuthVerificationTokenRepository(this.db);
+      const verification = await tokens.consume(uow, rawToken, 'password-reset');
 
       await uow.tx
         .updateTable('identity_principals')
@@ -532,9 +544,9 @@ export class NativeAuthController {
         actor: `principal:${verification.principalId}`,
         authorizationContext: 'self-service:password-reset',
       });
+      // Whoever knew the old password may hold a refresh cookie; a reset ends it.
+      await tokens.revokeSessionRefreshTokens(uow, verification.principalId);
     });
-
-    return { message: 'Password has been reset successfully.' };
   }
 }
 

@@ -94,28 +94,50 @@ export class AuthVerificationTokenRepository {
   }
 
   /**
-   * Consumes a verification token: validates it is unexpired and unconsumed,
-   * marks it consumed, and returns it. Throws if the token is invalid.
+   * Consumes a verification token of the given kind: marks it consumed only if
+   * it is unexpired, unconsumed and of that kind, and returns it. Throws if
+   * the token is invalid, expired, already consumed or of another kind.
+   *
+   * One conditional `UPDATE … RETURNING`, not a read followed by a write: under
+   * PostgreSQL's read-committed isolation two concurrent requests could both
+   * read the token as unconsumed and both mark it, so a single-use token would
+   * be used twice. The second update now matches no row. The kind is part of
+   * the same condition, so a token presented for the wrong purpose is refused
+   * without being spent.
    */
-  async consume(uow: UnitOfWork, rawToken: string): Promise<AuthVerificationToken> {
-    const tokenHash = hashToken(rawToken);
-    const row = await uow.tx
-      .selectFrom('auth_verification_tokens')
-      .selectAll()
-      .where('token_hash', '=', tokenHash)
-      .where('consumed_at', 'is', null)
-      .where('expires_at', '>', new Date())
-      .executeTakeFirst();
-    if (!row) throw new NotFoundError('Verification token is invalid or expired');
-
+  async consume(
+    uow: UnitOfWork,
+    rawToken: string,
+    kind: VerificationKind,
+  ): Promise<AuthVerificationToken> {
+    const now = new Date();
     const updated = await uow.tx
       .updateTable('auth_verification_tokens')
-      .set({ consumed_at: new Date() })
-      .where('verification_id', '=', row.verification_id)
+      .set({ consumed_at: now })
+      .where('token_hash', '=', hashToken(rawToken))
+      .where('kind', '=', kind)
+      .where('consumed_at', 'is', null)
+      .where('expires_at', '>', now)
       .returningAll()
-      .executeTakeFirstOrThrow();
-
+      .executeTakeFirst();
+    if (!updated) throw new NotFoundError('Verification token is invalid or expired');
     return toVerificationToken(updated);
+  }
+
+  /**
+   * Revokes every unconsumed refresh credential of a principal, so a password
+   * reset ends the native sessions that were open before it. Access JWTs
+   * already issued stay valid until they expire: the API is stateless.
+   */
+  async revokeSessionRefreshTokens(uow: UnitOfWork, principalId: string): Promise<number> {
+    const result = await uow.tx
+      .updateTable('auth_verification_tokens')
+      .set({ consumed_at: new Date() })
+      .where('principal_id', '=', principalId)
+      .where('kind', '=', 'session-refresh')
+      .where('consumed_at', 'is', null)
+      .executeTakeFirst();
+    return Number(result.numUpdatedRows);
   }
 }
 

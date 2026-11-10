@@ -1,10 +1,10 @@
 import { stringify } from 'csv-stringify/sync';
 
-const FORMULA_LEAD_CHARS = new Set(['=', '+', '-', '@']);
+const FORMULA_LEAD_CHARS = new Set(['=', '+', '-', '@', '\t', '\r']);
 
 /**
  * Neutralizes CSV formula injection (OWASP CSV Injection): a value beginning
- * with =, +, -, or @ would be interpreted as a formula by a spreadsheet
+ * with =, +, -, @, a tab or a carriage return would be interpreted as a formula by a spreadsheet
  * application, so this call site treats the value as organizer/participant
  * free text rather than trusting the spreadsheet not to.
  */

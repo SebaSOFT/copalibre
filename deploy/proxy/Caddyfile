@@ -14,7 +14,14 @@
 
 # Set these three host names in the reverse proxy environment. Caddy terminates
 # TLS here; Docker Compose deliberately does not expose a public TLS listener.
+# Browsers that reached a host over HTTPS keep using HTTPS for a year. Add
+# includeSubDomains only when every subdomain of the name serves HTTPS.
+(hsts) {
+  header Strict-Transport-Security "max-age=31536000"
+}
+
 {$COPALIBRE_APP_HOST} {
+  import hsts
   # Use the shared gateway for same-origin API, authentication, SSE and web routes.
   # Keep /api and /events here: a Control session's HttpOnly cookie is sent only
   # to this hostname. The API and events hosts below are for other clients.
@@ -24,10 +31,12 @@
 }
 
 {$COPALIBRE_API_HOST} {
+  import hsts
   reverse_proxy api:3001
 }
 
 {$COPALIBRE_EVENTS_HOST} {
+  import hsts
   @sse path /events/*
   reverse_proxy @sse events:3002 {
     # Flush comments/events as they are written instead of collecting a batch.

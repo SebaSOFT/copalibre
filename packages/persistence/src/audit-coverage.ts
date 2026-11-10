@@ -86,6 +86,8 @@ export const AUDIT_COVERAGE_EXCEPTIONS: Readonly<Record<string, string>> = Objec
     'ephemeral verification-token bookkeeping; the account change it authorizes is audited where it is applied (identity.password-reset)',
   'auth-verification-token-repository.ts:consume':
     'ephemeral verification-token bookkeeping; the account change it authorizes is audited where it is applied (identity.password-reset)',
+  'auth-verification-token-repository.ts:revokeSessionRefreshTokens':
+    'a consequence of a password reset, written in the same transaction that records identity.password-reset',
   'identity-principal-repository.ts:findOrCreateByEmail':
     'a principal auto-provisioned as a step of linkParticipant, which already records participant.identity-linked for the operator action that caused it',
   'competition-record-repository.ts:materialiseStandings':

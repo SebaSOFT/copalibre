@@ -6,7 +6,8 @@ Example config: [`deploy/proxy/Caddyfile`](../../../deploy/proxy/Caddyfile).
 
 1. Point `COPALIBRE_APP_HOST`, `COPALIBRE_API_HOST`, and `COPALIBRE_EVENTS_HOST` at the public host
    names for the web, API, and SSE endpoints. Caddy terminates TLS at this layer — Docker Compose
-   does not expose a public TLS listener of its own.
+   does not expose a public TLS listener of its own. Each site sends `Strict-Transport-Security`
+   for one year; add `includeSubDomains` only when every subdomain serves HTTPS.
 2. Set `ACME_EMAIL` so Caddy can request certificates automatically.
 3. Copy the Caddyfile into place (or point Caddy's `--config` flag at it) and start Caddy in front of
    the running Compose installation.

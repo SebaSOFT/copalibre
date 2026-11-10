@@ -39,20 +39,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout copalibre (the validator)
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: SebaSOFT/copalibre
           ref: ${{ inputs.copalibre-ref }}
           path: copalibre
       - name: Checkout the module repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ inputs.module-repository || github.repository }}
           ref: ${{ inputs.module-repository-ref || github.ref }}
           path: modules
       - run: corepack enable
         working-directory: copalibre
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn

@@ -64,6 +64,14 @@ export class SchedulerService implements OnModuleInit, OnApplicationShutdown {
       intervalSeconds: 60 * 60,
       enabled: true,
     });
+    // Looks for bursts of refused requests; the worker raises the alert.
+    await this.register({
+      jobName: 'security-refusal-watch',
+      eventType: 'security.refusals.check',
+      payload: {},
+      intervalSeconds: 5 * 60,
+      enabled: true,
+    });
     this.timer = setInterval(() => void this.tick(), renewIntervalMs(this.timing));
     this.timer.unref?.();
   }

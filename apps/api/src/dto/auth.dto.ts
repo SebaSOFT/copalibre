@@ -1,5 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ArrayNotEmpty, IsArray, IsInt, IsOptional, IsString } from 'class-validator';
+import { ArrayNotEmpty, IsArray, IsInt, IsOptional, IsString, MaxLength } from 'class-validator';
+
+/** Longest password accepted; hashing cost grows with input length. Matches password-hashing.ts. */
+const MAX_PASSWORD_LENGTH = 1024;
+/** Verification and invitation tokens are 43 characters; this leaves room and no more. */
+const MAX_TOKEN_LENGTH = 512;
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 
@@ -7,8 +12,9 @@ export class LoginRequest {
   @ApiProperty({ format: 'email' })
   @IsString()
   email!: string;
-  @ApiProperty()
+  @ApiProperty({ maxLength: MAX_PASSWORD_LENGTH })
   @IsString()
+  @MaxLength(MAX_PASSWORD_LENGTH)
   password!: string;
 }
 
@@ -39,11 +45,13 @@ export class ForgotPasswordRequest {
 }
 
 export class ResetPasswordRequest {
-  @ApiProperty({ description: 'The reset token from the email link' })
+  @ApiProperty({ description: 'The reset token from the email link', maxLength: MAX_TOKEN_LENGTH })
   @IsString()
+  @MaxLength(MAX_TOKEN_LENGTH)
   token!: string;
-  @ApiProperty({ description: 'New password (min 8 characters)' })
+  @ApiProperty({ description: 'New password (min 8 characters)', maxLength: MAX_PASSWORD_LENGTH })
   @IsString()
+  @MaxLength(MAX_PASSWORD_LENGTH)
   newPassword!: string;
 }
 
@@ -131,12 +139,17 @@ export class PatRevocationResponse {
 }
 
 export class NativeAcceptInvitationRequest {
-  @ApiProperty({ description: 'The invitation token from setupUrl' })
+  @ApiProperty({ description: 'The invitation token from setupUrl', maxLength: MAX_TOKEN_LENGTH })
   @IsString()
+  @MaxLength(MAX_TOKEN_LENGTH)
   token!: string;
 
-  @ApiProperty({ description: 'New password for the administrator (min 8 characters)' })
+  @ApiProperty({
+    description: 'New password for the administrator (min 8 characters)',
+    maxLength: MAX_PASSWORD_LENGTH,
+  })
   @IsString()
+  @MaxLength(MAX_PASSWORD_LENGTH)
   password!: string;
 
   @ApiPropertyOptional({ description: 'Display name for the administrator' })

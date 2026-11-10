@@ -29,7 +29,7 @@ jobs:
       packages: write
       vulnerability-alerts: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -62,7 +62,7 @@ jobs:
         if: steps.check.outputs.exists != 'true'
         run: corepack enable
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.check.outputs.exists != 'true'
         with:
           node-version: 26
@@ -82,48 +82,95 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/check-dependabot-alerts.mjs
 
+      # The static security controls block publication. The full release
+      # verdict is produced and kept with every run, but does not block yet:
+      # its runtime controls need the production-profile deployment, and
+      # enforcement switches on once they pass (docs/security/README.md).
+      - name: Install the pinned secret scanner
+        if: steps.check.outputs.exists != 'true'
+        run: |
+          scripts/security/install-gitleaks.sh "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Security gate (static)
+        if: steps.check.outputs.exists != 'true'
+        run: node scripts/security/run.mjs --mode static --out security-report/static
+
       - name: Pull Docker Hub images through a mirror
         if: steps.check.outputs.exists != 'true'
         run: |
           echo '{"registry-mirrors":["https://mirror.gcr.io"]}' | sudo tee /etc/docker/daemon.json
           sudo systemctl restart docker
 
-      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         if: steps.check.outputs.exists != 'true'
 
       # Base images come from Docker Hub, which rate-limits anonymous pulls per runner address;
       # BuildKit takes them from Google's public mirror, which falls back to Docker Hub.
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
         if: steps.check.outputs.exists != 'true'
         with:
           buildkitd-config-inline: |
             [registry."docker.io"]
               mirrors = ["mirror.gcr.io"]
 
-      - uses: docker/login-action@v4
+      # Build once, scan those bytes, publish those bytes: the candidate
+      # archives below are what Trivy checks and what skopeo pushes, and the
+      # push is refused if the registry's index digest is not the one built.
+      - name: Install the pinned image scanner
+        if: steps.check.outputs.exists != 'true'
+        run: |
+          scripts/security/install-trivy.sh "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Build candidate images
+        if: steps.check.outputs.exists != 'true'
+        run: scripts/release/candidate-images.sh build release-candidates
+
+      - name: Scan candidate images
+        if: steps.check.outputs.exists != 'true'
+        run: scripts/release/candidate-images.sh scan release-candidates
+
+      # The full release verdict is produced and kept with every run but does
+      # not block yet: its runtime controls need the production-profile
+      # deployment, and enforcement switches on once they pass
+      # (docs/security/README.md).
+      - name: Security verdict (release, recorded)
+        id: security_release
+        if: steps.check.outputs.exists != 'true'
+        continue-on-error: true
+        run: >-
+          node scripts/security/run.mjs --mode release --out security-report/release
+          --runtime-evidence release-candidates
+          --artifact-manifest release-candidates/images.json
+
+      - name: Keep the security reports
+        if: ${{ !cancelled() && steps.check.outputs.exists != 'true' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: security-report-release
+          path: |
+            security-report/
+            release-candidates/*.json
+          retention-days: 90
+
+      # Registry credentials are provided only now, after every check passed.
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         if: steps.check.outputs.exists != 'true'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push runtime image
+      - name: Publish the scanned images
         if: steps.check.outputs.exists != 'true'
         run: |
-          tags="--tag ghcr.io/sebasoft/copalibre:${{ steps.version.outputs.version }}"
+          version="${{ steps.version.outputs.version }}"
+          refs=("ghcr.io/sebasoft/copalibre:$version" "ghcr.io/sebasoft/copalibre-web:$version")
           if [ "${{ steps.version.outputs.is_prerelease }}" != "true" ]; then
-            tags="$tags --tag ghcr.io/sebasoft/copalibre:latest"
+            refs+=("ghcr.io/sebasoft/copalibre:latest" "ghcr.io/sebasoft/copalibre-web:latest")
           fi
-          docker buildx build --platform linux/amd64,linux/arm64 --target runtime --push $tags .
-
-      - name: Build and push web image
-        if: steps.check.outputs.exists != 'true'
-        run: |
-          tags="--tag ghcr.io/sebasoft/copalibre-web:${{ steps.version.outputs.version }}"
-          if [ "${{ steps.version.outputs.is_prerelease }}" != "true" ]; then
-            tags="$tags --tag ghcr.io/sebasoft/copalibre-web:latest"
-          fi
-          docker buildx build --platform linux/amd64,linux/arm64 --target web --push $tags .
+          scripts/release/candidate-images.sh publish release-candidates "${refs[@]}"
 
       - name: Create and push tag
         if: steps.check.outputs.exists != 'true'
@@ -160,5 +207,6 @@ jobs:
         if: steps.check.outputs.exists != 'true'
         env:
           SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
-        run: |
-          npm_config_registry=https://registry.npmjs.org/ npx -y @smithery/cli mcp publish apps/copalibre/dist/copalibre.mcpb -n SebaSOFT/copalibre
+        # The Smithery CLI is a pinned devDependency, installed and audited above with
+        # the rest of the lockfile; nothing is downloaded and run with the key in scope.
+        run: yarn smithery mcp publish apps/copalibre/dist/copalibre.mcpb -n SebaSOFT/copalibre

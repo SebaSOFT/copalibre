@@ -2,5 +2,9 @@
   "parse-cache-control@1.0.1": {
     "licenses": "BSD-3-Clause",
     "checksum": "111f42b37daecc6c387d037ef25955bd269e7f9a46a736d5257a23560534763f"
+  },
+  "@smithery/cli@4.11.1": {
+    "licenses": "AGPL-3.0-only",
+    "checksum": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef"
   }
 }

@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { trustedProxiesFromEnv } from '@copalibre/auth';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
 import { API_BODY_LIMIT_BYTES } from './http-body-limit.js';
@@ -11,10 +12,14 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     // trustProxy: a self-hosted install sits behind a reverse proxy; without
-    // this every request's `ip` is the proxy's own address, which would key
-    // the per-IP rate limits off the proxy and collapse all clients
-    // into one bucket.
-    new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES, trustProxy: true }),
+    // it every request's `ip` is the proxy's own address, which would key the
+    // per-IP rate limits off the proxy and collapse all clients into one
+    // bucket. Only the configured proxies are believed, so a client reaching
+    // this process directly cannot name its own address.
+    new FastifyAdapter({
+      bodyLimit: API_BODY_LIMIT_BYTES,
+      trustProxy: trustedProxiesFromEnv() as string[] | false,
+    }),
   );
   applyApiPathPrefix(app);
   await applyApiSecurityHeaders(app);

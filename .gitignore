@@ -146,3 +146,6 @@ packages/design-tokens/generated/
 
 # Raw scrape cache for demo datasets (never committed)
 packages/demo-datasets/cache/
+
+# Security gate reports (scripts/security/run.mjs)
+security-report/

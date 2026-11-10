@@ -221,6 +221,11 @@ export const AUDIT_ACTIONS = [
   'authorization.refused',
   /** A change was refused by lifecycle-state or mutation-classification (blocked_after_results, a competition-state conflict, an invariant). */
   'mutation.refused',
+
+  // Suspicious activity — the security watch raised an alert for a burst of
+  // refusals from one actor; the actor is in `reason`, the counts in
+  // `resultingState`.
+  'security.alert-raised',
 ] as const satisfies readonly string[];
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

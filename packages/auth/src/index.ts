@@ -52,3 +52,9 @@ export {
   type AccessTokenSource,
   type ExtractedAccessToken,
 } from './access-token-source.js';
+export {
+  DEFAULT_TRUSTED_PROXIES,
+  TRUSTED_PROXIES_ENV,
+  trustedProxiesFromEnv,
+  type TrustedProxies,
+} from './trusted-proxies.js';

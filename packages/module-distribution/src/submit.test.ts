@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { submitModule, type GitCommandRunner } from './submit.js';
+import { submitModule, submitTargetProblems, type GitCommandRunner } from './submit.js';
 
 /**
  * `submitModule` is exercised only against a fake `GitCommandRunner` — never
@@ -102,5 +102,33 @@ describe('submitModule', () => {
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
+  });
+});
+
+describe('submit target validation', () => {
+  it('accepts an owner/name repository and an ordinary branch', () => {
+    expect(submitTargetProblems('SebaSOFT/copalibre-modules', 'main')).toEqual([]);
+    expect(submitTargetProblems('some-org/modules.v2', 'release/2026-11')).toEqual([]);
+  });
+
+  it.each([
+    ['--help', 'main'],
+    ['owner/../other', 'main'],
+    ['https://evil.example/x', 'main'],
+    ['owner', 'main'],
+    ['owner/name', '--upload-pack=x'],
+    ['owner/name', 'main..evil'],
+    ['owner/name', 'main@{1}'],
+    ['owner/name', 'branch.'],
+  ])('refuses %s on %s before running anything', async (upstream, base) => {
+    expect(submitTargetProblems(upstream, base).length).toBeGreaterThan(0);
+    const calls: string[] = [];
+    await expect(
+      submitModule(
+        { modulePath: '/nonexistent', upstreamRepository: upstream, baseBranch: base },
+        { run: async (command) => (calls.push(command), { stdout: '' }) },
+      ),
+    ).rejects.toThrow();
+    expect(calls).toEqual([]);
   });
 });

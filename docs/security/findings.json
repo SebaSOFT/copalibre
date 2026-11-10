@@ -1,0 +1,311 @@
+[
+  {
+    "id": "verification-token-double-consume",
+    "severity": "high",
+    "control": "single-use-verification-tokens",
+    "status": "fixed",
+    "summary": "Two overlapping requests could both consume one recovery or refresh token under read committed.",
+    "fingerprint": "packages/persistence/src/repositories/auth-verification-token-repository.ts#consume",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "packages/persistence/src/repositories/auth-verification-token-repository.integration.test.ts",
+        "name": "refuses a consume that overlaps an uncommitted one"
+      }
+    ]
+  },
+  {
+    "id": "verification-token-wrong-purpose",
+    "severity": "medium",
+    "control": "single-use-verification-tokens",
+    "status": "fixed",
+    "summary": "A token presented for another purpose was spent before the purpose was checked.",
+    "fingerprint": "packages/persistence/src/repositories/auth-verification-token-repository.ts#consume",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "packages/persistence/src/repositories/auth-verification-token-repository.integration.test.ts",
+        "name": "refuses a token of another kind without spending it"
+      },
+      {
+        "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+        "name": "POST /auth/reset-password refuses a refresh credential and leaves it usable"
+      }
+    ]
+  },
+  {
+    "id": "password-reset-keeps-sessions",
+    "severity": "medium",
+    "control": "single-use-verification-tokens",
+    "status": "fixed",
+    "summary": "A password reset left the refresh credentials opened with the old password valid.",
+    "fingerprint": "apps/api/src/controllers/auth.controller.ts#resetPassword",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+        "name": "POST /auth/reset-password ends the refresh sessions opened before it"
+      }
+    ]
+  },
+  {
+    "id": "reset-token-server-error",
+    "severity": "low",
+    "control": "error-envelope",
+    "status": "fixed",
+    "summary": "An unknown, expired or used reset token answered 500 instead of a client error.",
+    "fingerprint": "apps/api/src/controllers/auth.controller.ts#resetPassword",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+        "name": "POST /auth/reset-password refuses a refresh credential and leaves it usable"
+      }
+    ]
+  },
+  {
+    "id": "internal-ports-published",
+    "severity": "high",
+    "control": "only-gateway-published",
+    "status": "fixed",
+    "summary": "The Level 1 compose published API, events, web, web-ssr, object storage and clamd on every host interface.",
+    "fingerprint": "docker-compose.yml#ports",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/copalibre/src/compose-reconciler.test.ts",
+        "name": "ships a compose file that publishes only the gateway on every interface"
+      }
+    ]
+  },
+  {
+    "id": "forwarded-for-trusted-from-anyone",
+    "severity": "high",
+    "control": "forwarded-address-trust",
+    "status": "fixed",
+    "summary": "The API believed X-Forwarded-For from any peer, so a direct client could choose the address its rate limits key on.",
+    "fingerprint": "apps/api/src/main.ts#trustProxy",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/http/trusted-proxies.test.ts",
+        "name": "ignores a forwarded address sent by a public client"
+      }
+    ]
+  },
+  {
+    "id": "events-limits-share-proxy-address",
+    "severity": "medium",
+    "control": "forwarded-address-trust",
+    "status": "fixed",
+    "summary": "The events role trusted no proxy, so every viewer behind the gateway shared the proxy's connection bucket.",
+    "fingerprint": "apps/events/src/main.ts#FastifyAdapter",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/http/trusted-proxies.test.ts",
+        "name": "believes the forwarded address from a private-network proxy"
+      }
+    ]
+  },
+  {
+    "id": "smithery-unpinned-download",
+    "severity": "high",
+    "control": "publication-supply-chain",
+    "status": "fixed",
+    "summary": "The release downloaded and ran an unpinned Smithery CLI with the registry key in scope.",
+    "fingerprint": ".github/workflows/release.yml#Publish to Smithery",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "scripts/security/check-publication-policy.test.mjs",
+        "name": "refuses an unpinned download-and-run in a publishing workflow"
+      }
+    ]
+  },
+  {
+    "id": "cli-assets-from-any-commit",
+    "severity": "high",
+    "control": "publication-supply-chain",
+    "status": "fixed",
+    "summary": "A manual CLI release from any commit with the same version could upload assets to that release.",
+    "fingerprint": ".github/workflows/copalibre-cli-release.yml",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "scripts/verify-release-source.test.mjs",
+        "name": "a manual dispatch from another commit with the same version is refused"
+      }
+    ]
+  },
+  {
+    "id": "actions-pinned-by-tag",
+    "severity": "medium",
+    "control": "publication-supply-chain",
+    "status": "fixed",
+    "summary": "Workflow actions were pinned by movable tags rather than commit SHAs.",
+    "fingerprint": ".github/workflows",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "scripts/security/check-publication-policy.test.mjs",
+        "name": "refuses an action pinned by tag"
+      }
+    ]
+  },
+  {
+    "id": "login-timing-reveals-accounts",
+    "severity": "medium",
+    "control": "password-hashing",
+    "status": "fixed",
+    "summary": "Login answered an unknown email without a hash verification, so its response time revealed which accounts exist.",
+    "fingerprint": "apps/api/src/controllers/auth.controller.ts#login",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/auth/password-hashing.test.ts",
+        "name": "spends a real verification on an unknown account"
+      },
+      {
+        "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+        "name": "POST /auth/login answers an unknown email exactly like a wrong password"
+      }
+    ]
+  },
+  {
+    "id": "password-length-unbounded",
+    "severity": "low",
+    "control": "password-hashing",
+    "status": "fixed",
+    "summary": "Password fields had no maximum length, so one request could make the server hash an input as large as the body limit.",
+    "fingerprint": "apps/api/src/dto/auth.dto.ts#password",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+        "name": "POST /auth/login refuses a password longer than the limit before hashing it"
+      }
+    ]
+  },
+  {
+    "id": "module-alias-path-and-option-injection",
+    "severity": "high",
+    "control": "module-source-boundary",
+    "status": "fixed",
+    "summary": "A module alias from the install request reached a checkout path and git arguments unvalidated: ../ left the checkout and a leading - was read as a git option.",
+    "fingerprint": "packages/module-distribution/src/fetch.ts#fetchModule",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "packages/module-distribution/src/fetch.test.ts",
+        "name": "refuses %j before running git or touching a path"
+      },
+      {
+        "file": "apps/api/src/controllers/admin-modules.integration.test.ts",
+        "name": "refuses the alias %j with 400 before fetching anything"
+      }
+    ]
+  },
+  {
+    "id": "module-submit-target-injection",
+    "severity": "medium",
+    "control": "module-source-boundary",
+    "status": "fixed",
+    "summary": "The upstream repository and base branch of a module submission reached gh and git arguments unvalidated.",
+    "fingerprint": "packages/module-distribution/src/submit.ts#submitModule",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "packages/module-distribution/src/submit.test.ts",
+        "name": "refuses %s on %s before running anything"
+      }
+    ]
+  },
+  {
+    "id": "csv-formula-tab-carriage-return",
+    "severity": "low",
+    "control": "csv-export-formulas",
+    "status": "fixed",
+    "summary": "CSV export neutralized =, +, - and @ but not a leading tab or carriage return.",
+    "fingerprint": "packages/domain/src/import-export/csv-export.ts#escapeCsvFormulaCell",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "packages/domain/src/import-export/csv-export.test.ts",
+        "name": "prefixes a value starting with a formula-lead character: %s"
+      }
+    ]
+  },
+  {
+    "id": "hsts-missing",
+    "severity": "medium",
+    "control": "edge-hsts",
+    "status": "fixed",
+    "summary": "No shipped edge configuration sent Strict-Transport-Security, so a browser could be downgraded to HTTP on a later visit.",
+    "fingerprint": "deploy/proxy/Caddyfile",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "scripts/security/edge-config.test.mjs",
+        "name": "every site of the edge Caddyfile sends HSTS"
+      }
+    ]
+  },
+  {
+    "id": "upload-filename-in-storage-key",
+    "severity": "high",
+    "control": "media-upload-validation",
+    "status": "fixed",
+    "summary": "An uploaded file's name went into its object-storage key unchanged; with filesystem storage, ../ segments in a photo, emblem or participant evidence name reached another organization's objects inside the storage root.",
+    "fingerprint": "apps/api/src/controllers/{identity-media,reports}.controller.ts#storage.put",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/controllers/identity-media.integration.test.ts",
+        "name": "keeps a traversal filename inside the person and serves the decoded type, not the declared one"
+      },
+      {
+        "file": "apps/api/src/controllers/reports.integration.test.ts",
+        "name": "stores participant evidence under its organization whatever the filename says"
+      }
+    ]
+  },
+  {
+    "id": "upload-declared-content-type",
+    "severity": "medium",
+    "control": "media-upload-validation",
+    "status": "fixed",
+    "summary": "An image was stored and served with the Content-Type its uploader declared, so a valid image declared as text/html was served as HTML.",
+    "fingerprint": "apps/api/src/controllers/identity-media.controller.ts#decodeImage",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/controllers/identity-media.integration.test.ts",
+        "name": "keeps a traversal filename inside the person and serves the decoded type, not the declared one"
+      },
+      {
+        "file": "apps/api/src/controllers/reports.integration.test.ts",
+        "name": "refuses evidence whose media type carries anything but type/subtype"
+      }
+    ]
+  },
+  {
+    "id": "module-asset-path-traversal",
+    "severity": "medium",
+    "control": "module-source-boundary",
+    "status": "fixed",
+    "summary": "A module manifest's asset path could name ../ segments, so installing a crafted module read a file outside its package and stored it as a public module asset.",
+    "fingerprint": "packages/module-distribution/src/{manifest,assets,import}.ts#asset.path",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "packages/module-distribution/src/assets.test.ts",
+        "name": "refuses %s, which leaves the assets directory"
+      },
+      {
+        "file": "packages/module-distribution/src/assets.test.ts",
+        "name": "keeps the manifest schema from naming a parent directory"
+      }
+    ]
+  }
+]
