@@ -749,6 +749,11 @@
           "kind": "test",
           "file": "apps/api/src/controllers/admin-modules.integration.test.ts",
           "name": "refuses the alias %j with 400 before fetching anything"
+        },
+        {
+          "kind": "test",
+          "file": "packages/module-distribution/src/assets.test.ts",
+          "name": "refuses %s, which leaves the assets directory"
         }
       ]
     },

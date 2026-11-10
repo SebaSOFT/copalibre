@@ -288,5 +288,24 @@
         "name": "refuses evidence whose media type carries anything but type/subtype"
       }
     ]
+  },
+  {
+    "id": "module-asset-path-traversal",
+    "severity": "medium",
+    "control": "module-source-boundary",
+    "status": "fixed",
+    "summary": "A module manifest's asset path could name ../ segments, so installing a crafted module read a file outside its package and stored it as a public module asset.",
+    "fingerprint": "packages/module-distribution/src/{manifest,assets,import}.ts#asset.path",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "packages/module-distribution/src/assets.test.ts",
+        "name": "refuses %s, which leaves the assets directory"
+      },
+      {
+        "file": "packages/module-distribution/src/assets.test.ts",
+        "name": "keeps the manifest schema from naming a parent directory"
+      }
+    ]
   }
 ]

@@ -34,7 +34,9 @@ export interface ModuleManifest {
 }
 
 /** Lowercase filename, optionally with a subdirectory — matching this codebase's kebab-case convention. */
-const ASSET_PATH_PATTERN = '^[a-z0-9][a-z0-9._/-]*$';
+// Relative to the module's assets/ directory: no `..` segment, no empty
+// segment, so a manifest cannot name a file outside its own package.
+const ASSET_PATH_PATTERN = '^(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*//)[a-z0-9][a-z0-9._/-]*$';
 
 export const MODULE_MANIFEST_SCHEMA = Object.freeze({
   $schema: 'http://json-schema.org/draft-07/schema#',

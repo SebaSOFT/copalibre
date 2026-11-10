@@ -1,8 +1,28 @@
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { relative, resolve, sep } from 'node:path';
 import { imageSize } from 'image-size';
 import type { ModuleAssetDescriptor, ModuleAssetKind } from './manifest.js';
 import { ASSETS_DIRECTORY_NAME } from './package-format.js';
+
+/**
+ * The file a manifest's asset path names, refused when it resolves outside
+ * the package's assets/ directory. The manifest pattern already forbids `..`;
+ * this holds even for a manifest that skipped that validation.
+ */
+export function assetFilePath(directory: string, assetPath: string): string {
+  const root = resolve(directory, ASSETS_DIRECTORY_NAME);
+  const target = resolve(root, assetPath);
+  const inside = relative(root, target);
+  if (
+    inside === '' ||
+    inside.startsWith('..') ||
+    inside.startsWith(sep) ||
+    resolve(root, inside) !== target
+  ) {
+    throw new Error(`asset path "${assetPath}" leaves the module's assets directory`);
+  }
+  return target;
+}
 
 /**
  * Asset limits. No owner
@@ -52,7 +72,12 @@ async function validateOneAsset(
   directory: string,
   descriptor: ModuleAssetDescriptor,
 ): Promise<AssetValidationFailure | undefined> {
-  const path = join(directory, ASSETS_DIRECTORY_NAME, descriptor.path);
+  let path: string;
+  try {
+    path = assetFilePath(directory, descriptor.path);
+  } catch (error) {
+    return { path: descriptor.path, message: (error as Error).message };
+  }
   let bytes: Buffer;
   try {
     bytes = await readFile(path);
