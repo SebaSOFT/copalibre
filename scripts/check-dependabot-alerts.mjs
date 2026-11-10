@@ -41,6 +41,32 @@ export const KNOWN_UNPATCHED_ADVISORIES = Object.freeze({
   }),
 });
 
+/**
+ * Packages deliberately removed from the dependency graph while an alert for
+ * them can still be open on `main`. An alert for a package with no locked
+ * instance passes only when the package is listed here AND is absent from the
+ * lockfile; any other missing instance still fails, because a package that
+ * vanished without a reviewed reason is more likely a broken lock read than a
+ * fix.
+ *
+ * @typedef {{
+ *   readonly removedBy: string;
+ *   readonly evidence: string;
+ * }} ReviewedRemoval
+ */
+
+/** @type {Readonly<Record<string, ReviewedRemoval>>} */
+export const REVIEWED_REMOVALS = Object.freeze({});
+
+/**
+ * How an open alert stands against the checkout. GitHub's own state is kept
+ * apart: an alert open on `main` can be `patched-in-checkout` here, and only a
+ * later query after a release reaches `main` can show it closed.
+ *
+ * @typedef {'patched-in-checkout' | 'vulnerable-in-checkout' | 'removed-dependency'
+ *   | 'reviewed-unpatched' | 'unresolved'} AlertClassification
+ */
+
 export function compareStableVersions(left, right) {
   const leftParts = stableParts(left);
   const rightParts = stableParts(right);
@@ -118,12 +144,22 @@ export function checkManifestResolutionFloor(
 export function inspectOpenAlerts(
   alerts,
   known = KNOWN_UNPATCHED_ADVISORIES,
-  { lockText, resolutions = {} } = {},
+  { lockText, resolutions = {}, removals = REVIEWED_REMOVALS } = {},
 ) {
   const failures = [];
   const reviewed = [];
   const patchedInCheckout = [];
+  /** @type {Array<{ number: number; packageName?: string; ghsa?: string; classification: AlertClassification; lockedVersions: string[] }>} */
+  const classified = [];
+  const classify = (alert, packageName, ghsa, classification, lockedVersions = []) =>
+    classified.push({ number: alert.number, packageName, ghsa, classification, lockedVersions });
   for (const alert of alerts) {
+    const malformed = malformedAlert(alert);
+    if (malformed) {
+      failures.push(malformed);
+      classify(alert, undefined, undefined, 'unresolved');
+      continue;
+    }
     const registered = known[alert.number];
     const packageName = alert.security_vulnerability?.package?.name;
     const ghsa = alert.security_advisory?.ghsa_id;
@@ -133,10 +169,20 @@ export function inspectOpenAlerts(
       if (firstPatchedVersion && packageName && lockText) {
         const versions = lockVersions(lockText, packageName);
         if (versions.length === 0) {
+          if (removals[packageName]) {
+            classify(alert, packageName, ghsa, 'removed-dependency');
+            continue;
+          }
           failures.push(
             `Dependabot alert #${alert.number} (${packageName}, ${ghsa ?? 'unknown GHSA'}) has a published fix but no locked package instance was found`,
           );
+          classify(alert, packageName, ghsa, 'unresolved');
           continue;
+        }
+        if (removals[packageName]) {
+          failures.push(
+            `${packageName}: registered as removed but ${versions.join(', ')} is still locked; remove the register entry or the package`,
+          );
         }
         const patchFailures = [
           ...checkPatchedFloor(packageName, versions, firstPatchedVersion, vulnerableVersionRange),
@@ -151,23 +197,94 @@ export function inspectOpenAlerts(
         failures.push(...patchFailures);
         if (patchFailures.length === 0) {
           patchedInCheckout.push({ number: alert.number, packageName, ghsa, firstPatchedVersion });
+          classify(alert, packageName, ghsa, 'patched-in-checkout', versions);
+        } else {
+          classify(alert, packageName, ghsa, 'vulnerable-in-checkout', versions);
         }
         continue;
       }
       failures.push(
         `Dependabot alert #${alert.number} (${packageName ?? 'unknown package'}, ${ghsa ?? 'unknown GHSA'}) is open and has no reviewed register entry`,
       );
+      classify(alert, packageName, ghsa, 'unresolved');
       continue;
     }
     if (registered.package !== packageName || registered.ghsa !== ghsa) {
       failures.push(
         `Dependabot alert #${alert.number} no longer matches its register entry: expected ${registered.package}/${registered.ghsa}, received ${packageName}/${ghsa}`,
       );
+      classify(alert, packageName, ghsa, 'unresolved');
       continue;
     }
+    // Accepted risk is never a fix: it stays its own classification.
     reviewed.push({ number: alert.number, packageName, ghsa });
+    classify(
+      alert,
+      packageName,
+      ghsa,
+      'reviewed-unpatched',
+      lockText ? lockVersions(lockText, packageName) : [],
+    );
   }
-  return { failures, reviewed, patchedInCheckout };
+  return { failures, reviewed, patchedInCheckout, classified };
+}
+
+/**
+ * An alert record missing the fields the classification depends on. Treated
+ * as a failure, never as nothing to report: a truncated or changed API
+ * response must not read as a clean checkout.
+ */
+function malformedAlert(alert) {
+  if (!alert || typeof alert !== 'object' || !Number.isInteger(alert.number)) {
+    return 'Dependabot alerts API returned an alert without a numeric id';
+  }
+  const packageName = alert.security_vulnerability?.package?.name;
+  const ghsa = alert.security_advisory?.ghsa_id;
+  if (typeof packageName !== 'string' || packageName.length === 0 || typeof ghsa !== 'string') {
+    return `Dependabot alert #${alert.number} has no package name or GHSA id`;
+  }
+  const patched = alert.security_vulnerability?.first_patched_version?.identifier;
+  if (patched !== undefined && patched !== null && !semver.valid(patched)) {
+    return `Dependabot alert #${alert.number} (${packageName}) has an unreadable patched version ${String(patched)}`;
+  }
+  const range = alert.security_vulnerability?.vulnerable_version_range;
+  if (range !== undefined && range !== null && !semver.validRange(range.replace(/,\s*/g, ' '))) {
+    return `Dependabot alert #${alert.number} (${packageName}) has an unreadable vulnerable range ${String(range)}`;
+  }
+  return undefined;
+}
+
+/**
+ * The nonsecret inventory behind a verdict: when, against which revisions,
+ * and how every open alert stands in the checkout. GitHub state is reported
+ * as GitHub reports it; nothing here claims an alert closed.
+ */
+export function buildInventory({ alerts, classified, sourceSha, mainSha, generatedAt }) {
+  const byNumber = new Map(classified.map((entry) => [entry.number, entry]));
+  return {
+    generatedAt,
+    sourceSha,
+    mainSha,
+    githubOpenAlerts: alerts.length,
+    classificationCounts: classified.reduce((counts, entry) => {
+      counts[entry.classification] = (counts[entry.classification] ?? 0) + 1;
+      return counts;
+    }, {}),
+    alerts: alerts.map((alert) => ({
+      number: alert.number,
+      githubState: alert.state ?? 'open',
+      package: alert.security_vulnerability?.package?.name,
+      ghsa: alert.security_advisory?.ghsa_id,
+      severity: alert.security_advisory?.severity ?? alert.security_vulnerability?.severity,
+      vulnerableVersionRange: alert.security_vulnerability?.vulnerable_version_range,
+      firstPatchedVersion: alert.security_vulnerability?.first_patched_version?.identifier ?? null,
+      manifest: alert.dependency?.manifest_path,
+      scope: alert.dependency?.scope,
+      relationship: alert.dependency?.relationship,
+      lockedVersions: byNumber.get(alert.number)?.lockedVersions ?? [],
+      classification: byNumber.get(alert.number)?.classification ?? 'unresolved',
+    })),
+  };
 }
 
 export function lockVersions(lockText, packageName) {
@@ -189,7 +306,7 @@ export async function checkDependabotAlerts({
 
   const alerts = await listOpenAlerts(repository, token, fetchImpl);
   const manifest = JSON.parse(readFileSync(new URL('package.json', ROOT), 'utf8'));
-  const { failures, reviewed, patchedInCheckout } = inspectOpenAlerts(alerts, known, {
+  const { failures, reviewed, patchedInCheckout, classified } = inspectOpenAlerts(alerts, known, {
     lockText,
     resolutions: manifest.resolutions ?? {},
   });
@@ -247,6 +364,8 @@ export async function checkDependabotAlerts({
     openAlertCount: alerts.length,
     reviewedAlertCount: reviewed.length,
     patchedAlertCount: patchedInCheckout.length,
+    alerts,
+    classified,
   };
 }
 
@@ -255,7 +374,12 @@ async function listOpenAlerts(repository, token, fetchImpl) {
   let url = `${API}/repos/${repository}/dependabot/alerts?state=open&per_page=100`;
   while (url) {
     const response = await githubResponse(url, token, fetchImpl);
-    const result = await response.json();
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error('Dependabot alerts API returned a body that is not JSON');
+    }
     if (!Array.isArray(result))
       throw new Error('Dependabot alerts API returned a non-array response');
     alerts.push(...result);
@@ -334,10 +458,32 @@ function normalizeVulnerableVersionRange(range) {
   return normalized;
 }
 
+function gitRevision(ref) {
+  try {
+    return execFileSync('git', ['rev-parse', ref], {
+      cwd: fileURLToPath(ROOT),
+      encoding: 'utf8',
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
 async function main() {
   const token = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
   const repository = process.env.GITHUB_REPOSITORY ?? repositoryFromOrigin();
   const result = await checkDependabotAlerts({ repository, token });
+  if (process.argv.includes('--report')) {
+    const inventory = buildInventory({
+      alerts: result.alerts,
+      classified: result.classified,
+      sourceSha: gitRevision('HEAD'),
+      mainSha: gitRevision('origin/main'),
+      generatedAt: new Date().toISOString(),
+    });
+    process.stdout.write(`${JSON.stringify(inventory, null, 2)}\n`);
+    return;
+  }
   process.stdout.write(
     `Dependabot audit passed: ${result.openAlertCount} open alerts, ${result.reviewedAlertCount} reviewed entries, ${result.patchedAlertCount} patched in checkout\n`,
   );

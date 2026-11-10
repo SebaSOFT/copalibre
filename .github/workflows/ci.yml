@@ -130,6 +130,8 @@ jobs:
         run: node --test scripts/dependency-security-incidents.test.mjs
       - run: node --test scripts/check-dependabot-alerts.test.mjs
       - run: node --test scripts/dependency-security.test.mjs
+      - name: Keep the dependency audits wired into CI and release
+        run: node --test scripts/dependency-audit-wiring.test.mjs
       - name: Check runtime peers that ship matching assets
         run: node scripts/check-runtime-peers.mjs
       - run: node --test scripts/check-runtime-peers.test.mjs
