@@ -8,6 +8,14 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    groups:
+      # @imgly/background-removal serves WebAssembly built for one exact onnxruntime-web release and
+      # declares it as an exact peer. A lone runtime bump breaks background removal while every build
+      # passes, so the two move together; scripts/check-runtime-peers.mjs catches a manual bump.
+      background-removal:
+        patterns:
+          - '@imgly/background-removal'
+          - 'onnxruntime-web'
 
   - package-ecosystem: 'github-actions'
     directory: '/'

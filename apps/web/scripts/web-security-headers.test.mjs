@@ -75,3 +75,13 @@ test('static pages get the hash of each inline script the build emitted, and not
   assert.equal(addInlineScriptHashes(updated), updated, 'a second pass adds nothing');
   assert.equal(addInlineScriptHashes('<script>x()</script>'), '<script>x()</script>');
 });
+
+test('the worker policy keeps every connection on this origin', async () => {
+  const { readWorkerSecurityHeaders } = await import('./web-security-headers.mjs');
+  const { paths, headers } = readWorkerSecurityHeaders();
+  const policy = parsePolicy(headers['Content-Security-Policy']);
+  assert.deepEqual(policy['connect-src'], ["'self'", 'blob:']);
+  assert.deepEqual(policy['object-src'], ["'none'"]);
+  assert.ok(paths.test('/_astro/background-removal.worker-abc123.js'));
+  assert.ok(!paths.test('/_astro/background-removal.worker-abc/evil.js'));
+});

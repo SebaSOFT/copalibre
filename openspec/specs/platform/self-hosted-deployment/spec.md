@@ -973,3 +973,20 @@ override.
 - **WHEN** an operator runs `copalibre init --proxy nginx`
 - **THEN** the written configuration proxies `/_astro/` font files to the gateway, has no `location` that serves `.woff2`
   from disk, and documents the font media types
+
+### Requirement: Installations configure the identity origin the policy allows
+
+The Compose `web` service and the chart's web role SHALL pass `COPALIBRE_CSP_IDENTITY_ORIGIN` to the web role, empty by
+default. `copalibre init` SHALL set it to the issuer's origin when `--app-url` and an external issuer differ, and the
+chart SHALL derive it from `web.env.COPALIBRE_JWT_ISSUER` when not set explicitly. Shipped edge configurations SHALL
+not remove or override `Content-Security-Policy`.
+
+#### Scenario: Default installation
+
+- **WHEN** an operator runs `copalibre init` with native identity
+- **THEN** `.env` has `COPALIBRE_CSP_IDENTITY_ORIGIN` empty and the policy names only the application origin
+
+#### Scenario: Chart with an external issuer
+
+- **WHEN** the chart renders with `web.env.COPALIBRE_JWT_ISSUER` set to `https://id.example/realms/copa`
+- **THEN** the web role receives `COPALIBRE_CSP_IDENTITY_ORIGIN=https://id.example`
