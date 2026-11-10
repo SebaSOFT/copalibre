@@ -11,12 +11,7 @@ const intl = createIntl({ locale: 'en' });
     <meta charset="utf-8" />
     <meta name="robots" content="noindex" />
     <title>{intl.formatMessage(messages.invitationSuccessBody)}</title>
-    <script is:inline>
-      const target = new URL('/control/login', window.location.origin);
-      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
-      if (returnTo !== null) target.searchParams.set('returnTo', returnTo);
-      window.location.replace(`${target.pathname}${target.search}`);
-    </script>
+    <script is:inline src="/scripts/control-entry.js"></script>
     <meta http-equiv="refresh" content="0;url=/control/login" />
   </head>
   <body></body>

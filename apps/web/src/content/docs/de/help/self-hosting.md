@@ -72,6 +72,8 @@ Leiten Sie den Anwendungs-Hostnamen an `gateway:80` im Compose-Netz oder an `127
 
 CopaLibre lädt keine Schriften, Skripte oder Stile von einem anderen Ursprung. Der Web-Container liefert seine Schriftdateien unter `/_astro/` als `font/woff2` und `font/woff` aus. Leiten Sie diese Pfade samt ihrem `Content-Type` weiter: Eine Regel für statische Dateien eines Hosting-Panels für `.woff2`, `.css` oder `.js` macht die Anwendung unbrauchbar.
 
+Jede Seite erzwingt eine Content Security Policy: Nur die Skripte des eigenen Builds laufen, und der Browser verbindet sich nur mit dem Ursprung der Anwendung. Richten Sie einen externen OIDC-Anbieter über `copalibre init` ein (es fragt danach, oder verwenden Sie `--oidc-issuer` und `--oidc-client-id`); `init` setzt `COPALIBRE_CSP_IDENTITY_ORIGIN`, damit die Anmeldung erlaubt ist. Leiten Sie den Header `Content-Security-Policy` unverändert durch den Proxy; `copalibre doctor --check-proxy` prüft das.
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```

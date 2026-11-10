@@ -45,6 +45,14 @@ Flux complet, y compris le bootstrap du premier administrateur comme un Job Helm
 - `--context <ctx>` : kube-context à enregistrer (par défaut : aucun — à passer explicitement à
   chaque fois)
 
+Options d’identité :
+
+- `--oidc-issuer <url>` : connexion via un fournisseur OIDC externe avec cet émetteur exact (`iss`). Sans cette option, CopaLibre utilise son fournisseur intégré. `init` écrit aussi l’origine de l’émetteur dans `COPALIBRE_CSP_IDENTITY_ORIGIN`, pour que la politique de sécurité du contenu autorise la connexion.
+- `--oidc-client-id <id>` : identifiant client enregistré pour CopaLibre chez le fournisseur. Requis avec `--oidc-issuer`.
+- `--oidc-jwks-uri <url>` : jeu de clés du fournisseur (par défaut : lu dans son document de découverte OpenID).
+
+En mode interactif, `init` demande si vous utilisez un fournisseur externe, puis demande ces valeurs.
+
 Options e-mail et réparation :
 
 - `--repair` : sauvegarde `.env` et `docker-compose.yml`, ajoute les valeurs et fichiers manquants et préserve le Compose existant. Les services par défaut absents sont affichés avec leurs extraits YAML à examiner manuellement.

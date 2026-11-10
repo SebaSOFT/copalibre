@@ -65,6 +65,13 @@ styles. The web container sends them as `font/woff2` and `font/woff`, and `rever
 `Content-Type` through. Do not add a `file_server` or `header Content-Type` rule for those paths on
 the edge.
 
+## Security headers
+
+The web container sends a `Content-Security-Policy` and its companion headers on every page;
+server-rendered pages carry two policies, and a browser needs both. `reverse_proxy` passes them through. Do not add a `header Content-Security-Policy` rule on the
+edge, which would replace the application's policies.
+`copalibre doctor --check-proxy` fails when the policy does not reach the browser.
+
 ## SSE conformance
 
 The `{$COPALIBRE_EVENTS_HOST}` block matches `/events/*` and sets `flush_interval -1`, which flushes

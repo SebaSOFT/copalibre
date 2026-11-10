@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './csp-guard.js';
 
 // Every control-panel route's helpPath must resolve to a
 // page describing that screen, including platform administration (whose

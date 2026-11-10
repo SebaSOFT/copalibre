@@ -279,6 +279,19 @@ nothing in this chart installs them.
   `ingress.annotations` for a different controller.
 - **External Secrets Operator**, required by `externalSecrets.enabled`.
 
+## Content Security Policy
+
+The web role enforces a Content Security Policy on every page: hashed inline scripts only,
+and connections, frames and form posts to the application origin only. With an external
+OIDC provider, the policy must also allow the provider's origin. The chart derives it from
+`web.env.COPALIBRE_JWT_ISSUER` when that issuer's origin differs from
+`env.COPALIBRE_APP_URL`; set `web.env.COPALIBRE_CSP_IDENTITY_ORIGIN` to override it. The
+built-in identity provider needs nothing.
+
+Ingress controllers must pass the `Content-Security-Policy` header through unchanged:
+server-rendered pages carry two policies and need both. Do not add a policy in ingress
+annotations.
+
 ## Well-known files
 
 The web role serves `/srv/.well-known` as `/.well-known/` on the application

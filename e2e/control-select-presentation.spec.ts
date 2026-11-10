@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 
 const ZONES_PATH = '/control/liga-mendocina/tournaments/apertura-2026/stages/1/zones';
 

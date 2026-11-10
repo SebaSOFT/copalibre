@@ -69,6 +69,8 @@ Route the application hostname through `gateway:80` on the Compose network, or `
 
 CopaLibre loads no font, script or style from another origin. The web container serves its font files under `/_astro/` as `font/woff2` and `font/woff`. Keep those paths proxied with their `Content-Type`: a hosting panel's static-file rule for `.woff2`, `.css` or `.js` breaks the application.
 
+Every page enforces a Content Security Policy: only the build's own scripts run, and the browser connects to the application origin only. With an external OIDC provider, configure it through `copalibre init` (it asks, or use `--oidc-issuer` and `--oidc-client-id`); `init` sets `COPALIBRE_CSP_IDENTITY_ORIGIN` so sign-in is allowed. Pass the `Content-Security-Policy` header through the proxy unchanged; `copalibre doctor --check-proxy` verifies it.
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```

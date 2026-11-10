@@ -23,7 +23,8 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     usage:
       'copalibre init [--module-dev] [--repair] [--proxy <name>] [--non-interactive] [--skip-preflight] ' +
       '[--app-url <url>] [--api-url <url>] [--disciplines <list>] [--email-provider <provider>] ' +
-      '[--email-from <address>] [--email-credential <value>] [--email-domain <domain>] | ' +
+      '[--email-from <address>] [--email-credential <value>] [--email-domain <domain>] ' +
+      '[--oidc-issuer <url> --oidc-client-id <id> [--oidc-jwks-uri <url>]] | ' +
       'copalibre init --kubernetes [--namespace <ns>] [--release <name>] [--context <ctx>]',
     flags: [
       {
@@ -75,6 +76,19 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
       {
         flag: '--email-domain <domain>',
         description: 'Mailgun sending domain (required for the mailgun provider)',
+      },
+      {
+        flag: '--oidc-issuer <url>',
+        description:
+          'Sign in through an external OIDC provider with this exact issuer (default: the built-in provider)',
+      },
+      {
+        flag: '--oidc-client-id <id>',
+        description: 'Client ID registered for CopaLibre at the OIDC provider',
+      },
+      {
+        flag: '--oidc-jwks-uri <url>',
+        description: "The provider's key set (default: read from its OpenID discovery document)",
       },
       {
         flag: '--kubernetes',

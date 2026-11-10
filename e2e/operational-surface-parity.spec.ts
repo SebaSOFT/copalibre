@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './csp-guard.js';
 
 const css = readFileSync('packages/design-tokens/generated/copalibre.css', 'utf8');
 const controlCss = readFileSync('apps/web/src/styles/control.css', 'utf8');

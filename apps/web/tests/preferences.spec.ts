@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../../../e2e/csp-guard.js';
 import { resolveSemantic } from '@copalibre/design-tokens';
 import {
   loginCallbackUrl,

@@ -17,6 +17,45 @@
 		respond "{\"oidcIssuer\":\"{$COPALIBRE_JWT_ISSUER}\",\"oidcClientId\":\"{$COPALIBRE_OIDC_CLIENT_ID}\"}" 200
 	}
 
+	# Runtime half of the Content Security Policy; the build writes the other
+	# half into each page as a <meta> policy with the hash of every inline
+	# script and style. A browser enforces both, so the loose script-src and
+	# style-src below only keep the hashed inline elements from falling back
+	# to default-src: in the intersection, the hashes govern. This half owns
+	# what only the running installation knows or a <meta> cannot carry:
+	# connections, frames and forms (the application, plus an external
+	# identity provider's origin when one is configured) and frame-ancestors.
+	# blob: in connect-src lets a page read back image data it created itself.
+	# The application frames its own pages (overlay preview, silent sign-in
+	# renewal); no other site may. /api keeps the API's own deny-all policy.
+	# Appended (+), never replacing: on-demand pages arrive from the renderer
+	# with Astro's hashed policy as a header rather than a <meta>, and a browser
+	# enforces both. Deferred so the other headers replace the renderer's.
+	# The background-removal worker alone may evaluate generated code: its
+	# image library (onnxruntime's ndarray) builds accessors with Function().
+	# A worker has no DOM and no access to sessionStorage, so it cannot reach
+	# the access token, and its connections stay on this origin. blob: lets the
+	# library load onnxruntime's module and data from object URLs it creates.
+	@removalWorker path /_astro/background-removal.worker-*.js
+	header @removalWorker {
+		defer
+		Content-Security-Policy "default-src 'self'; script-src 'self' blob: 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'"
+		X-Content-Type-Options nosniff
+	}
+
+	@page {
+		not path /api /api/*
+		not path /_astro/background-removal.worker-*.js
+	}
+	header @page {
+		defer
+		+Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' blob: {$COPALIBRE_CSP_IDENTITY_ORIGIN:}; frame-src 'self' {$COPALIBRE_CSP_IDENTITY_ORIGIN:}; form-action 'self' {$COPALIBRE_CSP_IDENTITY_ORIGIN:}; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+	}
+
 	# Font files are bundled into the build and served from this origin.
 	# Declared here rather than left to the base image's /etc/mime.types,
 	# which a different base may lack: without it they go out as

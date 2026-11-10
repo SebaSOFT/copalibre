@@ -47,13 +47,7 @@ const hiddenFromAssistiveTechnology = bare || decorative;
   aria-hidden={hiddenFromAssistiveTechnology ? 'true' : undefined}
   style={`width: ${size}px`}
 >
-  {src && (
-    <img
-      src={src}
-      alt={hiddenFromAssistiveTechnology ? '' : alt}
-      onerror="this.style.display = 'none'; this.nextElementSibling.style.display = '';"
-    />
-  )}
+  {src && <img src={src} alt={hiddenFromAssistiveTechnology ? '' : alt} data-image-fallback />}
   <span
     aria-label={hiddenFromAssistiveTechnology ? undefined : alt || placeholderAlt}
     class="cl-emblem-placeholder cl-entrant-emblem__fallback"
@@ -78,6 +72,11 @@ const hiddenFromAssistiveTechnology = bare || decorative;
     )}
   </span>
 </div>
+
+<script>
+  import { installImageFallback } from '../../../lib/image-fallback';
+  installImageFallback();
+</script>
 
 <style>
   .cl-emblem-frame {

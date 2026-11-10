@@ -52,6 +52,14 @@ including bootstrapping the first administrator as a one-shot Helm Job:
 - `--release <name>`: Helm release name to record (default: `copalibre`)
 - `--context <ctx>`: kube-context to record (default: none — supply it explicitly each time)
 
+Identity options:
+
+- `--oidc-issuer <url>`: sign in through an external OIDC provider with this exact issuer (`iss`). Without it, CopaLibre uses its built-in provider. `init` also writes the issuer's origin to `COPALIBRE_CSP_IDENTITY_ORIGIN`, so the Content Security Policy allows sign-in.
+- `--oidc-client-id <id>`: client ID registered for CopaLibre at the provider. Required with `--oidc-issuer`.
+- `--oidc-jwks-uri <url>`: the provider's key set (default: read from its OpenID discovery document).
+
+Interactively, `init` asks whether you use an external provider and then asks for these values.
+
 Email and repair options:
 
 - `--repair`: back up `.env` and `docker-compose.yml`, add missing defaults and assets, and preserve the existing Compose file. Missing default services are reported with YAML snippets for manual review.

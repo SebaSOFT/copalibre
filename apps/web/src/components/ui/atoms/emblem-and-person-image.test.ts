@@ -17,13 +17,16 @@ describe('EmblemImage display atom', () => {
     expect(emblemAstro).toMatch(/\.cl-emblem-frame img\s*\{[^}]*padding:\s*var\(--cl-space-2\)/);
   });
 
-  it('renders an accessible placeholder with title and fallback onerror handler', () => {
+  it('renders an accessible placeholder and swaps to it without an inline handler', () => {
     expect(emblemAstro).toContain('<Icon name="club"');
     expect(emblemAstro).toContain('cl-emblem-placeholder cl-entrant-emblem__fallback');
     expect(emblemAstro).toContain(
       'aria-label={hiddenFromAssistiveTechnology ? undefined : alt || placeholderAlt}',
     );
-    expect(emblemAstro).toContain('this.nextElementSibling.style.display');
+    // The Content Security Policy blocks inline event handlers; a module swaps it.
+    expect(emblemAstro).toContain('data-image-fallback');
+    expect(emblemAstro).toContain('installImageFallback()');
+    expect(emblemAstro).not.toMatch(/\sonerror=/);
   });
 
   it('renders a persisted abbreviation at the shared fit size and never invents or truncates one', () => {
@@ -69,10 +72,12 @@ describe('PersonPhotoImage display atom', () => {
     );
   });
 
-  it('renders a distinct profile placeholder with title and fallback onerror handler', () => {
+  it('renders a distinct profile placeholder and swaps to it without an inline handler', () => {
     expect(personAstro).toContain('class="cl-person-photo-placeholder"');
     expect(personAstro).toContain('<Icon name="user"');
     expect(personAstro).toContain('aria-label={placeholderAlt}');
-    expect(personAstro).toContain('this.nextElementSibling.style.display');
+    expect(personAstro).toContain('data-image-fallback');
+    expect(personAstro).toContain('installImageFallback()');
+    expect(personAstro).not.toMatch(/\sonerror=/);
   });
 });

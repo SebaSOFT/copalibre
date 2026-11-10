@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../../../e2e/csp-guard.js';
 
 async function mockForgotPasswordApi(page: Page): Promise<void> {
   await page.addInitScript(() => {

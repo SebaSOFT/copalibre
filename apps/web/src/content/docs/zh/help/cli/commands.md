@@ -37,6 +37,14 @@ file:///var/lib/copalibre/modules-dev/<alias>` 搭配使用，可在无需源代
 - `--release <name>`：要记录的 Helm release 名称（默认：`copalibre`）
 - `--context <ctx>`：要记录的 kube-context（默认：无——需每次显式传入）
 
+身份选项：
+
+- `--oidc-issuer <url>`：通过使用此确切签发者（`iss`）的外部 OIDC 提供方登录。不提供时，CopaLibre 使用内置提供方。`init` 还会把签发者的源写入 `COPALIBRE_CSP_IDENTITY_ORIGIN`，使内容安全策略允许登录。
+- `--oidc-client-id <id>`：在提供方为 CopaLibre 注册的客户端 ID。与 `--oidc-issuer` 一起使用时必填。
+- `--oidc-jwks-uri <url>`：提供方的密钥集（默认：从其 OpenID 发现文档读取）。
+
+在交互模式下，`init` 会询问是否使用外部提供方，然后询问这些值。
+
 电子邮件与修复选项：
 
 - `--repair`：备份 `.env` 和 `docker-compose.yml`，补齐缺失的默认值与文件，并保留现有 Compose。缺少默认服务时会显示 YAML 片段，供手动检查和添加。

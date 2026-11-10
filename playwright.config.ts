@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 const port = Number(process.env.PLAYWRIGHT_PORT ?? 4321);
 const baseURL = `http://localhost:${port}`;
+// The external OIDC provider the sign-in tests stub; the policy allows it the
+// way an installation with external OIDC sets COPALIBRE_CSP_IDENTITY_ORIGIN.
+const E2E_IDENTITY_ORIGIN = 'https://identity.example';
 const tvChromium100Path = process.env.PLAYWRIGHT_CHROMIUM_100_PATH;
 
 /**
@@ -39,15 +42,17 @@ export default defineConfig({
       : []),
   ],
   webServer: {
-    // astro dev self-daemonizes when stdout is not a TTY (Astro 7), which Playwright's
-    // webServer treats as an early exit. build+preview is a plain foreground server and
-    // exercises the production output, which the public no-JS-baseline tests want anyway.
+    // A built production server, not `astro dev` (which self-daemonizes when stdout is
+    // not a TTY, an early exit to Playwright): it exercises the production output, which
+    // the public no-JS-baseline tests want anyway. It is the production web server (the one `web-ssr` runs), with the headers the
+    // web role's Caddy adds in front of it, read from deploy/web/Caddyfile: every
+    // spec runs under the Content Security Policy production enforces.
     command:
       process.env.PLAYWRIGHT_EXISTING_BUILD === 'true' ||
       process.env.PLAYWRIGHT_EXISTING_BUILD === '1'
-        ? `ASTRO_PREVIEW_BACKGROUND=1 yarn workspace @copalibre/web preview --port ${port}`
+        ? `COPALIBRE_WEB_EDGE_HEADERS=1 COPALIBRE_CSP_IDENTITY_ORIGIN=${E2E_IDENTITY_ORIGIN} PORT=${port} HOST=localhost node apps/web/scripts/serve-with-security-headers.mjs`
         : `yarn workspace @copalibre/web build && ` +
-          `ASTRO_PREVIEW_BACKGROUND=1 yarn workspace @copalibre/web preview --port ${port}`,
+          `COPALIBRE_WEB_EDGE_HEADERS=1 COPALIBRE_CSP_IDENTITY_ORIGIN=${E2E_IDENTITY_ORIGIN} PORT=${port} HOST=localhost node apps/web/scripts/serve-with-security-headers.mjs`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

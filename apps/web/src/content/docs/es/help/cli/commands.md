@@ -44,6 +44,14 @@ de Helm de un solo uso: `docs/deployment/enterprise-kubernetes.md` en el reposit
 - `--release <nombre>`: nombre del release de Helm a registrar (por defecto: `copalibre`)
 - `--context <ctx>`: kube-context a registrar (por defecto: ninguno — pasarlo explícitamente cada vez)
 
+Opciones de identidad:
+
+- `--oidc-issuer <url>`: inicia sesión con un proveedor OIDC externo con este emisor exacto (`iss`). Sin esta opción, CopaLibre usa su proveedor integrado. `init` también escribe el origen del emisor en `COPALIBRE_CSP_IDENTITY_ORIGIN`, para que la política de seguridad de contenido permita el inicio de sesión.
+- `--oidc-client-id <id>`: ID de cliente registrado para CopaLibre en el proveedor. Obligatorio con `--oidc-issuer`.
+- `--oidc-jwks-uri <url>`: conjunto de claves del proveedor (predeterminado: se lee de su documento de descubrimiento OpenID).
+
+En modo interactivo, `init` pregunta si usa un proveedor externo y luego pide estos valores.
+
 Opciones de correo y reparación:
 
 - `--repair`: respalda `.env` y `docker-compose.yml`, agrega valores y recursos ausentes, y conserva el Compose existente. Si faltan servicios predeterminados, muestra sus fragmentos YAML para revisión manual.

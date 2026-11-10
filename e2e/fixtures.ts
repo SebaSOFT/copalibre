@@ -3,7 +3,7 @@ import {
   expect,
   type BrowserContext,
   type BrowserContextOptions,
-} from '@playwright/test';
+} from './csp-guard.js';
 import { installChromium100VisibilityShim } from './chromium-100-compat.js';
 
 export { expect };
