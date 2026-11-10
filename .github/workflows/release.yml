@@ -160,5 +160,6 @@ jobs:
         if: steps.check.outputs.exists != 'true'
         env:
           SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
-        run: |
-          npm_config_registry=https://registry.npmjs.org/ npx -y @smithery/cli mcp publish apps/copalibre/dist/copalibre.mcpb -n SebaSOFT/copalibre
+        # The Smithery CLI is a pinned devDependency, installed and audited above with
+        # the rest of the lockfile; nothing is downloaded and run with the key in scope.
+        run: yarn smithery mcp publish apps/copalibre/dist/copalibre.mcpb -n SebaSOFT/copalibre
