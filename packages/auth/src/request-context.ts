@@ -54,7 +54,12 @@ export interface AuthenticatedSubject {
 export interface RequestWithSubject {
   readonly headers: Record<string, string | string[] | undefined>;
   readonly query?: Record<string, unknown>;
+  readonly method?: string;
   subject?: AuthenticatedSubject;
+  /** Set by the authentication guard: whether the token came from the header or the session cookie. */
+  authSource?: 'header' | 'cookie';
+  /** The verified access token itself, kept for the CSRF binding check. */
+  accessToken?: string;
 }
 
 export function hasScope(subject: AuthenticatedSubject, scope: string): boolean {

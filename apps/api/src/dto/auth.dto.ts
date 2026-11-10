@@ -12,11 +12,19 @@ export class LoginRequest {
   password!: string;
 }
 
-export class LoginResponse {
-  @ApiProperty({ description: 'JWT access token' })
-  accessToken!: string;
-  @ApiProperty({ description: 'Token expiration in seconds' })
-  expiresIn!: number;
+/**
+ * A browser session's metadata. The access token itself travels only in the
+ * `HttpOnly` session cookie, never in a response body.
+ */
+export class SessionResponse {
+  @ApiProperty({ description: 'The acting identity (`sub`)' })
+  subject!: string;
+  @ApiProperty({ description: 'Coarse scopes the session holds', type: [String] })
+  scopes!: string[];
+  @ApiProperty({ description: 'When the access token expires', format: 'date-time' })
+  expiresAt!: string;
+  @ApiProperty({ description: 'How the session was established', enum: ['native', 'oidc'] })
+  method!: 'native' | 'oidc';
 }
 
 export class AuthSuccessResponse {

@@ -22,3 +22,33 @@ export {
   type AllowedAlgorithm,
 } from './auth-config.js';
 export { hasScope, type AuthenticatedSubject, type RequestWithSubject } from './request-context.js';
+export {
+  APPLICATION_COOKIE_NAMES,
+  CSRF_COOKIE_NAME,
+  CSRF_HEADER_NAME,
+  MAX_COOKIE_BYTES,
+  PLAIN_SESSION_COOKIE_NAME,
+  REFRESH_COOKIE_NAME,
+  SECURE_SESSION_COOKIE_NAME,
+  SESSION_COOKIE_SECURE_ENV,
+  clearingCookies,
+  expectedSecureFor,
+  maxAgeUntil,
+  parseCookieHeader,
+  readCookie,
+  serializeCsrfCookie,
+  serializeRefreshCookie,
+  serializeSessionCookie,
+  sessionCookieConfigFromEnv,
+  sessionCookieMismatch,
+  sessionCookieName,
+  sessionCookieTooLarge,
+  type SessionCookieConfig,
+} from './session-cookies.js';
+export {
+  PERSONAL_ACCESS_TOKEN_PREFIX,
+  extractAccessToken,
+  extractBearerToken,
+  type AccessTokenSource,
+  type ExtractedAccessToken,
+} from './access-token-source.js';

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { CsrfGuard } from './auth/csrf.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { OrganizationAccessGuard } from './auth/organization-access.guard.js';
 import { PrincipalThrottlerGuard } from './auth/principal-throttler.guard.js';
@@ -44,6 +45,8 @@ const DEFAULT_THROTTLE = { ttl: 60_000, limit: 1_000 };
   providers: [
     { provide: APP_FILTER, useClass: ApiExceptionFilter },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    // Right after authentication: it reads which source the token came from.
+    { provide: APP_GUARD, useClass: CsrfGuard },
     { provide: APP_GUARD, useClass: OrganizationAccessGuard },
     // Registered after the guards above so `request.subject` is already
     // resolved when it keys the bucket (principal where authenticated,

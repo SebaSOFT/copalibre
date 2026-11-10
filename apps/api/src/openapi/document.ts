@@ -39,8 +39,12 @@ import { FIXTURE_SIDE_SOURCE_MODELS } from '../dto/fixture-side-source.dto.js';
  *
  * Bumped to 9.0.0 because every path moved under `/api`, and `/.well-known/jwks.json`
  * was removed in favor of `/api/auth/jwks.json`.
+ *
+ * Bumped to 10.0.0 because native login, invitation acceptance and refresh no
+ * longer return `accessToken` in the body: a browser session's token lives only
+ * in an `HttpOnly` cookie, and those endpoints answer with session metadata.
  */
-export const OPENAPI_VERSION = '9.0.0';
+export const OPENAPI_VERSION = '10.0.0';
 
 export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()
