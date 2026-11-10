@@ -186,5 +186,54 @@
         "name": "POST /auth/login refuses a password longer than the limit before hashing it"
       }
     ]
+  },
+  {
+    "id": "module-alias-path-and-option-injection",
+    "severity": "high",
+    "control": "module-source-boundary",
+    "status": "fixed",
+    "summary": "A module alias from the install request reached a checkout path and git arguments unvalidated: ../ left the checkout and a leading - was read as a git option.",
+    "fingerprint": "packages/module-distribution/src/fetch.ts#fetchModule",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "packages/module-distribution/src/fetch.test.ts",
+        "name": "refuses %j before running git or touching a path"
+      },
+      {
+        "file": "apps/api/src/controllers/admin-modules.integration.test.ts",
+        "name": "refuses the alias %j with 400 before fetching anything"
+      }
+    ]
+  },
+  {
+    "id": "module-submit-target-injection",
+    "severity": "medium",
+    "control": "module-source-boundary",
+    "status": "fixed",
+    "summary": "The upstream repository and base branch of a module submission reached gh and git arguments unvalidated.",
+    "fingerprint": "packages/module-distribution/src/submit.ts#submitModule",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "packages/module-distribution/src/submit.test.ts",
+        "name": "refuses %s on %s before running anything"
+      }
+    ]
+  },
+  {
+    "id": "csv-formula-tab-carriage-return",
+    "severity": "low",
+    "control": "csv-export-formulas",
+    "status": "fixed",
+    "summary": "CSV export neutralized =, +, - and @ but not a leading tab or carriage return.",
+    "fingerprint": "packages/domain/src/import-export/csv-export.ts#escapeCsvFormulaCell",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "packages/domain/src/import-export/csv-export.test.ts",
+        "name": "prefixes a value starting with a formula-lead character: %s"
+      }
+    ]
   }
 ]

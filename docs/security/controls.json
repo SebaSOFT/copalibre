@@ -648,6 +648,56 @@
       ]
     },
     {
+      "id": "module-source-boundary",
+      "item": "upload-limits",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Module installs and submissions accept only a module alias, an owner/name repository and a branch name; git never runs a command-running transport or reads a value as an option.",
+      "surfaces": ["packages/module-distribution", "apps/api"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "packages/module-distribution/src/fetch.test.ts",
+          "name": "refuses %j before running git or touching a path"
+        },
+        {
+          "kind": "test",
+          "file": "packages/module-distribution/src/fetch.test.ts",
+          "name": "ends git options before the repository URL"
+        },
+        {
+          "kind": "test",
+          "file": "packages/module-distribution/src/fetch.test.ts",
+          "name": "refuses a source on a command-running transport, even when it reached git"
+        },
+        {
+          "kind": "test",
+          "file": "packages/module-distribution/src/submit.test.ts",
+          "name": "refuses %s on %s before running anything"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/admin-modules.integration.test.ts",
+          "name": "refuses the alias %j with 400 before fetching anything"
+        }
+      ]
+    },
+    {
+      "id": "csv-export-formulas",
+      "item": "xss",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Exported CSV cells that a spreadsheet would read as a formula are neutralized.",
+      "surfaces": ["packages/domain", "apps/api"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "packages/domain/src/import-export/csv-export.test.ts",
+          "name": "prefixes a value starting with a formula-lead character: %s"
+        }
+      ]
+    },
+    {
       "id": "upload-bypass-runtime",
       "item": "upload-limits",
       "level": "release",

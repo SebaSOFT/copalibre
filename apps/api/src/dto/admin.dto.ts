@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { MODULE_ALIAS_PATTERN } from './authored-module.dto.js';
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 export class StatisticsRebuildRequest {
@@ -72,8 +73,10 @@ export class OutdatedModuleResponse {
 }
 
 export class InstallModuleRequest {
-  @ApiProperty({ example: 'orbital-frisbee' })
+  @ApiProperty({ example: 'orbital-frisbee', pattern: MODULE_ALIAS_PATTERN.source, maxLength: 64 })
   @IsString()
+  @MaxLength(64)
+  @Matches(MODULE_ALIAS_PATTERN)
   alias!: string;
 
   @ApiPropertyOptional({

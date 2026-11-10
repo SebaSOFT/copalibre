@@ -51,6 +51,30 @@ function tagPrefix(alias: string): string {
   return `${alias}@`;
 }
 
+/** The manifest's alias rule. Anything else never reaches a path or a git argument. */
+const MODULE_ALIAS = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/**
+ * Refuses an alias that is not a module alias. The alias comes from a request
+ * body or a command line and becomes both a path segment of the checkout and
+ * part of a git argument: `../` would leave the checkout, and a leading `-`
+ * would be read by git as an option.
+ */
+export function assertModuleAlias(alias: string): void {
+  if (typeof alias !== 'string' || alias.length > 64 || !MODULE_ALIAS.test(alias)) {
+    throw new ModuleFetchError(
+      `"${String(alias).slice(0, 80)}" is not a module alias: lowercase letters, digits and single hyphens, at most 64 characters`,
+    );
+  }
+}
+
+/**
+ * Git transports a module source may use. Excludes `ext::` and `fd::`, which
+ * run commands, so even an allow-listed source string cannot execute one.
+ */
+export const GIT_ALLOWED_PROTOCOLS = 'file:git:http:https:ssh';
+const GIT_TIMEOUT_MS = 5 * 60 * 1000;
+
 /**
  * Parses `git ls-remote --tags` output lines into the versions published for
  * `alias`. Pure — no I/O. A tag also appears dereferenced as `<tag>^{}`
@@ -94,9 +118,11 @@ export async function listPublishedVersions(
   source: ModuleSource,
   alias: string,
 ): Promise<readonly string[]> {
+  assertModuleAlias(alias);
   const { stdout } = await runGit([
     'ls-remote',
     '--tags',
+    '--',
     source.repositoryUrl,
     `${tagPrefix(alias)}*`,
   ]);
@@ -131,7 +157,7 @@ async function tryManifestFallback(
 ): Promise<FetchedModule | undefined> {
   const checkoutRoot = await mkdtemp(join(workspaceDirectory, 'copalibre-module-fallback-'));
   try {
-    await gitRunner(['clone', '--quiet', '--depth', '1', source.repositoryUrl, checkoutRoot]);
+    await gitRunner(['clone', '--quiet', '--depth', '1', '--', source.repositoryUrl, checkoutRoot]);
     for (const category of ['disciplines', 'profiles']) {
       const candidate = join(checkoutRoot, category, alias);
       const manifestPath = join(candidate, 'manifest.json');
@@ -175,6 +201,7 @@ export async function fetchModule(
   const listVersions = dependencies.listPublishedVersions ?? listPublishedVersions;
   const checkPath = dependencies.pathExists ?? pathExists;
   const readManifest = dependencies.readManifestFile ?? ((p: string) => readFile(p, 'utf8'));
+  assertModuleAlias(alias);
 
   const versions = await listVersions(source, alias);
   const resolvedVersion = resolveModuleVersion(versions, range);
@@ -205,6 +232,7 @@ export async function fetchModule(
       '1',
       '--branch',
       `${alias}@${resolvedVersion}`,
+      '--',
       source.repositoryUrl,
       checkoutRoot,
     ]);
@@ -240,7 +268,15 @@ export async function fetchModule(
 }
 
 async function runGit(args: readonly string[]): Promise<{ readonly stdout: string }> {
-  const result = await execFileAsync('git', [...args], { maxBuffer: 10 * 1024 * 1024 });
+  const result = await execFileAsync('git', [...args], {
+    maxBuffer: 10 * 1024 * 1024,
+    timeout: GIT_TIMEOUT_MS,
+    env: {
+      ...process.env,
+      GIT_ALLOW_PROTOCOL: GIT_ALLOWED_PROTOCOLS,
+      GIT_TERMINAL_PROMPT: '0',
+    },
+  });
   return { stdout: result.stdout };
 }
 

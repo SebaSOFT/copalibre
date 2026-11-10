@@ -113,6 +113,14 @@ describe('AdminModulesController (integration)', () => {
     expect(response.statusCode).toBe(401);
   });
 
+  it.each(['../../etc', '--upload-pack=touch x', 'Orbital'])(
+    'refuses the alias %j with 400 before fetching anything',
+    async (alias) => {
+      const response = await inject('admin', 'POST', '/api/admin/modules', { alias });
+      expect(response.statusCode).toBe(400);
+    },
+  );
+
   it('installs, lists, verifies, and removes a real curated module end to end', async () => {
     const install = await inject('admin', 'POST', '/api/admin/modules', {
       alias: 'orbital-frisbee',

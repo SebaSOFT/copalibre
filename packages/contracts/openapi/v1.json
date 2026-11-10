@@ -21794,7 +21794,9 @@
         "properties": {
           "alias": {
             "type": "string",
-            "example": "orbital-frisbee"
+            "example": "orbital-frisbee",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "maxLength": 64
           },
           "range": {
             "type": "string",
@@ -22017,7 +22019,9 @@
           },
           "alias": {
             "type": "string",
-            "example": "orbital-frisbee"
+            "example": "orbital-frisbee",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "maxLength": 64
           },
           "version": {
             "type": "string",
