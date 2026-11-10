@@ -54,6 +54,13 @@ Identitätsoptionen:
 
 Interaktiv fragt `init`, ob Sie einen externen Anbieter verwenden, und fragt dann diese Werte ab.
 
+Optionen für Sitzungs-Cookies:
+
+- `--https`: Browser erreichen die Installation über HTTPS, daher tragen die Sitzungs-Cookies `Secure` und das Präfix `__Host-`.
+- `--no-https`: reines HTTP auf einem anderen Host als `localhost`; die Cookies lassen `Secure` weg. Wird bei einer `https`-`--app-url` abgelehnt.
+
+Ohne beide leitet `init` `COPALIBRE_SESSION_COOKIE_SECURE` aus dem Schema von `--app-url` ab (`localhost` gilt als sicher). Interaktiv fragt es, ob HTTPS verwendet wird.
+
 E-Mail- und Reparaturoptionen:
 
 - `--repair`: sichert `.env` und `docker-compose.yml`, ergänzt fehlende Standardwerte und Dateien und erhält die vorhandene Compose-Datei. Fehlende Standarddienste werden mit YAML-Snippets zur manuellen Prüfung angezeigt.

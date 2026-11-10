@@ -8,7 +8,10 @@ import {
   formatRequiredSecrets,
   resolveOidcOptions,
   generateRsaKeypair,
+  httpsAnswer,
+  httpsQuestion,
   readAsset,
+  sessionCookieSecureSetting,
   repairInstallationAssets,
   writeInstallationAssets,
   writeLocalDefaults,
@@ -426,5 +429,60 @@ describe('external OIDC in copalibre init', () => {
     await expect(
       discoverJwksUri(oidc.issuer, unreachable as unknown as typeof fetch),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('session cookie setting in copalibre init', () => {
+  it('asks about HTTPS with the URL scheme as the default answer', () => {
+    expect(httpsQuestion('https://play.example')).toContain('[Y/n]');
+    expect(httpsQuestion('http://192.168.1.10')).toContain('[y/N]');
+    expect(httpsAnswer('', 'https://play.example')).toBe(true);
+    expect(httpsAnswer('', 'http://192.168.1.10')).toBe(false);
+    expect(httpsAnswer('yes', 'http://192.168.1.10')).toBe(true);
+    expect(httpsAnswer(' N ', 'https://play.example')).toBe(false);
+  });
+
+  it('derives the value from the URL when HTTPS is not stated', () => {
+    expect(sessionCookieSecureSetting('https://play.example')).toBe('true');
+    expect(sessionCookieSecureSetting('http://localhost:8080')).toBe('true');
+    expect(sessionCookieSecureSetting('http://192.168.1.10')).toBe('false');
+    expect(sessionCookieSecureSetting()).toBe('true');
+  });
+
+  it('follows an explicit answer, and refuses "no HTTPS" for an https URL', () => {
+    expect(sessionCookieSecureSetting('http://play.example', true)).toBe('true');
+    expect(sessionCookieSecureSetting('http://192.168.1.10', false)).toBe('false');
+    // localhost is a secure context whatever the answer.
+    expect(sessionCookieSecureSetting('http://localhost:8080', false)).toBe('true');
+    expect(() => sessionCookieSecureSetting('https://play.example', false)).toThrow(
+      '--no-https contradicts',
+    );
+  });
+
+  it.each([
+    [{ appUrl: 'https://play.example' }, 'true'],
+    [{ appUrl: 'http://192.168.1.10' }, 'false'],
+    [{ appUrl: 'http://192.168.1.10', https: true }, 'true'],
+    [{}, 'true'],
+  ])('writes COPALIBRE_SESSION_COOKIE_SECURE for %o', async (options, expected) => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    const assetsDir = await stubAssetsDir();
+
+    const result = await writeInstallationAssets(cwd, { assetsDir, ...options });
+
+    expect(result.sessionCookieSecure).toBe(expected);
+    const env = await readFile(join(cwd, '.env'), 'utf8');
+    expect(env).toContain(`COPALIBRE_SESSION_COOKIE_SECURE=${expected}\n`);
+    expect(env.match(/COPALIBRE_SESSION_COOKIE_SECURE=/g)).toHaveLength(1);
+  });
+
+  it('writes nothing when the HTTPS answer contradicts the URL', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    const assetsDir = await stubAssetsDir();
+
+    await expect(
+      writeInstallationAssets(cwd, { assetsDir, appUrl: 'https://play.example', https: false }),
+    ).rejects.toThrow('--no-https contradicts');
+    expect(await readdir(cwd)).toEqual([]);
   });
 });

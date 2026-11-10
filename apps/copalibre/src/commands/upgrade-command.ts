@@ -174,6 +174,11 @@ export class UpgradeCommand extends Command<CliContext> {
       if (reconcileResult.envUpdated || reconcileResult.composeUpdated) {
         process.stdout.write(`Reconciled configuration files for CopaLibre v${targetVersion}.\n`);
       }
+      if (reconcileResult.addedSessionCookieSecure !== undefined) {
+        process.stdout.write(
+          `Added COPALIBRE_SESSION_COOKIE_SECURE=${reconcileResult.addedSessionCookieSecure} to .env, from COPALIBRE_APP_URL. Check it matches how operators reach this installation.\n`,
+        );
+      }
 
       // 4. Docker Images & Service Refresh
       if (!parsed.values['skip-services'] && !isContainer(environment)) {

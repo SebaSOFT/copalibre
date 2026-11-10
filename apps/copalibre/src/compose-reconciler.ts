@@ -1,13 +1,15 @@
 import { chmod, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { LOCAL_DEFAULTS, generateRandomSecret } from './init.js';
+import { LOCAL_DEFAULTS, generateRandomSecret, sessionCookieSecureSetting } from './init.js';
 import { readInstallationMarker } from './installation-marker.js';
 
 export interface EnvReconciliationResult {
   readonly content: string;
   readonly addedKeys: readonly string[];
   readonly updatedKeys: readonly string[];
+  /** The `COPALIBRE_SESSION_COOKIE_SECURE` value this reconciliation added, if it added one. */
+  readonly addedSessionCookieSecure?: string;
 }
 
 export interface ComposeReconciliationResult {
@@ -22,12 +24,15 @@ export interface InstallationReconciliationResult {
   readonly addedEnvKeys: readonly string[];
   readonly updatedEnvKeys: readonly string[];
   readonly updatedImages: readonly string[];
+  readonly addedSessionCookieSecure?: string;
 }
 
 /**
  * Reconciles an existing `.env` file content with a new CopaLibre release version.
  * - Updates `COPALIBRE_IMAGE` and `COPALIBRE_WEB_IMAGE` tags to match `targetVersion`.
  * - Appends newly introduced variables from `defaults` without overwriting existing settings.
+ *   `COPALIBRE_SESSION_COOKIE_SECURE` is derived from the file's own `COPALIBRE_APP_URL`,
+ *   not copied from the defaults, so an existing plain-HTTP LAN install keeps working.
  * - Preserves existing comments, custom variables, and formatting.
  */
 export function reconcileEnvContent(
@@ -39,6 +44,7 @@ export function reconcileEnvContent(
   const lines = existingContent.split(/\r?\n/);
   const foundKeys = new Set<string>();
   const updatedKeys: string[] = [];
+  let appUrl: string | undefined;
 
   const updatedLines = lines.map((line) => {
     const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(line);
@@ -47,6 +53,7 @@ export function reconcileEnvContent(
     const key = match[1];
     const val = match[2];
     foundKeys.add(key);
+    if (key === 'COPALIBRE_APP_URL') appUrl = val.trim().replace(/^['"]|['"]$/g, '');
 
     if (key === 'COPALIBRE_VERSION') {
       const inlineComment = /(\s+#.*)$/.exec(val)?.[1] ?? '';
@@ -78,11 +85,16 @@ export function reconcileEnvContent(
 
   const addedKeys: string[] = [];
   const linesToAppend: string[] = [];
+  let addedSessionCookieSecure: string | undefined;
 
   for (const [key, defaultValue] of Object.entries(defaults)) {
     if (!foundKeys.has(key)) {
       addedKeys.push(key);
-      const val = key === 'GARAGE_RPC_SECRET' ? generateRandomSecret(32) : defaultValue;
+      let val = key === 'GARAGE_RPC_SECRET' ? generateRandomSecret(32) : defaultValue;
+      if (key === 'COPALIBRE_SESSION_COOKIE_SECURE') {
+        val = sessionCookieSecureFromAppUrl(appUrl, defaultValue);
+        addedSessionCookieSecure = val;
+      }
       linesToAppend.push(`${key}=${val}`);
     }
   }
@@ -102,7 +114,13 @@ export function reconcileEnvContent(
     content: updatedLines.join('\n') + trailingNewline,
     addedKeys,
     updatedKeys,
+    ...(addedSessionCookieSecure === undefined ? {} : { addedSessionCookieSecure }),
   };
+}
+
+function sessionCookieSecureFromAppUrl(appUrl: string | undefined, fallback: string): string {
+  if (!appUrl || !URL.canParse(appUrl)) return fallback;
+  return sessionCookieSecureSetting(appUrl);
 }
 
 /**
@@ -168,6 +186,7 @@ export async function reconcileInstallationDirectory(
   let addedEnvKeys: readonly string[] = [];
   let updatedEnvKeys: readonly string[] = [];
   let updatedImages: readonly string[] = [];
+  let addedSessionCookieSecure: string | undefined;
 
   if (existsSync(envPath)) {
     const rawEnv = await readFile(envPath, 'utf8');
@@ -179,6 +198,7 @@ export async function reconcileInstallationDirectory(
     }
     addedEnvKeys = envResult.addedKeys;
     updatedEnvKeys = envResult.updatedKeys;
+    addedSessionCookieSecure = envResult.addedSessionCookieSecure;
   }
 
   if (existsSync(composePath)) {
@@ -213,5 +233,6 @@ export async function reconcileInstallationDirectory(
     addedEnvKeys,
     updatedEnvKeys,
     updatedImages,
+    ...(addedSessionCookieSecure === undefined ? {} : { addedSessionCookieSecure }),
   };
 }

@@ -5,6 +5,7 @@ import { getAsset, isSea } from 'node:sea';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse, stringify } from 'yaml';
+import { expectedSecureFor } from '@copalibre/auth';
 import { readCopalibreVersion } from './banner.js';
 import { writeInstallationMarker, type InstallationMarker } from './installation-marker.js';
 
@@ -30,6 +31,9 @@ export const LOCAL_DEFAULTS = {
   // Origin of an external OIDC provider, allowed by the web role's Content
   // Security Policy for sign-in. Empty with the built-in provider.
   COPALIBRE_CSP_IDENTITY_ORIGIN: '',
+  // `Secure` and the `__Host-` prefix on the browser session cookies. True for
+  // HTTPS and for localhost, which browsers treat as a secure context.
+  COPALIBRE_SESSION_COOKIE_SECURE: 'true',
   COPALIBRE_EMAIL_PROVIDER: 'smtp',
   COPALIBRE_EMAIL_FROM: 'noreply@copalibre.local',
   COPALIBRE_SMTP_URL: 'smtp://host.docker.internal:1025',
@@ -253,6 +257,41 @@ export interface WriteInstallationAssetsOptions {
   readonly emailDomain?: string;
   /** An external OIDC provider; absent means the built-in identity provider. */
   readonly oidc?: ExternalOidcOptions;
+  /** Whether operators reach the installation over HTTPS; absent derives it from `appUrl`. */
+  readonly https?: boolean;
+}
+
+/** The guided `init` question about HTTPS, defaulting to the application URL's own scheme. */
+export function httpsQuestion(appUrl: string): string {
+  return `Is HTTPS in use for ${appUrl}? ${urlIsHttps(appUrl) ? '[Y/n]' : '[y/N]'} `;
+}
+
+/** Reads the answer to `httpsQuestion`: empty takes the URL's scheme, otherwise yes or no. */
+export function httpsAnswer(answer: string, appUrl: string): boolean {
+  const trimmed = answer.trim();
+  return trimmed === '' ? urlIsHttps(appUrl) : /^y(es)?$/i.test(trimmed);
+}
+
+function urlIsHttps(appUrl: string): boolean {
+  return appUrl.trim().toLowerCase().startsWith('https:');
+}
+
+/**
+ * The `COPALIBRE_SESSION_COOKIE_SECURE` value for an installation: `true` over
+ * HTTPS and on localhost (a secure context for every browser), `false` only for
+ * plain HTTP on another host. An explicit "no HTTPS" against an `https` URL is a
+ * contradiction, refused rather than silently resolved either way.
+ */
+export function sessionCookieSecureSetting(
+  appUrl: string = LOCAL_DEFAULTS.COPALIBRE_APP_URL,
+  https?: boolean,
+): 'true' | 'false' {
+  const url = new URL(appUrl);
+  if (https === false && url.protocol === 'https:') {
+    throw new Error(`--no-https contradicts the https application URL ${appUrl}`);
+  }
+  const secure = https === true || expectedSecureFor(url);
+  return secure ? 'true' : 'false';
 }
 
 export interface ExternalOidcOptions {
@@ -347,6 +386,8 @@ export interface WriteInstallationAssetsResult {
   readonly moduleDevFile?: string;
   readonly proxyConfigFile?: string;
   readonly marker: InstallationMarker;
+  /** The `COPALIBRE_SESSION_COOKIE_SECURE` value written to `.env`. */
+  readonly sessionCookieSecure: 'true' | 'false';
 }
 
 /**
@@ -359,6 +400,8 @@ export async function writeInstallationAssets(
   cwd: string,
   options: WriteInstallationAssetsOptions = {},
 ): Promise<WriteInstallationAssetsResult> {
+  // First: a contradictory HTTPS answer is refused before any file is written.
+  const sessionCookieSecure = sessionCookieSecureSetting(options.appUrl, options.https);
   const composeTarget = join(cwd, 'docker-compose.yml');
   const envTarget = join(cwd, '.env');
   const privateKeyTarget = join(cwd, 'jwt-private.pem');
@@ -444,6 +487,7 @@ export async function writeInstallationAssets(
   if (options.oidc) {
     Object.assign(overrides, externalOidcEnvironment(options.oidc, options.appUrl));
   }
+  overrides.COPALIBRE_SESSION_COOKIE_SECURE = sessionCookieSecure;
 
   const extraLines = options.moduleDev
     ? ['COMPOSE_FILE=docker-compose.yml:docker-compose.module-dev.yml']
@@ -539,6 +583,7 @@ server {
     ...(options.moduleDev ? { moduleDevFile: moduleDevTarget } : {}),
     ...(proxyConfigFile ? { proxyConfigFile } : {}),
     marker,
+    sessionCookieSecure,
   };
 }
 

@@ -16,6 +16,8 @@
 # TLS here; Docker Compose deliberately does not expose a public TLS listener.
 {$COPALIBRE_APP_HOST} {
   # Use the shared gateway for same-origin API, authentication, SSE and web routes.
+  # Keep /api and /events here: a Control session's HttpOnly cookie is sent only
+  # to this hostname. The API and events hosts below are for other clients.
   reverse_proxy gateway:80 {
     flush_interval -1
   }

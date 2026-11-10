@@ -84,6 +84,10 @@ web:
   # API routes served through the app origin (emblems and discipline images).
   # Empty means the release-scoped API Service this chart creates.
   apiUpstream: ''
+  # The event streams served through the app origin, so a Control browser
+  # session reaches them with its same-origin session cookie. Empty means the
+  # release-scoped events Service this chart creates.
+  eventsUpstream: ''
   # Name of an existing ConfigMap whose keys are published as files under
   # /.well-known/ (security.txt and similar), mounted read-only. Everything in
   # it is public. Empty mounts nothing.
@@ -133,6 +137,15 @@ env:
   COPALIBRE_DATA_DIR: /var/lib/copalibre
   COPALIBRE_MODULE_SOURCE_ALLOWLIST: 'file:///var/lib/copalibre/modules'
   COPALIBRE_IN_CONTAINER: 'true'
+  # `Secure` and the `__Host-` prefix on the session, CSRF and refresh cookies.
+  # Empty derives it from `session.cookieSecure` below.
+  COPALIBRE_SESSION_COOKIE_SECURE: ''
+
+# Browser session cookies. `cookieSecure` left null is true unless the
+# chart's own ingress is enabled without TLS; set it false only for a
+# plain-HTTP installation reached by a hostname other than localhost.
+session:
+  cookieSecure: null
 
 # Which of the keys in `env` above hold credentials and belong in the Secret
 # rather than the ConfigMap. Everything else in `env` goes in the ConfigMap.

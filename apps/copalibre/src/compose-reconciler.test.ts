@@ -33,6 +33,42 @@ COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.1
       expect(result.content).toContain('NEW_SETTING=default_val');
     });
 
+    it.each([
+      ['https://copa.example', 'true'],
+      ['http://localhost:8080', 'true'],
+      ['http://192.168.1.10:8080', 'false'],
+    ])(
+      'adds COPALIBRE_SESSION_COOKIE_SECURE derived from COPALIBRE_APP_URL=%s',
+      (appUrl, expected) => {
+        const result = reconcileEnvContent(`COPALIBRE_APP_URL=${appUrl}\n`, '1.3.0', {
+          COPALIBRE_SESSION_COOKIE_SECURE: 'true',
+        });
+
+        expect(result.addedKeys).toEqual(['COPALIBRE_SESSION_COOKIE_SECURE']);
+        expect(result.addedSessionCookieSecure).toBe(expected);
+        expect(result.content).toContain(`COPALIBRE_SESSION_COOKIE_SECURE=${expected}`);
+      },
+    );
+
+    it('adds the session cookie setting once and leaves an existing value alone', () => {
+      const defaults = { COPALIBRE_SESSION_COOKIE_SECURE: 'true' };
+      const first = reconcileEnvContent('COPALIBRE_APP_URL=http://10.0.0.5\n', '1.3.0', defaults);
+      const second = reconcileEnvContent(first.content, '1.3.0', defaults);
+
+      expect(second.addedKeys).toEqual([]);
+      expect(second.addedSessionCookieSecure).toBeUndefined();
+      expect(second.content.match(/COPALIBRE_SESSION_COOKIE_SECURE=/g)).toHaveLength(1);
+    });
+
+    it('falls back to the default when COPALIBRE_APP_URL is missing or unusable', () => {
+      const defaults = { COPALIBRE_SESSION_COOKIE_SECURE: 'true' };
+      expect(reconcileEnvContent('', '1.3.0', defaults).addedSessionCookieSecure).toBe('true');
+      expect(
+        reconcileEnvContent('COPALIBRE_APP_URL=not a url\n', '1.3.0', defaults)
+          .addedSessionCookieSecure,
+      ).toBe('true');
+    });
+
     it('updates COPALIBRE_VERSION to the requested release', () => {
       const result = reconcileEnvContent(
         'COPALIBRE_VERSION=1.2.5 # set by deployment automation',
