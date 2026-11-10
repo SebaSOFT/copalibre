@@ -136,3 +136,22 @@ console, registration review and login. Each result SHALL be recorded in the rel
 
 - **WHEN** a release checklist lacks a screen-reader result for one of the three combinations
 - **THEN** the release is not tagged
+
+### Requirement: A runtime peer mismatch fails the dependency guard
+The repository SHALL keep a reviewed list of packages whose served runtime assets must match an exact peer
+version, and a guard that runs in CI SHALL fail when the locked version of that peer does not satisfy the
+package's declared `peerDependencies` range. The list SHALL start with `@imgly/background-removal` and its peer
+`onnxruntime-web`. Automated dependency updates SHALL move such a pair together or not at all.
+
+#### Scenario: A lone runtime bump is refused
+- **WHEN** a change raises `onnxruntime-web` to a version outside the range `@imgly/background-removal` declares
+- **THEN** the guard fails and names both packages, both versions and the declared range
+
+#### Scenario: A matching pair passes
+- **WHEN** the locked `onnxruntime-web` satisfies the peer range of the locked `@imgly/background-removal`
+- **THEN** the guard passes
+
+#### Scenario: Dependabot groups the pair
+- **WHEN** Dependabot proposes an update to either package
+- **THEN** its configuration groups `onnxruntime-web` with `@imgly/background-removal`, so no pull request bumps
+  the runtime alone

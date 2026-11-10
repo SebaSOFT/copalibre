@@ -88,3 +88,24 @@ The person-photo display atom SHALL preserve its intended profile-photo shape wh
 #### Scenario: Person cutout remains fully visible
 - **WHEN** a person photo with transparent background is displayed at any supported `size`
 - **THEN** the subject remains centered, undistorted, and fully visible within the padded frame
+
+### Requirement: Background removal is proven to produce a cutout
+The shipped build SHALL load a background-removal runtime whose JavaScript and WebAssembly come from the same
+`onnxruntime-web` version, and an automated browser test SHALL prove that an image with an opaque background
+comes out with transparent pixels. A test in which the operator keeps the original image SHALL NOT count as
+proof that removal works.
+
+#### Scenario: A real cutout in the production build
+- **WHEN** the browser test uploads a fixture image with a uniform opaque background through the emblem flow on a
+  production build, served under the production Content Security Policy
+- **THEN** the worker reports a result, not an error, and the confirmed PNG contains transparent pixels where
+  the fixture's background was
+
+#### Scenario: The worker reports no runtime mismatch
+- **WHEN** background removal runs in the browser test
+- **THEN** no worker error and no console error mentions a missing runtime function such as
+  `_OrtGetInputOutputMetadata`
+
+#### Scenario: The fallback stays a separate path
+- **WHEN** processing fails in a test that forces the failure
+- **THEN** the operator can keep the original, and that test is separate from the cutout test
