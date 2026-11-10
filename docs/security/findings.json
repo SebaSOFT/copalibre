@@ -235,5 +235,20 @@
         "name": "prefixes a value starting with a formula-lead character: %s"
       }
     ]
+  },
+  {
+    "id": "hsts-missing",
+    "severity": "medium",
+    "control": "edge-hsts",
+    "status": "fixed",
+    "summary": "No shipped edge configuration sent Strict-Transport-Security, so a browser could be downgraded to HTTP on a later visit.",
+    "fingerprint": "deploy/proxy/Caddyfile",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "scripts/security/edge-config.test.mjs",
+        "name": "every site of the edge Caddyfile sends HSTS"
+      }
+    ]
   }
 ]

@@ -7,7 +7,8 @@ Example config: [`deploy/proxy/nginx.conf`](../../../deploy/proxy/nginx.conf).
 1. Replace `app.copalibre.example`, `api.copalibre.example`, and `events.copalibre.example` with your
    real host names.
 2. Add TLS to each `server` block (the example listens on plain `:80` and documents where certificate
-   directives belong) before exposing it publicly.
+   directives belong) before exposing it publicly. Once a block answers HTTPS, uncomment its
+   `Strict-Transport-Security` line so browsers stay on HTTPS.
 3. Copy the config into `conf.d/` (or wherever your NGINX installation includes site configs) and
    reload NGINX.
 

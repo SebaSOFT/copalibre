@@ -185,6 +185,26 @@
       ]
     },
     {
+      "id": "edge-hsts",
+      "item": "https",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "The shipped edge configurations send HSTS where they terminate TLS.",
+      "surfaces": ["deploy/proxy", "deploy/templates/nginx"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "scripts/security/edge-config.test.mjs",
+          "name": "every site of the edge Caddyfile sends HSTS"
+        },
+        {
+          "kind": "test",
+          "file": "scripts/security/edge-config.test.mjs",
+          "name": "every nginx edge server shows where HSTS goes once TLS is on"
+        }
+      ]
+    },
+    {
       "id": "https-edge-runtime",
       "item": "https",
       "level": "release",
