@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import semver from 'semver';
 import { parse } from 'yaml';
 import {
   checkPatchedFloor,
@@ -32,7 +33,8 @@ const patchedFloors = {
   astro: { 7: '7.2.8' },
   hono: { 4: '4.13.11' },
   'http-cache-semantics': { 4: '4.3.0' },
-  'ip-address': { 10: '10.7.1' },
+  'ip-address': { 10: '10.7.4' },
+  '@hono/node-server': { 2: '2.1.3' },
   undici: { 6: '6.29.1', 8: '8.12.2' },
   nanoid: { 3: '3.3.18', 5: '5.1.16' },
   storybook: { 10: '10.6.2' },
@@ -44,10 +46,8 @@ function assertPatched(name, version, label) {
   assert.match(version, /^\d+\.\d+\.\d+$/, `${label}: expected a stable version`);
   const minimum = patchedFloors[name][version.split('.')[0]];
   assert.ok(minimum, `${label}: review security advisories for this major line`);
-  assert.ok(
-    version.localeCompare(minimum, 'en', { numeric: true }) >= 0,
-    `${label}: ${version} is below patched floor ${minimum}`,
-  );
+  // semver, not string order: 10.10.0 is above 10.9.9.
+  assert.ok(semver.gte(version, minimum), `${label}: ${version} is below patched floor ${minimum}`);
 }
 
 for (const name of Object.keys(patchedFloors)) {
@@ -92,6 +92,7 @@ for (const [selector, name] of [
   ['http-cache-semantics@npm:^4.1.1', 'http-cache-semantics'],
   ['hono@npm:^4.11.4', 'hono'],
   ['ip-address', 'ip-address'],
+  ['@hono/node-server', '@hono/node-server'],
   ['undici@npm:^6.25.0', 'undici'],
   ['undici@npm:^8.4.1', 'undici'],
   ['undici@npm:^8.9.0', 'undici'],
@@ -132,8 +133,7 @@ for (const advisory of Object.values(KNOWN_UNPATCHED_ADVISORIES)) {
     const nextPatch = `${major}.${minor}.${patch + 1}`;
     assert.equal(
       checkPatchedFloor(advisory.package, versions, nextPatch).length,
-      versions.filter((version) => version.localeCompare(nextPatch, 'en', { numeric: true }) < 0)
-        .length,
+      versions.filter((version) => semver.lt(version, nextPatch)).length,
       `${advisory.package}: every locked instance below an upstream fix must be reported`,
     );
     assert.deepEqual(
@@ -143,3 +143,10 @@ for (const advisory of Object.values(KNOWN_UNPATCHED_ADVISORIES)) {
     );
   });
 }
+
+test('a floor comparison orders versions numerically, not as strings', () => {
+  // A string comparison would read 10.10.0 as below 10.9.9 and 2.10.0 as below 2.9.0.
+  assert.ok(semver.gte('10.10.0', '10.9.9'));
+  assert.ok(semver.gte('2.10.0', '2.9.0'));
+  assert.ok(!semver.gte('10.7.3', '10.7.4'));
+});

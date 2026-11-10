@@ -7,39 +7,20 @@ built inside.
 
 ## Requirements
 
-### Requirement: JWT access token held in memory only
-The control application SHALL hold the JWT access token in memory only and SHALL NOT persist it in
-`localStorage`, `sessionStorage`, or a cookie.
-
-#### Scenario: Access token absent from persistent storage
-- **WHEN** a user is authenticated in the control application
-- **THEN** inspecting `localStorage` and `sessionStorage` finds no access token value
-
-#### Scenario: Reload requires re-authentication in strict mode
-- **WHEN** the browser is reloaded with no persistent refresh credential configured
-- **THEN** the user is returned to the authentication flow rather than silently remaining logged in
-
-### Requirement: Authenticated requests use a Bearer header, never a URL
-Every authenticated API request and authenticated SSE connection SHALL send the access token via the
-`Authorization: Bearer` header and SHALL NOT place it in a URL query string.
-
-#### Scenario: SSE connection carries the token in a header
-- **WHEN** the control application opens the authenticated SSE stream
-- **THEN** the request is made via Fetch streaming with an `Authorization` header, and the resulting URL contains no token value
-
 ### Requirement: Authorization Code with PKCE completes to a working session
 
 The control application's `/control/callback` route SHALL exchange the identity provider's returned
 authorization code for an access token directly with the provider's token endpoint, with no client
-secret, verify the callback's `state` against the value stored when the flow began, and write the
-resulting token into the in-memory session store used by every authenticated request.
+secret, verify the callback's `state` against the value stored when the flow began, and hand the
+resulting token to the API's session handover endpoint, which sets the session cookie. Control SHALL drop its
+own reference to the token as soon as the handover answers, whether it succeeded or failed.
 
 #### Scenario: A successful callback establishes a working session
 
 - **WHEN** the identity provider redirects back to `/control/callback` with a valid authorization code
   and the `state` matching what the login attempt stored
-- **THEN** the control application holds a valid access token in memory and subsequent API requests
-  carry it as a Bearer header
+- **THEN** the API sets the session cookie, Control holds no copy of the token, and subsequent API requests
+  authenticate with the cookie
 
 #### Scenario: A mismatched or missing state is refused
 
@@ -54,6 +35,11 @@ resulting token into the in-memory session store used by every authenticated req
 - **THEN** the control application shows the operator that authorization failed rather than attempting
   a token exchange or silently doing nothing
 
+#### Scenario: A refused handover is shown, not swallowed
+
+- **WHEN** the API refuses the handed-over token (invalid signature, wrong issuer or audience, expired)
+- **THEN** no cookie is set, Control holds no token, and the operator sees that sign-in failed
+
 #### Scenario: Login ends in a usable panel
 
 - **WHEN** an operator completes the identity provider's login screen
@@ -63,17 +49,6 @@ resulting token into the in-memory session store used by every authenticated req
 
 - **WHEN** the callback exchanges the code
 - **THEN** no client secret is sent: PKCE stands in for it, as the public client's substitute
-
-### Requirement: Every authenticated request carries the session's access token
-
-Every control-panel screen's API client SHALL be constructed with the shared session store's token
-reader, so every authenticated request automatically carries the current access token — an operator's
-API calls SHALL NOT be able to reach the backend with no `Authorization` header while a session exists.
-
-#### Scenario: A request made after login carries the Bearer header
-
-- **WHEN** an operator with a valid session performs an action that calls the control API (any screen)
-- **THEN** the request carries `Authorization: Bearer <token>` with the session's current access token
 
 ### Requirement: An unauthenticated visit to a protected screen redirects to login
 
@@ -434,3 +409,57 @@ Control SHALL offer a skip link as the first focus stop, which moves focus to th
 
 - **WHEN** a person presses Tab on a Control page
 - **THEN** the first stop is the skip link, and activating it moves focus to the main region
+
+### Requirement: Access token held only in an HttpOnly cookie
+The control application SHALL NOT hold the access token where a script can read it after the session is
+established. The token SHALL live only in the session cookie the API sets, and SHALL NOT be written to
+`localStorage`, `sessionStorage`, IndexedDB, a script-readable cookie or a module variable that outlives the
+handover request.
+
+#### Scenario: No token is readable by script
+- **WHEN** an operator is signed in to Control, by native login or by an external OIDC provider
+- **THEN** `localStorage`, `sessionStorage` and `document.cookie` contain no access token value
+- **AND** the session cookie is not listed in `document.cookie`
+
+#### Scenario: A token left by an older build is removed
+- **WHEN** Control loads in a tab whose `sessionStorage` holds `copalibre:session:v1`
+- **THEN** Control deletes that entry before making any request
+
+#### Scenario: A public page cannot obtain the token
+- **WHEN** a script running on a public page of the same origin reads every browser storage surface and calls
+  `fetch` on `/api/auth/session`
+- **THEN** it obtains session metadata at most, never the access token
+
+### Requirement: Browser requests authenticate with the session cookie, never a URL
+Every authenticated API request and authenticated event-stream connection from Control SHALL authenticate with
+the session cookie, sent same-origin, and SHALL NOT carry an `Authorization` header or a token in a URL.
+Requests with an unsafe method SHALL carry the CSRF header defined in `platform/api-auth-contract`.
+
+#### Scenario: An API call carries the cookie and the CSRF header
+- **WHEN** an operator saves a change on any Control screen
+- **THEN** the request is same-origin with credentials, carries no `Authorization` header, and carries the CSRF
+  header
+
+#### Scenario: The event stream authenticates by cookie
+- **WHEN** Control opens the authenticated organization stream under `/events/control/`
+- **THEN** the request is same-origin, carries the session cookie, carries no `Authorization` header, and its URL
+  contains no token value
+
+### Requirement: Every authenticated request carries the session cookie
+
+Every control-panel screen's API client SHALL send same-origin requests with credentials, so every
+authenticated request carries the session cookie and, for unsafe methods, the CSRF header. An operator's API
+calls SHALL NOT be able to reach the backend without the cookie while a session exists. Scope-dependent
+presentation SHALL read the scopes from the session metadata endpoint, never from the token.
+
+#### Scenario: A request made after login carries the cookie
+
+- **WHEN** an operator with a valid session performs an action that calls the control API (any screen)
+- **THEN** the request carries the session cookie, and the API resolves the same principal it would from
+  `Authorization: Bearer <token>`
+
+#### Scenario: Scopes survive a reload
+
+- **WHEN** an operator reloads a Control screen while the session cookie is still valid
+- **THEN** Control reads the scopes and expiry from the session metadata endpoint and renders the same screens
+  and actions as before the reload

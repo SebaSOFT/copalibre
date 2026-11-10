@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  buildInventory,
   checkDependabotAlerts,
   checkManifestResolutionFloor,
   checkPatchedFloor,
@@ -8,6 +9,7 @@ import {
   inspectOpenAlerts,
   KNOWN_UNPATCHED_ADVISORIES,
   lockVersions,
+  REVIEWED_REMOVALS,
 } from './check-dependabot-alerts.mjs';
 
 const lock = `
@@ -324,4 +326,243 @@ test('the API audit follows GitHub Link pagination for Dependabot alerts', async
   assert.equal(calls.filter((url) => url.includes('/dependabot/alerts?')).length, 2);
   assert.match(calls[0], /per_page=100$/);
   assert.match(calls[1], /cursor=next$/);
+});
+
+/** An alert as GitHub's API returns it, with a published fix. */
+function fixedAlert(number, name, firstPatched, range, extra = {}) {
+  return {
+    number,
+    state: 'open',
+    security_vulnerability: {
+      package: { name },
+      first_patched_version: { identifier: firstPatched },
+      vulnerable_version_range: range,
+    },
+    security_advisory: { ghsa_id: `GHSA-${name}-${number}`, severity: 'high' },
+    dependency: { manifest_path: 'yarn.lock', scope: 'runtime', relationship: 'transitive' },
+    ...extra,
+  };
+}
+
+function lockOf(entries) {
+  return entries
+    .map(
+      ([selector, name, version]) =>
+        `"${selector}":\n  version: ${version}\n  resolution: "${name}@npm:${version}"`,
+    )
+    .join('\n');
+}
+
+test('a newly disclosed advisory absent from any earlier snapshot fails while the checkout is vulnerable', () => {
+  const result = inspectOpenAlerts(
+    [fixedAlert(500, 'left-pad', '1.3.1', '< 1.3.1')],
+    {},
+    {
+      lockText: lockOf([['left-pad@npm:^1.0.0', 'left-pad', '1.3.0']]),
+      resolutions: { 'left-pad': '1.3.0' },
+    },
+  );
+  assert.ok(result.failures.some((failure) => /left-pad: locked 1\.3\.0 is below/.test(failure)));
+  assert.equal(result.classified[0].classification, 'vulnerable-in-checkout');
+});
+
+test('mixed majors: an unpatched second line is caught even when the first line is fixed', () => {
+  const lockText = lockOf([
+    ['undici@npm:^6.0.0', 'undici', '6.29.1'],
+    ['undici@npm:^8.0.0', 'undici', '8.12.1'],
+  ]);
+  const result = inspectOpenAlerts(
+    [
+      fixedAlert(501, 'undici', '6.29.1', '< 6.29.1'),
+      fixedAlert(502, 'undici', '8.12.2', '>= 7.0.0, < 8.12.2'),
+    ],
+    {},
+    {
+      lockText,
+      resolutions: { 'undici@npm:^6.0.0': '6.29.1', 'undici@npm:^8.0.0': '8.12.1' },
+    },
+  );
+  assert.deepEqual(
+    result.classified.map((entry) => entry.classification),
+    ['patched-in-checkout', 'vulnerable-in-checkout'],
+  );
+  assert.ok(
+    result.failures.some((failure) =>
+      /8\.12\.1 is below upstream patched version 8\.12\.2/.test(failure),
+    ),
+  );
+});
+
+test('default-branch lag: an alert still open on main is patched in the checkout, never closed', () => {
+  const alert = fixedAlert(503, 'zod', '4.6.6', '< 4.6.6');
+  const { classified } = inspectOpenAlerts(
+    [alert],
+    {},
+    {
+      lockText: lockOf([['zod@npm:^4.0.0', 'zod', '4.6.7']]),
+      resolutions: { zod: '4.6.7' },
+    },
+  );
+  const inventory = buildInventory({
+    alerts: [alert],
+    classified,
+    sourceSha: 'source',
+    mainSha: 'main',
+    generatedAt: '2026-11-10T00:00:00.000Z',
+  });
+  assert.deepEqual(inventory.classificationCounts, { 'patched-in-checkout': 1 });
+  assert.equal(inventory.alerts[0].githubState, 'open');
+  assert.equal(inventory.alerts[0].classification, 'patched-in-checkout');
+  assert.deepEqual(inventory.alerts[0].lockedVersions, ['4.6.7']);
+  assert.equal(inventory.mainSha, 'main');
+  assert.doesNotMatch(JSON.stringify(inventory), /closed|fixed/);
+});
+
+test('an accepted-risk register entry is reported as reviewed, never as patched', () => {
+  const result = inspectOpenAlerts(
+    [
+      {
+        number: 71,
+        security_vulnerability: { package: { name: 'braces' } },
+        security_advisory: { ghsa_id: 'GHSA-vfj7-8cjw-p6xm' },
+      },
+    ],
+    KNOWN_UNPATCHED_ADVISORIES,
+    { lockText: lock },
+  );
+  assert.deepEqual(result.patchedInCheckout, []);
+  assert.equal(result.classified[0].classification, 'reviewed-unpatched');
+});
+
+test('a no-fix advisory with no register entry blocks the verdict', () => {
+  const alert = {
+    number: 504,
+    security_vulnerability: { package: { name: 'abandoned' }, first_patched_version: null },
+    security_advisory: { ghsa_id: 'GHSA-abandoned' },
+  };
+  const result = inspectOpenAlerts([alert], {}, { lockText: lock });
+  assert.match(result.failures[0], /#504.*no reviewed register entry/);
+  assert.equal(result.classified[0].classification, 'unresolved');
+});
+
+test('a removed dependency passes only with a reviewed removal and no locked instance', () => {
+  const alert = fixedAlert(505, 'gone-package', '2.0.1', '< 2.0.1');
+  const removals = { 'gone-package': { removedBy: 'test', evidence: 'fixture' } };
+
+  const removed = inspectOpenAlerts([alert], {}, { lockText: lock, removals });
+  assert.deepEqual(removed.failures, []);
+  assert.equal(removed.classified[0].classification, 'removed-dependency');
+
+  const unexplained = inspectOpenAlerts([alert], {}, { lockText: lock, removals: {} });
+  assert.match(unexplained.failures[0], /no locked package instance was found/);
+  assert.equal(unexplained.classified[0].classification, 'unresolved');
+
+  const stillLocked = inspectOpenAlerts(
+    [alert],
+    {},
+    {
+      lockText: lockOf([['gone-package@npm:^2.0.0', 'gone-package', '2.0.1']]),
+      resolutions: { 'gone-package': '2.0.1' },
+      removals,
+    },
+  );
+  assert.ok(
+    stillLocked.failures.some((failure) =>
+      /registered as removed but 2\.0\.1 is still locked/.test(failure),
+    ),
+  );
+});
+
+test('the shipped removal register is empty until a removal is reviewed', () => {
+  assert.deepEqual(REVIEWED_REMOVALS, {});
+});
+
+test('a dependency change invalidates evidence: a downgrade below the fix fails again', () => {
+  const alert = fixedAlert(506, 'fast-uri', '3.1.9', '< 3.1.9');
+  const patched = inspectOpenAlerts(
+    [alert],
+    {},
+    {
+      lockText: lockOf([['fast-uri@npm:^3.0.0', 'fast-uri', '3.1.9']]),
+      resolutions: { 'fast-uri@npm:^3.0.0': '3.1.9' },
+    },
+  );
+  assert.deepEqual(patched.failures, []);
+  const regressed = inspectOpenAlerts(
+    [alert],
+    {},
+    {
+      lockText: lockOf([['fast-uri@npm:^3.0.0', 'fast-uri', '3.1.8']]),
+      resolutions: { 'fast-uri@npm:^3.0.0': '3.1.8' },
+    },
+  );
+  assert.equal(regressed.classified[0].classification, 'vulnerable-in-checkout');
+});
+
+test('malformed alert records fail instead of reading as a clean checkout', () => {
+  const result = inspectOpenAlerts(
+    [
+      { number: 'x' },
+      { number: 600, security_vulnerability: {}, security_advisory: {} },
+      fixedAlert(601, 'odd', 'not-a-version', '< 1.0.0'),
+      fixedAlert(602, 'odd-range', '1.0.0', 'whenever'),
+    ],
+    {},
+    { lockText: lock },
+  );
+  assert.equal(result.failures.length, 4);
+  assert.match(result.failures[0], /without a numeric id/);
+  assert.match(result.failures[1], /#600 has no package name or GHSA id/);
+  assert.match(result.failures[2], /#601.*unreadable patched version/);
+  assert.match(result.failures[3], /#602.*unreadable vulnerable range/);
+  assert.ok(result.classified.every((entry) => entry.classification === 'unresolved'));
+});
+
+test('a failed or truncated GitHub response fails the audit', async () => {
+  const unauthorized = async () => ({
+    ok: false,
+    status: 401,
+    headers: { get: () => null },
+    json: async () => ({}),
+    text: async () => 'Bad credentials',
+  });
+  await assert.rejects(
+    checkDependabotAlerts({
+      repository: 'o/r',
+      token: 't',
+      fetchImpl: unauthorized,
+      lockText: lock,
+    }),
+    /HTTP 401: Bad credentials/,
+  );
+
+  // The second page fails mid-pagination: no partial inventory is reported.
+  const truncated = async (url) =>
+    url.includes('cursor=next')
+      ? { ok: false, status: 502, headers: { get: () => null }, text: async () => 'Bad gateway' }
+      : {
+          ok: true,
+          status: 200,
+          headers: { get: () => `<${url}&cursor=next>; rel="next"` },
+          json: async () => [],
+          text: async () => '',
+        };
+  await assert.rejects(
+    checkDependabotAlerts({ repository: 'o/r', token: 't', fetchImpl: truncated, lockText: lock }),
+    /HTTP 502/,
+  );
+
+  const notJson = async () => ({
+    ok: true,
+    status: 200,
+    headers: { get: () => null },
+    json: async () => {
+      throw new SyntaxError('Unexpected token <');
+    },
+    text: async () => '<html>',
+  });
+  await assert.rejects(
+    checkDependabotAlerts({ repository: 'o/r', token: 't', fetchImpl: notJson, lockText: lock }),
+    /not JSON/,
+  );
 });
