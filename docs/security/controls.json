@@ -346,15 +346,30 @@
     {
       "id": "xss-browser-runtime",
       "item": "xss",
-      "level": "release",
-      "owner": "release manager",
-      "summary": "Malicious names and module text render inert on public, Control, TV and help pages under the enforced policy.",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Hostile names render as text in public pages, structured data, the player dialog and Control, with no script run and no policy violation, in a real browser.",
       "surfaces": ["apps/web", "deployment"],
       "checks": [
         {
-          "kind": "runtime",
-          "id": "xss-browser-runtime",
-          "blocker": "needs the disposable production-profile TLS deployment"
+          "kind": "test",
+          "file": "e2e/control-hostile-content.spec.ts",
+          "name": "Control shows hostile club and organization names as text and runs none of them"
+        },
+        {
+          "kind": "test",
+          "file": "e2e/public-json-ld-xss-regression.spec.ts",
+          "name": "a tournament name containing </script> never breaks out of the structured-data tag"
+        },
+        {
+          "kind": "test",
+          "file": "e2e/standings-and-rankings.spec.ts",
+          "name": "the player dialog shows a stored name as text and never runs it"
+        },
+        {
+          "kind": "test",
+          "file": "e2e/csp-guard.ts",
+          "name": "Content Security Policy violations"
         }
       ]
     },
