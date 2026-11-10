@@ -179,6 +179,11 @@ export class UpgradeCommand extends Command<CliContext> {
           `Added COPALIBRE_SESSION_COOKIE_SECURE=${reconcileResult.addedSessionCookieSecure} to .env, from COPALIBRE_APP_URL. Check it matches how operators reach this installation.\n`,
         );
       }
+      if (reconcileResult.loopbackPorts.length > 0) {
+        process.stdout.write(
+          `Published ${reconcileResult.loopbackPorts.join(', ')} on 127.0.0.1 only in docker-compose.yml; the gateway port stays the network entry.\n`,
+        );
+      }
 
       // 4. Docker Images & Service Refresh
       if (!parsed.values['skip-services'] && !isContainer(environment)) {

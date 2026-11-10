@@ -6,6 +6,7 @@ import {
   authConfigFromEnv,
   sessionCookieConfigFromEnv,
   sessionCookieMismatch,
+  trustedProxiesFromEnv,
 } from '@copalibre/auth';
 import { createObjectStorageAdapter, objectStorageConfigFromEnv } from '@copalibre/object-storage';
 import {
@@ -134,6 +135,7 @@ export function validateRequiredConfiguration(
   checks.push(validateEmailConfiguration(environment));
   checks.push(validateCspIdentityOrigin(environment));
   checks.push(validateSessionCookieSetting(environment));
+  checks.push(validateTrustedProxiesSetting(environment));
   return checks;
 }
 
@@ -198,6 +200,25 @@ export function validateSessionCookieSetting(environment: NodeJS.ProcessEnv): Do
   return mismatch === undefined
     ? pass(name, `Session cookies ${config.secure ? 'carry' : 'omit'} Secure, matching ${appUrl}`)
     : warn(name, mismatch);
+}
+
+/**
+ * The API and events processes refuse to start when COPALIBRE_TRUSTED_PROXIES
+ * is unreadable or trusts every address; doctor says so before they do.
+ */
+export function validateTrustedProxiesSetting(environment: NodeJS.ProcessEnv): DoctorCheck {
+  const name = 'trusted-proxies';
+  try {
+    const trusted = trustedProxiesFromEnv(environment);
+    return pass(
+      name,
+      trusted === false
+        ? 'No proxy is trusted: client addresses are the connecting peer'
+        : `Forwarded client addresses are believed from ${trusted.join(', ')}`,
+    );
+  } catch (error) {
+    return fail(name, error instanceof Error ? error.message : String(error));
+  }
 }
 
 /** Validates an installation's parsed `.env` before the host starts Compose. */

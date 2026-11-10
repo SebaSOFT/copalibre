@@ -15,6 +15,36 @@ export interface EnvReconciliationResult {
 export interface ComposeReconciliationResult {
   readonly content: string;
   readonly updatedImages: readonly string[];
+  /** Shipped port mappings this reconciliation moved to 127.0.0.1, e.g. `3001:3001`. */
+  readonly loopbackPorts: readonly string[];
+}
+
+/**
+ * Port mappings earlier releases published on every host interface for
+ * services that sit behind the gateway. Only these exact mappings move to
+ * 127.0.0.1; a mapping the operator changed is theirs and stays as written.
+ */
+export const SHIPPED_INTERNAL_PORT_MAPPINGS: readonly string[] = [
+  '3001:3001',
+  '3002:3002',
+  '3005:3005',
+  '4321:4321',
+  '9000:3900',
+  '3310:3310',
+];
+
+function bindShippedPortsToLoopback(content: string): { content: string; moved: string[] } {
+  const moved: string[] = [];
+  const next = content.replace(
+    /^(\s*-\s*)(['"]?)(\d+:\d+)\2(\s*)$/gm,
+    (line, prefix: string, quote: string, mapping: string, trailing: string) => {
+      if (!SHIPPED_INTERNAL_PORT_MAPPINGS.includes(mapping)) return line;
+      moved.push(mapping);
+      const q = quote || "'";
+      return `${prefix}${q}127.0.0.1:${mapping}${q}${trailing}`;
+    },
+  );
+  return { content: next, moved };
 }
 
 export interface InstallationReconciliationResult {
@@ -25,6 +55,7 @@ export interface InstallationReconciliationResult {
   readonly updatedEnvKeys: readonly string[];
   readonly updatedImages: readonly string[];
   readonly addedSessionCookieSecure?: string;
+  readonly loopbackPorts: readonly string[];
 }
 
 /**
@@ -125,7 +156,9 @@ function sessionCookieSecureFromAppUrl(appUrl: string | undefined, fallback: str
 
 /**
  * Reconciles `docker-compose.yml` to target images while preserving custom volume mappings,
- * ports, environment stanzas, and network overrides.
+ * ports, environment stanzas, and network overrides. The one port change: the
+ * shipped internal mappings are published on 127.0.0.1 instead of every
+ * interface, so only the gateway is reachable from the network.
  */
 export function reconcileComposeContent(
   existingContent: string,
@@ -159,9 +192,12 @@ export function reconcileComposeContent(
     return `${prefix}${cleanVersion}`;
   });
 
+  const loopback = bindShippedPortsToLoopback(updatedContent);
+
   return {
-    content: updatedContent,
+    content: loopback.content,
     updatedImages,
+    loopbackPorts: loopback.moved,
   };
 }
 
@@ -186,6 +222,7 @@ export async function reconcileInstallationDirectory(
   let addedEnvKeys: readonly string[] = [];
   let updatedEnvKeys: readonly string[] = [];
   let updatedImages: readonly string[] = [];
+  let loopbackPorts: readonly string[] = [];
   let addedSessionCookieSecure: string | undefined;
 
   if (existsSync(envPath)) {
@@ -209,6 +246,7 @@ export async function reconcileInstallationDirectory(
       composeUpdated = true;
     }
     updatedImages = composeResult.updatedImages;
+    loopbackPorts = composeResult.loopbackPorts;
   }
 
   const existingMarker = await readInstallationMarker(cwd);
@@ -233,6 +271,7 @@ export async function reconcileInstallationDirectory(
     addedEnvKeys,
     updatedEnvKeys,
     updatedImages,
+    loopbackPorts,
     ...(addedSessionCookieSecure === undefined ? {} : { addedSessionCookieSecure }),
   };
 }

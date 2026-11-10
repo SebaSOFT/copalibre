@@ -140,6 +140,9 @@ env:
   # `Secure` and the `__Host-` prefix on the session, CSRF and refresh cookies.
   # Empty derives it from `session.cookieSecure` below.
   COPALIBRE_SESSION_COOKIE_SECURE: ''
+  # Peers whose X-Forwarded-For the API and events believe. Empty trusts loopback,
+  # link-local and private networks, which covers the ingress controller's pods.
+  COPALIBRE_TRUSTED_PROXIES: ''
 
 # Browser session cookies. `cookieSecure` left null is true unless the
 # chart's own ingress is enabled without TLS; set it false only for a

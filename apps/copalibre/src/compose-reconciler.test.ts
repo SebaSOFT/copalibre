@@ -131,6 +131,51 @@ COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.1
 
       expect(result.content).toContain('copalibre-${COPALIBRE_VERSION:-1.3.0}');
     });
+
+    it('moves the shipped internal port mappings to 127.0.0.1 and leaves the gateway alone', () => {
+      const composeYaml = [
+        'services:',
+        '  api:',
+        '    ports:',
+        "      - '3001:3001'",
+        '  object-storage:',
+        '    ports:',
+        '      - "9000:3900"',
+        '  clamd:',
+        '    ports:',
+        '      - 3310:3310',
+        '  gateway:',
+        '    ports:',
+        "      - '${COPALIBRE_PORT:-8080}:80'",
+        '',
+      ].join('\n');
+
+      const result = reconcileComposeContent(composeYaml, 'v1.3.0');
+
+      expect(result.loopbackPorts).toEqual(['3001:3001', '9000:3900', '3310:3310']);
+      expect(result.content).toContain("- '127.0.0.1:3001:3001'");
+      expect(result.content).toContain('- "127.0.0.1:9000:3900"');
+      expect(result.content).toContain("- '127.0.0.1:3310:3310'");
+      expect(result.content).toContain("- '${COPALIBRE_PORT:-8080}:80'");
+    });
+
+    it('is idempotent once the ports are on loopback', () => {
+      const once = reconcileComposeContent("    ports:\n      - '3002:3002'\n", 'v1.3.0');
+      const twice = reconcileComposeContent(once.content, 'v1.3.0');
+      expect(twice.content).toBe(once.content);
+      expect(twice.loopbackPorts).toEqual([]);
+    });
+
+    it('ships a compose file that publishes only the gateway on every interface', async () => {
+      const { readFile } = await import('node:fs/promises');
+      const shipped = await readFile(new URL('../../../docker-compose.yml', import.meta.url), 'utf8');
+      const published = [...shipped.matchAll(/^\s*-\s*['"]?([^'"\s]+:\d+)['"]?\s*$/gm)]
+        .map((match) => match[1] ?? '')
+        .filter((mapping) => /^(\$\{[^}]+\}|[\d.]+:)?\d+:\d+$|^\$\{[^}]+\}:\d+$/.test(mapping));
+      const everyInterface = published.filter((mapping) => !mapping.startsWith('127.0.0.1:'));
+      expect(everyInterface).toEqual(['${COPALIBRE_PORT:-8080}:80']);
+      expect(reconcileComposeContent(shipped, 'v9.9.9').loopbackPorts).toEqual([]);
+    });
   });
 
   describe('reconcileInstallationDirectory', () => {

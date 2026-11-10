@@ -29,6 +29,8 @@ x-application-environment: &application-environment
   COPALIBRE_IN_CONTAINER: 'true'
   # Secure and the __Host- prefix on session cookies; copalibre init and upgrade write it.
   COPALIBRE_SESSION_COOKIE_SECURE: ${COPALIBRE_SESSION_COOKIE_SECURE:-true}
+  # Peers whose X-Forwarded-For the API and events believe; empty means loopback and private networks.
+  COPALIBRE_TRUSTED_PROXIES: ${COPALIBRE_TRUSTED_PROXIES:-}
   HOST: '0.0.0.0'
 
 x-application-service: &application-service
@@ -74,7 +76,7 @@ services:
       migrate:
         condition: service_completed_successfully
     ports:
-      - '3001:3001'
+      - '127.0.0.1:3001:3001'
     volumes:
       - copalibre-data:/var/lib/copalibre
       - ./modules:/var/lib/copalibre/modules:ro
@@ -98,7 +100,7 @@ services:
       migrate:
         condition: service_completed_successfully
     ports:
-      - '3002:3002'
+      - '127.0.0.1:3002:3002'
     volumes:
       - copalibre-data:/var/lib/copalibre
     healthcheck:
@@ -165,7 +167,7 @@ services:
       migrate:
         condition: service_completed_successfully
     ports:
-      - '3005:3005'
+      - '127.0.0.1:3005:3005'
     volumes:
       - copalibre-data:/var/lib/copalibre
       - ./modules:/var/lib/copalibre/modules:ro
@@ -191,7 +193,7 @@ services:
       # must allow for sign-in. Empty with the built-in identity provider.
       COPALIBRE_CSP_IDENTITY_ORIGIN: ${COPALIBRE_CSP_IDENTITY_ORIGIN:-}
     ports:
-      - '4321:4321'
+      - '127.0.0.1:4321:4321'
     volumes:
       - ./modules:/var/lib/copalibre/modules:ro
       # Everything in ./well-known is public under /.well-known/ (security.txt and similar).
@@ -205,6 +207,10 @@ services:
   gateway:
     image: caddy:2.11-alpine
     restart: unless-stopped
+    # The only port published on every interface. Every other service below is
+    # published on 127.0.0.1 only, for host-local checks: reaching a role
+    # directly would skip the gateway's routing and headers, and let a client
+    # forge the forwarded address the rate limits key on.
     ports:
       - '${COPALIBRE_PORT:-8080}:80'
     depends_on:
@@ -275,7 +281,7 @@ services:
       - object-storage-meta:/var/lib/garage/meta
       - object-storage-data:/var/lib/garage/data
     ports:
-      - '9000:3900'
+      - '127.0.0.1:9000:3900'
     healthcheck:
       test: ['CMD', '/garage', 'status']
       interval: 5s
@@ -292,7 +298,7 @@ services:
     volumes:
       - clamav-data:/var/lib/clamav
     ports:
-      - '3310:3310'
+      - '127.0.0.1:3310:3310'
 
 volumes:
   copalibre-data:
