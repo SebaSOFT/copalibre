@@ -90,6 +90,12 @@ covers the gateway, a proxy on the same host and a Kubernetes ingress controller
 network. Name a proxy that reaches the services from a public address, for example
 `COPALIBRE_TRUSTED_PROXIES=loopback,uniquelocal,203.0.113.10`. The services refuse to start with a
 value they cannot read or one that trusts every address, and `copalibre doctor` reports it first.
+
+**Security alerts.** Repeated refused requests from one actor (failed sign-ins, denied admin
+requests) raise an alert in the worker's log. Set `COPALIBRE_SECURITY_ALERT_EMAIL` to have it emailed
+through your email provider, and `COPALIBRE_SECURITY_ALERT_THRESHOLD` to change how many refusals in
+ten minutes raise one (default 20). What to do when one arrives is in
+[docs/security/incident-response.md](security/incident-response.md).
 Compose does not terminate TLS. Put Caddy or NGINX at the public edge and route the application
 hostname through `gateway:80` on the Compose network, or `127.0.0.1:8080` from a proxy running on
 the host. The gateway has two rules: `/events/*` goes to `events:3002` and `/api/*` to `api:3001`. Everything

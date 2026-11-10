@@ -31,6 +31,9 @@ x-application-environment: &application-environment
   COPALIBRE_SESSION_COOKIE_SECURE: ${COPALIBRE_SESSION_COOKIE_SECURE:-true}
   # Peers whose X-Forwarded-For the API and events believe; empty means loopback and private networks.
   COPALIBRE_TRUSTED_PROXIES: ${COPALIBRE_TRUSTED_PROXIES:-}
+  # Security alerts: bursts of refused requests are emailed here; empty logs them only.
+  COPALIBRE_SECURITY_ALERT_EMAIL: ${COPALIBRE_SECURITY_ALERT_EMAIL:-}
+  COPALIBRE_SECURITY_ALERT_THRESHOLD: ${COPALIBRE_SECURITY_ALERT_THRESHOLD:-}
   HOST: '0.0.0.0'
 
 x-application-service: &application-service

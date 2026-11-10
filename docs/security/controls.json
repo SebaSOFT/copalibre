@@ -331,15 +331,25 @@
     {
       "id": "suspicious-activity-alert",
       "item": "suspicious-activity",
-      "level": "release",
-      "owner": "release manager",
-      "summary": "Repeated failed sign-ins and denied admin requests raise a redacted, deduplicated alert at a test receiver.",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Bursts of refused sign-ins and admin requests raise one redacted, deduplicated alert that reaches a test receiver; the response steps are in docs/security/incident-response.md.",
       "surfaces": ["apps/api", "operations"],
       "checks": [
         {
-          "kind": "runtime",
-          "id": "suspicious-activity-alert",
-          "blocker": "no alert path to a test receiver exists yet"
+          "kind": "test",
+          "file": "apps/worker/src/notifications/security-alert.integration.test.ts",
+          "name": "alerts the test receiver once for repeated failed sign-ins and denied admin requests"
+        },
+        {
+          "kind": "test",
+          "file": "apps/worker/src/notifications/security-alert.integration.test.ts",
+          "name": "refuses a threshold that would silence alerting"
+        },
+        {
+          "kind": "test",
+          "file": "packages/persistence/src/security-signals.integration.test.ts",
+          "name": "reports only actors over the threshold, with their most refused paths and no query strings"
         }
       ]
     },

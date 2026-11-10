@@ -38,6 +38,11 @@ import {
 import { objectProcessingHandler } from './jobs/object-processing-handler.js';
 import { reportEvidenceValidationHandler } from './jobs/report-evidence-handler.js';
 import { RelayService } from './relay.service.js';
+import {
+  SECURITY_REFUSAL_CHECK_EVENT,
+  securityAlertConfigFromEnv,
+  securityAlertHandler,
+} from './notifications/security-alert-handler.js';
 
 /**
  * The worker process.
@@ -77,6 +82,10 @@ const providers: Provider[] = [
       const passwordReset = passwordResetEmailHandler(emailConfig, email);
       const lifecycle = lifecycleEmailHandlers(emailConfig, email);
       const reschedule = rescheduleEmailHandler(emailConfig, email);
+      const securityAlert = securityAlertHandler(emailConfig, securityAlertConfigFromEnv(), {
+        ...email,
+        log: (line: string) => logger.warn(line),
+      });
       const evidence = reportEvidenceValidationHandler({ db });
       const objectProcessing = objectProcessingHandler({
         db,
@@ -94,7 +103,8 @@ const providers: Provider[] = [
         .register('privacy.soft-deletes.purge', async () => {
           await new ReversibleRemovalRepository(db).purgeExpired();
         })
-        .register(RESCHEDULE_EMAIL_EVENT, reschedule);
+        .register(RESCHEDULE_EMAIL_EVENT, reschedule)
+        .register(SECURITY_REFUSAL_CHECK_EVENT, securityAlert);
       for (const eventType of LIFECYCLE_EMAIL_EVENTS) {
         dispatcher.register(eventType, lifecycle[eventType]);
       }

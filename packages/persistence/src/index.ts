@@ -272,3 +272,10 @@ export {
   toRecordedEvent,
   toIsoString,
 } from './mapping.js';
+export {
+  SECURITY_ALERT_ACTION,
+  recordSecurityAlert,
+  refusalBursts,
+  securityAlertRaisedSince,
+  type RefusalBurst,
+} from './security-signals.js';
