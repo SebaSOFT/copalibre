@@ -40,6 +40,7 @@
     "@tabler/icons": "3.49.0",
     "@tabler/icons-react": "3.49.0",
     "astro": "^7.4.1",
+    "cookie": "2.0.1",
     "idb": "^8.0.4",
     "lucide-react": "1.59.0",
     "lucide-static": "1.59.0",
