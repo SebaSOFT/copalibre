@@ -103,7 +103,21 @@ export interface SecurityAlertDependencies extends Pick<
   readonly db: Kysely<Database>;
   readonly log?: (line: string) => void;
   readonly now?: () => Date;
+  /** The audit-log reads and writes; the persistence functions unless a test replaces them. */
+  readonly signals?: SecuritySignals;
 }
+
+export interface SecuritySignals {
+  readonly refusalBursts: typeof refusalBursts;
+  readonly securityAlertRaisedSince: typeof securityAlertRaisedSince;
+  readonly recordSecurityAlert: typeof recordSecurityAlert;
+}
+
+const PERSISTED_SIGNALS: SecuritySignals = {
+  refusalBursts,
+  securityAlertRaisedSince,
+  recordSecurityAlert,
+};
 
 /**
  * Raises one alert per actor whose refusals cross the threshold within the
@@ -115,17 +129,18 @@ export function securityAlertHandler(
   dependencies: SecurityAlertDependencies,
 ): JobHandler {
   const log = dependencies.log ?? ((line: string) => process.stdout.write(`${line}\n`));
+  const signals = dependencies.signals ?? PERSISTED_SIGNALS;
   return async (job) => {
     const now = dependencies.now?.() ?? new Date();
     const since = new Date(now.getTime() - alertConfig.windowMinutes * 60_000);
-    const bursts = await refusalBursts(dependencies.db, {
+    const bursts = await signals.refusalBursts(dependencies.db, {
       since,
       threshold: alertConfig.threshold,
     });
     const raised: RefusalBurst[] = [];
     for (const burst of bursts) {
-      if (await securityAlertRaisedSince(dependencies.db, burst.actor, since)) continue;
-      await recordSecurityAlert(dependencies.db, burst, alertConfig.windowMinutes);
+      if (await signals.securityAlertRaisedSince(dependencies.db, burst.actor, since)) continue;
+      await signals.recordSecurityAlert(dependencies.db, burst, alertConfig.windowMinutes);
       log(securityAlertLogLine(burst, alertConfig.windowMinutes));
       raised.push(burst);
     }
