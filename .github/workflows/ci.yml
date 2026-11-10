@@ -253,6 +253,8 @@ jobs:
           cache: yarn
       - run: yarn install --immutable
       - run: node --test scripts/check-enterprise-readiness-docs.test.mjs
+      - name: Keep the operator cookie list equal to the cookies the API sets
+        run: node --test scripts/operator-cookie-docs.test.mjs
       - run: node scripts/check-enterprise-readiness-docs.mjs
       - run: node --test scripts/check-readme-doc-links.test.mjs
       - run: node scripts/check-readme-doc-links.mjs
