@@ -22,6 +22,7 @@ import {
 import type { FastifyReply } from 'fastify';
 import type { Kysely } from 'kysely';
 import sharp from 'sharp';
+import { imageContentType, safeObjectName } from '../http/upload-names.js';
 import type { ObjectStorageAdapter } from '@copalibre/object-storage';
 import type { Tournament } from '@copalibre/domain';
 import {
@@ -134,11 +135,11 @@ export class PersonMediaController {
       });
     }
 
-    const bytes = await decodeImage(body);
+    const { bytes, contentType, name } = await decodeImage(body);
     const reference = await this.storage.put(
-      `${organizationId}/persons/${personId}/${newId()}-${body.filename}`,
+      `${organizationId}/persons/${personId}/${newId()}-${name}`,
       bytes,
-      body.contentType,
+      contentType,
     );
     const actor = actorOf(request);
 
@@ -147,7 +148,7 @@ export class PersonMediaController {
         organizationId,
         profile: this.storage.profile,
         storageKey: reference.key,
-        contentType: body.contentType,
+        contentType,
         sizeBytes: bytes.length,
         uploadedBy: actor,
       });
@@ -333,11 +334,11 @@ export class ClubMediaController {
       resource: { organizationId, ownerClubId: clubId },
     });
 
-    const bytes = await decodeImage(body);
+    const { bytes, contentType, name } = await decodeImage(body);
     const reference = await this.storage.put(
-      `${organizationId}/clubs/${clubId}/${newId()}-${body.filename}`,
+      `${organizationId}/clubs/${clubId}/${newId()}-${name}`,
       bytes,
-      body.contentType,
+      contentType,
     );
     const actor = actorOf(request);
 
@@ -346,7 +347,7 @@ export class ClubMediaController {
         organizationId,
         profile: this.storage.profile,
         storageKey: reference.key,
-        contentType: body.contentType,
+        contentType,
         sizeBytes: bytes.length,
         uploadedBy: actor,
       });
@@ -403,11 +404,11 @@ export class OrganizationMediaController {
   ): Promise<UploadImageResponse> {
     const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
 
-    const bytes = await decodeImage(body);
+    const { bytes, contentType, name } = await decodeImage(body);
     const reference = await this.storage.put(
-      `${organizationId}/emblem/${newId()}-${body.filename}`,
+      `${organizationId}/emblem/${newId()}-${name}`,
       bytes,
-      body.contentType,
+      contentType,
     );
     const actor = actorOf(request);
 
@@ -416,7 +417,7 @@ export class OrganizationMediaController {
         organizationId,
         profile: this.storage.profile,
         storageKey: reference.key,
-        contentType: body.contentType,
+        contentType,
         sizeBytes: bytes.length,
         uploadedBy: actor,
       });
@@ -530,11 +531,11 @@ export class TournamentMediaController {
       resource: { organizationId },
     });
 
-    const bytes = await decodeImage(body);
+    const { bytes, contentType, name } = await decodeImage(body);
     const reference = await this.storage.put(
-      `${organizationId}/tournaments/${tournament.tournamentId}/${newId()}-${body.filename}`,
+      `${organizationId}/tournaments/${tournament.tournamentId}/${newId()}-${name}`,
       bytes,
-      body.contentType,
+      contentType,
     );
     const actor = actorOf(request);
 
@@ -543,7 +544,7 @@ export class TournamentMediaController {
         organizationId,
         profile: this.storage.profile,
         storageKey: reference.key,
-        contentType: body.contentType,
+        contentType,
         sizeBytes: bytes.length,
         uploadedBy: actor,
       });
@@ -693,19 +694,37 @@ function withinTolerance(actual: number, expected: number): boolean {
   return Math.abs(actual - expected) <= expected * DIMENSION_TOLERANCE;
 }
 
-async function decodeImage(upload: UploadImageRequest): Promise<Buffer> {
+/**
+ * Decodes an uploaded image and checks its size and dimensions. Its type comes
+ * from the decoded format, not from the request: a PNG declared as text/html
+ * is stored and served as image/png, and a format uploads do not accept
+ * (TIFF, PDF) is refused.
+ */
+async function decodeImage(
+  upload: UploadImageRequest,
+): Promise<{ readonly bytes: Buffer; readonly contentType: string; readonly name: string }> {
+  const name = safeObjectName(upload.filename);
   const bytes = Buffer.from(upload.contentBase64, 'base64');
   if (bytes.length === 0 || bytes.length > MAX_IMAGE_BYTES) {
     throw new BadRequestException(
-      `Image "${upload.filename}" is not a valid size (0 < bytes <= ${MAX_IMAGE_BYTES})`,
+      `Image "${name}" is not a valid size (0 < bytes <= ${MAX_IMAGE_BYTES})`,
       { errorCode: 'identity-media-bad-request' },
     );
   }
 
-  const dimensions = await sharp(bytes)
+  const metadata = await sharp(bytes)
     .metadata()
-    .catch(() => ({ width: undefined, height: undefined }));
-  const { width, height } = dimensions;
+    .catch(() => ({ width: undefined, height: undefined, format: undefined }));
+  const { width, height } = metadata;
+  const contentType = imageContentType(metadata.format);
+  if (contentType === undefined) {
+    throw new BadRequestException(
+      `Image "${name}" is not an SVG, PNG, JPEG, WebP, GIF or AVIF image`,
+      {
+        errorCode: 'identity-media-bad-request',
+      },
+    );
+  }
   if (
     width === undefined ||
     height === undefined ||
@@ -713,12 +732,12 @@ async function decodeImage(upload: UploadImageRequest): Promise<Buffer> {
     !withinTolerance(height, REQUIRED_IMAGE_HEIGHT)
   ) {
     throw new BadRequestException(
-      `Image "${upload.filename}" must be ${REQUIRED_IMAGE_WIDTH}×${REQUIRED_IMAGE_HEIGHT} ` +
+      `Image "${name}" must be ${REQUIRED_IMAGE_WIDTH}×${REQUIRED_IMAGE_HEIGHT} ` +
         `(within ${DIMENSION_TOLERANCE * 100}% tolerance); received ${width ?? '?'}×${height ?? '?'}`,
       { errorCode: 'identity-media-bad-request' },
     );
   }
-  return bytes;
+  return { bytes, contentType, name };
 }
 
 /**

@@ -672,7 +672,7 @@
       "item": "upload-limits",
       "level": "pr",
       "owner": "maintainers",
-      "summary": "Photo and emblem uploads need authentication, are checked for dimensions and quarantined until scanned.",
+      "summary": "Photo, emblem and evidence uploads need authentication, keep their storage key inside their organization, are typed by their decoded format, served under the API's deny-all policy, and quarantined until scanned.",
       "surfaces": ["apps/api"],
       "checks": [
         {
@@ -689,6 +689,31 @@
           "kind": "test",
           "file": "apps/api/src/controllers/identity-media.integration.test.ts",
           "name": "refuses a person photo upload with the wrong width (a different aspect ratio)"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/identity-media.integration.test.ts",
+          "name": "keeps a traversal filename inside the person and serves the decoded type, not the declared one"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/identity-media.integration.test.ts",
+          "name": "serves an uploaded SVG under a policy that runs none of its script"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/identity-media.integration.test.ts",
+          "name": "refuses an image format uploads do not take"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/reports.integration.test.ts",
+          "name": "stores participant evidence under its organization whatever the filename says"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/http/upload-names.test.ts",
+          "name": "never yields a path segment or a traversal"
         }
       ]
     },

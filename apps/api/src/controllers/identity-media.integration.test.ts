@@ -37,6 +37,7 @@ import {
   TournamentMediaController,
 } from './identity-media.controller.js';
 import { applyApiPathPrefix } from '../http/api-path-prefix.js';
+import { applyApiSecurityHeaders } from '../http/security-headers.js';
 
 /**
  * The person-photo/club-emblem upload and public-serve endpoints through the
@@ -267,6 +268,8 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
     applyApiPathPrefix(app);
+    // As main.ts does: what an uploaded image is served with includes these headers.
+    await applyApiSecurityHeaders(app as NestFastifyApplication);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
@@ -338,6 +341,78 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     expect(passed.statusCode).toBe(200);
     expect(passed.headers['content-type']).toBe('image/png');
     expect(Buffer.from(passed.rawPayload).equals(bytes)).toBe(true);
+  });
+
+  it('keeps a traversal filename inside the person and serves the decoded type, not the declared one', async () => {
+    const bytes = await conformingPng();
+    const upload = await inject({
+      method: 'POST',
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: {
+        filename: '../../../../another-organization/persons/x/photo.png',
+        contentType: 'text/html',
+        contentBase64: bytes.toString('base64'),
+      },
+    });
+    expect(upload.statusCode).toBe(201);
+    const { objectId } = upload.json() as { objectId: string };
+
+    const stored = await new ObjectMetadataRepository(db).findById(objectId);
+    expect(stored?.storageKey).toMatch(
+      new RegExp(`^${currentOrganizationId}/persons/${personId}/[0-9a-f-]+-photo\\.png$`),
+    );
+    expect(stored?.contentType).toBe('image/png');
+
+    await new ObjectMetadataRepository(db).markPassed(objectId);
+    const served = await inject({
+      method: 'GET',
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
+    });
+    expect(served.headers['content-type']).toBe('image/png');
+  });
+
+  it('serves an uploaded SVG under a policy that runs none of its script', async () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="410" height="512"><script>alert(1)</script></svg>`;
+    const upload = await inject({
+      method: 'POST',
+      url: `/api/organizations/${organizationAlias}/clubs/${clubId}/emblem`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: {
+        filename: 'emblem.png',
+        contentType: 'image/png',
+        contentBase64: Buffer.from(svg).toString('base64'),
+      },
+    });
+    expect(upload.statusCode).toBe(201);
+    const { objectId } = upload.json() as { objectId: string };
+    await new ObjectMetadataRepository(db).markPassed(objectId);
+    const served = await inject({
+      method: 'GET',
+      url: `/api/organizations/${organizationAlias}/clubs/${clubId}/emblem`,
+    });
+    expect(served.headers['content-type']).toBe('image/svg+xml');
+    expect(served.headers['content-security-policy']).toContain("default-src 'none'");
+    expect(served.headers['x-content-type-options']).toBe('nosniff');
+  });
+
+  it('refuses an image format uploads do not take', async () => {
+    const tiff = await sharp({
+      create: { width: 410, height: 512, channels: 3, background: { r: 0, g: 0, b: 0 } },
+    })
+      .tiff()
+      .toBuffer();
+    const upload = await inject({
+      method: 'POST',
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: {
+        filename: 'photo.png',
+        contentType: 'image/png',
+        contentBase64: tiff.toString('base64'),
+      },
+    });
+    expect(upload.statusCode).toBe(400);
   });
 
   it('404s once a photo fails validation, never serving a flagged object', async () => {

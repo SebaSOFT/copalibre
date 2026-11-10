@@ -98,7 +98,7 @@ const CURRENT_ORG = (): string => currentOrganizationId;
 
 class FakeObjectStorage implements ObjectStorageAdapter {
   readonly profile = 'filesystem' as const;
-  private readonly objects = new Map<string, Uint8Array>();
+  readonly objects = new Map<string, Uint8Array>();
 
   async put(key: string, body: Uint8Array): Promise<{ key: string }> {
     this.objects.set(key, body);
@@ -113,6 +113,7 @@ class FakeObjectStorage implements ObjectStorageAdapter {
 }
 
 describe('report/dispute submission and review (integration)', () => {
+  const storage = new FakeObjectStorage();
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let db: Kysely<Database>;
@@ -266,7 +267,7 @@ describe('report/dispute submission and review (integration)', () => {
       providers: [
         { provide: DATABASE, useValue: db },
         { provide: TokenVerifier, useClass: FakeTokenVerifier },
-        { provide: OBJECT_STORAGE, useValue: new FakeObjectStorage() },
+        { provide: OBJECT_STORAGE, useValue: storage },
         { provide: APP_FILTER, useClass: ApiExceptionFilter },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         { provide: APP_GUARD, useClass: OrganizationAccessGuard },
@@ -324,6 +325,47 @@ describe('report/dispute submission and review (integration)', () => {
     // carries no result at all yet, and this call cannot be what gives it one.
     const match = await new CompetitionRepository(db).findMatch(matchId);
     expect(match?.result).toBeUndefined();
+  });
+
+  it('stores participant evidence under its organization whatever the filename says', async () => {
+    const response = await inject({
+      method: 'POST',
+      url: reportsPath(),
+      headers: { authorization: 'Bearer participant-a' },
+      payload: {
+        proposedResult: { sides: [{ entrantId: 'entrant-a', statistics: { goals: 1 } }] },
+        evidence: [
+          {
+            filename: '../../another-organization/emblem/photo.png',
+            contentType: 'image/png',
+            contentBase64: Buffer.from('evidence').toString('base64'),
+          },
+        ],
+      },
+    });
+    expect(response.statusCode).toBe(201);
+    const keys = [...storage.objects.keys()];
+    expect(keys.some((key) => key.includes('..'))).toBe(false);
+    expect(keys.at(-1)).toMatch(new RegExp(`^${currentOrganizationId}/[0-9a-f-]+-photo\\.png$`));
+  });
+
+  it('refuses evidence whose media type carries anything but type/subtype', async () => {
+    const response = await inject({
+      method: 'POST',
+      url: reportsPath(),
+      headers: { authorization: 'Bearer participant-a' },
+      payload: {
+        proposedResult: { sides: [{ entrantId: 'entrant-a', statistics: { goals: 1 } }] },
+        evidence: [
+          {
+            filename: 'proof.png',
+            contentType: 'text/html; charset=utf-8',
+            contentBase64: Buffer.from('evidence').toString('base64'),
+          },
+        ],
+      },
+    });
+    expect(response.statusCode).toBe(400);
   });
 
   it('persists a dispute with a reason, leaving the match result untouched (6.1/6.4)', async () => {

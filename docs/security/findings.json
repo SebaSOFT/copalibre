@@ -250,5 +250,43 @@
         "name": "every site of the edge Caddyfile sends HSTS"
       }
     ]
+  },
+  {
+    "id": "upload-filename-in-storage-key",
+    "severity": "high",
+    "control": "media-upload-validation",
+    "status": "fixed",
+    "summary": "An uploaded file's name went into its object-storage key unchanged; with filesystem storage, ../ segments in a photo, emblem or participant evidence name reached another organization's objects inside the storage root.",
+    "fingerprint": "apps/api/src/controllers/{identity-media,reports}.controller.ts#storage.put",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/controllers/identity-media.integration.test.ts",
+        "name": "keeps a traversal filename inside the person and serves the decoded type, not the declared one"
+      },
+      {
+        "file": "apps/api/src/controllers/reports.integration.test.ts",
+        "name": "stores participant evidence under its organization whatever the filename says"
+      }
+    ]
+  },
+  {
+    "id": "upload-declared-content-type",
+    "severity": "medium",
+    "control": "media-upload-validation",
+    "status": "fixed",
+    "summary": "An image was stored and served with the Content-Type its uploader declared, so a valid image declared as text/html was served as HTML.",
+    "fingerprint": "apps/api/src/controllers/identity-media.controller.ts#decodeImage",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/controllers/identity-media.integration.test.ts",
+        "name": "keeps a traversal filename inside the person and serves the decoded type, not the declared one"
+      },
+      {
+        "file": "apps/api/src/controllers/reports.integration.test.ts",
+        "name": "refuses evidence whose media type carries anything but type/subtype"
+      }
+    ]
   }
 ]
