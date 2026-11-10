@@ -168,7 +168,10 @@ COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.1
 
     it('ships a compose file that publishes only the gateway on every interface', async () => {
       const { readFile } = await import('node:fs/promises');
-      const shipped = await readFile(new URL('../../../docker-compose.yml', import.meta.url), 'utf8');
+      const shipped = await readFile(
+        new URL('../../../docker-compose.yml', import.meta.url),
+        'utf8',
+      );
       const published = [...shipped.matchAll(/^\s*-\s*['"]?([^'"\s]+:\d+)['"]?\s*$/gm)]
         .map((match) => match[1] ?? '')
         .filter((mapping) => /^(\$\{[^}]+\}|[\d.]+:)?\d+:\d+$|^\$\{[^}]+\}:\d+$/.test(mapping));
