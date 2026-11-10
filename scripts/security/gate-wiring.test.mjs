@@ -54,3 +54,12 @@ test('release publishes only the candidate images it built and scanned', () => {
     assert.notEqual(steps[position]['continue-on-error'], true);
   }
 });
+
+test('the deployment job probes the installation behind the shipped TLS edge', () => {
+  const steps = workflow('ci.yml').jobs['deployment-e2e'].steps;
+  const runs = steps.map((step) => step.run ?? '').join('\n');
+  assert.match(runs, /deploy\/proxy\/Caddyfile/);
+  assert.match(runs, /runtime-probes\.mjs --app-url https:\/\//);
+  const probe = steps.find((step) => /runtime-probes\.mjs/.test(step.run ?? ''));
+  assert.notEqual(probe['continue-on-error'], true);
+});

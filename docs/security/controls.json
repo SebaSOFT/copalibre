@@ -101,7 +101,12 @@
         {
           "kind": "runtime",
           "id": "authentication-runtime",
-          "blocker": "needs the disposable production-profile TLS deployment"
+          "blocker": "scripts/security/runtime-probes.mjs writes this evidence against a deployment behind the shipped TLS edge (CI deployment job)"
+        },
+        {
+          "kind": "test",
+          "file": "scripts/security/runtime-probes.test.mjs",
+          "name": "probeAuthentication"
         }
       ]
     },
@@ -215,7 +220,12 @@
         {
           "kind": "runtime",
           "id": "https-edge-runtime",
-          "blocker": "needs the disposable production-profile TLS deployment"
+          "blocker": "scripts/security/runtime-probes.mjs writes this evidence against a deployment behind the shipped TLS edge (CI deployment job)"
+        },
+        {
+          "kind": "test",
+          "file": "scripts/security/runtime-probes.test.mjs",
+          "name": "the HTTPS edge probe needs HSTS and a redirect from plain HTTP"
         }
       ]
     },
@@ -538,7 +548,12 @@
         {
           "kind": "runtime",
           "id": "security-headers-runtime",
-          "blocker": "needs the disposable production-profile TLS deployment"
+          "blocker": "scripts/security/runtime-probes.mjs writes this evidence against a deployment behind the shipped TLS edge (CI deployment job)"
+        },
+        {
+          "kind": "test",
+          "file": "scripts/security/runtime-probes.test.mjs",
+          "name": "passes a sound installation and fails a careless one"
         }
       ]
     },
@@ -770,7 +785,12 @@
         {
           "kind": "runtime",
           "id": "production-debug-runtime",
-          "blocker": "needs the disposable production-profile TLS deployment"
+          "blocker": "scripts/security/runtime-probes.mjs writes this evidence against a deployment behind the shipped TLS edge (CI deployment job)"
+        },
+        {
+          "kind": "test",
+          "file": "scripts/security/runtime-probes.test.mjs",
+          "name": "probeProductionDebug"
         }
       ]
     },
@@ -857,7 +877,12 @@
         {
           "kind": "runtime",
           "id": "exposed-files-runtime",
-          "blocker": "needs the disposable production-profile TLS deployment"
+          "blocker": "scripts/security/runtime-probes.mjs writes this evidence against a deployment behind the shipped TLS edge (CI deployment job)"
+        },
+        {
+          "kind": "test",
+          "file": "scripts/security/runtime-probes.test.mjs",
+          "name": "traversal probes reach the server unnormalized"
         }
       ]
     },

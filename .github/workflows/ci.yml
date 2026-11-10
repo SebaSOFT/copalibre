@@ -1209,6 +1209,33 @@ jobs:
           grep -q '^COPALIBRE_SESSION_COOKIE_SECURE=true$' .env
       - name: Verify Compose login, PKCE and session cookies
         run: yarn playwright test --config playwright.compose.config.ts e2e/deployment-login.spec.ts
+      # The shipped edge Caddyfile in front of this installation, with Caddy's
+      # internal certificate authority for localhost, then the security gate's
+      # black-box probes: HTTPS redirect and HSTS, headers on every surface,
+      # exposed files and traversal, debug endpoints, forged credentials.
+      - name: Start the TLS edge
+        run: |
+          docker run -d --name security-edge --network copalibre_default \
+            -p 127.0.0.1:8443:443 -p 127.0.0.1:8081:80 \
+            -v "$PWD/deploy/proxy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            -e COPALIBRE_APP_HOST=localhost -e COPALIBRE_API_HOST=api.localhost \
+            -e COPALIBRE_EVENTS_HOST=events.localhost -e ACME_EMAIL=ops@copalibre.invalid \
+            caddy:2.11-alpine
+          for i in $(seq 1 30); do
+            curl -skf https://localhost:8443/api/health > /dev/null && break
+            sleep 2
+          done
+      - name: Probe the deployment's security controls
+        run: >-
+          node scripts/security/runtime-probes.mjs --app-url https://localhost:8443
+          --http-url http://localhost:8081 --insecure --inspector-host 127.0.0.1
+          --out security-runtime
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: security-runtime-evidence
+          path: security-runtime/
+          retention-days: 30
       - name: Show container logs on failure
         if: failure()
         working-directory: ci-e2e-install
@@ -1216,7 +1243,9 @@ jobs:
       - name: Remove ephemeral installation
         if: always()
         working-directory: ci-e2e-install
-        run: docker compose down --volumes --remove-orphans
+        run: |
+          docker rm -f security-edge || true
+          docker compose down --volumes --remove-orphans
 
   deploy-smoke-test:
     name: Deploy smoke test
