@@ -19,7 +19,6 @@ import {
   type UnitOfWork,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
-import { ASSETS_DIRECTORY_NAME } from './package-format.js';
 import { assetFilePath } from './assets.js';
 import type { ModuleSource } from './fetch.js';
 import type { ModuleManifest } from './manifest.js';
