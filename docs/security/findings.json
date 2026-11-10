@@ -1,0 +1,156 @@
+[
+  {
+    "id": "verification-token-double-consume",
+    "severity": "high",
+    "control": "single-use-verification-tokens",
+    "status": "fixed",
+    "summary": "Two overlapping requests could both consume one recovery or refresh token under read committed.",
+    "fingerprint": "packages/persistence/src/repositories/auth-verification-token-repository.ts#consume",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "packages/persistence/src/repositories/auth-verification-token-repository.integration.test.ts",
+        "name": "refuses a consume that overlaps an uncommitted one"
+      }
+    ]
+  },
+  {
+    "id": "verification-token-wrong-purpose",
+    "severity": "medium",
+    "control": "single-use-verification-tokens",
+    "status": "fixed",
+    "summary": "A token presented for another purpose was spent before the purpose was checked.",
+    "fingerprint": "packages/persistence/src/repositories/auth-verification-token-repository.ts#consume",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "packages/persistence/src/repositories/auth-verification-token-repository.integration.test.ts",
+        "name": "refuses a token of another kind without spending it"
+      },
+      {
+        "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+        "name": "POST /auth/reset-password refuses a refresh credential and leaves it usable"
+      }
+    ]
+  },
+  {
+    "id": "password-reset-keeps-sessions",
+    "severity": "medium",
+    "control": "single-use-verification-tokens",
+    "status": "fixed",
+    "summary": "A password reset left the refresh credentials opened with the old password valid.",
+    "fingerprint": "apps/api/src/controllers/auth.controller.ts#resetPassword",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+        "name": "POST /auth/reset-password ends the refresh sessions opened before it"
+      }
+    ]
+  },
+  {
+    "id": "reset-token-server-error",
+    "severity": "low",
+    "control": "error-envelope",
+    "status": "fixed",
+    "summary": "An unknown, expired or used reset token answered 500 instead of a client error.",
+    "fingerprint": "apps/api/src/controllers/auth.controller.ts#resetPassword",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+        "name": "POST /auth/reset-password refuses a refresh credential and leaves it usable"
+      }
+    ]
+  },
+  {
+    "id": "internal-ports-published",
+    "severity": "high",
+    "control": "only-gateway-published",
+    "status": "fixed",
+    "summary": "The Level 1 compose published API, events, web, web-ssr, object storage and clamd on every host interface.",
+    "fingerprint": "docker-compose.yml#ports",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/copalibre/src/compose-reconciler.test.ts",
+        "name": "ships a compose file that publishes only the gateway on every interface"
+      }
+    ]
+  },
+  {
+    "id": "forwarded-for-trusted-from-anyone",
+    "severity": "high",
+    "control": "forwarded-address-trust",
+    "status": "fixed",
+    "summary": "The API believed X-Forwarded-For from any peer, so a direct client could choose the address its rate limits key on.",
+    "fingerprint": "apps/api/src/main.ts#trustProxy",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/http/trusted-proxies.test.ts",
+        "name": "ignores a forwarded address sent by a public client"
+      }
+    ]
+  },
+  {
+    "id": "events-limits-share-proxy-address",
+    "severity": "medium",
+    "control": "forwarded-address-trust",
+    "status": "fixed",
+    "summary": "The events role trusted no proxy, so every viewer behind the gateway shared the proxy's connection bucket.",
+    "fingerprint": "apps/events/src/main.ts#FastifyAdapter",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/http/trusted-proxies.test.ts",
+        "name": "believes the forwarded address from a private-network proxy"
+      }
+    ]
+  },
+  {
+    "id": "smithery-unpinned-download",
+    "severity": "high",
+    "control": "publication-supply-chain",
+    "status": "fixed",
+    "summary": "The release downloaded and ran an unpinned Smithery CLI with the registry key in scope.",
+    "fingerprint": ".github/workflows/release.yml#Publish to Smithery",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "scripts/security/check-publication-policy.test.mjs",
+        "name": "refuses an unpinned download-and-run in a publishing workflow"
+      }
+    ]
+  },
+  {
+    "id": "cli-assets-from-any-commit",
+    "severity": "high",
+    "control": "publication-supply-chain",
+    "status": "fixed",
+    "summary": "A manual CLI release from any commit with the same version could upload assets to that release.",
+    "fingerprint": ".github/workflows/copalibre-cli-release.yml",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "scripts/verify-release-source.test.mjs",
+        "name": "a manual dispatch from another commit with the same version is refused"
+      }
+    ]
+  },
+  {
+    "id": "actions-pinned-by-tag",
+    "severity": "medium",
+    "control": "publication-supply-chain",
+    "status": "fixed",
+    "summary": "Workflow actions were pinned by movable tags rather than commit SHAs.",
+    "fingerprint": ".github/workflows",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "scripts/security/check-publication-policy.test.mjs",
+        "name": "refuses an action pinned by tag"
+      }
+    ]
+  }
+]

@@ -1,0 +1,845 @@
+{
+  "$comment": "Security controls. Every checklist item needs at least one control; see docs/security/README.md.",
+  "checklist": [
+    "authentication",
+    "api-keys-out-of-browser",
+    "database-protection",
+    "https",
+    "password-hashing",
+    "server-validation",
+    "xss",
+    "suspicious-activity",
+    "admin-routes",
+    "parameterized-queries",
+    "environment-variables",
+    "rate-limits",
+    "cors",
+    "security-headers",
+    "session-cookies",
+    "csrf",
+    "expiring-recovery-links",
+    "upload-limits",
+    "server-prices-payments",
+    "production-debug-off",
+    "vulnerable-dependencies",
+    "unused-packages",
+    "exposed-files",
+    "git-history-secrets",
+    "compromised-key-rotation",
+    "thorough-review",
+    "protections-report"
+  ],
+  "controls": [
+    {
+      "id": "jwt-verification",
+      "item": "authentication",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Access tokens are verified by allowlisted asymmetric algorithms, issuer, audience, expiry and key.",
+      "surfaces": ["packages/auth", "apps/api", "apps/events"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "packages/auth/src/token-verifier.test.ts",
+          "name": "rejects an HMAC-signed token: symmetric algorithms are not allowlisted"
+        },
+        {
+          "kind": "test",
+          "file": "packages/auth/src/token-verifier.test.ts",
+          "name": "rejects an unsecured token (alg: none)"
+        },
+        {
+          "kind": "test",
+          "file": "packages/auth/src/token-verifier.test.ts",
+          "name": "rejects a wrong issuer"
+        },
+        {
+          "kind": "test",
+          "file": "packages/auth/src/token-verifier.test.ts",
+          "name": "rejects a forged native kid signed by a different key"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/auth/jwt-auth.guard.test.ts",
+          "name": "rejects an invalid token with 401 and no reason leaked"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/auth/jwt-auth.guard.test.ts",
+          "name": "ignores a token in the query string even with no header or cookie"
+        }
+      ]
+    },
+    {
+      "id": "oidc-browser-flow",
+      "item": "authentication",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "OIDC sign-in checks state and hands the token to the API; a refused handover fails sign-in.",
+      "surfaces": ["apps/web"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/web/src/control/session/oidc-callback.test.ts",
+          "name": "refuses a mismatched state without exchanging the code"
+        },
+        {
+          "kind": "test",
+          "file": "apps/web/src/control/session/oidc-callback.test.ts",
+          "name": "reports a refused handover, so the operator sees that sign-in failed"
+        }
+      ]
+    },
+    {
+      "id": "authentication-runtime",
+      "item": "authentication",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "Native and OIDC sign-in, renewal and logout succeed on the production profile; forged tokens fail there.",
+      "surfaces": ["deployment"],
+      "checks": [
+        {
+          "kind": "runtime",
+          "id": "authentication-runtime",
+          "blocker": "needs the disposable production-profile TLS deployment"
+        }
+      ]
+    },
+    {
+      "id": "browser-holds-no-credentials",
+      "item": "api-keys-out-of-browser",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "No script-readable storage holds a token, and a personal access token never authenticates from the cookie.",
+      "surfaces": ["apps/web", "packages/auth"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/web/src/control/session/session-store.test.ts",
+          "name": "writes nothing to any browser storage or script-readable cookie"
+        },
+        {
+          "kind": "test",
+          "file": "apps/web/src/control/session/session-store.test.ts",
+          "name": "removes the token an older build left in sessionStorage"
+        },
+        {
+          "kind": "test",
+          "file": "packages/auth/src/session-cookies.test.ts",
+          "name": "refuses a personal access token from the cookie"
+        }
+      ]
+    },
+    {
+      "id": "built-assets-carry-no-secrets",
+      "item": "api-keys-out-of-browser",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "Built web, CLI and bundle output carries no credential, source map or private file.",
+      "surfaces": ["apps/web/dist", "apps/copalibre/dist/assets"],
+      "checks": [
+        {
+          "kind": "script",
+          "command": [
+            "node",
+            "scripts/security/check-built-assets.mjs",
+            "apps/web/dist",
+            "apps/copalibre/dist/assets"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "only-gateway-published",
+      "item": "database-protection",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "The shipped compose publishes only the gateway on every interface; database and storage stay internal.",
+      "surfaces": ["docker-compose.yml"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/copalibre/src/compose-reconciler.test.ts",
+          "name": "ships a compose file that publishes only the gateway on every interface"
+        },
+        {
+          "kind": "test",
+          "file": "apps/copalibre/src/compose-reconciler.test.ts",
+          "name": "moves the shipped internal port mappings to 127.0.0.1 and leaves the gateway alone"
+        }
+      ]
+    },
+    {
+      "id": "database-privileges-runtime",
+      "item": "database-protection",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "Runtime database roles cannot run DDL; public probes cannot reach database or storage ports; backups restore.",
+      "surfaces": ["deployment", "deploy/helm"],
+      "checks": [
+        {
+          "kind": "runtime",
+          "id": "database-privileges-runtime",
+          "blocker": "needs the disposable production-profile TLS deployment"
+        }
+      ]
+    },
+    {
+      "id": "https-edge-runtime",
+      "item": "https",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "Plain HTTP redirects to HTTPS at the edge and HSTS is sent there.",
+      "surfaces": ["deploy/proxy", "deployment"],
+      "checks": [
+        {
+          "kind": "runtime",
+          "id": "https-edge-runtime",
+          "blocker": "needs the disposable production-profile TLS deployment"
+        }
+      ]
+    },
+    {
+      "id": "secure-cookie-setting",
+      "item": "https",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Session cookies carry Secure and __Host- over HTTPS, and a setting that disagrees with the URL is reported.",
+      "surfaces": ["packages/auth", "apps/copalibre"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "packages/auth/src/session-cookies.test.ts",
+          "name": "reports Secure off on an https URL"
+        },
+        {
+          "kind": "test",
+          "file": "packages/auth/src/session-cookies.test.ts",
+          "name": "issues the HTTPS session cookie with __Host-, Secure, HttpOnly, Strict, Path=/ and no Domain"
+        }
+      ]
+    },
+    {
+      "id": "password-hashing",
+      "item": "password-hashing",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Native passwords are stored as Argon2 hashes and verified against them.",
+      "surfaces": ["apps/api"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+          "name": "POST /auth/reset-password correctly updates the password hash in the database when provided a valid token"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+          "name": "POST /auth/login returns 401 for invalid credentials"
+        }
+      ]
+    },
+    {
+      "id": "request-validation",
+      "item": "server-validation",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Request bodies reject undeclared root and nested properties before any side effect.",
+      "surfaces": ["apps/api"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/api/src/http/validation.test.ts",
+          "name": "rejects undeclared root properties with 400 and constraint message"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/http/validation.test.ts",
+          "name": "rejects undeclared nested properties with 400 and constraint message"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+          "name": "POST /auth/login rejects an undocumented extra property with 400"
+        }
+      ]
+    },
+    {
+      "id": "html-sinks-reviewed",
+      "item": "xss",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Every raw HTML sink in the web app is reviewed and listed.",
+      "surfaces": ["apps/web"],
+      "checks": [
+        {
+          "kind": "script",
+          "command": ["node", "scripts/check-html-sinks.mjs"]
+        }
+      ]
+    },
+    {
+      "id": "content-security-policy",
+      "item": "xss",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "The web policy allows only its own origin and the identity provider, never inline script or eval.",
+      "surfaces": ["apps/web", "deploy/web"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/web/scripts/web-security-headers.test.mjs",
+          "name": "the page policy names no origin but its own and the identity provider"
+        },
+        {
+          "kind": "test",
+          "file": "apps/web/scripts/web-security-headers.test.mjs",
+          "name": "the build-time policy hashes scripts and never allows inline or eval"
+        }
+      ]
+    },
+    {
+      "id": "xss-browser-runtime",
+      "item": "xss",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "Malicious names and module text render inert on public, Control, TV and help pages under the enforced policy.",
+      "surfaces": ["apps/web", "deployment"],
+      "checks": [
+        {
+          "kind": "runtime",
+          "id": "xss-browser-runtime",
+          "blocker": "needs the disposable production-profile TLS deployment"
+        }
+      ]
+    },
+    {
+      "id": "suspicious-activity-alert",
+      "item": "suspicious-activity",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "Repeated failed sign-ins and denied admin requests raise a redacted, deduplicated alert at a test receiver.",
+      "surfaces": ["apps/api", "operations"],
+      "checks": [
+        {
+          "kind": "runtime",
+          "id": "suspicious-activity-alert",
+          "blocker": "no alert path to a test receiver exists yet"
+        }
+      ]
+    },
+    {
+      "id": "route-access-declared",
+      "item": "admin-routes",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Every authenticated route declares its access requirement; an undeclared route fails closed.",
+      "surfaces": ["apps/api"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/api/src/auth/access-coverage.test.ts",
+          "name": "requires an explicit access requirement on every authenticated controller route"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/auth/jwt-auth.guard.test.ts",
+          "name": "fails closed on an untagged route: treated as admin-control"
+        }
+      ]
+    },
+    {
+      "id": "organization-isolation",
+      "item": "admin-routes",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "An admin of one organization gets no access to another.",
+      "surfaces": ["apps/api"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/api/src/auth/organization-access.guard.test.ts",
+          "name": "does not grant organization B access from an admin assignment in organization A"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/auth/organization-access.guard.test.ts",
+          "name": "does not reopen organization bootstrap after a historical soft-deleted assignment"
+        }
+      ]
+    },
+    {
+      "id": "admin-escalation-runtime",
+      "item": "admin-routes",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "Escalation and cross-organization attempts fail on the production profile with no data disclosed.",
+      "surfaces": ["deployment"],
+      "checks": [
+        {
+          "kind": "runtime",
+          "id": "admin-escalation-runtime",
+          "blocker": "needs the supported first super-admin command for the disposable production-profile deployment"
+        }
+      ]
+    },
+    {
+      "id": "sql-construction-reviewed",
+      "item": "parameterized-queries",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Values are bound by Kysely; every raw SQL and dynamic identifier use is reviewed.",
+      "surfaces": ["packages/persistence", "apps/api"],
+      "checks": [
+        {
+          "kind": "script",
+          "command": ["node", "scripts/security/check-sql-construction.mjs"]
+        }
+      ]
+    },
+    {
+      "id": "production-settings",
+      "item": "environment-variables",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Placeholder secrets, unreadable proxy trust and mismatched cookie settings fail doctor without echoing values.",
+      "surfaces": ["apps/copalibre"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/copalibre/src/doctor.test.ts",
+          "name": "reports missing values and default placeholder secrets without exposing their values"
+        },
+        {
+          "kind": "test",
+          "file": "apps/copalibre/src/doctor.test.ts",
+          "name": "fails a setting the API would refuse at startup"
+        }
+      ]
+    },
+    {
+      "id": "forwarded-address-trust",
+      "item": "rate-limits",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Forwarded client addresses are believed only from named proxies, so limits cannot be dodged by a forged header.",
+      "surfaces": ["packages/auth", "apps/api", "apps/events"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/api/src/http/trusted-proxies.test.ts",
+          "name": "ignores a forwarded address sent by a public client"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/http/trusted-proxies.test.ts",
+          "name": "stops at the first untrusted hop of a forged chain"
+        },
+        {
+          "kind": "test",
+          "file": "packages/auth/src/trusted-proxies.test.ts",
+          "name": "refuses %s, which trusts every address"
+        }
+      ]
+    },
+    {
+      "id": "shared-rate-limits",
+      "item": "rate-limits",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Rate limits are shared across API replicas and stream connections are capped per address and node.",
+      "surfaces": ["apps/api", "apps/events"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/api/src/auth/shared-throttler-storage.integration.test.ts",
+          "name": "shares one limit across independently initialized instances"
+        },
+        {
+          "kind": "test",
+          "file": "apps/events/src/stream/connection-limits.test.ts",
+          "name": "admits up to the per-address cap, then refuses with a reason"
+        },
+        {
+          "kind": "test",
+          "file": "apps/events/src/stream/connection-limits.test.ts",
+          "name": "caps the node before anything else"
+        }
+      ]
+    },
+    {
+      "id": "cors-exact-origin",
+      "item": "cors",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "The API answers CORS only for COPALIBRE_APP_URL.",
+      "surfaces": ["apps/api"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/organizations.integration.test.ts",
+          "name": "rejects requests from unknown origins by returning only the permitted origin"
+        }
+      ]
+    },
+    {
+      "id": "security-headers-runtime",
+      "item": "security-headers",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "Static, SSR, API, events and error responses carry the security headers behind the edge.",
+      "surfaces": ["deployment"],
+      "checks": [
+        {
+          "kind": "runtime",
+          "id": "security-headers-runtime",
+          "blocker": "needs the disposable production-profile TLS deployment"
+        }
+      ]
+    },
+    {
+      "id": "companion-headers",
+      "item": "security-headers",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Framing is same-origin only and the API keeps its own policy.",
+      "surfaces": ["apps/web"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/web/scripts/web-security-headers.test.mjs",
+          "name": "companion headers allow same-origin framing only"
+        },
+        {
+          "kind": "test",
+          "file": "apps/web/scripts/web-security-headers.test.mjs",
+          "name": "only the background-removal worker may evaluate code, and the API keeps its own policy"
+        }
+      ]
+    },
+    {
+      "id": "session-cookie-attributes",
+      "item": "session-cookies",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Session, CSRF and refresh cookies carry their attributes; logout clears all three; refresh rotates.",
+      "surfaces": ["packages/auth", "apps/api"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/auth-session-cookie.integration.test.ts",
+          "name": "native login sets the session, CSRF and refresh cookies with their attributes, and no token in the body"
+        },
+        {
+          "kind": "test",
+          "file": "packages/auth/src/session-cookies.test.ts",
+          "name": "clears all three cookies with Max-Age=0 and the issuing attributes"
+        },
+        {
+          "kind": "test",
+          "file": "packages/auth/src/session-cookies.test.ts",
+          "name": "drops a name that appears more than once, however many times"
+        }
+      ]
+    },
+    {
+      "id": "csrf-signed-double-submit",
+      "item": "csrf",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Cookie-authenticated unsafe requests need a CSRF header bound to the session; Bearer clients need none.",
+      "surfaces": ["apps/api"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/api/src/auth/csrf.test.ts",
+          "name": "refuses a matching pair minted for another session"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/auth/csrf.test.ts",
+          "name": "refuses a value signed with another installation key"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/auth-session-cookie.integration.test.ts",
+          "name": "refuses a missing CSRF header with 403 and the standard envelope"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/auth-session-cookie.integration.test.ts",
+          "name": "needs no CSRF header from a Bearer client"
+        }
+      ]
+    },
+    {
+      "id": "single-use-verification-tokens",
+      "item": "expiring-recovery-links",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Recovery and refresh tokens are hashed, expire, are bound to their purpose and are consumed once, even concurrently.",
+      "surfaces": ["packages/persistence", "apps/api"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "packages/persistence/src/repositories/auth-verification-token-repository.integration.test.ts",
+          "name": "refuses a consume that overlaps an uncommitted one"
+        },
+        {
+          "kind": "test",
+          "file": "packages/persistence/src/repositories/auth-verification-token-repository.integration.test.ts",
+          "name": "refuses a token of another kind without spending it"
+        },
+        {
+          "kind": "test",
+          "file": "packages/persistence/src/repositories/auth-verification-token-repository.integration.test.ts",
+          "name": "refuses an expired token"
+        },
+        {
+          "kind": "test",
+          "file": "packages/persistence/src/repositories/auth-verification-token-repository.integration.test.ts",
+          "name": "stores only a hash of the raw token"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+          "name": "POST /auth/reset-password ends the refresh sessions opened before it"
+        }
+      ]
+    },
+    {
+      "id": "media-upload-validation",
+      "item": "upload-limits",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Photo and emblem uploads need authentication, are checked for dimensions and quarantined until scanned.",
+      "surfaces": ["apps/api"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/identity-media.integration.test.ts",
+          "name": "refuses an unauthenticated upload attempt"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/identity-media.integration.test.ts",
+          "name": "404s once a photo fails validation, never serving a flagged object"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/identity-media.integration.test.ts",
+          "name": "refuses a person photo upload with the wrong width (a different aspect ratio)"
+        }
+      ]
+    },
+    {
+      "id": "upload-bypass-runtime",
+      "item": "upload-limits",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "Direct API uploads that are oversized, MIME-spoofed, path-traversing or decompression bombs fail on every upload route.",
+      "surfaces": ["apps/api", "deployment"],
+      "checks": [
+        {
+          "kind": "runtime",
+          "id": "upload-bypass-runtime",
+          "blocker": "import and module upload routes are not yet covered"
+        }
+      ]
+    },
+    {
+      "id": "no-payment-surface",
+      "item": "server-prices-payments",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "No pricing or payment flow exists; the guard fails as soon as one appears.",
+      "surfaces": ["apps", "packages"],
+      "checks": [
+        {
+          "kind": "not-applicable",
+          "reason": "CopaLibre has no pricing, checkout or payment flow",
+          "inspected": "apps/, packages/ and package.json, excluding tests and build output",
+          "reviewer": "security gate",
+          "guard": ["node", "scripts/security/check-payment-surface.mjs"]
+        }
+      ]
+    },
+    {
+      "id": "production-debug-runtime",
+      "item": "production-debug-off",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "No inspector, debug endpoint, stack trace or dev preview route is reachable on the production profile.",
+      "surfaces": ["deployment"],
+      "checks": [
+        {
+          "kind": "runtime",
+          "id": "production-debug-runtime",
+          "blocker": "needs the disposable production-profile TLS deployment"
+        }
+      ]
+    },
+    {
+      "id": "error-envelope",
+      "item": "production-debug-off",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Invalid tokens and bad requests answer the standard envelope without internal detail.",
+      "surfaces": ["apps/api"],
+      "checks": [
+        {
+          "kind": "test",
+          "file": "apps/api/src/auth/jwt-auth.guard.test.ts",
+          "name": "rejects an invalid token with 401 and no reason leaked"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+          "name": "POST /auth/reset-password refuses a refresh credential and leaves it usable"
+        }
+      ]
+    },
+    {
+      "id": "dependency-advisories",
+      "item": "vulnerable-dependencies",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Dependabot alert classification and the incident register are tested; the live audits run in the install job and before publication.",
+      "surfaces": ["scripts", "yarn.lock"],
+      "checks": [
+        {
+          "kind": "script",
+          "command": ["node", "--test", "scripts/check-dependabot-alerts.test.mjs"]
+        },
+        {
+          "kind": "script",
+          "command": ["node", "--test", "scripts/dependency-audit-wiring.test.mjs"]
+        }
+      ]
+    },
+    {
+      "id": "candidate-image-scan",
+      "item": "vulnerable-dependencies",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "Candidate images for both architectures are scanned for OS and package vulnerabilities before publication.",
+      "surfaces": ["Dockerfile"],
+      "checks": [
+        {
+          "kind": "runtime",
+          "id": "candidate-image-scan",
+          "blocker": "no pinned image scanner is wired yet"
+        }
+      ]
+    },
+    {
+      "id": "unused-packages-review",
+      "item": "unused-packages",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "An unused-dependency analysis covering workspaces, dynamic imports and binary packaging has been reviewed.",
+      "surfaces": ["package.json"],
+      "checks": [
+        {
+          "kind": "attestation",
+          "id": "unused-packages-review"
+        }
+      ]
+    },
+    {
+      "id": "exposed-files-runtime",
+      "item": "exposed-files",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "Probes for .env, .git, backups, manifests and source maps, encoded or not, return nothing private.",
+      "surfaces": ["deployment"],
+      "checks": [
+        {
+          "kind": "runtime",
+          "id": "exposed-files-runtime",
+          "blocker": "needs the disposable production-profile TLS deployment"
+        }
+      ]
+    },
+    {
+      "id": "git-history-secrets",
+      "item": "git-history-secrets",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "Every available ref and its history is scanned for secrets, with redacted output.",
+      "surfaces": ["repository"],
+      "checks": [
+        {
+          "kind": "script",
+          "command": ["gitleaks", "git", "--redact", "--no-banner", "--log-opts=--all", "."]
+        }
+      ]
+    },
+    {
+      "id": "credential-incidents",
+      "item": "compromised-key-rotation",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "Every confirmed compromised credential has revocation, replacement and verification evidence.",
+      "surfaces": ["operations"],
+      "checks": [
+        {
+          "kind": "attestation",
+          "id": "credential-incidents"
+        }
+      ]
+    },
+    {
+      "id": "publication-supply-chain",
+      "item": "thorough-review",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "Workflows pin every action by SHA, publish only with locked tools, and upload CLI assets only from the tagged commit.",
+      "surfaces": [".github/workflows"],
+      "checks": [
+        {
+          "kind": "script",
+          "command": ["node", "scripts/security/check-publication-policy.mjs"]
+        },
+        {
+          "kind": "test",
+          "file": "scripts/verify-release-source.test.mjs",
+          "name": "a manual dispatch from another commit with the same version is refused"
+        },
+        {
+          "kind": "test",
+          "file": "scripts/verify-release-source.test.mjs",
+          "name": "a successful upstream conclusion alone does not authorize publication"
+        }
+      ]
+    },
+    {
+      "id": "trust-boundary-review",
+      "item": "thorough-review",
+      "level": "release",
+      "owner": "release manager",
+      "summary": "CLI, MCP, imports, workers, object access and egress have a recorded manual review.",
+      "surfaces": ["apps/copalibre", "apps/worker", "packages/module-distribution"],
+      "checks": [
+        {
+          "kind": "attestation",
+          "id": "trust-boundary-review"
+        }
+      ]
+    },
+    {
+      "id": "gate-policy",
+      "item": "protections-report",
+      "level": "pr",
+      "owner": "maintainers",
+      "summary": "The gate's own verdict, exception and redaction policy is tested.",
+      "surfaces": ["scripts/security"],
+      "checks": [
+        {
+          "kind": "script",
+          "command": ["node", "--test", "scripts/security/evaluate.test.mjs"]
+        }
+      ]
+    }
+  ]
+}

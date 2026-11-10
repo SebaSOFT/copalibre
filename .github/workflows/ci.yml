@@ -73,10 +73,10 @@ jobs:
       # and skips the expensive e2e/deploy-verification chain below.
       release_candidate: ${{ github.base_ref == 'main' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
       - id: classify
@@ -106,12 +106,12 @@ jobs:
       contents: read
       vulnerability-alerts: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: npm install -g corepack@latest
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -149,13 +149,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -173,11 +173,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -191,9 +191,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -211,16 +211,48 @@ jobs:
       - run: yarn workspace @copalibre/domain test --testPathPatterns 'audit-vocabulary'
       - run: yarn workspace @copalibre/persistence test --testPathPatterns 'audit-coverage'
 
+  # Mandatory on every pull request, whatever paths changed: the static
+  # security controls of docs/security/controls.json. The report is kept for
+  # failed runs too.
+  security-static:
+    name: Security gate (static)
+    runs-on: ubuntu-latest
+    needs: install
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: yarn
+      - run: yarn install --immutable
+      - name: Test the security gate
+        run: node --test scripts/security/*.test.mjs
+      - name: Run the static security controls
+        run: node scripts/security/run.mjs --mode static
+      - name: Summarize the security report
+        if: ${{ !cancelled() }}
+        run: test -f security-report/security-report.md && cat security-report/security-report.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: security-report-static
+          path: security-report/
+          retention-days: 30
+
   license-scan:
     name: License scan
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -233,7 +265,7 @@ jobs:
     name: Shellcheck install.sh
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: shellcheck apps/copalibre/install.sh
 
   # Added with the Kubernetes enterprise deployment: structurally enforces
@@ -249,9 +281,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -337,9 +369,9 @@ jobs:
       matrix:
         group: [1, 2]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -395,61 +427,61 @@ jobs:
           # dumps every scored function (not just gate offenders) for the
           # cross-leg summary rendered by the crap-report job below.
           yarn crap:check --report=crap-report-group-2.json
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 1
         with:
           name: coverage-domain
           path: packages/domain/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 1
         with:
           name: coverage-rules
           path: packages/rules/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 1
         with:
           name: coverage-tournament-engine
           path: packages/tournament-engine/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 1
         with:
           name: coverage-module-catalogue
           path: packages/module-catalogue/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 2
         with:
           name: coverage-api
           path: apps/api/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 2
         with:
           name: coverage-worker
           path: apps/worker/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 2
         with:
           name: coverage-scheduler
           path: apps/scheduler/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 2
         with:
           name: coverage-events
           path: apps/events/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 1
         with:
           name: crap-report-group-1
           path: crap-report-group-1.json
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 2
         with:
           name: crap-report-group-2
@@ -463,9 +495,9 @@ jobs:
     needs: [install, unit-tests-group]
     if: always()
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
       - name: Verify aggregate unit test status
@@ -485,17 +517,17 @@ jobs:
     needs: [install, unit-tests-group]
     if: always()
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         continue-on-error: true
         with:
           name: crap-report-group-1
           path: crap-reports
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         continue-on-error: true
         with:
           name: crap-report-group-2
@@ -526,7 +558,7 @@ jobs:
     name: Third-party notices
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: node scripts/check-third-party-notices.mjs
 
   # Web build producer: generates tokens, copies OpenAPI/Scalar assets,
@@ -539,9 +571,9 @@ jobs:
     needs: [install, detect-changes]
     if: needs.detect-changes.outputs.backend_only != 'true'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -560,7 +592,7 @@ jobs:
             --run-attempt="${{ github.run_attempt }}" \
             --commit="${{ github.sha }}" \
             --config="production"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: web-build-dist
           path: apps/web/dist
@@ -579,14 +611,14 @@ jobs:
       needs.install.result == 'success' &&
       needs.detect-changes.outputs.backend_only != 'true'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
       - run: yarn install --immutable
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: web-build-dist
           path: apps/web/dist
@@ -615,14 +647,14 @@ jobs:
       needs.install.result == 'success' &&
       needs.detect-changes.outputs.backend_only != 'true'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
       - run: yarn install --immutable
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: web-build-dist
           path: apps/web/dist
@@ -655,14 +687,14 @@ jobs:
       matrix:
         shard: ['1/2', '2/2']
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
       - run: yarn install --immutable
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: web-build-dist
           path: apps/web/dist
@@ -678,7 +710,7 @@ jobs:
       # only web-build-producer's own checkout runs this step, and that
       # output isn't part of the web-build-dist artifact downloaded above.
       - run: yarn workspace @copalibre/design-tokens build:tokens
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
@@ -743,9 +775,9 @@ jobs:
       needs.install.result == 'success' &&
       needs.detect-changes.outputs.backend_only != 'true'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -756,7 +788,7 @@ jobs:
             --check="E2E tests" \
             --required="shards" \
             --results='{"shards":"${{ needs.e2e-tests-shard.result }}"}'
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: web-build-dist
           path: apps/web/dist
@@ -788,7 +820,7 @@ jobs:
             --sample-interval-seconds=5 \
             --growth-threshold=0.25 \
             --report=tv-soak-report.json
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && needs.detect-changes.outputs.release_candidate == 'true'
         with:
           name: tv-soak-report
@@ -804,9 +836,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -824,9 +856,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -862,9 +894,9 @@ jobs:
     env:
       DATABASE_URL: postgres://copalibre:copalibre_ci_only@localhost:5432/copalibre
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -912,9 +944,9 @@ jobs:
       # integration suite's endpoint fallback must be overridden here.
       COPALIBRE_OBJECT_STORAGE_URL: http://localhost:3900
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -966,9 +998,9 @@ jobs:
       needs.install.result == 'success' &&
       needs.detect-changes.outputs.frontend_only != 'true'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
       - name: Verify aggregate integration test status
@@ -992,11 +1024,11 @@ jobs:
     # safe here.
     if: needs.detect-changes.outputs.cli_only != 'true' && needs.detect-changes.outputs.docs_only != 'true'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -1049,14 +1081,14 @@ jobs:
       needs.e2e-tests.result != 'failure' &&
       needs.e2e-tests.result != 'cancelled'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # The builder image comes through the daemon's mirror; BuildKit resolves base images itself, so
       # it gets the same mirror in its own configuration.
       - name: Pull Docker Hub images through a mirror
         run: |
           echo '{"registry-mirrors":["https://mirror.gcr.io"]}' | sudo tee /etc/docker/daemon.json
           sudo systemctl restart docker
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
         with:
           buildkitd-config-inline: |
             [registry."docker.io"]
@@ -1081,7 +1113,7 @@ jobs:
             --load .
       - name: Export tested images
         run: docker save copalibre:ci copalibre-web:ci | gzip > copalibre-images.tar.gz
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: copalibre-images
           path: copalibre-images.tar.gz
@@ -1124,19 +1156,19 @@ jobs:
       COPALIBRE_EMAIL_FROM: e2e@copalibre.invalid
       COPALIBRE_SMTP_URL: smtp://host.docker.internal:1025
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
       - run: yarn install --immutable
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
       - run: yarn playwright install --with-deps chromium
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: copalibre-images
       # Docker Hub rate-limits anonymous pulls per runner address and GitHub's runners share a few,
@@ -1215,8 +1247,8 @@ jobs:
       COPALIBRE_EMAIL_FROM: noreply@copalibre.invalid
       COPALIBRE_SMTP_URL: smtp://postgres:5432
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: copalibre-images
       # Docker Hub rate-limits anonymous pulls per runner address and GitHub's runners share a few,
