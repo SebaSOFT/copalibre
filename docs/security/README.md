@@ -24,6 +24,7 @@ the digests of the candidate artifacts the report describes.
 | `exceptions.json`   | Owner-approved acceptance of an open medium or low finding                |
 | `attestations.json` | Manual evidence: reviews, credential incidents, operator actions          |
 | `attack-surface.md` | Entry points, uploads, outbound connections and the trust-boundary review |
+| `reviews.md`        | Evidence behind the manual attestations                                   |
 
 ### Controls
 
