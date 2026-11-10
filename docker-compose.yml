@@ -27,6 +27,8 @@ x-application-environment: &application-environment
   COPALIBRE_DATA_DIR: /var/lib/copalibre
   COPALIBRE_MODULE_SOURCE_ALLOWLIST: ${COPALIBRE_MODULE_SOURCE_ALLOWLIST:-file:///var/lib/copalibre/modules}
   COPALIBRE_IN_CONTAINER: 'true'
+  # Secure and the __Host- prefix on session cookies; copalibre init and upgrade write it.
+  COPALIBRE_SESSION_COOKIE_SECURE: ${COPALIBRE_SESSION_COOKIE_SECURE:-true}
   HOST: '0.0.0.0'
 
 x-application-service: &application-service

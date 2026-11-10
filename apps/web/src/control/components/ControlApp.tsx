@@ -51,11 +51,11 @@ import { postSilentRenewResult } from '../session/oidc-silent-renew.js';
 import { readRuntimeConfig, resolveSessionMode } from '../session/runtime-config.js';
 import { cancelScheduledRenewal, scheduleSilentRenewal } from '../session/silent-renewal.js';
 import {
-  accessTokenExpiresAtMs,
-  accessTokenHasScope,
-  controlTokenStore,
-  recordAuthMethod,
-} from '../session/token-store.js';
+  controlSession,
+  restoreControlSession,
+  sessionHasScope,
+  type SessionMetadata,
+} from '../session/session-store.js';
 import { ForgotPasswordRoute, LoginRoute, ResetPasswordRoute } from './NativeAuthRoutes.js';
 import { ToastProvider } from './ToastProvider.js';
 import { Card, CardContent, CardHeader } from './ui/atoms/card.js';
@@ -85,44 +85,47 @@ export function ControlApp(): React.JSX.Element | null {
     route?.screen === 'login' ||
     route?.screen === 'forgot-password' ||
     route?.screen === 'reset-password';
+  // The session cookie is HttpOnly, so after a reload Control asks the API
+  // who is signed in before rendering any protected screen.
+  const session = useControlSession(route !== undefined && !isPublicRoute);
   const isUnauthorizedPlatformRoute =
     (route?.screen === 'platformAdministration' || route?.screen === 'disciplineDocument') &&
-    !accessTokenHasScope(controlTokenStore.read(), 'copalibre.super-admin');
+    session !== 'restoring' &&
+    !sessionHasScope(session, 'copalibre.super-admin');
 
   // Guarded here, once, rather than per screen: ControlApp is every
   // authenticated screen's one mount point, so this covers all eight by
   // construction. The callback screen is exempt — it is what establishes
   // the session, not something that requires one.
   useEffect(() => {
-    if (route === undefined || isPublicRoute) return;
-    if (controlTokenStore.read() === undefined) {
+    if (route === undefined || isPublicRoute || session === 'restoring') return;
+    if (session === undefined) {
       // A real navigation: /control/login is a genuinely separate page
       // from this shell, so there is nothing in memory here to lose.
       window.location.assign(loginRedirectUrl(path));
     }
-  }, [route, path, isPublicRoute]);
+  }, [route, path, isPublicRoute, session]);
 
   useEffect(() => {
-    if (!isUnauthorizedPlatformRoute || controlTokenStore.read() === undefined) return;
+    if (!isUnauthorizedPlatformRoute || session === undefined) return;
     window.location.assign('/control/login');
-  }, [isUnauthorizedPlatformRoute]);
+  }, [isUnauthorizedPlatformRoute, session]);
 
   // Schedules background silent renewal, once, for whichever session is
   // already established when an authenticated screen mounts — covers both a
   // fresh login (CompletingLogin/LoginRoute navigate straight into one of
-  // these) and a reload that restored the token from storage. A deployment
+  // these) and a reload that restored the session from the API. A deployment
   // that opts out (or says nothing) via runtime-config gets no timer at all,
   // matching 'strict-stateless's already-documented reload behaviour.
+  const sessionEstablished = session !== 'restoring' && session !== undefined;
   useEffect(() => {
-    if (route === undefined || isPublicRoute) return;
-    const token = controlTokenStore.read();
-    if (token === undefined) return;
+    if (route === undefined || isPublicRoute || !sessionEstablished) return;
 
     let cancelled = false;
     readRuntimeConfig()
       .then((config) => {
         if (cancelled || resolveSessionMode(config) !== 'pragmatic-persistent') return;
-        const expiresAtMs = accessTokenExpiresAtMs(controlTokenStore.read());
+        const expiresAtMs = controlSession.read()?.expiresAtMs;
         if (expiresAtMs !== undefined) scheduleSilentRenewal(expiresAtMs);
       })
       .catch(() => {
@@ -136,11 +139,11 @@ export function ControlApp(): React.JSX.Element | null {
       cancelled = true;
       cancelScheduledRenewal();
     };
-    // Runs once per authenticated mount; re-derives everything it needs from
-    // the token store and runtime-config rather than reacting to route
+    // Runs once per established session; re-derives everything it needs from
+    // the session store and runtime-config rather than reacting to route
     // changes, since a screen-to-screen navigation never starts a new session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPublicRoute]);
+  }, [isPublicRoute, sessionEstablished]);
 
   if (route === undefined)
     return (
@@ -181,11 +184,34 @@ export function ControlApp(): React.JSX.Element | null {
     );
   // Synchronous guard for the render that happens before the effect above
   // runs — without it, a protected screen would flash unauthenticated
-  // before the redirect fires.
-  if (controlTokenStore.read() === undefined) return null;
+  // before the redirect fires, or render before the session is restored.
+  if (session === 'restoring' || session === undefined) return null;
   if (isUnauthorizedPlatformRoute) return null;
 
   return renderForScreen(route);
+}
+
+/**
+ * The signed-in session, or `'restoring'` while a reload asks the API for it.
+ * Derived on every render: ControlApp stays mounted across client-side
+ * navigation, so a login on this page load is picked up the moment it is
+ * written, and only a page that starts with nothing in memory asks the API.
+ */
+function useControlSession(required: boolean): SessionMetadata | undefined | 'restoring' {
+  const known = controlSession.read();
+  const [restore, setRestore] = useState<'pending' | 'settled'>('pending');
+  useEffect(() => {
+    if (!required || known !== undefined || restore !== 'pending') return undefined;
+    let cancelled = false;
+    void restoreControlSession().then(() => {
+      if (!cancelled) setRestore('settled');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [required, known, restore]);
+  if (known !== undefined) return known;
+  return required && restore === 'pending' ? 'restoring' : undefined;
 }
 
 /**
@@ -467,12 +493,11 @@ function RootLandingRoute(): React.JSX.Element {
   const [state, setState] = useState<LandingState>({ kind: 'pending' });
 
   useEffect(() => {
-    const token = controlTokenStore.read();
-    if (!token) return;
+    const session = controlSession.read();
+    if (!session) return;
 
     createControlApiClient({
       fetch: globalThis.fetch.bind(globalThis),
-      accessToken: () => controlTokenStore.read(),
     })
       .listMyOrganizations()
       .then((organizations) => {
@@ -480,7 +505,7 @@ function RootLandingRoute(): React.JSX.Element {
           navigateControl(`/control/${organizations[0].organizationAlias}`);
           return;
         }
-        if (organizations.length === 0 && accessTokenHasScope(token, 'copalibre.super-admin')) {
+        if (organizations.length === 0 && sessionHasScope(session, 'copalibre.super-admin')) {
           navigateControl('/control/platform');
           return;
         }
@@ -525,9 +550,9 @@ function RootLandingRoute(): React.JSX.Element {
 }
 
 /**
- * The `/control/callback` screen: completes the PKCE exchange, writes
- * the session, then hands off to `returnTo` via `navigateControl` — never a
- * real navigation, which would discard the token just written.
+ * The `/control/callback` screen: completes the PKCE exchange, hands the
+ * token to the API, records the session metadata, then hands off to
+ * `returnTo` via `navigateControl`.
  *
  * A guard-redirected login (a real `returnTo`, set by `ControlApp`'s own
  * guard) is handled by navigating straight there, with no
@@ -543,15 +568,13 @@ function CompletingLogin(): React.JSX.Element {
   useEffect(() => {
     completeOidcLogin()
       .then(async (result) => {
-        controlTokenStore.write(result.accessToken, result.expiresAtMs);
-        recordAuthMethod('oidc');
+        controlSession.write(result.session);
         if (result.returnTo !== DEFAULT_RETURN_TO) {
           navigateControl(result.returnTo);
           return;
         }
         const organizations = await createControlApiClient({
           fetch: globalThis.fetch.bind(globalThis),
-          accessToken: () => controlTokenStore.read(),
         }).listMyOrganizations();
         if (organizations.length === 1) {
           navigateControl(`/control/${organizations[0]?.organizationAlias}`);

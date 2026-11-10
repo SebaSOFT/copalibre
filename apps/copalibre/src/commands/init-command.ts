@@ -8,6 +8,8 @@ import { runCommand } from '../command-support.js';
 import {
   discoverJwksUri,
   formatRequiredSecrets,
+  httpsAnswer,
+  httpsQuestion,
   repairInstallationAssets,
   resolveOidcOptions,
   writeInstallationAssets,
@@ -47,6 +49,8 @@ export class InitCommand extends Command<CliContext> {
           'oidc-issuer': { type: 'string' },
           'oidc-client-id': { type: 'string' },
           'oidc-jwks-uri': { type: 'string' },
+          https: { type: 'boolean' },
+          'no-https': { type: 'boolean' },
         },
         strict: true,
       });
@@ -91,6 +95,14 @@ export class InitCommand extends Command<CliContext> {
       let oidcIssuer = parsed.values['oidc-issuer'];
       let oidcClientId = parsed.values['oidc-client-id'];
       let oidcJwksUri = parsed.values['oidc-jwks-uri'];
+      if (parsed.values.https && parsed.values['no-https']) {
+        throw new Error('--https and --no-https cannot be combined');
+      }
+      let https: boolean | undefined = parsed.values.https
+        ? true
+        : parsed.values['no-https']
+          ? false
+          : undefined;
 
       const isInteractive = process.stdin.isTTY && !parsed.values['non-interactive'];
       const hasExistingInstallation = [
@@ -152,6 +164,11 @@ export class InitCommand extends Command<CliContext> {
           if (!apiUrl) {
             const enteredApiUrl = await rl.question(`Public API URL [${appUrl}]: `);
             apiUrl = enteredApiUrl.trim() || appUrl;
+          }
+          if (https === undefined) {
+            // The session cookies carry `Secure` only when browsers reach the
+            // installation over HTTPS; the URL's own scheme is the default.
+            https = httpsAnswer(await rl.question(httpsQuestion(appUrl)), appUrl);
           }
           if (!oidcIssuer) {
             const wantsOidc = await rl.question(
@@ -241,12 +258,14 @@ export class InitCommand extends Command<CliContext> {
         emailCredential,
         emailDomain,
         ...(oidc ? { oidc } : {}),
+        ...(https === undefined ? {} : { https }),
       });
 
       const lines = [
         `Wrote ${result.composeFile}`,
         ...(result.moduleDevFile ? [`Wrote ${result.moduleDevFile}`] : []),
         `Wrote ${result.envFile}`,
+        `Session cookies: COPALIBRE_SESSION_COOKIE_SECURE=${result.sessionCookieSecure}`,
         ...(result.proxyConfigFile ? [`Wrote ${result.proxyConfigFile}`] : []),
         `Scaffolded local ./modules directory (disciplines and profiles)`,
         `Installation recorded: CopaLibre ${result.marker.version}, id ${result.marker.installId}`,

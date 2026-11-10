@@ -15,7 +15,14 @@ test('no form exists until the scripts load, and the token reaches the request',
   const requests: string[] = [];
   await page.route('**/auth/accept-invitation', async (route) => {
     requests.push(route.request().postData() ?? '');
-    await route.fulfill({ json: { accessToken: 'e2e-access-token', expiresIn: 60 } });
+    await route.fulfill({
+      json: {
+        subject: 'e2e-invited',
+        scopes: ['copalibre.control'],
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        method: 'native',
+      },
+    });
   });
 
   let releaseScripts = (): void => undefined;

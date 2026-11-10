@@ -14,6 +14,7 @@ import {
   validateServicePorts,
   type DoctorDependencies,
   validateCspIdentityOrigin,
+  validateSessionCookieSetting,
   validateEdgeSecurityHeaders,
 } from './doctor.js';
 
@@ -655,6 +656,52 @@ describe('validateModuleAssets', () => {
     expect(check?.status).toBe('warn');
     expect(check?.message).toContain('rink-hockey@1.0.0 background.jpg');
     expect(report.ok).toBe(report.checks.every((candidate) => candidate.status !== 'fail'));
+  });
+});
+
+describe('session cookie setting', () => {
+  it.each([
+    [{ COPALIBRE_APP_URL: 'https://app.example' }, 'pass'],
+    [
+      { COPALIBRE_APP_URL: 'http://localhost:8080', COPALIBRE_SESSION_COOKIE_SECURE: 'true' },
+      'pass',
+    ],
+    [{ COPALIBRE_APP_URL: 'http://10.0.0.5', COPALIBRE_SESSION_COOKIE_SECURE: 'false' }, 'pass'],
+  ])('passes a setting that agrees with the URL: %o', (environment, status) => {
+    expect(validateSessionCookieSetting(environment)).toMatchObject({ status });
+  });
+
+  it('warns when Secure is off for an https URL, naming both values', () => {
+    expect(
+      validateSessionCookieSetting({
+        COPALIBRE_APP_URL: 'https://app.example',
+        COPALIBRE_SESSION_COOKIE_SECURE: 'false',
+      }),
+    ).toMatchObject({
+      status: 'warn',
+      message: expect.stringMatching(
+        /COPALIBRE_SESSION_COOKIE_SECURE=false.*COPALIBRE_APP_URL=https:\/\/app\.example/,
+      ),
+    });
+  });
+
+  it('warns when Secure is on for plain HTTP to another host', () => {
+    expect(
+      validateSessionCookieSetting({
+        COPALIBRE_APP_URL: 'http://10.0.0.5',
+        COPALIBRE_SESSION_COOKIE_SECURE: 'true',
+      }),
+    ).toMatchObject({ status: 'warn', message: expect.stringContaining('expected false') });
+  });
+
+  it('fails an unreadable value and skips without a usable URL', () => {
+    expect(
+      validateSessionCookieSetting({
+        COPALIBRE_APP_URL: 'https://app.example',
+        COPALIBRE_SESSION_COOKIE_SECURE: 'maybe',
+      }),
+    ).toMatchObject({ status: 'fail' });
+    expect(validateSessionCookieSetting({})).toMatchObject({ status: 'skip' });
   });
 });
 

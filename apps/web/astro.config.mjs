@@ -249,8 +249,11 @@ export default defineConfig({
       // Vite already allows localhost and IP addresses. Allow the one custom
       // hostname configured for this local site without accepting every host.
       allowedHosts: [siteHostname],
+      // Same-origin in development too, so the HttpOnly session cookie reaches
+      // the API and the event streams exactly as it does in production.
       proxy: {
         '/api': 'http://localhost:3001',
+        '/events': 'http://localhost:3002',
       },
     },
   },

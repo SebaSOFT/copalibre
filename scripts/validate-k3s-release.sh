@@ -426,6 +426,17 @@ test_ssr_routes_are_served() {
     fail "Ingress /control/ HTML contains an absolute build-time login origin"
   fi
   log "OK: Helm ingress serves the same-origin /control/ redirect entry"
+
+  # A Control session's HttpOnly cookie is sent only to the hostname that set
+  # it, so the web role must serve the event streams too, unbuffered.
+  local proxy_check
+  for target in "http://${RELEASE_NAME}-web:4321" "http://traefik.kube-system.svc.cluster.local"; do
+    proxy_check=$(kubectl exec "${pod}" -- curl -sS -N --max-time 20 \
+      -H 'Host: copalibre-validate.localhost' "${target}/events/proxy-check" || true)
+    grep -Fq ': copalibre-proxy-check-1' <<<"${proxy_check}" \
+      || fail "GET /events/proxy-check through ${target} did not reach the events service"
+  done
+  log "OK: the web hostname serves /events through the web Service and the Helm ingress"
   kubectl delete pod "${pod}" --grace-period=0 --force >/dev/null 2>&1 || true
 }
 

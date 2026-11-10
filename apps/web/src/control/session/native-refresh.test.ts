@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { logoutNativeSession, refreshNativeSession } from './native-refresh.js';
+import { logoutSession, refreshNativeSession } from './native-refresh.js';
 
 function response(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -9,20 +9,36 @@ function response(body: unknown, status = 200): Response {
 }
 
 describe('refreshNativeSession', () => {
-  it('sends the refresh cookie and returns the new token on success', async () => {
+  it('sends the cookies with the CSRF header and returns the new session metadata', async () => {
+    document.cookie = 'copalibre_csrf=csrf-1';
     const fetchMock = jest.fn<typeof fetch>(async () =>
-      response({ accessToken: 'fresh-jwt', expiresIn: 3600 }),
+      response({
+        subject: 'p-1',
+        scopes: ['copalibre.control'],
+        expiresAt: '2030-01-01T00:00:00.000Z',
+        method: 'native',
+      }),
     );
 
     const outcome = await refreshNativeSession(fetchMock);
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/auth/refresh',
-      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-CopaLibre-CSRF': 'csrf-1' },
+      }),
     );
-    expect(outcome).toMatchObject({ accessToken: 'fresh-jwt' });
-    if (outcome && 'accessToken' in outcome)
-      expect(outcome.expiresAtMs).toBeGreaterThan(Date.now());
+    expect(outcome).toEqual({
+      session: {
+        subject: 'p-1',
+        scopes: ['copalibre.control'],
+        expiresAtMs: Date.parse('2030-01-01T00:00:00.000Z'),
+        method: 'native',
+      },
+    });
+    document.cookie = 'copalibre_csrf=; max-age=0';
   });
 
   it('returns undefined when the refresh cookie is invalid or absent (401)', async () => {
@@ -43,19 +59,21 @@ describe('refreshNativeSession', () => {
       expect(outcome.retryAtMs).toBeGreaterThanOrEqual(before + 2_900);
   });
 
-  it('returns undefined on a malformed response body', async () => {
-    const fetchMock = jest.fn<typeof fetch>(async () => response({ accessToken: 123 }));
+  it('returns undefined on a body that is not session metadata', async () => {
+    const fetchMock = jest.fn<typeof fetch>(async () =>
+      response({ accessToken: 'jwt', expiresIn: 3600 }),
+    );
     await expect(refreshNativeSession(fetchMock)).resolves.toBeUndefined();
   });
 });
 
-describe('logoutNativeSession', () => {
-  it('posts to /auth/logout with the refresh cookie', async () => {
+describe('logoutSession', () => {
+  it('posts to /auth/logout with the cookies, surviving the navigation that follows', async () => {
     const fetchMock = jest.fn<typeof fetch>(async () => response({ message: 'Logged out.' }));
-    await logoutNativeSession(fetchMock);
+    await logoutSession(fetchMock);
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/auth/logout',
-      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+      expect.objectContaining({ method: 'POST', credentials: 'same-origin', keepalive: true }),
     );
   });
 
@@ -63,6 +81,6 @@ describe('logoutNativeSession', () => {
     const fetchMock = jest.fn<typeof fetch>(async () => {
       throw new Error('network down');
     });
-    await expect(logoutNativeSession(fetchMock)).resolves.toBeUndefined();
+    await expect(logoutSession(fetchMock)).resolves.toBeUndefined();
   });
 });

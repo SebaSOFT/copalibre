@@ -167,6 +167,41 @@ describe('event streams (integration)', () => {
     expect(response.statusCode).toBe(404);
   });
 
+  describe('with a Control browser session cookie', () => {
+    // No COPALIBRE_SESSION_COOKIE_SECURE in the test environment: Secure, so `__Host-`.
+    const SESSION = '__Host-copalibre_session';
+
+    it('authenticates the control long poll from the cookie alone', async () => {
+      const response = await inject({
+        method: 'GET',
+        url: '/events/poll?organization=liga&wait=0',
+        headers: { cookie: `${SESSION}=good` },
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+
+    it('refuses the control stream with no cookie and no header', async () => {
+      const response = await inject({
+        method: 'GET',
+        url: '/events/control/liga',
+        headers: { cookie: 'unrelated=1' },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('refuses a personal access token carried in the cookie', async () => {
+      const response = await inject({
+        method: 'GET',
+        url: '/events/control/liga',
+        headers: { cookie: `${SESSION}=clpat_good` },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+  });
+
   it('serves the long poll from the same replay resolution', async () => {
     const response = await inject({
       method: 'GET',

@@ -1,39 +1,29 @@
 import { expect, test } from './csp-guard.js';
 
 const TARGET = '/control/panamericano-demo';
-const TOKEN_STORAGE_KEY = 'copalibre:session:v1';
-const AUTH_METHOD_STORAGE_KEY = 'copalibre:session:authMethod:v1';
 const LOGOUT_BUTTON = /log out|cerrar sesión/i;
+
+/** What the API answers for a native session: metadata only, the token stays in the cookie. */
+function nativeSession(expiresInSeconds: number) {
+  return {
+    subject: 'e2e-operator',
+    scopes: ['copalibre.control'],
+    expiresAt: new Date(Date.now() + expiresInSeconds * 1_000).toISOString(),
+    method: 'native',
+  };
+}
 
 test('keeps the dashboard signed in across ten reloads in one minute', async ({ page }) => {
   let refreshes = 0;
-  const token = `header.${Buffer.from(
-    JSON.stringify({ scp: 'copalibre.control', exp: Math.floor(Date.now() / 1_000) + 5 }),
-  ).toString('base64url')}.signature`;
-
-  await page.addInitScript(
-    ({ tokenValue, tokenKey, authMethodKey }) => {
-      if (!sessionStorage.getItem(tokenKey)) {
-        sessionStorage.setItem(
-          tokenKey,
-          JSON.stringify({ token: tokenValue, expiresAt: Date.now() + 60_000 }),
-        );
-      }
-      sessionStorage.setItem(authMethodKey, 'native');
-    },
-    {
-      tokenValue: token,
-      tokenKey: TOKEN_STORAGE_KEY,
-      authMethodKey: AUTH_METHOD_STORAGE_KEY,
-    },
-  );
 
   await page.route('**/runtime-config.json', (route) =>
     route.fulfill({ json: { sessionMode: 'pragmatic-persistent' } }),
   );
+  // The session cookie survives a reload; Control asks who is signed in.
+  await page.route('**/api/auth/session', (route) => route.fulfill({ json: nativeSession(5) }));
   await page.route('**/auth/refresh', async (route) => {
     refreshes += 1;
-    await route.fulfill({ json: { accessToken: token, expiresIn: 10 } });
+    await route.fulfill({ json: nativeSession(10) });
   });
   await page.route('**/organizations**', (route) => route.fulfill({ json: [] }));
 

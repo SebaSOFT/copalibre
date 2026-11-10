@@ -8,7 +8,6 @@ import {
   type HookScriptVocabulary,
 } from '../../lib/api-client.js';
 import type { DisciplineOption } from '../../lib/wizard.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { TournamentSetupWizard } from '../TournamentSetupWizard.js';
 import { messages } from '../../i18n/messages.en.js';
 import { PageHeader } from '../ui/organisms/page-header.js';
@@ -43,7 +42,6 @@ export function TournamentAuthoringTemplate({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

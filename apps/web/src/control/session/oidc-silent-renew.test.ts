@@ -15,6 +15,13 @@ function response(body: unknown, status = 200): Response {
   });
 }
 
+const SESSION_BODY = {
+  subject: 'idp-subject',
+  scopes: ['copalibre.control'],
+  expiresAt: '2030-01-01T00:00:00.000Z',
+  method: 'oidc',
+};
+
 const transaction: SilentTransaction = {
   state: 'state-abc',
   verifier: 'verifier-abc',
@@ -24,9 +31,11 @@ const transaction: SilentTransaction = {
 };
 
 describe('exchangeSilentCode', () => {
-  it('exchanges a code for a fresh token', async () => {
-    const fetchMock = jest.fn<typeof fetch>(async () =>
-      response({ access_token: 'fresh-jwt', expires_in: 900 }),
+  it('exchanges a code for a fresh token and hands it straight to the API', async () => {
+    const fetchMock = jest.fn<typeof fetch>(async (url) =>
+      String(url) === '/api/auth/session'
+        ? response(SESSION_BODY)
+        : response({ access_token: 'fresh-jwt', expires_in: 900 }),
     );
 
     const outcome = await exchangeSilentCode(transaction, 'auth-code', fetchMock);
@@ -39,7 +48,19 @@ describe('exchangeSilentCode', () => {
     expect(body.get('grant_type')).toBe('authorization_code');
     expect(body.get('code')).toBe('auth-code');
     expect(body.get('code_verifier')).toBe(transaction.verifier);
-    expect(outcome?.accessToken).toBe('fresh-jwt');
+    const handover = fetchMock.mock.calls[1]?.[1] as RequestInit;
+    expect(new Headers(handover.headers).get('authorization')).toBe('Bearer fresh-jwt');
+    expect(outcome?.session.subject).toBe('idp-subject');
+    expect(JSON.stringify(outcome)).not.toContain('fresh-jwt');
+  });
+
+  it('returns undefined when the API refuses the handed-over token', async () => {
+    const fetchMock = jest.fn<typeof fetch>(async (url) =>
+      String(url) === '/api/auth/session'
+        ? response({ message: 'Invalid bearer token' }, 401)
+        : response({ access_token: 'fresh-jwt', expires_in: 900 }),
+    );
+    await expect(exchangeSilentCode(transaction, 'auth-code', fetchMock)).resolves.toBeUndefined();
   });
 
   it('returns undefined on a failed exchange', async () => {
@@ -47,8 +68,8 @@ describe('exchangeSilentCode', () => {
     await expect(exchangeSilentCode(transaction, 'auth-code', fetchMock)).resolves.toBeUndefined();
   });
 
-  it('returns undefined on a malformed token response', async () => {
-    const fetchMock = jest.fn<typeof fetch>(async () => response({ access_token: 'jwt' }));
+  it('returns undefined on a token response with no access token', async () => {
+    const fetchMock = jest.fn<typeof fetch>(async () => response({ expires_in: 900 }));
     await expect(exchangeSilentCode(transaction, 'auth-code', fetchMock)).resolves.toBeUndefined();
   });
 });
@@ -88,13 +109,14 @@ describe('renewOidcSessionSilently', () => {
           token_endpoint: 'https://identity.example/token',
         }),
         response({ access_token: 'fresh-jwt', expires_in: 900 }),
+        response(SESSION_BODY),
       ],
       { source: 'copalibre-silent-renew', code: 'auth-code', state: 'state-abc' },
     );
 
     const outcome = await renewOidcSessionSilently(fixture.runtime);
 
-    expect(outcome?.accessToken).toBe('fresh-jwt');
+    expect(outcome?.session.method).toBe('oidc');
     const iframeUrl = String((fixture.runtime.runInHiddenIframe as jest.Mock).mock.calls[0]?.[0]);
     expect(iframeUrl).toContain('prompt=none');
     expect(iframeUrl).toContain(
@@ -187,6 +209,7 @@ describe('renewOidcSessionSilently with the real hidden-iframe browser', () => {
         token_endpoint: 'https://identity.example/token',
       }),
       response({ access_token: 'fresh-jwt', expires_in: 900 }),
+      response(SESSION_BODY),
     ];
     const fetchMock = jest.fn<typeof fetch>(async () => {
       const next = responses.shift();
@@ -210,7 +233,7 @@ describe('renewOidcSessionSilently with the real hidden-iframe browser', () => {
     );
 
     const outcome = await promise;
-    expect(outcome?.accessToken).toBe('fresh-jwt');
+    expect(outcome?.session.method).toBe('oidc');
     expect(document.querySelector('iframe')).toBeNull();
     expect(sessionStorage.getItem(SILENT_TRANSACTION_KEY)).toBeNull();
   });
@@ -245,6 +268,7 @@ describe('renewOidcSessionSilently with the real hidden-iframe browser', () => {
         token_endpoint: 'https://identity.example/token',
       }),
       response({ access_token: 'fresh-jwt', expires_in: 900 }),
+      response(SESSION_BODY),
     ];
     const fetchMock = jest.fn<typeof fetch>(async () => {
       const next = responses.shift();
@@ -277,7 +301,7 @@ describe('renewOidcSessionSilently with the real hidden-iframe browser', () => {
     );
 
     const outcome = await promise;
-    expect(outcome?.accessToken).toBe('fresh-jwt');
+    expect(outcome?.session.method).toBe('oidc');
   });
 });
 

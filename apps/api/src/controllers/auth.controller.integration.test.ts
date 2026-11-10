@@ -52,6 +52,20 @@ class FakeTokenVerifier {
   }
 }
 
+function setCookieFor(response: { headers: Record<string, unknown> }, name: string): string {
+  const header = response.headers['set-cookie'];
+  const values = Array.isArray(header) ? header : [header];
+  const raw = values.find((value) => typeof value === 'string' && value.startsWith(`${name}=`));
+  if (typeof raw !== 'string') throw new Error(`Response carried no ${name} cookie`);
+  return raw;
+}
+
+function cookiePairFrom(response: { headers: Record<string, unknown> }, name: string): string {
+  const pair = setCookieFor(response, name).split(';')[0];
+  if (!pair) throw new Error(`${name} Set-Cookie header was empty`);
+  return pair;
+}
+
 describe('Auth Controllers', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
@@ -148,14 +162,17 @@ describe('Auth Controllers', () => {
       }
     });
 
-    it('POST /auth/login returns 200 with an access token for valid credentials', async () => {
+    it('POST /auth/login returns 200 with session metadata, never the token', async () => {
       const response = await request({
         method: 'POST',
         url: '/api/auth/login',
         payload: { email, password },
       });
       expect(response.statusCode).toBe(200);
-      expect(JSON.parse(response.payload).accessToken).toBeDefined();
+      const body = JSON.parse(response.payload);
+      expect(body.accessToken).toBeUndefined();
+      expect(body).toMatchObject({ subject: principalId, method: 'native' });
+      expect(body.scopes).toContain('copalibre.control');
     });
 
     it('POST /auth/login returns 401 for invalid credentials', async () => {
@@ -332,11 +349,10 @@ describe('Auth Controllers', () => {
           payload: { email, password },
         });
         expect(login.statusCode).toBe(200);
-        const accessToken = JSON.parse(login.payload).accessToken as string;
         const organizations = await nativeApp.inject({
           method: 'GET',
           url: '/api/organizations?mine=true',
-          headers: { authorization: `Bearer ${accessToken}` },
+          headers: { cookie: cookiePairFrom(login, '__Host-copalibre_session') },
         });
         expect(organizations.statusCode).toBe(200);
         expect(JSON.parse(organizations.payload)).toEqual([]);
@@ -350,15 +366,10 @@ describe('Auth Controllers', () => {
     });
 
     function refreshCookieFrom(response: { headers: Record<string, unknown> }): string {
-      const setCookie = response.headers['set-cookie'];
-      const raw = Array.isArray(setCookie) ? setCookie[0] : setCookie;
-      if (typeof raw !== 'string') throw new Error('Response carried no Set-Cookie header');
-      const cookiePair = raw.split(';')[0];
-      if (!cookiePair) throw new Error('Set-Cookie header was empty');
-      return cookiePair;
+      return cookiePairFrom(response, 'copalibre_refresh_token');
     }
 
-    it('POST /auth/login sets an HttpOnly, SameSite=Strict refresh cookie alongside the access token', async () => {
+    it('POST /auth/login sets an HttpOnly, SameSite=Strict refresh cookie alongside the session cookie', async () => {
       const ip = '10.9.1.1';
       const response = await request({
         method: 'POST',
@@ -367,15 +378,14 @@ describe('Auth Controllers', () => {
         ip,
       });
       expect(response.statusCode).toBe(200);
-      const setCookie = response.headers['set-cookie'];
-      const raw = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+      const raw = setCookieFor(response, 'copalibre_refresh_token');
       expect(raw).toContain('copalibre_refresh_token=');
       expect(raw).toContain('HttpOnly');
       expect(raw).toContain('SameSite=Strict');
       expect(raw).toContain('Path=/api/auth');
     });
 
-    it('POST /auth/refresh with a valid cookie returns a fresh access token and rotates the cookie', async () => {
+    it('POST /auth/refresh with a valid cookie issues a fresh session cookie and rotates the refresh cookie', async () => {
       const ip = '10.9.1.2';
       const login = await request({
         method: 'POST',
@@ -387,7 +397,8 @@ describe('Auth Controllers', () => {
 
       const refreshed = await request({ method: 'POST', url: '/api/auth/refresh', cookie, ip });
       expect(refreshed.statusCode).toBe(200);
-      expect(JSON.parse(refreshed.payload).accessToken).toBeDefined();
+      expect(JSON.parse(refreshed.payload).accessToken).toBeUndefined();
+      expect(setCookieFor(refreshed, '__Host-copalibre_session')).toContain('HttpOnly');
       const rotatedCookie = refreshCookieFrom(refreshed);
       expect(rotatedCookie).not.toBe(cookie);
     });
@@ -464,9 +475,13 @@ describe('Auth Controllers', () => {
 
       const logout = await request({ method: 'POST', url: '/api/auth/logout', cookie, ip });
       expect(logout.statusCode).toBe(200);
-      const clearedCookie = logout.headers['set-cookie'];
-      const raw = Array.isArray(clearedCookie) ? clearedCookie[0] : clearedCookie;
-      expect(raw).toContain('Max-Age=0');
+      for (const name of [
+        '__Host-copalibre_session',
+        'copalibre_csrf',
+        'copalibre_refresh_token',
+      ]) {
+        expect(setCookieFor(logout, name)).toContain('Max-Age=0');
+      }
 
       const refreshAfterLogout = await request({
         method: 'POST',

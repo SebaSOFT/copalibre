@@ -13,7 +13,13 @@ async function mockLoginApi(page: Page): Promise<void> {
       ) {
         const body = JSON.parse(String(init?.body));
         if (body.email === 'test@example.com' && body.password === 'password123') {
-          return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
+          // Session metadata only: the API keeps the token in an HttpOnly cookie.
+          return Response.json({
+            subject: 'e2e-operator',
+            scopes: ['copalibre.control'],
+            expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+            method: 'native',
+          });
         }
         return Response.json(
           { message: 'Invalid credentials', errorCode: 'auth-unauthorized' },

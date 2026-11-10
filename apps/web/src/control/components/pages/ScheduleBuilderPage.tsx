@@ -10,7 +10,6 @@ import {
   type ScheduleConflictDto,
   type ScheduleReasonDto,
 } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { useToast } from '../ToastProvider.js';
 import {
   ScheduleBuilderTemplate,
@@ -18,6 +17,7 @@ import {
 } from '../screens/ScheduleBuilderTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
+import { controlSession } from '../../session/session-store.js';
 import { PageHeaderContext } from '../ui/organisms/page-header.js';
 
 const EMPTY_DRAFT: DraftAssignment = {
@@ -60,7 +60,6 @@ export function ScheduleBuilderPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );
@@ -204,15 +203,9 @@ export function ScheduleBuilderPage({
           return;
         versions.set(matchId, event.projectionVersion);
         const actor = event.payload.actor;
-        const token = stream.accessToken?.();
-        let ownActor: string | undefined;
-        try {
-          const part = token?.split('.')[1];
-          if (part)
-            ownActor = `user:${(JSON.parse(atob(part.replace(/-/g, '+').replace(/_/g, '/'))) as { sub?: string }).sub}`;
-        } catch {
-          /* No readable subject: keep the server's authoritative change visible. */
-        }
+        // The session metadata names the signed-in subject; Control never reads the token.
+        const subject = controlSession.read()?.subject;
+        const ownActor = subject === undefined ? undefined : `user:${subject}`;
         if (actor === ownActor) return;
         const fixture = fixtures.find(
           (entry) =>

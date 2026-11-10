@@ -22,7 +22,7 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     summary: 'Write a new installation into the current directory — no checkout required',
     usage:
       'copalibre init [--module-dev] [--repair] [--proxy <name>] [--non-interactive] [--skip-preflight] ' +
-      '[--app-url <url>] [--api-url <url>] [--disciplines <list>] [--email-provider <provider>] ' +
+      '[--app-url <url>] [--api-url <url>] [--https | --no-https] [--disciplines <list>] [--email-provider <provider>] ' +
       '[--email-from <address>] [--email-credential <value>] [--email-domain <domain>] ' +
       '[--oidc-issuer <url> --oidc-client-id <id> [--oidc-jwks-uri <url>]] | ' +
       'copalibre init --kubernetes [--namespace <ns>] [--release <name>] [--context <ctx>]',
@@ -55,6 +55,16 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
       {
         flag: '--api-url <url>',
         description: 'Public API domain URL (default: matches app-url)',
+      },
+      {
+        flag: '--https',
+        description:
+          'Browsers reach the installation over HTTPS: session cookies carry Secure (default: from the app-url scheme)',
+      },
+      {
+        flag: '--no-https',
+        description:
+          'Plain HTTP on a host other than localhost: session cookies omit Secure and the __Host- prefix',
       },
       {
         flag: '--disciplines <list>',

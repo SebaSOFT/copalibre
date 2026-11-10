@@ -8,7 +8,6 @@ import {
   type ZoneResponse,
 } from '../../lib/api-client.js';
 import { navigateControl } from '../../lib/control-navigation.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { useToast } from '../ToastProvider.js';
 import { StageHubTemplate, type RoundZone } from '../screens/StageHubTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
@@ -65,7 +64,6 @@ export function StageHubPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

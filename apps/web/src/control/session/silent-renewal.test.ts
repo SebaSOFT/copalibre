@@ -5,7 +5,23 @@ import {
   scheduleSilentRenewal,
   type SilentRenewalBrowser,
 } from './silent-renewal.js';
-import { clearAuthMethod, controlTokenStore, recordAuthMethod } from './token-store.js';
+import { controlSession } from './session-store.js';
+
+const FRESH = {
+  subject: 'p-fresh',
+  scopes: ['copalibre.control'],
+  expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+  method: 'native',
+};
+
+function signInNative(expiresInMs = 60_000): void {
+  controlSession.write({
+    subject: 'p-1',
+    scopes: ['copalibre.control'],
+    expiresAtMs: Date.now() + expiresInMs,
+    method: 'native',
+  });
+}
 
 function response(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -24,46 +40,43 @@ describe('renewSessionOnce', () => {
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
-    controlTokenStore.clear();
-    clearAuthMethod();
+    controlSession.clear();
     cancelScheduledRenewal();
   });
 
   afterEach(() => {
     Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
-    controlTokenStore.clear();
-    clearAuthMethod();
+    controlSession.clear();
     cancelScheduledRenewal();
   });
 
-  it('renews a native session and writes the new token', async () => {
-    recordAuthMethod('native');
+  it('renews a native session and records the new session metadata', async () => {
+    signInNative();
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
-      value: jest.fn(async () => response({ accessToken: 'fresh-jwt', expiresIn: 3600 })),
+      value: jest.fn(async () => response(FRESH)),
     });
 
     const fixture = fakeBrowser();
     const outcome = await renewSessionOnce(fixture.runtime);
 
-    expect(outcome).toMatchObject({ accessToken: 'fresh-jwt' });
-    expect(controlTokenStore.read()).toBe('fresh-jwt');
+    expect(outcome).toMatchObject({ session: { subject: 'p-fresh' } });
+    expect(controlSession.read()?.subject).toBe('p-fresh');
     expect(fixture.navigate).not.toHaveBeenCalled();
   });
 
   it('clears the session and redirects to login with reason=session_expired on failure', async () => {
-    recordAuthMethod('native');
+    signInNative(1000);
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       value: jest.fn(async () => response({}, 401)),
     });
-    controlTokenStore.write('stale-token', Date.now() + 1000);
 
     const fixture = fakeBrowser();
     const outcome = await renewSessionOnce(fixture.runtime);
 
     expect(outcome).toBeUndefined();
-    expect(controlTokenStore.read()).toBeUndefined();
+    expect(controlSession.read()).toBeUndefined();
     expect(fixture.navigate).toHaveBeenCalledWith(
       '/control/login?returnTo=%2Fcontrol%2Fliga-mendocina&reason=session_expired',
     );
@@ -71,19 +84,18 @@ describe('renewSessionOnce', () => {
 
   it('keeps the session and retries after Retry-After when refresh returns 429', async () => {
     jest.useFakeTimers();
-    recordAuthMethod('native');
-    controlTokenStore.write('still-valid-token', Date.now() + 60_000);
+    signInNative(60_000);
     const fetchMock = jest
       .fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(null, { status: 429, headers: { 'Retry-After': '3' } }))
-      .mockResolvedValueOnce(response({ accessToken: 'fresh-jwt', expiresIn: 3600 }));
+      .mockResolvedValueOnce(response(FRESH));
     Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
 
     const fixture = fakeBrowser();
     try {
       const retry = await renewSessionOnce(fixture.runtime);
       expect(retry && 'retryAtMs' in retry).toBe(true);
-      expect(controlTokenStore.read()).toBe('still-valid-token');
+      expect(controlSession.read()?.subject).toBe('p-1');
       expect(fixture.navigate).not.toHaveBeenCalled();
       expect(fetchMock).toHaveBeenCalledTimes(1);
 
@@ -91,7 +103,7 @@ describe('renewSessionOnce', () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
       await jest.advanceTimersByTimeAsync(1);
       expect(fetchMock).toHaveBeenCalledTimes(2);
-      expect(controlTokenStore.read()).toBe('fresh-jwt');
+      expect(controlSession.read()?.subject).toBe('p-fresh');
     } finally {
       cancelScheduledRenewal();
       jest.useRealTimers();
@@ -99,7 +111,7 @@ describe('renewSessionOnce', () => {
   });
 
   it('shares one in-flight attempt across concurrent callers rather than racing two', async () => {
-    recordAuthMethod('native');
+    signInNative();
     let resolveResponse: (value: Response) => void = () => {};
     const pending = new Promise<Response>((resolve) => {
       resolveResponse = resolve;
@@ -111,7 +123,7 @@ describe('renewSessionOnce', () => {
     const first = renewSessionOnce(fixture.runtime);
     const second = renewSessionOnce(fixture.runtime);
 
-    resolveResponse(response({ accessToken: 'fresh-jwt', expiresIn: 3600 }));
+    resolveResponse(response(FRESH));
     const [firstOutcome, secondOutcome] = await Promise.all([first, second]);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -119,20 +131,20 @@ describe('renewSessionOnce', () => {
   });
 
   it('gives up the same way when the renewal attempt throws outright, not just when it resolves to failure', async () => {
-    recordAuthMethod('native');
+    signInNative();
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       value: jest.fn(async () => {
         throw new Error('network down');
       }),
     });
-    controlTokenStore.write('stale-token', Date.now() + 1000);
+    signInNative(1000);
 
     const fixture = fakeBrowser();
     const outcome = await renewSessionOnce(fixture.runtime);
 
     expect(outcome).toBeUndefined();
-    expect(controlTokenStore.read()).toBeUndefined();
+    expect(controlSession.read()).toBeUndefined();
     expect(fixture.navigate).toHaveBeenCalledWith(
       expect.stringContaining('reason=session_expired'),
     );
@@ -163,19 +175,17 @@ describe('renewSessionOnce with the real window as its browser', () => {
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
-    controlTokenStore.clear();
-    clearAuthMethod();
+    controlSession.clear();
   });
 
   afterEach(() => {
     Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
-    controlTokenStore.clear();
-    clearAuthMethod();
+    controlSession.clear();
     cancelScheduledRenewal();
   });
 
   it('reads the real location for its give-up redirect when no browser is injected', async () => {
-    recordAuthMethod('native');
+    signInNative();
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       value: jest.fn(async () => response({}, 401)),
@@ -212,10 +222,10 @@ describe('scheduleSilentRenewal', () => {
   it('actually attempts a renewal once the scheduled timer fires', async () => {
     jest.useFakeTimers();
     try {
-      recordAuthMethod('native');
+      signInNative();
       Object.defineProperty(globalThis, 'fetch', {
         configurable: true,
-        value: jest.fn(async () => response({ accessToken: 'fresh-jwt', expiresIn: 3600 })),
+        value: jest.fn(async () => response(FRESH)),
       });
       const fixture = fakeBrowser();
 
@@ -223,11 +233,10 @@ describe('scheduleSilentRenewal', () => {
       scheduleSilentRenewal(Date.now() - 1, fixture.runtime);
       await jest.advanceTimersByTimeAsync(1000);
 
-      expect(controlTokenStore.read()).toBe('fresh-jwt');
+      expect(controlSession.read()?.subject).toBe('p-fresh');
     } finally {
       jest.useRealTimers();
-      controlTokenStore.clear();
-      clearAuthMethod();
+      controlSession.clear();
     }
   });
 

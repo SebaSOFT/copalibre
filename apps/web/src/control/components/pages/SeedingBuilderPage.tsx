@@ -8,7 +8,6 @@ import {
 } from '../../lib/api-client.js';
 import { isGeneratedAhead } from '../../lib/generate-ahead.js';
 import type { SeedAssignment } from '../../lib/seeding.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { SeedingBuilderTemplate } from '../screens/SeedingBuilderTemplate.js';
 import { useToast } from '../ToastProvider.js';
 import { Alert } from '../ui/atoms/alert.js';
@@ -158,7 +157,6 @@ export function SeedingBuilderPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

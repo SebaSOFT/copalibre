@@ -3,7 +3,7 @@ import { jest } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LoginRoute, ForgotPasswordRoute, ResetPasswordRoute } from './NativeAuthRoutes.js';
 import { ControlIntl as BaseControlIntl } from '../i18n/ControlIntl.js';
-import { clearAuthMethod, controlTokenStore, readAuthMethod } from '../session/token-store.js';
+import { controlSession } from '../session/session-store.js';
 import { ToastProvider } from './ToastProvider.js';
 
 function ControlIntl(props: React.ComponentProps<typeof BaseControlIntl>): React.JSX.Element {
@@ -17,8 +17,7 @@ function ControlIntl(props: React.ComponentProps<typeof BaseControlIntl>): React
 
 describe('NativeAuthRoutes', () => {
   beforeEach(() => {
-    controlTokenStore.clear();
-    clearAuthMethod();
+    controlSession.clear();
     window.history.pushState({}, '', '/control/login');
     globalThis.fetch = jest.fn() as any;
   });
@@ -31,7 +30,12 @@ describe('NativeAuthRoutes', () => {
   it('renders LoginRoute and handles success', async () => {
     (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ accessToken: 'foo', expiresIn: 3600 }),
+      json: async () => ({
+        subject: 'p-1',
+        scopes: ['copalibre.control'],
+        expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+        method: 'native',
+      }),
     } as any);
 
     render(
@@ -52,9 +56,15 @@ describe('NativeAuthRoutes', () => {
     fireEvent.click(screen.getByRole('button', { name: /Sign in/i }));
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
-    // A successful native login records which mechanism
-    // established the session, so a later silent renewal knows which one to use.
-    expect(readAuthMethod()).toBe('native');
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/api/auth/login',
+      expect.objectContaining({ method: 'POST', credentials: 'same-origin' }),
+    );
+    // A successful native login records the session metadata — including
+    // which mechanism established it, so a later silent renewal knows which
+    // one to use — and never a token.
+    await waitFor(() => expect(controlSession.read()?.method).toBe('native'));
+    expect(JSON.stringify(controlSession.read())).not.toMatch(/token/i);
   });
 
   it('shows an info toast when reached after a session-expired redirect', () => {

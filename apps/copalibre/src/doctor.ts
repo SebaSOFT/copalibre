@@ -2,7 +2,11 @@ import { access, mkdir } from 'node:fs/promises';
 import { lookup } from 'node:dns/promises';
 import { randomUUID } from 'node:crypto';
 import { dirname } from 'node:path';
-import { authConfigFromEnv } from '@copalibre/auth';
+import {
+  authConfigFromEnv,
+  sessionCookieConfigFromEnv,
+  sessionCookieMismatch,
+} from '@copalibre/auth';
 import { createObjectStorageAdapter, objectStorageConfigFromEnv } from '@copalibre/object-storage';
 import {
   CompetitionRecordRepository,
@@ -129,6 +133,7 @@ export function validateRequiredConfiguration(
   }
   checks.push(validateEmailConfiguration(environment));
   checks.push(validateCspIdentityOrigin(environment));
+  checks.push(validateSessionCookieSetting(environment));
   return checks;
 }
 
@@ -171,6 +176,28 @@ export function validateCspIdentityOrigin(environment: NodeJS.ProcessEnv): Docto
         `Sign-in will be blocked by the Content Security Policy: set COPALIBRE_CSP_IDENTITY_ORIGIN=${issuer}` +
           (configured ? ` (currently ${configured})` : ''),
       );
+}
+
+/**
+ * `COPALIBRE_SESSION_COOKIE_SECURE` must agree with how browsers reach the
+ * installation. Off on an `https` URL drops the cookies' transport protection
+ * (the API also refuses to report ready); on for plain HTTP to another host
+ * makes browsers refuse the cookies, so nobody can sign in.
+ */
+export function validateSessionCookieSetting(environment: NodeJS.ProcessEnv): DoctorCheck {
+  const name = 'session-cookie-secure';
+  let config;
+  try {
+    config = sessionCookieConfigFromEnv(environment);
+  } catch (error) {
+    return fail(name, error instanceof Error ? error.message : String(error));
+  }
+  const appUrl = environment.COPALIBRE_APP_URL?.trim();
+  if (!appUrl || !URL.canParse(appUrl)) return skip(name, 'COPALIBRE_APP_URL is not a usable URL');
+  const mismatch = sessionCookieMismatch(config, appUrl);
+  return mismatch === undefined
+    ? pass(name, `Session cookies ${config.secure ? 'carry' : 'omit'} Secure, matching ${appUrl}`)
+    : warn(name, mismatch);
 }
 
 /** Validates an installation's parsed `.env` before the host starts Compose. */

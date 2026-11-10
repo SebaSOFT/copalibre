@@ -77,6 +77,16 @@
 		reverse_proxy {$COPALIBRE_WEB_API_UPSTREAM:api:3001}
 	}
 
+	# The event streams, on the same hostname as Control, so the browser
+	# sends the HttpOnly session cookie to them as it does to /api. Never
+	# buffered: a buffered stream arrives after the match ended.
+	@events path /events /events/*
+	handle @events {
+		reverse_proxy {$COPALIBRE_WEB_EVENTS_UPSTREAM:events:3002} {
+			flush_interval -1
+		}
+	}
+
 	# RFC 8615 files stay public at the root. No fallback here: a missing
 	# file answers 404, not the home page with 200.
 	@wellKnown path /.well-known /.well-known/*
@@ -93,12 +103,12 @@
 	# @ssr above, matched separately because it has no /tournaments/
 	# segment to anchor on: just an optional locale prefix plus one alias
 	# segment. That shape would otherwise also swallow every reserved
-	# top-level path (/control, /help, /tv, /api, /.well-known,
+	# top-level path (/control, /help, /tv, /api, /events, /.well-known,
 	# /runtime-config.json), so those are excluded explicitly rather than
 	# relied upon to lose priority by file order.
 	@ssrOrg {
 		path_regexp ^(?:/(?:es|fr|pt|it|de|ru|zh))?/[^/]+/?$
-		not path /control /control/* /help /help/* /tv /tv/* /api /api/* /.well-known /.well-known/* /runtime-config.json
+		not path /control /control/* /help /help/* /tv /tv/* /api /api/* /events /events/* /.well-known /.well-known/* /runtime-config.json
 	}
 	handle @ssrOrg {
 		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}

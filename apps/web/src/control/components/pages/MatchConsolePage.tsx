@@ -32,7 +32,6 @@ import {
   type QueuedAction,
   type QueuedMutation,
 } from '../../lib/offline-queue.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { MatchConsoleTemplate, type RecordEventContext } from '../screens/MatchConsoleTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
@@ -77,7 +76,6 @@ export function MatchConsolePage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );
@@ -301,7 +299,6 @@ export function MatchConsolePage({
 
     const realtime = new RealtimeClient({
       url: stream.url,
-      accessToken: stream.accessToken,
       heartbeatTimeoutMs: RECONCILIATION_TIMEOUT_MS,
     });
     void realtime.connect({

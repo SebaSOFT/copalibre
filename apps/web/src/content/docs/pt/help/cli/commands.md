@@ -52,6 +52,13 @@ Opções de identidade:
 
 No modo interativo, o `init` pergunta se você usa um provedor externo e depois pede esses valores.
 
+Opções dos cookies de sessão:
+
+- `--https`: os navegadores acessam a instalação por HTTPS, então os cookies de sessão levam `Secure` e o prefixo `__Host-`.
+- `--no-https`: HTTP simples em um host diferente de `localhost`; os cookies omitem `Secure`. Recusado com um `--app-url` `https`.
+
+Sem nenhum dos dois, o `init` deriva `COPALIBRE_SESSION_COOKIE_SECURE` do esquema de `--app-url` (`localhost` conta como seguro). No modo interativo, ele pergunta se o HTTPS está em uso.
+
 Opções de e-mail e reparo:
 
 - `--repair`: faz backup de `.env` e `docker-compose.yml`, adiciona valores e recursos ausentes e preserva o Compose existente. Serviços padrão ausentes são exibidos com trechos YAML para revisão e aplicação manual.

@@ -5,7 +5,6 @@ import {
   type InstalledDisciplineDocumentResponse,
 } from '../../lib/api-client.js';
 import type { DisciplineSummaryData } from '../../lib/discipline-summary.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { DisciplineDocumentTemplate } from '../screens/DisciplineDocumentTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
@@ -22,7 +21,6 @@ export function DisciplineDocumentPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

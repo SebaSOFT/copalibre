@@ -5,7 +5,6 @@ import { withSourceDepth } from '../../../lib/matches-view.js';
 import { messages } from '../../i18n/messages.en.js';
 import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
 import { matchCardLabelsFromControlIntl } from '../../lib/matches-view-labels.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { MatchesViewTemplate } from '../screens/MatchesViewTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
@@ -45,7 +44,6 @@ export function MatchesViewPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

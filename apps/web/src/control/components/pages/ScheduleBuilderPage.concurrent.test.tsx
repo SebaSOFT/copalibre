@@ -4,15 +4,26 @@ import { RealtimeClient, type RealtimeHandlers, type EventEnvelope } from '@copa
 import { ScheduleBuilderPage } from './ScheduleBuilderPage.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { ControlApiClient } from '../../lib/api-client.js';
+import { controlSession } from '../../session/session-store.js';
 
 let handlers: RealtimeHandlers;
 beforeEach(() => {
+  // The signed-in operator is "self": its own changes must not be announced back to it.
+  controlSession.write({
+    subject: 'self',
+    scopes: ['copalibre.control'],
+    expiresAtMs: Date.now() + 60_000,
+    method: 'native',
+  });
   jest.spyOn(RealtimeClient.prototype, 'connect').mockImplementation(async (input) => {
     handlers = input;
     return { attempts: 1, stopped: 'aborted' };
   });
 });
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => {
+  jest.restoreAllMocks();
+  controlSession.clear();
+});
 const event = (version = 1, payload: Record<string, unknown> = {}): EventEnvelope => ({
   eventId: `event-${version}`,
   organizationId: 'org',
@@ -60,7 +71,6 @@ function client() {
       listSchedules: async () => [],
       controlStream: () => ({
         url: '/events/control/liga',
-        accessToken: () => `header.${btoa(JSON.stringify({ sub: 'self' }))}.signature`,
       }),
       previewSchedule,
     } as unknown as ControlApiClient,

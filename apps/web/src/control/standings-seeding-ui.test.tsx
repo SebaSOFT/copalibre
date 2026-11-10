@@ -612,10 +612,9 @@ describe('control routes', () => {
 });
 
 describe('control api client endpoints', () => {
-  it('addresses the stage routes and never puts the token in the URL', async () => {
+  it('addresses the stage routes and authenticates with the cookie, never a URL or header', async () => {
     const calls: { url: string; init?: RequestInit }[] = [];
     const client = createControlApiClient({
-      accessToken: () => 'secret-token',
       fetch: ((url: string, init?: RequestInit) => {
         calls.push({ url, init });
         return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
@@ -633,8 +632,9 @@ describe('control api client endpoints', () => {
       '/api/organizations/liga/tournaments/apertura/stages/2/seeding',
       '/api/organizations/liga/tournaments/apertura/stages/2/seeding',
     ]);
-    expect(calls.every((call) => !call.url.includes('secret-token'))).toBe(true);
-    expect(new Headers(calls[0]?.init?.headers).get('authorization')).toBe('Bearer secret-token');
+    expect(calls.every((call) => !/token/i.test(call.url))).toBe(true);
+    expect(new Headers(calls[0]?.init?.headers).get('authorization')).toBeNull();
+    expect(calls.every((call) => call.init?.credentials === 'same-origin')).toBe(true);
   });
 
   it('surfaces the server’s message when a publish is refused', async () => {

@@ -125,6 +125,34 @@ replace it or add a second, looser one at the proxy; on server-rendered pages th
 two policies and needs both. `copalibre doctor --check-proxy --proxy-url <url>` reads
 `/runtime-config.json` through your proxy and fails when the policy is missing.
 
+## Cookies
+
+CopaLibre sets three cookies, all on the application's own hostname, and nothing else: no analytics,
+advertising or third-party cookie, and no cookie on public pages for visitors who never sign in.
+
+| Cookie                                                                | Purpose                                                                                                                               | Lifetime                                                                                             | Attributes                                                                      |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `__Host-copalibre_session` (HTTPS) / `copalibre_session` (plain HTTP) | Holds the signed-in operator's access token, so no script on the page can read it                                                     | Until the access token expires (one hour for native sign-in; the provider's token lifetime for OIDC) | `HttpOnly`, `SameSite=Strict`, `Path=/`, no `Domain`, `Secure` over HTTPS       |
+| `copalibre_csrf`                                                      | Proves an unsafe request came from Control itself: Control copies it into the `X-CopaLibre-CSRF` header, which another site cannot do | Same as the session cookie                                                                           | `SameSite=Strict`, `Path=/`, `Secure` over HTTPS; readable by script on purpose |
+| `copalibre_refresh_token`                                             | Renews a native (email and password) session without signing in again; rotated on every renewal and revoked on sign-out               | 30 days                                                                                              | `HttpOnly`, `SameSite=Strict`, `Path=/api/auth`, `Secure` over HTTPS            |
+
+All three are strictly necessary for a service the operator explicitly asked for — signing in to
+Control — and carry no tracking, so they need no consent prompt. Signing out clears all three.
+
+**HTTPS or not.** `COPALIBRE_SESSION_COOKIE_SECURE` decides whether the cookies carry `Secure` and
+whether the session cookie takes the `__Host-` prefix. `copalibre init` asks whether HTTPS is in use
+and writes it; `copalibre upgrade` adds it to an existing `.env` from the scheme of
+`COPALIBRE_APP_URL`. Keep it `true` for HTTPS and for `localhost`, which browsers treat as secure;
+set it `false` only for a plain-HTTP installation reached by another hostname or address. The API
+refuses to report ready when it is `false` and `COPALIBRE_APP_URL` is `https`, and `copalibre doctor`
+warns about either mismatch. On Kubernetes, set `session.cookieSecure`; it defaults to true when the
+ingress has TLS.
+
+**At the edge.** Pass `Set-Cookie` and `Cookie` through unchanged and keep `/api` and `/events` on
+the same hostname as Control. The browser sends the session cookie only to that hostname: the web
+container routes `/api` to the API and `/events` to the events service, so a separate API or events
+hostname is never needed for a browser.
+
 ## Well-Known Files
 
 The web container serves the installation's `well-known/` directory as `/.well-known/` on the
@@ -355,6 +383,23 @@ running the previous release, then verify it before switching traffic. `copalibr
 that target release's migrations and schema checks, so use the matching CLI and runtime. Restore
 replaces target data; changes made after the backup are not recovered. Preserve failed-upgrade
 logs and backups while investigating.
+
+### Session cookies
+
+From this release a Control browser session keeps its access token in the `HttpOnly` session cookie
+described in [Cookies](#cookies). `POST /api/auth/login`, `POST /api/auth/accept-invitation` and
+`POST /api/auth/refresh` no longer return `accessToken` in the response body; they answer with the
+session's subject, scopes, expiry and sign-in method. Personal access tokens and every client that
+sends `Authorization: Bearer` are unaffected.
+
+1. `copalibre upgrade` adds `COPALIBRE_SESSION_COOKIE_SECURE` to `.env` and prints the value it chose.
+   Check it against how operators reach the installation.
+2. Upgrade the API and events services before the web container: they accept both the old header and
+   the new cookie, so a browser still running the previous web build keeps working.
+3. Operators signed in before the upgrade sign in once more.
+
+On Kubernetes the web role now routes `/events` to the events service, like `/api`. Upgrade the chart
+and keep the ingress host that serves Control.
 
 ### Personal Access Token security cutover
 

@@ -4,7 +4,6 @@ import { messages } from '../i18n/messages.en.js';
 import { createControlApiClient, type ControlApiClient } from '../lib/api-client.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { type DashboardModel } from '../lib/dashboard.js';
-import { controlTokenStore } from '../session/token-store.js';
 import { ControlShell } from './ControlShell.js';
 import { Button } from './ui/atoms/button.js';
 import { Checkbox } from './ui/atoms/checkbox.js';
@@ -110,7 +109,6 @@ function DashboardContent({
     client ??
     createControlApiClient({
       fetch: globalThis.fetch.bind(globalThis),
-      accessToken: () => controlTokenStore.read(),
     });
   const [participantExport, setParticipantExport] = useState<
     | {

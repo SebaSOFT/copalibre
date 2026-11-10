@@ -7,7 +7,6 @@ import {
   type ControlApiClient,
   type RulesetOverridesResponse,
 } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { TournamentRulesetTemplate } from '../screens/TournamentRulesetTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { replaceResilientReadCache, useResilientRead } from './use-resilient-read.js';
@@ -27,7 +26,6 @@ export function TournamentRulesetPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

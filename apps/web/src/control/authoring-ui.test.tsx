@@ -737,7 +737,6 @@ describe('TournamentAuthoringTemplate component', () => {
         }
         return new Response('Not found', { status: 404 });
       },
-      accessToken: () => undefined,
     });
 
     const { rerender } = render(
@@ -752,7 +751,6 @@ describe('TournamentAuthoringTemplate component', () => {
       fetch: async () => {
         throw new Error('network error');
       },
-      accessToken: () => undefined,
     });
 
     rerender(
@@ -790,7 +788,6 @@ describe('TournamentAuthoringTemplate component', () => {
         }
         return new Response('Not found', { status: 404 });
       },
-      accessToken: () => undefined,
     });
 
     render(

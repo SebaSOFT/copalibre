@@ -3,7 +3,16 @@ import { jest } from '@jest/globals';
 import { IntlProvider } from 'react-intl';
 import { ToastProvider } from '../ToastProvider.js';
 import { useResilientRead } from './use-resilient-read.js';
-import { controlTokenStore } from '../../session/token-store.js';
+import { controlSession } from '../../session/session-store.js';
+
+function signInAs(subject: string): void {
+  controlSession.write({
+    subject,
+    scopes: ['copalibre.control'],
+    expiresAtMs: Date.now() + 60_000,
+    method: 'native',
+  });
+}
 
 function wrapper({ children }: { readonly children: React.ReactNode }): React.JSX.Element {
   return (
@@ -76,8 +85,8 @@ describe('useResilientRead', () => {
     expect(result.current.data).toBe(2);
   });
 
-  it('does not expose cached data after the authenticated session changes', async () => {
-    controlTokenStore.write('session-one', Date.now() + 60_000);
+  it('does not expose cached data after a different operator signs in', async () => {
+    signInAs('operator-one');
     try {
       const fetcher = jest
         .fn<() => Promise<string[]>>()
@@ -88,13 +97,13 @@ describe('useResilientRead', () => {
         { wrapper },
       );
       await waitFor(() => expect(result.current.data).toEqual(['Private data']));
-      controlTokenStore.write('session-two', Date.now() + 60_000);
+      signInAs('operator-two');
       rerender();
       expect(result.current.data).toBeUndefined();
       await waitFor(() => expect(result.current.status).toBe('failed-empty'));
       expect(result.current.data).toBeUndefined();
     } finally {
-      controlTokenStore.clear();
+      controlSession.clear();
     }
   });
 

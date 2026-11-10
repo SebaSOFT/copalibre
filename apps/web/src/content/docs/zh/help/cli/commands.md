@@ -45,6 +45,13 @@ file:///var/lib/copalibre/modules-dev/<alias>` 搭配使用，可在无需源代
 
 在交互模式下，`init` 会询问是否使用外部提供方，然后询问这些值。
 
+会话 cookie 选项：
+
+- `--https`：浏览器通过 HTTPS 访问安装，因此会话 cookie 带有 `Secure` 和 `__Host-` 前缀。
+- `--no-https`：在 `localhost` 以外的主机上使用纯 HTTP；cookie 不带 `Secure`。与 `https` 的 `--app-url` 一起使用时会被拒绝。
+
+两者都未指定时，`init` 根据 `--app-url` 的协议推导 `COPALIBRE_SESSION_COOKIE_SECURE`（`localhost` 视为安全）。在交互模式下，它会询问是否使用 HTTPS。
+
 电子邮件与修复选项：
 
 - `--repair`：备份 `.env` 和 `docker-compose.yml`，补齐缺失的默认值与文件，并保留现有 Compose。缺少默认服务时会显示 YAML 片段，供手动检查和添加。

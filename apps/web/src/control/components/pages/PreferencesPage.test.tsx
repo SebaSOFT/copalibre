@@ -5,7 +5,6 @@ import { jest } from '@jest/globals';
 import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { PAT_PATH, PreferencesPage } from '../pages/PreferencesPage.js';
 import { ControlIntl as BaseControlIntl } from '../../i18n/ControlIntl.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { ControlApiError } from '../../lib/api-client.js';
 import type { ControlApiClient, OrganizationResponse } from '../../lib/api-client.js';
 import { ToastProvider } from '../ToastProvider.js';
@@ -52,7 +51,6 @@ function stubClient(overrides: Partial<ControlApiClient>): ControlApiClient {
 describe('PreferencesPage', () => {
   const defaultFetch = globalThis.fetch;
   beforeEach(() => {
-    controlTokenStore.write('test-token', Date.now() + 3600000);
     globalThis.fetch = jest.fn((...args: Parameters<typeof defaultFetch>) => {
       const [input] = args;
       const url =

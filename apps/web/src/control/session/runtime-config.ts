@@ -1,4 +1,4 @@
-import type { SessionMode } from './token-store.js';
+import type { SessionMode } from './session-store.js';
 
 /**
  * `/runtime-config.json` is deployment-provided — served by the edge proxy,

@@ -7,7 +7,6 @@ import {
   type ControlApiClient,
   type PromotionPreviewResponse,
 } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { formatEntrant } from '../../lib/presentation-formatting.js';
 import { useToast } from '../ToastProvider.js';
 import {
@@ -67,7 +66,6 @@ export function PromotionPlanPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

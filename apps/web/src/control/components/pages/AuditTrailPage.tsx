@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { messages } from '../../i18n/messages.en.js';
 import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { AuditTrailTemplate, type AuditActorProfile } from '../screens/AuditTrailTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
@@ -22,7 +21,6 @@ export function AuditTrailPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useIntl } from 'react-intl';
 import { messages } from '../../i18n/messages.en.js';
 import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { LiveConsoleTemplate } from '../screens/LiveConsoleTemplate.js';
 import { useResilientRead } from './use-resilient-read.js';
 
@@ -23,7 +22,6 @@ export function LiveConsolePage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

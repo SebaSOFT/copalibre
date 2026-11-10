@@ -72,3 +72,22 @@ empty, the built-in identity provider, which the policy already allows as 'self'
 {{- end -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Whether browser session cookies carry Secure and the __Host- prefix: an explicit
+env.COPALIBRE_SESSION_COOKIE_SECURE, else session.cookieSecure, else false only
+when this chart's own ingress is enabled without TLS, else true.
+*/}}
+{{- define "copalibre.sessionCookieSecure" -}}
+{{- $explicit := .Values.env.COPALIBRE_SESSION_COOKIE_SECURE | default "" | toString -}}
+{{- $configured := (.Values.session | default dict).cookieSecure -}}
+{{- if $explicit -}}
+{{- $explicit -}}
+{{- else if not (kindIs "invalid" $configured) -}}
+{{- $configured | toString -}}
+{{- else if and .Values.ingress.enabled (not .Values.ingress.tls.enabled) -}}
+false
+{{- else -}}
+true
+{{- end -}}
+{{- end -}}

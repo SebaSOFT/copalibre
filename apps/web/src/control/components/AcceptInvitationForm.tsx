@@ -1,7 +1,8 @@
 import { API_PATH_PREFIX } from '../../lib/api-path.js';
 import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { controlTokenStore } from '../session/token-store.js';
+import { csrfHeaders } from '../session/csrf.js';
+import { controlSession, parseSessionMetadata } from '../session/session-store.js';
 import { Alert } from './ui/atoms/alert.js';
 import { Button } from './ui/atoms/button.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/atoms/card.js';
@@ -91,8 +92,10 @@ export function AcceptInvitationForm({
     try {
       const response = await fetch(`${API_PATH_PREFIX}/auth/accept-invitation`, {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
+          ...csrfHeaders('POST'),
         },
         body: JSON.stringify({
           token,
@@ -109,8 +112,10 @@ export function AcceptInvitationForm({
         );
       }
 
-      const data = await response.json();
-      controlTokenStore.write(data.accessToken, Date.now() + data.expiresIn * 1000);
+      // The API keeps the token in its HttpOnly cookie and answers with metadata only.
+      const session = parseSessionMetadata(await response.json());
+      if (session === undefined) throw new Error(intl.formatMessage(messages.unexpectedError));
+      controlSession.write(session);
       setSuccess(true);
 
       setTimeout(() => {

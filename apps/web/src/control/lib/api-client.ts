@@ -14,6 +14,8 @@ import type { StandingsData } from './standings.js';
 import type { DisciplineOption, TournamentProfileOption } from './wizard.js';
 import type { MatchCardData } from '../../lib/matches-view.js';
 import type { QualifierLabel, SideSource } from '../../lib/side-source.js';
+import { csrfHeaders } from '../session/csrf.js';
+import { controlSession } from '../session/session-store.js';
 import { renewSessionOnce } from '../session/silent-renewal.js';
 import { API_PATH_PREFIX } from '../../lib/api-path.js';
 
@@ -1242,9 +1244,9 @@ export interface MatchConsoleApiClient {
   ) => Promise<SeedingResponse>;
 }
 
+/** Same-origin, so the browser sends the session cookie; no token is ever part of it. */
 export interface MatchConsoleStream {
   readonly url: string;
-  readonly accessToken?: () => string | undefined;
 }
 
 export interface TiebreakTraceResponse {
@@ -2266,7 +2268,6 @@ export interface BulkLoadMatchDataResponse {
 export function createControlApiClient(input: {
   readonly fetch: typeof fetch;
   readonly baseUrl?: string;
-  readonly accessToken?: () => string | undefined;
 }): ControlApiClient & MatchConsoleApiClient {
   const origin = input.baseUrl ?? '';
   const baseUrl = `${origin}${API_PATH_PREFIX}`;
@@ -2276,61 +2277,50 @@ export function createControlApiClient(input: {
       requestJson<readonly MyOrganizationResponse[]>(
         input.fetch,
         `${baseUrl}/organizations?mine=true`,
-        {
-          token: input.accessToken?.(),
-        },
       ),
 
     createOrganization: (body) =>
       requestJson<ContractOrganizationResponse>(input.fetch, `${baseUrl}/organizations`, {
         method: 'POST',
         body,
-        token: input.accessToken?.(),
       }),
 
     listInstalledModules: () =>
-      requestJson<readonly InstalledModuleResponse[]>(input.fetch, `${baseUrl}/admin/modules`, {
-        token: input.accessToken?.(),
-      }),
+      requestJson<readonly InstalledModuleResponse[]>(input.fetch, `${baseUrl}/admin/modules`),
 
     listOutdatedModules: () =>
       requestJson<readonly OutdatedModuleResponse[]>(
         input.fetch,
         `${baseUrl}/admin/modules?outdated=true`,
-        { token: input.accessToken?.() },
       ),
 
     getDiagnosticsSummary: () =>
-      requestJson<DiagnosticsSummary>(input.fetch, `${baseUrl}/admin/diagnostics/summary`, {
-        token: input.accessToken?.(),
-      }),
+      requestJson<DiagnosticsSummary>(input.fetch, `${baseUrl}/admin/diagnostics/summary`),
 
     retryOutboxEvents: (body: RetryOutboxRequest) =>
       requestJson<RetryOutboxResponse>(input.fetch, `${baseUrl}/admin/diagnostics/outbox/retry`, {
         method: 'POST',
         body,
-        token: input.accessToken?.(),
       }),
 
     installModule: (body) =>
       requestJson<InstallModuleResponse>(input.fetch, `${baseUrl}/admin/modules`, {
         method: 'POST',
         body,
-        token: input.accessToken?.(),
       }),
 
     removeModule: (alias) =>
       requestJson<RemoveModuleResponse>(
         input.fetch,
         `${baseUrl}/admin/modules/${encodeURIComponent(alias)}`,
-        { method: 'DELETE', token: input.accessToken?.() },
+        { method: 'DELETE' },
       ),
 
     verifyModules: () =>
       requestJson<readonly ModuleVerifyResultResponse[]>(
         input.fetch,
         `${baseUrl}/admin/modules/verify`,
-        { method: 'POST', token: input.accessToken?.() },
+        { method: 'POST' },
       ),
 
     fetchInstalledDisciplineDocument: (alias, version) =>
@@ -2339,28 +2329,26 @@ export function createControlApiClient(input: {
         `${baseUrl}/admin/modules/${encodeURIComponent(alias)}/document${
           version === undefined ? '' : `?version=${encodeURIComponent(version)}`
         }`,
-        { token: input.accessToken?.() },
       ),
 
     validateAuthoredModule: (body) =>
       requestJson<AuthoredModuleValidationResponse>(
         input.fetch,
         `${baseUrl}/admin/authored-modules/validate`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     installAuthoredModule: (body) =>
       requestJson<InstallModuleResponse>(input.fetch, `${baseUrl}/admin/authored-modules`, {
         method: 'POST',
         body,
-        token: input.accessToken?.(),
       }),
 
     submitAuthoredModule: (body) =>
       requestJson<AuthoredModuleSubmitResponse>(
         input.fetch,
         `${baseUrl}/admin/authored-modules/submit`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     listDisciplines: () =>
@@ -2382,7 +2370,6 @@ export function createControlApiClient(input: {
         {
           method: 'POST',
           body,
-          token: input.accessToken?.(),
         },
       ),
 
@@ -2390,21 +2377,18 @@ export function createControlApiClient(input: {
       requestJson<HookScriptVocabulary>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/custom-script-vocabulary`,
-        { token: input.accessToken?.() },
       ),
 
     fetchEntrantAttributeKeys: (organizationAlias, tournamentAlias) =>
       requestJson<EntrantAttributeKeysResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/entrant-attribute-keys`,
-        { token: input.accessToken?.() },
       ),
 
     listActiveTournaments: (organizationAlias) =>
       requestJson<readonly TournamentResponse[]>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments`,
-        { token: input.accessToken?.() },
       ),
 
     listRegistrations: (organizationAlias, tournamentAlias, status) => {
@@ -2416,7 +2400,6 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/registrations${query}`,
-        { token: input.accessToken?.() },
       );
     },
 
@@ -2429,7 +2412,6 @@ export function createControlApiClient(input: {
         {
           method: 'POST',
           body,
-          token: input.accessToken?.(),
         },
       ),
 
@@ -2439,7 +2421,7 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/registrations/persons`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     createTeam: (organizationAlias, tournamentAlias, body) =>
@@ -2448,7 +2430,7 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/registrations/teams`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     updatePersonIdentity: (organizationAlias, tournamentAlias, personId, body) =>
@@ -2457,7 +2439,7 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/registrations/persons/${encodeURIComponent(personId)}`,
-        { method: 'PATCH', body, token: input.accessToken?.() },
+        { method: 'PATCH', body },
       ),
 
     updateTeamIdentity: (organizationAlias, tournamentAlias, teamId, body) =>
@@ -2466,7 +2448,7 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/registrations/teams/${encodeURIComponent(teamId)}`,
-        { method: 'PATCH', body, token: input.accessToken?.() },
+        { method: 'PATCH', body },
       ),
 
     removePerson: (organizationAlias, tournamentAlias, personId) =>
@@ -2475,7 +2457,7 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/registrations/persons/${encodeURIComponent(personId)}`,
-        { method: 'DELETE', token: input.accessToken?.() },
+        { method: 'DELETE' },
       ),
 
     removeTeam: (organizationAlias, tournamentAlias, teamId) =>
@@ -2484,7 +2466,7 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/registrations/teams/${encodeURIComponent(teamId)}`,
-        { method: 'DELETE', token: input.accessToken?.() },
+        { method: 'DELETE' },
       ),
 
     linkParticipantIdentity: (organizationAlias, personId, body) =>
@@ -2493,7 +2475,7 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/participants/${encodeURIComponent(
           personId,
         )}/identity-link`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     unlinkParticipantIdentity: (organizationAlias, personId) =>
@@ -2502,7 +2484,7 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/participants/${encodeURIComponent(
           personId,
         )}/identity-link`,
-        { method: 'DELETE', token: input.accessToken?.() },
+        { method: 'DELETE' },
       ),
 
     reviewRegistration: (organizationAlias, tournamentAlias, entrantId, body) =>
@@ -2514,7 +2496,6 @@ export function createControlApiClient(input: {
         {
           method: 'POST',
           body,
-          token: input.accessToken?.(),
         },
       ),
 
@@ -2524,7 +2505,6 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/entrants/needing-abbreviation`,
-        { token: input.accessToken?.() },
       ),
 
     setEntrantAbbreviation: (organizationAlias, tournamentAlias, entrantId, body) =>
@@ -2536,7 +2516,6 @@ export function createControlApiClient(input: {
         {
           method: 'PATCH',
           body,
-          token: input.accessToken?.(),
         },
       ),
 
@@ -2549,7 +2528,6 @@ export function createControlApiClient(input: {
         {
           method: 'POST',
           body,
-          token: input.accessToken?.(),
         },
       ),
 
@@ -2557,9 +2535,6 @@ export function createControlApiClient(input: {
       requestJson<StandingsData>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/standings`,
-        {
-          token: input.accessToken?.(),
-        },
       ),
 
     fetchMatchesView: (organizationAlias, tournamentAlias, filter = {}) => {
@@ -2571,7 +2546,6 @@ export function createControlApiClient(input: {
       return requestJson<components['schemas']['ControlMatchesViewResponse']>(
         input.fetch,
         `${tournamentPath(baseUrl, organizationAlias, tournamentAlias)}/internal-matches-view${query}`,
-        { token: input.accessToken?.() },
       ).then(({ matches }) => ({
         matches: matches.map(({ status, ...match }): MatchCardData => ({
           ...match,
@@ -2584,7 +2558,6 @@ export function createControlApiClient(input: {
       requestJson<TournamentCompletionResponse>(
         input.fetch,
         `${tournamentPath(baseUrl, organizationAlias, tournamentAlias)}/completion`,
-        { token: input.accessToken?.() },
       ),
 
     fetchTiebreakTrace: (organizationAlias, tournamentAlias, stageNumber, entrantId) =>
@@ -2593,7 +2566,6 @@ export function createControlApiClient(input: {
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/standings/entrants/${encodeURIComponent(
           entrantId,
         )}/trace`,
-        { token: input.accessToken?.() },
       ),
 
     fetchTableLayouts: (organizationAlias, tournamentAlias) =>
@@ -2602,7 +2574,6 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/tables`,
-        { token: input.accessToken?.() },
       ).then((response) => response.layouts),
 
     fetchTableProjection: (organizationAlias, tournamentAlias, layoutCode, scope) =>
@@ -2610,79 +2581,72 @@ export function createControlApiClient(input: {
         input.fetch,
         tablePath(baseUrl, organizationAlias, tournamentAlias, layoutCode, scope) +
           groupQuery(scope.groupId),
-        { token: input.accessToken?.() },
       ),
 
     downloadTableProjectionCsv: (organizationAlias, tournamentAlias, layoutCode, scope) =>
       requestText(
         input.fetch,
         `${tablePath(baseUrl, organizationAlias, tournamentAlias, layoutCode, scope)}/csv${groupQuery(scope.groupId)}`,
-        input.accessToken?.(),
       ),
 
     fetchSeeding: (organizationAlias, tournamentAlias, stageNumber) =>
       requestJson<SeedingResponse>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/seeding`,
-        {
-          token: input.accessToken?.(),
-        },
       ),
 
     publishSeeding: (organizationAlias, tournamentAlias, stageNumber, body) =>
       requestJson<SeedingClassificationResponse>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/seeding`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     listStages: (organizationAlias, tournamentAlias) =>
       requestJson<readonly StageResponse[]>(
         input.fetch,
         `${tournamentPath(baseUrl, organizationAlias, tournamentAlias)}/stages`,
-        { token: input.accessToken?.() },
       ),
 
     updateStage: (organizationAlias, tournamentAlias, stageNumber, body) =>
       requestJson<StageResponse>(
         input.fetch,
         stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber),
-        { method: 'PATCH', body, token: input.accessToken?.() },
+        { method: 'PATCH', body },
       ),
 
     previewDeleteStage: (organizationAlias, tournamentAlias, stageNumber) =>
       requestJson<StageDeletionResponse>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}?dryRun=true`,
-        { method: 'DELETE', body: {}, token: input.accessToken?.() },
+        { method: 'DELETE', body: {} },
       ),
 
     deleteStage: (organizationAlias, tournamentAlias, stageNumber, confirmationName) =>
       requestJson<StageDeletionResponse>(
         input.fetch,
         stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber),
-        { method: 'DELETE', body: { confirmationName }, token: input.accessToken?.() },
+        { method: 'DELETE', body: { confirmationName } },
       ),
 
     fetchStageConfiguration: (organizationAlias, tournamentAlias, stageNumber) =>
       requestJson<StageConfigurationResponse>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/configuration`,
-        { token: input.accessToken?.() },
       ),
 
     previewStageConfiguration: (organizationAlias, tournamentAlias, stageNumber, body) =>
       requestJson<MutationPreviewResponse>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/configuration/preview`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     updateStageConfiguration: (organizationAlias, tournamentAlias, stageNumber, body) =>
       requestJson<StageConfigurationResponse>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/configuration`,
-        { method: 'PUT', body, token: input.accessToken?.() },
+        { method: 'PUT', body },
       ),
 
     fetchTournamentSettings: (organizationAlias, tournamentAlias) =>
@@ -2691,7 +2655,6 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/settings`,
-        { token: input.accessToken?.() },
       ),
 
     previewTournamentSettings: (organizationAlias, tournamentAlias, body) =>
@@ -2700,7 +2663,7 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/settings/preview`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     updateTournamentSettings: (organizationAlias, tournamentAlias, body) =>
@@ -2709,7 +2672,7 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/settings`,
-        { method: 'PUT', body, token: input.accessToken?.() },
+        { method: 'PUT', body },
       ),
 
     fetchRulesetOverrides: (organizationAlias, tournamentAlias) =>
@@ -2718,7 +2681,6 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/ruleset-overrides`,
-        { token: input.accessToken?.() },
       ),
 
     previewRulesetOverrides: (organizationAlias, tournamentAlias, body) =>
@@ -2727,7 +2689,7 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/ruleset-overrides/preview`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     updateRulesetOverrides: (organizationAlias, tournamentAlias, body) =>
@@ -2736,182 +2698,176 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/ruleset-overrides`,
-        { method: 'PUT', body, token: input.accessToken?.() },
+        { method: 'PUT', body },
       ),
 
     generateNextRound: (organizationAlias, tournamentAlias, stageNumber, body) =>
       requestJson<StageFixturesResponse>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/rounds/next`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     listZones: (organizationAlias, tournamentAlias, stageNumber) =>
       requestJson<readonly ZoneResponse[]>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/zones`,
-        { token: input.accessToken?.() },
       ),
 
     createZone: (organizationAlias, tournamentAlias, stageNumber, body) =>
       requestJson<ZoneResponse>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/zones`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     listGroups: (organizationAlias, tournamentAlias, stageNumber, zoneNumber) =>
       requestJson<readonly GroupResponse[]>(
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups`,
-        { token: input.accessToken?.() },
       ),
 
     createGroup: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, body) =>
       requestJson<GroupResponse>(
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     renameZone: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, body) =>
       requestJson<ZoneResponse>(
         input.fetch,
         zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber),
-        { method: 'PATCH', body, token: input.accessToken?.() },
+        { method: 'PATCH', body },
       ),
 
     configureZone: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, body) =>
       requestJson<ZoneResponse>(
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/configuration`,
-        { method: 'PUT', body, token: input.accessToken?.() },
+        { method: 'PUT', body },
       ),
 
     deleteZone: (organizationAlias, tournamentAlias, stageNumber, zoneNumber) =>
       requestJson<ZoneResponse>(
         input.fetch,
         zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber),
-        { method: 'DELETE', token: input.accessToken?.() },
+        { method: 'DELETE' },
       ),
 
     restoreZone: (organizationAlias, tournamentAlias, stageNumber, zoneNumber) =>
       requestJson<ZoneResponse>(
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/restore`,
-        { method: 'POST', token: input.accessToken?.() },
+        { method: 'POST' },
       ),
 
     renameGroup: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, groupNumber, body) =>
       requestJson<GroupResponse>(
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups/${groupNumber}`,
-        { method: 'PATCH', body, token: input.accessToken?.() },
+        { method: 'PATCH', body },
       ),
 
     deleteGroup: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, groupNumber) =>
       requestJson<GroupResponse>(
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups/${groupNumber}`,
-        { method: 'DELETE', token: input.accessToken?.() },
+        { method: 'DELETE' },
       ),
 
     restoreGroup: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, groupNumber) =>
       requestJson<GroupResponse>(
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups/${groupNumber}/restore`,
-        { method: 'POST', token: input.accessToken?.() },
+        { method: 'POST' },
       ),
 
     previewZoneDraw: (organizationAlias, tournamentAlias, stageNumber, body) =>
       requestJson<DrawPreviewResponse>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/zones/draw/preview`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     confirmZoneDraw: (organizationAlias, tournamentAlias, stageNumber, body) =>
       requestJson<ConfirmZoneDrawResponse>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/zones/draw`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     assignZonesManually: (organizationAlias, tournamentAlias, stageNumber, body) =>
       requestJson<ManualZoneAssignmentResponse>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/zones/assign`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     previewGroupDraw: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, body) =>
       requestJson<DrawPreviewResponse>(
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups/draw/preview`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     confirmGroupDraw: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, body) =>
       requestJson<ConfirmGroupDrawResponse>(
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups/draw`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     assignGroupsManually: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, body) =>
       requestJson<ManualGroupAssignmentResponse>(
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups/assign`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     savePromotionPlan: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, body) =>
       requestJson<PromotionPlanResponse>(
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/promotion-plan`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     fetchPromotionPreview: (organizationAlias, tournamentAlias, stageNumber, zoneNumber) =>
       requestJson<PromotionPreviewResponse>(
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/promotion-preview`,
-        { token: input.accessToken?.() },
       ),
 
     previewQualification: (organizationAlias, tournamentAlias, stageNumber) =>
       requestJson<QualificationPreviewResponse>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/qualification/preview`,
-        { method: 'POST', token: input.accessToken?.() },
+        { method: 'POST' },
       ),
 
     confirmQualification: (organizationAlias, tournamentAlias, stageNumber, body) =>
       requestJson<ConfirmQualificationResponse>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/qualification/confirm`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     fetchPromotionPlansTargetingStage: (organizationAlias, tournamentAlias, stageNumber) =>
       requestJson<readonly TargetingPromotionPreviewResponse[]>(
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/promotion-plans`,
-        { token: input.accessToken?.() },
       ),
 
     fetchZoneEntrants: (organizationAlias, tournamentAlias, stageNumber, zoneNumber) =>
       requestJson<readonly string[]>(
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/entrants`,
-        { token: input.accessToken?.() },
       ),
 
     listOrganizationRoles: (organizationAlias) =>
       requestJson<readonly OrganizationRoleResponse[]>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/roles`,
-        { token: input.accessToken?.() },
       ),
 
     fetchAuditTrail: (organizationAlias, options) => {
@@ -2923,7 +2879,6 @@ export function createControlApiClient(input: {
       return requestJson<AuditTrailResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/audit-trail${query}`,
-        { token: input.accessToken?.() },
       );
     },
 
@@ -2931,14 +2886,13 @@ export function createControlApiClient(input: {
       requestJson<InvitationResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/invitations`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     listPendingInvitations: (organizationAlias) =>
       requestJson<readonly PendingOrganizationInvitationResponse[]>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/invitations`,
-        { token: input.accessToken?.() },
       ),
 
     rescindInvitation: (organizationAlias, invitationId) =>
@@ -2947,7 +2901,7 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/invitations/${encodeURIComponent(
           invitationId,
         )}`,
-        { method: 'DELETE', token: input.accessToken?.() },
+        { method: 'DELETE' },
       ),
 
     changeOrganizationRole: (organizationAlias, assignmentId, body) =>
@@ -2956,7 +2910,7 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/roles/${encodeURIComponent(
           assignmentId,
         )}`,
-        { method: 'PATCH', body, token: input.accessToken?.() },
+        { method: 'PATCH', body },
       ),
 
     deleteOrganizationRole: async (organizationAlias, assignmentId) => {
@@ -2965,7 +2919,7 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/roles/${encodeURIComponent(
           assignmentId,
         )}`,
-        { method: 'DELETE', token: input.accessToken?.() },
+        { method: 'DELETE' },
       );
     },
 
@@ -2973,35 +2927,33 @@ export function createControlApiClient(input: {
       requestJson<GrantableRolesResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/roles/grantable`,
-        { token: input.accessToken?.() },
       ),
 
     listInstallationSuperAdmins: () =>
       requestJson<readonly InstallationSuperAdminResponse[]>(
         input.fetch,
         `${baseUrl}/installation/super-admins`,
-        { token: input.accessToken?.() },
       ),
 
     createInstallationSuperAdmin: (body) =>
       requestJson<InstallationSuperAdminResponse>(
         input.fetch,
         `${baseUrl}/installation/super-admins`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     changeInstallationSuperAdminStatus: (assignmentId, body) =>
       requestJson<InstallationSuperAdminResponse>(
         input.fetch,
         `${baseUrl}/installation/super-admins/${encodeURIComponent(assignmentId)}`,
-        { method: 'PATCH', body, token: input.accessToken?.() },
+        { method: 'PATCH', body },
       ),
 
     deleteInstallationSuperAdmin: async (assignmentId) => {
       await requestJson<InstallationSuperAdminResponse>(
         input.fetch,
         `${baseUrl}/installation/super-admins/${encodeURIComponent(assignmentId)}`,
-        { method: 'DELETE', token: input.accessToken?.() },
+        { method: 'DELETE' },
       );
     },
 
@@ -3009,21 +2961,20 @@ export function createControlApiClient(input: {
       requestJson<CsvImportPreviewResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/imports`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     fetchCsvImport: (organizationAlias, tournamentAlias, importId) =>
       requestJson<CsvImportPreviewResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/imports/${encodeURIComponent(importId)}`,
-        { token: input.accessToken?.() },
       ),
 
     commitCsvImport: (organizationAlias, tournamentAlias, importId, sourceHash) =>
       requestJson<CsvImportPreviewResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/imports/${encodeURIComponent(importId)}/commit`,
-        { method: 'POST', body: { sourceHash }, token: input.accessToken?.() },
+        { method: 'POST', body: { sourceHash } },
       ),
 
     downloadCsvExport: (organizationAlias, tournamentAlias, kind, excludedPersonalColumns = []) => {
@@ -3034,7 +2985,6 @@ export function createControlApiClient(input: {
       return requestText(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/exports/${kind}${query}`,
-        input.accessToken?.(),
       );
     },
 
@@ -3042,77 +2992,71 @@ export function createControlApiClient(input: {
       requestJson<TournamentConfigurationExportResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/export`,
-        { token: input.accessToken?.() },
       ),
 
     listDisplayTokens: (organizationAlias, tournamentAlias) =>
       requestJson<readonly DisplayTokenResponse[]>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/display-tokens`,
-        { token: input.accessToken?.() },
       ),
 
     issueDisplayToken: (organizationAlias, tournamentAlias, body) =>
       requestJson<DisplayTokenIssuedResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/display-tokens`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     revokeDisplayToken: (organizationAlias, tournamentAlias, displayTokenId) =>
       requestJson<DisplayTokenResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/display-tokens/${encodeURIComponent(displayTokenId)}`,
-        { method: 'DELETE', token: input.accessToken?.() },
+        { method: 'DELETE' },
       ),
 
     listPendingReports: (organizationAlias, tournamentAlias) =>
       requestJson<readonly ParticipantReportResponse[]>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/reports`,
-        { token: input.accessToken?.() },
       ),
 
     reviewReport: (organizationAlias, tournamentAlias, reportId, body) =>
       requestJson<ParticipantReportResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/reports/${encodeURIComponent(reportId)}/review`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     archiveTournament: (organizationAlias, tournamentAlias) =>
       requestJson<{ readonly status: string }>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/archive`,
-        { method: 'POST', token: input.accessToken?.() },
+        { method: 'POST' },
       ),
 
     publishTournament: (organizationAlias, tournamentAlias) =>
       requestJson<TournamentResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/publish`,
-        { method: 'POST', token: input.accessToken?.() },
+        { method: 'POST' },
       ),
 
     fetchMatchConsole: (organizationAlias, tournamentAlias, matchId) =>
       requestJson<MatchConsoleResponse>(
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/console`,
-        { token: input.accessToken?.() },
       ),
 
     fetchMatchRosters: (organizationAlias, tournamentAlias, matchId) =>
       requestJson<readonly ConsoleRoster[]>(
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/rosters`,
-        { token: input.accessToken?.() },
       ),
 
     fetchRosterCandidates: (organizationAlias, tournamentAlias, matchId, entrantId) =>
       requestJson<readonly RosterCandidate[]>(
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/rosters/${encodeURIComponent(entrantId)}/candidates`,
-        { token: input.accessToken?.() },
       ),
 
     setMatchRoster: (
@@ -3126,21 +3070,21 @@ export function createControlApiClient(input: {
       requestJson<MatchConsoleResponse>(
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/rosters/${encodeURIComponent(entrantId)}`,
-        { method: 'PUT', body, token: input.accessToken?.(), idempotencyKey },
+        { method: 'PUT', body, idempotencyKey },
       ),
 
     adjustMatchClock: (organizationAlias, tournamentAlias, matchId, body, idempotencyKey) =>
       requestJson<MatchConsoleResponse>(
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/clock`,
-        { method: 'POST', body, token: input.accessToken?.(), idempotencyKey },
+        { method: 'POST', body, idempotencyKey },
       ),
 
     resolveMatchTimer: (organizationAlias, tournamentAlias, matchId, timerId, idempotencyKey) =>
       requestJson<MatchConsoleResponse>(
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/timers/${encodeURIComponent(timerId)}/resolve`,
-        { method: 'POST', token: input.accessToken?.(), idempotencyKey },
+        { method: 'POST', idempotencyKey },
       ),
 
     sendMatchCommand: (
@@ -3154,66 +3098,63 @@ export function createControlApiClient(input: {
       requestJson<MatchStateResponse>(
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/commands/${command}`,
-        { method: 'POST', body: { segmentId }, token: input.accessToken?.(), idempotencyKey },
+        { method: 'POST', body: { segmentId }, idempotencyKey },
       ),
 
     recordMatchEvent: (organizationAlias, tournamentAlias, matchId, body, idempotencyKey) =>
       requestJson<RecordedMatchEventResponse>(
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/events`,
-        { method: 'POST', body, token: input.accessToken?.(), idempotencyKey },
+        { method: 'POST', body, idempotencyKey },
       ),
 
     finalizeMatch: (organizationAlias, tournamentAlias, matchId, body, idempotencyKey) =>
       requestJson<MatchStateResponse>(
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/commands/finalize`,
-        { method: 'POST', body, token: input.accessToken?.(), idempotencyKey },
+        { method: 'POST', body, idempotencyKey },
       ),
 
     bulkLoadMatch: (organizationAlias, tournamentAlias, matchId, body) =>
       requestJson<BulkLoadMatchDataResponse>(
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/bulk-load`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     controlStream: (organizationAlias) => ({
       url: `${origin}/events/control/${encodeURIComponent(organizationAlias)}`,
-      accessToken: input.accessToken,
     }),
 
     matchConsoleStream: (organizationAlias) => ({
       url: `${origin}/events/control/${encodeURIComponent(organizationAlias)}`,
-      accessToken: input.accessToken,
     }),
 
     getPerson: (organizationAlias, personId) =>
       requestJson<PersonResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}`,
-        { token: input.accessToken?.() },
       ),
 
     setPersonNationality: (organizationAlias, personId, nationality) =>
       requestJson(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/nationality`,
-        { method: 'PATCH', body: { nationality }, token: input.accessToken?.() },
+        { method: 'PATCH', body: { nationality } },
       ),
 
     setPersonPublicVisibility: (organizationAlias, personId, hiddenFromPublic) =>
       requestJson(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/public-visibility`,
-        { method: 'PATCH', body: { hiddenFromPublic }, token: input.accessToken?.() },
+        { method: 'PATCH', body: { hiddenFromPublic } },
       ),
 
     uploadPersonPhoto: (organizationAlias, personId, body) =>
       requestJson(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/photo`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     getOrganization: (organizationAlias) =>
@@ -3227,49 +3168,47 @@ export function createControlApiClient(input: {
       requestJson<OrganizationResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/settings`,
-        { method: 'PATCH', body, token: input.accessToken?.() },
+        { method: 'PATCH', body },
       ),
 
     uploadOrganizationEmblem: (organizationAlias, body) =>
       requestJson(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/emblem`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     uploadTournamentEmblem: (organizationAlias, tournamentAlias, body) =>
       requestJson(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     deleteTournamentEmblem: (organizationAlias, tournamentAlias) =>
       requestJson(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`,
-        { method: 'DELETE', token: input.accessToken?.() },
+        { method: 'DELETE' },
       ),
 
     getStorageUsage: (organizationAlias) =>
       requestJson<OrganizationStorageUsageResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/storage-usage`,
-        { token: input.accessToken?.() },
       ),
 
     listUnreferencedObjects: (organizationAlias) =>
       requestJson<readonly UnreferencedObjectResponse[]>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/storage-usage/objects`,
-        { token: input.accessToken?.() },
       ),
 
     deleteObject: (organizationAlias, objectId) =>
       requestJson<UnreferencedObjectResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/storage-usage/objects/${encodeURIComponent(objectId)}`,
-        { method: 'DELETE', token: input.accessToken?.() },
+        { method: 'DELETE' },
       ),
 
     rebuildStatistics: (organizationAlias, tournamentAlias, dryRun) =>
@@ -3282,7 +3221,6 @@ export function createControlApiClient(input: {
             ...(tournamentAlias === undefined ? {} : { tournamentAlias }),
             ...(dryRun === undefined ? {} : { dryRun }),
           },
-          token: input.accessToken?.(),
         },
       ),
 
@@ -3290,147 +3228,141 @@ export function createControlApiClient(input: {
       requestJson<readonly ClubResponse[]>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs`,
-        { token: input.accessToken?.() },
       ),
 
     createClub: (organizationAlias, body) =>
       requestJson<ClubResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     updateClub: (organizationAlias, clubId, body) =>
       requestJson<ClubResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}`,
-        { method: 'PATCH', body, token: input.accessToken?.() },
+        { method: 'PATCH', body },
       ),
 
     uploadClubEmblem: (organizationAlias, clubId, body) =>
       requestJson(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     listClubMembers: (organizationAlias, clubId) =>
       requestJson<readonly ClubMemberResponse[]>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/members`,
-        { token: input.accessToken?.() },
       ),
 
     createClubMember: (organizationAlias, clubId, body) =>
       requestJson<ClubMemberResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/members`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     updateClubMember: (organizationAlias, clubId, personId, body) =>
       requestJson<ClubMemberResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/members/${encodeURIComponent(personId)}`,
-        { method: 'PATCH', body, token: input.accessToken?.() },
+        { method: 'PATCH', body },
       ),
 
     listClubTeams: (organizationAlias, clubId) =>
       requestJson<readonly ClubTeamResponse[]>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/teams`,
-        { token: input.accessToken?.() },
       ),
 
     createClubTeam: (organizationAlias, clubId, body) =>
       requestJson<ClubTeamResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/teams`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     submitClubRegistration: (organizationAlias, clubId, tournamentAlias, body) =>
       requestJson<ClubRegistrationResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/tournaments/${encodeURIComponent(tournamentAlias)}/registrations`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     listVenues: (organizationAlias) =>
       requestJson<readonly VenueResponse[]>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/venues`,
-        { token: input.accessToken?.() },
       ),
 
     createVenue: (organizationAlias, body) =>
       requestJson<VenueResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/venues`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     updateVenue: (organizationAlias, venueId, body) =>
       requestJson<VenueResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/venues/${encodeURIComponent(venueId)}`,
-        { method: 'PATCH', body, token: input.accessToken?.() },
+        { method: 'PATCH', body },
       ),
 
     deleteVenue: (organizationAlias, venueId) =>
       requestJson<{ success: boolean }>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/venues/${encodeURIComponent(venueId)}`,
-        { method: 'DELETE', token: input.accessToken?.() },
+        { method: 'DELETE' },
       ),
 
     restoreVenue: (organizationAlias, venueId) =>
       requestJson<VenueResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/venues/${encodeURIComponent(venueId)}/restore`,
-        { method: 'POST', token: input.accessToken?.() },
+        { method: 'POST' },
       ),
 
     listOfficials: (organizationAlias) =>
       requestJson<readonly OfficialResponse[]>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/officials`,
-        { token: input.accessToken?.() },
       ),
 
     createOfficial: (organizationAlias, body) =>
       requestJson<OfficialResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/officials`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     updateOfficial: (organizationAlias, officialId, body) =>
       requestJson<OfficialResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/officials/${encodeURIComponent(officialId)}`,
-        { method: 'PATCH', body, token: input.accessToken?.() },
+        { method: 'PATCH', body },
       ),
 
     listSchedules: (organizationAlias) =>
       requestJson<readonly ScheduleDetailResponse[]>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/schedules`,
-        { token: input.accessToken?.() },
       ),
 
     createSchedule: (organizationAlias, body) =>
       requestJson<ScheduleDetailResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/schedules`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     updateSchedule: (organizationAlias, scheduleId, body) =>
       requestJson<ScheduleDetailResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/schedules/${encodeURIComponent(scheduleId)}`,
-        { method: 'PATCH', body, token: input.accessToken?.() },
+        { method: 'PATCH', body },
       ),
 
     deleteSchedule: (organizationAlias, scheduleId, dryRun, confirmationName) =>
@@ -3440,7 +3372,6 @@ export function createControlApiClient(input: {
         {
           method: 'DELETE',
           body: confirmationName === undefined ? undefined : { confirmationName },
-          token: input.accessToken?.(),
         },
       ),
 
@@ -3448,35 +3379,32 @@ export function createControlApiClient(input: {
       requestJson<StageFixturesResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${stageNumber}/fixtures`,
-        { token: input.accessToken?.() },
       ),
 
     getSchedule: (organizationAlias, tournamentAlias, stageId) =>
       requestJson<ScheduleResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageId)}/schedule`,
-        { token: input.accessToken?.() },
       ),
 
     previewSchedule: (organizationAlias, tournamentAlias, stageId, body) =>
       requestJson<SchedulePreviewResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageId)}/schedule/preview`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     publishSchedule: (organizationAlias, tournamentAlias, stageId, body) =>
       requestJson<ScheduleResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageId)}/schedule`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body },
       ),
 
     recentScheduleReasons: (organizationAlias) =>
       requestJson<RecentScheduleReasonsResponse>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/schedule/reasons/recent`,
-        { token: input.accessToken?.() },
       ),
   };
 }
@@ -3521,14 +3449,8 @@ export function tournamentEmblemUrl(
   return `${baseUrl}${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem${query}`;
 }
 
-async function requestText(
-  fetcher: typeof fetch,
-  url: string,
-  token: string | undefined,
-): Promise<string> {
-  const response = await fetcher(url, {
-    headers: token === undefined ? undefined : { authorization: `Bearer ${token}` },
-  });
+async function requestText(fetcher: typeof fetch, url: string): Promise<string> {
+  const response = await fetcher(url, { credentials: 'same-origin' });
   if (!response.ok) {
     throw await controlApiErrorFromResponse(response);
   }
@@ -3608,33 +3530,35 @@ async function requestJson<T>(
   options: {
     readonly method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     readonly body?: unknown;
-    readonly token?: string;
     readonly idempotencyKey?: string;
   } = {},
 ): Promise<T> {
-  const attempt = (token: string | undefined): Promise<Response> => {
-    const headers = new Headers();
+  const method = options.method ?? 'GET';
+  // Read per attempt: a renewal between two attempts replaces the CSRF cookie.
+  const attempt = (): Promise<Response> => {
+    const headers = new Headers(csrfHeaders(method));
     if (options.body !== undefined) headers.set('content-type', 'application/json');
-    if (token !== undefined) headers.set('authorization', `Bearer ${token}`);
     if (options.idempotencyKey !== undefined)
       headers.set('idempotency-key', options.idempotencyKey);
 
+    // Same-origin with credentials: the browser attaches the HttpOnly session
+    // cookie. No Authorization header — Control never holds the token.
     return fetcher(url, {
-      method: options.method ?? 'GET',
+      method,
+      credentials: 'same-origin',
       headers,
       ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
     });
   };
 
-  let response = await attempt(options.token);
+  let response = await attempt();
 
-  // Only a call that carried a token in the first place is a session that
-  // silent renewal could actually save — a public, unauthenticated request's
-  // own 401 (e.g. a bad native login) is never this.
-  if (response.status === 401 && options.token !== undefined) {
+  // Only a call made while a session is believed active is one silent
+  // renewal could save — a public, unauthenticated request's own 401 (e.g. a
+  // bad native login) is never this.
+  if (response.status === 401 && controlSession.method() !== undefined) {
     const outcome = await renewSessionOnce();
-    if (outcome !== undefined && 'accessToken' in outcome)
-      response = await attempt(outcome.accessToken);
+    if (outcome !== undefined && 'session' in outcome) response = await attempt();
   }
 
   if (!response.ok) {

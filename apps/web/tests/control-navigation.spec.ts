@@ -1,18 +1,10 @@
 import { expect, test, type Page } from '../../../e2e/csp-guard.js';
+import { signInWithSessionCookie } from '../../../e2e/support/control-login.js';
 
 async function mockControlApis(page: Page, includeTournament = false): Promise<void> {
+  // Signed in before the app loads, as a browser holding a valid session cookie is.
+  await signInWithSessionCookie(page);
   await page.addInitScript((includeTournament) => {
-    // Write valid session into sessionStorage before app loads
-    const payload = btoa(JSON.stringify({ scp: 'copalibre.control' }));
-    const fakeToken = `header.${payload}.signature`;
-    window.sessionStorage.setItem(
-      'copalibre:session:v1',
-      JSON.stringify({
-        token: fakeToken,
-        expiresAtMs: Date.now() + 3600 * 1000,
-      }),
-    );
-
     window.fetch = async (input) => {
       const url = String(input);
       if (url.includes('/api/organizations?mine=true')) {

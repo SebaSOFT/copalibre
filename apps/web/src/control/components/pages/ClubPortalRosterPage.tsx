@@ -6,7 +6,6 @@ import {
   type ClubTeamResponse,
   type ControlApiClient,
 } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { useToast } from '../ToastProvider.js';
 import { ClubPortalRosterTemplate } from '../screens/ClubPortalRosterTemplate.js';
 import { Alert } from '../ui/atoms/alert.js';
@@ -37,7 +36,6 @@ export function ClubPortalRosterPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );

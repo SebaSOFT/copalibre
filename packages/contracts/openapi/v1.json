@@ -8290,13 +8290,56 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
+                  "$ref": "#/components/schemas/SessionResponse"
                 }
               }
             }
           }
         },
         "summary": "Authenticate with email and password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/session": {
+      "post": {
+        "description": "The provider access token is sent once as `Authorization: Bearer`. It is verified like any Bearer token; personal access tokens and native tokens are refused.",
+        "operationId": "NativeAuthController_handOverSession",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Hand an external identity provider token over to an HttpOnly session cookie",
+        "tags": [
+          "auth"
+        ]
+      },
+      "get": {
+        "operationId": "NativeAuthController_session",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The current browser session's metadata, without its token",
         "tags": [
           "auth"
         ]
@@ -8344,7 +8387,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
+                  "$ref": "#/components/schemas/SessionResponse"
                 }
               }
             }
@@ -8366,7 +8409,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
+                  "$ref": "#/components/schemas/SessionResponse"
                 }
               }
             }
@@ -8394,7 +8437,7 @@
             }
           }
         },
-        "summary": "End a native session, revoking its refresh cookie",
+        "summary": "End a browser session, revoking its refresh cookie and clearing its cookies",
         "tags": [
           "auth"
         ]
@@ -12606,8 +12649,8 @@
   },
   "info": {
     "title": "CopaLibre API",
-    "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
-    "version": "9.0.0",
+    "description": "Self-hosted tournament management API.\n\nAuthentication is a JWT, validated against the operator-selected\nidentity provider’s JWKS. API clients and personal access tokens send\nit as `Authorization: Bearer`. A browser session never holds it in\nscript: the API keeps it in an HttpOnly, SameSite=Strict session\ncookie, and unsafe cookie-authenticated requests must echo the\n`copalibre_csrf` cookie in the `X-CopaLibre-CSRF` header. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same\ntransport and differ only in authorization policy.",
+    "version": "10.0.0",
     "contact": {}
   },
   "tags": [],
@@ -21306,21 +21349,39 @@
           "password"
         ]
       },
-      "LoginResponse": {
+      "SessionResponse": {
         "type": "object",
         "properties": {
-          "accessToken": {
+          "subject": {
             "type": "string",
-            "description": "JWT access token"
+            "description": "The acting identity (`sub`)"
           },
-          "expiresIn": {
-            "type": "number",
-            "description": "Token expiration in seconds"
+          "scopes": {
+            "description": "Coarse scopes the session holds",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "When the access token expires",
+            "format": "date-time"
+          },
+          "method": {
+            "type": "string",
+            "description": "How the session was established",
+            "enum": [
+              "native",
+              "oidc"
+            ]
           }
         },
         "required": [
-          "accessToken",
-          "expiresIn"
+          "subject",
+          "scopes",
+          "expiresAt",
+          "method"
         ]
       },
       "JwksKey": {

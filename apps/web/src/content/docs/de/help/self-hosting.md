@@ -74,6 +74,8 @@ CopaLibre lädt keine Schriften, Skripte oder Stile von einem anderen Ursprung. 
 
 Jede Seite erzwingt eine Content Security Policy: Nur die Skripte des eigenen Builds laufen, und der Browser verbindet sich nur mit dem Ursprung der Anwendung. Richten Sie einen externen OIDC-Anbieter über `copalibre init` ein (es fragt danach, oder verwenden Sie `--oidc-issuer` und `--oidc-client-id`); `init` setzt `COPALIBRE_CSP_IDENTITY_ORIGIN`, damit die Anmeldung erlaubt ist. Leiten Sie den Header `Content-Security-Policy` unverändert durch den Proxy; `copalibre doctor --check-proxy` prüft das.
 
+Die Anmeldung bei Control setzt drei unbedingt erforderliche Cookies, keines davon auf öffentlichen Seiten: das Sitzungs-Cookie (`__Host-copalibre_session` über HTTPS, `copalibre_session` über reines HTTP), das den Zugriffstoken so hält, dass kein Skript ihn lesen kann; `copalibre_csrf`; und bei Anmeldung mit E-Mail und Passwort `copalibre_refresh_token`. Sie erfordern keine Einwilligungsabfrage. `copalibre init` fragt, ob HTTPS verwendet wird, und schreibt `COPALIBRE_SESSION_COOKIE_SECURE`; belassen Sie `/api` und `/events` auf dem Hostnamen von Control und leiten Sie `Set-Cookie` unverändert durch den Proxy.
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```

@@ -2113,6 +2113,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The current browser session's metadata, without its token */
+        get: operations["NativeAuthController_session"];
+        put?: never;
+        /**
+         * Hand an external identity provider token over to an HttpOnly session cookie
+         * @description The provider access token is sent once as `Authorization: Bearer`. It is verified like any Bearer token; personal access tokens and native tokens are refused.
+         */
+        post: operations["NativeAuthController_handOverSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/jwks.json": {
         parameters: {
             query?: never;
@@ -2173,7 +2194,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** End a native session, revoking its refresh cookie */
+        /** End a browser session, revoking its refresh cookie and clearing its cookies */
         post: operations["NativeAuthController_logout"];
         delete?: never;
         options?: never;
@@ -6306,11 +6327,21 @@ export interface components {
             email: string;
             password: string;
         };
-        LoginResponse: {
-            /** @description JWT access token */
-            accessToken: string;
-            /** @description Token expiration in seconds */
-            expiresIn: number;
+        SessionResponse: {
+            /** @description The acting identity (`sub`) */
+            subject: string;
+            /** @description Coarse scopes the session holds */
+            scopes: string[];
+            /**
+             * Format: date-time
+             * @description When the access token expires
+             */
+            expiresAt: string;
+            /**
+             * @description How the session was established
+             * @enum {string}
+             */
+            method: "native" | "oidc";
         };
         JwksKey: {
             kty: string;
@@ -11792,7 +11823,45 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LoginResponse"];
+                    "application/json": components["schemas"]["SessionResponse"];
+                };
+            };
+        };
+    };
+    NativeAuthController_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionResponse"];
+                };
+            };
+        };
+    };
+    NativeAuthController_handOverSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionResponse"];
                 };
             };
         };
@@ -11834,7 +11903,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LoginResponse"];
+                    "application/json": components["schemas"]["SessionResponse"];
                 };
             };
         };
@@ -11853,7 +11922,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LoginResponse"];
+                    "application/json": components["schemas"]["SessionResponse"];
                 };
             };
         };

@@ -3,9 +3,20 @@ import {
   ExecutionContext,
   Inject,
   Injectable,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
-import { TokenVerifier, TokenVerificationError, type RequestWithSubject } from '@copalibre/auth';
+import {
+  extractAccessToken,
+  sessionCookieConfigFromEnv,
+  TokenVerifier,
+  TokenVerificationError,
+  type RequestWithSubject,
+  type SessionCookieConfig,
+} from '@copalibre/auth';
+
+/** DI token for the session cookie settings; absent, they are read from the environment. */
+export const STREAM_SESSION_COOKIE_CONFIG = Symbol('STREAM_SESSION_COOKIE_CONFIG');
 
 /**
  * Authenticating a stream.
@@ -14,24 +25,31 @@ import { TokenVerifier, TokenVerificationError, type RequestWithSubject } from '
  * implementations of "is this token valid" drift and the one that falls behind
  * is the one still accepting something it should not.
  *
- * **The token is read from the header and from nowhere else.** A query
- * parameter would be the easy path — native `EventSource` cannot set headers,
- * which is exactly why this phase does not use it — and the architecture doc is
- * explicit about why not: URLs leak into proxy logs, browser history, metrics,
+ * **The token is read from the `Authorization` header or, for a Control
+ * browser session, from the `HttpOnly` session cookie — never from the URL.**
+ * The header wins when both are present, and a personal access token in the
+ * cookie is ignored. A query parameter would be the easy path, and the
+ * architecture doc is explicit about why not: URLs leak into proxy logs, browser history, metrics,
  * traces, screenshots and error reports. A token in one of those is a token
  * that outlives the session that used it.
  */
 @Injectable()
 export class StreamAuthGuard implements CanActivate {
-  constructor(@Inject(TokenVerifier) private readonly verifier: TokenVerifier) {}
+  constructor(
+    @Inject(TokenVerifier) private readonly verifier: TokenVerifier,
+    @Optional()
+    @Inject(STREAM_SESSION_COOKIE_CONFIG)
+    private readonly cookieConfig: SessionCookieConfig = sessionCookieConfigFromEnv(),
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithSubject>();
-    const header = request.headers.authorization;
-    const token = typeof header === 'string' ? bearer(header) : undefined;
+    const token = extractAccessToken(request, this.cookieConfig)?.token;
 
     if (token === undefined) {
-      throw new UnauthorizedException('This stream requires an Authorization: Bearer header');
+      throw new UnauthorizedException(
+        'This stream requires a session cookie or an Authorization: Bearer header',
+      );
     }
 
     // A token in the query string is refused rather than accepted-and-warned:
@@ -52,11 +70,6 @@ export class StreamAuthGuard implements CanActivate {
       );
     }
   }
-}
-
-function bearer(header: string): string | undefined {
-  const [scheme, value] = header.split(' ');
-  return scheme?.toLowerCase() === 'bearer' && value ? value : undefined;
 }
 
 function carriesTokenInQuery(query: Record<string, unknown> | undefined): boolean {

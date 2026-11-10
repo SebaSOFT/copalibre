@@ -8,6 +8,10 @@ import { OBJECT_STORAGE } from '../object-storage.token.js';
 import { authConfigFromEnv } from '../auth/auth-config.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { getLocalKeys } from '../auth/local-signing-keys.js';
+import {
+  SESSION_COOKIE_CONFIG,
+  sessionCookieConfigProvider,
+} from '../auth/session-cookie-config.js';
 import { HealthController } from '../health.controller.js';
 import { InstallationBootstrapController } from '../controllers/installation-bootstrap.controller.js';
 
@@ -27,6 +31,10 @@ const providers: Provider[] = [
   {
     provide: TokenVerifier,
     useFactory: createTokenVerifierFromEnv,
+  },
+  {
+    provide: SESSION_COOKIE_CONFIG,
+    useFactory: sessionCookieConfigProvider,
   },
   {
     provide: OBJECT_STORAGE,
@@ -66,6 +74,6 @@ export async function createTokenVerifierFromEnv(): Promise<TokenVerifier> {
 @Module({
   controllers: [HealthController, InstallationBootstrapController],
   providers,
-  exports: [DATABASE, TokenVerifier, OBJECT_STORAGE],
+  exports: [DATABASE, TokenVerifier, OBJECT_STORAGE, SESSION_COOKIE_CONFIG],
 })
 export class CoreModule {}

@@ -88,12 +88,38 @@ test('the web role points its Caddy at the Service this chart creates', () => {
   const env = envOf(named(helmTemplate(), 'Deployment', 'release-name-web'));
   assert.equal(env.COPALIBRE_WEB_SSR_UPSTREAM, 'release-name-web-ssr:3005');
   assert.equal(env.COPALIBRE_WEB_API_UPSTREAM, 'release-name-api:3001');
+  // A Control session's HttpOnly cookie reaches only the hostname that set it,
+  // so the web role serves the event streams too.
+  assert.equal(env.COPALIBRE_WEB_EVENTS_UPSTREAM, 'release-name-events:3002');
+});
+
+test('session cookies are Secure unless the chart ingress runs without TLS', () => {
+  const secureOf = (sets) =>
+    named(helmTemplate(sets), 'ConfigMap', 'release-name-env').data.COPALIBRE_SESSION_COOKIE_SECURE;
+  assert.equal(secureOf(), 'true');
+  assert.equal(
+    secureOf([
+      ['ingress.enabled', 'true'],
+      ['ingress.tls.enabled', 'false'],
+    ]),
+    'false',
+  );
+  assert.equal(secureOf([['session.cookieSecure', 'false']]), 'false');
+  assert.equal(
+    secureOf([
+      ['ingress.enabled', 'true'],
+      ['ingress.tls.enabled', 'false'],
+      ['session.cookieSecure', 'true'],
+    ]),
+    'true',
+  );
 });
 
 test('an operator can override the upstream and the internal API URL', () => {
   const docs = helmTemplate([
     ['web.ssrUpstream', 'ssr.internal:8080'],
     ['web.apiUpstream', 'api.internal:8081'],
+    ['web.eventsUpstream', 'events.internal:8082'],
     ['roles.web-ssr.apiInternalUrl', 'http://api.internal:3001'],
   ]);
   assert.equal(
@@ -103,6 +129,10 @@ test('an operator can override the upstream and the internal API URL', () => {
   assert.equal(
     envOf(named(docs, 'Deployment', 'release-name-web')).COPALIBRE_WEB_API_UPSTREAM,
     'api.internal:8081',
+  );
+  assert.equal(
+    envOf(named(docs, 'Deployment', 'release-name-web')).COPALIBRE_WEB_EVENTS_UPSTREAM,
+    'events.internal:8082',
   );
   assert.equal(
     envOf(named(docs, 'Deployment', 'release-name-web-ssr')).COPALIBRE_API_INTERNAL_URL,
@@ -136,6 +166,11 @@ test('the Caddyfile addresses renderer and API through install-specific placehol
   );
   assert.equal(
     upstreams.filter((upstream) => upstream === '{$COPALIBRE_WEB_API_UPSTREAM:api:3001}').length,
+    1,
+  );
+  assert.equal(
+    upstreams.filter((upstream) => upstream === '{$COPALIBRE_WEB_EVENTS_UPSTREAM:events:3002}')
+      .length,
     1,
   );
 });

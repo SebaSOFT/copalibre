@@ -10,7 +10,7 @@ import {
   type StatisticsRebuildResponse,
   type UnreferencedObjectResponse,
 } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
+import { csrfHeaders } from '../../session/csrf.js';
 import { useToast } from '../ToastProvider.js';
 import { PreferencesTemplate } from '../screens/PreferencesTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
@@ -80,7 +80,6 @@ export function PreferencesPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );
@@ -109,11 +108,9 @@ export function PreferencesPage({
   const tokenRead = useResilientRead(
     'control-preferences-tokens',
     async () => {
-      const token = controlTokenStore.read();
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
       const [response, scopeResponse] = await Promise.all([
-        requestPat(PAT_PATH, { headers }),
-        requestPat(`${PAT_PATH}/scopes`, { headers }),
+        requestPat(PAT_PATH, { credentials: 'same-origin' }),
+        requestPat(`${PAT_PATH}/scopes`, { credentials: 'same-origin' }),
       ]);
       if (!response.ok || !scopeResponse.ok)
         throw new Error('Personal access tokens could not be loaded');
@@ -156,13 +153,10 @@ export function PreferencesPage({
   ): Promise<boolean> {
     if (!label.trim() || scopes.length === 0) return false;
 
-    const token = controlTokenStore.read();
     const res = await requestPat(PAT_PATH, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', ...csrfHeaders('POST') },
       body: JSON.stringify({ label, scopes, expiresInDays }),
     });
 
@@ -176,11 +170,11 @@ export function PreferencesPage({
   }
 
   async function revokePat(tokenId: string): Promise<PatRevocationPreview | undefined> {
-    const token = controlTokenStore.read();
-    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers: HeadersInit = csrfHeaders('DELETE');
     try {
       const previewResponse = await requestPat(`${PAT_PATH}/${tokenId}?dryRun=true`, {
         method: 'DELETE',
+        credentials: 'same-origin',
         headers,
       });
       if (!previewResponse.ok) throw new Error('Personal access token could not be previewed');
@@ -189,6 +183,7 @@ export function PreferencesPage({
 
       const response = await requestPat(`${PAT_PATH}/${tokenId}`, {
         method: 'DELETE',
+        credentials: 'same-origin',
         headers,
       });
       if (!response.ok) throw new Error('Personal access token could not be revoked');
@@ -218,11 +213,11 @@ export function PreferencesPage({
   }
 
   async function confirmPatRevoke(tokenId: string): Promise<void> {
-    const token = controlTokenStore.read();
     try {
       const response = await requestPat(`${PAT_PATH}/${tokenId}`, {
         method: 'DELETE',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'same-origin',
+        headers: csrfHeaders('DELETE'),
       });
       if (!response.ok) throw new Error('Personal access token could not be revoked');
       setTokens((current) => current.filter((currentToken) => currentToken.tokenId !== tokenId));
@@ -237,11 +232,11 @@ export function PreferencesPage({
   }
 
   async function restorePat(tokenId: string): Promise<void> {
-    const token = controlTokenStore.read();
     try {
       const response = await requestPat(`${PAT_PATH}/${tokenId}/restore`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'same-origin',
+        headers: csrfHeaders('POST'),
       });
       if (!response.ok) throw new Error('Personal access token could not be restored');
       const restored = (await response.json()) as PatResponse;
