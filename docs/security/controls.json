@@ -224,13 +224,28 @@
       "item": "password-hashing",
       "level": "pr",
       "owner": "maintainers",
-      "summary": "Native passwords are stored as Argon2 hashes and verified against them.",
+      "summary": "Native passwords are Argon2id hashes with pinned parameters and a per-hash salt; older hashes are upgraded at sign-in, and an unknown account costs the same verification.",
       "surfaces": ["apps/api"],
       "checks": [
         {
           "kind": "test",
+          "file": "apps/api/src/auth/password-hashing.test.ts",
+          "name": "writes Argon2id hashes with the pinned parameters and a fresh salt"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/auth/password-hashing.test.ts",
+          "name": "spends a real verification on an unknown account"
+        },
+        {
+          "kind": "test",
           "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
-          "name": "POST /auth/reset-password correctly updates the password hash in the database when provided a valid token"
+          "name": "POST /auth/login rehashes a password stored with older parameters"
+        },
+        {
+          "kind": "test",
+          "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+          "name": "POST /auth/login answers an unknown email exactly like a wrong password"
         },
         {
           "kind": "test",

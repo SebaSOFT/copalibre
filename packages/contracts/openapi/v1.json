@@ -21341,7 +21341,8 @@
             "format": "email"
           },
           "password": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 1024
           }
         },
         "required": [
@@ -21434,11 +21435,13 @@
         "properties": {
           "token": {
             "type": "string",
-            "description": "The invitation token from setupUrl"
+            "description": "The invitation token from setupUrl",
+            "maxLength": 512
           },
           "password": {
             "type": "string",
-            "description": "New password for the administrator (min 8 characters)"
+            "description": "New password for the administrator (min 8 characters)",
+            "maxLength": 1024
           },
           "name": {
             "type": "string",
@@ -21479,11 +21482,13 @@
         "properties": {
           "token": {
             "type": "string",
-            "description": "The reset token from the email link"
+            "description": "The reset token from the email link",
+            "maxLength": 512
           },
           "newPassword": {
             "type": "string",
-            "description": "New password (min 8 characters)"
+            "description": "New password (min 8 characters)",
+            "maxLength": 1024
           }
         },
         "required": [

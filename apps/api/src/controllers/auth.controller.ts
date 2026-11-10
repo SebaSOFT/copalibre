@@ -1,4 +1,4 @@
-import * as argon2 from 'argon2';
+import { hashPassword, passwordNeedsRehash, verifyPassword } from '../auth/password-hashing.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { decodeJwt, importPKCS8, SignJWT } from 'jose';
 import {
@@ -163,17 +163,22 @@ export class NativeAuthController {
       .where('email', '=', body.email.toLowerCase().trim())
       .executeTakeFirst();
 
-    if (!principal?.password_hash) {
+    // An unknown email still pays for one hash verification, so the response
+    // time does not reveal which accounts exist.
+    const valid = await verifyPassword(principal?.password_hash, body.password);
+    if (!principal?.password_hash || !valid) {
       throw new UnauthorizedException('Invalid email or password', {
         errorCode: 'auth-unauthorized',
       });
     }
 
-    const valid = await argon2.verify(principal.password_hash, body.password);
-    if (!valid) {
-      throw new UnauthorizedException('Invalid email or password', {
-        errorCode: 'auth-unauthorized',
-      });
+    if (passwordNeedsRehash(principal.password_hash)) {
+      // Made with older parameters: replace it now that the password is known.
+      await this.db
+        .updateTable('identity_principals')
+        .set({ password_hash: await hashPassword(body.password), updated_at: new Date() })
+        .where('principal_id', '=', principal.principal_id)
+        .execute();
     }
 
     const accessToken = await issueLocalJwt(this.db, principal.principal_id, principal.email);
@@ -329,7 +334,7 @@ export class NativeAuthController {
       });
     }
 
-    const passwordHash = await argon2.hash(body.password);
+    const passwordHash = await hashPassword(body.password);
     const email = invitation.recipient_email.toLowerCase().trim();
 
     const principal = await withTransaction(this.db, async (uow) => {
@@ -502,7 +507,7 @@ export class NativeAuthController {
       });
     }
 
-    const passwordHash = await argon2.hash(body.newPassword);
+    const passwordHash = await hashPassword(body.newPassword);
 
     try {
       await this.applyPasswordReset(body.token, passwordHash);

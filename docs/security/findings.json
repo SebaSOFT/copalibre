@@ -152,5 +152,39 @@
         "name": "refuses an action pinned by tag"
       }
     ]
+  },
+  {
+    "id": "login-timing-reveals-accounts",
+    "severity": "medium",
+    "control": "password-hashing",
+    "status": "fixed",
+    "summary": "Login answered an unknown email without a hash verification, so its response time revealed which accounts exist.",
+    "fingerprint": "apps/api/src/controllers/auth.controller.ts#login",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/auth/password-hashing.test.ts",
+        "name": "spends a real verification on an unknown account"
+      },
+      {
+        "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+        "name": "POST /auth/login answers an unknown email exactly like a wrong password"
+      }
+    ]
+  },
+  {
+    "id": "password-length-unbounded",
+    "severity": "low",
+    "control": "password-hashing",
+    "status": "fixed",
+    "summary": "Password fields had no maximum length, so one request could make the server hash an input as large as the body limit.",
+    "fingerprint": "apps/api/src/dto/auth.dto.ts#password",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "apps/api/src/controllers/auth.controller.integration.test.ts",
+        "name": "POST /auth/login refuses a password longer than the limit before hashing it"
+      }
+    ]
   }
 ]

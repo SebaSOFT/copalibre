@@ -206,6 +206,69 @@ describe('Auth Controllers', () => {
       expect(body.message).toContain('property isAdmin should not exist');
     });
 
+    it('POST /auth/login answers an unknown email exactly like a wrong password', async () => {
+      const unknown = await request({
+        method: 'POST',
+        url: '/api/auth/login',
+        ip: '198.51.100.61',
+        payload: { email: 'nobody-here@example.com', password },
+      });
+      const wrong = await request({
+        method: 'POST',
+        url: '/api/auth/login',
+        ip: '198.51.100.62',
+        payload: { email, password: 'wrong-password' },
+      });
+      expect(unknown.statusCode).toBe(401);
+      expect(JSON.parse(unknown.payload)).toEqual(JSON.parse(wrong.payload));
+    });
+
+    it('POST /auth/login refuses a password longer than the limit before hashing it', async () => {
+      const response = await request({
+        method: 'POST',
+        url: '/api/auth/login',
+        ip: '198.51.100.63',
+        payload: { email, password: 'x'.repeat(1025) },
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('POST /auth/login rehashes a password stored with older parameters', async () => {
+      const olderEmail = 'older-hash@example.com';
+      const olderId = newId();
+      await (scratch.db as Kysely<Database>)
+        .insertInto('identity_principals')
+        .values({
+          principal_id: olderId,
+          email: olderEmail,
+          password_hash: await argon2.hash(password, {
+            type: argon2.argon2id,
+            memoryCost: 19 * 1024,
+            timeCost: 2,
+            parallelism: 1,
+          }),
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .execute();
+
+      const response = await request({
+        method: 'POST',
+        url: '/api/auth/login',
+        ip: '198.51.100.64',
+        payload: { email: olderEmail, password },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const stored = await (scratch.db as Kysely<Database>)
+        .selectFrom('identity_principals')
+        .select('password_hash')
+        .where('principal_id', '=', olderId)
+        .executeTakeFirstOrThrow();
+      expect(stored.password_hash).toMatch(/^\$argon2id\$v=19\$m=65536,p=4,t=3\$/);
+      await expect(argon2.verify(stored.password_hash ?? '', password)).resolves.toBe(true);
+    });
+
     it('POST /auth/forgot-password returns 200', async () => {
       const response = await request({
         method: 'POST',
