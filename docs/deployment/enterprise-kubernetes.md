@@ -333,6 +333,12 @@ Set `env.DATABASE_URL` to the managed instance's connection string (any
 identically for RDS, Cloud SQL, Azure Database for PostgreSQL, or a
 self-hosted PostgreSQL — the chart has no provider-specific logic.
 
+That URL should name the runtime role, `copalibre_app`, and
+`migrationEnv.DATABASE_MIGRATION_URL` the schema owner, `copalibre_owner`,
+which only the migrate Job receives. Create both roles once with
+`deploy/postgres/roles.sql`; see
+[Database Roles](../self-hosting.md#database-roles).
+
 ### Managed Redis
 
 The architecture doc lists managed Redis as cache/lock infrastructure,

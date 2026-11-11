@@ -307,5 +307,28 @@
         "name": "keeps the manifest schema from naming a parent directory"
       }
     ]
+  },
+  {
+    "id": "runtime-database-superuser",
+    "severity": "high",
+    "control": "database-privileges-runtime",
+    "status": "fixed",
+    "summary": "Every Compose role connected to PostgreSQL as the bootstrap superuser, so a request-serving role could run DDL and COPY ... PROGRAM, which executes commands in the database container.",
+    "fingerprint": "docker-compose.yml#x-application-environment.DATABASE_URL",
+    "foundAt": "2026-11-10",
+    "regression": [
+      {
+        "file": "packages/persistence/src/runtime-privileges.integration.test.ts",
+        "name": "refuses the runtime role to %s"
+      },
+      {
+        "file": "packages/persistence/src/runtime-privileges.integration.test.ts",
+        "name": "moves every object in public to the owner"
+      },
+      {
+        "file": "apps/copalibre/src/compose-reconciler.test.ts",
+        "name": "finds the database-setup service in the shipped docker-compose.yml"
+      }
+    ]
   }
 ]

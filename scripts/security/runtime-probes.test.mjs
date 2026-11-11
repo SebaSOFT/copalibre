@@ -4,6 +4,7 @@ import { after, before, test } from 'node:test';
 import {
   createProbeClient,
   probeAuthentication,
+  probeDatabasePrivileges,
   probeExposedFiles,
   probeHttpsEdge,
   probeProductionDebug,
@@ -138,4 +139,40 @@ test('inline script in the header policy needs a hashing meta policy on the page
   assert.deepEqual(effectiveScriptPolicyProblems("script-src 'self' 'unsafe-eval'", hashed), [
     "the header allows 'unsafe-eval'",
   ]);
+});
+
+test('database privileges: passes only on a passing runtime-privileges line from doctor', async () => {
+  const doctorPrinting = (output) => () => output;
+  const sound = await probeDatabasePrivileges(client, {
+    doctorCommand: 'doctor',
+    runCommand: doctorPrinting(
+      'FAIL jwks-content: unreachable\nPASS database:runtime-privileges: DATABASE_URL connects with row access only\n',
+    ),
+  });
+  assert.equal(sound.outcome, 'pass', sound.outcome);
+
+  const superuser = await probeDatabasePrivileges(client, {
+    doctorCommand: 'doctor',
+    runCommand: doctorPrinting(
+      'FAIL database:runtime-privileges: DATABASE_URL has more privileges than the runtime needs: role "copalibre" is a superuser\n',
+    ),
+  });
+  assert.match(superuser.outcome, /^fail: FAIL database:runtime-privileges: .*superuser/);
+
+  const skipped = await probeDatabasePrivileges(client, {
+    doctorCommand: 'doctor',
+    runCommand: doctorPrinting(
+      'SKIP database:runtime-privileges: DATABASE_URL is not configured\n',
+    ),
+  });
+  assert.match(skipped.outcome, /^fail: /);
+
+  const silent = await probeDatabasePrivileges(client, {
+    doctorCommand: 'doctor',
+    runCommand: doctorPrinting('PASS postgresql: PostgreSQL accepts a query\n'),
+  });
+  assert.match(silent.outcome, /^fail: doctor printed no database:runtime-privileges line/);
+
+  const unconfigured = await probeDatabasePrivileges(client, {});
+  assert.match(unconfigured.outcome, /^fail: no --doctor-command/);
 });

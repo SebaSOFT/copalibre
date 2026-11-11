@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { connect } from 'node:net';
 import { join } from 'node:path';
@@ -10,7 +11,8 @@ import { request as httpsRequest } from 'node:https';
  * send forged tokens and path-traversal requests.
  *
  *   node scripts/security/runtime-probes.mjs --app-url https://app.test:8443 \
- *     [--http-url http://app.test:8080] [--insecure] [--inspector-host 127.0.0.1] --out <dir>
+ *     [--http-url http://app.test:8080] [--insecure] [--inspector-host 127.0.0.1] \
+ *     [--doctor-command 'docker compose run --rm doctor'] --out <dir>
  *
  * Writes or updates <dir>/runtime-evidence.json with one record per probe and
  * exits 1 if any probe failed. `--insecure` accepts a test certificate
@@ -298,6 +300,35 @@ export async function probeAuthentication(client, { appUrl, secure = true }) {
   });
 }
 
+export const RUNTIME_PRIVILEGES_CHECK = 'database:runtime-privileges';
+
+/** Runs a shell command and answers its standard output, whatever its exit code. */
+function runShell(command) {
+  const run = spawnSync(command, { shell: true, encoding: 'utf8', timeout: 120_000 });
+  if (run.error) throw run.error;
+  return run.stdout ?? '';
+}
+
+/**
+ * The runtime database credential reads and writes rows and nothing else. Asks
+ * the installation's own doctor, run with the credential the runtime roles use,
+ * and passes only when its runtime-privileges check passes. Doctor exits 1 for
+ * any failing check, so the exit code is not the answer; the check's line is.
+ */
+export async function probeDatabasePrivileges(_client, { doctorCommand, runCommand = runShell }) {
+  if (!doctorCommand) {
+    return result('database-privileges-runtime', ['no --doctor-command was given'], {});
+  }
+  const output = runCommand(doctorCommand);
+  const line = output
+    .split(/\r?\n/)
+    .find((entry) => new RegExp(`^[A-Z]+ ${RUNTIME_PRIVILEGES_CHECK}:`).test(entry));
+  const failures = [];
+  if (!line) failures.push(`doctor printed no ${RUNTIME_PRIVILEGES_CHECK} line`);
+  else if (!line.startsWith('PASS ')) failures.push(line);
+  return result('database-privileges-runtime', failures, { doctorCommand });
+}
+
 function parseArgs(argv) {
   const args = { insecure: false };
   for (let index = 0; index < argv.length; index += 1) {
@@ -311,6 +342,7 @@ function parseArgs(argv) {
     if (flag === '--app-url') args.appUrl = value;
     else if (flag === '--http-url') args.httpUrl = value;
     else if (flag === '--inspector-host') args.inspectorHost = value;
+    else if (flag === '--doctor-command') args.doctorCommand = value;
     else if (flag === '--out') args.out = value;
     else throw new Error(`unknown argument ${flag}`);
   }
@@ -328,6 +360,7 @@ export async function runProbes(options) {
     probeExposedFiles,
     probeProductionDebug,
     probeAuthentication,
+    probeDatabasePrivileges,
   ]) {
     try {
       records.push(await probe(client, { ...options, secure }));

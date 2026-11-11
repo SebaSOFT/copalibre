@@ -66,12 +66,7 @@ as one appears.
 
 ## Open
 
-- **Database superuser at runtime (high, owner decision pending).** In the Compose install every
-  role connects as `POSTGRES_USER`, the user the PostgreSQL image creates as superuser. A role that
-  only reads and writes rows can also run DDL and `COPY … PROGRAM`, which executes commands in the
-  database container. The fix separates a migration owner from a runtime role with row privileges
-  only, and needs an upgrade path for existing installations.
-
-- The runtime controls need the disposable production-profile deployment.
-- Candidate images are not yet scanned before publication.
-- Suspicious-activity alerting to a test receiver does not exist yet.
+Nothing is open. The runtime database credential, the last item here, now connects with row
+privileges only: see `database-privileges-runtime` and `docs/self-hosting.md#database-roles`.
+Candidate images are scanned before publication, the runtime probes run against the CI
+deployment, and refused-request bursts raise security alerts.
