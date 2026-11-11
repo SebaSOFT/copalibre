@@ -195,6 +195,9 @@ completa.
 
 Crea il primo account amministratore di un'organizzazione.
 
+L'alias non può essere un nome che la piattaforma usa già nei suoi indirizzi, come `login`, `platform`,
+`tv`, `api` o un codice di lingua come `es`; in quel caso il comando lo rifiuta e spiega perché.
+
 ## login
 
 `copalibre login [--api-url <url>] [--token <token>]`

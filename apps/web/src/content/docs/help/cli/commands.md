@@ -223,6 +223,9 @@ Coordinates the end-to-end self-hosted upgrade lifecycle: CLI binary self-updati
 
 Creates an organization's first administrator account.
 
+The alias cannot be a name the platform already uses in its addresses, such as `login`, `platform`,
+`tv`, `api` or a language code like `es`; the command refuses such a name and explains why.
+
 ## login
 
 `copalibre login [--api-url <url>] [--token <token>]`

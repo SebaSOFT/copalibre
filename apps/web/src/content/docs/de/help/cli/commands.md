@@ -195,6 +195,9 @@ kompatibel wäre. Siehe [Aktualisierung](/de/help/cli/updating/) für die vollst
 
 Erstellt das erste Administratorkonto einer Organisation.
 
+Der Alias darf kein Name sein, den die Plattform bereits in ihren Adressen verwendet, etwa `login`,
+`platform`, `tv`, `api` oder ein Sprachcode wie `es`; dann lehnt der Befehl ihn ab und nennt den Grund.
+
 ## login
 
 `copalibre login [--api-url <url>] [--token <token>]`

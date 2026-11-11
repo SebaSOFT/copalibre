@@ -4,6 +4,7 @@ description: Execute o CopaLibre a partir do código-fonte no Windows, macOS ou 
 capabilities:
   - platform/self-hosted-deployment
   - platform/email-notifications
+  - platform/security-assurance
 roles:
   - super-admin
 ---
@@ -77,6 +78,8 @@ Entrar no Control define três cookies estritamente necessários, nenhum nas pá
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```
+
+A API e os eventos confiam em `X-Forwarded-For` apenas de loopback e redes privadas. Um proxy com endereço público deve constar em `COPALIBRE_TRUSTED_PROXIES`; um intervalo que cobre todos os endereços é recusado. Uma rajada de solicitações recusadas de uma mesma conta, 20 em dez minutos por padrão (`COPALIBRE_SECURITY_ALERT_THRESHOLD`), gera um alerta de segurança: uma linha de log e um e-mail para `COPALIBRE_SECURITY_ALERT_EMAIL` quando estiver definido.
 
 ### Opção B — Kubernetes (de K3s a clusters empresariais)
 
