@@ -1,10 +1,12 @@
 import {
+  applyRuntimeGrants,
   createDatabase,
-  databaseConfigFromEnv,
   EXPECTED_SCHEMA_VERSION,
   migrateDownOneStep,
   migrateToLatest,
+  migrationDatabaseConfigFromEnv,
   readAppliedSchemaVersion,
+  RUNTIME_ROLE,
 } from '@copalibre/persistence';
 
 /**
@@ -14,10 +16,13 @@ import {
  *
  *   copalibre migrate          -> apply pending migrations
  *   copalibre migrate --down   -> revert exactly one step
+ *
+ * It connects as the schema owner (`DATABASE_MIGRATION_URL`) and, after either
+ * direction, gives the runtime role its row access on whatever tables now exist.
  */
 async function main(): Promise<void> {
   const down = process.argv.includes('--down');
-  const db = createDatabase(databaseConfigFromEnv());
+  const db = createDatabase(migrationDatabaseConfigFromEnv());
 
   try {
     const before = await readAppliedSchemaVersion(db);
@@ -32,6 +37,10 @@ async function main(): Promise<void> {
       process.stderr.write(`migration failed: ${String(error)}\n`);
       process.exitCode = 1;
       return;
+    }
+
+    if (await applyRuntimeGrants(db)) {
+      process.stdout.write(`runtime grants applied to ${RUNTIME_ROLE}\n`);
     }
 
     const after = await readAppliedSchemaVersion(db);

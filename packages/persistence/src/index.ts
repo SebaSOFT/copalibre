@@ -10,6 +10,7 @@ export {
   createDatabase,
   databaseConfigFromEnv,
   databasePoolMetrics,
+  migrationDatabaseConfigFromEnv,
   type DatabaseConfig,
 } from './database.js';
 export {
@@ -52,6 +53,24 @@ export {
   readAppliedSchemaVersion,
   isSchemaReady,
 } from './migrations/index.js';
+export {
+  applyRuntimeGrants,
+  RUNTIME_ROLE,
+  MIGRATION_BOOKKEEPING_TABLES,
+  APPEND_ONLY_TABLES,
+} from './migrations/runtime-grants.js';
+export {
+  applyDatabaseRoles,
+  databaseRolePasswordsFromEnv,
+  renderRolesScript,
+  type DatabaseRolePasswords,
+} from './database-roles.js';
+export {
+  runtimePrivilegeProblems,
+  RUNTIME_PRIVILEGE_WARNING,
+  warnWhenRuntimeCredentialIsPrivileged,
+  createRuntimeDatabase,
+} from './runtime-privileges.js';
 
 export {
   AuditReader,

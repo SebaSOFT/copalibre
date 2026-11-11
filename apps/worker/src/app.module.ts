@@ -1,8 +1,7 @@
 import { Logger, Module, type Provider } from '@nestjs/common';
 import { createObjectStorageAdapter, objectStorageConfigFromEnv } from '@copalibre/object-storage';
 import {
-  createDatabase,
-  databaseConfigFromEnv,
+  createRuntimeDatabase,
   EVIDENCE_VALIDATION_REQUESTED_EVENT,
   OBJECT_PROCESSING_REQUESTED_EVENT,
   OutboxRelay,
@@ -58,7 +57,8 @@ import {
 const providers: Provider[] = [
   {
     provide: DATABASE,
-    useFactory: (): Kysely<Database> => createDatabase(databaseConfigFromEnv()),
+    useFactory: (): Kysely<Database> =>
+      createRuntimeDatabase((message) => new Logger('Database').warn(message)),
   },
   DeliveryOutcomeCounters,
   {
