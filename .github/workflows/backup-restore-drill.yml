@@ -20,6 +20,8 @@ jobs:
     env:
       COPALIBRE_IMAGE: copalibre:backup-drill
       POSTGRES_PASSWORD: backup_restore_drill_only
+      COPALIBRE_DATABASE_OWNER_PASSWORD: backup_restore_drill_owner_only
+      COPALIBRE_DATABASE_APP_PASSWORD: backup_restore_drill_app_only
       # Compose interpolates this even when the optional object-storage profile is not started.
       GARAGE_RPC_SECRET: c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
       COPALIBRE_APP_URL: http://localhost:4321
@@ -67,6 +69,17 @@ jobs:
           docker compose run --rm --entrypoint node migrate packages/persistence/dist/test-support/backup-drill.js snapshot > "$RUNNER_TEMP/restored.json"
       - name: Compare authoritative data
         run: diff --unified "$RUNNER_TEMP/source.json" "$RUNNER_TEMP/restored.json"
+      # A restore runs as the superuser; every object it creates must still belong to the
+      # schema owner, and the runtime credential must still have row access only.
+      - name: Check database ownership and runtime privileges after restore
+        run: |
+          not_owned=$(docker compose run --rm --no-deps database-tools psql -tAc \
+            "select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and pg_get_userbyid(c.relowner) <> 'copalibre_owner'")
+          echo "public objects not owned by copalibre_owner: $not_owned"
+          test "$not_owned" = "0"
+          # doctor exits 1 for any failing check (this drill serves no JWKS); the line is the answer.
+          docker compose run --rm doctor | tee "$RUNNER_TEMP/doctor.txt" || true
+          grep -q '^PASS database:runtime-privileges:' "$RUNNER_TEMP/doctor.txt"
       - name: Remove ephemeral installation
         if: always()
         run: docker compose down --volumes --remove-orphans

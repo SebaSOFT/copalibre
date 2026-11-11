@@ -34,3 +34,8 @@ spec:
                 name: {{ include "copalibre.fullname" . }}-env
             - secretRef:
                 name: {{ include "copalibre.fullname" . }}-secret
+            # The schema owner's credential, loaded by this Job alone. Optional: without
+            # it, migrations fall back to DATABASE_URL.
+            - secretRef:
+                name: {{ include "copalibre.fullname" . }}-migration-secret
+                optional: true

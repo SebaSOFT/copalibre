@@ -48,6 +48,8 @@ COPY --from=build --chown=node:node /app/package.json ./
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/apps ./apps
 COPY --from=build --chown=node:node /app/packages ./packages
+# The database-setup role runs this; operators of an external database run the same file with psql.
+COPY --chown=node:node deploy/postgres/roles.sql ./deploy/postgres/roles.sql
 
 USER node
 

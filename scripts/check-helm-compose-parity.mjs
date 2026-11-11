@@ -43,6 +43,11 @@ export const SERVICE_COUNTERPARTS = {
     kind: 'external',
     reason: 'the chart consumes DATABASE_URL; a cluster brings its own database',
   },
+  'database-setup': {
+    kind: 'external',
+    reason:
+      'the chart holds no superuser credential; the operator runs deploy/postgres/roles.sql once, see docs/self-hosting.md#database-roles',
+  },
 };
 
 /**
