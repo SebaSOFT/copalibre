@@ -713,3 +713,21 @@ TV SHALL use the organization's primary language when no language is requested.
 
 - **WHEN** the URL sets `lang=de`
 - **THEN** the display is in German
+
+### Requirement: TV islands hydrate without mismatch under any browser preference
+Every client island on a `/tv/**` route SHALL produce, on its first client render, the same markup the server
+rendered, whatever the browser's motion preference, language or time-zone data. Values only the browser knows
+SHALL take effect after hydration. The production build SHALL raise no React hydration error on any TV route.
+
+#### Scenario: Reduced motion does not break hydration
+- **WHEN** a TV route opens in a browser that prefers reduced motion
+- **THEN** the page raises no hydration error, and reduced motion takes effect after hydration (no rotation, no
+  alert animation)
+
+#### Scenario: The zone label agrees between server and client
+- **WHEN** a TV dashboard shows the wall clock with its time-zone label
+- **THEN** the server markup and the first client render carry the same label
+
+#### Scenario: A rail tab responds once the page is interactive
+- **WHEN** a viewer or a test clicks a rail tab after the island reports it has hydrated
+- **THEN** the selected view shows and stays selected
