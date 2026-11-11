@@ -10,6 +10,7 @@ import {
   type Driver,
   type QueryResult,
 } from 'kysely';
+import { renderRolesScript } from './database-roles.js';
 import type { Database } from './schema.js';
 import {
   RUNTIME_PRIVILEGE_WARNING,
@@ -126,5 +127,15 @@ describe('migrations', () => {
         /create\s+schema|createSchema\(/i.test(readFileSync(join(directory, file), 'utf8')),
       );
     expect(offending).toEqual([]);
+  });
+});
+
+describe('renderRolesScript', () => {
+  it('fills both psql variables in as literals, doubling any quote', () => {
+    const script =
+      "SET a = :'owner_password';\nSET b = :'app_password';\nSET c = :'owner_password';";
+    expect(
+      renderRolesScript(script, { ownerPassword: "o'; drop role x; --", appPassword: 'plain' }),
+    ).toBe("SET a = 'o''; drop role x; --';\nSET b = 'plain';\nSET c = 'o''; drop role x; --';");
   });
 });
