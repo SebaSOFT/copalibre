@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import { expect, test } from './fixtures.js';
+import { expect, gotoTv, test } from './support/tv-ready.js';
 
 /**
  * The TV scorebug's possession/timed-penalty indicators and the
@@ -138,7 +138,7 @@ test.beforeEach(() => {
 test('kiosk shows possession and timed-penalty indicators, and the published bracket', async ({
   page,
 }) => {
-  await page.goto(TV_PATH);
+  await gotoTv(page, TV_PATH);
 
   const indicators = page.locator('.tv-match-indicators').first();
   await expect(indicators.getByText('Possession')).toBeVisible();
@@ -159,7 +159,7 @@ test('kiosk shows possession and timed-penalty indicators, and the published bra
 
 test('full overlay carries the same indicators and bracket as the kiosk', async ({ page }) => {
   // An overlay shows the match it is given, so it is pinned to the live one.
-  await page.goto(`${TV_PATH}/stages/1/matches/1?mode=overlay-full`);
+  await gotoTv(page, `${TV_PATH}/stages/1/matches/1?mode=overlay-full`);
 
   const indicators = page.locator('.tv-match-indicators').first();
   await expect(indicators.getByText('Possession')).toBeVisible();
@@ -168,7 +168,7 @@ test('full overlay carries the same indicators and bracket as the kiosk', async 
 });
 
 test('lower third keeps the indicator but never shows a bracket section', async ({ page }) => {
-  await page.goto(`${TV_PATH}/stages/1/matches/1?mode=overlay-lower`);
+  await gotoTv(page, `${TV_PATH}/stages/1/matches/1?mode=overlay-lower`);
 
   const indicators = page.locator('.tv-match-indicators').first();
   await expect(indicators.getByText('Possession')).toBeVisible();
@@ -179,7 +179,7 @@ test('lower third keeps the indicator but never shows a bracket section', async 
 
 test('omits both indicators when the live projection supplies neither fact', async ({ page }) => {
   live = liveMatchWithoutFacts(1);
-  await page.goto(TV_PATH);
+  await gotoTv(page, TV_PATH);
 
   await expect(page.getByText('CDS').first()).toBeVisible();
   await expect(page.locator('.tv-match-indicators')).toHaveCount(0);
@@ -187,7 +187,7 @@ test('omits both indicators when the live projection supplies neither fact', asy
 
 test('shows no bracket tab or section for a non-elimination (grid) stage', async ({ page }) => {
   bracket = roundRobinBracket;
-  await page.goto(TV_PATH);
+  await gotoTv(page, TV_PATH);
 
   // The scorebug's own indicators are unaffected by the bracket's absence.
   const indicators = page.locator('.tv-match-indicators').first();

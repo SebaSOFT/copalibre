@@ -3,6 +3,7 @@ title: Befehlsreferenz
 description: Jeder Befehl des copalibre-CLI, seine Verwendung und seine Optionen.
 capabilities:
   - platform/cli-tournament-operations
+  - platform/url-routing-contract
 roles:
   - super-admin
   - admin

@@ -3,6 +3,7 @@ title: Referência de comandos
 description: Cada comando do CLI copalibre, seu uso e suas flags.
 capabilities:
   - platform/cli-tournament-operations
+  - platform/url-routing-contract
 roles:
   - super-admin
   - admin

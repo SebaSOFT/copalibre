@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import { expect, test } from './fixtures.js';
+import { expect, gotoTv, test } from './support/tv-ready.js';
 
 /**
  * The pinned-match TV route shows recorded goal/card events (entrant, player, time)
@@ -124,7 +124,7 @@ test.afterAll(async () => {
 test.describe('TV match view event ticker', () => {
   test('shows the match’s recorded goal and card events alongside the score', async ({ page }) => {
     currentMatchReport = enrichedMatchReport;
-    await page.goto(TV_MATCH_PATH);
+    await gotoTv(page, TV_MATCH_PATH);
 
     const ticker = page.getByRole('list', { name: 'Match events' });
     await expect(ticker).toBeVisible();
@@ -139,7 +139,7 @@ test.describe('TV match view event ticker', () => {
 
   test('shows no ticker section for a match with no recorded events', async ({ page }) => {
     currentMatchReport = emptyMatchReport;
-    await page.goto(TV_MATCH_PATH);
+    await gotoTv(page, TV_MATCH_PATH);
 
     await expect(page.getByRole('list', { name: 'Match events' })).toHaveCount(0);
   });

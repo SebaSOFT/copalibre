@@ -11,6 +11,7 @@ import {
 import { formatClock } from '../../lib/matches-view.js';
 import { presentState, type ResultStateLabels } from '../../lib/result-state.js';
 import { ValueFlash } from '../ui/atoms/ValueFlash.js';
+import { useHydrated, usePrefersReducedMotion } from '../../lib/island-browser-state.js';
 
 const PAGE_ROTATE_MS = 20_000;
 
@@ -68,12 +69,8 @@ export function TvMultiCourtGrid({
 }: TvMultiCourtGridProps): React.JSX.Element {
   const [dashboard, setDashboard] = useState<LiveDashboard>(initial);
   const [pageIndex, setPageIndex] = useState(0);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(() => {
-    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
-      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    }
-    return false;
-  });
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const hydrated = useHydrated();
   // Read inside the SSE callback below, which must never close over a stale
   // `dashboard` from the render that first mounted it (the same pattern
   // `TvDashboard.tsx` uses its own `dashboardRef` for).
@@ -95,14 +92,6 @@ export function TvMultiCourtGrid({
     );
   const activeGridSize = resolveGridSize(gridSize, liveMatches.length);
   const visibleMatches = paginate(liveMatches, activeGridSize, pageIndex);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const handler = (event: MediaQueryListEvent): void => setPrefersReducedMotion(event.matches);
-    mediaQuery.addEventListener?.('change', handler);
-    return () => mediaQuery.removeEventListener?.('change', handler);
-  }, []);
 
   useEffect(() => {
     const streamUrl = new URL(streamPath, window.location.origin);
@@ -135,7 +124,10 @@ export function TvMultiCourtGrid({
 
   if (visibleMatches.length === 0) {
     return (
-      <div className="tv-multicourt-grid tv-multicourt-grid--empty">
+      <div
+        className="tv-multicourt-grid tv-multicourt-grid--empty"
+        data-hydrated={hydrated ? '' : undefined}
+      >
         <p>{noMatchesLabel}</p>
       </div>
     );
@@ -145,6 +137,7 @@ export function TvMultiCourtGrid({
     <div
       aria-label={ariaLabel}
       className={`tv-multicourt-grid tv-multicourt-grid--${activeGridSize}`}
+      data-hydrated={hydrated ? '' : undefined}
       data-testid="tv-multicourt-grid"
     >
       {visibleMatches.map((match) => (

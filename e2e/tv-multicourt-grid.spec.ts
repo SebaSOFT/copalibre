@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures.js';
+import { expect, gotoTv, test } from './support/tv-ready.js';
 import type { Page } from '@playwright/test';
 import { recordedFlashes, recordFlashes } from './support/flash-recorder.js';
 
@@ -74,7 +74,7 @@ test('renders the multi-court grid, with the live match on its own court card (9
   page,
 }) => {
   await mockOpenStream(page);
-  await page.goto(`${TV_PATH}?layout=multicourt&token=kiosk-token`);
+  await gotoTv(page, `${TV_PATH}?layout=multicourt&token=kiosk-token`);
 
   await expect(page.getByTestId('tv-multicourt-grid')).toBeVisible();
   const card = page.getByTestId(`tv-court-card-${MATCH_ID}`);
@@ -92,7 +92,7 @@ test('a live SSE event updates its own court card without navigating away (9.2)'
 }) => {
   await recordFlashes(page, COURT_CARD_VALUE);
   await mockStreamDeliveringOneScoreEvent(page);
-  await page.goto(`${TV_PATH}?layout=multicourt&token=kiosk-token`);
+  await gotoTv(page, `${TV_PATH}?layout=multicourt&token=kiosk-token`);
 
   const card = page.getByTestId(`tv-court-card-${MATCH_ID}`);
   await expect(card).toBeVisible();
@@ -110,7 +110,7 @@ test('holds a static flash under reduced motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await recordFlashes(page, COURT_CARD_VALUE);
   await mockStreamDeliveringOneScoreEvent(page);
-  await page.goto(`${TV_PATH}?layout=multicourt&token=kiosk-token`);
+  await gotoTv(page, `${TV_PATH}?layout=multicourt&token=kiosk-token`);
 
   await expect
     .poll(() => recordedFlashes(page), { timeout: 10_000 })
@@ -126,7 +126,7 @@ test('the default single-spotlight kiosk view is unaffected when no layout param
   page,
 }) => {
   await mockOpenStream(page);
-  await page.goto(`${TV_PATH}?token=kiosk-token`);
+  await gotoTv(page, `${TV_PATH}?token=kiosk-token`);
 
   await expect(page.getByTestId('tv-multicourt-grid')).toHaveCount(0);
 });

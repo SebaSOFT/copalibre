@@ -6,6 +6,7 @@ import type { LiveDashboard, LiveMatch } from '../../lib/live-state.js';
 import type { PublicSeriesState } from '../../lib/series.js';
 import type { StandingsRowView } from '../../lib/overview.js';
 import { publicIntl, tvDashboardLabels, tvStatisticsLabels } from '../../lib/i18n/public-intl.js';
+import { hydrateWithReducedMotion } from '../../lib/island-hydration.test-support.js';
 
 const tvLabels = tvStatisticsLabels(publicIntl('en'));
 const dashboardLabels = tvDashboardLabels(publicIntl('en'));
@@ -1721,4 +1722,76 @@ describe('TvDashboard overlays', () => {
       expect(screen.queryByTestId('tv-match-progress')).toBeNull();
     });
   });
+});
+
+describe('TvDashboard hydration', () => {
+  const dashboardLabels = tvDashboardLabels(publicIntl('en'));
+  const tvLabels = tvStatisticsLabels(publicIntl('en'));
+  const live: LiveDashboard = {
+    standingsVersion: 1,
+    usingLastKnown: false,
+    matches: [
+      {
+        matchId: 'm1',
+        stageNumber: 1,
+        matchNumber: 1,
+        stageOrdinal: 1,
+        state: 'live',
+        projectionVersion: 1,
+        sides: [
+          { entrantId: 'h1', name: 'Talleres', abbreviation: 'TAL', score: 1, state: 'live' },
+          { entrantId: 'a1', name: 'Andes', abbreviation: 'AND', score: 0, state: 'live' },
+        ],
+      },
+    ],
+  };
+  let connectSpy: ReturnType<typeof jest.spyOn>;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    connectSpy = jest
+      .spyOn(RealtimeClient.prototype, 'connect')
+      .mockImplementation(async () => ({ attempts: 1, stopped: 'aborted' as const }));
+  });
+
+  afterEach(() => {
+    connectSpy.mockRestore();
+    jest.useRealTimers();
+  });
+
+  it.each(['kiosk', 'full', 'lower'] as const)(
+    'a %s screen hydrates the server markup without mismatch when the viewer prefers reduced motion',
+    async (presentation) => {
+      const island = await hydrateWithReducedMotion(
+        <TvDashboard
+          dashboardLabels={dashboardLabels}
+          initial={live}
+          labels={tvLabels}
+          language="en"
+          pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
+          pollIntervalMs={0}
+          presentation={presentation}
+          standings={[{ position: 1, name: 'Talleres', abbreviation: 'TAL', played: 1, points: 3 }]}
+          streamPath="/stream"
+          timeZone="America/Argentina/Buenos_Aires"
+          tournamentName="Apertura"
+        />,
+      );
+      try {
+        expect(island.hydrationErrors).toEqual([]);
+        expect(island.container.querySelector('[data-hydrated]')).not.toBeNull();
+        if (presentation === 'kiosk') {
+          // Reduced motion takes effect once hydrated: the rail holds its section.
+          const rail = (): string | null | undefined =>
+            island.container.querySelector('[data-testid="tv-rail-content"]')?.textContent;
+          const before = rail();
+          expect(before).toBeTruthy();
+          act(() => jest.advanceTimersByTime(60_000));
+          expect(rail()).toBe(before);
+        }
+      } finally {
+        island.unmount();
+      }
+    },
+  );
 });

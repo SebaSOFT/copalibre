@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { createServer, type Server } from 'node:http';
-import { expect, test } from './fixtures.js';
+import { expect, gotoTv, test } from './support/tv-ready.js';
 import { expectNoSeriousSemanticViolations } from './support/semantic-axe.js';
 
 const ORGANIZATION = 'panamericano-demo';
@@ -177,7 +177,7 @@ test('all three TV layouts meet broadcast-size minimums at 1920×1080', async ({
   const vmin = Math.min(1920, 1080) / 100;
 
   for (const { layout, score, team, table } of layouts) {
-    await page.goto(`${TV_PATH}?layout=${layout}`);
+    await gotoTv(page, `${TV_PATH}?layout=${layout}`);
     await expect(page.locator(`.tv-root-container[data-layout="${layout}"]`)).toBeVisible();
     await expect(page.locator('.tv-scorebug__clock').first()).toBeVisible();
 
@@ -222,7 +222,7 @@ test('presentation composes match events, bracket path, standings and next-match
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto(`${TV_PATH}?layout=presentation&lang=es`);
+  await gotoTv(page, `${TV_PATH}?layout=presentation&lang=es`);
 
   await expect(page.locator('.tv-presentation-match .tv-event-ticker')).toContainText('Gol');
   await expect(page.locator('.tv-presentation-rail .tv-bracket')).toContainText('Zona A');
@@ -253,7 +253,7 @@ test('German dashboard keeps long club names accessible and prevents overlap at 
 }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto(`${TV_PATH}?layout=dashboard&lang=de`);
+  await gotoTv(page, `${TV_PATH}?layout=dashboard&lang=de`);
 
   await expect(page.getByTestId('tv-dashboard-match')).toHaveCount(2);
   const upcoming = page.getByTestId('tv-upcoming-match');
@@ -310,7 +310,7 @@ test('TV dashboard fits the frame and rotates overflowing standings without scro
   ]) {
     await page.setViewportSize(viewport);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
-    await page.goto(`${TV_PATH}?layout=dashboard&lang=es`);
+    await gotoTv(page, `${TV_PATH}?layout=dashboard&lang=es`);
 
     const standings = page.getByTestId('tv-dashboard-standings');
     await expect(standings).toBeVisible();
@@ -360,7 +360,7 @@ test('TV dashboard fits the frame and rotates overflowing standings without scro
 });
 
 test('TV live status badge meets AA contrast', async ({ page }) => {
-  await page.goto(`${TV_PATH}?layout=dashboard&lang=es`);
+  await gotoTv(page, `${TV_PATH}?layout=dashboard&lang=es`);
   await expect(page.locator('.tv-scorebug__badge--live').first()).toBeVisible();
 
   const { violations } = await new AxeBuilder({ page })
@@ -371,7 +371,7 @@ test('TV live status badge meets AA contrast', async ({ page }) => {
 });
 
 test('the TV dashboard passes the semantic accessibility rules', async ({ page }) => {
-  await page.goto(`${TV_PATH}?layout=dashboard&lang=es`);
+  await gotoTv(page, `${TV_PATH}?layout=dashboard&lang=es`);
   await expect(page.locator('.tv-scorebug__clock').first()).toHaveAttribute('role', 'timer');
 
   await expectNoSeriousSemanticViolations(page);
@@ -383,7 +383,7 @@ test('TV upcoming status badge uses the semantic amber token', async ({ page }) 
     matches: overview.matches.filter((entry) => entry.status === 'scheduled'),
   };
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto(`${TV_PATH}?layout=dashboard&lang=es`);
+  await gotoTv(page, `${TV_PATH}?layout=dashboard&lang=es`);
 
   const badge = page.locator('.tv-scorebug__badge--upcoming').first();
   await expect(badge).toContainText('Programado');
@@ -400,7 +400,7 @@ test('TV upcoming status badge uses the semantic amber token', async ({ page }) 
 
 test('TV keeps its dark surface when the browser prefers light mode', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
-  await page.goto(`${TV_PATH}?layout=dashboard`);
+  await gotoTv(page, `${TV_PATH}?layout=dashboard`);
 
   const channels = await page.locator('.tv-dashboard-standings').evaluate((element) =>
     getComputedStyle(element)
