@@ -4,6 +4,7 @@ import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
 import { publicIntl, tvMultiCourtGridLabels } from '../../lib/i18n/public-intl.js';
 import type { LiveDashboard, LiveMatch } from '../../lib/live-state.js';
 import { TvMultiCourtGrid } from './TvMultiCourtGrid.js';
+import { hydrateWithReducedMotion } from '../../lib/island-hydration.test-support.js';
 
 const labels = tvMultiCourtGridLabels(publicIntl('en'));
 
@@ -226,6 +227,52 @@ describe('TvMultiCourtGrid', () => {
         configurable: true,
         value: originalMatchMedia,
       });
+    }
+  });
+});
+
+describe('TvMultiCourtGrid hydration', () => {
+  let connectSpy: ReturnType<typeof jest.spyOn>;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    connectSpy = jest
+      .spyOn(RealtimeClient.prototype, 'connect')
+      .mockImplementation(async () => ({ attempts: 1, stopped: 'aborted' as const }));
+  });
+
+  afterEach(() => {
+    connectSpy.mockRestore();
+    jest.useRealTimers();
+  });
+
+  it('hydrates the server markup without mismatch, and stops paging, when the viewer prefers reduced motion', async () => {
+    const island = await hydrateWithReducedMotion(
+      <TvMultiCourtGrid
+        ariaLabel={labels.ariaLabel}
+        gridSize={2}
+        initial={dashboard([
+          liveMatch({ matchId: 'match-1' }),
+          liveMatch({ matchId: 'match-2', matchNumber: 2 }),
+          liveMatch({ matchId: 'match-3', matchNumber: 3 }),
+        ])}
+        noMatchesLabel={labels.noMatches}
+        resultStateLabels={labels.resultState}
+        streamPath="/events/tv/liga/tournaments/apertura"
+        venueNameByMatchId={{ 'match-1': 'Cancha 1', 'match-2': 'Cancha 2', 'match-3': 'Cancha 3' }}
+      />,
+    );
+    try {
+      expect(island.hydrationErrors).toEqual([]);
+      const grid = island.container.querySelector('[data-testid="tv-multicourt-grid"]');
+      expect(grid?.hasAttribute('data-hydrated')).toBe(true);
+      const firstPage = grid?.textContent;
+      act(() => jest.advanceTimersByTime(60_000));
+      expect(
+        island.container.querySelector('[data-testid="tv-multicourt-grid"]')?.textContent,
+      ).toBe(firstPage);
+    } finally {
+      island.unmount();
     }
   });
 });

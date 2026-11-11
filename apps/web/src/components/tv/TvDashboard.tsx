@@ -55,6 +55,7 @@ import type { PublicSeriesState } from '../../lib/series.js';
 import { TvChampions } from './ui/organisms/TvChampions.js';
 import { EntrantEmblem } from '../ui/molecules/EntrantEmblem.js';
 import { ValueFlash } from '../ui/atoms/ValueFlash.js';
+import { useHydrated, usePrefersReducedMotion } from '../../lib/island-browser-state.js';
 
 export type { TvClubItem, TvDashboardLabels, TvWinnerZone } from './tv-types.js';
 
@@ -162,6 +163,13 @@ export interface TvDashboardProps {
   readonly pollIntervalMs?: number;
 }
 
+/** The zone's short name (`ART`, `GMT-3`) as the viewer's language writes it at `at`. */
+function timeZoneLabel(at: Date, language: string, timeZone: string): string | undefined {
+  return new Intl.DateTimeFormat(language, { timeZone, timeZoneName: 'short' })
+    .formatToParts(at)
+    .find((part) => part.type === 'timeZoneName')?.value;
+}
+
 export function leadingTvSide(match: LiveMatch | undefined): 'home' | 'away' | undefined {
   if (match?.state !== 'live') return undefined;
   const home = match.sides[0]?.score;
@@ -244,12 +252,9 @@ export function TvDashboard({
   const [bracketStale, setBracketStale] = useState(false);
   const showStaleMark = projectionStale || bracketStale;
   const [currentTime, setCurrentTime] = useState<string>('');
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(() => {
-    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
-      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    }
-    return false;
-  });
+  const [clockZoneLabel, setClockZoneLabel] = useState<string | undefined>(undefined);
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const hydrated = useHydrated();
   const isOverlay = presentation === 'lower';
   const showBroadcastAlerts = presentation === 'lower' || presentation === 'full';
   const resolvedBranding = resolveTvBranding(branding ?? {});
@@ -272,28 +277,21 @@ export function TvDashboard({
   );
 
   // 1. Wall clock, to the minute, in the organization's zone: a venue screen watched from across
-  // the room has no use for seconds, and a finished tournament shows no clock at all.
+  // the room has no use for seconds, and a finished tournament shows no clock at all. The zone
+  // label is read here with the time, not during render: the server's ICU and the browser's can
+  // name a zone differently, and both values only show once the clock does.
   useEffect(() => {
     const updateClock = () => {
-      setCurrentTime(
-        formatTimestamp(new Date(), { locale: language, format: 'time-only', timeZone }),
-      );
+      const now = new Date();
+      setCurrentTime(formatTimestamp(now, { locale: language, format: 'time-only', timeZone }));
+      setClockZoneLabel(timeZone ? timeZoneLabel(now, language, timeZone) : undefined);
     };
     updateClock();
     const timer = setInterval(updateClock, 15_000);
     return () => clearInterval(timer);
   }, [language, timeZone]);
 
-  // 2. Motion Preference Listener
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-    mediaQuery.addEventListener?.('change', handler);
-    return () => mediaQuery.removeEventListener?.('change', handler);
-  }, []);
-
-  // 3. Polling Refresh Handler (Fallback when tokenless or projection out of sync)
+  // 2. Polling Refresh Handler (Fallback when tokenless or projection out of sync)
   // Returns the freshly-fetched matches (the alert banner diffs
   // scores against this return value directly, rather than racing React's
   // own state-update timing) — every existing caller already discards it.
@@ -368,7 +366,7 @@ export function TvDashboard({
     return () => window.clearInterval(pollTimer);
   }, [pollIntervalMs, refreshProjection]);
 
-  // 4. Realtime SSE Connection with Graceful Degradation
+  // 3. Realtime SSE Connection with Graceful Degradation
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const token = new URLSearchParams(window.location.search).get('token');
@@ -507,7 +505,7 @@ export function TvDashboard({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reconnecting SSE on every render of a prop that changes is worse than a stale closure here: pinnedRef/rosterActors/showBroadcastAlerts are server-supplied once at mount (same treatment matchEvents itself already gets), and eventLabelsByCode only grows from the same static matchEvents.
   }, [streamPath, refreshProjection, presentation]);
 
-  // 5. Automatic Carousel Rotation (respects prefers-reduced-motion)
+  // 4. Automatic Carousel Rotation (respects prefers-reduced-motion)
   // A fixed `standings` view has nothing to rotate; a fixed `matches` view only pages its list; the
   // rotating dashboard pages the list too before it moves to the next section.
   const matchPages = useMemo(() => pageTvMatches(scheduledMatches), [scheduledMatches]);
@@ -538,7 +536,7 @@ export function TvDashboard({
     return () => clearInterval(interval);
   }, [prefersReducedMotion, bracketData, initialView, matchPages.length]);
 
-  // 6. Data Computations
+  // 5. Data Computations
   const matches = dashboard.matches;
   const pinnedMatch = pinnedRef === undefined ? undefined : findPinnedMatch(matches, pinnedRef);
   // A pinned route names one match; one that does not exist is said so, never swapped for another.
@@ -714,11 +712,6 @@ export function TvDashboard({
         : currentTime;
   const showsWallClock =
     spotlightMatch?.clockSeconds === undefined && !allFinal && currentTime !== '';
-  const clockZoneLabel = timeZone
-    ? new Intl.DateTimeFormat(language, { timeZone, timeZoneName: 'short' })
-        .formatToParts(new Date())
-        .find((part) => part.type === 'timeZoneName')?.value
-    : undefined;
   const finishedText =
     allFinal && lastMatchAt !== undefined
       ? applyTemplate(dashboardLabels.finishedOn, {
@@ -756,7 +749,11 @@ export function TvDashboard({
 
   if (presentation === 'lower') {
     return (
-      <div className="tv-root-container tv-lower-third" data-testid="tv-lower-third">
+      <div
+        className="tv-root-container tv-lower-third"
+        data-hydrated={hydrated ? '' : undefined}
+        data-testid="tv-lower-third"
+      >
         {showStaleMark && dashboardLabels.stale && (
           <p className="cl-inline-alert cl-inline-alert--warning tv-stale-mark" role="status">
             {dashboardLabels.stale}
@@ -813,6 +810,7 @@ export function TvDashboard({
   return (
     <div
       className={`tv-root-container tv-root-container--${layoutVariant}`}
+      data-hydrated={hydrated ? '' : undefined}
       data-layout={layoutVariant}
     >
       {showStaleMark && dashboardLabels.stale && (
