@@ -70,4 +70,28 @@ describe('probeDataIntegrity (integration)', () => {
       status: 'completed',
     });
   });
+
+  it('finds an organization that holds a reserved alias, which still loads', async () => {
+    // The repository refuses a reserved alias now, so this row stands for an
+    // organization created before the name joined the list.
+    const reservedId = newId();
+    await scratch.db
+      .insertInto('organizations')
+      .values({
+        organization_id: reservedId,
+        alias: 'platform',
+        name: 'Plataforma Deportiva',
+        primary_language: 'es',
+        timezone: 'America/Argentina/Buenos_Aires',
+        emblem_object_id: null,
+        created_at: new Date(),
+      })
+      .execute();
+    const snapshot = await probeDataIntegrity(scratch.db);
+    expect(snapshot.reservedAliasOrganizations).toEqual([
+      { organizationId: reservedId, alias: 'platform', name: 'Plataforma Deportiva' },
+    ]);
+    const loaded = await new OrganizationRepository(scratch.db).findByAlias('platform');
+    expect(loaded?.organizationId).toBe(reservedId);
+  });
 });

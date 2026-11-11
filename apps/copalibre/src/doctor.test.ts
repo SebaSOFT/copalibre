@@ -39,7 +39,10 @@ function dependencies(overrides: Partial<DoctorDependencies> = {}): DoctorDepend
     probeDatabase: jest.fn(async () => undefined),
     ensureWritable: jest.fn(async () => undefined),
     retirableModules: jest.fn(async () => []),
-    probeDataIntegrity: jest.fn(async () => ({ invalidStatusTournaments: [] })),
+    probeDataIntegrity: jest.fn(async () => ({
+      invalidStatusTournaments: [],
+      reservedAliasOrganizations: [],
+    })),
     probeModuleAssets: jest.fn(async () => ({ inspected: 0, problems: [] })),
     objectStorageRoundTrip: jest.fn(async () => undefined),
     fetch: jest.fn(async (input: string | URL | Request) => {
