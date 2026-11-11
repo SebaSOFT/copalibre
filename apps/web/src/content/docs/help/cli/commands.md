@@ -3,6 +3,7 @@ title: Command reference
 description: Every copalibre CLI command, its usage, and its flags.
 capabilities:
   - platform/cli-tournament-operations
+  - platform/url-routing-contract
 roles:
   - super-admin
   - admin

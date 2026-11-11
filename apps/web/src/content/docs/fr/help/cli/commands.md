@@ -3,6 +3,7 @@ title: Référence des commandes
 description: Chaque commande du CLI copalibre, son usage et ses options.
 capabilities:
   - platform/cli-tournament-operations
+  - platform/url-routing-contract
 roles:
   - super-admin
   - admin

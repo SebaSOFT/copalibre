@@ -3,6 +3,7 @@ title: Справочник команд
 description: Каждая команда CLI copalibre, её использование и флаги.
 capabilities:
   - platform/cli-tournament-operations
+  - platform/url-routing-contract
 roles:
   - super-admin
   - admin
