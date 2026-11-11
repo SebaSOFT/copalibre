@@ -32,6 +32,20 @@ describe('copalibre init', () => {
     expect(content).toContain('COPALIBRE_BOOTSTRAP_TOKEN=');
   });
 
+  it('writes two distinct random database passwords, never the placeholders', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'copalibre-init-'));
+    const file = join(directory, '.env');
+
+    await writeLocalDefaults(file);
+
+    const content = await readFile(file, 'utf8');
+    const owner = /^COPALIBRE_DATABASE_OWNER_PASSWORD=([0-9a-f]{64})$/m.exec(content)?.[1];
+    const app = /^COPALIBRE_DATABASE_APP_PASSWORD=([0-9a-f]{64})$/m.exec(content)?.[1];
+    expect(owner).toBeDefined();
+    expect(app).toBeDefined();
+    expect(owner).not.toBe(app);
+  });
+
   it('lists required secret inputs without assigning values', () => {
     expect(formatRequiredSecrets()).toContain('COPALIBRE_BOOTSTRAP_TOKEN');
     expect(formatRequiredSecrets()).not.toContain('=');

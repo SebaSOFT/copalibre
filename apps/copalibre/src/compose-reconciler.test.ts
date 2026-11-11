@@ -89,9 +89,56 @@ COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.1
       expect(result.addedKeys).toContain('GARAGE_RPC_SECRET');
       expect(result.content).toMatch(/GARAGE_RPC_SECRET=[0-9a-f]{64}/);
     });
+
+    it('adds the two database passwords as distinct random secrets when missing', () => {
+      const result = reconcileEnvContent('COPALIBRE_PORT=8080\n', '1.3.0');
+
+      expect(result.addedKeys).toEqual(
+        expect.arrayContaining([
+          'COPALIBRE_DATABASE_OWNER_PASSWORD',
+          'COPALIBRE_DATABASE_APP_PASSWORD',
+        ]),
+      );
+      const owner = /^COPALIBRE_DATABASE_OWNER_PASSWORD=([0-9a-f]{64})$/m.exec(result.content)?.[1];
+      const app = /^COPALIBRE_DATABASE_APP_PASSWORD=([0-9a-f]{64})$/m.exec(result.content)?.[1];
+      expect(owner).toBeDefined();
+      expect(app).toBeDefined();
+      expect(owner).not.toBe(app);
+    });
+
+    it('never overwrites database passwords an installation already has', () => {
+      const existing =
+        'COPALIBRE_DATABASE_OWNER_PASSWORD=kept-owner\nCOPALIBRE_DATABASE_APP_PASSWORD=kept-app\n';
+      const result = reconcileEnvContent(existing, '1.3.0');
+
+      expect(result.addedKeys).not.toContain('COPALIBRE_DATABASE_OWNER_PASSWORD');
+      expect(result.addedKeys).not.toContain('COPALIBRE_DATABASE_APP_PASSWORD');
+      expect(result.content).toContain('COPALIBRE_DATABASE_OWNER_PASSWORD=kept-owner\n');
+      expect(result.content).toContain('COPALIBRE_DATABASE_APP_PASSWORD=kept-app\n');
+      expect(result.content.match(/COPALIBRE_DATABASE_APP_PASSWORD=/g)).toHaveLength(1);
+    });
   });
 
   describe('reconcileComposeContent', () => {
+    it('reports a compose file without the database-setup service, and leaves it to the operator', () => {
+      const legacy = 'services:\n  migrate:\n    image: ghcr.io/sebasoft/copalibre:1.2.1\n';
+      const result = reconcileComposeContent(legacy, '1.4.0');
+      expect(result.lacksDatabaseRoles).toBe(true);
+      expect(result.content).not.toContain('database-setup');
+
+      const shipped = `${legacy}  database-setup:\n    image: ghcr.io/sebasoft/copalibre:1.2.1\n`;
+      expect(reconcileComposeContent(shipped, '1.4.0').lacksDatabaseRoles).toBe(false);
+    });
+
+    it('finds the database-setup service in the shipped docker-compose.yml', async () => {
+      const { readFile } = await import('node:fs/promises');
+      const shipped = await readFile(
+        new URL('../../../docker-compose.yml', import.meta.url),
+        'utf8',
+      );
+      expect(reconcileComposeContent(shipped, '1.4.0').lacksDatabaseRoles).toBe(false);
+    });
+
     it('updates image tags in compose content while preserving custom volumes and ports', () => {
       const composeYaml = `services:
   api:

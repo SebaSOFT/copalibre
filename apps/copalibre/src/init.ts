@@ -22,6 +22,10 @@ export const LOCAL_DEFAULTS = {
   POSTGRES_USER: 'copalibre',
   POSTGRES_PASSWORD: 'copalibre_dev_password',
   POSTGRES_DB: 'copalibre',
+  // The schema owner (migrations) and the runtime role (everything else); see
+  // deploy/postgres/roles.sql. `init` and `upgrade` write random values.
+  COPALIBRE_DATABASE_OWNER_PASSWORD: 'copalibre_owner_password_change_me',
+  COPALIBRE_DATABASE_APP_PASSWORD: 'copalibre_app_password_change_me',
   COPALIBRE_BOOTSTRAP_TOKEN: 'copalibre_bootstrap_token_secret',
   COPALIBRE_JWKS_URI: 'http://api:3001/api/auth/jwks.json',
   COPALIBRE_JWT_ISSUER: 'http://localhost:8080',
@@ -46,8 +50,16 @@ export const LOCAL_DEFAULTS = {
   COPALIBRE_SCHEDULER_PORT: '3004',
 } as const;
 
+/** Database passwords `init`, `upgrade` and `repair` generate rather than copy from the defaults. */
+export const GENERATED_DATABASE_SECRETS = [
+  'COPALIBRE_DATABASE_OWNER_PASSWORD',
+  'COPALIBRE_DATABASE_APP_PASSWORD',
+] as const;
+
 export const REQUIRED_SECRETS = [
   'POSTGRES_PASSWORD',
+  'COPALIBRE_DATABASE_OWNER_PASSWORD',
+  'COPALIBRE_DATABASE_APP_PASSWORD',
   'COPALIBRE_BOOTSTRAP_TOKEN',
   'COPALIBRE_JWKS_URI',
   'COPALIBRE_JWT_ISSUER',
@@ -102,6 +114,9 @@ export function localDefaultsEnvFile(overrides: Record<string, string> = {}): st
   const merged = {
     ...LOCAL_DEFAULTS,
     GARAGE_RPC_SECRET: overrides.GARAGE_RPC_SECRET ?? generateRandomSecret(32),
+    ...Object.fromEntries(
+      GENERATED_DATABASE_SECRETS.map((key) => [key, overrides[key] ?? generateRandomSecret(32)]),
+    ),
     ...overrides,
   };
   return [

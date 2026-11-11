@@ -80,6 +80,10 @@ describe('backup and restore options', () => {
       '/backups/staging/database.dump',
     ]);
     expect(pgRestoreCommand('copalibre', '/backups/staging/database.dump')).toContain('--clean');
+    // Restored objects belong to the schema owner, not to the superuser that runs pg_restore.
+    expect(pgRestoreCommand('copalibre', '/backups/staging/database.dump')).toContain(
+      '--role=copalibre_owner',
+    );
   });
 
   it('keeps backup paths within the dedicated mount and hides connection strings in plans', () => {

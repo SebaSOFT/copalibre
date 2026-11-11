@@ -6,6 +6,7 @@ import { readCopalibreVersion } from '../banner.js';
 import { runCommand } from '../command-support.js';
 import { isContainer, refuseForKubernetesMode, requireComposeTarget } from '../compose-target.js';
 import { reconcileInstallationDirectory } from '../compose-reconciler.js';
+import { GENERATED_DATABASE_SECRETS } from '../init.js';
 import { readInstallationMarker } from '../installation-marker.js';
 import { formatOutdatedModules, runModuleUpgradeCheck } from '../module-upgrade-check.js';
 import { fetchReleaseMetadata, performSelfUpdate } from '../self-update.js';
@@ -182,6 +183,22 @@ export class UpgradeCommand extends Command<CliContext> {
       if (reconcileResult.loopbackPorts.length > 0) {
         process.stdout.write(
           `Published ${reconcileResult.loopbackPorts.join(', ')} on 127.0.0.1 only in docker-compose.yml; the gateway port stays the network entry.\n`,
+        );
+      }
+
+      const addedDatabaseSecrets = reconcileResult.addedEnvKeys.filter((key) =>
+        (GENERATED_DATABASE_SECRETS as readonly string[]).includes(key),
+      );
+      if (addedDatabaseSecrets.length > 0) {
+        process.stdout.write(
+          `Added ${addedDatabaseSecrets.join(' and ')} to .env, with new random values: the passwords of the database's schema owner and runtime role.\n`,
+        );
+      }
+      if (reconcileResult.lacksDatabaseRoles) {
+        process.stdout.write(
+          'docker-compose.yml has no database-setup service, so every role still connects to PostgreSQL as the superuser. ' +
+            'Adopt the database-setup and migrate services and the DATABASE_URL of the shipped docker-compose.yml; ' +
+            'see docs/self-hosting.md#database-roles. "copalibre doctor" fails database:runtime-privileges until then.\n',
         );
       }
 
