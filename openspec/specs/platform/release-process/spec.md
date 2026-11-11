@@ -220,3 +220,79 @@ Remediation reports SHALL distinguish vulnerable checkout, verified local fix pe
 - **WHEN** the approved release reaches the default branch and GitHub has processed the updated dependency graph
 - **THEN** a fresh API query records each alert's actual state and unresolved or newly opened alerts remain visible
 - **AND** the closure check does not itself authorize merging or publishing
+
+### Requirement: Comprehensive security verdict gates publication
+
+Every new release SHALL pass security assurance for its exact source revision and candidate image digests before any image, tag, release or package artifact is publicly published. Static checks SHALL run on every PR; full runtime checks SHALL run for release candidates and explicit security dispatches. Existing fresh dependency audits and tagged-version no-op behavior SHALL remain in force.
+
+#### Scenario: Candidate security evidence is complete
+
+- **WHEN** a release candidate passes all mandatory security controls with matching revision/image evidence and no blocking findings
+- **THEN** publication may proceed after existing release gates and fresh advisory checks pass
+
+#### Scenario: Gate is skipped, cancelled or incomplete
+
+- **WHEN** a required security job fails, is skipped/cancelled, produces malformed evidence, or lacks a required manual attestation
+- **THEN** publication stops before pushing images, creating tags/releases or publishing packages
+- **AND** failure evidence remains available for review
+
+#### Scenario: Evidence describes another revision or image
+
+- **WHEN** security evidence names another commit or candidate image digest
+- **THEN** the publisher rejects it and requires checks for the artifacts it would publish
+
+#### Scenario: Publishing job is invoked directly
+
+- **WHEN** release publication runs from a push to main or manual dispatch without trustworthy matching security evidence
+- **THEN** it runs the required checks or stops before any public publication
+- **AND** it cannot accept an unrelated PR artifact or a caller-supplied success flag as proof
+
+### Requirement: Every published asset matches verified release evidence
+
+Every published installer, CLI binary, MCP bundle and container image SHALL match trusted security evidence for its exact source revision and final artifact digest. Existing-release uploads SHALL match the release tag's commit. New tags SHALL name the verified revision. Manual dispatch, downstream workflows and asset repair SHALL enforce the same checks; a version string or upstream success alone SHALL NOT authorize publication.
+
+#### Scenario: Manual CLI dispatch selects another commit with the same version
+
+- **WHEN** a manual CLI release selects a source revision different from the target release tag's commit, even with an identical product version
+- **THEN** installer and binary uploads are rejected before any asset changes
+
+#### Scenario: Downstream workflow consumes checked candidates
+
+- **WHEN** the CLI publisher is triggered by an upstream release workflow
+- **THEN** it validates the trusted originating run, source/tag binding and final installer/binary digests before upload
+- **AND** a successful upstream conclusion without matching evidence cannot authorize publication
+
+#### Scenario: Missing asset is rebuilt or repaired
+
+- **WHEN** a release already exists but an installer, binary or bundle must be added or replaced
+- **THEN** the publisher requires fresh advisory checks and valid evidence for the exact source and artifact being uploaded
+- **AND** rebuilt or post-signing bytes require matching verification before publication
+
+#### Scenario: Existing tag with nothing to publish
+
+- **WHEN** a tagged-version run publishes or replaces no image, asset or package
+- **THEN** it remains an idempotent no-op without requiring a new security assessment
+
+### Requirement: Publication tooling is reviewed before credential use
+
+Publication tools and their resolved dependencies SHALL be pinned and included in dependency security audits before publication credentials are exposed to them. Unpinned download-and-execute tooling SHALL NOT run during publication. An unavailable or failing required tooling audit SHALL block publication.
+
+#### Scenario: Publisher would download an unpinned tool
+
+- **WHEN** a publication step would dynamically fetch an unpinned CLI or execute a tool absent from the reviewed dependency graph
+- **THEN** the gate rejects the publication configuration before credentials are provided
+
+#### Scenario: MCP publication uses verified bytes
+
+- **WHEN** an MCP bundle is attached to GitHub and published to its registry
+- **THEN** both destinations receive the bundle matching its verified digest through pinned, audited tooling
+
+### Requirement: Security evidence survives failed release checks
+
+Release security checks SHALL retain redacted JSON and Markdown reports for successful and failed runs, with a job-summary verdict and links to control evidence. Evidence SHALL identify the exact tested deployment and scanner scope. Historical reports SHALL not substitute for a current release verdict.
+
+#### Scenario: Runtime probe finds a vulnerability
+
+- **WHEN** a release security probe fails
+- **THEN** the CI run retains the redacted reproduction and remediation status even though publication is blocked
+- **AND** raw credentials and sensitive runtime data are excluded from retained artifacts
