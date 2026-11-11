@@ -130,6 +130,36 @@ test('default install renders no HPA, PodDisruptionBudget, NetworkPolicy, Ingres
   assert.equal(byKind(docs, 'Secret').length, 1);
 });
 
+test('the schema owner credential reaches the migrate Job and nothing else', () => {
+  const docs = helmTemplate([
+    ['migrationEnv.DATABASE_MIGRATION_URL', 'postgres://copalibre_owner:owner@db/copalibre'],
+    ['doctor.enabled', 'true'],
+    ['createAdmin.enabled', 'true'],
+    ['createAdmin.organizationAlias', 'my-league'],
+    ['createAdmin.organizationName', 'My League'],
+    ['createAdmin.email', 'admin@example.test'],
+  ]);
+  const secretName = (doc) => doc.metadata.name;
+  const migrationSecrets = byKind(docs, 'Secret').filter((doc) =>
+    secretName(doc).endsWith('-migration-secret'),
+  );
+  assert.equal(migrationSecrets.length, 1);
+  assert.equal(
+    migrationSecrets[0].stringData.DATABASE_MIGRATION_URL,
+    'postgres://copalibre_owner:owner@db/copalibre',
+  );
+  const loaders = [...byKind(docs, 'Job'), ...byKind(docs, 'Deployment')]
+    .filter((doc) => JSON.stringify(doc.spec).includes('-migration-secret'))
+    .map(secretName);
+  assert.equal(loaders.length, 1);
+  assert.match(loaders[0], /-migrate-/);
+  assert.ok(
+    !JSON.stringify(
+      byKind(docs, 'Secret').filter((doc) => !secretName(doc).endsWith('-migration-secret')),
+    ).includes('copalibre_owner'),
+  );
+});
+
 test('createAdmin Job renders nothing when createAdmin.enabled is not set', () => {
   const docs = helmTemplate();
   const jobs = byKind(docs, 'Job').filter((job) => job.metadata.name.includes('create-admin'));

@@ -21,6 +21,7 @@ function fakeDoctorDependencies(overrides: Partial<DoctorDependencies> = {}): Do
     probeDatabase: jest.fn(async () => undefined),
     ensureWritable: jest.fn(async () => undefined),
     retirableModules: jest.fn(async () => []),
+    runtimePrivilegeProblems: jest.fn(async () => []),
     probeDataIntegrity: jest.fn(async () => ({
       invalidStatusTournaments: [],
       reservedAliasOrganizations: [],

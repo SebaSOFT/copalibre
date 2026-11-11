@@ -166,6 +166,15 @@ secretKeys:
   - COPALIBRE_OBJECT_STORAGE_ACCESS_KEY
   - COPALIBRE_OBJECT_STORAGE_SECRET_KEY
 
+# The schema owner's credential, which only the migrate Job loads, from its own
+# Secret (templates/secret-migration.yaml). Every other pod gets DATABASE_URL,
+# which should be the runtime role. Run deploy/postgres/roles.sql once against
+# the database to create both roles; see docs/self-hosting.md#database-roles.
+# Left empty, migrations run with DATABASE_URL and `copalibre doctor` fails
+# database:runtime-privileges.
+migrationEnv:
+  DATABASE_MIGRATION_URL: ''
+
 migrate:
   # backoffLimit 0: fail fast, no silent retries — a stuck migration should
   # surface as a failed helm upgrade, not retry into a worse state.
@@ -304,5 +313,7 @@ externalSecrets:
   #   remoteRefs:
   #     DATABASE_URL: { key: copalibre/database, property: url }
   # Any key in `secretKeys` without an override here defaults to
-  # { key: <the env var name>, property: value }.
+  # { key: <the env var name>, property: value }. The migration Secret is only
+  # rendered when DATABASE_MIGRATION_URL has an entry here, e.g.:
+  #     DATABASE_MIGRATION_URL: { key: copalibre/database, property: migration-url }
   remoteRefs: {}

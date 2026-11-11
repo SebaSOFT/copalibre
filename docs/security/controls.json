@@ -185,7 +185,22 @@
         {
           "kind": "runtime",
           "id": "database-privileges-runtime",
-          "blocker": "needs the disposable production-profile TLS deployment"
+          "blocker": "scripts/security/runtime-probes.mjs writes this evidence with --doctor-command against the Compose deployment (CI deployment job)"
+        },
+        {
+          "kind": "test",
+          "file": "packages/persistence/src/runtime-privileges.integration.test.ts",
+          "name": "refuses the runtime role to %s"
+        },
+        {
+          "kind": "test",
+          "file": "packages/persistence/src/runtime-privileges.integration.test.ts",
+          "name": "finds no problem with the runtime role, and names the others"
+        },
+        {
+          "kind": "test",
+          "file": "scripts/security/runtime-probes.test.mjs",
+          "name": "probeDatabasePrivileges"
         }
       ]
     },

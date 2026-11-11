@@ -1,8 +1,8 @@
-import { Module, type Provider } from '@nestjs/common';
+import { Logger, Module, type Provider } from '@nestjs/common';
 import { createLocalJWKSet, importPKCS8, SignJWT, type JWK } from 'jose';
 import type { Kysely } from 'kysely';
 import { createObjectStorageAdapter, objectStorageConfigFromEnv } from '@copalibre/object-storage';
-import { createDatabase, databaseConfigFromEnv, type Database } from '@copalibre/persistence';
+import { createRuntimeDatabase, type Database } from '@copalibre/persistence';
 import { DATABASE } from '../database.token.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
 import { authConfigFromEnv } from '../auth/auth-config.js';
@@ -26,7 +26,8 @@ import { InstallationBootstrapController } from '../controllers/installation-boo
 const providers: Provider[] = [
   {
     provide: DATABASE,
-    useFactory: (): Kysely<Database> => createDatabase(databaseConfigFromEnv()),
+    useFactory: (): Kysely<Database> =>
+      createRuntimeDatabase((message) => new Logger('Database').warn(message)),
   },
   {
     provide: TokenVerifier,

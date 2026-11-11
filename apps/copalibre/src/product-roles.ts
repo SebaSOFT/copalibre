@@ -3,6 +3,7 @@ export const PRODUCT_ROLES = [
   'events',
   'worker',
   'scheduler',
+  'database-setup',
   'migrate',
   'doctor',
   'upgrade-check',

@@ -52,3 +52,19 @@ export function databaseConfigFromEnv(env: NodeJS.ProcessEnv = process.env): Dat
   }
   return { connectionString };
 }
+
+/**
+ * The credential migrations run with: `DATABASE_MIGRATION_URL`, the schema
+ * owner, when it is set. Without it, migrations use `DATABASE_URL`, which is
+ * how development and a single-credential install work; doctor then reports
+ * the runtime credential as able to change the schema.
+ */
+export function migrationDatabaseConfigFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+): DatabaseConfig {
+  const connectionString = env.DATABASE_MIGRATION_URL || env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error('DATABASE_MIGRATION_URL and DATABASE_URL are not set');
+  }
+  return { connectionString };
+}

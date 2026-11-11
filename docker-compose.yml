@@ -3,7 +3,9 @@
 name: copalibre
 
 x-application-environment: &application-environment
-  DATABASE_URL: postgres://${POSTGRES_USER:-copalibre}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-copalibre}
+  # Every role but database-setup and migrate connects as copalibre_app, which reads and
+  # writes rows and nothing else; see deploy/postgres/roles.sql.
+  DATABASE_URL: postgres://copalibre_app:${COPALIBRE_DATABASE_APP_PASSWORD:?Set COPALIBRE_DATABASE_APP_PASSWORD in .env (copalibre upgrade writes it)}@postgres:5432/${POSTGRES_DB:-copalibre}
   COPALIBRE_APP_URL: ${COPALIBRE_APP_URL:?Set COPALIBRE_APP_URL in .env}
   COPALIBRE_API_URL: ${COPALIBRE_API_URL:-http://localhost:3001}
   COPALIBRE_BOOTSTRAP_TOKEN: ${COPALIBRE_BOOTSTRAP_TOKEN:?Set COPALIBRE_BOOTSTRAP_TOKEN in .env}
@@ -57,14 +59,31 @@ services:
       timeout: 3s
       retries: 20
 
+  # Creates the schema owner and the runtime role and hands the schema to the owner, as
+  # the bootstrap superuser, before every migrate. The superuser credential goes here,
+  # to database-tools and to no other service.
+  database-setup:
+    <<: *application-service
+    environment:
+      PRODUCT_ROLE: database-setup
+      DATABASE_SETUP_URL: postgres://${POSTGRES_USER:-copalibre}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-copalibre}
+      COPALIBRE_DATABASE_OWNER_PASSWORD: ${COPALIBRE_DATABASE_OWNER_PASSWORD:?Set COPALIBRE_DATABASE_OWNER_PASSWORD in .env (copalibre upgrade writes it)}
+      COPALIBRE_DATABASE_APP_PASSWORD: ${COPALIBRE_DATABASE_APP_PASSWORD:?Set COPALIBRE_DATABASE_APP_PASSWORD in .env (copalibre upgrade writes it)}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
   migrate:
     <<: *application-service
     environment:
       <<: *application-environment
       PRODUCT_ROLE: migrate
+      # The schema owner: migrations create and alter tables, then grant copalibre_app its rows.
+      DATABASE_MIGRATION_URL: postgres://copalibre_owner:${COPALIBRE_DATABASE_OWNER_PASSWORD:?Set COPALIBRE_DATABASE_OWNER_PASSWORD in .env (copalibre upgrade writes it)}@postgres:5432/${POSTGRES_DB:-copalibre}
     depends_on:
-      postgres:
-        condition: service_healthy
+      database-setup:
+        condition: service_completed_successfully
     volumes:
       - ./modules:/var/lib/copalibre/modules:ro
     restart: 'no'

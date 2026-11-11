@@ -311,6 +311,61 @@ matching this command's own packet naming pattern. Restore only into a clean tar
 non-secret plan. A scheduled restore drill validates the supported procedure — see "Recovering a
 previous backup" below for what `restore` does after the data lands.
 
+## Database Roles
+
+An installation uses three PostgreSQL roles, each with its own password:
+
+| Role                                                       | Used by                                                                                  | Can                                                                                   |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| bootstrap superuser (`POSTGRES_USER`, `POSTGRES_PASSWORD`) | `database-setup`, `database-tools` (backup and restore)                                  | everything                                                                            |
+| `copalibre_owner` (`COPALIBRE_DATABASE_OWNER_PASSWORD`)    | `migrate`                                                                                | own and change the schema                                                             |
+| `copalibre_app` (`COPALIBRE_DATABASE_APP_PASSWORD`)        | api, events, worker, scheduler, web-ssr, doctor and every CLI command run in a container | read and write rows; append to the audit trail and read it, never change or delete it |
+
+The runtime role cannot create, alter, drop or truncate a table, run a program or read a file on the
+database server, or change the migration history. A bug or an injection in a request therefore
+reaches rows, never the database server.
+
+In the Compose install, `copalibre init` writes both passwords to `.env` with random values, and on
+every start the one-shot `database-setup` service runs
+[`deploy/postgres/roles.sql`](../deploy/postgres/roles.sql) as the superuser before `migrate`. The
+script creates the two roles if they are missing, sets their passwords from `.env`, gives the owner
+every object in schema `public`, and makes sure future tables reach the runtime role. Running it
+again changes nothing. After each run, `migrate` grants the runtime role its rows on every table.
+
+`copalibre doctor` fails `database:runtime-privileges` when the `DATABASE_URL` role is a superuser,
+can create roles or databases, can reach server files or programs, can create objects in `public`,
+or owns any of them. The api, events, worker and scheduler log one warning at startup under the
+same conditions and keep running, because a development database runs as the superuser on purpose.
+
+### External database or Kubernetes
+
+The Helm chart holds no superuser credential, so create the roles once yourself, as an
+administrative user of the installation's database:
+
+```bash
+psql "postgres://admin@db.example:5432/copalibre" -v ON_ERROR_STOP=1 \
+  -v owner_password="$COPALIBRE_DATABASE_OWNER_PASSWORD" \
+  -v app_password="$COPALIBRE_DATABASE_APP_PASSWORD" \
+  -f deploy/postgres/roles.sql
+```
+
+Run it again after you change either password. Then give the chart one URL per role:
+
+```yaml
+env:
+  DATABASE_URL: postgres://copalibre_app:<app password>@db.example:5432/copalibre
+migrationEnv:
+  DATABASE_MIGRATION_URL: postgres://copalibre_owner:<owner password>@db.example:5432/copalibre
+```
+
+`DATABASE_MIGRATION_URL` goes into its own Secret, which only the migrate Job loads. With External
+Secrets, map it under `externalSecrets.remoteRefs.DATABASE_MIGRATION_URL`. Left empty, migrations
+run with `DATABASE_URL` and doctor fails `database:runtime-privileges`.
+
+A managed PostgreSQL service may refuse `ALTER SCHEMA public OWNER`. The owner role still has
+`CREATE` on `public`, which is all migrations need; run the rest of the script and check that
+doctor passes.
+
 ## Upgrading
 
 Topology-specific procedures: [Caddy](deployment/reverse-proxy/caddy.md#upgrading-copalibre-behind-caddy),
@@ -401,6 +456,17 @@ that target release's migrations and schema checks, so use the matching CLI and 
 replaces target data; changes made after the backup are not recovered. Preserve failed-upgrade
 logs and backups while investigating.
 
+### Database roles
+
+Earlier releases connected every role as the PostgreSQL superuser. `copalibre upgrade` adds
+`COPALIBRE_DATABASE_OWNER_PASSWORD` and `COPALIBRE_DATABASE_APP_PASSWORD` to `.env` with random
+values and says so. It does not rewrite your `docker-compose.yml`: when the file has no
+`database-setup` service, `upgrade` says that too. Until you adopt the shipped file's
+`database-setup` and `migrate` services and its `DATABASE_URL`, the installation keeps running as
+the superuser and doctor fails `database:runtime-privileges`. On the first start with the shipped
+file, `database-setup` moves every existing table to `copalibre_owner`; nothing else in the data
+changes. See [Database Roles](#database-roles).
+
 ### Session cookies
 
 From this release a Control browser session keeps its access token in the `HttpOnly` session cookie
@@ -453,8 +519,9 @@ users and integrations must create replacement credentials.
 `copalibre backup`, then automatically finishes closing the loop with the code that is currently
 running:
 
-1. **Restore.** `pg_restore --clean --if-exists` replaces the target database with the packet's
-   dump.
+1. **Restore.** `database-setup` first makes sure the [database roles](#database-roles) exist, then
+   `pg_restore --clean --if-exists --role=copalibre_owner` replaces the target database with the
+   packet's dump, so every restored table belongs to the schema owner.
 2. **Migrate.** `copalibre restore` runs the same migration step `docker compose up` already runs on
    every ordinary start (`copalibre migrate`, i.e. `docker compose run --rm migrate`) — forward-only,
    applying whatever migrations the restored data is missing to reach the schema this installation's

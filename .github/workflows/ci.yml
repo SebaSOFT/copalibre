@@ -1140,6 +1140,10 @@ jobs:
       COPALIBRE_IMAGE: copalibre:ci
       COPALIBRE_WEB_IMAGE: copalibre-web:ci
       POSTGRES_PASSWORD: copalibre_e2e_only
+      # Compose interpolates these for every command against docker-compose.yml, the JWKS stub
+      # included; the installation in ci-e2e-install uses the random values init writes.
+      COPALIBRE_DATABASE_OWNER_PASSWORD: copalibre_e2e_owner_only
+      COPALIBRE_DATABASE_APP_PASSWORD: copalibre_e2e_app_only
       # Compose interpolates this even when the optional object-storage profile is not started.
       GARAGE_RPC_SECRET: c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
       COPALIBRE_APP_URL: http://localhost:4321
@@ -1229,6 +1233,7 @@ jobs:
         run: >-
           node scripts/security/runtime-probes.mjs --app-url https://localhost:8443
           --http-url http://localhost:8081 --insecure --inspector-host 127.0.0.1
+          --doctor-command 'cd ci-e2e-install && docker compose run --rm doctor'
           --out security-runtime
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
@@ -1305,6 +1310,8 @@ jobs:
       COPALIBRE_IMAGE: copalibre:ci
       COPALIBRE_WEB_IMAGE: copalibre-web:ci
       POSTGRES_PASSWORD: copalibre_ci_only
+      COPALIBRE_DATABASE_OWNER_PASSWORD: copalibre_ci_owner_only
+      COPALIBRE_DATABASE_APP_PASSWORD: copalibre_ci_app_only
       # Compose interpolates this even when the optional object-storage profile is not started.
       GARAGE_RPC_SECRET: c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
       COPALIBRE_APP_URL: http://web:4321

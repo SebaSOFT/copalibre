@@ -1,7 +1,12 @@
 import { chmod, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { LOCAL_DEFAULTS, generateRandomSecret, sessionCookieSecureSetting } from './init.js';
+import {
+  GENERATED_DATABASE_SECRETS,
+  LOCAL_DEFAULTS,
+  generateRandomSecret,
+  sessionCookieSecureSetting,
+} from './init.js';
 import { readInstallationMarker } from './installation-marker.js';
 
 export interface EnvReconciliationResult {
@@ -17,6 +22,12 @@ export interface ComposeReconciliationResult {
   readonly updatedImages: readonly string[];
   /** Shipped port mappings this reconciliation moved to 127.0.0.1, e.g. `3001:3001`. */
   readonly loopbackPorts: readonly string[];
+  /**
+   * The file has no `database-setup` service, so every role still connects as the
+   * PostgreSQL superuser. Reconciliation edits images and ports only; the operator
+   * adopts the shipped services.
+   */
+  readonly lacksDatabaseRoles: boolean;
 }
 
 /**
@@ -56,6 +67,7 @@ export interface InstallationReconciliationResult {
   readonly updatedImages: readonly string[];
   readonly addedSessionCookieSecure?: string;
   readonly loopbackPorts: readonly string[];
+  readonly lacksDatabaseRoles: boolean;
 }
 
 /**
@@ -121,7 +133,10 @@ export function reconcileEnvContent(
   for (const [key, defaultValue] of Object.entries(defaults)) {
     if (!foundKeys.has(key)) {
       addedKeys.push(key);
-      let val = key === 'GARAGE_RPC_SECRET' ? generateRandomSecret(32) : defaultValue;
+      let val =
+        key === 'GARAGE_RPC_SECRET' || isGeneratedDatabaseSecret(key)
+          ? generateRandomSecret(32)
+          : defaultValue;
       if (key === 'COPALIBRE_SESSION_COOKIE_SECURE') {
         val = sessionCookieSecureFromAppUrl(appUrl, defaultValue);
         addedSessionCookieSecure = val;
@@ -147,6 +162,10 @@ export function reconcileEnvContent(
     updatedKeys,
     ...(addedSessionCookieSecure === undefined ? {} : { addedSessionCookieSecure }),
   };
+}
+
+function isGeneratedDatabaseSecret(key: string): boolean {
+  return (GENERATED_DATABASE_SECRETS as readonly string[]).includes(key);
 }
 
 function sessionCookieSecureFromAppUrl(appUrl: string | undefined, fallback: string): string {
@@ -198,6 +217,7 @@ export function reconcileComposeContent(
     content: loopback.content,
     updatedImages,
     loopbackPorts: loopback.moved,
+    lacksDatabaseRoles: !/^ {2}database-setup:/m.test(loopback.content),
   };
 }
 
@@ -223,6 +243,7 @@ export async function reconcileInstallationDirectory(
   let updatedEnvKeys: readonly string[] = [];
   let updatedImages: readonly string[] = [];
   let loopbackPorts: readonly string[] = [];
+  let lacksDatabaseRoles = false;
   let addedSessionCookieSecure: string | undefined;
 
   if (existsSync(envPath)) {
@@ -247,6 +268,7 @@ export async function reconcileInstallationDirectory(
     }
     updatedImages = composeResult.updatedImages;
     loopbackPorts = composeResult.loopbackPorts;
+    lacksDatabaseRoles = composeResult.lacksDatabaseRoles;
   }
 
   const existingMarker = await readInstallationMarker(cwd);
@@ -272,6 +294,7 @@ export async function reconcileInstallationDirectory(
     updatedEnvKeys,
     updatedImages,
     loopbackPorts,
+    lacksDatabaseRoles,
     ...(addedSessionCookieSecure === undefined ? {} : { addedSessionCookieSecure }),
   };
 }

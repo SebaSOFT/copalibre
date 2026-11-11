@@ -13,10 +13,11 @@ import {
   CompetitionRecordRepository,
   InstalledModuleRepository,
   createDatabase,
+  runtimePrivilegeProblems,
 } from '@copalibre/persistence';
 import { sql } from 'kysely';
 import { createRemoteJWKSet, customFetch, type FetchImplementation } from 'jose';
-import { LOCAL_DEFAULTS } from './init.js';
+import { GENERATED_DATABASE_SECRETS, LOCAL_DEFAULTS } from './init.js';
 import {
   DATA_INTEGRITY_CHECKS,
   evaluateDataIntegrity,
@@ -57,6 +58,8 @@ export interface DoctorDependencies {
   readonly retirableModules: (connectionString: string) => Promise<readonly RetirableModule[]>;
   /** Puts, reads back, and deletes a small probe object against the configured profile. */
   readonly objectStorageRoundTrip: (environment: NodeJS.ProcessEnv) => Promise<void>;
+  /** What the `DATABASE_URL` role can do beyond reading and writing rows; empty when nothing. */
+  readonly runtimePrivilegeProblems: (connectionString: string) => Promise<readonly string[]>;
   /** Structural data-integrity snapshot for `evaluateDataIntegrity`. */
   readonly probeDataIntegrity: (connectionString: string) => Promise<DataIntegritySnapshot>;
   /** Every installed module asset, read through the active storage profile. */
@@ -82,6 +85,8 @@ const PLACEHOLDER_SECRETS: Readonly<Record<string, readonly string[]>> = {
     'copalibre_dev_bootstrap_only',
   ],
   GARAGE_RPC_SECRET: [LOCAL_DEFAULTS.GARAGE_RPC_SECRET],
+  COPALIBRE_DATABASE_OWNER_PASSWORD: [LOCAL_DEFAULTS.COPALIBRE_DATABASE_OWNER_PASSWORD],
+  COPALIBRE_DATABASE_APP_PASSWORD: [LOCAL_DEFAULTS.COPALIBRE_DATABASE_APP_PASSWORD],
 };
 
 export async function runDoctor(
@@ -96,6 +101,7 @@ export async function runDoctor(
   checks.push(...(await validatePublicUrls(environment, dependencies)));
   checks.push(...(await validateJwksContent(environment, dependencies)));
   checks.push(...(await validateDatabase(environment, dependencies)));
+  checks.push(await validateRuntimePrivileges(environment, dependencies));
   checks.push(await validateRetirableModules(environment, dependencies));
   checks.push(...(await validateDataIntegrity(environment, dependencies)));
   checks.push(await validateModuleAssets(environment, dependencies));
@@ -230,6 +236,19 @@ export function validateHostEnvironment(environment: NodeJS.ProcessEnv): DoctorR
   const checks: DoctorCheck[] = [];
   if (!environment.DATABASE_URL?.trim() && !environment.POSTGRES_PASSWORD?.trim()) {
     checks.push(fail('host-env:database', 'DATABASE_URL or POSTGRES_PASSWORD must be configured'));
+  }
+  // The Compose install builds both database URLs from these; an external DATABASE_URL does not.
+  if (!environment.DATABASE_URL?.trim()) {
+    for (const name of GENERATED_DATABASE_SECRETS) {
+      if (!environment[name]?.trim()) {
+        checks.push(
+          fail(
+            `host-env:${name}`,
+            `${name} is required; run "copalibre upgrade" or "copalibre repair" to generate it`,
+          ),
+        );
+      }
+    }
   }
 
   for (const name of [
@@ -430,6 +449,37 @@ export async function validateDatabase(
   } catch (error) {
     return [fail('postgresql', `PostgreSQL is unreachable: ${errorMessage(error)}`)];
   }
+}
+
+export const RUNTIME_PRIVILEGES_CHECK = 'database:runtime-privileges';
+
+/**
+ * The credential every request-serving role uses must read and write rows and
+ * do nothing else: a superuser, or a role that owns the schema, turns any SQL
+ * injection into control of the database server. Skipped when there is no
+ * database to ask; doctor's `postgresql` check reports that.
+ */
+export async function validateRuntimePrivileges(
+  environment: NodeJS.ProcessEnv,
+  dependencies: Pick<DoctorDependencies, 'runtimePrivilegeProblems'>,
+): Promise<DoctorCheck> {
+  const connectionString = environment.DATABASE_URL;
+  if (!connectionString) return skip(RUNTIME_PRIVILEGES_CHECK, 'DATABASE_URL is not configured');
+  let problems: readonly string[];
+  try {
+    problems = await dependencies.runtimePrivilegeProblems(connectionString);
+  } catch (error) {
+    return skip(
+      RUNTIME_PRIVILEGES_CHECK,
+      `Could not read the database role's privileges: ${errorMessage(error)}`,
+    );
+  }
+  return problems.length === 0
+    ? pass(RUNTIME_PRIVILEGES_CHECK, 'DATABASE_URL connects with row access only')
+    : fail(
+        RUNTIME_PRIVILEGES_CHECK,
+        `DATABASE_URL has more privileges than the runtime needs: ${problems.join('; ')}. Connect the runtime as copalibre_app and migrations as copalibre_owner; see docs/self-hosting.md#database-roles`,
+      );
 }
 
 /** Reports installed community discipline versions no live tournament references — informational, never `fail`. */
@@ -699,6 +749,14 @@ function systemDoctorDependencies(): DoctorDependencies {
             version: row.version,
           }))
           .filter((row): row is RetirableModule => row.alias !== undefined);
+      } finally {
+        await database.destroy();
+      }
+    },
+    runtimePrivilegeProblems: async (connectionString) => {
+      const database = createDatabase({ connectionString, maxConnections: 1 });
+      try {
+        return await runtimePrivilegeProblems(database);
       } finally {
         await database.destroy();
       }

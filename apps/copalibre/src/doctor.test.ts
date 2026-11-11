@@ -10,6 +10,7 @@ import {
   validatePersistentPath,
   validatePublicUrls,
   validateRetirableModules,
+  validateRuntimePrivileges,
   validateReverseProxy,
   validateServicePorts,
   type DoctorDependencies,
@@ -39,6 +40,7 @@ function dependencies(overrides: Partial<DoctorDependencies> = {}): DoctorDepend
     probeDatabase: jest.fn(async () => undefined),
     ensureWritable: jest.fn(async () => undefined),
     retirableModules: jest.fn(async () => []),
+    runtimePrivilegeProblems: jest.fn(async () => []),
     probeDataIntegrity: jest.fn(async () => ({
       invalidStatusTournaments: [],
       reservedAliasOrganizations: [],
@@ -423,6 +425,59 @@ describe('copalibre doctor', () => {
     );
 
     expect(check).toMatchObject({ status: 'fail', message: expect.stringContaining('timeout') });
+  });
+
+  it('passes the runtime privilege check for a role with row access only', async () => {
+    const check = await validateRuntimePrivileges(environment, dependencies());
+    expect(check).toMatchObject({ name: 'database:runtime-privileges', status: 'pass' });
+  });
+
+  it('fails the runtime privilege check, naming each problem, never the connection string', async () => {
+    const check = await validateRuntimePrivileges(
+      environment,
+      dependencies({
+        runtimePrivilegeProblems: async () => [
+          'role "copalibre" is a superuser',
+          'role "copalibre" owns 3 object(s) in schema public',
+        ],
+      }),
+    );
+    expect(check).toMatchObject({ name: 'database:runtime-privileges', status: 'fail' });
+    expect(check.message).toContain('is a superuser; role "copalibre" owns 3 object(s)');
+    expect(check.message).toContain('docs/self-hosting.md#database-roles');
+    expect(check.message).not.toContain(environment.DATABASE_URL);
+  });
+
+  it('skips the runtime privilege check without a database, or when it cannot ask', async () => {
+    expect(await validateRuntimePrivileges({}, dependencies())).toMatchObject({ status: 'skip' });
+    const unreachable = await validateRuntimePrivileges(
+      environment,
+      dependencies({ runtimePrivilegeProblems: async () => Promise.reject(new Error('refused')) }),
+    );
+    expect(unreachable).toMatchObject({ status: 'skip' });
+  });
+
+  it('fails a Compose host .env without the database passwords or with their placeholders', () => {
+    const missing = validateHostEnvironment({
+      ...environment,
+      DATABASE_URL: '',
+      POSTGRES_PASSWORD: 'operator-chosen-database-secret',
+      GARAGE_RPC_SECRET: 'generated-garage-secret',
+    });
+    expect(missing.checks).toContainEqual(
+      expect.objectContaining({ name: 'host-env:COPALIBRE_DATABASE_APP_PASSWORD', status: 'fail' }),
+    );
+    const placeholder = validateHostEnvironment({
+      ...environment,
+      GARAGE_RPC_SECRET: 'generated-garage-secret',
+      COPALIBRE_DATABASE_OWNER_PASSWORD: 'copalibre_owner_password_change_me',
+    });
+    expect(placeholder.checks).toContainEqual(
+      expect.objectContaining({
+        name: 'host-env:COPALIBRE_DATABASE_OWNER_PASSWORD',
+        status: 'fail',
+      }),
+    );
   });
 
   it('skips the retirable-modules check when no database is configured', async () => {
