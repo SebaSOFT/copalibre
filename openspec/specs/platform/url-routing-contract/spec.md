@@ -50,3 +50,54 @@ way: no separate listing discriminator SHALL produce a distinct organization-sco
 #### Scenario: There is no second way to express the organization path
 - **WHEN** the routing contract is inspected for an organization-scoped listing discriminator
 - **THEN** none exists, and no input produces `/{organization}/tournaments`
+
+### Requirement: Organization aliases exclude reserved names
+
+The system SHALL reject a new organization whose alias is a reserved name: a Control route name, a top-level route name, a supported language code, or a security name. Other alias scopes SHALL NOT be restricted by this list, because they never occupy a top-level path.
+
+#### Scenario: Route name
+
+- **WHEN** an installation is bootstrapped with the organization alias `login`
+- **THEN** the request is rejected, no organization is created, and the error says the alias is reserved
+
+#### Scenario: Security name
+
+- **WHEN** an installation is bootstrapped with the organization alias `constructor` or `administrator`
+- **THEN** the request is rejected and no organization is created
+
+#### Scenario: Reserved name inside a longer alias
+
+- **WHEN** an installation is bootstrapped with the organization alias `login-fc`
+- **THEN** the organization is created
+
+#### Scenario: Same word in another scope
+
+- **WHEN** a tournament is created with the alias `platform`
+- **THEN** the tournament is created
+
+### Requirement: Alias format is an allowlist
+
+Every alias SHALL contain only lowercase ASCII letters, digits and single inner hyphens, within the length limit. Validation SHALL accept nothing outside that format, so markup, quotes, path separators, percent encoding, control characters and non-ASCII look-alikes never reach a URL or a query as an alias.
+
+#### Scenario: Attack payloads
+
+- **WHEN** an alias holds a script tag, a SQL injection string, a path traversal, percent encoding, a `javascript:` URL, a trailing newline or a Cyrillic look-alike
+- **THEN** validation rejects it for every alias scope
+
+### Requirement: Diagnostics report an existing reserved alias
+
+`copalibre doctor` SHALL warn when an organization already holds a reserved alias, naming the organization, and SHALL NOT change it or fail the run.
+
+#### Scenario: Organization predates the list
+
+- **WHEN** an organization holds the alias `platform` and `copalibre doctor` runs
+- **THEN** the report carries a warning naming that organization, and the organization still loads
+
+### Requirement: The reserved list follows the routes
+
+A new top-level route or Control route name SHALL fail the automated tests until it is in the reserved list.
+
+#### Scenario: New route
+
+- **WHEN** a top-level page, public directory, gateway prefix or Control route name is added without a reserved entry
+- **THEN** the test suite fails and names it

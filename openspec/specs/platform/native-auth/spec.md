@@ -274,3 +274,27 @@ scopes, expiry and authentication method, and never the token. With no valid coo
 #### Scenario: No session
 - **WHEN** the request carries no session cookie or an expired one
 - **THEN** the API answers 401
+
+### Requirement: Accepting an invitation lands on a working screen
+
+After accepting an invitation, a person SHALL reach the same destination as after signing in, and SHALL NOT see an error caused by the landing address.
+
+#### Scenario: One organization
+
+- **WHEN** a person accepts an invitation and belongs to one organization
+- **THEN** they land on that organization's panel, and no request names an organization called `app`
+
+#### Scenario: Several organizations
+
+- **WHEN** a person accepts an invitation and belongs to several organizations
+- **THEN** they land on the list of their organizations
+
+#### Scenario: Platform administrator with no organization
+
+- **WHEN** a platform administrator with no organization accepts an invitation
+- **THEN** they land on platform administration
+
+#### Scenario: Session ended before landing
+
+- **WHEN** a person opens `/control/app` with no session
+- **THEN** they are sent to login, and after signing in they reach the same destination
