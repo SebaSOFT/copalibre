@@ -72,6 +72,40 @@ describe('installation bootstrap (integration)', () => {
     restore('COPALIBRE_APP_URL', originalEnvironment.appUrl);
   });
 
+  // Runs first, while the installation is still empty: a later bootstrap is
+  // refused because an organization exists, which would hide this refusal.
+  // Each from its own address, so these attempts leave the shared per-address
+  // bootstrap window to the tests below.
+  it.each([
+    ['login', '10.9.2.1'],
+    ['constructor', '10.9.2.2'],
+    ['administrator', '10.9.2.3'],
+  ])(
+    'refuses the reserved organization alias "%s" and writes nothing',
+    async (organizationAlias, address) => {
+      const response = await request({
+        method: 'POST',
+        url: '/api/installation/bootstrap/admin',
+        headers: { 'x-copalibre-bootstrap-token': 'bootstrap-secret', 'x-forwarded-for': address },
+        payload: {
+          organizationAlias,
+          organizationName: 'Liga Reservada',
+          email: 'admin@example.test',
+        },
+      });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json()).toMatchObject({
+        errorCode: 'installation-bootstrap-conflict',
+        message: expect.stringContaining('reserved'),
+      });
+      for (const table of ['organizations', 'audit_log', 'outbox_events'] as const) {
+        const rows = await scratch.db.selectFrom(table).selectAll().execute();
+        expect(rows).toHaveLength(0);
+      }
+    },
+  );
+
   it('creates and accepts exactly one first administrator through audit and outbox', async () => {
     const created = await request({
       method: 'POST',
