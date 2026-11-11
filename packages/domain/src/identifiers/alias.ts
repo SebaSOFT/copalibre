@@ -1,5 +1,74 @@
 import { InvalidAliasError } from '../errors.js';
+import { SUPPORTED_LANGUAGES } from '../i18n.js';
 import { err, ok, type Result } from '../result.js';
+
+/**
+ * Names no organization may take. An organization alias is the first path
+ * segment of its public pages, of `/control/{alias}` and of `/tv/{alias}`, so
+ * a name a route already uses would make that organization unreachable or
+ * shadow the route. Matching is exact: `login-fc` is an ordinary name.
+ *
+ * The security names are defence in depth. The control against markup,
+ * injection and traversal is the allowlist pattern below; these names only
+ * keep an alias from reading as the platform itself or as a special value
+ * if it ever reaches an object key, a log line or a link unprefixed.
+ */
+export const RESERVED_ORGANIZATION_ALIASES = {
+  controlRoutes: [
+    'app',
+    'callback',
+    'silent-renew-callback',
+    'login',
+    'forgot-password',
+    'reset-password',
+    'platform',
+  ],
+  topLevelRoutes: [
+    'control',
+    'api',
+    'auth',
+    'events',
+    'organizations',
+    'objects',
+    'admin',
+    'installation',
+    'disciplines',
+    'tournament-profiles',
+    'tv',
+    'invitations',
+    'help',
+    'health',
+    'openapi',
+    'schemas',
+    'scripts',
+    'authoring',
+    'background-removal',
+    'preview-fixtures',
+    '404',
+  ],
+  languages: SUPPORTED_LANGUAGES,
+  objectMembers: ['constructor', 'prototype'],
+  literalValues: ['null', 'undefined', 'nan', 'true', 'false'],
+  impersonation: [
+    'administrator',
+    'root',
+    'system',
+    'security',
+    'support',
+    'official',
+    'copalibre',
+  ],
+  urlSchemes: ['javascript', 'vbscript', 'data', 'file'],
+} as const satisfies Record<string, readonly string[]>;
+
+const RESERVED_ORGANIZATION_ALIAS_SET: ReadonlySet<string> = new Set(
+  Object.values(RESERVED_ORGANIZATION_ALIASES).flat(),
+);
+
+/** Whether `value` is a name no new organization may take. */
+export function isReservedOrganizationAlias(value: string): boolean {
+  return RESERVED_ORGANIZATION_ALIAS_SET.has(value);
+}
 
 /**
  * CopaLibre's term for a human-readable, URL-safe path identifier is "alias"
@@ -31,6 +100,14 @@ export class Alias {
       return err(
         new InvalidAliasError(
           `Alias must be lowercase kebab-case (a-z, 0-9, single hyphens): "${value}"`,
+          { scope, value },
+        ),
+      );
+    }
+    if (scope === 'organization' && isReservedOrganizationAlias(value)) {
+      return err(
+        new InvalidAliasError(
+          `Alias "${value}" is reserved and cannot name an organization; choose another`,
           { scope, value },
         ),
       );
