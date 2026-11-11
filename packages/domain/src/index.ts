@@ -24,7 +24,12 @@ export {
   latestVersion,
   InvalidSemanticVersionError,
 } from './identifiers/semantic-version.js';
-export { Alias, type AliasScope } from './identifiers/alias.js';
+export {
+  Alias,
+  type AliasScope,
+  RESERVED_ORGANIZATION_ALIASES,
+  isReservedOrganizationAlias,
+} from './identifiers/alias.js';
 /*
  * CSV import/export is deliberately absent from this barrel: it depends on
  * `csv-parse`/`csv-stringify`, which read `Buffer` at module scope, so keeping

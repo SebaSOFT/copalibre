@@ -4,6 +4,7 @@ description: Запустите CopaLibre из исходного кода на 
 capabilities:
   - platform/self-hosted-deployment
   - platform/email-notifications
+  - platform/security-assurance
 roles:
   - super-admin
 ---
@@ -77,6 +78,8 @@ CopaLibre не загружает шрифты, скрипты и стили с 
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```
+
+API и события доверяют `X-Forwarded-For` только из loopback и частных сетей. Прокси с публичным адресом нужно указать в `COPALIBRE_TRUSTED_PROXIES`; диапазон, охватывающий все адреса, отклоняется. Серия отклонённых запросов от одной учётной записи, по умолчанию 20 за десять минут (`COPALIBRE_SECURITY_ALERT_THRESHOLD`), вызывает одно оповещение безопасности: строку в журнале и письмо на `COPALIBRE_SECURITY_ALERT_EMAIL`, если он задан.
 
 ### Вариант B — Kubernetes (от K3s до корпоративных кластеров)
 

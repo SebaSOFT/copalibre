@@ -4,6 +4,7 @@ description: 在 Windows、macOS 或 Linux 上从源代码运行 CopaLibre，然
 capabilities:
   - platform/self-hosted-deployment
   - platform/email-notifications
+  - platform/security-assurance
 roles:
   - super-admin
 ---
@@ -74,6 +75,8 @@ CopaLibre 不从其他来源加载字体、脚本或样式。Web 容器在 `/_as
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```
+
+API 和事件服务只信任来自回环地址和私有网络的 `X-Forwarded-For`。位于公网地址的代理必须写入 `COPALIBRE_TRUSTED_PROXIES`；覆盖所有地址的范围会被拒绝。同一账户短时间内大量请求被拒绝（默认十分钟内 20 次，见 `COPALIBRE_SECURITY_ALERT_THRESHOLD`）时，会产生一条安全警报：一行日志，并在设置了 `COPALIBRE_SECURITY_ALERT_EMAIL` 时发送一封邮件。
 
 ### 方案 B——Kubernetes（从 K3s 到企业级集群）
 

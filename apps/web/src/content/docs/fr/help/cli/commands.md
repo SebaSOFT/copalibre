@@ -193,6 +193,9 @@ version cible. Voir [mise à jour](/fr/help/cli/updating/) pour la séquence com
 
 Crée le premier compte administrateur d'une organisation.
 
+L'alias ne peut pas être un nom que la plateforme utilise déjà dans ses adresses, comme `login`,
+`platform`, `tv`, `api` ou un code de langue comme `es` ; dans ce cas, la commande le refuse et explique pourquoi.
+
 ## login
 
 `copalibre login [--api-url <url>] [--token <token>]`

@@ -18,9 +18,23 @@ export interface InvalidStatusTournament {
   readonly status: string;
 }
 
+/** An organization created before its alias became a reserved name. */
+export interface ReservedAliasOrganization {
+  readonly organizationId: string;
+  readonly alias: string;
+  readonly name: string;
+}
+
 export interface DataIntegritySnapshot {
   readonly invalidStatusTournaments: readonly InvalidStatusTournament[];
+  readonly reservedAliasOrganizations: readonly ReservedAliasOrganization[];
 }
+
+/** Every check `evaluateDataIntegrity` reports, so a failed probe can skip each by name. */
+export const DATA_INTEGRITY_CHECKS = [
+  'data:tournament-status',
+  'data:reserved-organization-alias',
+] as const;
 
 /**
  * Pure combination step, mirroring `evaluateUpgrade` (`upgrade-check.ts`):
@@ -59,8 +73,39 @@ export interface DataIntegritySnapshot {
  *   "missing" is not a reachable state. A group/zone with no explicit
  *   entrant assignment is the normal shape of a single-implicit-group stage.
  */
-export function evaluateDataIntegrity(snapshot: DataIntegritySnapshot): readonly [DoctorCheck] {
-  return [tournamentStatusCheck(snapshot.invalidStatusTournaments)];
+export function evaluateDataIntegrity(
+  snapshot: DataIntegritySnapshot,
+): readonly [DoctorCheck, DoctorCheck] {
+  return [
+    tournamentStatusCheck(snapshot.invalidStatusTournaments),
+    reservedAliasCheck(snapshot.reservedAliasOrganizations),
+  ];
+}
+
+/**
+ * A new organization can no longer take a reserved alias, but one created
+ * before a name joined the list keeps it and still loads. Its public or
+ * Control pages may be shadowed by the route of the same name, so the
+ * operator hears about it; nothing is renamed and startup is not blocked.
+ */
+function reservedAliasCheck(organizations: readonly ReservedAliasOrganization[]): DoctorCheck {
+  if (organizations.length === 0) {
+    return {
+      name: 'data:reserved-organization-alias',
+      status: 'pass',
+      message: 'No organization holds a reserved alias',
+    };
+  }
+  const names = organizations
+    .map((organization) => `${organization.name} ('${organization.alias}')`)
+    .join(', ');
+  return {
+    name: 'data:reserved-organization-alias',
+    status: 'warn',
+    message:
+      `${organizations.length} organization(s) hold an alias a route or the platform reserves — ${names}. ` +
+      'They still load, but a page of the same name can shadow theirs.',
+  };
 }
 
 function tournamentStatusCheck(invalid: readonly InvalidStatusTournament[]): DoctorCheck {

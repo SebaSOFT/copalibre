@@ -190,6 +190,9 @@ con la versión objetivo. Ver [actualización](/es/help/cli/updating/) para la s
 
 Crea la primera cuenta de administrador de una organización.
 
+El alias no puede ser un nombre que la plataforma ya usa en sus direcciones, como `login`, `platform`,
+`tv`, `api` o un código de idioma como `es`; si lo es, el comando lo rechaza y explica por qué.
+
 ## login
 
 `copalibre login [--api-url <url>] [--token <token>]`

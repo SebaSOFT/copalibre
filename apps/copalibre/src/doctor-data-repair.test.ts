@@ -2,7 +2,10 @@ import { jest } from '@jest/globals';
 import { runInteractiveRepair, type Prompter, type RepairActions } from './doctor-data-repair.js';
 import type { DataIntegritySnapshot } from './doctor-data.js';
 
-const EMPTY_SNAPSHOT: DataIntegritySnapshot = { invalidStatusTournaments: [] };
+const EMPTY_SNAPSHOT: DataIntegritySnapshot = {
+  invalidStatusTournaments: [],
+  reservedAliasOrganizations: [],
+};
 
 function fakePrompter(overrides: Partial<Prompter> = {}): Prompter {
   return {
@@ -134,6 +137,7 @@ describe('runInteractiveRepair', () => {
       .mockResolvedValueOnce(false);
     const applied = await runInteractiveRepair(
       {
+        ...EMPTY_SNAPSHOT,
         invalidStatusTournaments: [
           { tournamentId: 't-1', organizationId: 'org-1', name: 'Apertura', status: 'completed' },
           { tournamentId: 't-2', organizationId: 'org-1', name: 'Clausura', status: 'ongoing' },

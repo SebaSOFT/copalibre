@@ -4,6 +4,7 @@ description: Führen Sie CopaLibre aus dem Quellcode unter Windows, macOS oder L
 capabilities:
   - platform/self-hosted-deployment
   - platform/email-notifications
+  - platform/security-assurance
 roles:
   - super-admin
 ---
@@ -79,6 +80,8 @@ Die Anmeldung bei Control setzt drei unbedingt erforderliche Cookies, keines dav
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```
+
+API und Events vertrauen `X-Forwarded-For` nur aus Loopback und privaten Netzen. Ein Proxy mit öffentlicher Adresse muss in `COPALIBRE_TRUSTED_PROXIES` stehen; ein Bereich, der alle Adressen umfasst, wird abgelehnt. Eine Häufung abgelehnter Anfragen eines Kontos, standardmäßig 20 in zehn Minuten (`COPALIBRE_SECURITY_ALERT_THRESHOLD`), löst einen Sicherheitsalarm aus: eine Logzeile und, falls gesetzt, eine E-Mail an `COPALIBRE_SECURITY_ALERT_EMAIL`.
 
 ### Option B — Kubernetes (von K3s bis zu Enterprise-Clustern)
 

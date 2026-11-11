@@ -165,6 +165,9 @@ CopaLibre 版本）。应用保留策略：成功备份后，删除超出 `--ret
 
 创建某个组织的第一个管理员账户。
 
+别名不能是平台在地址中已经使用的名称，例如 `login`、`platform`、`tv`、`api` 或 `es` 这样的语言代码；
+遇到这种情况，命令会拒绝并说明原因。
+
 ## login
 
 `copalibre login [--api-url <url>] [--token <token>]`

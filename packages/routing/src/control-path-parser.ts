@@ -178,10 +178,18 @@ const ORG_SCOPED_ROUTES: readonly {
   // Checked first: `/control/callback`, the OIDC redirect target, is
   // the same two-segment shape as `/control/{organization}` — without this,
   // `callback` would parse as an organization alias for the dashboard.
-  // Reserved: no real organization may use this alias.
+  // Every first segment matched here is a reserved organization alias:
+  // `Alias.create` in `@copalibre/domain` refuses it for a new organization, and a
+  // test in `apps/web` fails when a name here is missing from that list.
   {
     matches: (organizationAlias, rest) => organizationAlias === 'callback' && rest.length === 0,
     build: () => ({ screen: 'callback' }),
+  },
+  // `/control/app` is the file that mounts Control; flows that land a person
+  // after accepting an invitation navigate there. It is the root landing.
+  {
+    matches: (organizationAlias, rest) => organizationAlias === 'app' && rest.length === 0,
+    build: () => ({ screen: 'root' }),
   },
   // The hidden-iframe target for OIDC silent renewal: same
   // reserved-alias shape as `callback`, since it is the same PKCE redirect

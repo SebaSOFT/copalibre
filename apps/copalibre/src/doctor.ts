@@ -17,7 +17,11 @@ import {
 import { sql } from 'kysely';
 import { createRemoteJWKSet, customFetch, type FetchImplementation } from 'jose';
 import { LOCAL_DEFAULTS } from './init.js';
-import { evaluateDataIntegrity, type DataIntegritySnapshot } from './doctor-data.js';
+import {
+  DATA_INTEGRITY_CHECKS,
+  evaluateDataIntegrity,
+  type DataIntegritySnapshot,
+} from './doctor-data.js';
 import {
   evaluateModuleAssets,
   probeModuleAssets,
@@ -453,7 +457,8 @@ export async function validateRetirableModules(
 
 /**
  * Structural data diagnostics — non-canonical tournament
- * statuses. Always `pass` when the probe itself succeeds (see
+ * statuses and organizations holding a reserved alias. Never `fail`: `pass`, or
+ * `warn` for a reserved alias, when the probe itself succeeds (see
  * `evaluateDataIntegrity`'s doc comment for why, and for the further checks
  * the proposal named that turned out to have no sound, false-positive-free
  * signal against this domain's real rules); `skip` only when the database is
@@ -466,18 +471,14 @@ export async function validateDataIntegrity(
 ): Promise<readonly DoctorCheck[]> {
   const connectionString = environment.DATABASE_URL;
   if (!connectionString) {
-    return [skip('data:tournament-status', 'DATABASE_URL is not configured')];
+    return DATA_INTEGRITY_CHECKS.map((name) => skip(name, 'DATABASE_URL is not configured'));
   }
   try {
     const snapshot = await dependencies.probeDataIntegrity(connectionString);
     return evaluateDataIntegrity(snapshot);
   } catch (error) {
-    return [
-      skip(
-        'data:tournament-status',
-        `Could not run data integrity diagnostics: ${errorMessage(error)}`,
-      ),
-    ];
+    const reason = `Could not run data integrity diagnostics: ${errorMessage(error)}`;
+    return DATA_INTEGRITY_CHECKS.map((name) => skip(name, reason));
   }
 }
 
