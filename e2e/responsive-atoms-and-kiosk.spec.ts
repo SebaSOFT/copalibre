@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import { expect, test } from './fixtures.js';
+import { expect, gotoTv, test } from './support/tv-ready.js';
 
 /**
  * The ResponsiveTimestamp / EntrantName / ResponsivePlayerName
@@ -134,7 +134,7 @@ test.afterAll(async () => {
 
 test.describe('TV kiosk', () => {
   test('the spotlight keeps equal emblem frames and labels each team role', async ({ page }) => {
-    await page.goto(`${TV_PATH}?lang=es`);
+    await gotoTv(page, `${TV_PATH}?lang=es`);
 
     for (const viewport of [
       { width: 1920, height: 1080 },
@@ -159,7 +159,7 @@ test.describe('TV kiosk', () => {
 
   test('the spotlight keeps the full team name accessible in a narrow frame', async ({ page }) => {
     await page.setViewportSize({ width: 480, height: 900 });
-    await page.goto(TV_PATH);
+    await gotoTv(page, TV_PATH);
     const homeName = page.locator('.tv-team-side__name').first();
     await expect(homeName).toHaveText(HOME_NAME);
     await expect(homeName).toHaveAccessibleName(HOME_NAME);
@@ -172,7 +172,7 @@ test.describe('TV kiosk', () => {
   }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.goto(TV_PATH);
+    await gotoTv(page, TV_PATH);
     await page.getByRole('button', { name: 'Top performers' }).click();
     const rail = page.getByTestId('tv-rail-content');
     await expect(rail.getByText('Sebastian Dieguez')).toBeVisible();

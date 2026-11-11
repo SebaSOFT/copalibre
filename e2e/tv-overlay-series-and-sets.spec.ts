@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import { expect, test } from './fixtures.js';
+import { expect, gotoTv, test } from './support/tv-ready.js';
 
 /**
  * The broadcast overlay shows only the match it was given — pinned, or the live match of its court —
@@ -185,7 +185,7 @@ test.afterAll(async () => {
 test('an overlay with no match and no court shows the no-match state and no score', async ({
   page,
 }) => {
-  await page.goto(`${TV}?mode=overlay&bg=neutral`);
+  await gotoTv(page, `${TV}?mode=overlay&bg=neutral`);
 
   await expect(page.getByTestId('tv-overlay-no-match')).toContainText('No match selected');
   await expect(page.locator('body')).not.toContainText('TAL');
@@ -193,11 +193,11 @@ test('an overlay with no match and no court shows the no-match state and no scor
 });
 
 test('two overlays each show only their own match', async ({ page }) => {
-  await page.goto(`${TV}/stages/1/matches/1?mode=overlay`);
+  await gotoTv(page, `${TV}/stages/1/matches/1?mode=overlay`);
   await expect(page.getByTestId('tv-lower-third')).toContainText('TAL');
   await expect(page.getByTestId('tv-lower-third')).not.toContainText('BOC');
 
-  await page.goto(`${TV}/stages/1/matches/3?mode=overlay`);
+  await gotoTv(page, `${TV}/stages/1/matches/3?mode=overlay`);
   await expect(page.getByTestId('tv-lower-third')).toContainText('GIM');
   await expect(page.getByTestId('tv-lower-third')).not.toContainText('TAL');
 });
@@ -205,18 +205,18 @@ test('two overlays each show only their own match', async ({ page }) => {
 test('an overlay addressed to a court follows that court’s live match, and says when it has none', async ({
   page,
 }) => {
-  await page.goto(`${TV}?mode=overlay&court=${encodeURIComponent('Cancha 3')}`);
+  await gotoTv(page, `${TV}?mode=overlay&court=${encodeURIComponent('Cancha 3')}`);
   await expect(page.getByTestId('tv-lower-third')).toContainText('GIM');
   await expect(page.getByTestId('tv-lower-third')).not.toContainText('BOC');
 
-  await page.goto(`${TV}?mode=overlay&court=${encodeURIComponent('Cancha 9')}`);
+  await gotoTv(page, `${TV}?mode=overlay&court=${encodeURIComponent('Cancha 9')}`);
   await expect(page.getByTestId('tv-overlay-no-match')).toContainText(
     'No live match on this court',
   );
 });
 
 test('a match in sets shows the sets played and the one in play', async ({ page }) => {
-  await page.goto(`${TV}/stages/1/matches/1?mode=overlay&bg=neutral`);
+  await gotoTv(page, `${TV}/stages/1/matches/1?mode=overlay&bg=neutral`);
 
   const sets = page.getByTestId('tv-sets');
   await expect(sets.locator('.tv-progress__set-score')).toHaveText(['6–4', '3–6', '2–1']);
@@ -230,7 +230,7 @@ test('on a phone-shaped frame the lower third keeps the score and the sets on tw
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`${TV}/stages/1/matches/2?mode=overlay&bg=neutral`);
+  await gotoTv(page, `${TV}/stages/1/matches/2?mode=overlay&bg=neutral`);
 
   const series = await page.getByTestId('tv-series').boundingBox();
   const score = await page.locator('.tv-lower-third__clock').boundingBox();
@@ -241,7 +241,7 @@ test('on a phone-shaped frame the lower third keeps the score and the sets on tw
 });
 
 test('a match in a series shows where the series stands next to the score', async ({ page }) => {
-  await page.goto(`${TV}/stages/1/matches/2?mode=overlay&bg=neutral`);
+  await gotoTv(page, `${TV}/stages/1/matches/2?mode=overlay&bg=neutral`);
 
   await expect(page.getByTestId('tv-series')).toHaveAttribute('title', 'Series 1–0 · Game 2 of 3');
   await expect(page.locator('.tv-progress__pip')).toHaveCount(3);
@@ -249,14 +249,14 @@ test('a match in a series shows where the series stands next to the score', asyn
 });
 
 test('a plain match renders without any progress strip', async ({ page }) => {
-  await page.goto(`${TV}/stages/1/matches/3?mode=overlay`);
+  await gotoTv(page, `${TV}/stages/1/matches/3?mode=overlay`);
 
   await expect(page.getByTestId('tv-lower-third')).toBeVisible();
   await expect(page.getByTestId('tv-match-progress')).toHaveCount(0);
 });
 
 test('the sets strip does not change width when a set ends', async ({ page }) => {
-  await page.goto(`${TV}/stages/1/matches/1?mode=overlay`);
+  await gotoTv(page, `${TV}/stages/1/matches/1?mode=overlay`);
   const chip = page.locator('.tv-progress__set').first();
   const before = (await chip.boundingBox())?.width ?? 0;
 
@@ -271,17 +271,17 @@ test('the sets strip does not change width when a set ends', async ({ page }) =>
 
 test('captures the overlays at broadcast and phone size', async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await page.goto(`${TV}/stages/1/matches/1?mode=overlay-full&bg=neutral&lang=es`);
+  await gotoTv(page, `${TV}/stages/1/matches/1?mode=overlay-full&bg=neutral&lang=es`);
   await expect(page.getByTestId('tv-sets')).toBeVisible();
   await page.screenshot({ path: 'docs/assets/screenshots/tv-overlay-sets-desktop.png' });
-  await page.goto(`${TV}/stages/1/matches/2?mode=overlay-full&bg=neutral&lang=es`);
+  await gotoTv(page, `${TV}/stages/1/matches/2?mode=overlay-full&bg=neutral&lang=es`);
   await expect(page.getByTestId('tv-series')).toBeVisible();
   await page.screenshot({ path: 'docs/assets/screenshots/tv-overlay-series-desktop.png' });
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`${TV}/stages/1/matches/1?mode=overlay-full&bg=neutral&lang=es`);
+  await gotoTv(page, `${TV}/stages/1/matches/1?mode=overlay-full&bg=neutral&lang=es`);
   await expect(page.getByTestId('tv-sets')).toBeVisible();
   await page.screenshot({ path: 'docs/assets/screenshots/tv-overlay-sets-mobile.png' });
-  await page.goto(`${TV}/stages/1/matches/2?mode=overlay-full&bg=neutral&lang=es`);
+  await gotoTv(page, `${TV}/stages/1/matches/2?mode=overlay-full&bg=neutral&lang=es`);
   await page.screenshot({ path: 'docs/assets/screenshots/tv-overlay-series-mobile.png' });
 });

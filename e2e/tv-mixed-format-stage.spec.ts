@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import path from 'node:path';
-import { expect, test } from './fixtures.js';
+import { expect, gotoTv, test } from './support/tv-ready.js';
 
 /**
  * The venue kiosk of a stage that mixes formats: two league zones and a knockout zone. Each table
@@ -316,7 +316,7 @@ test.afterAll(async () => {
 });
 
 test('ranks each table zone under its own heading instead of one merged list', async ({ page }) => {
-  await page.goto(`${tvPath}?view=standings`);
+  await gotoTv(page, `${tvPath}?view=standings`);
 
   const zones = page.getByTestId('tv-standings-zone');
   await expect(zones).toHaveCount(2);
@@ -330,7 +330,7 @@ test('ranks each table zone under its own heading instead of one merged list', a
 test('lists the matches two to a row with their zone and round, and keeps the knockout zone in the bracket', async ({
   page,
 }) => {
-  await page.goto(`${tvPath}?view=matches`);
+  await gotoTv(page, `${tvPath}?view=matches`);
 
   const list = page.getByTestId('tv-match-list');
   const entries = list.getByRole('listitem');
@@ -342,7 +342,7 @@ test('lists the matches two to a row with their zone and round, and keeps the kn
   await expect(list).not.toContainText('BOG');
 
   // The knockout zone is the bracket, reached from the rotating dashboard's own tab.
-  await page.goto(tvPath);
+  await gotoTv(page, tvPath);
   await page.getByRole('button', { name: 'Bracket' }).click();
   const drawn = page.getByTestId('tv-bracket');
   await expect(drawn).toContainText('Copa de Oro');
@@ -351,7 +351,7 @@ test('lists the matches two to a row with their zone and round, and keeps the kn
 });
 
 test('every image the kiosk asks for loads from the web application alone', async ({ page }) => {
-  await page.goto(`${tvPath}?view=standings&bg=discipline`);
+  await gotoTv(page, `${tvPath}?view=standings&bg=discipline`);
   await expect(page.getByTestId('tv-standings-zone')).toHaveCount(2);
 
   const emblems = page.locator('.tv-table-club-emblem img');
@@ -374,7 +374,7 @@ test('every image the kiosk asks for loads from the web application alone', asyn
 test('the recap of a finished tournament lists the champions of every zone of the last stage', async ({
   page,
 }) => {
-  await page.goto(`/tv/${ORGANIZATION}/tournaments/${FINISHED_TOURNAMENT}`);
+  await gotoTv(page, `/tv/${ORGANIZATION}/tournaments/${FINISHED_TOURNAMENT}`);
 
   const zones = page.getByTestId('tv-champions-zone');
   await expect(zones).toHaveCount(3);
@@ -401,15 +401,15 @@ test('captures screenshots of the zone-aware kiosk at broadcast size', async ({ 
   // Reduced motion also stops the rail's rotation and its tab transitions, so a frame is stable.
   await page.emulateMedia({ reducedMotion: 'reduce' });
 
-  await page.goto(`${tvPath}?view=standings`);
+  await gotoTv(page, `${tvPath}?view=standings`);
   await expect(page.getByTestId('tv-standings-zone')).toHaveCount(2);
   await page.screenshot({ path: 'docs/assets/screenshots/tv-mixed-stage-standings.png' });
 
-  await page.goto(`${tvPath}?view=matches`);
+  await gotoTv(page, `${tvPath}?view=matches`);
   await expect(page.getByTestId('tv-match-list')).toBeVisible();
   await page.screenshot({ path: 'docs/assets/screenshots/tv-mixed-stage-matches.png' });
 
-  await page.goto(tvPath);
+  await gotoTv(page, tvPath);
   await page.getByRole('button', { name: 'Bracket' }).click();
   await expect(page.getByTestId('tv-bracket')).toBeVisible();
   // The rail tab fades its fill in and out; a frame taken mid-fade shows two tabs highlighted.

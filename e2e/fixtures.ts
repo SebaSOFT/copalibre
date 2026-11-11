@@ -22,14 +22,19 @@ const DEFAULT_API_PORT_BASE = 3101;
 async function forwardApiToMock(context: BrowserContext, workerPort: number): Promise<void> {
   await context.route('**/api/**', async (route) => {
     const url = new URL(route.request().url());
+    let response: Awaited<ReturnType<typeof route.fetch>> | undefined;
     try {
-      const response = await route.fetch({
+      response = await route.fetch({
         url: `http://127.0.0.1:${workerPort}${url.pathname}${url.search}`,
       });
-      await route.fulfill({ response });
     } catch {
-      await route.fulfill({ status: 404, body: 'No mock API is listening' });
+      response = undefined;
     }
+    // A request still in flight when its page navigates or closes can no longer be answered.
+    // That is the page's business, not a test failure, so a failed answer is dropped.
+    await route
+      .fulfill(response ? { response } : { status: 404, body: 'No mock API is listening' })
+      .catch(() => undefined);
   });
 }
 

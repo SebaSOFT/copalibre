@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import { expect, test } from './fixtures.js';
+import { expect, test } from './support/tv-ready.js';
 
 /**
  * The TV display launcher: its labels follow the language select with no reload, stages carry their

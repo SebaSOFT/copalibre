@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures.js';
+import { expect, gotoTv, test } from './support/tv-ready.js';
 import type { Page } from '@playwright/test';
 
 /**
@@ -100,7 +100,7 @@ test('recovers silently from a mid-session drop, with no error UI ever shown (8.
   page,
 }) => {
   await mockDroppedThenRecoveredStream(page);
-  await page.goto(`${TV_PATH}?token=kiosk-token`);
+  await gotoTv(page, `${TV_PATH}?token=kiosk-token`);
 
   // The reconnected stream's event lands once the client retries.
   await expect(page.getByText('Final', { exact: true })).toBeVisible({ timeout: 10_000 });
@@ -118,7 +118,7 @@ test('renders a transparent, chrome-free background under ?mode=overlay (8.2)', 
   page,
 }) => {
   await mockOpenStream(page);
-  await page.goto(`${TV_PATH}?mode=overlay&token=kiosk-token`);
+  await gotoTv(page, `${TV_PATH}?mode=overlay&token=kiosk-token`);
 
   // The class sits on the root element now, because that is what the server can
   // emit in the first response.
@@ -143,7 +143,7 @@ test('resumes rendering after a simulated power cycle, with no login prompt (8.3
   page,
 }) => {
   await mockOpenStream(page);
-  await page.goto(`${TV_PATH}?token=kiosk-token`);
+  await gotoTv(page, `${TV_PATH}?token=kiosk-token`);
   await expect(page.getByText('Talleres de Mendoza')).toBeVisible();
 
   // A power cycle clears everything volatile; the display token survives
