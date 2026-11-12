@@ -1408,14 +1408,15 @@ jobs:
         run: docker compose run --rm doctor
       # The web role compresses pages and stylesheets, and never the event
       # streams (a compressor delays live events) or authentication responses
-      # (they carry secrets beside client-sent text).
+      # (they carry secrets beside client-sent text). The help pages are static,
+      # exist on a fresh install and link their stylesheet; Control links none.
       - name: Verify the web role's compression
         run: |
           encoding() { curl -s -o /dev/null -D - -H 'Accept-Encoding: gzip' "$@" | tr -d '\r' | awk 'tolower($1) == "content-encoding:" { print $2 }'; }
-          stylesheet=$(curl -sf http://127.0.0.1:4321/control/ | grep -o '/_astro/[^"]*\.css' | head -n 1)
+          stylesheet=$(curl -sf http://127.0.0.1:4321/help/ | grep -o '/_astro/[^"]*\.css' | head -n 1)
           test -n "$stylesheet"
           test "$(encoding "http://127.0.0.1:4321${stylesheet}")" = gzip
-          test "$(encoding http://127.0.0.1:4321/control/)" = gzip
+          test "$(encoding http://127.0.0.1:4321/help/)" = gzip
           test -z "$(encoding --max-time 5 http://127.0.0.1:4321/events/proxy-check || true)"
           test -z "$(encoding http://127.0.0.1:4321/api/auth/session)"
       - name: Verify Caddy proxy conformance
