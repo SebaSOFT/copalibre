@@ -121,6 +121,27 @@ describe('unreferenced object listing and deletion', () => {
     );
   });
 
+  it('deletes the renditions and the legacy thumbnail together with their original', async () => {
+    const { objectId, storageKey } = await seedPassedObject();
+    const derived = [
+      `${storageKey}.w64.webp`,
+      `${storageKey}.w128.webp`,
+      `${storageKey}.w256.webp`,
+      `${storageKey}.thumbnail`,
+    ];
+    for (const key of derived) await storage.put(key, new Uint8Array(16));
+
+    const deleted = await request({
+      method: 'DELETE',
+      url: `/api/organizations/liga-orbital/storage-usage/objects/${objectId}`,
+      token: 'organizer-org1',
+    });
+
+    expect(deleted.statusCode).toBe(200);
+    expect(storage.objects.has(storageKey)).toBe(false);
+    for (const key of derived) expect(storage.objects.has(key)).toBe(false);
+  });
+
   it("refuses deleting an object that is the organization's current emblem, naming it", async () => {
     const { objectId } = await seedPassedObject();
     const organizations = new OrganizationRepository(scratch.db);

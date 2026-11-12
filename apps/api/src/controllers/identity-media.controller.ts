@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   Res,
 } from '@nestjs/common';
@@ -17,13 +18,23 @@ import {
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import type { Kysely } from 'kysely';
 import sharp from 'sharp';
 import { imageContentType, safeObjectName } from '../http/upload-names.js';
-import type { ObjectStorageAdapter } from '@copalibre/object-storage';
+import {
+  EMBLEM_RENDITION_CONTENT_TYPE,
+  EMBLEM_RENDITION_WIDTHS,
+  emblemRenditionKey,
+  hasEmblemRenditions,
+  isEmblemRenditionWidth,
+  renderEmblemRendition,
+  type EmblemRenditionWidth,
+  type ObjectStorageAdapter,
+} from '@copalibre/object-storage';
 import type { Tournament } from '@copalibre/domain';
 import {
   EnrollmentRepository,
@@ -367,17 +378,20 @@ export class ClubMediaController {
   @Get('emblem')
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: "Stream a club's emblem, once it has passed validation" })
+  @EmblemWidthQuery()
   @ApiOkResponse({ description: 'Image bytes', schema: { type: 'string', format: 'binary' } })
   async serveEmblem(
     @Param('clubId') clubId: string,
+    @Query('width') width: string | undefined,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<Buffer | undefined> {
+    const renditionWidth = parseEmblemWidth(width);
     const club = await new EnrollmentRepository(this.db).findClub(clubId);
     if (!club?.emblemObjectId)
       throw new NotFoundException('No emblem for this club', {
         errorCode: 'identity-media-not-found',
       });
-    return streamStoredObject(this.db, this.storage, club.emblemObjectId, reply);
+    return streamEmblem(this.db, this.storage, club.emblemObjectId, renditionWidth, reply);
   }
 }
 
@@ -435,11 +449,14 @@ export class OrganizationMediaController {
   @Get('emblem')
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: "Stream an organization's emblem, once it has passed validation" })
+  @EmblemWidthQuery()
   @ApiOkResponse({ description: 'Image bytes', schema: { type: 'string', format: 'binary' } })
   async serveEmblem(
     @Param('organizationAlias') organizationAlias: string,
+    @Query('width') width: string | undefined,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<Buffer | undefined> {
+    const renditionWidth = parseEmblemWidth(width);
     const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
     if (!organization) {
       throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
@@ -450,7 +467,7 @@ export class OrganizationMediaController {
       throw new NotFoundException('No emblem for this organization', {
         errorCode: 'identity-media-not-found',
       });
-    return streamStoredObject(this.db, this.storage, organization.emblemObjectId, reply);
+    return streamEmblem(this.db, this.storage, organization.emblemObjectId, renditionWidth, reply);
   }
 }
 
@@ -564,12 +581,15 @@ export class TournamentMediaController {
   @Get('emblem')
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: "Stream a tournament's emblem, once it has passed validation" })
+  @EmblemWidthQuery()
   @ApiOkResponse({ description: 'Image bytes', schema: { type: 'string', format: 'binary' } })
   async serveEmblem(
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
+    @Query('width') width: string | undefined,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<Buffer | undefined> {
+    const renditionWidth = parseEmblemWidth(width);
     const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
     const organizationId = organization?.organizationId;
     const tournament = organizationId
@@ -580,7 +600,7 @@ export class TournamentMediaController {
         errorCode: 'identity-media-not-found',
       });
     }
-    return streamStoredObject(this.db, this.storage, tournament.emblemObjectId, reply);
+    return streamEmblem(this.db, this.storage, tournament.emblemObjectId, renditionWidth, reply);
   }
 
   @Delete('emblem')
@@ -740,19 +760,43 @@ async function decodeImage(
   return { bytes, contentType, name };
 }
 
+const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable';
+
+/** Declares the optional rendition width on an emblem route in the OpenAPI document. */
+function EmblemWidthQuery(): MethodDecorator {
+  return ApiQuery({
+    name: 'width',
+    required: false,
+    enum: [...EMBLEM_RENDITION_WIDTHS],
+    description:
+      'Serve a WebP rendition of this width instead of the stored original. ' +
+      'SVG and GIF emblems are always served as stored.',
+  });
+}
+
+/** `undefined` asks for the original; any value outside the fixed list is refused before anything is read or stored. */
+function parseEmblemWidth(width: string | undefined): EmblemRenditionWidth | undefined {
+  if (width === undefined) return undefined;
+  const parsed = /^\d+$/.test(width) ? Number(width) : Number.NaN;
+  if (!isEmblemRenditionWidth(parsed)) {
+    throw new BadRequestException(
+      `Emblem width must be one of ${EMBLEM_RENDITION_WIDTHS.join(', ')}; received "${width}"`,
+      { errorCode: 'identity-media-bad-request' },
+    );
+  }
+  return parsed;
+}
+
 /**
- * Resolves an already-owned `ObjectMetadata` id to bytes on the wire —
- * `pending` polls (202, no body, matching how a freshly-uploaded row sits
- * until `objectProcessingHandler` picks it up), `failed` never serves
- * (404), `passed` streams through the adapter with a long-lived cache
- * header.
+ * Resolves an already-owned `ObjectMetadata` id to its metadata, answering
+ * `pending` (202, no body, matching how a freshly-uploaded row sits until
+ * `objectProcessingHandler` picks it up) and `failed` (404) itself.
  */
-async function streamStoredObject(
+async function passedObject(
   db: Kysely<Database>,
-  storage: ObjectStorageAdapter,
   objectId: string,
   reply: FastifyReply,
-): Promise<Buffer | undefined> {
+): Promise<ObjectMetadata | undefined> {
   const metadata: ObjectMetadata | undefined = await new ObjectMetadataRepository(db).findById(
     objectId,
   );
@@ -766,9 +810,62 @@ async function streamStoredObject(
     reply.status(202);
     return undefined;
   }
+  return metadata;
+}
 
+/** `passed` objects stream through the adapter with a long-lived cache header. */
+async function streamStoredObject(
+  db: Kysely<Database>,
+  storage: ObjectStorageAdapter,
+  objectId: string,
+  reply: FastifyReply,
+): Promise<Buffer | undefined> {
+  const metadata = await passedObject(db, objectId, reply);
+  return metadata ? sendOriginal(storage, metadata, reply) : undefined;
+}
+
+async function sendOriginal(
+  storage: ObjectStorageAdapter,
+  metadata: ObjectMetadata,
+  reply: FastifyReply,
+): Promise<Buffer> {
   const stored = await storage.get({ key: metadata.storageKey });
   reply.header('Content-Type', stored.contentType ?? metadata.contentType);
-  reply.header('Cache-Control', 'public, max-age=31536000, immutable');
+  reply.header('Cache-Control', IMMUTABLE_CACHE);
   return Buffer.from(stored.body);
+}
+
+/**
+ * An emblem at the asked width. The original stays the only source of truth:
+ * a rendition is read from storage when the worker (or an earlier request)
+ * made it, and otherwise rendered once from the original, stored and served.
+ * The work is bounded by the fixed widths and the fixed upload size.
+ */
+async function streamEmblem(
+  db: Kysely<Database>,
+  storage: ObjectStorageAdapter,
+  objectId: string,
+  width: EmblemRenditionWidth | undefined,
+  reply: FastifyReply,
+): Promise<Buffer | undefined> {
+  const metadata = await passedObject(db, objectId, reply);
+  if (!metadata) return undefined;
+  if (width === undefined || !hasEmblemRenditions(metadata.contentType)) {
+    return sendOriginal(storage, metadata, reply);
+  }
+
+  const key = emblemRenditionKey(metadata.storageKey, width);
+  const body = await storage.get({ key }).then(
+    (stored) => Buffer.from(stored.body),
+    async () => {
+      const original = await storage.get({ key: metadata.storageKey });
+      const rendition = await renderEmblemRendition(original.body, width);
+      // Two first requests may both render; they write the same bytes to the same key.
+      await storage.put(key, rendition, EMBLEM_RENDITION_CONTENT_TYPE);
+      return rendition;
+    },
+  );
+  reply.header('Content-Type', EMBLEM_RENDITION_CONTENT_TYPE);
+  reply.header('Cache-Control', IMMUTABLE_CACHE);
+  return body;
 }

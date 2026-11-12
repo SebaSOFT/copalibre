@@ -6,7 +6,16 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { PrincipalThrottlerGuard } from '../auth/principal-throttler.guard.js';
 import { Test } from '@nestjs/testing';
 import sharp from 'sharp';
-import type { ObjectStorageAdapter } from '@copalibre/object-storage';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import {
+  createObjectStorageAdapter,
+  emblemRenditionKey,
+  type ObjectReference,
+  type ObjectStorageAdapter,
+  type StoredObject,
+} from '@copalibre/object-storage';
 import {
   AuditReader,
   EnrollmentRepository,
@@ -96,20 +105,33 @@ class FakeTokenVerifier {
   }
 }
 
-class FakeObjectStorage implements ObjectStorageAdapter {
+/**
+ * The real filesystem profile, recording every write: a missing key throws as
+ * it does in production, which is how a missing rendition is detected.
+ */
+class RecordingStorage implements ObjectStorageAdapter {
   readonly profile = 'filesystem' as const;
-  private readonly objects = new Map<string, Uint8Array>();
+  readonly writes: string[] = [];
+  constructor(private readonly inner: ObjectStorageAdapter) {}
 
-  async put(key: string, body: Uint8Array): Promise<{ key: string }> {
-    this.objects.set(key, body);
-    return { key };
+  put(key: string, body: Uint8Array, contentType: string): Promise<ObjectReference> {
+    this.writes.push(key);
+    return this.inner.put(key, body, contentType);
   }
-  async get(reference: { key: string }): Promise<{ body: Uint8Array; contentType?: string }> {
-    return { body: this.objects.get(reference.key) ?? new Uint8Array() };
+  get(reference: ObjectReference): Promise<StoredObject> {
+    return this.inner.get(reference);
   }
-  async delete(reference: { key: string }): Promise<void> {
-    this.objects.delete(reference.key);
+  delete(reference: ObjectReference): Promise<void> {
+    return this.inner.delete(reference);
   }
+}
+
+async function solidPng(background: { r: number; g: number; b: number }): Promise<Buffer> {
+  return sharp({
+    create: { width: 410, height: 512, channels: 4, background: { ...background, alpha: 1 } },
+  })
+    .png()
+    .toBuffer();
 }
 
 function descriptor(): DisciplineDescriptor {
@@ -143,8 +165,14 @@ describe('person photo / club emblem upload and public serve (integration)', () 
   let clubId: string;
   let tournamentAlias: string;
   let tournamentId: string;
+  let storageRoot: string;
+  let storage: RecordingStorage;
 
   beforeAll(async () => {
+    storageRoot = await mkdtemp(join(tmpdir(), 'copalibre-identity-media-'));
+    storage = new RecordingStorage(
+      createObjectStorageAdapter({ profile: 'filesystem', rootDirectory: storageRoot }),
+    );
     scratch = await createMigratedDatabase('identity-media-http');
     db = scratch.db;
     organizationAlias = 'liga-media';
@@ -256,7 +284,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
       providers: [
         { provide: DATABASE, useValue: db },
         { provide: TokenVerifier, useClass: FakeTokenVerifier },
-        { provide: OBJECT_STORAGE, useValue: new FakeObjectStorage() },
+        { provide: OBJECT_STORAGE, useValue: storage },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         { provide: APP_GUARD, useClass: OrganizationAccessGuard },
         { provide: APP_GUARD, useClass: PrincipalThrottlerGuard },
@@ -278,6 +306,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
   afterAll(async () => {
     await app?.close();
     await scratch?.drop();
+    await rm(storageRoot, { recursive: true, force: true });
   });
 
   function inject(options: Parameters<NestFastifyApplication['inject']>[0]) {
@@ -855,6 +884,111 @@ describe('person photo / club emblem upload and public serve (integration)', () 
         headers: { authorization: 'Bearer organizer' },
       });
       expect(deleteAgain.statusCode).toBe(404);
+    });
+  });
+
+  describe('emblem renditions', () => {
+    const routes = (): readonly (readonly [string, string])[] => [
+      ['organization', `/api/organizations/${organizationAlias}/emblem`],
+      ['club', `/api/organizations/${organizationAlias}/clubs/${clubId}/emblem`],
+      [
+        'tournament',
+        `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+      ],
+    ];
+
+    async function upload(url: string, bytes: Buffer, filename = 'emblem.png') {
+      const response = await inject({
+        method: 'POST',
+        url,
+        headers: { authorization: 'Bearer organizer' },
+        payload: { filename, contentType: 'image/png', contentBase64: bytes.toString('base64') },
+      });
+      expect(response.statusCode).toBe(201);
+      const { objectId } = response.json() as { objectId: string };
+      const metadata = await new ObjectMetadataRepository(db).findById(objectId);
+      return { objectId, storageKey: metadata?.storageKey ?? '' };
+    }
+
+    it.each([0, 1, 2])('serves, stores once and refuses widths on route %i', async (index) => {
+      const [, url] = routes()[index] ?? ['', ''];
+      const original = await solidPng({ r: 200, g: 30, b: 30 });
+      const { objectId, storageKey } = await upload(url, original);
+      const renditionKey = emblemRenditionKey(storageKey, 128);
+
+      // Pending: the same 202 as the original, and nothing rendered.
+      const pending = await inject({ method: 'GET', url: `${url}?width=64` });
+      expect(pending.statusCode).toBe(202);
+      expect(storage.writes).not.toContain(emblemRenditionKey(storageKey, 64));
+
+      await new ObjectMetadataRepository(db).markPassed(objectId);
+
+      const first = await inject({ method: 'GET', url: `${url}?width=128` });
+      expect(first.statusCode).toBe(200);
+      expect(first.headers['content-type']).toBe('image/webp');
+      expect(first.headers['cache-control']).toBe('public, max-age=31536000, immutable');
+      expect(await sharp(first.rawPayload).metadata()).toMatchObject({
+        format: 'webp',
+        width: 128,
+        height: 160,
+      });
+      expect(storage.writes.filter((key) => key === renditionKey)).toHaveLength(1);
+
+      const second = await inject({ method: 'GET', url: `${url}?width=128` });
+      expect(second.statusCode).toBe(200);
+      expect(Buffer.from(second.rawPayload).equals(Buffer.from(first.rawPayload))).toBe(true);
+      expect(storage.writes.filter((key) => key === renditionKey)).toHaveLength(1);
+
+      const writesBefore = storage.writes.length;
+      for (const width of ['100', '410', 'abc', '']) {
+        const refused = await inject({ method: 'GET', url: `${url}?width=${width}` });
+        expect(refused.statusCode).toBe(400);
+        expect(refused.json().detail ?? refused.body).toContain('64, 128, 256');
+      }
+      expect(storage.writes).toHaveLength(writesBefore);
+
+      const unchanged = await inject({ method: 'GET', url });
+      expect(unchanged.statusCode).toBe(200);
+      expect(unchanged.headers['content-type']).toBe('image/png');
+      expect(Buffer.from(unchanged.rawPayload).equals(original)).toBe(true);
+    });
+
+    it('serves an SVG emblem as stored when a width is asked', async () => {
+      const [, url] = routes()[1] ?? ['', ''];
+      const svg = conformingSvg();
+      const response = await inject({
+        method: 'POST',
+        url,
+        headers: { authorization: 'Bearer organizer' },
+        payload: {
+          filename: 'emblem.svg',
+          contentType: 'image/svg+xml',
+          contentBase64: Buffer.from(svg).toString('base64'),
+        },
+      });
+      const { objectId } = response.json() as { objectId: string };
+      await new ObjectMetadataRepository(db).markPassed(objectId);
+
+      const served = await inject({ method: 'GET', url: `${url}?width=64` });
+      expect(served.statusCode).toBe(200);
+      expect(served.headers['content-type']).toBe('image/svg+xml');
+      expect(served.rawPayload.toString()).toBe(svg);
+    });
+
+    it('serves a rendition of the new image once a club replaces its emblem', async () => {
+      const [, url] = routes()[1] ?? ['', ''];
+      const red = await upload(url, await solidPng({ r: 220, g: 20, b: 20 }), 'red.png');
+      await new ObjectMetadataRepository(db).markPassed(red.objectId);
+      expect((await inject({ method: 'GET', url: `${url}?width=64` })).statusCode).toBe(200);
+
+      const blue = await upload(url, await solidPng({ r: 20, g: 20, b: 220 }), 'blue.png');
+      await new ObjectMetadataRepository(db).markPassed(blue.objectId);
+      const replaced = await inject({ method: 'GET', url: `${url}?width=64` });
+
+      const [redChannel, , blueChannel] = (await sharp(replaced.rawPayload).stats()).channels;
+      expect(blueChannel?.mean).toBeGreaterThan(150);
+      expect(redChannel?.mean).toBeLessThan(80);
+      expect(blue.storageKey).not.toBe(red.storageKey);
     });
   });
 });
