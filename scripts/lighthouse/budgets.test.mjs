@@ -32,7 +32,7 @@ test('Lighthouse config covers every public route with the slow mobile profile',
 
 // Every fixture route lives under the API's /api prefix, as the web app requests it.
 // A route left at the old root answers 404, and Lighthouse then measures an error page.
-test('the performance fixture API answers the match report and club emblems under /api', async () => {
+test('the performance fixture API answers every route the measured pages request, under /api', async () => {
   const fixture = await startPerformanceFixtureApi();
   try {
     const tournament = '/api/organizations/panamericano-demo/tournaments/panamericano-clubes-2025';
@@ -44,6 +44,27 @@ test('the performance fixture API answers the match report and club emblems unde
     );
     assert.notEqual(emblem.status, 404);
     await emblem.arrayBuffer();
+
+    const layouts = await (await fetch(`${fixture.url}${tournament}/public/tables`)).json();
+    assert.deepEqual(
+      layouts.layouts.map((layout) => layout.target),
+      ['group-phase', 'player-ranking'],
+    );
+
+    const standings = await fetch(
+      `${fixture.url}${tournament}/stages/1/public/tables/group-standings-default`,
+    );
+    assert.equal(standings.status, 200);
+    const { rows, segments } = await standings.json();
+    assert.ok(rows.length > 1);
+    assert.equal(rows[0].rank, 1);
+    assert.equal(segments[0].groupName, 'Grupo A');
+    assert.ok(rows[0].cells.points.value >= rows.at(-1).cells.points.value);
+
+    const players = await (
+      await fetch(`${fixture.url}${tournament}/public/tables/player-statistics`)
+    ).json();
+    assert.ok(players.rows[0].cells.g.value > 0);
   } finally {
     await fixture.close();
   }
