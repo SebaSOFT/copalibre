@@ -440,7 +440,15 @@ function imageFrame(): string {
     '  height: 55%;',
     '}',
     '',
+    // The cut and the padding scale with the emblem: a fixed 14px cut and 8px
+    // padding collapse a 16-24px emblem into a diagonal sliver with no room for
+    // the image. Computed here, not in a component, because TV passes the size
+    // as a CSS length (`3vmin`). 4px cut and 1px padding at 16-20px, 8px and 4px
+    // at 32px, the full cut and 8px from 48px.
     '.cl-entrant-emblem {',
+    `  --cl-emblem-cut-max: ${RADIUS['image-frame']};`,
+    `  --cl-chamfer-size: clamp(${RADIUS.md}, calc(var(--entrant-emblem-size, 48px) * 0.375 - 4px), var(--cl-emblem-cut-max));`,
+    '  --cl-emblem-inset: clamp(1px, calc(var(--entrant-emblem-size, 48px) / 4 - 4px), var(--cl-space-2));',
     '  width: var(--entrant-emblem-size);',
     '  aspect-ratio: 1 / 1;',
     '  max-height: none;',
@@ -451,7 +459,7 @@ function imageFrame(): string {
     '.cl-entrant-emblem img {',
     '  box-sizing: border-box;',
     '  object-fit: contain;',
-    '  padding: var(--cl-space-2);',
+    '  padding: var(--cl-emblem-inset);',
     '}',
     '',
     '.cl-entrant-emblem--bare {',
@@ -493,6 +501,11 @@ function imageFrame(): string {
     '/* Operator surfaces cut less: density over drama. */',
     '.cl-image-frame--control {',
     `  --cl-chamfer-size: ${RADIUS['image-frame-control']};`,
+    '}',
+    '',
+    '.cl-image-frame--control.cl-entrant-emblem {',
+    `  --cl-emblem-cut-max: ${RADIUS['image-frame-control']};`,
+    `  --cl-chamfer-size: clamp(${RADIUS.md}, calc(var(--entrant-emblem-size, 48px) * 0.375 - 4px), var(--cl-emblem-cut-max));`,
     '}',
   ].join('\n');
 }
