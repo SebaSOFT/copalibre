@@ -124,6 +124,212 @@ const completion = {
   stages: stageSummaries,
 };
 
+// The table layouts the demo's discipline module declares, so the overview renders
+// its standings and top performers as on a real installation.
+const disciplineModule = JSON.parse(
+  await readFile(
+    new URL('../../apps/seed/src/test-fixtures/rink-hockey-1.1.0.artifact.json', import.meta.url),
+    'utf8',
+  ),
+);
+const tableLayouts = new Map(disciplineModule.tableLayouts.map((layout) => [layout.code, layout]));
+const { pointsPerWin, pointsPerDraw, pointsPerLoss } = disciplineModule.defaults.scoring;
+
+function formatCell(value, column) {
+  if (value === 0 && column.zeroDisplay !== undefined) return column.zeroDisplay;
+  if (column.format === 'decimal-2') return value.toFixed(2);
+  if (column.format === 'decimal-1') return value.toFixed(1);
+  if (column.format === 'percentage') return `${Math.round(value * 100)}%`;
+  return String(value);
+}
+
+/** Ranks rows by the layout's `defaultSort`; tied rows share a rank. */
+function rankRows(layout, entries) {
+  const sortKey = (entry) => layout.defaultSort.map((rule) => entry.values[rule.columnCode] ?? 0);
+  const compare = (left, right) => {
+    const leftKey = sortKey(left);
+    const rightKey = sortKey(right);
+    for (const [index, rule] of layout.defaultSort.entries()) {
+      const difference = leftKey[index] - rightKey[index];
+      if (difference !== 0) return rule.direction === 'desc' ? -difference : difference;
+    }
+    return 0;
+  };
+  const ordered = [...entries].sort(compare);
+  return ordered.map((entry) => {
+    const firstTied = ordered.findIndex((other) => compare(other, entry) === 0);
+    const tied = ordered.filter((other) => compare(other, entry) === 0).length > 1;
+    const cells = {};
+    for (const column of layout.columns) {
+      if (column.code === 'rank') {
+        cells.rank = { value: firstTied + 1, formatted: String(firstTied + 1) };
+      } else if (column.code in entry.text) {
+        cells[column.code] = { formatted: entry.text[column.code] };
+      } else if (column.code in entry.fractions) {
+        const [numerator, denominator] = entry.fractions[column.code];
+        cells[column.code] = { formatted: `${numerator}/${denominator}`, numerator, denominator };
+      } else {
+        const value = entry.values[column.code] ?? 0;
+        cells[column.code] = { value, formatted: formatCell(value, column) };
+      }
+    }
+    return { ...entry.row, rank: firstTied + 1, sharedRank: tied, cells };
+  });
+}
+
+function projection(layout, rows, extra = {}) {
+  return {
+    layoutCode: layout.code,
+    target: layout.target,
+    label: layout.label,
+    columns: layout.columns.map(
+      ({ code, header, shortHeader, description, zeroDisplay, format }) => ({
+        code,
+        header,
+        ...(shortHeader === undefined ? {} : { shortHeader }),
+        ...(description === undefined ? {} : { description }),
+        ...(zeroDisplay === undefined ? {} : { zeroDisplay }),
+        format,
+      }),
+    ),
+    defaultSort: layout.defaultSort,
+    rows,
+    projectionVersion: 1,
+    ...extra,
+  };
+}
+
+function clubRow(club) {
+  return {
+    actorId: club.clubId,
+    entrantId: club.clubId,
+    actorName: club.name,
+    entrantName: club.name,
+    entrantAbbreviation: club.abbreviation,
+    clubId: club.clubId,
+    emblemObjectId: uuid(1000 + clubs.indexOf(club)),
+  };
+}
+
+function groupStandings(stageNumber) {
+  const layout = tableLayouts.get('group-standings-default');
+  const records = gameRecords.filter((record) => record.stageNumber === stageNumber);
+  const phase = records[0]?.phase;
+  if (!layout || phase?.kind !== 'group') return undefined;
+
+  const totals = new Map();
+  const totalsFor = (teamAlias) => {
+    const club = clubForTeam(teamAlias);
+    if (!totals.has(club.clubId)) {
+      totals.set(club.clubId, { club, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0 });
+    }
+    return totals.get(club.clubId);
+  };
+  for (const { game } of records) {
+    const home = totalsFor(game.homeTeamAlias);
+    const away = totalsFor(game.awayTeamAlias);
+    for (const [side, scored, conceded] of [
+      [home, game.homeGoals, game.awayGoals],
+      [away, game.awayGoals, game.homeGoals],
+    ]) {
+      side.played += 1;
+      side.gf += scored;
+      side.ga += conceded;
+      if (scored > conceded) side.wins += 1;
+      else if (scored === conceded) side.draws += 1;
+      else side.losses += 1;
+    }
+  }
+
+  const rows = rankRows(
+    layout,
+    [...totals.values()].map((total) => ({
+      row: clubRow(total.club),
+      text: { name: total.club.name },
+      fractions: {},
+      values: {
+        played: total.played,
+        wins: total.wins,
+        draws: total.draws,
+        losses: total.losses,
+        gf: total.gf,
+        ga: total.ga,
+        gd: total.gf - total.ga,
+        'goal-average': total.gf / Math.max(total.ga, 1),
+        points:
+          total.wins * pointsPerWin + total.draws * pointsPerDraw + total.losses * pointsPerLoss,
+      },
+    })),
+  );
+  return projection(layout, rows, {
+    segments: [{ groupName: phase.name, rows }],
+    grain: 'match',
+  });
+}
+
+function playerStatistics() {
+  const layout = tableLayouts.get('player-statistics');
+  if (!layout) return undefined;
+
+  const appearancesByTeam = new Map();
+  for (const { game } of gameRecords) {
+    for (const teamAlias of [game.homeTeamAlias, game.awayTeamAlias]) {
+      appearancesByTeam.set(teamAlias, (appearancesByTeam.get(teamAlias) ?? 0) + 1);
+    }
+  }
+  const goals = new Map();
+  const penaltyGoals = new Map();
+  const freeKickGoals = new Map();
+  const add = (counts, alias) => counts.set(alias, (counts.get(alias) ?? 0) + 1);
+  for (const { game } of gameRecords) {
+    for (const event of game.events ?? []) {
+      if (event.type !== 'goal' || !event.playerAlias) continue;
+      add(goals, event.playerAlias);
+      if (event.detail === 'penalti') add(penaltyGoals, event.playerAlias);
+      if (event.detail === 'falta directa') add(freeKickGoals, event.playerAlias);
+    }
+  }
+
+  const rows = rankRows(
+    layout,
+    dataset.players.map((player, index) => {
+      const club = clubForTeam(player.teamAlias);
+      const name = `${player.givenNames} ${player.surname}`;
+      const g = goals.get(player.alias) ?? 0;
+      const pj = appearancesByTeam.get(player.teamAlias) ?? 0;
+      const as = player.assists ?? 0;
+      const pen = penaltyGoals.get(player.alias) ?? 0;
+      const fd = freeKickGoals.get(player.alias) ?? 0;
+      return {
+        row: {
+          ...(club ? clubRow(club) : {}),
+          actorId: uuid(5000 + index),
+          actorName: name,
+          nationality: player.nationality,
+          publicProfileAvailable: true,
+        },
+        text: { player: name, team: club?.name ?? player.teamAlias },
+        fractions: { fd: [fd, fd] },
+        values: {
+          g,
+          pj,
+          gpp: g / Math.max(pj, 1),
+          as,
+          app: as / Math.max(pj, 1),
+          pen,
+          'pen-percent': pen === 0 ? 0 : 1,
+          'fd-percent': fd === 0 ? 0 : 1,
+          az: 0,
+          azpp: 0,
+          rj: 0,
+          rjpp: 0,
+        },
+      };
+    }),
+  );
+  return projection(layout, rows);
+}
+
 function sendJson(response, status, value) {
   response.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
@@ -205,6 +411,32 @@ export async function startPerformanceFixtureApi() {
       );
       sendJson(response, 200, { matches: filtered });
       return;
+    }
+
+    if (pathname === `${tournamentRoot}/public/tables`) {
+      sendJson(response, 200, {
+        layouts: [...tableLayouts.values()].map(({ code, target, label, entityGranularity }) => ({
+          code,
+          target,
+          label,
+          entityGranularity,
+        })),
+      });
+      return;
+    }
+    if (pathname === `${tournamentRoot}/public/tables/player-statistics`) {
+      sendJson(response, 200, playerStatistics());
+      return;
+    }
+    const standingsPath = pathname.match(
+      /^\/api\/organizations\/[^/]+\/tournaments\/[^/]+\/stages\/(\d+)\/public\/tables\/group-standings-default$/,
+    );
+    if (standingsPath) {
+      const standings = groupStandings(Number(standingsPath[1]));
+      if (standings) {
+        sendJson(response, 200, standings);
+        return;
+      }
     }
 
     const matchPath = pathname.match(
