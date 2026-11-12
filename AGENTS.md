@@ -290,7 +290,25 @@ languages) and the `CHANGELOG.md` section are prepared and merged into `develop`
   nothing exercises them between releases. Before opening the release pull request, run
   `gh workflow run ci.yml --ref <branch>` on a branch that holds the release content and fix what it
   shows; a dispatched run counts as a release candidate.
-- **Dependabot alerts exist only on `main`.** GitHub creates them when the lockfile reaches the
+- **Skipped release jobs hide regressions.** Between releases nothing runs those jobs, and failures pile
+  up behind them: from 2026-10-09 to 2026-11-12 four unrelated regressions accumulated (doctor before
+  the database roles existed, doctor missing a variable, a dev-only heartbeat check in containers,
+  `events` rejecting native sessions). The first dispatch after such a gap shows only the first
+  failure of each job; fix it, dispatch again, and read every job end to end before calling it green.
+- **Read the dispatched run, not the previous one.** `gh workflow run` right after `git push` can run
+  the old commit. Compare `gh run view <id> --json headSha` with `git rev-parse HEAD` first.
+- **Check every workflow on a pull request, not only `CI`.** `gh pr checks <number>` lists them all
+  (the CLI build check, Helm lint); a red one there blocks the merge just the same.
+- **A stacked pull request runs fewer workflows.** One whose base is another PR's branch skips every
+  workflow that triggers only on pull requests to `develop` (the CLI build check among them). Merge the
+  base PR first, or merge the stacked one into the base branch and dispatch on it, and say which in
+  both PR bodies.
+- **Try a new CI step's commands against the real target before pushing it.** A deploy smoke step
+  failed in its first command because the page it read (`/control/`) links no stylesheet; running the
+  same commands against the shipped Caddyfile (the performance harness serves it locally) would have
+  shown that in seconds. Release-candidate steps cost a full dispatch to find out otherwise.
+- **`mirror.gcr.io` has a per-host quota.** It can answer `Quota exceeded … artifactregistry` for a
+  while and then recover; the job did not fail on code. Rerun it once later before changing registry. GitHub creates them when the lockfile reaches the
   default branch, so `scripts/check-dependabot-alerts.mjs` can pass on `develop` and fail the
   `Release` workflow right after the merge. An alert with no patched version is recorded in
   `KNOWN_UNPATCHED_ADVISORIES` in that script (package, GHSA, upstream issue, dependency path, runtime
@@ -307,7 +325,33 @@ run` steps, through `registry-mirrors` in the daemon's configuration for `docker
   pull request.
 - **Clean-host flow.** `copalibre init` writes placeholder secrets that `doctor` rejects by design, so
   the `Deployment E2E` job writes its own into the installation's `.env` before `doctor`; `doctor`
-  starts its dependencies with `--pull missing`, never `never`.
+  starts its dependencies with `--pull missing`, never `never`. In Compose, `doctor` depends on
+  `database-setup`, because it connects as the runtime database role that `database-setup` creates.
+
+### Performance budgets and the web role
+
+- **The gate measures the shipped serving path.** `scripts/lighthouse/run.mjs` serves the built site
+  through `deploy/web/Caddyfile` in the web role's own Caddy image (read from the `Dockerfile`'s `web`
+  stage, pulled through `mirror.gcr.io`), in front of the built renderer and a fixture API. It needs
+  Docker and a free port 4321: stop the dev web app or a preview first. Docker Desktop does not share
+  the host network, so Caddy reaches the renderer and the fixture through `host.docker.internal`, and
+  both listen on every interface while it runs.
+- **The fixture API mirrors routes by hand and says what it leaves out.**
+  `scripts/lighthouse/performance-fixture-api.mjs` must answer every API route a measured page requests,
+  or list it in `DECLARED_ABSENT_ROUTES` with a reason; any other 404 fails the gate, because the page
+  measured would not be the one visitors see. When a route or prefix moves, grep it there too.
+- **Compression is the web role's.** Its Caddyfile compresses text with zstd and gzip and never
+  `/events` (a compressor holds live events back) or `/api/auth` (secrets beside client-sent text).
+  Caddy runs `rewrite` and `try_files` before `encode`, so the matcher sees the rewritten path: keep new
+  rewrites away from `/api` and `/events`. `apps/web/scripts/web-compression.test.mjs` guards both
+  exclusions.
+- **Measure before and after with the same harness.** Record the medians per route from the run's own
+  reports (`.artifacts/lighthouseci/*.report.json`), not from memory of an earlier run: a fixture change
+  moves the baseline. A budget still missed is read from the LCP phases, the shift sources and the
+  resource summary before anything is changed.
+- **A layout-shift test must prove it can fail.** A fast machine runs module scripts before the first
+  paint and hides a load shift; delay `/_astro/*.js` in the spec, and refuse web fonts when the shift
+  under test is not a font swap. Then break the fix (in `dist`, not the source) and watch it fail.
 
 ## Changes and Reviews
 
@@ -455,8 +499,10 @@ infrastructure files changed) and confirm every one is green before opening a PR
 for every required CI check to pass, then wait for explicit merge approval — do not merge a PR on your
 own initiative, and an earlier approval does not carry forward to the next PR. Once merged, sync
 `develop`, delete the local and remote feature branches, then archive the change with
-`openspec archive <change> --yes`. Git ignore rules are authoritative: never force-add active or archived
-change artifacts. Keep resulting accepted-spec deltas uncommitted on `develop`; on the next feature
+`openspec archive <change> --yes`, then run `openspec validate --specs --strict`: archiving merges deltas
+into accepted requirements, and a merged requirement over 500 characters fails CI's strict check, so
+split it into requirements that each state one behavior before the promotion commit. Git ignore rules
+are authoritative: never force-add active or archived change artifacts. Keep resulting accepted-spec deltas uncommitted on `develop`; on the next feature
 branch, commit only those `openspec/specs/` deltas first
 (`docs(openspec): promote NNNN specs into the accepted baseline`). Do not create a standalone PR for
 promotion. The last change of a queue has no next branch: its promotion is the first commit of the
