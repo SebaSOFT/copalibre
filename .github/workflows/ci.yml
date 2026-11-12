@@ -751,17 +751,57 @@ jobs:
         run: PLAYWRIGHT_CHROMIUM_100_PATH="$HOME/.cache/ms-playwright/chromium-965416/chrome-linux/chrome" PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --grep-invert @visible-identifier-lint --shard=${{ matrix.shard }}
       - name: Run visible-identifier lint
         run: PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --grep @visible-identifier-lint --shard=${{ matrix.shard }}
-      # This shard already installed Playwright's Chromium above. Run the
-      # costly Lighthouse gate here, once per workflow, reusing that browser.
-      - name: Run public performance budgets
-        if: needs.detect-changes.outputs.performance_gate == 'true' && matrix.shard == '1/2'
-        env:
-          PERFORMANCE_BUDGET_ENFORCEMENT: error
-        run: node scripts/lighthouse/run.mjs
       # A retry that rescues a test passes the job, so list those tests where a reviewer looks.
       - name: List flaky E2E tests
         if: always()
         run: node scripts/summarize-playwright-flaky.mjs test-results/playwright-results.json "E2E shard ${{ matrix.shard }} flaky tests"
+
+  # The Lighthouse budgets run in their own job, so a budget miss fails this
+  # check by name and never skips the release image build or the deployment
+  # verification after it: `build` does not need this job. It still enforces in
+  # error mode, so a release PR to main shows the miss as a red check.
+  performance-budgets:
+    name: Public performance budgets
+    runs-on: ubuntu-latest
+    needs: [install, detect-changes, web-build-producer]
+    if: |
+      needs.detect-changes.outputs.performance_gate == 'true' &&
+      needs.detect-changes.outputs.backend_only != 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: yarn
+      - run: yarn install --immutable
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: web-build-dist
+          path: apps/web/dist
+      - name: Verify build artifact identity
+        run: |
+          node scripts/build-identity.mjs verify \
+            --dist=apps/web/dist \
+            --run-id="${{ github.run_id }}" \
+            --commit="${{ github.sha }}" \
+            --config="production"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+      - run: yarn playwright install --with-deps chromium
+      - name: Run public performance budgets
+        env:
+          PERFORMANCE_BUDGET_ENFORCEMENT: error
+        run: node scripts/lighthouse/run.mjs
+      # The reports name the shifting element and the LCP element of each run.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: lighthouse-reports
+          path: .artifacts/lighthouseci
+          retention-days: 14
 
   # Aggregate required gate preserving the stable check name 'E2E tests'.
   # Validates all shards passed; the accelerated TV soak-test proxy step runs
