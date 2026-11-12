@@ -118,6 +118,9 @@ services:
       <<: *application-environment
       PRODUCT_ROLE: events
       PORT: 3002
+      # Where events fetches the API's key set to verify native sessions; with an
+      # external identity provider, COPALIBRE_JWKS_URI holds only that provider's keys.
+      COPALIBRE_API_INTERNAL_URL: http://api:3001
     depends_on:
       migrate:
         condition: service_completed_successfully

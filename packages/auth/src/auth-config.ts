@@ -22,6 +22,12 @@ export interface AuthConfig {
   readonly issuer?: string;
   /** Exact issuer for locally signed native sessions, when configured. */
   readonly nativeIssuer?: string;
+  /**
+   * The API's own key set, for processes other than the API that verify native
+   * sessions. Absent, they look native keys up at `jwksUri`, which holds them
+   * only when the API is the identity provider.
+   */
+  readonly nativeJwksUri?: string;
   /** Exact expected `aud`. */
   readonly audience: string;
   /**
@@ -40,6 +46,7 @@ export function authConfigFromEnv(env: NodeJS.ProcessEnv = process.env): AuthCon
   const jwksUri = env.COPALIBRE_JWKS_URI;
   const issuer = env.COPALIBRE_JWT_ISSUER;
   const audience = env.COPALIBRE_JWT_AUDIENCE;
+  const apiInternalUrl = env.COPALIBRE_API_INTERNAL_URL?.trim().replace(/\/+$/, '');
 
   const missing = [['COPALIBRE_JWT_AUDIENCE', audience]]
     .filter(([, value]) => !value)
@@ -55,6 +62,8 @@ export function authConfigFromEnv(env: NodeJS.ProcessEnv = process.env): AuthCon
     ...(jwksUri ? { jwksUri } : {}),
     ...(issuer ? { issuer } : {}),
     nativeIssuer: env.COPALIBRE_NATIVE_JWT_ISSUER ?? 'http://localhost:8080',
+    // The API publishes its key set under /api; see apps/api's auth controller.
+    ...(apiInternalUrl ? { nativeJwksUri: `${apiInternalUrl}/api/auth/jwks.json` } : {}),
     audience: audience as string,
     jwksCacheMaxAgeMs: readPositiveInt(
       env.COPALIBRE_JWKS_CACHE_MAX_AGE_MS,

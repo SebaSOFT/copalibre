@@ -76,9 +76,16 @@ test('web-ssr reaches the API through the cluster, not through its own loopback'
   assert.equal(env.COPALIBRE_API_INTERNAL_URL, 'http://release-name-api:3001');
 });
 
-test('only web-ssr carries the internal API URL', () => {
+test('events fetches the API key set through the cluster, to verify native sessions', () => {
+  // With an external identity provider, COPALIBRE_JWKS_URI holds only that
+  // provider's keys: events derives the API's key set from this URL.
+  const env = envOf(named(helmTemplate(), 'Deployment', 'release-name-events'));
+  assert.equal(env.COPALIBRE_API_INTERNAL_URL, 'http://release-name-api:3001');
+});
+
+test('only web-ssr and events carry the internal API URL', () => {
   const docs = helmTemplate();
-  for (const role of ['api', 'events', 'worker', 'scheduler']) {
+  for (const role of ['api', 'worker', 'scheduler']) {
     const env = envOf(named(docs, 'Deployment', `release-name-${role}`));
     assert.equal(env.COPALIBRE_API_INTERNAL_URL, undefined);
   }
