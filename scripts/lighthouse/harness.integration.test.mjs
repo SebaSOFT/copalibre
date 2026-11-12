@@ -46,6 +46,22 @@ test('the stylesheet arrives compressed, as an installation sends it', async () 
   }
 });
 
+test('the page preloads its heading face, the same file its stylesheet declares', async () => {
+  const page = await (await fetch(`${harness.url}${PERFORMANCE_ROUTES[0]}`)).text();
+  const preloads = [...page.matchAll(/<link\b[^>]*\brel="preload"[^>]*>/g)]
+    .map(([tag]) => tag)
+    .filter((tag) => /\bas="font"/.test(tag));
+  assert.equal(preloads.length, 1, 'exactly one font is preloaded');
+  const [preload] = preloads;
+  assert.match(preload, /\bcrossorigin\b/, 'a font preload without crossorigin is fetched twice');
+  const href = preload.match(/\bhref="([^"]+)"/)?.[1];
+  assert.match(href ?? '', /^\/_astro\/barlow-condensed-latin-700-normal\.[^/]+\.woff2$/);
+
+  const stylesheet = page.match(/href="(\/_astro\/[^"]+\.css)"/)?.[1];
+  const css = await (await fetch(`${harness.url}${stylesheet}`)).text();
+  assert.ok(css.includes(`url(${href})`), 'the stylesheet declares the preloaded file');
+});
+
 test('the event stream passes through uncompressed and open', async () => {
   const controller = new AbortController();
   const response = await fetch(

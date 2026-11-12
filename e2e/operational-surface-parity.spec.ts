@@ -40,9 +40,15 @@ test('blocked font delivery preserves readable labels and focus at the zoom floo
   await expect(input).toBeFocused();
   expect(await input.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe('none');
   expect(await page.evaluate(() => document.body.scrollWidth <= innerWidth)).toBe(true);
+  // No delivered face loaded; the metric-matched fallbacks are local system faces, and loading
+  // them is what keeps the labels readable here.
   expect(
     await page.evaluate(
-      () => [...document.fonts].filter((font) => font.status === 'loaded').length,
+      () =>
+        [...document.fonts].filter(
+          (font) =>
+            font.status === 'loaded' && !font.family.replace(/["']/g, '').endsWith(' Fallback'),
+        ).length,
     ),
   ).toBe(0);
 });

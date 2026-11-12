@@ -17,6 +17,7 @@ import {
   TOUCH_TARGET,
   TYPOGRAPHY,
 } from '../primitives.js';
+import { fallbackFontFaces } from '../font-fallbacks.js';
 import {
   BADGE_TONES,
   BUTTON_VARIANTS,
@@ -81,6 +82,8 @@ export function generateCss(): string {
     ...FONT_STYLESHEETS.map((stylesheet) => `@import '${stylesheet}';`),
     '',
     header(),
+    ...fallbackFontFaces(),
+    '',
     `:root {`,
     `  color-scheme: dark;`,
     ...Object.entries(COLOR_PRIMITIVES)
@@ -123,6 +126,7 @@ export function generateCss(): string {
     '',
     '.cl-icon { display: inline-block; flex: none; vertical-align: middle; }',
     '.cl-icon--tabler { transform: scale(var(--cl-icon-tabler-optical-scale)); transform-origin: center; }',
+    '.cl-icon--flipped { transform: rotate(180deg); }',
     '.cl-person-photo-placeholder, .cl-club-emblem-placeholder { display: inline-flex; align-items: center; justify-content: center; color: var(--cl-text-muted); }',
     ...[32, 48, 64, 96].map(
       (size) => `.cl-placeholder-size-${size} { width: ${size}px; height: ${size}px; }`,
@@ -2369,6 +2373,9 @@ function compositions(): string {
     '.cl-public-header__locale { position: relative; }',
     '.cl-public-header__locale > summary { display: inline-flex; align-items: center; justify-content: center; gap: var(--cl-space-1); min-width: var(--cl-touch-target); min-height: var(--cl-touch-target); padding-inline: var(--cl-space-2); border: 1px solid var(--cl-border-muted); color: var(--cl-text-secondary); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; cursor: pointer; list-style: none; }',
     '.cl-public-header__locale > summary::-webkit-details-marker { display: none; }',
+    // The disclosure caret is sized to its label, as the text character it replaced was: at the
+    // 188px zoom floor a 16px icon pushed the menu toggle past the viewport edge.
+    '.cl-public-header__caret { width: 0.75em; height: 0.75em; }',
     `.cl-public-header__locale-list { position: absolute; inset-inline-end: 0; z-index: 40; min-width: max-content; width: max-content; white-space: nowrap; display: grid; gap: var(--cl-space-1); margin: var(--cl-space-1) 0 0; padding: var(--cl-space-2); list-style: none; background: var(--cl-surface-chrome); border: 1px solid var(--cl-border-muted); box-shadow: ${DIALOG_TOKENS.elevation}; }`,
     '',
     /* Compact menu: persistent brand and actions lead; each navigation layer

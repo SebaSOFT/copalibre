@@ -28,6 +28,7 @@
     "@copalibre/realtime": "workspace:^",
     "@copalibre/routing": "workspace:^",
     "@copalibre/tournament-engine": "workspace:^",
+    "@fontsource/barlow-condensed": "5.3.0",
     "@imgly/background-removal": "1.7.0",
     "@pagefind/default-ui": "1.5.2",
     "@radix-ui/react-checkbox": "^1.4.1",

@@ -101,12 +101,17 @@ export const FONT_FAMILIES = [
   'Noto Sans SC Variable',
 ] as const;
 
+/**
+ * Each brand face is followed by its metric-matched fallback (`font-fallbacks.ts`
+ * declares those faces), so the text that paints before the brand face arrives
+ * already occupies the brand face's space.
+ */
 export const TYPOGRAPHY = {
   /** Scores, team names, ranks, state labels. Tabular figures are not optional. */
   display:
-    "'Barlow Condensed', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif",
-  body: "'Barlow', 'Roboto Variable', 'Noto Sans SC Variable', system-ui, -apple-system, 'Segoe UI', sans-serif",
-  mono: "'JetBrains Mono Variable', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace",
+    "'Barlow Condensed', 'Barlow Condensed Fallback', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif",
+  body: "'Barlow', 'Barlow Fallback', 'Roboto Variable', 'Noto Sans SC Variable', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  mono: "'JetBrains Mono Variable', 'JetBrains Mono Fallback', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace",
 } as const;
 
 export const FONT_WEIGHTS = {

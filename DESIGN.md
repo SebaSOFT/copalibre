@@ -36,37 +36,37 @@ colors:
   light-red-800: "#B01818"
 typography:
   display:
-    fontFamily: "'Barlow Condensed', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif"
+    fontFamily: "'Barlow Condensed', 'Barlow Condensed Fallback', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif"
     fontSize: "clamp(1.602rem, 1.436rem + 0.7088vw, 2.074rem)"
     fontWeight: "700"
     lineHeight: "1.1"
     letterSpacing: "0.04em"
   headline:
-    fontFamily: "'Barlow Condensed', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif"
+    fontFamily: "'Barlow Condensed', 'Barlow Condensed Fallback', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif"
     fontSize: "clamp(1.266rem, 1.204rem + 0.262vw, 1.44rem)"
     fontWeight: "600"
     lineHeight: "1.2"
     letterSpacing: "0.04em"
   title:
-    fontFamily: "'Barlow Condensed', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif"
+    fontFamily: "'Barlow Condensed', 'Barlow Condensed Fallback', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif"
     fontSize: "clamp(1.125rem, 1.099rem + 0.1127vw, 1.2rem)"
     fontWeight: "600"
     lineHeight: "1.3"
     letterSpacing: "0.04em"
   body:
-    fontFamily: "'Barlow', 'Roboto Variable', 'Noto Sans SC Variable', system-ui, -apple-system, 'Segoe UI', sans-serif"
+    fontFamily: "'Barlow', 'Barlow Fallback', 'Roboto Variable', 'Noto Sans SC Variable', system-ui, -apple-system, 'Segoe UI', sans-serif"
     fontSize: "1rem"
     fontWeight: "400"
     lineHeight: "1.5"
     letterSpacing: "0"
   label:
-    fontFamily: "'JetBrains Mono Variable', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace"
+    fontFamily: "'JetBrains Mono Variable', 'JetBrains Mono Fallback', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace"
     fontSize: "0.75rem"
     fontWeight: "500"
     lineHeight: "1.4"
     letterSpacing: "0.05em"
   figure:
-    fontFamily: "'JetBrains Mono Variable', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace"
+    fontFamily: "'JetBrains Mono Variable', 'JetBrains Mono Fallback', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace"
     fontSize: "1.25rem"
     fontWeight: "500"
     lineHeight: "1.2"
