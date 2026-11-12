@@ -23,8 +23,7 @@ Lighthouse User Flow SHALL measure INP; TBT SHALL be diagnostic only.
 
 When a public web build is in scope, Lighthouse CI SHALL run on pull requests targeting `main` and
 manual workflow dispatches, and SHALL fail those runs for budget breaches. Routine pull requests
-targeting `develop` SHALL skip Lighthouse but SHALL run the budget configuration test. The gate SHALL
-reuse Chromium installed by the primary Playwright E2E shard.
+targeting `develop` SHALL skip Lighthouse but SHALL run the budget configuration test.
 
 #### Scenario: Routine development pull request
 
@@ -34,9 +33,43 @@ reuse Chromium installed by the primary Playwright E2E shard.
 #### Scenario: Release candidate budget breach
 
 - **WHEN** a pull request targeting `main` or a manual workflow dispatch runs the public web build and exceeds a public page budget
-- **THEN** the Lighthouse CI step fails and names the page and the budget
+- **THEN** the Lighthouse CI check fails and names the page and the budget
 
 #### Scenario: Slow public navigation
 
 - **WHEN** a release review's synthetic mobile navigation interaction exceeds 210 ms at the median
 - **THEN** the INP check fails and names the page and measured value
+
+### Requirement: The performance gate runs outside the release chain
+
+The performance gate SHALL run in its own CI job, with its own Chromium, and SHALL NOT be a dependency of
+the release image build or of the deployment verification that follows it, so a budget breach fails its
+own check and never hides whether the deployment works. The job SHALL keep the Lighthouse reports of the run.
+
+#### Scenario: A budget breach does not skip the deployment verification
+
+- **WHEN** a release candidate run breaches a public page budget and its other checks pass
+- **THEN** the release image build, the deployment e2e and the deploy smoke test still run and report their own results
+
+### Requirement: Budgets are measured through the shipped serving path
+
+Lighthouse SHALL measure the public build as an installation serves it: behind the shipped web role
+configuration, with its compression, headers and routing, against a fixture API and a fixture event stream
+under `/events`. A measured page SHALL answer 200. Every API route a measured page requests SHALL be either
+answered by the fixture or declared absent in it with a stated reason; a request to a route that is neither
+SHALL fail the gate rather than be measured.
+
+#### Scenario: Compression reaches the measurement
+
+- **WHEN** the shipped web role compresses a stylesheet
+- **THEN** Lighthouse's transfer size for that stylesheet is the compressed size
+
+#### Scenario: The live connection costs what it costs on an installation
+
+- **WHEN** a measured page opens its event stream
+- **THEN** the stream is answered by the fixture event stream, not by a fallback page
+
+#### Scenario: A missing fixture route is caught before measuring
+
+- **WHEN** a measured page requests an API route the fixture neither answers nor declares absent
+- **THEN** the gate fails and names the route
