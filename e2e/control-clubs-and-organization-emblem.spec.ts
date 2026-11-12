@@ -182,7 +182,7 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   // The `<img>` tag's own GET goes through the network stack, not the
   // in-page `window.fetch` override above — these stand in for the real
   // emblem-serving routes.
-  await page.route(`**/organizations/${ORG_ALIAS}/clubs/*/emblem`, (route) => {
+  await page.route(`**/organizations/${ORG_ALIAS}/clubs/*/emblem*`, (route) => {
     if (route.request().method() !== 'GET') return route.fallback();
     return route.fulfill({
       status: 200,
@@ -190,7 +190,7 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
       body: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
     });
   });
-  await page.route(`**/organizations/${ORG_ALIAS}/emblem`, (route) => {
+  await page.route(`**/organizations/${ORG_ALIAS}/emblem*`, (route) => {
     if (route.request().method() !== 'GET') return route.fallback();
     return route.fulfill({
       status: 200,

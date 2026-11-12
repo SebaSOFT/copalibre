@@ -204,7 +204,7 @@ test('a broken public emblem URL reveals stored abbreviation fallback', async ({
       emblemObjectId: 'missing-emblem',
     })),
   };
-  await page.route('**/organizations/liga-mendocina/clubs/club-talleres/emblem', (route) =>
+  await page.route('**/organizations/liga-mendocina/clubs/club-talleres/emblem*', (route) =>
     route.fulfill({ status: 404, body: 'missing' }),
   );
   await page.goto(overviewPath);
