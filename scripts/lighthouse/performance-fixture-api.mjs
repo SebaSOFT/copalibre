@@ -2,6 +2,7 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { isEmblemRenditionWidth, renderEmblemRendition } from '@copalibre/object-storage';
 
 const datasetDirectory = new URL(
   '../../packages/demo-datasets/datasets/panamericano-clubes-2025/',
@@ -339,11 +340,21 @@ function sendJson(response, status, value) {
   response.end(JSON.stringify(value));
 }
 
-async function sendEmblem(response, objectPath) {
+/**
+ * The dataset's PNG emblem, or, with `width`, the WebP rendition the API serves, rendered by the
+ * same function, so the gate measures the bytes an installation sends.
+ */
+async function sendEmblem(response, objectPath, widthParameter) {
+  const width = widthParameter === null ? undefined : Number(widthParameter);
+  if (width !== undefined && !isEmblemRenditionWidth(width)) {
+    sendJson(response, 400, { statusCode: 400 });
+    return;
+  }
   try {
-    const image = await readFile(new URL(objectPath, datasetDirectory));
+    const original = await readFile(new URL(objectPath, datasetDirectory));
+    const image = width === undefined ? original : await renderEmblemRendition(original, width);
     response.writeHead(200, {
-      'content-type': 'image/png',
+      'content-type': width === undefined ? 'image/png' : 'image/webp',
       'content-length': image.length,
       'cache-control': 'public, max-age=3600',
     });
@@ -499,13 +510,13 @@ export async function startPerformanceFixtureApi({ port = 0, host = '127.0.0.1' 
     if (clubEmblemPath) {
       const club = clubsById.get(clubEmblemPath[1]);
       if (club) {
-        await sendEmblem(response, club.emblem);
+        await sendEmblem(response, club.emblem, url.searchParams.get('width'));
         return;
       }
     }
 
     if (pathname === `${tournamentRoot}/emblem`) {
-      await sendEmblem(response, dataset.tournament.emblem);
+      await sendEmblem(response, dataset.tournament.emblem, url.searchParams.get('width'));
       return;
     }
 
