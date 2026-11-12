@@ -288,6 +288,23 @@ accessible. The operator surface SHALL keep its modal drawer unchanged.
 - **THEN** its overlay, focus trap and return-focus behavior are unchanged, because the two surfaces
   serve different tasks
 
+### Requirement: Public mobile header paints its menu closed when scripting runs
+
+When scripting runs, the public header's compact navigation SHALL already be closed at first paint, so
+loading a public page never shifts its content by the height of the menu. Without scripting, the
+navigation SHALL stay expanded as the header's no-JavaScript requirement asks.
+
+#### Scenario: The closed menu is the first thing painted
+
+- **WHEN** a public page loads at a compact width with scripting available
+- **THEN** the first paint already shows the header's stable row with the navigation closed and the toggle
+  visible, and no layout shift moves the page content by the height of the navigation
+
+#### Scenario: Without scripting nothing is hidden first
+
+- **WHEN** a public page loads at a compact width with scripting unavailable
+- **THEN** every navigation link is visible and reachable, and no toggle is shown
+
 ### Requirement: Informational compositions cover inverse cards, steps, metrics and releases
 
 The library SHALL own an inverse informational card, a numbered step heading, a metric strip from

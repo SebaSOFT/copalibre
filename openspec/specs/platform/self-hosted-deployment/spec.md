@@ -1105,3 +1105,45 @@ credential holds more privileges than the runtime needs.
 
 - **WHEN** a runtime role starts with a privileged database credential
 - **THEN** it logs one warning naming the problems, never the connection string, and keeps starting
+
+### Requirement: The web role compresses text responses and never the event streams or authentication responses
+
+The web role SHALL compress the text responses it serves or proxies when the client accepts it, preferring
+zstd over gzip, and SHALL NOT compress responses under `/events` or `/api/auth`. Every deployment of the
+shipped web role SHALL behave this way with no operator configuration.
+
+#### Scenario: A stylesheet is compressed
+
+- **WHEN** a browser that accepts gzip requests a built stylesheet from the web role
+- **THEN** the response carries `Content-Encoding: gzip` (or `zstd` when accepted) and is smaller than the file
+
+#### Scenario: A public page is compressed
+
+- **WHEN** a browser that accepts compression requests a public tournament page
+- **THEN** the server-rendered HTML arrives compressed and still carries its security headers
+
+#### Scenario: The event stream is not buffered
+
+- **WHEN** a browser opens an event stream under `/events` through the web role
+- **THEN** the response carries no `Content-Encoding` and each event reaches the browser as it is sent
+
+#### Scenario: Authentication responses are not compressed
+
+- **WHEN** a browser that accepts compression sends a request under `/api/auth` (sign-in, session,
+  invitation acceptance, refresh, personal access tokens) through the web role
+- **THEN** the response carries no `Content-Encoding`
+
+#### Scenario: Already-compressed formats pass through
+
+- **WHEN** a browser requests a font file or an image
+- **THEN** it is sent as stored, without a second encoding
+
+#### Scenario: Compose and Kubernetes behave alike
+
+- **WHEN** an operator runs the shipped web role under Docker Compose or Kubernetes
+- **THEN** text responses are compressed with no setting to change
+
+#### Scenario: A client that accepts no encoding
+
+- **WHEN** a client sends no `Accept-Encoding`
+- **THEN** it receives the same content uncompressed
