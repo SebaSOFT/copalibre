@@ -159,3 +159,27 @@ owning process.
   network interruption)
 - **THEN** the owning application process SHALL log the error and continue operating, rather than
   crashing on an unhandled `'error'` event
+
+### Requirement: Migrations run as the schema owner and keep runtime grants current
+
+`apps/migrate` SHALL connect with `DATABASE_MIGRATION_URL` when it is set, and with `DATABASE_URL`
+otherwise. Every migrate run SHALL leave the runtime role able to read and write every application table
+after migrations apply or revert, when that role exists. The runtime role SHALL be limited to reading and
+inserting on `audit_log` and to reading the migration bookkeeping tables. A migration SHALL NOT create
+objects outside the `public` schema.
+
+#### Scenario: A new table reaches the runtime role
+
+- **WHEN** a migration adds a table and `apps/migrate` runs as the owner
+- **THEN** the runtime role can select, insert, update and delete rows in that table without another step
+
+#### Scenario: Grants are restored on every run
+
+- **WHEN** the runtime role's grant on an application table has been revoked and `apps/migrate` runs
+  with no pending migrations
+- **THEN** the grant is back after the run, and the run reports no pending migrations
+
+#### Scenario: Development without separate roles keeps working
+
+- **WHEN** `apps/migrate` runs against a database where the runtime role does not exist
+- **THEN** migrations apply as before, and the grant step is skipped without error

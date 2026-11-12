@@ -208,7 +208,7 @@ export async function startPerformanceFixtureApi() {
     }
 
     const matchPath = pathname.match(
-      /^\/organizations\/[^/]+\/tournaments\/[^/]+\/stages\/(\d+)\/matches\/(\d+)$/,
+      /^\/api\/organizations\/[^/]+\/tournaments\/[^/]+\/stages\/(\d+)\/matches\/(\d+)$/,
     );
     if (matchPath) {
       const record = gameRecords.find(
@@ -222,7 +222,7 @@ export async function startPerformanceFixtureApi() {
       }
     }
 
-    const clubEmblemPath = pathname.match(/^\/organizations\/[^/]+\/clubs\/([^/]+)\/emblem$/);
+    const clubEmblemPath = pathname.match(/^\/api\/organizations\/[^/]+\/clubs\/([^/]+)\/emblem$/);
     if (clubEmblemPath) {
       const club = clubsById.get(clubEmblemPath[1]);
       if (club) {
