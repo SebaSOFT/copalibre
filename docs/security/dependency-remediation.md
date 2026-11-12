@@ -1,5 +1,24 @@
 # Dependency remediation
 
+## 2026-11-12 — `@hono/node-server` path and upgrade advisories
+
+Two medium advisories against `@hono/node-server` opened alerts #115 and #116 on 2026-11-12, and
+the Dependabot audit in CI failed on the locked 2.1.3:
+
+- [GHSA-jpvv-r467-5p4w](https://github.com/advisories/GHSA-jpvv-r467-5p4w): a backslash in the
+  request path is parsed as a path separator, bypassing path-based access control at a reverse proxy.
+- [GHSA-qv5m-9pm6-hqp3](https://github.com/advisories/GHSA-qv5m-9pm6-hqp3): an unhandled
+  `ECONNRESET` during an asynchronous WebSocket upgrade crashes the process.
+
+Both affect `>= 2.0.0, < 2.1.6`. The package reaches the lockfile only through
+`@modelcontextprotocol/sdk` in `apps/copalibre` (the `copalibre mcp` server). The root resolution
+moves from 2.1.3 to 2.1.6 ([fcaf12ea](https://github.com/SebaSOFT/copalibre/commit/fcaf12ea)), released
+2026-11-02 and so past the 24-hour release-age gate. `scripts/dependency-security.test.mjs` raises
+the package's floor to 2.1.6, and both events are recorded in
+`scripts/dependency-security-incidents.json`. After the change, `node scripts/check-dependabot-alerts.mjs`
+reports 42 open alerts, all patched in checkout, and `yarn npm audit --all --recursive
+--no-deprecations` reports nothing. The alerts close when a release reaches `main`.
+
 ## 2026-11-10 — open alerts behind `main`
 
 GitHub reports 40 open Dependabot alerts (24 GHSAs, nine packages). None of them is
