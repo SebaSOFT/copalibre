@@ -1034,3 +1034,74 @@ needs no consent prompt.
 - **WHEN** the documentation check runs
 - **THEN** every cookie name the API sets appears in the operator cookie list, and the list names no cookie the
   API does not set
+
+### Requirement: Runtime roles connect with row privileges only
+
+An installation SHALL give its request and background roles a database credential that owns no schema
+object, cannot create in any schema and holds no administrative attribute or server-access role. Only
+the migrate role SHALL receive the schema owner credential, and only setup, backup and restore SHALL use
+the bootstrap superuser.
+
+#### Scenario: Compose hands the runtime credential to runtime roles
+
+- **WHEN** an operator starts the shipped Compose install
+- **THEN** `api`, `events`, `worker` and `scheduler` connect as the runtime role, `migrate` connects as the
+  owner role, and no service but `database-setup` and `database-tools` receives the bootstrap
+  superuser's password
+
+#### Scenario: The runtime role cannot change the schema or reach the server
+
+- **WHEN** a statement run with the runtime credential tries to create, alter, drop or truncate a table,
+  or to run `COPY … PROGRAM`
+- **THEN** PostgreSQL refuses it with a permission error
+
+#### Scenario: The runtime role cannot rewrite the audit trail
+
+- **WHEN** a statement run with the runtime credential tries to update or delete an `audit_log` row
+- **THEN** PostgreSQL refuses it, while inserting and reading audit rows still succeed
+
+#### Scenario: Setup runs on fresh and existing volumes
+
+- **WHEN** the Compose stack starts on an empty volume, or on a volume whose objects belong to the
+  bootstrap superuser
+- **THEN** a setup step creates the owner and runtime roles if missing, and moves ownership of every
+  object in `public` to the owner, before migrations run
+- **AND** running the setup again changes nothing
+
+#### Scenario: Helm keeps the owner credential in the migrate Job
+
+- **WHEN** the chart is rendered with `DATABASE_MIGRATION_URL` set
+- **THEN** only the migrate Job loads the Secret holding it, and the role Deployments and the doctor and
+  create-admin Jobs do not
+
+### Requirement: Installations keep database credentials separate across their lifecycle
+
+`copalibre init` SHALL generate distinct random passwords for the owner and runtime roles.
+`copalibre upgrade` SHALL add them to an existing installation without overwriting values that are
+already set, and SHALL report the addition. `copalibre restore` SHALL leave every restored object owned
+by the owner role and re-apply the runtime grants. `copalibre doctor` SHALL fail when the `DATABASE_URL`
+credential holds more privileges than the runtime needs.
+
+#### Scenario: Upgrade adds the missing passwords
+
+- **WHEN** `copalibre upgrade` runs on an installation whose `.env` lacks the owner or runtime password
+- **THEN** it writes a fresh random value for each missing one, leaves existing values untouched, and
+  prints which variables it added
+
+#### Scenario: Restore leaves the owner owning the data
+
+- **WHEN** `copalibre restore` completes
+- **THEN** no object in `public` is owned by the bootstrap superuser, and the runtime role can read and
+  write application rows
+
+#### Scenario: Doctor flags a privileged runtime credential
+
+- **WHEN** `copalibre doctor` runs with a `DATABASE_URL` whose role is a superuser, owns an object in
+  `public`, or may create in `public`
+- **THEN** the `database:runtime-privileges` check fails, names each problem, and points to the database
+  roles section of the self-hosting guide
+
+#### Scenario: Startup warns without refusing
+
+- **WHEN** a runtime role starts with a privileged database credential
+- **THEN** it logs one warning naming the problems, never the connection string, and keeps starting
