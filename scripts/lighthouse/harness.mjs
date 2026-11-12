@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { resolve } from 'node:path';
@@ -96,7 +96,21 @@ export async function startHarness({ log = () => {} } = {}) {
   let renderer;
   let caddyStarted = false;
 
+  /*
+    A run stopped by a signal never reaches close(): without this, the Caddy
+    container outlives it and keeps port 4321, and the next run cannot start.
+  */
+  const onSignal = (signal) => {
+    if (caddyStarted) spawnSync('docker', ['rm', '--force', containerName], { stdio: 'ignore' });
+    renderer?.kill('SIGKILL');
+    process.exit(signal === 'SIGINT' ? 130 : 143);
+  };
+  process.once('SIGINT', onSignal);
+  process.once('SIGTERM', onSignal);
+
   const close = async () => {
+    process.off('SIGINT', onSignal);
+    process.off('SIGTERM', onSignal);
     if (caddyStarted) await run('docker', ['rm', '--force', containerName]);
     await stop(renderer);
     await fixture.close();
