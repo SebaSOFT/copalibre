@@ -21,6 +21,7 @@ const { organizationName, emblemSrc, intl } = Astro.props;
   <EmblemImage
     alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: organizationName })}
     placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+    eager
     size={64}
     src={emblemSrc}
   />

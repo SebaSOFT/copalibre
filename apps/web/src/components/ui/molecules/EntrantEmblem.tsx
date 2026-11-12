@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { emblemMonogramFit } from '../../../lib/entrant-emblem.js';
+import { emblemSizes, emblemSrcset } from '../../../lib/public-image-paths.js';
 import { Icon } from '../atoms/icon.js';
 
 /**
@@ -14,6 +15,7 @@ export function EntrantEmblem({
   bare = false,
   className = '',
   decorative = false,
+  eager = false,
   size = 48,
   src,
   control = false,
@@ -24,6 +26,8 @@ export function EntrantEmblem({
   readonly className?: string;
   readonly control?: boolean;
   readonly decorative?: boolean;
+  /** Above the first screen: load at once instead of when scrolled near. */
+  readonly eager?: boolean;
   readonly size?: number | string;
   readonly src?: string;
 }): React.JSX.Element {
@@ -33,6 +37,9 @@ export function EntrantEmblem({
   const hiddenFromAssistiveTechnology = bare || decorative;
   const fit = emblemMonogramFit(abbreviation);
   const abbreviationLength = Array.from(abbreviation ?? '').length;
+  const sizes = emblemSizes(size);
+  const srcSet = src !== undefined && sizes !== undefined ? emblemSrcset(src) : undefined;
+  const pixels = typeof size === 'number' ? size : undefined;
 
   useEffect(() => {
     const image = imageRef.current;
@@ -63,7 +70,18 @@ export function EntrantEmblem({
       }
     >
       {imageVisible ? (
-        <img alt="" onError={() => setFailedSrc(src)} ref={imageRef} src={src} />
+        <img
+          alt=""
+          decoding="async"
+          height={pixels}
+          loading={eager ? 'eager' : 'lazy'}
+          onError={() => setFailedSrc(src)}
+          ref={imageRef}
+          sizes={srcSet ? sizes : undefined}
+          src={src}
+          srcSet={srcSet}
+          width={pixels}
+        />
       ) : (
         <span aria-hidden="true" className="cl-entrant-emblem__fallback">
           {fit && abbreviation !== undefined ? (
