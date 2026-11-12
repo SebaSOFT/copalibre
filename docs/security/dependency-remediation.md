@@ -1,5 +1,19 @@
 # Dependency remediation
 
+## 2026-11-12 — `basic-ftp` MLSD listing parser advisory
+
+[GHSA-5pm8-86m8-9m6r](https://github.com/advisories/GHSA-5pm8-86m8-9m6r), published 2026-11-12,
+reports that a `__proto__` fact name in an MLSD directory listing throws an uncaught `TypeError` in
+`Client.list()`, a denial of service. It affects `basic-ftp <= 6.2.3`, and the Dependabot audit in
+CI failed on the locked 6.2.3. The package reaches the lockfile only through the Lighthouse CI tool
+at the repository root: `@lhci/cli` → `proxy-agent` → `pac-proxy-agent` → `get-uri` → `basic-ftp`.
+Nothing in CopaLibre opens an FTP connection; the fix is still taken so the audit stays clean.
+
+The root resolution moves from 6.2.3 to 6.2.6
+([0d302662](https://github.com/SebaSOFT/copalibre/commit/0d302662)), released 2026-11-04 and so past
+the 24-hour release-age gate. `scripts/dependency-security.test.mjs` gains a floor of 6.2.4, the first
+patched release, and the event is recorded in `scripts/dependency-security-incidents.json`.
+
 ## 2026-11-12 — `@hono/node-server` path and upgrade advisories
 
 Two medium advisories against `@hono/node-server` opened alerts #115 and #116 on 2026-11-12, and
