@@ -1,3 +1,4 @@
+/* global setInterval, clearInterval */
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -385,12 +386,52 @@ function matchReport(record) {
   };
 }
 
-export async function startPerformanceFixtureApi() {
+/**
+ * Routes this fixture leaves unanswered on purpose, each with its reason. Any
+ * other path it answers with 404 means a measured page asked for something the
+ * fixture does not model, and the page measured may not be the one visitors see.
+ */
+export const DECLARED_ABSENT_ROUTES = Object.freeze([
+  {
+    pattern: /^\/api\/organizations\/[^/]+\/tournaments\/[^/]+\/stages\/\d+\/bracket$/,
+    reason: 'cup brackets are not yet modelled in this fixture',
+  },
+]);
+
+/** The unanswered paths no declared-absent route explains. */
+export function undeclaredMissingPaths(paths, declared = DECLARED_ABSENT_ROUTES) {
+  return [...new Set(paths)].filter((path) => !declared.some(({ pattern }) => pattern.test(path)));
+}
+
+/** An open, empty event stream: a comment, then keep-alive comments until the client leaves. */
+function sendEventStream(request, response) {
+  response.writeHead(200, {
+    'content-type': 'text/event-stream',
+    'cache-control': 'no-store',
+    connection: 'keep-alive',
+  });
+  response.write(': performance fixture stream\n\n');
+  const keepAlive = setInterval(() => response.write(': keep-alive\n\n'), 15_000);
+  request.once('close', () => clearInterval(keepAlive));
+}
+
+/**
+ * @param {{ port?: number, host?: string }} [options] `port` 0 (the default)
+ *   picks a free one; end-to-end specs pass their worker's mock API port. `host`
+ *   is loopback unless a container must reach the fixture.
+ */
+export async function startPerformanceFixtureApi({ port = 0, host = '127.0.0.1' } = {}) {
+  const missingPaths = [];
   const server = createServer(async (request, response) => {
     const url = new URL(request.url ?? '/', 'http://127.0.0.1');
     const pathname = decodeURIComponent(url.pathname);
     const root = `/api/organizations/${dataset.organization.alias}`;
     const tournamentRoot = `${root}/tournaments/${dataset.tournament.alias}`;
+
+    if (pathname === '/events' || pathname.startsWith('/events/')) {
+      sendEventStream(request, response);
+      return;
+    }
 
     if (pathname === `${tournamentRoot}/overview`) {
       sendJson(response, 200, overview);
@@ -468,12 +509,13 @@ export async function startPerformanceFixtureApi() {
       return;
     }
 
+    missingPaths.push(pathname);
     sendJson(response, 404, { statusCode: 404, message: 'Not found' });
   });
 
   await new Promise((resolve, reject) => {
     server.once('error', reject);
-    server.listen(0, '127.0.0.1', resolve);
+    server.listen(port, host, resolve);
   });
   const address = server.address();
   if (!address || typeof address === 'string')
@@ -481,10 +523,14 @@ export async function startPerformanceFixtureApi() {
 
   return {
     url: `http://127.0.0.1:${address.port}`,
+    /** Every path answered with 404 so far, in request order, repeats included. */
+    missingPaths: () => [...missingPaths],
     close: () =>
-      new Promise((resolve, reject) =>
-        server.close((error) => (error ? reject(error) : resolve())),
-      ),
+      new Promise((resolve, reject) => {
+        // Open event streams never end on their own.
+        server.closeAllConnections();
+        server.close((error) => (error ? reject(error) : resolve()));
+      }),
   };
 }
 

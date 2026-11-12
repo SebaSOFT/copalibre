@@ -56,6 +56,19 @@
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
 	}
 
+	# Text responses (pages, stylesheets, scripts, API JSON) go out compressed,
+	# zstd when the browser accepts it, gzip otherwise; Caddy's default match
+	# leaves fonts, images and short responses alone. Two exclusions:
+	# - /events: a compressor holds output until its buffer fills, so a
+	#   compressed stream would deliver live events late.
+	# - /api/auth: sign-in, session, invitation, refresh and personal access
+	#   token responses carry secrets next to text the client sent, the shape a
+	#   compression side-channel (BREACH) reads; they are small anyway.
+	# The matcher reads the request path, and rewrites run before encode: keep
+	# rewrites (try_files) away from /api and /events.
+	@compressible not path /events /events/* /api/auth /api/auth/*
+	encode @compressible zstd gzip
+
 	# Font files are bundled into the build and served from this origin.
 	# Declared here rather than left to the base image's /etc/mime.types,
 	# which a different base may lack: without it they go out as

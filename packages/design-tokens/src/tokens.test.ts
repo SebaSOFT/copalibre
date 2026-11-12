@@ -1253,6 +1253,14 @@ describe('public table and pill treatments', () => {
     );
     expect(css).toContain('  .cl-public-header__global-label { display: block;');
     expect(css).toContain('  .cl-public-header__toggle:not([hidden]) { display: inline-grid; }');
+    // With scripting, the compact menu paints closed until the header script takes over.
+    const compact = css.slice(css.indexOf('@media (max-width: 768px) {\n  .cl-public-header__row'));
+    expect(compact).toContain(
+      'html[data-scripting] .cl-public-header:not([data-nav-ready]) .cl-public-header__nav, html[data-scripting] .cl-public-header:not([data-nav-ready]) .cl-public-header__context-band { display: none; }',
+    );
+    expect(compact).toContain(
+      'html[data-scripting] .cl-public-header:not([data-nav-ready]) .cl-public-header__toggle { display: inline-grid !important; }',
+    );
     expect(css).toContain(
       '  .cl-public-header__links, .cl-public-header__tournament-links { flex-direction: column; align-items: stretch;',
     );

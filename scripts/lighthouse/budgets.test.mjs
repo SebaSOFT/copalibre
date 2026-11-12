@@ -1,3 +1,4 @@
+/* global AbortController, TextDecoder */
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
@@ -7,7 +8,12 @@ import {
   TIMING_TOLERANCE,
   withTimingTolerance,
 } from './budgets.mjs';
-import { startPerformanceFixtureApi } from './performance-fixture-api.mjs';
+import { webRoleCaddyImage } from './harness.mjs';
+import {
+  DECLARED_ABSENT_ROUTES,
+  startPerformanceFixtureApi,
+  undeclaredMissingPaths,
+} from './performance-fixture-api.mjs';
 
 const lighthouseConfig = JSON.parse(
   await readFile(new URL('../../lighthouserc.json', import.meta.url), 'utf8'),
@@ -68,6 +74,68 @@ test('the performance fixture API answers every route the measured pages request
   } finally {
     await fixture.close();
   }
+});
+
+// Every measured page opens a live connection; an installation's events role
+// holds it open, so the fixture must too, or the page measures a fallback page.
+test('the performance fixture answers the event streams with an open, empty stream', async () => {
+  const fixture = await startPerformanceFixtureApi();
+  const controller = new AbortController();
+  try {
+    const response = await fetch(
+      `${fixture.url}/events/public/panamericano-demo/tournaments/panamericano-clubes-2025`,
+      { signal: controller.signal },
+    );
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type') ?? '', /^text\/event-stream/);
+    const reader = response.body.getReader();
+    const first = new TextDecoder().decode((await reader.read()).value);
+    assert.match(first, /^: /);
+    // Still open: a second read neither ends nor errors before the client leaves.
+    const pending = reader.read().then(({ done }) => (done ? 'ended' : 'data'));
+    const settled = await Promise.race([
+      pending,
+      new Promise((resolveWait) => setTimeout(() => resolveWait('open'), 300)),
+    ]);
+    assert.equal(settled, 'open');
+    controller.abort();
+    await pending.catch(() => {});
+  } finally {
+    await fixture.close();
+  }
+});
+
+test('every route the fixture declares absent says why', () => {
+  assert.ok(DECLARED_ABSENT_ROUTES.length > 0);
+  for (const route of DECLARED_ABSENT_ROUTES) {
+    assert.ok(route.pattern instanceof RegExp);
+    assert.ok(route.reason.trim().length > 0, `${route.pattern} needs a reason`);
+  }
+});
+
+test('an unanswered route the fixture does not declare is reported by name', async () => {
+  const fixture = await startPerformanceFixtureApi();
+  try {
+    const tournament = '/api/organizations/panamericano-demo/tournaments/panamericano-clubes-2025';
+    await fetch(`${fixture.url}${tournament}/stages/2/bracket`).then((r) => r.arrayBuffer());
+    await fetch(`${fixture.url}${tournament}/no-such-route`).then((r) => r.arrayBuffer());
+    await fetch(`${fixture.url}${tournament}/no-such-route`).then((r) => r.arrayBuffer());
+    assert.deepEqual(undeclaredMissingPaths(fixture.missingPaths()), [
+      `${tournament}/no-such-route`,
+    ]);
+  } finally {
+    await fixture.close();
+  }
+});
+
+// The harness measures the web role's own Caddy, so its image follows the Dockerfile.
+test("the harness takes the web role's Caddy image from the Dockerfile, through the mirror", async () => {
+  assert.equal(
+    await webRoleCaddyImage('FROM node:26 AS build\nFROM caddy:2.11-alpine AS web\n'),
+    'mirror.gcr.io/library/caddy:2.11-alpine',
+  );
+  assert.match(await webRoleCaddyImage(), /^mirror\.gcr\.io\/library\/caddy:/);
+  await assert.rejects(webRoleCaddyImage('FROM node:26 AS build\n'), /no `web` stage/);
 });
 
 // A budget miss must fail its own check, never skip the release image build and
