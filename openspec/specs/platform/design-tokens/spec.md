@@ -931,3 +931,54 @@ license check allows, and `THIRD_PARTY_NOTICES.md` SHALL list each one.
 - **WHEN** every origin other than the application is blocked and a public page, Control login, a TV page and a help
   page load
 - **THEN** each page fires `load` and its Latin text renders in Barlow, not in a system face
+
+### Requirement: Fallback faces match the brand faces' metrics
+
+Each generated font stack SHALL name, between its brand face and the system families, a fallback face whose
+metrics are adjusted to that brand face, so text set in the fallback occupies the same space as in Barlow,
+Barlow Condensed or JetBrains Mono. When the brand face arrives and swaps in, no text block SHALL change its
+height. Brand faces SHALL keep `font-display: swap`.
+
+#### Scenario: A font swap moves nothing on the match report
+
+- **WHEN** the match report loads on the mobile slow profile and its brand faces swap in after first paint
+- **THEN** no layout shift whose cause is a web font load moves the report's content by more than 0.01
+
+#### Scenario: Text is readable before the brand face arrives
+
+- **WHEN** a public page paints before its brand faces have downloaded
+- **THEN** its text is visible in the metric-matched fallback face, not hidden until the brand face loads
+
+#### Scenario: The adjustment follows the brand face
+
+- **WHEN** the generated stylesheet is built
+- **THEN** each fallback face's size and line metrics are derived from the brand face it stands in for, and a
+  test fails if a brand face in the stack has no metric-matched fallback
+
+### Requirement: Public pages request their heading face with the document
+
+A public page SHALL request the brand face its main heading renders in, for Latin text, as soon as the
+document is parsed, instead of discovering it from the stylesheet. The request SHALL fetch the same file the
+stylesheet declares, from the application origin, so the face is downloaded once.
+
+#### Scenario: The heading face is not discovered last
+
+- **WHEN** a public tournament page loads
+- **THEN** the Barlow Condensed 700 Latin file is requested before the stylesheet finishes loading, and only
+  once
+
+### Requirement: Interface marks never pull a fallback font
+
+The interface's own marks (disclosure carets, state shapes, check marks) SHALL NOT be drawn with characters the
+Latin brand faces lack, so a page whose text is Latin requests no Cyrillic, CJK or symbol font file. Text an
+operator wrote MAY still use any script; the declared fallback faces render it.
+
+#### Scenario: A Latin page with state shapes
+
+- **WHEN** a Spanish matches page that shows final, live and upcoming states loads
+- **THEN** it requests no Noto Sans SC, Roboto or other fallback font file
+
+#### Scenario: Operator text in another script still renders
+
+- **WHEN** a Spanish page shows a club name in Cyrillic letters
+- **THEN** the Cyrillic letters still render in the declared Roboto fallback face

@@ -43,3 +43,31 @@ an accessible label. A state SHALL never be conveyed by an icon's colour alone.
 
 - **WHEN** an icon-only retry button renders without an accessible label
 - **THEN** the component throws in development, and the unit test fails
+
+### Requirement: State shapes and disclosure carets are registry icons
+
+The shape that accompanies a result or match state (live, upcoming, final, disputed, winner, loser, to be
+decided, cancelled), the completion figure's state mark, and the caret of a disclosure control SHALL render as
+icons from the icon registry, under its rendering contract, not as text characters. Each state SHALL keep a
+shape of its own, its word and its colour, so the state is never conveyed by colour alone.
+
+#### Scenario: A final match on the public matches page
+
+- **WHEN** a final match renders with its state badge
+- **THEN** the badge shows the final state's registry icon, hidden from assistive technology, beside the word
+  for the state
+
+#### Scenario: Every state has a distinct shape
+
+- **WHEN** the state shapes are rendered side by side
+- **THEN** no two states share an icon, and each icon resolves through the registry
+
+#### Scenario: The header's language and theme controls
+
+- **WHEN** the public header renders its language or theme control
+- **THEN** the caret beside the current value is a registry icon, not a text character
+
+#### Scenario: A state shape inside text
+
+- **WHEN** a component used to join the state mark and the state word into one string
+- **THEN** it renders the icon and the word as separate nodes, and the visible text reads as the word alone
