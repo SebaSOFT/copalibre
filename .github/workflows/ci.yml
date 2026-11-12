@@ -1194,6 +1194,9 @@ jobs:
       # needs a real 200-with-`keys` response, not a bare hostname.
       COPALIBRE_JWKS_URI: http://jwks-stub/jwks.json
       COPALIBRE_JWT_ISSUER: http://jwks-stub
+      # An issuer outside the application's origin must be in web's Content Security
+      # Policy; doctor's csp-identity-origin check fails the job without it.
+      COPALIBRE_CSP_IDENTITY_ORIGIN: http://jwks-stub
       COPALIBRE_JWT_AUDIENCE: copalibre
       COPALIBRE_OIDC_CLIENT_ID: copalibre-compose-e2e
       COPALIBRE_EMAIL_PROVIDER: smtp
@@ -1364,6 +1367,9 @@ jobs:
       # a route `api` never implements (it's a resource server, not an IdP).
       COPALIBRE_JWKS_URI: http://jwks-stub/jwks.json
       COPALIBRE_JWT_ISSUER: http://jwks-stub
+      # An issuer outside the application's origin must be in web's Content Security
+      # Policy; doctor's csp-identity-origin check fails the job without it.
+      COPALIBRE_CSP_IDENTITY_ORIGIN: http://jwks-stub
       COPALIBRE_JWT_AUDIENCE: copalibre
       COPALIBRE_OIDC_CLIENT_ID: copalibre-ci
       COPALIBRE_EMAIL_PROVIDER: smtp

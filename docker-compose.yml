@@ -118,6 +118,9 @@ services:
       <<: *application-environment
       PRODUCT_ROLE: events
       PORT: 3002
+      # Where events fetches the API's key set to verify native sessions; with an
+      # external identity provider, COPALIBRE_JWKS_URI holds only that provider's keys.
+      COPALIBRE_API_INTERNAL_URL: http://api:3001
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -255,10 +258,14 @@ services:
     environment:
       <<: *application-environment
       PRODUCT_ROLE: doctor
+      # doctor checks that web's Content Security Policy allows the identity provider.
+      COPALIBRE_CSP_IDENTITY_ORIGIN: ${COPALIBRE_CSP_IDENTITY_ORIGIN:-}
     profiles: ['operations']
+    # doctor connects as copalibre_app, which database-setup creates: on a fresh install
+    # (`copalibre init`, then `doctor` or `start`) the role exists only once it has run.
     depends_on:
-      postgres:
-        condition: service_healthy
+      database-setup:
+        condition: service_completed_successfully
 
   upgrade-check:
     <<: *application-service

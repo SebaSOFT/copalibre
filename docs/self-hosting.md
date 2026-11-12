@@ -327,7 +327,9 @@ reaches rows, never the database server.
 
 In the Compose install, `copalibre init` writes both passwords to `.env` with random values, and on
 every start the one-shot `database-setup` service runs
-[`deploy/postgres/roles.sql`](../deploy/postgres/roles.sql) as the superuser before `migrate`. The
+[`deploy/postgres/roles.sql`](../deploy/postgres/roles.sql) as the superuser before `migrate`. It
+also runs before every `doctor`, which connects as `copalibre_app`, so `doctor` works on a fresh
+install before the first start. The
 script creates the two roles if they are missing, sets their passwords from `.env`, gives the owner
 every object in schema `public`, and makes sure future tables reach the runtime role. Running it
 again changes nothing. After each run, `migrate` grants the runtime role its rows on every table.

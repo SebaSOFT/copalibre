@@ -359,8 +359,11 @@ export async function validateDevelopmentRoleHeartbeats(
   );
 }
 
-function isHybridDevelopmentEnvironment(environment: NodeJS.ProcessEnv): boolean {
+export function isHybridDevelopmentEnvironment(environment: NodeJS.ProcessEnv): boolean {
   if (environment.COPALIBRE_DEV_HYBRID === 'true') return true;
+  // A containerized doctor is a Compose or Kubernetes install, whatever port it serves on:
+  // its roles are other containers, not heartbeats on this host's loopback.
+  if (environment.COPALIBRE_IN_CONTAINER === 'true') return false;
   try {
     return new URL(environment.COPALIBRE_APP_URL ?? '').port === '4321';
   } catch {

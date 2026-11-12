@@ -28,6 +28,11 @@ roles:
     replicas: 1
     service: true
     probePath: /health
+    # Where events fetches the API's key set to verify native sessions. Empty
+    # means the api Service this chart creates. With an external identity
+    # provider, COPALIBRE_JWKS_URI holds only that provider's keys, so without
+    # this a native sign-in could not open the Control stream.
+    apiInternalUrl: ''
     resources: {}
   worker:
     port: 3003

@@ -49,10 +49,20 @@ export class TokenVerifier {
     private readonly config: AuthConfig,
     /** Injectable in tests; production uses the remote JWKS. */
     getKey?: JWTVerifyGetKey,
-    /** API-local public key set; other processes can keep using remote JWKS. */
+    /**
+     * API-local public key set. Other processes fetch it from
+     * `config.nativeJwksUri`: with an external identity provider, `jwksUri`
+     * holds that provider's keys, never the API's.
+     */
     nativeGetKey?: JWTVerifyGetKey,
   ) {
-    this.nativeGetKey = nativeGetKey;
+    this.nativeGetKey =
+      nativeGetKey ??
+      (config.nativeJwksUri
+        ? createRemoteJWKSet(new URL(config.nativeJwksUri), {
+            cacheMaxAge: config.jwksCacheMaxAgeMs,
+          })
+        : undefined);
     this.getKey =
       getKey ??
       (config.jwksUri

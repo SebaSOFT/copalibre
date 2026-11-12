@@ -3,6 +3,7 @@ import {
   runDoctor,
   validateDatabase,
   validateDevelopmentRoleHeartbeats,
+  isHybridDevelopmentEnvironment,
   validateHostEnvironment,
   validateJwksContent,
   validateModuleAssets,
@@ -268,6 +269,21 @@ describe('copalibre doctor', () => {
       expect.objectContaining({ name: 'dev-heartbeat:scheduler', status: 'pass' }),
     ]);
     expect(requestFetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('treats the dev web port as hybrid development only outside a container', () => {
+    const appUrl = 'http://localhost:4321';
+    expect(isHybridDevelopmentEnvironment({ COPALIBRE_APP_URL: appUrl })).toBe(true);
+    expect(
+      isHybridDevelopmentEnvironment({ COPALIBRE_APP_URL: appUrl, COPALIBRE_IN_CONTAINER: 'true' }),
+    ).toBe(false);
+    expect(
+      isHybridDevelopmentEnvironment({
+        COPALIBRE_APP_URL: 'https://app.example',
+        COPALIBRE_IN_CONTAINER: 'true',
+        COPALIBRE_DEV_HYBRID: 'true',
+      }),
+    ).toBe(true);
   });
 
   it('fails a role heartbeat when its endpoint returns an unexpected role', async () => {
