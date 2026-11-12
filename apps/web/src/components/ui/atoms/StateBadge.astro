@@ -2,6 +2,7 @@
 import type { IntlShape } from 'react-intl';
 import { presentState, type ResultState } from '../../../lib/result-state.ts';
 import { resultStateLabels } from '../../../lib/i18n/public-intl.ts';
+import Icon from './Icon.astro';
 
 interface Props {
   readonly state: ResultState;
@@ -16,7 +17,7 @@ const presentation = presentState(state, resultStateLabels(intl));
   {presentation.state === 'live' ? (
     <span aria-hidden="true" class="cl-badge__dot cl-live-dot" />
   ) : (
-    <span aria-hidden="true">{presentation.icon}</span>
+    <Icon name={presentation.icon} size={16} />
   )}
   <span>{presentation.label}</span>
 </span>

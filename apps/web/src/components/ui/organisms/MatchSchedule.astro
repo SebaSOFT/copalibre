@@ -179,9 +179,10 @@ const columns: readonly DataTableColumn[] = [
   {
     key: 'state',
     header: intl.formatMessage(messages.scheduleColumnState),
-    render: (row) => {
+    render: (row) => presentState((row as MatchCardData).state, stateLabels).label,
+    renderContent: (row) => {
       const shown = presentState((row as MatchCardData).state, stateLabels);
-      return `${shown.icon} ${shown.label}`;
+      return { text: shown.label, icon: shown.icon };
     },
   },
   {

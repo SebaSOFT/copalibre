@@ -831,8 +831,9 @@ test.describe('B2: public tournament page', () => {
     expect(emblemBox?.width).toBe(32);
     expect(emblemBox?.height).toBe(32);
 
-    await expect(page.locator('a[data-club-filter="all"]')).toContainText('✓');
-    await expect(chip).not.toContainText('✓');
+    // The active chip carries a check icon, drawn from the icon registry rather than a character.
+    await expect(page.locator('a[data-club-filter="all"] .cl-club-chip__check svg')).toHaveCount(1);
+    await expect(chip.locator('.cl-club-chip__check')).toHaveCount(0);
   });
 
   test('a bracket match card links to its report page', async ({ page }) => {

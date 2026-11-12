@@ -41,7 +41,7 @@ describe('a state is never a colour alone', () => {
     expect(presentState('live', LABELS)).toEqual({
       state: 'live',
       label: 'LIVE',
-      icon: '●',
+      icon: 'live',
       className: 'cl-state--live',
     });
   });

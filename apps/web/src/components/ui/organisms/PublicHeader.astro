@@ -139,7 +139,7 @@ const languageName = (code: string): string => {
               <span>{intl.formatMessage(messages.headerTheme)}</span>
               <span aria-hidden="true">·</span>
               <span data-theme-current>{intl.formatMessage(messages.headerThemeSystem)}</span>
-              <span aria-hidden="true">⌄</span>
+              <Icon class="cl-public-header__caret" name="chevron-down" size={16} />
             </summary>
             <ul class="cl-public-header__theme-list">
               <li>
@@ -171,7 +171,7 @@ const languageName = (code: string): string => {
               <Icon name="language" size={16} />
               <span class="cl-visually-hidden">{intl.formatMessage(messages.headerLanguage)}</span>
               <span>{locale.toUpperCase()}</span>
-              <span aria-hidden="true">⌄</span>
+              <Icon class="cl-public-header__caret" name="chevron-down" size={16} />
             </summary>
             <ul class="cl-public-header__locale-list cl-chamfer cl-chamfer--control">
               {localeOptions.map((option) => (

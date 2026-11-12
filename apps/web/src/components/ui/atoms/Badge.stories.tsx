@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Badge } from './Badge.js';
+import { Icon } from './icon.js';
 
 const meta = {
   title: 'Public/Badge',
@@ -29,7 +30,7 @@ export const AsParagraph: Story = {
 export const WithIcon: Story = {
   render: () => (
     <Badge>
-      <span aria-hidden="true">●</span>
+      <Icon name="live" size={16} />
       <span>Live</span>
     </Badge>
   ),

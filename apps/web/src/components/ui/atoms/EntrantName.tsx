@@ -1,4 +1,5 @@
-import { resultStateGlyph } from '../../../lib/result-state.js';
+import { resultStateIcon } from '../../../lib/result-state.js';
+import { Icon } from './icon.js';
 import { useEffect, useRef, useState } from 'react';
 
 /**
@@ -47,7 +48,7 @@ export function EntrantName({
     >
       {pending && (
         <>
-          <span aria-hidden="true">{resultStateGlyph('upcoming')}</span>{' '}
+          <Icon name={resultStateIcon('upcoming')} size={16} />{' '}
         </>
       )}
       {showAbbreviation ? <abbr title={fullName}>{abbreviation}</abbr> : fullName}

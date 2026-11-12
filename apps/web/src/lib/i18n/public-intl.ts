@@ -11,6 +11,7 @@ import { messages as zhMessages } from './public-messages.zh.js';
 import { messages } from './public-messages.en.js';
 import type { ResultReason } from '@copalibre/domain';
 import type { ResultState, ResultStateLabels } from '../result-state.js';
+import type { IconName } from '../icon-registry.js';
 import { parseBracketRole } from '../bracket-role.js';
 import { seriesScore, seriesSegments, type SegmentState, type SeriesInput } from '../series.js';
 import { displayName, type OverviewModel } from '../overview.js';
@@ -379,7 +380,8 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
 
 export interface SeriesStateBarSegment {
   readonly state: SegmentState;
-  readonly mark: string;
+  /** A registry icon: the brand faces have no glyph for these shapes. */
+  readonly mark: IconName;
   readonly label: string;
 }
 
@@ -398,12 +400,12 @@ export interface SeriesStateBarProps {
   something a spectator can guess from a shade, and the mark keeps it legible where the words
   will not fit — the two together mean a monochrome screen loses nothing.
 */
-const SERIES_SEGMENT_MARKS: Record<SegmentState, string> = {
-  'won-home': '▲',
-  'won-away': '▼',
-  current: '●',
-  upcoming: '·',
-  'not-required': '×',
+const SERIES_SEGMENT_MARKS: Record<SegmentState, IconName> = {
+  'won-home': 'winner',
+  'won-away': 'winner-away',
+  current: 'live',
+  upcoming: 'calendar',
+  'not-required': 'close',
 };
 
 /**
@@ -583,7 +585,8 @@ export interface CompletionFigureLabels {
   readonly heading: string;
   readonly summary: string;
   readonly stateLabel: string;
-  readonly stateGlyph: string;
+  /** A registry icon beside the state word, never a character the brand faces lack. */
+  readonly stateIcon: IconName;
   readonly unmeasuredLabel: string;
 }
 
@@ -596,17 +599,17 @@ export function completionFigureLabels(
     completion.totalMatches > 0 && completion.resolvedMatches === completion.totalMatches;
 
   let stateLabel: string;
-  let stateGlyph: string;
+  let stateIcon: IconName;
 
   if (isUnmeasured) {
     stateLabel = intl.formatMessage(messages.completionUnmeasured);
-    stateGlyph = '—';
+    stateIcon = 'minus';
   } else if (isComplete) {
     stateLabel = intl.formatMessage(messages.completionComplete);
-    stateGlyph = '✓';
+    stateIcon = 'check';
   } else {
     stateLabel = intl.formatMessage(messages.completionInProgress);
-    stateGlyph = '◐';
+    stateIcon = 'start-clock';
   }
 
   return {
@@ -616,7 +619,7 @@ export function completionFigureLabels(
       total: completion.totalMatches,
     }),
     stateLabel,
-    stateGlyph,
+    stateIcon,
     unmeasuredLabel: intl.formatMessage(messages.completionUnmeasured),
   };
 }

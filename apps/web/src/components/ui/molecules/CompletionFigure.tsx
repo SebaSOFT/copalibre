@@ -10,6 +10,7 @@
  */
 import { Card } from '../atoms/Card.tsx';
 import { Badge } from '../atoms/Badge.tsx';
+import { Icon } from '../atoms/icon.tsx';
 import type { CompletionFigureLabels } from '../../../lib/i18n/public-intl.ts';
 
 export interface SegmentCompletionItem {
@@ -89,7 +90,7 @@ export function CompletionFigure({
         <Badge
           className={`cl-completion-figure__badge cl-completion-figure__badge--${badgeModifier}`}
         >
-          <span aria-hidden="true">{labels.stateGlyph}</span>
+          <Icon name={labels.stateIcon} size={16} />
           <span>{labels.stateLabel}</span>
         </Badge>
       </div>

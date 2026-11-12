@@ -11,6 +11,7 @@ import {
 import { formatClock } from '../../lib/matches-view.js';
 import { presentState, type ResultStateLabels } from '../../lib/result-state.js';
 import { ValueFlash } from '../ui/atoms/ValueFlash.js';
+import { Icon } from '../ui/atoms/icon.js';
 import { useHydrated, usePrefersReducedMotion } from '../../lib/island-browser-state.js';
 
 const PAGE_ROTATE_MS = 20_000;
@@ -198,9 +199,11 @@ function CourtCard({
       </div>
       <div className="tv-court-card__footer">
         <span className={`tv-scorebug__badge tv-scorebug__badge--${badge.state}`}>
-          <span aria-hidden="true" className={badge.state === 'live' ? 'cl-live-dot' : ''}>
-            {badge.icon}
-          </span>
+          {badge.state === 'live' ? (
+            <span aria-hidden="true" className="cl-live-dot" />
+          ) : (
+            <Icon name={badge.icon} size={16} />
+          )}
           <span>{badge.label}</span>
         </span>
         {match.clockSeconds !== undefined && (

@@ -3,6 +3,7 @@ import { RealtimeClient } from '@copalibre/realtime';
 import { Badge } from '../atoms/Badge.js';
 import { Card, CardDescription, CardTitle } from '../atoms/Card.js';
 import { EntrantName } from '../atoms/EntrantName.js';
+import { Icon } from '../atoms/icon.js';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.js';
 import { ValueFlash } from '../atoms/ValueFlash.js';
 import { useEntryOnce } from '../../../lib/use-entry-once.js';
@@ -119,7 +120,7 @@ export function LiveMatchHero({
                   key={match.matchId}
                 >
                   <Badge className={badge.className}>
-                    {badge.state !== 'live' && <span aria-hidden="true">{badge.icon}</span>}
+                    {badge.state !== 'live' && <Icon name={badge.icon} size={16} />}
                     <span>{badge.label}</span>
                   </Badge>
                   {match.clockSeconds !== undefined && (

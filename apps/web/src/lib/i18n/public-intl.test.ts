@@ -258,7 +258,13 @@ describe('seriesStateBarLabels', () => {
       'upcoming',
       'not-required',
     ]);
-    expect(labels.segments.map((segment) => segment.mark)).toEqual(['▲', '▼', '●', '·', '×']);
+    expect(labels.segments.map((segment) => segment.mark)).toEqual([
+      'winner',
+      'winner-away',
+      'live',
+      'calendar',
+      'close',
+    ]);
     expect(labels.homeScore).toBe(1);
     expect(labels.awayScore).toBe(1);
   });

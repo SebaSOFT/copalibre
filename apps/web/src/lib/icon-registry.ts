@@ -1,3 +1,19 @@
+/**
+ * Every icon the interface draws, by the name callers use.
+ *
+ * An entry may be drawn filled (`fill`) or turned half a turn (`flip`), so one
+ * outline shape can serve as two marks without a second asset. State shapes
+ * live here rather than as text characters: the brand faces have no glyph for
+ * a circle, triangle or caret, and a character the brand face lacks makes the
+ * browser download a fallback font (a CJK or symbol face) just to draw it.
+ */
+export interface IconEntry {
+  readonly set: 'lucide' | 'tabler' | 'custom';
+  readonly name: string;
+  readonly fill?: true;
+  readonly flip?: true;
+}
+
 export const ICON_REGISTRY = {
   activity: { set: 'lucide', name: 'activity' },
   calendar: { set: 'lucide', name: 'calendar-days' },
@@ -28,6 +44,13 @@ export const ICON_REGISTRY = {
   'zoom-in': { set: 'lucide', name: 'zoom-in' },
   'zoom-out': { set: 'lucide', name: 'zoom-out' },
   'pause-clock': { set: 'lucide', name: 'pause' },
+  'chevron-down': { set: 'lucide', name: 'chevron-down' },
+  alert: { set: 'lucide', name: 'triangle-alert' },
+  minus: { set: 'lucide', name: 'minus' },
+  live: { set: 'lucide', name: 'circle', fill: true },
+  winner: { set: 'lucide', name: 'triangle', fill: true },
+  'winner-away': { set: 'lucide', name: 'triangle', fill: true, flip: true },
+  loser: { set: 'lucide', name: 'triangle', flip: true },
   basketball: { set: 'tabler', name: 'ball-basketball' },
   football: { set: 'tabler', name: 'ball-football' },
   tennis: { set: 'tabler', name: 'ball-tennis' },
@@ -35,7 +58,24 @@ export const ICON_REGISTRY = {
   scoreboard: { set: 'tabler', name: 'scoreboard' },
   cards: { set: 'tabler', name: 'cards' },
   unknown: { set: 'custom', name: 'event' },
-} as const;
+} as const satisfies Record<string, IconEntry>;
+
+/** The entry for a name, read through the shared shape so `fill` and `flip` are always visible. */
+export function iconEntry(name: IconName): IconEntry {
+  return ICON_REGISTRY[name];
+}
+
+/** The classes every rendering of an entry carries, so the two icon atoms cannot diverge. */
+export function iconClassName(entry: IconEntry, className = ''): string {
+  return [
+    'cl-icon',
+    entry.set === 'tabler' ? 'cl-icon--tabler' : '',
+    entry.flip ? 'cl-icon--flipped' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
 
 export type IconName = keyof typeof ICON_REGISTRY;
 export type IconSize = 16 | 20 | 24;
