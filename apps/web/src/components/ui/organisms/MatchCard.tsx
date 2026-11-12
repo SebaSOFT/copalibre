@@ -226,7 +226,7 @@ export function MatchCard({
           )}
         </MatchHeading>
         <Badge className={badge.className}>
-          {badge.state !== 'live' && <span aria-hidden="true">{badge.icon}</span>}
+          {badge.state !== 'live' && <Icon name={badge.icon} size={16} />}
           <span>{badge.label}</span>
         </Badge>
         {match.clockSeconds !== undefined && (
@@ -613,14 +613,14 @@ export function LiveMatchScorecard({
       {/* Tactical live status header */}
       <div className="cl-scorecard__header">
         <div className="cl-scorecard__location-group">
-          <span className="cl-scorecard__dot">●</span>
+          <Icon className="cl-scorecard__dot" name="live" size={16} />
           <span className="cl-scorecard__location">{location}</span>
           <span className="cl-scorecard__separator">•</span>
           <span className="cl-scorecard__operations">{operationsLabel}</span>
         </div>
 
         <div className="cl-scorecard__clock-group">
-          <span className="cl-scorecard__dot">●</span>
+          <Icon className="cl-scorecard__dot" name="live" size={16} />
           <span className="cl-scorecard__clock">{clock}</span>
         </div>
       </div>

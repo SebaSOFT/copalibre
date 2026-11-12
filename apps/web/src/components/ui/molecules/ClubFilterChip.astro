@@ -1,5 +1,6 @@
 ---
 import EmblemImage from '../atoms/EmblemImage.astro';
+import Icon from '../atoms/Icon.astro';
 
 /**
  * One option of a table's club filter: a compact, chamfered link that reads as
@@ -34,7 +35,7 @@ const { href, label, active, filter, club = false, abbreviation, emblemSrc } = A
 >
   {active && (
     <span class="cl-club-chip__check" aria-hidden="true">
-      ✓
+      <Icon name="check" size={16} />
     </span>
   )}
   {club && (

@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
 import { Icon, type IconProps } from './icon.js';
-import { ICON_REGISTRY } from '../../../../lib/icon-registry.js';
+import { ICON_REGISTRY, type IconEntry } from '../../../../lib/icon-registry.js';
 
 describe('Icon atom', () => {
   it('renders every registry key at each supported size', () => {
@@ -22,6 +22,16 @@ describe('Icon atom', () => {
     )) {
       const { container, unmount } = render(<Icon name={name} />);
       expect(container.querySelector('svg')?.classList.contains('cl-icon--tabler')).toBe(true);
+      unmount();
+    }
+  });
+
+  it('fills and turns the entries that ask for it, and only those', () => {
+    for (const [name, entry] of Object.entries(ICON_REGISTRY) as [string, IconEntry][]) {
+      const { container, unmount } = render(<Icon name={name} />);
+      const svg = container.querySelector('svg');
+      expect(svg?.getAttribute('fill')).toBe(entry.fill ? 'currentColor' : 'none');
+      expect(svg?.classList.contains('cl-icon--flipped')).toBe(entry.flip === true);
       unmount();
     }
   });

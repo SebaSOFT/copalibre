@@ -3,6 +3,7 @@ import { EntrantName } from '../atoms/EntrantName.tsx';
 import type { IntlShape } from 'react-intl';
 import { matchReportUrl, toNode, type BracketMatch } from '../../../lib/bracket.ts';
 import { resultStateLabels, sideSourceLabels } from '../../../lib/i18n/public-intl.ts';
+import Icon from '../atoms/Icon.astro';
 
 /**
  * A bracket card for a narrow screen: each side's abbreviation and score, a mark for the state,
@@ -50,7 +51,7 @@ const spoken = `${sides[0]?.name ?? ''} ${sides[0]?.score ?? '—'} – ${sides[
   })}
 >
   <span aria-hidden="true" class="cl-match-compact__state">
-    {node.badge.icon}
+    <Icon name={node.badge.icon} size={16} />
   </span>
   <ol aria-hidden="true">
     {sides.map((side) => (

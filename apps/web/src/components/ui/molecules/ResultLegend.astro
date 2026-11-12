@@ -1,5 +1,6 @@
 ---
 import { Badge } from '../atoms/Badge.tsx';
+import Icon from '../atoms/Icon.astro';
 import { resultLegend } from '../../../lib/result-state.ts';
 import type { ResultStateLabels } from '../../../lib/result-state.ts';
 
@@ -18,7 +19,7 @@ const legend = resultLegend(labels);
     {legend.map((state) => (
       <li>
         <Badge className={state.className}>
-          {state.state !== 'live' && <span aria-hidden="true">{state.icon}</span>}
+          {state.state !== 'live' && <Icon name={state.icon} size={16} />}
           <span class="cl-result-legend__label">{state.label}</span>
         </Badge>
       </li>

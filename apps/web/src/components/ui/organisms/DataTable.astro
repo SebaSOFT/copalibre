@@ -1,5 +1,7 @@
 ---
 import EmblemImage from '../atoms/EmblemImage.astro';
+import Icon from '../atoms/Icon.astro';
+import type { IconName } from '../../../lib/icon-registry.ts';
 
 /**
  * A server-renderable table owner: the public and
@@ -55,6 +57,8 @@ export type DataTableMobileMode = 'scroll' | 'priority' | 'stacked';
 
 export interface DataTableCellContent {
   readonly text: string;
+  /** A decorative registry icon before the text, as its own node: a state's shape beside its word. */
+  readonly icon?: IconName;
   readonly emblem?: {
     readonly abbreviation?: string;
     readonly alt: string;
@@ -171,6 +175,7 @@ const modifiers = [
                       src={richContent.emblem.src}
                     />
                   )}
+                  {richContent.icon && <Icon name={richContent.icon} size={16} />}
                   <span>{richContent.text}</span>
                 </span>
               ) : instant ? (

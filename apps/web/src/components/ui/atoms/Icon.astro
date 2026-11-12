@@ -3,6 +3,8 @@ import {
   Activity,
   CalendarDays,
   Check,
+  ChevronDown,
+  Circle,
   Clock,
   Copy,
   Download,
@@ -11,6 +13,7 @@ import {
   Languages,
   MapPin,
   Menu,
+  Minus,
   MoreHorizontal,
   Pause,
   Play,
@@ -18,6 +21,8 @@ import {
   Shield,
   ShieldAlert,
   Timer,
+  Triangle,
+  TriangleAlert,
   Trophy,
   Upload,
   UserRound,
@@ -34,7 +39,12 @@ import podium from '@tabler/icons/outline/podium.svg?raw';
 import scoreboard from '@tabler/icons/outline/scoreboard.svg?raw';
 import cards from '@tabler/icons/outline/cards.svg?raw';
 import { ICON_TOKENS } from '@copalibre/design-tokens';
-import { ICON_REGISTRY, resolveIconName, type IconSize } from '../../../lib/icon-registry.js';
+import {
+  iconClassName,
+  iconEntry,
+  resolveIconName,
+  type IconSize,
+} from '../../../lib/icon-registry.js';
 import { normalizeIconSvg } from '../../../lib/icon-svg.js';
 
 type IconAccessibilityProps =
@@ -51,7 +61,7 @@ const resolvedName = resolveIconName(name);
 if (!decorative && !label) {
   throw new Error(`Meaningful icon "${resolvedName}" requires an accessible label.`);
 }
-const entry = ICON_REGISTRY[resolvedName];
+const entry = iconEntry(resolvedName);
 const lucide = {
   activity: Activity,
   calendar: CalendarDays,
@@ -82,6 +92,13 @@ const lucide = {
   'zoom-in': ZoomIn,
   'zoom-out': ZoomOut,
   'pause-clock': Pause,
+  'chevron-down': ChevronDown,
+  alert: TriangleAlert,
+  minus: Minus,
+  live: Circle,
+  winner: Triangle,
+  'winner-away': Triangle,
+  loser: Triangle,
 };
 const tabler = { football, basketball, tennis, podium, scoreboard, cards };
 const iconMarkup =
@@ -96,7 +113,7 @@ const svgBody =
     : typeof iconMarkup === 'string'
       ? normalizeIconSvg(iconMarkup, ICON_TOKENS.stroke)
       : '';
-const iconClass = `cl-icon${entry.set === 'tabler' ? ' cl-icon--tabler' : ''} ${className}`.trim();
+const iconClass = iconClassName(entry, className);
 const iconSize =
   size === 16
     ? ICON_TOKENS.size.inline
@@ -113,7 +130,7 @@ const iconSize =
   width={iconSize}
   height={iconSize}
   viewBox="0 0 24 24"
-  fill="none"
+  fill={entry.fill ? 'currentColor' : 'none'}
   stroke="currentColor"
   stroke-width={ICON_TOKENS.stroke}
   stroke-linecap="round"
@@ -130,5 +147,8 @@ const iconSize =
   .cl-icon--tabler {
     transform: scale(var(--cl-icon-tabler-optical-scale, 1.1));
     transform-origin: center;
+  }
+  .cl-icon--flipped {
+    transform: rotate(180deg);
   }
 </style>

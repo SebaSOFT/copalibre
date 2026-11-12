@@ -1,6 +1,14 @@
 ---
 import type { IntlShape } from 'react-intl';
 import '@copalibre/design-tokens/generated/copalibre.css';
+/*
+  Every public page's main heading is set in Barlow Condensed 700, and that heading is the page's
+  largest paint. Left to the stylesheet, its face is requested only once the stylesheet has been
+  parsed, last of all; preloading it starts the download with the document's. It is the same file
+  the stylesheet's `@font-face` names (the build gives both the same hashed URL), so it is fetched
+  once. One file only: preloading more would compete with the stylesheet on a slow connection.
+*/
+import headingFaceUrl from '@fontsource/barlow-condensed/files/barlow-condensed-latin-700-normal.woff2?url';
 import { messages } from '../lib/i18n/public-messages.en.ts';
 import {
   selectPublicDisciplineBackground,
@@ -67,6 +75,8 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
 <html lang={intl.locale}>
   <head>
     <script is:inline src="/scripts/theme-init.js"></script>
+    {/* `crossorigin` is required on a font preload even from the same origin, or the font is fetched twice. */}
+    <link rel="preload" as="font" type="font/woff2" crossorigin href={headingFaceUrl} />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />

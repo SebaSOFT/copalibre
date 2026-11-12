@@ -16,6 +16,7 @@ import {
   TYPOGRAPHY,
 } from './primitives.js';
 import { CONTRAST_GATES, contrastRatio } from './contrast.js';
+import { FONT_FALLBACKS, fallbackFontFaces } from './font-fallbacks.js';
 import { PROTECTED_TOKENS, SEMANTIC_COLORS, isProtected, resolveSemantic } from './semantic.js';
 import {
   BADGE_TONES,
@@ -227,12 +228,17 @@ describe('script-aware typography', () => {
   it('delivers every named web face and keeps CSS and Tailwind stacks in order', () => {
     expect(TYPOGRAPHY).toEqual({
       display:
-        "'Barlow Condensed', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif",
-      body: "'Barlow', 'Roboto Variable', 'Noto Sans SC Variable', system-ui, -apple-system, 'Segoe UI', sans-serif",
-      mono: "'JetBrains Mono Variable', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace",
+        "'Barlow Condensed', 'Barlow Condensed Fallback', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif",
+      body: "'Barlow', 'Barlow Fallback', 'Roboto Variable', 'Noto Sans SC Variable', system-ui, -apple-system, 'Segoe UI', sans-serif",
+      mono: "'JetBrains Mono Variable', 'JetBrains Mono Fallback', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace",
     });
 
-    const platformFallbacks = new Set(['Arial Narrow', 'Segoe UI', 'SFMono-Regular']);
+    const platformFallbacks = new Set([
+      'Arial Narrow',
+      'Segoe UI',
+      'SFMono-Regular',
+      ...FONT_FALLBACKS.map(({ family }) => family),
+    ]);
     const namedWebFamilies = [
       ...new Set(
         Object.values(TYPOGRAPHY)
@@ -260,6 +266,7 @@ describe('script-aware typography', () => {
     expect(generateTailwindTheme().fontFamily).toEqual({
       display: [
         'Barlow Condensed',
+        'Barlow Condensed Fallback',
         'Roboto Condensed Variable',
         'Noto Sans SC Variable',
         'Arial Narrow',
@@ -268,6 +275,7 @@ describe('script-aware typography', () => {
       ],
       body: [
         'Barlow',
+        'Barlow Fallback',
         'Roboto Variable',
         'Noto Sans SC Variable',
         'system-ui',
@@ -277,12 +285,62 @@ describe('script-aware typography', () => {
       ],
       mono: [
         'JetBrains Mono Variable',
+        'JetBrains Mono Fallback',
         'Noto Sans SC Variable',
         'ui-monospace',
         'SFMono-Regular',
         'monospace',
       ],
     });
+  });
+
+  it('follows every brand face with a fallback face matched to its metrics', () => {
+    const css = generateCss();
+    const brandFaces = ['Barlow Condensed', 'Barlow', 'JetBrains Mono Variable'];
+    for (const stack of Object.values(TYPOGRAPHY)) {
+      const families = [...stack.matchAll(/'([^']+)'/g)].map(([, family]) => family);
+      for (const [index, family] of families.entries()) {
+        if (!brandFaces.includes(family ?? '')) continue;
+        const fallback = FONT_FALLBACKS.find(({ brand }) => brand === family);
+        expect(fallback).toBeDefined();
+        expect(families[index + 1]).toBe(fallback?.family);
+      }
+    }
+    expect(FONT_FALLBACKS.map(({ brand }) => brand).sort()).toEqual([...brandFaces].sort());
+
+    for (const { family, brand } of FONT_FALLBACKS) {
+      const faces = [
+        ...css.matchAll(new RegExp(`@font-face \\{\\n  font-family: '${family}';[^}]*\\}`, 'g')),
+      ].map(([face]) => face);
+      expect(faces).toHaveLength(1);
+      // A monospace brand face stands on a monospace local face, so uppercase labels keep their width.
+      expect(faces[0]).toContain(
+        brand.startsWith('JetBrains Mono') ? "local('Courier New')" : "local('Arial')",
+      );
+      for (const face of faces) {
+        for (const descriptor of [
+          'size-adjust',
+          'ascent-override',
+          'descent-override',
+          'line-gap-override',
+        ]) {
+          expect(face).toMatch(new RegExp(`${descriptor}: \\d+(\\.\\d+)?%;`));
+        }
+      }
+    }
+    // Derived from each brand face's own metrics, not one number for all of them.
+    expect(
+      new Set(fallbackFontFaces().map((face) => face.match(/size-adjust: ([^;]+);/)?.[1])).size,
+    ).toBe(fallbackFontFaces().length);
+  });
+
+  it('keeps every brand face swapping in rather than hiding text', () => {
+    for (const stylesheet of FONT_STYLESHEETS) {
+      const faces =
+        readFileSync(require.resolve(stylesheet), 'utf8').match(/@font-face\s*\{[^}]*\}/g) ?? [];
+      expect(faces.length).toBeGreaterThan(0);
+      for (const face of faces) expect(face).toContain('font-display: swap');
+    }
   });
 
   it('imports every face from a bundled package, first and never from another origin', () => {

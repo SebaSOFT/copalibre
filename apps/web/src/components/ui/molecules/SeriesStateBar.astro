@@ -1,9 +1,11 @@
 ---
 import type { SegmentState } from '../../../lib/series.ts';
+import type { IconName } from '../../../lib/icon-registry.ts';
+import Icon from '../atoms/Icon.astro';
 
 export interface SeriesStateBarSegment {
   readonly state: SegmentState;
-  readonly mark: string;
+  readonly mark: IconName;
   readonly label: string;
 }
 
@@ -33,7 +35,7 @@ const { homeScore, awayScore, segmentsAriaLabel, segments, winner, outcomeText, 
       >
         {/* The mark carries the state where the words will not fit, so nothing here
               depends on a colour; the label carries the same fact in words. */}
-        {segment.mark}
+        <Icon name={segment.mark} size={16} />
       </li>
     ))}
   </ol>

@@ -3,6 +3,8 @@ import {
   Activity,
   CalendarDays,
   Check,
+  ChevronDown,
+  Circle,
   Clock,
   Copy,
   Download,
@@ -11,6 +13,7 @@ import {
   Languages,
   MapPin,
   Menu,
+  Minus,
   MoreHorizontal,
   Pause,
   Play,
@@ -18,6 +21,8 @@ import {
   Shield,
   ShieldAlert,
   Timer,
+  Triangle,
+  TriangleAlert,
   Trophy,
   Upload,
   UserRound,
@@ -36,7 +41,13 @@ import {
   IconScoreboard,
 } from '@tabler/icons-react';
 import { ICON_TOKENS } from '@copalibre/design-tokens';
-import { ICON_REGISTRY, resolveIconName, type IconSize } from '../../../../lib/icon-registry.js';
+import {
+  ICON_REGISTRY,
+  iconClassName,
+  iconEntry,
+  resolveIconName,
+  type IconSize,
+} from '../../../../lib/icon-registry.js';
 
 type IconAccessibilityProps =
   | { readonly decorative?: true; readonly label?: never }
@@ -63,7 +74,7 @@ export function Icon({
     throw new Error(`Meaningful icon "${resolvedName}" requires an accessible label.`);
   }
 
-  const entry = ICON_REGISTRY[resolvedName];
+  const entry = iconEntry(resolvedName);
   const pixelSize =
     size === 16
       ? ICON_TOKENS.size.inline
@@ -76,7 +87,7 @@ export function Icon({
         {...props}
         aria-hidden={decorative ? 'true' : undefined}
         aria-label={decorative ? undefined : label}
-        className={`cl-icon ${className}`.trim()}
+        className={iconClassName(entry, className)}
         fill="none"
         height={pixelSize}
         role={decorative ? undefined : 'img'}
@@ -132,6 +143,13 @@ export function Icon({
           'zoom-in': ZoomIn,
           'zoom-out': ZoomOut,
           'pause-clock': Pause,
+          'chevron-down': ChevronDown,
+          alert: TriangleAlert,
+          minus: Minus,
+          live: Circle,
+          winner: Triangle,
+          'winner-away': Triangle,
+          loser: Triangle,
         }[
           resolvedName as Exclude<
             keyof typeof ICON_REGISTRY,
@@ -139,14 +157,14 @@ export function Icon({
           >
         ];
   if (!Glyph) return null;
-  const tablerClass = entry.set === 'tabler' ? ' cl-icon--tabler' : '';
   return (
     <Glyph
       {...props}
       aria-hidden={decorative ? 'true' : undefined}
       aria-label={decorative ? undefined : label}
-      className={`cl-icon${tablerClass} ${className}`.trim()}
+      className={iconClassName(entry, className)}
       color="currentColor"
+      {...(entry.fill ? { fill: 'currentColor' } : {})}
       role={decorative ? undefined : 'img'}
       size={pixelSize}
       strokeWidth={ICON_TOKENS.stroke}

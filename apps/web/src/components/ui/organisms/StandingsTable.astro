@@ -13,6 +13,7 @@ import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
 import type { ClubView, StandingsRowView } from '../../../lib/overview.ts';
 import { columnHint } from '../../../lib/column-hints.ts';
 import Button from '../atoms/Button.astro';
+import Icon from '../atoms/Icon.astro';
 import ClubFilterChip from '../molecules/ClubFilterChip.astro';
 import { EntrantName } from '../atoms/EntrantName.tsx';
 import EmblemImage from '../atoms/EmblemImage.astro';
@@ -524,7 +525,7 @@ const playerDialogLabels = {
           aria-label={intl.formatMessage(messages.standingsCloseDialog)}
           data-close-dialog
         >
-          ✕
+          <Icon name="close" size={16} />
         </Button>
       </div>
       <div id="cl-player-dialog-body" class="cl-player-dialog__body" aria-live="polite">

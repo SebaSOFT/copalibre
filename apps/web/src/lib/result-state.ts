@@ -13,29 +13,36 @@
  * build time via `resultStateLabels()` and passes it down as a plain prop.
  */
 
+import type { IconName } from './icon-registry.js';
+
 export type ResultState =
   'live' | 'upcoming' | 'final' | 'disputed' | 'winner' | 'loser' | 'tbd' | 'cancelled';
 
 export interface StatePresentation {
   readonly state: ResultState;
   readonly label: string;
-  /** A shape, for viewers who distinguish neither the colour nor the word. */
-  readonly icon: string;
+  /**
+   * A shape, for viewers who distinguish neither the colour nor the word. It
+   * names a registry icon rather than a character: the brand faces have no
+   * glyph for these shapes, and drawing one as text made every page download
+   * a fallback font.
+   */
+  readonly icon: IconName;
   /** The token class; `cl-state-*` maps onto semantic tokens. */
   readonly className: string;
 }
 
 export type ResultStateLabels = Readonly<Record<ResultState, string>>;
 
-const ICON: Readonly<Record<ResultState, string>> = {
-  live: '●',
-  upcoming: '◷',
-  final: '✓',
-  disputed: '!',
-  winner: '▲',
-  loser: '▽',
-  tbd: '—',
-  cancelled: '×',
+const ICON: Readonly<Record<ResultState, IconName>> = {
+  live: 'live',
+  upcoming: 'calendar',
+  final: 'check',
+  disputed: 'alert',
+  winner: 'winner',
+  loser: 'loser',
+  tbd: 'minus',
+  cancelled: 'close',
 };
 
 const CLASS_NAME: Readonly<Record<ResultState, string>> = {
@@ -84,7 +91,7 @@ export function decide(
   return home > away ? { home: 'winner', away: 'loser' } : { home: 'loser', away: 'winner' };
 }
 
-/** The existing state glyph, for an atom that carries its own text label. */
-export function resultStateGlyph(state: ResultState): string {
+/** The state's registry icon, for an atom that carries its own text label. */
+export function resultStateIcon(state: ResultState): IconName {
   return ICON[state];
 }
