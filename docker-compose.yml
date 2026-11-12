@@ -255,10 +255,14 @@ services:
     environment:
       <<: *application-environment
       PRODUCT_ROLE: doctor
+      # doctor checks that web's Content Security Policy allows the identity provider.
+      COPALIBRE_CSP_IDENTITY_ORIGIN: ${COPALIBRE_CSP_IDENTITY_ORIGIN:-}
     profiles: ['operations']
+    # doctor connects as copalibre_app, which database-setup creates: on a fresh install
+    # (`copalibre init`, then `doctor` or `start`) the role exists only once it has run.
     depends_on:
-      postgres:
-        condition: service_healthy
+      database-setup:
+        condition: service_completed_successfully
 
   upgrade-check:
     <<: *application-service
