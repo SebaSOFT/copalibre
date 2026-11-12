@@ -46,7 +46,12 @@ describe('emblem renditions', () => {
 
   it('never enlarges an original smaller than the asked width', async () => {
     const small = await sharp({
-      create: { width: 40, height: 50, channels: 4, background: '#ffffff' },
+      create: {
+        width: 40,
+        height: 50,
+        channels: 4,
+        background: { r: 255, g: 255, b: 255, alpha: 1 },
+      },
     })
       .png()
       .toBuffer();
