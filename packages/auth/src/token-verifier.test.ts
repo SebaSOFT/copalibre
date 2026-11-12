@@ -1,3 +1,5 @@
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { SignJWT, exportJWK, generateKeyPair, type JWK } from 'jose';
 import { createLocalJWKSet } from 'jose';
 import {
@@ -110,6 +112,47 @@ describe('TokenVerifier', () => {
 
     await expect(verifier.verify(token)).resolves.toMatchObject({ subjectId: 'user-1' });
     expect(remoteLookups).toBe(0);
+  });
+
+  it("verifies native tokens against the API's key set when the external provider's holds other keys", async () => {
+    const native = await makeKeys('RS256', 'copalibre-local-key-1');
+    const external = await makeKeys('RS256', 'external-key-1');
+    const keySets: Record<string, readonly JWK[]> = {
+      '/api/auth/jwks.json': [native.publicJwk],
+      '/external/jwks': [external.publicJwk],
+    };
+    const server = createServer((request, response) => {
+      const keys = keySets[request.url ?? ''];
+      response.writeHead(keys ? 200 : 404, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ keys: keys ?? [] }));
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const { port } = server.address() as AddressInfo;
+      const verifier = new TokenVerifier(
+        authConfigFromEnv({
+          COPALIBRE_JWKS_URI: `http://127.0.0.1:${port}/external/jwks`,
+          COPALIBRE_JWT_ISSUER: ISSUER,
+          COPALIBRE_NATIVE_JWT_ISSUER: NATIVE_ISSUER,
+          COPALIBRE_JWT_AUDIENCE: AUDIENCE,
+          COPALIBRE_API_INTERNAL_URL: `http://127.0.0.1:${port}`,
+        }),
+      );
+
+      await expect(
+        verifier.verify(await signToken(native, { issuer: NATIVE_ISSUER })),
+      ).resolves.toMatchObject({ subjectId: 'user-1' });
+      await expect(verifier.verify(await signToken(external))).resolves.toMatchObject({
+        subjectId: 'user-1',
+      });
+      // A native-issuer token signed by the external provider's key is still refused.
+      await expect(
+        verifier.verify(await signToken(external, { issuer: NATIVE_ISSUER })),
+      ).rejects.toBeInstanceOf(TokenVerificationError);
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   });
 
   it('rejects a forged native kid signed by a different key', async () => {
@@ -366,6 +409,14 @@ describe('authConfigFromEnv', () => {
     expect(config.jwksUri).toBeUndefined();
     expect(config.issuer).toBeUndefined();
     expect(config.nativeIssuer).toBe('http://localhost:8080');
+  });
+
+  it("derives the API's own key set from COPALIBRE_API_INTERNAL_URL", () => {
+    expect(authConfigFromEnv(complete).nativeJwksUri).toBeUndefined();
+    expect(
+      authConfigFromEnv({ ...complete, COPALIBRE_API_INTERNAL_URL: 'http://api:3001/' })
+        .nativeJwksUri,
+    ).toBe('http://api:3001/api/auth/jwks.json');
   });
 
   it.each([['COPALIBRE_JWT_AUDIENCE']])('fails closed when %s is missing', (variable) => {
