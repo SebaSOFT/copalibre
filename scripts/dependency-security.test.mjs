@@ -34,7 +34,7 @@ const patchedFloors = {
   hono: { 4: '4.13.11' },
   'http-cache-semantics': { 4: '4.3.0' },
   'ip-address': { 10: '10.7.4' },
-  '@hono/node-server': { 2: '2.1.3' },
+  '@hono/node-server': { 2: '2.1.6' },
   undici: { 6: '6.29.1', 8: '8.12.2' },
   nanoid: { 3: '3.3.18', 5: '5.1.16' },
   storybook: { 10: '10.6.2' },
