@@ -29,6 +29,16 @@ test('Lighthouse config covers every public route with the slow mobile profile',
   assert.equal(collect.settings.throttling.downloadThroughputKbps, 1638.4);
 });
 
+// Ubuntu 24.04 runners restrict unprivileged user namespaces, so a sandboxed
+// Chrome aborts with "No usable sandbox!" before Lighthouse can measure.
+test('Lighthouse launches Chrome without the sandbox, like the INP script', async () => {
+  const flags = lighthouseConfig.ci.collect.settings.chromeFlags.split(/\s+/);
+  assert.ok(flags.includes('--no-sandbox'));
+
+  const inpScript = await readFile(new URL('./inp.mjs', import.meta.url), 'utf8');
+  assert.match(inpScript, /'--no-sandbox'/);
+});
+
 test('Lighthouse assertions match the published performance budgets', () => {
   const { assertions } = lighthouseConfig.ci.assert;
   const options = Object.fromEntries(

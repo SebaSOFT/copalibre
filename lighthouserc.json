@@ -8,6 +8,7 @@
       ],
       "numberOfRuns": 3,
       "settings": {
+        "chromeFlags": "--no-sandbox --headless=new --disable-dev-shm-usage",
         "formFactor": "mobile",
         "screenEmulation": {
           "mobile": true,

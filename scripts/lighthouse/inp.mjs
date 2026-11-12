@@ -36,87 +36,33 @@ function median(values) {
   return ordered[Math.floor(ordered.length / 2)];
 }
 
+// A timespan sometimes records no interaction event, and Lighthouse then
+// reports INP as not applicable. That is a missed sample, not a slow page:
+// measure the run again, a bounded number of times.
+const attemptsPerRun = 3;
+
 async function measureRoute(route) {
   const url = new URL(route, baseUrl).toString();
   const inpSamples = [];
   const tbtSamples = [];
 
   for (let run = 1; run <= repetitions; run += 1) {
-    const browser = await puppeteer.launch({
-      executablePath: chromePath,
-      headless: true,
-      args: ['--no-sandbox', '--disable-dev-shm-usage'],
-    });
-
-    try {
-      const page = await browser.newPage();
-      await page.setViewport(viewport);
-      const flow = await startFlow(page, {
-        name: `Public INP ${route} run ${run}`,
-        config: flowConfig,
-      });
-
-      await flow.navigate(url);
-      const cdp = await page.createCDPSession();
-      await cdp.send('Emulation.setDeviceMetricsOverride', {
-        width: viewport.width,
-        height: viewport.height,
-        deviceScaleFactor: viewport.deviceScaleFactor,
-        mobile: true,
-        screenWidth: viewport.width,
-        screenHeight: viewport.height,
-      });
-      await cdp.send('Emulation.setTouchEmulationEnabled', {
-        enabled: true,
-        maxTouchPoints: 1,
-      });
-      await page.waitForFunction(() => globalThis.innerWidth === 412);
-      await page.waitForSelector('[data-public-nav-toggle]:not([hidden])', { timeout: 10000 });
-
-      const menuExpanded = await page.$eval(
-        '[data-public-nav-toggle]',
-        (toggle) => toggle.getAttribute('aria-expanded') === 'true',
-      );
-      if (menuExpanded) {
-        await page.click('[data-public-nav-toggle]');
-        await page.waitForFunction(
-          () =>
-            globalThis.document
-              .querySelector('[data-public-nav-toggle]')
-              ?.getAttribute('aria-expanded') === 'false',
+    let sample = null;
+    for (let attempt = 1; attempt <= attemptsPerRun && sample === null; attempt += 1) {
+      sample = await measureOnce(url, `${route} run ${run}`);
+      if (sample === null && attempt < attemptsPerRun) {
+        process.stdout.write(
+          `No INP for ${route} run ${run} (attempt ${attempt}); measuring again\n`,
         );
       }
-
-      await flow.startTimespan({ name: 'Open public navigation' });
-      await page.click('[data-public-nav-toggle]');
-      await page.waitForFunction(
-        () =>
-          globalThis.document
-            .querySelector('[data-public-nav-toggle]')
-            ?.getAttribute('aria-expanded') === 'true',
-      );
-      await page.evaluate(
-        () =>
-          new Promise((resolve) =>
-            globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve)),
-          ),
-      );
-      await flow.endTimespan();
-
-      const result = await flow.createFlowResult();
-      const interactionStep = result.steps.find((step) => step.name === 'Open public navigation');
-      const interactionAudit = interactionStep?.lhr.audits['interaction-to-next-paint'];
-      if (typeof interactionAudit?.numericValue !== 'number') {
-        throw new Error(`Lighthouse did not produce INP for ${route} run ${run}`);
-      }
-      inpSamples.push(interactionAudit.numericValue);
-
-      const navigationStep = result.steps.find((step) => step.lhr.audits['total-blocking-time']);
-      const tbt = navigationStep?.lhr.audits['total-blocking-time']?.numericValue;
-      if (typeof tbt === 'number') tbtSamples.push(tbt);
-    } finally {
-      await browser.close();
     }
+    if (sample === null) {
+      throw new Error(
+        `Lighthouse did not produce INP for ${route} run ${run} after ${attemptsPerRun} attempts`,
+      );
+    }
+    inpSamples.push(sample.inp);
+    if (typeof sample.tbt === 'number') tbtSamples.push(sample.tbt);
   }
 
   const inpMedianMs = median(inpSamples);
@@ -130,6 +76,82 @@ async function measureRoute(route) {
     tbtSamplesMs: tbtSamples,
     tbtMedianMs: tbtSamples.length === 0 ? null : median(tbtSamples),
   };
+}
+
+/** Measures one run; answers null when Lighthouse recorded no INP for the interaction. */
+async function measureOnce(url, label) {
+  const browser = await puppeteer.launch({
+    executablePath: chromePath,
+    headless: true,
+    args: ['--no-sandbox', '--disable-dev-shm-usage'],
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setViewport(viewport);
+    const flow = await startFlow(page, {
+      name: `Public INP ${label}`,
+      config: flowConfig,
+    });
+
+    await flow.navigate(url);
+    const cdp = await page.createCDPSession();
+    await cdp.send('Emulation.setDeviceMetricsOverride', {
+      width: viewport.width,
+      height: viewport.height,
+      deviceScaleFactor: viewport.deviceScaleFactor,
+      mobile: true,
+      screenWidth: viewport.width,
+      screenHeight: viewport.height,
+    });
+    await cdp.send('Emulation.setTouchEmulationEnabled', {
+      enabled: true,
+      maxTouchPoints: 1,
+    });
+    await page.waitForFunction(() => globalThis.innerWidth === 412);
+    await page.waitForSelector('[data-public-nav-toggle]:not([hidden])', { timeout: 10000 });
+
+    const menuExpanded = await page.$eval(
+      '[data-public-nav-toggle]',
+      (toggle) => toggle.getAttribute('aria-expanded') === 'true',
+    );
+    if (menuExpanded) {
+      await page.click('[data-public-nav-toggle]');
+      await page.waitForFunction(
+        () =>
+          globalThis.document
+            .querySelector('[data-public-nav-toggle]')
+            ?.getAttribute('aria-expanded') === 'false',
+      );
+    }
+
+    await flow.startTimespan({ name: 'Open public navigation' });
+    await page.click('[data-public-nav-toggle]');
+    await page.waitForFunction(
+      () =>
+        globalThis.document
+          .querySelector('[data-public-nav-toggle]')
+          ?.getAttribute('aria-expanded') === 'true',
+    );
+    await page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve)),
+        ),
+    );
+    await flow.endTimespan();
+
+    const result = await flow.createFlowResult();
+    const interactionStep = result.steps.find((step) => step.name === 'Open public navigation');
+    const interactionAudit = interactionStep?.lhr.audits['interaction-to-next-paint'];
+    if (typeof interactionAudit?.numericValue !== 'number') return null;
+
+    const navigationStep = result.steps.find((step) => step.lhr.audits['total-blocking-time']);
+    const tbt = navigationStep?.lhr.audits['total-blocking-time']?.numericValue;
+    return { inp: interactionAudit.numericValue, tbt };
+  } finally {
+    await browser.close();
+  }
 }
 
 const results = [];
