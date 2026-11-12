@@ -10,6 +10,12 @@
  * behind a proxy that strips scripts, which is the one place these pages have
  * to keep working.
  *
+ * Closing after first paint would shift the whole page up, so when scripting
+ * runs the compact menu is painted closed from the start: the classic script
+ * that runs before paint marks `<html>` with `data-scripting`, and the design
+ * system's styles hide the panels until this script marks the header
+ * `data-nav-ready`. Without scripting none of that applies.
+ *
  * The operator surface's modal drawer is untouched. A dense task surface wants
  * the page held still behind its menu; a public page wants the page to move.
  */
@@ -253,11 +259,16 @@ const languageName = (code: string): string => {
   const COMPACT = '(max-width: 768px)';
 
   function enhanceHeader(toggle: HTMLButtonElement) {
+    // Hands the compact menu's state from the pre-paint styles to this script.
+    const markReady = () => toggle.closest('.cl-public-header')?.setAttribute('data-nav-ready', '');
     const panels = (toggle.getAttribute('aria-controls') ?? '')
       .split(/\s+/)
       .map((id) => document.getElementById(id))
       .filter((panel): panel is HTMLElement => panel !== null);
-    if (panels.length === 0) return;
+    if (panels.length === 0) {
+      markReady();
+      return;
+    }
 
     const compact = window.matchMedia(COMPACT);
 
@@ -293,8 +304,10 @@ const languageName = (code: string): string => {
     });
 
     compact.addEventListener('change', apply);
+    // The pre-paint styles already show this closed state, so taking over changes nothing on screen.
     setExpanded(false);
     apply();
+    markReady();
   }
 
   for (const toggle of document.querySelectorAll<HTMLButtonElement>('[data-public-nav-toggle]')) {

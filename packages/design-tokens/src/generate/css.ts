@@ -2387,6 +2387,17 @@ function compositions(): string {
     '  .cl-public-header__tournament-links { display: grid; grid-template-columns: minmax(0, 1fr); }',
     '  .cl-public-header__tournament-link[aria-current="page"] { border-inline-start: 2px solid var(--cl-primary); }',
     '  .cl-public-header__toggle:not([hidden]) { display: inline-grid; }',
+    /* When scripting runs, paint the menu closed from the first frame: the
+     * header's script closes it anyway, and closing it after first paint
+     * shifts the whole page up. `data-scripting` comes from the classic script
+     * that runs before paint; `data-nav-ready` from the header script, after
+     * which its own state (the panels' `hidden`) decides. Without scripting the
+     * markup stays expanded and every link reachable. `!important` with the
+     * higher specificity is needed to outrank the global `[hidden]` rule. */
+    '  html[data-scripting] .cl-public-header:not([data-nav-ready]) .cl-public-header__nav, html[data-scripting] .cl-public-header:not([data-nav-ready]) .cl-public-header__context-band { display: none; }',
+    '  html[data-scripting] .cl-public-header:not([data-nav-ready]) .cl-public-header__toggle { display: inline-grid !important; }',
+    '  html[data-scripting] .cl-public-header:not([data-nav-ready]) .cl-public-header__toggle .cl-public-header__toggle-open { display: none; }',
+    '  html[data-scripting] .cl-public-header:not([data-nav-ready]) .cl-public-header__toggle .cl-public-header__toggle-closed { display: block; }',
     '}',
   ].join('\n');
 }
