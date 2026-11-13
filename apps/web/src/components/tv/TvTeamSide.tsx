@@ -32,6 +32,7 @@ export function TvTeamSide({
           className="tv-team-side__emblem"
           abbreviation={abbreviation}
           decorative
+          eager
           size="100%"
           src={club?.emblemUrl}
         />

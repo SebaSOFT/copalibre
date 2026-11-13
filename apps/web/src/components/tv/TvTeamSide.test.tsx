@@ -33,4 +33,18 @@ describe('TvTeamSide', () => {
 
     expect(container.querySelector('img')?.getAttribute('src')).toBe('/club-a-emblem.png');
   });
+
+  it('loads the emblem at once, since nobody scrolls a TV toward it', () => {
+    const { container } = render(
+      <TvTeamSide
+        abbreviation="AAA"
+        clubId="club-a"
+        clubs={[{ clubId: 'club-a', name: 'Club A', emblemUrl: '/club-a-emblem.png' }]}
+        name="Club A"
+        roleLabel="Local"
+      />,
+    );
+
+    expect(container.querySelector('img')?.getAttribute('loading')).toBe('eager');
+  });
 });

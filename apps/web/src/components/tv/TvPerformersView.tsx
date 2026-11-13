@@ -34,6 +34,7 @@ export function TvPerformersView({
                 abbreviation={p.clubAbbreviation}
                 className="tv-table-club-emblem cl-entrant-emblem--small"
                 decorative
+                eager
                 size="3vmin"
                 src={p.clubEmblemUrl}
               />

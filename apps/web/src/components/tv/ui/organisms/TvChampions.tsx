@@ -30,6 +30,7 @@ export function TvChampions({
                   className="tv-champions__emblem"
                   abbreviation={champion.abbreviation}
                   decorative
+                  eager
                   size="clamp(9vmin, 10vmin, 11vmin)"
                   src={champion.emblemUrl}
                 />

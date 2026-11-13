@@ -1164,6 +1164,7 @@ export function TvDashboard({
                       className="tv-champion__emblem"
                       abbreviation={champion.abbreviation}
                       decorative
+                      eager
                       size="18vmin"
                       src={champion.emblemUrl}
                     />
