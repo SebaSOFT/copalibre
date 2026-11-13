@@ -50,6 +50,8 @@ import MatchNode from '../components/ui/organisms/MatchNode.astro';
 import MatchOfficials from '../components/ui/organisms/MatchOfficials.astro';
 import MatchRosters from '../components/ui/organisms/MatchRosters.astro';
 import MatchSchedule from '../components/ui/organisms/MatchSchedule.astro';
+import MatchDayList from '../components/ui/organisms/MatchDayList.astro';
+import MatchDayRow from '../components/ui/molecules/MatchDayRow.astro';
 import MatchScheduleFilters from '../components/ui/organisms/MatchScheduleFilters.astro';
 import MatchTimeline from '../components/ui/organisms/MatchTimeline.astro';
 import Modal from '../components/ui/organisms/Modal.astro';
@@ -79,6 +81,7 @@ import { messages } from '../lib/i18n/public-messages.en.ts';
 import {
   referenceBracket,
   referenceSchedule,
+  referenceScheduleRows,
   referenceJourneyBracket,
   referencePlacementBracket,
   referenceClubs,
@@ -161,6 +164,8 @@ const PREVIEWABLE = new Set([
   'match-rosters',
   'match-schedule',
   'match-schedule-filters',
+  'match-day-list',
+  'match-day-row',
   'match-timeline',
   'modal',
   'organization-clubs',
@@ -792,6 +797,38 @@ const [compactSample] = referenceJourneyBracket(true);
         stages={referenceSchedule()}
         tournamentAlias="reference-cup"
       />
+    )}
+    {component === 'match-day-list' && (
+      <MatchDayList
+        intl={intl}
+        matches={referenceScheduleRows()}
+        organizationAlias="reference-league"
+        organizationTimeZone="UTC"
+        reportUrlOf={(match) =>
+          `/reference-league/tournaments/reference-cup/stages/1/matches/${match.matchNumber}`
+        }
+      />
+    )}
+    {component === 'match-day-row' && (
+      <ol class="cl-match-day__matches">
+        {referenceScheduleRows()
+          .slice(0, 2)
+          .map((match, index) => (
+            <li>
+              <MatchDayRow
+                intl={intl}
+                match={
+                  index === 0
+                    ? { ...match, state: 'live', homeScore: undefined, awayScore: undefined }
+                    : match
+                }
+                organizationAlias="reference-league"
+                organizationTimeZone="UTC"
+                reportUrl={`/reference-league/tournaments/reference-cup/stages/1/matches/${match.matchNumber}`}
+              />
+            </li>
+          ))}
+      </ol>
     )}
     {component === 'match-timeline' && <MatchTimeline intl={intl} model={matchReport} />}
     {component === 'modal' && (

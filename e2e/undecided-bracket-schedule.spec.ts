@@ -201,10 +201,12 @@ async function resolve(page: Page): Promise<void> {
 const upcoming = `/${org}/tournaments/${tournament}/matches?state=upcoming`;
 
 /** A side reads its source in full, or compactly with the full wording as its title. */
+// Visible only: the same names also sit in the phone's day list, hidden at desktop width.
 const source = (scope: Locator, text: string): Locator =>
   scope
     .getByText(text, { exact: true })
     .or(scope.getByTitle(text, { exact: true }))
+    .filter({ visible: true })
     .first();
 
 test('names every undecided side on the public programme and seats the entrant in place', async ({
@@ -218,13 +220,15 @@ test('names every undecided side on the public programme and seats the entrant i
   await expect(source(final, 'Winner of Semi-final 2')).toBeVisible();
   await expect(final.getByText('Estadio Central')).toBeVisible();
   await expect(source(page, 'Loser of Semi-final 1')).toBeVisible();
-  await expect(page.getByText('Place 3')).toBeVisible();
+  await expect(page.getByText('Place 3').filter({ visible: true })).toBeVisible();
   await expect(page.getByText('TBD', { exact: true })).toHaveCount(0);
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.screenshot({ path: 'docs/assets/screenshots/undecided-public-desktop.png' });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: 'docs/assets/screenshots/undecided-public-mobile.png' });
+  // Back to the desktop layout: a phone lists days, and the card checked below is the wide layout's.
+  await page.setViewportSize({ width: 1440, height: 900 });
 
   await page.evaluate(() => Object.assign(window, { documentMarker: 'same-document' }));
   semisPlayed = true;
@@ -242,7 +246,7 @@ test('names every undecided side on the public programme and seats the entrant i
   await plain.goto(upcoming);
   await expect(plain.getByRole('table').getByText('Winner of Semi-final 2')).toBeVisible();
   await plain.goto(`${upcoming}&view=cards`);
-  await expect(plain.getByText('Loser of Semi-final 2')).toBeVisible();
+  await expect(plain.getByText('Loser of Semi-final 2').filter({ visible: true })).toBeVisible();
   await noJs.close();
 });
 

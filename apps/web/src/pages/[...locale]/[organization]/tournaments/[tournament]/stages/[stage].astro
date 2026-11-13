@@ -8,6 +8,8 @@ import BracketView from '../../../../../../components/ui/organisms/BracketView.a
 import ResultLegend from '../../../../../../components/ui/molecules/ResultLegend.astro';
 import StandingsTable from '../../../../../../components/ui/organisms/StandingsTable.astro';
 import { MatchCard } from '../../../../../../components/ui/organisms/MatchCard.tsx';
+import MatchDayList from '../../../../../../components/ui/organisms/MatchDayList.astro';
+import type { MatchCardData } from '../../../../../../lib/matches-view.ts';
 import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
 import {
   resolveZoneLayouts,
@@ -135,6 +137,14 @@ const trail = publicTrail(trailBase, [
   },
   { label: intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber }) },
 ]);
+const reportUrlOf = (match: MatchCardData): string =>
+  matchReportUrl({
+    organizationAlias: organization!,
+    tournamentAlias: tournament!,
+    stageNumber: match.stageNumber,
+    matchNumber: match.matchNumber,
+    localePrefix,
+  });
 const zoneHeading = (name: string | undefined, index: number): string =>
   name?.trim() || intl.formatMessage(messages.bracketZoneHeading, { zone: index + 1 });
 ---
@@ -186,7 +196,14 @@ const zoneHeading = (name: string | undefined, index: number): string =>
               />
             ) : (
               <>
-                <div class="cl-matches-view__grid">
+                <MatchDayList
+                  intl={intl}
+                  matches={stageMatches.filter((match) => match.zoneName === zone.zoneName)}
+                  organizationAlias={organization!}
+                  organizationTimeZone={model.organizationTimeZone}
+                  reportUrlOf={reportUrlOf}
+                />
+                <div class="cl-matches-view__grid cl-match-days__wide">
                   {stageMatches
                     .filter((match) => match.zoneName === zone.zoneName)
                     .map((match) => (
@@ -270,7 +287,14 @@ const zoneHeading = (name: string | undefined, index: number): string =>
         <h2 class="cl-visually-hidden" id="stage-match-list-heading">
           {intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber })}
         </h2>
-        <div class="cl-matches-view__grid">
+        <MatchDayList
+          intl={intl}
+          matches={stageMatches}
+          organizationAlias={organization!}
+          organizationTimeZone={model.organizationTimeZone}
+          reportUrlOf={reportUrlOf}
+        />
+        <div class="cl-matches-view__grid cl-match-days__wide">
           {stageMatches.map((match) => (
             <MatchCard
               client:load

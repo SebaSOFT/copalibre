@@ -391,3 +391,50 @@ render without JavaScript, and SHALL NOT rely on color alone.
 
 - **WHEN** a spectator views a cup quarter-final whose side is the second-best runner-up of a ranked plan
 - **THEN** that side reads "2nd best runner-up" in the organization's language
+
+### Requirement: Public match cards name their group or round
+
+A public match card SHALL be titled by its group, else by its round name, and SHALL show the match's stage ordinal as secondary text. The public overview's match data SHALL carry each match's zone and group names, omitting implicit ones, and its stage ordinal.
+
+#### Scenario: Three matches in Now
+
+- **WHEN** the overview's Now strip shows three matches from different groups
+- **THEN** each card is titled by its group name and shows its distinct stage ordinal as secondary text
+
+#### Scenario: A knockout match names its round
+
+- **WHEN** a card shows a single-elimination semifinal with no group
+- **THEN** the card is titled with the semifinal's name, not only a match number
+
+#### Scenario: A match with neither group nor round
+
+- **WHEN** a card's match has no group and no round
+- **THEN** the card is titled with its match number alone
+
+### Requirement: A live match shows a numeric score on every public surface
+
+A public match card, a schedule row, the match report hero and a bracket node SHALL show 0 for a side of a live match with no recorded score, as TV does, and SHALL keep the dash for a match that has not started.
+
+#### Scenario: Live at 0–0
+
+- **WHEN** a match is in progress and no score is recorded yet
+- **THEN** its card, its schedule row, its report hero and its bracket node show 0 and 0
+
+#### Scenario: Not started
+
+- **WHEN** a match has not started
+- **THEN** its full card and bracket node show no numeric score
+
+### Requirement: The schedule features the live match ahead of an undecided one
+
+The Matches page SHALL feature the earliest live match; with none live, the earliest upcoming match whose two sides are decided; with neither, the highest stage's finished final.
+
+#### Scenario: Featured choice
+
+- **WHEN** one match is live and an undecided final exists
+- **THEN** the live match is featured
+
+#### Scenario: Nothing live
+
+- **WHEN** no match is live, the final's sides are undecided, and a decided match is scheduled
+- **THEN** the earliest decided upcoming match is featured, not the final

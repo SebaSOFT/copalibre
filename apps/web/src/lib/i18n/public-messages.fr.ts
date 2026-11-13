@@ -258,6 +258,7 @@ export const messages: Record<string, string> = {
   'publicWeb.schedule.columnKickoff': 'Coup d’envoi',
   'publicWeb.schedule.columnHome': 'Domicile',
   'publicWeb.schedule.columnScore': 'Score',
+  'publicWeb.schedule.dayMatchCount': '{count, plural, one {# match} other {# matchs}}',
   'publicWeb.schedule.columnAway': 'Extérieur',
   'publicWeb.schedule.columnState': 'État',
   'publicWeb.schedule.columnVenue': 'Lieu',

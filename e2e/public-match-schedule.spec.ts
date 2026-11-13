@@ -177,7 +177,10 @@ test('mobile matches stay visible before optional filters', async ({ page }) => 
 
   const filters = page.locator('.cl-match-schedule-filters');
   expect(await filters.getAttribute('open')).toBeNull();
-  await expect(page.locator('.cl-match-schedule tbody tr').first()).toBeInViewport();
+  // A phone lists the open day's matches, not the tables.
+  await expect(
+    page.locator('.cl-match-schedule .cl-match-day[open] .cl-match-day-row').first(),
+  ).toBeInViewport();
 
   await filters.locator('summary').click();
   expect(await filters.getAttribute('open')).not.toBeNull();

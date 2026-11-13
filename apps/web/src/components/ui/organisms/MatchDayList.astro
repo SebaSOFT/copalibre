@@ -1,0 +1,138 @@
+---
+import type { IntlShape } from 'react-intl';
+import MatchDayRow from '../molecules/MatchDayRow.astro';
+import { matchDays, openMatchDay } from '../../../lib/match-days.ts';
+import { resultStateLabels } from '../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
+import type { MatchCardData } from '../../../lib/matches-view.ts';
+
+/**
+ * A phone's view of a long match list: one native disclosure per calendar day in the organization's
+ * time zone, the day with the live or next match open. Wider screens hide it and keep their own
+ * layout, so a page renders this beside its desktop structure, marks that structure with
+ * `cl-match-days__wide`, and CSS shows one of the two.
+ */
+interface Props {
+  readonly matches: readonly MatchCardData[];
+  readonly intl: IntlShape;
+  readonly organizationAlias?: string;
+  readonly organizationTimeZone?: string;
+  /** The report link of a match, or nothing when it has none. */
+  readonly reportUrlOf: (match: MatchCardData) => string | undefined;
+}
+
+const { matches, intl, organizationAlias, organizationTimeZone, reportUrlOf } = Astro.props;
+const timeZone = organizationTimeZone ?? 'UTC';
+const days = matchDays(matches, timeZone);
+const open = openMatchDay(days);
+const liveLabel = resultStateLabels(intl).live;
+const dayLabel = (instant: string | undefined): string =>
+  instant === undefined
+    ? intl.formatMessage(messages.resultStateTbd)
+    : new Intl.DateTimeFormat(intl.locale, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        timeZone,
+      }).format(new Date(instant));
+---
+
+{days.length > 0 && (
+  <div class="cl-match-days">
+    {days.map((day) => (
+      <details class="cl-match-day" open={day === open}>
+        <summary class="cl-match-day__summary cl-focusable">
+          <span class="cl-match-day__date">{dayLabel(day.instant)}</span>
+          <span class="cl-match-day__count">
+            {intl.formatMessage(messages.scheduleDayMatchCount, { count: day.matches.length })}
+          </span>
+          {day.hasLive && (
+            <span class="cl-match-day__live">
+              <span aria-hidden="true" class="cl-badge__dot cl-live-dot" />
+              {liveLabel}
+            </span>
+          )}
+        </summary>
+        <ol class="cl-match-day__matches">
+          {day.matches.map((match) => (
+            <li>
+              <MatchDayRow
+                intl={intl}
+                match={match}
+                organizationAlias={organizationAlias}
+                organizationTimeZone={timeZone}
+                reportUrl={reportUrlOf(match)}
+              />
+            </li>
+          ))}
+        </ol>
+      </details>
+    ))}
+  </div>
+)}
+
+<style>
+  .cl-match-days {
+    display: grid;
+    gap: var(--cl-space-2);
+  }
+  /* The day list is the phone layout; the page's own layout, marked `cl-match-days__wide`, is the rest. */
+  @media (width >= 768px) {
+    .cl-match-days {
+      display: none;
+    }
+  }
+  @media (width < 768px) {
+    :global(.cl-match-days__wide) {
+      display: none;
+    }
+  }
+  .cl-match-day {
+    border: 1px solid var(--cl-border-muted);
+    background: var(--cl-surface-panel);
+  }
+  /* A list item keeps the native disclosure triangle, like the schedule filters above it. */
+  .cl-match-day__summary {
+    display: list-item;
+    min-height: var(--cl-touch-target);
+    padding: var(--cl-space-2) var(--cl-space-3);
+    box-sizing: border-box;
+    cursor: pointer;
+  }
+  .cl-match-day__summary > * + * {
+    margin-inline-start: var(--cl-space-2);
+  }
+  .cl-match-day__date {
+    display: inline-block;
+    font-family: var(--cl-font-display);
+    font-size: var(--cl-font-size-md);
+    font-weight: var(--cl-weight-bold);
+  }
+  .cl-match-day__date::first-letter {
+    text-transform: uppercase;
+  }
+  .cl-match-day__count {
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    letter-spacing: var(--cl-tracking-wide);
+    text-transform: uppercase;
+  }
+  .cl-match-day__live {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cl-space-1);
+    font-size: var(--cl-font-size-xs);
+    font-weight: var(--cl-weight-bold);
+    text-transform: uppercase;
+  }
+  .cl-match-day__matches {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-block-start: 1px solid var(--cl-border-muted);
+  }
+  .cl-match-day__matches > li:last-child :global(.cl-match-day-row) {
+    border-block-end: 0;
+  }
+</style>

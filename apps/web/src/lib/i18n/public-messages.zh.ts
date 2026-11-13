@@ -254,6 +254,7 @@ export const messages: Record<string, string> = {
   'publicWeb.schedule.columnKickoff': '开球时间',
   'publicWeb.schedule.columnHome': '主队',
   'publicWeb.schedule.columnScore': '比分',
+  'publicWeb.schedule.dayMatchCount': '{count, plural, other {# 场比赛}}',
   'publicWeb.schedule.columnAway': '客队',
   'publicWeb.schedule.columnState': '状态',
   'publicWeb.schedule.columnVenue': '场地',
