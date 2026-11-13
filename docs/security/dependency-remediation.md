@@ -1,5 +1,22 @@
 # Dependency remediation
 
+## 2026-11-13 — `astro` and `@astrojs/node` image endpoint and dynamic tag advisories
+
+Two advisories against Astro, published 2026-11-13, failed the workspace audit in CI on the locked
+`astro` 7.4.1 and `@astrojs/node` 11.1.9:
+
+- [GHSA-r3h5-4585-7x3w](https://github.com/advisories/GHSA-r3h5-4585-7x3w) (medium; `astro`
+  `>= 5.14.3, <= 7.4.6`, `@astrojs/node` `<= 11.1.11`): on a case-sensitive filesystem the image
+  endpoint can read files from a case-variant sibling of the output directory.
+- [GHSA-mh32-jxcr-mh9f](https://github.com/advisories/GHSA-mh32-jxcr-mh9f) (low; `astro` `<= 7.4.4`):
+  attribute injection through dynamic tag names allows XSS.
+
+Both are direct dependencies of `apps/web`. Its ranges move to `astro` `^7.4.11` and `@astrojs/node`
+`^11.1.12`, the newest releases past the 24-hour release-age gate (7.4.12 and 11.1.13 were published the
+same day as the advisories; [a922cda3](https://github.com/SebaSOFT/copalibre/commit/a922cda3)). `scripts/dependency-security.test.mjs` raises the `astro` floor from 7.2.8
+to 7.4.7, the first patched release, and adds an `@astrojs/node` floor of 11.1.12, the first release
+outside the affected range.
+
 ## 2026-11-13 — `hono` middleware, validator and `css` helper advisories
 
 Five advisories against `hono`, published 2026-11-12, failed the Dependabot audit in CI on the
