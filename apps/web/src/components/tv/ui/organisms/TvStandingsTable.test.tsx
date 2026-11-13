@@ -83,4 +83,26 @@ describe('TvStandingsTable', () => {
     expect(emblem?.classList.contains('cl-entrant-emblem--small')).toBe(true);
     expect(emblem?.textContent).toContain('ESTM');
   });
+
+  // Chromium 100, the TV kiosk baseline, never requests a lazy emblem in the last visible row.
+  it('loads every emblem at once, including the rows at the bottom of the screen', () => {
+    const { container } = render(
+      <TvStandingsTable
+        clubs={[
+          { clubId: 'club-a', name: 'Club A', emblemUrl: '/club-a-emblem.png' },
+          { clubId: 'club-b', name: 'Club B', emblemUrl: '/club-b-emblem.png' },
+        ]}
+        dashboardLabels={dashboardLabels}
+        pointsShortLabel="Pts"
+        standings={[
+          { ...row(1, 'Club A'), abbreviation: 'CLA', clubId: 'club-a' },
+          { ...row(2, 'Club B'), abbreviation: 'CLB', clubId: 'club-b' },
+        ]}
+      />,
+    );
+
+    const images = [...container.querySelectorAll('img')];
+    expect(images).toHaveLength(2);
+    for (const image of images) expect(image.getAttribute('loading')).toBe('eager');
+  });
 });

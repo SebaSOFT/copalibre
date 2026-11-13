@@ -62,3 +62,35 @@ describe('EntrantEmblem', () => {
     expect(screen.getByText('CPC').closest('[aria-hidden="true"]')).not.toBeNull();
   });
 });
+
+describe('EntrantEmblem renditions', () => {
+  const src = '/api/organizations/demo/clubs/club-1/emblem';
+
+  it('offers the renditions at its displayed size, with its dimensions, loading lazily', () => {
+    render(<EntrantEmblem alt="Red Star" size={32} src={src} />);
+
+    const image = screen.getByRole('img', { name: 'Red Star' }).querySelector('img');
+    expect(image?.getAttribute('srcset')).toContain(`${src}?width=128 128w`);
+    expect(image?.getAttribute('sizes')).toBe('32px');
+    expect(image?.getAttribute('width')).toBe('32');
+    expect(image?.getAttribute('height')).toBe('32');
+    expect(image?.getAttribute('loading')).toBe('lazy');
+    expect(image?.getAttribute('decoding')).toBe('async');
+  });
+
+  it('loads at once when marked above the first screen', () => {
+    render(<EntrantEmblem alt="Red Star" eager src={src} />);
+
+    expect(
+      screen.getByRole('img', { name: 'Red Star' }).querySelector('img')?.getAttribute('loading'),
+    ).toBe('eager');
+  });
+
+  it('shows the original alone when its size cannot be a sizes value', () => {
+    render(<EntrantEmblem alt="Red Star" size="100%" src={src} />);
+
+    const image = screen.getByRole('img', { name: 'Red Star' }).querySelector('img');
+    expect(image?.hasAttribute('srcset')).toBe(false);
+    expect(image?.getAttribute('src')).toBe(src);
+  });
+});

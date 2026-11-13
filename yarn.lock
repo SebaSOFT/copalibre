@@ -1773,6 +1773,7 @@ __metadata:
     "@aws-sdk/client-s3": "npm:^3.1152.0"
     "@types/jest": "npm:^30.0.0"
     jest: "npm:^30.5.2"
+    sharp: "npm:^0.35.5"
     ts-jest: "npm:^29.4.15"
     typescript: "npm:^6.0.3"
   languageName: unknown

@@ -808,6 +808,25 @@ describe('the CSS output', () => {
     );
   });
 
+  it('scales the emblem frame cut and padding with the emblem size, within the token bounds', () => {
+    // A fixed 14px cut and 8px padding left a 16px emblem no room for its image.
+    const emblemRule = /\.cl-entrant-emblem \{([^}]+)\}/.exec(css)?.[1] ?? '';
+    const controlRule =
+      /\.cl-image-frame--control\.cl-entrant-emblem \{([^}]+)\}/.exec(css)?.[1] ?? '';
+
+    expect(emblemRule).toContain('--cl-emblem-cut-max: 14px;');
+    expect(emblemRule).toContain(
+      '--cl-chamfer-size: clamp(4px, calc(var(--entrant-emblem-size, 48px) * 0.375 - 4px), var(--cl-emblem-cut-max));',
+    );
+    expect(emblemRule).toContain(
+      '--cl-emblem-inset: clamp(1px, calc(var(--entrant-emblem-size, 48px) / 4 - 4px), var(--cl-space-2));',
+    );
+    expect(css).toMatch(/\.cl-entrant-emblem img \{[^}]*padding: var\(--cl-emblem-inset\);/);
+    expect(controlRule).toContain('--cl-emblem-cut-max: 8px;');
+    expect(emblemRule).not.toContain('clip-path');
+    expect(controlRule).not.toContain('clip-path');
+  });
+
   it('cuts a badge on its left pair, never with clip-path', () => {
     // A deliberate divergence from the reference project, which paints badges
     // square: the inherited diagonal pair reads as a skewed box at this size.

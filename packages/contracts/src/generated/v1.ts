@@ -8445,7 +8445,10 @@ export interface operations {
     };
     TournamentMediaController_serveEmblem: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Serve a WebP rendition of this width instead of the stored original. SVG and GIF emblems are always served as stored. */
+                width?: 64 | 128 | 256;
+            };
             header?: never;
             path: {
                 organizationAlias: string;
@@ -12570,7 +12573,10 @@ export interface operations {
     };
     ClubMediaController_serveEmblem: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Serve a WebP rendition of this width instead of the stored original. SVG and GIF emblems are always served as stored. */
+                width?: 64 | 128 | 256;
+            };
             header?: never;
             path: {
                 clubId: string;
@@ -12618,7 +12624,10 @@ export interface operations {
     };
     OrganizationMediaController_serveEmblem: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Serve a WebP rendition of this width instead of the stored original. SVG and GIF emblems are always served as stored. */
+                width?: 64 | 128 | 256;
+            };
             header?: never;
             path: {
                 organizationAlias: string;

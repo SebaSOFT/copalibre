@@ -1,6 +1,7 @@
 ---
 import Icon from './Icon.astro';
 import { emblemMonogramFit } from '../../../lib/entrant-emblem.ts';
+import { emblemSizes, emblemSrcset } from '../../../lib/public-image-paths.ts';
 
 /**
  * An organization's or club's emblem, the stored abbreviation tile, or a
@@ -19,6 +20,8 @@ interface Props {
   readonly size?: number;
   readonly bare?: boolean;
   readonly decorative?: boolean;
+  /** Above the first screen: load at once instead of when scrolled near. */
+  readonly eager?: boolean;
 }
 
 const {
@@ -29,7 +32,9 @@ const {
   size = 48,
   bare = false,
   decorative = false,
+  eager = false,
 } = Astro.props;
+const srcset = src ? emblemSrcset(src) : undefined;
 const fit = emblemMonogramFit(abbreviation);
 const abbreviationLength = Array.from(abbreviation ?? '').length;
 const hiddenFromAssistiveTechnology = bare || decorative;
@@ -45,9 +50,21 @@ const hiddenFromAssistiveTechnology = bare || decorative;
     bare && 'cl-emblem-frame--bare',
   ]}
   aria-hidden={hiddenFromAssistiveTechnology ? 'true' : undefined}
-  style={`width: ${size}px`}
+  style={`--entrant-emblem-size: ${size}px`}
 >
-  {src && <img src={src} alt={hiddenFromAssistiveTechnology ? '' : alt} data-image-fallback />}
+  {src && (
+    <img
+      src={src}
+      srcset={srcset}
+      sizes={srcset ? emblemSizes(size) : undefined}
+      width={size}
+      height={size}
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
+      alt={hiddenFromAssistiveTechnology ? '' : alt}
+      data-image-fallback
+    />
+  )}
   <span
     aria-label={hiddenFromAssistiveTechnology ? undefined : alt || placeholderAlt}
     class="cl-emblem-placeholder cl-entrant-emblem__fallback"
@@ -89,7 +106,7 @@ const hiddenFromAssistiveTechnology = bare || decorative;
   .cl-emblem-frame img {
     box-sizing: border-box;
     object-fit: contain;
-    padding: var(--cl-space-2);
+    padding: var(--cl-emblem-inset);
   }
 
   .cl-emblem-frame--bare {

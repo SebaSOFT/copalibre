@@ -100,6 +100,7 @@ function StandingsBlock({
                       className="tv-table-club-emblem cl-entrant-emblem--small"
                       abbreviation={row.abbreviation}
                       decorative
+                      eager
                       size="3vmin"
                       src={club?.emblemUrl}
                     />

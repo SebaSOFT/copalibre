@@ -292,7 +292,7 @@ test.beforeAll(async ({ workerPort }) => {
 });
 
 test.beforeEach(async ({ page }) => {
-  await page.route(`**/organizations/${ORGANIZATION}/clubs/club-*/emblem`, (route) => {
+  await page.route(`**/organizations/${ORGANIZATION}/clubs/club-*/emblem*`, (route) => {
     const alias = decodeURIComponent(
       route.request().url().split('/clubs/club-')[1]?.split('/')[0] ?? '',
     );
@@ -302,7 +302,7 @@ test.beforeEach(async ({ page }) => {
       body: readFileSync(path.join(EMBLEMS, 'clubs', `${alias}.png`)),
     });
   });
-  await page.route(`**${base}/emblem`, (route) =>
+  await page.route(`**${base}/emblem*`, (route) =>
     route.fulfill({
       status: 200,
       contentType: 'image/png',

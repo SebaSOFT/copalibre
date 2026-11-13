@@ -8,13 +8,17 @@ const personAstro = readFileSync(join(here, 'PersonPhotoImage.astro'), 'utf8');
 
 describe('EmblemImage display atom', () => {
   it('enforces a 1:1 square frame and proportional sizing from size prop', () => {
-    expect(emblemAstro).toContain('style={`width: ${size}px`}');
+    // The frame's width, cut and padding all follow this one property.
+    expect(emblemAstro).toContain('style={`--entrant-emblem-size: ${size}px`}');
     expect(emblemAstro).toMatch(/\.cl-emblem-frame\s*\{[^}]*aspect-ratio:\s*1\s*\/\s*1/);
   });
 
   it('centers and contains the emblem with a token-based safe inset', () => {
     expect(emblemAstro).toMatch(/\.cl-emblem-frame img\s*\{[^}]*object-fit:\s*contain/);
-    expect(emblemAstro).toMatch(/\.cl-emblem-frame img\s*\{[^}]*padding:\s*var\(--cl-space-2\)/);
+    // The inset scales with the emblem size, capped at --cl-space-2 in the token CSS.
+    expect(emblemAstro).toMatch(
+      /\.cl-emblem-frame img\s*\{[^}]*padding:\s*var\(--cl-emblem-inset\)/,
+    );
   });
 
   it('renders an accessible placeholder and swaps to it without an inline handler', () => {

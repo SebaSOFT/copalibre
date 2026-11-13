@@ -65,7 +65,7 @@ test('selecting a file opens the crop modal; confirming it uploads and renders t
   // The `<img>` tag's own GET goes through the network stack, not the
   // in-page `window.fetch` override above — this is the browser resolving
   // `organizationEmblemUrl()`, standing in for the real emblem-serving route.
-  await page.route('**/organizations/liga-mendocina/emblem', (route) => {
+  await page.route('**/organizations/liga-mendocina/emblem*', (route) => {
     if (route.request().method() !== 'GET') return route.fallback();
     return route.fulfill({
       status: 200,
@@ -221,7 +221,7 @@ test('club emblem renders as visible image in control panel clubs list', async (
     { tokenEndpoint: TOKEN_ENDPOINT },
   );
 
-  await page.route('**/organizations/liga-mendocina/clubs/club-1/emblem', (route) => {
+  await page.route('**/organizations/liga-mendocina/clubs/club-1/emblem*', (route) => {
     if (route.request().method() !== 'GET') return route.fallback();
     return route.fulfill({
       status: 200,
@@ -237,7 +237,13 @@ test('club emblem renders as visible image in control panel clubs list', async (
 
   const emblemImg = page.locator('.cl-role-user .cl-image-frame img');
   await expect(emblemImg).toBeVisible();
-  await expect(emblemImg).toHaveJSProperty('naturalWidth', 1);
+  // A `srcset` candidate's natural width is scaled by `sizes`, so the 1-pixel mock reads 0 there:
+  // check that it loaded, from the rendition a 32px frame asks for.
+  await expect
+    .poll(() =>
+      emblemImg.evaluate((image: HTMLImageElement) => (image.complete ? image.currentSrc : '')),
+    )
+    .toContain('/api/organizations/liga-mendocina/clubs/club-1/emblem?width=64');
   await expect(emblemImg).toHaveAttribute(
     'src',
     '/api/organizations/liga-mendocina/clubs/club-1/emblem',
@@ -293,7 +299,7 @@ test('uploading tournament emblem in control panel renders in tournament setting
     { tokenEndpoint: TOKEN_ENDPOINT },
   );
 
-  await page.route('**/organizations/liga-mendocina/tournaments/apertura-2026/emblem', (route) => {
+  await page.route('**/organizations/liga-mendocina/tournaments/apertura-2026/emblem*', (route) => {
     if (route.request().method() !== 'GET') return route.fallback();
     return route.fulfill({
       status: 200,

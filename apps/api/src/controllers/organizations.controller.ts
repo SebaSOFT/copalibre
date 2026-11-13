@@ -36,7 +36,7 @@ import {
   type Database,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
-import type { ObjectStorageAdapter } from '@copalibre/object-storage';
+import { derivedObjectKeys, type ObjectStorageAdapter } from '@copalibre/object-storage';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import {
@@ -327,7 +327,12 @@ export class OrganizationsController {
           authorizationContext: (subject?.scopes ?? []).join(' '),
         }),
       );
-      await this.storage.delete({ key: deleted.storageKey });
+      // Renditions are derived files with no row of their own: they leave with their original.
+      await Promise.all(
+        [deleted.storageKey, ...derivedObjectKeys(deleted.storageKey)].map((key) =>
+          this.storage.delete({ key }),
+        ),
+      );
       return deleted;
     } catch (error) {
       if (error instanceof InvariantViolationError) {

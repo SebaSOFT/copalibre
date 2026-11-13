@@ -124,7 +124,7 @@ describe('objectProcessingHandler', () => {
     await expect(handler(job({ payload: {} }))).rejects.toThrow('no objectId');
   });
 
-  it('marks a clean, non-image object as passed without generating a thumbnail', async () => {
+  it('marks a clean, non-image object as passed without generating renditions', async () => {
     metadataRepository.findById.mockResolvedValue(metadata({ contentType: 'application/pdf' }));
     const storage = fakeStorage(new TextEncoder().encode('pdf bytes'));
     const handler = objectProcessingHandler({
@@ -139,7 +139,7 @@ describe('objectProcessingHandler', () => {
     expect(metadataRepository.markPassed).toHaveBeenCalledWith('object-1');
   });
 
-  it('marks a clean image as passed and stores a generated thumbnail', async () => {
+  it('marks a clean image as passed and stores its three WebP renditions, no thumbnail', async () => {
     metadataRepository.findById.mockResolvedValue(metadata());
     const storage = fakeStorage(Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'));
     const handler = objectProcessingHandler({
@@ -150,15 +150,37 @@ describe('objectProcessingHandler', () => {
 
     await handler(job());
 
-    expect(storage.put).toHaveBeenCalledWith(
-      'org-1/object-1.png.thumbnail',
-      expect.any(Buffer),
-      'image/png',
-    );
+    expect(storage.put.mock.calls.map(([key]) => key)).toEqual([
+      'org-1/object-1.png.w64.webp',
+      'org-1/object-1.png.w128.webp',
+      'org-1/object-1.png.w256.webp',
+    ]);
+    for (const call of storage.put.mock.calls as unknown as [string, Buffer, string][]) {
+      expect(call[1]).toBeInstanceOf(Buffer);
+      expect(call[2]).toBe('image/webp');
+    }
     expect(metadataRepository.markPassed).toHaveBeenCalledWith('object-1');
   });
 
-  it('marks an infected object as failed, naming the virus, and never generates a thumbnail', async () => {
+  it.each(['image/svg+xml', 'image/gif'])(
+    'stores no rendition of a clean %s image',
+    async (contentType) => {
+      metadataRepository.findById.mockResolvedValue(metadata({ contentType }));
+      const storage = fakeStorage(new TextEncoder().encode('<svg/>'));
+      const handler = objectProcessingHandler({
+        db: {} as never,
+        storage,
+        scanner: fakeScanner(false),
+      });
+
+      await handler(job());
+
+      expect(storage.put).not.toHaveBeenCalled();
+      expect(metadataRepository.markPassed).toHaveBeenCalledWith('object-1');
+    },
+  );
+
+  it('marks an infected object as failed, naming the virus, and never generates a rendition', async () => {
     metadataRepository.findById.mockResolvedValue(metadata());
     const storage = fakeStorage(Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'));
     const handler = objectProcessingHandler({

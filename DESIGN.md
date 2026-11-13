@@ -565,6 +565,10 @@ tables, stat tiles and pills are square.
 
 The framed-image treatment (`.cl-image-frame`) matches the chamfer cut visually: `4/5` aspect ratio,
 `512px` maximum height, a `1px` structure border, and a chrome-ink ground behind the placeholder.
+An emblem frame is the one size-scaled cut: it keeps the diagonal pair at every size, but its cut and
+padding follow the emblem's displayed size — `4px` and `1px` at `16`–`20px`, `8px` and `4px` at `32px`,
+the full `14px` (`8px` on Control) and `8px` from `48px`. A fixed `14px` cut collapses a list-sized
+emblem into a diagonal sliver with no room for the image.
 
 ### Named Rules
 

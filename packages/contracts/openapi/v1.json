@@ -1953,6 +1953,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "width",
+            "required": false,
+            "in": "query",
+            "description": "Serve a WebP rendition of this width instead of the stored original. SVG and GIF emblems are always served as stored.",
+            "schema": {
+              "enum": [
+                64,
+                128,
+                256
+              ],
+              "type": "number"
+            }
           }
         ],
         "responses": {
@@ -9503,6 +9517,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "width",
+            "required": false,
+            "in": "query",
+            "description": "Serve a WebP rendition of this width instead of the stored original. SVG and GIF emblems are always served as stored.",
+            "schema": {
+              "enum": [
+                64,
+                128,
+                256
+              ],
+              "type": "number"
+            }
           }
         ],
         "responses": {
@@ -9578,6 +9606,20 @@
             "in": "path",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "width",
+            "required": false,
+            "in": "query",
+            "description": "Serve a WebP rendition of this width instead of the stored original. SVG and GIF emblems are always served as stored.",
+            "schema": {
+              "enum": [
+                64,
+                128,
+                256
+              ],
+              "type": "number"
             }
           }
         ],
