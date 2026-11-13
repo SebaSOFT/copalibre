@@ -967,6 +967,186 @@
           "url": "https://github.com/advisories/GHSA-5pm8-86m8-9m6r"
         }
       ]
+    },
+    {
+      "id": "hono-ghsa-4m76-xfj5-7975-2026-11-12",
+      "advisoryId": "GHSA-4m76-xfj5-7975",
+      "transitivePackage": {
+        "name": "hono",
+        "affectedRanges": ["< 4.13.16"],
+        "affectedVersions": ["4.13.13"],
+        "fixedVersions": ["4.13.18"]
+      },
+      "remediation": {
+        "kind": "resolution",
+        "summary": "Pin hono through a root resolution to a release outside the advisory's affected range"
+      },
+      "detectedAt": null,
+      "remediatedAt": "2026-11-13",
+      "status": "resolved",
+      "directRoots": [
+        {
+          "package": "@modelcontextprotocol/sdk",
+          "workspaces": ["apps/copalibre"],
+          "dependencyPaths": [["@modelcontextprotocol/sdk", "hono"]]
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "remediation",
+          "label": "Remediation commit",
+          "url": "https://github.com/SebaSOFT/copalibre/commit/0c6c65d4"
+        },
+        {
+          "kind": "advisory",
+          "label": "GitHub advisory",
+          "url": "https://github.com/advisories/GHSA-4m76-xfj5-7975"
+        }
+      ]
+    },
+    {
+      "id": "hono-ghsa-h7mg-cq63-vhpq-2026-11-12",
+      "advisoryId": "GHSA-h7mg-cq63-vhpq",
+      "transitivePackage": {
+        "name": "hono",
+        "affectedRanges": [">= 4.1.4, <= 4.13.15"],
+        "affectedVersions": ["4.13.13"],
+        "fixedVersions": ["4.13.18"]
+      },
+      "remediation": {
+        "kind": "resolution",
+        "summary": "Pin hono through a root resolution to a release outside the advisory's affected range"
+      },
+      "detectedAt": null,
+      "remediatedAt": "2026-11-13",
+      "status": "resolved",
+      "directRoots": [
+        {
+          "package": "@modelcontextprotocol/sdk",
+          "workspaces": ["apps/copalibre"],
+          "dependencyPaths": [["@modelcontextprotocol/sdk", "hono"]]
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "remediation",
+          "label": "Remediation commit",
+          "url": "https://github.com/SebaSOFT/copalibre/commit/0c6c65d4"
+        },
+        {
+          "kind": "advisory",
+          "label": "GitHub advisory",
+          "url": "https://github.com/advisories/GHSA-h7mg-cq63-vhpq"
+        }
+      ]
+    },
+    {
+      "id": "hono-ghsa-3gg2-335m-rxc6-2026-11-12",
+      "advisoryId": "GHSA-3gg2-335m-rxc6",
+      "transitivePackage": {
+        "name": "hono",
+        "affectedRanges": [">= 3.12.0, <= 4.13.15"],
+        "affectedVersions": ["4.13.13"],
+        "fixedVersions": ["4.13.18"]
+      },
+      "remediation": {
+        "kind": "resolution",
+        "summary": "Pin hono through a root resolution to a release outside the advisory's affected range"
+      },
+      "detectedAt": null,
+      "remediatedAt": "2026-11-13",
+      "status": "resolved",
+      "directRoots": [
+        {
+          "package": "@modelcontextprotocol/sdk",
+          "workspaces": ["apps/copalibre"],
+          "dependencyPaths": [["@modelcontextprotocol/sdk", "hono"]]
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "remediation",
+          "label": "Remediation commit",
+          "url": "https://github.com/SebaSOFT/copalibre/commit/0c6c65d4"
+        },
+        {
+          "kind": "advisory",
+          "label": "GitHub advisory",
+          "url": "https://github.com/advisories/GHSA-3gg2-335m-rxc6"
+        }
+      ]
+    },
+    {
+      "id": "hono-ghsa-46wx-v44x-9hh2-2026-11-12",
+      "advisoryId": "GHSA-46wx-v44x-9hh2",
+      "transitivePackage": {
+        "name": "hono",
+        "affectedRanges": ["< 4.13.16"],
+        "affectedVersions": ["4.13.13"],
+        "fixedVersions": ["4.13.18"]
+      },
+      "remediation": {
+        "kind": "resolution",
+        "summary": "Pin hono through a root resolution to a release outside the advisory's affected range"
+      },
+      "detectedAt": null,
+      "remediatedAt": "2026-11-13",
+      "status": "resolved",
+      "directRoots": [
+        {
+          "package": "@modelcontextprotocol/sdk",
+          "workspaces": ["apps/copalibre"],
+          "dependencyPaths": [["@modelcontextprotocol/sdk", "hono"]]
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "remediation",
+          "label": "Remediation commit",
+          "url": "https://github.com/SebaSOFT/copalibre/commit/0c6c65d4"
+        },
+        {
+          "kind": "advisory",
+          "label": "GitHub advisory",
+          "url": "https://github.com/advisories/GHSA-46wx-v44x-9hh2"
+        }
+      ]
+    },
+    {
+      "id": "hono-ghsa-4h7h-rv7c-7m2v-2026-11-12",
+      "advisoryId": "GHSA-4h7h-rv7c-7m2v",
+      "transitivePackage": {
+        "name": "hono",
+        "affectedRanges": [">= 4.5.1, <= 4.13.15"],
+        "affectedVersions": ["4.13.13"],
+        "fixedVersions": ["4.13.18"]
+      },
+      "remediation": {
+        "kind": "resolution",
+        "summary": "Pin hono through a root resolution to a release outside the advisory's affected range"
+      },
+      "detectedAt": null,
+      "remediatedAt": "2026-11-13",
+      "status": "resolved",
+      "directRoots": [
+        {
+          "package": "@modelcontextprotocol/sdk",
+          "workspaces": ["apps/copalibre"],
+          "dependencyPaths": [["@modelcontextprotocol/sdk", "hono"]]
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "remediation",
+          "label": "Remediation commit",
+          "url": "https://github.com/SebaSOFT/copalibre/commit/0c6c65d4"
+        },
+        {
+          "kind": "advisory",
+          "label": "GitHub advisory",
+          "url": "https://github.com/advisories/GHSA-4h7h-rv7c-7m2v"
+        }
+      ]
     }
   ]
 }
