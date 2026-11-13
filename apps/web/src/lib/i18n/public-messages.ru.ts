@@ -258,6 +258,8 @@ export const messages: Record<string, string> = {
   'publicWeb.schedule.columnKickoff': 'Начало',
   'publicWeb.schedule.columnHome': 'Хозяева',
   'publicWeb.schedule.columnScore': 'Счёт',
+  'publicWeb.schedule.dayMatchCount':
+    '{count, plural, one {# матч} few {# матча} many {# матчей} other {# матча}}',
   'publicWeb.schedule.columnAway': 'Гости',
   'publicWeb.schedule.columnState': 'Статус',
   'publicWeb.schedule.columnVenue': 'Место',

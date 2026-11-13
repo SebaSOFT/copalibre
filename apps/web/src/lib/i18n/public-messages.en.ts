@@ -669,6 +669,10 @@ export const messages = defineMessages({
     id: 'publicWeb.schedule.columnScore',
     defaultMessage: 'Score',
   },
+  scheduleDayMatchCount: {
+    id: 'publicWeb.schedule.dayMatchCount',
+    defaultMessage: '{count, plural, one {# match} other {# matches}}',
+  },
   scheduleColumnAway: {
     id: 'publicWeb.schedule.columnAway',
     defaultMessage: 'Away',
