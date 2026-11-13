@@ -31,7 +31,7 @@ const patchedFloors = {
   'source-map-js': { 1: '1.2.2' },
   nodemailer: { 10: '10.1.4' },
   astro: { 7: '7.2.8' },
-  hono: { 4: '4.13.11' },
+  hono: { 4: '4.13.16' },
   'http-cache-semantics': { 4: '4.3.0' },
   'ip-address': { 10: '10.7.4' },
   '@hono/node-server': { 2: '2.1.6' },
