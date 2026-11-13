@@ -15,31 +15,43 @@ import { withListingPodiumEmblems } from '../../lib/podium-emblems.ts';
 import { featuredTournaments } from '../../lib/organization-page.ts';
 import { publicIntl } from '../../lib/i18n/public-intl.ts';
 import { messages } from '../../lib/i18n/public-messages.en.ts';
-import { resolvePathLocale, getLocaleHomePath } from '../../lib/locale.ts';
-import { isReservedOrganizationAlias } from '../../lib/public-route-guards.ts';
+import {
+  resolvePathLocale,
+  getLocaleHomePath,
+  getLocalizedNotFoundPath,
+} from '../../lib/locale.ts';
+import {
+  isPublicLocaleSegment,
+  isReservedOrganizationAlias,
+} from '../../lib/public-route-guards.ts';
 import type { SupportedLanguage } from '@copalibre/domain';
 import type { PublicTournamentListingItemResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 
 export const prerender = false;
 
-const { organization } = Astro.params;
+const { locale, organization } = Astro.params;
+
+const rawPath = Astro.request?.url ? new URL(Astro.request.url).pathname : Astro.url.pathname;
+
+// Only a single segment after the locale can be a mistyped organization
+// alias. Anything deeper (`/es/a/b/c`) names nothing, so it gets the
+// adopted page-not-found composition instead of the organization message.
+if (!isPublicLocaleSegment(locale)) {
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvePathLocale(rawPath)));
+}
 
 if (!organization || isReservedOrganizationAlias(organization)) {
   return new Response(null, { status: 404 });
 }
 
-const rawPath = Astro.request?.url ? new URL(Astro.request.url).pathname : Astro.url.pathname;
 const resolvedLocale: SupportedLanguage = resolvePathLocale(rawPath);
 const intl = publicIntl(resolvedLocale);
 
 const listData = await fetchOrganizationTournaments(organization!);
 if (!listData) {
-  // Astro.rewrite('/404') targets the site's static-host fallback page
-  // (src/pages/404.astro, prerendered by design so any static host can
-  // serve it with no server config) — an on-demand route can't rewrite
-  // into a prerendered one, so an unknown organization renders its own
-  // not-found content below instead, with the response status set to
-  // match.
+  // A single unknown segment may be a mistyped organization alias, so it
+  // renders the organization-specific not-found content below (with a way
+  // to browse organizations) rather than the generic 404 page.
   Astro.response.status = 404;
 }
 

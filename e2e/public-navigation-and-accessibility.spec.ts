@@ -345,6 +345,40 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     await expect(brandLink).toHaveAttribute('href', '/es/');
   });
 
+  test('a deep unknown path shows the page-not-found composition, not the organization message', async ({
+    page,
+  }) => {
+    for (const path of ['/es/a/b/c', '/es/a/b/c/d/e']) {
+      const response = await page.goto(path);
+      expect(response?.status()).toBe(404);
+
+      await expect(page.locator('html')).toHaveAttribute('lang', 'es');
+      await expect(page.locator('#static-not-found h1')).toHaveText('Página no encontrada');
+      await expect(page.getByRole('link', { name: 'Volver a los torneos' })).toHaveAttribute(
+        'href',
+        '/es/',
+      );
+      await expect(page.getByRole('link', { name: 'Ver partidos en vivo' })).toHaveAttribute(
+        'href',
+        '/tv?lang=es&view=dashboard',
+      );
+      await expect(page.getByText('Organización no encontrada')).toHaveCount(0);
+    }
+  });
+
+  test('an unknown segment before a real tournament path is not a locale', async ({ page }) => {
+    const response = await page.goto(`/es/nope/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    expect(response?.status()).toBe(404);
+    await expect(page.locator('#static-not-found h1')).toHaveText('Página no encontrada');
+  });
+
+  test('a single unknown segment still says the organization was not found', async ({ page }) => {
+    const response = await page.goto('/es/nope');
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Organización no encontrada');
+    await expect(page.locator('#static-not-found')).toHaveCount(0);
+  });
+
   test('8.2 (baseline): 404 page for unprefixed missing route renders English copy with link', async ({
     page,
   }) => {
