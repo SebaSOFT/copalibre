@@ -22,9 +22,10 @@ const lock = `
 `;
 
 test('the unpatched advisory register records exact package, GHSA and exposure context', () => {
-  assert.deepEqual(Object.keys(KNOWN_UNPATCHED_ADVISORIES), ['71', '73']);
+  assert.deepEqual(Object.keys(KNOWN_UNPATCHED_ADVISORIES), ['71', '73', '122']);
   assert.equal(KNOWN_UNPATCHED_ADVISORIES[71].package, 'braces');
   assert.equal(KNOWN_UNPATCHED_ADVISORIES[73].package, 'sprintf-js');
+  assert.equal(KNOWN_UNPATCHED_ADVISORIES[122].package, '@astrojs/node');
   for (const entry of Object.values(KNOWN_UNPATCHED_ADVISORIES)) {
     assert.match(entry.dependencyPath, / -> /);
     assert.match(entry.runtimeExposure, /^none;/);

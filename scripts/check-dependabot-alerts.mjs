@@ -39,6 +39,15 @@ export const KNOWN_UNPATCHED_ADVISORIES = Object.freeze({
       'none; test-time coverage tooling only, which reads YAML configuration and never formats a string with attacker-controlled precision specifiers',
     dismissalReason: 'not_used',
   }),
+  122: Object.freeze({
+    package: '@astrojs/node',
+    ghsa: 'GHSA-r3h5-4585-7x3w',
+    upstreamIssue: 'https://github.com/withastro/astro/security/advisories/GHSA-r3h5-4585-7x3w',
+    dependencyPath: 'apps/web -> @astrojs/node',
+    runtimeExposure:
+      'none; the vulnerable /_image path check ships in astro, fixed in astro 7.4.7 (7.4.11 locked), and @astrojs/node 11.1.13 is outside the advisory range (<= 11.1.11), which names no patched adapter release',
+    dismissalReason: 'tolerable_risk',
+  }),
 });
 
 /**
