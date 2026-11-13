@@ -1,5 +1,34 @@
 # Dependency remediation
 
+## 2026-11-13 — `hono` middleware, validator and `css` helper advisories
+
+Five advisories against `hono`, published 2026-11-12, failed the Dependabot audit in CI on the
+locked 4.13.13:
+
+- [GHSA-4m76-xfj5-7975](https://github.com/advisories/GHSA-4m76-xfj5-7975) (medium, `< 4.13.16`):
+  `mount()` and `app.mount()` can forward a path that bypasses middleware scoped inside the mount
+  prefix.
+- [GHSA-h7mg-cq63-vhpq](https://github.com/advisories/GHSA-h7mg-cq63-vhpq) (medium,
+  `>= 4.1.4, <= 4.13.15`): `RegExpRouter` skips wildcard middleware for some route sets and for
+  paths with an encoded line terminator.
+- [GHSA-3gg2-335m-rxc6](https://github.com/advisories/GHSA-3gg2-335m-rxc6) (low,
+  `>= 3.12.0, <= 4.13.15`): the `css` helper does not escape a closing tag split between the
+  template and an interpolated value, allowing HTML injection.
+- [GHSA-46wx-v44x-9hh2](https://github.com/advisories/GHSA-46wx-v44x-9hh2) (medium, `< 4.13.16`):
+  `csrf()` does not check requests sent by hyperlink auditing (`text/ping`).
+- [GHSA-4h7h-rv7c-7m2v](https://github.com/advisories/GHSA-4h7h-rv7c-7m2v) (medium,
+  `>= 4.5.1, <= 4.13.15`): `validator('form')` skips validation for `multipart/form-data` requests
+  with extra parameters.
+
+All five are patched in 4.13.16. The package reaches the lockfile only through
+`@modelcontextprotocol/sdk` in `apps/copalibre`; no CopaLibre source imports `hono` directly.
+
+The root resolution moves from 4.13.13 to 4.13.18
+([0c6c65d4](https://github.com/SebaSOFT/copalibre/commit/0c6c65d4)), released 2026-11-11 and so past
+the 24-hour release-age gate. `scripts/dependency-security.test.mjs` raises the `hono` floor from
+4.13.11 to 4.13.16, the first patched release, and the five events are recorded in
+`scripts/dependency-security-incidents.json`.
+
 ## 2026-11-12 — `basic-ftp` MLSD listing parser advisory
 
 [GHSA-5pm8-86m8-9m6r](https://github.com/advisories/GHSA-5pm8-86m8-9m6r), published 2026-11-12,
