@@ -21,7 +21,7 @@ import {
   summarizeOverviewMatches,
   type OverviewMatch,
 } from '../../../../lib/overview.ts';
-import type { MatchCardData } from '../../../../lib/matches-view.ts';
+import { withSourceDepth, type MatchCardData } from '../../../../lib/matches-view.ts';
 import {
   fetchOverview,
   fetchCompletion,
@@ -197,11 +197,17 @@ const heroFacts = [
     : [intl.formatMessage(messages.matchesViewVenueAriaLabel, { venue: sharedVenue })]),
 ];
 
-function matchCardDataOf(match: OverviewMatch & { readonly matchId: string }): MatchCardData {
+function baseCardDataOf(match: OverviewMatch & { readonly matchId: string }): MatchCardData {
   return {
     matchId: match.matchId,
     stageNumber: match.stageNumber,
-    matchNumber: match.matchNumber ?? match.stageOrdinal ?? 0,
+    // The stage ordinal, the number the public match route uses: `matchNumber` here is a
+    // per-fixture series index, 1 for every ordinary match.
+    matchNumber: match.stageOrdinal ?? match.matchNumber ?? 0,
+    ...(match.nodeKey === undefined ? {} : { nodeKey: match.nodeKey }),
+    ...(match.round === undefined ? {} : { round: match.round }),
+    ...(match.zoneName === undefined ? {} : { zoneName: match.zoneName }),
+    ...(match.groupName === undefined ? {} : { groupName: match.groupName }),
     state: match.state,
     homeName: match.home.name,
     ...(match.home.abbreviation === undefined ? {} : { homeAbbreviation: match.home.abbreviation }),
@@ -224,6 +230,17 @@ function matchCardDataOf(match: OverviewMatch & { readonly matchId: string }): M
     ...(match.startsAt === '' ? {} : { scheduledAt: match.startsAt }),
     ...(match.venueName === undefined ? {} : { venueName: match.venueName }),
   };
+}
+
+// Knockout depth and placements are read across the whole tournament, so a card names its round.
+const cardDataById = new Map(
+  withSourceDepth(model.matches.filter(hasPersistedMatchId).map(baseCardDataOf)).map((card) => [
+    card.matchId,
+    card,
+  ]),
+);
+function matchCardDataOf(match: OverviewMatch & { readonly matchId: string }): MatchCardData {
+  return cardDataById.get(match.matchId) ?? baseCardDataOf(match);
 }
 
 function matchPagePath(match: OverviewMatch): string {

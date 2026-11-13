@@ -532,6 +532,41 @@ describe('public-api-client', () => {
       expect(result.standings[0].points).toBe(3);
     });
 
+    it('carries the structure a card is titled by: node key, round, zone and group', () => {
+      const match = {
+        matchId: 'match-1',
+        stageNumber: 2,
+        stageOrdinal: 33,
+        matchNumber: 1,
+        round: 2,
+        nodeKey: 'SE-R2-M1',
+        zoneName: 'Copa Oro',
+        status: 'scheduled',
+      };
+      const response = {
+        organizationAlias: 'org',
+        tournamentAlias: 't',
+        ruleset: {},
+        matches: [
+          match,
+          { ...match, matchId: 'match-2', nodeKey: undefined, groupName: 'Grupo A' },
+        ],
+      };
+      const [knockout, group] = mapOverviewResponse(
+        response as unknown as Parameters<typeof mapOverviewResponse>[0],
+      ).matches;
+
+      expect(knockout).toMatchObject({
+        stageOrdinal: 33,
+        nodeKey: 'SE-R2-M1',
+        round: 2,
+        zoneName: 'Copa Oro',
+      });
+      expect(knockout).not.toHaveProperty('groupName');
+      expect(group).toMatchObject({ groupName: 'Grupo A' });
+      expect(group).not.toHaveProperty('nodeKey');
+    });
+
     it('localizes hidden podium identities and strips youth identity details', () => {
       const [zone] =
         mapPublicWinnerZones(

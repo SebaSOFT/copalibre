@@ -270,6 +270,10 @@ export function mapOverviewResponse(
       matchNumber: m.matchNumber,
       ...(m.stageOrdinal === undefined ? {} : { stageOrdinal: m.stageOrdinal }),
       stageNumber: m.stageNumber,
+      ...(m.nodeKey === undefined ? {} : { nodeKey: m.nodeKey }),
+      round: m.round,
+      ...(m.zoneName === undefined ? {} : { zoneName: m.zoneName }),
+      ...(m.groupName === undefined ? {} : { groupName: m.groupName }),
       home: {
         name: m.homeHiddenAtRequest ? hiddenPlayerLabel : (m.homeName ?? undecidedSide),
         abbreviation: m.homeAbbreviation,

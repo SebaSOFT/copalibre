@@ -263,7 +263,8 @@ test('a published move reaches public pages, kiosk and another builder without a
     .click();
   await expect.poll(() => moved).toBe(true);
   for (const surface of [spectator, report, tv, second]) await send(surface);
-  await expect(spectator.getByText(/Reprogramado/)).toBeVisible();
+  // The featured card may repeat the same match; the schedule list is what this asserts.
+  await expect(spectator.locator('.cl-match-schedule').getByText(/Reprogramado/)).toBeVisible();
   await expect(report.getByText(/Reprogramado/)).toBeVisible();
   await expect(tv.getByText(/Reprogramado/)).toBeVisible();
   await expect(second.getByText(/María González/)).toBeVisible();
@@ -277,7 +278,7 @@ test('a published move reaches public pages, kiosk and another builder without a
   const noJs = await browser.newContext({ javaScriptEnabled: false });
   const plain = await noJs.newPage();
   await plain.goto(`/es/${org}/tournaments/${tournament}/matches?view=cards&state=upcoming`);
-  await expect(plain.getByText(/Reprogramado/)).toBeVisible();
+  await expect(plain.locator('.cl-match-schedule').getByText(/Reprogramado/)).toBeVisible();
   await noJs.close();
   await spectator.setViewportSize({ width: 1440, height: 900 });
   await spectator.screenshot({

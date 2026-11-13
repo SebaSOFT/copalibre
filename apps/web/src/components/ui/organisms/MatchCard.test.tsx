@@ -108,6 +108,56 @@ describe('MatchCard', () => {
     expect(container.querySelectorAll('.cl-match-card__side .cl-stat-tile__value')).toHaveLength(0);
   });
 
+  it('shows 0 and 0 for a live match with no recorded score, in full and compact cards', () => {
+    const live = baseMatch({ state: 'live' });
+    const { container, rerender } = render(<MatchCard match={live} labels={labels} locale="en" />);
+    expect(
+      [...container.querySelectorAll('.cl-match-card__side .cl-stat-tile__value')].map(
+        (score) => score.textContent,
+      ),
+    ).toEqual(['0', '0']);
+
+    rerender(<MatchCard compact match={live} labels={labels} locale="en" />);
+    expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toContain(
+      'Norte 0',
+    );
+    expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toContain(
+      '0 Sur',
+    );
+  });
+
+  it('titles a group match by its group, with the match number as secondary text', () => {
+    render(
+      <MatchCard
+        headingLevel={3}
+        match={baseMatch({ matchNumber: 14, zoneName: 'Zona 1', groupName: 'Grupo A' })}
+        labels={{ ...labels, roundHeading: 'Round {round}' }}
+        locale="en"
+        reportUrl="/report"
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'Grupo A · Match 14: Norte vs Sur' }),
+    ).toBeDefined();
+    expect(screen.getByText('Match 14').classList.contains('cl-match-card__number')).toBe(true);
+    // The scope line keeps the zone and does not repeat the group the title names.
+    expect(screen.getByTitle('Zone/group: Zona 1').textContent).toBe('Zona 1');
+  });
+
+  it('titles a knockout match by its round name', () => {
+    render(
+      <MatchCard
+        headingLevel={3}
+        match={baseMatch({ matchNumber: 33, nodeKey: 'SE-R2-M1', round: 2, sourceFinalRound: 3 })}
+        labels={labels}
+        locale="en"
+      />,
+    );
+
+    expect(screen.getByRole('heading', { level: 3, name: 'Semi-final 1 Match 33' })).toBeDefined();
+  });
+
   it('omits the venue line when no venue is assigned', () => {
     const { rerender } = render(
       <MatchCard match={baseMatch({ venueName: 'Cancha 1' })} labels={labels} locale="en" />,

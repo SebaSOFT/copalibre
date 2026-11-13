@@ -230,11 +230,61 @@ const demoCompletion = {
   ],
 };
 
+// Every ordinary match's persisted number is 1; only the stage ordinal and the group tell them apart.
+const nowStripMatches = [
+  {
+    matchId: '00000000-0000-7000-8000-000000000051',
+    stageNumber: 1,
+    stageOrdinal: 3,
+    matchNumber: 1,
+    round: 1,
+    groupName: 'Grupo A',
+    status: 'in-progress',
+    homeEntrantId: 'home-1',
+    homeName: 'Club Andes',
+    awayEntrantId: 'away-1',
+    awayName: 'Deportivo Sur',
+    scheduledAt: '2026-10-23T19:00:00.000Z',
+  },
+  {
+    matchId: '00000000-0000-7000-8000-000000000052',
+    stageNumber: 1,
+    stageOrdinal: 7,
+    matchNumber: 1,
+    round: 2,
+    groupName: 'Grupo B',
+    status: 'scheduled',
+    homeEntrantId: 'home-2',
+    homeName: 'Red Star',
+    awayEntrantId: 'away-2',
+    awayName: 'Palmira',
+    scheduledAt: '2099-06-01T19:00:00.000Z',
+  },
+  {
+    matchId: '00000000-0000-7000-8000-000000000053',
+    stageNumber: 1,
+    stageOrdinal: 2,
+    matchNumber: 1,
+    round: 1,
+    groupName: 'Grupo C',
+    status: 'finalized',
+    homeEntrantId: 'home-3',
+    homeName: 'Huracán',
+    homeScore: 2,
+    awayEntrantId: 'away-3',
+    awayName: 'Valenciano',
+    awayScore: 1,
+    scheduledAt: '2026-10-22T19:00:00.000Z',
+  },
+];
+
 let apiServer: Server;
 let noLiveMatches = false;
+let nowStripOverview = false;
 let demoScaleOverview = false;
 let completedOverview = false;
 test.beforeEach(() => {
+  nowStripOverview = false;
   noLiveMatches = false;
   demoScaleOverview = false;
   completedOverview = false;
@@ -245,37 +295,39 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
     if (path === `${TOURNAMENT}/overview`) {
-      const response = completedOverview
-        ? {
-            ...overview,
-            status: 'finished',
-            winners: [
-              {
-                zoneId: 'zone-finished',
-                zoneName: 'Zona Campeonato',
-                champion: { entrantId: 'home-1', name: 'Club Andes', abbreviation: 'AND' },
-                runnerUp: { entrantId: 'away-1', name: 'Deportivo Sur', abbreviation: 'SUR' },
-              },
-            ],
-            matches: overview.matches.map((match) => ({ ...match, status: 'finalized' })),
-          }
-        : demoScaleOverview
+      const response = nowStripOverview
+        ? { ...overview, matches: nowStripMatches }
+        : completedOverview
           ? {
               ...overview,
-              matches: demoMatches,
-              standingsPreview: demoStandingsPreview,
-              standingsGrain: 'match',
+              status: 'finished',
+              winners: [
+                {
+                  zoneId: 'zone-finished',
+                  zoneName: 'Zona Campeonato',
+                  champion: { entrantId: 'home-1', name: 'Club Andes', abbreviation: 'AND' },
+                  runnerUp: { entrantId: 'away-1', name: 'Deportivo Sur', abbreviation: 'SUR' },
+                },
+              ],
+              matches: overview.matches.map((match) => ({ ...match, status: 'finalized' })),
             }
-          : noLiveMatches
+          : demoScaleOverview
             ? {
                 ...overview,
-                matches: overview.matches.map((match) => ({
-                  ...match,
-                  status: 'scheduled',
-                  scheduledAt: '2099-06-01T19:00:00.000Z',
-                })),
+                matches: demoMatches,
+                standingsPreview: demoStandingsPreview,
+                standingsGrain: 'match',
               }
-            : overview;
+            : noLiveMatches
+              ? {
+                  ...overview,
+                  matches: overview.matches.map((match) => ({
+                    ...match,
+                    status: 'scheduled',
+                    scheduledAt: '2099-06-01T19:00:00.000Z',
+                  })),
+                }
+              : overview;
       res.end(JSON.stringify(response));
       return;
     }
@@ -377,6 +429,28 @@ test.describe('tournament overview progress and rules', () => {
     const ticker = page.locator('.cl-ticker');
     await expect(ticker).toContainText('Spielerstatistiken');
     await expect(ticker).not.toContainText('Player Statistics');
+  });
+
+  test('Now titles each card by its group and shows a live match at 0–0 as 0 and 0', async ({
+    page,
+  }) => {
+    nowStripOverview = true;
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.route('**/events/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': ok\n\n' }),
+    );
+    await page.goto(PAGE);
+
+    const nowStrip = page.locator('.cl-overview-now');
+    const live = nowStrip.locator('.cl-overview-now__item--live .cl-match-card');
+    const next = nowStrip.locator('.cl-overview-now__item--upcoming .cl-match-card');
+    const latest = nowStrip.locator('.cl-overview-now__item--final .cl-match-card');
+    await expect(live.locator('.cl-match-card__heading')).toHaveText(/^Grupo A\s*Partido 3$/);
+    await expect(next.locator('.cl-match-card__heading')).toHaveText(/^Grupo B\s*Partido 7$/);
+    await expect(latest.locator('.cl-match-card__heading')).toHaveText(/^Grupo C\s*Partido 2$/);
+    await expect(live.locator('.cl-match-card__side .cl-stat-tile__value')).toHaveText(['0', '0']);
+    // A match that has not started keeps no score at all.
+    await expect(next.locator('.cl-match-card__side .cl-stat-tile__value')).toHaveCount(0);
   });
 
   test('4.1: on the 72-match demo scale, kickoff is in the first viewport and the page stays below 2,500px', async ({

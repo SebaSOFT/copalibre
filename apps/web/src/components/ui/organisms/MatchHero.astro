@@ -8,6 +8,7 @@ import { Badge } from '../atoms/Badge.tsx';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
 import type { MatchReportModel } from '../../../lib/match-report.ts';
 import { formatEntrant } from '../../../lib/i18n/public-intl.ts';
+import { displayedScore } from '../../../lib/matches-view.ts';
 import type { IntlShape } from 'react-intl';
 
 export interface Props {
@@ -40,11 +41,11 @@ const rescheduled =
         <span class="cl-team-name">{home.fullName}</span>
         {home.abbreviation && <span class="cl-team-abbreviation">{home.abbreviation}</span>}
       </span>
-      <span class="cl-team-score">{model.home.score ?? '—'}</span>
+      <span class="cl-team-score">{displayedScore(model.status, model.home.score) ?? '—'}</span>
     </div>
     <div class="cl-scoreboard__divider">–</div>
     <div class="cl-scoreboard__side cl-scoreboard__side--away">
-      <span class="cl-team-score">{model.away.score ?? '—'}</span>
+      <span class="cl-team-score">{displayedScore(model.status, model.away.score) ?? '—'}</span>
       <span class="cl-team-identity">
         <span class="cl-team-name">{away.fullName}</span>
         {away.abbreviation && <span class="cl-team-abbreviation">{away.abbreviation}</span>}

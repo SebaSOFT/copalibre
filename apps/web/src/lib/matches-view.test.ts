@@ -1,11 +1,14 @@
 import {
   applyTemplate,
+  displayedScore,
   distinctFacetValues,
   featuredMatchForSchedule,
   formatClock,
   groupMatchesByRound,
+  matchCardTitle,
 } from './matches-view.js';
 import type { MatchCardData } from './matches-view.js';
+import { SIDE_SOURCE_KEYS, type SideSourceMessages } from './side-source.js';
 
 const scheduleMatch = (overrides: Partial<MatchCardData> = {}) => ({
   matchId: 'match-1',
@@ -16,61 +19,23 @@ const scheduleMatch = (overrides: Partial<MatchCardData> = {}) => ({
 });
 
 describe('featuredMatchForSchedule', () => {
-  it('features a finished final before a live match in the selected stage', () => {
+  const decided = { homeName: 'Argentina', awayName: 'Brasil' };
+
+  it('features the live match ahead of an undecided final', () => {
+    const live = scheduleMatch({ matchId: 'live', state: 'live', matchNumber: 2, ...decided });
+    const final = scheduleMatch({ matchId: 'final', branch: 'final', matchNumber: 34 });
+
+    expect(featuredMatchForSchedule([final, live], [1])).toBe(live);
+  });
+
+  it('features the live match ahead of a finished final in the selected stage', () => {
     const live = scheduleMatch({ matchId: 'live', state: 'live', matchNumber: 2 });
-    const final = scheduleMatch({
-      matchId: 'final',
-      branch: 'final',
-      state: 'final',
-      matchNumber: 3,
-    });
+    const final = scheduleMatch({ matchId: 'final', branch: 'final', state: 'final' });
 
-    expect(featuredMatchForSchedule([live, final], [1], 1)).toBe(final);
+    expect(featuredMatchForSchedule([live, final], [1], 1)).toBe(live);
   });
 
-  it('prefers a scheduled final when a stage has a previous finished final', () => {
-    const finished = scheduleMatch({ matchId: 'finished', branch: 'final', state: 'final' });
-    const scheduled = scheduleMatch({
-      matchId: 'scheduled',
-      branch: 'final',
-      matchNumber: 2,
-    });
-
-    expect(featuredMatchForSchedule([finished, scheduled], [1], 1)).toBe(scheduled);
-  });
-
-  it('recognizes the terminal single-elimination round without a named final branch', () => {
-    const semi = scheduleMatch({ matchId: 'semi', round: 2, sourceFinalRound: 3 });
-    const final = scheduleMatch({
-      matchId: 'final',
-      matchNumber: 2,
-      round: 3,
-      sourceFinalRound: 3,
-    });
-
-    expect(featuredMatchForSchedule([semi, final], [1])).toBe(final);
-  });
-
-  it('features a later stage final ahead of earlier scheduled group matches', () => {
-    const groupMatch = scheduleMatch({ matchId: 'group-match', stageNumber: 1 });
-    const semi = scheduleMatch({
-      matchId: 'semi',
-      stageNumber: 2,
-      round: 2,
-      sourceFinalRound: 3,
-    });
-    const final = scheduleMatch({
-      matchId: 'final',
-      stageNumber: 2,
-      matchNumber: 34,
-      round: 3,
-      sourceFinalRound: 3,
-    });
-
-    expect(featuredMatchForSchedule([groupMatch, semi, final], [1, 2])).toBe(final);
-  });
-
-  it('falls back to the earliest live match in the active stage', () => {
+  it('features the earliest live match in the first live stage', () => {
     const later = scheduleMatch({
       matchId: 'later',
       state: 'live',
@@ -82,20 +47,139 @@ describe('featuredMatchForSchedule', () => {
       state: 'live',
       scheduledAt: '2026-10-22T11:00:00.000Z',
     });
+    const laterStage = scheduleMatch({ matchId: 'stage-2', stageNumber: 2, state: 'live' });
 
-    expect(featuredMatchForSchedule([later, nextLive], [1])).toBe(nextLive);
+    expect(featuredMatchForSchedule([laterStage, later, nextLive], [1, 2])).toBe(nextLive);
   });
 
-  it('does not feature an upcoming match when no final or live match exists', () => {
-    const upcoming = scheduleMatch({ scheduledAt: '2026-10-22T11:00:00.000Z' });
+  it('with nothing live, features the earliest upcoming match whose sides are decided', () => {
+    const undecidedFinal = scheduleMatch({
+      matchId: 'final',
+      stageNumber: 2,
+      branch: 'final',
+      matchNumber: 34,
+      scheduledAt: '2026-10-22T09:00:00.000Z',
+    });
+    const later = scheduleMatch({
+      matchId: 'later',
+      matchNumber: 3,
+      scheduledAt: '2026-10-22T12:00:00.000Z',
+      ...decided,
+    });
+    const next = scheduleMatch({
+      matchId: 'next',
+      matchNumber: 4,
+      scheduledAt: '2026-10-22T11:00:00.000Z',
+      ...decided,
+    });
+    const unscheduled = scheduleMatch({ matchId: 'unscheduled', matchNumber: 1, ...decided });
 
-    expect(featuredMatchForSchedule([upcoming], [1])).toBeUndefined();
+    expect(featuredMatchForSchedule([undecidedFinal, unscheduled, later, next], [1, 2])).toBe(next);
+  });
+
+  it('never features a match with one side still undecided', () => {
+    const halfDecided = scheduleMatch({ homeName: 'Argentina' });
+
+    expect(featuredMatchForSchedule([halfDecided], [1])).toBeUndefined();
+  });
+
+  it('features the highest stage finished final once nothing is live or decided ahead', () => {
+    const earlierFinal = scheduleMatch({
+      matchId: 'stage-1-final',
+      branch: 'final',
+      state: 'final',
+    });
+    const semi = scheduleMatch({
+      matchId: 'semi',
+      stageNumber: 2,
+      state: 'final',
+      round: 2,
+      sourceFinalRound: 3,
+    });
+    const final = scheduleMatch({
+      matchId: 'final',
+      stageNumber: 2,
+      state: 'final',
+      round: 3,
+      sourceFinalRound: 3,
+    });
+
+    expect(featuredMatchForSchedule([earlierFinal, semi, final], [1, 2])).toBe(final);
   });
 
   it('returns no featured match when the selected stage has no matches', () => {
-    const rows = [scheduleMatch({ stageNumber: 2 })];
+    const rows = [scheduleMatch({ stageNumber: 2, state: 'live' })];
 
     expect(featuredMatchForSchedule(rows, [1, 2], 1)).toBeUndefined();
+  });
+});
+
+describe('displayedScore', () => {
+  it('shows 0 for a live match with nothing recorded, as TV does', () => {
+    expect(displayedScore('live', undefined)).toBe(0);
+    expect(displayedScore('live', 2)).toBe(2);
+  });
+
+  it('shows only what was recorded for any other state', () => {
+    expect(displayedScore('upcoming', undefined)).toBeUndefined();
+    expect(displayedScore('final', undefined)).toBeUndefined();
+    expect(displayedScore('final', 3)).toBe(3);
+  });
+});
+
+describe('matchCardTitle', () => {
+  const sideSource = Object.fromEntries(
+    SIDE_SOURCE_KEYS.map((key) => [key, key]),
+  ) as unknown as SideSourceMessages;
+  const labels = {
+    matchHeading: 'Partido {match}',
+    roundHeading: 'Ronda {round}',
+    sideSource: {
+      ...sideSource,
+      final: 'Final',
+      semiFinal: 'Semifinal {position}',
+      round: 'Ronda {round}, partido {position}',
+      place: '{place}.º puesto',
+    },
+  };
+
+  it('titles a group match by its group, with the stage ordinal as secondary text', () => {
+    expect(matchCardTitle({ matchNumber: 14, round: 2, groupName: 'Grupo A' }, labels)).toEqual({
+      title: 'Grupo A',
+      number: 'Partido 14',
+      names: 'group',
+    });
+  });
+
+  it('names a knockout round by its distance from the final', () => {
+    expect(
+      matchCardTitle(
+        { matchNumber: 33, nodeKey: 'SE-R2-M1', round: 2, sourceFinalRound: 3 },
+        labels,
+      ),
+    ).toEqual({ title: 'Semifinal 1', number: 'Partido 33', names: 'round' });
+    expect(
+      matchCardTitle(
+        { matchNumber: 34, nodeKey: 'SE-R3-M1', round: 3, sourceFinalRound: 3 },
+        labels,
+      ).title,
+    ).toBe('Final');
+  });
+
+  it('names a placement game by the places it settles', () => {
+    expect(
+      matchCardTitle({ matchNumber: 35, nodeKey: 'placement-3', placement: { from: 3 } }, labels),
+    ).toEqual({ title: '3.º puesto', number: 'Partido 35', names: 'placement' });
+  });
+
+  it('falls back to the round, then to the number alone', () => {
+    expect(matchCardTitle({ matchNumber: 5, round: 2 }, labels).title).toBe('Ronda 2');
+    expect(matchCardTitle({ matchNumber: 5 }, labels)).toEqual({
+      title: 'Partido 5',
+      names: 'number',
+    });
+    const withoutRound = { matchHeading: labels.matchHeading, sideSource: labels.sideSource };
+    expect(matchCardTitle({ matchNumber: 5, round: 2 }, withoutRound).title).toBe('Partido 5');
   });
 });
 
