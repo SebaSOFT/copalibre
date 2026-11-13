@@ -227,8 +227,8 @@ test.describe('Public Web & Broadcast Polish', () => {
     // Matches grid is rendered with match cards
     await expect(page.locator('.cl-matches-view__grid')).toBeVisible();
     await expect(page.locator('.cl-match-card')).toBeVisible();
-    await expect(page.getByText('Club Andes')).toBeVisible();
-    await expect(page.getByText('Deportivo Sur')).toBeVisible();
+    await expect(page.getByText('Club Andes').filter({ visible: true })).toBeVisible();
+    await expect(page.getByText('Deportivo Sur').filter({ visible: true })).toBeVisible();
 
     // Elimination bracket tree should NOT be rendered
     await expect(page.locator('.cl-bracket-view')).toHaveCount(0);

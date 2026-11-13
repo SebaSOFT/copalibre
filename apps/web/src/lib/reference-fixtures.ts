@@ -1054,6 +1054,17 @@ export function referenceUndecidedMatches(): readonly MatchCardData[] {
  * A two-stage schedule: a group stage of two groups and a cup stage drawn as its bracket, so the
  * schedule organism's tables, round sub-headings and bracket zone each have something to show.
  */
+/** Every listed match of the reference schedule, flat, as a phone's day list takes them. */
+export function referenceScheduleRows(): readonly MatchCardData[] {
+  return referenceSchedule().flatMap((stage) =>
+    stage.zones.flatMap((zone) =>
+      zone.kind === 'rows'
+        ? zone.groups.flatMap((group) => group.rounds.flatMap((round) => round.matches))
+        : [],
+    ),
+  );
+}
+
 export function referenceSchedule(): readonly ScheduleStage[] {
   const [meridian, ironclad, obsidian, echo] = REFERENCE_ENTRANTS;
   const row = (

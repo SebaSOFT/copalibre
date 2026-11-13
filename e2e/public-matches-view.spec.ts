@@ -1,6 +1,5 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
-import { expectNoBrokenWords, expectTablesFitTheirFrame } from './support/table-assertions.js';
 import { expectNoVisibleIdentifiers } from './support/visible-identifiers.js';
 import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 
@@ -168,18 +167,24 @@ test('the German matches view fits a 375px viewport without horizontal scrolling
   );
 });
 
-test('stacks each match into a labelled card on a phone in German, with whole team names', async ({
+test('lists each match as a two-line day row on a phone in German, with whole team names', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 375, height: 844 });
   await page.goto(`/de${matchesPath}`);
 
-  await expectTablesFitTheirFrame(page, 'stacked');
-  await expectNoBrokenWords(page, '.cl-match-schedule');
-  const homeCell = page.locator('td[data-column="home"]').first();
-  await expect(homeCell.getByText('Club Andes')).toBeVisible();
-  const label = await homeCell.evaluate((cell) => getComputedStyle(cell, '::before').content);
-  expect(label).toBe('"Heim"');
+  // A phone lists days, not the stacked tables, which stay the wider layout.
+  await expect(page.locator('.cl-match-schedule__nested')).toBeHidden();
+  const days = page.locator('.cl-match-day');
+  // The live match's day, then the undated one, which the German catalogue names.
+  await expect(days).toHaveCount(2);
+  await expect(days.first()).toHaveAttribute('open', '');
+  await expect(days.first().locator('summary')).toContainText('1 Spiel');
+  await days.last().locator('summary').click();
+  const name = days.last().locator('.cl-match-day-row__name', { hasText: 'Club Andes' });
+  await expect(name).toBeVisible();
+  // Whole: the name is not cut short by its two-line clamp.
+  expect(await name.evaluate((element) => element.scrollHeight <= element.clientHeight)).toBe(true);
 });
 
 test('shows every match with venue, clock, and a one-line deciding-factor summary — no full trace', async ({
@@ -201,9 +206,11 @@ test('shows every match with venue, clock, and a one-line deciding-factor summar
     Number.parseFloat(getComputedStyle(element).marginBlockStart),
   );
   expect(gap).toBeGreaterThan(0);
-  await expect(schedule.getByText('Club Andes', { exact: true })).toBeVisible();
-  await expect(schedule.getByText('Estadio Central')).toBeVisible();
-  await expect(schedule.getByText('Decided by: head-to-head goal difference')).toBeVisible();
+  // The wide layout; a phone's day list beside it is hidden at this width.
+  const wide = schedule.locator('.cl-match-schedule__nested');
+  await expect(wide.getByText('Club Andes', { exact: true })).toBeVisible();
+  await expect(wide.getByText('Estadio Central')).toBeVisible();
+  await expect(wide.getByText('Decided by: head-to-head goal difference')).toBeVisible();
 
   // The public card never carries the internal comparator trace lines.
   await expect(page.getByText(/ahead by|behind by/)).toHaveCount(0);
@@ -318,13 +325,15 @@ test('the Live filter link narrows the server-rendered list with scripting off',
   await context.route('**/*.js', (route) => route.abort());
   await page.goto(matchesPath);
 
-  const schedule = page.locator('.cl-match-schedule');
+  const schedule = page.locator('.cl-match-schedule .cl-match-schedule__nested');
   await expect(schedule.getByText('Club Andes', { exact: true })).toBeVisible();
   await page.locator('.cl-match-schedule-filters > summary').click();
   await page.getByRole('link', { name: 'Live' }).click();
 
   await expect(schedule.getByText('Talleres', { exact: true })).toBeVisible();
-  await expect(schedule.getByText('Club Andes', { exact: true })).toHaveCount(0);
+  await expect(
+    page.locator('.cl-match-schedule').getByText('Club Andes', { exact: true }),
+  ).toHaveCount(0);
 });
 
 test('the state filter renders as discrete pills with a visible active state', async ({

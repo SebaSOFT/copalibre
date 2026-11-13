@@ -160,12 +160,12 @@ test('draws knockout zones as brackets and the league zone as matches with its t
 
   const first = page.locator('section', { has: page.getByRole('heading', { name: 'Zona 1' }) });
   await expect(first.locator('.cl-bracket-stage')).toHaveCount(1);
-  await expect(first.getByText('Talleres').first()).toBeVisible();
+  await expect(first.getByText('Talleres').filter({ visible: true }).first()).toBeVisible();
   await expect(first.locator('table')).toHaveCount(0);
 
   const league = page.locator('section', { has: page.getByRole('heading', { name: 'Zona 3' }) });
   await expect(league.locator('.cl-bracket-stage')).toHaveCount(0);
-  await expect(league.getByText('Andes').first()).toBeVisible();
+  await expect(league.getByText('Andes').filter({ visible: true }).first()).toBeVisible();
   await expect(league.locator('table')).toHaveCount(1);
 });
 

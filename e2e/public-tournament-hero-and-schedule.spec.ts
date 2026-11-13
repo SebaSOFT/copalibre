@@ -191,8 +191,10 @@ test('switching the zone facet on the matches page narrows the list and updates 
   await context.route('**/*.js', (route) => route.abort());
   await page.goto(`${PUBLIC_TOURNAMENT_PATH}/matches`);
 
-  await expect(page.getByText('Club Andes', { exact: true })).toBeVisible();
-  await expect(page.getByText('River', { exact: true })).toBeVisible();
+  // The desktop layout; a phone's day list beside it carries the same names, hidden.
+  const visible = (name: string) => page.getByText(name, { exact: true }).filter({ visible: true });
+  await expect(visible('Club Andes')).toBeVisible();
+  await expect(visible('River')).toBeVisible();
 
   await page.locator('.cl-match-schedule-filters > summary').click();
   const zoneNav = page.getByRole('navigation', { name: 'Filter by zone' });
@@ -200,7 +202,7 @@ test('switching the zone facet on the matches page narrows the list and updates 
   await zoneNav.getByRole('link', { name: 'Copa de Plata' }).click();
 
   await expect(page).toHaveURL(/[?&]zone=Copa\+de\+Plata/);
-  await expect(page.getByText('River', { exact: true })).toBeVisible();
+  await expect(visible('River')).toBeVisible();
   await expect(page.getByText('Club Andes', { exact: true })).toHaveCount(0);
 
   // Selecting a zone narrows the group facet to that zone's own groups too.

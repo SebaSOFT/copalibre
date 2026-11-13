@@ -52,11 +52,25 @@ const localePrefix = locale ? `/${locale}` : '';
 const canonicalPath = `${localePrefix}${model.canonicalPath}/live`;
 const reportPath = (stageNumber: number, matchNumber: number) =>
   `${localePrefix}${model.canonicalPath}/stages/${stageNumber}/matches/${matchNumber}`;
-const upcomingMatches = model.matches.filter((match) => match.state === 'upcoming');
+/** Live lists only the next few matches; Matches holds the rest. */
+const UPCOMING_SHOWN = 5;
+const kickoffOf = (startsAt: string): number => {
+  const time = Date.parse(startsAt);
+  return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time;
+};
+const upcomingMatches = model.matches
+  .filter((match) => match.state === 'upcoming')
+  .sort(
+    (left, right) =>
+      kickoffOf(left.startsAt) - kickoffOf(right.startsAt) ||
+      left.stageNumber - right.stageNumber ||
+      (left.stageOrdinal ?? 0) - (right.stageOrdinal ?? 0),
+  );
+const nextUpcoming = upcomingMatches.slice(0, UPCOMING_SHOWN);
 const nextKickoffAt = upcomingMatches
   .map((match) => match.startsAt)
-  .filter((startsAt) => !Number.isNaN(Date.parse(startsAt)))
-  .sort((left, right) => Date.parse(left) - Date.parse(right))[0];
+  .find((startsAt) => !Number.isNaN(Date.parse(startsAt)));
+const upcomingOnMatches = `${localePrefix}${model.canonicalPath}/matches?state=upcoming`;
 const referenceDate = Date.now();
 const structuredData = {
   '@type': 'SportsEvent' as const,
@@ -111,14 +125,15 @@ const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.liveP
     <h2>{intl.formatMessage(messages.livePageUpcomingHeading)}</h2>
     {upcomingMatches.length === 0 && <p>{intl.formatMessage(messages.livePageNoUpcoming)}</p>}
     <div class="cl-match-card-grid">
-      {upcomingMatches.map((match) => {
-        const Wrapper = match.matchNumber === undefined ? 'div' : 'a';
+      {nextUpcoming.map((match) => {
+        // The report route resolves a match by its ordinal in the stage, not its number in a group.
+        const Wrapper = match.stageOrdinal === undefined ? 'div' : 'a';
         return (
           <Wrapper
             href={
-              match.matchNumber === undefined
+              match.stageOrdinal === undefined
                 ? undefined
-                : reportPath(match.stageNumber, match.matchNumber)
+                : reportPath(match.stageNumber, match.stageOrdinal)
             }
           >
             <Card
@@ -168,6 +183,11 @@ const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.liveP
         );
       })}
     </div>
+    {upcomingMatches.length > UPCOMING_SHOWN && (
+      <p class="cl-live-upcoming-more">
+        <a href={upcomingOnMatches}>{intl.formatMessage(messages.matchesViewSeeAll)}</a>
+      </p>
+    )}
 
     <StandingsTable
       headingText={intl.formatMessage(messages.livePageLeadersHeading)}

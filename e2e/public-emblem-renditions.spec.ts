@@ -68,7 +68,8 @@ test.describe('on a phone', () => {
     await page.goto(PERFORMANCE_ROUTES[1], { waitUntil: 'load' });
     await page.waitForLoadState('networkidle');
 
-    const offered = await page.locator('.cl-entrant-emblem img[srcset]').count();
+    // Every emblem the page offers: the cards' and, on a phone, the day rows'.
+    const offered = await page.locator('img[srcset*="/emblem"]').count();
     const onLoad = [...downloads];
     expect(offered).toBeGreaterThan(0);
     expect(onLoad.length).toBeGreaterThan(0);
@@ -81,14 +82,24 @@ test.describe('on a phone', () => {
     const bytesOnLoad = onLoad.reduce((total, download) => total + download.bytes, 0);
     expect(bytesOnLoad).toBeLessThan(200 * 1024);
 
-    await page.evaluate(async () => {
-      for (let y = 0; y < document.body.scrollHeight; y += window.innerHeight / 2) {
-        window.scrollTo(0, y);
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      }
-    });
+    // A closed day's emblems load once the spectator opens it. Its clubs have usually played on the
+    // open day already, so the files come from cache rather than as new downloads.
+    const closedDay = page.locator('.cl-match-day:not([open])').last();
+    await closedDay.locator('summary').click();
+    const lastRow = closedDay.locator('.cl-match-day-row').last();
+    await lastRow.scrollIntoViewIfNeeded();
     await page.waitForLoadState('networkidle');
-    expect(downloads.length).toBeGreaterThan(onLoad.length);
+    const images = lastRow.locator('img[srcset*="/emblem"]');
+    expect(await images.count()).toBeGreaterThan(0);
+    await expect
+      .poll(() =>
+        images.evaluateAll((all) =>
+          (all as HTMLImageElement[]).every(
+            (image) => image.currentSrc.includes('width=') && image.naturalWidth > 0,
+          ),
+        ),
+      )
+      .toBe(true);
   });
 });
 

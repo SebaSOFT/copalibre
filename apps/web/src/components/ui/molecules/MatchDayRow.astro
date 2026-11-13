@@ -1,0 +1,189 @@
+---
+import type { IntlShape } from 'react-intl';
+import EmblemImage from '../atoms/EmblemImage.astro';
+import StateBadge from '../atoms/StateBadge.astro';
+import { matchCardLabels } from '../../../lib/i18n/public-intl.ts';
+import { clubEmblemUrl } from '../../../lib/public-image-paths.ts';
+import { formatSideSource, sourceMatchLabel } from '../../../lib/side-source.ts';
+import { displayedScore, matchCardTitle, type MatchCardData } from '../../../lib/matches-view.ts';
+
+/**
+ * One match as a two-line row for a phone's day list: kick-off time and what the match is (its group,
+ * placement or round), then the two sides around the score. The whole row links to the match report.
+ */
+interface Props {
+  readonly match: MatchCardData;
+  readonly intl: IntlShape;
+  readonly organizationAlias?: string;
+  readonly organizationTimeZone?: string;
+  readonly reportUrl?: string;
+}
+
+const { match, intl, organizationAlias, organizationTimeZone, reportUrl } = Astro.props;
+const labels = matchCardLabels(intl);
+const title = matchCardTitle(match, labels);
+
+const kickoff =
+  match.scheduledAt !== undefined && !Number.isNaN(Date.parse(match.scheduledAt))
+    ? new Intl.DateTimeFormat(intl.locale, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+        timeZone: organizationTimeZone ?? 'UTC',
+      }).format(new Date(match.scheduledAt))
+    : undefined;
+
+const homeScore = displayedScore(match.state, match.homeScore);
+const awayScore = displayedScore(match.state, match.awayScore);
+const score =
+  homeScore === undefined || awayScore === undefined ? undefined : `${homeScore} – ${awayScore}`;
+
+const sideOf = (side: 'home' | 'away') => {
+  const isHome = side === 'home';
+  const name = isHome ? match.homeName : match.awayName;
+  const source = isHome ? match.homeSource : match.awaySource;
+  const clubId = isHome ? match.homeClubId : match.awayClubId;
+  const emblemObjectId = isHome ? match.homeEmblemObjectId : match.awayEmblemObjectId;
+  const text =
+    name ??
+    formatSideSource(
+      source,
+      labels.sideSource,
+      source === undefined
+        ? undefined
+        : sourceMatchLabel(source, labels.sideSource, match.sourceFinalRound),
+    )?.long ??
+    '—';
+  return {
+    text,
+    decided: name !== undefined,
+    abbreviation:
+      name === undefined ? undefined : isHome ? match.homeAbbreviation : match.awayAbbreviation,
+    src:
+      organizationAlias && clubId && emblemObjectId
+        ? clubEmblemUrl(organizationAlias, clubId)
+        : undefined,
+  };
+};
+const home = sideOf('home');
+const away = sideOf('away');
+const Root = reportUrl === undefined ? 'div' : 'a';
+---
+
+<Root
+  class={`cl-match-day-row${match.state === 'live' ? ' cl-match-day-row--live' : ''}`}
+  href={reportUrl}
+  data-day-match={match.matchId}
+>
+  <span class="cl-match-day-row__meta">
+    <span class="cl-match-day-row__when">
+      {kickoff && <time datetime={match.scheduledAt}>{kickoff}</time>}
+      <span class="cl-match-day-row__title">{title.title}</span>
+    </span>
+    <StateBadge state={match.state} intl={intl} />
+  </span>
+  <span class="cl-match-day-row__sides">
+    <span class="cl-match-day-row__side">
+      {home.decided && (
+        <EmblemImage
+          abbreviation={home.abbreviation}
+          alt={home.text}
+          bare
+          decorative
+          placeholderAlt={home.text}
+          size={24}
+          src={home.src}
+        />
+      )}
+      <span class="cl-match-day-row__name">{home.text}</span>
+    </span>
+    <span class="cl-match-day-row__score">{score ?? 'vs'}</span>
+    <span class="cl-match-day-row__side cl-match-day-row__side--away">
+      <span class="cl-match-day-row__name">{away.text}</span>
+      {away.decided && (
+        <EmblemImage
+          abbreviation={away.abbreviation}
+          alt={away.text}
+          bare
+          decorative
+          placeholderAlt={away.text}
+          size={24}
+          src={away.src}
+        />
+      )}
+    </span>
+  </span>
+</Root>
+
+<style>
+  .cl-match-day-row {
+    display: grid;
+    gap: var(--cl-space-1);
+    padding: var(--cl-space-2) var(--cl-space-3);
+    border-block-end: 1px solid var(--cl-border-muted);
+    color: var(--cl-text-primary);
+    text-decoration: none;
+  }
+  a.cl-match-day-row:hover .cl-match-day-row__name,
+  a.cl-match-day-row:focus-visible .cl-match-day-row__name {
+    text-decoration: underline;
+  }
+  a.cl-match-day-row:focus-visible {
+    outline: var(--cl-focus-ring);
+    outline-offset: -2px;
+  }
+  .cl-match-day-row--live {
+    box-shadow: inset 3px 0 0 var(--cl-state-live);
+  }
+  .cl-match-day-row__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--cl-space-2);
+  }
+  .cl-match-day-row__when {
+    display: flex;
+    gap: var(--cl-space-2);
+    min-width: 0;
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    letter-spacing: var(--cl-tracking-wide);
+    text-transform: uppercase;
+  }
+  .cl-match-day-row__title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cl-match-day-row__sides {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--cl-space-2);
+  }
+  .cl-match-day-row__side {
+    display: flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+    min-width: 0;
+  }
+  .cl-match-day-row__side--away {
+    justify-content: flex-end;
+    text-align: end;
+  }
+  /* A long club name wraps to a second line rather than losing its end. */
+  .cl-match-day-row__name {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow-wrap: break-word;
+  }
+  .cl-match-day-row__score {
+    font-family: var(--cl-font-display);
+    font-weight: var(--cl-weight-bold);
+    font-variant-numeric: tabular-nums;
+  }
+</style>
