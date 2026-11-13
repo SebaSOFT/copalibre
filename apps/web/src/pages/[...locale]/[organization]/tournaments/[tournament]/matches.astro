@@ -19,7 +19,8 @@ import { distinctFacetValues, featuredMatchForSchedule } from '../../../../../li
 import { offersViewChoice } from '../../../../../lib/match-schedule.ts';
 import { loadSchedule } from '../../../../../lib/schedule-loader.ts';
 import { matchReportUrl } from '../../../../../lib/bracket.ts';
-import { getLocalizedNotFoundPath } from '../../../../../lib/locale.ts';
+import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../../lib/locale.ts';
+import { isPublicLocaleSegment } from '../../../../../lib/public-route-guards.ts';
 
 /**
  * The matches view: a tournament's schedule as tables grouped by stage, zone or group and round,
@@ -31,6 +32,9 @@ import { getLocalizedNotFoundPath } from '../../../../../lib/locale.ts';
 export const prerender = false;
 
 const { locale, organization, tournament } = Astro.params;
+if (!isPublicLocaleSegment(locale)) {
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvePathLocale(Astro.url.pathname)));
+}
 const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
 const intl = publicIntl(resolvedLocale);
 const labels = matchCardLabels(intl);

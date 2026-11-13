@@ -438,3 +438,31 @@ The Matches page SHALL feature the earliest live match; with none live, the earl
 
 - **WHEN** no match is live, the final's sides are undecided, and a decided match is scheduled
 - **THEN** the earliest decided upcoming match is featured, not the final
+
+### Requirement: Long public match lists group by day on phones
+
+Below the 768px breakpoint, Matches and the stage page SHALL list matches by day in the organization's time zone, each day a native disclosure that works without JavaScript, with one compact row per match. The open day SHALL be the earliest live match's day, else the next match's day, else the last day. Wider layouts SHALL not change.
+
+#### Scenario: Matches at 375px during a tournament
+
+- **WHEN** a spectator opens Matches at 375px while a match is live
+- **THEN** the live match's day is open, every other day is one closed row naming the day and its match count, and each listed match is a two-line row linking to its report
+
+#### Scenario: Without JavaScript
+
+- **WHEN** JavaScript is off and a spectator opens a closed day
+- **THEN** its matches are listed
+
+#### Scenario: Desktop
+
+- **WHEN** a spectator opens Matches at 1440px
+- **THEN** the stage, zone, group and round tables show as before and no day list is visible
+
+### Requirement: Live lists the next five matches
+
+The Live page SHALL list its live matches, then the next 5 upcoming matches in kickoff order, then a link to the upcoming matches on Matches. Each upcoming match SHALL link to its own match report.
+
+#### Scenario: Many upcoming matches
+
+- **WHEN** 64 matches are upcoming
+- **THEN** Live lists 5 of them, the earliest first, each linking to a different report, followed by a link to Matches

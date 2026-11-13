@@ -25,11 +25,15 @@ import {
   formatDateTime,
 } from '../../../../../../../../lib/i18n/public-intl.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
-import { getLocalizedNotFoundPath } from '../../../../../../../../lib/locale.ts';
+import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../../../../../lib/locale.ts';
+import { isPublicLocaleSegment } from '../../../../../../../../lib/public-route-guards.ts';
 
 export const prerender = false;
 
 const { locale, organization, tournament, stage, match } = Astro.params;
+if (!isPublicLocaleSegment(locale)) {
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvePathLocale(Astro.url.pathname)));
+}
 const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
 const intl = publicIntl(resolvedLocale);
 const notFoundPath = getLocalizedNotFoundPath(resolvedLocale);
