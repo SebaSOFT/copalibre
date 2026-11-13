@@ -11,6 +11,7 @@ import SeriesStateBar from '../molecules/SeriesStateBar.astro';
 import { matchReportUrl, toNode, type BracketMatch } from '../../../lib/bracket.ts';
 import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
 import { toSeriesInput } from '../../../lib/series.ts';
+import { displayedScore } from '../../../lib/matches-view.ts';
 import {
   resultReasonLabels,
   resultStateLabels,
@@ -126,7 +127,7 @@ const legScores =
             // number.
             <Badge>{reasonLabels[slot.resultReason]}</Badge>
           )}
-          <span class="cl-stat-tile__value">{slot.score ?? '—'}</span>
+          <span class="cl-stat-tile__value">{displayedScore(node.state, slot.score) ?? '—'}</span>
         </li>
       ))}
     </ol>

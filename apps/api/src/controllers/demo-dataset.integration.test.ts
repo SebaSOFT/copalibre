@@ -114,6 +114,35 @@ describePostgres(
       });
     });
 
+    it('names each overview match by the same zone and group the matches view does', async () => {
+      type Named = {
+        matchId: string;
+        stageNumber: number;
+        zoneName?: string;
+        groupName?: string;
+      };
+      const overview = await get<{ matches: Named[] }>(`${base}/overview`);
+      const view = await get<{ matches: Named[] }>(`${base}/matches-view`);
+      const viewById = new Map(view.matches.map((match) => [match.matchId, match]));
+
+      expect(overview.matches).toHaveLength(72);
+      for (const match of overview.matches) {
+        const named = viewById.get(match.matchId);
+        expect({ zoneName: match.zoneName, groupName: match.groupName }).toEqual({
+          zoneName: named?.zoneName,
+          groupName: named?.groupName,
+        });
+      }
+      const groupStage = overview.matches.filter((match) => match.stageNumber === 1);
+      expect(groupStage.every((match) => match.groupName?.startsWith('Grupo '))).toBe(true);
+      // A cup bracket names its zone; its implicit group names nothing.
+      expect(
+        overview.matches
+          .filter((match) => match.stageNumber === 2)
+          .every((match) => match.zoneName !== undefined && match.groupName === undefined),
+      ).toBe(true);
+    });
+
     it('serves all 72 games, final, with venue, time, zone and group', async () => {
       const view = await get<{
         matches: {

@@ -643,6 +643,8 @@ export class PublicProjectionsController {
             : {}),
           stageNumber: m.stageNumber,
           round: m.round,
+          ...(m.zoneName === undefined ? {} : { zoneName: m.zoneName }),
+          ...(m.groupName === undefined ? {} : { groupName: m.groupName }),
           status: m.status as PublicOverviewMatchResponse['status'],
           homeEntrantId: m.homeEntrantId ?? undefined,
           ...(m.homeEntrantId && !homeVisibility?.hiddenAtRequest

@@ -5869,6 +5869,10 @@ export interface components {
             stageOrdinal?: number;
             stageNumber: number;
             round: number;
+            /** @description The zone of the match's group as the organizer named it; absent for an implicit zone */
+            zoneName?: string;
+            /** @description The match group as the organizer named it; absent for an implicit group */
+            groupName?: string;
             /** @enum {string} */
             status: "upcoming" | "live" | "final";
             /** Format: uuid */

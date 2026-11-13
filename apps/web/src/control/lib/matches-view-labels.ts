@@ -12,6 +12,7 @@ import { messages } from '../i18n/messages.en.js';
 export function matchCardLabelsFromControlIntl(intl: IntlShape): MatchCardLabels {
   return {
     matchHeading: intl.formatMessage(messages.matchesViewCardHeading, { match: '{match}' }),
+    roundHeading: intl.formatMessage(messages.scheduleBuilderFixtureRound, { round: '{round}' }),
     sideSource: sideSourceLabelsFromControlIntl(intl),
     state: {
       live: intl.formatMessage(messages.matchesViewResultStateLive),

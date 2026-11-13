@@ -1629,6 +1629,8 @@ function components(): string {
     '.cl-match-card { display: grid; gap: var(--cl-space-3); min-width: 0; }',
     '.cl-match-card--linked { position: relative; }',
     '.cl-match-card__heading { margin: 0; min-width: 0; font-size: var(--cl-font-size-lg); line-height: var(--cl-line-height-title); overflow-wrap: anywhere; }',
+    // The stage-wide match number under the group or round title: secondary, in the mono data-label voice.
+    '.cl-match-card__number { display: block; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); font-weight: var(--cl-weight-regular); line-height: var(--cl-line-height-label); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
     '.cl-match-card__report-link { color: inherit; text-decoration: none; }',
     '.cl-match-card__report-link:hover, .cl-match-card__report-link:focus-visible { text-decoration: underline; }',
     '.cl-match-card__report-link::after, .cl-match-card__hit-area { position: absolute; inset: 0; z-index: 1; }',

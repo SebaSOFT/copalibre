@@ -287,6 +287,8 @@ export function resultReasonLabels(intl: IntlShape): ResultReasonLabels {
  */
 export interface MatchCardLabels {
   readonly matchHeading: string;
+  /** "Round {round}", a card's title when it has no group and no knockout round name. */
+  readonly roundHeading?: string;
   readonly sideSource: SideSourceMessages;
   readonly rescheduled?: string;
   readonly state: ResultStateLabels;
@@ -328,6 +330,7 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
   // yet. `MatchCard.tsx` fills it in later via `applyTemplate`.
   return {
     matchHeading: intl.formatMessage(messages.breadcrumbMatch, { match: '{match}' }),
+    roundHeading: intl.formatMessage(messages.bracketRoundHeading, { round: '{round}' }),
     sideSource: sideSourceLabels(intl),
     rescheduled: intl.formatMessage(messages.matchRescheduled, {
       time: '{time}',

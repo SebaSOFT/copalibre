@@ -1,4 +1,11 @@
-import { placementOf, type Placement, type SideSource } from './side-source.js';
+import {
+  formatPlacement,
+  placementOf,
+  sourceMatchLabel,
+  type Placement,
+  type SideSource,
+  type SideSourceMessages,
+} from './side-source.js';
 import type { PreviousPlacement } from './reschedule.js';
 import type { ResultState } from './result-state.js';
 import type { PublicSeriesState } from './series.js';
@@ -56,9 +63,22 @@ export interface MatchCardData {
   readonly awayTrace?: readonly string[];
 }
 
+/** Kickoff order, scheduled before unscheduled, then stage and number: the schedule's own order. */
+function compareByKickoff(a: MatchCardData, b: MatchCardData): number {
+  const aTime = a.scheduledAt === undefined ? Number.NaN : Date.parse(a.scheduledAt);
+  const bTime = b.scheduledAt === undefined ? Number.NaN : Date.parse(b.scheduledAt);
+  const aHasTime = Number.isFinite(aTime);
+  const bHasTime = Number.isFinite(bTime);
+  if (aHasTime && bHasTime && aTime !== bTime) return aTime - bTime;
+  if (aHasTime !== bHasTime) return aHasTime ? -1 : 1;
+  return a.stageNumber - b.stageNumber || a.matchNumber - b.matchNumber;
+}
+
 /**
- * The match to feature above the schedule: the highest stage's scheduled or finished final, then
- * the earliest live match in the selected or first active stage. Other upcoming matches are omitted.
+ * The match to feature above the schedule: the earliest live match in the selected or first live
+ * stage; else the earliest upcoming match whose two sides are decided; else the highest stage's
+ * finished final. An undecided match ("Winner of semifinal" against "Winner of semifinal") is never
+ * featured, because it tells a spectator nothing to watch.
  */
 export function featuredMatchForSchedule(
   rows: readonly MatchCardData[],
@@ -69,43 +89,104 @@ export function featuredMatchForSchedule(
     requestedStageNumber === undefined
       ? rows
       : rows.filter((row) => row.stageNumber === requestedStageNumber);
-  const finals = scopedRows.filter(
+
+  const liveStage =
+    requestedStageNumber ??
+    stageNumbers.find((stageNumber) =>
+      scopedRows.some((row) => row.stageNumber === stageNumber && row.state === 'live'),
+    );
+  const liveMatch = scopedRows
+    .filter((row) => row.stageNumber === liveStage && row.state === 'live')
+    .sort(compareByKickoff)[0];
+  if (liveMatch) return liveMatch;
+
+  const nextDecided = scopedRows
+    .filter(
+      (row) => row.state === 'upcoming' && row.homeName !== undefined && row.awayName !== undefined,
+    )
+    .sort(compareByKickoff)[0];
+  if (nextDecided) return nextDecided;
+
+  const finishedFinals = scopedRows.filter(
     (row) =>
+      row.state === 'final' &&
       (row.branch === 'final' ||
-        (row.sourceFinalRound !== undefined && row.round === row.sourceFinalRound)) &&
-      (row.state === 'upcoming' || row.state === 'final'),
+        (row.sourceFinalRound !== undefined && row.round === row.sourceFinalRound)),
   );
-  const finalStageNumber =
-    requestedStageNumber ?? Math.max(...finals.map((row) => row.stageNumber), -Infinity);
-  const finalStageRows = finals
+  const finalStageNumber = Math.max(...finishedFinals.map((row) => row.stageNumber), -Infinity);
+  return finishedFinals
     .filter((row) => row.stageNumber === finalStageNumber)
-    .sort((a, b) => a.matchNumber - b.matchNumber);
-  const scheduledFinal = finalStageRows.find((row) => row.state === 'upcoming');
-  if (scheduledFinal) return scheduledFinal;
-  const finishedFinal = finalStageRows.find((row) => row.state === 'final');
-  if (finishedFinal) return finishedFinal;
+    .sort((a, b) => a.matchNumber - b.matchNumber)[0];
+}
 
-  const liveStage = stageNumbers.find((stageNumber) =>
-    scopedRows.some((row) => row.stageNumber === stageNumber && row.state === 'live'),
-  );
-  const stageNumber = requestedStageNumber ?? liveStage;
-  if (stageNumber === undefined) return undefined;
+/**
+ * A side's score as a card shows it. A live match with nothing recorded yet is 0, as TV shows it;
+ * any other state shows only what was recorded, so a match not started keeps its dash.
+ */
+export function displayedScore(state: ResultState, score: number | undefined): number | undefined {
+  return state === 'live' ? (score ?? 0) : score;
+}
 
-  const stageRows = scopedRows.filter((row) => row.stageNumber === stageNumber);
+/** The templates a card title is built from: the card's own labels. */
+export interface MatchCardTitleLabels {
+  readonly matchHeading: string;
+  readonly sideSource: SideSourceMessages;
+  /** "Round {round}"; absent on a surface that does not title by round. */
+  readonly roundHeading?: string;
+}
 
-  const liveMatch = stageRows
-    .filter((row) => row.state === 'live')
-    .sort((a, b) => {
-      const aTime = a.scheduledAt === undefined ? Number.NaN : Date.parse(a.scheduledAt);
-      const bTime = b.scheduledAt === undefined ? Number.NaN : Date.parse(b.scheduledAt);
-      const aHasTime = Number.isFinite(aTime);
-      const bHasTime = Number.isFinite(bTime);
-      if (aHasTime && bHasTime) return aTime - bTime || a.matchNumber - b.matchNumber;
-      if (aHasTime) return -1;
-      if (bHasTime) return 1;
-      return a.matchNumber - b.matchNumber;
-    })[0];
-  return liveMatch;
+export interface MatchCardTitle {
+  /** The group, the knockout round or the round; the match number when there is none. */
+  readonly title: string;
+  /** "Match N", absent when the title already is the number. */
+  readonly number?: string;
+  /** What the title names, so the scope line does not repeat it. */
+  readonly names: 'group' | 'round' | 'placement' | 'number';
+}
+
+const KNOCKOUT_NODE = /^(?:SE|WB|LB)-R\d+-M\d+(?:-G\d+)?$/;
+
+/**
+ * A card's title. The match number alone identifies nothing to a spectator, and repeats across
+ * groups, so a card is titled by its group, else its knockout round (Final, Semifinal 1), else its
+ * round, with the stage-wide match number as secondary text.
+ */
+export function matchCardTitle(
+  match: Pick<
+    MatchCardData,
+    'groupName' | 'nodeKey' | 'round' | 'matchNumber' | 'sourceFinalRound' | 'placement'
+  >,
+  labels: MatchCardTitleLabels,
+): MatchCardTitle {
+  const number = applyTemplate(labels.matchHeading, { match: String(match.matchNumber) });
+  if (match.groupName !== undefined) return { title: match.groupName, number, names: 'group' };
+  if (match.placement !== undefined) {
+    return {
+      title: formatPlacement(match.placement, labels.sideSource),
+      number,
+      names: 'placement',
+    };
+  }
+  if (match.nodeKey !== undefined && KNOCKOUT_NODE.test(match.nodeKey)) {
+    const round = sourceMatchLabel(
+      {
+        kind: 'winner-of',
+        nodeKey: match.nodeKey,
+        ...(match.round === undefined ? {} : { round: match.round }),
+      },
+      labels.sideSource,
+      match.sourceFinalRound,
+    );
+    if (round !== undefined) return { title: round.long, number, names: 'round' };
+  }
+  if (match.round !== undefined && match.round > 0 && labels.roundHeading !== undefined) {
+    return {
+      title: applyTemplate(labels.roundHeading, { round: match.round }),
+      number,
+      names: 'round',
+    };
+  }
+  return { title: number, names: 'number' };
 }
 
 /**

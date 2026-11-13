@@ -8,7 +8,13 @@ import { EntrantEmblem } from '../molecules/EntrantEmblem.js';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.js';
 import { presentState } from '../../../lib/result-state.js';
 import { seriesScore, seriesSegments, seriesPending, toSeriesInput } from '../../../lib/series.js';
-import { applyTemplate, formatClock, type MatchCardData } from '../../../lib/matches-view.js';
+import {
+  applyTemplate,
+  displayedScore,
+  formatClock,
+  matchCardTitle,
+  type MatchCardData,
+} from '../../../lib/matches-view.js';
 import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
 import { ValueFlash } from '../atoms/ValueFlash.js';
 import { clubEmblemUrl } from '../../../lib/public-image-paths.js';
@@ -89,22 +95,28 @@ export function MatchCard({
       : '';
   const badge = presentState(match.state, labels.state);
   const linkedClass = reportUrl === undefined ? '' : ' cl-match-card--linked';
+  const title = matchCardTitle(match, labels);
+  // The title already names the group or the placement; the scope line keeps what it does not.
   const scopeLine = [
     match.zoneName,
-    match.groupName,
-    match.placement === undefined ? undefined : formatPlacement(match.placement, labels.sideSource),
+    title.names === 'group' ? undefined : match.groupName,
+    match.placement === undefined || title.names === 'placement'
+      ? undefined
+      : formatPlacement(match.placement, labels.sideSource),
   ]
     .filter((part) => part !== undefined)
     .join(' · ');
   const hasFullTrace =
     (match.homeTrace !== undefined && match.homeTrace.length > 0) ||
     (match.awayTrace !== undefined && match.awayTrace.length > 0);
+  const homeScore = displayedScore(match.state, match.homeScore);
+  const awayScore = displayedScore(match.state, match.awayScore);
   const showScores =
-    match.state !== 'upcoming' || (match.homeScore !== undefined && match.awayScore !== undefined);
+    match.state !== 'upcoming' || (homeScore !== undefined && awayScore !== undefined);
   const homeName = match.homeName ?? homeSource.long;
   const awayName = match.awayName ?? awaySource.long;
   const versus = labels.versus ?? 'vs';
-  const matchTitle = applyTemplate(labels.matchHeading, { match: String(match.matchNumber) });
+  const matchTitle = title.number === undefined ? title.title : `${title.title} · ${title.number}`;
   const homeEmblemSrc =
     organizationAlias && match.homeClubId && match.homeEmblemObjectId
       ? clubEmblemUrl(organizationAlias, match.homeClubId)
@@ -127,7 +139,7 @@ export function MatchCard({
         : match.awayName === undefined
           ? awaySource.short
           : resolveCompactEntrant(awaySource.short, match.awayAbbreviation, match.awayName);
-    const hasScores = match.homeScore !== undefined && match.awayScore !== undefined;
+    const hasScores = homeScore !== undefined && awayScore !== undefined;
     const timeStr =
       !hasScores && match.scheduledAt !== undefined
         ? new Intl.DateTimeFormat(locale, {
@@ -171,7 +183,7 @@ export function MatchCard({
             />
             <span>
               {homeCompactName}
-              {hasScores ? ` ${match.homeScore}` : ''}
+              {hasScores ? ` ${homeScore}` : ''}
             </span>
           </span>{' '}
           <span className="cl-match-card__compact-versus">{versus}</span>{' '}
@@ -187,7 +199,7 @@ export function MatchCard({
               src={awayEmblemSrc}
             />
             <span>
-              {hasScores ? `${match.awayScore} ` : ''}
+              {hasScores ? `${awayScore} ` : ''}
               {awayCompactName}
             </span>
           </span>
@@ -214,15 +226,24 @@ export function MatchCard({
       <div className="cl-match-card__header">
         <MatchHeading className="cl-match-card__heading">
           {reportUrl === undefined ? (
-            applyTemplate(labels.matchHeading, { match: String(match.matchNumber) })
+            title.title
           ) : (
             <a
               aria-label={`${matchTitle}: ${homeName} ${versus} ${awayName}`}
               className="cl-match-card__report-link cl-focusable"
               href={reportUrl}
             >
-              {matchTitle}
+              {title.title}
             </a>
+          )}
+          {title.number !== undefined && (
+            // A linked title's label already says the number; a reader hears it once.
+            <span
+              aria-hidden={reportUrl === undefined ? undefined : true}
+              className="cl-match-card__number"
+            >
+              {title.number}
+            </span>
           )}
         </MatchHeading>
         <Badge className={badge.className}>
@@ -267,7 +288,7 @@ export function MatchCard({
             </Badge>
           )}
           {showScores && (
-            <ValueFlash className="cl-stat-tile__value cl-tabular-nums" value={match.homeScore} />
+            <ValueFlash className="cl-stat-tile__value cl-tabular-nums" value={homeScore} />
           )}
         </li>
         <li className="cl-match-card__side">
@@ -292,7 +313,7 @@ export function MatchCard({
             </Badge>
           )}
           {showScores && (
-            <ValueFlash className="cl-stat-tile__value cl-tabular-nums" value={match.awayScore} />
+            <ValueFlash className="cl-stat-tile__value cl-tabular-nums" value={awayScore} />
           )}
         </li>
       </ol>

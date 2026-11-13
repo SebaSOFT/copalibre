@@ -62,7 +62,50 @@ const liveMatch = {
   latestEvent: { label: 'Goal — Talleres', occurredAt: '2026-08-28T20:15:00.000Z' },
 };
 
+// The design review's case: a live match with nothing recorded yet beside an undecided cup final.
+const liveAtZeroMatch = {
+  matchId: '00000000-0000-7000-8000-000000000022',
+  stageNumber: 1,
+  matchNumber: 5,
+  status: 'live',
+  round: 2,
+  homeName: 'Palmira',
+  awayName: 'Huracán',
+  zoneName: 'Zona Norte',
+  groupName: 'Grupo B',
+  scheduledAt: '2026-08-28T19:00:00.000Z',
+};
+
+const undecidedFinal = {
+  matchId: '00000000-0000-7000-8000-000000000023',
+  stageNumber: 1,
+  matchNumber: 34,
+  status: 'upcoming',
+  round: 3,
+  branch: 'final',
+  nodeKey: 'SE-R3-M1',
+  homeSource: {
+    kind: 'winner-of',
+    nodeKey: 'SE-R2-M1',
+    matchId: '00000000-0000-7000-8000-000000000031',
+    round: 2,
+    position: 1,
+  },
+  awaySource: {
+    kind: 'winner-of',
+    nodeKey: 'SE-R2-M2',
+    matchId: '00000000-0000-7000-8000-000000000032',
+    round: 2,
+    position: 2,
+  },
+  scheduledAt: '2026-08-28T17:00:00.000Z',
+};
+
 let apiServer: Server;
+let liveAtZero = false;
+test.beforeEach(() => {
+  liveAtZero = false;
+});
 
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
@@ -74,8 +117,9 @@ test.beforeAll(async ({ workerPort }) => {
     }
     if (path === `${TOURNAMENT}/matches-view`) {
       const state = new URLSearchParams(query).get('state');
-      const matches =
-        state === 'live'
+      const matches = liveAtZero
+        ? [undecidedFinal, liveAtZeroMatch]
+        : state === 'live'
           ? [liveMatch]
           : state === 'final'
             ? [finalizedMatch]
@@ -164,6 +208,33 @@ test('shows every match with venue, clock, and a one-line deciding-factor summar
   // The public card never carries the internal comparator trace lines.
   await expect(page.getByText(/ahead by|behind by/)).toHaveCount(0);
   await expect(page.locator('.cl-match-card__trace')).toHaveCount(0);
+});
+
+test('features the live match at 0–0 over an undecided final, titled by its group', async ({
+  page,
+}) => {
+  liveAtZero = true;
+  await page.goto(cardsPath);
+
+  const featured = page.getByRole('region', { name: 'Featured match' });
+  await expect(featured.getByText('Palmira', { exact: true })).toBeVisible();
+  await expect(featured.locator('.cl-match-card__heading')).toHaveText(/^Grupo B\s*Match 5$/);
+  await expect(featured.locator('.cl-match-card__side .cl-stat-tile__value')).toHaveText([
+    '0',
+    '0',
+  ]);
+  // The undecided final is listed by its round's name, and never featured.
+  const schedule = page.locator('.cl-match-schedule');
+  await expect(schedule.locator('.cl-match-card__heading', { hasText: /^Final/ })).toBeVisible();
+  await expect(featured.getByText('Final', { exact: true })).toHaveCount(0);
+});
+
+test('shows a live match at 0–0 in its schedule row as 0 – 0, not vs', async ({ page }) => {
+  liveAtZero = true;
+  await page.goto(matchesPath);
+
+  const row = page.locator('.cl-match-schedule tr', { hasText: 'Palmira' });
+  await expect(row.locator('td[data-column="score"]')).toHaveText('0 – 0');
 });
 
 test('lists the matches as table rows by default, with the score linking to its match', async ({
