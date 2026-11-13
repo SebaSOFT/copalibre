@@ -1,4 +1,5 @@
 import type { Kysely } from 'kysely';
+import { isImplicitGroup, isImplicitZone } from '@copalibre/domain';
 import type { Database } from '../schema.js';
 
 /**
@@ -18,6 +19,10 @@ export interface PublicOverviewMatch {
   readonly matchNumber?: number;
   readonly stageNumber: number;
   readonly round: number;
+  /** The zone the match's group belongs to, absent when the stage declares none of its own. */
+  readonly zoneName?: string;
+  /** The match's group, absent when the zone declares none of its own. */
+  readonly groupName?: string;
   readonly status: string;
   readonly homeEntrantId?: string;
   readonly awayEntrantId?: string;
@@ -41,6 +46,12 @@ export class PublicOverviewReadModel {
           .on('match_schedule_assignments.published', '=', true),
       )
       .leftJoin('schedule_slots', 'schedule_slots.slot_id', 'match_schedule_assignments.slot_id')
+      .leftJoin('groups', (join) =>
+        join.onRef('groups.group_id', '=', 'fixtures.group_id').on('groups.deleted_at', 'is', null),
+      )
+      .leftJoin('zones', (join) =>
+        join.onRef('zones.zone_id', '=', 'groups.zone_id').on('zones.deleted_at', 'is', null),
+      )
       .select([
         'fixtures.fixture_id',
         'fixtures.round',
@@ -52,6 +63,10 @@ export class PublicOverviewReadModel {
         'matches.number as match_number',
         'matches.status',
         'matches.result',
+        'groups.name as group_name',
+        'groups.number as group_number',
+        'zones.name as zone_name',
+        'zones.number as zone_number',
       ])
       .where('seasons.tournament_id', '=', tournamentId)
       .orderBy('stages.number')
@@ -69,6 +84,7 @@ export class PublicOverviewReadModel {
         ...(row.match_number === null ? {} : { matchNumber: row.match_number }),
         stageNumber: row.stage_number,
         round: row.round,
+        ...zoneAndGroupOf(row),
         status: row.status ?? 'scheduled',
         ...(row.home_entrant_id === null ? {} : { homeEntrantId: row.home_entrant_id }),
         ...(row.away_entrant_id === null ? {} : { awayEntrantId: row.away_entrant_id }),
@@ -79,6 +95,27 @@ export class PublicOverviewReadModel {
       };
     });
   }
+}
+
+/** The organizer's zone and group names; an implicit zone or group names nothing. */
+function zoneAndGroupOf(row: {
+  readonly group_name: string | null;
+  readonly group_number: number | null;
+  readonly zone_name: string | null;
+  readonly zone_number: number | null;
+}): { readonly zoneName?: string; readonly groupName?: string } {
+  const zone =
+    row.zone_name === null || row.zone_number === null
+      ? undefined
+      : { name: row.zone_name, number: row.zone_number };
+  const group =
+    row.group_name === null || row.group_number === null
+      ? undefined
+      : { name: row.group_name, number: row.group_number };
+  return {
+    ...(zone === undefined || isImplicitZone(zone) ? {} : { zoneName: zone.name }),
+    ...(group === undefined || isImplicitGroup(group) ? {} : { groupName: group.name }),
+  };
 }
 
 /** Same convention as `StageReadModel`'s own `scoresOf`: the first declared statistic. */

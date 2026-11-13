@@ -94,6 +94,17 @@ export class PublicOverviewMatchResponse extends FixtureSourcesResponse {
   @ApiProperty()
   round!: number;
 
+  @ApiPropertyOptional({
+    description:
+      "The zone of the match's group as the organizer named it; absent for an implicit zone",
+  })
+  zoneName?: string;
+
+  @ApiPropertyOptional({
+    description: 'The match group as the organizer named it; absent for an implicit group',
+  })
+  groupName?: string;
+
   @ApiProperty({ enum: ['upcoming', 'live', 'final'] })
   status!: 'upcoming' | 'live' | 'final';
 
