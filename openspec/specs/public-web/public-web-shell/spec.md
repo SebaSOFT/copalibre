@@ -1160,3 +1160,22 @@ Public pages SHALL use valid list, description-list and ARIA semantics.
 
 - **WHEN** axe runs on home, overview and stage
 - **THEN** it reports no critical or serious semantic violation
+
+### Requirement: Unknown paths show the page-not-found composition
+
+A path of more than one unknown segment SHALL show the adopted 404 page.
+
+#### Scenario: Deep unknown path
+
+- **WHEN** a visitor opens `/es/a/b/c`
+- **THEN** the page shows 404 and its two actions
+
+#### Scenario: Unknown organization
+
+- **WHEN** a visitor opens `/es/nope`
+- **THEN** the page says the organization was not found
+
+#### Scenario: Unknown prefix before a tournament path
+
+- **WHEN** a visitor opens `/es/nope/{org}/tournaments/{tournament}` for a tournament that exists
+- **THEN** the page shows 404 and its two actions
