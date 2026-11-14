@@ -182,11 +182,19 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
   }
 
   :global(main table) {
+    border-bottom: 2px solid var(--cl-border-muted);
+  }
+
+  /*
+   * A table without its own scroll container scrolls itself. A `.cl-table` always sits in
+   * `.cl-table-scroll`, and a block-level table would stop filling it: its columns would keep
+   * their content width however wide the panel is.
+   */
+  :global(main table:not(.cl-table)) {
     display: block;
     max-width: 100%;
     overflow-x: auto;
     scrollbar-gutter: stable;
-    border-bottom: 2px solid var(--cl-border-muted);
   }
 
   /* Preserve organizer-entered casing for names on public reading pages. */

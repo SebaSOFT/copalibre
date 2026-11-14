@@ -106,7 +106,9 @@ describe('public tables and filter pills', () => {
   });
 
   it('renders standings through the shared table treatment', () => {
-    expect(standings).toContain('class="cl-table cl-table--priority"');
+    expect(standings).toContain(
+      "class:list={['cl-table cl-table--priority', { 'cl-table--fill': fillColumnIndex >= 0 }]}",
+    );
     expect(standings).toContain(
       'data-sortable-table={showControls && previewRows === undefined ? true : undefined}',
     );
