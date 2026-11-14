@@ -813,6 +813,53 @@ test('a conflicting batch shows the conflict and blocks publish until resolved',
   await expect(page.getByText('Publicar calendario')).toBeDisabled();
 });
 
+for (const viewport of [
+  { width: 1440, height: 900 },
+  { width: 768, height: 1024 },
+  { width: 390, height: 844 },
+]) {
+  test(`no day or slot control clips its value at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await mockControlApi(page);
+    venues = [
+      {
+        venueId: 'venue-1',
+        organizationId: 'org-1',
+        alias: 'richet-y-zapata',
+        name: 'Richet y Zapata',
+        concurrentCapacity: 2,
+      },
+      {
+        venueId: 'venue-2',
+        organizationId: 'org-1',
+        alias: 'aldo-cantoni',
+        name: 'Aldo Cantoni',
+        concurrentCapacity: 1,
+      },
+    ];
+
+    const scheduleTarget = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/stages/1/schedule`;
+    await seedLoginTransaction(page, scheduleTarget);
+    await page.goto(loginCallbackUrl());
+    await page.waitForURL(`**${scheduleTarget}`);
+    await expandAllAgendaDays(page);
+
+    // A day chosen, the slot lists time and venue; the value is visible in full.
+    await pickSlot(page, 'Club Alfa vs Club Bravo', 'slot-1');
+    const clipped = await page.evaluate(() =>
+      [...document.querySelectorAll('select[id^="day-"], select[id^="slot-"]')]
+        .map((native) => native.closest('.cl-select-wrapper')?.querySelector('.cl-select__value'))
+        .filter((value): value is Element => value !== null && value !== undefined)
+        .filter((value) => value.scrollWidth > value.clientWidth + 1)
+        .map((value) => value.textContent),
+    );
+    expect(clipped).toEqual([]);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+  });
+}
+
 test('stores a minimum rest, asks a reason for published moves from the keyboard, and withdraws a match', async ({
   page,
 }) => {

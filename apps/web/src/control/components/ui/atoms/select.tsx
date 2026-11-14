@@ -39,6 +39,12 @@ export interface SelectProps {
    * choice and shows that label instead.
    */
   readonly placeholder?: string;
+  /**
+   * Whether the active option's badge shows on the closed trigger. It always shows beside the
+   * option in the list. Turn it off when the badge is secondary detail (an occupancy count) that
+   * would take room from a value that must not clip.
+   */
+  readonly badgeInTrigger?: boolean;
 }
 
 export function Select({
@@ -53,6 +59,7 @@ export function Select({
   name,
   icon,
   placeholder,
+  badgeInTrigger = true,
   title,
   'aria-label': ariaLabel,
   'aria-describedby': ariaDescribedBy,
@@ -61,7 +68,7 @@ export function Select({
   const state = disabled ? 'disabled' : invalid ? 'error' : 'default';
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const activeOption = options.find((option) => option.value === value);
-  const activeBadge = activeOption?.badge;
+  const activeBadge = badgeInTrigger ? activeOption?.badge : undefined;
   const activeLabel = activeOption?.label ? activeOption.label : undefined;
   // Radix renders nothing for the value `''`, even when an option carries it.
   const emptyText = activeLabel ?? placeholder;

@@ -431,6 +431,21 @@ describe('form-control atoms', () => {
     expect(within(trigger as HTMLElement).getByText('EN')).toBeDefined();
   });
 
+  it('keeps the active option badge off the trigger when asked to', () => {
+    const { container } = render(
+      <Select
+        aria-label="Slot"
+        badgeInTrigger={false}
+        onValueChange={() => {}}
+        options={[{ value: 'a', label: '19:00 · Cancha', badge: '1/2' }]}
+        value="a"
+      />,
+    );
+    const trigger = container.querySelector('button.cl-select') as HTMLElement;
+    expect(within(trigger).queryByText('1/2')).toBeNull();
+    expect(within(trigger).getByText('19:00 · Cancha')).toBeDefined();
+  });
+
   it('exercises Select DOM interop shims for innerHTML, querySelectorAll, and option change', () => {
     const onValueChange = jest.fn();
     render(

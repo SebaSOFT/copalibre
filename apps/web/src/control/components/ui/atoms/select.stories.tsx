@@ -66,6 +66,26 @@ export const WithBadges: Story = {
   },
 };
 
+/** The badge stays in the list but leaves the closed trigger, so a long value keeps its room. */
+export const BadgeOnlyInList: Story = {
+  args: { value: 'a' },
+  render: function Render() {
+    const [value, setValue] = useState('a');
+    return (
+      <Select
+        aria-label="Slot"
+        badgeInTrigger={false}
+        onValueChange={setValue}
+        options={[
+          { value: 'a', label: '19:00 · Richet y Zapata', badge: '1/2' },
+          { value: 'b', label: '20:15 · Aldo Cantoni', badge: '0/1' },
+        ]}
+        value={value}
+      />
+    );
+  },
+};
+
 /**
  * Input and Select in each state, one pair per cell. The two must share their
  * alignment and their 44px height, whatever the length of the value.

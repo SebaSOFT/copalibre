@@ -195,7 +195,7 @@ describe('ScheduleBuilderTemplate', () => {
 
       const day = select('Day — Club A vs Club B');
       const slot = select('Start time — Club A vs Club B');
-      expect(day.selectedOptions[0]?.textContent).toContain('October 29');
+      expect(day.selectedOptions[0]?.textContent).toContain('Oct 29');
       expect(optionTexts(slot)).toEqual([
         'Unassigned',
         '12:00 · Cancha Central',
@@ -210,9 +210,7 @@ describe('ScheduleBuilderTemplate', () => {
       const slot = select('Start time — Club G vs Club H');
       expect(slot.disabled).toBe(true);
 
-      const secondDay = [...day.options].find((option) =>
-        option.textContent?.includes('October 30'),
-      );
+      const secondDay = [...day.options].find((option) => option.textContent?.includes('Oct 30'));
       fireEvent.change(day, { target: { value: secondDay?.value } });
 
       expect(slot.disabled).toBe(false);
@@ -224,9 +222,7 @@ describe('ScheduleBuilderTemplate', () => {
       render(withIntl(<ScheduleBuilderTemplate {...props} onSetDraft={onSetDraft} />));
 
       const day = select('Day — Club A vs Club B');
-      const secondDay = [...day.options].find((option) =>
-        option.textContent?.includes('October 30'),
-      );
+      const secondDay = [...day.options].find((option) => option.textContent?.includes('Oct 30'));
       fireEvent.change(day, { target: { value: secondDay?.value } });
 
       expect(onSetDraft).toHaveBeenCalledWith('match-1', { slotId: '' });
