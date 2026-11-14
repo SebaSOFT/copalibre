@@ -229,8 +229,8 @@ describe('MatchConsolePage clock commands', () => {
       );
     });
 
-    // A running segment offers Pause and End; Start has nothing to start.
-    expect(screen.getByRole('button', { name: 'Start' })).toHaveProperty('disabled', true);
+    // A running segment offers Pause and End; Start has nothing to start, so it is not offered.
+    expect(screen.queryByRole('button', { name: 'Start' })).toBeNull();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
     });
@@ -238,10 +238,8 @@ describe('MatchConsolePage clock commands', () => {
     await waitFor(() =>
       expect(sent).toEqual([{ matchId: 'match-1', command: 'pause', segmentId: 'segment-1' }]),
     );
-    // A stopped clock is what re-arms Start and disarms Pause.
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Pause' })).toHaveProperty('disabled', true),
-    );
+    // A stopped clock is what offers Start and withdraws Pause.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull());
     expect(screen.getByRole('button', { name: 'Start' })).toHaveProperty('disabled', false);
 
     await act(async () => {
@@ -274,9 +272,7 @@ describe('MatchConsolePage clock commands', () => {
       expect(sent).toEqual([{ matchId: 'match-1', command: 'end', segmentId: 'segment-1' }]),
     );
     for (const name of ['Start', 'Pause', 'End period']) {
-      await waitFor(() =>
-        expect(screen.getByRole('button', { name })).toHaveProperty('disabled', true),
-      );
+      await waitFor(() => expect(screen.queryByRole('button', { name })).toBeNull());
     }
   });
 

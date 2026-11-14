@@ -341,6 +341,8 @@ export const messages: Record<string, string> = {
   'control.matchConsole.activeSegment': 'Segmento ativo',
   'control.matchConsole.elapsedSeconds': 'Segundos decorridos',
   'control.matchConsole.applyClock': 'Aplicar cronômetro',
+  'control.matchConsole.noSegments': 'Esta partida ainda não tem segmentos.',
+  'control.matchConsole.noEvents': 'Não há eventos para mostrar.',
   'control.matchConsole.recordEvent': 'Registrar evento',
   'control.matchConsole.participant': 'Participante',
   'control.matchConsole.eventParticipant': 'Participante do evento',

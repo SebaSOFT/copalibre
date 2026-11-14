@@ -12,10 +12,13 @@ import type {
 } from '../../lib/api-client.js';
 import {
   awaitingSourceText,
+  clockActionsOf,
+  type ClockActions,
   currentEpochMilliseconds,
   formatClock,
   isEventPermitted,
   segmentLabel,
+  selectedSegmentOf,
   sentOffPersonIds,
   undecidedSidesOf,
 } from '../../lib/match-console.js';
@@ -167,7 +170,9 @@ export function MatchConsoleTemplate({
   // confirmation itself.
   const [finalizeWinner, setFinalizeWinner] = useState('');
   const [rosterStepOpen, setRosterStepOpen] = useState(false);
-  const [selectedSegmentId, setSelectedSegmentId] = useState('');
+  // Only an explicit pick: until the operator names a segment, the console shows the one the
+  // match is in, so it follows the match from one period to the next.
+  const [pickedSegmentId, setPickedSegmentId] = useState('');
   const [elapsedSeconds, setElapsedSeconds] = useState('0');
   const [selectedSide, setSelectedSide] = useState('');
   const [selectedPersonId, setSelectedPersonId] = useState('');
@@ -198,7 +203,7 @@ export function MatchConsoleTemplate({
   const [bracketExpanded, setBracketExpanded] = useState(false);
   const [bracketZoom, setBracketZoom] = useState(1);
 
-  // A default segment/side/person/staff selection, filled in whenever it is
+  // A default side/person/staff selection, filled in whenever it is
   // still unset — on first render and again after every reload, the same
   // moment `MatchConsolePage`'s own `reload()` used to fill it in directly,
   // before this state lived here instead. Nested inside a promise chain
@@ -207,13 +212,6 @@ export function MatchConsoleTemplate({
   // established for several setState calls reachable from one effect.
   useEffect(() => {
     Promise.resolve().then(() => {
-      setSelectedSegmentId(
-        (current) =>
-          current ||
-          projection.segments.find((one) => one.state === 'active')?.segmentId ||
-          projection.segments[0]?.segmentId ||
-          '',
-      );
       setSelectedSide((current) => current || projection.entrants[0]?.entrantId || '');
       setSelectedPersonId((current) => current || projection.eligiblePersonIds[0] || '');
       setSelectedStaffId((current) => current || projection.eligibleStaffIds[0] || '');
@@ -272,37 +270,30 @@ export function MatchConsoleTemplate({
   const newestFirst = [...displayedEvents].sort((left, right) => right.sequence - left.sequence);
   const ledgerEvents = ledgerExpanded ? newestFirst : newestFirst.slice(0, LEDGER_PEEK_COUNT);
 
-  const selectedSegment = projection.segments.find(
-    (segment) => segment.segmentId === selectedSegmentId,
-  );
-  const segmentRunning = selectedSegment?.state === 'active';
-  const segmentEnded = selectedSegment?.state === 'completed';
+  const selectedSegment = selectedSegmentOf(projection.segments, pickedSegmentId);
+  const selectedSegmentId = segmentIdOf(selectedSegment);
   const clockCommandsLabel = intl.formatMessage(messages.matchConsoleClockCommands);
-  // A match that has not kicked off starts; one already in progress resumes.
-  // Both are "press Start" to the official holding the whistle — the
-  // distinction is the domain's, between beginning a match and restarting a
-  // clock, and it belongs here rather than in front of them.
-  const clockCommands: readonly {
-    readonly command: SegmentClockCommand;
-    readonly label: string;
-    readonly disabled: boolean;
-  }[] = [
-    {
-      command: projection.status === 'scheduled' ? 'start' : 'resume',
-      label: intl.formatMessage(messages.matchConsoleStartClock),
-      disabled: segmentRunning || segmentEnded,
-    },
-    {
-      command: 'pause',
-      label: intl.formatMessage(messages.matchConsolePauseClock),
-      disabled: !segmentRunning,
-    },
-    {
-      command: 'end',
-      label: intl.formatMessage(messages.matchConsoleEndSegment),
-      disabled: segmentEnded,
-    },
-  ];
+  // Only what the match state allows is offered, one primary action at a time. A match that has
+  // not kicked off starts; one already in progress resumes. Both are "press Start" to the
+  // official holding the whistle — the distinction is the domain's, between beginning a match
+  // and restarting a clock, and it belongs in the helper rather than in front of them.
+  const clockActions = clockActionsOf(projection.status, projection.segments, selectedSegment);
+  const clockCommandLabels: Readonly<Record<SegmentClockCommand, string>> = {
+    start: intl.formatMessage(messages.matchConsoleStartClock),
+    resume: intl.formatMessage(messages.matchConsoleStartClock),
+    pause: intl.formatMessage(messages.matchConsolePauseClock),
+    end: intl.formatMessage(messages.matchConsoleEndSegment),
+  };
+
+  function issueClockCommand(command: SegmentClockCommand): void {
+    onIssueClockCommand(command, selectedSegmentId);
+    setPickedSegmentId('');
+  }
+
+  function applyClock(): void {
+    onApplyClock(selectedSegmentId, Number(elapsedSeconds));
+    setPickedSegmentId('');
+  }
 
   function record(definition: ConsoleEventDefinition): void {
     if (!activeSegment) return;
@@ -435,59 +426,65 @@ export function MatchConsoleTemplate({
           </h2>
         </header>
         <div className="cl-card__content">
-          <div className="cl-platform-form-grid">
-            <Field id="console-segment" label={intl.formatMessage(messages.matchConsoleSegment)}>
-              <Select
-                aria-label={intl.formatMessage(messages.matchConsoleActiveSegment)}
-                disabled={!canControlClock}
-                id="console-segment"
-                onValueChange={setSelectedSegmentId}
-                options={projection.segments.map((segment) => ({
-                  value: segment.segmentId,
-                  label: `${segmentTypeText(segment)} ${segment.number} · ${segmentStateText(segment.state)}`,
-                }))}
-                placeholder={intl.formatMessage(messages.selectPlaceholder)}
-                value={selectedSegmentId}
-              />
-            </Field>
-            <Field
-              id="console-elapsed-seconds"
-              label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
-            >
-              <Input
-                aria-label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
-                disabled={!canControlClock}
-                id="console-elapsed-seconds"
-                min="0"
-                onChange={(event) => setElapsedSeconds(event.target.value)}
-                type="number"
-                value={elapsedSeconds}
-              />
-            </Field>
-            <Button
-              disabled={!canControlClock || selectedSegmentId === ''}
-              onClick={() => onApplyClock(selectedSegmentId, Number(elapsedSeconds))}
-              type="button"
-            >
-              <FormattedMessage {...messages.matchConsoleApplyClock} />
-            </Button>
-          </div>
-          {/* The whistle, not a correction: these record the moment the clock
+          {projection.segments.length === 0 ? (
+            <p className="cl-card__description">
+              <FormattedMessage {...messages.matchConsoleNoSegments} />
+            </p>
+          ) : (
+            <>
+              <div className="cl-platform-form-grid">
+                <Field
+                  id="console-segment"
+                  label={intl.formatMessage(messages.matchConsoleSegment)}
+                >
+                  <Select
+                    aria-label={intl.formatMessage(messages.matchConsoleActiveSegment)}
+                    disabled={!canControlClock}
+                    id="console-segment"
+                    onValueChange={setPickedSegmentId}
+                    options={projection.segments.map((segment) => ({
+                      value: segment.segmentId,
+                      label: `${segmentTypeText(segment)} ${segment.number} · ${segmentStateText(segment.state)}`,
+                    }))}
+                    placeholder={intl.formatMessage(messages.selectPlaceholder)}
+                    value={selectedSegmentId}
+                  />
+                </Field>
+                <Field
+                  id="console-elapsed-seconds"
+                  label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
+                >
+                  <Input
+                    aria-label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
+                    disabled={!canControlClock}
+                    id="console-elapsed-seconds"
+                    min="0"
+                    onChange={(event) => setElapsedSeconds(event.target.value)}
+                    type="number"
+                    value={elapsedSeconds}
+                  />
+                </Field>
+                <Button
+                  disabled={!canControlClock || selectedSegmentId === ''}
+                  onClick={applyClock}
+                  type="button"
+                  variant="secondary"
+                >
+                  <FormattedMessage {...messages.matchConsoleApplyClock} />
+                </Button>
+              </div>
+              {/* The whistle, not a correction: these record the moment the clock
               actually changed, while "apply clock" above stays the way to fix a
               value that was recorded wrong. Both land in one audit trail. */}
-          <div className="cl-clock-commands" role="group" aria-label={clockCommandsLabel}>
-            {clockCommands.map(({ command, label, disabled }) => (
-              <Button
-                disabled={!canControlClock || selectedSegmentId === '' || disabled}
-                key={command}
-                onClick={() => onIssueClockCommand(command, selectedSegmentId)}
-                type="button"
-                variant={command === 'end' ? 'secondary' : 'primary'}
-              >
-                {label}
-              </Button>
-            ))}
-          </div>
+              <ClockCommands
+                commands={clockActions.commands}
+                disabled={!canControlClock}
+                label={clockCommandsLabel}
+                labels={clockCommandLabels}
+                onCommand={issueClockCommand}
+              />
+            </>
+          )}
         </div>
       </Card>
 
@@ -670,7 +667,7 @@ export function MatchConsoleTemplate({
               disabled={!canFinalize || projection.status !== 'in-progress'}
               onClick={() => setConfirmingFinalize(true)}
               type="button"
-              variant="primary"
+              variant={variantOf(clockActions.finalizePrimary)}
             >
               <FormattedMessage {...messages.matchConsoleFinalizeMatch} />
             </Button>
@@ -841,69 +838,75 @@ export function MatchConsoleTemplate({
               </Button>
             ))}
           </div>
-          <ol className="cl-platform-update-list">
-            {ledgerEvents.map((event) => {
-              const key = eventSyncKey(event);
-              const queueEntry = pendingMutations.find(
-                (mutation) =>
-                  mutation.action.kind === 'record-event' &&
-                  eventSyncKey({
-                    definitionCode: mutation.action.request.definitionCode,
-                    segmentId: mutation.action.request.segmentId,
-                    occurredAt: new Date(mutation.action.request.occurredAt).toISOString(),
-                  }) === key,
-              );
-              const explicitState = eventSyncStates[key];
-              const syncState =
-                explicitState ??
-                (queueEntry
-                  ? {
-                      state: queueEntry.status === 'refused' ? 'refused' : 'queued',
-                      ...(queueEntry.refusalReason === undefined
-                        ? {}
-                        : { refusalReason: queueEntry.refusalReason }),
-                    }
-                  : undefined);
-              return (
-                <li
-                  key={key}
-                  className={`cl-role-user${eventEntryIds.has(key) ? ' cl-enter-once' : ''}`}
-                >
-                  <strong>
-                    {event.definitionCode} ·{' '}
-                    {segmentLabel(
-                      projection,
-                      event.segmentId,
-                      intl.formatMessage(messages.matchConsoleUnknownSegment),
-                      segmentTypeText,
-                    )}
-                    {event.segmentElapsedSeconds === undefined
-                      ? null
-                      : ` · ${formatClock(event.segmentElapsedSeconds)}`}
-                  </strong>
-                  <ResponsiveTimestamp
-                    locale={intl.locale}
-                    timeZone={pageHeader?.organizationTimeZone}
-                    timestamp={event.occurredAt}
-                  />
-                  {syncState && (
-                    <EventSyncMark
-                      acknowledged={syncState.state === 'confirmed'}
-                      labels={{
-                        queued: intl.formatMessage(messages.interactionQueued),
-                        sent: intl.formatMessage(messages.interactionSent),
-                        confirmed: intl.formatMessage(messages.interactionConfirmed),
-                        refused: intl.formatMessage(messages.interactionRefused),
-                      }}
-                      refusalReason={syncState.refusalReason}
-                      state={syncState.state}
+          {ledgerEvents.length === 0 ? (
+            <p className="cl-card__description">
+              <FormattedMessage {...messages.matchConsoleNoEvents} />
+            </p>
+          ) : (
+            <ol className="cl-platform-update-list">
+              {ledgerEvents.map((event) => {
+                const key = eventSyncKey(event);
+                const queueEntry = pendingMutations.find(
+                  (mutation) =>
+                    mutation.action.kind === 'record-event' &&
+                    eventSyncKey({
+                      definitionCode: mutation.action.request.definitionCode,
+                      segmentId: mutation.action.request.segmentId,
+                      occurredAt: new Date(mutation.action.request.occurredAt).toISOString(),
+                    }) === key,
+                );
+                const explicitState = eventSyncStates[key];
+                const syncState =
+                  explicitState ??
+                  (queueEntry
+                    ? {
+                        state: queueEntry.status === 'refused' ? 'refused' : 'queued',
+                        ...(queueEntry.refusalReason === undefined
+                          ? {}
+                          : { refusalReason: queueEntry.refusalReason }),
+                      }
+                    : undefined);
+                return (
+                  <li
+                    key={key}
+                    className={`cl-role-user${eventEntryIds.has(key) ? ' cl-enter-once' : ''}`}
+                  >
+                    <strong>
+                      {event.definitionCode} ·{' '}
+                      {segmentLabel(
+                        projection,
+                        event.segmentId,
+                        intl.formatMessage(messages.matchConsoleUnknownSegment),
+                        segmentTypeText,
+                      )}
+                      {event.segmentElapsedSeconds === undefined
+                        ? null
+                        : ` · ${formatClock(event.segmentElapsedSeconds)}`}
+                    </strong>
+                    <ResponsiveTimestamp
+                      locale={intl.locale}
+                      timeZone={pageHeader?.organizationTimeZone}
+                      timestamp={event.occurredAt}
                     />
-                  )}
-                  {event.notes ? <p className="cl-card__description">{event.notes}</p> : null}
-                </li>
-              );
-            })}
-          </ol>
+                    {syncState && (
+                      <EventSyncMark
+                        acknowledged={syncState.state === 'confirmed'}
+                        labels={{
+                          queued: intl.formatMessage(messages.interactionQueued),
+                          sent: intl.formatMessage(messages.interactionSent),
+                          confirmed: intl.formatMessage(messages.interactionConfirmed),
+                          refused: intl.formatMessage(messages.interactionRefused),
+                        }}
+                        refusalReason={syncState.refusalReason}
+                        state={syncState.state}
+                      />
+                    )}
+                    {event.notes ? <p className="cl-card__description">{event.notes}</p> : null}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
           <Field id="console-log-note" label={intl.formatMessage(messages.matchConsoleLogNote)}>
             <Textarea
               aria-label={intl.formatMessage(messages.matchConsoleLogNote)}
@@ -968,6 +971,43 @@ export function MatchConsoleTemplate({
       syncStatus={syncStatusNode}
       title={titleNode}
     />
+  );
+}
+
+const segmentIdOf = (segment: ConsoleSegment | undefined): string => segment?.segmentId ?? '';
+
+const variantOf = (primary: boolean): 'primary' | 'secondary' =>
+  primary ? 'primary' : 'secondary';
+
+/** The clock commands the match state allows; renders nothing when there are none. */
+function ClockCommands({
+  commands,
+  disabled,
+  label,
+  labels,
+  onCommand,
+}: {
+  readonly commands: ClockActions['commands'];
+  readonly disabled: boolean;
+  readonly label: string;
+  readonly labels: Readonly<Record<SegmentClockCommand, string>>;
+  readonly onCommand: (command: SegmentClockCommand) => void;
+}): React.JSX.Element | null {
+  if (commands.length === 0) return null;
+  return (
+    <div className="cl-clock-commands" role="group" aria-label={label}>
+      {commands.map(({ command, primary }) => (
+        <Button
+          disabled={disabled}
+          key={command}
+          onClick={() => onCommand(command)}
+          type="button"
+          variant={variantOf(primary)}
+        >
+          {labels[command]}
+        </Button>
+      ))}
+    </div>
   );
 }
 

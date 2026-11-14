@@ -986,6 +986,14 @@ export const messages = defineMessages({
     id: 'control.matchConsole.applyClock',
     defaultMessage: 'Apply clock',
   },
+  matchConsoleNoSegments: {
+    id: 'control.matchConsole.noSegments',
+    defaultMessage: 'This match has no segments yet.',
+  },
+  matchConsoleNoEvents: {
+    id: 'control.matchConsole.noEvents',
+    defaultMessage: 'No events to show.',
+  },
   matchConsoleRecordEvent: {
     id: 'control.matchConsole.recordEvent',
     defaultMessage: 'Record event',
