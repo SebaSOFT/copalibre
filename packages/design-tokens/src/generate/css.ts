@@ -2121,6 +2121,9 @@ function compositions(): string {
     ".cl-popover__trigger::before { content: ''; position: absolute; inset: -14px; }",
     ".cl-popover__trigger.cl-popover__trigger:hover, .cl-popover__trigger.cl-popover__trigger[data-state='open'] { color: var(--cl-text-accent); }",
     ".cl-popover__trigger.cl-popover__trigger[data-tone='error'] { color: var(--cl-state-destructive); }",
+    // A text trigger reads as a chip: its own box is the target, so it needs no overhang.
+    '.cl-popover__trigger.cl-popover__trigger--text { justify-content: flex-start; width: auto; height: auto; min-height: 1.75rem; padding: var(--cl-space-1) var(--cl-space-2); border: 1px solid var(--cl-border-muted); background: var(--cl-surface-chrome); color: var(--cl-text-secondary); font: inherit; text-align: start; text-decoration: underline dotted; text-underline-offset: 0.2em; cursor: pointer; overflow-wrap: anywhere; }',
+    '.cl-popover__trigger--text::before { inset: 0; }',
     '.cl-popover__content { z-index: 40; max-width: min(20rem, calc(100vw - var(--cl-space-8))); padding: var(--cl-space-2) var(--cl-space-3); color: var(--cl-text-primary); font-family: var(--cl-font-body); font-size: var(--cl-font-size-sm); font-weight: normal; letter-spacing: normal; text-transform: none; overflow-wrap: anywhere; }',
     ".cl-popover__content[data-tone='error'] { color: var(--cl-state-destructive); }",
     '',

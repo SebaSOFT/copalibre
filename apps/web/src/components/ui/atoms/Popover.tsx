@@ -1,5 +1,5 @@
 /**
- * An information icon that opens a short explanation, built on Radix Popover.
+ * An information icon, or a short text, that opens a short explanation, built on Radix Popover.
  *
  * Radix supplies the dismissal, the focus return and the collision handling,
  * the same reasons `modal.tsx` wraps Radix Dialog. An atom holds no i18n, so the
@@ -22,6 +22,12 @@ export interface PopoverProps {
   readonly tone?: 'default' | 'error';
   /** Also opens under a mouse pointer. Touch and keyboard are unaffected. */
   readonly openOnHover?: boolean;
+  /**
+   * Shows this text as the trigger instead of the information icon, such as a venue's name that
+   * opens its details. The visible text then names the trigger; `triggerLabel` still names the
+   * surface.
+   */
+  readonly triggerText?: string;
 }
 
 export function Popover({
@@ -29,6 +35,7 @@ export function Popover({
   children,
   tone = 'default',
   openOnHover = false,
+  triggerText,
 }: PopoverProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const openedByHover = useRef(false);
@@ -63,8 +70,8 @@ export function Popover({
       open={open}
     >
       <RadixPopover.Trigger
-        aria-label={triggerLabel}
-        className="cl-popover__trigger cl-focusable"
+        {...(triggerText === undefined ? { 'aria-label': triggerLabel } : {})}
+        className={`cl-popover__trigger cl-focusable${triggerText === undefined ? '' : ' cl-popover__trigger--text'}`}
         data-tone={tone}
         // A click on a hover-opened popover keeps it open, instead of closing
         // what the person is reading. Radix skips its toggle on `preventDefault`.
@@ -78,7 +85,7 @@ export function Popover({
         onPointerLeave={hoverOut}
         type="button"
       >
-        <Icon name="info" size={16} />
+        {triggerText ?? <Icon name="info" size={16} />}
       </RadixPopover.Trigger>
       <RadixPopover.Portal>
         <RadixPopover.Content
