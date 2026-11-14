@@ -463,3 +463,17 @@ presentation SHALL read the scopes from the session metadata endpoint, never fro
 - **WHEN** an operator reloads a Control screen while the session cookie is still valid
 - **THEN** Control reads the scopes and expiry from the session metadata endpoint and renders the same screens
   and actions as before the reload
+
+### Requirement: Navigation reflects the current page
+
+Each rail entry SHALL open a distinct screen, the rail SHALL mark the entry that owns the page, and the breadcrumb SHALL use the stage's name.
+
+#### Scenario: Clubs page
+
+- **WHEN** an operator opens a club
+- **THEN** the rail marks Clubs
+
+#### Scenario: Stage page
+
+- **WHEN** an operator opens a named stage
+- **THEN** the breadcrumb shows that name
