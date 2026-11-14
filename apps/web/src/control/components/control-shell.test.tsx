@@ -65,7 +65,7 @@ describe('the control context rail', () => {
     window.history.replaceState({}, '', `/control/${organizationAlias}`);
     const { container } = render(
       <ControlShell
-        active="dashboard"
+        active="tournaments"
         client={client('admin')}
         helpPath="overview"
         organizationAlias={organizationAlias}
@@ -85,7 +85,7 @@ describe('the control context rail', () => {
     window.history.replaceState({}, '', `/control/${organizationAlias}`);
     const { container } = render(
       <ControlShell
-        active="dashboard"
+        active="tournaments"
         client={client('viewer')}
         helpPath="overview"
         organizationAlias={organizationAlias}

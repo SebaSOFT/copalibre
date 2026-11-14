@@ -5,6 +5,7 @@ import { createControlApiClient, type ControlApiClient } from '../../lib/api-cli
 import { StandingsTemplate } from '../screens/StandingsTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
+import { useStageName } from './use-stage-name.js';
 
 interface GroupOption {
   readonly groupId: string;
@@ -31,6 +32,7 @@ export function StandingsPage({
       }),
     [client],
   );
+  const stageName = useStageName(api, organizationAlias, tournamentAlias, stageNumber);
   const tournamentRead = useResilientRead(
     `control-standings-tournament-name:${organizationAlias}:${tournamentAlias}`,
     () =>
@@ -154,6 +156,7 @@ export function StandingsPage({
                 }
               : undefined
           }
+          stageName={stageName}
           stageNumber={stageNumber}
           status={undefined}
           tournamentAlias={tournamentAlias}

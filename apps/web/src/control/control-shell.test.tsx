@@ -97,7 +97,7 @@ describe('the control shell', () => {
   it('marks the active section, and only that one', () => {
     render(
       <ControlShell
-        active="dashboard"
+        active="tournaments"
         helpPath="tournament-authoring"
         organizationAlias="liga-mendocina"
       >
@@ -107,8 +107,8 @@ describe('the control shell', () => {
 
     // Two links styled the same is a sidebar that says nothing about where you
     // are.
-    const active = screen.getByRole('link', { name: 'Panel' });
-    const other = screen.getByRole('link', { name: 'Torneos' });
+    const active = screen.getByRole('link', { name: 'Torneos' });
+    const other = screen.getByRole('link', { name: 'Clubes' });
     expect(active.getAttribute('style')).not.toBe(other.getAttribute('style'));
   });
 

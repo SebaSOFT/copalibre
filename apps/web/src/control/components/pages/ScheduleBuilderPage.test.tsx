@@ -330,6 +330,34 @@ describe('ScheduleBuilderPage', () => {
     );
   });
 
+  it("names the stage hub in its breadcrumb by the stage's own name", async () => {
+    render(
+      withIntl(
+        <ScheduleBuilderPage
+          client={{
+            ...stubClient(),
+            listStages: async () => [
+              {
+                stageId: 's1',
+                seasonId: 'x',
+                number: 1,
+                name: 'Fase de grupos',
+                format: 'round-robin',
+              },
+            ],
+          }}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByRole('heading', { level: 1, name: /schedule/i }));
+    expect(await screen.findByRole('link', { name: 'Fase de grupos' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Stage 1' })).toBeNull();
+  });
+
   it('renders each game of a series inside the daily schedule group (2.1, 2.2)', async () => {
     render(
       withIntl(

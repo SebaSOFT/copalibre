@@ -68,6 +68,7 @@ export function StandingsTemplate({
   tournamentName,
   organizationAlias,
   tournamentAlias,
+  stageName,
   stageNumber,
   onExpand,
   onExportCsv,
@@ -83,6 +84,8 @@ export function StandingsTemplate({
   readonly organizationAlias: string;
   /** Present when the caller knows it — used only to link the breadcrumb back to the stage hub. */
   readonly tournamentAlias?: string;
+  /** The stage's own name; the numbered fallback shows until it is known. */
+  readonly stageName?: string;
   readonly stageNumber?: number;
   /** Fetches one row's trace lines; called the first time a `group-phase` row is expanded. */
   readonly onExpand?: (entrantId: string) => Promise<readonly string[]>;
@@ -312,7 +315,8 @@ export function StandingsTemplate({
     ...(stageHubHref && stageNumber !== undefined
       ? [
           {
-            label: intl.formatMessage(messages.stageHubBreadcrumbLink, { stageNumber }),
+            label:
+              stageName ?? intl.formatMessage(messages.stageHubBreadcrumbLink, { stageNumber }),
             href: stageHubHref,
           },
         ]

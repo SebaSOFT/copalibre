@@ -60,6 +60,7 @@ export function ZoneGroupTemplate({
   organizationAlias,
   selectedZoneNumber,
   stageFormat,
+  stageName,
   stageNumber,
   stageSeeded = false,
   tournamentAlias,
@@ -105,6 +106,8 @@ export function ZoneGroupTemplate({
   readonly selectedZoneNumber: number | undefined;
   /** The stage's own format, which a zone without an override plays. */
   readonly stageFormat?: string | undefined;
+  /** The stage's own name; the numbered fallback shows until it is known. */
+  readonly stageName?: string;
   readonly stageNumber: number;
   /** Whether the stage already holds fixtures; a zone's format and series are locked then. */
   readonly stageSeeded?: boolean;
@@ -170,7 +173,9 @@ export function ZoneGroupTemplate({
     <span>
       {organizationAlias} / {tournamentAlias} /{' '}
       <a className="cl-focusable" href={stageHubHref} onClick={controlLinkClick(stageHubHref)}>
-        <FormattedMessage {...messages.stageHubBreadcrumbLink} values={{ stageNumber }} />
+        {stageName ?? (
+          <FormattedMessage {...messages.stageHubBreadcrumbLink} values={{ stageNumber }} />
+        )}
       </a>
     </span>
   );

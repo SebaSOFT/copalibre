@@ -130,6 +130,7 @@ export function ScheduleBuilderTemplate({
   reasonRequiredMatches = [],
   recentReasons = [],
   schedules,
+  stageName,
   stageNumber,
   tournamentAlias,
   venues,
@@ -162,6 +163,8 @@ export function ScheduleBuilderTemplate({
   readonly organizationTimeZone?: string;
   readonly previewed: boolean;
   readonly schedules: readonly ScheduleDetailResponse[];
+  /** The stage's own name; the numbered fallback shows until it is known. */
+  readonly stageName?: string;
   readonly stageNumber: number;
   readonly tournamentAlias: string;
   readonly venues: readonly VenueResponse[];
@@ -683,7 +686,8 @@ export function ScheduleBuilderTemplate({
   }
 
   const stageHubHref = `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}`;
-  const stageLabel = intl.formatMessage(messages.stageHubBreadcrumbLink, { stageNumber });
+  const stageLabel =
+    stageName ?? intl.formatMessage(messages.stageHubBreadcrumbLink, { stageNumber });
   const titleNode = <FormattedMessage {...messages.scheduleBuilderTitle} />;
 
   const schedulableRows = groups

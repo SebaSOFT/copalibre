@@ -16,6 +16,7 @@ import { Input } from '../ui/atoms/input.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { Field } from '../ui/molecules/field.js';
 import { useResilientRead } from './use-resilient-read.js';
+import { useStageName } from './use-stage-name.js';
 
 /**
  * A stage's configuration override fields — the same dot-path-editing shape
@@ -195,6 +196,7 @@ export function SeedingBuilderPage({
       Promise.resolve(undefined),
     { thing: intl.formatMessage(messages.tournamentHubTitle) },
   );
+  const stageName = useStageName(api, organizationAlias, tournamentAlias, stageNumber);
   const setSeeding = (seeding: SeedingResponse): void =>
     read.update((current) => ({ ...current, seeding }));
   const setStageOverrides = (stageOverrides: Readonly<Record<string, unknown>>): void =>
@@ -282,6 +284,7 @@ export function SeedingBuilderPage({
         }
         organizationAlias={organizationAlias}
         seeds={assignments}
+        stageName={stageName}
         stageNumber={stageNumber}
         tournamentAlias={tournamentAlias}
         tournamentName={tournamentRead.data?.name}

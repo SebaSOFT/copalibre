@@ -246,7 +246,7 @@ export function StageHubTemplate({
   const intl = useIntl();
   const base = `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}`;
 
-  const titleNode = (
+  const titleNode = stageName.trim() || (
     <FormattedMessage {...messages.stageHubTitle} values={{ number: stageNumber }} />
   );
   const breadcrumbs = [

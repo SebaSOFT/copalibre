@@ -1,9 +1,9 @@
 import type { ControlRoute } from '@copalibre/routing';
 
 export type ControlNavItem =
-  | 'dashboard'
   | 'live-console'
   | 'tournaments'
+  | 'clubs'
   | 'roles'
   | 'resources'
   | 'organization'
@@ -20,7 +20,7 @@ const ACTIVE_ITEM_BY_SCREEN = {
   'reset-password': undefined,
   platformAdministration: 'platform',
   disciplineDocument: 'platform',
-  dashboard: 'dashboard',
+  dashboard: 'tournaments',
   tournaments: 'tournaments',
   liveConsole: 'live-console',
   organization: 'organization',
@@ -29,9 +29,9 @@ const ACTIVE_ITEM_BY_SCREEN = {
   auditTrail: 'audit-trail',
   preferences: 'organization',
   newTournament: 'tournaments',
-  clubs: 'resources',
+  clubs: 'clubs',
   resources: 'resources',
-  personProfile: 'resources',
+  personProfile: 'clubs',
   tournamentHub: 'tournaments',
   registrations: 'tournaments',
   tournamentSettings: 'tournaments',
@@ -48,8 +48,8 @@ const ACTIVE_ITEM_BY_SCREEN = {
   schedule: 'tournaments',
   matchesView: 'tournaments',
   broadcaster: 'live-console',
-  clubPortalMembers: 'resources',
-  clubPortalRoster: 'resources',
+  clubPortalMembers: 'clubs',
+  clubPortalRoster: 'clubs',
 } satisfies Record<ControlRoute['screen'], ControlNavItem | undefined>;
 
 export function controlNavItemForScreen(

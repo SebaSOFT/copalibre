@@ -84,6 +84,34 @@ describe('ZoneGroupPage', () => {
     );
   });
 
+  it("names the stage hub in its breadcrumb by the stage's own name", async () => {
+    render(
+      withIntl(
+        <ZoneGroupPage
+          client={{
+            ...stubClient(),
+            listStages: async () => [
+              {
+                stageId: 's1',
+                seasonId: 'x',
+                number: 1,
+                name: 'Fase de grupos',
+                format: 'round-robin',
+              },
+            ],
+          }}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByRole('heading', { level: 1, name: /zones and groups/i }));
+    expect(await screen.findByRole('link', { name: 'Fase de grupos' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Stage 1' })).toBeNull();
+  });
+
   it('reports an error when renaming a zone fails', async () => {
     render(
       withIntl(

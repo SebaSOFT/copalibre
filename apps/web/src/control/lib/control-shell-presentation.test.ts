@@ -11,14 +11,15 @@ describe('control shell presentation', () => {
 
     expect(groups.map(({ id }) => id)).toEqual([
       'overview',
+      'teams-rosters',
       'venues',
       'broadcast',
       'administration',
     ]);
     expect(groups.flatMap(({ items }) => items.map(({ id }) => id))).toEqual([
-      'dashboard',
       'tournaments',
       'analytics',
+      'clubs',
       'resources',
       'live-console',
       'roles',

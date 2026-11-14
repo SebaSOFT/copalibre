@@ -143,6 +143,28 @@ describe('StandingsTemplate', () => {
     );
   });
 
+  it("names the stage hub in its breadcrumb by the stage's own name when it is known", () => {
+    render(
+      withIntl(
+        <StandingsTemplate
+          activeLayoutCode={groupPhaseLayout.code}
+          layouts={[groupPhaseLayout]}
+          organizationAlias="liga-mendocina"
+          projection={projection}
+          stageName="Fase de grupos"
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+          tournamentName="Apertura"
+        />,
+      ),
+    );
+
+    expect(screen.getByRole('link', { name: 'Fase de grupos' }).getAttribute('href')).toBe(
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
+    );
+    expect(screen.queryByRole('link', { name: 'Stage 1' })).toBeNull();
+  });
+
   it('says so plainly on a row no comparator touched', async () => {
     render(
       withIntl(

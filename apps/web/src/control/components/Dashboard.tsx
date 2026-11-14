@@ -50,7 +50,7 @@ export function Dashboard({
 }): React.JSX.Element {
   return (
     <ControlShell
-      active="dashboard"
+      active="tournaments"
       client={client}
       helpPath="overview"
       organizationAlias={organizationAlias}
