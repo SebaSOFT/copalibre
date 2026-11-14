@@ -43,6 +43,10 @@ interface Props {
   readonly tournamentAlias?: string;
   readonly csvHref?: string;
   readonly sourceZoneName?: string;
+  /** How many entrants the table ranks, stated under the heading. */
+  readonly entrantCount?: number;
+  /** The localized tiebreak line, stated under the heading. */
+  readonly tiebreakLine?: string;
 }
 const {
   layouts = [],
@@ -51,6 +55,8 @@ const {
   previewRows,
   previewGrain,
   showControls = true,
+  entrantCount,
+  tiebreakLine,
   headingText,
   activeLayoutCode,
   activeClubId,
@@ -167,6 +173,8 @@ const hostColumnIndex = Math.max(
   0,
   displayColumns.findIndex((column) => NAME_CODES.includes(column.code)),
 );
+// The name column takes whatever width the table has beyond its figures.
+const fillColumnIndex = displayColumns.findIndex((column) => NAME_CODES.includes(column.code));
 const legend = hints.filter((one) => one.hint !== undefined);
 const isPlayerRanking =
   layout?.target === 'player-ranking' ||
@@ -202,6 +210,15 @@ const playerDialogLabels = {
       </Button>
     )}
   </div>
+
+  {(entrantCount !== undefined || tiebreakLine !== undefined) && (
+    <p class="cl-standings-meta">
+      {entrantCount !== undefined && (
+        <span>{intl.formatMessage(messages.standingsEntrantCount, { count: entrantCount })}</span>
+      )}
+      {tiebreakLine !== undefined && <span>{tiebreakLine}</span>}
+    </p>
+  )}
 
   {grain !== undefined && (
     <p class="cl-standings-grain">
@@ -272,7 +289,7 @@ const playerDialogLabels = {
     {rows.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
     {rows.length > 0 && (
       <table
-        class="cl-table cl-table--priority"
+        class:list={['cl-table cl-table--priority', { 'cl-table--fill': fillColumnIndex >= 0 }]}
         data-sortable-table={showControls && previewRows === undefined ? true : undefined}
       >
         <thead>
@@ -281,7 +298,12 @@ const playerDialogLabels = {
               const { label, hint } = hints[columnIndex] ?? { label: '' };
               const bubbleId = `column-hint-${column.code}`;
               return (
-                <th scope="col" aria-sort="none" data-priority={priorityOf(column.code)}>
+                <th
+                  scope="col"
+                  aria-sort="none"
+                  class={columnIndex === fillColumnIndex ? 'cl-table__fill' : undefined}
+                  data-priority={priorityOf(column.code)}
+                >
                   {column.code === '__promotion' || previewRows !== undefined || !showControls ? (
                     label
                   ) : hint === undefined ? (
@@ -775,6 +797,39 @@ const playerDialogLabels = {
   .cl-table-tab--active {
     border-bottom-color: var(--cl-border-accent);
     color: var(--cl-text-accent);
+  }
+  /*
+   * Every column but the name is as narrow as its content, so the space the table has beyond
+   * its figures goes to the name. A fixed width, not a percentage: a percentage column makes a
+   * max-content table ask for unbounded width.
+   */
+  .cl-table--fill th:not(.cl-table__fill) {
+    width: 1px;
+  }
+  .cl-table--fill :is(th, td) {
+    white-space: nowrap;
+  }
+  .cl-standings-meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-1);
+    margin: var(--cl-space-1) 0 var(--cl-space-3);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    color: var(--cl-text-secondary);
+  }
+  /* One line with a separator where it fits; stacked on phones, so no line starts with the dot. */
+  @media (min-width: 768px) {
+    .cl-standings-meta {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: var(--cl-space-1) var(--cl-space-3);
+    }
+    .cl-standings-meta > span + span::before {
+      content: '·';
+      margin-inline-end: var(--cl-space-3);
+      color: var(--cl-text-muted);
+    }
   }
   .cl-standings-grain {
     margin: 0 0 12px 0;

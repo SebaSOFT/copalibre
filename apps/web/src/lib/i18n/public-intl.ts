@@ -584,6 +584,31 @@ export function rulesetBriefingRows(
   });
 }
 
+/** How many tiebreakers the standings header names before it trails off. */
+const STANDINGS_TIEBREAK_PREVIEW = 3;
+
+/**
+ * The standings header's tiebreak line: the ruleset's tiebreakers in order, the first three
+ * only, then an ellipsis when more are declared. Undefined when the ruleset declares none.
+ */
+export function standingsTiebreakLine(
+  intl: IntlShape,
+  model: Pick<OverviewModel, 'ruleset'>,
+): string | undefined {
+  const entry = model.ruleset.find((one) => /(?:^|\.)tiebreakers$/.test(one.dotPath));
+  const kinds = (entry?.value ?? '')
+    .split(',')
+    .map((kind) => kind.trim())
+    .filter(Boolean);
+  if (kinds.length === 0) return undefined;
+  const shown = kinds
+    .slice(0, STANDINGS_TIEBREAK_PREVIEW)
+    .map((kind) => formatEnum(intl, 'tiebreaker', kind))
+    .join(' › ');
+  const list = kinds.length > STANDINGS_TIEBREAK_PREVIEW ? `${shown} …` : shown;
+  return intl.formatMessage(messages.standingsTiebreakLine, { list });
+}
+
 export interface CompletionFigureLabels {
   readonly heading: string;
   readonly summary: string;

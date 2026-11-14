@@ -633,6 +633,31 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('cell', { name: '4.00' })).toBeVisible();
   });
 
+  test('the standings table fills its panel, and the name column takes the spare width', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    await expect(page.getByRole('cell', { name: 'Talleres' })).toBeVisible();
+
+    const widths = await page.locator('#standings').evaluate((section) => {
+      const table = section.querySelector('table.cl-table');
+      const fill = table?.querySelector('thead th.cl-table__fill');
+      return {
+        table: table?.getBoundingClientRect().width ?? 0,
+        panel: table?.closest('.cl-table-scroll')?.clientWidth ?? 0,
+        fill: fill?.getBoundingClientRect().width ?? 0,
+        others: [...(table?.querySelectorAll('thead th:not(.cl-table__fill)') ?? [])].map(
+          (th) => th.getBoundingClientRect().width,
+        ),
+      };
+    });
+    expect(widths.panel).toBeGreaterThan(0);
+    expect(widths.table).toBeCloseTo(widths.panel, 0);
+    for (const width of widths.others) expect(width).toBeLessThan(widths.fill);
+    expect(widths.fill).toBeGreaterThan(widths.table / 2);
+  });
+
   for (const path of [
     `/${ORGANIZATION}`,
     `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`,

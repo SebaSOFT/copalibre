@@ -83,3 +83,39 @@ export async function readPublicScheduleChanges(
     ]),
   );
 }
+
+export interface PublicVenue {
+  readonly alias: string;
+  readonly name: string;
+  readonly address?: string;
+  readonly courtCount: number;
+}
+
+/**
+ * The distinct venues of these matches' published placements, sorted by name. Only the public
+ * fields: a venue's free-form `details` are operator notes and never leave Control.
+ */
+export async function readPublicVenues(
+  db: Kysely<Database>,
+  matchIds: readonly string[],
+): Promise<readonly PublicVenue[]> {
+  if (matchIds.length === 0) return [];
+  const rows = await db
+    .selectFrom('match_schedule_assignments as placement')
+    .innerJoin('schedule_slots as slot', 'slot.slot_id', 'placement.slot_id')
+    .innerJoin('venues as venue', 'venue.venue_id', 'slot.venue_id')
+    .select(['venue.alias', 'venue.name', 'venue.address', 'venue.concurrent_capacity'])
+    .where('placement.match_id', 'in', matchIds)
+    .where('placement.published', '=', true)
+    .where('venue.deleted_at', 'is', null)
+    .distinct()
+    .orderBy('venue.name')
+    .orderBy('venue.alias')
+    .execute();
+  return rows.map((row) => ({
+    alias: row.alias,
+    name: row.name,
+    ...(row.address === null || row.address.trim() === '' ? {} : { address: row.address.trim() }),
+    courtCount: Number(row.concurrent_capacity),
+  }));
+}

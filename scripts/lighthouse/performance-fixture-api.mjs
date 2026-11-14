@@ -114,6 +114,17 @@ const overview = {
     emblemObjectId: uuid(1000 + clubs.indexOf(club)),
   })),
   ruleset: {},
+  // The demo's discipline and the venues its games use, as the overview API names them.
+  disciplineName: 'Rink Hockey',
+  localizedDisciplineName: { en: 'Rink Hockey', es: 'Hockey sobre patines' },
+  venues: dataset.venues
+    .filter((venue) => dataset.games.some((game) => game.venueAlias === venue.alias))
+    .map((venue) => ({
+      alias: venue.alias,
+      name: venue.name,
+      courtCount: venue.concurrentCapacity ?? 1,
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name)),
 };
 
 const completion = {

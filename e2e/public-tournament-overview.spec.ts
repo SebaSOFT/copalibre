@@ -278,12 +278,37 @@ const nowStripMatches = [
   },
 ];
 
+const FACT_VENUES = [
+  { alias: 'aldo-cantoni', name: 'Aldo Cantoni', address: 'Av. Central 100', courtCount: 2 },
+  { alias: 'huarpes', name: 'Huarpes', courtCount: 1 },
+  { alias: 'olimpia', name: 'Olimpia', courtCount: 1 },
+  { alias: 'richet-y-zapata', name: 'Richet y Zapata', courtCount: 1 },
+  { alias: 'social', name: 'Social', courtCount: 1 },
+];
+
+/** The overview with its discipline, `venueCount` venues and five tiebreakers. */
+const factsOverview = (venueCount: number) => ({
+  ...overview,
+  disciplineName: 'Rink Hockey',
+  localizedDisciplineName: { en: 'Rink Hockey', es: 'Hockey sobre patines' },
+  venues: FACT_VENUES.slice(0, venueCount),
+  standingsPreview: demoStandingsPreview,
+  standingsGrain: 'match',
+  ruleset: {
+    ...overview.ruleset,
+    tiebreakers: 'points,score-difference,goal-average,goals-for,goals-against',
+  },
+});
+
 let apiServer: Server;
 let noLiveMatches = false;
 let nowStripOverview = false;
 let demoScaleOverview = false;
 let completedOverview = false;
+/** How many venues the overview names, with its discipline and five tiebreakers; 0 leaves them out. */
+let factsVenueCount = 0;
 test.beforeEach(() => {
+  factsVenueCount = 0;
   nowStripOverview = false;
   noLiveMatches = false;
   demoScaleOverview = false;
@@ -295,6 +320,10 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
     if (path === `${TOURNAMENT}/overview`) {
+      if (factsVenueCount > 0) {
+        res.end(JSON.stringify(factsOverview(factsVenueCount)));
+        return;
+      }
       const response = nowStripOverview
         ? { ...overview, matches: nowStripMatches }
         : completedOverview
@@ -557,6 +586,75 @@ test.describe('tournament overview progress and rules', () => {
     ]);
     expect(heroBox && containerBox).not.toBeNull();
     expect(heroBox?.width).toBeCloseTo((containerBox?.width ?? 0) - padding, 0);
+  });
+
+  test('the hero names the discipline and lists many venues in a column of their own', async ({
+    page,
+  }) => {
+    factsVenueCount = 5;
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.route('**/events/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': ok\n\n' }),
+    );
+    await page.goto(PAGE);
+
+    const hero = page.locator('.cl-overview-hero');
+    await expect(hero.locator('.cl-overview-hero__facts')).toContainText('Hockey sobre patines');
+    const column = hero.getByRole('region', { name: 'Sedes' });
+    await expect(column.getByRole('button')).toHaveText([
+      'Aldo Cantoni',
+      'Huarpes',
+      'Olimpia',
+      'Richet y Zapata',
+      'Social',
+    ]);
+    await expect(hero.locator('.cl-overview-hero__facts').getByRole('button')).toHaveCount(0);
+    const [mainBox, columnBox] = await Promise.all([
+      hero.locator('.cl-overview-hero__main').boundingBox(),
+      column.boundingBox(),
+    ]);
+    expect(columnBox?.x ?? 0).toBeGreaterThan((mainBox?.x ?? 0) + (mainBox?.width ?? 0) - 1);
+
+    // A mouse opens a venue's public details; the address shows, the operator details never do.
+    await column.getByRole('button', { name: 'Aldo Cantoni' }).hover();
+    const popup = page.getByRole('dialog', { name: 'Aldo Cantoni' });
+    await expect(popup).toContainText('Dirección: Av. Central 100');
+    await expect(popup).toContainText('2 canchas');
+    await page.mouse.move(0, 0);
+    await expect(popup).toHaveCount(0);
+
+    // So does the keyboard, and Escape closes it.
+    await column.getByRole('button', { name: 'Huarpes' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('dialog', { name: 'Huarpes' })).toContainText('1 cancha');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: 'Huarpes' })).toHaveCount(0);
+
+    const header = page.locator('#standings .cl-standings-meta');
+    await expect(header).toContainText(`${demoStandingsPreview.length} participantes`);
+    await expect(header).toContainText(
+      'Desempate: Puntos › Diferencia de marcador › Promedio de goles …',
+    );
+  });
+
+  test('two venues show as pills in the facts strip, and stack inside a phone', async ({
+    page,
+  }) => {
+    factsVenueCount = 2;
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.route('**/events/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': ok\n\n' }),
+    );
+    await page.goto(PAGE);
+
+    const facts = page.locator('.cl-overview-hero__facts');
+    await expect(facts.getByRole('button')).toHaveText(['Aldo Cantoni', 'Huarpes']);
+    await expect(page.getByRole('region', { name: 'Sedes' })).toHaveCount(0);
+    await facts.getByRole('button', { name: 'Huarpes' }).click();
+    await expect(page.getByRole('dialog', { name: 'Huarpes' })).toContainText('1 cancha');
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
   });
 
   test('the overview passes the semantic accessibility rules', async ({ page }) => {

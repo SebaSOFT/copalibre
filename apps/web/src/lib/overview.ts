@@ -98,6 +98,14 @@ export interface RulesetFieldView {
 
 import type { PublicTournamentWinnerZoneResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 
+/** A venue holding a published match: only its public fields. */
+export interface OverviewVenue {
+  readonly alias: string;
+  readonly name: string;
+  readonly address?: string;
+  readonly courtCount: number;
+}
+
 export interface OverviewModel {
   readonly organizationAlias?: string;
   readonly tournamentAlias?: string;
@@ -118,6 +126,9 @@ export interface OverviewModel {
   readonly streamPath: string;
   readonly liveCount: number;
   readonly emblemObjectId?: string;
+  /** The discipline's name in the page language. */
+  readonly disciplineName?: string;
+  readonly venues?: readonly OverviewVenue[];
 }
 
 export interface OverviewInput extends RouteInput {
@@ -133,6 +144,9 @@ export interface OverviewInput extends RouteInput {
   readonly clubs?: readonly ClubView[];
   readonly ruleset: readonly RulesetFieldView[];
   readonly emblemObjectId?: string;
+  /** The discipline's name in the page language. */
+  readonly disciplineName?: string;
+  readonly venues?: readonly OverviewVenue[];
 }
 
 export interface OverviewMatchSummary {
@@ -190,6 +204,8 @@ export function buildOverview(input: OverviewInput): OverviewModel {
     ...(input.status === undefined ? {} : { status: input.status }),
     ...(input.winners === undefined ? {} : { winners: input.winners }),
     ...(input.emblemObjectId === undefined ? {} : { emblemObjectId: input.emblemObjectId }),
+    ...(input.disciplineName === undefined ? {} : { disciplineName: input.disciplineName }),
+    ...(input.venues === undefined ? {} : { venues: input.venues }),
     matches: input.matches,
     standings: input.standings,
     ...(input.standingsGrain === undefined ? {} : { standingsGrain: input.standingsGrain }),
@@ -209,16 +225,6 @@ export function overviewLeadFor(status: OverviewModel['status']): OverviewLead {
   if (status === 'finished') return 'honour-board';
   if (status === 'live') return 'now-strip';
   return 'schedule-preview';
-}
-
-/** Only promote a venue to a tournament fact when every match names that same venue. */
-export function sharedOverviewVenue(matches: readonly OverviewMatch[]): string | undefined {
-  if (matches.length === 0) return undefined;
-
-  const venues = matches.map((match) => match.venueName?.trim());
-  const firstVenue = venues[0];
-  if (!firstVenue || venues.some((venue) => venue !== firstVenue)) return undefined;
-  return firstVenue;
 }
 
 /** A resolved multi-zone finish has enough independent outcomes to warrant a podium section. */

@@ -9,6 +9,7 @@ const meta = {
     triggerLabel: { control: 'text' },
     tone: { control: 'select', options: ['default', 'error'] },
     openOnHover: { control: 'boolean' },
+    triggerText: { control: 'text' },
   },
 } satisfies Meta<typeof Popover>;
 
@@ -28,5 +29,15 @@ export const ErrorTone: Story = {
     tone: 'error',
     triggerLabel: 'About Capacity',
     children: 'Cannot be reduced to 1: 10 entrants are already accepted in this tournament.',
+  },
+};
+
+/** A venue name that opens its public details, on hover or by keyboard and tap. */
+export const TextTrigger: Story = {
+  args: {
+    openOnHover: true,
+    triggerText: 'Aldo Cantoni',
+    triggerLabel: 'Aldo Cantoni',
+    children: 'Av. Central 100 · 2 courts',
   },
 };

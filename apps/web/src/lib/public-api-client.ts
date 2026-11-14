@@ -254,6 +254,21 @@ export function mapOverviewResponse(
     status: response.status,
     winners: mapPublicWinnerZones(response.winners, language),
     ...(response.emblemObjectId === undefined ? {} : { emblemObjectId: response.emblemObjectId }),
+    ...(response.localizedDisciplineName !== undefined
+      ? { disciplineName: resolveLabel(response.localizedDisciplineName, language) }
+      : response.disciplineName === undefined
+        ? {}
+        : { disciplineName: response.disciplineName }),
+    ...(response.venues === undefined
+      ? {}
+      : {
+          venues: response.venues.map((venue) => ({
+            alias: venue.alias,
+            name: venue.name,
+            ...(venue.address === undefined ? {} : { address: venue.address }),
+            courtCount: venue.courtCount,
+          })),
+        }),
     ruleset: Object.entries(response.ruleset).map(([dotPath, value]) => {
       const declaredLabel = response.rulesetLabels?.[dotPath];
       const label =

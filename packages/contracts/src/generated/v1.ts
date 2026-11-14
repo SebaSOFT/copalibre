@@ -5851,6 +5851,13 @@ export interface components {
         PublicObjectReferenceResponse: {
             key: string;
         };
+        PublicOverviewVenueResponse: {
+            alias: string;
+            name: string;
+            address?: string;
+            /** @description How many matches the venue can hold at once: its court count. */
+            courtCount: number;
+        };
         PublicOverviewMatchResponse: {
             nodeKey?: string;
             branch?: string;
@@ -5927,6 +5934,14 @@ export interface components {
             tournamentName: string;
             seasonName: string;
             disciplineImages?: components["schemas"]["PublicObjectReferenceResponse"][];
+            /** @description The discipline's declared name, in English. */
+            disciplineName?: string;
+            /** @description The discipline name as declared, with its available translations */
+            localizedDisciplineName?: {
+                [key: string]: string;
+            };
+            /** @description Every venue holding a published match, sorted by name. Free-form venue details are never published. */
+            venues?: components["schemas"]["PublicOverviewVenueResponse"][];
             matches: components["schemas"]["PublicOverviewMatchResponse"][];
             standingsPreview?: components["schemas"]["PublicStandingsRowResponse"][];
             /**

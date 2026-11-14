@@ -130,6 +130,8 @@ describe('public projections routes', () => {
     expect(data.tournamentAlias).toBe(publishedTournament.alias);
     expect(data.organizationAlias).toBe('liga-orbital');
     expect(data.disciplineImages).toEqual([{ key: 'modules/football/1.0.0/football-01.jpg' }]);
+    expect(data.disciplineName).toBe('Football');
+    expect(data.localizedDisciplineName).toMatchObject({ en: 'Football', es: 'Fútbol' });
     expect(Array.isArray(data.matches)).toBe(true);
     expect(data.status).toBeDefined();
   });
@@ -464,7 +466,8 @@ describe('public projections routes', () => {
             alias: 'central-stadium',
             name: 'Central Stadium',
             concurrent_capacity: 1,
-            address: null,
+            address: 'Av. Central 100',
+            details: JSON.stringify({ caretaker: '+54 11 5555-0000' }),
             created_at: now,
           })
           .execute();
@@ -624,6 +627,23 @@ describe('public projections routes', () => {
         },
       ],
     });
+
+    // The overview lists the venue of every published placement, without its free-form details.
+    const overview = await request({
+      method: 'GET',
+      url: `/api/organizations/liga-orbital/tournaments/${publishedTournament.alias}/overview`,
+    });
+    expect(overview.statusCode).toBe(200);
+    const venues = JSON.parse(overview.payload as string).venues;
+    expect(venues).toEqual([
+      {
+        alias: 'central-stadium',
+        name: 'Central Stadium',
+        address: 'Av. Central 100',
+        courtCount: 1,
+      },
+    ]);
+    expect(overview.payload).not.toContain('caretaker');
   });
 
   it('serves match report headline score honoring declared scoringInput when wins is first key in statistics', async () => {

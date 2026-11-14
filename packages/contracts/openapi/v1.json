@@ -19732,6 +19732,29 @@
           "key"
         ]
       },
+      "PublicOverviewVenueResponse": {
+        "type": "object",
+        "properties": {
+          "alias": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "courtCount": {
+            "type": "number",
+            "description": "How many matches the venue can hold at once: its court count."
+          }
+        },
+        "required": [
+          "alias",
+          "name",
+          "courtCount"
+        ]
+      },
       "PublicOverviewMatchResponse": {
         "type": "object",
         "properties": {
@@ -19986,6 +20009,24 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PublicObjectReferenceResponse"
+            }
+          },
+          "disciplineName": {
+            "type": "string",
+            "description": "The discipline's declared name, in English."
+          },
+          "localizedDisciplineName": {
+            "type": "object",
+            "description": "The discipline name as declared, with its available translations",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "venues": {
+            "description": "Every venue holding a published match, sorted by name. Free-form venue details are never published.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicOverviewVenueResponse"
             }
           },
           "matches": {

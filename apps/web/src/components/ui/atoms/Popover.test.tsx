@@ -89,4 +89,20 @@ describe('Popover', () => {
     expect(screen.getByRole('dialog')).not.toBeNull();
     jest.useRealTimers();
   });
+
+  it('shows a text trigger that names itself and opens the same surface', () => {
+    render(
+      <Popover triggerLabel="Aldo Cantoni" triggerText="Aldo Cantoni">
+        Av. Central 100
+      </Popover>,
+    );
+    const trigger = screen.getByRole('button', { name: 'Aldo Cantoni' });
+    expect(trigger.textContent).toBe('Aldo Cantoni');
+    expect(trigger.getAttribute('aria-label')).toBeNull();
+    expect(trigger.classList.contains('cl-popover__trigger--text')).toBe(true);
+    fireEvent.click(trigger);
+    expect(screen.getByRole('dialog', { name: 'Aldo Cantoni' }).textContent).toBe(
+      'Av. Central 100',
+    );
+  });
 });
