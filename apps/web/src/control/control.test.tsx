@@ -496,7 +496,7 @@ describe('what the dashboard renders', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: 'Torneos' })).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Panel' })).toBeDefined();
     expect(screen.getByText('Torneo Apertura')).toBeDefined();
     expect(screen.getByText(/Inscripción aprobada/)).toBeDefined();
     // The two questions an audit trail is asked.

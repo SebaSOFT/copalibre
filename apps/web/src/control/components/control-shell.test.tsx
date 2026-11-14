@@ -5,7 +5,7 @@ import { ControlShell } from './ControlShell.js';
 describe('the Control-web data-density scope', () => {
   it('mounts data-density="control" at the shell root, scoping the denser spacing composition', () => {
     const { container } = render(
-      <ControlShell active="tournaments" helpPath="tournaments">
+      <ControlShell active="dashboard" helpPath="tournaments">
         <p>Contenido</p>
       </ControlShell>,
     );
@@ -16,7 +16,7 @@ describe('the Control-web data-density scope', () => {
 describe('the Control skip link', () => {
   it('is the first focus stop and moves focus to the main region', async () => {
     const { container } = render(
-      <ControlShell active="tournaments" helpPath="tournaments">
+      <ControlShell active="dashboard" helpPath="tournaments">
         <p>Contenido</p>
       </ControlShell>,
     );
@@ -65,7 +65,7 @@ describe('the control context rail', () => {
     window.history.replaceState({}, '', `/control/${organizationAlias}`);
     const { container } = render(
       <ControlShell
-        active="tournaments"
+        active="dashboard"
         client={client('admin')}
         helpPath="overview"
         organizationAlias={organizationAlias}
@@ -85,7 +85,7 @@ describe('the control context rail', () => {
     window.history.replaceState({}, '', `/control/${organizationAlias}`);
     const { container } = render(
       <ControlShell
-        active="tournaments"
+        active="dashboard"
         client={client('viewer')}
         helpPath="overview"
         organizationAlias={organizationAlias}
@@ -108,7 +108,7 @@ describe('the control context rail', () => {
     );
     const { container } = render(
       <ControlShell
-        active="tournaments"
+        active="dashboard"
         client={client('tournament-admin', 'started')}
         helpPath="tournament-authoring"
         organizationAlias={organizationAlias}
@@ -130,7 +130,7 @@ describe('the control context rail', () => {
     );
     const { container } = render(
       <ControlShell
-        active="tournaments"
+        active="dashboard"
         client={client('tournament-admin', 'draft')}
         helpPath="tournament-authoring"
         organizationAlias={organizationAlias}

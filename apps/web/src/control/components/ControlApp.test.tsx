@@ -150,7 +150,7 @@ describe('ControlApp', () => {
   });
 
   it.each([
-    ['/control/liga-mendocina', 'Dashboard — liga-mendocina', 'Torneos'],
+    ['/control/liga-mendocina', 'Dashboard — liga-mendocina', 'Panel'],
     ['/control/liga-mendocina/roles', 'Roles and permissions - liga-mendocina', 'Rol'],
     ['/control/liga-mendocina/tournaments/new', 'Create tournament — liga-mendocina', 'torneo'],
     [
@@ -360,7 +360,7 @@ describe('ControlApp session guard and callback', () => {
     await waitFor(() => expect(document.title).toBe('Dashboard — liga-mendocina'));
     // The nav entry specifically: the dashboard's tournament section now carries
     // a heading of the same word, so an unscoped text query matches both.
-    expect(screen.queryAllByRole('link', { name: 'Torneos' })).not.toHaveLength(0);
+    expect(screen.queryAllByRole('link', { name: 'Panel' })).not.toHaveLength(0);
   });
 
   it('restores the session from the API after a reload and renders the screen', async () => {
@@ -380,10 +380,10 @@ describe('ControlApp session guard and callback', () => {
     render(<ControlApp />);
 
     // Nothing protected renders until the API has answered.
-    expect(screen.queryAllByRole('link', { name: 'Torneos' })).toHaveLength(0);
+    expect(screen.queryAllByRole('link', { name: 'Panel' })).toHaveLength(0);
     await waitFor(() => expect(document.title).toBe('Dashboard — liga-mendocina'));
     await waitFor(() =>
-      expect(screen.queryAllByRole('link', { name: 'Torneos' })).not.toHaveLength(0),
+      expect(screen.queryAllByRole('link', { name: 'Panel' })).not.toHaveLength(0),
     );
     expect(requested[0]).toBe('/api/auth/session');
     expect(controlSession.read()?.subject).toBe('p-1');

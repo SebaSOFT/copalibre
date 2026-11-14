@@ -20,7 +20,7 @@ const CONTROL_NAV_GROUPS: readonly {
   {
     id: 'overview',
     label: messages.shellNavGroupOverview,
-    itemIds: ['tournaments', 'analytics'],
+    itemIds: ['dashboard', 'analytics'],
   },
   { id: 'teams-rosters', label: messages.shellNavGroupTeamsRosters, itemIds: ['clubs'] },
   { id: 'zones-groups', label: messages.shellNavGroupZonesGroups, itemIds: [] },

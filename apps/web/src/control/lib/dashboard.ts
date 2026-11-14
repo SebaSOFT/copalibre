@@ -183,8 +183,8 @@ export const SIDENAV: readonly {
   /** Absent means every organization member sees this entry. Present means it is shown only to a role `capabilitiesForRole` resolves this capability for — the mapping decides, not a hardcoded role list. */
   readonly capability?: OrganizationCapability;
 }[] = [
+  { id: 'dashboard', label: messages.navDashboard, path: '' },
   { id: 'live-console', label: messages.navLiveConsole, path: '/live' },
-  { id: 'tournaments', label: messages.navTournaments, path: '/tournaments' },
   { id: 'roles', label: messages.navRoles, path: '/roles', capability: 'org.manage-users' },
   { id: 'clubs', label: messages.clubManagementTitle, path: '/clubs' },
   { id: 'resources', label: messages.navResources, path: '/resources' },

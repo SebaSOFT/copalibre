@@ -57,7 +57,7 @@ test.describe('control-panel navigation follows the declared capability mapping 
       }
       // Every role keeps an ungated entry, proving this is a real filter,
       // not every navigation entry disappearing along with "Roles".
-      await expect(page.getByRole('link', { name: 'Torneos', exact: true })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Panel', exact: true })).toBeVisible();
     });
   }
 });

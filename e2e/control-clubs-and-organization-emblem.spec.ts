@@ -355,5 +355,5 @@ test('marks Clubs, not venues, in the rail on the clubs screen', async ({ page }
     'page',
   );
   await expect(rail.locator('[aria-current="page"]')).toHaveCount(1);
-  await expect(rail.getByRole('link', { name: 'Torneos', exact: true })).toHaveCount(1);
+  await expect(rail.getByRole('link', { name: 'Panel', exact: true })).toHaveCount(1);
 });

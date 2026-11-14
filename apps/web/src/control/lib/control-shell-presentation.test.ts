@@ -17,7 +17,7 @@ describe('control shell presentation', () => {
       'administration',
     ]);
     expect(groups.flatMap(({ items }) => items.map(({ id }) => id))).toEqual([
-      'tournaments',
+      'dashboard',
       'analytics',
       'clubs',
       'resources',
