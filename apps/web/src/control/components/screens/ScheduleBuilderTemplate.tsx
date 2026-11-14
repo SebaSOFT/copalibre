@@ -31,7 +31,7 @@ import {
 import { messages } from '../../i18n/messages.en.js';
 import { PageHeaderTemplate } from './PageHeaderTemplate.js';
 import { KpiStrip } from '../ui/organisms/kpi-strip.js';
-import { formatDateTime } from '../../lib/presentation-formatting.js';
+import { formatDateTime, formatTime } from '../../lib/presentation-formatting.js';
 
 export interface DraftAssignment {
   readonly slotId: string;
@@ -170,6 +170,10 @@ export function ScheduleBuilderTemplate({
   const [promptOpen, setPromptOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState('all');
   const [selectedVenue, setSelectedVenue] = useState('all');
+  // The day an operator chose for a match's slot, before any slot of it is picked.
+  const [rowDays, setRowDays] = useState<Readonly<Record<string, string>>>({});
+  // Only one match opens its official picker at a time, so the page height does not follow the roster.
+  const [editingOfficialsFor, setEditingOfficialsFor] = useState<string | undefined>(undefined);
 
   const draftFor = useCallback(
     (matchId: string): DraftAssignment => drafts[matchId] ?? EMPTY_DRAFT,
@@ -357,7 +361,8 @@ export function ScheduleBuilderTemplate({
     );
   }
 
-  const scheduleRows = useMemo(() => {
+  /** A start time's day in the organization's time zone: a sortable key and a label for people. */
+  const dayOf = useMemo(() => {
     const timeZone = organizationTimeZone === undefined ? {} : { timeZone: organizationTimeZone };
     const dayKeyFormatter = new Intl.DateTimeFormat('en', {
       year: 'numeric',
@@ -372,6 +377,27 @@ export function ScheduleBuilderTemplate({
       day: 'numeric',
       ...timeZone,
     });
+    return (startsAt: number) => {
+      const parts = dayKeyFormatter.formatToParts(new Date(startsAt));
+      const part = (type: 'year' | 'month' | 'day') =>
+        parts.find((candidate) => candidate.type === type)?.value ?? '';
+      return {
+        key: `${part('year')}-${part('month')}-${part('day')}`,
+        label: dayLabelFormatter.format(new Date(startsAt)),
+      };
+    };
+  }, [organizationTimeZone, intl.locale]);
+
+  /** The days that have at least one slot, earliest first. */
+  const slotDays = useMemo(
+    () =>
+      [...new Map(allSlots.map((slot) => [dayOf(slot.startsAt).key, dayOf(slot.startsAt).label]))]
+        .map(([value, label]) => ({ value, label }))
+        .sort((left, right) => left.value.localeCompare(right.value)),
+    [allSlots, dayOf],
+  );
+
+  const scheduleRows = useMemo(() => {
     const collator = new Intl.Collator(intl.locale);
 
     return groups
@@ -382,18 +408,9 @@ export function ScheduleBuilderTemplate({
             draft.withdraw === true ? undefined : draft.slotId || row.releasedSlotId || undefined;
           const slot = slotId === undefined ? undefined : slotById.get(slotId);
           const venue = slot && venues.find((candidate) => candidate.venueId === slot.venueId);
-          const dayParts = slot
-            ? dayKeyFormatter.formatToParts(new Date(slot.startsAt))
-            : undefined;
-          const datePart = (type: 'year' | 'month' | 'day') =>
-            dayParts?.find((part) => part.type === type)?.value ?? '';
-          const dayKey =
-            dayParts === undefined
-              ? UNASSIGNED_DAY_KEY
-              : `${datePart('year')}-${datePart('month')}-${datePart('day')}`;
-          const dayLabel = slot
-            ? dayLabelFormatter.format(new Date(slot.startsAt))
-            : intl.formatMessage(messages.scheduleBuilderUnassigned);
+          const day = slot ? dayOf(slot.startsAt) : undefined;
+          const dayKey = day?.key ?? UNASSIGNED_DAY_KEY;
+          const dayLabel = day?.label ?? intl.formatMessage(messages.scheduleBuilderUnassigned);
           const cross = `${entrantNames.get(group.homeEntrantId ?? '')?.fullName ?? unknownName} vs ${entrantNames.get(group.awayEntrantId ?? '')?.fullName ?? unknownName}`;
           const label = group.series
             ? `${cross} — ${intl.formatMessage(messages.scheduleBuilderSeriesGame, {
@@ -423,7 +440,7 @@ export function ScheduleBuilderTemplate({
         const timeOrder = (left.slot?.startsAt ?? 0) - (right.slot?.startsAt ?? 0);
         return timeOrder || left.label.localeCompare(right.label, intl.locale);
       });
-  }, [groups, draftFor, slotById, venues, organizationTimeZone, intl, entrantNames, unknownName]);
+  }, [groups, draftFor, slotById, venues, dayOf, intl, entrantNames, unknownName]);
 
   const dayOptions = [
     ...new Map(scheduleRows.map(({ dayKey, dayLabel }) => [dayKey, dayLabel])).entries(),
@@ -511,37 +528,82 @@ export function ScheduleBuilderTemplate({
       );
     }
 
+    const heldSlot = slotById.get(draft.slotId);
+    const chosenDay =
+      rowDays[row.matchId] ?? (heldSlot === undefined ? '' : dayOf(heldSlot.startsAt).key);
+    const assignedOfficials = officials.filter((official) =>
+      draft.officialIds.includes(official.officialId),
+    );
+    const editingOfficials = editingOfficialsFor === row.matchId;
+
     return (
       <div className="cl-schedule-builder__assignment-row">
         <strong>{label}</strong>
-        <Field
-          id={`slot-${row.matchId}`}
-          label={intl.formatMessage(messages.scheduleBuilderStartTime)}
-        >
-          <Select
-            aria-label={`${intl.formatMessage(messages.scheduleBuilderStartTime)} — ${label}`}
+        <div className="cl-schedule-builder__slot-pickers">
+          <Field
+            id={`day-${row.matchId}`}
+            label={intl.formatMessage(messages.scheduleBuilderFilterDay)}
+          >
+            <Select
+              aria-label={`${intl.formatMessage(messages.scheduleBuilderFilterDay)} — ${label}`}
+              id={`day-${row.matchId}`}
+              onValueChange={(value) => {
+                setRowDays((current) => ({ ...current, [row.matchId]: value }));
+                // A slot of another day no longer belongs to the choice.
+                const held = slotById.get(draft.slotId);
+                if (held !== undefined && dayOf(held.startsAt).key !== value)
+                  onSetDraft(row.matchId, { slotId: '' });
+              }}
+              options={slotDays}
+              placeholder={intl.formatMessage(messages.scheduleBuilderChooseDay)}
+              value={chosenDay}
+            />
+          </Field>
+          <Field
             id={`slot-${row.matchId}`}
-            onValueChange={(value) => onSetDraft(row.matchId, { slotId: value })}
-            options={[
-              {
-                value: '',
-                label: intl.formatMessage(messages.scheduleBuilderUnassigned),
-              },
-              ...allSlots.map((candidate) => {
-                const venue = venues.find((item) => item.venueId === candidate.venueId);
-                const isOccupied =
-                  candidate.matchCount >= (venue?.concurrentCapacity ?? 1) &&
-                  draft.slotId !== candidate.slotId;
-                return {
-                  value: candidate.slotId,
-                  label: `${formatDateTime(intl, candidate.startsAt, organizationTimeZone)}${venue ? ` @ ${venue.name}` : ''} (${candidate.matchCount}/${venue?.concurrentCapacity ?? 1})${isOccupied ? ' (Full)' : ''}`,
-                  disabled: isOccupied,
-                };
-              }),
-            ]}
-            value={draft.slotId}
-          />
-        </Field>
+            label={intl.formatMessage(messages.scheduleBuilderStartTime)}
+          >
+            <Select
+              aria-label={`${intl.formatMessage(messages.scheduleBuilderStartTime)} — ${label}`}
+              disabled={chosenDay === ''}
+              id={`slot-${row.matchId}`}
+              onValueChange={(value) => onSetDraft(row.matchId, { slotId: value })}
+              options={[
+                {
+                  value: '',
+                  label: intl.formatMessage(messages.scheduleBuilderUnassigned),
+                },
+                ...allSlots
+                  .filter((candidate) => dayOf(candidate.startsAt).key === chosenDay)
+                  .map((candidate) => {
+                    const venue = venues.find((item) => item.venueId === candidate.venueId);
+                    const capacity = venue?.concurrentCapacity ?? 1;
+                    const isOccupied =
+                      candidate.matchCount >= capacity && draft.slotId !== candidate.slotId;
+                    const values = {
+                      time: formatTime(intl, candidate.startsAt, organizationTimeZone),
+                      venue: venue?.name ?? intl.formatMessage(messages.scheduleBuilderNoVenue),
+                    };
+                    return {
+                      value: candidate.slotId,
+                      label: intl.formatMessage(
+                        isOccupied
+                          ? messages.scheduleBuilderSlotOptionFull
+                          : messages.scheduleBuilderSlotOption,
+                        values,
+                      ),
+                      badge: intl.formatMessage(messages.scheduleBuilderSlotOccupancy, {
+                        count: candidate.matchCount,
+                        capacity,
+                      }),
+                      disabled: isOccupied,
+                    };
+                  }),
+              ]}
+              value={draft.slotId}
+            />
+          </Field>
+        </div>
 
         {contingencyNode(row)}
 
@@ -557,20 +619,51 @@ export function ScheduleBuilderTemplate({
         )}
 
         {officials.length > 0 && (
-          <fieldset className="cl-role-user">
-            <legend className="cl-label">
-              <FormattedMessage {...messages.scheduleBuilderOfficials} />
-            </legend>
-            {officials.map((official) => (
-              <label key={official.officialId} className="cl-toggle cl-focusable">
-                <Checkbox
-                  checked={draft.officialIds.includes(official.officialId)}
-                  onCheckedChange={() => onToggleOfficial(row.matchId, official.officialId)}
+          <div className="cl-schedule-builder__officials">
+            <p className="cl-card__description">
+              {assignedOfficials.length === 0 ? (
+                <FormattedMessage {...messages.scheduleBuilderNoOfficialsAssigned} />
+              ) : (
+                <FormattedMessage
+                  {...messages.scheduleBuilderOfficialsSummary}
+                  values={{ names: assignedOfficials.map((o) => o.displayName).join(' · ') }}
                 />
-                <span>{official.displayName}</span>
-              </label>
-            ))}
-          </fieldset>
+              )}
+            </p>
+            <Button
+              aria-expanded={editingOfficials}
+              aria-label={`${intl.formatMessage(
+                editingOfficials
+                  ? messages.scheduleBuilderDoneOfficials
+                  : messages.scheduleBuilderEditOfficials,
+              )} — ${label}`}
+              onClick={() => setEditingOfficialsFor(editingOfficials ? undefined : row.matchId)}
+              type="button"
+              variant="secondary"
+            >
+              <FormattedMessage
+                {...(editingOfficials
+                  ? messages.scheduleBuilderDoneOfficials
+                  : messages.scheduleBuilderEditOfficials)}
+              />
+            </Button>
+            {editingOfficials && (
+              <fieldset className="cl-role-user">
+                <legend className="cl-label">
+                  <FormattedMessage {...messages.scheduleBuilderOfficials} />
+                </legend>
+                {officials.map((official) => (
+                  <label key={official.officialId} className="cl-toggle cl-focusable">
+                    <Checkbox
+                      checked={draft.officialIds.includes(official.officialId)}
+                      onCheckedChange={() => onToggleOfficial(row.matchId, official.officialId)}
+                    />
+                    <span>{official.displayName}</span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+          </div>
         )}
       </div>
     );

@@ -3607,6 +3607,38 @@ export const messages = defineMessages({
     id: 'control.scheduleBuilder.officials',
     defaultMessage: 'Officials',
   },
+  scheduleBuilderOfficialsSummary: {
+    id: 'control.scheduleBuilder.officialsSummary',
+    defaultMessage: 'Officials: {names}',
+  },
+  scheduleBuilderNoOfficialsAssigned: {
+    id: 'control.scheduleBuilder.noOfficialsAssigned',
+    defaultMessage: 'No officials assigned',
+  },
+  scheduleBuilderEditOfficials: {
+    id: 'control.scheduleBuilder.editOfficials',
+    defaultMessage: 'Edit officials',
+  },
+  scheduleBuilderDoneOfficials: {
+    id: 'control.scheduleBuilder.doneOfficials',
+    defaultMessage: 'Done',
+  },
+  scheduleBuilderChooseDay: {
+    id: 'control.scheduleBuilder.chooseDay',
+    defaultMessage: 'Choose a day',
+  },
+  scheduleBuilderSlotOption: {
+    id: 'control.scheduleBuilder.slotOption',
+    defaultMessage: '{time} · {venue}',
+  },
+  scheduleBuilderSlotOptionFull: {
+    id: 'control.scheduleBuilder.slotOptionFull',
+    defaultMessage: '{time} · {venue} · Full',
+  },
+  scheduleBuilderSlotOccupancy: {
+    id: 'control.scheduleBuilder.slotOccupancy',
+    defaultMessage: '{count}/{capacity}',
+  },
   scheduleBuilderNoOfficialsAvailable: {
     id: 'control.scheduleBuilder.noOfficialsAvailable',
     defaultMessage: 'No officials are available to assign.',
