@@ -220,3 +220,45 @@ carry identifiers.
 
 - **WHEN** a batch tries to move a match that is finalized or in progress
 - **THEN** the builder says that match can no longer be moved and why, in the operator's language
+
+### Requirement: The schedule lists matches, and officials open on demand
+
+The schedule SHALL show one row per match, grouped by day, with its officials as a summary, and SHALL open the
+official picker for one match at a time.
+
+#### Scenario: 72 matches
+
+- **WHEN** an operator opens the schedule
+- **THEN** no official list shows until a row is edited
+
+#### Scenario: Edit officials
+
+- **WHEN** an operator edits a match
+- **THEN** only that match shows the picker
+
+### Requirement: A slot is chosen by day, then by time and venue
+
+The schedule SHALL let an operator choose a match's slot with two chained controls: a day, in the organization's
+time zone, then a slot of that day labelled with its start time and venue. Each slot option SHALL show its
+occupancy, and a full slot SHALL be disabled and say so in the active language. No slot label SHALL be clipped at
+1440, 768 or 390 pixels wide.
+
+#### Scenario: Choosing a slot
+
+- **WHEN** an operator picks a day
+- **THEN** the slot control lists only that day's slots, each as `14:30 · Aldo Cantoni` with its occupancy
+
+#### Scenario: Changing the day
+
+- **WHEN** an operator changes the day after choosing a slot of another day
+- **THEN** the slot choice is cleared
+
+#### Scenario: A full slot
+
+- **WHEN** a slot holds as many matches as its venue's capacity and is not the match's own
+- **THEN** it is disabled and marked full in the active language
+
+#### Scenario: Nothing clips
+
+- **WHEN** the schedule renders on the Panamericano demo at 1440, 768 or 390 pixels wide
+- **THEN** every slot control shows its time and venue in full
