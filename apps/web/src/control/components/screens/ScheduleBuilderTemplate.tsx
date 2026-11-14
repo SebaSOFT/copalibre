@@ -377,6 +377,13 @@ export function ScheduleBuilderTemplate({
       day: 'numeric',
       ...timeZone,
     });
+    const dayShortLabelFormatter = new Intl.DateTimeFormat(intl.locale, {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      ...timeZone,
+    });
     return (startsAt: number) => {
       const parts = dayKeyFormatter.formatToParts(new Date(startsAt));
       const part = (type: 'year' | 'month' | 'day') =>
@@ -384,14 +391,19 @@ export function ScheduleBuilderTemplate({
       return {
         key: `${part('year')}-${part('month')}-${part('day')}`,
         label: dayLabelFormatter.format(new Date(startsAt)),
+        shortLabel: dayShortLabelFormatter.format(new Date(startsAt)),
       };
     };
   }, [organizationTimeZone, intl.locale]);
 
-  /** The days that have at least one slot, earliest first. */
+  /** The days that have at least one slot, earliest first, in the short form a control can hold. */
   const slotDays = useMemo(
     () =>
-      [...new Map(allSlots.map((slot) => [dayOf(slot.startsAt).key, dayOf(slot.startsAt).label]))]
+      [
+        ...new Map(
+          allSlots.map((slot) => [dayOf(slot.startsAt).key, dayOf(slot.startsAt).shortLabel]),
+        ),
+      ]
         .map(([value, label]) => ({ value, label }))
         .sort((left, right) => left.value.localeCompare(right.value)),
     [allSlots, dayOf],
@@ -565,6 +577,7 @@ export function ScheduleBuilderTemplate({
           >
             <Select
               aria-label={`${intl.formatMessage(messages.scheduleBuilderStartTime)} — ${label}`}
+              badgeInTrigger={false}
               disabled={chosenDay === ''}
               id={`slot-${row.matchId}`}
               onValueChange={(value) => onSetDraft(row.matchId, { slotId: value })}
