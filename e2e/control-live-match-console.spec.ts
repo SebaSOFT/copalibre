@@ -531,19 +531,19 @@ test('starts, pauses and ends a segment’s clock from the console', async ({ pa
   await page.waitForURL(`**${target}`);
 
   // The fixture's segment is already running, so the clock is advancing and
-  // Iniciar has nothing to start.
-  await expect(page.getByRole('button', { name: 'Iniciar' })).toBeDisabled();
+  // Iniciar has nothing to start: it is not offered at all.
+  await expect(page.getByRole('button', { name: 'Iniciar' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Pausar' }).click();
-  await expect(page.getByRole('button', { name: 'Pausar' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Pausar' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Iniciar' })).toBeEnabled();
 
   await page.getByRole('button', { name: 'Iniciar' }).click();
   await expect(page.getByRole('button', { name: 'Pausar' })).toBeEnabled();
 
   await page.getByRole('button', { name: 'Terminar período' }).click();
-  // An ended period accepts no further clock command.
+  // An ended period accepts no further clock command, so none is offered.
   for (const name of ['Iniciar', 'Pausar', 'Terminar período']) {
-    await expect(page.getByRole('button', { name })).toBeDisabled();
+    await expect(page.getByRole('button', { name })).toHaveCount(0);
   }
 
   // Polled, not read once: the buttons disable on the optimistic patch, which
@@ -564,9 +564,34 @@ test('does not offer clock commands without the clock-control capability', async
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  for (const name of ['Iniciar', 'Pausar', 'Terminar período']) {
+  // The running segment offers Pause and End; without the capability they are disabled.
+  for (const name of ['Pausar', 'Terminar período']) {
     await expect(page.getByRole('button', { name })).toBeDisabled();
   }
+  await expect(page.getByRole('button', { name: 'Iniciar' })).toHaveCount(0);
+});
+
+test('shows the running segment and one primary action while the match is in progress', async ({
+  page,
+}) => {
+  await mockMatchConsole(page);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  // The segment select names the half in play, not an empty box.
+  await expect(page.locator('#console-segment')).toContainText('en juego');
+  await expect(page.getByRole('button', { name: 'Iniciar' })).toHaveCount(0);
+
+  // One primary action for the state: the clock is running, so it is Pausar.
+  const primary = page.locator('main button.cl-btn--primary:visible');
+  await expect(primary).toHaveCount(1);
+  await expect(primary).toHaveText('Pausar');
+
+  // Nothing recorded yet: the ledger says so instead of drawing an empty bordered list.
+  await expect(page.getByText('No hay eventos para mostrar.')).toBeVisible();
+  await expect(page.locator('ol.cl-platform-update-list')).toHaveCount(0);
 });
 
 test('collapses the ledger to a peek strip that still shows what was just recorded', async ({

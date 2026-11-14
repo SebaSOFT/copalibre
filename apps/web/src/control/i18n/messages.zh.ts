@@ -330,6 +330,8 @@ export const messages: Record<string, string> = {
   'control.matchConsole.activeSegment': '当前分段',
   'control.matchConsole.elapsedSeconds': '已用秒数',
   'control.matchConsole.applyClock': '应用计时',
+  'control.matchConsole.noSegments': '这场比赛还没有分段。',
+  'control.matchConsole.noEvents': '没有可显示的事件。',
   'control.matchConsole.recordEvent': '记录事件',
   'control.matchConsole.participant': '参赛者',
   'control.matchConsole.eventParticipant': '事件参赛者',

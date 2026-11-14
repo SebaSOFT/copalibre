@@ -2,13 +2,16 @@ import { describe, expect, it } from '@jest/globals';
 import { publicIntl, sideSourceLabels } from '../lib/i18n/public-intl.js';
 import {
   awaitingSourceText,
+  clockActionsOf,
   currentEpochMilliseconds,
+  currentSegmentOf,
   descriptionFor,
   formatClock,
   isEventPermitted,
   memberByNumber,
   newIdempotencyKey,
   segmentLabel,
+  selectedSegmentOf,
   sentOffPersonIds,
   undecidedSidesOf,
 } from './lib/match-console.js';
@@ -265,5 +268,121 @@ describe('undecidedSidesOf', () => {
       'Esperando Ganador de Semifinal 2',
     );
     expect(awaitingSourceText(winnerOf(2), labels)).toBe('Esperando Ganador de Ronda 1, partido 2');
+  });
+});
+
+describe('currentSegmentOf', () => {
+  it('is the running segment', () => {
+    const running = segment({ segmentId: 's2', number: 2, state: 'active' });
+    expect(
+      currentSegmentOf([segment({ segmentId: 's1', state: 'completed' }), running])?.segmentId,
+    ).toBe('s2');
+  });
+
+  it('is the first segment not yet ended when none is running', () => {
+    expect(
+      currentSegmentOf([
+        segment({ segmentId: 's1', state: 'completed' }),
+        segment({ segmentId: 's2', number: 2, state: 'pending' }),
+        segment({ segmentId: 's3', number: 3, state: 'pending' }),
+      ])?.segmentId,
+    ).toBe('s2');
+  });
+
+  it('is the last segment once every one has ended', () => {
+    expect(
+      currentSegmentOf([
+        segment({ segmentId: 's1', state: 'completed' }),
+        segment({ segmentId: 's2', number: 2, state: 'completed' }),
+      ])?.segmentId,
+    ).toBe('s2');
+  });
+
+  it('is undefined for a match with no segments', () => {
+    expect(currentSegmentOf([])).toBeUndefined();
+  });
+});
+
+describe('clockActionsOf', () => {
+  const running = segment({ state: 'active' });
+  const paused = segment({ state: 'pending' });
+  const ended = segment({ state: 'completed' });
+
+  it('offers only Start, as the primary action, before kick-off', () => {
+    expect(clockActionsOf('scheduled', [paused], paused)).toEqual({
+      commands: [{ command: 'start', primary: true }],
+      finalizePrimary: false,
+    });
+  });
+
+  it('offers Pause as the primary action, never Start, while a segment runs', () => {
+    expect(clockActionsOf('in-progress', [running], running)).toEqual({
+      commands: [
+        { command: 'pause', primary: true },
+        { command: 'end', primary: false },
+      ],
+      finalizePrimary: false,
+    });
+  });
+
+  it('offers a resume as the primary action while the clock is stopped mid-match', () => {
+    expect(clockActionsOf('in-progress', [paused], paused)).toEqual({
+      commands: [
+        { command: 'resume', primary: true },
+        { command: 'end', primary: false },
+      ],
+      finalizePrimary: false,
+    });
+  });
+
+  it('offers no clock command for an ended segment and leaves Finalize as the primary action', () => {
+    expect(clockActionsOf('in-progress', [ended], ended)).toEqual({
+      commands: [],
+      finalizePrimary: true,
+    });
+  });
+
+  it('keeps Finalize secondary while another segment still has to be played', () => {
+    expect(clockActionsOf('in-progress', [ended, paused], ended)).toEqual({
+      commands: [],
+      finalizePrimary: false,
+    });
+  });
+
+  it('offers no clock command without segments and leaves Finalize as the primary action', () => {
+    expect(clockActionsOf('in-progress', [], undefined)).toEqual({
+      commands: [],
+      finalizePrimary: true,
+    });
+    expect(clockActionsOf('scheduled', [], undefined)).toEqual({
+      commands: [],
+      finalizePrimary: false,
+    });
+  });
+
+  it('offers nothing once the match is finalized', () => {
+    expect(clockActionsOf('finalized', [ended], ended)).toEqual({
+      commands: [],
+      finalizePrimary: false,
+    });
+  });
+});
+
+describe('selectedSegmentOf', () => {
+  const segments = [
+    segment({ segmentId: 's1', state: 'completed' }),
+    segment({ segmentId: 's2', number: 2, state: 'pending' }),
+  ];
+
+  it('is the segment the operator picked', () => {
+    expect(selectedSegmentOf(segments, 's1')?.segmentId).toBe('s1');
+  });
+
+  it('follows the match when nothing is picked', () => {
+    expect(selectedSegmentOf(segments, '')?.segmentId).toBe('s2');
+  });
+
+  it('follows the match when the pick no longer names a segment of it', () => {
+    expect(selectedSegmentOf(segments, 'gone')?.segmentId).toBe('s2');
   });
 });

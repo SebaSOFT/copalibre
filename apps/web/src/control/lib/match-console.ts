@@ -17,7 +17,9 @@ import type {
   ConsoleMatchEvent,
   ConsoleRoster,
   ConsoleRosterMember,
+  ConsoleSegment,
   MatchConsoleResponse,
+  SegmentClockCommand,
 } from './api-client.js';
 
 export function newIdempotencyKey(): string {
@@ -66,6 +68,70 @@ export function segmentLabel(
   const segment = projection.segments.find((candidate) => candidate.segmentId === segmentId);
   if (!segment) return unknownSegmentLabel;
   return `${typeText ? typeText(segment) : segment.type} ${segment.number}`;
+}
+
+/**
+ * The segment the match is in: the one running, else the first not yet ended (a paused half, or
+ * the next one), else the last played. `segments` arrive ordered by number.
+ */
+export function currentSegmentOf(segments: readonly ConsoleSegment[]): ConsoleSegment | undefined {
+  return (
+    segments.find((segment) => segment.state === 'active') ??
+    segments.find((segment) => segment.state !== 'completed') ??
+    segments.at(-1)
+  );
+}
+
+/** The operator's explicit pick while it still names a segment of this match, else the current one. */
+export function selectedSegmentOf(
+  segments: readonly ConsoleSegment[],
+  pickedSegmentId: string,
+): ConsoleSegment | undefined {
+  return (
+    segments.find((segment) => segment.segmentId === pickedSegmentId) ?? currentSegmentOf(segments)
+  );
+}
+
+export interface ClockActions {
+  /** Only the commands the match state allows, in the order they are shown. */
+  readonly commands: readonly {
+    readonly command: SegmentClockCommand;
+    readonly primary: boolean;
+  }[];
+  /** Whether Finalize is the one primary action: nothing is left to run. */
+  readonly finalizePrimary: boolean;
+}
+
+/**
+ * What the clock card and the finalize card offer for the selected segment, so the console shows
+ * one primary action per state. A stopped clock offers Start (a resume once the match is under
+ * way), a running one offers Pause, and an ended segment offers nothing; only a match with no
+ * segment left to play makes Finalize the primary action. The match state, not the capability,
+ * decides here: a missing capability disables what is offered, it does not change what is offered.
+ */
+export function clockActionsOf(
+  status: MatchConsoleResponse['status'],
+  segments: readonly ConsoleSegment[],
+  selected: ConsoleSegment | undefined,
+): ClockActions {
+  const finalizePrimary =
+    status === 'in-progress' && segments.every((segment) => segment.state === 'completed');
+  if (selected === undefined || selected.state === 'completed') {
+    return { commands: [], finalizePrimary };
+  }
+  if (status === 'scheduled') {
+    return { commands: [{ command: 'start', primary: true }], finalizePrimary };
+  }
+  if (status !== 'in-progress') return { commands: [], finalizePrimary };
+  return {
+    commands: [
+      selected.state === 'active'
+        ? { command: 'pause', primary: true }
+        : { command: 'resume', primary: true },
+      { command: 'end', primary: false },
+    ],
+    finalizePrimary,
+  };
 }
 
 /**

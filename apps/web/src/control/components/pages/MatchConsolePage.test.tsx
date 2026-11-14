@@ -266,6 +266,111 @@ describe('MatchConsolePage', () => {
     expect(request.winnerEntrantId).toBe('entrant-home');
   });
 
+  describe('with the match in progress', () => {
+    const segment = (
+      number: number,
+      state: 'active' | 'pending' | 'completed',
+    ): MatchConsoleResponse['segments'][number] => ({
+      segmentId: `seg-${number}`,
+      number,
+      type: 'half',
+      state,
+      elapsedSeconds: state === 'pending' ? 0 : 1200,
+      durationSeconds: 2700,
+    });
+
+    async function renderConsole(overrides: Partial<MatchConsoleResponse>) {
+      const view = render(
+        withIntl(
+          <MatchConsolePage
+            client={stubClient(mockProjection(overrides))}
+            matchId="match-1"
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+          />,
+        ),
+      );
+      await waitFor(() => screen.getByRole('heading', { level: 1, name: /match operations/i }));
+      return view;
+    }
+
+    const primaryButtons = (container: HTMLElement): string[] =>
+      [...container.querySelectorAll('button.cl-btn--primary')].map(
+        (button) => button.textContent ?? '',
+      );
+
+    it('shows the running segment, offers Pause instead of Start, and keeps one primary action', async () => {
+      const { container } = await renderConsole({ segments: [segment(1, 'active')] });
+
+      await waitFor(() =>
+        expect(container.querySelector('#console-segment')?.textContent).toContain(
+          'half 1 · active',
+        ),
+      );
+      expect(screen.queryByRole('button', { name: 'Start' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Pause' })).toBeDefined();
+      expect(screen.getByRole('button', { name: 'End period' })).toBeDefined();
+      expect(primaryButtons(container)).toEqual(['Pause']);
+    });
+
+    it('offers Start for a stopped segment and nothing to pause', async () => {
+      const { container } = await renderConsole({ segments: [segment(1, 'pending')] });
+
+      await waitFor(() =>
+        expect(container.querySelector('#console-segment')?.textContent).toContain(
+          'half 1 · pending',
+        ),
+      );
+      expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
+      expect(primaryButtons(container)).toEqual(['Start']);
+    });
+
+    it('follows the match to the next segment once one has ended', async () => {
+      const { container } = await renderConsole({
+        segments: [segment(1, 'completed'), segment(2, 'pending')],
+      });
+
+      await waitFor(() =>
+        expect(container.querySelector('#console-segment')?.textContent).toContain(
+          'half 2 · pending',
+        ),
+      );
+      expect(primaryButtons(container)).toEqual(['Start']);
+    });
+
+    it('leaves Finalize as the one primary action when every segment has ended', async () => {
+      const { container } = await renderConsole({ segments: [segment(1, 'completed')] });
+
+      await waitFor(() => screen.getByRole('button', { name: 'Finalize match' }));
+      expect(screen.queryByRole('button', { name: 'Start' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
+      expect(primaryButtons(container)).toEqual(['Finalize match']);
+    });
+
+    it('says so, and offers no clock, when the match has no segments', async () => {
+      const { container } = await renderConsole({ segments: [], events: [] });
+
+      expect(screen.getByText('This match has no segments yet.')).toBeDefined();
+      expect(container.querySelector('#console-segment')).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Start' })).toBeNull();
+      expect(primaryButtons(container)).toEqual(['Finalize match']);
+    });
+
+    it('states that no event has been recorded instead of drawing an empty box', async () => {
+      const { container } = await renderConsole({ events: [] });
+
+      expect(screen.getByText('No events to show.')).toBeDefined();
+      expect(container.querySelector('ol.cl-platform-update-list')).toBeNull();
+    });
+
+    it('lists the recorded events when there are some', async () => {
+      const { container } = await renderConsole({});
+
+      expect(screen.queryByText('No events to show.')).toBeNull();
+      expect(container.querySelectorAll('ol.cl-platform-update-list > li')).toHaveLength(1);
+    });
+  });
+
   it('preserves the idempotency key and the selected winner across a rejected finalize, for a retry to resend unchanged', async () => {
     const finalizeMatch = jest
       .fn<() => Promise<{ matchId: string; status: 'completed' }>>()
