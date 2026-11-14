@@ -629,6 +629,26 @@ export const messages = defineMessages({
     id: 'publicWeb.matchesView.venueAriaLabel',
     defaultMessage: 'Venue: {venue}',
   },
+  overviewVenuesHeading: {
+    id: 'publicWeb.overview.venuesHeading',
+    defaultMessage: 'Venues',
+  },
+  overviewVenueAddress: {
+    id: 'publicWeb.overview.venueAddress',
+    defaultMessage: 'Address',
+  },
+  overviewVenueCourtCount: {
+    id: 'publicWeb.overview.venueCourtCount',
+    defaultMessage: '{count, plural, one {# court} other {# courts}}',
+  },
+  standingsEntrantCount: {
+    id: 'publicWeb.standings.entrantCount',
+    defaultMessage: '{count, plural, one {# entrant} other {# entrants}}',
+  },
+  standingsTiebreakLine: {
+    id: 'publicWeb.standings.tiebreakLine',
+    defaultMessage: 'Tiebreakers: {list}',
+  },
   matchesViewScheduledAtAriaLabel: {
     id: 'publicWeb.matchesView.scheduledAtAriaLabel',
     defaultMessage: 'Kickoff: {time}',

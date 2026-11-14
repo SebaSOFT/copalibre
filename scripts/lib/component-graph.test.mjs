@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves public layout adoption, compact stat-header hints, the tournament settings workspace, cookie-held Control sessions and TV island hydration, state shapes drawn as registry icons, and emblem atoms importing their rendition paths, match scores read through one live rule, phone match lists grouped by day, and every public locale route guarding its locale segment (428/1853)', () => {
+test('the graph resolves public layout adoption, compact stat-header hints, the tournament settings workspace, cookie-held Control sessions and TV island hydration, state shapes drawn as registry icons, and emblem atoms importing their rendition paths, match scores read through one live rule, phone match lists grouped by day, every public locale route guarding its locale segment, and the overview hero opening venue popovers (428/1854)', () => {
   const graph = buildGraph(webSrc);
   assert.equal(graph.nodes.size, 428);
-  assert.equal(graph.edges.length, 1853);
+  assert.equal(graph.edges.length, 1854);
 });
 
 test('a type-only import is not counted as a render', () => {

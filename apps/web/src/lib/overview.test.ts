@@ -3,7 +3,6 @@ import {
   displayName,
   groupStandingsByZone,
   overviewLeadFor,
-  sharedOverviewVenue,
   shortLabel,
   shouldShowChampionPodium,
   summarizeOverviewMatches,
@@ -33,20 +32,18 @@ describe('the overview model', () => {
     expect(overviewLeadFor(undefined)).toBe('schedule-preview');
   });
 
-  it('shows a tournament venue only when every match shares the same named venue', () => {
-    const fixture = (venueName?: string): OverviewMatch => ({
-      stageNumber: 1,
-      state: 'upcoming',
-      startsAt: '2026-10-22T12:00:00Z',
-      home: { name: 'Home' },
-      away: { name: 'Away' },
-      ...(venueName === undefined ? {} : { venueName }),
+  it('carries the discipline name and the public venues it is given', () => {
+    const venues = [
+      { alias: 'olimpia', name: 'Olimpia', address: 'Av. Central 100', courtCount: 2 },
+    ];
+    const withFacts = buildOverview({
+      ...sampleOverview('liga-mendocina', 'apertura-2026'),
+      disciplineName: 'Hockey sobre patines',
+      venues,
     });
-
-    expect(sharedOverviewVenue([fixture(' Cancha 1 '), fixture('Cancha 1')])).toBe('Cancha 1');
-    expect(sharedOverviewVenue([fixture('Cancha 1'), fixture('Cancha 2')])).toBeUndefined();
-    expect(sharedOverviewVenue([fixture('Cancha 1'), fixture()])).toBeUndefined();
-    expect(sharedOverviewVenue([])).toBeUndefined();
+    expect(withFacts.disciplineName).toBe('Hockey sobre patines');
+    expect(withFacts.venues).toEqual(venues);
+    expect(model).not.toHaveProperty('venues');
   });
 
   it('omits the season entirely when a tournament has never named one', () => {

@@ -3,8 +3,22 @@ import type { OverviewModel } from '../../../lib/overview.ts';
 import type { TournamentHeroLabels } from '../../../lib/i18n/public-intl.ts';
 import type { TrailItem } from '../../../lib/breadcrumb.ts';
 import { Badge } from '../atoms/Badge.tsx';
+import { Popover } from '../atoms/Popover.tsx';
 import Breadcrumb from './Breadcrumb.astro';
 import TournamentHero from '../molecules/TournamentHero.astro';
+
+/** A venue's public facts, already localized by the page. */
+export interface HeroVenue {
+  readonly name: string;
+  readonly address?: string;
+  /** The localized court count, such as "2 canchas". */
+  readonly courts: string;
+}
+
+export interface HeroVenueLabels {
+  readonly heading: string;
+  readonly address: string;
+}
 
 interface Props {
   readonly model: OverviewModel;
@@ -14,34 +28,94 @@ interface Props {
   readonly collapsedBreadcrumbLabel: string;
   readonly facts: readonly string[];
   readonly stateLabel?: string;
+  readonly venues?: readonly HeroVenue[];
+  readonly venueLabels?: HeroVenueLabels;
 }
 
-const { model, labels, trail, breadcrumbLabel, collapsedBreadcrumbLabel, facts, stateLabel } =
-  Astro.props;
+/** From this many venues the hero lists them in a column of their own instead of as pills. */
+const VENUE_COLUMN_THRESHOLD = 3;
+
+const {
+  model,
+  labels,
+  trail,
+  breadcrumbLabel,
+  collapsedBreadcrumbLabel,
+  facts,
+  stateLabel,
+  venues = [],
+  venueLabels,
+} = Astro.props;
 const stateClass =
   model.status === 'finished'
     ? 'cl-badge--final'
     : model.status === 'live'
       ? ''
       : 'cl-badge--upcoming';
+const shownVenues = venueLabels === undefined ? [] : venues;
+const venueColumn = shownVenues.length >= VENUE_COLUMN_THRESHOLD;
+const venuePills = venueColumn ? [] : shownVenues;
 ---
 
 <section class="cl-overview-hero cl-chamfer" aria-labelledby="tournament-title">
   <span class="cl-overview-hero__rail" aria-hidden="true"></span>
   <Breadcrumb items={trail} ariaLabel={breadcrumbLabel} collapsedLabel={collapsedBreadcrumbLabel} />
-  <TournamentHero labels={labels} model={model} showLiveBadge={false} />
-  {(stateLabel !== undefined || facts.length > 0) && (
-    <ul class="cl-overview-hero__facts">
-      {stateLabel && (
-        <li class="cl-overview-hero__state">
-          <Badge className={stateClass}>{stateLabel}</Badge>
-        </li>
+  <div class:list={['cl-overview-hero__body', { 'cl-overview-hero__body--venues': venueColumn }]}>
+    <div class="cl-overview-hero__main">
+      <TournamentHero labels={labels} model={model} showLiveBadge={false} />
+      {(stateLabel !== undefined || facts.length > 0 || venuePills.length > 0) && (
+        <ul class="cl-overview-hero__facts">
+          {stateLabel && (
+            <li class="cl-overview-hero__state">
+              <Badge className={stateClass}>{stateLabel}</Badge>
+            </li>
+          )}
+          {facts.map((fact) => (
+            <li>{fact}</li>
+          ))}
+          {venuePills.map((venue) => (
+            <li class="cl-overview-hero__venue">
+              <Popover client:load openOnHover triggerLabel={venue.name} triggerText={venue.name}>
+                <span class="cl-venue-popup">
+                  <strong class="cl-venue-popup__name">{venue.name}</strong>
+                  {venue.address && (
+                    <span>
+                      {venueLabels?.address}: {venue.address}
+                    </span>
+                  )}
+                  <span>{venue.courts}</span>
+                </span>
+              </Popover>
+            </li>
+          ))}
+        </ul>
       )}
-      {facts.map((fact) => (
-        <li>{fact}</li>
-      ))}
-    </ul>
-  )}
+    </div>
+    {venueColumn && (
+      <section class="cl-overview-hero__venues" aria-labelledby="tournament-venues-heading">
+        <h2 id="tournament-venues-heading" class="cl-overview-hero__venues-heading">
+          {venueLabels?.heading}
+        </h2>
+        <ul class="cl-overview-hero__venue-list">
+          {shownVenues.map((venue) => (
+            <li class="cl-overview-hero__venue">
+              <Popover client:load openOnHover triggerLabel={venue.name} triggerText={venue.name}>
+                <span class="cl-venue-popup">
+                  <strong class="cl-venue-popup__name">{venue.name}</strong>
+                  {venue.address && (
+                    <span>
+                      {venueLabels?.address}: {venue.address}
+                    </span>
+                  )}
+                  <span>{venue.courts}</span>
+                </span>
+              </Popover>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+  </div>
 </section>
 
 <style>
@@ -83,9 +157,76 @@ const stateClass =
     overflow-wrap: anywhere;
   }
 
-  .cl-overview-hero__facts li.cl-overview-hero__state {
+  .cl-overview-hero__facts li.cl-overview-hero__state,
+  .cl-overview-hero__facts li.cl-overview-hero__venue {
     border: 0;
     background: transparent;
     padding: 0;
+  }
+
+  .cl-overview-hero__body {
+    display: grid;
+    gap: var(--cl-space-2);
+    min-width: 0;
+  }
+
+  .cl-overview-hero__main {
+    display: grid;
+    gap: var(--cl-space-2);
+    min-width: 0;
+  }
+
+  .cl-overview-hero__venues {
+    display: grid;
+    align-content: start;
+    gap: var(--cl-space-2);
+    padding: 0 var(--cl-space-5) var(--cl-space-4);
+  }
+
+  .cl-overview-hero__venues-heading {
+    margin: 0;
+    font-family: var(--cl-font-display);
+    font-size: var(--cl-font-size-sm);
+    letter-spacing: var(--cl-tracking-wide);
+    text-transform: uppercase;
+    color: var(--cl-text-secondary);
+  }
+
+  .cl-overview-hero__venue-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+    gap: var(--cl-space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+  }
+
+  .cl-overview-hero__venue-list :global(.cl-popover__trigger--text) {
+    inline-size: 100%;
+  }
+
+  @media (min-width: 768px) {
+    .cl-overview-hero__body--venues {
+      grid-template-columns: minmax(0, 1fr) minmax(14rem, 20rem);
+      align-items: stretch;
+    }
+
+    .cl-overview-hero__body--venues .cl-overview-hero__venues {
+      padding: var(--cl-space-4) var(--cl-space-5);
+      border-inline-start: 1px solid var(--cl-border-muted);
+    }
+  }
+
+  .cl-venue-popup {
+    display: grid;
+    gap: var(--cl-space-1);
+  }
+
+  .cl-venue-popup__name {
+    font-family: var(--cl-font-display);
+    font-size: var(--cl-font-size-base);
+    color: var(--cl-text-primary);
   }
 </style>

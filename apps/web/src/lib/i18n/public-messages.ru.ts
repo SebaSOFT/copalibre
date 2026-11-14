@@ -248,6 +248,13 @@ export const messages: Record<string, string> = {
   'publicWeb.matchesView.empty': 'В этой области пока нет матчей.',
   'publicWeb.matchesView.clockAriaLabel': 'Прошло времени: {time}',
   'publicWeb.matchesView.venueAriaLabel': 'Площадка: {venue}',
+  'publicWeb.overview.venuesHeading': 'Площадки',
+  'publicWeb.overview.venueAddress': 'Адрес',
+  'publicWeb.overview.venueCourtCount':
+    '{count, plural, one {# поле} few {# поля} many {# полей} other {# поля}}',
+  'publicWeb.standings.entrantCount':
+    '{count, plural, one {# участник} few {# участника} many {# участников} other {# участника}}',
+  'publicWeb.standings.tiebreakLine': 'Критерии распределения мест: {list}',
   'publicWeb.matchesView.scheduledAtAriaLabel': 'Начало: {time}',
   'publicWeb.matchesView.latestEventAriaLabel': 'Последнее событие: {event}',
   'publicWeb.matchesView.zoneGroupAriaLabel': 'Зона/группа: {scope}',

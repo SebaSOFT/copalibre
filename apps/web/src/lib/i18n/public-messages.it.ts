@@ -249,6 +249,12 @@ export const messages: Record<string, string> = {
   'publicWeb.matchesView.empty': 'Ancora nessuna partita in questo ambito.',
   'publicWeb.matchesView.clockAriaLabel': 'Tempo trascorso: {time}',
   'publicWeb.matchesView.venueAriaLabel': 'Sede: {venue}',
+  'publicWeb.overview.venuesHeading': 'Sedi',
+  'publicWeb.overview.venueAddress': 'Indirizzo',
+  'publicWeb.overview.venueCourtCount': '{count, plural, one {# campo} other {# campi}}',
+  'publicWeb.standings.entrantCount':
+    '{count, plural, one {# partecipante} other {# partecipanti}}',
+  'publicWeb.standings.tiebreakLine': 'Criteri di spareggio: {list}',
   'publicWeb.matchesView.scheduledAtAriaLabel': 'Calcio d’inizio: {time}',
   'publicWeb.matchesView.latestEventAriaLabel': 'Ultimo evento: {event}',
   'publicWeb.matchesView.zoneGroupAriaLabel': 'Zona/girone: {scope}',

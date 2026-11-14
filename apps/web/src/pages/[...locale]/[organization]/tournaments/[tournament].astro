@@ -17,7 +17,6 @@ import {
   buildOverview,
   displayName,
   overviewLeadFor,
-  sharedOverviewVenue,
   summarizeOverviewMatches,
   type OverviewMatch,
 } from '../../../../lib/overview.ts';
@@ -39,6 +38,7 @@ import {
   completionFigureLabels,
   resultStateLabels,
   rulesetBriefingRows,
+  standingsTiebreakLine,
 } from '../../../../lib/i18n/public-intl.ts';
 import { buildTickerItems } from '../../../../lib/ticker-items.ts';
 import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../lib/locale.ts';
@@ -193,13 +193,21 @@ const heroStateLabel =
       : model.status === 'upcoming'
         ? stateLabels.upcoming
         : undefined;
-const sharedVenue = sharedOverviewVenue(model.matches);
 const heroFacts = [
+  ...(model.disciplineName === undefined ? [] : [model.disciplineName]),
   ...(completion.totalMatches > 0 ? [completionLabels.summary] : []),
-  ...(sharedVenue === undefined
-    ? []
-    : [intl.formatMessage(messages.matchesViewVenueAriaLabel, { venue: sharedVenue })]),
 ];
+const heroVenues = (model.venues ?? []).map((venue) => ({
+  name: venue.name,
+  ...(venue.address === undefined ? {} : { address: venue.address }),
+  courts: intl.formatMessage(messages.overviewVenueCourtCount, { count: venue.courtCount }),
+}));
+const heroVenueLabels = {
+  heading: intl.formatMessage(messages.overviewVenuesHeading),
+  address: intl.formatMessage(messages.overviewVenueAddress),
+};
+const standingsEntrantCount = new Set(model.standings.map((row) => row.entrantId ?? row.name)).size;
+const tiebreakLine = standingsTiebreakLine(intl, model);
 
 function baseCardDataOf(match: OverviewMatch & { readonly matchId: string }): MatchCardData {
   return {
@@ -346,6 +354,8 @@ const trail = publicTrail(trailBase, []);
       collapsedBreadcrumbLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
       stateLabel={heroStateLabel}
       facts={heroFacts}
+      venues={heroVenues}
+      venueLabels={heroVenueLabels}
     />
     {overviewLead === 'now-strip' && (
       <TournamentNowStrip
@@ -477,6 +487,8 @@ const trail = publicTrail(trailBase, []);
           : undefined
       }
       showControls={isFullLayoutView}
+      entrantCount={standingsEntrantCount > 0 ? standingsEntrantCount : undefined}
+      tiebreakLine={tiebreakLine}
       activeLayoutCode={activeLayout?.code}
       activeClubId={activeClubId}
       clubs={model.clubs}

@@ -11,6 +11,7 @@ import {
   resultReasonLabels,
   resultStateLabels,
   seriesStateBarLabels,
+  standingsTiebreakLine,
 } from './public-intl.js';
 import { messages } from './public-messages.en.js';
 import { messages as esMessages } from './public-messages.es.js';
@@ -328,5 +329,34 @@ describe('seriesStateBarLabels', () => {
       { winner: 'home', aggregateScores: [4] },
     );
     expect(labels.aggregateText).toBe('On aggregate 4–0');
+  });
+});
+
+describe('standingsTiebreakLine', () => {
+  const ruleset = (value: string) => ({
+    ruleset: [{ dotPath: 'tiebreakers', label: 'Tiebreakers', value }],
+  });
+
+  it('names the first three tiebreakers in order, then trails off', () => {
+    expect(
+      standingsTiebreakLine(
+        publicIntl('es'),
+        ruleset('points,score-difference,goal-average,goals-for,goals-against'),
+      ),
+    ).toBe(
+      `Desempate: ${[
+        formatEnum(publicIntl('es'), 'tiebreaker', 'points'),
+        formatEnum(publicIntl('es'), 'tiebreaker', 'score-difference'),
+        formatEnum(publicIntl('es'), 'tiebreaker', 'goal-average'),
+      ].join(' › ')} …`,
+    );
+  });
+
+  it('shows every tiebreaker when there are three or fewer, and nothing when none', () => {
+    expect(standingsTiebreakLine(publicIntl('en'), ruleset('points, head-to-head'))).toBe(
+      'Tiebreakers: Points › Head-to-head',
+    );
+    expect(standingsTiebreakLine(publicIntl('en'), ruleset(''))).toBeUndefined();
+    expect(standingsTiebreakLine(publicIntl('en'), { ruleset: [] })).toBeUndefined();
   });
 });
