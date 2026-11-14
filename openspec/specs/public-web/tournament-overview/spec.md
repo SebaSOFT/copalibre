@@ -203,3 +203,53 @@ The match page SHALL show the complete bracket of the match's zone with the curr
 #### Scenario: The current match is marked
 - **WHEN** the match page is shown
 - **THEN** the bracket highlights that match with a non-colour indicator
+
+### Requirement: The overview hero names the discipline
+
+The tournament hero SHALL show the discipline's name in the page language, from the overview API, when the discipline declares one.
+
+#### Scenario: Discipline chip
+
+- **WHEN** a visitor opens the Spanish overview of a rink hockey tournament
+- **THEN** the hero's facts include the discipline's Spanish name
+
+### Requirement: The overview hero lists the tournament's venues
+
+The tournament hero SHALL list every venue holding a published match: as pills in its facts strip when there are fewer than three, and as a venue list in a column of its own when there are three or more.
+
+#### Scenario: Many venues
+
+- **WHEN** a tournament's published matches use seven venues
+- **THEN** the hero shows a venue list with seven entries
+
+#### Scenario: Two venues
+
+- **WHEN** a tournament's published matches use two venues
+- **THEN** the hero shows two venue pills in its facts strip
+
+### Requirement: A venue opens a popup with its public details
+
+Each listed venue SHALL open a popup with its name, address and court count, under a mouse pointer and by keyboard or tap, and SHALL never show the venue's free-form details.
+
+#### Scenario: Hover
+
+- **WHEN** a visitor points at a venue
+- **THEN** a popup shows its name, address and court count
+
+### Requirement: The standings header states the entrant count and tiebreakers
+
+The overview standings header SHALL show how many entrants it ranks and the first three tiebreakers in order, followed by an ellipsis when more are declared.
+
+#### Scenario: Five tiebreakers
+
+- **WHEN** the ruleset declares five tiebreakers for 24 entrants
+- **THEN** the header shows 24 entrants and the first three tiebreakers followed by an ellipsis
+
+### Requirement: The standings table fills its panel
+
+The public standings table SHALL span the full width of its panel, with the name column taking the width its figure columns leave, and SHALL scroll inside its panel when its columns need more room than the screen has.
+
+#### Scenario: Wide screen
+
+- **WHEN** a visitor opens standings at 1440 px
+- **THEN** the table is as wide as its panel and its name column is its widest
