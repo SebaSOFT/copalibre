@@ -296,7 +296,7 @@ export function PlatformAdministrationTemplate({
             <>
               <Card aria-labelledby="platform-organization-heading" role="region">
                 <CardHeader>
-                  <CardTitle id="platform-organization-heading">
+                  <CardTitle id="platform-organization-heading" level={2}>
                     <FormattedMessage {...messages.platformOrganizationHeading} />
                   </CardTitle>
                   <CardDescription>
@@ -416,7 +416,7 @@ export function PlatformAdministrationTemplate({
 
               <Card aria-labelledby="platform-users-heading" role="region">
                 <CardHeader>
-                  <CardTitle id="platform-users-heading">
+                  <CardTitle id="platform-users-heading" level={2}>
                     <FormattedMessage {...messages.platformUsersHeading} />
                   </CardTitle>
                   <CardDescription>
@@ -505,7 +505,7 @@ export function PlatformAdministrationTemplate({
               <Card aria-labelledby="platform-modules-heading" role="region">
                 <CardHeader className="cl-platform-modules-header">
                   <div>
-                    <CardTitle id="platform-modules-heading">
+                    <CardTitle id="platform-modules-heading" level={2}>
                       <FormattedMessage {...messages.platformModulesHeading} />
                     </CardTitle>
                     <CardDescription>

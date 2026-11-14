@@ -24,7 +24,7 @@ export function DisciplineDocumentTemplate({
           <FormattedMessage {...messages.navPlatformAdministration} /> &gt; {alias}
         </span>
       }
-      listing={<DisciplineSummary data={data} />}
+      listing={<DisciplineSummary data={data} headingLevel={2} />}
       title={`${alias} · ${version}`}
     />
   );

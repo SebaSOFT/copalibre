@@ -1,5 +1,6 @@
 import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectCompleteHeadingOutline } from './support/heading-outline.js';
 
 function scopedToken(scopes: string): string {
   return `header.${Buffer.from(JSON.stringify({ scp: scopes })).toString('base64url')}.signature`;
@@ -243,6 +244,7 @@ test('super-admin creates an organization and manages modules', async ({ page })
 
   await expect(page.getByRole('heading', { name: 'Administración de plataforma' })).toBeVisible();
   await expect(page.getByText('football')).toBeVisible();
+  await expectCompleteHeadingOutline(page, 'platform administration');
   await page.getByLabel('Alias', { exact: true }).fill('copa-norte');
   await page.getByLabel('Nombre').fill('Copa Norte');
   await page.getByRole('button', { name: 'Crear organización' }).click();
@@ -288,6 +290,7 @@ test('super-admin manages installation super-admins and drills into an organizat
 
   await expect(page.getByRole('heading', { name: 'Administración de usuarios' })).toBeVisible();
   await expect(page.getByText('Todavía no hay super-admins de la instalación.')).toBeVisible();
+  await expectCompleteHeadingOutline(page, 'platform administration users');
 
   await page.getByLabel('ID de principal').fill('01800000-0000-7000-8000-000000000009');
   await page.getByRole('button', { name: 'Otorgar super-admin' }).click();
@@ -318,6 +321,7 @@ test("super-admin views an installed discipline's plain-language summary", async
   await expect(page.getByText('Eventos')).toBeVisible();
   await expect(page.getByText('Points per win')).toBeVisible();
   await expect(page.getByText('Cambia el resultado')).toBeVisible();
+  await expectCompleteHeadingOutline(page, 'discipline document');
 });
 
 test('ordinary organization admin cannot reach an installed discipline document', async ({
@@ -382,6 +386,7 @@ test('super-admin inspects platform diagnostics, views telemetry cards, and retr
   await expect(page.getByRole('heading', { name: 'Bandeja outbox transaccional' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Transmisiones en tiempo real' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Eventos outbox fallidos' })).toBeVisible();
+  await expectCompleteHeadingOutline(page, 'platform diagnostics');
 
   await expect(page.getByText('match.scored')).toBeVisible();
   await expect(page.getByText('HTTP 503 Service Unavailable')).toBeVisible();

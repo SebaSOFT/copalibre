@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectCompleteHeadingOutline } from './support/heading-outline.js';
 
 /**
  * Tournament setup screens on the shared setup compositions: settings, ruleset and the
@@ -156,6 +157,7 @@ for (const language of LANGUAGES) {
         await page.setViewportSize(viewport);
         await open(page, target, language);
         await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+        await expectCompleteHeadingOutline(page, `${screen} in ${language}`);
 
         const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
         expect(scrollWidth).toBeLessThanOrEqual(viewport.width);
