@@ -177,6 +177,20 @@ export class PublicOverviewClubResponse {
   emblemObjectId?: string;
 }
 
+export class PublicOverviewVenueResponse {
+  @ApiProperty()
+  alias!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiPropertyOptional()
+  address?: string;
+
+  @ApiProperty({ description: 'How many matches the venue can hold at once: its court count.' })
+  courtCount!: number;
+}
+
 export class PublicObjectReferenceResponse {
   @ApiProperty()
   key!: string;
@@ -205,6 +219,23 @@ export class PublicOverviewResponse {
 
   @ApiPropertyOptional({ type: [PublicObjectReferenceResponse] })
   disciplineImages?: PublicObjectReferenceResponse[];
+
+  @ApiPropertyOptional({ description: "The discipline's declared name, in English." })
+  disciplineName?: string;
+
+  @ApiPropertyOptional({
+    description: 'The discipline name as declared, with its available translations',
+    type: 'object',
+    additionalProperties: { type: 'string' },
+  })
+  localizedDisciplineName?: LocalizedLabel;
+
+  @ApiPropertyOptional({
+    type: [PublicOverviewVenueResponse],
+    description:
+      'Every venue holding a published match, sorted by name. Free-form venue details are never published.',
+  })
+  venues?: PublicOverviewVenueResponse[];
 
   @ApiProperty({ type: [PublicOverviewMatchResponse] })
   matches!: PublicOverviewMatchResponse[];

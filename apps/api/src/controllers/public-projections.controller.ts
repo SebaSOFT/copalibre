@@ -34,7 +34,7 @@ import { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
 import { readStandings, readStandingsByZone } from '../standings/read.js';
 import { readMatchesView } from '../matches-view/read.js';
-import { readPublicScheduleChanges } from '../matches-view/schedule.js';
+import { readPublicScheduleChanges, readPublicVenues } from '../matches-view/schedule.js';
 import {
   listEffectiveTableLayouts,
   readPlayerStatisticsDrilldown,
@@ -516,6 +516,10 @@ export class PublicProjectionsController {
       this.db,
       matches.map((match) => match.matchId),
     );
+    const venues = await readPublicVenues(
+      this.db,
+      matches.map((match) => match.matchId),
+    );
 
     const entrantIds = new Set<string>();
     for (const match of matches) {
@@ -630,6 +634,11 @@ export class PublicProjectionsController {
       ...(descriptor?.images === undefined
         ? {}
         : { disciplineImages: descriptor.images.map((reference) => ({ ...reference })) }),
+      ...(descriptor?.name ? { disciplineName: resolveLabel(descriptor.name, 'en') } : {}),
+      ...(descriptor?.name !== undefined && typeof descriptor.name !== 'string'
+        ? { localizedDisciplineName: descriptor.name }
+        : {}),
+      ...(venues.length > 0 ? { venues: venues.map((venue) => ({ ...venue })) } : {}),
       matches: matches.map((m) => {
         const homeVisibility = m.homeEntrantId ? entrantVisibility.get(m.homeEntrantId) : undefined;
         const awayVisibility = m.awayEntrantId ? entrantVisibility.get(m.awayEntrantId) : undefined;
