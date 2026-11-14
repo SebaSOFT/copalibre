@@ -1,5 +1,6 @@
 import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { chooseSlot } from './support/schedule-slot.js';
 
 /**
  * Scheduling a series in the builder, end to end.
@@ -215,9 +216,15 @@ test('7.1: places each game of a best-of-five in its own slot, marking four and 
   // Each game goes to its own slot: two venues, five different days.
   for (const number of [1, 2, 3, 4, 5]) {
     await expandAllAgendaDays(page);
-    await page
-      .getByLabel(`Hora de inicio — Godoy Cruz vs Independiente Rivadavia — Partido ${number} de 5`)
-      .selectOption(`slot-${number}`);
+    const match = `Godoy Cruz vs Independiente Rivadavia — Partido ${number} de 5`;
+    await chooseSlot(
+      page.getByLabel(`Día — ${match}`),
+      page.getByLabel(`Hora de inicio — ${match}`),
+      {
+        slotId: `slot-${number}`,
+        startsAt: `2026-08-0${number}T19:00:00.000Z`,
+      },
+    );
   }
 
   await page.getByText('Previsualizar').click();

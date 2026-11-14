@@ -3,6 +3,7 @@ import { fork, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { chooseSlot } from './support/schedule-slot.js';
 
 /**
  * Exercise the schedule builder end to end — create a venue and an
@@ -228,7 +229,7 @@ test('publishes an undecided eight-entrant final through the real API and retain
     // Address the persisted final directly; the agenda sorts rows by date and venue.
     const time = page.locator(`#slot-${api.matchId}`);
     await expect(time).toBeVisible();
-    await time.selectOption({ index: 1 });
+    await chooseSlot(page.locator(`#day-${api.matchId}`), time, { index: 1 });
     await page.getByRole('button', { name: 'Previsualizar', exact: true }).click();
     await expect(
       page.getByRole('button', { name: 'Publicar calendario', exact: true }),
@@ -387,7 +388,9 @@ for (const locale of [
       await page.waitForURL(`**${target}`);
 
       await expect(page.getByRole('button', { name: locale.preview, exact: true })).toBeVisible();
-      await page.getByRole('combobox', { name: /Club 1 vs Club 8$/ }).selectOption({ index: 1 });
+      const match = page.getByRole('combobox', { name: /Club 1 vs Club 8$/ });
+      // The day control comes first in the row, the slot control second.
+      await chooseSlot(match.first(), match.last(), { index: 1 });
       await page.getByRole('button', { name: locale.preview, exact: true }).click();
       const publishButton = page.getByRole('button', { name: locale.publish, exact: true });
       await expect(publishButton).toBeEnabled();
@@ -440,6 +443,17 @@ test('reports a rest conflict a quarter-final result makes real, without moving 
     await real.close();
   }
 });
+
+/** Picks a mocked slot for a match, naming it as the operator reads it: day, then start time. */
+async function pickSlot(page: Page, match: string, slotId: string): Promise<void> {
+  const startsAt = SCHEDULES[0]?.slots.find((one) => one.slotId === slotId)?.startsAt;
+  if (startsAt === undefined) throw new Error(`Unknown slot ${slotId}`);
+  await chooseSlot(
+    page.getByLabel(`Día — ${match}`),
+    page.getByLabel(`Hora de inicio — ${match}`),
+    { slotId, startsAt },
+  );
+}
 
 const slotStart = (slotId: string | undefined) =>
   Date.parse(SCHEDULES[0]?.slots.find((one) => one.slotId === slotId)?.startsAt ?? '');
@@ -744,14 +758,25 @@ test('creates a venue and an official, assigns a fixture, previews, and publishe
   await page.waitForURL(`**${scheduleTarget}`);
 
   await expandAllAgendaDays(page);
-  await page.getByLabel('Hora de inicio — Club Alfa vs Club Bravo').selectOption('slot-1');
+  await pickSlot(page, 'Club Alfa vs Club Bravo', 'slot-1');
+
+  // The row summarizes its officials; the picker opens for one match at a time.
+  await expect(page.getByText('Sin árbitros asignados').first()).toBeVisible();
+  await expect(page.getByLabel('Ana Gómez')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Editar árbitros — Club Alfa vs Club Bravo' }).click();
+  await page.getByLabel('Ana Gómez').check();
+  await page.getByRole('button', { name: 'Listo — Club Alfa vs Club Bravo' }).click();
+  await expect(page.getByLabel('Ana Gómez')).toHaveCount(0);
+  await expect(page.getByText('Árbitros: Ana Gómez')).toBeVisible();
 
   await page.getByText('Previsualizar').click();
   await expect(page.getByText('Publicar calendario')).toBeEnabled();
   await page.getByText('Publicar calendario').click();
 
   await expect(page.getByText('Horario publicado.')).toBeVisible();
-  expect(published).toEqual([{ matchId: 'match-1', slotId: 'slot-1' }]);
+  expect(published).toEqual([
+    { matchId: 'match-1', slotId: 'slot-1', officialIds: ['official-1'] },
+  ]);
 });
 
 test('a conflicting batch shows the conflict and blocks publish until resolved', async ({
@@ -776,9 +801,9 @@ test('a conflicting batch shows the conflict and blocks publish until resolved',
   await expandAllAgendaDays(page);
 
   // Both matches into the same slot at a venue that can host only one.
-  await page.getByLabel('Hora de inicio — Club Alfa vs Club Bravo').selectOption('slot-1');
+  await pickSlot(page, 'Club Alfa vs Club Bravo', 'slot-1');
   await expandAllAgendaDays(page);
-  await page.getByLabel('Hora de inicio — Club Cóndor vs Club Delta').selectOption('slot-1');
+  await pickSlot(page, 'Club Cóndor vs Club Delta', 'slot-1');
 
   await page.getByText('Previsualizar').click();
   await expect(page.getByRole('heading', { name: 'Conflictos', exact: true })).toBeVisible();
@@ -833,7 +858,7 @@ test('stores a minimum rest, asks a reason for published moves from the keyboard
   await expandAllAgendaDays(page);
 
   // entrant-a plays match-1 at 14:00; match-4 at 15:00 leaves no rest at all.
-  await page.getByLabel('Hora de inicio — Club Alfa vs Club Cóndor').selectOption('slot-5');
+  await pickSlot(page, 'Club Alfa vs Club Cóndor', 'slot-5');
   await page.getByText('Previsualizar').click();
   await expect(
     page.getByText(/^Club Alfa no tiene el descanso exigido entre/).first(),
@@ -842,9 +867,9 @@ test('stores a minimum rest, asks a reason for published moves from the keyboard
   await page.getByLabel('Hora de inicio — Club Alfa vs Club Cóndor').selectOption('');
 
   // Three published matches move; the batch needs a reason before it publishes.
-  await page.getByLabel('Hora de inicio — Club Alfa vs Club Bravo').selectOption('slot-4');
-  await page.getByLabel('Hora de inicio — Club Cóndor vs Club Delta').selectOption('slot-6');
-  await page.getByLabel('Hora de inicio — Club Estrella vs Club Faro').selectOption('slot-7');
+  await pickSlot(page, 'Club Alfa vs Club Bravo', 'slot-4');
+  await pickSlot(page, 'Club Cóndor vs Club Delta', 'slot-6');
+  await pickSlot(page, 'Club Estrella vs Club Faro', 'slot-7');
   await page.getByText('Previsualizar').click();
   await page.getByRole('button', { name: 'Publicar calendario', exact: true }).click();
 
