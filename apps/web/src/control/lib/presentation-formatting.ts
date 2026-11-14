@@ -71,6 +71,26 @@ export function formatDateTime(
   }
 }
 
+/** Locale and organization-zone aware time of day (24 hours, no date) for a slot's start. */
+export function formatTime(
+  intl: IntlShape,
+  value: string | number | Date,
+  timeZone?: string,
+): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return intl.formatMessage(messages.metricUnavailable);
+  try {
+    return new Intl.DateTimeFormat(intl.locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      ...(timeZone === undefined ? {} : { timeZone }),
+    }).format(date);
+  } catch {
+    return intl.formatMessage(messages.metricUnavailable);
+  }
+}
+
 const DATE_INPUT_FORMAT_EXAMPLE = new Date('2026-10-21T19:00:00.000Z');
 
 function formatDateInputExample(intl: IntlShape, includeTime: boolean): string {

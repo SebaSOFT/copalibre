@@ -14,6 +14,22 @@ import type {
 } from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
 
+const SLOT_STARTS: Readonly<Record<string, number>> = {
+  'slot-1': Date.UTC(2026, 7, 1, 14, 0),
+  'slot-2': Date.UTC(2026, 7, 1, 15, 15),
+};
+
+/** A slot is picked by its day first, then by the slot itself, as an operator does. */
+function chooseSlot(slotId: string): void {
+  const day = new Date(SLOT_STARTS[slotId] ?? 0).toLocaleDateString('en-CA');
+  fireEvent.change(screen.getByLabelText(/^Day — Club Alfa vs Club Bravo/), {
+    target: { value: day },
+  });
+  fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
+    target: { value: slotId },
+  });
+}
+
 const STAGE_ID = 'stage-1';
 
 const oneFixture: readonly FixtureResponse[] = [
@@ -199,9 +215,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
-    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
-      target: { value: 'slot-1' },
-    });
+    chooseSlot('slot-1');
 
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
@@ -275,9 +289,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
-    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
-      target: { value: 'slot-2' },
-    });
+    chooseSlot('slot-2');
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
     });
@@ -428,9 +440,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
-    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
-      target: { value: 'slot-1' },
-    });
+    chooseSlot('slot-1');
 
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
@@ -476,9 +486,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
-    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
-      target: { value: 'slot-1' },
-    });
+    chooseSlot('slot-1');
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
     });
@@ -528,9 +536,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
-    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
-      target: { value: 'slot-1' },
-    });
+    chooseSlot('slot-1');
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
     });
@@ -569,9 +575,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
-    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
-      target: { value: 'slot-1' },
-    });
+    chooseSlot('slot-1');
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
     });
@@ -603,11 +607,20 @@ describe('ScheduleBuilderPage', () => {
 
     await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
 
+    expect(screen.queryByLabelText('Ana Gómez')).toBeNull();
+    expect(screen.getByText('No officials assigned')).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', { name: /^Edit officials — Club Alfa vs Club Bravo/ }),
+    );
+
     const officialCheckbox = screen.getByLabelText('Ana Gómez') as HTMLInputElement;
     fireEvent.click(officialCheckbox);
     expect(officialCheckbox.checked).toBe(true);
     fireEvent.click(officialCheckbox);
     expect(officialCheckbox.checked).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: /^Done — Club Alfa vs Club Bravo/ }));
+    expect(screen.queryByLabelText('Ana Gómez')).toBeNull();
   });
 
   it('reports a generic failure when preview throws a non-ControlApiError', async () => {
@@ -629,9 +642,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
-    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
-      target: { value: 'slot-1' },
-    });
+    chooseSlot('slot-1');
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
     });
@@ -658,9 +669,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
-    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
-      target: { value: 'slot-1' },
-    });
+    chooseSlot('slot-1');
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
     });
@@ -689,9 +698,7 @@ describe('ScheduleBuilderPage', () => {
     );
 
     await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
-    fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
-      target: { value: 'slot-1' },
-    });
+    chooseSlot('slot-1');
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
     });

@@ -2,6 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 import { seedLoginTransaction, loginCallbackUrl, TOKEN_ENDPOINT } from './support/control-login.js';
 import type { Page } from '@playwright/test';
+import { chooseSlot } from './support/schedule-slot.js';
 
 const org = 'liga-reprogramacion';
 const tournament = 'copa-primavera';
@@ -253,7 +254,11 @@ test('a published move reaches public pages, kiosk and another builder without a
   await builder(page, 'operator-a');
   for (const surface of [spectator, report, tv, second])
     await surface.evaluate(() => Object.assign(window, { documentMarker: 'same-document' }));
-  await page.getByLabel('Hora de inicio — Club Alfa vs Club Bravo').selectOption('slot-2');
+  await chooseSlot(
+    page.getByLabel('Día — Club Alfa vs Club Bravo'),
+    page.getByLabel('Hora de inicio — Club Alfa vs Club Bravo'),
+    { slotId: 'slot-2', startsAt: first + 4 * 60 * 60_000 },
+  );
   await page.getByText('Previsualizar', { exact: true }).click();
   await page.getByText('Publicar calendario', { exact: true }).click();
   await page.getByRole('dialog').getByLabel('Motivo del lote').fill('Cancha 1 sin luz');

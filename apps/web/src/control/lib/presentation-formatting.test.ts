@@ -9,6 +9,7 @@ import {
   formatEntrant,
   formatEnum,
   formatMatchRef,
+  formatTime,
 } from './presentation-formatting.js';
 import { STAGE_FORMAT_LABELS } from './stage-format-labels.js';
 
@@ -70,6 +71,17 @@ describe('control presentation formatting', () => {
     expect(utc).toContain('10:00 PM');
     expect(buenosAires).not.toBe(utc);
     expect(formatDateTime(intl, 'not-a-date', 'UTC')).toBe(
+      intl.formatMessage(messages.metricUnavailable),
+    );
+  });
+
+  it('formats a slot start as a 24-hour time in the organization time zone', () => {
+    const intl = controlIntl('en');
+    const value = '2026-10-21T22:00:00.000Z';
+
+    expect(formatTime(intl, value, 'America/Argentina/Buenos_Aires')).toBe('19:00');
+    expect(formatTime(intl, value, 'UTC')).toBe('22:00');
+    expect(formatTime(intl, 'not-a-date', 'UTC')).toBe(
       intl.formatMessage(messages.metricUnavailable),
     );
   });

@@ -1197,6 +1197,14 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.noVenue': 'Aucun lieu',
   'control.scheduleBuilder.noMatchesForFilters': 'Aucun match ne correspond à ces filtres.',
   'control.scheduleBuilder.officials': 'Officiels',
+  'control.scheduleBuilder.officialsSummary': 'Officiels : {names}',
+  'control.scheduleBuilder.noOfficialsAssigned': 'Aucun officiel assigné',
+  'control.scheduleBuilder.editOfficials': 'Modifier les officiels',
+  'control.scheduleBuilder.doneOfficials': 'Terminé',
+  'control.scheduleBuilder.chooseDay': 'Choisir un jour',
+  'control.scheduleBuilder.slotOption': '{time} · {venue}',
+  'control.scheduleBuilder.slotOptionFull': '{time} · {venue} · Complet',
+  'control.scheduleBuilder.slotOccupancy': '{count}/{capacity}',
   'control.scheduleBuilder.noOfficialsAvailable':
     "Aucun officiel n'est disponible pour l'affectation.",
   'control.scheduleBuilder.assignBeforePreview':

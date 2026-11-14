@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { jest } from '@jest/globals';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { withIntl } from '../../i18n/test-support.js';
 import { ScheduleBuilderTemplate } from './ScheduleBuilderTemplate.js';
@@ -182,5 +183,109 @@ describe('ScheduleBuilderTemplate', () => {
     expect(
       (screen.getByRole('button', { name: 'Publish schedule' }) as HTMLButtonElement).disabled,
     ).toBe(true);
+  });
+
+  describe('choosing a slot by day, then by time and venue', () => {
+    const select = (name: string) => screen.getByLabelText(name) as HTMLSelectElement;
+    const optionTexts = (element: HTMLSelectElement) =>
+      [...element.options].map((option) => option.textContent);
+
+    it('lists only the chosen day’s slots, as time and venue', () => {
+      renderSchedule();
+
+      const day = select('Day — Club A vs Club B');
+      const slot = select('Start time — Club A vs Club B');
+      expect(day.selectedOptions[0]?.textContent).toContain('October 29');
+      expect(optionTexts(slot)).toEqual([
+        'Unassigned',
+        '12:00 · Cancha Central',
+        '13:00 · Cancha Norte',
+      ]);
+    });
+
+    it('keeps the slot unavailable until a day is chosen, then lists that day', () => {
+      renderSchedule();
+
+      const day = select('Day — Club G vs Club H');
+      const slot = select('Start time — Club G vs Club H');
+      expect(slot.disabled).toBe(true);
+
+      const secondDay = [...day.options].find((option) =>
+        option.textContent?.includes('October 30'),
+      );
+      fireEvent.change(day, { target: { value: secondDay?.value } });
+
+      expect(slot.disabled).toBe(false);
+      expect(optionTexts(slot)).toEqual(['Unassigned', '12:00 · Cancha Central']);
+    });
+
+    it('clears a slot that belongs to another day when the day changes', () => {
+      const onSetDraft = jest.fn();
+      render(withIntl(<ScheduleBuilderTemplate {...props} onSetDraft={onSetDraft} />));
+
+      const day = select('Day — Club A vs Club B');
+      const secondDay = [...day.options].find((option) =>
+        option.textContent?.includes('October 30'),
+      );
+      fireEvent.change(day, { target: { value: secondDay?.value } });
+
+      expect(onSetDraft).toHaveBeenCalledWith('match-1', { slotId: '' });
+    });
+
+    it('disables a slot that is full and says so, but never the match’s own slot', () => {
+      const [schedule] = props.schedules;
+      const fullSchedules = [
+        {
+          ...schedule,
+          slots: schedule.slots.map((slot) => ({ ...slot, matchCount: 1 })),
+        },
+      ];
+      render(withIntl(<ScheduleBuilderTemplate {...props} schedules={fullSchedules} />));
+
+      const slot = select('Start time — Club A vs Club B');
+      const byText = (text: string) =>
+        [...slot.options].find((option) => option.textContent === text);
+      expect(byText('13:00 · Cancha Norte · Full')?.disabled).toBe(true);
+      expect(byText('12:00 · Cancha Central')?.disabled).toBe(false);
+    });
+  });
+
+  describe('officials', () => {
+    const officials = [
+      { officialId: 'official-1', organizationId, displayName: 'Ana Gómez', roles: [] },
+      { officialId: 'official-2', organizationId, displayName: 'Beto Ruiz', roles: [] },
+    ];
+
+    it('renders no picker until a row is opened, and only for that row', () => {
+      const { container } = render(
+        withIntl(
+          <ScheduleBuilderTemplate
+            {...props}
+            drafts={{
+              ...props.drafts,
+              'match-1': { slotId: 'slot-1', officialIds: ['official-2'] },
+            }}
+            officials={officials}
+          />,
+        ),
+      );
+
+      expect(container.querySelectorAll('fieldset')).toHaveLength(0);
+      expect(screen.queryByLabelText('Ana Gómez')).toBeNull();
+      expect(screen.getByText('Officials: Beto Ruiz')).toBeDefined();
+      expect(screen.getAllByText('No officials assigned')).toHaveLength(3);
+
+      fireEvent.click(screen.getByRole('button', { name: /^Edit officials — Club A vs Club B/ }));
+      expect(container.querySelectorAll('fieldset')).toHaveLength(1);
+      expect(
+        within(container.querySelector('fieldset') as HTMLElement).getAllByRole('checkbox'),
+      ).toHaveLength(2);
+
+      fireEvent.click(screen.getByRole('button', { name: /^Edit officials — Club C vs Club D/ }));
+      expect(container.querySelectorAll('fieldset')).toHaveLength(1);
+      expect(
+        screen.getByRole('button', { name: /^Edit officials — Club A vs Club B/ }),
+      ).toBeDefined();
+    });
   });
 });

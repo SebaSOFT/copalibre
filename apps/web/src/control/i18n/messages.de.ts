@@ -1197,6 +1197,14 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.noVenue': 'Kein Austragungsort',
   'control.scheduleBuilder.noMatchesForFilters': 'Keine Begegnung passt zu diesen Filtern.',
   'control.scheduleBuilder.officials': 'Offizielle',
+  'control.scheduleBuilder.officialsSummary': 'Offizielle: {names}',
+  'control.scheduleBuilder.noOfficialsAssigned': 'Keine Offiziellen zugewiesen',
+  'control.scheduleBuilder.editOfficials': 'Offizielle bearbeiten',
+  'control.scheduleBuilder.doneOfficials': 'Fertig',
+  'control.scheduleBuilder.chooseDay': 'Tag wählen',
+  'control.scheduleBuilder.slotOption': '{time} · {venue}',
+  'control.scheduleBuilder.slotOptionFull': '{time} · {venue} · Voll',
+  'control.scheduleBuilder.slotOccupancy': '{count}/{capacity}',
   'control.scheduleBuilder.noOfficialsAvailable':
     'Es stehen keine Offiziellen zur Zuweisung bereit.',
   'control.scheduleBuilder.assignBeforePreview':
