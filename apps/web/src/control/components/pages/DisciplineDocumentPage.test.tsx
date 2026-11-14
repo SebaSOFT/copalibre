@@ -58,6 +58,18 @@ describe('DisciplineDocumentPage', () => {
     expect(screen.getByText('Changes the result')).toBeDefined();
   });
 
+  it('descends one heading level at a time under its title', async () => {
+    render(
+      withIntl(<DisciplineDocumentPage client={stubClient()} disciplineAlias="orbital-frisbee" />),
+    );
+
+    await screen.findByText('Segments');
+    const levels = screen.getAllByRole('heading').map((heading) => Number(heading.tagName[1]));
+    expect(levels[0]).toBe(1);
+    expect(levels.slice(1).every((level) => level === 2)).toBe(true);
+    expect(levels).toHaveLength(4);
+  });
+
   it('shows a load-failure message when the document fails to load', async () => {
     render(
       withIntl(

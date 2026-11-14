@@ -1,5 +1,6 @@
 import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectCompleteHeadingOutline } from './support/heading-outline.js';
 
 /**
  * Ruleset and stage-configuration editing: a tournament's
@@ -90,6 +91,7 @@ test('edits a ruleset override from the tournament ruleset screen and sees the c
   await page.getByText('Reglamento completo').click();
   await expect(page.getByText('Reglas')).toBeVisible();
   await expect(page.getByRole('heading', { name: /Apertura/ })).toBeVisible();
+  await expectCompleteHeadingOutline(page, 'tournament ruleset');
   // Shown twice now: the read-only summary's label, and the editor field's own label.
   await expect(page.getByText('Points per win').first()).toBeVisible();
   await expect(page.getByText('Valor actual: 3')).toBeVisible();

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectCompleteHeadingOutline } from './support/heading-outline.js';
 
 /**
  * The organizer-facing matches view: the same card grid the
@@ -115,6 +116,7 @@ test('shows every match with venue/clock and the full comparator trace on a tieb
   await expect(page.getByText('Talleres', { exact: true })).toBeVisible();
   await expect(page.getByText('Estadio Central')).toBeVisible();
   await expect(page.getByTestId('entrant-name').first()).toHaveCSS('text-transform', 'uppercase');
+  await expectCompleteHeadingOutline(page, 'matches view');
 
   // The full trace, not just the summary line, reaches this authorized screen —
   // collapsed by default, so open it before checking its content is present.

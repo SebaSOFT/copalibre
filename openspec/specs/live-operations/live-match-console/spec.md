@@ -561,3 +561,46 @@ acknowledgement.
 - **WHEN** the queue drains and the server refuses a substitution
 - **THEN** that event shows "Refused" with the server's reason in an alert, the header turns red, and
   the other drained events show "Confirmed" once acknowledged
+
+### Requirement: The console reflects the running match
+
+The live console SHALL show the segment the match is in and SHALL offer only the clock commands the match state allows, with one primary action for that state.
+
+#### Scenario: In progress
+
+- **WHEN** an operator opens a running match
+- **THEN** Segment shows the current segment and Start is not offered
+- **AND** Pause is the one primary action
+
+#### Scenario: Stopped clock
+
+- **WHEN** an operator opens a match under way whose segment is stopped
+- **THEN** Start is the one primary action and Pause is not offered
+
+#### Scenario: Every segment ended
+
+- **WHEN** an operator opens a match under way whose segments have all ended
+- **THEN** no clock command is offered and Finalize is the one primary action
+
+#### Scenario: Next segment
+
+- **WHEN** a segment ends and another is still to be played
+- **THEN** Segment shows the next segment until the operator picks another
+
+### Requirement: The console states when a match has no segments
+
+The live console SHALL say that the match has no segments and SHALL NOT offer a clock for it.
+
+#### Scenario: No segments
+
+- **WHEN** an operator opens a match in progress that has no segments
+- **THEN** the console says it has no segments, offers no clock command and offers Finalize as the primary action
+
+### Requirement: The event ledger states when it is empty
+
+The live console SHALL show a line saying there are no events to show in place of an empty list.
+
+#### Scenario: Nothing recorded
+
+- **WHEN** an operator opens a match with no recorded events
+- **THEN** the event ledger shows that there are no events to show and draws no empty box above the log note

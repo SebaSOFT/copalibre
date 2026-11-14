@@ -92,6 +92,31 @@ describe('platform administration console', () => {
     ).toBeDefined();
   });
 
+  it('leads with one title and opens its sections one level below it', async () => {
+    const client = createControlApiClient({
+      fetch: async (input) => {
+        const url = String(input);
+        if (url === '/api/disciplines') return json([]);
+        if (url === '/api/admin/modules?outdated=true') return json([]);
+        if (url === '/api/admin/modules') return json([installedModule]);
+        if (url === '/api/installation/super-admins') return json([]);
+        return json({}, 200);
+      },
+    });
+    render(withIntl(<PlatformAdministrationPage client={client} />));
+
+    await screen.findByText('football');
+    const outline = screen
+      .getAllByRole('heading')
+      .map((heading) => ({ level: Number(heading.tagName[1]), name: heading.textContent }));
+    expect(outline.filter(({ level }) => level === 1)).toHaveLength(1);
+    expect(outline[0]?.level).toBe(1);
+    outline.forEach(({ level }, index) => {
+      const previous = outline[index - 1];
+      if (previous !== undefined) expect(level).toBeLessThanOrEqual(previous.level + 1);
+    });
+  });
+
   it('lists modules, sends a one-shot alternate source, verifies, and checks updates manually', async () => {
     const requests: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({

@@ -3,6 +3,7 @@ import { fork, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectCompleteHeadingOutline } from './support/heading-outline.js';
 import { chooseSlot } from './support/schedule-slot.js';
 
 /**
@@ -758,6 +759,7 @@ test('creates a venue and an official, assigns a fixture, previews, and publishe
   await page.waitForURL(`**${scheduleTarget}`);
 
   await expandAllAgendaDays(page);
+  await expectCompleteHeadingOutline(page, 'schedule');
   await pickSlot(page, 'Club Alfa vs Club Bravo', 'slot-1');
 
   // The row summarizes its officials; the picker opens for one match at a time.
