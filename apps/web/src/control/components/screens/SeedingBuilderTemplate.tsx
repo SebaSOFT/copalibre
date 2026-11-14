@@ -44,6 +44,7 @@ export function SeedingBuilderTemplate({
   organizationAlias,
   tournamentAlias,
   tournamentName,
+  stageName,
   stageNumber,
   seeds,
   zones,
@@ -63,6 +64,8 @@ export function SeedingBuilderTemplate({
   readonly tournamentAlias?: string;
   readonly tournamentName?: string;
   /** Present when the caller knows it — used only to link the breadcrumb back to the stage hub. */
+  /** The stage's own name; the numbered fallback shows until it is known. */
+  readonly stageName?: string;
   readonly stageNumber?: number;
   readonly seeds: readonly SeedAssignment[];
   /**
@@ -116,7 +119,8 @@ export function SeedingBuilderTemplate({
     ...(stageHubHref !== undefined
       ? [
           {
-            label: intl.formatMessage(messages.stageHubBreadcrumbLink, { stageNumber }),
+            label:
+              stageName ?? intl.formatMessage(messages.stageHubBreadcrumbLink, { stageNumber }),
             href: stageHubHref,
           },
         ]

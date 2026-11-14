@@ -119,7 +119,10 @@ test('drills down from a tournament hub to a stage hub, renames the stage, and l
   await stageLink.click();
   await page.waitForURL(`**${stageHubTarget}`);
 
-  await expect(page.getByRole('heading', { level: 1, name: 'Fase 1' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Fase de grupos' })).toBeVisible();
+  await expect(page.locator('.cl-page-header__breadcrumb [aria-current="page"]')).toHaveText(
+    'Fase de grupos',
+  );
   const renameField = page.getByLabel('Nuevo nombre de la fase');
   // The bug this change fixes: the field used to always start blank.
   await expect(renameField).toHaveValue('Fase de grupos');
@@ -138,12 +141,13 @@ test('drills down from a tournament hub to a stage hub, renames the stage, and l
     `/control/${ORG}/tournaments/${TOURNAMENT_ALIAS}`,
   );
   await expect(page.getByText(TOURNAMENT_ALIAS, { exact: true })).toHaveCount(0);
-  const breadcrumbLink = page.getByRole('link', { name: 'Fase 1' });
+  const breadcrumbLink = breadcrumb.getByRole('link', { name: 'Fase renombrada' });
+  await expect(breadcrumb.getByRole('link', { name: 'Fase 1' })).toHaveCount(0);
   await expect(breadcrumbLink).toBeVisible();
   await breadcrumbLink.click();
   await page.waitForURL(`**${stageHubTarget}`);
 
-  await expect(page.getByRole('heading', { level: 1, name: 'Fase 1' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Fase renombrada' })).toBeVisible();
   await expect(page.getByLabel('Nuevo nombre de la fase')).toHaveValue('Fase renombrada');
 });
 

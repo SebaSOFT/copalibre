@@ -17,6 +17,7 @@ import {
 } from '../screens/ScheduleBuilderTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
+import { useStageName } from './use-stage-name.js';
 import { controlSession } from '../../session/session-store.js';
 import { PageHeaderContext } from '../ui/organisms/page-header.js';
 
@@ -77,6 +78,7 @@ export function ScheduleBuilderPage({
   const currentDraft = useRef<Readonly<Record<string, DraftAssignment>>>({});
   const previewGeneration = useRef(0);
 
+  const stageName = useStageName(api, organizationAlias, tournamentAlias, stageNumber);
   const read = useResilientRead(
     `control-schedule:${organizationAlias}:${tournamentAlias}:${stageNumber}`,
     async () => {
@@ -353,6 +355,7 @@ export function ScheduleBuilderPage({
         reasonRequiredMatches={reasonRequiredMatches}
         recentReasons={recentReasons}
         schedules={schedules}
+        stageName={stageName}
         stageNumber={stageNumber}
         tournamentAlias={tournamentAlias}
         venues={venues}

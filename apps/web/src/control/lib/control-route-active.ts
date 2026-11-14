@@ -1,9 +1,9 @@
 import type { ControlRoute } from '@copalibre/routing';
 
 export type ControlNavItem =
-  | 'dashboard'
   | 'live-console'
-  | 'tournaments'
+  | 'dashboard'
+  | 'clubs'
   | 'roles'
   | 'resources'
   | 'organization'
@@ -21,35 +21,35 @@ const ACTIVE_ITEM_BY_SCREEN = {
   platformAdministration: 'platform',
   disciplineDocument: 'platform',
   dashboard: 'dashboard',
-  tournaments: 'tournaments',
+  tournaments: 'dashboard',
   liveConsole: 'live-console',
   organization: 'organization',
   analytics: 'analytics',
   roles: 'roles',
   auditTrail: 'audit-trail',
   preferences: 'organization',
-  newTournament: 'tournaments',
-  clubs: 'resources',
+  newTournament: 'dashboard',
+  clubs: 'clubs',
   resources: 'resources',
-  personProfile: 'resources',
-  tournamentHub: 'tournaments',
-  registrations: 'tournaments',
-  tournamentSettings: 'tournaments',
-  tournamentRuleset: 'tournaments',
-  reports: 'tournaments',
+  personProfile: 'clubs',
+  tournamentHub: 'dashboard',
+  registrations: 'dashboard',
+  tournamentSettings: 'dashboard',
+  tournamentRuleset: 'dashboard',
+  reports: 'dashboard',
   matchConsole: 'live-console',
   loadMatchData: 'live-console',
-  stageHub: 'tournaments',
-  seeding: 'tournaments',
-  standings: 'tournaments',
-  zoneGroups: 'tournaments',
-  qualification: 'tournaments',
-  promotionPlan: 'tournaments',
-  schedule: 'tournaments',
-  matchesView: 'tournaments',
+  stageHub: 'dashboard',
+  seeding: 'dashboard',
+  standings: 'dashboard',
+  zoneGroups: 'dashboard',
+  qualification: 'dashboard',
+  promotionPlan: 'dashboard',
+  schedule: 'dashboard',
+  matchesView: 'dashboard',
   broadcaster: 'live-console',
-  clubPortalMembers: 'resources',
-  clubPortalRoster: 'resources',
+  clubPortalMembers: 'clubs',
+  clubPortalRoster: 'clubs',
 } satisfies Record<ControlRoute['screen'], ControlNavItem | undefined>;
 
 export function controlNavItemForScreen(

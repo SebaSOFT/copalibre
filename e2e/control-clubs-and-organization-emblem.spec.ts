@@ -341,3 +341,19 @@ test('triggers a statistics rebuild from the control panel and reports the match
   await preview.getByRole('button', { name: 'Reconstruir estadísticas' }).click();
   await expect(page.getByText('5 partidos procesados.')).toBeVisible();
 });
+
+test('marks Clubs, not venues, in the rail on the clubs screen', async ({ page }) => {
+  await mockControlApi(page);
+  const clubsTarget = `/control/${ORG_ALIAS}/clubs`;
+  await seedLoginTransaction(page, clubsTarget);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${clubsTarget}`);
+
+  const rail = page.locator('.cl-control__nav-list');
+  await expect(rail.getByRole('link', { name: 'Clubes', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  await expect(rail.locator('[aria-current="page"]')).toHaveCount(1);
+  await expect(rail.getByRole('link', { name: 'Panel', exact: true })).toHaveCount(1);
+});

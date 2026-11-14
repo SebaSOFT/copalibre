@@ -96,7 +96,7 @@ test('the Stage hub format Select shows the selected format’s own description,
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${stageHubTarget}`);
 
-  await expect(page.getByRole('heading', { level: 1, name: 'Fase 1' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Fase de grupos' })).toBeVisible();
   await expect(page.getByText('Cada equipo juega contra todos los demás una vez.')).toBeVisible();
 
   await page.getByLabel('Formato').selectOption('single-elimination');

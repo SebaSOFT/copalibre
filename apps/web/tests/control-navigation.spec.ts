@@ -55,7 +55,7 @@ async function mockControlApis(page: Page, includeTournament = false): Promise<v
   }, includeTournament);
 }
 
-test('navigates to sidebar sections without 404 (Tournaments, Live Console, Organization, Analytics)', async ({
+test('navigates to sidebar sections without 404 (Dashboard, Live Console, Organization, Analytics)', async ({
   page,
 }) => {
   await mockControlApis(page);
@@ -66,11 +66,6 @@ test('navigates to sidebar sections without 404 (Tournaments, Live Console, Orga
   ).toHaveAttribute('href', '/liga-mendocina');
 
   // Verify no 404 screen is shown
-  await expect(page.locator('text=Pantalla no encontrada')).not.toBeVisible();
-
-  // Navigate to Torneos
-  await page.getByRole('link', { name: 'Torneos' }).click();
-  await expect(page).toHaveURL(/\/control\/liga-mendocina\/tournaments/);
   await expect(page.locator('text=Pantalla no encontrada')).not.toBeVisible();
 
   // Navigate to Consola en vivo
@@ -86,6 +81,11 @@ test('navigates to sidebar sections without 404 (Tournaments, Live Console, Orga
   // Navigate to Analítica
   await page.getByRole('link', { name: 'Analítica' }).click();
   await expect(page).toHaveURL(/\/control\/liga-mendocina\/analytics/);
+  await expect(page.locator('text=Pantalla no encontrada')).not.toBeVisible();
+
+  // Navigate back to Panel, the one entry for the organization's start screen
+  await page.getByRole('link', { name: 'Panel', exact: true }).click();
+  await expect(page).toHaveURL(/\/control\/liga-mendocina$/);
   await expect(page.locator('text=Pantalla no encontrada')).not.toBeVisible();
 });
 
@@ -107,8 +107,8 @@ test('mobile viewport provides accessible drawer navigation', async ({ page }) =
   ).toHaveAttribute('href', '/liga-mendocina');
 
   // Click a navigation link in the drawer
-  await dialog.getByRole('link', { name: 'Torneos' }).click();
-  await expect(page).toHaveURL(/\/control\/liga-mendocina\/tournaments/);
+  await dialog.getByRole('link', { name: 'Consola en vivo' }).click();
+  await expect(page).toHaveURL(/\/control\/liga-mendocina\/live/);
   await expect(page.locator('text=Pantalla no encontrada')).not.toBeVisible();
 });
 

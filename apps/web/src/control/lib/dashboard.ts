@@ -185,8 +185,8 @@ export const SIDENAV: readonly {
 }[] = [
   { id: 'dashboard', label: messages.navDashboard, path: '' },
   { id: 'live-console', label: messages.navLiveConsole, path: '/live' },
-  { id: 'tournaments', label: messages.navTournaments, path: '/tournaments' },
   { id: 'roles', label: messages.navRoles, path: '/roles', capability: 'org.manage-users' },
+  { id: 'clubs', label: messages.clubManagementTitle, path: '/clubs' },
   { id: 'resources', label: messages.navResources, path: '/resources' },
   { id: 'organization', label: messages.navOrganization, path: '/organization' },
   { id: 'analytics', label: messages.navAnalytics, path: '/analytics' },

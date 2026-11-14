@@ -88,8 +88,8 @@ describe('the control shell', () => {
       </ControlShell>,
     );
 
-    expect(screen.getByRole('link', { name: 'Torneos' }).getAttribute('href')).toBe(
-      '/control/liga-mendocina/tournaments',
+    expect(screen.getByRole('link', { name: 'Panel' }).getAttribute('href')).toBe(
+      '/control/liga-mendocina',
     );
     expect(screen.getByText('contenido')).toBeDefined();
   });
@@ -108,7 +108,7 @@ describe('the control shell', () => {
     // Two links styled the same is a sidebar that says nothing about where you
     // are.
     const active = screen.getByRole('link', { name: 'Panel' });
-    const other = screen.getByRole('link', { name: 'Torneos' });
+    const other = screen.getByRole('link', { name: 'Clubes' });
     expect(active.getAttribute('style')).not.toBe(other.getAttribute('style'));
   });
 

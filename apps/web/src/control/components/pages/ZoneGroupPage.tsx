@@ -397,6 +397,7 @@ export function ZoneGroupPage({
           entrants={entrants}
           groups={groups}
           availableFormats={stage?.availableFormats ?? []}
+          stageName={stage?.name?.trim() || undefined}
           onConfigureZone={configureZone}
           onConfirmGroupDraw={confirmGroupDraw}
           onConfirmZoneDraw={confirmZoneDraw}

@@ -151,7 +151,7 @@ export function ClubManagementControlRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   return (
-    <ControlShell active="resources" helpPath="clubs" organizationAlias={organizationAlias}>
+    <ControlShell active="clubs" helpPath="clubs" organizationAlias={organizationAlias}>
       <ClubManagementPage client={client} organizationAlias={organizationAlias} />
     </ControlShell>
   );

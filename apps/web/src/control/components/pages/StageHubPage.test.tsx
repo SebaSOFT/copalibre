@@ -203,7 +203,7 @@ describe('StageHubPage', () => {
     );
 
     expect(await screen.findByRole('link', { name: 'Apertura 2026' })).toBeTruthy();
-    expect(screen.getByRole('heading', { level: 1, name: 'Stage 1' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Fase de grupos' })).toBeTruthy();
     expect(screen.getByText('Fase de grupos', { selector: '[aria-current="page"]' })).toBeTruthy();
     expect(screen.queryByText('apertura-2026')).toBeNull();
   });

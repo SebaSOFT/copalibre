@@ -69,6 +69,29 @@ describe('SeedingBuilderTemplate', () => {
     );
   });
 
+  it("names the stage hub in its breadcrumb by the stage's own name when it is known", async () => {
+    render(
+      withIntl(
+        <SeedingBuilderTemplate
+          hasRecordedResults={false}
+          zones={[]}
+          organizationAlias="liga-mendocina"
+          seeds={[]}
+          stageName="Fase de grupos"
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+          tournamentName="Apertura 2026"
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByRole('heading', { level: 1, name: /seeding/i }));
+    expect(screen.getByRole('link', { name: 'Fase de grupos' }).getAttribute('href')).toBe(
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
+    );
+    expect(screen.queryByRole('link', { name: 'Stage 1' })).toBeNull();
+  });
+
   it('links a resolved bracket node to its match console when a tournament alias is supplied', () => {
     render(
       withIntl(

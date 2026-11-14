@@ -415,7 +415,7 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
   // data — the tournament this test just created through the real write
   // path shows up on it. Client-side navigation (no reload) keeps the
   // in-memory session.
-  await page.getByRole('link', { name: 'Panel' }).click();
+  await page.getByRole('link', { name: 'Panel', exact: true }).click();
   await page.waitForURL('**/control/liga-mendocina');
   await expect(page.getByText('Apertura Local')).toBeVisible();
 });
