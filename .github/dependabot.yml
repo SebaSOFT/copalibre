@@ -16,6 +16,13 @@ updates:
         patterns:
           - '@imgly/background-removal'
           - 'onnxruntime-web'
+    # The group only moves both together when @imgly/background-removal publishes a release; until
+    # then Dependabot opens a lone onnxruntime-web bump every time upstream ships one (1.21.0 ->
+    # 1.31.1 was #545), and that bump is wrong: IMG.LY serves the .wasm and .mjs for 1.21.0 only, and
+    # the latest @imgly/background-removal (1.7.0) still declares 1.21.0 as its exact peer. Drop this
+    # entry when a new @imgly/background-removal declares a newer peer, then bump both by hand.
+    ignore:
+      - dependency-name: 'onnxruntime-web'
 
   - package-ecosystem: 'github-actions'
     directory: '/'

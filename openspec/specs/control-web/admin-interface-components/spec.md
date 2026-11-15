@@ -1037,3 +1037,17 @@ The interface SHALL provide one reusable popover atom that opens from its trigge
 
 - **WHEN** a popover would open past the edge of the viewport
 - **THEN** it repositions and its whole text stays visible
+
+### Requirement: Control pages keep a continuous heading outline
+
+Control pages SHALL not skip heading levels and SHALL not render empty headings.
+
+#### Scenario: Outline check
+
+- **WHEN** the outline of Platform, discipline, settings, ruleset and schedule is read with their content shown
+- **THEN** there is no skipped level and no empty heading
+
+#### Scenario: Platform and discipline cards
+
+- **WHEN** Platform or a discipline document renders its cards
+- **THEN** the card titles sit one level below the page heading
