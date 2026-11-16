@@ -10,6 +10,7 @@ import { GENERATED_DATABASE_SECRETS } from '../init.js';
 import { readInstallationMarker } from '../installation-marker.js';
 import { formatOutdatedModules, runModuleUpgradeCheck } from '../module-upgrade-check.js';
 import { fetchReleaseMetadata, performSelfUpdate } from '../self-update.js';
+import { cleanUpAfterSuccess, PRODUCTION_SINGLE_RUN } from '../single-run-containers.js';
 import { runUpgradeCheck } from '../upgrade-check.js';
 
 export class UpgradeCommand extends Command<CliContext> {
@@ -208,10 +209,20 @@ export class UpgradeCommand extends Command<CliContext> {
         await processes.run('docker', ['compose', 'pull']);
 
         process.stdout.write('Applying database schema migrations...\n');
-        await processes.run('docker', ['compose', 'run', '--rm', 'migrate']);
+        const migrated = await processes.run('docker', ['compose', 'run', '--rm', 'migrate']);
 
         process.stdout.write('Restarting CopaLibre stack...\n');
-        await processes.run('docker', ['compose', 'up', '-d', '--force-recreate']);
+        const recreated = await processes.run('docker', [
+          'compose',
+          'up',
+          '-d',
+          '--force-recreate',
+        ]);
+        await cleanUpAfterSuccess(migrated !== 0 ? migrated : recreated, {
+          processes,
+          environment,
+          list: PRODUCTION_SINGLE_RUN,
+        });
       }
 
       // 5. Module Update Inspection

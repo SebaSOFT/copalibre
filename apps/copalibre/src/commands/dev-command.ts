@@ -2,6 +2,7 @@ import { parseArgs } from 'node:util';
 import { Command, Option } from 'clipanion';
 import type { CliContext } from '../cli-context.js';
 import { runCommand } from '../command-support.js';
+import { cleanUpSingleRunContainers, DEVELOPMENT_SINGLE_RUN } from '../single-run-containers.js';
 
 export class DevCommand extends Command<CliContext> {
   static override paths = [['dev']];
@@ -29,6 +30,14 @@ export class DevCommand extends Command<CliContext> {
           '--wait',
         ]);
         if (infrastructure !== 0) return infrastructure;
+        // The infrastructure is healthy: the storage initialiser has done its work, and a containerized session may
+        // have left stopped application containers. The foreground containerized `dev` below never gets here.
+        await cleanUpSingleRunContainers({
+          processes,
+          environment,
+          list: DEVELOPMENT_SINGLE_RUN,
+          includeLeftovers: true,
+        });
         const hybrid = hybridEnvironment(environment);
         const migration = await processes.run(
           'yarn',

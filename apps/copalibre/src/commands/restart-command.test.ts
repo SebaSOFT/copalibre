@@ -40,6 +40,7 @@ describe('copalibre restart', () => {
           ['compose', 'up', '--detach', '--wait', 'postgres'],
           ['compose', 'run', '--rm', 'doctor'],
           ['compose', 'up', '--detach', '--wait'],
+          ['compose', 'rm', '--force', 'database-setup', 'migrate'],
         ]);
       } finally {
         restore();
@@ -58,6 +59,7 @@ describe('copalibre restart', () => {
           ['compose', 'stop'],
           ['compose', 'up', '--detach', '--wait', 'postgres'],
           ['compose', 'up', '--detach', '--wait'],
+          ['compose', 'rm', '--force', 'database-setup', 'migrate'],
         ]);
       } finally {
         restore();
@@ -76,7 +78,44 @@ describe('copalibre restart', () => {
         expect(run.mock.calls.map((call) => call[1])).toEqual([
           [...profile, 'stop'],
           [...profile, 'up', '--detach', '--wait'],
+          [
+            'compose',
+            '-f',
+            'docker-compose.dev.yml',
+            '--profile',
+            'containerized',
+            'rm',
+            '--force',
+            'migrate',
+          ],
+          [
+            'compose',
+            '-f',
+            'docker-compose.dev.yml',
+            '--profile',
+            'containerized',
+            'rm',
+            '--stop',
+            '--force',
+            'object-storage-init',
+          ],
         ]);
+      } finally {
+        restore();
+      }
+    });
+  });
+
+  it('removes nothing when the stack did not come back up', async () => {
+    await withDirectory(async (directory) => {
+      await writeFile(join(directory, 'docker-compose.yml'), 'services: {}\n');
+      const run = jest.fn<ProcessRunner['run']>(async (_command, arguments_) =>
+        arguments_.join(' ') === 'compose up --detach --wait' ? 5 : 0,
+      );
+      const restore = muteOutput();
+      try {
+        await expect(runCli(['restart'], {}, { run })).resolves.toBe(5);
+        expect(run.mock.calls.some((call) => call[1].includes('rm'))).toBe(false);
       } finally {
         restore();
       }
