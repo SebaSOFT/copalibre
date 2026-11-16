@@ -465,10 +465,19 @@ export function PlatformAdministrationTemplate({
                     </p>
                   ) : (
                     <ul className="cl-platform-update-list">
-                      {superAdmins.map((row) => (
-                        <li key={row.assignmentId}>
-                          {row.principalId} — {row.status}{' '}
+                      {superAdmins.map((row, index) => (
+                        <li key={row.assignmentId} title={row.principalId}>
+                          {intl.formatMessage(messages.platformSuperAdminLabel, {
+                            position: index + 1,
+                          })}{' '}
+                          —{' '}
+                          {intl.formatMessage(
+                            row.status === 'active' ? messages.rolesActive : messages.rolesInactive,
+                          )}{' '}
                           <Button
+                            aria-label={intl.formatMessage(messages.platformSuperAdminRemoveLabel, {
+                              position: index + 1,
+                            })}
                             disabled={busy !== undefined}
                             onClick={() => void onRemoveSuperAdmin(row.assignmentId)}
                             type="button"

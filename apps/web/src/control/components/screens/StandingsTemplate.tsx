@@ -322,12 +322,6 @@ export function StandingsTemplate({
         ]
       : []),
   ];
-  const description = projection
-    ? intl.formatMessage(messages.standingsProjectionVersion, {
-        version: projection.projectionVersion,
-      })
-    : undefined;
-
   const titleNode = <FormattedMessage {...messages.standingsTitle} />;
 
   const toolbarNode = (
@@ -450,7 +444,6 @@ export function StandingsTemplate({
   return (
     <ListScreenLayout
       breadcrumbs={breadcrumbs}
-      description={description}
       listing={listingNode}
       title={titleNode}
       toolbar={toolbarNode}

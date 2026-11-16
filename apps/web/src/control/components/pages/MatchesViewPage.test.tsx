@@ -2,6 +2,9 @@ import { expectFirstReadFailure } from './resilient-read.test-support.js';
 import { jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MatchesViewPage } from '../pages/MatchesViewPage.js';
+import { IntlProvider } from 'react-intl';
+import { CATALOGS } from '../../i18n/ControlIntl.js';
+import { ToastProvider } from '../ToastProvider.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { ControlApiClient } from '../../lib/api-client.js';
 import type { MatchCardData } from '../../../lib/matches-view.js';
@@ -257,6 +260,41 @@ describe('MatchesViewPage', () => {
       expect(screen.getByTestId('completion-value').textContent).toBe('18 of 32');
     });
     expect(screen.getByText('Tournament completion')).toBeDefined();
+  });
+
+  it.each([
+    ['es', '18 de 32'],
+    ['fr', '18 sur 32'],
+    ['de', '18 von 32'],
+    ['zh', '18 / 32'],
+  ] as const)('writes the completion figure in %s, not in English', async (locale, expected) => {
+    const fetchCompletion = jest.fn(() =>
+      Promise.resolve({
+        totalMatches: 32,
+        resolvedMatches: 18,
+        finalizedMatches: 17,
+        forfeitedMatches: 1,
+        liveMatches: 2,
+        scheduledMatches: 12,
+        stages: [],
+      }),
+    );
+
+    render(
+      <IntlProvider defaultLocale="en" locale={locale} messages={CATALOGS[locale]}>
+        <ToastProvider>
+          <MatchesViewPage
+            client={stubClient({ fetchCompletion })}
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+          />
+        </ToastProvider>
+      </IntlProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('completion-value').textContent).toBe(expected);
+    });
   });
 
   it('renders StatTile unavailable presentation rather than a bare zero when tournament has no matches', async () => {

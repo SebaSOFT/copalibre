@@ -60,9 +60,9 @@ async function mockAuditTrailApi(page: Page, role: string): Promise<void> {
             records: [
               {
                 auditId: '01890000-0000-7000-8000-00000000a001',
-                entityType: 'organization',
-                entityId: 'org-1',
-                action: 'organization.settings_updated',
+                entityType: 'schedule',
+                entityId: 'schedule-1',
+                action: 'schedule.published',
                 actor: 'user:alice',
                 authorizationContext: 'copalibre.control',
                 occurredAt: '2026-08-30T12:00:00.000Z',
@@ -116,6 +116,9 @@ test('an administrator opens the audit surface and sees applied and refused acti
   const trail = page.getByRole('table');
   await expect(trail.getByText('Aplicado')).toBeVisible();
   await expect(trail.getByText('Rechazado')).toBeVisible();
+  // Every recorded action reads as a name, never the generic fallback.
+  await expect(trail.getByText('Programación publicada')).toBeVisible();
+  await expect(page.getByText('Otra actividad')).toHaveCount(0);
   await expect(
     page.getByText('El rol en la organización no está autorizado para esta ruta'),
   ).toBeVisible();

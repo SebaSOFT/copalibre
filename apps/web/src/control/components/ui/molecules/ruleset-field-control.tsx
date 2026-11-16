@@ -61,6 +61,10 @@ export interface RulesetFieldControlProps {
   readonly inheritedHeading: string;
   readonly unrecognizedText: string;
   readonly unknownTypeText: string;
+  /** A stage format's name; absent, the code itself labels the option. */
+  readonly formatLabel?: (format: string) => string;
+  /** A tiebreaker code's name; absent, the code reads as capitalised words. */
+  readonly tiebreakerLabel?: (code: string) => string;
 }
 
 export function RulesetFieldControl({
@@ -78,6 +82,8 @@ export function RulesetFieldControl({
   inheritedHeading,
   unrecognizedText,
   unknownTypeText,
+  formatLabel = (format) => format,
+  tiebreakerLabel = humanizeCode,
 }: RulesetFieldControlProps): React.JSX.Element {
   const observedValue = overrideValue !== undefined ? overrideValue : disciplineDefaultValue;
   const kind = chooseControlKind(policy, observedValue, dotPath);
@@ -117,7 +123,10 @@ export function RulesetFieldControl({
         <Select
           id={id}
           onValueChange={onChange}
-          options={availableFormats.map((format) => ({ value: format, label: format }))}
+          options={availableFormats.map((format) => ({
+            value: format,
+            label: formatLabel(format),
+          }))}
           placeholder={selectPlaceholder}
           value={typeof observedValue === 'string' ? observedValue : ''}
         />
@@ -145,7 +154,7 @@ export function RulesetFieldControl({
                 {ordered.map((entry, index) => (
                   <li key={`${entry}-${index}`}>
                     <Inline align="center" gap="2">
-                      <Badge label={`${index + 1}. ${humanizeCode(entry)}`} variant="section" />
+                      <Badge label={`${index + 1}. ${tiebreakerLabel(entry)}`} variant="section" />
                       {index >= inherited.length && (
                         <Button
                           onClick={() =>

@@ -12,6 +12,7 @@ import {
   type DisciplineSummaryData,
 } from './discipline-summary.js';
 import { messages } from '../i18n/messages.en.js';
+import { CATALOGS } from '../i18n/ControlIntl.js';
 import type { EventDefinition, FieldPolicy } from '@copalibre/domain';
 
 const intl = createIntl(
@@ -23,6 +24,10 @@ const intl = createIntl(
   },
   createIntlCache(),
 );
+
+function intlFor(locale: 'es' | 'de' | 'zh') {
+  return createIntl({ locale, defaultLocale: 'en', messages: CATALOGS[locale] }, createIntlCache());
+}
 
 function event(overrides: Partial<EventDefinition>): EventDefinition {
   return {
@@ -145,6 +150,58 @@ describe('formatFieldValue', () => {
 
   it('renders an arbitrary object as readable key-value pairs, not JSON', () => {
     expect(formatFieldValue({ neutralGround: false }, intl)).toBe('Neutral Ground: No');
+  });
+
+  describe('for a field that holds machine codes', () => {
+    // The demo discipline's own tiebreakers: two codes, a declared comparator carrying its own label,
+    // a code again, and a comparator that only names the statistic it ranks.
+    const TIEBREAKERS = [
+      'points',
+      'score-difference',
+      {
+        label: { en: 'Goal Average', es: 'Promedio de goles' },
+        ratio: { numerator: 'goals-for', denominator: 'goals-against' },
+        statisticCode: 'goal-average',
+      },
+      'goals-for',
+      { direction: 'lower_wins', statisticCode: 'goals-against' },
+    ];
+
+    it('names the stage format, not its key', () => {
+      expect(formatFieldValue('round-robin', intl, 'format')).toBe('Round robin');
+      expect(formatFieldValue('round-robin', intlFor('es'), 'format')).toBe('Todos contra todos');
+    });
+
+    it('reads a format the catalogue does not name as words', () => {
+      expect(formatFieldValue('ffa-league', intl, 'format')).toBe('Ffa league');
+    });
+
+    it('names each tiebreaker in the operator language, never a key or an object dump', () => {
+      expect(formatFieldValue(TIEBREAKERS, intlFor('es'), 'tiebreakers')).toBe(
+        'Puntos, Diferencia de marcador, Promedio de goles, Goles a favor, Goles en contra',
+      );
+      expect(formatFieldValue(TIEBREAKERS, intlFor('de'), 'tiebreakers')).toBe(
+        'Punkte, Tordifferenz, Goal Average, Erzielte Tore, Gegentore',
+      );
+    });
+
+    it('prints no raw key, label object or statistic field for the demo tiebreakers', () => {
+      for (const locale of ['es', 'de', 'zh'] as const) {
+        const text = formatFieldValue(TIEBREAKERS, intlFor(locale), 'tiebreakers');
+        expect(text).not.toMatch(/score-difference|goals-for|goal-average|Statistic|Label:|Ratio:/);
+      }
+    });
+
+    it('reads a tiebreaker code a later release adds as words', () => {
+      expect(formatFieldValue(['sets-won', 'serve-points'], intl, 'tiebreakers')).toBe(
+        'Sets won, Serve points',
+      );
+    });
+
+    it('leaves a field with no code semantics as it is', () => {
+      expect(formatFieldValue('free text', intl, 'registration.region')).toBe('free text');
+      expect(formatFieldValue(3, intl, 'scoring.pointsPerWin')).toBe('3');
+    });
   });
 });
 

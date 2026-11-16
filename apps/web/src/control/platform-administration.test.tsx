@@ -268,9 +268,15 @@ describe('platform administration console', () => {
     await act(async () =>
       fireEvent.click(screen.getByRole('button', { name: 'Grant super-admin' })),
     );
-    await screen.findByText('01800000-0000-7000-8000-000000000009', { exact: false });
+    const row = (await screen.findByText('Super-admin 1', { exact: false })).closest('li');
+    expect(row?.textContent).toContain('Active');
+    expect(row?.textContent).not.toContain('active —');
+    // The principal is an internal identifier: the list never prints it, and the API sends no name.
+    expect(screen.queryByText('01800000-0000-7000-8000-000000000009', { exact: false })).toBeNull();
 
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Remove' })));
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: 'Remove super-admin 1' })),
+    );
     await waitFor(() =>
       expect(screen.getByRole('alert').textContent).toContain(
         'The installation must always keep at least one active super-admin',

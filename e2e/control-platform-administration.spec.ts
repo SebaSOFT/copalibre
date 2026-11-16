@@ -1,6 +1,7 @@
 import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 import { expectCompleteHeadingOutline } from './support/heading-outline.js';
+import { expectNoVisibleIdentifiers } from './support/visible-identifiers.js';
 
 function scopedToken(scopes: string): string {
   return `header.${Buffer.from(JSON.stringify({ scp: scopes })).toString('base64url')}.signature`;
@@ -294,9 +295,11 @@ test('super-admin manages installation super-admins and drills into an organizat
 
   await page.getByLabel('ID de principal').fill('01800000-0000-7000-8000-000000000009');
   await page.getByRole('button', { name: 'Otorgar super-admin' }).click();
-  await expect(page.getByText('01800000-0000-7000-8000-000000000009')).toBeVisible();
+  await expect(page.getByText('Super-admin 1', { exact: false })).toBeVisible();
+  await expect(page.getByText('Activo', { exact: false }).first()).toBeVisible();
+  await expectNoVisibleIdentifiers(page);
 
-  await page.getByRole('button', { name: 'Eliminar' }).first().click();
+  await page.getByRole('button', { name: 'Eliminar super-admin 1' }).click();
   await expect(
     page.getByText('The installation must always keep at least one active super-admin'),
   ).toBeVisible();

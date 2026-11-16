@@ -64,7 +64,10 @@ export function MatchesViewTemplate({
                 ? {
                     value: (
                       <span data-testid="completion-value">
-                        {`${completion.resolvedMatches} of ${completion.totalMatches}`}
+                        {intl.formatMessage(messages.tournamentCompletionValue, {
+                          resolved: completion.resolvedMatches,
+                          total: completion.totalMatches,
+                        })}
                       </span>
                     ),
                   }
@@ -81,7 +84,10 @@ export function MatchesViewTemplate({
                     ? {
                         value: (
                           <span data-testid={`completion-stage-${stage.stageNumber}`}>
-                            {`${stage.resolvedMatches} of ${stage.totalMatches}`}
+                            {intl.formatMessage(messages.tournamentCompletionValue, {
+                              resolved: stage.resolvedMatches,
+                              total: stage.totalMatches,
+                            })}
                           </span>
                         ),
                       }

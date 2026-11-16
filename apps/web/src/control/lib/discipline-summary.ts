@@ -14,6 +14,9 @@ import {
   type SegmentTypeDefinition,
 } from '@copalibre/domain';
 import { messages } from '../i18n/messages.en.js';
+import { formatEnum } from './presentation-formatting.js';
+import { STAGE_FORMAT_LABELS } from './stage-format-labels.js';
+import { formatTiebreakerEntry, humanizeCode } from './tiebreaker-labels.js';
 
 /**
  * Only the `EventDefinition` fields the summary renders — never the full
@@ -172,6 +175,13 @@ function humanizeKey(key: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
+/** A stage format by its translated name; a format the catalogue does not name reads as words, not as its key. */
+function formatStageFormat(intl: IntlShape, value: string): string {
+  return STAGE_FORMAT_LABELS[value] !== undefined || /^BO[1-9]\d*$/.test(value)
+    ? formatEnum(intl, 'format', value)
+    : humanizeCode(value);
+}
+
 /**
  * Renders a configured field value as localized display text, in the
  * operator's active language — never raw JSON syntax, a literal `"null"`, or
@@ -179,14 +189,29 @@ function humanizeKey(key: string): string {
  * both mean "not set", the same dash either way; a `segments`-shaped object
  * gets its own plain-language sentence; any other object falls back to
  * readable `Key: value` pairs rather than `JSON.stringify`.
+ *
+ * Given the field's `dotPath`, a value that is a machine code reads as its name in the operator's
+ * language: the stage `format` (`round-robin`) and each `tiebreakers` entry (`score-difference`, or a
+ * comparator the discipline declares with its own label). Without a path, or for a field that holds
+ * free text or numbers, the value renders as it is.
  */
-export function formatFieldValue(value: unknown, intl: IntlShape): string {
+export function formatFieldValue(value: unknown, intl: IntlShape, dotPath?: string): string {
   if (value === undefined || value === null) return '—';
   if (typeof value === 'boolean') {
     return intl.formatMessage(value ? messages.booleanYes : messages.booleanNo);
   }
+  if (dotPath === 'format' && typeof value === 'string') return formatStageFormat(intl, value);
   if (typeof value === 'string' || typeof value === 'number') return String(value);
-  if (Array.isArray(value)) return value.map((entry) => formatFieldValue(entry, intl)).join(', ');
+  if (Array.isArray(value)) {
+    const isTiebreakerList = dotPath === 'tiebreakers' || dotPath === 'tiebreaker';
+    return value
+      .map((entry) =>
+        isTiebreakerList
+          ? (formatTiebreakerEntry(intl, entry) ?? formatFieldValue(entry, intl))
+          : formatFieldValue(entry, intl),
+      )
+      .join(', ');
+  }
   if (isSegmentsFieldValue(value)) {
     return intl.formatMessage(messages.disciplineSummarySegmentsFieldValue, {
       count: value.regulationCount,

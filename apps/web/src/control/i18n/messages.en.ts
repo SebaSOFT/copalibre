@@ -346,6 +346,14 @@ export const messages = defineMessages({
     id: 'control.platform.users.superAdminPrincipalId',
     defaultMessage: 'Principal ID',
   },
+  platformSuperAdminLabel: {
+    id: 'control.platform.users.superAdminLabel',
+    defaultMessage: 'Super-admin {position}',
+  },
+  platformSuperAdminRemoveLabel: {
+    id: 'control.platform.users.removeSuperAdmin',
+    defaultMessage: 'Remove super-admin {position}',
+  },
   platformCreateSuperAdmin: {
     id: 'control.platform.users.createSuperAdmin',
     defaultMessage: 'Grant super-admin',
@@ -2240,10 +2248,6 @@ export const messages = defineMessages({
   // Standings (components/StandingsTemplate.tsx)
   standingsSectionLabel: { id: 'control.standings.sectionLabel', defaultMessage: 'Standings' },
   standingsTitle: { id: 'control.standings.title', defaultMessage: 'Standings' },
-  standingsProjectionVersion: {
-    id: 'control.standings.projectionVersion',
-    defaultMessage: 'Projection v{version}',
-  },
   standingsUnresolvedTie: {
     id: 'control.standings.unresolvedTie',
     defaultMessage: ' · unresolved tie',
@@ -2519,6 +2523,42 @@ export const messages = defineMessages({
   rulesetTabFormat: { id: 'control.ruleset.tab.format', defaultMessage: 'Format' },
   rulesetTabScoring: { id: 'control.ruleset.tab.scoring', defaultMessage: 'Scoring' },
   rulesetTabTiebreakers: { id: 'control.ruleset.tab.tiebreakers', defaultMessage: 'Tiebreakers' },
+  tiebreakerPoints: {
+    id: 'control.tiebreaker.points',
+    defaultMessage: 'Points',
+  },
+  tiebreakerScoreDifference: {
+    id: 'control.tiebreaker.scoreDifference',
+    defaultMessage: 'Score difference',
+  },
+  tiebreakerGoalAverage: {
+    id: 'control.tiebreaker.goalAverage',
+    defaultMessage: 'Goal average',
+  },
+  tiebreakerGoalsFor: {
+    id: 'control.tiebreaker.goalsFor',
+    defaultMessage: 'Goals for',
+  },
+  tiebreakerGoalsAgainst: {
+    id: 'control.tiebreaker.goalsAgainst',
+    defaultMessage: 'Goals against',
+  },
+  tiebreakerMatchesWon: {
+    id: 'control.tiebreaker.matchesWon',
+    defaultMessage: 'Matches won',
+  },
+  tiebreakerSetsWon: {
+    id: 'control.tiebreaker.setsWon',
+    defaultMessage: 'Sets won',
+  },
+  tiebreakerGamesWon: {
+    id: 'control.tiebreaker.gamesWon',
+    defaultMessage: 'Games won',
+  },
+  tiebreakerHeadToHead: {
+    id: 'control.tiebreaker.headToHead',
+    defaultMessage: 'Head-to-head',
+  },
   rulesetTabRegistration: {
     id: 'control.ruleset.tab.registration',
     defaultMessage: 'Registration',
@@ -4696,6 +4736,10 @@ export const messages = defineMessages({
   tournamentCompletionStage: {
     id: 'control.tournament.completionStage',
     defaultMessage: 'Stage {stageNumber}',
+  },
+  tournamentCompletionValue: {
+    id: 'control.tournament.completionValue',
+    defaultMessage: '{resolved, number} of {total, number}',
   },
 
   // DisciplineSummary (ui/organisms/discipline-summary.tsx) —

@@ -124,6 +124,76 @@ describe('activity-formatting', () => {
         expect(formatActivityAction('event.recorded', language)).toBe(label);
       }
     });
+
+    // Every action the Panamericano demo records, read from its audit trail. The dashboard and
+    // the audit trail showed "Other activity" for 15 of these 42 before they were named.
+    const DEMO_RECORDED_ACTIONS = [
+      'authorization.refused',
+      'club.created',
+      'club.updated',
+      'descriptor.published',
+      'display-token.issued',
+      'entrant.accepted',
+      'entrant.registered',
+      'event.recorded',
+      'fixtures.generated',
+      'group.created',
+      'group.renamed',
+      'groups.manually-assigned',
+      'identity.principal-registered',
+      'match.created',
+      'match.finalized',
+      'match-roster.set',
+      'match.start',
+      'module.installed',
+      'official.created',
+      'organization.created',
+      'organization.invitation-created',
+      'organization.role-assigned',
+      'organization.settings_updated',
+      'person.nationality-set',
+      'person.registered',
+      'player.enlisted',
+      'promotion-plan.saved',
+      'ruleset.versioned',
+      'schedule.created',
+      'schedule.published',
+      'season.created',
+      'segment.clock-adjusted',
+      'segment.completed',
+      'segment.created',
+      'stage.created',
+      'team.created',
+      'tournament.created',
+      'tournament.emblem_updated',
+      'tournament.published',
+      'venue.created',
+      'zone.renamed',
+      'zones.manually-assigned',
+    ] as const;
+
+    it.each(['en', 'es', 'pt', 'fr', 'it', 'de', 'ru', 'zh'])(
+      'names every action the demo records in %s',
+      (language) => {
+        const generic = formatActivityAction('future.machine-action', language);
+        const unnamed = DEMO_RECORDED_ACTIONS.filter((action) => {
+          const label = formatActivityAction(action, language);
+          return label === generic || label === action;
+        });
+        expect(unnamed).toEqual([]);
+      },
+    );
+
+    it('names the newly mapped actions in Spanish', () => {
+      expect(formatActivityAction('descriptor.published', 'es')).toBe('Disciplina publicada');
+      expect(formatActivityAction('schedule.published', 'es')).toBe('Programación publicada');
+      expect(formatActivityAction('groups.manually-assigned', 'es')).toBe(
+        'Grupos asignados manualmente',
+      );
+      expect(formatActivityAction('tournament.emblem_updated', 'es')).toBe(
+        'Escudo del torneo actualizado',
+      );
+    });
   });
 
   describe('formatActivityReason', () => {
