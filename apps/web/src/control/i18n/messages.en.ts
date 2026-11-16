@@ -35,7 +35,6 @@ export const messages = defineMessages({
     id: 'control.pageHeader.tournamentFallback',
     defaultMessage: 'Tournament',
   },
-  interactionCreateToken: { id: 'control.interaction.createToken', defaultMessage: 'Create token' },
   interactionPairTv: { id: 'control.interaction.pairTv', defaultMessage: 'Pair TV' },
   interactionPairDescription: {
     id: 'control.interaction.pairDescription',
@@ -5642,11 +5641,8 @@ export const messages = defineMessages({
   },
   orgPageDescription: {
     id: 'control.orgPage.description',
-    defaultMessage: "The organization's name and emblem, its statistics and its access tokens.",
-  },
-  orgIdentityDropInstruction: {
-    id: 'control.orgIdentity.dropInstruction',
-    defaultMessage: 'Drop an image here, or choose a file.',
+    defaultMessage:
+      "The organization's name, emblem, language and time zone, its storage and statistics, and its access tokens.",
   },
   preferencesPatCreatedColumn: {
     id: 'control.preferences.patCreatedColumn',
@@ -5719,4 +5715,51 @@ export const messages = defineMessages({
   dataTableMoreColumns: { id: 'control.dataTable.moreColumns', defaultMessage: 'More columns' },
   dataTableShowDetails: { id: 'control.dataTable.showDetails', defaultMessage: 'Show details' },
   dataTableHideDetails: { id: 'control.dataTable.hideDetails', defaultMessage: 'Hide details' },
+  orgIdentityLanguage: {
+    id: 'control.orgIdentity.language',
+    defaultMessage: 'Primary language',
+  },
+  orgIdentityLanguageHelp: {
+    id: 'control.orgIdentity.languageHelp',
+    defaultMessage: "Language of the organization's public pages, TV and emails.",
+  },
+  orgIdentityTimezone: {
+    id: 'control.orgIdentity.timezone',
+    defaultMessage: 'Time zone',
+  },
+  orgIdentityTimezoneHelp: {
+    id: 'control.orgIdentity.timezoneHelp',
+    defaultMessage: 'Decides which day each match falls on in schedules and kick-off times.',
+  },
+  orgIdentityWithheld: {
+    id: 'control.orgIdentity.withheld',
+    defaultMessage:
+      '{roleCount, plural, one {Only the {roles} role can edit these details.} other {Only the {roles} roles can edit these details.}}',
+  },
+  orgSectionWithheld: {
+    id: 'control.orgSection.withheld',
+    defaultMessage:
+      '{roleCount, plural, one {Only the {roles} role can use this section.} other {Only the {roles} roles can use this section.}}',
+  },
+  storageUsageObjectMeta: {
+    id: 'control.storageUsage.objectMeta',
+    defaultMessage: '{contentType} · {size} · {date}',
+  },
+  storageUsageDeleteObjectLabel: {
+    id: 'control.storageUsage.deleteObjectLabel',
+    defaultMessage: 'Delete {contentType} file of {size}, uploaded {date}',
+  },
+  storageUsageDeleteTitle: {
+    id: 'control.storageUsage.deleteTitle',
+    defaultMessage: 'Delete this file?',
+  },
+  storageUsageDeleteDescription: {
+    id: 'control.storageUsage.deleteDescription',
+    defaultMessage:
+      'This {contentType} file ({size}, uploaded {date}) is not used anywhere. Deleting it frees the space and cannot be undone.',
+  },
+  preferencesAppearanceHeading: {
+    id: 'control.preferences.appearanceHeading',
+    defaultMessage: 'Appearance',
+  },
 });

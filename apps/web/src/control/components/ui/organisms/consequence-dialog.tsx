@@ -81,14 +81,16 @@ export function ConsequenceDialog({
       open={open}
       title={title}
     >
-      <ul aria-label={title} className="cl-consequence-dialog__counts">
-        {counts.map((count) => (
-          <li key={count.label}>
-            <strong>{intl.formatNumber(count.value)}</strong>
-            <span>{count.label}</span>
-          </li>
-        ))}
-      </ul>
+      {counts.length > 0 && (
+        <ul aria-label={title} className="cl-consequence-dialog__counts">
+          {counts.map((count) => (
+            <li key={count.label}>
+              <strong>{intl.formatNumber(count.value)}</strong>
+              <span>{count.label}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       {typeToConfirm !== undefined && typeToConfirmLabel !== undefined && (
         <>
           <p>{typeToConfirm}</p>

@@ -621,6 +621,19 @@ body {
   inline-size: 5rem;
 }
 
+/* A width rather than a cap: the screen rules above set every descendant's max-width to 100%. */
+.cl-preferences-theme-select {
+  inline-size: min(100%, 20rem);
+}
+
+.cl-preferences-unreferenced {
+  display: grid;
+  gap: var(--cl-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .cl-preferences-token-created {
   display: grid;
   gap: var(--cl-space-2);
@@ -1706,12 +1719,26 @@ input[type='checkbox'].cl-checkbox:focus-visible {
   min-width: 0;
 }
 
-.cl-drop-zone__instruction {
-  font-weight: var(--cl-weight-bold);
+/* The drop zone is the one box: the picker's own zone is only its click and drop target. */
+.cl-drop-zone:hover {
+  border-color: var(--cl-border-hover);
+}
+
+.cl-drop-zone .cl-file-picker,
+.cl-drop-zone .cl-file-picker__zone {
+  background: transparent;
 }
 
 .cl-drop-zone .cl-file-picker__zone {
-  border-style: dashed;
+  align-items: flex-start;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+}
+
+.cl-drop-zone:has(.cl-file-picker--drag-active) {
+  border-color: var(--cl-border-accent);
+  background: var(--cl-surface-hover);
 }
 
 /* In a narrow column the icon sits above the picker instead of squeezing it. */

@@ -5,7 +5,13 @@ import { PreferencesPage } from '../pages/PreferencesPage.js';
 import type { ControlApiClient } from '../../lib/api-client.js';
 import { storyClient, pending, ORG } from '../screen-story-fixtures.js';
 
-function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'failed' }) {
+function Screen({
+  mode,
+  personal = false,
+}: {
+  readonly mode: 'loaded' | 'empty' | 'loading' | 'failed';
+  readonly personal?: boolean;
+}) {
   const client = useMemo(() => {
     function read<T>(value: T): Promise<T> {
       if (mode === 'loading') return pending<T>();
@@ -13,6 +19,16 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
       return Promise.resolve(value);
     }
     return storyClient<ControlApiClient>({
+      listMyOrganizations: () =>
+        read([
+          {
+            organizationId: 'org-1',
+            organizationAlias: ORG,
+            organizationName: 'Liga San Juan',
+            timezone: 'America/Argentina/San_Juan',
+            role: 'admin' as const,
+          },
+        ]),
       getOrganization: () =>
         read({
           organizationId: 'org-1',
@@ -76,7 +92,14 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
     },
     [mode],
   );
-  return <PreferencesPage organizationAlias={ORG} client={client} patFetch={patFetch} />;
+  return (
+    <PreferencesPage
+      client={client}
+      isOrganizationPage={!personal}
+      organizationAlias={ORG}
+      patFetch={patFetch}
+    />
+  );
 }
 
 const meta = {
@@ -105,3 +128,6 @@ export const Stale: Story = {
 };
 
 export const Empty: Story = { args: { mode: 'empty' } };
+
+/** The personal page: theme and personal access tokens, with no organization read. */
+export const Personal: Story = { args: { personal: true } };

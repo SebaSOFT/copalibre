@@ -1,6 +1,7 @@
 import { API_PATH_PREFIX } from '../../../lib/api-path.js';
 import { useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
+import type { OrganizationRole } from '@copalibre/domain';
 import { messages as controlMessages } from '../../i18n/messages.en.js';
 import {
   createControlApiClient,
@@ -9,7 +10,9 @@ import {
   type OrganizationStorageUsageResponse,
   type StatisticsRebuildResponse,
   type UnreferencedObjectResponse,
+  type UpdateOrganizationSettingsRequest,
 } from '../../lib/api-client.js';
+import { roleMayUse } from '../../lib/role-access.js';
 import { csrfHeaders } from '../../session/csrf.js';
 import { useToast } from '../ToastProvider.js';
 import { PreferencesTemplate } from '../screens/PreferencesTemplate.js';
@@ -28,6 +31,13 @@ export function formatStorageBytes(bytes: number): string {
   }
   const mb = bytes / ONE_MB;
   return `${Number(mb.toFixed(2))} MB`;
+}
+
+/** The organization settings the identity card edits, always whole: edits overlay the saved values. */
+export interface OrganizationSettingsDraft {
+  readonly name: string;
+  readonly primaryLanguage: string;
+  readonly timezone: string;
 }
 
 export interface PatResponse {
@@ -85,18 +95,34 @@ export function PreferencesPage({
   );
 
   const [newToken, setNewToken] = useState<PatCreatedResponse | null>(null);
-  const [orgNameEdit, setOrgName] = useState<string | undefined>(undefined);
+  const [settingsEdit, setSettingsEdit] = useState<Partial<OrganizationSettingsDraft>>({});
+  const organizationScope = isOrganizationPage ? organizationAlias : undefined;
   const read = useResilientRead(
-    `control-preferences:${organizationAlias ?? 'personal'}`,
+    `control-preferences:${organizationScope ?? 'personal'}`,
     async () => {
+      if (organizationScope === undefined) {
+        return {
+          role: undefined as OrganizationRole | undefined,
+          organization: undefined as OrganizationResponse | undefined,
+          storageUsage: undefined as OrganizationStorageUsageResponse | undefined,
+          unreferencedObjects: [] as readonly UnreferencedObjectResponse[],
+        };
+      }
+      // A role that cannot be resolved is treated as unknown, which offers every section (the
+      // server still refuses what the role cannot do): the screen must not fail for the role alone.
+      const role = await api
+        .listMyOrganizations()
+        .then((mine) => mine.find((one) => one.organizationAlias === organizationScope)?.role)
+        .catch(() => undefined);
+      // The API refuses storage to a role without settings authority, and a refused request would
+      // fail the whole read, so a role that cannot use the section is never asked for it.
+      const readsStorage = roleMayUse(role, 'org.manage-settings');
       const [organization, storageUsage, unreferencedObjects] = await Promise.all([
-        organizationAlias === undefined ? undefined : api.getOrganization?.(organizationAlias),
-        organizationAlias === undefined ? undefined : api.getStorageUsage?.(organizationAlias),
-        organizationAlias === undefined
-          ? []
-          : (api.listUnreferencedObjects?.(organizationAlias) ?? []),
+        api.getOrganization?.(organizationScope),
+        readsStorage ? api.getStorageUsage?.(organizationScope) : undefined,
+        readsStorage ? (api.listUnreferencedObjects?.(organizationScope) ?? []) : [],
       ]);
-      return { organization, storageUsage, unreferencedObjects };
+      return { role, organization, storageUsage, unreferencedObjects };
     },
     {
       thing: intl.formatMessage(controlMessages.preferencesTitle),
@@ -123,9 +149,13 @@ export function PreferencesPage({
       isEmpty: (value) => value.tokens.length === 0,
     },
   );
-  const { organization, storageUsage, unreferencedObjects = [] } = read.data ?? {};
+  const { role, organization, storageUsage, unreferencedObjects = [] } = read.data ?? {};
   const { tokens = [], patScopes = [] } = tokenRead.data ?? {};
-  const orgName = orgNameEdit ?? organization?.name ?? '';
+  const settingsDraft: OrganizationSettingsDraft = {
+    name: settingsEdit.name ?? organization?.name ?? '',
+    primaryLanguage: settingsEdit.primaryLanguage ?? organization?.primaryLanguage ?? '',
+    timezone: settingsEdit.timezone ?? organization?.timezone ?? '',
+  };
   const setTokens = (change: (current: readonly PatResponse[]) => readonly PatResponse[]): void =>
     tokenRead.update((current) => ({ ...current, tokens: change(current.tokens) }));
   const setOrganization = (organization: OrganizationResponse): void =>
@@ -251,9 +281,9 @@ export function PreferencesPage({
   }
 
   async function deleteUnreferencedObject(objectId: string): Promise<void> {
-    if (!api.deleteObject || organizationAlias === undefined) return;
+    if (!api.deleteObject || organizationScope === undefined) return;
     try {
-      const deleted = await api.deleteObject(organizationAlias, objectId);
+      const deleted = await api.deleteObject(organizationScope, objectId);
       setUnreferencedObjects((current) =>
         current.filter((object) => object.objectId !== deleted.objectId),
       );
@@ -270,13 +300,24 @@ export function PreferencesPage({
     }
   }
 
-  async function saveOrganizationName(): Promise<void> {
-    if (!api.updateOrganizationSettings || organizationAlias === undefined) return;
+  async function saveOrganizationSettings(): Promise<void> {
+    if (!api.updateOrganizationSettings || organizationScope === undefined) return;
+    if (organization === undefined) return;
+    const name = settingsDraft.name.trim();
+    const request: UpdateOrganizationSettingsRequest = {
+      ...(name !== organization.name ? { name } : {}),
+      ...(settingsDraft.primaryLanguage !== organization.primaryLanguage
+        ? { primaryLanguage: settingsDraft.primaryLanguage }
+        : {}),
+      ...(settingsDraft.timezone !== organization.timezone
+        ? { timezone: settingsDraft.timezone }
+        : {}),
+    };
+    if (Object.keys(request).length === 0) return;
     try {
-      const updated = await api.updateOrganizationSettings(organizationAlias, {
-        name: orgName.trim(),
-      });
+      const updated = await api.updateOrganizationSettings(organizationScope, request);
       setOrganization(updated);
+      setSettingsEdit({});
       push({ severity: 'success', message: intl.formatMessage(controlMessages.orgIdentitySaved) });
     } catch (error) {
       pushError(error);
@@ -287,9 +328,9 @@ export function PreferencesPage({
     contentBase64: string;
     contentType: 'image/png';
   }): Promise<void> {
-    if (!api.uploadOrganizationEmblem || organizationAlias === undefined) return;
+    if (!api.uploadOrganizationEmblem || organizationScope === undefined) return;
     try {
-      await api.uploadOrganizationEmblem(organizationAlias, {
+      await api.uploadOrganizationEmblem(organizationScope, {
         filename: 'emblem.png',
         contentType: output.contentType,
         contentBase64: output.contentBase64,
@@ -312,10 +353,10 @@ export function PreferencesPage({
   async function previewStatisticsRebuild(
     tournamentAlias: string,
   ): Promise<StatisticsRebuildResponse | undefined> {
-    if (!api.rebuildStatistics || organizationAlias === undefined) return undefined;
+    if (!api.rebuildStatistics || organizationScope === undefined) return undefined;
     try {
       const result = await api.rebuildStatistics(
-        organizationAlias,
+        organizationScope,
         tournamentAlias.trim() === '' ? undefined : tournamentAlias.trim(),
         true,
       );
@@ -327,10 +368,10 @@ export function PreferencesPage({
   }
 
   async function runStatisticsRebuild(tournamentAlias: string): Promise<boolean> {
-    if (!api.rebuildStatistics || organizationAlias === undefined) return false;
+    if (!api.rebuildStatistics || organizationScope === undefined) return false;
     try {
       const result = await api.rebuildStatistics(
-        organizationAlias,
+        organizationScope,
         tournamentAlias.trim() === '' ? undefined : tournamentAlias.trim(),
         false,
       );
@@ -351,20 +392,22 @@ export function PreferencesPage({
         isOrganizationPage={isOrganizationPage}
         loading={tokenRead.status === 'loading' || tokenRead.status === 'failed-empty'}
         newToken={newToken}
-        onChangeOrgName={setOrgName}
+        onChangeSettings={(change) => setSettingsEdit((current) => ({ ...current, ...change }))}
         onCreatePat={createPat}
         onDeleteUnreferencedObject={deleteUnreferencedObject}
         onRevokePat={revokePat}
         onConfirmRevokePat={confirmPatRevoke}
         onPreviewStatisticsRebuild={previewStatisticsRebuild}
         onRunStatisticsRebuild={runStatisticsRebuild}
-        onSaveOrganizationName={saveOrganizationName}
+        onResetSettings={() => setSettingsEdit({})}
+        onSaveOrganizationSettings={saveOrganizationSettings}
         onUploadOrganizationEmblem={uploadOrganizationEmblem}
         organization={organization}
-        organizationAlias={organizationAlias}
+        organizationAlias={organizationScope}
         orgLoadError={undefined}
         orgLoading={false}
-        orgName={orgName}
+        role={role}
+        settingsDraft={settingsDraft}
         rebuildResult={rebuildResult}
         storageError={undefined}
         storageLoading={false}
