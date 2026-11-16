@@ -168,6 +168,41 @@ export function buildDashboard(input: {
   };
 }
 
+/** The calendar date, `yyyy-mm-dd`, an instant falls on in a zone; `undefined` for a bad instant. */
+function calendarDay(instant: number, timeZone: string | undefined): string | undefined {
+  if (Number.isNaN(instant)) return undefined;
+  const format = (zone: string | undefined): string =>
+    new Intl.DateTimeFormat('en-CA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      ...(zone === undefined ? {} : { timeZone: zone }),
+    }).format(instant);
+  try {
+    return format(timeZone);
+  } catch {
+    // A zone the runtime does not know reads as no zone: the browser's own.
+    return format(undefined);
+  }
+}
+
+/**
+ * How many of these kick-offs, epoch milliseconds, fall on the same calendar day as `now`, in the
+ * organization's zone.
+ *
+ * The zone decides the day: 23:30 in Buenos Aires is already tomorrow in UTC, and an operator
+ * counting "today" counts it.
+ */
+export function countKickoffsOnDay(
+  kickoffs: readonly number[],
+  now: number,
+  timeZone?: string,
+): number {
+  const today = calendarDay(now, timeZone);
+  if (today === undefined) return 0;
+  return kickoffs.filter((kickoff) => calendarDay(kickoff, timeZone) === today).length;
+}
+
 /** Whether this subject may see this organization at all. */
 export function isMember(
   subject: { readonly organizationId?: string },

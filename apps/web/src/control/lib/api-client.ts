@@ -180,6 +180,14 @@ export interface ControlApiClient {
     },
   ) => Promise<{ readonly matches: readonly MatchCardData[] }>;
   /**
+   * Every assignment of the organization's tournaments whose start falls in `[from, to)`, epoch
+   * milliseconds, at most 31 days. Needs the schedule capability.
+   */
+  readonly fetchOrganizationSchedule?: (
+    organizationAlias: string,
+    range: { readonly from: number; readonly to: number },
+  ) => Promise<components['schemas']['OrganizationScheduleResponse']>;
+  /**
    * Tournament completion aggregate summary.
    */
   readonly fetchCompletion?: (
@@ -2553,6 +2561,12 @@ export function createControlApiClient(input: {
         })),
       }));
     },
+
+    fetchOrganizationSchedule: (organizationAlias, { from, to }) =>
+      requestJson<components['schemas']['OrganizationScheduleResponse']>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/schedule?from=${from}&to=${to}`,
+      ),
 
     fetchCompletion: (organizationAlias, tournamentAlias) =>
       requestJson<TournamentCompletionResponse>(

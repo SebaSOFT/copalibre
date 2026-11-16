@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { RealtimeClient } from '@copalibre/realtime';
 import { capabilitiesForRole, type OrganizationRole } from '@copalibre/domain';
@@ -8,9 +8,72 @@ import { useResilientRead } from './use-resilient-read.js';
 import {
   buildDashboard,
   classifyTournamentLifecycle,
+  countKickoffsOnDay,
   type TournamentCard,
 } from '../../lib/dashboard.js';
 import { Dashboard } from '../Dashboard.js';
+import { PageHeaderContext } from '../ui/organisms/page-header.js';
+
+/** The current time, refreshed each minute so a count of "today" turns over at midnight. */
+function useNow(): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
+  return now;
+}
+
+/** How far either side of now the schedule is read: wider than any zone's offset from UTC. */
+const SCHEDULE_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
+
+interface Kickoff {
+  readonly tournamentId: string;
+  readonly startsAt: number;
+}
+
+/**
+ * The published kick-offs around now, across every tournament of the organization, in one request.
+ *
+ * `undefined` is "not known", never "none": the organization schedule is readable only with the
+ * schedule capability, and a failed read is not retried or toasted, because the dashboard is
+ * complete without it. Without the numbers the matches-today count stays off the page, rather
+ * than reading as zero.
+ */
+function useScheduledKickoffs(
+  api: ControlApiClient,
+  organizationAlias: string,
+  enabled: boolean,
+  refreshOn: unknown,
+): readonly Kickoff[] | undefined {
+  const [kickoffs, setKickoffs] = useState<readonly Kickoff[] | undefined>(undefined);
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const readSchedule = api.fetchOrganizationSchedule;
+    if (readSchedule === undefined) return undefined;
+    let current = true;
+    const now = Date.now();
+    readSchedule(organizationAlias, {
+      from: now - SCHEDULE_WINDOW_MS,
+      to: now + SCHEDULE_WINDOW_MS,
+    })
+      .then(({ assignments }) => {
+        if (!current) return;
+        setKickoffs(
+          assignments
+            .filter(({ published }) => published)
+            .map(({ tournamentId, startsAt }) => ({ tournamentId, startsAt })),
+        );
+      })
+      .catch(() => {
+        if (current) setKickoffs(undefined);
+      });
+    return () => {
+      current = false;
+    };
+  }, [api, organizationAlias, enabled, refreshOn]);
+  return enabled ? kickoffs : undefined;
+}
 
 /**
  * The organization dashboard's real tournament list replaces the sample data
@@ -89,7 +152,32 @@ export function DashboardPage({
       isEmpty: ({ tournaments }) => tournaments.length === 0,
     },
   );
-  const tournaments = read.data?.tournaments ?? [];
+  const scheduledKickoffs = useScheduledKickoffs(
+    api,
+    organizationAlias,
+    roleRead.data !== undefined &&
+      capabilitiesForRole(roleRead.data).includes('org.manage-schedule'),
+    read.data,
+  );
+  const organizationTimeZone = useContext(PageHeaderContext)?.organizationTimeZone;
+  const now = useNow();
+  // Counted at render, against today's date in the organization's zone, so the day rolls over
+  // without a reload. With no schedule to count, both the card fact and the summary tile stay
+  // out of the view until an authoritative value exists.
+  const tournaments = (read.data?.tournaments ?? []).map((card): TournamentCard =>
+    scheduledKickoffs === undefined
+      ? card
+      : {
+          ...card,
+          matchesToday: countKickoffsOnDay(
+            scheduledKickoffs
+              .filter(({ tournamentId }) => tournamentId === card.tournamentId)
+              .map(({ startsAt }) => startsAt),
+            now,
+            organizationTimeZone,
+          ),
+        },
+  );
   const organizationId = read.data?.organizationId ?? '';
   const activity = read.data?.activity ?? [];
   const role: OrganizationRole | undefined = roleRead.data;

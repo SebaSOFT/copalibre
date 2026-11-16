@@ -44,6 +44,26 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
         limit: 10,
         offset: 0,
       }),
+      fetchOrganizationSchedule: async () => ({
+        assignments:
+          mode === 'empty'
+            ? []
+            : [
+                {
+                  matchId: ids.match,
+                  status: 'scheduled' as const,
+                  tournamentId: tournament.tournamentId,
+                  stageId: ids.stage,
+                  round: 1,
+                  entrantIds: [ids.first, ids.second],
+                  slotId: ids.first,
+                  venueId: ids.second,
+                  startsAt: Date.now(),
+                  estimatedEnd: Date.now() + 3_600_000,
+                  published: true,
+                },
+              ],
+      }),
       listDisplayTokens: async () => [],
       controlStream: undefined,
       matchConsoleStream: undefined,
