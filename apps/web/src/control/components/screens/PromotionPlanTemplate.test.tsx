@@ -111,11 +111,67 @@ describe('PromotionPlanTemplate', () => {
     ]);
   });
 
-  it('offers a plan that was never saved for saving straight away', () => {
+  it('keeps the unsaved bar hidden while no plan is saved and nothing was edited', () => {
     renderTemplate({ zone: undefined });
 
-    expect(screen.getByRole('status').textContent).toContain('2 unsaved changes');
+    expect(screen.queryByRole('status')).toBeNull();
     expect(screen.getByRole('button', { name: 'Save promotion plan' })).toBeDefined();
+  });
+
+  it('saves a first plan through the plain action, with the bar still hidden after an edit', async () => {
+    const onSave = renderTemplate({ zone: undefined });
+
+    fireEvent.change(screen.getByLabelText('Next stage number'), { target: { value: '3' } });
+    expect(screen.queryByRole('status')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Save promotion plan' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect((onSave.mock.calls[0] as unknown as [string, string, unknown[]]).slice(0, 2)).toEqual([
+      '3',
+      '1',
+    ]);
+  });
+
+  it('hands over to the unsaved bar once the plan exists, and clears it when the saved plan arrives', () => {
+    const { rerender } = render(
+      withIntl(
+        <PromotionPlanTemplate
+          entrantLabel={(id) => id}
+          onSave={() => Promise.resolve()}
+          preview={undefined}
+          previewError={undefined}
+          tournamentAlias="apertura-2026"
+          zone={undefined}
+          zoneNumber={1}
+        />,
+      ),
+    );
+    fireEvent.change(screen.getByLabelText('Next stage number'), { target: { value: '2' } });
+
+    // The page re-reads the zone after saving: the plan now exists with what was typed.
+    rerender(
+      withIntl(
+        <PromotionPlanTemplate
+          entrantLabel={(id) => id}
+          onSave={() => Promise.resolve()}
+          preview={undefined}
+          previewError={undefined}
+          tournamentAlias="apertura-2026"
+          zone={
+            {
+              ...zoneWithPlan,
+              promotionPlan: { nextStageNumber: 2, rules: { perGroupAdvance: 1 } },
+            } as unknown as ZoneResponse
+          }
+          zoneNumber={1}
+        />,
+      ),
+    );
+    expect(screen.queryByRole('button', { name: 'Save promotion plan' })).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Next stage number'), { target: { value: '4' } });
+    expect(screen.getByRole('status').textContent).toContain('1 unsaved change');
   });
 
   it('shows the band each candidate lands in only when the plan declares bands', () => {

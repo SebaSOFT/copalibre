@@ -276,6 +276,7 @@ export const messages: Record<string, string> = {
   'control.authoring.loadFailed': '无法加载项目。',
   'control.authoring.creating': '正在创建赛事...',
   'control.authoring.created': '赛事已创建：{alias}',
+  'control.authoring.emblemFailed': '赛事 {alias} 已创建，但徽章上传失败。请在赛事设置中添加。',
   'control.authoring.createFailed': '无法创建赛事。',
 
   'control.matchConsole.loading': '正在加载比赛控制...',
@@ -667,6 +668,7 @@ export const messages: Record<string, string> = {
   'control.wizard.steps': '步骤',
   'control.wizard.field.name': '名称',
   'control.wizard.field.alias': '别名',
+  'control.wizard.emblemHelp': '可选。赛事创建后添加。',
   'control.wizard.includesMinors.question': '本赛事是否有未成年人参赛？',
   'control.wizard.summary.reviewPrivacy': '检查隐私选择',
   'control.wizard.includesMinors.help':
@@ -843,6 +845,9 @@ export const messages: Record<string, string> = {
   'control.ruleset.source.default': '项目默认值',
   'control.ruleset.action.override': '替换值',
   'control.zoneGroup.groupCountFact': '{count, plural, other {# 个小组}}',
+  'control.zoneGroup.groupMatches': '{count, plural, other {# 场比赛}}',
+  'control.zoneGroup.groupNoMatches': '暂无比赛',
+  'control.zoneGroup.groupVenues': '{count, plural, other {# 个场地}}',
   'control.promotion.column.position': '名次',
   'control.promotion.column.entrant': '参赛者',
   'control.promotion.column.groupRank': '小组名次',

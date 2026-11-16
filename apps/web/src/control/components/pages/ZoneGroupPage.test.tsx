@@ -112,6 +112,77 @@ describe('ZoneGroupPage', () => {
     expect(screen.queryByRole('link', { name: 'Stage 1' })).toBeNull();
   });
 
+  describe('group footer', () => {
+    const matchOf = (groupName: string, venueName?: string, zoneName = 'Zona Campeonato') => ({
+      matchId: `${groupName}-${venueName ?? 'none'}-${Math.random()}`,
+      stageNumber: 1,
+      matchNumber: 1,
+      state: 'upcoming',
+      zoneName,
+      groupName,
+      ...(venueName === undefined ? {} : { venueName }),
+    });
+
+    function renderPage(overrides: Partial<ControlApiClient>): void {
+      render(
+        withIntl(
+          <ZoneGroupPage
+            client={stubClient(overrides)}
+            organizationAlias="liga-mendocina"
+            stageNumber={1}
+            tournamentAlias="apertura-2026"
+          />,
+        ),
+      );
+    }
+
+    it('counts the group matches and names the venue they share', async () => {
+      renderPage({
+        fetchMatchesView: () =>
+          Promise.resolve({
+            matches: [
+              matchOf('Grupo A', 'Aldo Cantoni'),
+              matchOf('Grupo A', 'Aldo Cantoni'),
+              matchOf('Grupo A', 'Aldo Cantoni'),
+              // Another zone's group of the same name never counts here.
+              matchOf('Grupo A', 'Estadio Norte', 'Zona Plata'),
+            ],
+          }),
+      } as unknown as Partial<ControlApiClient>);
+
+      expect(await screen.findByText('3 matches · Aldo Cantoni')).toBeDefined();
+    });
+
+    it('counts venues when the matches use several', async () => {
+      renderPage({
+        fetchMatchesView: () =>
+          Promise.resolve({
+            matches: [matchOf('Grupo A', 'Aldo Cantoni'), matchOf('Grupo A', 'Estadio Norte')],
+          }),
+      } as unknown as Partial<ControlApiClient>);
+
+      expect(await screen.findByText('2 matches · 2 venues')).toBeDefined();
+    });
+
+    it('says a group has no matches yet when the view names none for it', async () => {
+      renderPage({
+        fetchMatchesView: () => Promise.resolve({ matches: [matchOf('Grupo B', 'Aldo Cantoni')] }),
+      } as unknown as Partial<ControlApiClient>);
+
+      expect(await screen.findByText('No matches yet')).toBeDefined();
+    });
+
+    it('claims nothing about fixtures when the matches view cannot be read', async () => {
+      renderPage({
+        fetchMatchesView: () => Promise.reject(new Error('matches view unavailable')),
+      } as unknown as Partial<ControlApiClient>);
+
+      await screen.findAllByText('Grupo A');
+      await waitFor(() => expect(screen.queryByText('No matches yet')).toBeNull());
+      expect(screen.queryByText(/matches?$/)).toBeNull();
+    });
+  });
+
   it('reports an error when renaming a zone fails', async () => {
     render(
       withIntl(

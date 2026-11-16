@@ -290,6 +290,8 @@ export const messages: Record<string, string> = {
   'control.authoring.loadFailed': 'Не удалось загрузить дисциплины.',
   'control.authoring.creating': 'Создание турнира...',
   'control.authoring.created': 'Турнир создан: {alias}',
+  'control.authoring.emblemFailed':
+    'Турнир {alias} создан, но загрузить эмблему не удалось. Добавьте её в настройках турнира.',
   'control.authoring.createFailed': 'Не удалось создать турнир.',
 
   'control.matchConsole.loading': 'Загрузка управления матчем...',
@@ -693,6 +695,7 @@ export const messages: Record<string, string> = {
   'control.wizard.steps': 'Шаги',
   'control.wizard.field.name': 'Название',
   'control.wizard.field.alias': 'Алиас',
+  'control.wizard.emblemHelp': 'Необязательно. Добавляется после создания турнира.',
   'control.wizard.includesMinors.question': 'Участвуют ли в этом турнире несовершеннолетние?',
   'control.wizard.summary.reviewPrivacy': 'Проверить выбор настройки приватности',
   'control.wizard.includesMinors.help':
@@ -882,6 +885,11 @@ export const messages: Record<string, string> = {
   'control.ruleset.action.override': 'Заменить значение',
   'control.zoneGroup.groupCountFact':
     '{count, plural, one {# группа} few {# группы} many {# групп} other {# групп}}',
+  'control.zoneGroup.groupMatches':
+    '{count, plural, one {# матч} few {# матча} many {# матчей} other {# матча}}',
+  'control.zoneGroup.groupNoMatches': 'Матчей пока нет',
+  'control.zoneGroup.groupVenues':
+    '{count, plural, one {# место} few {# места} many {# мест} other {# места}}',
   'control.promotion.column.position': 'Позиция',
   'control.promotion.column.entrant': 'Участник',
   'control.promotion.column.groupRank': 'Место в группе',

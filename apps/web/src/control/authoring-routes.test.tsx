@@ -124,6 +124,121 @@ describe('the tournament authoring route container', () => {
     });
   });
 
+  /** Picks and crops an emblem in the wizard's first step through the real crop dialog. */
+  async function pickEmblem(): Promise<void> {
+    const file = new File(['fake-image'], 'emblem.png', { type: 'image/png' });
+    fireEvent.change(screen.getByLabelText('Upload emblem'), { target: { files: [file] } });
+    const dialog = await screen.findByRole('dialog');
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
+    await waitFor(() =>
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
+    );
+    fireEvent.click(screen.getByText('Apply'));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  }
+
+  async function createWithEmblem(overrides: Partial<ControlApiClient>): Promise<void> {
+    render(
+      withIntl(
+        <TournamentAuthoringTemplate
+          organizationAlias="liga-mendocina"
+          client={client(overrides)}
+        />,
+      ),
+    );
+    await screen.findByLabelText('Name');
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
+    await pickEmblem();
+    for (let step = 0; step < 6; step += 1) continueWizardWithAdultParticipants();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
+    });
+  }
+
+  it('offers the emblem beside the name fields in the first step, as an optional pick', async () => {
+    render(
+      withIntl(
+        <TournamentAuthoringTemplate organizationAlias="liga-mendocina" client={client()} />,
+      ),
+    );
+
+    await screen.findByLabelText('Name');
+    expect(screen.getByRole('heading', { level: 3, name: 'Tournament emblem' })).toBeDefined();
+    expect(screen.getByLabelText('Upload emblem')).toBeDefined();
+    expect(screen.getByText('Optional. It is added once the tournament is created.')).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Remove emblem' })).toBeNull();
+  });
+
+  it('uploads the emblem picked in the first step once the tournament is created', async () => {
+    const uploadTournamentEmblem = jest.fn<NonNullable<ControlApiClient['uploadTournamentEmblem']>>(
+      () => Promise.resolve({ objectId: 'emblem-1' }),
+    );
+
+    await createWithEmblem({
+      createTournament: async (_organizationAlias, request) => ({
+        tournamentId: 't-1',
+        alias: request.alias,
+        name: request.name,
+      }),
+      uploadTournamentEmblem,
+    });
+
+    expect(uploadTournamentEmblem).toHaveBeenCalledWith(
+      'liga-mendocina',
+      'copa-verano',
+      expect.objectContaining({ filename: 'emblem.png', contentType: 'image/png' }),
+    );
+    expect(await screen.findByText('Tournament created: copa-verano')).toBeDefined();
+  });
+
+  it('keeps the created tournament and says the emblem was not uploaded when that fails', async () => {
+    await createWithEmblem({
+      createTournament: async (_organizationAlias, request) => ({
+        tournamentId: 't-1',
+        alias: request.alias,
+        name: request.name,
+      }),
+      uploadTournamentEmblem: () => Promise.reject(new Error('storage unavailable')),
+    });
+
+    expect(
+      await screen.findByText(
+        'Tournament copa-verano was created, but its emblem could not be uploaded. Add it from the tournament settings.',
+      ),
+    ).toBeDefined();
+    expect(screen.queryByText('Tournament created: copa-verano')).toBeNull();
+  });
+
+  it('sends no upload when no emblem was picked', async () => {
+    const uploadTournamentEmblem = jest.fn<NonNullable<ControlApiClient['uploadTournamentEmblem']>>(
+      () => Promise.resolve({ objectId: 'emblem-1' }),
+    );
+    render(
+      withIntl(
+        <TournamentAuthoringTemplate
+          organizationAlias="liga-mendocina"
+          client={client({ uploadTournamentEmblem })}
+        />,
+      ),
+    );
+    await screen.findByLabelText('Name');
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
+    for (let step = 0; step < 6; step += 1) continueWizardWithAdultParticipants();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
+    });
+
+    expect(await screen.findByText('Tournament created: copa-verano')).toBeDefined();
+    expect(uploadTournamentEmblem).not.toHaveBeenCalled();
+  });
+
   it('surfaces backend custom-script refusal verbatim', async () => {
     render(
       withIntl(

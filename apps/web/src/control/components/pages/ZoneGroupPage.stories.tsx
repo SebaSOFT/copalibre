@@ -56,6 +56,19 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
         },
       ],
       fetchZoneEntrants: async () => [ids.second, ids.third],
+      fetchMatchesView: async () => ({
+        matches: [
+          {
+            matchId: ids.match,
+            stageNumber: 1,
+            matchNumber: 1,
+            state: 'upcoming',
+            zoneName: 'Copa Premier',
+            groupName: 'A',
+            venueName: 'Estadio Central',
+          },
+        ],
+      }),
       renameZone: undefined,
       deleteZone: undefined,
       createZone: undefined,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { type PromotionPreviewResponse, type ZoneResponse } from '../../lib/api-client.js';
@@ -190,7 +190,9 @@ export function PromotionPlanTemplate({
   readonly zoneNumber: number;
 }): React.JSX.Element {
   const intl = useIntl();
-  const [initial] = useState(() => initialFormState(zone));
+  // The saved state follows the zone the page reads, so saving a plan clears the bar instead of
+  // leaving it open against the defaults the form was first seeded from.
+  const initial = useMemo(() => initialFormState(zone), [zone]);
   const [nextStageNumber, setNextStageNumber] = useState(initial.nextStageNumber);
   const [perGroupAdvance, setPerGroupAdvance] = useState(initial.perGroupAdvance);
   const [bands, setBands] = useState<readonly BandRow[]>(initial.bands);
@@ -212,10 +214,11 @@ export function PromotionPlanTemplate({
   }
 
   const hasPlan = zone !== undefined && 'promotionPlan' in zone && zone.promotionPlan !== undefined;
-  const nextChanged = !hasPlan || nextStageNumber !== initial.nextStageNumber;
-  const advanceChanged = !hasPlan || perGroupAdvance !== initial.perGroupAdvance;
+  const nextChanged = nextStageNumber !== initial.nextStageNumber;
+  const advanceChanged = perGroupAdvance !== initial.perGroupAdvance;
   const bandsChanged = bandsDiffer(bands, initial.bands);
-  const dirty = nextChanged || advanceChanged || bandsChanged;
+  // With no saved plan there is nothing to differ from: the first plan saves through a plain action.
+  const dirty = hasPlan && (nextChanged || advanceChanged || bandsChanged);
   const changedFields = [
     nextChanged && { id: 'next', label: intl.formatMessage(messages.promotionNextStageNumber) },
     advanceChanged && {
@@ -287,6 +290,14 @@ export function PromotionPlanTemplate({
           </h2>
           <BandCards bands={bands} onAdd={addBand} onRemove={removeBand} onUpdate={updateBand} />
         </section>
+
+        {!hasPlan && (
+          <div className="cl-promotion__first-save">
+            <Button onClick={() => void savePlan()} type="button">
+              <FormattedMessage {...messages.promotionSavePlan} />
+            </Button>
+          </div>
+        )}
 
         <section aria-label={intl.formatMessage(messages.promotionReviewHeading)}>
           <h2 className="cl-promotion__heading">

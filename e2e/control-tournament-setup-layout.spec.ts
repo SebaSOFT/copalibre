@@ -220,6 +220,37 @@ test('the creation wizard names the next step once the first step is complete', 
   await expect(page.getByText('Siguiente: Disciplina')).toBeVisible();
 });
 
+test('the wizard sets the emblem beside the name fields at desktop width and above them on a phone', async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.setViewportSize(DESKTOP);
+  await open(page, SCREENS[2][1], 'es');
+
+  const split = page.locator('.cl-wizard-step-split');
+  const emblem = split.locator(':scope > :nth-child(1)');
+  const fields = split.locator(':scope > :nth-child(2)');
+  await expect(emblem.getByLabel('Subir escudo', { exact: false })).toBeVisible();
+  await expect(fields.getByLabel('Nombre', { exact: true })).toBeVisible();
+  await expect(fields.getByLabel('Alias')).toBeVisible();
+
+  const [emblemBox, fieldsBox] = await Promise.all([emblem.boundingBox(), fields.boundingBox()]);
+  if (emblemBox === null || fieldsBox === null) throw new Error('step 1 panes are not laid out');
+  // The 4/8 media-form split: the emblem column first and half as wide as the fields column.
+  expect(emblemBox.x + emblemBox.width).toBeLessThanOrEqual(fieldsBox.x);
+  expect(fieldsBox.width).toBeGreaterThan(emblemBox.width * 1.6);
+  expect(fieldsBox.width).toBeLessThan(emblemBox.width * 2.4);
+
+  await page.setViewportSize({ width: 768, height: 900 });
+  const [stackedEmblem, stackedFields] = await Promise.all([
+    emblem.boundingBox(),
+    fields.boundingBox(),
+  ]);
+  if (stackedEmblem === null || stackedFields === null) throw new Error('step 1 did not restack');
+  expect(stackedEmblem.y + stackedEmblem.height).toBeLessThanOrEqual(stackedFields.y);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(768);
+});
+
 for (const colorScheme of ['dark', 'light'] as const) {
   test(`the tournament overview meets AA contrast in the ${colorScheme} theme`, async ({
     page,

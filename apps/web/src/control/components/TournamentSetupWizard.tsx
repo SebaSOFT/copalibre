@@ -14,6 +14,7 @@ import { Field } from './ui/molecules/field.js';
 import { StepHeading } from './ui/molecules/step-heading.js';
 import { WizardShell } from './ui/organisms/wizard-shell.js';
 import { StageListEditor } from './StageListEditor.js';
+import { WizardEmblemPane, type WizardEmblem } from './WizardEmblemPane.js';
 import { VisualRuleBuilder } from './ui/organisms/visual-rule-builder.js';
 import { RulesetFieldControl } from './ui/molecules/ruleset-field-control.js';
 import {
@@ -87,7 +88,11 @@ export function TournamentSetupWizard({
     format?: string,
   ) => Promise<readonly TournamentProfileOption[]>;
   readonly vocabulary?: HookScriptVocabulary;
-  readonly onSubmit?: (request: ReturnType<typeof toCreateRequest>) => void;
+  /** The emblem rides along only when the operator picked one: it is not part of the create request. */
+  readonly onSubmit?: (
+    request: ReturnType<typeof toCreateRequest>,
+    extras?: { readonly emblem: WizardEmblem },
+  ) => void;
   readonly initialState?: Partial<WizardState>;
 }): React.JSX.Element {
   const intl = useIntl();
@@ -95,6 +100,7 @@ export function TournamentSetupWizard({
   const [asyncProfiles, setAsyncProfiles] = useState<readonly TournamentProfileOption[]>([]);
   const [privacyReturnToSummary, setPrivacyReturnToSummary] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
+  const [emblem, setEmblem] = useState<WizardEmblem | undefined>(undefined);
   const [state, setState] = useState<WizardState>(() => ({
     ...initialWizard(),
     ...(firstDiscipline === undefined
@@ -173,7 +179,9 @@ export function TournamentSetupWizard({
   }
 
   function submit(): void {
-    onSubmit?.(toCreateRequest(state, vocabulary));
+    const request = toCreateRequest(state, vocabulary);
+    if (emblem === undefined) onSubmit?.(request);
+    else onSubmit?.(request, { emblem });
   }
 
   return (
@@ -241,7 +249,15 @@ export function TournamentSetupWizard({
             title={intl.formatMessage(activeStep.label)}
           />
         )}
-        {state.step === 'name' && <NameStep intl={intl} patch={patch} state={state} />}
+        {state.step === 'name' && (
+          <NameStep
+            emblem={emblem}
+            intl={intl}
+            onEmblemChange={setEmblem}
+            patch={patch}
+            state={state}
+          />
+        )}
 
         {state.step === 'privacy' && <PrivacyStep intl={intl} patch={patch} state={state} />}
 
@@ -309,30 +325,38 @@ export function TournamentSetupWizard({
  * `state.step === '<name>' &&` gate that chooses among them.
  */
 function NameStep({
+  emblem,
   intl,
+  onEmblemChange,
   patch,
   state,
 }: {
+  readonly emblem: WizardEmblem | undefined;
   readonly intl: IntlShape;
+  readonly onEmblemChange: (emblem: WizardEmblem | undefined) => void;
   readonly patch: (next: Partial<WizardState>) => void;
   readonly state: WizardState;
 }): React.JSX.Element {
+  // The same media-form split the tournament settings screen composes: the emblem beside the fields.
   return (
-    <div className="cl-platform-form-grid">
-      <Field id="wizard-name" label={intl.formatMessage(messages.wizardFieldName)}>
-        <Input
-          id="wizard-name"
-          onChange={(event) => patch({ name: event.target.value })}
-          value={state.name ?? ''}
-        />
-      </Field>
-      <Field id="wizard-alias" label={intl.formatMessage(messages.wizardFieldAlias)}>
-        <Input
-          id="wizard-alias"
-          onChange={(event) => patch({ alias: event.target.value })}
-          value={state.alias ?? ''}
-        />
-      </Field>
+    <div className="cl-wizard-step-split">
+      <WizardEmblemPane emblem={emblem} onChange={onEmblemChange} />
+      <div className="cl-platform-form-grid">
+        <Field id="wizard-name" label={intl.formatMessage(messages.wizardFieldName)}>
+          <Input
+            id="wizard-name"
+            onChange={(event) => patch({ name: event.target.value })}
+            value={state.name ?? ''}
+          />
+        </Field>
+        <Field id="wizard-alias" label={intl.formatMessage(messages.wizardFieldAlias)}>
+          <Input
+            id="wizard-alias"
+            onChange={(event) => patch({ alias: event.target.value })}
+            value={state.alias ?? ''}
+          />
+        </Field>
+      </div>
     </div>
   );
 }

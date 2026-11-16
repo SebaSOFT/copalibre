@@ -286,6 +286,8 @@ export const messages: Record<string, string> = {
   'control.authoring.loadFailed': 'Impossibile caricare le discipline.',
   'control.authoring.creating': 'Creazione del torneo...',
   'control.authoring.created': 'Torneo creato: {alias}',
+  'control.authoring.emblemFailed':
+    'Il torneo {alias} è stato creato, ma non è stato possibile caricare lo stemma. Aggiungilo dalle impostazioni del torneo.',
   'control.authoring.createFailed': 'Impossibile creare il torneo.',
 
   'control.matchConsole.loading': 'Caricamento controllo partita...',
@@ -693,6 +695,7 @@ export const messages: Record<string, string> = {
   'control.wizard.steps': 'Passaggi',
   'control.wizard.field.name': 'Nome',
   'control.wizard.field.alias': 'Alias',
+  'control.wizard.emblemHelp': 'Facoltativo. Viene aggiunto quando il torneo è creato.',
   'control.wizard.includesMinors.question': 'Questo torneo include partecipanti minorenni?',
   'control.wizard.summary.reviewPrivacy': 'Rivedi la scelta sulla privacy',
   'control.wizard.includesMinors.help':
@@ -882,6 +885,9 @@ export const messages: Record<string, string> = {
   'control.ruleset.source.default': 'Valore della disciplina',
   'control.ruleset.action.override': 'Sostituisci valore',
   'control.zoneGroup.groupCountFact': '{count, plural, one {# girone} other {# gironi}}',
+  'control.zoneGroup.groupMatches': '{count, plural, one {# partita} other {# partite}}',
+  'control.zoneGroup.groupNoMatches': 'Ancora nessuna partita',
+  'control.zoneGroup.groupVenues': '{count, plural, one {# sede} other {# sedi}}',
   'control.promotion.column.position': 'Posizione',
   'control.promotion.column.entrant': 'Partecipante',
   'control.promotion.column.groupRank': 'Posizione nel girone',

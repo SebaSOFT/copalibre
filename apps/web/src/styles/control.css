@@ -1251,6 +1251,11 @@ input[type='checkbox'].cl-checkbox:focus-visible {
   color: var(--cl-text-secondary);
 }
 
+.cl-promotion__first-save {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .cl-promotion__total-figure {
   color: var(--cl-text-primary);
   font-size: var(--cl-font-size-figure-lg);
@@ -1299,7 +1304,9 @@ input[type='checkbox'].cl-checkbox:focus-visible {
   gap: var(--cl-space-2);
 }
 
-.cl-zone-group__count {
+.cl-zone-group__count,
+.cl-zone-group__facts {
+  margin: 0;
   color: var(--cl-text-muted);
   font-family: var(--cl-font-mono);
   font-size: var(--cl-font-size-xs);
@@ -1330,11 +1337,15 @@ input[type='checkbox'].cl-checkbox:focus-visible {
 }
 
 .cl-zone-group__card-foot {
+  display: grid;
+  justify-items: start;
+  gap: var(--cl-space-2);
   margin-block-start: auto;
 }
 
-.cl-zone-group__assign {
-  inline-size: min(100%, 45rem);
+.cl-zone-group__assign,
+.cl-zone-group__select {
+  inline-size: min(100%, var(--cl-layout-container-form));
   justify-self: start;
 }
 
@@ -1350,9 +1361,28 @@ input[type='checkbox'].cl-checkbox:focus-visible {
   min-width: 0;
 }
 
-.cl-tournament-settings__emblem-heading {
+.cl-tournament-settings__emblem-heading,
+.cl-wizard-step-split__heading {
   font-size: var(--cl-font-size-md);
   font-weight: var(--cl-weight-bold);
+}
+
+/* The wizard step's media-form split: stacked until the viewport can hold the 4/8 columns. */
+.cl-wizard-step-split {
+  display: grid;
+  align-items: start;
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-wizard-step-split > * {
+  min-width: 0;
+}
+
+@media (width >= 1024px) {
+  .cl-wizard-step-split {
+    grid-template-columns: var(--cl-layout-split-media-form);
+  }
 }
 
 .cl-tournament-settings__featured {
@@ -1682,6 +1712,12 @@ input[type='checkbox'].cl-checkbox:focus-visible {
 
 .cl-drop-zone .cl-file-picker__zone {
   border-style: dashed;
+}
+
+/* In a narrow column the icon sits above the picker instead of squeezing it. */
+.cl-drop-zone--stacked {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
 }
 
 @media (width < 768px) {

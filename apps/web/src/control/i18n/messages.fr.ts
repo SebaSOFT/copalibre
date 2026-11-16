@@ -288,6 +288,8 @@ export const messages: Record<string, string> = {
   'control.authoring.loadFailed': 'Impossible de charger les disciplines.',
   'control.authoring.creating': 'Création du tournoi...',
   'control.authoring.created': 'Tournoi créé : {alias}',
+  'control.authoring.emblemFailed':
+    'Le tournoi {alias} a été créé, mais son emblème n’a pas pu être téléversé. Ajoutez-le depuis les paramètres du tournoi.',
   'control.authoring.createFailed': 'Impossible de créer le tournoi.',
 
   'control.matchConsole.loading': 'Chargement du contrôle du match...',
@@ -699,6 +701,7 @@ export const messages: Record<string, string> = {
   'control.wizard.steps': 'Étapes',
   'control.wizard.field.name': 'Nom',
   'control.wizard.field.alias': 'Alias',
+  'control.wizard.emblemHelp': 'Facultatif. Il est ajouté une fois le tournoi créé.',
   'control.wizard.includesMinors.question': 'Ce tournoi accueille-t-il des participants mineurs ?',
   'control.wizard.summary.reviewPrivacy': 'Vérifier le choix de confidentialité',
   'control.wizard.includesMinors.help':
@@ -888,6 +891,9 @@ export const messages: Record<string, string> = {
   'control.ruleset.source.default': 'Valeur de la discipline',
   'control.ruleset.action.override': 'Remplacer la valeur',
   'control.zoneGroup.groupCountFact': '{count, plural, one {# groupe} other {# groupes}}',
+  'control.zoneGroup.groupMatches': '{count, plural, one {# match} other {# matchs}}',
+  'control.zoneGroup.groupNoMatches': 'Pas encore de matchs',
+  'control.zoneGroup.groupVenues': '{count, plural, one {# lieu} other {# lieux}}',
   'control.promotion.column.position': 'Position',
   'control.promotion.column.entrant': 'Participant',
   'control.promotion.column.groupRank': 'Rang dans le groupe',
