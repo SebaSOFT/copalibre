@@ -152,10 +152,10 @@ function thirdPartyRequests(urls: readonly string[]): string[] {
 test.describe('client-side image cutout and emblem display', () => {
   test('handles modal cancellation without submitting unconfirmed upload', async ({ page }) => {
     await mockIdentityUploadApi(page);
-    const preferencesTarget = `/control/${ORG_ALIAS}/preferences`;
-    await seedLoginTransaction(page, preferencesTarget);
+    const organizationTarget = `/control/${ORG_ALIAS}/organization`;
+    await seedLoginTransaction(page, organizationTarget);
     await page.goto(loginCallbackUrl());
-    await page.waitForURL(`**${preferencesTarget}`);
+    await page.waitForURL(`**${organizationTarget}`);
 
     await page.getByLabel('Subir escudo').setInputFiles({
       name: 'test-emblem.png',
@@ -204,10 +204,10 @@ test.describe('client-side image cutout and emblem display', () => {
     });
 
     await mockIdentityUploadApi(page);
-    const preferencesTarget = `/control/${ORG_ALIAS}/preferences`;
-    await seedLoginTransaction(page, preferencesTarget);
+    const organizationTarget = `/control/${ORG_ALIAS}/organization`;
+    await seedLoginTransaction(page, organizationTarget);
     await page.goto(loginCallbackUrl());
-    await page.waitForURL(`**${preferencesTarget}`);
+    await page.waitForURL(`**${organizationTarget}`);
 
     await page.getByLabel('Subir escudo').setInputFiles({
       name: 'org-emblem.png',
@@ -247,10 +247,10 @@ test.describe('client-side image cutout and emblem display', () => {
     await page.route('**/background-removal/**', (route) => route.fulfill({ status: 500 }));
 
     await mockIdentityUploadApi(page);
-    const preferencesTarget = `/control/${ORG_ALIAS}/preferences`;
-    await seedLoginTransaction(page, preferencesTarget);
+    const organizationTarget = `/control/${ORG_ALIAS}/organization`;
+    await seedLoginTransaction(page, organizationTarget);
     await page.goto(loginCallbackUrl());
-    await page.waitForURL(`**${preferencesTarget}`);
+    await page.waitForURL(`**${organizationTarget}`);
 
     await page.getByLabel('Subir escudo').setInputFiles({
       name: 'org-emblem.png',

@@ -133,7 +133,7 @@ test('theme preference persists across reload without a dark flash', async ({ pa
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByRole('region', { name: 'Tema' }).getByLabel('Tema').selectOption('light');
+  await page.getByRole('region', { name: 'Apariencia' }).getByLabel('Tema').selectOption('light');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   expect(await page.evaluate(() => localStorage.getItem('cl-theme'))).toBe('light');
 

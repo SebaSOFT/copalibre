@@ -73,7 +73,7 @@ test('selecting a file opens the crop modal; confirming it uploads and renders t
       body: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
     });
   });
-  const target = '/control/liga-mendocina/preferences';
+  const target = '/control/liga-mendocina/organization';
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
@@ -81,7 +81,7 @@ test('selecting a file opens the crop modal; confirming it uploads and renders t
   // This control shell defaults to Spanish; select English by value (not by
   // its translated label) so the rest of this spec's English assertions
   // hold regardless of that default.
-  await page.getByLabel('Idioma').selectOption('en');
+  await page.getByLabel('Idioma', { exact: true }).selectOption('en');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 
   await expect(page.getByRole('img', { name: 'No emblem uploaded' })).toBeVisible();
@@ -138,7 +138,7 @@ test('cancelling the crop modal leaves the placeholder in place and uploads noth
   page,
 }) => {
   await mockOrganizationApi(page, { uploaded: { calls: 0 } });
-  const target = '/control/liga-mendocina/preferences';
+  const target = '/control/liga-mendocina/organization';
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
@@ -146,7 +146,7 @@ test('cancelling the crop modal leaves the placeholder in place and uploads noth
   // This control shell defaults to Spanish; select English by value (not by
   // its translated label) so the rest of this spec's English assertions
   // hold regardless of that default.
-  await page.getByLabel('Idioma').selectOption('en');
+  await page.getByLabel('Idioma', { exact: true }).selectOption('en');
 
   await expect(page.getByRole('img', { name: 'No emblem uploaded' })).toBeVisible();
 
@@ -313,7 +313,7 @@ test('uploading tournament emblem in control panel renders in tournament setting
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByLabel('Idioma').selectOption('en');
+  await page.getByLabel('Idioma', { exact: true }).selectOption('en');
 
   await expect(page.getByRole('img', { name: 'No tournament emblem uploaded' })).toBeVisible();
 
@@ -357,12 +357,12 @@ test('focusing FilePicker and choosing a file displays the chosen filename and c
   page,
 }) => {
   await mockOrganizationApi(page, { uploaded: { calls: 0 } });
-  const target = '/control/liga-mendocina/preferences';
+  const target = '/control/liga-mendocina/organization';
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByLabel('Idioma').selectOption('en');
+  await page.getByLabel('Idioma', { exact: true }).selectOption('en');
 
   const fileInput = page.getByLabel('Upload emblem');
   await fileInput.focus();
