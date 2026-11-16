@@ -166,6 +166,19 @@ async function mockControlApi(page: Page): Promise<void> {
           return Response.json(entrants.map((entrant) => entrant.entrantId));
         }
 
+        if (url === `${tournament}/internal-matches-view?stageNumber=1` && method === 'GET') {
+          const match = (matchNumber: number) => ({
+            matchId: `match-${matchNumber}`,
+            stageNumber: 1,
+            matchNumber,
+            status: 'scheduled',
+            zoneName: 'Zona 1',
+            groupName: 'Grupo 1',
+            venueName: 'Estadio Central',
+          });
+          return Response.json({ matches: [match(1), match(2)] });
+        }
+
         if (url === `${tournament}/tables`) return Response.json(layouts);
         const projectionMatch = new URL(url, 'https://e2e.example').pathname.endsWith(
           '/tables/group-standings-default',
@@ -221,6 +234,19 @@ test('creates a second zone and group, assigns entrants manually, and reflects i
   const zonesPanel = page.getByRole('region', { name: 'Zonas', exact: true });
   await expect(zonesPanel.getByText('Zona 1')).toBeVisible();
 
+  // The zone select keeps the form width beside the assignment card, not the page width.
+  const selectWidth = await page
+    .locator('#zone-select')
+    .evaluate((element) => element.getBoundingClientRect().width);
+  expect(selectWidth).toBeLessThanOrEqual(720);
+  const assignWidth = await page
+    .getByRole('region', { name: /Asignar (?:entrantes|participantes) a zonas/ })
+    .evaluate((element) => element.getBoundingClientRect().width);
+  expect(selectWidth).toBeLessThanOrEqual(assignWidth);
+
+  // A group's footer counts its matches and names the venue they share.
+  await expect(page.getByText('2 partidos · Estadio Central')).toBeVisible();
+
   // Create a second zone.
   await page.getByLabel('Nombre de la zona nueva').fill('Zona 2');
   await page.getByRole('button', { name: 'Agregar zona' }).click();
@@ -232,6 +258,7 @@ test('creates a second zone and group, assigns entrants manually, and reflects i
   await page.getByLabel('Nombre del grupo nuevo').fill('Grupo 2');
   await page.getByRole('button', { name: 'Agregar grupo' }).click();
   await expect(groupsPanel.getByText('Grupo 2')).toBeVisible();
+  await expect(groupsPanel.getByText('Todavía no hay partidos')).toBeVisible();
 
   // Assign entrants to Zona 2 manually.
   const zoneAssignRegion = page.getByRole('region', {
@@ -388,11 +415,15 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
     page.getByText('Todavía no hay un plan de promoción guardado para esta zona.'),
   ).toBeVisible();
 
+  // No plan is saved: nothing to differ from, so no unsaved-changes bar, only a plain save action.
+  await expect(page.locator('.cl-unsaved-changes-bar')).toHaveCount(0);
   await page.getByLabel('Número de la fase siguiente').fill('2');
   await page.getByLabel(/(?:Entrantes|Participantes) que avanzan por grupo/).fill('2');
+  await expect(page.locator('.cl-unsaved-changes-bar')).toHaveCount(0);
   await page.getByRole('button', { name: 'Guardar plan de promoción' }).click();
 
   await expect(page.getByText('Plan guardado.')).toBeVisible();
+  await expect(page.locator('.cl-unsaved-changes-bar')).toHaveCount(0);
   const review = page.getByRole('region', { name: 'Revisión — orden de candidatos calculado' });
   await expect(review.getByRole('row', { name: /^1\s+Deportivo Norte/ })).toBeVisible();
   await expect(review.getByRole('row', { name: /^2\s+Atlético Sur/ })).toBeVisible();

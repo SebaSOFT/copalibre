@@ -821,6 +821,11 @@ export const messages = defineMessages({
     id: 'control.authoring.created',
     defaultMessage: 'Tournament created: {alias}',
   },
+  authoringEmblemFailed: {
+    id: 'control.authoring.emblemFailed',
+    defaultMessage:
+      'Tournament {alias} was created, but its emblem could not be uploaded. Add it from the tournament settings.',
+  },
   authoringCreateFailed: {
     id: 'control.authoring.createFailed',
     defaultMessage: 'Could not create the tournament.',
@@ -1960,6 +1965,10 @@ export const messages = defineMessages({
   wizardSteps: { id: 'control.wizard.steps', defaultMessage: 'Steps' },
   wizardFieldName: { id: 'control.wizard.field.name', defaultMessage: 'Name' },
   wizardFieldAlias: { id: 'control.wizard.field.alias', defaultMessage: 'Alias' },
+  wizardEmblemHelp: {
+    id: 'control.wizard.emblemHelp',
+    defaultMessage: 'Optional. It is added once the tournament is created.',
+  },
   wizardIncludesMinorsQuestion: {
     id: 'control.wizard.includesMinors.question',
     defaultMessage: 'Do participants in this tournament include minors?',
@@ -2573,6 +2582,18 @@ export const messages = defineMessages({
   zoneGroupGroupCountFact: {
     id: 'control.zoneGroup.groupCountFact',
     defaultMessage: '{count, plural, one {# group} other {# groups}}',
+  },
+  zoneGroupGroupMatches: {
+    id: 'control.zoneGroup.groupMatches',
+    defaultMessage: '{count, plural, one {# match} other {# matches}}',
+  },
+  zoneGroupGroupNoMatches: {
+    id: 'control.zoneGroup.groupNoMatches',
+    defaultMessage: 'No matches yet',
+  },
+  zoneGroupGroupVenues: {
+    id: 'control.zoneGroup.groupVenues',
+    defaultMessage: '{count, plural, one {# venue} other {# venues}}',
   },
   promotionColumnPosition: { id: 'control.promotion.column.position', defaultMessage: 'Position' },
   promotionColumnEntrant: { id: 'control.promotion.column.entrant', defaultMessage: 'Entrant' },

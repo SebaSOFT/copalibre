@@ -12,6 +12,7 @@ import type {
 import { SERIES_RESOLUTION_CLASSES } from '../../lib/stage-authoring.js';
 import { SERIES_CLASS_LABELS } from '../../lib/stage-format-labels.js';
 import { formatEnum } from '../../lib/presentation-formatting.js';
+import type { GroupMatchFacts } from '../../lib/group-match-facts.js';
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
@@ -29,6 +30,33 @@ type AssignMode = 'draw' | 'manual';
 /** entrantId → 1-based zone/group number, as a text field so an empty box is a legal in-progress state. */
 export type ManualPlacements = Readonly<Record<string, string>>;
 
+/** The footer line of a group card: its matches and where they are played, or that it has none yet. */
+function GroupFactsLine({
+  facts,
+}: {
+  readonly facts: GroupMatchFacts | undefined;
+}): React.JSX.Element {
+  const intl = useIntl();
+  if (facts === undefined || facts.matchCount === 0) {
+    return (
+      <p className="cl-zone-group__facts">{intl.formatMessage(messages.zoneGroupGroupNoMatches)}</p>
+    );
+  }
+  const venue =
+    facts.venues.length === 1
+      ? facts.venues[0]
+      : facts.venues.length > 1
+        ? intl.formatMessage(messages.zoneGroupGroupVenues, { count: facts.venues.length })
+        : undefined;
+  return (
+    <p className="cl-zone-group__facts">
+      {[intl.formatMessage(messages.zoneGroupGroupMatches, { count: facts.matchCount }), venue]
+        .filter((part) => part !== undefined)
+        .join(' · ')}
+    </p>
+  );
+}
+
 /**
  * Composes the screen from data and callbacks `ZoneGroupPage` supplies:
  * the new-zone/group forms, draw parameters,
@@ -42,6 +70,7 @@ export function ZoneGroupTemplate({
   availableFormats = [],
   entrantLabel,
   entrants,
+  groupFacts,
   groups,
   onConfigureZone,
   onConfirmGroupDraw,
@@ -72,6 +101,8 @@ export function ZoneGroupTemplate({
   readonly availableFormats?: readonly string[];
   readonly entrantLabel: (entrantId: string) => string;
   readonly entrants: readonly RegistrationResponse[];
+  /** Each group's fixtures by group name; absent while the matches are unavailable, so no card claims a count. */
+  readonly groupFacts?: ReadonlyMap<string, GroupMatchFacts>;
   readonly groups: readonly GroupResponse[];
   readonly onConfigureZone?: (
     zoneNumber: number,
@@ -376,19 +407,21 @@ export function ZoneGroupTemplate({
 
         {zones.length > 0 && (
           <>
-            <Field id="zone-select" label={intl.formatMessage(messages.zoneGroupSelectZone)}>
-              <Select
-                aria-label={intl.formatMessage(messages.zoneGroupSelectZone)}
-                id="zone-select"
-                onValueChange={(val) => onSelectZone(Number(val))}
-                options={zones.map((zone) => ({
-                  value: String(zone.number),
-                  label: zone.name,
-                }))}
-                placeholder={intl.formatMessage(messages.selectPlaceholder)}
-                value={selectedZoneNumber !== undefined ? String(selectedZoneNumber) : ''}
-              />
-            </Field>
+            <div className="cl-zone-group__select">
+              <Field id="zone-select" label={intl.formatMessage(messages.zoneGroupSelectZone)}>
+                <Select
+                  aria-label={intl.formatMessage(messages.zoneGroupSelectZone)}
+                  id="zone-select"
+                  onValueChange={(val) => onSelectZone(Number(val))}
+                  options={zones.map((zone) => ({
+                    value: String(zone.number),
+                    label: zone.name,
+                  }))}
+                  placeholder={intl.formatMessage(messages.selectPlaceholder)}
+                  value={selectedZoneNumber !== undefined ? String(selectedZoneNumber) : ''}
+                />
+              </Field>
+            </div>
 
             <section aria-label={intl.formatMessage(messages.zoneGroupGroupsHeading)}>
               <h2 className="cl-zone-group__heading">
@@ -447,15 +480,20 @@ export function ZoneGroupTemplate({
                         </Button>
                       </div>
                     )}
-                    {api.deleteGroup && (
+                    {(groupFacts !== undefined || api.deleteGroup) && (
                       <div className="cl-zone-group__card-foot">
-                        <Button
-                          onClick={() => void onDeleteGroup(group.number)}
-                          type="button"
-                          variant="destructive-outline"
-                        >
-                          <FormattedMessage {...messages.zoneGroupDelete} />
-                        </Button>
+                        {groupFacts !== undefined && (
+                          <GroupFactsLine facts={groupFacts.get(group.name)} />
+                        )}
+                        {api.deleteGroup && (
+                          <Button
+                            onClick={() => void onDeleteGroup(group.number)}
+                            type="button"
+                            variant="destructive-outline"
+                          >
+                            <FormattedMessage {...messages.zoneGroupDelete} />
+                          </Button>
+                        )}
                       </div>
                     )}
                   </li>

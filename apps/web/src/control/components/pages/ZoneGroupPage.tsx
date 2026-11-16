@@ -13,6 +13,7 @@ import { ZoneGroupTemplate, type ManualPlacements } from '../screens/ZoneGroupTe
 import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
 import { formatEntrant } from '../../lib/presentation-formatting.js';
+import { groupMatchFacts } from '../../lib/group-match-facts.js';
 
 /**
  * Zone/Group management, entrant assignment, and the doorway to a zone's
@@ -72,8 +73,8 @@ export function ZoneGroupPage({
   const groupsRead = useResilientRead(
     `control-zone-groups:${organizationAlias}:${tournamentAlias}:${stageNumber}:${selectedZoneNumber ?? 'none'}`,
     async () => {
-      if (selectedZoneNumber === undefined) return { groups: [], zoneEntrantIds: [] };
-      const [groups, zoneEntrantIds] = await Promise.all([
+      if (selectedZoneNumber === undefined) return { groups: [], zoneEntrantIds: [], matches: [] };
+      const [groups, zoneEntrantIds, matches] = await Promise.all([
         api.listGroups?.(organizationAlias, tournamentAlias, stageNumber, selectedZoneNumber) ??
           Promise.resolve([]),
         api.fetchZoneEntrants?.(
@@ -82,15 +83,26 @@ export function ZoneGroupPage({
           stageNumber,
           selectedZoneNumber,
         ) ?? Promise.resolve([]),
+        // The group cards count their matches from the matches view. Without it they say nothing
+        // about fixtures, rather than claiming none.
+        api
+          .fetchMatchesView?.(organizationAlias, tournamentAlias, { stageNumber })
+          .then((view) => view.matches)
+          .catch(() => undefined) ?? Promise.resolve(undefined),
       ]);
-      return { groups, zoneEntrantIds };
+      return { groups, zoneEntrantIds, matches };
     },
     {
       thing: intl.formatMessage(messages.zoneGroupTitle),
       isEmpty: (data) => data.groups.length === 0,
     },
   );
-  const { groups = [], zoneEntrantIds = [] } = groupsRead.data ?? {};
+  const { groups = [], zoneEntrantIds = [], matches } = groupsRead.data ?? {};
+  const selectedZoneName = zones.find((zone) => zone.number === selectedZoneNumber)?.name;
+  const groupFacts =
+    matches === undefined || selectedZoneName === undefined
+      ? undefined
+      : groupMatchFacts(matches, selectedZoneName);
   const reloadGroups = groupsRead.retry;
   const groupEntrants = new Map(
     groups.flatMap((group) => group.entrants ?? []).map((entrant) => [entrant.entrantId, entrant]),
@@ -395,6 +407,7 @@ export function ZoneGroupPage({
           api={api}
           entrantLabel={entrantLabel}
           entrants={entrants}
+          groupFacts={groupFacts}
           groups={groups}
           availableFormats={stage?.availableFormats ?? []}
           stageName={stage?.name?.trim() || undefined}

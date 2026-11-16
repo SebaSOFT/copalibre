@@ -290,6 +290,8 @@ export const messages: Record<string, string> = {
   'control.authoring.loadFailed': 'Die Disziplinen konnten nicht geladen werden.',
   'control.authoring.creating': 'Turnier wird erstellt...',
   'control.authoring.created': 'Turnier erstellt: {alias}',
+  'control.authoring.emblemFailed':
+    'Das Turnier {alias} wurde erstellt, das Wappen konnte aber nicht hochgeladen werden. Füge es in den Turniereinstellungen hinzu.',
   'control.authoring.createFailed': 'Das Turnier konnte nicht erstellt werden.',
 
   'control.matchConsole.loading': 'Spielsteuerung wird geladen...',
@@ -698,6 +700,7 @@ export const messages: Record<string, string> = {
   'control.wizard.steps': 'Schritte',
   'control.wizard.field.name': 'Name',
   'control.wizard.field.alias': 'Alias',
+  'control.wizard.emblemHelp': 'Optional. Es wird hinzugefügt, sobald das Turnier erstellt ist.',
   'control.wizard.includesMinors.question': 'Nehmen Minderjährige an diesem Turnier teil?',
   'control.wizard.summary.reviewPrivacy': 'Datenschutzangabe prüfen',
   'control.wizard.includesMinors.help':
@@ -888,6 +891,10 @@ export const messages: Record<string, string> = {
   'control.ruleset.source.default': 'Standard der Disziplin',
   'control.ruleset.action.override': 'Wert ersetzen',
   'control.zoneGroup.groupCountFact': '{count, plural, one {# Gruppe} other {# Gruppen}}',
+  'control.zoneGroup.groupMatches': '{count, plural, one {# Spiel} other {# Spiele}}',
+  'control.zoneGroup.groupNoMatches': 'Noch keine Spiele',
+  'control.zoneGroup.groupVenues':
+    '{count, plural, one {# Austragungsort} other {# Austragungsorte}}',
   'control.promotion.column.position': 'Platz',
   'control.promotion.column.entrant': 'Teilnehmer',
   'control.promotion.column.groupRank': 'Platz in der Gruppe',
