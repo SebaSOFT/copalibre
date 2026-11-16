@@ -194,6 +194,19 @@ Cria a primeira conta de administrador de uma organização.
 O alias não pode ser um nome que a plataforma já usa nos seus endereços, como `login`, `platform`,
 `tv`, `api` ou um código de idioma como `es`; nesse caso o comando o recusa e explica o motivo.
 
+## grant-first-super-admin
+
+`copalibre grant-first-super-admin --email <email>`
+
+Concede super-admin a uma conta que já existe, e apenas enquanto a instalação não tiver nenhum
+super-admin ativo. Qualquer outra forma de concedê-lo exige que já exista um super-admin, então este é
+o caminho até o primeiro.
+
+A pessoa precisa de uma conta: aceitou um convite ou entrou uma vez. O comando lê `DATABASE_URL`,
+então execute-o onde o banco de dados esteja acessível. A concessão vale a partir do próximo login. Se
+já houver um super-admin ativo, o comando recusa, avisa e registra a tentativa no registro de
+auditoria; a partir daí, os super-admins são gerenciados na tela de plataforma do painel de controle.
+
 ## login
 
 `copalibre login [--api-url <url>] [--token <token>]`
