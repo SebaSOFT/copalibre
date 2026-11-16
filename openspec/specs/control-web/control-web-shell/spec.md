@@ -477,3 +477,22 @@ Each rail entry SHALL open a distinct screen, the rail SHALL mark the entry that
 
 - **WHEN** an operator opens a named stage
 - **THEN** the breadcrumb shows that name
+
+### Requirement: Control links to the API reference, and nothing else does
+
+The control panel SHALL link to the API reference from its navigation footer and from the personal access tokens card, each opening it in a new tab. Neither the public pages nor the help site SHALL link to it.
+
+#### Scenario: The navigation footer carries the link
+
+- **WHEN** an operator views any control-panel screen
+- **THEN** the navigation footer offers the API reference, in the operator's language, opening in a new tab
+
+#### Scenario: The token card carries the link
+
+- **WHEN** an operator opens the preferences screen
+- **THEN** the personal access tokens card links to the API reference, where the token is used
+
+#### Scenario: Public and help pages do not link to it
+
+- **WHEN** a visitor opens the public home page or the help site
+- **THEN** no link to the API reference appears
