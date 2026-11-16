@@ -32,3 +32,31 @@ raw UI colour.
 - **WHEN** a TV overlay receives a chroma-key rendering value
 - **THEN** it renders as the supplied key without treating that externally selected value as a semantic
   state or brand token
+
+### Requirement: A detector exception is a recorded decision
+
+Every entry in the design detector's `ignoreValues` SHALL name its rule, carry a date and a reason that says who decided and on what evidence, and SHALL NOT turn a rule off under a wildcard without naming the files it covers. A build-time check SHALL fail, naming each entry, when one does not.
+
+#### Scenario: An exception with no reason
+
+- **WHEN** an entry is added to `.impeccable/config.json` with no reason, or a reason too short to name a decision
+- **THEN** the check fails and names the entry
+
+#### Scenario: A wildcard with no files
+
+- **WHEN** an entry silences a rule for every value and lists no files
+- **THEN** the check fails, because that silences the rule everywhere
+
+### Requirement: A left state rail is paired with its label
+
+A left rail in the state colour SHALL be 4px, as `DESIGN.md` prescribes, and SHALL appear only where the same element carries a written label for the state it shows.
+
+#### Scenario: The live match row
+
+- **WHEN** a match-day row shows a live match
+- **THEN** its rail is 4px in the live colour and the row carries the live state badge
+
+#### Scenario: A featured tournament card
+
+- **WHEN** a tournament card is featured
+- **THEN** its border is the same 1px as every card, and the featured state is said by its badge, not by a thicker edge
