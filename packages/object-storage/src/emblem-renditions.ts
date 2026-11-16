@@ -1,5 +1,3 @@
-import sharp from 'sharp';
-
 /**
  * The only widths an emblem rendition is made at. A fixed list bounds the
  * work and the storage per emblem to three files, which is what lets the API
@@ -55,6 +53,10 @@ export async function renderEmblemRendition(
   original: Uint8Array,
   width: EmblemRenditionWidth,
 ): Promise<Buffer> {
+  // Loaded when a rendition is made, not when this package is. The CLI bundles this package and is
+  // shipped as a single executable that can load only built-in modules, so a native module imported
+  // at the top would stop it from starting.
+  const { default: sharp } = await import('sharp');
   return sharp(original)
     .resize({ width, withoutEnlargement: true })
     .webp({ quality: 82, effort: 4 })
