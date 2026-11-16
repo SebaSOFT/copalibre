@@ -487,9 +487,20 @@ describe('Form', () => {
     const form = container.querySelector('form');
     expect(form).not.toBeNull();
     expect(form?.className).toContain('cl-form');
-    expect(form?.parentElement?.className).toContain('cl-container--form');
     fireEvent.submit(form as HTMLFormElement);
     expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('adds no wrapper, so it starts at its parent’s left edge', () => {
+    const { container } = render(
+      <Form>
+        <span>x</span>
+      </Form>,
+    );
+    const form = container.querySelector('form');
+    expect(form?.parentElement).toBe(container);
+    expect(container.querySelector('.cl-container')).toBeNull();
+    expect(form?.getAttribute('style')).toBeNull();
   });
 
   it('passes noValidate through to the native element', () => {
