@@ -302,6 +302,8 @@ jobs:
       - run: node scripts/check-help-locale-parity.mjs
       - run: node --test scripts/check-help-coverage.test.mjs
       - run: node scripts/check-help-coverage.mjs
+      - run: node --test scripts/check-doc-routes.test.mjs
+      - run: node scripts/check-doc-routes.mjs
       # Tracked content never cites a git-ignored OpenSpec change by number.
       - run: node --test scripts/check-change-number-references.test.mjs
       - run: node scripts/check-change-number-references.mjs
@@ -562,7 +564,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: node scripts/check-third-party-notices.mjs
 
-  # Web build producer: generates tokens, copies OpenAPI/Scalar assets,
+  # Web build producer: generates tokens, copies the OpenAPI artifact,
   # generates authoring docs, and compiles the Astro production build once per commit.
   # Emits a tagged .build-identity.json verified by all downstream consumers
   # (Public web build, Help docs build, and release E2E test shards).
@@ -638,9 +640,8 @@ jobs:
       - name: Check public performance budget configuration
         run: node --test scripts/lighthouse/budgets.test.mjs
 
-  # Starlight and the statically served Scalar document are inspected from
-  # the single verified producer artifact, including the proof that the
-  # API reference builds without a live API.
+  # Starlight and the statically served OpenAPI document are inspected from
+  # the single verified producer artifact, built without a live API.
   docs-build:
     name: Help docs build
     runs-on: ubuntu-latest
