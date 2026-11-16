@@ -1924,6 +1924,7 @@ export const messages: Record<string, string> = {
   'control.analytics.column.action': 'Ouvrir',
   'control.analytics.openTournament': 'Ouvrir {name}',
   'control.analytics.paginationLabel': 'Pages des tournois',
+  'control.analytics.exportCsv': 'Exporter en CSV',
   'control.pagination.previous': 'Précédent',
   'control.pagination.next': 'Suivant',
   'control.preferences.description':

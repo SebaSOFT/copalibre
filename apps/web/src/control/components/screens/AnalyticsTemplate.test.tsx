@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { TournamentCompletionResponse } from '@copalibre/contracts';
 import type { TournamentResponse } from '../../lib/api-client.js';
@@ -196,5 +197,97 @@ describe('AnalyticsTemplate', () => {
 
     expect(screen.getByText('Loading Analytics')).toBeTruthy();
     expect(screen.queryByRole('table')).toBeNull();
+  });
+});
+
+describe('AnalyticsTemplate export', () => {
+  const props = {
+    completionByTournament: {},
+    failed: false,
+    loading: false,
+    onRetry: () => undefined,
+    organizationAlias: 'liga-mendocina',
+    staleSince: undefined,
+  } as const;
+
+  function numbered(count: number): readonly TournamentResponse[] {
+    return Array.from({ length: count }, (_, index) => ({
+      ...tournament,
+      tournamentId: `019927d0-0000-7000-8000-0000000002${String(index).padStart(2, '0')}`,
+      alias: `copa-${index + 1}`,
+      name: `Copa ${index + 1}`,
+    }));
+  }
+
+  it('exports every tournament, not only the page on screen, with the table columns', () => {
+    const onExportCsv = jest.fn();
+    render(
+      withIntl(
+        <AnalyticsTemplate
+          {...props}
+          completionByTournament={{ 'copa-1': completion }}
+          onExportCsv={onExportCsv}
+          tournaments={numbered(12)}
+        />,
+      ),
+    );
+    // The table shows ten rows; the file holds all twelve.
+    expect(screen.getAllByRole('link', { name: /^Open Copa/ })).toHaveLength(10);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+
+    expect(onExportCsv).toHaveBeenCalledTimes(1);
+    const lines = (onExportCsv.mock.calls[0]?.[0] as string).trimEnd().split('\n');
+    expect(lines).toHaveLength(13);
+    expect(lines[0]).toBe('Tournament,Status,Match progress,Live matches');
+    expect(lines[1]).toBe('Copa 1,In progress,5 / 8 matches,1');
+    // No completion read yet: empty cells, not zeros.
+    expect(lines[12]).toBe('Copa 12,In progress,,');
+  });
+
+  it('quotes a tournament name with a comma and neutralizes a formula', () => {
+    const onExportCsv = jest.fn();
+    render(
+      withIntl(
+        <AnalyticsTemplate
+          {...props}
+          onExportCsv={onExportCsv}
+          tournaments={[
+            { ...tournament, name: 'Copa, Norte' },
+            { ...tournament, tournamentId: 'other', alias: 'other', name: '=SUM(A1)' },
+          ]}
+        />,
+      ),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+
+    const lines = (onExportCsv.mock.calls[0]?.[0] as string).trimEnd().split('\n');
+    expect(lines[1]).toBe('"Copa, Norte",In progress,,');
+    expect(lines[2]).toBe("'=SUM(A1),In progress,,");
+  });
+
+  it('offers no export where the page cannot save a file, or while there is nothing to export', () => {
+    const { rerender } = render(
+      withIntl(<AnalyticsTemplate {...props} tournaments={[tournament]} />),
+    );
+    expect(screen.queryByRole('button', { name: 'Export CSV' })).toBeNull();
+
+    rerender(
+      withIntl(<AnalyticsTemplate {...props} onExportCsv={() => undefined} tournaments={[]} />),
+    );
+    expect(screen.getByRole('button', { name: 'Export CSV' }).hasAttribute('disabled')).toBe(true);
+
+    rerender(
+      withIntl(
+        <AnalyticsTemplate
+          {...props}
+          loading
+          onExportCsv={() => undefined}
+          tournaments={[tournament]}
+        />,
+      ),
+    );
+    expect(screen.queryByRole('button', { name: 'Export CSV' })).toBeNull();
   });
 });

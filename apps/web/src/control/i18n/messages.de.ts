@@ -1930,6 +1930,7 @@ export const messages: Record<string, string> = {
   'control.analytics.column.action': 'Öffnen',
   'control.analytics.openTournament': '{name} öffnen',
   'control.analytics.paginationLabel': 'Turnierseiten',
+  'control.analytics.exportCsv': 'CSV exportieren',
   'control.pagination.previous': 'Zurück',
   'control.pagination.next': 'Weiter',
   'control.preferences.description':

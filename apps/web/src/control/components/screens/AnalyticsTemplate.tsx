@@ -1,10 +1,12 @@
 import type { TournamentCompletionResponse } from '@copalibre/contracts';
-import { useIntl } from 'react-intl';
+import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { messages } from '../../i18n/messages.en.js';
 import { useState } from 'react';
 import { type TournamentResponse } from '../../lib/api-client.js';
 import { controlLinkClick } from '../../lib/control-navigation.js';
+import { toCsv } from '../../lib/csv.js';
 import { Badge } from '../ui/atoms/badge.js';
+import { Button } from '../ui/atoms/button.js';
 import { LinkButton } from '../ui/atoms/link-button.js';
 import { Stack } from '../ui/atoms/layout/stack.js';
 import { RatioBar } from '../ui/atoms/ratio-bar.js';
@@ -53,10 +55,37 @@ function statusClassName(status: TournamentResponse['status']): string {
   }
 }
 
+/**
+ * The overview as a file: the table's columns, one row per tournament, every page of it.
+ * A count whose completion has not loaded is left empty, never written as a zero.
+ */
+function overviewCsv(intl: IntlShape, rows: readonly TournamentActivityRow[]): string {
+  return toCsv(
+    [
+      intl.formatMessage(messages.analyticsColumnTournament),
+      intl.formatMessage(messages.analyticsColumnStatus),
+      intl.formatMessage(messages.analyticsColumnProgress),
+      intl.formatMessage(messages.analyticsColumnLiveMatches),
+    ],
+    rows.map(({ tournament, completion }) => [
+      tournament.name,
+      intl.formatMessage(statusMessage(tournament.status)),
+      completion === undefined
+        ? undefined
+        : intl.formatMessage(messages.analyticsMatchProgress, {
+            resolved: completion.resolvedMatches,
+            total: completion.totalMatches,
+          }),
+      completion?.liveMatches,
+    ]),
+  );
+}
+
 /** Composes the screen from page-supplied data; it owns no fetching or state. */
 export function AnalyticsTemplate({
   failed,
   loading,
+  onExportCsv,
   onRetry,
   organizationAlias,
   staleSince,
@@ -65,6 +94,8 @@ export function AnalyticsTemplate({
 }: {
   readonly failed: boolean;
   readonly loading: boolean;
+  /** Hands the overview, as CSV text, to the page that saves it; absent when it cannot. */
+  readonly onExportCsv?: (csv: string) => void;
   readonly onRetry: () => void;
   readonly organizationAlias: string;
   readonly staleSince: number | undefined;
@@ -187,6 +218,18 @@ export function AnalyticsTemplate({
   const resolvedMatches = measured.reduce((sum, completion) => sum + completion.resolvedMatches, 0);
   const totalMatches = measured.reduce((sum, completion) => sum + completion.totalMatches, 0);
 
+  const exportAction =
+    onExportCsv === undefined || loading || failed ? undefined : (
+      <Button
+        disabled={rows.length === 0}
+        onClick={() => onExportCsv(overviewCsv(intl, rows))}
+        type="button"
+        variant="secondary"
+      >
+        <FormattedMessage {...messages.analyticsExportCsv} />
+      </Button>
+    );
+
   const loadingNode = (
     <Skeleton label={intl.formatMessage(messages.analyticsLoading)} variant="block" />
   );
@@ -269,6 +312,7 @@ export function AnalyticsTemplate({
     >
       <Stack className="cl-analytics" gap="6">
         <WorkspaceTemplate
+          actions={exportAction}
           description={intl.formatMessage(messages.analyticsSubtitle)}
           primaryLabel={intl.formatMessage(messages.analyticsPrimaryLabel)}
           primaryPane={loading || failed ? loadingNode : chartPane}

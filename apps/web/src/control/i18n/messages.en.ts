@@ -5625,6 +5625,7 @@ export const messages = defineMessages({
     id: 'control.analytics.paginationLabel',
     defaultMessage: 'Tournaments pages',
   },
+  analyticsExportCsv: { id: 'control.analytics.exportCsv', defaultMessage: 'Export CSV' },
   paginationPrevious: { id: 'control.pagination.previous', defaultMessage: 'Previous' },
   paginationNext: { id: 'control.pagination.next', defaultMessage: 'Next' },
   preferencesDescription: {
