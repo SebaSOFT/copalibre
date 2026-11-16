@@ -6,7 +6,7 @@ import { FIXTURE_SIDE_SOURCE_MODELS } from '../dto/fixture-side-source.dto.js';
 /**
  * The OpenAPI artifact is generated from the decorated controllers so the spec
  * cannot drift from the implementation, then contract-linted and
- * breaking-change-checked in CI before Scalar serves it.
+ * breaking-change-checked in CI before the web build serves it at `/openapi/v1.json`.
  */
 /**
  * Bumped to 2.0.0 for `descriptorVersion`

@@ -72,8 +72,9 @@ Claims a neighboring product could not truthfully copy:
 - **Remote day-two operations.** From a machine without database access, a personal access token
   generated in the panel's preferences screen authorizes `statistics-rebuild` and
   `module add/list/remove/verify` over HTTP. `copalibre mcp` exposes the same operations to an AI agent.
-- **Self-contained documentation.** Operator help and a fully static OpenAPI reference are served from
-  the running instance at `/help/` and `/help/api-reference/`, with no live-API or internet dependency.
+- **Self-contained documentation.** Operator help is served from the running instance at `/help/`, and
+  the reviewed OpenAPI document at `/openapi/v1.json`, with no live-API or internet dependency. There is
+  no rendered API reference page.
 - **Eight interface languages**, complete: English, Spanish, Portuguese, French, Italian, German,
   Russian, Chinese.
 
@@ -150,7 +151,7 @@ Repository artifacts only:
 - The logo, and the design system recorded in `DESIGN.md` plus `.impeccable/design.json`.
 - Operator, public, and TV components in the local Storybook workbench
   (`yarn workspace @copalibre/web storybook`) — local review only, not hosted, not built in CI.
-- The static OpenAPI reference and operator help served by a running instance.
+- Operator help and the reviewed OpenAPI document, both served statically by a running instance.
 - Documentation under `docs/`, including review evidence in `docs/reviews/` and
   `docs/SCREEN-STORY-REVIEW.md`.
 

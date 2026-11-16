@@ -242,16 +242,17 @@ Add `*.test.ts(x)` beside unit-tested code and `*.integration.test.ts` for datab
 
 Do not assert a short-lived class with `toHaveClass`. `cl-flash-on-change` lives 600ms and Playwright's polling backs off to 1s, so it can miss the class and fail at random. Record it with a `MutationObserver` from `page.addInitScript`, and read any computed style in that callback.
 
-## Help and API Reference
+## Help and the OpenAPI Document
 
-Keep Starlight, Pagefind, and Scalar dependencies pinned. `prefetch: false` in the Astro config is
+Keep Starlight and Pagefind dependencies pinned. `prefetch: false` in the Astro config is
 intentional: Starlight otherwise injects prefetch JavaScript into public broadcast pages, which must
 remain complete without JavaScript. Any docs dependency or ClientRouter lifecycle change requires
 `yarn workspace @copalibre/web verify:docs` and the focused help Playwright spec.
 
-The API reference reads the reviewed same-origin `/openapi/v1.json` artifact; it must never fetch a
-live API document. Its Scalar route deliberately forces a full document load and keeps request
-execution, authentication, client generation, telemetry, developer tools, and downloads disabled.
+There is no API reference page and no Scalar: the reviewed `packages/contracts/openapi/v1.json` is
+copied into the static build and served at `/openapi/v1.json`, and it must never be fetched from a live
+API. A living document names a `/help/` route only when a help page produces it;
+`node scripts/check-doc-routes.mjs` fails otherwise.
 
 ## CI and Infrastructure
 

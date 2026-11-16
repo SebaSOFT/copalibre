@@ -165,10 +165,6 @@ export const messages = defineMessages({
   },
   headerTournamentTeams: { id: 'publicWeb.header.tournamentTeams', defaultMessage: 'Teams' },
   headerNavHelp: { id: 'publicWeb.header.navHelp', defaultMessage: 'Help' },
-  headerNavApiReference: {
-    id: 'publicWeb.header.navApiReference',
-    defaultMessage: 'API reference',
-  },
   headerControlPanel: { id: 'publicWeb.header.controlPanel', defaultMessage: 'Control panel' },
   layoutFooter: {
     id: 'publicWeb.layout.footer',
