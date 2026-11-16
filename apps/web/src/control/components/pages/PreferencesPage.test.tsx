@@ -137,6 +137,7 @@ describe('PreferencesPage', () => {
 
   it('keeps organization settings usable when the token read fails', async () => {
     const client = {
+      listMyOrganizations: jest.fn(async () => []),
       getOrganization: jest.fn(async () => ({
         organizationId: 'org-id',
         alias: 'liga',
@@ -149,7 +150,12 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="es">
-        <PreferencesPage client={client} organizationAlias="liga" patFetch={patFetch} />
+        <PreferencesPage
+          isOrganizationPage
+          client={client}
+          organizationAlias="liga"
+          patFetch={patFetch}
+        />
       </ControlIntl>,
     );
 
@@ -410,7 +416,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -454,7 +460,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -482,7 +488,7 @@ describe('PreferencesPage', () => {
     });
     const { unmount } = render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -505,7 +511,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -529,7 +535,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -550,7 +556,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -574,7 +580,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -608,7 +614,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -635,7 +641,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -677,7 +683,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -714,7 +720,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -746,7 +752,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -767,7 +773,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -785,7 +791,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -807,7 +813,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -830,7 +836,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -854,7 +860,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -891,15 +897,34 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
-    expect(await screen.findByText('image/png')).toBeDefined();
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    // The list has a visible title, and each row names the file's type, size and date.
+    expect(await screen.findByRole('heading', { name: 'Unused uploads' })).toBeDefined();
+    expect(await screen.findByText('image/png · 0 MB · 1/1/2026')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: /^Delete image\/png file of/ }));
+
+    // Nothing is deleted until the confirmation is accepted, and it names the file.
+    const dialog = await screen.findByRole('dialog', { name: 'Delete this file?' });
+    expect(
+      within(dialog).getByText(/This image\/png file \(0 MB, uploaded 1\/1\/2026\)/),
+    ).toBeDefined();
+    expect(deleteObject).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(deleteObject).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Delete image\/png file of/ }));
+    fireEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Delete this file?' })).getByRole('button', {
+        name: 'Delete',
+      }),
+    );
 
     await waitFor(() => expect(deleteObject).toHaveBeenCalledWith('liga-mendocina', 'object-1'));
-    await waitFor(() => expect(screen.queryByText('image/png')).toBeNull());
+    await waitFor(() => expect(screen.queryByText(/image\/png · /)).toBeNull());
     expect(await screen.findByText('0.01 MB across 4 files')).toBeDefined();
   });
 
@@ -925,12 +950,17 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
-    expect(await screen.findByText('image/png')).toBeDefined();
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(await screen.findByText(/image\/png · /)).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: /^Delete image\/png file of/ }));
+    fireEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Delete this file?' })).getByRole('button', {
+        name: 'Delete',
+      }),
+    );
 
     expect(await screen.findByText('The request could not be completed. Try again.')).toBeDefined();
   });
@@ -951,7 +981,7 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
@@ -970,10 +1000,222 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
 
     await expectFirstReadFailure();
+  });
+
+  describe('the organization screen and the personal page', () => {
+    const member = (role: 'admin' | 'referee') => [
+      {
+        organizationId: 'org-1',
+        organizationAlias: 'liga-mendocina',
+        organizationName: 'Liga Mendocina',
+        timezone: 'America/Argentina/San_Juan',
+        role,
+      },
+    ];
+
+    it('saves the changed name, language and time zone together in one request', async () => {
+      const updateOrganizationSettings = jest.fn<
+        NonNullable<ControlApiClient['updateOrganizationSettings']>
+      >(() =>
+        Promise.resolve({
+          ...organization,
+          name: 'Liga Cuyana',
+          primaryLanguage: 'pt',
+          timezone: 'Europe/Paris',
+        }),
+      );
+      const client = stubClient({
+        listMyOrganizations: () => Promise.resolve(member('admin')),
+        getOrganization: () => Promise.resolve(organization),
+        getStorageUsage: () => Promise.resolve({ totalBytes: 0, objectCount: 0 }),
+        listUnreferencedObjects: () => Promise.resolve([]),
+        updateOrganizationSettings,
+      });
+
+      render(
+        <ControlIntl locale="en">
+          <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
+        </ControlIntl>,
+      );
+
+      const name = await screen.findByDisplayValue('Liga Mendocina');
+      expect(screen.queryByText(/unsaved change/)).toBeNull();
+      fireEvent.change(name, { target: { value: 'Liga Cuyana' } });
+      fireEvent.change(screen.getByRole('combobox', { name: 'Primary language' }), {
+        target: { value: 'pt' },
+      });
+      fireEvent.change(screen.getByRole('combobox', { name: 'Time zone' }), {
+        target: { value: 'Europe/Paris' },
+      });
+
+      // The unsaved-changes bar lists all three, and one save carries all three.
+      expect(await screen.findByText('3 unsaved changes')).toBeDefined();
+      const changed = within(screen.getByRole('list', { name: 'Changed fields' }));
+      expect(changed.getByText('Name')).toBeDefined();
+      expect(changed.getByText('Primary language')).toBeDefined();
+      expect(changed.getByText('Time zone')).toBeDefined();
+      fireEvent.click(screen.getByRole('button', { name: 'Save organization details' }));
+
+      await waitFor(() => expect(updateOrganizationSettings).toHaveBeenCalledTimes(1));
+      expect(updateOrganizationSettings).toHaveBeenCalledWith('liga-mendocina', {
+        name: 'Liga Cuyana',
+        primaryLanguage: 'pt',
+        timezone: 'Europe/Paris',
+      });
+      await waitFor(() => expect(screen.queryByText(/unsaved change/)).toBeNull());
+    });
+
+    it('sends only what changed, and drops the edits on reset', async () => {
+      const updateOrganizationSettings = jest.fn<
+        NonNullable<ControlApiClient['updateOrganizationSettings']>
+      >(() => Promise.resolve({ ...organization, timezone: 'Europe/Paris' }));
+      const client = stubClient({
+        listMyOrganizations: () => Promise.resolve(member('admin')),
+        getOrganization: () => Promise.resolve(organization),
+        getStorageUsage: () => Promise.resolve({ totalBytes: 0, objectCount: 0 }),
+        listUnreferencedObjects: () => Promise.resolve([]),
+        updateOrganizationSettings,
+      });
+
+      render(
+        <ControlIntl locale="en">
+          <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
+        </ControlIntl>,
+      );
+
+      await screen.findByDisplayValue('Liga Mendocina');
+      fireEvent.change(screen.getByRole('combobox', { name: 'Time zone' }), {
+        target: { value: 'Europe/Paris' },
+      });
+      expect(await screen.findByText('1 unsaved change')).toBeDefined();
+      fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+      await waitFor(() => expect(screen.queryByText(/unsaved change/)).toBeNull());
+
+      fireEvent.change(screen.getByRole('combobox', { name: 'Time zone' }), {
+        target: { value: 'Europe/Paris' },
+      });
+      fireEvent.click(await screen.findByRole('button', { name: 'Save organization details' }));
+      await waitFor(() =>
+        expect(updateOrganizationSettings).toHaveBeenCalledWith('liga-mendocina', {
+          timezone: 'Europe/Paris',
+        }),
+      );
+    });
+
+    it('offers no editable form and reads no storage to a role without settings authority', async () => {
+      const getStorageUsage = jest.fn(() => Promise.resolve({ totalBytes: 0, objectCount: 0 }));
+      const listUnreferencedObjects = jest.fn(() => Promise.resolve([]));
+      const client = stubClient({
+        listMyOrganizations: () => Promise.resolve(member('referee')),
+        getOrganization: () => Promise.resolve(organization),
+        getStorageUsage,
+        listUnreferencedObjects,
+        updateOrganizationSettings: jest.fn(() => Promise.reject(new Error('not used'))),
+        uploadOrganizationEmblem: jest.fn(() => Promise.reject(new Error('not used'))),
+        rebuildStatistics: jest.fn(() => Promise.reject(new Error('not used'))),
+      });
+
+      const { container } = render(
+        <ControlIntl locale="en">
+          <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
+        </ControlIntl>,
+      );
+
+      // The details are shown, not editable, and the screen names the role that can edit them.
+      expect(await screen.findByText('Liga Mendocina')).toBeDefined();
+      expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+      expect(screen.queryByRole('combobox', { name: 'Primary language' })).toBeNull();
+      expect(container.querySelector('#org-emblem-upload')).toBeNull();
+      expect(screen.getByText('Only the Admin role can edit these details.')).toBeDefined();
+      // Storage and the rebuild are withheld the same way, and storage is never asked for.
+      expect(screen.getAllByText('Only the Admin role can use this section.')).toHaveLength(2);
+      expect(screen.queryByRole('button', { name: 'Rebuild statistics' })).toBeNull();
+      expect(getStorageUsage).not.toHaveBeenCalled();
+      expect(listUnreferencedObjects).not.toHaveBeenCalled();
+    });
+
+    it('offers every section when the role cannot be resolved, as the server still decides', async () => {
+      const client = stubClient({
+        listMyOrganizations: () => Promise.reject(new Error('membership unavailable')),
+        getOrganization: () => Promise.resolve(organization),
+        getStorageUsage: () => Promise.resolve({ totalBytes: 0, objectCount: 0 }),
+        listUnreferencedObjects: () => Promise.resolve([]),
+      });
+
+      render(
+        <ControlIntl locale="en">
+          <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
+        </ControlIntl>,
+      );
+
+      expect(await screen.findByDisplayValue('Liga Mendocina')).toBeDefined();
+      expect(await screen.findByText('0 MB across 0 files')).toBeDefined();
+      expect(screen.queryByText(/Only the .* can/)).toBeNull();
+    });
+
+    it('puts Identity first and offers no theme control on the organization screen', async () => {
+      const client = stubClient({
+        listMyOrganizations: () => Promise.resolve(member('admin')),
+        getOrganization: () => Promise.resolve(organization),
+        getStorageUsage: () => Promise.resolve({ totalBytes: 0, objectCount: 0 }),
+        listUnreferencedObjects: () => Promise.resolve([]),
+      });
+
+      render(
+        <ControlIntl locale="en">
+          <PreferencesPage isOrganizationPage client={client} organizationAlias="liga-mendocina" />
+        </ControlIntl>,
+      );
+
+      await screen.findByDisplayValue('Liga Mendocina');
+      expect(
+        screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent),
+      ).toEqual([
+        'Organization identity',
+        'Storage usage',
+        'Statistics rebuild',
+        'Personal Access Tokens',
+      ]);
+      expect(screen.queryByRole('combobox', { name: 'Theme' })).toBeNull();
+    });
+
+    it('is a personal page of its own: theme and tokens, and no organization read', async () => {
+      const listMyOrganizations = jest.fn(() => Promise.resolve(member('admin')));
+      const getOrganization = jest.fn(() => Promise.resolve(organization));
+      const getStorageUsage = jest.fn(() => Promise.resolve({ totalBytes: 0, objectCount: 0 }));
+      const client = stubClient({ listMyOrganizations, getOrganization, getStorageUsage });
+
+      render(
+        <ControlIntl locale="en">
+          <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        </ControlIntl>,
+      );
+
+      expect(await screen.findByRole('heading', { name: 'Appearance' })).toBeDefined();
+      expect(screen.getByRole('combobox', { name: 'Theme' })).toBeDefined();
+      expect(screen.getByRole('heading', { name: 'Personal Access Tokens' })).toBeDefined();
+      expect(screen.queryByRole('heading', { name: 'Organization identity' })).toBeNull();
+      expect(screen.queryByRole('heading', { name: 'Storage usage' })).toBeNull();
+      expect(screen.queryByRole('heading', { name: 'Statistics rebuild' })).toBeNull();
+      expect(listMyOrganizations).not.toHaveBeenCalled();
+      expect(getOrganization).not.toHaveBeenCalled();
+      expect(getStorageUsage).not.toHaveBeenCalled();
+    });
+
+    it('leaves the empty token list without a second create button', async () => {
+      render(
+        <ControlIntl locale="en">
+          <PreferencesPage client={stubClient({})} />
+        </ControlIntl>,
+      );
+
+      expect(await screen.findByText('No active personal access tokens.')).toBeDefined();
+      expect(screen.queryByRole('button', { name: 'Create token' })).toBeNull();
+    });
   });
 });

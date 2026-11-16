@@ -10,7 +10,6 @@ export const messages: Record<string, string> = {
   'control.pageHeader.breadcrumb': 'Fil d’Ariane',
   'control.pageHeader.organizationFallback': 'Organisation',
   'control.pageHeader.tournamentFallback': 'Tournoi',
-  'control.interaction.createToken': 'Créer un jeton',
   'control.interaction.pairTv': 'Associer une TV',
   'control.interaction.pairDescription': 'Associez une TV pour afficher les scores en direct.',
   'control.interaction.whoCanPair': 'Un administrateur de l’organisation peut associer une TV.',
@@ -1932,8 +1931,7 @@ export const messages: Record<string, string> = {
   'control.preferences.description':
     "Votre thème et les jetons d'accès que vous utilisez avec l'API.",
   'control.orgPage.description':
-    "Le nom et l'emblème de l'organisation, ses statistiques et ses jetons d'accès.",
-  'control.orgIdentity.dropInstruction': 'Déposez une image ici ou choisissez un fichier.',
+    "Le nom, l'emblème, la langue et le fuseau horaire de l'organisation, son stockage, ses statistiques et ses jetons d'accès.",
   'control.preferences.patCreatedColumn': 'Créé',
   'control.preferences.patExpiresColumn': 'Expire',
   'control.resourceManagement.description':
@@ -1959,4 +1957,21 @@ export const messages: Record<string, string> = {
   'control.dataTable.moreColumns': 'Plus de colonnes',
   'control.dataTable.showDetails': 'Afficher les détails',
   'control.dataTable.hideDetails': 'Masquer les détails',
+  'control.orgIdentity.language': 'Langue principale',
+  'control.orgIdentity.languageHelp':
+    "Langue des pages publiques, de la TV et des e-mails de l'organisation.",
+  'control.orgIdentity.timezone': 'Fuseau horaire',
+  'control.orgIdentity.timezoneHelp':
+    "Détermine le jour de chaque match dans les calendriers et les heures de coup d'envoi.",
+  'control.orgIdentity.withheld':
+    '{roleCount, plural, one {Seul le rôle {roles} peut modifier ces informations.} other {Seuls les rôles {roles} peuvent modifier ces informations.}}',
+  'control.orgSection.withheld':
+    '{roleCount, plural, one {Seul le rôle {roles} peut utiliser cette section.} other {Seuls les rôles {roles} peuvent utiliser cette section.}}',
+  'control.storageUsage.objectMeta': '{contentType} · {size} · {date}',
+  'control.storageUsage.deleteObjectLabel':
+    'Supprimer le fichier {contentType} de {size}, téléversé le {date}',
+  'control.storageUsage.deleteTitle': 'Supprimer ce fichier ?',
+  'control.storageUsage.deleteDescription':
+    "Ce fichier {contentType} ({size}, téléversé le {date}) n'est utilisé nulle part. Le supprimer libère l'espace et ne peut pas être annulé.",
+  'control.preferences.appearanceHeading': 'Apparence',
 };

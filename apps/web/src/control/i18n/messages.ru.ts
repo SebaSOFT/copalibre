@@ -12,7 +12,6 @@ export const messages: Record<string, string> = {
   'control.pageHeader.breadcrumb': 'Навигационная цепочка',
   'control.pageHeader.organizationFallback': 'Организация',
   'control.pageHeader.tournamentFallback': 'Турнир',
-  'control.interaction.createToken': 'Создать токен',
   'control.interaction.pairTv': 'Подключить ТВ',
   'control.interaction.pairDescription':
     'Подключите телевизор для показа результатов в прямом эфире.',
@@ -1913,8 +1912,8 @@ export const messages: Record<string, string> = {
   'control.pagination.previous': 'Назад',
   'control.pagination.next': 'Далее',
   'control.preferences.description': 'Ваша тема и токены доступа, которые вы используете с API.',
-  'control.orgPage.description': 'Название и эмблема организации, её статистика и токены доступа.',
-  'control.orgIdentity.dropInstruction': 'Перетащите изображение сюда или выберите файл.',
+  'control.orgPage.description':
+    'Название, эмблема, язык и часовой пояс организации, её хранилище, статистика и токены доступа.',
   'control.preferences.patCreatedColumn': 'Создан',
   'control.preferences.patExpiresColumn': 'Истекает',
   'control.resourceManagement.description':
@@ -1940,4 +1939,20 @@ export const messages: Record<string, string> = {
   'control.dataTable.moreColumns': 'Другие столбцы',
   'control.dataTable.showDetails': 'Показать подробности',
   'control.dataTable.hideDetails': 'Скрыть подробности',
+  'control.orgIdentity.language': 'Основной язык',
+  'control.orgIdentity.languageHelp': 'Язык публичных страниц, ТВ и писем организации.',
+  'control.orgIdentity.timezone': 'Часовой пояс',
+  'control.orgIdentity.timezoneHelp':
+    'Определяет, на какой день приходится каждый матч в расписаниях и во времени начала.',
+  'control.orgIdentity.withheld':
+    '{roleCount, plural, one {Изменять эти данные может только роль {roles}.} other {Изменять эти данные могут только роли {roles}.}}',
+  'control.orgSection.withheld':
+    '{roleCount, plural, one {Этим разделом может пользоваться только роль {roles}.} other {Этим разделом могут пользоваться только роли {roles}.}}',
+  'control.storageUsage.objectMeta': '{contentType} · {size} · {date}',
+  'control.storageUsage.deleteObjectLabel':
+    'Удалить файл {contentType} размером {size}, загруженный {date}',
+  'control.storageUsage.deleteTitle': 'Удалить этот файл?',
+  'control.storageUsage.deleteDescription':
+    'Этот файл {contentType} ({size}, загружен {date}) нигде не используется. Удаление освободит место и не может быть отменено.',
+  'control.preferences.appearanceHeading': 'Оформление',
 };

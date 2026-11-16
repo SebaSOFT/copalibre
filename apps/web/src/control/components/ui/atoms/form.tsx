@@ -1,5 +1,4 @@
 import type { FormEvent, ReactNode } from 'react';
-import { Container } from './layout/container.js';
 
 export interface FormProps {
   readonly children: ReactNode;
@@ -12,7 +11,12 @@ export interface FormProps {
   readonly 'aria-labelledby'?: string;
 }
 
-/** Owns the `<form>` element, so a screen composes it instead of rendering one from scratch. */
+/**
+ * Owns the `<form>` element, so a screen composes it instead of rendering one from scratch.
+ *
+ * A container of logic, not of presentation: it sets no width, alignment or margin, and takes no
+ * layout parameter. A screen that wants a column wraps the form in `Container variant="form"`.
+ */
 export function Form({
   children,
   onSubmit,
@@ -21,15 +25,13 @@ export function Form({
   ...rest
 }: FormProps): React.JSX.Element {
   return (
-    <Container variant="form">
-      <form
-        className={`cl-form ${className}`.trim()}
-        noValidate={noValidate}
-        onSubmit={onSubmit}
-        {...rest}
-      >
-        {children}
-      </form>
-    </Container>
+    <form
+      className={`cl-form ${className}`.trim()}
+      noValidate={noValidate}
+      onSubmit={onSubmit}
+      {...rest}
+    >
+      {children}
+    </form>
   );
 }

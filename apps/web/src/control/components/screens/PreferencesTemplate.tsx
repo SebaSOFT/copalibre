@@ -1,7 +1,8 @@
 import { EmptyState } from '../ui/molecules/empty-state.js';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
+import type { OrganizationRole } from '@copalibre/domain';
 import {
   organizationEmblemUrl,
   type ControlApiClient,
@@ -21,20 +22,28 @@ import { Form } from '../ui/atoms/form.js';
 import { filePickerLabels } from '../../lib/file-picker-labels.js';
 import { Input } from '../ui/atoms/input.js';
 import { Select } from '../ui/atoms/select.js';
+import { Grid } from '../ui/atoms/layout/grid.js';
 import { Inline } from '../ui/atoms/layout/inline.js';
 import { Stack } from '../ui/atoms/layout/stack.js';
 import { Field } from '../ui/molecules/field.js';
+import { FieldValue } from '../ui/molecules/field-value.js';
 import { FieldSet } from '../ui/molecules/field-set.js';
 import { Label } from '../ui/atoms/label.js';
 import { ConsequenceDialog } from '../ui/organisms/consequence-dialog.js';
 import { messages as controlMessages } from '../../i18n/messages.en.js';
 import {
   formatStorageBytes,
+  type OrganizationSettingsDraft,
   type PatCreatedResponse,
   type PatRevocationPreview,
   type PatResponse,
 } from '../pages/PreferencesPage.js';
 import { PageHeaderTemplate } from './PageHeaderTemplate.js';
+import { LANGUAGE_NAMES } from '../../i18n/LanguageSwitcher.js';
+import { SUPPORTED_LANGUAGES } from '../../../lib/language-preference.js';
+import { roleMayUse, rolesWithCapability } from '../../lib/role-access.js';
+import { ROLE_LABEL } from '../../lib/role-labels.js';
+import { timeZoneOptions } from '../../lib/time-zones.js';
 import { Skeleton } from '../ui/atoms/skeleton.js';
 import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
 import { DropZone } from '../ui/organisms/drop-zone.js';
@@ -49,36 +58,127 @@ import {
 /** The sizes the emblem renders at across the product, largest first. */
 const EMBLEM_PREVIEW_SIZES = [64, 48, 32] as const;
 
+/** The roles that hold `capability`, named in the catalogue's own words, for a "who can" line. */
+function whoCan(
+  intl: IntlShape,
+  capability: Parameters<typeof rolesWithCapability>[0],
+): { readonly roleCount: number; readonly roles: string } {
+  const roles = rolesWithCapability(capability);
+  return {
+    roleCount: roles.length,
+    roles: intl.formatList(
+      roles.map((role) => intl.formatMessage(ROLE_LABEL[role])),
+      { type: 'conjunction' },
+    ),
+  };
+}
+
+function languageName(language: string): string {
+  return (LANGUAGE_NAMES as Readonly<Record<string, string>>)[language] ?? language;
+}
+
 function OrganizationIdentitySection({
   api,
-  onChangeOrgName,
-  onSaveOrganizationName,
+  canManage,
+  onChangeSettings,
+  onResetSettings,
+  onSaveOrganizationSettings,
   optimisticEmblemSrc,
   organization,
   organizationAlias,
   orgLoadError,
   orgLoading,
-  orgName,
   setEmblemCropSrc,
+  settingsDraft,
 }: {
   readonly api: ControlApiClient;
-  readonly onChangeOrgName: (name: string) => void;
-  readonly onSaveOrganizationName: () => Promise<void>;
+  readonly canManage: boolean;
+  readonly onChangeSettings: (change: Partial<OrganizationSettingsDraft>) => void;
+  readonly onResetSettings: () => void;
+  readonly onSaveOrganizationSettings: () => Promise<void>;
   readonly optimisticEmblemSrc: string | undefined;
   readonly organization: OrganizationResponse | undefined;
   readonly organizationAlias: string | undefined;
   readonly orgLoadError: string | undefined;
   readonly orgLoading: boolean;
-  readonly orgName: string;
   readonly setEmblemCropSrc: (source: string | undefined) => void;
+  readonly settingsDraft: OrganizationSettingsDraft;
 }): React.JSX.Element | null {
   const intl = useIntl();
+  const languageOptions = useMemo(() => {
+    const options = SUPPORTED_LANGUAGES.map((language) => ({
+      value: language,
+      label: LANGUAGE_NAMES[language],
+      badge: language.toUpperCase(),
+    }));
+    return options.some((option) => option.value === settingsDraft.primaryLanguage) ||
+      settingsDraft.primaryLanguage === ''
+      ? options
+      : [
+          ...options,
+          { value: settingsDraft.primaryLanguage, label: settingsDraft.primaryLanguage, badge: '' },
+        ];
+  }, [settingsDraft.primaryLanguage]);
+  const zoneOptions = useMemo(
+    () => timeZoneOptions(settingsDraft.timezone),
+    [settingsDraft.timezone],
+  );
   if (organizationAlias === undefined) return null;
   const emblemSrc =
     optimisticEmblemSrc ??
     (organization?.emblemObjectId !== undefined
       ? organizationEmblemUrl(organizationAlias)
       : undefined);
+
+  const nameLabel = intl.formatMessage(controlMessages.orgIdentityName);
+  const languageLabel = intl.formatMessage(controlMessages.orgIdentityLanguage);
+  const timezoneLabel = intl.formatMessage(controlMessages.orgIdentityTimezone);
+  const changedFields =
+    organization === undefined
+      ? []
+      : [
+          ...(settingsDraft.name.trim() !== organization.name
+            ? [{ id: 'name', label: nameLabel }]
+            : []),
+          ...(settingsDraft.primaryLanguage !== organization.primaryLanguage
+            ? [{ id: 'primaryLanguage', label: languageLabel }]
+            : []),
+          ...(settingsDraft.timezone !== organization.timezone
+            ? [{ id: 'timezone', label: timezoneLabel }]
+            : []),
+        ];
+
+  const emblemSizes = (
+    <div className="cl-preferences-emblem-sizes">
+      {emblemSrc === undefined ? (
+        <FramedImage
+          alt={intl.formatMessage(controlMessages.orgIdentityEmblemAlt)}
+          placeholder={
+            <ClubEmblemPlaceholder
+              size={64}
+              title={intl.formatMessage(controlMessages.orgIdentityEmblemPlaceholderAlt)}
+            />
+          }
+          size={64}
+          src={undefined}
+        />
+      ) : (
+        EMBLEM_PREVIEW_SIZES.map((size) => (
+          <FramedImage
+            key={`${size}:${emblemSrc}`}
+            alt={
+              size === EMBLEM_PREVIEW_SIZES[0]
+                ? intl.formatMessage(controlMessages.orgIdentityEmblemAlt)
+                : ''
+            }
+            placeholder={null}
+            size={size}
+            src={emblemSrc}
+          />
+        ))
+      )}
+    </div>
+  );
 
   return (
     <Card
@@ -95,44 +195,35 @@ function OrganizationIdentitySection({
         </p>
       ) : orgLoadError ? (
         <Alert tone="destructive">{orgLoadError}</Alert>
+      ) : !canManage ? (
+        <Stack gap="4">
+          {emblemSizes}
+          {organization !== undefined && (
+            <Grid columns={3} gap="4">
+              <FieldValue label={nameLabel} value={organization.name} />
+              <FieldValue
+                label={languageLabel}
+                value={languageName(organization.primaryLanguage)}
+              />
+              <FieldValue label={timezoneLabel} value={organization.timezone} />
+            </Grid>
+          )}
+          <p>
+            {intl.formatMessage(
+              controlMessages.orgIdentityWithheld,
+              whoCan(intl, 'org.manage-settings'),
+            )}
+          </p>
+        </Stack>
       ) : (
         <Stack gap="4">
-          <div className="cl-preferences-emblem-sizes">
-            {emblemSrc === undefined ? (
-              <FramedImage
-                alt={intl.formatMessage(controlMessages.orgIdentityEmblemAlt)}
-                placeholder={
-                  <ClubEmblemPlaceholder
-                    size={64}
-                    title={intl.formatMessage(controlMessages.orgIdentityEmblemPlaceholderAlt)}
-                  />
-                }
-                size={64}
-                src={undefined}
-              />
-            ) : (
-              EMBLEM_PREVIEW_SIZES.map((size) => (
-                <FramedImage
-                  key={`${size}:${emblemSrc}`}
-                  alt={
-                    size === EMBLEM_PREVIEW_SIZES[0]
-                      ? intl.formatMessage(controlMessages.orgIdentityEmblemAlt)
-                      : ''
-                  }
-                  placeholder={null}
-                  size={size}
-                  src={emblemSrc}
-                />
-              ))
-            )}
-          </div>
+          {emblemSizes}
 
           {api.uploadOrganizationEmblem && (
             <DropZone
               accept="image/*"
               aria-label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
               id="org-emblem-upload"
-              instruction={intl.formatMessage(controlMessages.orgIdentityDropInstruction)}
               label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
               onChange={(files) => {
                 const file = files?.[0];
@@ -146,28 +237,54 @@ function OrganizationIdentitySection({
             className="cl-preferences-organization-identity-form"
             onSubmit={(event) => {
               event.preventDefault();
-              void onSaveOrganizationName();
+              void onSaveOrganizationSettings();
             }}
           >
-            <Field id="org-name" label={intl.formatMessage(controlMessages.orgIdentityName)}>
-              <Input
-                id="org-name"
-                onChange={(event) => onChangeOrgName(event.target.value)}
-                type="text"
-                value={orgName}
-              />
-            </Field>
+            <Grid columns={3} gap="4">
+              <Field id="org-name" label={nameLabel}>
+                <Input
+                  id="org-name"
+                  onChange={(event) => onChangeSettings({ name: event.target.value })}
+                  type="text"
+                  value={settingsDraft.name}
+                />
+              </Field>
+              <Field
+                helpText={intl.formatMessage(controlMessages.orgIdentityLanguageHelp)}
+                id="org-language"
+                label={languageLabel}
+              >
+                <Select
+                  id="org-language"
+                  onValueChange={(primaryLanguage) => onChangeSettings({ primaryLanguage })}
+                  options={languageOptions}
+                  value={settingsDraft.primaryLanguage}
+                />
+              </Field>
+              <Field
+                helpText={intl.formatMessage(controlMessages.orgIdentityTimezoneHelp)}
+                id="org-timezone"
+                label={timezoneLabel}
+              >
+                <Select
+                  id="org-timezone"
+                  onValueChange={(timezone) => onChangeSettings({ timezone })}
+                  options={zoneOptions}
+                  value={settingsDraft.timezone}
+                />
+              </Field>
+            </Grid>
             <UnsavedChangesBar
-              changedFields={[
-                { id: 'name', label: intl.formatMessage(controlMessages.orgIdentityName) },
-              ]}
-              dirty={organization !== undefined && orgName !== organization.name}
+              changedFields={changedFields}
+              dirty={changedFields.length > 0}
               fieldsLabel={intl.formatMessage(controlMessages.unsavedChangesFields)}
-              onReset={() => onChangeOrgName(organization?.name ?? '')}
-              onSave={() => void onSaveOrganizationName()}
+              onReset={onResetSettings}
+              onSave={() => void onSaveOrganizationSettings()}
               resetLabel={intl.formatMessage(controlMessages.unsavedChangesReset)}
               saveLabel={intl.formatMessage(controlMessages.orgIdentitySave)}
-              summary={intl.formatMessage(controlMessages.unsavedChangesSummary, { count: 1 })}
+              summary={intl.formatMessage(controlMessages.unsavedChangesSummary, {
+                count: changedFields.length,
+              })}
             />
           </Form>
         </Stack>
@@ -177,6 +294,7 @@ function OrganizationIdentitySection({
 }
 
 function OrganizationStorageSection({
+  canManage,
   onDeleteUnreferencedObject,
   organizationAlias,
   storageError,
@@ -184,6 +302,7 @@ function OrganizationStorageSection({
   storageUsage,
   unreferencedObjects,
 }: {
+  readonly canManage: boolean;
   readonly onDeleteUnreferencedObject: (objectId: string) => Promise<void>;
   readonly organizationAlias: string | undefined;
   readonly storageError: string | undefined;
@@ -192,7 +311,50 @@ function OrganizationStorageSection({
   readonly unreferencedObjects: readonly UnreferencedObjectResponse[];
 }): React.JSX.Element | null {
   const intl = useIntl();
+  const [pendingDelete, setPendingDelete] = useState<UnreferencedObjectResponse | undefined>(
+    undefined,
+  );
+  const [deleteBusy, setDeleteBusy] = useState(false);
   if (organizationAlias === undefined) return null;
+
+  if (!canManage) {
+    return (
+      <Card
+        aria-label={intl.formatMessage(controlMessages.storageUsageHeading)}
+        className="cl-chamfer cl-chamfer--control cl-preferences-panel"
+      >
+        <h2>
+          <FormattedMessage {...controlMessages.storageUsageHeading} />
+        </h2>
+        <p>
+          <FormattedMessage {...controlMessages.storageUsageDescription} />
+        </p>
+        <p>
+          {intl.formatMessage(
+            controlMessages.orgSectionWithheld,
+            whoCan(intl, 'org.manage-settings'),
+          )}
+        </p>
+      </Card>
+    );
+  }
+
+  const describeObject = (object: UnreferencedObjectResponse): Record<string, string> => ({
+    contentType: object.contentType,
+    size: formatStorageBytes(object.sizeBytes),
+    date: new Date(object.createdAt).toLocaleDateString(intl.locale),
+  });
+
+  async function confirmDelete(): Promise<void> {
+    if (pendingDelete === undefined) return;
+    setDeleteBusy(true);
+    try {
+      await onDeleteUnreferencedObject(pendingDelete.objectId);
+      setPendingDelete(undefined);
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
 
   return (
     <Card
@@ -225,28 +387,63 @@ function OrganizationStorageSection({
       ) : null}
 
       {unreferencedObjects.length > 0 && (
-        <ul aria-label={intl.formatMessage(controlMessages.storageUsageUnreferencedHeading)}>
-          {unreferencedObjects.map((object) => (
-            <li key={object.objectId} className="cl-role-user">
-              <span>{formatStorageBytes(object.sizeBytes)}</span>
-              <span className="cl-label">{object.contentType}</span>
-              <Button
-                onClick={() => void onDeleteUnreferencedObject(object.objectId)}
-                type="button"
-                variant="destructive-outline"
-              >
-                <FormattedMessage {...controlMessages.storageUsageDeleteObject} />
-              </Button>
-            </li>
-          ))}
-        </ul>
+        <Stack gap="2">
+          <h3>
+            <FormattedMessage {...controlMessages.storageUsageUnreferencedHeading} />
+          </h3>
+          <ul
+            aria-label={intl.formatMessage(controlMessages.storageUsageUnreferencedHeading)}
+            className="cl-preferences-unreferenced"
+          >
+            {unreferencedObjects.map((object) => (
+              <li key={object.objectId} className="cl-role-user">
+                <span className="cl-label">
+                  {intl.formatMessage(
+                    controlMessages.storageUsageObjectMeta,
+                    describeObject(object),
+                  )}
+                </span>
+                <Button
+                  aria-label={intl.formatMessage(
+                    controlMessages.storageUsageDeleteObjectLabel,
+                    describeObject(object),
+                  )}
+                  onClick={() => setPendingDelete(object)}
+                  type="button"
+                  variant="destructive-outline"
+                >
+                  <FormattedMessage {...controlMessages.storageUsageDeleteObject} />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </Stack>
       )}
+
+      <ConsequenceDialog
+        busy={deleteBusy}
+        cancelLabel={intl.formatMessage(controlMessages.statisticsRebuildCancel)}
+        closeLabel={intl.formatMessage(controlMessages.registrationModalClose)}
+        confirmLabel={intl.formatMessage(controlMessages.storageUsageDeleteObject)}
+        counts={[]}
+        description={intl.formatMessage(
+          controlMessages.storageUsageDeleteDescription,
+          pendingDelete === undefined ? {} : describeObject(pendingDelete),
+        )}
+        onConfirm={() => void confirmDelete()}
+        onOpenChange={(open) => {
+          if (!open && !deleteBusy) setPendingDelete(undefined);
+        }}
+        open={pendingDelete !== undefined}
+        title={intl.formatMessage(controlMessages.storageUsageDeleteTitle)}
+      />
     </Card>
   );
 }
 
 function StatisticsRebuildSection({
   api,
+  canRebuild,
   dismissedRebuildResult,
   onDismissRebuildResult,
   onPreviewRebuild,
@@ -257,6 +454,7 @@ function StatisticsRebuildSection({
   setRebuildTournamentAlias,
 }: {
   readonly api: ControlApiClient;
+  readonly canRebuild: boolean;
   readonly dismissedRebuildResult: boolean;
   readonly onDismissRebuildResult: () => void;
   readonly onPreviewRebuild: () => Promise<void>;
@@ -268,6 +466,28 @@ function StatisticsRebuildSection({
 }): React.JSX.Element | null {
   const intl = useIntl();
   if (organizationAlias === undefined) return null;
+
+  if (!canRebuild) {
+    return (
+      <Card
+        aria-label={intl.formatMessage(controlMessages.statisticsRebuildHeading)}
+        className="cl-chamfer cl-chamfer--control cl-preferences-panel"
+      >
+        <h2>
+          <FormattedMessage {...controlMessages.statisticsRebuildHeading} />
+        </h2>
+        <p>
+          <FormattedMessage {...controlMessages.statisticsRebuildDescription} />
+        </p>
+        <p>
+          {intl.formatMessage(
+            controlMessages.orgSectionWithheld,
+            whoCan(intl, 'org.rebuild-statistics'),
+          )}
+        </p>
+      </Card>
+    );
+  }
 
   return (
     <Card
@@ -330,22 +550,24 @@ export function PreferencesTemplate({
   isOrganizationPage,
   loading,
   newToken,
-  onChangeOrgName,
+  onChangeSettings,
   onCreatePat,
   onConfirmRevokePat,
   onDeleteUnreferencedObject,
   onRevokePat,
   onPreviewStatisticsRebuild,
+  onResetSettings,
   onRunStatisticsRebuild,
-  onSaveOrganizationName,
+  onSaveOrganizationSettings,
   onUploadOrganizationEmblem,
   organization,
   organizationAlias,
   patScopes,
   orgLoadError,
   orgLoading,
-  orgName,
   rebuildResult,
+  role,
+  settingsDraft,
   storageError,
   storageLoading,
   storageUsage,
@@ -356,7 +578,7 @@ export function PreferencesTemplate({
   readonly isOrganizationPage?: boolean;
   readonly loading: boolean;
   readonly newToken: PatCreatedResponse | null;
-  readonly onChangeOrgName: (name: string) => void;
+  readonly onChangeSettings: (change: Partial<OrganizationSettingsDraft>) => void;
   readonly onCreatePat: (
     label: string,
     expiresInDays: number,
@@ -368,8 +590,9 @@ export function PreferencesTemplate({
   readonly onPreviewStatisticsRebuild: (
     tournamentAlias: string,
   ) => Promise<StatisticsRebuildResponse | undefined>;
+  readonly onResetSettings: () => void;
   readonly onRunStatisticsRebuild: (tournamentAlias: string) => Promise<boolean>;
-  readonly onSaveOrganizationName: () => Promise<void>;
+  readonly onSaveOrganizationSettings: () => Promise<void>;
   readonly onUploadOrganizationEmblem: (output: {
     contentBase64: string;
     contentType: 'image/png';
@@ -379,8 +602,10 @@ export function PreferencesTemplate({
   readonly patScopes: readonly string[];
   readonly orgLoadError: string | undefined;
   readonly orgLoading: boolean;
-  readonly orgName: string;
   readonly rebuildResult: StatisticsRebuildResponse | undefined;
+  /** The signed-in role; `undefined` until it resolves, which offers everything (the server still decides). */
+  readonly role: OrganizationRole | undefined;
+  readonly settingsDraft: OrganizationSettingsDraft;
   readonly storageError: string | undefined;
   readonly storageLoading: boolean;
   readonly storageUsage: OrganizationStorageUsageResponse | undefined;
@@ -514,59 +739,76 @@ export function PreferencesTemplate({
       ),
     },
   ];
+  const canManageSettings = roleMayUse(role, 'org.manage-settings');
+  const canRebuildStatistics = roleMayUse(role, 'org.rebuild-statistics');
+  const themeNode = (
+    <Card
+      aria-label={intl.formatMessage(controlMessages.preferencesAppearanceHeading)}
+      className="cl-chamfer cl-chamfer--control cl-preferences-panel"
+    >
+      <h2>
+        <FormattedMessage {...controlMessages.preferencesAppearanceHeading} />
+      </h2>
+      <div className="cl-preferences-theme-select">
+        <Field
+          id="theme-preference"
+          label={intl.formatMessage(controlMessages.preferencesThemeTitle)}
+        >
+          <Select
+            id="theme-preference"
+            onValueChange={handleThemePreferenceChange}
+            options={themeOptions}
+            value={themePreference}
+          />
+        </Field>
+      </div>
+    </Card>
+  );
+  const organizationNode = (
+    <>
+      <OrganizationIdentitySection
+        api={api}
+        canManage={canManageSettings}
+        onChangeSettings={onChangeSettings}
+        onResetSettings={onResetSettings}
+        onSaveOrganizationSettings={onSaveOrganizationSettings}
+        optimisticEmblemSrc={optimisticEmblemSrc}
+        organization={organization}
+        organizationAlias={organizationAlias}
+        orgLoadError={orgLoadError}
+        orgLoading={orgLoading}
+        setEmblemCropSrc={setEmblemCropSrc}
+        settingsDraft={settingsDraft}
+      />
+
+      <OrganizationStorageSection
+        canManage={canManageSettings}
+        onDeleteUnreferencedObject={onDeleteUnreferencedObject}
+        organizationAlias={organizationAlias}
+        storageError={storageError}
+        storageLoading={storageLoading}
+        storageUsage={storageUsage}
+        unreferencedObjects={unreferencedObjects}
+      />
+
+      <StatisticsRebuildSection
+        api={api}
+        canRebuild={canRebuildStatistics}
+        dismissedRebuildResult={dismissedRebuildResult}
+        onDismissRebuildResult={() => setDismissedRebuildResult(true)}
+        onPreviewRebuild={previewStatisticsRebuild}
+        organizationAlias={organizationAlias}
+        rebuildBusy={rebuildBusy}
+        rebuildResult={rebuildResult}
+        rebuildTournamentAlias={rebuildTournamentAlias}
+        setRebuildTournamentAlias={setRebuildTournamentAlias}
+      />
+    </>
+  );
   const listingNode = (
     <div className="cl-operations__listing">
       <Stack gap="0">
-        <Card
-          aria-label={intl.formatMessage(controlMessages.preferencesThemeTitle)}
-          className="cl-chamfer cl-chamfer--control cl-preferences-panel"
-        >
-          <Field
-            id="theme-preference"
-            label={intl.formatMessage(controlMessages.preferencesThemeTitle)}
-          >
-            <Select
-              id="theme-preference"
-              onValueChange={handleThemePreferenceChange}
-              options={themeOptions}
-              value={themePreference}
-            />
-          </Field>
-        </Card>
-
-        <OrganizationIdentitySection
-          api={api}
-          onChangeOrgName={onChangeOrgName}
-          onSaveOrganizationName={onSaveOrganizationName}
-          optimisticEmblemSrc={optimisticEmblemSrc}
-          organization={organization}
-          organizationAlias={organizationAlias}
-          orgLoadError={orgLoadError}
-          orgLoading={orgLoading}
-          orgName={orgName}
-          setEmblemCropSrc={setEmblemCropSrc}
-        />
-
-        <OrganizationStorageSection
-          onDeleteUnreferencedObject={onDeleteUnreferencedObject}
-          organizationAlias={organizationAlias}
-          storageError={storageError}
-          storageLoading={storageLoading}
-          storageUsage={storageUsage}
-          unreferencedObjects={unreferencedObjects}
-        />
-
-        <StatisticsRebuildSection
-          api={api}
-          dismissedRebuildResult={dismissedRebuildResult}
-          onDismissRebuildResult={() => setDismissedRebuildResult(true)}
-          onPreviewRebuild={previewStatisticsRebuild}
-          organizationAlias={organizationAlias}
-          rebuildBusy={rebuildBusy}
-          rebuildResult={rebuildResult}
-          rebuildTournamentAlias={rebuildTournamentAlias}
-          setRebuildTournamentAlias={setRebuildTournamentAlias}
-        />
+        {isOrganizationPage ? organizationNode : themeNode}
 
         <Card className="cl-chamfer cl-chamfer--control cl-preferences-panel">
           <h2>
@@ -678,10 +920,7 @@ export function PreferencesTemplate({
                 headingLevel={3}
                 heading={intl.formatMessage(controlMessages.preferencesPatEmpty)}
                 description={intl.formatMessage(controlMessages.interactionTokenDescription)}
-                action={{
-                  label: intl.formatMessage(controlMessages.interactionCreateToken),
-                  onClick: () => document.getElementById('pat-label')?.focus(),
-                }}
+                reason="informational"
               />
             ) : (
               <DataTable

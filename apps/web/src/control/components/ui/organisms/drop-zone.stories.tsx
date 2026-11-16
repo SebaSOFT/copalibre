@@ -29,7 +29,6 @@ export const Playground: Story = {
       <DropZone
         accept={accept}
         id="organization-emblem"
-        instruction={intl.formatMessage(storyText.uploadEmblem)}
         label={intl.formatMessage(storyText.uploadEmblem)}
         onChange={() => {}}
         {...filePickerLabels(intl, { accept })}

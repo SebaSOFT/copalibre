@@ -10,7 +10,6 @@ export const messages: Record<string, string> = {
   'control.pageHeader.breadcrumb': 'Percorso di navigazione',
   'control.pageHeader.organizationFallback': 'Organizzazione',
   'control.pageHeader.tournamentFallback': 'Torneo',
-  'control.interaction.createToken': 'Crea token',
   'control.interaction.pairTv': 'Associa TV',
   'control.interaction.pairDescription': 'Associa una TV per mostrare i risultati in diretta.',
   'control.interaction.whoCanPair': 'Un amministratore dell’organizzazione può associare una TV.',
@@ -1921,8 +1920,7 @@ export const messages: Record<string, string> = {
   'control.pagination.next': 'Successivo',
   'control.preferences.description': "Il tuo tema e i token di accesso che usi con l'API.",
   'control.orgPage.description':
-    "Il nome e lo stemma dell'organizzazione, le sue statistiche e i suoi token di accesso.",
-  'control.orgIdentity.dropInstruction': "Trascina qui un'immagine o scegli un file.",
+    "Il nome, lo stemma, la lingua e il fuso orario dell'organizzazione, il suo spazio di archiviazione, le sue statistiche e i suoi token di accesso.",
   'control.preferences.patCreatedColumn': 'Creato',
   'control.preferences.patExpiresColumn': 'Scade',
   'control.resourceManagement.description':
@@ -1948,4 +1946,21 @@ export const messages: Record<string, string> = {
   'control.dataTable.moreColumns': 'Altre colonne',
   'control.dataTable.showDetails': 'Mostra dettagli',
   'control.dataTable.hideDetails': 'Nascondi dettagli',
+  'control.orgIdentity.language': 'Lingua principale',
+  'control.orgIdentity.languageHelp':
+    "Lingua delle pagine pubbliche, della TV e delle email dell'organizzazione.",
+  'control.orgIdentity.timezone': 'Fuso orario',
+  'control.orgIdentity.timezoneHelp':
+    "Stabilisce in quale giorno cade ogni partita nei calendari e negli orari d'inizio.",
+  'control.orgIdentity.withheld':
+    '{roleCount, plural, one {Solo il ruolo {roles} può modificare questi dati.} other {Solo i ruoli {roles} possono modificare questi dati.}}',
+  'control.orgSection.withheld':
+    '{roleCount, plural, one {Solo il ruolo {roles} può usare questa sezione.} other {Solo i ruoli {roles} possono usare questa sezione.}}',
+  'control.storageUsage.objectMeta': '{contentType} · {size} · {date}',
+  'control.storageUsage.deleteObjectLabel':
+    'Elimina il file {contentType} di {size}, caricato il {date}',
+  'control.storageUsage.deleteTitle': 'Eliminare questo file?',
+  'control.storageUsage.deleteDescription':
+    'Questo file {contentType} ({size}, caricato il {date}) non è usato da nessuna parte. Eliminarlo libera spazio e non si può annullare.',
+  'control.preferences.appearanceHeading': 'Aspetto',
 };

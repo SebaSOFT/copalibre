@@ -10,7 +10,6 @@ export const messages: Record<string, string> = {
   'control.pageHeader.breadcrumb': 'Brotkrumennavigation',
   'control.pageHeader.organizationFallback': 'Organisation',
   'control.pageHeader.tournamentFallback': 'Turnier',
-  'control.interaction.createToken': 'Token erstellen',
   'control.interaction.pairTv': 'TV verbinden',
   'control.interaction.pairDescription': 'Verbinde einen Fernseher, um Live-Ergebnisse anzuzeigen.',
   'control.interaction.whoCanPair':
@@ -1938,8 +1937,7 @@ export const messages: Record<string, string> = {
   'control.preferences.description':
     'Ihr Design und die Zugriffstoken, die Sie mit der API verwenden.',
   'control.orgPage.description':
-    'Name und Wappen der Organisation, ihre Statistiken und ihre Zugriffstoken.',
-  'control.orgIdentity.dropInstruction': 'Ziehen Sie ein Bild hierher oder wählen Sie eine Datei.',
+    'Name, Wappen, Sprache und Zeitzone der Organisation, ihr Speicher, ihre Statistiken und ihre Zugriffstoken.',
   'control.preferences.patCreatedColumn': 'Erstellt',
   'control.preferences.patExpiresColumn': 'Läuft ab',
   'control.resourceManagement.description':
@@ -1965,4 +1963,21 @@ export const messages: Record<string, string> = {
   'control.dataTable.moreColumns': 'Weitere Spalten',
   'control.dataTable.showDetails': 'Details anzeigen',
   'control.dataTable.hideDetails': 'Details ausblenden',
+  'control.orgIdentity.language': 'Hauptsprache',
+  'control.orgIdentity.languageHelp':
+    'Sprache der öffentlichen Seiten, der TV-Ansicht und der E-Mails der Organisation.',
+  'control.orgIdentity.timezone': 'Zeitzone',
+  'control.orgIdentity.timezoneHelp':
+    'Legt fest, auf welchen Tag jedes Spiel in Spielplänen und Anstoßzeiten fällt.',
+  'control.orgIdentity.withheld':
+    '{roleCount, plural, one {Nur die Rolle {roles} kann diese Angaben bearbeiten.} other {Nur die Rollen {roles} können diese Angaben bearbeiten.}}',
+  'control.orgSection.withheld':
+    '{roleCount, plural, one {Nur die Rolle {roles} kann diesen Bereich nutzen.} other {Nur die Rollen {roles} können diesen Bereich nutzen.}}',
+  'control.storageUsage.objectMeta': '{contentType} · {size} · {date}',
+  'control.storageUsage.deleteObjectLabel':
+    'Datei {contentType} mit {size} löschen, hochgeladen am {date}',
+  'control.storageUsage.deleteTitle': 'Diese Datei löschen?',
+  'control.storageUsage.deleteDescription':
+    'Diese Datei {contentType} ({size}, hochgeladen am {date}) wird nirgends verwendet. Beim Löschen wird der Speicherplatz freigegeben; das lässt sich nicht rückgängig machen.',
+  'control.preferences.appearanceHeading': 'Erscheinungsbild',
 };

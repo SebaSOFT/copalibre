@@ -5,6 +5,7 @@
  */
 import type { ReactNode } from 'react';
 import { Form } from '../atoms/form.js';
+import { Container } from '../atoms/layout/container.js';
 import { PageHeader, type PageHeaderBreadcrumb } from '../organisms/page-header.js';
 
 export interface FormScreenSection {
@@ -35,24 +36,26 @@ export function FormScreenLayout({
   onSubmit,
 }: FormScreenLayoutProps): React.JSX.Element {
   return (
-    <Form className="cl-form-screen" onSubmit={onSubmit}>
-      <PageHeader
-        actions={actions}
-        breadcrumbs={breadcrumbs}
-        legacyBreadcrumb={breadcrumb}
-        description={description}
-        title={title}
-        titleClassName="cl-form-screen__title"
-      />
-      {sections.map((section) => (
-        <section className="cl-form-screen__section" key={section.key}>
-          {section.heading ? (
-            <h2 className="cl-form-screen__section-heading">{section.heading}</h2>
-          ) : null}
-          <div className="cl-form-screen__section-fields">{section.fields}</div>
-        </section>
-      ))}
-      <footer className="cl-form-screen__footer">{footer}</footer>
-    </Form>
+    <Container variant="form">
+      <Form className="cl-form-screen" onSubmit={onSubmit}>
+        <PageHeader
+          actions={actions}
+          breadcrumbs={breadcrumbs}
+          legacyBreadcrumb={breadcrumb}
+          description={description}
+          title={title}
+          titleClassName="cl-form-screen__title"
+        />
+        {sections.map((section) => (
+          <section className="cl-form-screen__section" key={section.key}>
+            {section.heading ? (
+              <h2 className="cl-form-screen__section-heading">{section.heading}</h2>
+            ) : null}
+            <div className="cl-form-screen__section-fields">{section.fields}</div>
+          </section>
+        ))}
+        <footer className="cl-form-screen__footer">{footer}</footer>
+      </Form>
+    </Container>
   );
 }

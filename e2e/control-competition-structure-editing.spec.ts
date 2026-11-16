@@ -311,13 +311,19 @@ test('deletes an unreferenced upload from the storage-usage screen and the usage
     return undefined;
   });
 
-  const target = `/control/${ORG_ALIAS}/preferences`;
+  const target = `/control/${ORG_ALIAS}/organization`;
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await expect(page.getByText('image/png')).toBeVisible();
-  await page.getByRole('button', { name: 'Eliminar' }).click();
+  // The row names the file's type, size and date; deleting asks first and deletes nothing yet.
+  await expect(page.getByText(/image\/png · /)).toBeVisible();
+  await page.getByRole('button', { name: /^Eliminar archivo image\/png/ }).click();
+  const dialog = page.getByRole('dialog', { name: '¿Eliminar este archivo?' });
+  await expect(dialog).toBeVisible();
+  await expect(page.getByText(/image\/png · /)).toBeVisible();
 
-  await expect(page.getByText('image/png')).toBeHidden();
+  await dialog.getByRole('button', { name: 'Eliminar' }).click();
+
+  await expect(page.getByText(/image\/png · /)).toBeHidden();
 });

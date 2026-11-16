@@ -21,6 +21,7 @@ import { DecisionHint } from '../ui/atoms/decision-hint.js';
 import { Form } from '../ui/atoms/form.js';
 import { Field } from '../ui/molecules/field.js';
 import { helpPageUrl } from '../../lib/control-navigation.js';
+import { ROLE_LABEL } from '../../lib/role-labels.js';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/atoms/card.js';
 import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
 import { FilterBar } from '../ui/organisms/filter-bar.js';
@@ -28,15 +29,6 @@ import { KpiStrip } from '../ui/organisms/kpi-strip.js';
 import { ListWithRailTemplate } from './ListWithRailTemplate.js';
 import { EntityIdentityCell } from '../ui/molecules/entity-identity-cell.js';
 import { useToast } from '../ToastProvider.js';
-
-const ROLE_LABEL: Record<OrganizationRole, MessageDescriptor> = {
-  admin: messages.rolesRoleAdmin,
-  'club-admin': messages.rolesRoleClubAdmin,
-  'tournament-admin': messages.rolesRoleTournamentAdmin,
-  referee: messages.rolesRoleReferee,
-  broadcaster: messages.rolesRoleBroadcaster,
-  viewer: messages.rolesRoleViewer,
-};
 
 /** Condensed from each role's own "What this role is for" help page. */
 const ROLE_DESCRIPTION: Record<OrganizationRole, MessageDescriptor> = {

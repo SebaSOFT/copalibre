@@ -4,7 +4,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 /**
  * Sign in, create a club from the club-management
  * screen, upload its emblem, then upload the organization's own emblem
- * from the preferences screen, confirming both leave the placeholder and
+ * from the organization screen, confirming both leave the placeholder and
  * show an `<img>` in its place.
  */
 
@@ -238,12 +238,12 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
       .first(),
   ).toBeVisible();
 
-  const preferencesTarget = `/control/${ORG_ALIAS}/preferences`;
-  await seedLoginTransaction(page, preferencesTarget);
+  const organizationTarget = `/control/${ORG_ALIAS}/organization`;
+  await seedLoginTransaction(page, organizationTarget);
   await page.goto(loginCallbackUrl()).catch((error: Error) => {
     if (!error.message.includes('is interrupted by another navigation')) throw error;
   });
-  await page.waitForURL(`**${preferencesTarget}`);
+  await page.waitForURL(`**${organizationTarget}`);
 
   await expect(page.getByRole('img', { name: 'Sin escudo cargado' })).toBeVisible();
   await page.getByLabel('Subir escudo').setInputFiles({
@@ -274,10 +274,10 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
 test('supports keyboard dismiss (Escape) on image crop modal', async ({ page }) => {
   await mockControlApi(page);
 
-  const preferencesTarget = `/control/${ORG_ALIAS}/preferences`;
-  await seedLoginTransaction(page, preferencesTarget);
+  const organizationTarget = `/control/${ORG_ALIAS}/organization`;
+  await seedLoginTransaction(page, organizationTarget);
   await page.goto(loginCallbackUrl());
-  await page.waitForURL(`**${preferencesTarget}`);
+  await page.waitForURL(`**${organizationTarget}`);
 
   await page.getByLabel('Subir escudo').setInputFiles({
     name: 'org-emblem.png',
@@ -319,7 +319,7 @@ test('keeps rapid API errors stacked and independently dismissible', async ({ pa
 });
 
 /**
- * Trigger a statistics rebuild from the preferences screen,
+ * Trigger a statistics rebuild from the organization screen,
  * confirm it, and assert the result readout reports the expected match
  * count.
  */
@@ -328,10 +328,10 @@ test('triggers a statistics rebuild from the control panel and reports the match
 }) => {
   await mockControlApi(page);
 
-  const preferencesTarget = `/control/${ORG_ALIAS}/preferences`;
-  await seedLoginTransaction(page, preferencesTarget);
+  const organizationTarget = `/control/${ORG_ALIAS}/organization`;
+  await seedLoginTransaction(page, organizationTarget);
   await page.goto(loginCallbackUrl());
-  await page.waitForURL(`**${preferencesTarget}`);
+  await page.waitForURL(`**${organizationTarget}`);
 
   await page.getByRole('button', { name: 'Reconstruir estadísticas' }).click();
   const preview = page.getByRole('dialog', { name: 'Reconstrucción de estadísticas' });

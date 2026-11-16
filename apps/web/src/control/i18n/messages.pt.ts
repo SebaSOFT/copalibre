@@ -10,7 +10,6 @@ export const messages: Record<string, string> = {
   'control.pageHeader.breadcrumb': 'Navegação estrutural',
   'control.pageHeader.organizationFallback': 'Organização',
   'control.pageHeader.tournamentFallback': 'Torneio',
-  'control.interaction.createToken': 'Criar token',
   'control.interaction.pairTv': 'Vincular TV',
   'control.interaction.pairDescription': 'Vincule uma TV para mostrar os resultados ao vivo.',
   'control.interaction.whoCanPair': 'Um administrador da organização pode vincular uma TV.',
@@ -1909,8 +1908,7 @@ export const messages: Record<string, string> = {
   'control.pagination.next': 'Seguinte',
   'control.preferences.description': 'Seu tema e os tokens de acesso que você usa com a API.',
   'control.orgPage.description':
-    'O nome e o emblema da organização, suas estatísticas e seus tokens de acesso.',
-  'control.orgIdentity.dropInstruction': 'Solte uma imagem aqui ou escolha um arquivo.',
+    'O nome, o emblema, o idioma e o fuso horário da organização, seu armazenamento, suas estatísticas e seus tokens de acesso.',
   'control.preferences.patCreatedColumn': 'Criado',
   'control.preferences.patExpiresColumn': 'Expira',
   'control.resourceManagement.description':
@@ -1936,4 +1934,21 @@ export const messages: Record<string, string> = {
   'control.dataTable.moreColumns': 'Mais colunas',
   'control.dataTable.showDetails': 'Mostrar detalhes',
   'control.dataTable.hideDetails': 'Ocultar detalhes',
+  'control.orgIdentity.language': 'Idioma principal',
+  'control.orgIdentity.languageHelp':
+    'Idioma das páginas públicas, da TV e dos e-mails da organização.',
+  'control.orgIdentity.timezone': 'Fuso horário',
+  'control.orgIdentity.timezoneHelp':
+    'Define em que dia cai cada partida nos calendários e nos horários de início.',
+  'control.orgIdentity.withheld':
+    '{roleCount, plural, one {Somente o papel {roles} pode editar estes dados.} other {Somente os papéis {roles} podem editar estes dados.}}',
+  'control.orgSection.withheld':
+    '{roleCount, plural, one {Somente o papel {roles} pode usar esta seção.} other {Somente os papéis {roles} podem usar esta seção.}}',
+  'control.storageUsage.objectMeta': '{contentType} · {size} · {date}',
+  'control.storageUsage.deleteObjectLabel':
+    'Excluir arquivo {contentType} de {size}, enviado em {date}',
+  'control.storageUsage.deleteTitle': 'Excluir este arquivo?',
+  'control.storageUsage.deleteDescription':
+    'Este arquivo {contentType} ({size}, enviado em {date}) não é usado em lugar nenhum. Excluí-lo libera o espaço e não pode ser desfeito.',
+  'control.preferences.appearanceHeading': 'Aparência',
 };
