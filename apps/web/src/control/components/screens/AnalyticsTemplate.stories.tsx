@@ -8,6 +8,7 @@ const meta = {
   args: {
     failed: false,
     loading: false,
+    onExportCsv: () => undefined,
     onRetry: () => undefined,
     organizationAlias: 'liga-san-juan',
     staleSince: undefined,

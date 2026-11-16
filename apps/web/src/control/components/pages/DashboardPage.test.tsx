@@ -13,11 +13,13 @@ import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
 import { ToastProvider } from '../ToastProvider.js';
 import { messages as spanishMessages } from '../../i18n/messages.es.js';
 import { DashboardPage } from '../pages/DashboardPage.js';
+import { PageHeaderContext } from '../ui/organisms/page-header.js';
 import type {
   ControlApiClient,
   RegistrationResponse,
   TournamentResponse,
 } from '../../lib/api-client.js';
+import type { components } from '@copalibre/contracts';
 
 function render(ui: ReactNode) {
   return testingLibraryRender(
@@ -831,5 +833,171 @@ describe('DashboardPage', () => {
     );
 
     await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
+  });
+});
+
+type OrganizationScheduleResponse = components['schemas']['OrganizationScheduleResponse'];
+
+describe('DashboardPage matches today', () => {
+  // 16:00 on 2026-11-16 in Buenos Aires (UTC-3).
+  const NOW = Date.parse('2026-11-16T19:00:00.000Z');
+  let originalFetch: typeof fetch;
+  let now: jest.SpiedFunction<typeof Date.now>;
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch;
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async () => new Response('[]', { headers: { 'content-type': 'application/json' } }),
+    });
+    now = jest.spyOn(Date, 'now').mockReturnValue(NOW);
+  });
+
+  afterEach(() => {
+    now.mockRestore();
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
+  });
+
+  function assignment(
+    tournamentId: string,
+    startsAt: string,
+    published = true,
+  ): OrganizationScheduleResponse['assignments'][number] {
+    return {
+      matchId: `match-${tournamentId}-${startsAt}`,
+      status: 'scheduled',
+      tournamentId,
+      stageId: 'stage-1',
+      round: 1,
+      entrantIds: [],
+      slotId: 'slot-1',
+      venueId: 'venue-1',
+      startsAt: Date.parse(startsAt),
+      estimatedEnd: Date.parse(startsAt) + 3_600_000,
+      published,
+    };
+  }
+
+  function renderInBuenosAires(api: ControlApiClient) {
+    return render(
+      <PageHeaderContext.Provider
+        value={{
+          organizationTimeZone: 'America/Argentina/Buenos_Aires',
+          breadcrumbLabel: 'Ruta',
+          loadingLabel: 'Cargando',
+        }}
+      >
+        <DashboardPage client={api} organizationAlias="liga-mendocina" />
+      </PageHeaderContext.Provider>,
+    );
+  }
+
+  const tournaments = async () => [
+    tournament(),
+    tournament({ tournamentId: 't-2', alias: 'clausura-2026', name: 'Clausura 2026' }),
+  ];
+  const asRole = (role: 'admin' | 'viewer') => async () => [
+    {
+      organizationId: 'org-1',
+      organizationAlias: 'liga-mendocina',
+      organizationName: 'Liga Mendocina',
+      timezone: 'America/Argentina/Buenos_Aires',
+      role,
+    },
+  ];
+  const cardOf = (name: string): HTMLElement =>
+    screen.getByRole('link', { name }).closest('.cl-tournament-card') as HTMLElement;
+
+  it("counts each tournament's kick-offs on the organization's day and totals them in the strip", async () => {
+    const fetchOrganizationSchedule = jest.fn(async () => ({
+      assignments: [
+        assignment('t-1', '2026-11-16T22:00:00.000Z'), // 19:00 today
+        assignment('t-1', '2026-11-17T02:30:00.000Z'), // 23:30 today, already tomorrow in UTC
+        assignment('t-1', '2026-11-17T13:00:00.000Z'), // 10:00 tomorrow
+        assignment('t-1', '2026-11-16T21:00:00.000Z', false), // today, but not published
+        assignment('t-2', '2026-11-16T15:00:00.000Z'), // 12:00 today
+        assignment('another-organization-tournament', '2026-11-16T15:00:00.000Z'),
+      ],
+    }));
+    renderInBuenosAires(
+      client({
+        listMyOrganizations: asRole('admin'),
+        listActiveTournaments: tournaments,
+        fetchOrganizationSchedule,
+      }),
+    );
+
+    await waitFor(() => expect(screen.getByTestId('matchesToday').textContent).toBe('3'));
+    expect(within(cardOf('Torneo Apertura 2026')).getByText('Partidos hoy')).toBeDefined();
+    expect(within(cardOf('Torneo Apertura 2026')).getByText('2')).toBeDefined();
+    expect(within(cardOf('Clausura 2026')).getByText('1')).toBeDefined();
+    // One request for the whole organization, a window wider than any zone's offset from UTC.
+    expect(fetchOrganizationSchedule).toHaveBeenCalledTimes(1);
+    expect(fetchOrganizationSchedule).toHaveBeenCalledWith('liga-mendocina', {
+      from: NOW - 2 * 24 * 60 * 60 * 1000,
+      to: NOW + 2 * 24 * 60 * 60 * 1000,
+    });
+  });
+
+  it('shows a zero, not a gap, when the schedule is read and nothing is on today', async () => {
+    renderInBuenosAires(
+      client({
+        listMyOrganizations: asRole('admin'),
+        listActiveTournaments: tournaments,
+        fetchOrganizationSchedule: async () => ({
+          assignments: [assignment('t-1', '2026-11-17T13:00:00.000Z')],
+        }),
+      }),
+    );
+
+    await waitFor(() => expect(screen.getByTestId('matchesToday').textContent).toBe('0'));
+  });
+
+  it('shows no count when the schedule cannot be read, rather than a zero', async () => {
+    const fetchOrganizationSchedule = jest.fn(async () => {
+      throw new Error('Schedule unavailable');
+    });
+    renderInBuenosAires(
+      client({
+        listMyOrganizations: asRole('admin'),
+        listActiveTournaments: tournaments,
+        fetchOrganizationSchedule,
+      }),
+    );
+
+    await waitFor(() => expect(fetchOrganizationSchedule).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Torneo Apertura 2026' })).toBeDefined(),
+    );
+    expect(screen.queryByTestId('matchesToday')).toBeNull();
+    expect(within(cardOf('Torneo Apertura 2026')).queryByText('Partidos hoy')).toBeNull();
+  });
+
+  it('does not ask for a schedule a role has no authority to read', async () => {
+    const fetchOrganizationSchedule = jest.fn(async () => ({ assignments: [] }));
+    renderInBuenosAires(
+      client({
+        listMyOrganizations: asRole('viewer'),
+        listActiveTournaments: tournaments,
+        fetchOrganizationSchedule,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Torneo Apertura 2026' })).toBeDefined(),
+    );
+    expect(fetchOrganizationSchedule).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('matchesToday')).toBeNull();
+  });
+
+  it('shows no count when the API client cannot read schedules at all', async () => {
+    renderInBuenosAires(
+      client({ listMyOrganizations: asRole('admin'), listActiveTournaments: tournaments }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Torneo Apertura 2026' })).toBeDefined(),
+    );
+    expect(screen.queryByTestId('matchesToday')).toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useIntl } from 'react-intl';
 import { messages } from '../../i18n/messages.en.js';
 import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
+import { downloadCsv } from '../../lib/csv.js';
 import { AnalyticsTemplate } from '../screens/AnalyticsTemplate.js';
 import { useResilientRead } from './use-resilient-read.js';
 
@@ -71,6 +72,7 @@ export function AnalyticsPage({
         completionByTournament={completionByTournament}
         failed={read.status === 'failed-empty'}
         loading={read.status === 'loading'}
+        onExportCsv={(csv) => downloadCsv(`${organizationAlias}-tournaments.csv`, csv)}
         onRetry={read.retry}
         organizationAlias={organizationAlias}
         staleSince={read.status === 'stale' ? read.staleSince : completionStaleSince}

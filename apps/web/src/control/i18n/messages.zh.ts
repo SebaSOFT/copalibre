@@ -1799,6 +1799,7 @@ export const messages: Record<string, string> = {
   'control.analytics.column.action': '打开',
   'control.analytics.openTournament': '打开 {name}',
   'control.analytics.paginationLabel': '赛事分页',
+  'control.analytics.exportCsv': '导出 CSV',
   'control.pagination.previous': '上一页',
   'control.pagination.next': '下一页',
   'control.preferences.description': '你的主题以及用于 API 的访问令牌。',

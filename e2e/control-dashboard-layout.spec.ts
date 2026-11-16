@@ -81,6 +81,26 @@ async function setupMockApi(page: Page): Promise<void> {
             offset: 0,
           });
         }
+        if (url.startsWith(`/api/organizations/${orgAlias}/schedule?`) && method === 'GET') {
+          // One published match per tournament kicking off right now: today in whatever zone the
+          // page counts days in.
+          const startsAt = Date.now();
+          return Response.json({
+            assignments: tournaments.map((tournament) => ({
+              matchId: `match-${tournament.tournamentId}`,
+              status: 'scheduled',
+              tournamentId: tournament.tournamentId,
+              stageId: 'stage-1',
+              round: 1,
+              entrantIds: [],
+              slotId: `slot-${tournament.tournamentId}`,
+              venueId: 'venue-1',
+              startsAt,
+              estimatedEnd: startsAt + 3_600_000,
+              published: true,
+            })),
+          });
+        }
         if (url.includes('/exports/') || url.endsWith('/export')) {
           (window as unknown as { __exports?: string[] }).__exports ??= [];
           (window as unknown as { __exports: string[] }).__exports.push(url);
@@ -145,7 +165,9 @@ test('summary tiles sit in a row on desktop, stack on mobile, and keep a page gu
   await openDashboard(page);
 
   const tiles = page.locator('.cl-stat-tile');
-  await expect(tiles).toHaveCount(2);
+  // Active tournaments, pending registrations, and the matches kicking off today.
+  await expect(tiles).toHaveCount(3);
+  await expect(page.getByTestId('matchesToday')).toHaveText(String(TOURNAMENT_COUNT));
 
   const desktopBoxes = await tiles.evaluateAll((elements) =>
     elements.map((element) => element.getBoundingClientRect()).map(({ x, y }) => ({ x, y })),
@@ -155,7 +177,7 @@ test('summary tiles sit in a row on desktop, stack on mobile, and keep a page gu
   expect(desktopBoxes.map((box) => box.x)).toEqual(
     [...desktopBoxes.map((box) => box.x)].sort((a, b) => a - b),
   );
-  expect(new Set(desktopBoxes.map((box) => box.x)).size).toBe(2);
+  expect(new Set(desktopBoxes.map((box) => box.x)).size).toBe(3);
 
   const desktopGutter = await page.evaluate(() => {
     const main = document.querySelector('main');
@@ -171,7 +193,7 @@ test('summary tiles sit in a row on desktop, stack on mobile, and keep a page gu
   );
   // One column: every tile shares a left edge and each sits below the last.
   expect(new Set(mobileBoxes.map((box) => box.x)).size).toBe(1);
-  expect(new Set(mobileBoxes.map((box) => box.y)).size).toBe(2);
+  expect(new Set(mobileBoxes.map((box) => box.y)).size).toBe(3);
 
   const mobileGutter = await page.evaluate(() => {
     const main = document.querySelector('main');

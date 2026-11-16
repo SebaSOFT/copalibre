@@ -99,3 +99,28 @@ test('analytics chart legend and table toggle show the same status values in Spa
     await expect(row).toBeVisible();
   }
 });
+
+test('analytics exports the tournament overview as a CSV file in Spanish', async ({ page }) => {
+  await openAnalytics(page);
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Exportar CSV' }).click(),
+  ]);
+
+  expect(download.suggestedFilename()).toBe(`${ORG_ALIAS}-tournaments.csv`);
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk as Uint8Array));
+  // The file opens with a byte-order mark so a spreadsheet reads the accents as UTF-8.
+  const bytes = Buffer.concat(chunks);
+  expect([...bytes.subarray(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
+  const text = bytes.subarray(3).toString('utf8');
+  expect(text.trimEnd().split('\n')).toEqual([
+    'Torneo,Estado,Progreso de partidos,Partidos en vivo',
+    'Apertura,En curso,0 / 0 partidos,0',
+    'Clausura,En curso,0 / 0 partidos,0',
+    'Copa,Finalizado,0 / 0 partidos,0',
+    'Juvenil,Próximo,0 / 0 partidos,0',
+  ]);
+});

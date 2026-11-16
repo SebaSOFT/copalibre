@@ -1902,6 +1902,7 @@ export const messages: Record<string, string> = {
   'control.analytics.column.action': 'Abrir',
   'control.analytics.openTournament': 'Abrir {name}',
   'control.analytics.paginationLabel': 'Páginas de torneios',
+  'control.analytics.exportCsv': 'Exportar CSV',
   'control.pagination.previous': 'Anterior',
   'control.pagination.next': 'Seguinte',
   'control.preferences.description': 'Seu tema e os tokens de acesso que você usa com a API.',
