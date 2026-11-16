@@ -43,6 +43,26 @@
         ],
         "createdAt": "2026-09-10T21:46:48.470Z",
         "reason": "Design-workflow review: DESIGN.md Cards and Inline Alerts prescribe a left state rail paired with a written state label. The auth panel, live scorecard, callout and audit card implement that documented cue; retain it without applying the generic side-tab heuristic. Paths updated: LiveMatchScorecard.tsx merged into MatchCard.tsx; CalloutBanner.tsx and AuditLogCard.tsx renamed to kebab-case and, for the latter, to AuditLogPanel."
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "apps/web/src/components/ui/molecules/MatchDayRow.astro",
+          "apps/web/src/components/ui/organisms/StandingsTable.astro"
+        ],
+        "createdAt": "2026-11-16T20:02:39.036Z",
+        "reason": "Agent: DESIGN.md Cards / Containers prescribe a 4px left rail in the state colour paired with the card's own label. The live match-day row carries the state badge and each promotion row its written band label, so the rail is a documented cue and not a decorative stripe. Decided in this review for the owner to overrule"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          "packages/design-tokens/src/design-document.test.ts",
+          "packages/design-tokens/src/tokens.test.ts"
+        ],
+        "createdAt": "2026-11-16T20:02:39.065Z",
+        "reason": "Agent: parser and regular-expression fixtures. The flagged text is an escape sequence and a pattern the tests feed to the code under test, never rendered typography. Decided in this review for the owner to overrule"
       }
     ]
   },
