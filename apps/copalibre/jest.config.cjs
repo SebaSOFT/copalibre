@@ -25,6 +25,7 @@ module.exports = {
     'src/doctor.ts',
     'src/init.ts',
     'src/product-roles.ts',
+    'src/single-run-containers.ts',
   ],
   coverageThreshold: {
     global: { lines: 90, branches: 85, functions: 90, statements: 90 },

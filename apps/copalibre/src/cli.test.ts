@@ -521,7 +521,12 @@ describe('runCli', () => {
   });
 
   it('waits for development infrastructure before running hybrid migrations', async () => {
-    const run = jest.fn<ProcessRunner['run']>().mockResolvedValueOnce(0).mockResolvedValueOnce(7);
+    const run = jest
+      .fn<ProcessRunner['run']>()
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(7);
     const result = await runCli(['dev', '--hybrid'], {}, { run });
 
     expect(result).toBe(7);
@@ -535,8 +540,9 @@ describe('runCli', () => {
       '--detach',
       '--wait',
     ]);
+    // calls 2 and 3 clear the single-run containers; the migration waits for them
     expect(run).toHaveBeenNthCalledWith(
-      2,
+      4,
       'yarn',
       ['workspace', '@copalibre/migrate', 'run', 'start'],
       expect.objectContaining({

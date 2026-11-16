@@ -66,6 +66,13 @@ containers only; they do not stop host Yarn processes started by a separate `cop
 invocation. In Kubernetes mode, `start`, `stop`, and `restart` print `helm`/`kubectl` guidance;
 `status` reads the installation marker and queries pods when `kubectl` is available.
 
+`database-setup` and `migrate` run once per start and exit, which would leave two stopped containers
+behind. When `start`, `restart` or `upgrade` has brought the stack up, the CLI removes those two
+containers with `docker compose rm`; the next start recreates and reruns them, so how the stack comes
+up does not change. A run that fails keeps its containers, so `docker compose logs migrate` still has
+something to read. If Compose cannot remove them, the command keeps its exit status and prints one
+notice. Kubernetes mode, and a CLI running inside a container, remove nothing.
+
 The standalone binary needs Docker and Docker Compose v2. The source checkout's `./copalibre`
 wrapper additionally needs Node.js 24 and Corepack. Run that wrapper by its path from the empty
 installation directory; do not run `init` in the checkout root. The generated `.env` pins published

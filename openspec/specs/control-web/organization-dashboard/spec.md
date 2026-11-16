@@ -281,3 +281,48 @@ The analytics header SHALL offer an export that downloads one CSV row for every 
 
 - **WHEN** the overview spans two pages and an operator exports it
 - **THEN** the file holds a row for every tournament on both pages
+
+### Requirement: The organization screen offers every setting the API updates
+
+The organization screen SHALL offer the organization's name, emblem, primary language and time zone, and SHALL save the changed ones together through its unsaved-changes bar.
+
+#### Scenario: The time zone is changed
+
+- **WHEN** an administrator changes the time zone and saves
+- **THEN** the organization's schedules, kick-off times and matches-today count use the new zone
+
+### Requirement: An unreferenced file is identified before it is deleted
+
+The storage section SHALL title its list of unreferenced files, SHALL show each file's type, size and date, and SHALL ask for confirmation before deleting one.
+
+#### Scenario: Deleting an unreferenced file
+
+- **WHEN** an administrator activates Delete on an unreferenced file
+- **THEN** a confirmation names the file's type, size and date, and nothing is deleted until it is accepted
+
+### Requirement: The organization screen offers only what a role may use
+
+The organization screen SHALL withhold each section its signed-in role may not use and say which role can.
+
+#### Scenario: A role without settings authority
+
+- **WHEN** a role that cannot update organization settings opens the screen
+- **THEN** the identity form is not offered as editable, and the screen names the role that can edit it
+
+### Requirement: The personal preferences screen is its own page
+
+The personal preferences screen SHALL offer the theme control and personal access tokens, and SHALL NOT offer or read the organization's name, emblem, storage or statistics rebuild.
+
+#### Scenario: Opening personal preferences
+
+- **WHEN** a member opens the personal preferences screen
+- **THEN** it shows the theme control and the personal access tokens, and no organization identity, storage or statistics section
+
+### Requirement: The theme control belongs to the personal screen
+
+The organization screen SHALL NOT offer the theme control; the personal preferences screen SHALL offer it under a heading, at a width that fits its values.
+
+#### Scenario: The organization screen opens
+
+- **WHEN** the organization screen opens
+- **THEN** its first section is Identity and no theme control is on the page

@@ -208,6 +208,27 @@ describe('copalibre dev demo', () => {
     });
   });
 
+  it('loads once the infrastructure is healthy although the storage initialiser container was removed', async () => {
+    await withDirectory(async () => {
+      const run = jest.fn<ProcessRunner['run']>(async () => 0);
+      const capture = jest.fn<NonNullable<ProcessRunner['capture']>>(async () =>
+        composePs(
+          { Service: 'postgres', State: 'running', Health: 'healthy' },
+          { Service: 'object-storage', State: 'running', Health: 'healthy' },
+        ),
+      );
+      const out = output();
+      try {
+        await expect(
+          runCli(['dev', 'demo', 'panamericano-clubes-2025'], {}, { run, capture }),
+        ).resolves.toBe(0);
+      } finally {
+        out.restore();
+      }
+      expect(run).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('refuses, naming what is down, before loading anything', async () => {
     await withDirectory(async () => {
       const run = jest.fn<ProcessRunner['run']>(async () => 0);
@@ -225,9 +246,8 @@ describe('copalibre dev demo', () => {
       }
       const message = out.stderr();
       expect(run).not.toHaveBeenCalled();
-      expect(message).toContain(
-        'the development stack is not up (object-storage, object-storage-init)',
-      );
+      expect(message).toContain('the development stack is not up (object-storage)');
+      expect(message).not.toContain('object-storage-init');
       expect(message).toContain('copalibre dev');
     });
   });

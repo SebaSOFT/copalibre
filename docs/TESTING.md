@@ -9,6 +9,15 @@ inside these conventions instead of inventing new ones.
 PostgreSQL and supporting services run in Compose. The matching startup and demo-data workflow is
 documented in [DEMO-DATA.md](DEMO-DATA.md).
 
+Once the infrastructure is healthy, `copalibre dev --hybrid` removes the `object-storage-init`
+container, which keeps running only so `docker compose --wait` can see the bucket ready (the bucket
+and its key stay in the storage volume; the next start recreates it from the kept image). It also
+removes the stopped application containers (`migrate`, `api`, `events`, `worker`, `scheduler`,
+`web-ssr`, `web`) that an earlier containerized `copalibre dev` left behind, and never touches a
+running one. A removal Compose refuses prints one notice and does not stop the session. The
+foreground containerized `copalibre dev` removes nothing, and `copalibre dev demo` needs only
+PostgreSQL and the object store running.
+
 For a module checkout, `COPALIBRE_MODULE_SOURCE_ALLOWLIST` accepts a comma-separated list of exact
 source URLs. A `copalibre module add <alias> --source <url>` request is allowed only when its URL is
 one of those entries. `COPALIBRE_VERSION` optionally overrides package metadata for compatibility

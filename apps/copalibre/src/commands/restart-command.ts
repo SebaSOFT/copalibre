@@ -3,6 +3,11 @@ import { Command, Option } from 'clipanion';
 import type { CliContext } from '../cli-context.js';
 import { runCommand } from '../command-support.js';
 import { DEV_COMPOSE_FILE, resolveDeploymentTopology } from '../process-lifecycle.js';
+import {
+  cleanUpAfterSuccess,
+  DEVELOPMENT_SINGLE_RUN,
+  PRODUCTION_SINGLE_RUN,
+} from '../single-run-containers.js';
 
 export class RestartCommand extends Command<CliContext> {
   static override paths = [['restart']];
@@ -31,11 +36,17 @@ export class RestartCommand extends Command<CliContext> {
       }
 
       const runner = this.context.processes;
+      const environment = this.context.env;
       if (topology.mode === 'dev') {
         const prefix = ['compose', '-f', DEV_COMPOSE_FILE, '--profile', 'infrastructure'];
         const stopped = await runner.run('docker', [...prefix, 'stop']);
         if (stopped !== 0) return stopped;
-        return runner.run('docker', [...prefix, 'up', '--detach', '--wait']);
+        const started = await runner.run('docker', [...prefix, 'up', '--detach', '--wait']);
+        return cleanUpAfterSuccess(started, {
+          processes: runner,
+          environment,
+          list: DEVELOPMENT_SINGLE_RUN,
+        });
       }
 
       const stopped = await runner.run('docker', ['compose', 'stop']);
@@ -52,7 +63,12 @@ export class RestartCommand extends Command<CliContext> {
         const doctor = await runner.run('docker', ['compose', 'run', '--rm', 'doctor']);
         if (doctor !== 0) return doctor;
       }
-      return runner.run('docker', ['compose', 'up', '--detach', '--wait']);
+      const started = await runner.run('docker', ['compose', 'up', '--detach', '--wait']);
+      return cleanUpAfterSuccess(started, {
+        processes: runner,
+        environment,
+        list: PRODUCTION_SINGLE_RUN,
+      });
     });
   }
 }
