@@ -56,7 +56,7 @@ function openRow(entrantId: string): HTMLButtonElement {
 }
 
 describe('StandingsTemplate', () => {
-  it('shows the projection version and the tiebreak indicator with text, not colour', () => {
+  it('shows the tiebreak indicator with text, not colour, and no projection counter', () => {
     render(
       withIntl(
         <StandingsTemplate
@@ -69,7 +69,8 @@ describe('StandingsTemplate', () => {
       ),
     );
 
-    expect(screen.getByText(/Projection v7/)).toBeTruthy();
+    // The projection version is a server counter with no meaning for an operator.
+    expect(screen.queryByText(/Projection v/)).toBeNull();
     expect(screen.getByText('Shared position')).toBeTruthy();
     expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toContain(
       'Position',

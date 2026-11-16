@@ -147,7 +147,7 @@ export function DisciplineSummary({
                       {reversibility !== undefined && <p>{reversibility}</p>}
                       <p>
                         {intl.formatMessage(messages.disciplineSummaryRuleCurrentValue, {
-                          value: formatFieldValue(rule.value, intl),
+                          value: formatFieldValue(rule.value, intl, rule.dotPath),
                         })}
                       </p>
                     </div>

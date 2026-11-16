@@ -148,7 +148,7 @@ describe('Spanish catalog reproduces pre-extraction wording', () => {
     );
 
     expect(screen.getByText('Posiciones')).toBeTruthy();
-    expect(screen.getByText(/Proyección v3/)).toBeTruthy();
+    expect(screen.queryByText(/Proyección v/)).toBeNull();
     expect(screen.getByText('Todavía no hay resultados en esta fase.')).toBeTruthy();
   });
 

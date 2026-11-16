@@ -13,6 +13,7 @@ import { SectionTabList } from '../ui/organisms/section-tabs.js';
 import { UnsavedChangesBar } from '../ui/organisms/unsaved-changes-bar.js';
 import { RulesetFieldControl } from '../ui/molecules/ruleset-field-control.js';
 import { PageHeaderTemplate } from './PageHeaderTemplate.js';
+import { formatTiebreakerCode } from '../../lib/tiebreaker-labels.js';
 import { TournamentSummary } from '../ui/organisms/tournament-summary.js';
 import {
   chooseControlKind,
@@ -210,7 +211,7 @@ export function TournamentRulesetTemplate({
         if (draft === undefined || index === undefined) {
           return (
             <span className="cl-ruleset__current">
-              {formatFieldValue(fieldValueAt(mergedConfig, field), intl)}
+              {formatFieldValue(fieldValueAt(mergedConfig, field), intl, field)}
             </span>
           );
         }
@@ -223,6 +224,7 @@ export function TournamentRulesetTemplate({
             availableFormats={availableFormats}
             disciplineDefaultValue={fieldValueAt(resolvedDefaults, field)}
             dotPath={field}
+            formatLabel={(format) => formatFieldValue(format, intl, 'format')}
             id={`ruleset-field-${index}`}
             inheritedHeading={intl.formatMessage(messages.rulesetFieldInheritedHeading)}
             label={label}
@@ -237,6 +239,7 @@ export function TournamentRulesetTemplate({
             policy={policy}
             removeLabel={intl.formatMessage(messages.rulesetOverridesRemoveField)}
             selectPlaceholder={intl.formatMessage(messages.selectPlaceholder)}
+            tiebreakerLabel={(code) => formatTiebreakerCode(intl, code)}
             unknownTypeText={intl.formatMessage(messages.rulesetFieldUnknownType)}
             unrecognizedText={intl.formatMessage(messages.rulesetFieldUnrecognized)}
           />

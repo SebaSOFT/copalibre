@@ -1,6 +1,7 @@
 import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 import { expectCompleteHeadingOutline } from './support/heading-outline.js';
+import { expectNoVisibleIdentifiers } from './support/visible-identifiers.js';
 
 /**
  * Ruleset and stage-configuration editing: a tournament's
@@ -150,7 +151,7 @@ test('renders typed controls for boolean/format/union-list fields, saves only th
   await expect(page.getByRole('checkbox').first()).toBeVisible();
   // A union-list field's "current value" already shows the inherited items.
   await page.getByText('Reglamento completo').click();
-  await expect(page.getByText('Valor actual: points, score-difference')).toBeVisible();
+  await expect(page.getByText('Valor actual: Puntos, Diferencia de marcador')).toBeVisible();
 
   // Adding one tiebreaker sends only that addition, not the inherited list.
   const tiebreakersRow = page.getByRole('row').filter({ hasText: 'Tiebreakers' });
@@ -160,9 +161,17 @@ test('renders typed controls for boolean/format/union-list fields, saves only th
 
   // The plain-language summary now reflects the real merged effective value.
   await expect(
-    page.getByText('Valor actual: points, score-difference, goals-against'),
+    page.getByText('Valor actual: Puntos, Diferencia de marcador, Goles en contra'),
   ).toBeVisible();
   expect(lastPutOverrides).toEqual({ tiebreakers: ['goals-against'] });
+  // Codes and formats read as names; the typed code survives only in the request, not on the page.
+  await expect(page.getByText('Valor actual: Todos contra todos')).toBeVisible();
+  await expectNoVisibleIdentifiers(page, [
+    'score-difference',
+    'goals-against',
+    'round-robin',
+    'lower_wins',
+  ]);
 });
 
 test('refuses a blocked ruleset-override edit before the save request is sent', async ({

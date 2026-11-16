@@ -56,16 +56,9 @@ export function LiveConsoleTemplate({
             <Card key={tournament.tournamentId}>
               <Stack gap="3" padding="4">
                 <Inline align="center" gap="2" justify="between" wrap>
-                  <div>
-                    <h2 style={{ margin: 0, fontSize: 'var(--cl-font-size-lg)' }}>
-                      {tournament.name}
-                    </h2>
-                    <span
-                      style={{ fontSize: 'var(--cl-font-size-sm)', color: 'var(--cl-text-muted)' }}
-                    >
-                      {tournament.alias}
-                    </span>
-                  </div>
+                  <h2 style={{ margin: 0, fontSize: 'var(--cl-font-size-lg)' }}>
+                    {tournament.name}
+                  </h2>
                   <Badge
                     className={
                       tournament.status === 'started'

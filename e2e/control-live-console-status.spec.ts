@@ -1,5 +1,6 @@
 import { expect, test } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectNoVisibleIdentifiers } from './support/visible-identifiers.js';
 
 const ORG_ALIAS = 'liga-mendocina';
 const TARGET = `/control/${ORG_ALIAS}/live`;
@@ -37,4 +38,6 @@ test('a started tournament without a match in play has a neutral live-console st
   const badge = page.locator('.cl-live-console .cl-state--muted');
   await expect(badge).toHaveText('En curso');
   await expect(page.locator('.cl-live-console .cl-state--live')).toHaveCount(0);
+  await expect(page.getByRole('heading', { level: 2, name: 'Apertura 2026' })).toBeVisible();
+  await expectNoVisibleIdentifiers(page, ['apertura-2026']);
 });

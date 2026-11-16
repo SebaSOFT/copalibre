@@ -406,6 +406,24 @@ describe('the control routes', () => {
     });
   });
 
+  it('names each live console tournament and never shows its alias', async () => {
+    const client: ControlApiClient = minimalControlClient({
+      listActiveTournaments: async () => [
+        {
+          tournamentId: 't-1',
+          organizationId: 'org-1',
+          alias: 'apertura-2026',
+          name: 'Apertura 2026',
+          status: 'started',
+        },
+      ],
+    });
+    render(<LiveConsoleControlRoute client={client} organizationAlias="liga-mendocina" />);
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Apertura 2026' })).toBeDefined();
+    expect(screen.queryByText('apertura-2026')).toBeNull();
+  });
+
   it('renders the organization route inside the shell', async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = (async () => jsonResponse([])) as typeof fetch;

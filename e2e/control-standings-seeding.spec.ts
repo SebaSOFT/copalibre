@@ -320,7 +320,8 @@ test('expands a tied standings row and shows the engine’s trace', async ({ pag
     breadcrumbs.getByRole('link', { name: 'Apertura 2026', exact: true }),
   ).toHaveAttribute('href', '/control/liga-mendocina/tournaments/apertura-2026');
   await expect(page.getByRole('heading', { level: 1, name: 'Posiciones' })).toBeVisible();
-  await expect(page.getByText('Proyección v12')).toBeVisible();
+  // The projection version is a server counter; the page does not print it.
+  await expect(page.getByText(/Proyección v/)).toHaveCount(0);
   await page.getByRole('button', { name: 'Desempate — Deportivo Norte' }).click();
 
   const trace = page.getByLabel('Traza de desempate');
