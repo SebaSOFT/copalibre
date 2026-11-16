@@ -16,10 +16,15 @@ name: CopaLibre CLI build check
 # macos-latest runner is Apple Silicon and running an x64 binary on it needs
 # Rosetta, not guaranteed present on a GitHub-hosted runner.
 
+# The binary bundles every workspace package the CLI imports, so a change to one can break it with
+# no line of `apps/copalibre/` touched: `object-storage` imported `sharp`, a native module, at module
+# load, and every binary built in the next three days failed at startup because only a change to the
+# CLI ran this check. Hence `packages/**`.
 on:
   pull_request:
     paths:
       - 'apps/copalibre/**'
+      - 'packages/**'
       - '.github/workflows/copalibre-cli-build-check.yml'
 
 permissions:
