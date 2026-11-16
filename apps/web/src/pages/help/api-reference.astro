@@ -1,0 +1,37 @@
+---
+// The interactive API reference. A standalone page, not a Starlight one: the renderer owns the
+// whole document. The mount point is deliberately not named `api-reference`: Scalar's own
+// bundle auto-mounts onto that id with no configuration, and two mounts fight over one node.
+// Both scripts are same-origin files copied at build time (see
+// scripts/copy-scalar-assets.mjs): the content security policy runs no inline script that Astro
+// did not hash, and an installation with no internet egress must render this page offline.
+import '@copalibre/design-tokens/generated/copalibre.css';
+import { publicIntl } from '../../lib/i18n/public-intl.ts';
+import { messages } from '../../lib/i18n/public-messages.en.ts';
+
+// The page is English, like the document it renders; Scalar sets the full title once it loads.
+const title = publicIntl('en').formatMessage(messages.headerNavApiReference);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <main id="copalibre-reference"></main>
+    <script is:inline src="/vendor/scalar/standalone.js"></script>
+    <script is:inline src="/vendor/scalar/init.js"></script>
+  </body>
+</html>
+
+<style is:global>
+  body {
+    margin: 0;
+    background: var(--cl-surface-base);
+    font-family: var(--cl-font-body);
+  }
+</style>

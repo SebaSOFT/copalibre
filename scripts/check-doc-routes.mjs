@@ -37,27 +37,38 @@ export function citedHelpRoutes(markdown) {
   return [...routes];
 }
 
-function markdownFilesUnder(directory) {
+function filesUnder(directory, extension) {
   if (!existsSync(directory)) return [];
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = join(directory, entry.name);
-    if (entry.isDirectory()) return markdownFilesUnder(path);
-    return /\.mdx?$/.test(entry.name) ? [path] : [];
+    if (entry.isDirectory()) return filesUnder(path, extension);
+    return extension.test(entry.name) ? [path] : [];
   });
 }
 
-/** The routes the help content produces, in English and under every locale prefix. */
-export function producedHelpRoutes(docsRoot) {
+function routeOf(prefix, relativePath) {
+  const page = relativePath
+    .replace(/\.(mdx?|astro)$/, '')
+    .split(/[\\/]/)
+    .filter((segment, index, all) => !(segment === 'index' && index === all.length - 1));
+  return `${prefix}/help/${page.length === 0 ? '' : `${page.join('/')}/`}`;
+}
+
+/**
+ * The routes the help produces, in English and under every locale prefix: the Starlight content,
+ * and the standalone Astro pages beside it (the API reference is one, and no content file).
+ */
+export function producedHelpRoutes(docsRoot, pagesRoot) {
   const routes = new Set();
   for (const locale of ['', ...LOCALES]) {
     const prefix = locale === '' ? '' : `/${locale}`;
-    const helpRoot = join(docsRoot, locale, 'help');
-    for (const file of markdownFilesUnder(helpRoot)) {
-      const page = relative(helpRoot, file)
-        .replace(/\.mdx?$/, '')
-        .split(/[\\/]/)
-        .filter((segment, index, all) => !(segment === 'index' && index === all.length - 1));
-      routes.add(`${prefix}/help/${page.length === 0 ? '' : `${page.join('/')}/`}`);
+    for (const [root, extension] of [
+      [join(docsRoot, locale, 'help'), /\.mdx?$/],
+      ...(pagesRoot === undefined ? [] : [[join(pagesRoot, locale, 'help'), /\.astro$/]]),
+    ]) {
+      for (const file of filesUnder(root, extension)) {
+        routes.add(routeOf(prefix, relative(root, file)));
+      }
     }
   }
   return routes;
@@ -66,7 +77,7 @@ export function producedHelpRoutes(docsRoot) {
 /** The documents that claim current behaviour: the root ones, and `docs/` less what records a moment. */
 export function livingDocuments(repoRoot) {
   const excluded = EXCLUDED_DIRECTORIES.map((directory) => join(repoRoot, directory));
-  const inDocs = markdownFilesUnder(join(repoRoot, 'docs')).filter(
+  const inDocs = filesUnder(join(repoRoot, 'docs'), /\.mdx?$/).filter(
     (file) => !excluded.some((directory) => file.startsWith(`${directory}/`)),
   );
   const root = ROOT_DOCUMENTS.map((name) => join(repoRoot, name)).filter((file) =>
@@ -89,7 +100,10 @@ export function missingRoutes(documents, produced) {
 
 function main() {
   const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-  const produced = producedHelpRoutes(join(repoRoot, 'apps/web/src/content/docs'));
+  const produced = producedHelpRoutes(
+    join(repoRoot, 'apps/web/src/content/docs'),
+    join(repoRoot, 'apps/web/src/pages'),
+  );
   const documents = livingDocuments(repoRoot);
   const missing = missingRoutes(documents, produced);
 
@@ -97,7 +111,7 @@ function main() {
     process.stderr.write(
       `${missing.length} documented help route(s) have no page behind them:\n` +
         missing.map(({ path, route }) => `  - ${path} names ${route}\n`).join('') +
-        'Remove the claim, or add the page under apps/web/src/content/docs/.\n',
+        'Remove the claim, or add the page under apps/web/src/content/docs/ or apps/web/src/pages/help/.\n',
     );
     process.exitCode = 1;
     return;

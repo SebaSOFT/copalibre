@@ -6,6 +6,10 @@ import { promisify } from 'node:util';
 const execFileAsync = promisify(execFile);
 const REPOSITORY_ROOT = join(import.meta.dirname, '../../..');
 const HELP_OUTPUT = join(REPOSITORY_ROOT, 'apps/web/dist/client/help/index.html');
+const API_REFERENCE_OUTPUT = join(
+  REPOSITORY_ROOT,
+  'apps/web/dist/client/help/api-reference/index.html',
+);
 const GETTING_STARTED_OUTPUT = join(
   REPOSITORY_ROOT,
   'apps/web/dist/client/help/getting-started/index.html',
@@ -35,5 +39,9 @@ describe('help static build (integration)', () => {
     expect(help).toContain('/help/getting-started/');
     const gettingStarted = readFileSync(GETTING_STARTED_OUTPUT, 'utf8');
     expect(gettingStarted).toContain('On this page');
+    // The API reference is built without an API process, from the vendored renderer.
+    const apiReference = readFileSync(API_REFERENCE_OUTPUT, 'utf8');
+    expect(apiReference).toContain('id="copalibre-reference"');
+    expect(apiReference).toContain('src="/vendor/scalar/standalone.js"');
   }, 120_000);
 });

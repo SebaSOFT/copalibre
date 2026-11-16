@@ -68,6 +68,19 @@ test('the content produces English and locale routes, an index page as its direc
   );
 });
 
+test('a standalone Astro page beside the content is a route too, and not a content file', () => {
+  const docs = tree({ 'help/index.md': '' });
+  const pages = tree({
+    'help/api-reference.astro': '',
+    'help/notes.txt': '',
+    'es/help/index.astro': '',
+  });
+  assert.deepEqual(
+    [...producedHelpRoutes(docs, pages)].sort(),
+    ['/es/help/', '/help/', '/help/api-reference/'].sort(),
+  );
+});
+
 test('names each document and route that has no page behind it', () => {
   const produced = new Set(['/help/', '/help/cli/']);
   assert.deepEqual(

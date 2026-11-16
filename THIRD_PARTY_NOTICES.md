@@ -64,6 +64,15 @@ remain with their respective projects.
 | `@tabler/icons`       | 3.49.0  | MIT     |
 | `@tabler/icons-react` | 3.49.0  | MIT     |
 
+## API reference renderer
+
+`@scalar/api-reference` 1.78.1 (MIT, Copyright (c) Scalar) renders the interactive API reference at
+`/help/api-reference/`. Its prebuilt standalone bundle is copied into the web build at build time
+(`apps/web/scripts/copy-scalar-assets.mjs`) and served from the application's own origin. The copy is
+modified in two ways, both checked by the build: the `@font-face` rules that load fonts from
+`fonts.scalar.com` are removed, and the validation library's `Function('')` probe is made to answer no
+without asking. The licence text ships in the package's `LICENSE` file.
+
 ## Font dependencies
 
 These packages are dependencies of `@copalibre/design-tokens`; their font files are bundled into the
