@@ -23,8 +23,12 @@ export const DEV_OBJECT_STORAGE: Readonly<Record<string, string>> = {
   COPALIBRE_OBJECT_STORAGE_REGION: 'garage',
 };
 
-/** Services the loader needs: the database, and the object store with its bucket initialised. */
-const REQUIRED_SERVICES = ['postgres', 'object-storage', 'object-storage-init'] as const;
+/**
+ * Services the loader needs running: the database and the object store. The store's bucket and key are made once by
+ * `object-storage-init`, which `copalibre dev --hybrid` removes after the infrastructure is healthy, so that
+ * container is not required to exist.
+ */
+const REQUIRED_SERVICES = ['postgres', 'object-storage'] as const;
 
 function isUp(service: ComposeServiceRow | undefined): boolean {
   return (
