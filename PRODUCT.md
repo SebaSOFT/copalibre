@@ -72,8 +72,10 @@ Claims a neighboring product could not truthfully copy:
 - **Remote day-two operations.** From a machine without database access, a personal access token
   generated in the panel's preferences screen authorizes `statistics-rebuild` and
   `module add/list/remove/verify` over HTTP. `copalibre mcp` exposes the same operations to an AI agent.
-- **Self-contained documentation.** Operator help and a fully static OpenAPI reference are served from
-  the running instance at `/help/` and `/help/api-reference/`, with no live-API or internet dependency.
+- **Self-contained documentation.** Operator help and a fully static, interactive OpenAPI reference are
+  served from the running instance at `/help/` and `/help/api-reference/`, with no live-API or internet
+  dependency. The reference's Try It runs against the same instance with a personal access token, so
+  what the platform holds is open to its operators' own integrations.
 - **Eight interface languages**, complete: English, Spanish, Portuguese, French, Italian, German,
   Russian, Chinese.
 

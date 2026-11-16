@@ -146,4 +146,5 @@ drift from the implementation. CI regenerates it and fails if it differs from th
 then runs contract-lint (every route tagged; authenticated routes advertise bearer; public routes do
 not; every route documented and typed) and a breaking-change check against the published artifact.
 `packages/contracts` publishes TypeScript types generated from it — the public web shell serves the same file
-via Scalar.
+at `/openapi/v1.json` and renders it at `/help/api-reference/` with Scalar, where Try It sends
+`Authorization: Bearer` with a personal access token the visitor pastes.

@@ -63,6 +63,46 @@ check('Starlight source does not define CopaLibre tokens', !starlightSource.incl
 check('public home does not render Starlight markup', !publicHome.includes('starlight'));
 check('control home does not render Starlight markup', !controlHome.includes('starlight'));
 
+const apiReference = readOutput('help/api-reference/index.html');
+const scalarBundle = readOutput('vendor/scalar/standalone.js');
+const scalarInit = readOutput('vendor/scalar/init.js');
+check('API reference page is built', apiReference.includes('id="copalibre-reference"'));
+check(
+  'API reference loads Scalar and its configuration from the vendored build assets, not a CDN',
+  apiReference.includes('src="/vendor/scalar/standalone.js"') &&
+    apiReference.includes('src="/vendor/scalar/init.js"') &&
+    !apiReference.includes('cdn.jsdelivr.net') &&
+    !apiReference.includes('unpkg.com'),
+);
+check('Vendored Scalar bundle exists in the build output', scalarBundle.length > 0);
+check(
+  'Vendored Scalar bundle names no hosted fonts, so the page asks nothing of Scalar',
+  !scalarBundle.includes('fonts.scalar.com'),
+);
+check(
+  'Vendored Scalar bundle runs no code-generation probe the content security policy would report',
+  !scalarBundle.includes('Function(``)'),
+);
+check(
+  'API reference reads the local OpenAPI artifact',
+  scalarInit.includes("url: '/openapi/v1.json'"),
+);
+check('API reference has Try It on', scalarInit.includes('hideTestRequestButton: false'));
+check('Try It never stores the token', scalarInit.includes('persistAuth: false'));
+check(
+  'Try It never sends the session cookie',
+  scalarInit.includes("credentials: 'omit'") && scalarInit.includes('customFetch'),
+);
+check('API reference sends no telemetry', scalarInit.includes('telemetry: false'));
+check(
+  'API reference reads the application design tokens',
+  scalarInit.includes('var(--cl-surface-base)') && /copalibre[^"']*\.css/.test(apiReference),
+);
+check(
+  'the help site and the public pages link nowhere to the API reference',
+  !help.includes('api-reference') && !publicHome.includes('api-reference'),
+);
+
 const llmsTxt = existsSync(join(DIST, 'llms.txt')) ? readOutput('llms.txt') : '';
 const llmsFullTxt = existsSync(join(DIST, 'llms-full.txt')) ? readOutput('llms-full.txt') : '';
 check('llms.txt exists', llmsTxt.length > 0);

@@ -100,6 +100,13 @@ describe('PreferencesPage', () => {
       ),
     ).toBeDefined();
     expect(screen.getByRole('form', { name: 'Tokens de acceso personal' })).toBeDefined();
+    // The token's use is one click away: the API reference opens in a new tab.
+    const reference = screen.getByRole('link', {
+      name: 'Probá la API con un token en la referencia de la API',
+    });
+    expect(reference.getAttribute('href')).toBe('/help/api-reference/');
+    expect(reference.getAttribute('target')).toBe('_blank');
+    expect(reference.getAttribute('rel')).toBe('noopener noreferrer');
     await waitFor(() => {
       expect(screen.getByText(/Test PAT/i)).toBeDefined();
     });

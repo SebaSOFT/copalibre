@@ -43,6 +43,7 @@ export const RESERVED_ORGANIZATION_ALIASES = {
     'scripts',
     'authoring',
     'background-removal',
+    'vendor',
     'preview-fixtures',
     '404',
   ],

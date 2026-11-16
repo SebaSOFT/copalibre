@@ -253,3 +253,31 @@ The organization preferences screen SHALL present its functional sections in a p
 #### Scenario: Organization scope heading names organization
 - **WHEN** viewing the organization properties screen
 - **THEN** the primary page heading displays "Organización" (or the localized equivalent in the active language)
+
+### Requirement: Matches today counts kick-offs on the organization's calendar day
+
+The dashboard SHALL count each tournament's published matches whose scheduled time falls on today's date in the organization's time zone, SHALL show each count on its tournament card and their total as a summary tile, and SHALL show neither while the schedule cannot be read.
+
+#### Scenario: The organization's zone decides the day
+
+- **WHEN** an organization in Buenos Aires has a match scheduled at 23:30 local time
+- **THEN** the dashboard counts it as today's match, although that time is already tomorrow in UTC
+
+#### Scenario: A draft placement is not a scheduled match
+
+- **WHEN** a match has a placement today that has not been published
+- **THEN** the dashboard does not count it
+
+#### Scenario: An unreadable schedule shows no count, not a zero
+
+- **WHEN** the schedule cannot be read, or the signed-in role may not read it
+- **THEN** no tournament card shows a matches-today fact and the dashboard shows no matches-today tile
+
+### Requirement: Analytics exports the whole tournament overview
+
+The analytics header SHALL offer an export that downloads one CSV row for every tournament in the overview, not only the rows of the visible page, with the columns the table shows.
+
+#### Scenario: The export covers every page
+
+- **WHEN** the overview spans two pages and an operator exports it
+- **THEN** the file holds a row for every tournament on both pages

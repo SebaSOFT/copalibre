@@ -237,7 +237,8 @@ is planned and tracked as an OpenSpec proposal in
 - [`docs/deployment/reverse-proxy/`](docs/deployment/reverse-proxy/) — Caddy and NGINX examples
 - [`CHANGELOG.md`](CHANGELOG.md) — release history, generated from commit history
 - `/help/` and `/help/api-reference/` on a running instance — operator help and the interactive,
-  fully static OpenAPI reference (no live-API or internet dependency)
+  fully static OpenAPI reference (no live-API or internet dependency). Its Try It sends requests to
+  the same instance with a personal access token from the panel's preferences screen.
 
 ## Roadmap
 

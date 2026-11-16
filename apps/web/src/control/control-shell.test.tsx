@@ -128,6 +128,20 @@ describe('the control shell', () => {
     expect(help.getAttribute('rel')).toBe('noopener noreferrer');
   });
 
+  it('links to the API reference from the panel, in a new tab, in every language alike', () => {
+    render(
+      <ControlShell helpPath="seeding" organizationAlias="liga-mendocina">
+        <p>contenido</p>
+      </ControlShell>,
+    );
+
+    const reference = screen.getByRole('link', { name: 'Referencia de la API' });
+    // One page for every language: the reference is the API's own, not translated help.
+    expect(reference.getAttribute('href')).toBe('/help/api-reference/');
+    expect(reference.getAttribute('target')).toBe('_blank');
+    expect(reference.getAttribute('rel')).toBe('noopener noreferrer');
+  });
+
   it('locale-prefixes the help link for every supported language, and leaves English unprefixed', () => {
     const cases = [
       ['en', '/help/control/seeding'],

@@ -353,6 +353,15 @@ function ControlShellChrome({
         >
           <FormattedMessage {...messages.shellWhatIsThisScreen} />
         </a>
+        <a
+          className="cl-focusable"
+          href="/help/api-reference/"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={onNavigate}
+        >
+          <FormattedMessage {...messages.shellApiReference} />
+        </a>
         {organizationAlias && (
           <a
             className="cl-focusable"
