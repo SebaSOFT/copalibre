@@ -159,6 +159,10 @@ export const messages = defineMessages({
     id: 'control.shell.whatIsThisScreen',
     defaultMessage: 'What is this screen?',
   },
+  shellApiReference: {
+    id: 'control.shell.apiReference',
+    defaultMessage: 'API reference',
+  },
   shellOpenNavigation: {
     id: 'control.shell.openNavigation',
     defaultMessage: 'Open navigation menu',
@@ -4600,6 +4604,10 @@ export const messages = defineMessages({
   preferencesPatDescription: {
     id: 'preferences.patDescription',
     defaultMessage: 'Generate tokens to access the API directly. Tokens are only shown once.',
+  },
+  preferencesPatApiReference: {
+    id: 'preferences.patApiReference',
+    defaultMessage: 'Try the API with a token in the API reference',
   },
   preferencesPatScopes: { id: 'preferences.patScopes', defaultMessage: 'Token permissions' },
   preferencesPatNoScopes: {

@@ -14,6 +14,7 @@ import { FramedImage } from '../FramedImage.js';
 import { ImageCropModal } from '../ImageCropModal.js';
 import { ClubEmblemPlaceholder } from '../placeholders.js';
 import { Button } from '../ui/atoms/button.js';
+import { LinkButton } from '../ui/atoms/link-button.js';
 import { Card } from '../ui/atoms/card.js';
 import { Checkbox } from '../ui/atoms/checkbox.js';
 import { Form } from '../ui/atoms/form.js';
@@ -574,6 +575,16 @@ export function PreferencesTemplate({
           <p>
             <FormattedMessage {...controlMessages.preferencesPatDescription} />
           </p>
+          <div>
+            <LinkButton
+              href="/help/api-reference/"
+              rel="noopener noreferrer"
+              target="_blank"
+              variant="secondary"
+            >
+              <FormattedMessage {...controlMessages.preferencesPatApiReference} />
+            </LinkButton>
+          </div>
 
           {!loading && (
             <Form

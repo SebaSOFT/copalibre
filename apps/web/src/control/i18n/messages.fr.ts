@@ -58,6 +58,7 @@ export const messages: Record<string, string> = {
   'control.shell.sections': 'Sections',
   'control.shell.skipToContent': 'Aller au contenu',
   'control.shell.whatIsThisScreen': 'Qu’est-ce que cet écran ?',
+  'control.shell.apiReference': 'Référence de l’API',
   'control.shell.openNavigation': 'Ouvrir le menu de navigation',
   'control.shell.language': 'Langue',
   'control.shell.sessionReconnecting': 'Reconnexion de la session… Nouvelle tentative automatique.',
@@ -1570,6 +1571,7 @@ export const messages: Record<string, string> = {
   'preferences.patTitle': 'Jetons d’accès personnels',
   'preferences.patDescription':
     'Générez des jetons pour accéder directement à l’API. Ils ne sont affichés qu’une seule fois.',
+  'preferences.patApiReference': 'Essayez l’API avec un jeton dans la référence de l’API',
   'preferences.patScopes': 'Autorisations du jeton',
   'preferences.patNoScopes': 'Votre session ne possède aucune autorisation à accorder.',
   'preferences.patScopesRequired': 'Choisissez au moins une autorisation pour générer un jeton.',

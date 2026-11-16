@@ -57,6 +57,7 @@ export const messages: Record<string, string> = {
   'control.shell.sections': 'Sezioni',
   'control.shell.skipToContent': 'Vai al contenuto',
   'control.shell.whatIsThisScreen': 'Cos’è questa schermata?',
+  'control.shell.apiReference': 'Riferimento API',
   'control.shell.openNavigation': 'Apri il menu di navigazione',
   'control.shell.language': 'Lingua',
   'control.shell.sessionReconnecting': 'Riconnessione della sessione… Nuovo tentativo automatico.',
@@ -1564,6 +1565,7 @@ export const messages: Record<string, string> = {
   'preferences.patTitle': 'Token di accesso personali',
   'preferences.patDescription':
     'Genera token per accedere direttamente all’API. Vengono mostrati una sola volta.',
+  'preferences.patApiReference': 'Prova l’API con un token nel riferimento API',
   'preferences.patScopes': 'Permessi del token',
   'preferences.patNoScopes': 'La sessione non ha permessi che si possano concedere.',
   'preferences.patScopesRequired': 'Scegli almeno un permesso per generare il token.',

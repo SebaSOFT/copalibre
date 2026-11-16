@@ -60,6 +60,7 @@ export const messages: Record<string, string> = {
   'control.shell.sections': 'Разделы',
   'control.shell.skipToContent': 'Перейти к содержимому',
   'control.shell.whatIsThisScreen': 'Что это за экран?',
+  'control.shell.apiReference': 'Справочник API',
   'control.shell.openNavigation': 'Открыть меню навигации',
   'control.shell.language': 'Язык',
   'control.shell.sessionReconnecting': 'Восстанавливаем сеанс… Повторим попытку автоматически.',
@@ -1561,6 +1562,7 @@ export const messages: Record<string, string> = {
   'preferences.patTitle': 'Персональные токены доступа',
   'preferences.patDescription':
     'Создайте токен для прямого доступа к API. Токен будет показан только один раз.',
+  'preferences.patApiReference': 'Попробуйте API с токеном в справочнике API',
   'preferences.patScopes': 'Разрешения токена',
   'preferences.patNoScopes': 'В текущем сеансе нет разрешений, которые можно предоставить.',
   'preferences.patScopesRequired': 'Выберите хотя бы одно разрешение для создания токена.',
