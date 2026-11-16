@@ -57,7 +57,11 @@ export default defineConfig({
               prerender: false,
             });
             const locales = ['', '/es', '/fr', '/pt', '/it', '/de', '/ru', '/zh'];
-            for (const pattern of locales.map((locale) => `${locale}/help/`)) {
+            const helpRoutes = locales.flatMap((locale) => [
+              `${locale}/help/`,
+              `${locale}/help/api-reference/`,
+            ]);
+            for (const pattern of helpRoutes) {
               injectRoute({
                 pattern,
                 entrypoint: './src/dev/HelpUnavailable.astro',

@@ -354,6 +354,7 @@ export const messages: Record<string, string> = {
   'publicWeb.header.tournamentBrackets': 'Tabellone',
   'publicWeb.header.tournamentTeams': 'Squadre',
   'publicWeb.header.navHelp': 'Guida',
+  'publicWeb.header.navApiReference': 'Riferimento API',
   'publicWeb.header.controlPanel': 'Pannello di controllo',
 
   // TvDashboard.tsx's own chrome.

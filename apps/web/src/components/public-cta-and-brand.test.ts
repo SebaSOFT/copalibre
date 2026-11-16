@@ -240,6 +240,7 @@ describe('public layout, header, and home orientation hub', () => {
   it('keeps public header navigation focused on spectator destinations', () => {
     expect(header).toContain('messages.headerNavHome');
     expect(header).not.toContain('messages.headerNavHelp');
+    expect(header).not.toContain('headerNavApiReference');
     expect(header).not.toContain('/help/api-reference/');
   });
 

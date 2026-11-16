@@ -242,16 +242,30 @@ Add `*.test.ts(x)` beside unit-tested code and `*.integration.test.ts` for datab
 
 Do not assert a short-lived class with `toHaveClass`. `cl-flash-on-change` lives 600ms and Playwright's polling backs off to 1s, so it can miss the class and fail at random. Record it with a `MutationObserver` from `page.addInitScript`, and read any computed style in that callback.
 
-## Help and the OpenAPI Document
+## Help and API Reference
 
-Keep Starlight and Pagefind dependencies pinned. `prefetch: false` in the Astro config is
+Keep Starlight, Pagefind, and Scalar dependencies pinned. `prefetch: false` in the Astro config is
 intentional: Starlight otherwise injects prefetch JavaScript into public broadcast pages, which must
 remain complete without JavaScript. Any docs dependency or ClientRouter lifecycle change requires
 `yarn workspace @copalibre/web verify:docs` and the focused help Playwright spec.
 
-There is no API reference page and no Scalar: the reviewed `packages/contracts/openapi/v1.json` is
-copied into the static build and served at `/openapi/v1.json`, and it must never be fetched from a live
-API. A living document names a `/help/` route only when a help page produces it;
+The API reference (`apps/web/src/pages/help/api-reference.astro`) reads the reviewed same-origin
+`/openapi/v1.json` artifact; it must never fetch a live API document. Its Scalar bundle is copied from
+the pinned package at build time, and its configuration, `src/help/api-reference-init.js`, is copied
+beside it as `vendor/scalar/init.js`, because the strict CSP runs no unhashed inline script.
+
+Try It is on, so an integrator can use the API with a personal access token: requests go to this origin
+only, carry the token the visitor pastes as `Authorization: Bearer`, never carry the session cookie
+(`credentials: 'omit'`), and the token is never stored (`persistAuth: false`). Telemetry, developer
+tools, search and the agent stay off, and the OpenAPI document may be downloaded.
+
+The page wears the design tokens (`customCss` maps Scalar's variables to `--cl-*`). The copy script
+patches two things in the vendored bundle, the hosted `@font-face` rules and the `Function('')` probe,
+and fails the build if a patch does not apply exactly once, so the strict CSP sees no violation and no
+request leaves the origin. Only Control links to the page (its navigation footer and the personal access
+tokens card); the public pages and the help site do not.
+
+A living document names a `/help/` route only when a page produces it;
 `node scripts/check-doc-routes.mjs` fails otherwise.
 
 ## CI and Infrastructure
