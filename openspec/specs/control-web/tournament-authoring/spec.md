@@ -741,3 +741,45 @@ whether participants include minors, with no preselected answer.
 
 - **WHEN** an organizer publishes a tournament marked as including minors, with youth profiles off
 - **THEN** the confirmation states that player names appear without photos or profile pages
+
+### Requirement: Setup pages follow their compositions
+
+The unsaved-changes bar SHALL appear only when a form differs from its saved state, and a first plan SHALL save through a plain primary action.
+
+#### Scenario: No plan yet
+
+- **WHEN** an operator opens the promotion plan with none saved
+- **THEN** no unsaved-changes bar shows, and a save action is available
+
+#### Scenario: Plan saved
+
+- **WHEN** the operator saves the first plan and the page reads it back
+- **THEN** the plain action gives way to the unsaved-changes bar, which stays hidden until an edit differs from the saved plan
+
+### Requirement: Wizard step 1 offers the tournament emblem
+
+The wizard's first step SHALL set an optional emblem beside the name fields, and SHALL send the emblem once the tournament exists.
+
+#### Scenario: Emblem picked
+
+- **WHEN** the operator crops an emblem in step 1 and creates the tournament
+- **THEN** the emblem is uploaded to the new tournament after it is created
+
+#### Scenario: Emblem upload fails
+
+- **WHEN** the tournament is created but the emblem upload fails
+- **THEN** the tournament is kept and the page says the emblem can be added from the tournament settings
+
+### Requirement: Zone and group cards stay within their composition
+
+The zone select SHALL keep the form width, and each group card SHALL state its matches and venue.
+
+#### Scenario: Group footer
+
+- **WHEN** the matches view names matches for a group
+- **THEN** the card shows how many matches it has and the venue, or how many venues when there are several
+
+#### Scenario: Matches unavailable
+
+- **WHEN** the matches view cannot be read
+- **THEN** the group cards say nothing about fixtures
