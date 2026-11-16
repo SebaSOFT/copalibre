@@ -1081,3 +1081,17 @@ Control SHALL show a name, in the interface language, for every alias, principal
 
 - **WHEN** Matches view reports how many matches are resolved
 - **THEN** the figure is written in the interface language
+
+### Requirement: A form does not place itself
+
+The form atom SHALL render only the form element and SHALL NOT set a width, an alignment or a margin; the screen composes any column with a layout primitive. A form inside a card SHALL start where the card's heading starts.
+
+#### Scenario: A form in a wide card
+
+- **WHEN** a form is rendered in a card wider than the form container
+- **THEN** its first field starts at the same left edge as the card's heading
+
+#### Scenario: A screen that wants a narrow column
+
+- **WHEN** a screen wraps its form in the form container layout primitive
+- **THEN** the form takes the container's width and alignment, and the atom adds none
