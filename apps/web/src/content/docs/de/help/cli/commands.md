@@ -199,6 +199,20 @@ Erstellt das erste Administratorkonto einer Organisation.
 Der Alias darf kein Name sein, den die Plattform bereits in ihren Adressen verwendet, etwa `login`,
 `platform`, `tv`, `api` oder ein Sprachcode wie `es`; dann lehnt der Befehl ihn ab und nennt den Grund.
 
+## grant-first-super-admin
+
+`copalibre grant-first-super-admin --email <email>`
+
+Vergibt Super-Admin an ein bereits bestehendes Konto, und zwar nur solange die Installation keinen
+aktiven Super-Admin hat. Jeder andere Weg, die Rolle zu vergeben, setzt schon einen Super-Admin voraus;
+dies ist also der Weg zum ersten.
+
+Die Person braucht ein Konto: Sie hat eine Einladung angenommen oder sich einmal angemeldet. Der Befehl
+liest `DATABASE_URL`, führen Sie ihn also dort aus, wo die Datenbank erreichbar ist. Die Vergabe gilt ab
+der nächsten Anmeldung. Ist bereits ein Super-Admin aktiv, lehnt der Befehl ab, sagt das und
+protokolliert den Versuch im Audit-Protokoll; danach werden Super-Admins im Plattform-Bildschirm der
+Systemsteuerung verwaltet.
+
 ## login
 
 `copalibre login [--api-url <url>] [--token <token>]`

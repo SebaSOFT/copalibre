@@ -5,6 +5,7 @@ import { CreateAdminCommand } from './create-admin-command.js';
 import { DevCommand } from './dev-command.js';
 import { DevDemoCommand } from './dev-demo-command.js';
 import { DoctorCommand } from './doctor-command.js';
+import { GrantFirstSuperAdminCommand } from './grant-first-super-admin-command.js';
 import { InitCommand } from './init-command.js';
 import { LoginCommand } from './login-command.js';
 import { McpCommand } from './mcp-command.js';
@@ -47,6 +48,7 @@ export const commandClasses: readonly CommandClass<CliContext>[] = [
   UpgradeCheckCommand,
   UpgradeCommand,
   CreateAdminCommand,
+  GrantFirstSuperAdminCommand,
   LoginCommand,
   StatisticsRebuildCommand,
   ModuleAddCommand,

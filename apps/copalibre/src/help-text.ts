@@ -281,6 +281,18 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
       'copalibre create-admin --organization-alias <alias> --organization-name <name> --email <email>',
   },
   {
+    name: 'grant-first-super-admin',
+    summary: 'Grant super-admin to an existing account, only while the installation has none',
+    usage: 'copalibre grant-first-super-admin --email <email>',
+    flags: [
+      {
+        flag: '--email <email>',
+        description:
+          'The account to promote; it must exist (the person accepted an invitation or signed in once)',
+      },
+    ],
+  },
+  {
     name: 'login',
     summary: 'Store a personal access token so statistics-rebuild/module work without DATABASE_URL',
     usage: 'copalibre login [--api-url <url>] [--token <token>]',

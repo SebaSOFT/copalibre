@@ -203,6 +203,19 @@ control panel's preferences screen while already signed in, then run `copalibre 
 https://api.example`, pasting the token when prompted (or `--token <token>`, or piped via stdin).
 This is also the path to installing or upgrading the CLI itself after Docker is already running.
 
+## The First Super-Admin
+
+Every other way to grant super-admin needs a super-admin already, so an installation that has none
+(for instance, one whose people sign in with their own accounts and none was ever promoted) has one
+way in: `copalibre grant-first-super-admin --email <email>`. The person needs an account first: they
+accept an invitation or sign in once. The command reads `DATABASE_URL`, so run it where the database
+is reachable, with the same variable the other direct-database commands use. The grant takes effect
+at their next sign-in.
+
+It refuses when a super-admin is already active and records the attempt in the audit trail, and it is
+never offered to an agent: `copalibre mcp` does not expose it. Afterwards, manage super-admins from the
+control panel's platform screen.
+
 `login` stores the token in the current directory's `.copalibre/credentials.json` (`0600`) —
 alongside, but never merged into, `init`'s non-secret `installation.json` marker. Run it from
 inside the installation directory `copalibre init` created. `restore`'s post-migration schema

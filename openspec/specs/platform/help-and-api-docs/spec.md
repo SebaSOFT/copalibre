@@ -47,15 +47,6 @@ third-party CDN at runtime, so the page renders correctly on an installation wit
 - **THEN** `/help/api-reference/` still renders the full interactive reference correctly, with no
   failed cross-origin script or stylesheet request
 
-### Requirement: Try It is disabled by default
-
-The interactive API reference's "Try It" request-execution feature SHALL be disabled by default.
-
-#### Scenario: No live request is possible without explicit enablement
-
-- **WHEN** a visitor opens `/help/api-reference/` on a default installation
-- **THEN** no mechanism to execute a live API request against any host is available
-
 ### Requirement: No secrets or internal hosts in static documentation
 
 Static documentation and the generated OpenAPI artifact SHALL NOT contain access tokens, internal
@@ -451,3 +442,54 @@ The help site SHALL publish a comprehensive reference under `/help/standings/` d
 #### Scenario: All 8 interface languages provide complete help parity
 - **WHEN** the documentation lint runs (`yarn workspace @copalibre/web verify:docs`)
 - **THEN** every newly added format and tiebreak help page exists in all 8 supported languages without fallback gaps
+
+### Requirement: Try It sends only the visitor's own token, only to this installation
+
+The interactive API reference's Try It SHALL be available. It SHALL authenticate only with a personal access token the visitor pastes, send its requests only to the installation serving the page and without the session cookie, and SHALL NOT store the token.
+
+#### Scenario: A pasted token authenticates a request
+
+- **WHEN** a visitor pastes a token and sends a request from the reference
+- **THEN** the request goes to the page's own origin with `Authorization: Bearer` and that token
+
+#### Scenario: A signed-in operator's session does not ride along
+
+- **WHEN** an operator who is signed in to the control panel sends a request from the reference
+- **THEN** the request carries no session cookie
+
+#### Scenario: The token is not kept
+
+- **WHEN** a visitor has sent a request and reloads the page
+- **THEN** the token is gone, and none was written to browser storage
+
+### Requirement: The reference carries CopaLibre's look
+
+The API reference SHALL take its fonts, colours and radii from CopaLibre's design tokens and follow the system colour scheme, and SHALL load its fonts from the installation itself.
+
+#### Scenario: The reference reads as the application
+
+- **WHEN** a visitor opens the reference
+- **THEN** its text uses the application's body face, its headings the display face and its surfaces the design tokens, and no font is requested from another origin
+
+### Requirement: The reference renders under the strict content security policy
+
+The API reference SHALL render under the content security policy the web role enforces, without that policy allowing `unsafe-eval` and with no request to another origin.
+
+#### Scenario: Opened with the policy enforced
+
+- **WHEN** the reference is opened in a browser that enforces the policy
+- **THEN** it renders completely and the browser reports no policy violation
+
+### Requirement: A living document names only help routes that exist
+
+Every `/help/` route that a living repository document cites SHALL be produced by a help page, whether a content page or a standalone page, in English or under a locale prefix, and a build-time check SHALL fail, naming each document and route, when one is not.
+
+#### Scenario: A document cites a page that does not exist
+
+- **WHEN** a living document names `/help/api-reference/` and no page produces it
+- **THEN** the check fails, naming the document and the route
+
+#### Scenario: A pattern is not a claim
+
+- **WHEN** a document writes `/help/**` or `/{locale}/help/`
+- **THEN** the check does not treat it as a route

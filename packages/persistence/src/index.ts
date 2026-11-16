@@ -98,6 +98,9 @@ export {
 export {
   InstallationRoleRepository,
   type CreateSuperAdminInput,
+  type FirstSuperAdminOutcome,
+  type FirstSuperAdminRefusal,
+  type GrantFirstSuperAdminInput,
   type ChangeInstallationRoleStatusInput,
   type DeleteInstallationRoleInput,
 } from './repositories/installation-role-repository.js';
