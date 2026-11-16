@@ -90,6 +90,11 @@ export const CLI_MCP_PARITY: readonly ParityEntry[] = [
     exemptReason: "Bootstraps a credential (an organization's first administrator account).",
   },
   {
+    cliCommand: 'grant-first-super-admin',
+    exemptReason:
+      'Grants the highest authority on the installation from the host itself, which is the only authority it accepts; an agent never gets it.',
+  },
+  {
     cliCommand: 'login',
     exemptReason: 'Mints/stores a personal access token.',
   },
