@@ -1051,3 +1051,33 @@ Control pages SHALL not skip heading levels and SHALL not render empty headings.
 
 - **WHEN** Platform or a discipline document renders its cards
 - **THEN** the card titles sit one level below the page heading
+
+### Requirement: Operators see names, not identifiers
+
+Control SHALL show a name, in the interface language, for every alias, principal, rule code, status and event type it knows, and SHALL NOT print an identifier or a server counter as an operator-facing value.
+
+#### Scenario: Recent activity
+
+- **WHEN** the dashboard or the audit trail lists recorded events
+- **THEN** each row names the event
+- **AND** an event type Control does not know reads as a generic activity label
+
+#### Scenario: Ruleset
+
+- **WHEN** a rule value is a known stage format or tiebreaker
+- **THEN** the page shows its translated name, not its code
+
+#### Scenario: Installation super-admins
+
+- **WHEN** Platform lists the installation super-admins
+- **THEN** each entry reads as a numbered entry with a translated status, not as a principal identifier
+
+#### Scenario: Live console
+
+- **WHEN** the live console lists tournaments
+- **THEN** each card shows the tournament name and no alias
+
+#### Scenario: Completion figures
+
+- **WHEN** Matches view reports how many matches are resolved
+- **THEN** the figure is written in the interface language
