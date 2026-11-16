@@ -1147,3 +1147,40 @@ shipped web role SHALL behave this way with no operator configuration.
 
 - **WHEN** a client sends no `Accept-Encoding`
 - **THEN** it receives the same content uncompressed
+
+### Requirement: An installation can grant its first super-admin
+
+The `copalibre` CLI SHALL grant super-admin to an existing account only while the installation has no active super-admin, SHALL refuse once one exists, and SHALL record each grant and each refusal in the audit trail.
+
+#### Scenario: An installation with no super-admin
+
+- **WHEN** an operator grants super-admin to the email of an existing account on an installation that has none
+- **THEN** that account holds super-admin from its next sign-in, and the audit trail records the grant as made by the operator's command line
+
+#### Scenario: An installation that already has one
+
+- **WHEN** an operator runs the command while a super-admin is active
+- **THEN** it changes nothing, says where super-admins are managed, and the audit trail records the refused attempt
+
+#### Scenario: An email with no account
+
+- **WHEN** an operator names an email that no account has
+- **THEN** the command changes nothing and says the person must first accept an invitation or sign in once
+
+### Requirement: Two operators granting the first super-admin do not both succeed
+
+The grant SHALL be serialized, so that of any number of simultaneous attempts on an installation with no super-admin exactly one succeeds and the others are refused.
+
+#### Scenario: Two grants at once
+
+- **WHEN** two operators grant super-admin to different accounts at the same moment on an installation with none
+- **THEN** exactly one account holds it and the other attempt is refused
+
+### Requirement: The first super-admin grant is never offered to an agent
+
+The grant SHALL be available from the host's own command line only: `copalibre mcp` SHALL NOT expose it, and it SHALL NOT be reachable over HTTP.
+
+#### Scenario: The agent tool list
+
+- **WHEN** an agent lists the tools `copalibre mcp` exposes
+- **THEN** none grants super-admin
