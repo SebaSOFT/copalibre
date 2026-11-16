@@ -15,6 +15,8 @@ import {
   storyClient,
   pending,
 } from '../screen-story-fixtures.js';
+/** Fixed when the story module loads, so a render stays pure; it falls on today in any zone. */
+const KICK_OFF = Date.now();
 function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'failed' }) {
   const intl = useIntl();
   if (isSupportedLanguage(intl.locale)) writeStoredLanguagePreference(intl.locale);
@@ -58,8 +60,8 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
                   entrantIds: [ids.first, ids.second],
                   slotId: ids.first,
                   venueId: ids.second,
-                  startsAt: Date.now(),
-                  estimatedEnd: Date.now() + 3_600_000,
+                  startsAt: KICK_OFF,
+                  estimatedEnd: KICK_OFF + 3_600_000,
                   published: true,
                 },
               ],
