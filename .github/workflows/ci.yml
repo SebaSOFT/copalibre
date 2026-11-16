@@ -304,6 +304,8 @@ jobs:
       - run: node scripts/check-help-coverage.mjs
       - run: node --test scripts/check-doc-routes.test.mjs
       - run: node scripts/check-doc-routes.mjs
+      - run: node --test scripts/check-detector-exceptions.test.mjs
+      - run: node scripts/check-detector-exceptions.mjs
       # Tracked content never cites a git-ignored OpenSpec change by number.
       - run: node --test scripts/check-change-number-references.test.mjs
       - run: node scripts/check-change-number-references.mjs
