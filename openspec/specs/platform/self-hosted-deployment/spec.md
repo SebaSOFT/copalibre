@@ -1258,3 +1258,114 @@ The repository SHALL fail its tests when a declared service is missing from its 
 
 - **WHEN** a Compose file gains a service that others wait on with `service_completed_successfully` and it is not declared
 - **THEN** the test fails and names the service
+
+### Requirement: The upgrade identifies an installation by what it contains
+
+`copalibre upgrade` SHALL determine which release shipped the installation's `docker-compose.yml`, whether PostgreSQL holds data of an earlier major version, whether the database roles exist and whether `.env` carries settings of an earlier release, and SHALL act on those findings even when the installation marker already names the target version.
+
+#### Scenario: A marker moved ahead by an older CLI
+
+- **WHEN** a 1.2.6 CLI ran `copalibre upgrade`, so the marker names 2.0.0 while the Compose file, `.env` and data are still 1.2.6's
+- **THEN** the 2.0.0 CLI's `copalibre upgrade` completes the remaining steps instead of reporting that nothing is to be done
+
+#### Scenario: An installation already in the 2.0.0 shape
+
+- **WHEN** the Compose file is the shipped 2.0.0 file, PostgreSQL holds 18 data and `.env` has every 2.0.0 setting
+- **THEN** the upgrade changes no file and moves no data
+
+### Requirement: The upgrade backs up before it changes anything
+
+`copalibre upgrade` SHALL take a backup packet before it changes a file, an image or data, SHALL stop without changing anything when the backup fails, and SHALL print the packet's path.
+
+#### Scenario: The backup fails
+
+- **WHEN** the pre-upgrade backup exits non-zero
+- **THEN** the upgrade stops, no file, image or volume has changed, and the exit status is non-zero
+
+### Requirement: An unmodified Compose file is replaced by the shipped one
+
+When the installation's `docker-compose.yml` matches the file a published release shipped, ignoring the image tags and port bindings earlier upgrades rewrote, the upgrade SHALL replace it with the target release's file and SHALL keep the previous file beside it.
+
+#### Scenario: A 1.2.6 Compose file
+
+- **WHEN** an installation created by 1.2.6, or created earlier and upgraded by a 1.2.x CLI, is upgraded to 2.0.0
+- **THEN** `docker-compose.yml` is the shipped 2.0.0 file, and the previous file is kept as `docker-compose.yml.<previous version>.bak`
+
+### Requirement: A modified Compose file stops the upgrade
+
+When the installation's `docker-compose.yml` matches no published release's file, the upgrade SHALL leave it unchanged, SHALL write the target release's file as `docker-compose.yml.new` with a summary of the services and settings that differ, and SHALL stop before pulling images or changing data.
+
+#### Scenario: An operator added a service
+
+- **WHEN** the Compose file has a service no release shipped
+- **THEN** the upgrade exits non-zero, `docker-compose.yml` is unchanged, `docker-compose.yml.new` exists, and the output says to merge it and run the upgrade again
+
+### Requirement: PostgreSQL data moves to the new major version without loss
+
+When PostgreSQL holds data of an earlier major version, the upgrade SHALL restore that data into the new major version on a new volume, SHALL compare the row count of every table between the two, SHALL switch the installation to the new volume only when they match, and SHALL leave the old volume untouched until the upgrade has succeeded.
+
+#### Scenario: A 17 cluster with tournaments
+
+- **WHEN** a 1.2.6 installation holding tournaments, results and users is upgraded
+- **THEN** PostgreSQL 18 serves the same rows as 17 did
+
+#### Scenario: Counts differ after the restore
+
+- **WHEN** a table's row count differs between the 17 and the 18 cluster
+- **THEN** the installation stays on the 17 volume with its previous Compose file, the upgrade exits non-zero naming the table, and no data is deleted
+
+### Requirement: The old PostgreSQL data is removed once the upgrade succeeded
+
+After doctor passes at the end of the upgrade, the upgrade SHALL confirm that the pre-upgrade backup packet is complete and readable, SHALL then remove the earlier major version's data volume and its PostgreSQL image when no container uses it, and SHALL report both. An operator option SHALL keep them.
+
+#### Scenario: A successful upgrade from 1.2.6
+
+- **WHEN** the upgrade from 1.2.6 finished and doctor passed
+- **THEN** the PostgreSQL 17 volume and the `postgres:17` image no longer exist, and the output names the backup packet that is now the way back
+
+#### Scenario: The backup packet cannot be read
+
+- **WHEN** the pre-upgrade packet is missing or its dump cannot be listed
+- **THEN** the 17 volume is kept, the upgrade exits non-zero and says why
+
+#### Scenario: The operator keeps the old volume
+
+- **WHEN** the operator runs the upgrade with `--keep-old-volume`
+- **THEN** the 17 volume and image remain, and the output says how to remove them later
+
+#### Scenario: Doctor fails
+
+- **WHEN** doctor fails at the end of the upgrade
+- **THEN** nothing is removed
+
+### Requirement: Settings of an earlier release are migrated
+
+The upgrade SHALL rewrite settings whose shipped default changed meaning, SHALL generate the secrets a new release requires, SHALL add new settings with their defaults, SHALL keep every value the operator set, and SHALL list each change.
+
+#### Scenario: The legacy key set URL
+
+- **WHEN** `.env` has `COPALIBRE_JWKS_URI=http://api:3001/.well-known/jwks.json`
+- **THEN** it becomes `http://api:3001/api/auth/jwks.json`, and the output says so
+
+#### Scenario: An external identity provider
+
+- **WHEN** `COPALIBRE_JWKS_URI` points at an external provider
+- **THEN** it is unchanged
+
+### Requirement: The upgrade ends with doctor
+
+The upgrade SHALL run doctor once the stack is up and SHALL exit non-zero, leaving the stack running and printing the rollback steps, when doctor reports a failure.
+
+#### Scenario: Doctor fails after the upgrade
+
+- **WHEN** doctor reports a failing check after the upgraded stack started
+- **THEN** the upgrade exits non-zero, names the failing check, keeps the PostgreSQL 17 volume, and prints the backup packet and the old volume to roll back to
+
+### Requirement: The upgrade is proven from published releases
+
+The repository SHALL run, for release candidates, an upgrade from the published images of 1.2.6 and of the oldest supported release to the candidate, and SHALL fail when data is lost, a sign-in fails or doctor fails afterwards.
+
+#### Scenario: Upgrading a published 1.2.6 installation
+
+- **WHEN** the release-candidate run installs 1.2.6 from its published images, loads a tournament with results, and upgrades with the candidate CLI and images
+- **THEN** the tournament and its results are present, an administrator signs in, and doctor passes

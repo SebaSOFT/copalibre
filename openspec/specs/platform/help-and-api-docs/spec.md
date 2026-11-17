@@ -493,3 +493,22 @@ Every `/help/` route that a living repository document cites SHALL be produced b
 
 - **WHEN** a document writes `/help/**` or `/{locale}/help/`
 - **THEN** the check does not treat it as a route
+
+### Requirement: The updating help gives the path from each starting release
+
+The `/help/cli/` updating page SHALL give, in every supported interface language, the upgrade steps for an installation created by 1.2.5 or 1.2.6, by 1.2.1 or earlier, and for one a 1.2.x CLI already upgraded, and SHALL describe the backup taken, the PostgreSQL major move, the kept old volume and how to return to it.
+
+#### Scenario: An operator on 1.2.6
+
+- **WHEN** an operator whose installation was created by 1.2.6 reads the updating page
+- **THEN** it says to run `copalibre upgrade --self` first and `copalibre upgrade` afterwards, and why running the old CLI's `copalibre upgrade` directly is not enough
+
+#### Scenario: An operator on 1.1.0
+
+- **WHEN** an operator whose CLI has no `upgrade` command reads the updating page
+- **THEN** it says to install the new CLI and run `copalibre upgrade` in the installation directory
+
+#### Scenario: Rolling back
+
+- **WHEN** an operator needs to return to the previous release after the upgrade
+- **THEN** the page gives the way back while the PostgreSQL 17 volume still exists (the kept Compose file and `.env`) and after the upgrade removed it (restoring the pre-upgrade backup packet into the previous release), with the commands for each
