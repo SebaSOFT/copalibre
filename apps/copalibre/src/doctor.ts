@@ -694,7 +694,8 @@ function placeholderMessage(name: string, environment: NodeJS.ProcessEnv): strin
     'POSTGRES_PASSWORD still has its default placeholder. The database keeps the password it was ' +
     'created with, so change both together: with the stack running, ' +
     `docker compose exec postgres psql -U ${user} -d postgres -c "ALTER ROLE ${user} PASSWORD '<new password>'", ` +
-    'then set POSTGRES_PASSWORD=<new password> in .env and run copalibre restart'
+    'then set POSTGRES_PASSWORD=<new password> in .env. Only database-setup and the backup tools ' +
+    'connect with it, so nothing needs a restart'
   );
 }
 
