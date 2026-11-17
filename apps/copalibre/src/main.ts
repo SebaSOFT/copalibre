@@ -1,11 +1,16 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { runCli } from './cli.js';
-import { systemProcessRunner } from './process-runner.js';
+import { envFileAwareRunner, systemProcessRunner } from './process-runner.js';
 
-export function loadEnv(cwd: string = process.cwd(), env: NodeJS.ProcessEnv = process.env): void {
+/** Loads `.env` into `env` without overriding what is set; returns the keys it set. */
+export function loadEnv(
+  cwd: string = process.cwd(),
+  env: NodeJS.ProcessEnv = process.env,
+): readonly string[] {
+  const loaded: string[] = [];
   const envPath = join(cwd, '.env');
-  if (!existsSync(envPath)) return;
+  if (!existsSync(envPath)) return loaded;
   try {
     const content = readFileSync(envPath, 'utf8');
     for (const line of content.split('\n')) {
@@ -23,17 +28,23 @@ export function loadEnv(cwd: string = process.cwd(), env: NodeJS.ProcessEnv = pr
         }
         if (env[key] === undefined) {
           env[key] = value;
+          loaded.push(key);
         }
       }
     }
   } catch {
     // Best-effort loading: ignore unreadable .env
   }
+  return loaded;
 }
 
 async function main(): Promise<void> {
-  loadEnv();
-  process.exitCode = await runCli(process.argv.slice(2), process.env, systemProcessRunner);
+  const fromEnvFile = loadEnv();
+  process.exitCode = await runCli(
+    process.argv.slice(2),
+    process.env,
+    envFileAwareRunner(systemProcessRunner, fromEnvFile),
+  );
 }
 
 void main();
