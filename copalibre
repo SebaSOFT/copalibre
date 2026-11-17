@@ -22,4 +22,6 @@ corepack enable
     corepack yarn typecheck &&
     node apps/copalibre/scripts/build-assets.mjs
 )
-exec node --env-file-if-exists=.env "$SCRIPT_DIR/apps/copalibre/dist/main.js" "$@"
+# The CLI loads .env itself and remembers which values came from it, so the docker commands it
+# runs read .env as it is when they run; --env-file would hide that origin from it.
+exec node "$SCRIPT_DIR/apps/copalibre/dist/main.js" "$@"
