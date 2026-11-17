@@ -316,7 +316,7 @@ then restart the application services so they pick up the new values.
 `copalibre-data` contains filesystem-backed uploads when external object storage is not configured;
 back it up separately from the PostgreSQL packet.
 
-`postgres-data` contains authoritative tournament, participant, result, audit, outbox, identity,
+`postgresql-data` (PostgreSQL 18; installations from 1.2.6 and earlier used `postgres-data` with PostgreSQL 17, which `copalibre upgrade` moves and then removes) contains authoritative tournament, participant, result, audit, outbox, identity,
 and configuration records. `object-storage-meta` and `object-storage-data` exist only with the
 `optional-adapters` profile (Garage's metadata and object bytes respectively) and hold uploaded
 objects; back them up with PostgreSQL when the profile is enabled. `redis-data` is

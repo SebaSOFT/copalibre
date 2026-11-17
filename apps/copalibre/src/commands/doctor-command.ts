@@ -8,6 +8,7 @@ import { runCommand } from '../command-support.js';
 import { isContainer, refuseForKubernetesMode, requireComposeTarget } from '../compose-target.js';
 import { runDoctor, validateHostEnvironment, type DoctorOptions } from '../doctor.js';
 import { runPreflight } from '../preflight.js';
+import type { ProcessRunner } from '../process-runner.js';
 import { probeDataIntegrity } from '../doctor-data-probe.js';
 import {
   createPrompter,
@@ -24,6 +25,45 @@ export function dockerComposeDoctorRunArgs(arguments_: readonly string[]): reado
   return ['compose', 'run', '--pull', 'missing', '--rm', 'doctor', ...arguments_];
 }
 
+/**
+ * Doctor as it runs from the installation directory on the host: `.env`, the Docker preflight, then the
+ * doctor service inside the Compose network. `copalibre upgrade` ends with it.
+ */
+export async function runHostDoctor(
+  processes: ProcessRunner,
+  arguments_: readonly string[] = [],
+): Promise<number> {
+  let envContent: string;
+  try {
+    envContent = await readFile(join(process.cwd(), '.env'), 'utf8');
+  } catch (error) {
+    const detail =
+      (error as NodeJS.ErrnoException).code === 'ENOENT'
+        ? '.env is missing; run "copalibre init" in this directory'
+        : `could not read .env: ${(error as Error).message}`;
+    process.stdout.write(`FAIL host-env: ${detail}\n`);
+    return 1;
+  }
+  const hostEnvReport = validateHostEnvironment(parseEnv(envContent));
+  for (const check of hostEnvReport.checks) {
+    process.stdout.write(`${check.status.toUpperCase()} ${check.name}: ${check.message}\n`);
+  }
+  if (!hostEnvReport.ok) return 1;
+
+  const preflight = await runPreflight();
+  const socketFailure = preflight.checks.find(
+    (c) => c.name === 'preflight:docker-socket' && c.status === 'fail',
+  );
+  if (socketFailure) {
+    process.stderr.write(
+      `FAIL ${socketFailure.name}: ${socketFailure.message}\n` +
+        `Actionable remediation: ${socketFailure.remediation}\n`,
+    );
+    return 1;
+  }
+  return processes.run('docker', dockerComposeDoctorRunArgs(arguments_));
+}
+
 export class DoctorCommand extends Command<CliContext> {
   static override paths = [['doctor']];
 
@@ -37,35 +77,7 @@ export class DoctorCommand extends Command<CliContext> {
           'run job-doctor.yaml instead (helm install --set doctor.enabled=true, or equivalent)',
         );
         await requireComposeTarget(environment);
-        let envContent: string;
-        try {
-          envContent = await readFile(join(process.cwd(), '.env'), 'utf8');
-        } catch (error) {
-          const detail =
-            (error as NodeJS.ErrnoException).code === 'ENOENT'
-              ? '.env is missing; run "copalibre init" in this directory'
-              : `could not read .env: ${(error as Error).message}`;
-          process.stdout.write(`FAIL host-env: ${detail}\n`);
-          return 1;
-        }
-        const hostEnvReport = validateHostEnvironment(parseEnv(envContent));
-        for (const check of hostEnvReport.checks) {
-          process.stdout.write(`${check.status.toUpperCase()} ${check.name}: ${check.message}\n`);
-        }
-        if (!hostEnvReport.ok) return 1;
-
-        const preflight = await runPreflight();
-        const socketFailure = preflight.checks.find(
-          (c) => c.name === 'preflight:docker-socket' && c.status === 'fail',
-        );
-        if (socketFailure) {
-          process.stderr.write(
-            `FAIL ${socketFailure.name}: ${socketFailure.message}\n` +
-              `Actionable remediation: ${socketFailure.remediation}\n`,
-          );
-          return 1;
-        }
-        return this.context.processes.run('docker', dockerComposeDoctorRunArgs(this.args));
+        return runHostDoctor(this.context.processes, this.args);
       }
       const parsed = parseArgs({
         args: [...this.args],
