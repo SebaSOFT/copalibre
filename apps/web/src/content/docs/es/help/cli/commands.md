@@ -185,6 +185,28 @@ actualizar.
 Termina con código de salida distinto de cero si algún módulo instalado dejaría de ser compatible
 con la versión objetivo. Ver [actualización](/es/help/cli/updating/) para la secuencia completa.
 
+## upgrade
+
+`copalibre upgrade [--check] [--target-version <v>] [--self] [--skip-self-update] [--skip-services] [--skip-modules] [--keep-old-volume] [--yes]`
+
+Lleva la instalación del directorio actual a una versión nueva. Lee lo que la instalación contiene
+(la versión que distribuyó su archivo Compose, su versión de PostgreSQL, su `.env`), no solo su
+marcador; descarga las imágenes nuevas; detiene el stack y respalda la base de datos; reemplaza los
+archivos Compose y del gateway que distribuyó una versión, conservando copias `.bak`; mueve los datos
+de PostgreSQL 17 a 18 y compara las filas de cada tabla; arranca la versión nueva; ejecuta `doctor`; y,
+cuando doctor pasa, elimina el volumen y la imagen de PostgreSQL 17. Un archivo Compose que usted
+modificó lo detiene antes de cambiar nada. Un binario que se actualizó a sí mismo continúa el upgrade.
+Ver [actualización](/es/help/cli/updating/).
+
+- `--check`: muestra lo que haría el upgrade en este directorio, sin cambiar nada
+- `--target-version <v>`: versión de CopaLibre a la que actualizar (por defecto, la última publicada)
+- `--self`: solo actualiza el binario del CLI, sin tocar Compose, imágenes ni servicios
+- `--skip-self-update`: conserva este binario del CLI y actualiza la instalación con él
+- `--skip-services`: actualiza solo `.env` y el marcador; se rechaza si la base de datos debe moverse
+- `--skip-modules`: no lista los módulos desactualizados al final
+- `--keep-old-volume`: conserva el volumen y la imagen de PostgreSQL 17 después de mover los datos
+- `--yes`, `-y`: ejecuta el upgrade sin pedir confirmación
+
 ## create-admin
 
 `copalibre create-admin --organization-alias <alias> --organization-name <nombre> --email <email>`

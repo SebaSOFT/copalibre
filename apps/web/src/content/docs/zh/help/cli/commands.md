@@ -160,6 +160,25 @@ CopaLibre 版本）。应用保留策略：成功备份后，删除超出 `--ret
 
 如果任何已安装模块将与目标版本不再兼容，则以非零状态退出。完整流程请参阅[更新](/zh/help/cli/updating/)。
 
+## upgrade
+
+`copalibre upgrade [--check] [--target-version <v>] [--self] [--skip-self-update] [--skip-services] [--skip-modules] [--keep-old-volume] [--yes]`
+
+将当前目录中的安装升级到新版本。它读取安装的实际内容（发布其 Compose 文件的版本、PostgreSQL 版本、
+`.env`），而不只是其标记；拉取新镜像；停止栈并备份数据库；替换某个版本发布的 Compose 和网关文件，并保留
+`.bak` 副本；把数据从 PostgreSQL 17 迁移到 18 并比较每张表的行数；启动新版本；运行 `doctor`；doctor
+通过后删除 PostgreSQL 17 的卷和镜像。您修改过的 Compose 文件会让它在任何更改之前停止。自我更新后的二进制文件会自行继续升级。
+参见[更新](/zh/help/cli/updating/)。
+
+- `--check`：显示升级在此目录中将做什么，不做任何更改
+- `--target-version <v>`：要升级到的 CopaLibre 版本（默认：最新发布版本）
+- `--self`：只更新 CLI 二进制文件，不改动 Compose、镜像或服务
+- `--skip-self-update`：保留当前 CLI 二进制文件，并用它升级安装
+- `--skip-services`：只更新 `.env` 和标记；需要迁移数据库时会被拒绝
+- `--skip-modules`：结束时不列出过时的模块
+- `--keep-old-volume`：数据迁移后保留 PostgreSQL 17 的卷和镜像
+- `--yes`、`-y`：不经确认提示直接运行升级
+
 ## create-admin
 
 `copalibre create-admin --organization-alias <alias> --organization-name <name> --email <email>`
