@@ -28,6 +28,11 @@ module.exports = {
     'src/compose-fingerprint.ts',
     'src/installation-survey.ts',
     'src/installation-upgrade.ts',
+    'src/configurable-settings.ts',
+    'src/doctor-test-email.ts',
+    'src/env-file.ts',
+    'src/host-doctor.ts',
+    'src/prompts.ts',
     'src/single-run-containers.ts',
   ],
   coverageThreshold: {
