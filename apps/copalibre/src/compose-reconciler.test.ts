@@ -293,3 +293,11 @@ describe('retired .env defaults', () => {
     expect(result.updatedKeys).toEqual([]);
   });
 });
+
+describe('images added to an .env that had none', () => {
+  it('follow the target version, not the release that built the CLI', () => {
+    const result = reconcileEnvContent('COPALIBRE_APP_URL=http://localhost:4321\n', '2.0.0');
+    expect(result.content).toContain('COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:2.0.0\n');
+    expect(result.content).toContain('COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:2.0.0\n');
+  });
+});

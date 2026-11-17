@@ -166,6 +166,9 @@ export function reconcileEnvContent(
         key === 'GARAGE_RPC_SECRET' || isGeneratedDatabaseSecret(key)
           ? generateRandomSecret(32)
           : defaultValue;
+      // The shipped defaults pin the release that built this CLI; an added image follows the target.
+      if (key === 'COPALIBRE_IMAGE') val = `ghcr.io/sebasoft/copalibre:${cleanVersion}`;
+      if (key === 'COPALIBRE_WEB_IMAGE') val = `ghcr.io/sebasoft/copalibre-web:${cleanVersion}`;
       if (key === 'COPALIBRE_SESSION_COOKIE_SECURE') {
         val = sessionCookieSecureFromAppUrl(appUrl, defaultValue);
         addedSessionCookieSecure = val;
