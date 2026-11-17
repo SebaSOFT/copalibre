@@ -74,7 +74,8 @@ export function emailDeliveryConfigFromEnv(
       from,
       apiKey: required(environment, 'COPALIBRE_MAILGUN_API_KEY'),
       mailgunDomain: required(environment, 'COPALIBRE_MAILGUN_DOMAIN'),
-      mailgunBaseUrl: environment.COPALIBRE_MAILGUN_BASE_URL ?? 'https://api.mailgun.net',
+      // Compose passes an unset COPALIBRE_MAILGUN_BASE_URL as an empty string, not as unset.
+      mailgunBaseUrl: environment.COPALIBRE_MAILGUN_BASE_URL?.trim() || 'https://api.mailgun.net',
     };
   }
   return {

@@ -85,6 +85,25 @@ describe('email delivery configuration', () => {
         COPALIBRE_MAILGUN_DOMAIN: 'mail.example',
       }),
     ).toMatchObject({ provider: 'mailgun', mailgunDomain: 'mail.example' });
+    // docker-compose.yml passes `${COPALIBRE_MAILGUN_BASE_URL:-}`: an empty string when unset.
+    expect(
+      emailDeliveryConfigFromEnv({
+        ...shared,
+        COPALIBRE_EMAIL_PROVIDER: 'mailgun',
+        COPALIBRE_MAILGUN_API_KEY: 'key',
+        COPALIBRE_MAILGUN_DOMAIN: 'mail.example',
+        COPALIBRE_MAILGUN_BASE_URL: '',
+      }),
+    ).toMatchObject({ mailgunBaseUrl: 'https://api.mailgun.net' });
+    expect(
+      emailDeliveryConfigFromEnv({
+        ...shared,
+        COPALIBRE_EMAIL_PROVIDER: 'mailgun',
+        COPALIBRE_MAILGUN_API_KEY: 'key',
+        COPALIBRE_MAILGUN_DOMAIN: 'mail.example',
+        COPALIBRE_MAILGUN_BASE_URL: 'https://api.eu.mailgun.net',
+      }),
+    ).toMatchObject({ mailgunBaseUrl: 'https://api.eu.mailgun.net' });
     expect(
       emailDeliveryConfigFromEnv({
         ...shared,
