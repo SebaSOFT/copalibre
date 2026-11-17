@@ -190,6 +190,28 @@ Prüft die Kompatibilität installierter Module und ausstehende Migrationen vor 
 Endet mit einem Exit-Code ungleich null, wenn ein installiertes Modul mit der Zielversion nicht mehr
 kompatibel wäre. Siehe [Aktualisierung](/de/help/cli/updating/) für die vollständige Abfolge.
 
+## upgrade
+
+`copalibre upgrade [--check] [--target-version <v>] [--self] [--skip-self-update] [--skip-services] [--skip-modules] [--keep-old-volume] [--yes]`
+
+Bringt die Installation im aktuellen Verzeichnis auf eine neue Version. Es liest, was die Installation
+enthält (die Version, die ihre Compose-Datei ausgeliefert hat, ihre PostgreSQL-Version, ihre `.env`),
+nicht nur ihren Marker; lädt die neuen Images; stoppt den Stack und sichert die Datenbank; ersetzt die
+von einer Version ausgelieferten Compose- und Gateway-Dateien und behält `.bak`-Kopien; verschiebt die
+Daten von PostgreSQL 17 nach 18 und vergleicht die Zeilen jeder Tabelle; startet die neue Version;
+führt `doctor` aus; und entfernt, sobald doctor besteht, Volume und Image von PostgreSQL 17. Eine von
+Ihnen geänderte Compose-Datei stoppt es, bevor sich etwas ändert. Ein selbst aktualisiertes Binary
+setzt das Upgrade selbst fort. Siehe [Aktualisierung](/de/help/cli/updating/).
+
+- `--check`: zeigt, was das Upgrade in diesem Verzeichnis tun würde, ohne etwas zu ändern
+- `--target-version <v>`: CopaLibre-Zielversion (Standard: neueste veröffentlichte Version)
+- `--self`: aktualisiert nur das CLI-Binary, ohne Compose, Images oder Dienste anzurühren
+- `--skip-self-update`: behält dieses CLI-Binary und aktualisiert die Installation damit
+- `--skip-services`: aktualisiert nur `.env` und den Marker; abgelehnt, wenn die Datenbank umziehen muss
+- `--skip-modules`: listet veraltete Module am Ende nicht auf
+- `--keep-old-volume`: behält Volume und Image von PostgreSQL 17, nachdem die Daten umgezogen sind
+- `--yes`, `-y`: führt das Upgrade ohne Bestätigungsabfragen aus
+
 ## create-admin
 
 `copalibre create-admin --organization-alias <alias> --organization-name <name> --email <email>`

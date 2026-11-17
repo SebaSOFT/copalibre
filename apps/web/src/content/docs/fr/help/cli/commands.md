@@ -188,6 +188,28 @@ Vérifie la compatibilité des modules installés et les migrations en attente a
 Se termine avec un code de sortie non nul si un module installé cesserait d'être compatible avec la
 version cible. Voir [mise à jour](/fr/help/cli/updating/) pour la séquence complète.
 
+## upgrade
+
+`copalibre upgrade [--check] [--target-version <v>] [--self] [--skip-self-update] [--skip-services] [--skip-modules] [--keep-old-volume] [--yes]`
+
+Fait passer l'installation du répertoire courant à une nouvelle version. Elle lit ce que contient
+l'installation (la version qui a livré son fichier Compose, sa version de PostgreSQL, son `.env`), pas
+seulement son marqueur ; télécharge les nouvelles images ; arrête la pile et sauvegarde la base ;
+remplace les fichiers Compose et du gateway livrés par une version, en gardant des copies `.bak` ;
+déplace les données de PostgreSQL 17 vers 18 et compare les lignes de chaque table ; démarre la
+nouvelle version ; exécute `doctor` ; et, une fois doctor passé, supprime le volume et l'image
+PostgreSQL 17. Un fichier Compose que vous avez modifié l'arrête avant tout changement. Un binaire
+mis à jour poursuit lui-même la mise à niveau. Voir [mise à jour](/fr/help/cli/updating/).
+
+- `--check` : affiche ce que ferait la mise à niveau dans ce répertoire, sans rien changer
+- `--target-version <v>` : version de CopaLibre visée (par défaut, la dernière publiée)
+- `--self` : met à jour uniquement le binaire du CLI, sans toucher Compose, les images ni les services
+- `--skip-self-update` : garde ce binaire du CLI et met à niveau l'installation avec lui
+- `--skip-services` : ne met à jour que `.env` et le marqueur ; refusé si la base doit être déplacée
+- `--skip-modules` : ne liste pas les modules obsolètes à la fin
+- `--keep-old-volume` : garde le volume et l'image PostgreSQL 17 après le déplacement des données
+- `--yes`, `-y` : exécute la mise à niveau sans demander de confirmation
+
 ## create-admin
 
 `copalibre create-admin --organization-alias <alias> --organization-name <nom> --email <email>`

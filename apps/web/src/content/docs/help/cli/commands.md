@@ -208,14 +208,23 @@ version. See [updating](/help/cli/updating/) for the full sequence.
 
 ## upgrade
 
-`copalibre upgrade [--check] [--target-version <v>] [--self] [--skip-self-update] [--yes]`
+`copalibre upgrade [--check] [--target-version <v>] [--self] [--skip-self-update] [--skip-services] [--skip-modules] [--keep-old-volume] [--yes]`
 
-Coordinates the end-to-end self-hosted upgrade lifecycle: CLI binary self-updating, Compose file and environment reconciliation, container image pulling, database schema migrations, and outdated module update inspection.
+Takes the installation in the current directory to a new release. It reads what the installation
+holds (the release that shipped its Compose file, its PostgreSQL version, its `.env`), not only its
+marker; pulls the new images; stops the stack and backs up the database; replaces the Compose and
+gateway files a release shipped, keeping `.bak` copies; moves PostgreSQL 17 data to 18 and compares
+every table's rows; starts the new release; runs `doctor`; and, once doctor passes, removes the
+PostgreSQL 17 volume and image. A Compose file you changed stops it before anything changes. A
+self-updated binary continues the upgrade itself. See [updating](/help/cli/updating/).
 
-- `--check`: inspect available platform and module updates without applying changes or restarting containers
+- `--check`: print what the upgrade would do in this directory, changing nothing
 - `--target-version <v>`: target CopaLibre version to upgrade to (default: latest published release)
 - `--self`: only self-update the CLI binary without modifying Compose, pulling images, or restarting services
-- `--skip-self-update`: skip CLI binary update and only upgrade Compose configuration, container images, and migrations
+- `--skip-self-update`: keep this CLI binary and upgrade the installation with it
+- `--skip-services`: update `.env` and the marker only; refused when the database must move
+- `--skip-modules`: do not list outdated modules afterwards
+- `--keep-old-volume`: keep the PostgreSQL 17 volume and image after the data moved
 - `--yes`, `-y`: run upgrade non-interactively without confirmation prompts
 
 ## create-admin

@@ -316,8 +316,9 @@ then restart the application services so they pick up the new values.
 `copalibre-data` contains filesystem-backed uploads when external object storage is not configured;
 back it up separately from the PostgreSQL packet.
 
-`postgres-data` contains authoritative tournament, participant, result, audit, outbox, identity,
-and configuration records. `object-storage-meta` and `object-storage-data` exist only with the
+`postgresql-data` (PostgreSQL 18) contains authoritative tournament, participant, result, audit,
+outbox, identity, and configuration records. Installations from 1.2.6 and earlier kept them in
+`postgres-data` with PostgreSQL 17; `copalibre upgrade` moves them and then removes that volume. `object-storage-meta` and `object-storage-data` exist only with the
 `optional-adapters` profile (Garage's metadata and object bytes respectively) and hold uploaded
 objects; back them up with PostgreSQL when the profile is enabled. `redis-data` is
 non-authoritative and does not replace database or object backups.
@@ -396,19 +397,36 @@ Topology-specific procedures: [Caddy](deployment/reverse-proxy/caddy.md#upgradin
 
 ### Automated upgrade with copalibre upgrade
 
-The `copalibre` CLI coordinates the end-to-end upgrade lifecycle:
+Run the target release's CLI in the installation directory. `--check` prints what it would do there
+and changes nothing:
 
 ```bash
-# Preview changes and check version/module compatibility without modifying services
 copalibre upgrade --check
-
-# Execute the automated upgrade (pulls images, reconciles Compose, runs migrations, verifies health)
 copalibre upgrade
 ```
 
-To upgrade only the CLI binary itself, run `copalibre upgrade --self`.
+From 1.2.5 or 1.2.6, run `copalibre upgrade --self` first: a 1.2.x CLI's own `upgrade` rewrites
+`.env`, the Compose file and the marker to the new version and leaves every container on the old
+images, so the next restart runs the new images on the old Compose file. From 1.2.1 or earlier,
+install the new CLI. An installation an older CLI left that way is recognised by its contents and
+finished by the new CLI's `copalibre upgrade`.
 
-### Manual Compose upgrade to 1.2.6
+The upgrade pulls the new images while the stack runs, stops the stack and backs up the database to
+`backups/pre-upgrade-<from>-to-<to>-<date>.tar.gz`, replaces `docker-compose.yml` and the gateway
+Caddyfile when they are as a release shipped them (keeping `.bak` copies; a modified Compose file
+stops the upgrade with `docker-compose.yml.new` written beside it), migrates `.env`, moves
+PostgreSQL 17 data to 18 on the `postgresql-data` volume after comparing every table's row count,
+starts the new release and runs `copalibre doctor`. Once doctor passes it reads the backup packet
+back and removes the PostgreSQL 17 volume (`postgres-data`) and the `postgres:17` image;
+`--keep-old-volume` keeps them. A failure before doctor puts the previous files back and restarts the
+previous release on its untouched 17 volume. The [updating help](../apps/web/src/content/docs/help/cli/updating.md)
+gives the rollback steps before and after the 17 volume is removed, and what changes for an
+installation from 1.0, which had no gateway.
+
+### Manual Compose upgrade between 2.x releases
+
+From 1.x, use `copalibre upgrade`: the database has to move to PostgreSQL 18, which these steps do not
+do.
 
 Use this procedure after the target images have been published. Keep the existing installation
 directory, Compose project name and named volumes; a new `init` directory is a separate installation,

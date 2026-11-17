@@ -1184,3 +1184,77 @@ The grant SHALL be available from the host's own command line only: `copalibre m
 
 - **WHEN** an agent lists the tools `copalibre mcp` exposes
 - **THEN** none grants super-admin
+
+### Requirement: Single-run containers are removed once the stack is up
+
+The CLI SHALL remove the containers of services that exist only to run a setup or a migration once, after `copalibre start`, `copalibre restart` and `copalibre upgrade` bring a Compose installation up and after `copalibre dev --hybrid` has seen the development infrastructure become healthy.
+
+#### Scenario: A production start
+
+- **WHEN** an operator runs `copalibre start` and the stack comes up
+- **THEN** the `database-setup` and `migrate` containers are removed, and the next start recreates and reruns them
+
+#### Scenario: A development infrastructure start
+
+- **WHEN** a developer runs `copalibre dev --hybrid` and the infrastructure reports healthy
+- **THEN** the `object-storage-init` container is stopped and removed, its image is kept, and the bucket and the key remain in the storage volume
+
+#### Scenario: Kubernetes mode and containers
+
+- **WHEN** the installation is in Kubernetes mode, or the CLI runs inside a container
+- **THEN** nothing is removed
+
+### Requirement: Cleanup removes only declared single-run services and never a running one
+
+The cleanup SHALL name services from one declared list per Compose file and SHALL remove stopped containers only, except a service declared as a readiness marker, which it stops after the stack reported healthy.
+
+#### Scenario: A running service
+
+- **WHEN** the cleanup runs while `postgres`, `api` or `gateway` is running
+- **THEN** those containers are untouched
+
+#### Scenario: A declared service with no container
+
+- **WHEN** a declared service has no container
+- **THEN** the cleanup does nothing for it and reports no error
+
+### Requirement: A failed cleanup does not fail the command
+
+A cleanup that fails SHALL print a notice on stderr and SHALL leave the command's exit status as the command itself decided it.
+
+#### Scenario: Compose refuses the removal
+
+- **WHEN** `docker compose rm` exits non-zero after a successful `copalibre start`
+- **THEN** `copalibre start` still exits 0 and prints one notice naming the services it could not remove
+
+### Requirement: A dev session removes the stopped containers of an earlier containerized session
+
+`copalibre dev --hybrid` SHALL remove the stopped application containers a previous containerized session left behind, and SHALL leave a running one alone.
+
+#### Scenario: Leftovers of a containerized session
+
+- **WHEN** `migrate` is exited and `api`, `events`, `worker`, `scheduler` and `web-ssr` are in `Created` state
+- **THEN** `copalibre dev --hybrid` removes those containers and starts the hybrid stack
+
+### Requirement: Loading demo data does not depend on a removed single-run container
+
+`copalibre dev demo` SHALL require the development database and object store to be running and healthy, and SHALL NOT require the single-run `object-storage-init` container, which the cleanup removes.
+
+#### Scenario: Demo load after the infrastructure cleanup
+
+- **WHEN** `postgres` and `object-storage` are healthy and no `object-storage-init` container exists
+- **THEN** `copalibre dev demo` loads the dataset
+
+#### Scenario: The object store is down
+
+- **WHEN** `object-storage` is not healthy
+- **THEN** `copalibre dev demo` refuses before loading anything and names `object-storage`
+
+### Requirement: The declared single-run list matches the Compose files
+
+The repository SHALL fail its tests when a declared service is missing from its Compose file, when a declared service is long-lived, or when a service that others wait on with `service_completed_successfully` is not declared.
+
+#### Scenario: A new migration-style service
+
+- **WHEN** a Compose file gains a service that others wait on with `service_completed_successfully` and it is not declared
+- **THEN** the test fails and names the service

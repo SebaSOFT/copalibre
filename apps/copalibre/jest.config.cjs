@@ -25,6 +25,9 @@ module.exports = {
     'src/doctor.ts',
     'src/init.ts',
     'src/product-roles.ts',
+    'src/compose-fingerprint.ts',
+    'src/installation-survey.ts',
+    'src/installation-upgrade.ts',
     'src/single-run-containers.ts',
   ],
   coverageThreshold: {

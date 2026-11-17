@@ -104,7 +104,7 @@ describe('copalibre upgrade (integration)', () => {
     });
   });
 
-  it('recreates the compose stack after pulling images and applying migrations', async () => {
+  it('pulls, stops writers, backs up, recreates the stack and ends with doctor', async () => {
     await withInstanceDirectory(async (directory) => {
       const initResult = await runCli(['init', '--non-interactive', '--skip-preflight'], directory);
       expect(initResult.code).toBe(0);
@@ -119,6 +119,20 @@ describe('copalibre upgrade (integration)', () => {
         'utf8',
       );
       await chmod(fakeDocker, 0o755);
+      // `init` writes placeholder secrets on purpose and doctor, which ends the upgrade, rejects
+      // them; an operator replaces them first, as the Deployment E2E job does.
+      const envPath = resolve(directory, '.env');
+      const placeholders =
+        /^(POSTGRES_PASSWORD|COPALIBRE_BOOTSTRAP_TOKEN|GARAGE_RPC_SECRET|COPALIBRE_DATABASE_OWNER_PASSWORD|COPALIBRE_DATABASE_APP_PASSWORD)=.*$/gm;
+      const env = await readFile(envPath, 'utf8');
+      await writeFile(
+        envPath,
+        env.replace(
+          placeholders,
+          (_line, key: string) => `${key}=${key.toLowerCase()}-0123456789abcdef`,
+        ),
+        'utf8',
+      );
 
       const upgradeResult = await runCli(
         ['upgrade', '--target-version', '1.3.0', '--skip-self-update', '--yes'],
@@ -133,7 +147,16 @@ describe('copalibre upgrade (integration)', () => {
       );
 
       expect(upgradeResult.code).toBe(0);
-      expect(await readFile(dockerLog, 'utf8')).toContain('compose up -d --force-recreate');
+      const log = await readFile(dockerLog, 'utf8');
+      const order = [
+        'pull --policy missing',
+        'compose stop',
+        'pg_dump',
+        'compose up --detach --wait --remove-orphans --force-recreate',
+        'run --pull missing --rm doctor',
+      ].map((fragment) => log.indexOf(fragment));
+      expect(order.every((index) => index >= 0)).toBe(true);
+      expect(order).toEqual([...order].sort((a, b) => a - b));
     });
   });
 

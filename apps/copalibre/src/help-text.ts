@@ -248,13 +248,13 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   {
     name: 'upgrade',
     summary:
-      'Coordinate self-hosted upgrade lifecycle: CLI binary, compose, images, migrations, and modules',
+      'Take this installation to a new release: back up, replace shipped files, move the database, restart, run doctor',
     usage:
-      'copalibre upgrade [--check] [--target-version <v>] [--self] [--skip-self-update] [--yes]',
+      'copalibre upgrade [--check] [--target-version <v>] [--self] [--skip-self-update] [--skip-services] [--skip-modules] [--keep-old-volume] [--yes]',
     flags: [
       {
         flag: '--check',
-        description: 'Inspect available platform and module updates without applying changes',
+        description: 'Print what the upgrade would do here, changing nothing',
       },
       {
         flag: '--target-version <v>',
@@ -266,7 +266,19 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
       },
       {
         flag: '--skip-self-update',
-        description: 'Skip CLI binary update and only upgrade compose, images, and migrations',
+        description: 'Keep this CLI binary; upgrade the installation with it',
+      },
+      {
+        flag: '--skip-services',
+        description: 'Update .env and the marker only (refused when the database must move)',
+      },
+      {
+        flag: '--skip-modules',
+        description: 'Do not list outdated modules afterwards',
+      },
+      {
+        flag: '--keep-old-volume',
+        description: 'Keep the previous PostgreSQL volume and image after moving the data',
       },
       {
         flag: '--yes, -y',

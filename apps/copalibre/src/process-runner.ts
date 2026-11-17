@@ -62,6 +62,43 @@ export const systemProcessRunner: ProcessRunner = {
   },
 };
 
+/**
+ * The CLI loads `.env` into its own environment at start. Docker Compose gives the environment
+ * precedence over `.env`, so passing those values on would make every `docker compose` call see
+ * `.env` as it was when the command began: after `upgrade` rewrites the image tags, the stack would
+ * still start the old images. Docker reads `.env` itself, so it gets the environment without them.
+ */
+export function envFileAwareRunner(
+  runner: ProcessRunner,
+  fromEnvFile: readonly string[],
+): ProcessRunner {
+  if (fromEnvFile.length === 0) return runner;
+  const forCommand = (
+    command: string,
+    environment: NodeJS.ProcessEnv | undefined,
+  ): NodeJS.ProcessEnv | undefined => {
+    if (command !== 'docker') return environment;
+    const stripped = { ...(environment ?? process.env) };
+    for (const key of fromEnvFile) delete stripped[key];
+    return stripped;
+  };
+  const { capture, runSupervised } = runner;
+  return {
+    run: (command, arguments_, environment) =>
+      runner.run(command, arguments_, forCommand(command, environment)),
+    ...(capture
+      ? {
+          capture: (
+            command: string,
+            arguments_: readonly string[],
+            environment?: NodeJS.ProcessEnv,
+          ) => capture.call(runner, command, arguments_, forCommand(command, environment)),
+        }
+      : {}),
+    ...(runSupervised ? { runSupervised: runSupervised.bind(runner) } : {}),
+  };
+}
+
 export function superviseProcesses(
   processes: readonly SupervisedProcess[],
   environment: NodeJS.ProcessEnv = process.env,
