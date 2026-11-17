@@ -1,0 +1,27 @@
+{
+  "name": "@copalibre/email-delivery",
+  "version": "1.2.6",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --build",
+    "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
+    "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage"
+  },
+  "dependencies": {
+    "nodemailer": "^10.1.7"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/nodemailer": "^8.0.2",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.15",
+    "typescript": "^6.0.3"
+  }
+}
