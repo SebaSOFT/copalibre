@@ -73,7 +73,18 @@ export interface DoctorOptions {
   readonly checkProxy?: boolean;
   readonly proxyUrl?: string;
   readonly smoke?: boolean;
+  /**
+   * `copalibre start` and `restart` run doctor before the application services exist.
+   * A key set served by this installation's own `api` cannot answer yet, so it is not checked.
+   */
+  readonly beforeStart?: boolean;
 }
+
+/** `start` and `restart` set this on the doctor container; an older doctor image ignores it. */
+export const BEFORE_START_VARIABLE = 'COPALIBRE_DOCTOR_BEFORE_START';
+
+/** The Compose service that serves the built-in key set, as `copalibre init` writes the URI. */
+const STACK_API_HOST = 'api';
 
 const EMAIL_PROVIDERS = ['resend', 'brevo', 'mailgun', 'smtp'] as const;
 type EmailProvider = (typeof EMAIL_PROVIDERS)[number];
@@ -98,8 +109,8 @@ export async function runDoctor(
     ...validateRequiredConfiguration(environment),
     ...validateServicePorts(environment),
   ];
-  checks.push(...(await validatePublicUrls(environment, dependencies)));
-  checks.push(...(await validateJwksContent(environment, dependencies)));
+  checks.push(...(await validatePublicUrls(environment, dependencies, options)));
+  checks.push(...(await validateJwksContent(environment, dependencies, options)));
   checks.push(...(await validateDatabase(environment, dependencies)));
   checks.push(await validateRuntimePrivileges(environment, dependencies));
   checks.push(await validateRetirableModules(environment, dependencies));
@@ -371,9 +382,22 @@ export function isHybridDevelopmentEnvironment(environment: NodeJS.ProcessEnv): 
   }
 }
 
+function notStartedYet(value: string | undefined, options: DoctorOptions): boolean {
+  if (!options.beforeStart || !value) return false;
+  try {
+    return new URL(value).hostname === STACK_API_HOST;
+  } catch {
+    return false;
+  }
+}
+
+const NOT_STARTED_YET =
+  "COPALIBRE_JWKS_URI is served by this installation's api, which starts after this check; copalibre doctor checks it once the stack runs";
+
 export async function validatePublicUrls(
   environment: NodeJS.ProcessEnv,
   dependencies: Pick<DoctorDependencies, 'lookupHost'>,
+  options: DoctorOptions = {},
 ): Promise<readonly DoctorCheck[]> {
   const checks: DoctorCheck[] = [];
   for (const [name, value] of [
@@ -381,6 +405,10 @@ export async function validatePublicUrls(
     ['COPALIBRE_JWKS_URI', environment.COPALIBRE_JWKS_URI],
   ] as const) {
     if (!value) continue;
+    if (name === 'COPALIBRE_JWKS_URI' && notStartedYet(value, options)) {
+      checks.push(skip(`dns:${name}`, NOT_STARTED_YET));
+      continue;
+    }
     try {
       const url = new URL(value);
       if (!['http:', 'https:'].includes(url.protocol)) throw new Error('must use http or https');
@@ -404,9 +432,11 @@ export async function validatePublicUrls(
 export async function validateJwksContent(
   environment: NodeJS.ProcessEnv,
   dependencies: Pick<DoctorDependencies, 'fetch'>,
+  options: DoctorOptions = {},
 ): Promise<readonly DoctorCheck[]> {
   const value = environment.COPALIBRE_JWKS_URI;
   if (!value) return [];
+  if (notStartedYet(value, options)) return [skip('jwks-content', NOT_STARTED_YET)];
 
   let url: URL;
   try {

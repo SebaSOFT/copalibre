@@ -6,7 +6,12 @@ import { createDatabase, databaseConfigFromEnv } from '@copalibre/persistence';
 import type { CliContext } from '../cli-context.js';
 import { runCommand } from '../command-support.js';
 import { isContainer, refuseForKubernetesMode, requireComposeTarget } from '../compose-target.js';
-import { runDoctor, validateHostEnvironment, type DoctorOptions } from '../doctor.js';
+import {
+  BEFORE_START_VARIABLE,
+  runDoctor,
+  validateHostEnvironment,
+  type DoctorOptions,
+} from '../doctor.js';
 import { runPreflight } from '../preflight.js';
 import type { ProcessRunner } from '../process-runner.js';
 import { probeDataIntegrity } from '../doctor-data-probe.js';
@@ -94,6 +99,7 @@ export class DoctorCommand extends Command<CliContext> {
         checkProxy: parsed.values['check-proxy'],
         proxyUrl: parsed.values['proxy-url'],
         smoke: parsed.values.smoke,
+        beforeStart: environment[BEFORE_START_VARIABLE] === 'true',
       };
       const report = await runDoctor(environment, undefined, options);
       for (const check of report.checks) {

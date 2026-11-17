@@ -77,7 +77,7 @@ describe('copalibre start', () => {
         await expect(runCli(['start'], {}, { run })).resolves.toBe(0);
         expect(run.mock.calls.map((call) => call[1])).toEqual([
           ['compose', 'up', '--detach', 'postgres'],
-          ['compose', 'run', '--rm', 'doctor'],
+          ['compose', 'run', '--rm', '--env', 'COPALIBRE_DOCTOR_BEFORE_START=true', 'doctor'],
           ['compose', 'up', '--detach', '--wait'],
           ['compose', 'rm', '--force', 'database-setup', 'migrate'],
         ]);
@@ -158,7 +158,7 @@ describe('copalibre start', () => {
         );
         expect(run.mock.calls.map((call) => call[1])).toEqual([
           ['compose', 'up', '--detach', 'postgres'],
-          ['compose', 'run', '--rm', 'doctor'],
+          ['compose', 'run', '--rm', '--env', 'COPALIBRE_DOCTOR_BEFORE_START=true', 'doctor'],
           ['compose', 'up', '--detach', '--wait'],
         ]);
       } finally {

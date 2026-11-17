@@ -38,7 +38,7 @@ describe('copalibre restart', () => {
         expect(run.mock.calls.map((call) => call[1])).toEqual([
           ['compose', 'stop'],
           ['compose', 'up', '--detach', '--wait', 'postgres'],
-          ['compose', 'run', '--rm', 'doctor'],
+          ['compose', 'run', '--rm', '--env', 'COPALIBRE_DOCTOR_BEFORE_START=true', 'doctor'],
           ['compose', 'up', '--detach', '--wait'],
           ['compose', 'rm', '--force', 'database-setup', 'migrate'],
         ]);
