@@ -1,4 +1,5 @@
 // @ts-check
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import starlight from '@astrojs/starlight';
@@ -69,6 +70,20 @@ export default defineConfig({
               });
             }
           }
+        },
+      },
+    },
+    {
+      // Islands that only enhance server-rendered content hydrate after the first paint.
+      name: 'copalibre-client-directives',
+      hooks: {
+        'astro:config:setup': ({ addClientDirective }) => {
+          addClientDirective({
+            name: 'after-paint',
+            entrypoint: fileURLToPath(
+              new URL('./src/client-directives/after-paint.ts', import.meta.url),
+            ),
+          });
         },
       },
     },

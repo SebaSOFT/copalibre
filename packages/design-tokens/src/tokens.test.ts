@@ -40,7 +40,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { generateCss } from './generate/css.js';
+import { generateCss, generateDeferredFontsCss, generatePublicCss } from './generate/css.js';
 import { generateTailwindModule, generateTailwindTheme } from './generate/tailwind.js';
 import { generateStyleGuide } from './generate/style-guide.js';
 import { designTokenDifferences, readDesignTokens } from './design-document.js';
@@ -355,6 +355,21 @@ describe('script-aware typography', () => {
       expect(FONT_STYLESHEETS).toContain(`@fontsource/barlow/${weight}.css`);
       expect(FONT_STYLESHEETS).toContain(`@fontsource/barlow-condensed/${weight}.css`);
     }
+  });
+
+  it('leaves the Chinese faces out of the public stylesheet, for the page to add after it paints', () => {
+    const publicCss = generatePublicCss();
+    expect(publicCss).not.toContain('noto-sans-sc');
+    expect(generateDeferredFontsCss()).toBe(
+      "@import '@fontsource-variable/noto-sans-sc/wght.css';\n",
+    );
+    // The same tokens and stacks: only the faces a page asks for change.
+    expect(publicCss.replace(/^@import .*\n/gm, '')).toBe(
+      generateCss().replace(/^@import .*\n/gm, ''),
+    );
+    expect(publicCss).toContain(`--cl-font-body: ${TYPOGRAPHY.body};`);
+    // Every other surface keeps loading them with its stylesheet.
+    expect(generateCss()).toContain("@import '@fontsource-variable/noto-sans-sc/wght.css';");
   });
 
   it('removes uppercase tracking for Chinese-language content', () => {

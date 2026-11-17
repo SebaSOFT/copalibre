@@ -774,10 +774,10 @@ SHALL offer a table view of the same data.
 ### Requirement: Non-Latin scripts render in declared fallback faces
 
 The generated font stacks SHALL name Roboto Condensed (display) and Roboto (body) for Cyrillic, and
-Noto Sans SC for Chinese, after the Latin faces, and SHALL deliver them through the same stylesheet,
-split by `unicode-range`. A stack MAY name a face by the family name its package declares, such as a variable
-build's. Latin text SHALL keep rendering in Barlow, Barlow Condensed and JetBrains
-Mono. Under `:lang(zh)`, uppercase tracking SHALL be normal.
+Noto Sans SC for Chinese, after the Latin faces, split by `unicode-range`. A public page not in Chinese
+SHALL load the Noto Sans SC faces after its first paint; every other page loads them with its
+stylesheet. Latin text SHALL keep rendering in Barlow, Barlow Condensed and JetBrains Mono. Under
+`:lang(zh)`, uppercase tracking SHALL be normal.
 
 #### Scenario: Russian heading
 
@@ -794,6 +794,17 @@ Mono. Under `:lang(zh)`, uppercase tracking SHALL be normal.
 
 - **WHEN** an English page with only Latin text loads
 - **THEN** no Cyrillic or CJK font file is requested
+
+#### Scenario: Chinese club name on a Spanish public page
+
+- **WHEN** a Spanish tournament page shows a club name in Chinese
+- **THEN** its first paint does not wait for the Noto Sans SC declarations, and the name then renders in
+  Noto Sans SC
+
+#### Scenario: Chinese public page
+
+- **WHEN** a public page in Chinese loads
+- **THEN** its stylesheet requests include the Noto Sans SC declarations before it paints
 
 ### Requirement: Public and Control offer the L3 Sunlight light theme with verified contrast
 

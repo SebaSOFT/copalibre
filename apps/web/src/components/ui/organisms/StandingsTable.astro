@@ -330,7 +330,7 @@ const playerDialogLabels = {
                         {hint}
                       </span>
                       <Popover
-                        client:load
+                        client:after-paint
                         openOnHover
                         triggerLabel={intl.formatMessage(messages.standingsColumnInfo, {
                           column: label,
@@ -401,14 +401,14 @@ const playerDialogLabels = {
                         data-profile-url={apiProfileUrl}
                       >
                         <ResponsivePlayerName
-                          client:load
+                          client:after-paint
                           fullName={row.actorName ?? cellFormatted}
                           nationalityCode={row.nationality}
                         />
                       </a>
                     ) : isPlayerNameCell ? (
                       <ResponsivePlayerName
-                        client:load
+                        client:after-paint
                         fullName={row.actorName ?? cellFormatted}
                         nationalityCode={row.nationality}
                       />
@@ -434,7 +434,7 @@ const playerDialogLabels = {
                         )}
                         <EntrantName
                           abbreviation={row.entrantAbbreviation}
-                          client:load
+                          client:after-paint
                           fullName={row.entrantName ?? cellFormatted}
                         />
                       </span>

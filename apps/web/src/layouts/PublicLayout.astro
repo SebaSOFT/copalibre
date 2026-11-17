@@ -1,6 +1,11 @@
 ---
 import type { IntlShape } from 'react-intl';
-import '@copalibre/design-tokens/generated/copalibre.css';
+import '@copalibre/design-tokens/generated/copalibre-public.css';
+/*
+  The faces `copalibre-public.css` leaves out (Chinese): a page in Chinese loads them before it
+  paints, every other page once it has painted, so operator text in Chinese still renders in them.
+*/
+import deferredFontsHref from '@copalibre/design-tokens/generated/fonts-deferred.css?url';
 /*
   Every public page's main heading is set in Barlow Condensed 700, and that heading is the page's
   largest paint. Left to the stylesheet, its face is requested only once the stylesheet has been
@@ -77,6 +82,11 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
     <script is:inline src="/scripts/theme-init.js"></script>
     {/* `crossorigin` is required on a font preload even from the same origin, or the font is fetched twice. */}
     <link rel="preload" as="font" type="font/woff2" crossorigin href={headingFaceUrl} />
+    {intl.locale === 'zh' ? (
+      <link rel="stylesheet" href={deferredFontsHref} />
+    ) : (
+      <meta name="copalibre:deferred-stylesheet" content={deferredFontsHref} />
+    )}
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
@@ -143,6 +153,12 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
     </footer>
   </body>
 </html>
+
+<script>
+  import { addDeferredStylesheets } from '../lib/deferred-stylesheets.ts';
+
+  addDeferredStylesheets();
+</script>
 
 <style>
   .cl-public-reading--after-ticker {

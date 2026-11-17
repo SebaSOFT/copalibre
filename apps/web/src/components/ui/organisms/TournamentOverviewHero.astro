@@ -75,7 +75,12 @@ const venuePills = venueColumn ? [] : shownVenues;
           ))}
           {venuePills.map((venue) => (
             <li class="cl-overview-hero__venue">
-              <Popover client:load openOnHover triggerLabel={venue.name} triggerText={venue.name}>
+              <Popover
+                client:after-paint
+                openOnHover
+                triggerLabel={venue.name}
+                triggerText={venue.name}
+              >
                 <span class="cl-venue-popup">
                   <strong class="cl-venue-popup__name">{venue.name}</strong>
                   {venue.address && (
@@ -99,7 +104,12 @@ const venuePills = venueColumn ? [] : shownVenues;
         <ul class="cl-overview-hero__venue-list">
           {shownVenues.map((venue) => (
             <li class="cl-overview-hero__venue">
-              <Popover client:load openOnHover triggerLabel={venue.name} triggerText={venue.name}>
+              <Popover
+                client:after-paint
+                openOnHover
+                triggerLabel={venue.name}
+                triggerText={venue.name}
+              >
                 <span class="cl-venue-popup">
                   <strong class="cl-venue-popup__name">{venue.name}</strong>
                   {venue.address && (
