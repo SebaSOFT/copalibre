@@ -21,6 +21,16 @@ installation's directory refuses rather than overwriting it. `--module-dev` addi
 supported email provider configuration. Then run `copalibre start` or
 `docker compose up --detach --wait`.
 
+`copalibre doctor` reports what is still missing and, in a terminal, offers to configure it: email
+delivery (a numbered provider list, then the SMTP server or the API key, typed without echo, and the
+sender), a placeholder bootstrap token (replaced with a random one), and a 1.0 installation's public
+URL on the web service's port 4321 (moved to the gateway). It writes only those keys, keeps the
+previous `.env` as `.env.<date>.bak`, offers a test email through the worker's own delivery code
+(`copalibre doctor --send-test-email <address>` at any time) and the restart of the services that read
+the change. Without a terminal it asks nothing and prints the equivalent
+`copalibre doctor --configure <setting>` flags. It never rewrites a password the database or a running
+service holds: for a placeholder `POSTGRES_PASSWORD` it prints the `ALTER ROLE` command to run first.
+
 ### Notification email
 
 Lifecycle email uses the provider already configured for invitations (`COPALIBRE_EMAIL_PROVIDER`,

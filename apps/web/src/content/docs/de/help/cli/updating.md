@@ -57,7 +57,8 @@ gleich was ihr Marker angibt, und schließt die Arbeit ab.
 4. Es verschiebt die Datenbank von PostgreSQL 17 nach 18: Es stellt die Sicherung in einem neuen
    Volume (`postgresql-data`) wieder her und vergleicht die Zeilenzahl jeder Tabelle, bevor es
    weitergeht. Das 17er-Volume wird nicht angerührt.
-5. Es startet die neue Version und führt `copalibre doctor` aus.
+5. Es startet die neue Version und führt `copalibre doctor` aus. In einem Terminal bietet doctor an, zu
+   konfigurieren, was der Installation fehlt, etwa den E-Mail-Versand; siehe [doctor](/de/help/cli/commands/#doctor).
 6. Sobald doctor besteht, prüft es, dass sich die Sicherung zurücklesen lässt, und entfernt dann das
    PostgreSQL-17-Volume (`postgres-data`) und das Image `postgres:17`. Mit `--keep-old-volume` bleiben
    sie erhalten; das Upgrade gibt die zwei Befehle aus, die sie später entfernen.

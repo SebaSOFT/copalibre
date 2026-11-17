@@ -57,7 +57,8 @@ finishes the job.
 4. Moves the database from PostgreSQL 17 to 18: it restores the backup into a new volume
    (`postgresql-data`) and compares the number of rows of every table before going on. The 17 volume
    is not touched.
-5. Starts the new release and runs `copalibre doctor`.
+5. Starts the new release and runs `copalibre doctor`. In a terminal, doctor offers to configure what the
+   installation is missing, such as email delivery; see [doctor](/help/cli/commands/#doctor).
 6. Once doctor passes, checks that the backup can be read back, then removes the PostgreSQL 17 volume
    (`postgres-data`) and the `postgres:17` image. Pass `--keep-old-volume` to keep them; the upgrade
    prints the two commands that remove them later.
