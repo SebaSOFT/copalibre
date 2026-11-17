@@ -268,3 +268,28 @@ COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.1
     });
   });
 });
+
+describe('retired .env defaults', () => {
+  it('rewrite the key set URL every release before 2.0 shipped, quoted or not', () => {
+    for (const line of [
+      'COPALIBRE_JWKS_URI=http://api:3001/.well-known/jwks.json',
+      'COPALIBRE_JWKS_URI="http://api:3001/.well-known/jwks.json"',
+    ]) {
+      const result = reconcileEnvContent(`${line}\n`, '2.0.0', {});
+      expect(result.content).toBe('COPALIBRE_JWKS_URI=http://api:3001/api/auth/jwks.json\n');
+      expect(result.updatedKeys).toEqual(['COPALIBRE_JWKS_URI']);
+    }
+  });
+
+  it('keep an external identity provider key set and every other operator value', () => {
+    const env = [
+      '# operator notes',
+      'COPALIBRE_JWKS_URI=https://id.example.test/.well-known/jwks.json',
+      'COPALIBRE_EMAIL_FROM=torneos@liga.example',
+      '',
+    ].join('\n');
+    const result = reconcileEnvContent(env, '2.0.0', {});
+    expect(result.content).toBe(env);
+    expect(result.updatedKeys).toEqual([]);
+  });
+});

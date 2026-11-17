@@ -182,11 +182,10 @@ export function reconcileEnvContent(
     updatedLines.push(`# Added during upgrade to v${cleanVersion}`, ...linesToAppend);
   }
 
-  const lastUpdated = updatedLines[updatedLines.length - 1];
-  const trailingNewline = lastUpdated !== undefined && lastUpdated.endsWith('\n') ? '' : '\n';
+  const joined = updatedLines.join('\n');
 
   return {
-    content: updatedLines.join('\n') + trailingNewline,
+    content: joined.endsWith('\n') ? joined : `${joined}\n`,
     addedKeys,
     updatedKeys,
     ...(addedSessionCookieSecure === undefined ? {} : { addedSessionCookieSecure }),
