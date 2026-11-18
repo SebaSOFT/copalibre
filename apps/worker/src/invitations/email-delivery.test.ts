@@ -1,4 +1,5 @@
 import { SUPPORTED_LANGUAGES } from '@copalibre/domain';
+import * as delivery from '@copalibre/email-delivery';
 import type { ClaimedJob } from '@copalibre/persistence';
 import {
   EmailRejectedError,
@@ -214,5 +215,21 @@ describe('SMTP refusal classification', () => {
     expect(isSmtpRefusal({ code: 'ETIMEDOUT', command: 'DATA' })).toBe(false);
     expect(isSmtpRefusal(new Error('socket hang up'))).toBe(false);
     expect(isSmtpRefusal(undefined)).toBe(false);
+  });
+});
+
+describe('one delivery code for the worker and doctor', () => {
+  it('sends with the functions doctor’s test email uses, from the same environment', () => {
+    expect(sendEmail).toBe(delivery.sendEmail);
+    expect(emailDeliveryConfigFromEnv).toBe(delivery.emailDeliveryConfigFromEnv);
+    const environment = {
+      COPALIBRE_APP_URL: 'https://copalibre.example',
+      COPALIBRE_EMAIL_FROM: 'noreply@copalibre.example',
+      COPALIBRE_EMAIL_PROVIDER: 'smtp',
+      COPALIBRE_SMTP_URL: 'smtp://relay.example:25',
+    };
+    expect(emailDeliveryConfigFromEnv(environment)).toEqual(
+      delivery.emailDeliveryConfigFromEnv(environment),
+    );
   });
 });

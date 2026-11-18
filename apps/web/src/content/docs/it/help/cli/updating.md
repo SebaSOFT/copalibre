@@ -56,7 +56,8 @@ suo marcatore, e completa il lavoro.
 4. Sposta il database da PostgreSQL 17 a 18: ripristina il backup in un nuovo volume
    (`postgresql-data`) e confronta il numero di righe di ogni tabella prima di proseguire. Il volume
    17 non viene toccato.
-5. Avvia la nuova versione ed esegue `copalibre doctor`.
+5. Avvia la nuova versione ed esegue `copalibre doctor`. In un terminale, doctor propone di configurare
+   ciò che manca all'installazione, come l'invio delle email; vedi [doctor](/it/help/cli/commands/#doctor).
 6. Quando doctor passa, verifica che il backup si possa rileggere, poi rimuove il volume di
    PostgreSQL 17 (`postgres-data`) e l'immagine `postgres:17`. Con `--keep-old-volume` vengono
    conservati; l'aggiornamento stampa i due comandi per rimuoverli in seguito.

@@ -66,18 +66,40 @@ Opzioni email e riparazione:
 
 - `--repair`: crea backup di `.env` e `docker-compose.yml`, aggiunge valori e risorse mancanti e preserva il Compose esistente. I servizi predefiniti assenti vengono mostrati con snippet YAML da verificare e applicare manualmente.
 - `--email-provider <provider>`: `smtp`, `resend`, `brevo` o `mailgun` (predefinito: SMTP locale).
-- `--email-from <address>`: indirizzo mittente (predefinito: `noreply@copalibre.local`).
+- `--email-from <address>`: indirizzo mittente (predefinito: `noreply@copalibre.local`, da cui nessun servizio di posta invia; `doctor` lo segnala finché non ne imposti uno reale).
 - `--email-credential <value>`: URL di connessione SMTP o chiave API del provider.
 - `--email-domain <domain>`: obbligatorio per Mailgun.
+- `--email-region <us|eu>`: la regione Mailgun che ospita il dominio (predefinita: `us`).
+
+In modalità interattiva, `init` chiede l'email come `doctor`: elenca i provider per numero, legge la chiave API o la password SMTP senza mostrarla e chiede il mittente. Invio mantiene i valori di prova locali. Un'opzione già passata non viene richiesta di nuovo.
 
 ## doctor
 
-`copalibre doctor [--check-proxy] [--proxy-url <url>]`
+`copalibre doctor [--check-proxy] [--proxy-url <url>] [--smoke] [--fix | --interactive] [--non-interactive] [--send-test-email <address>]`
+oppure `copalibre doctor --configure <email|bootstrap-token|public-url> [opzioni dell'impostazione]`
 
-Valida configurazione e dipendenze prima di avviare.
+Valida configurazione e dipendenze prima di avviare e propone di completare le impostazioni che mancano all'installazione.
 
 - `--check-proxy`: verifica anche la configurazione del proxy inverso
 - `--proxy-url <url>`: URL pubblico da testare quando si usa `--check-proxy`
+- `--smoke`: verifica da capo a capo il gateway, il JWKS di autenticazione, le organizzazioni e il flusso SSE
+- `--fix`, `--interactive`: dopo il rapporto, percorre con domande ogni torneo con uno stato non canonico (scegliere lo stato, confermare, applicare). Richiede un terminale.
+
+### Impostazioni che doctor completa
+
+Doctor trova le impostazioni che mancano a un'installazione e, in un terminale, propone di completarle. `copalibre upgrade` termina eseguendo doctor, quindi anche un'installazione aggiornata riceve queste domande.
+
+- **Email** (`email`): il mittente `noreply@copalibre.local`, scritto per impostazione predefinita da ogni versione, è segnalato come avviso: nessun servizio di posta invia da un indirizzo `.local`, quindi inviti e reimpostazioni della password non arrivano mai. Un provider senza la sua chiave API o il suo URL SMTP è un errore. Doctor chiede quale servizio invia le email (SMTP, Resend, Brevo o Mailgun, per numero), poi i dati di connessione: per SMTP server, porta, utente e password, oppure un URL `smtp://` completo; per gli altri la chiave API e, per Mailgun, il dominio di invio e la sua regione. I segreti non vengono mostrati durante la digitazione. Poi chiede l'indirizzo mittente.
+- **Token di avvio** (`bootstrap-token`): un `COPALIBRE_BOOTSTRAP_TOKEN` di esempio viene sostituito con uno casuale, previa conferma. Nient'altro lo conserva, quindi nulla si rompe.
+- **URL pubblico** (`public-url`): un'installazione creata con la 1.0 manda i browser al servizio web sulla porta 4321. Doctor propone di spostare `COPALIBRE_APP_URL` (e `COPALIBRE_API_URL`, e l'emittente quando indicava lo stesso indirizzo) sul gateway, la porta 8080 per impostazione predefinita, o all'indirizzo del tuo proxy.
+
+Doctor scrive solo le chiavi configurate, conserva il file precedente come `.env.<data>.bak`, lascia `.env` leggibile solo dal proprietario ed elenca le chiavi cambiate senza i loro valori. Dopo l'email propone un'email di prova, poi il riavvio dei servizi che leggono la modifica, e ricontrolla.
+
+Doctor non riscrive mai una password che il database o un servizio in esecuzione conserva: per un `POSTGRES_PASSWORD` di esempio mostra il comando che cambia la password nel database, da eseguire prima di modificare `.env`.
+
+- `--non-interactive`: non chiede nulla, nemmeno in un terminale. Senza terminale (uno script o un job di CI) doctor non chiede mai: mostra le opzioni qui sotto.
+- `--configure <setting>`: configura `email`, `bootstrap-token` o `public-url` senza domande, poi verifica. Per `email` passa `--email-provider`, `--email-credential`, `--email-from` e, per Mailgun, `--email-domain` e `--email-region` (le stesse opzioni di `init`). Per `public-url`, `--app-url <url>`. Un valore scritto sulla riga di comando resta nella cronologia della shell; leggilo da un file, per esempio `--email-credential "$(cat resend-key.txt)"`.
+- `--send-test-email <address>`: invia un'email con il provider e la configurazione dell'applicazione, dall'interno dello stack, e riporta la risposta del provider (una chiave API errata mostra il motivo del provider).
 
 ## dev
 

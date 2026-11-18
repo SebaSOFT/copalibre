@@ -1,6 +1,6 @@
 import { apiEndpoint } from './api-client.js';
 import { parseArgs } from 'node:util';
-import { createInterface } from 'node:readline/promises';
+import { createPrompts } from './prompts.js';
 import { readCredential, writeCredential, type StoredCredential } from './credentials.js';
 
 export interface LoginOptions {
@@ -47,40 +47,16 @@ async function readAllStdin(stream: NodeJS.ReadableStream): Promise<string> {
   return Buffer.concat(chunks).toString('utf8');
 }
 
-/**
- * Masks input the same way `ssh-keygen`/`sudo` do: echoes an asterisk per
- * keystroke via `readline`'s `_writeToOutput` hook, rather than disabling
- * echo entirely (which would give the operator no feedback that keys are
- * being received at all).
- */
-async function promptMasked(prompt: string): Promise<string> {
-  const readline = createInterface({ input: process.stdin, output: process.stdout });
-  const output = readline as unknown as { _writeToOutput?: (value: string) => void };
-  let masking = false;
-  const original = output._writeToOutput?.bind(output);
-  output._writeToOutput = (value: string) => {
-    if (!masking || !original) return;
-    if (value === '\r\n' || value === '\n') {
-      original(value);
-      return;
-    }
-    original('*'.repeat(value.length));
-  };
-  process.stdout.write(prompt);
-  masking = true;
-  try {
-    return await readline.question('');
-  } finally {
-    masking = false;
-    readline.close();
-  }
-}
-
 async function defaultReadToken(): Promise<string> {
   if (!process.stdin.isTTY) {
     return (await readAllStdin(process.stdin)).trim();
   }
-  return (await promptMasked('Personal access token: ')).trim();
+  const prompts = createPrompts();
+  try {
+    return await prompts.secret('Personal access token: ');
+  } finally {
+    prompts.close();
+  }
 }
 
 export interface LoginDependencies {

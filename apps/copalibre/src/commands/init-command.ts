@@ -14,8 +14,17 @@ import {
   resolveOidcOptions,
   writeInstallationAssets,
 } from '../init.js';
+import {
+  askEmail,
+  emailAnswersFromFlags,
+  givenEmailAnswers,
+  type EmailAnswers,
+  type MailgunRegion,
+} from '../configurable-settings.js';
+import { LOCAL_DEFAULTS } from '../init.js';
 import { writeKubernetesInstallationAssets } from '../kubernetes-init.js';
 import { formatPreflightReport, runPreflight } from '../preflight.js';
+import { createPrompts } from '../prompts.js';
 
 const DEFAULT_KUBERNETES_NAMESPACE = 'default';
 const DEFAULT_KUBERNETES_RELEASE = 'copalibre';
@@ -46,6 +55,7 @@ export class InitCommand extends Command<CliContext> {
           'email-from': { type: 'string' },
           'email-credential': { type: 'string' },
           'email-domain': { type: 'string' },
+          'email-region': { type: 'string' },
           'oidc-issuer': { type: 'string' },
           'oidc-client-id': { type: 'string' },
           'oidc-jwks-uri': { type: 'string' },
@@ -88,10 +98,15 @@ export class InitCommand extends Command<CliContext> {
             .filter(Boolean)
         : undefined;
       let proxyChoice = parsed.values.proxy;
-      let emailProvider = parseEmailProvider(parsed.values['email-provider']);
-      let emailFrom = parsed.values['email-from'];
-      let emailCredential = parsed.values['email-credential'];
-      let emailDomain = parsed.values['email-domain'];
+      const emailFlags = {
+        emailProvider: parsed.values['email-provider'],
+        emailCredential: parsed.values['email-credential'],
+        emailFrom: parsed.values['email-from'],
+        emailDomain: parsed.values['email-domain'],
+        emailRegion: parsed.values['email-region'],
+      };
+      // Checked before any question, so a wrong flag fails before the operator answers anything.
+      const givenEmail = givenEmailAnswers(emailFlags);
       let oidcIssuer = parsed.values['oidc-issuer'];
       let oidcClientId = parsed.values['oidc-client-id'];
       let oidcJwksUri = parsed.values['oidc-jwks-uri'];
@@ -105,6 +120,9 @@ export class InitCommand extends Command<CliContext> {
           : undefined;
 
       const isInteractive = process.stdin.isTTY && !parsed.values['non-interactive'];
+      let email: EmailAnswers | undefined = isInteractive
+        ? undefined
+        : emailAnswersFromFlags(emailFlags, {}, { requireAll: false });
       const hasExistingInstallation = [
         'docker-compose.yml',
         '.env',
@@ -208,42 +226,29 @@ export class InitCommand extends Command<CliContext> {
               proxyChoice = 'nginx';
             }
           }
-          if (!emailProvider) {
-            const enteredProvider = await rl.question(
-              'Email delivery provider (smtp / resend / brevo / mailgun) [smtp]: ',
-            );
-            emailProvider = parseEmailProvider(enteredProvider.trim() || 'smtp');
-          }
-          if (!emailFrom) {
-            const enteredFrom = await rl.question(
-              'Email sender address [noreply@copalibre.local]: ',
-            );
-            emailFrom = enteredFrom.trim() || 'noreply@copalibre.local';
-          }
-          const credentialProvider = emailProvider ?? 'smtp';
-          const credentialLabel =
-            credentialProvider === 'smtp'
-              ? 'SMTP connection URL [smtp://host.docker.internal:1025]: '
-              : credentialProvider === 'mailgun'
-                ? 'Mailgun API key: '
-                : `${credentialProvider} API key: `;
-          if (!emailCredential) {
-            const enteredCredential = await rl.question(credentialLabel);
-            emailCredential = enteredCredential.trim() || undefined;
-            if (emailProvider === 'smtp' && !emailCredential) {
-              emailCredential = 'smtp://host.docker.internal:1025';
-            }
-          }
-          if (emailProvider === 'mailgun' && !emailDomain) {
-            const enteredDomain = await rl.question('Mailgun domain: ');
-            emailDomain = enteredDomain.trim() || undefined;
-          }
         } finally {
           rl.close();
         }
+        {
+          // The same questions doctor asks, with the local trial defaults one Enter away; what the
+          // flags already said is not asked.
+          const prompts = createPrompts();
+          try {
+            email = await askEmail(
+              prompts,
+              {
+                COPALIBRE_EMAIL_PROVIDER: LOCAL_DEFAULTS.COPALIBRE_EMAIL_PROVIDER,
+                COPALIBRE_SMTP_URL: LOCAL_DEFAULTS.COPALIBRE_SMTP_URL,
+                COPALIBRE_EMAIL_FROM: LOCAL_DEFAULTS.COPALIBRE_EMAIL_FROM,
+              },
+              { localSenderDefault: true, given: givenEmail },
+            );
+          } finally {
+            prompts.close();
+          }
+        }
       }
 
-      validateEmailOptions(emailProvider, emailCredential, emailDomain);
       if (oidcIssuer && !oidcJwksUri) oidcJwksUri = await discoverJwksUri(oidcIssuer);
       const oidc = resolveOidcOptions(oidcIssuer, oidcClientId, oidcJwksUri);
 
@@ -253,10 +258,7 @@ export class InitCommand extends Command<CliContext> {
         appUrl,
         apiUrl,
         starterDisciplines,
-        emailProvider,
-        emailFrom,
-        emailCredential,
-        emailDomain,
+        ...(email ? emailOptions(email) : {}),
         ...(oidc ? { oidc } : {}),
         ...(https === undefined ? {} : { https }),
       });
@@ -293,33 +295,18 @@ export class InitCommand extends Command<CliContext> {
   }
 }
 
-function parseEmailProvider(
-  value: string | undefined,
-): 'smtp' | 'resend' | 'brevo' | 'mailgun' | undefined {
-  if (value === undefined) return undefined;
-  if (value === 'smtp' || value === 'resend' || value === 'brevo' || value === 'mailgun') {
-    return value;
-  }
-  throw new Error('--email-provider must be one of: smtp, resend, brevo, mailgun');
-}
-
-function validateEmailOptions(
-  provider: 'smtp' | 'resend' | 'brevo' | 'mailgun' | undefined,
-  credential: string | undefined,
-  domain: string | undefined,
-): void {
-  if (!provider) {
-    if (credential || domain)
-      throw new Error('--email-credential and --email-domain require --email-provider');
-    return;
-  }
-  if (provider !== 'smtp' && !credential) {
-    throw new Error(`--email-credential is required for the ${provider} provider`);
-  }
-  if (provider === 'mailgun' && !domain) {
-    throw new Error('--email-domain is required for the mailgun provider');
-  }
-  if (provider !== 'mailgun' && domain) {
-    throw new Error('--email-domain is only valid with --email-provider mailgun');
-  }
+function emailOptions(email: EmailAnswers): {
+  emailProvider: EmailAnswers['provider'];
+  emailFrom: string;
+  emailCredential: string;
+  emailDomain?: string;
+  emailRegion?: MailgunRegion;
+} {
+  return {
+    emailProvider: email.provider,
+    emailFrom: email.from,
+    emailCredential: email.credential,
+    ...(email.mailgunDomain === undefined ? {} : { emailDomain: email.mailgunDomain }),
+    ...(email.mailgunRegion === undefined ? {} : { emailRegion: email.mailgunRegion }),
+  };
 }

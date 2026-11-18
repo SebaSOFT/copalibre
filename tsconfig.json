@@ -17,6 +17,9 @@
       "path": "packages/module-distribution/tsconfig.json"
     },
     {
+      "path": "packages/email-delivery/tsconfig.json"
+    },
+    {
       "path": "packages/object-storage/tsconfig.json"
     },
     {
