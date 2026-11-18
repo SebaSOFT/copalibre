@@ -1,4 +1,5 @@
 import { SUPPORTED_LANGUAGES } from '@copalibre/domain';
+import * as delivery from '@copalibre/email-delivery';
 import type { ClaimedJob } from '@copalibre/persistence';
 import {
   EmailRejectedError,
@@ -85,25 +86,6 @@ describe('email delivery configuration', () => {
         COPALIBRE_MAILGUN_DOMAIN: 'mail.example',
       }),
     ).toMatchObject({ provider: 'mailgun', mailgunDomain: 'mail.example' });
-    // docker-compose.yml passes `${COPALIBRE_MAILGUN_BASE_URL:-}`: an empty string when unset.
-    expect(
-      emailDeliveryConfigFromEnv({
-        ...shared,
-        COPALIBRE_EMAIL_PROVIDER: 'mailgun',
-        COPALIBRE_MAILGUN_API_KEY: 'key',
-        COPALIBRE_MAILGUN_DOMAIN: 'mail.example',
-        COPALIBRE_MAILGUN_BASE_URL: '',
-      }),
-    ).toMatchObject({ mailgunBaseUrl: 'https://api.mailgun.net' });
-    expect(
-      emailDeliveryConfigFromEnv({
-        ...shared,
-        COPALIBRE_EMAIL_PROVIDER: 'mailgun',
-        COPALIBRE_MAILGUN_API_KEY: 'key',
-        COPALIBRE_MAILGUN_DOMAIN: 'mail.example',
-        COPALIBRE_MAILGUN_BASE_URL: 'https://api.eu.mailgun.net',
-      }),
-    ).toMatchObject({ mailgunBaseUrl: 'https://api.eu.mailgun.net' });
     expect(
       emailDeliveryConfigFromEnv({
         ...shared,
@@ -233,5 +215,21 @@ describe('SMTP refusal classification', () => {
     expect(isSmtpRefusal({ code: 'ETIMEDOUT', command: 'DATA' })).toBe(false);
     expect(isSmtpRefusal(new Error('socket hang up'))).toBe(false);
     expect(isSmtpRefusal(undefined)).toBe(false);
+  });
+});
+
+describe('one delivery code for the worker and doctor', () => {
+  it('sends with the functions doctor’s test email uses, from the same environment', () => {
+    expect(sendEmail).toBe(delivery.sendEmail);
+    expect(emailDeliveryConfigFromEnv).toBe(delivery.emailDeliveryConfigFromEnv);
+    const environment = {
+      COPALIBRE_APP_URL: 'https://copalibre.example',
+      COPALIBRE_EMAIL_FROM: 'noreply@copalibre.example',
+      COPALIBRE_EMAIL_PROVIDER: 'smtp',
+      COPALIBRE_SMTP_URL: 'smtp://relay.example:25',
+    };
+    expect(emailDeliveryConfigFromEnv(environment)).toEqual(
+      delivery.emailDeliveryConfigFromEnv(environment),
+    );
   });
 });

@@ -19,6 +19,11 @@ import { sql } from 'kysely';
 import { createRemoteJWKSet, customFetch, type FetchImplementation } from 'jose';
 import { GENERATED_DATABASE_SECRETS, LOCAL_DEFAULTS } from './init.js';
 import {
+  CONFIGURABLE_SETTINGS,
+  detectEmailProblem,
+  type SettingContext,
+} from './configurable-settings.js';
+import {
   DATA_INTEGRITY_CHECKS,
   evaluateDataIntegrity,
   type DataIntegritySnapshot,
@@ -86,15 +91,13 @@ export const BEFORE_START_VARIABLE = 'COPALIBRE_DOCTOR_BEFORE_START';
 /** The Compose service that serves the built-in key set, as `copalibre init` writes the URI. */
 const STACK_API_HOST = 'api';
 
-const EMAIL_PROVIDERS = ['resend', 'brevo', 'mailgun', 'smtp'] as const;
-type EmailProvider = (typeof EMAIL_PROVIDERS)[number];
-
+/**
+ * Placeholders doctor reports but never rewrites: a running service or the database holds each of
+ * them, so changing `.env` alone would lock that service out. The bootstrap token, which nothing
+ * holds, is in the configurable settings instead.
+ */
 const PLACEHOLDER_SECRETS: Readonly<Record<string, readonly string[]>> = {
   POSTGRES_PASSWORD: [LOCAL_DEFAULTS.POSTGRES_PASSWORD],
-  COPALIBRE_BOOTSTRAP_TOKEN: [
-    LOCAL_DEFAULTS.COPALIBRE_BOOTSTRAP_TOKEN,
-    'copalibre_dev_bootstrap_only',
-  ],
   GARAGE_RPC_SECRET: [LOCAL_DEFAULTS.GARAGE_RPC_SECRET],
   COPALIBRE_DATABASE_OWNER_PASSWORD: [LOCAL_DEFAULTS.COPALIBRE_DATABASE_OWNER_PASSWORD],
   COPALIBRE_DATABASE_APP_PASSWORD: [LOCAL_DEFAULTS.COPALIBRE_DATABASE_APP_PASSWORD],
@@ -243,7 +246,10 @@ export function validateTrustedProxiesSetting(environment: NodeJS.ProcessEnv): D
 }
 
 /** Validates an installation's parsed `.env` before the host starts Compose. */
-export function validateHostEnvironment(environment: NodeJS.ProcessEnv): DoctorReport {
+export function validateHostEnvironment(
+  environment: NodeJS.ProcessEnv,
+  context: SettingContext = {},
+): DoctorReport {
   const checks: DoctorCheck[] = [];
   if (!environment.DATABASE_URL?.trim() && !environment.POSTGRES_PASSWORD?.trim()) {
     checks.push(fail('host-env:database', 'DATABASE_URL or POSTGRES_PASSWORD must be configured'));
@@ -264,12 +270,10 @@ export function validateHostEnvironment(environment: NodeJS.ProcessEnv): DoctorR
 
   for (const name of [
     'COPALIBRE_APP_URL',
-    'COPALIBRE_BOOTSTRAP_TOKEN',
     'COPALIBRE_JWKS_URI',
     'COPALIBRE_JWT_ISSUER',
     'COPALIBRE_JWT_AUDIENCE',
     'COPALIBRE_OIDC_CLIENT_ID',
-    'COPALIBRE_EMAIL_FROM',
     'GARAGE_RPC_SECRET',
   ]) {
     if (!environment[name]?.trim()) {
@@ -282,36 +286,19 @@ export function validateHostEnvironment(environment: NodeJS.ProcessEnv): DoctorR
   for (const [name, placeholders] of Object.entries(PLACEHOLDER_SECRETS)) {
     const value = environment[name]?.trim();
     if (value && placeholders.includes(value)) {
-      checks.push(
-        fail(
-          `host-env:${name}`,
-          `${name} still has its default placeholder; replace it with a unique secret`,
-        ),
-      );
+      checks.push(fail(`host-env:${name}`, placeholderMessage(name, environment)));
     }
   }
 
-  const emailProvider = environment.COPALIBRE_EMAIL_PROVIDER;
-  if (!isEmailProvider(emailProvider)) {
-    checks.push(
-      fail('host-env:email', 'COPALIBRE_EMAIL_PROVIDER must be resend, brevo, mailgun, or smtp'),
-    );
-  } else {
-    const providerSecrets: Record<EmailProvider, readonly string[]> = {
-      resend: ['COPALIBRE_RESEND_API_KEY'],
-      brevo: ['COPALIBRE_BREVO_API_KEY'],
-      mailgun: ['COPALIBRE_MAILGUN_API_KEY', 'COPALIBRE_MAILGUN_DOMAIN'],
-      smtp: ['COPALIBRE_SMTP_URL'],
-    };
-    const missing = providerSecrets[emailProvider].filter((name) => !environment[name]?.trim());
-    checks.push(
-      missing.length === 0
-        ? pass('host-env:email', `Email provider ${emailProvider} is configured`)
-        : fail(
-            'host-env:email',
-            `Email provider ${emailProvider} is missing: ${missing.join(', ')}`,
-          ),
-    );
+  for (const setting of CONFIGURABLE_SETTINGS) {
+    const problem = setting.detect(environment, context);
+    if (problem) {
+      checks.push({ name: setting.check, status: problem.severity, message: problem.message });
+    } else if (setting.id === 'email') {
+      checks.push(
+        pass(setting.check, `Email provider ${environment.COPALIBRE_EMAIL_PROVIDER} is configured`),
+      );
+    }
   }
 
   return { checks, ok: checks.every((check) => check.status !== 'fail') };
@@ -718,22 +705,28 @@ async function readWithin(
 }
 
 function validateEmailConfiguration(environment: NodeJS.ProcessEnv): DoctorCheck {
-  const provider = environment.COPALIBRE_EMAIL_PROVIDER;
-  const common = ['COPALIBRE_APP_URL', 'COPALIBRE_EMAIL_FROM'];
-  const missing = common.filter((name) => !environment[name]?.trim());
-  if (!isEmailProvider(provider)) {
-    return fail('smtp', 'COPALIBRE_EMAIL_PROVIDER must be resend, brevo, mailgun, or smtp');
+  if (!environment.COPALIBRE_APP_URL?.trim()) {
+    return fail('smtp', 'Email delivery is missing: COPALIBRE_APP_URL');
   }
-  const providerSecrets: Record<EmailProvider, readonly string[]> = {
-    resend: ['COPALIBRE_RESEND_API_KEY'],
-    brevo: ['COPALIBRE_BREVO_API_KEY'],
-    mailgun: ['COPALIBRE_MAILGUN_API_KEY', 'COPALIBRE_MAILGUN_DOMAIN'],
-    smtp: ['COPALIBRE_SMTP_URL'],
-  };
-  missing.push(...providerSecrets[provider].filter((name) => !environment[name]?.trim()));
-  return missing.length === 0
-    ? pass('smtp', `Email provider ${provider} is configured`)
-    : fail('smtp', `Email delivery is missing: ${missing.join(', ')}`);
+  const problem = detectEmailProblem(environment);
+  return problem
+    ? { name: 'smtp', status: problem.severity, message: problem.message }
+    : pass('smtp', `Email provider ${environment.COPALIBRE_EMAIL_PROVIDER} is configured`);
+}
+
+/** What to do about a placeholder doctor must not rewrite itself. */
+function placeholderMessage(name: string, environment: NodeJS.ProcessEnv): string {
+  if (name !== 'POSTGRES_PASSWORD') {
+    return `${name} still has its default placeholder; replace it with a unique secret`;
+  }
+  const user = environment.POSTGRES_USER?.trim() || LOCAL_DEFAULTS.POSTGRES_USER;
+  return (
+    'POSTGRES_PASSWORD still has its default placeholder. The database keeps the password it was ' +
+    'created with, so change both together: with the stack running, ' +
+    `docker compose exec postgres psql -U ${user} -d postgres -c "ALTER ROLE ${user} PASSWORD '<new password>'", ` +
+    'then set POSTGRES_PASSWORD=<new password> in .env. Only database-setup and the backup tools ' +
+    'connect with it, so nothing needs a restart'
+  );
 }
 
 function requiredCheck(environment: NodeJS.ProcessEnv, name: string): DoctorCheck {
@@ -948,10 +941,6 @@ function skip(name: string, message: string): DoctorCheck {
 
 function warn(name: string, message: string): DoctorCheck {
   return { name, status: 'warn', message };
-}
-
-function isEmailProvider(value: string | undefined): value is EmailProvider {
-  return (EMAIL_PROVIDERS as readonly string[]).includes(value ?? '');
 }
 
 function isLocalHost(hostname: string): boolean {

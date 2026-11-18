@@ -270,6 +270,8 @@ export interface WriteInstallationAssetsOptions {
   readonly emailFrom?: string;
   readonly emailCredential?: string;
   readonly emailDomain?: string;
+  /** The Mailgun region that holds `emailDomain`; absent means the US. */
+  readonly emailRegion?: 'us' | 'eu';
   /** An external OIDC provider; absent means the built-in identity provider. */
   readonly oidc?: ExternalOidcOptions;
   /** Whether operators reach the installation over HTTPS; absent derives it from `appUrl`. */
@@ -619,6 +621,9 @@ function emailEnvironmentOverrides(
   }
   if (options.emailProvider === 'mailgun' && options.emailDomain) {
     overrides.COPALIBRE_MAILGUN_DOMAIN = options.emailDomain;
+  }
+  if (options.emailProvider === 'mailgun' && options.emailRegion === 'eu') {
+    overrides.COPALIBRE_MAILGUN_BASE_URL = 'https://api.eu.mailgun.net';
   }
   return overrides;
 }

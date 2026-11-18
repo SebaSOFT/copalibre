@@ -57,18 +57,40 @@ file:///var/lib/copalibre/modules-dev/<alias>` 搭配使用，可在无需源代
 
 - `--repair`：备份 `.env` 和 `docker-compose.yml`，补齐缺失的默认值与文件，并保留现有 Compose。缺少默认服务时会显示 YAML 片段，供手动检查和添加。
 - `--email-provider <provider>`：`smtp`、`resend`、`brevo` 或 `mailgun`（默认：本地 SMTP）。
-- `--email-from <address>`：发件地址（默认：`noreply@copalibre.local`）。
+- `--email-from <address>`：发件地址（默认：`noreply@copalibre.local`，没有邮件服务会从该地址发信；在你设置真实地址之前，`doctor` 会一直报告）。
 - `--email-credential <value>`：SMTP 连接 URL 或服务商 API 密钥。
 - `--email-domain <domain>`：Mailgun 必填。
+- `--email-region <us|eu>`：域名所在的 Mailgun 区域（默认：`us`）。
+
+交互模式下，`init` 会像 `doctor` 一样询问邮件设置：按编号列出服务商，不显示地读取 API 密钥或 SMTP 密码，并询问发件人。按 Enter 保留本地测试默认值。已通过选项传入的值不会再询问。
 
 ## doctor
 
-`copalibre doctor [--check-proxy] [--proxy-url <url>]`
+`copalibre doctor [--check-proxy] [--proxy-url <url>] [--smoke] [--fix | --interactive] [--non-interactive] [--send-test-email <address>]`
+或 `copalibre doctor --configure <email|bootstrap-token|public-url> [该设置的选项]`
 
-在启动前验证配置和依赖项。
+在启动前验证配置和依赖项，并提议补全安装缺少的设置。
 
 - `--check-proxy`：同时验证反向代理配置
 - `--proxy-url <url>`：使用 `--check-proxy` 时用于测试的公开 URL
+- `--smoke`：端到端测试网关、认证 JWKS、组织和 SSE 流
+- `--fix`, `--interactive`：报告后，逐一询问每个处于非规范状态的赛事（选择状态、确认、应用）。需要终端。
+
+### doctor 补全的设置
+
+doctor 会找出安装缺少的设置，并在终端中提议补全。`copalibre upgrade` 最后会运行 doctor，因此升级后的安装也会收到这些问题。
+
+- **电子邮件**（`email`）：各版本默认写入的发件人 `noreply@copalibre.local` 会被报告为警告：没有邮件服务会从 `.local` 地址发信，因此邀请和密码重置邮件永远不会送达。缺少 API 密钥或 SMTP URL 的服务商则报告为失败。doctor 会询问由哪个服务发送邮件（SMTP、Resend、Brevo 或 Mailgun，按编号选择），再询问连接信息：SMTP 为服务器、端口、用户名和密码，或完整的 `smtp://` URL；其他服务商为 API 密钥，Mailgun 还需发信域名及其区域。输入密钥时不会显示。最后询问发件人地址。
+- **引导令牌**（`bootstrap-token`）：确认后，示例 `COPALIBRE_BOOTSTRAP_TOKEN` 会被替换为随机值。没有其他地方保存它，因此不会造成破坏。
+- **公开 URL**（`public-url`）：由 1.0 创建的安装会把浏览器指向 4321 端口上的 Web 服务。doctor 提议把 `COPALIBRE_APP_URL`（以及 `COPALIBRE_API_URL`，和指向同一地址的签发者）改为网关地址（默认 8080 端口）或你的代理地址。
+
+doctor 只写入你配置的键，把原文件保存为 `.env.<日期>.bak`，保持 `.env` 仅所有者可读，并列出已更改的键而不显示其值。配置邮件后会提议发送测试邮件，然后提议重启读取该变更的服务，并再次检查。
+
+doctor 从不改写数据库或运行中服务所保存的密码：对于示例 `POSTGRES_PASSWORD`，它会显示在数据库中修改密码的命令，需在修改 `.env` 之前执行。
+
+- `--non-interactive`：即使在终端中也不提问。没有终端时（脚本或 CI 任务），doctor 从不提问，而是显示下面的选项。
+- `--configure <setting>`：无需提问即可配置 `email`、`bootstrap-token` 或 `public-url`，然后检查。对于 `email`，传入 `--email-provider`、`--email-credential`、`--email-from`，Mailgun 还需 `--email-domain` 和 `--email-region`（与 `init` 相同的选项）。对于 `public-url`，传入 `--app-url <url>`。在命令行中输入的值会留在 shell 历史中；请从文件读取，例如 `--email-credential "$(cat resend-key.txt)"`。
+- `--send-test-email <address>`：从堆栈内部，通过应用使用的服务商和配置发送一封邮件，并报告服务商的回复（API 密钥错误时会显示服务商给出的原因）。
 
 ## dev
 

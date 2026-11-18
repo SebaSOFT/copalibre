@@ -48,7 +48,8 @@ Compose 文件上启动，无法正常工作。新 CLI 能识别处于这种状�
    `.env`（新设置、新镜像标签、已移到 `/api` 下的密钥集地址），并保留 `.env.<原版本>.bak`；您设置的值会被保留。
 4. 把数据库从 PostgreSQL 17 迁移到 18：将备份恢复到新卷（`postgresql-data`），并在继续之前比较每张表的行数。
    17 的卷不会被改动。
-5. 启动新版本并运行 `copalibre doctor`。
+5. 启动新版本并运行 `copalibre doctor`。在终端中，doctor 会提议配置安装缺少的设置，例如邮件发送；
+   参见 [doctor](/zh/help/cli/commands/#doctor)。
 6. doctor 通过后，确认备份可以读回，然后删除 PostgreSQL 17 的卷（`postgres-data`）和 `postgres:17` 镜像。
    使用 `--keep-old-volume` 时会保留它们；升级会打印以后删除它们的两条命令。
 

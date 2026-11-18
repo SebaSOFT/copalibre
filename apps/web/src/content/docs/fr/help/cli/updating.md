@@ -56,7 +56,8 @@ ainsi, quel que soit son marqueur, et termine le travail.
 4. Elle déplace la base de PostgreSQL 17 vers 18 : elle restaure la sauvegarde dans un nouveau volume
    (`postgresql-data`) et compare le nombre de lignes de chaque table avant de continuer. Le volume 17
    n'est pas touché.
-5. Elle démarre la nouvelle version et exécute `copalibre doctor`.
+5. Elle démarre la nouvelle version et exécute `copalibre doctor`. Dans un terminal, doctor propose de
+   configurer ce qui manque à l'installation, comme l'envoi d'e-mails ; voir [doctor](/fr/help/cli/commands/#doctor).
 6. Une fois doctor passé, elle vérifie que la sauvegarde se relit, puis supprime le volume PostgreSQL
    17 (`postgres-data`) et l'image `postgres:17`. Avec `--keep-old-volume`, ils sont conservés ; la
    mise à niveau affiche les deux commandes qui les supprimeront plus tard.

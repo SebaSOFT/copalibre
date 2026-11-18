@@ -23,7 +23,7 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     usage:
       'copalibre init [--module-dev] [--repair] [--proxy <name>] [--non-interactive] [--skip-preflight] ' +
       '[--app-url <url>] [--api-url <url>] [--https | --no-https] [--disciplines <list>] [--email-provider <provider>] ' +
-      '[--email-from <address>] [--email-credential <value>] [--email-domain <domain>] ' +
+      '[--email-from <address>] [--email-credential <value>] [--email-domain <domain>] [--email-region <us|eu>] ' +
       '[--oidc-issuer <url> --oidc-client-id <id> [--oidc-jwks-uri <url>]] | ' +
       'copalibre init --kubernetes [--namespace <ns>] [--release <name>] [--context <ctx>]',
     flags: [
@@ -88,6 +88,10 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
         description: 'Mailgun sending domain (required for the mailgun provider)',
       },
       {
+        flag: '--email-region <us|eu>',
+        description: 'Mailgun region that holds the domain (default: us)',
+      },
+      {
         flag: '--oidc-issuer <url>',
         description:
           'Sign in through an external OIDC provider with this exact issuer (default: the built-in provider)',
@@ -120,9 +124,32 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   },
   {
     name: 'doctor',
-    summary: 'Validate configuration and dependencies before starting',
-    usage: 'copalibre doctor [--check-proxy] [--proxy-url <url>] [--smoke] [--fix | --interactive]',
+    summary:
+      'Validate configuration and dependencies, and offer to configure missing settings such as email',
+    usage:
+      'copalibre doctor [--check-proxy] [--proxy-url <url>] [--smoke] [--fix | --interactive] ' +
+      '[--non-interactive] [--send-test-email <address>] | ' +
+      'copalibre doctor --configure <email|bootstrap-token|public-url> [setting flags]',
     flags: [
+      {
+        flag: '--non-interactive',
+        description:
+          'Ask nothing, even in a terminal: report missing settings with the flags that configure them',
+      },
+      {
+        flag: '--configure <setting>',
+        description:
+          'Configure email, bootstrap-token (generated) or public-url without questions, then check',
+      },
+      {
+        flag: '--email-provider, --email-credential, --email-from, --email-domain, --email-region',
+        description: 'With --configure email: the same values copalibre init takes',
+      },
+      { flag: '--app-url <url>', description: 'With --configure public-url: the URL browsers use' },
+      {
+        flag: '--send-test-email <address>',
+        description: 'Send one email the way invitations are sent, and report the provider answer',
+      },
       { flag: '--check-proxy', description: 'Also verify the reverse-proxy configuration' },
       { flag: '--proxy-url <url>', description: 'Public URL to probe when --check-proxy is set' },
       { flag: '--smoke', description: 'Run post-setup end-to-end connectivity smoke tests' },

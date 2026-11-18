@@ -16,6 +16,7 @@
   "dependencies": {
     "@copalibre/auth": "workspace:^",
     "@copalibre/domain": "workspace:^",
+    "@copalibre/email-delivery": "workspace:^",
     "@copalibre/module-catalogue": "workspace:^",
     "@copalibre/module-distribution": "workspace:^",
     "@copalibre/object-storage": "workspace:^",

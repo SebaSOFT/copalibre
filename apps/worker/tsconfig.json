@@ -7,6 +7,9 @@
   "include": ["src/**/*"],
   "references": [
     {
+      "path": "../../packages/email-delivery/tsconfig.json"
+    },
+    {
       "path": "../../packages/object-storage/tsconfig.json"
     },
     {
