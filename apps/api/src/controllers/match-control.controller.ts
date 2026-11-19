@@ -869,7 +869,7 @@ export class MatchControlController {
     const audit = {
       organizationId: tournament.organizationId,
       actor: request.subject?.subjectId ?? 'unknown',
-      authorizationContext: `capability:${granted.capability}`,
+      authorizationContext: `capability:${granted.capability} via ${granted.grantedBy}`,
     };
 
     await withTransaction(this.db, async (uow) => {

@@ -1604,6 +1604,7 @@ describe('live match console (integration)', () => {
     expect(history[history.length - 1]).toMatchObject({
       action: 'segment.pending',
       actor: 'referee',
+      authorizationContext: expect.stringMatching(/^capability:match\.control-clock via /),
       reason: 'Ended by mistake',
       previousState: { state: 'completed' },
       resultingState: { state: 'pending' },
