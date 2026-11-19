@@ -604,3 +604,32 @@ The live console SHALL show a line saying there are no events to show in place o
 
 - **WHEN** an operator opens a match with no recorded events
 - **THEN** the event ledger shows that there are no events to show and draws no empty box above the log note
+
+### Requirement: Apply clock sends only an elapsed value the operator typed
+
+The console's Apply clock SHALL send only an elapsed value that the operator typed for the selected segment. The Elapsed seconds input SHALL show the selected segment's current clock until the operator types, and SHALL follow the selected segment. Apply clock SHALL be unavailable while the input is untouched, empty, negative, or not a whole number.
+
+#### Scenario: Untouched input shows the current clock and sends nothing
+
+- **WHEN** an operator opens a match whose selected segment reads 1200 seconds and does not edit the Elapsed seconds input
+- **THEN** the input shows 1200, Apply clock is unavailable, and no clock request is sent
+
+#### Scenario: A typed value is applied to the selected segment
+
+- **WHEN** the operator types 1250 into the Elapsed seconds input and presses Apply clock
+- **THEN** the console sends that segment's elapsed seconds as 1250 with the request to make it the active segment
+
+#### Scenario: Empty, negative, or fractional input is refused
+
+- **WHEN** the operator clears the Elapsed seconds input, or types a negative or fractional number
+- **THEN** Apply clock is unavailable and no clock request is sent
+
+#### Scenario: The input follows the selected segment
+
+- **WHEN** the operator types a value and then picks another segment, or the match moves on to its next segment
+- **THEN** the typed value is discarded and the input shows the newly selected segment's current clock
+
+#### Scenario: The input returns to the current clock after Apply
+
+- **WHEN** an Apply clock request is sent or queued
+- **THEN** the input shows the selected segment's current clock again, untouched
