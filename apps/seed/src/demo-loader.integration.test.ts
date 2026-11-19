@@ -462,7 +462,7 @@ describePostgres('demo dataset loading (integration)', () => {
         })
         .filter((winner) => winner !== undefined);
       const decisive = dataset.games.filter((game) => game.homeGoals !== game.awayGoals).length;
-      // Three drawn cup games fed a later one, so their winner is whoever played on (design D7).
+      // Three drawn cup games fed a later one, so their winner is whoever played on.
       expect(winners).toHaveLength(decisive + 3);
     });
 
