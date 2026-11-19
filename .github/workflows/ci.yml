@@ -929,7 +929,9 @@ jobs:
 
   # Partitioned integration test execution across two duration-balanced groups
   # with isolated real services (bounded to max-parallel 2).
-  # Group 1: Persistence, Seed, API, Tournament Engine, Statistics Refold (PostgreSQL only).
+  # Group 1: Seed, Persistence, API (PostgreSQL only).
+  # Suites are placed by measured step durations so neither group waits long on the other:
+  # group 1 holds the longest suites, group 2 the shorter ones next to its storage suites.
   integration-tests-g1:
     name: Integration tests (group 1)
     runs-on: ubuntu-latest
@@ -963,15 +965,9 @@ jobs:
       - run: yarn workspace @copalibre/seed test:integration
       - run: yarn workspace @copalibre/persistence test:integration
       - run: yarn workspace @copalibre/api test:integration
-      - run: yarn workspace @copalibre/tournament-engine test:integration
-      - run: yarn workspace @copalibre/statistics-refold test:integration
-      # Clones the curated module repository, so it needs the network: an unreachable
-      # remote fails the suite here instead of skipping it.
-      - run: yarn workspace @copalibre/module-distribution test:integration
-        env:
-          COPALIBRE_REQUIRE_NETWORK_TESTS: '1'
 
-  # Group 2: Storage, Worker, Scheduler, Events, CLI (PostgreSQL + Garage + ClamAV).
+  # Group 2: Storage, Worker, Scheduler, Events, Tournament Engine, Statistics Refold,
+  # Module Distribution, CLI (PostgreSQL + Garage + ClamAV).
   integration-tests-g2:
     name: Integration tests (group 2)
     runs-on: ubuntu-latest
@@ -1040,6 +1036,13 @@ jobs:
       - run: yarn workspace @copalibre/worker test:integration
       - run: yarn workspace @copalibre/scheduler test:integration
       - run: yarn workspace @copalibre/events test:integration
+      - run: yarn workspace @copalibre/tournament-engine test:integration
+      - run: yarn workspace @copalibre/statistics-refold test:integration
+      # Clones the curated module repository, so it needs the network: an unreachable
+      # remote fails the suite here instead of skipping it.
+      - run: yarn workspace @copalibre/module-distribution test:integration
+        env:
+          COPALIBRE_REQUIRE_NETWORK_TESTS: '1'
       - run: yarn workspace @copalibre/copalibre build
       # module add clones the curated module repository: an unreachable remote fails, not skips.
       - run: yarn workspace @copalibre/copalibre test:integration

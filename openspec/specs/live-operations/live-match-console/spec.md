@@ -589,12 +589,12 @@ The live console SHALL show the segment the match is in and SHALL offer only the
 
 ### Requirement: The console states when a match has no segments
 
-The live console SHALL say that the match has no segments and SHALL NOT offer a clock for it.
+The live console SHALL say when an in-progress match has no segments, SHALL offer no clock command for it, and SHALL offer Add segment beside Finalize so the operator can continue the match.
 
 #### Scenario: No segments
 
 - **WHEN** an operator opens a match in progress that has no segments
-- **THEN** the console says it has no segments, offers no clock command and offers Finalize as the primary action
+- **THEN** the console says it has no segments, offers no clock command, offers Add segment and offers Finalize as the primary action
 
 ### Requirement: The event ledger states when it is empty
 
@@ -633,3 +633,36 @@ The console's Apply clock SHALL send only an elapsed value that the operator typ
 
 - **WHEN** an Apply clock request is sent or queued
 - **THEN** the input shows the selected segment's current clock again, untouched
+
+### Requirement: The console starts a scheduled match that has no segments
+
+For a scheduled match with no segments whose discipline declares a segment type, the live console SHALL offer Start as the primary clock action and SHALL say how many segments of which type Start creates. Starting SHALL show the created segments with the first one running.
+
+#### Scenario: Starting a football match from the console
+
+- **WHEN** an operator opens a scheduled football match with no segments and decided sides
+- **THEN** the console says Start creates 2 halves and offers Start, and after Start the segment list shows half 1 running and half 2 pending
+
+#### Scenario: A discipline without segment types
+
+- **WHEN** an operator opens a scheduled match with no segments whose discipline declares no segment type
+- **THEN** the console says the match has no segments and offers no Start
+
+### Requirement: The console adds a segment while a match is in progress
+
+While a match is in progress, the live console SHALL offer Add segment with every segment type the discipline declares, by its declared label. An option that would add a regulation segment beyond the plan SHALL be labelled as outside the plan and stay selectable. An addition made offline SHALL be queued and sent once.
+
+#### Scenario: Adding extra time
+
+- **WHEN** an operator chooses Extra time in Add segment on an in-progress football match
+- **THEN** the segment list shows a pending extra-time segment, and the operator can resume it
+
+#### Scenario: Outside the plan is labelled
+
+- **WHEN** an in-progress best-of-three match already has three sets
+- **THEN** the Set option in Add segment is labelled as outside the plan and can still be chosen
+
+#### Scenario: Adding offline
+
+- **WHEN** an operator adds a segment while the console is offline
+- **THEN** the addition is queued, the queue count rises, and on reconnection one segment is created

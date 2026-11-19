@@ -195,12 +195,12 @@ without requiring direct database access.
 
 ### Requirement: A match is in progress only with a segment set running
 
-A match SHALL enter or resume the in-progress state only when a segment is set running. A Start or Resume command with no segment to set running SHALL be refused as a bad-request error. The match's status and segments SHALL stay unchanged after such a refusal.
+A match SHALL enter or resume the in-progress state only when a segment is set running. A Start command for a match with no segments SHALL first create its regulation plan. A Start or Resume command that still has no segment to set running SHALL be refused as a bad-request error. The match's status and segments SHALL stay unchanged after such a refusal.
 
 #### Scenario: Start is refused for a match with no segments
 
-- **WHEN** a Start command arrives for a scheduled match that has no segments
-- **THEN** the request is refused as a bad-request error and the match stays scheduled
+- **WHEN** a Start command arrives for a scheduled match with no segments whose discipline declares no segment type, so no regulation plan exists
+- **THEN** the request is refused as a bad-request error, no segment is created and the match stays scheduled
 
 #### Scenario: Start without a named segment starts the first segment not yet ended
 
@@ -211,3 +211,79 @@ A match SHALL enter or resume the in-progress state only when a segment is set r
 
 - **WHEN** a Resume command arrives for an in-progress match whose segments have all ended
 - **THEN** the request is refused as a bad-request error and no segment changes state
+
+### Requirement: Start creates the regulation plan of a match with no segments
+
+A Start command for a scheduled match with no segments SHALL create, in the same transaction, the regulation segments of the ruleset the match is played under, then set the first one running. Regulation SHALL be the discipline's first declared segment type, created once per `regulationCount`, or once per set needed to win a `bestOf`, or once when neither is configured.
+
+#### Scenario: A football match starts with two halves
+
+- **WHEN** an operator starts a scheduled football match with no segments under a ruleset whose regulation count is 2
+- **THEN** the match has two half segments, the first is running, the second is pending and the match is in progress
+
+#### Scenario: A best-of-three match starts with two sets
+
+- **WHEN** an operator starts a scheduled tennis match with no segments under a ruleset configured as best of 3
+- **THEN** the match has two set segments, and the first is running
+
+#### Scenario: An override changes the plan
+
+- **WHEN** the tournament ruleset overrides the regulation count to 4 and an operator starts a match with no segments
+- **THEN** four regulation segments are created
+
+#### Scenario: A match that already has segments keeps them
+
+- **WHEN** an operator starts a scheduled match that already has segments
+- **THEN** no segment is created and the first segment not yet ended starts
+
+### Requirement: Concurrent starts create one plan
+
+Two Start commands for the same scheduled match with no segments, arriving together or replayed from an offline queue, SHALL leave exactly one regulation plan. The later command SHALL be answered as a refusal or, when it repeats an idempotency key, with the recorded response.
+
+#### Scenario: Two operators press Start together
+
+- **WHEN** two Start commands with different idempotency keys arrive at the same time for a scheduled match with no segments
+- **THEN** one succeeds, the other is refused because the match is already in progress, and the match holds one plan
+
+#### Scenario: An offline start is replayed
+
+- **WHEN** a Start command is replayed with an idempotency key that already succeeded
+- **THEN** the recorded response is returned and no segment is created
+
+### Requirement: An operator adds a segment to a match in progress
+
+An authorized operator SHALL be able to append one segment of any type the discipline declares to an in-progress match. The segment SHALL be numbered after the last one, start pending, be audited with its actor, reach every console through the realtime stream, and honor an idempotency key.
+
+#### Scenario: Extra time is added
+
+- **WHEN** an operator adds an extra-time segment to an in-progress football match whose two halves have ended
+- **THEN** the match has a third segment of type extra time, pending, and the audit trail names the operator
+
+#### Scenario: A stuck match is repaired
+
+- **WHEN** an operator adds a half to an in-progress match that has no segments, then resumes
+- **THEN** the half runs and events can be recorded in it
+
+#### Scenario: A repeated addition creates one segment
+
+- **WHEN** the same add-segment request is sent twice with one idempotency key
+- **THEN** one segment is created and both responses are the same
+
+### Requirement: Adding a segment is refused only when the record would be incoherent
+
+Adding a segment SHALL be refused as a bad-request error when the match is not in progress or when the discipline does not declare the type. Adding a regulation segment beyond the configured maximum, or any declared conditional type, SHALL be accepted and reported as outside the plan.
+
+#### Scenario: A finalized match
+
+- **WHEN** an operator adds a segment to a finalized match
+- **THEN** the request is refused as a bad-request error and no segment is created
+
+#### Scenario: An undeclared type
+
+- **WHEN** an operator adds a segment of a type the discipline does not declare
+- **THEN** the request is refused as a bad-request error and no segment is created
+
+#### Scenario: A fourth set in a best of three
+
+- **WHEN** an operator adds a set to an in-progress best-of-three match that already has three sets
+- **THEN** the set is created and the console state reports set additions as outside the plan
