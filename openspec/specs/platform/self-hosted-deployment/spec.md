@@ -1369,3 +1369,81 @@ The repository SHALL run, for release candidates, an upgrade from the published 
 
 - **WHEN** the release-candidate run installs 1.2.6 from its published images, loads a tournament with results, and upgrades with the candidate CLI and images
 - **THEN** the tournament and its results are present, an administrator signs in, and doctor passes
+
+### Requirement: Doctor does not report shipped email defaults as configured
+
+Doctor SHALL report email delivery as not configured, with a warning naming the setting, while the sender address is in the `.local` domain (the shipped default `noreply@copalibre.local`, written with the shipped relay `smtp://host.docker.internal:1025`), and SHALL keep reporting a provider without its required credentials or sender as a failure. A relay at the shipped address with a real sender is configured.
+
+#### Scenario: An installation that accepted the defaults
+
+- **WHEN** `.env` has `COPALIBRE_EMAIL_PROVIDER=smtp`, `COPALIBRE_SMTP_URL=smtp://host.docker.internal:1025` and `COPALIBRE_EMAIL_FROM=noreply@copalibre.local`
+- **THEN** doctor reports a warning that email delivery is not configured, not a pass
+
+### Requirement: Doctor configures missing email delivery in a terminal
+
+When doctor runs in a terminal and email delivery is not configured, it SHALL offer to configure it, SHALL let the operator choose the provider from a numbered list, SHALL ask for that provider's credentials or connection URL without echoing secrets, and SHALL ask for a sender address.
+
+#### Scenario: Choosing Resend
+
+- **WHEN** the operator accepts, chooses Resend, types an API key and the sender `torneos@liga.example`
+- **THEN** `.env` has `COPALIBRE_EMAIL_PROVIDER=resend`, the API key and the sender, the key was not shown while typed, and the output lists the changed keys without their values
+
+#### Scenario: Declining
+
+- **WHEN** the operator answers no
+- **THEN** `.env` is unchanged and doctor reports the warning
+
+### Requirement: Doctor changes `.env` only as the operator confirmed
+
+Doctor SHALL change only the keys the operator configured, SHALL keep a backup of the previous `.env` readable only by its owner, SHALL keep `.env` readable only by its owner, and SHALL name the services that must restart to read the change.
+
+#### Scenario: Another key in the file
+
+- **WHEN** doctor configures email in a `.env` that also holds operator comments and custom keys
+- **THEN** the comments and the other keys are unchanged and a backup of the previous file exists
+
+### Requirement: Doctor can send a test email
+
+After configuring email, and on request at any time, doctor SHALL send a test email to an address the operator gives, through the same delivery the application uses, and SHALL report whether the provider accepted it.
+
+#### Scenario: Wrong API key
+
+- **WHEN** the provider rejects the configured API key
+- **THEN** doctor reports the failure with the provider's reason and does not report email as working
+
+### Requirement: Doctor never prompts without a terminal
+
+Without a terminal, doctor SHALL ask nothing and SHALL report as before, and the same configuration SHALL be possible through command flags.
+
+#### Scenario: A scripted run
+
+- **WHEN** doctor runs with no terminal and email is not configured
+- **THEN** it prints the warning with the flags that configure it, and waits for no input
+
+#### Scenario: Flags
+
+- **WHEN** an operator runs doctor with `--configure email` and the email flags
+- **THEN** `.env` is updated as in the interactive flow, with no question asked
+
+### Requirement: Doctor moves a 1.0.x public URL to the gateway
+
+Doctor SHALL report a warning when `COPALIBRE_APP_URL` points at port 4321 outside hybrid development and source checkouts, and in a terminal SHALL offer to replace it with the public URL the operator confirms, defaulting to the gateway's address; it SHALL also move `COPALIBRE_API_URL` when it was on port 3001 or the old URL, and `COPALIBRE_JWT_ISSUER` when it held the old URL.
+
+#### Scenario: An installation created by 1.0.5
+
+- **WHEN** `.env` has `COPALIBRE_APP_URL=http://localhost:4321`, `COPALIBRE_API_URL=http://localhost:3001` and no `COPALIBRE_PORT`, and the operator accepts the default
+- **THEN** both are `http://localhost:8080` and doctor names the services to restart
+
+#### Scenario: Hybrid development
+
+- **WHEN** `COPALIBRE_DEV_HYBRID=true`, or doctor runs in a source checkout, and `COPALIBRE_APP_URL=http://localhost:4321`
+- **THEN** doctor reports nothing about the public URL
+
+### Requirement: Doctor generates what needs no operator data and never rewrites a live password
+
+Doctor SHALL offer to replace a placeholder bootstrap token with a random value, and SHALL report a placeholder PostgreSQL password with the steps to change it instead of rewriting it.
+
+#### Scenario: Placeholder PostgreSQL password
+
+- **WHEN** `POSTGRES_PASSWORD` still holds the shipped placeholder
+- **THEN** doctor fails the check, explains how to change the password in the database and in `.env` together, and leaves `.env` unchanged
