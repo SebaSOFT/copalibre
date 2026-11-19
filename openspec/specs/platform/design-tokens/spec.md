@@ -657,40 +657,40 @@ change branch, without a direct push to the protected integration branch.
 The multi-step tournament authoring wizard MUST use the design system's badge shape for active and completed step badges, meet the minimum interactive target for its primary progression action, explain blocked progression when required fields are invalid, and configure the Astro development server to forward `/disciplines` and `/tournament-profiles` to the API service.
 
 #### Scenario: Step badge shape
-- Given an operator is authoring a tournament in `/control/[organization]/tournaments/new`
-- When the wizard renders step indicators
-- Then active and completed step badges use the established badge shape with square right corners and a vertical chamfer on the left.
+- **GIVEN** an operator is authoring a tournament in `/control/[organization]/tournaments/new`
+- **WHEN** the wizard renders step indicators
+- **THEN** active and completed step badges use the established badge shape with square right corners and a vertical chamfer on the left.
 
 #### Scenario: Blocked wizard progression
-- Given required tournament fields are invalid or incomplete
-- When the operator reaches the primary progression action
-- Then the action meets the 44px minimum target and its disabled state explains what must be completed.
+- **GIVEN** required tournament fields are invalid or incomplete
+- **WHEN** the operator reaches the primary progression action
+- **THEN** the action meets the 44px minimum target and its disabled state explains what must be completed.
 
 #### Scenario: Development API proxy
-- Given the web application is running with Astro's development server
-- When the wizard requests disciplines or tournament profiles
-- Then the development server forwards those paths to the API service.
+- **GIVEN** the web application is running with Astro's development server
+- **WHEN** the wizard requests disciplines or tournament profiles
+- **THEN** the development server forwards those paths to the API service.
 
 ### Requirement: Profile Image Crop Modal Framing
 The image crop dialog MUST encapsulate the active cropping viewport in the owned `.cl-image-frame` primitive, avoiding raw inline layout styles, using its 4:5 opaque chrome frame, and maintaining the suspended modal drop-shadow on the dialog.
 
 #### Scenario: Image crop container styling
-- Given an operator initiates an emblem or avatar upload
-- When `ImageCropModal` opens
-- Then the crop viewport uses the `.cl-image-frame` treatment with a 4:5 aspect ratio and opaque chrome fill, while the enclosing dialog retains its suspended drop-shadow.
+- **GIVEN** an operator initiates an emblem or avatar upload
+- **WHEN** `ImageCropModal` opens
+- **THEN** the crop viewport uses the `.cl-image-frame` treatment with a 4:5 aspect ratio and opaque chrome fill, while the enclosing dialog retains its suspended drop-shadow.
 
 ### Requirement: Public Tournament Numeric Tabular Alignment
 All public server-rendered tournament standings and match result tables MUST enforce tabular numerals to prevent layout shifting across variable screen widths. Nested match-summary cards MUST alternate opaque `panel` and `base` surface bands so adjacent content remains visually distinct.
 
 #### Scenario: Numeric column tabular layout
-- Given a visitor views a public tournament overview page
-- When viewing standings points, goals, or score summaries
-- Then every numeric cell renders with `font-variant-numeric: tabular-nums`.
+- **GIVEN** a visitor views a public tournament overview page
+- **WHEN** viewing standings points, goals, or score summaries
+- **THEN** every numeric cell renders with `font-variant-numeric: tabular-nums`.
 
 #### Scenario: Alternating match-summary bands
-- Given a visitor views nested match-summary cards on a public tournament page
-- When adjacent cards render over the page surface
-- Then their opaque backgrounds alternate between `panel` and `base` bands.
+- **GIVEN** a visitor views nested match-summary cards on a public tournament page
+- **WHEN** adjacent cards render over the page surface
+- **THEN** their opaque backgrounds alternate between `panel` and `base` bands.
 
 ### Requirement: TV Broadcast Scorebug Indicator Contrast
 The TV broadcast scorebug MUST place visible possession and timed-penalty markers in opaque `ink-950` backing wells, with textual meaning and foreground contrast of at least 4.5:1. TV bracket matchup cards MUST use the established control chamfer treatment with a square fallback.
