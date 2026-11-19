@@ -1220,6 +1220,18 @@ export interface MatchConsoleApiClient {
     type: string,
     idempotencyKey: string,
   ) => Promise<MatchStateResponse>;
+  /**
+   * Returns an ended segment of an in-progress match to paused, keeping its time. The reason is
+   * required and goes into the audit trail.
+   */
+  readonly reopenMatchSegment: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    segmentId: string,
+    reason: string,
+    idempotencyKey: string,
+  ) => Promise<MatchConsoleResponse>;
   readonly recordMatchEvent: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -3148,6 +3160,20 @@ export function createControlApiClient(input: {
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/segments`,
         { method: 'POST', body: { type }, idempotencyKey },
+      ),
+
+    reopenMatchSegment: (
+      organizationAlias,
+      tournamentAlias,
+      matchId,
+      segmentId,
+      reason,
+      idempotencyKey,
+    ) =>
+      requestJson<MatchConsoleResponse>(
+        input.fetch,
+        `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/segments/${encodeURIComponent(segmentId)}/reopen`,
+        { method: 'POST', body: { reason }, idempotencyKey },
       ),
 
     recordMatchEvent: (organizationAlias, tournamentAlias, matchId, body, idempotencyKey) =>

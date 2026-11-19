@@ -941,9 +941,41 @@ export const messages = defineMessages({
     id: 'control.matchConsole.clockCommands',
     defaultMessage: 'Clock commands',
   },
-  matchConsoleStartClock: { id: 'control.matchConsole.startClock', defaultMessage: 'Start' },
   matchConsolePauseClock: { id: 'control.matchConsole.pauseClock', defaultMessage: 'Pause' },
   matchConsoleEndSegment: { id: 'control.matchConsole.endSegment', defaultMessage: 'End period' },
+  matchConsoleStartMatch: { id: 'control.matchConsole.startMatch', defaultMessage: 'Start match' },
+  matchConsoleStartPeriod: {
+    id: 'control.matchConsole.startPeriod',
+    defaultMessage: 'Start period',
+  },
+  matchConsoleResume: { id: 'control.matchConsole.resume', defaultMessage: 'Resume' },
+  matchConsoleReopenPeriod: {
+    id: 'control.matchConsole.reopenPeriod',
+    defaultMessage: 'Reopen period…',
+  },
+  matchConsoleAnotherPeriodRunning: {
+    id: 'control.matchConsole.anotherPeriodRunning',
+    defaultMessage: '{period} is running. Pause or end it before starting or resuming another.',
+  },
+  matchConsoleCorrectTimeLabel: {
+    id: 'control.matchConsole.correctTimeLabel',
+    defaultMessage: 'Time (mm:ss)',
+  },
+  matchConsoleCorrectTime: { id: 'control.matchConsole.correctTime', defaultMessage: 'Correct' },
+  matchConsoleReopenConfirm: {
+    id: 'control.matchConsole.reopenConfirm',
+    defaultMessage:
+      'Reopen {period}? It returns to paused with its time kept. The reason is recorded in the audit trail.',
+  },
+  matchConsoleReopenReason: { id: 'control.matchConsole.reopenReason', defaultMessage: 'Reason' },
+  matchConsoleReopenConfirmButton: {
+    id: 'control.matchConsole.reopenConfirmButton',
+    defaultMessage: 'Reopen period',
+  },
+  matchConsoleSegmentStatePaused: {
+    id: 'control.matchConsole.segmentStatePaused',
+    defaultMessage: 'paused',
+  },
   matchConsoleExpandLedger: {
     id: 'control.matchConsole.expandLedger',
     defaultMessage: 'Show full history',
@@ -993,14 +1025,6 @@ export const messages = defineMessages({
   matchConsoleActiveSegment: {
     id: 'control.matchConsole.activeSegment',
     defaultMessage: 'Active segment',
-  },
-  matchConsoleElapsedSeconds: {
-    id: 'control.matchConsole.elapsedSeconds',
-    defaultMessage: 'Elapsed seconds',
-  },
-  matchConsoleApplyClock: {
-    id: 'control.matchConsole.applyClock',
-    defaultMessage: 'Apply clock',
   },
   matchConsoleNoSegments: {
     id: 'control.matchConsole.noSegments',

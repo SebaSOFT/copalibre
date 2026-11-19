@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState, type ReactNode } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
-import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
+import { FormattedMessage, useIntl, type IntlShape, type MessageDescriptor } from 'react-intl';
 import { isSupportedLanguage, resolveLabel, type SupportedLanguage } from '@copalibre/domain';
 import type {
   ConsoleEventDefinition,
@@ -14,18 +14,22 @@ import {
   addSegmentOptionsOf,
   awaitingSourceText,
   clockActionsOf,
+  clockTimeInputOf,
+  type ClockAction,
   type ClockActions,
+  type ClockTimeDraft,
+  commandOfClockAction,
   currentEpochMilliseconds,
   formatClock,
   isEventPermitted,
+  parseClockTime,
   segmentLabel,
+  segmentPhaseOf,
   selectedSegmentOf,
   sentOffPersonIds,
+  type SegmentPhase,
+  typedClockTimeOf,
   undecidedSidesOf,
-  elapsedInputOf,
-  parseElapsedSeconds,
-  typedElapsedOf,
-  type ElapsedDraft,
 } from '../../lib/match-console.js';
 import { sideSourceLabelsFromControlIntl } from '../../lib/matches-view-labels.js';
 import { finalRoundOf } from '../../../lib/side-source.js';
@@ -97,13 +101,14 @@ export function MatchConsoleTemplate({
   eventSyncStates = {},
   lastSyncedAt,
   matchId,
-  onApplyClock,
   onCancelFinalize,
+  onCorrectClock,
   onDismissMutation,
   onFinalize,
   onAddSegment,
   onIssueClockCommand,
   onRecordEvent,
+  onReopenSegment,
   onResolveTimer,
   onRosterSaved,
   online,
@@ -126,8 +131,8 @@ export function MatchConsoleTemplate({
   readonly lastSyncedAt: number | undefined;
   readonly matchId: string;
   readonly onAddSegment: (type: string) => Promise<void> | void;
-  readonly onApplyClock: (segmentId: string, elapsedSeconds: number) => void;
   readonly onCancelFinalize: () => void;
+  readonly onCorrectClock: (segmentId: string, elapsedSeconds: number) => void;
   readonly onDismissMutation: (mutationId: string) => void;
   readonly onFinalize: (winnerEntrantId: string) => Promise<boolean>;
   readonly onIssueClockCommand: (command: SegmentClockCommand, segmentId: string) => void;
@@ -136,6 +141,7 @@ export function MatchConsoleTemplate({
     occurredAt: number,
     context: RecordEventContext,
   ) => void;
+  readonly onReopenSegment: (segmentId: string, reason: string) => void;
   readonly onResolveTimer: (timerId: string) => void;
   readonly onRosterSaved: () => void;
   readonly online: boolean;
@@ -158,14 +164,16 @@ export function MatchConsoleTemplate({
   // slug only for a descriptor that hasn't set one, never a hardcoded guess.
   const segmentTypeText = (segment: ConsoleSegment): string =>
     resolveLabel(segment.typeLabel ?? segment.type, language);
-  const segmentStateText = (state: ConsoleSegment['state']): string =>
-    intl.formatMessage(
-      state === 'active'
-        ? messages.matchConsoleSegmentStateActive
-        : state === 'completed'
-          ? messages.matchConsoleSegmentStateCompleted
-          : messages.matchConsoleSegmentStatePending,
-    );
+  const periodTextOf = (segment: ConsoleSegment): string =>
+    `${segmentTypeText(segment)} ${segment.number}`;
+  const segmentPhaseMessages: Readonly<Record<SegmentPhase, MessageDescriptor>> = {
+    'not-started': messages.matchConsoleSegmentStatePending,
+    paused: messages.matchConsoleSegmentStatePaused,
+    running: messages.matchConsoleSegmentStateActive,
+    ended: messages.matchConsoleSegmentStateCompleted,
+  };
+  const segmentPhaseText = (segment: ConsoleSegment): string =>
+    intl.formatMessage(segmentPhaseMessages[segmentPhaseOf(segment)]);
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
   const [dismissedRosterNotice, setDismissedRosterNotice] = useState(false);
   // Explicit, and separate from selectedSide: selectedSide is JerseyGrid's
@@ -180,9 +188,12 @@ export function MatchConsoleTemplate({
   // Only an explicit pick: until the operator names a segment, the console shows the one the
   // match is in, so it follows the match from one period to the next.
   const [pickedSegmentId, setPickedSegmentId] = useState('');
-  // What the operator typed into Elapsed seconds, and for which segment. Until they type, the input
-  // shows the selected segment's current clock, so Apply clock never sends a value nobody entered.
-  const [elapsedDraft, setElapsedDraft] = useState<ElapsedDraft>();
+  // What the operator typed into the time field, and for which segment. Until they type, the field
+  // shows the selected segment's current time, so Correct never sends a value nobody entered.
+  const [clockDraft, setClockDraft] = useState<ClockTimeDraft>();
+  // The reopen confirmation: open only for an ended segment, and cancelled by moving the selection.
+  const [reopenOpen, setReopenOpen] = useState(false);
+  const [reopenReason, setReopenReason] = useState('');
   const [selectedSide, setSelectedSide] = useState('');
   const [selectedPersonId, setSelectedPersonId] = useState('');
   const [selectedStaffId, setSelectedStaffId] = useState('');
@@ -283,20 +294,28 @@ export function MatchConsoleTemplate({
   const selectedSegmentId = segmentIdOf(selectedSegment);
   // A typed draft counts only while it belongs to the segment now selected. Otherwise the input
   // shows that segment's clock, and Apply clock stays unavailable until the operator types again.
-  const typedElapsed = typedElapsedOf(elapsedDraft, selectedSegmentId);
-  const elapsedInput = elapsedInputOf(selectedSegment, typedElapsed);
-  const elapsedValue = parseElapsedSeconds(typedElapsed);
+  const typedClockTime = typedClockTimeOf(clockDraft, selectedSegmentId);
+  const clockTimeInput = clockTimeInputOf(selectedSegment, typedClockTime);
+  const correctedSeconds = parseClockTime(typedClockTime);
   const clockCommandsLabel = intl.formatMessage(messages.matchConsoleClockCommands);
-  // Only what the match state allows is offered, one primary action at a time. A match that has
-  // not kicked off starts; one already in progress resumes. Both are "press Start" to the
-  // official holding the whistle — the distinction is the domain's, between beginning a match
-  // and restarting a clock, and it belongs in the helper rather than in front of them.
+  // Only what the match state and the segment's phase allow is offered, one primary action at a
+  // time. The distinction between starting a fresh period and resuming a stopped one belongs to
+  // the domain, so each gets its own label rather than one shared "Start".
   const clockActions = clockActionsOf(
     projection.status,
     projection.segments,
     selectedSegment,
     projection.segmentPlan.regulation,
   );
+  const clockActionLabels: Readonly<Record<ClockAction, string>> = {
+    'start-match': intl.formatMessage(messages.matchConsoleStartMatch),
+    'start-period': intl.formatMessage(messages.matchConsoleStartPeriod),
+    resume: intl.formatMessage(messages.matchConsoleResume),
+    pause: intl.formatMessage(messages.matchConsolePauseClock),
+    'end-period': intl.formatMessage(messages.matchConsoleEndSegment),
+    'reopen-period': intl.formatMessage(messages.matchConsoleReopenPeriod),
+  };
+  const selectedPeriodText = selectedSegment === undefined ? '' : periodTextOf(selectedSegment);
   // Adding a segment is offered once the match is in progress: a scheduled match gets its
   // regulation from Start, and a finished one takes no more segments.
   const addSegmentNode = (
@@ -316,23 +335,34 @@ export function MatchConsoleTemplate({
       visible={projection.status === 'in-progress'}
     />
   );
-  const clockCommandLabels: Readonly<Record<SegmentClockCommand, string>> = {
-    start: intl.formatMessage(messages.matchConsoleStartClock),
-    resume: intl.formatMessage(messages.matchConsoleStartClock),
-    pause: intl.formatMessage(messages.matchConsolePauseClock),
-    end: intl.formatMessage(messages.matchConsoleEndSegment),
-  };
+  function issueClockAction(action: Exclude<ClockAction, 'reopen-period'>): void {
+    onIssueClockCommand(commandOfClockAction(action), selectedSegmentId);
+    setPickedSegmentId('');
+    setReopenOpen(false);
+  }
 
-  function issueClockCommand(command: SegmentClockCommand): void {
-    onIssueClockCommand(command, selectedSegmentId);
+  function openReopen(): void {
+    setReopenReason('');
+    setReopenOpen(true);
+  }
+
+  function closeReopen(): void {
+    setReopenOpen(false);
+    setReopenReason('');
+  }
+
+  function correctClock(): void {
+    if (correctedSeconds === undefined) return;
+    onCorrectClock(selectedSegmentId, correctedSeconds);
+    setClockDraft(undefined);
     setPickedSegmentId('');
   }
 
-  function applyClock(): void {
-    if (elapsedValue === undefined) return;
-    onApplyClock(selectedSegmentId, elapsedValue);
-    setElapsedDraft(undefined);
-    setPickedSegmentId('');
+  function confirmReopen(): void {
+    const reason = reopenReason.trim();
+    if (reason === '') return;
+    onReopenSegment(selectedSegmentId, reason);
+    closeReopen();
   }
 
   function record(definition: ConsoleEventDefinition): void {
@@ -472,11 +502,13 @@ export function MatchConsoleTemplate({
                 <NoSegmentsLine language={language} projection={projection} />
               </p>
               <ClockCommands
-                commands={clockActions.commands}
+                actions={clockActions.actions}
                 disabled={!canControlClock}
+                labels={clockActionLabels}
                 label={clockCommandsLabel}
-                labels={clockCommandLabels}
-                onCommand={issueClockCommand}
+                onAction={(action) =>
+                  action === 'reopen-period' ? openReopen() : issueClockAction(action)
+                }
               />
               {addSegmentNode}
             </>
@@ -493,51 +525,101 @@ export function MatchConsoleTemplate({
                     id="console-segment"
                     onValueChange={(segmentId) => {
                       setPickedSegmentId(segmentId);
-                      setElapsedDraft(undefined);
+                      setClockDraft(undefined);
+                      closeReopen();
                     }}
                     options={projection.segments.map((segment) => ({
                       value: segment.segmentId,
-                      label: `${segmentTypeText(segment)} ${segment.number} · ${segmentStateText(segment.state)}`,
+                      label: `${segmentTypeText(segment)} ${segment.number} · ${segmentPhaseText(segment)}`,
                     }))}
                     placeholder={intl.formatMessage(messages.selectPlaceholder)}
                     value={selectedSegmentId}
                   />
                 </Field>
-                <Field
-                  id="console-elapsed-seconds"
-                  label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
-                >
-                  <Input
-                    aria-label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
-                    disabled={!canControlClock}
-                    id="console-elapsed-seconds"
-                    min="0"
-                    onChange={(event) =>
-                      setElapsedDraft({ segmentId: selectedSegmentId, value: event.target.value })
-                    }
-                    type="number"
-                    value={elapsedInput}
-                  />
-                </Field>
-                <Button
-                  disabled={!canControlClock || elapsedValue === undefined}
-                  onClick={applyClock}
-                  type="button"
-                  variant="secondary"
-                >
-                  <FormattedMessage {...messages.matchConsoleApplyClock} />
-                </Button>
               </div>
-              {/* The whistle, not a correction: these record the moment the clock
-              actually changed, while "apply clock" above stays the way to fix a
-              value that was recorded wrong. Both land in one audit trail. */}
+              {clockActions.runningSegment === undefined ? null : (
+                <p className="cl-card__description">
+                  <FormattedMessage
+                    {...messages.matchConsoleAnotherPeriodRunning}
+                    values={{ period: periodTextOf(clockActions.runningSegment) }}
+                  />
+                </p>
+              )}
+              {/* The whistle, not a correction: these record the moment the clock actually changed. */}
               <ClockCommands
-                commands={clockActions.commands}
+                actions={clockActions.actions}
                 disabled={!canControlClock}
+                labels={clockActionLabels}
                 label={clockCommandsLabel}
-                labels={clockCommandLabels}
-                onCommand={issueClockCommand}
+                onAction={(action) =>
+                  action === 'reopen-period' ? openReopen() : issueClockAction(action)
+                }
               />
+              {reopenOpen && selectedSegment !== undefined ? (
+                <Alert
+                  block
+                  dismissLabel={intl.formatMessage(messages.toastDismiss)}
+                  onDismiss={closeReopen}
+                  tone="warning"
+                >
+                  <strong>
+                    <FormattedMessage
+                      {...messages.matchConsoleReopenConfirm}
+                      values={{ period: selectedPeriodText }}
+                    />
+                  </strong>
+                  <Field
+                    id="console-reopen-reason"
+                    label={intl.formatMessage(messages.matchConsoleReopenReason)}
+                  >
+                    <Input
+                      aria-label={intl.formatMessage(messages.matchConsoleReopenReason)}
+                      id="console-reopen-reason"
+                      onChange={(event) => setReopenReason(event.target.value)}
+                      value={reopenReason}
+                    />
+                  </Field>
+                  <div className="cl-role-user">
+                    <Button onClick={closeReopen} type="button" variant="secondary">
+                      <FormattedMessage {...messages.matchConsoleCancel} />
+                    </Button>
+                    <Button
+                      disabled={reopenReason.trim() === ''}
+                      onClick={confirmReopen}
+                      type="button"
+                      variant="primary"
+                    >
+                      <FormattedMessage {...messages.matchConsoleReopenConfirmButton} />
+                    </Button>
+                  </div>
+                </Alert>
+              ) : null}
+              {projection.status === 'finalized' ? null : (
+                <div className="cl-platform-form-grid">
+                  <Field
+                    id="console-clock-time"
+                    label={intl.formatMessage(messages.matchConsoleCorrectTimeLabel)}
+                  >
+                    <Input
+                      aria-label={intl.formatMessage(messages.matchConsoleCorrectTimeLabel)}
+                      disabled={!canControlClock}
+                      id="console-clock-time"
+                      onChange={(event) =>
+                        setClockDraft({ segmentId: selectedSegmentId, value: event.target.value })
+                      }
+                      value={clockTimeInput}
+                    />
+                  </Field>
+                  <Button
+                    disabled={!canControlClock || correctedSeconds === undefined}
+                    onClick={correctClock}
+                    type="button"
+                    variant="secondary"
+                  >
+                    <FormattedMessage {...messages.matchConsoleCorrectTime} />
+                  </Button>
+                </div>
+              )}
               {addSegmentNode}
             </>
           )}
@@ -1106,32 +1188,32 @@ function AddSegmentField({ disabled, labels, onAdd, options, visible }: AddSegme
   );
 }
 
-/** The clock commands the match state allows; renders nothing when there are none. */
+/** The clock actions the match state allows; renders nothing when there are none. */
 function ClockCommands({
-  commands,
+  actions,
   disabled,
   label,
   labels,
-  onCommand,
+  onAction,
 }: {
-  readonly commands: ClockActions['commands'];
+  readonly actions: ClockActions['actions'];
   readonly disabled: boolean;
   readonly label: string;
-  readonly labels: Readonly<Record<SegmentClockCommand, string>>;
-  readonly onCommand: (command: SegmentClockCommand) => void;
+  readonly labels: Readonly<Record<ClockAction, string>>;
+  readonly onAction: (action: ClockAction) => void;
 }): React.JSX.Element | null {
-  if (commands.length === 0) return null;
+  if (actions.length === 0) return null;
   return (
     <div className="cl-clock-commands" role="group" aria-label={label}>
-      {commands.map(({ command, primary }) => (
+      {actions.map(({ action, primary }) => (
         <Button
           disabled={disabled}
-          key={command}
-          onClick={() => onCommand(command)}
+          key={action}
+          onClick={() => onAction(action)}
           type="button"
           variant={variantOf(primary)}
         >
-          {labels[command]}
+          {labels[action]}
         </Button>
       ))}
     </div>

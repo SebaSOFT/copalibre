@@ -21,6 +21,15 @@ const CLOCK_ACTION: QueuedAction = {
   request: { segmentId: 'segment-1', elapsedSeconds: 90, activate: true },
 };
 
+const REOPEN_ACTION: QueuedAction = {
+  kind: 'segment-reopen',
+  organizationAlias: 'liga',
+  tournamentAlias: 'apertura',
+  matchId: 'match-1',
+  segmentId: 'segment-1',
+  reason: 'Ended by mistake',
+};
+
 const FINALIZE_ACTION: QueuedAction = {
   kind: 'finalize',
   organizationAlias: 'liga',
@@ -56,6 +65,9 @@ function stubClient(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsol
       throw new Error('not used in this test');
     },
     addMatchSegment: async () => {
+      throw new Error('not used in this test');
+    },
+    reopenMatchSegment: async () => {
       throw new Error('not used in this test');
     },
     sendMatchCommand: async () => {
@@ -221,6 +233,41 @@ describe('drainQueue sequential semantics', () => {
       { kind: 'refused', id: 'segment-add-refused', reason: 'Match is finalized' },
     ]);
     expect(await listPending('match-1')).toMatchObject([{ status: 'refused' }]);
+  });
+
+  it('sends a queued reopen once, with its idempotency key and reason', async () => {
+    const calls: unknown[] = [];
+    const client = stubClient({
+      reopenMatchSegment: async (_organization, _tournament, matchId, segmentId, reason, key) => {
+        calls.push({ matchId, segmentId, reason, key });
+        return {} as never;
+      },
+    });
+    await enqueue(REOPEN_ACTION, 'reopen-key', 1_000);
+
+    expect(await drainQueue(client, 'match-1')).toEqual([{ kind: 'sent', id: 'reopen-key' }]);
+    expect(calls).toEqual([
+      { matchId: 'match-1', segmentId: 'segment-1', reason: 'Ended by mistake', key: 'reopen-key' },
+    ]);
+    expect(await drainQueue(client, 'match-1')).toEqual([]);
+  });
+
+  it('counts a reopen the server refuses as refused, with the server reason', async () => {
+    const client = stubClient({
+      reopenMatchSegment: jest
+        .fn<MatchConsoleApiClient['reopenMatchSegment']>()
+        .mockRejectedValueOnce(new ControlApiError(400, 'Match is finalized')),
+    });
+    await enqueue(REOPEN_ACTION, 'reopen-refused', 1_000);
+
+    expect(await drainQueue(client, 'match-1')).toEqual([
+      { kind: 'refused', id: 'reopen-refused', reason: 'Match is finalized' },
+    ]);
+    expect(await listPending('match-1')).toMatchObject([{ status: 'refused' }]);
+  });
+
+  it('names a queued reopen with its segment and reason', () => {
+    expect(describeQueuedAction(REOPEN_ACTION)).toBe('Reopen segment segment-1: Ended by mistake');
   });
 
   it("a refusal doesn't block later items — the drain continues past it", async () => {

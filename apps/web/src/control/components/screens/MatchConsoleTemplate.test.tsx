@@ -18,11 +18,12 @@ function renderConsole(projection: Projection, onAddSegment = jest.fn<(type: str
         lastSyncedAt={undefined}
         matchId={ids.match}
         onAddSegment={onAddSegment}
-        onApplyClock={() => undefined}
+        onCorrectClock={() => undefined}
         onCancelFinalize={() => undefined}
         onDismissMutation={() => undefined}
         onFinalize={async () => true}
         onIssueClockCommand={() => undefined}
+        onReopenSegment={() => undefined}
         onRecordEvent={() => undefined}
         onResolveTimer={() => undefined}
         onRosterSaved={() => undefined}
@@ -48,7 +49,7 @@ function clockCard(): HTMLElement {
 }
 
 describe('MatchConsoleTemplate clock card', () => {
-  it('a scheduled match with no segments says what Start creates and offers Start', () => {
+  it('a scheduled match with no segments says what Start creates and offers Start match', () => {
     renderConsole({
       ...consoleProjection,
       status: 'scheduled',
@@ -58,7 +59,7 @@ describe('MatchConsoleTemplate clock card', () => {
     });
 
     expect(clockCard().textContent).toContain('Start creates 2 Half segments');
-    expect(clockCard().querySelector('button')?.textContent).toBe('Start');
+    expect(clockCard().querySelector('button')?.textContent).toBe('Start match');
     expect(screen.queryByRole('button', { name: 'Add segment' })).toBeNull();
   });
 
@@ -120,7 +121,7 @@ describe('MatchConsoleTemplate clock card', () => {
 
     expect(clockCard().textContent).toContain('This match has no segments yet.');
     expect(screen.getByRole('button', { name: 'Add segment' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Start' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Start match' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Finalize match' })).toBeTruthy();
   });
 });

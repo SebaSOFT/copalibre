@@ -143,6 +143,9 @@ function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApi
     addMatchSegment: async () => {
       throw new Error('not used in this test');
     },
+    reopenMatchSegment: async () => {
+      throw new Error('not used in this test');
+    },
     sendMatchCommand: async () => ({
       matchId: 'match-1',
       status: 'in-progress',
@@ -233,8 +236,8 @@ describe('MatchConsolePage clock commands', () => {
       );
     });
 
-    // A running segment offers Pause and End; Start has nothing to start, so it is not offered.
-    expect(screen.queryByRole('button', { name: 'Start' })).toBeNull();
+    // A running segment offers Pause and End; Resume has nothing to resume, so it is not offered.
+    expect(screen.queryByRole('button', { name: 'Resume' })).toBeNull();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
     });
@@ -242,12 +245,12 @@ describe('MatchConsolePage clock commands', () => {
     await waitFor(() =>
       expect(sent).toEqual([{ matchId: 'match-1', command: 'pause', segmentId: 'segment-1' }]),
     );
-    // A stopped clock is what offers Start and withdraws Pause.
+    // A paused segment is what offers Resume and withdraws Pause.
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull());
-    expect(screen.getByRole('button', { name: 'Start' })).toHaveProperty('disabled', false);
+    expect(screen.getByRole('button', { name: 'Resume' })).toHaveProperty('disabled', false);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Resume' }));
     });
     await waitFor(() => expect(sent).toHaveLength(2));
     expect(sent[1]).toEqual({ matchId: 'match-1', command: 'resume', segmentId: 'segment-1' });
@@ -275,19 +278,66 @@ describe('MatchConsolePage clock commands', () => {
     await waitFor(() =>
       expect(sent).toEqual([{ matchId: 'match-1', command: 'end', segmentId: 'segment-1' }]),
     );
-    for (const name of ['Start', 'Pause', 'End period']) {
+    for (const name of ['Start period', 'Resume', 'Pause', 'End period']) {
       await waitFor(() => expect(screen.queryByRole('button', { name })).toBeNull());
     }
+    // An ended half is offered only its reopening, which asks for a reason.
+    expect(screen.getByRole('button', { name: 'Reopen period…' })).toBeTruthy();
   });
 
-  it('starts a scheduled match rather than resuming it, and stops the segment that was running', async () => {
-    const sent: unknown[] = [];
+  it('withholds Start match while another period runs, and names the running one', async () => {
     const scheduled: MatchConsoleResponse = {
       ...projection,
       status: 'scheduled',
       segments: [
         { ...FIRST_SEGMENT, segmentId: 'segment-1', state: 'active' },
-        { ...FIRST_SEGMENT, segmentId: 'segment-2', number: 2, state: 'pending' },
+        {
+          ...FIRST_SEGMENT,
+          segmentId: 'segment-2',
+          number: 2,
+          state: 'pending',
+          elapsedSeconds: 0,
+        },
+      ],
+    };
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsolePage
+            client={client({ fetchMatchConsole: async () => scheduled })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Active segment'), {
+        target: { value: 'segment-2' },
+      });
+    });
+
+    expect(screen.queryByRole('button', { name: 'Start match' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Start period' })).toBeNull();
+    expect(screen.getByText(/half 1 is running/)).toBeTruthy();
+  });
+
+  it('starts a scheduled match from its first unplayed period with the start command', async () => {
+    const sent: unknown[] = [];
+    const scheduled: MatchConsoleResponse = {
+      ...projection,
+      status: 'scheduled',
+      segments: [
+        { ...FIRST_SEGMENT, segmentId: 'segment-1', state: 'pending', elapsedSeconds: 0 },
+        {
+          ...FIRST_SEGMENT,
+          segmentId: 'segment-2',
+          number: 2,
+          state: 'pending',
+          elapsedSeconds: 0,
+        },
       ],
     };
     await act(async () => {
@@ -309,20 +359,11 @@ describe('MatchConsolePage clock commands', () => {
       );
     });
 
-    // Select the second period, which is not the one currently running.
     await act(async () => {
-      fireEvent.change(screen.getByLabelText('Active segment'), {
-        target: { value: 'segment-2' },
-      });
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Start match' }));
     });
 
-    // A scheduled match is started, never resumed.
-    await waitFor(() => expect(sent).toEqual([{ command: 'start', segmentId: 'segment-2' }]));
-    // And the optimistic patch stops the one that was running: only one at a time.
-    expect(screen.getByLabelText('Active segment')).toBeDefined();
+    await waitFor(() => expect(sent).toEqual([{ command: 'start', segmentId: 'segment-1' }]));
   });
 
   it('queues a clock command durably, exactly as a recorded event is queued', async () => {
@@ -437,11 +478,11 @@ describe('MatchConsolePage Add segment', () => {
   });
 });
 
-describe('MatchConsolePage elapsed seconds input', () => {
-  const applyButton = (): HTMLButtonElement =>
-    screen.getByRole('button', { name: 'Apply clock' }) as HTMLButtonElement;
-  const elapsedInput = (): HTMLInputElement =>
-    screen.getByLabelText('Elapsed seconds') as HTMLInputElement;
+describe('MatchConsolePage time correction', () => {
+  const correctButton = (): HTMLButtonElement =>
+    screen.getByRole('button', { name: 'Correct' }) as HTMLButtonElement;
+  const timeInput = (): HTMLInputElement =>
+    screen.getByLabelText('Time (mm:ss)') as HTMLInputElement;
   const twoSegments: MatchConsoleResponse = {
     ...projection,
     segments: [
@@ -450,7 +491,7 @@ describe('MatchConsolePage elapsed seconds input', () => {
     ],
   };
 
-  /** Renders the console against a server that keeps what Apply clock sent. */
+  /** Renders the console against a server that keeps the time Correct sent, and nothing else. */
   async function renderConsole(shown: MatchConsoleResponse, sent: unknown[] = []): Promise<void> {
     let current = shown;
     await act(async () => {
@@ -465,7 +506,7 @@ describe('MatchConsolePage elapsed seconds input', () => {
                   ...current,
                   segments: current.segments.map((segment) =>
                     segment.segmentId === request.segmentId
-                      ? { ...segment, elapsedSeconds: request.elapsedSeconds, state: 'active' }
+                      ? { ...segment, elapsedSeconds: request.elapsedSeconds }
                       : segment,
                   ),
                 };
@@ -481,59 +522,177 @@ describe('MatchConsolePage elapsed seconds input', () => {
     });
   }
 
-  it('shows the current clock and sends nothing until the operator types a value', async () => {
+  it('shows the selected time as mm:ss and sends nothing until the operator types', async () => {
     const sent: unknown[] = [];
     await renderConsole(projection, sent);
 
-    expect(elapsedInput().value).toBe('120');
-    expect(applyButton().disabled).toBe(true);
-    fireEvent.click(applyButton());
+    expect(timeInput().value).toBe('02:00');
+    expect(correctButton().disabled).toBe(true);
+    fireEvent.click(correctButton());
     await act(async () => undefined);
     expect(sent).toEqual([]);
   });
 
-  it('sends the typed value for the selected segment and shows the clock it set', async () => {
+  it('sends a typed minutes:seconds time as seconds, without asking to activate the segment', async () => {
     const sent: unknown[] = [];
     await renderConsole(projection, sent);
 
-    fireEvent.change(elapsedInput(), { target: { value: '1250' } });
-    expect(applyButton().disabled).toBe(false);
+    fireEvent.change(timeInput(), { target: { value: '20:50' } });
+    expect(correctButton().disabled).toBe(false);
     await act(async () => {
-      fireEvent.click(applyButton());
+      fireEvent.click(correctButton());
     });
 
-    await waitFor(() =>
-      expect(sent).toEqual([{ segmentId: 'segment-1', elapsedSeconds: 1250, activate: true }]),
-    );
-    await waitFor(() => expect(elapsedInput().value).toBe('1250'));
-    expect(applyButton().disabled).toBe(true);
+    await waitFor(() => expect(sent).toEqual([{ segmentId: 'segment-1', elapsedSeconds: 1250 }]));
+    await waitFor(() => expect(timeInput().value).toBe('20:50'));
+    expect(correctButton().disabled).toBe(true);
+    // The running segment keeps running: Correct never changes its state.
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeTruthy();
   });
 
-  it.each(['', '-5', '12.5', '99999999999999999999'])(
-    'keeps Apply clock unavailable for the input %j',
+  it('sends whole minutes as seconds', async () => {
+    const sent: unknown[] = [];
+    await renderConsole(projection, sent);
+
+    fireEvent.change(timeInput(), { target: { value: '45' } });
+    await act(async () => {
+      fireEvent.click(correctButton());
+    });
+
+    await waitFor(() => expect(sent).toEqual([{ segmentId: 'segment-1', elapsedSeconds: 2700 }]));
+  });
+
+  it.each(['', '-1', '1:60', '1.5', '20:5x'])(
+    'keeps Correct unavailable for the input %j',
     async (typed) => {
       const sent: unknown[] = [];
       await renderConsole(projection, sent);
 
-      fireEvent.change(elapsedInput(), { target: { value: typed } });
-      expect(applyButton().disabled).toBe(true);
-      fireEvent.click(applyButton());
+      fireEvent.change(timeInput(), { target: { value: typed } });
+      expect(correctButton().disabled).toBe(true);
+      fireEvent.click(correctButton());
       await act(async () => undefined);
       expect(sent).toEqual([]);
     },
   );
 
-  it('discards a typed value when another segment is picked, and shows that segment’s clock', async () => {
+  it('discards a typed time when another segment is picked, and shows that segment’s time', async () => {
     await renderConsole(twoSegments);
 
-    fireEvent.change(elapsedInput(), { target: { value: '900' } });
+    fireEvent.change(timeInput(), { target: { value: '15:00' } });
     fireEvent.change(screen.getByLabelText('Active segment'), { target: { value: 'segment-2' } });
-    expect(elapsedInput().value).toBe('0');
-    expect(applyButton().disabled).toBe(true);
+    expect(timeInput().value).toBe('00:00');
+    expect(correctButton().disabled).toBe(true);
 
     fireEvent.change(screen.getByLabelText('Active segment'), { target: { value: 'segment-1' } });
-    expect(elapsedInput().value).toBe('120');
-    expect(applyButton().disabled).toBe(true);
+    expect(timeInput().value).toBe('02:00');
+    expect(correctButton().disabled).toBe(true);
+  });
+
+  it('shows no clock action and no time correction once the match is finalized', async () => {
+    await renderConsole({ ...twoSegments, status: 'finalized' });
+
+    for (const name of ['Pause', 'Resume', 'Start period', 'Start match', 'Reopen period…']) {
+      expect(screen.queryByRole('button', { name })).toBeNull();
+    }
+    expect(screen.queryByLabelText('Time (mm:ss)')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Correct' })).toBeNull();
+  });
+});
+
+describe('MatchConsolePage reopen period', () => {
+  const ended: MatchConsoleResponse = {
+    ...projection,
+    segments: [
+      { ...FIRST_SEGMENT, state: 'completed', elapsedSeconds: 2700 },
+      { ...FIRST_SEGMENT, segmentId: 'segment-2', number: 2, state: 'pending', elapsedSeconds: 0 },
+    ],
+  };
+
+  /** Renders the console against a server that keeps what Reopen period sent. */
+  async function renderConsole(sent: unknown[]): Promise<void> {
+    let current = ended;
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsolePage
+            client={client({
+              fetchMatchConsole: async () => current,
+              reopenMatchSegment: async (
+                _organization,
+                _tournament,
+                matchId,
+                segmentId,
+                reason,
+              ) => {
+                sent.push({ matchId, segmentId, reason });
+                current = {
+                  ...current,
+                  segments: current.segments.map((segment) =>
+                    segment.segmentId === segmentId ? { ...segment, state: 'pending' } : segment,
+                  ),
+                };
+                return current;
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+  }
+
+  /** Renders the console, then picks the ended half, as an operator does: the default is the next unplayed one. */
+  async function renderEndedHalfSelected(sent: unknown[]): Promise<void> {
+    await renderConsole(sent);
+    fireEvent.change(screen.getByLabelText('Active segment'), { target: { value: 'segment-1' } });
+  }
+
+  const reasonInput = (): HTMLInputElement => screen.getByLabelText('Reason') as HTMLInputElement;
+  const confirmButton = (): HTMLButtonElement =>
+    screen.getByRole('button', { name: 'Reopen period' }) as HTMLButtonElement;
+
+  it('asks for a reason before sending, and sends nothing on cancel or with an empty reason', async () => {
+    const sent: unknown[] = [];
+    await renderEndedHalfSelected(sent);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Reopen period…' }));
+    });
+    expect(confirmButton().disabled).toBe(true);
+    fireEvent.change(reasonInput(), { target: { value: '   ' } });
+    expect(confirmButton().disabled).toBe(true);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    });
+    expect(screen.queryByLabelText('Reason')).toBeNull();
+    await act(async () => undefined);
+    expect(sent).toEqual([]);
+  });
+
+  it('sends the reopen with the reason on confirm, and the period then shows as paused', async () => {
+    const sent: unknown[] = [];
+    await renderEndedHalfSelected(sent);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Reopen period…' }));
+    });
+    fireEvent.change(reasonInput(), { target: { value: 'Ended by mistake' } });
+    await act(async () => {
+      fireEvent.click(confirmButton());
+    });
+
+    await waitFor(() =>
+      expect(sent).toEqual([
+        { matchId: 'match-1', segmentId: 'segment-1', reason: 'Ended by mistake' },
+      ]),
+    );
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Resume' })).toBeTruthy());
+    expect(screen.getByRole('button', { name: 'End period' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Reopen period…' })).toBeNull();
   });
 });
 
@@ -1257,9 +1416,9 @@ describe('MatchConsolePage', () => {
       );
     });
 
-    fireEvent.change(screen.getByLabelText('Elapsed seconds'), { target: { value: '180' } });
+    fireEvent.change(screen.getByLabelText('Time (mm:ss)'), { target: { value: '03:00' } });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Apply clock' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Correct' }));
       fireEvent.click(screen.getByRole('button', { name: 'Resolve' }));
     });
     fireEvent.click(screen.getByRole('button', { name: 'Negative' }));
@@ -1300,7 +1459,7 @@ describe('MatchConsolePage', () => {
     await waitFor(() =>
       expect(screen.getAllByText('Evento rechazado por servidor').length).toBeGreaterThan(0),
     );
-    expect((screen.getByLabelText('Elapsed seconds') as HTMLInputElement).disabled).toBe(false);
+    expect((screen.getByLabelText('Time (mm:ss)') as HTMLInputElement).disabled).toBe(false);
   });
 
   it('shows the authoritative-load failure before a projection exists', async () => {
@@ -1696,8 +1855,8 @@ describe('MatchConsolePage', () => {
         );
       });
 
-      fireEvent.change(screen.getByLabelText('Elapsed seconds'), { target: { value: '130' } });
-      fireEvent.click(screen.getByRole('button', { name: 'Apply clock' }));
+      fireEvent.change(screen.getByLabelText('Time (mm:ss)'), { target: { value: '02:10' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Correct' }));
 
       await waitFor(async () => expect(await listPending('match-1')).toHaveLength(1));
       fireEvent.focus(syncIndicator());
@@ -1763,9 +1922,9 @@ describe('MatchConsolePage', () => {
         );
       });
       expect(syncIndicator().textContent).toContain('Last synced');
-      fireEvent.change(screen.getByLabelText('Elapsed seconds'), { target: { value: '130' } });
+      fireEvent.change(screen.getByLabelText('Time (mm:ss)'), { target: { value: '02:10' } });
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Apply clock' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Correct' }));
       });
       await waitFor(() => expect(syncIndicator().textContent).toContain('Last synced'));
       expect(syncIndicator().textContent).not.toContain('Not yet synced');

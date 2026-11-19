@@ -409,30 +409,55 @@ export function MatchConsolePage({
     );
   }
 
-  async function applyClock(segmentId: string, elapsedSeconds: number): Promise<void> {
+  /**
+   * Correct time sets the selected segment's time and nothing else: it never starts a segment and
+   * never reopens one, so a running, paused or not started segment keeps its state.
+   */
+  async function correctClock(segmentId: string, elapsedSeconds: number): Promise<void> {
     await mutate(
       {
         kind: 'clock-adjust',
         organizationAlias,
         tournamentAlias,
         matchId,
-        request: { segmentId, elapsedSeconds, activate: true },
+        request: { segmentId, elapsedSeconds },
       },
       () =>
         setProjection((current) =>
           current
             ? {
                 ...current,
-                segments: current.segments.map((segment) => ({
-                  ...segment,
-                  state:
-                    segment.segmentId === segmentId
-                      ? 'active'
-                      : segment.state === 'active'
-                        ? 'pending'
-                        : segment.state,
-                  ...(segment.segmentId === segmentId ? { elapsedSeconds } : {}),
-                })),
+                segments: current.segments.map((segment) =>
+                  segment.segmentId === segmentId ? { ...segment, elapsedSeconds } : segment,
+                ),
+              }
+            : current,
+        ),
+    );
+  }
+
+  /**
+   * Reopening takes the reason the operator gave and queues it like the other clock commands. The
+   * segment shows as paused at once, with its time kept, as the server will leave it.
+   */
+  async function reopenSegment(segmentId: string, reason: string): Promise<void> {
+    await mutate(
+      {
+        kind: 'segment-reopen',
+        organizationAlias,
+        tournamentAlias,
+        matchId,
+        segmentId,
+        reason,
+      },
+      () =>
+        setProjection((current) =>
+          current
+            ? {
+                ...current,
+                segments: current.segments.map((segment) =>
+                  segment.segmentId === segmentId ? { ...segment, state: 'pending' } : segment,
+                ),
               }
             : current,
         ),
@@ -610,13 +635,14 @@ export function MatchConsolePage({
         eventSyncStates={eventSyncStates}
         lastSyncedAt={lastSyncedAt}
         matchId={matchId}
-        onApplyClock={applyClock}
         onCancelFinalize={cancelFinalize}
+        onCorrectClock={correctClock}
         onDismissMutation={dismissMutation}
         onFinalize={finalize}
         onAddSegment={addSegment}
         onIssueClockCommand={issueClockCommand}
         onRecordEvent={recordEvent}
+        onReopenSegment={reopenSegment}
         onResolveTimer={resolveTimer}
         onRosterSaved={() => void reload()}
         online={online}
