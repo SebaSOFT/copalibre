@@ -187,6 +187,7 @@ async function mockMatchConsole(
     readonly capabilities?: readonly string[];
     readonly loseFirstFinalize?: boolean;
     readonly keepAuthoritativeScore?: boolean;
+    readonly withoutSegments?: boolean;
   } = {},
 ): Promise<void> {
   await page.addInitScript(
@@ -315,7 +316,10 @@ async function mockMatchConsole(
       };
     },
     {
-      initial: projection({ capabilities: options.capabilities }),
+      initial: {
+        ...projection({ capabilities: options.capabilities }),
+        ...(options.withoutSegments ? { segments: [] } : {}),
+      },
       path: matchPath,
       loseFirstFinalize: options.loseFirstFinalize ?? false,
       keepAuthoritativeScore: options.keepAuthoritativeScore ?? false,
@@ -555,6 +559,56 @@ test('starts, pauses and ends a segment’s clock from the console', async ({ pa
         .map((request) => request.url.split('/commands/')[1]),
     )
     .toEqual(['pause', 'resume', 'end']);
+});
+
+test('shows the running clock in the elapsed input, and applies only a value typed into it', async ({
+  page,
+}) => {
+  await mockMatchConsole(page);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  // The running segment reads 120 s. Apply clock is unavailable until the operator types a value,
+  // and nothing reaches the server in the meantime.
+  const elapsed = page.locator('input#console-elapsed-seconds');
+  const apply = page.getByRole('button', { name: 'Aplicar reloj' });
+  await expect(elapsed).toHaveValue('120');
+  await expect(apply).toBeDisabled();
+  await expect
+    .poll(async () =>
+      (await capturedRequests(page)).filter((request) => request.url.endsWith('/clock')),
+    )
+    .toEqual([]);
+
+  await elapsed.fill('1250');
+  await expect(apply).toBeEnabled();
+  await apply.click();
+
+  await expect
+    .poll(async () =>
+      (await capturedRequests(page))
+        .filter((request) => request.url.endsWith('/clock'))
+        .map((request) => request.body),
+    )
+    .toEqual([{ segmentId: 'segment-1', elapsedSeconds: 1250, activate: true }]);
+  await expect(elapsed).toHaveValue('1250');
+  await expect(apply).toBeDisabled();
+});
+
+test('a match with no segments offers no clock, and says why', async ({ page }) => {
+  await mockMatchConsole(page, { withoutSegments: true });
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await expect(page.getByText('Este partido todavía no tiene segmentos.')).toBeVisible();
+  for (const name of ['Iniciar', 'Pausar', 'Reanudar', 'Aplicar reloj']) {
+    await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0);
+  }
+  await expect(page.getByRole('button', { name: 'Finalizar partido' })).toBeVisible();
 });
 
 test('does not offer clock commands without the clock-control capability', async ({ page }) => {
