@@ -40,6 +40,8 @@ rtk test yarn test:e2e
 rtk bypass yarn <script>          # unfiltered, when filtered output looks wrong (`rtk proxy` is a deprecated alias)
 ```
 
+Locally, `WEB_EXISTING_BUILD=1 yarn test:integration` skips the production web build that the help static build test makes and reuses `apps/web/dist`; use it only when that build came from the current sources. The CI `docs-build` job sets the same flag for that test.
+
 **Coverage is the exception — never wrap it.** `rtk test` prints only the final 5 lines, and Jest prints its threshold verdict _above_ the `Test Suites:` summary, so a coverage failure is invisible through that window (and through any `tail -5`). Jest still exits 0 locally, so the failure surfaces only as CI's "Unit tests" job. Grep for the verdict explicitly:
 
 ```bash
