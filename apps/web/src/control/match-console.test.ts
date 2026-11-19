@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import { publicIntl, sideSourceLabels } from '../lib/i18n/public-intl.js';
 import {
+  addSegmentOptionsOf,
   awaitingSourceText,
   clockActionsOf,
   currentEpochMilliseconds,
@@ -421,5 +422,59 @@ describe('elapsed seconds input helpers', () => {
     expect(parseElapsedSeconds('-5')).toBeUndefined();
     expect(parseElapsedSeconds('12.5')).toBeUndefined();
     expect(parseElapsedSeconds('99999999999999999999')).toBeUndefined();
+  });
+});
+
+describe('clockActionsOf before any segment exists', () => {
+  const regulation = { type: 'half', count: 2, maximum: 2 };
+
+  it('offers Start as the primary action when the discipline has a regulation plan', () => {
+    expect(clockActionsOf('scheduled', [], undefined, regulation)).toEqual({
+      commands: [{ command: 'start', primary: true }],
+      finalizePrimary: false,
+    });
+  });
+
+  it('offers no Start when the discipline declares no segment type', () => {
+    expect(clockActionsOf('scheduled', [], undefined)).toEqual({
+      commands: [],
+      finalizePrimary: false,
+    });
+  });
+
+  it('offers no clock command in progress with no segments, leaving Finalize primary', () => {
+    expect(clockActionsOf('in-progress', [], undefined, regulation)).toEqual({
+      commands: [],
+      finalizePrimary: true,
+    });
+  });
+});
+
+describe('addSegmentOptionsOf', () => {
+  const projection = {
+    segmentPlan: {
+      addable: [
+        { type: 'set', typeLabel: { en: 'Set', es: 'Set' }, withinPlan: false },
+        { type: 'tiebreak', typeLabel: 'Tiebreak', withinPlan: true },
+        { type: 'penalty', withinPlan: true },
+      ],
+    },
+  } as unknown as Pick<MatchConsoleResponse, 'segmentPlan'>;
+
+  it('labels each declared type and suffixes the ones outside the plan', () => {
+    expect(addSegmentOptionsOf(projection, 'es', '(fuera del plan)')).toEqual([
+      { value: 'set', label: 'Set (fuera del plan)' },
+      { value: 'tiebreak', label: 'Tiebreak' },
+      { value: 'penalty', label: 'penalty' },
+    ]);
+  });
+
+  it('falls back to the declared name in English when the language has no label', () => {
+    const english = {
+      segmentPlan: {
+        addable: [{ type: 'set', typeLabel: { en: 'Set' }, withinPlan: true }],
+      },
+    } as unknown as Pick<MatchConsoleResponse, 'segmentPlan'>;
+    expect(addSegmentOptionsOf(english, 'de', 'x')).toEqual([{ value: 'set', label: 'Set' }]);
   });
 });

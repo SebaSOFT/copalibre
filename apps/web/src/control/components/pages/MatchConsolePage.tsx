@@ -393,6 +393,14 @@ export function MatchConsolePage({
     );
   }
 
+  /**
+   * Queued like the clock commands: an addition made in a dead zone is sent once, with its
+   * idempotency key, when the connection returns. The segment appears when the console reloads.
+   */
+  async function addSegment(type: string): Promise<void> {
+    await mutate({ kind: 'segment-add', organizationAlias, tournamentAlias, matchId, type });
+  }
+
   async function applyClock(segmentId: string, elapsedSeconds: number): Promise<void> {
     await mutate(
       {
@@ -598,6 +606,7 @@ export function MatchConsolePage({
         onCancelFinalize={cancelFinalize}
         onDismissMutation={dismissMutation}
         onFinalize={finalize}
+        onAddSegment={addSegment}
         onIssueClockCommand={issueClockCommand}
         onRecordEvent={recordEvent}
         onResolveTimer={resolveTimer}

@@ -16,6 +16,7 @@ beforeEach(async () => {
 });
 
 const projection: MatchConsoleResponse = {
+  segmentPlan: { addable: [] },
   matchId: 'match-1',
   stageNumber: 1,
   status: 'in-progress',
@@ -139,6 +140,9 @@ function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApi
     setMatchRoster: async () => projection,
     adjustMatchClock: async () => projection,
     resolveMatchTimer: async () => projection,
+    addMatchSegment: async () => {
+      throw new Error('not used in this test');
+    },
     sendMatchCommand: async () => ({
       matchId: 'match-1',
       status: 'in-progress',

@@ -278,6 +278,7 @@ export const reviewRows: readonly ReviewRegistrationRow[] = registrations.map((r
 
 /** A paused, in-progress match: time never drifts while comparing viewports. */
 export const consoleProjection: MatchConsoleResponse = {
+  segmentPlan: { addable: [] },
   matchId: ids.match,
   stageNumber: 1,
   status: 'in-progress',

@@ -11,6 +11,7 @@ import type {
   SegmentClockCommand,
 } from '../../lib/api-client.js';
 import {
+  addSegmentOptionsOf,
   awaitingSourceText,
   clockActionsOf,
   type ClockActions,
@@ -100,6 +101,7 @@ export function MatchConsoleTemplate({
   onCancelFinalize,
   onDismissMutation,
   onFinalize,
+  onAddSegment,
   onIssueClockCommand,
   onRecordEvent,
   onResolveTimer,
@@ -123,6 +125,7 @@ export function MatchConsoleTemplate({
   >;
   readonly lastSyncedAt: number | undefined;
   readonly matchId: string;
+  readonly onAddSegment: (type: string) => void;
   readonly onApplyClock: (segmentId: string, elapsedSeconds: number) => void;
   readonly onCancelFinalize: () => void;
   readonly onDismissMutation: (mutationId: string) => void;
@@ -177,6 +180,7 @@ export function MatchConsoleTemplate({
   // Only an explicit pick: until the operator names a segment, the console shows the one the
   // match is in, so it follows the match from one period to the next.
   const [pickedSegmentId, setPickedSegmentId] = useState('');
+  const [addSegmentPick, setAddSegmentPick] = useState('');
   // What the operator typed into Elapsed seconds, and for which segment. Until they type, the input
   // shows the selected segment's current clock, so Apply clock never sends a value nobody entered.
   const [elapsedDraft, setElapsedDraft] = useState<ElapsedDraft>();
@@ -288,7 +292,49 @@ export function MatchConsoleTemplate({
   // not kicked off starts; one already in progress resumes. Both are "press Start" to the
   // official holding the whistle — the distinction is the domain's, between beginning a match
   // and restarting a clock, and it belongs in the helper rather than in front of them.
-  const clockActions = clockActionsOf(projection.status, projection.segments, selectedSegment);
+  const clockActions = clockActionsOf(
+    projection.status,
+    projection.segments,
+    selectedSegment,
+    projection.segmentPlan.regulation,
+  );
+  // Adding a segment is offered once the match is in progress: a scheduled match gets its
+  // regulation from Start, and a finished one takes no more segments.
+  const addSegmentOptions = addSegmentOptionsOf(
+    projection,
+    language,
+    intl.formatMessage(messages.matchConsoleOutsidePlan),
+  );
+  const addSegmentValue = addSegmentOptions.some((option) => option.value === addSegmentPick)
+    ? addSegmentPick
+    : (addSegmentOptions[0]?.value ?? '');
+  const addSegmentNode =
+    projection.status === 'in-progress' && addSegmentOptions.length > 0 ? (
+      <div className="cl-platform-form-grid">
+        <Field
+          id="console-add-segment"
+          label={intl.formatMessage(messages.matchConsoleAddSegmentLabel)}
+        >
+          <Select
+            aria-label={intl.formatMessage(messages.matchConsoleAddSegmentLabel)}
+            disabled={!canControlClock}
+            id="console-add-segment"
+            onValueChange={setAddSegmentPick}
+            options={addSegmentOptions}
+            placeholder={intl.formatMessage(messages.selectPlaceholder)}
+            value={addSegmentValue}
+          />
+        </Field>
+        <Button
+          disabled={!canControlClock || addSegmentValue === ''}
+          onClick={() => onAddSegment(addSegmentValue)}
+          type="button"
+          variant="secondary"
+        >
+          <FormattedMessage {...messages.matchConsoleAddSegment} />
+        </Button>
+      </div>
+    ) : null;
   const clockCommandLabels: Readonly<Record<SegmentClockCommand, string>> = {
     start: intl.formatMessage(messages.matchConsoleStartClock),
     resume: intl.formatMessage(messages.matchConsoleStartClock),
@@ -440,9 +486,35 @@ export function MatchConsoleTemplate({
         </header>
         <div className="cl-card__content">
           {projection.segments.length === 0 ? (
-            <p className="cl-card__description">
-              <FormattedMessage {...messages.matchConsoleNoSegments} />
-            </p>
+            <>
+              <p className="cl-card__description">
+                {projection.status === 'scheduled' && projection.segmentPlan.regulation ? (
+                  <FormattedMessage
+                    {...messages.matchConsoleStartCreates}
+                    values={{
+                      count: projection.segmentPlan.regulation.count,
+                      type: resolveLabel(
+                        projection.segmentPlan.regulation.typeLabel ??
+                          projection.segmentPlan.regulation.type,
+                        language,
+                      ),
+                    }}
+                  />
+                ) : (
+                  <FormattedMessage {...messages.matchConsoleNoSegments} />
+                )}
+              </p>
+              {clockActions.commands.length > 0 && (
+                <ClockCommands
+                  commands={clockActions.commands}
+                  disabled={!canControlClock}
+                  label={clockCommandsLabel}
+                  labels={clockCommandLabels}
+                  onCommand={issueClockCommand}
+                />
+              )}
+              {addSegmentNode}
+            </>
           ) : (
             <>
               <div className="cl-platform-form-grid">
@@ -501,6 +573,7 @@ export function MatchConsoleTemplate({
                 labels={clockCommandLabels}
                 onCommand={issueClockCommand}
               />
+              {addSegmentNode}
             </>
           )}
         </div>

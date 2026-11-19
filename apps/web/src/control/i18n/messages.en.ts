@@ -1006,6 +1006,23 @@ export const messages = defineMessages({
     id: 'control.matchConsole.noSegments',
     defaultMessage: 'This match has no segments yet.',
   },
+  matchConsoleStartCreates: {
+    id: 'control.matchConsole.startCreates',
+    defaultMessage:
+      '{count, plural, one {Start creates # {type} segment} other {Start creates # {type} segments}}',
+  },
+  matchConsoleAddSegment: {
+    id: 'control.matchConsole.addSegment',
+    defaultMessage: 'Add segment',
+  },
+  matchConsoleAddSegmentLabel: {
+    id: 'control.matchConsole.addSegmentLabel',
+    defaultMessage: 'Segment to add',
+  },
+  matchConsoleOutsidePlan: {
+    id: 'control.matchConsole.outsidePlan',
+    defaultMessage: '(outside the plan)',
+  },
   matchConsoleNoEvents: {
     id: 'control.matchConsole.noEvents',
     defaultMessage: 'No events to show.',

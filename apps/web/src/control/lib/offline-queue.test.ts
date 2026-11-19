@@ -55,6 +55,9 @@ function stubClient(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsol
     resolveMatchTimer: async () => {
       throw new Error('not used in this test');
     },
+    addMatchSegment: async () => {
+      throw new Error('not used in this test');
+    },
     sendMatchCommand: async () => {
       throw new Error('not used in this test');
     },
@@ -169,6 +172,55 @@ describe('drainQueue sequential semantics', () => {
         key: 'clock-command-key',
       },
     ]);
+  });
+
+  it('sends a queued segment addition once, with its idempotency key', async () => {
+    const calls: unknown[] = [];
+    const client = stubClient({
+      addMatchSegment: async (_organization, _tournament, matchId, type, key) => {
+        calls.push({ matchId, type, key });
+        return {} as never;
+      },
+    });
+    await enqueue(
+      {
+        kind: 'segment-add',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        type: 'extra-time',
+      },
+      'segment-add-key',
+      1_000,
+    );
+
+    expect(await drainQueue(client, 'match-1')).toEqual([{ kind: 'sent', id: 'segment-add-key' }]);
+    expect(calls).toEqual([{ matchId: 'match-1', type: 'extra-time', key: 'segment-add-key' }]);
+    expect(await drainQueue(client, 'match-1')).toEqual([]);
+  });
+
+  it('surfaces a refused segment addition in the queue with the server reason', async () => {
+    const client = stubClient({
+      addMatchSegment: jest
+        .fn<MatchConsoleApiClient['addMatchSegment']>()
+        .mockRejectedValueOnce(new ControlApiError(400, 'Match is finalized')),
+    });
+    await enqueue(
+      {
+        kind: 'segment-add',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        type: 'half',
+      },
+      'segment-add-refused',
+      1_000,
+    );
+
+    expect(await drainQueue(client, 'match-1')).toEqual([
+      { kind: 'refused', id: 'segment-add-refused', reason: 'Match is finalized' },
+    ]);
+    expect(await listPending('match-1')).toMatchObject([{ status: 'refused' }]);
   });
 
   it("a refusal doesn't block later items — the drain continues past it", async () => {
@@ -312,6 +364,18 @@ describe('describeQueuedAction', () => {
         },
       }),
     ).toBe('Event goal for person-7');
+  });
+
+  it('names the segment type an addition queued offline will append', () => {
+    expect(
+      describeQueuedAction({
+        kind: 'segment-add',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        type: 'extra-time',
+      }),
+    ).toBe('Segment extra-time added');
   });
 
   it('describes every other queued kind structurally, ids and all', () => {
