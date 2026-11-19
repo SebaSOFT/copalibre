@@ -315,7 +315,6 @@ export function MatchConsoleTemplate({
     'end-period': intl.formatMessage(messages.matchConsoleEndSegment),
     'reopen-period': intl.formatMessage(messages.matchConsoleReopenPeriod),
   };
-  const selectedPeriodText = selectedSegment === undefined ? '' : periodTextOf(selectedSegment);
   // Adding a segment is offered once the match is in progress: a scheduled match gets its
   // regulation from Start, and a finished one takes no more segments.
   const addSegmentNode = (
@@ -537,14 +536,7 @@ export function MatchConsoleTemplate({
                   />
                 </Field>
               </div>
-              {clockActions.runningSegment === undefined ? null : (
-                <p className="cl-card__description">
-                  <FormattedMessage
-                    {...messages.matchConsoleAnotherPeriodRunning}
-                    values={{ period: periodTextOf(clockActions.runningSegment) }}
-                  />
-                </p>
-              )}
+              <RunningPeriodLine periodText={periodTextOf} segment={clockActions.runningSegment} />
               {/* The whistle, not a correction: these record the moment the clock actually changed. */}
               <ClockCommands
                 actions={clockActions.actions}
@@ -555,71 +547,34 @@ export function MatchConsoleTemplate({
                   action === 'reopen-period' ? openReopen() : issueClockAction(action)
                 }
               />
-              {reopenOpen && selectedSegment !== undefined ? (
-                <Alert
-                  block
-                  dismissLabel={intl.formatMessage(messages.toastDismiss)}
-                  onDismiss={closeReopen}
-                  tone="warning"
-                >
-                  <strong>
-                    <FormattedMessage
-                      {...messages.matchConsoleReopenConfirm}
-                      values={{ period: selectedPeriodText }}
-                    />
-                  </strong>
-                  <Field
-                    id="console-reopen-reason"
-                    label={intl.formatMessage(messages.matchConsoleReopenReason)}
-                  >
-                    <Input
-                      aria-label={intl.formatMessage(messages.matchConsoleReopenReason)}
-                      id="console-reopen-reason"
-                      onChange={(event) => setReopenReason(event.target.value)}
-                      value={reopenReason}
-                    />
-                  </Field>
-                  <div className="cl-role-user">
-                    <Button onClick={closeReopen} type="button" variant="secondary">
-                      <FormattedMessage {...messages.matchConsoleCancel} />
-                    </Button>
-                    <Button
-                      disabled={reopenReason.trim() === ''}
-                      onClick={confirmReopen}
-                      type="button"
-                      variant="primary"
-                    >
-                      <FormattedMessage {...messages.matchConsoleReopenConfirmButton} />
-                    </Button>
-                  </div>
-                </Alert>
-              ) : null}
-              {projection.status === 'finalized' ? null : (
-                <div className="cl-platform-form-grid">
-                  <Field
-                    id="console-clock-time"
-                    label={intl.formatMessage(messages.matchConsoleCorrectTimeLabel)}
-                  >
-                    <Input
-                      aria-label={intl.formatMessage(messages.matchConsoleCorrectTimeLabel)}
-                      disabled={!canControlClock}
-                      id="console-clock-time"
-                      onChange={(event) =>
-                        setClockDraft({ segmentId: selectedSegmentId, value: event.target.value })
-                      }
-                      value={clockTimeInput}
-                    />
-                  </Field>
-                  <Button
-                    disabled={!canControlClock || correctedSeconds === undefined}
-                    onClick={correctClock}
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage {...messages.matchConsoleCorrectTime} />
-                  </Button>
-                </div>
-              )}
+              <ReopenPeriodConfirmation
+                labels={{
+                  cancel: intl.formatMessage(messages.matchConsoleCancel),
+                  confirm: intl.formatMessage(messages.matchConsoleReopenConfirmButton),
+                  dismiss: intl.formatMessage(messages.toastDismiss),
+                  reason: intl.formatMessage(messages.matchConsoleReopenReason),
+                  question: messages.matchConsoleReopenConfirm,
+                }}
+                onCancel={closeReopen}
+                onConfirm={confirmReopen}
+                onReason={setReopenReason}
+                periodText={periodTextOf}
+                reason={reopenReason}
+                segment={selectedSegment}
+                visible={reopenOpen}
+              />
+              <ClockCorrectionForm
+                canCorrect={correctedSeconds !== undefined}
+                disabled={!canControlClock}
+                labels={{
+                  button: <FormattedMessage {...messages.matchConsoleCorrectTime} />,
+                  field: intl.formatMessage(messages.matchConsoleCorrectTimeLabel),
+                }}
+                onChange={(value) => setClockDraft({ segmentId: selectedSegmentId, value })}
+                onCorrect={correctClock}
+                value={clockTimeInput}
+                visible={projection.status !== 'finalized'}
+              />
               {addSegmentNode}
             </>
           )}
@@ -1150,6 +1105,123 @@ interface AddSegmentFieldProps {
   readonly onAdd: (type: string) => Promise<void> | void;
   readonly options: readonly { readonly value: string; readonly label: string }[];
   readonly visible: boolean;
+}
+
+/** The line that names the running period when another one holds the clock. */
+function RunningPeriodLine({
+  periodText,
+  segment,
+}: {
+  readonly periodText: (segment: ConsoleSegment) => string;
+  readonly segment: ConsoleSegment | undefined;
+}) {
+  if (segment === undefined) return null;
+  return (
+    <p className="cl-card__description">
+      <FormattedMessage
+        {...messages.matchConsoleAnotherPeriodRunning}
+        values={{ period: periodText(segment) }}
+      />
+    </p>
+  );
+}
+
+interface ReopenPeriodConfirmationProps {
+  readonly labels: {
+    readonly cancel: string;
+    readonly confirm: string;
+    readonly dismiss: string;
+    readonly reason: string;
+    readonly question: MessageDescriptor;
+  };
+  readonly onCancel: () => void;
+  readonly onConfirm: () => void;
+  readonly onReason: (reason: string) => void;
+  readonly periodText: (segment: ConsoleSegment) => string;
+  readonly reason: string;
+  readonly segment: ConsoleSegment | undefined;
+  readonly visible: boolean;
+}
+
+/** The reopen confirmation, in the finalize card's pattern: a reason is required and it is cancellable. */
+function ReopenPeriodConfirmation({
+  labels,
+  onCancel,
+  onConfirm,
+  onReason,
+  periodText,
+  reason,
+  segment,
+  visible,
+}: ReopenPeriodConfirmationProps) {
+  if (!visible || segment === undefined) return null;
+  return (
+    <Alert block dismissLabel={labels.dismiss} onDismiss={onCancel} tone="warning">
+      <strong>
+        <FormattedMessage {...labels.question} values={{ period: periodText(segment) }} />
+      </strong>
+      <Field id="console-reopen-reason" label={labels.reason}>
+        <Input
+          aria-label={labels.reason}
+          id="console-reopen-reason"
+          onChange={(event) => onReason(event.target.value)}
+          value={reason}
+        />
+      </Field>
+      <div className="cl-role-user">
+        <Button onClick={onCancel} type="button" variant="secondary">
+          {labels.cancel}
+        </Button>
+        <Button disabled={reason.trim() === ''} onClick={onConfirm} type="button" variant="primary">
+          {labels.confirm}
+        </Button>
+      </div>
+    </Alert>
+  );
+}
+
+interface ClockCorrectionFormProps {
+  readonly canCorrect: boolean;
+  readonly disabled: boolean;
+  readonly labels: { readonly button: ReactNode; readonly field: string };
+  readonly onChange: (value: string) => void;
+  readonly onCorrect: () => void;
+  readonly value: string;
+  readonly visible: boolean;
+}
+
+/** The time correction: a minutes:seconds field and its Correct button, withheld on a finalized match. */
+function ClockCorrectionForm({
+  canCorrect,
+  disabled,
+  labels,
+  onChange,
+  onCorrect,
+  value,
+  visible,
+}: ClockCorrectionFormProps) {
+  if (!visible) return null;
+  return (
+    <div className="cl-platform-form-grid">
+      <Field id="console-clock-time" label={labels.field}>
+        <Input
+          aria-label={labels.field}
+          disabled={disabled}
+          id="console-clock-time"
+          onChange={(event) => onChange(event.target.value)}
+          value={value}
+        />
+      </Field>
+      <Button
+        disabled={disabled || !canCorrect}
+        onClick={onCorrect}
+        type="button"
+        variant="secondary"
+      >
+        {labels.button}
+      </Button>
+    </div>
+  );
 }
 
 /** The Add segment choice: a declared type picked and appended, offered only while the match is in progress. */
