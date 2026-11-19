@@ -32,12 +32,12 @@ vivo a la pantalla pública del torneo.
 Cada segmento tiene su propio reloj. Los botones debajo del segmento que seleccionaste dependen de en qué estado está:
 
 - **Iniciar partido** comienza un partido programado y arranca su primer segmento.
-- **Iniciar período** arranca un segmento que todavía no corrió.
-- **Pausar** y **Terminar período** aparecen mientras un segmento corre. Pausar lo detiene donde está; un partido en pausa sigue en curso.
-- **Reanudar** y **Terminar período** aparecen cuando el segmento está detenido y tiene tiempo acumulado.
-- **Reabrir período…** aparece en un segmento terminado. Pide un motivo, devuelve el segmento a pausa con su tiempo conservado y no vuelve a correr el reloj: para seguir, usá Reanudar.
+- **Iniciar segmento** arranca un segmento que todavía no corrió.
+- **Pausar** y **Terminar segmento** aparecen mientras un segmento corre. Pausar lo detiene donde está; un partido en pausa sigue en curso.
+- **Reanudar** y **Terminar segmento** aparecen cuando el segmento está detenido y tiene tiempo acumulado.
+- **Reabrir segmento…** aparece en un segmento terminado. Pide un motivo, devuelve el segmento a pausa con su tiempo conservado y no vuelve a correr el reloj: para seguir, usá Reanudar.
 
-Solo corre un segmento a la vez. Iniciar período y Reanudar no se ofrecen mientras otro segmento está corriendo, y la consola indica cuál es: pausalo o terminalo primero.
+Solo corre un segmento a la vez. Iniciar segmento y Reanudar no se ofrecen mientras otro segmento está corriendo, y la consola indica cuál es: pausalo o terminalo primero.
 
 El selector de segmento muestra como **pausado** a un segmento detenido con tiempo acumulado. Un partido cerrado (finalizado, con forfeit o no requerido) no ofrece ninguna acción de reloj.
 

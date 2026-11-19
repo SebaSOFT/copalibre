@@ -34,12 +34,12 @@ trasmesso dal vivo sulla schermata pubblica del torneo.
 Ogni segmento ha il proprio orologio. I pulsanti sotto il segmento selezionato dipendono dal suo stato:
 
 - **Avvia partita** avvia una partita programmata e fa partire il suo primo segmento.
-- **Avvia periodo** fa partire un segmento che non è ancora stato giocato.
-- **Pausa** e **Termina periodo** compaiono mentre un segmento è in corso. Pausa ferma l'orologio dove si trova; una partita in pausa resta in corso.
-- **Riprendi** e **Termina periodo** compaiono quando il segmento è fermo con del tempo accumulato.
-- **Riapri periodo…** compare su un segmento terminato. Chiede un motivo, riporta il segmento in pausa con il tempo conservato e non fa ripartire l'orologio: per farlo ripartire usa Riprendi.
+- **Avvia segmento** fa partire un segmento che non è ancora stato giocato.
+- **Pausa** e **Termina segmento** compaiono mentre un segmento è in corso. Pausa ferma l'orologio dove si trova; una partita in pausa resta in corso.
+- **Riprendi** e **Termina segmento** compaiono quando il segmento è fermo con del tempo accumulato.
+- **Riapri segmento…** compare su un segmento terminato. Chiede un motivo, riporta il segmento in pausa con il tempo conservato e non fa ripartire l'orologio: per farlo ripartire usa Riprendi.
 
-Gira un solo segmento alla volta. Avvia periodo e Riprendi non vengono proposti mentre un altro segmento è in corso, e la console lo indica: mettilo in pausa o terminalo prima.
+Gira un solo segmento alla volta. Avvia segmento e Riprendi non vengono proposti mentre un altro segmento è in corso, e la console lo indica: mettilo in pausa o terminalo prima.
 
 Il selettore del segmento mostra «in pausa» un segmento fermo con del tempo. Una partita chiusa (finalizzata, per forfait o non richiesta) non offre azioni sull'orologio.
 

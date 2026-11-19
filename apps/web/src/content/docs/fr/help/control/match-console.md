@@ -33,12 +33,12 @@ se fait ici est diffusé en direct sur l'écran public du tournoi.
 Chaque segment a sa propre horloge. Les boutons sous le segment sélectionné dépendent de son état :
 
 - **Démarrer le match** lance un match programmé et démarre son premier segment.
-- **Démarrer la période** lance un segment qui n'a pas encore tourné.
-- **Pause** et **Terminer la période** apparaissent pendant qu'un segment tourne. Pause arrête l'horloge là où elle en est ; un match en pause reste en cours.
-- **Reprendre** et **Terminer la période** apparaissent lorsque le segment est arrêté avec du temps écoulé.
-- **Rouvrir la période…** apparaît sur un segment terminé. Il demande un motif, remet le segment en pause avec son temps conservé et ne relance pas l'horloge : pour la faire tourner à nouveau, utilisez Reprendre.
+- **Démarrer le segment** lance un segment qui n'a pas encore tourné.
+- **Pause** et **Terminer le segment** apparaissent pendant qu'un segment tourne. Pause arrête l'horloge là où elle en est ; un match en pause reste en cours.
+- **Reprendre** et **Terminer le segment** apparaissent lorsque le segment est arrêté avec du temps écoulé.
+- **Rouvrir le segment…** apparaît sur un segment terminé. Il demande un motif, remet le segment en pause avec son temps conservé et ne relance pas l'horloge : pour la faire tourner à nouveau, utilisez Reprendre.
 
-Un seul segment tourne à la fois. Démarrer la période et Reprendre ne sont pas proposés tant qu'un autre segment tourne, et la console l'indique : mettez-le en pause ou terminez-le d'abord.
+Un seul segment tourne à la fois. Démarrer le segment et Reprendre ne sont pas proposés tant qu'un autre segment tourne, et la console l'indique : mettez-le en pause ou terminez-le d'abord.
 
 Le sélecteur de segment affiche « en pause » un segment arrêté avec du temps. Un match clos (finalisé, par forfait ou non requis) ne propose aucune action d'horloge.
 

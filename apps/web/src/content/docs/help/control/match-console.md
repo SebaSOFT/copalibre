@@ -33,12 +33,12 @@ tournament's public screen.
 Each segment has its own clock. The buttons under the segment you selected depend on where it stands:
 
 - **Start match** begins a scheduled match and starts its first segment.
-- **Start period** starts a segment that has not run yet.
-- **Pause** and **End period** appear while a segment runs. Pause stops the clock where it stands; a paused match is still in progress.
-- **Resume** and **End period** appear while a stopped segment has time on it.
-- **Reopen period…** appears on a segment that has ended. It asks for a reason, returns the segment to paused with its time kept, and does not start the clock: press Resume to run it again.
+- **Start segment** starts a segment that has not run yet.
+- **Pause** and **End segment** appear while a segment runs. Pause stops the clock where it stands; a paused match is still in progress.
+- **Resume** and **End segment** appear while a stopped segment has time on it.
+- **Reopen segment…** appears on a segment that has ended. It asks for a reason, returns the segment to paused with its time kept, and does not start the clock: press Resume to run it again.
 
-Only one segment runs at a time. Start period and Resume are withheld while another segment runs, and the console names it: pause or end that one first.
+Only one segment runs at a time. Start segment and Resume are withheld while another segment runs, and the console names it: pause or end that one first.
 
 The segment selector shows a stopped segment with time on it as paused. A closed match (finalized, forfeited or not-required) offers no clock action.
 

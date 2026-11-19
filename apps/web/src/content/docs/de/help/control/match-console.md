@@ -30,19 +30,19 @@ den öffentlichen Bildschirm des Turniers übertragen.
 
 ## Die Uhr steuern
 
-Jeder Abschnitt hat seine eigene Uhr. Welche Schaltflächen unter dem ausgewählten Abschnitt erscheinen, hängt von seinem Zustand ab:
+Jedes Segment hat seine eigene Uhr. Welche Schaltflächen unter dem ausgewählten Segment erscheinen, hängt von seinem Zustand ab:
 
-- **Spiel starten** beginnt ein angesetztes Spiel und startet seinen ersten Abschnitt.
-- **Abschnitt starten** startet einen Abschnitt, der noch nicht gelaufen ist.
-- **Pausieren** und **Abschnitt beenden** erscheinen, solange ein Abschnitt läuft. Pausieren hält die Uhr an, wo sie steht; ein pausiertes Spiel läuft weiter.
-- **Fortsetzen** und **Abschnitt beenden** erscheinen bei einem angehaltenen Abschnitt mit bereits verstrichener Zeit.
-- **Abschnitt wieder öffnen…** erscheint bei einem beendeten Abschnitt. Die Konsole fragt nach einem Grund, setzt den Abschnitt auf Pause zurück und behält seine Zeit bei; die Uhr läuft erst wieder mit Fortsetzen.
+- **Spiel starten** beginnt ein angesetztes Spiel und startet sein erstes Segment.
+- **Segment starten** startet ein Segment, das noch nicht gelaufen ist.
+- **Pausieren** und **Segment beenden** erscheinen, solange ein Segment läuft. Pausieren hält die Uhr an, wo sie steht; ein pausiertes Spiel läuft weiter.
+- **Fortsetzen** und **Segment beenden** erscheinen bei einem angehaltenen Segment mit bereits verstrichener Zeit.
+- **Segment wieder öffnen…** erscheint bei einem beendeten Segment. Die Konsole fragt nach einem Grund, setzt das Segment auf Pause zurück und behält seine Zeit bei; die Uhr läuft erst wieder mit Fortsetzen.
 
-Es läuft immer nur ein Abschnitt. Abschnitt starten und Fortsetzen werden nicht angeboten, solange ein anderer Abschnitt läuft; die Konsole nennt ihn. Pausieren oder beenden Sie diesen zuerst.
+Es läuft immer nur ein Segment. Segment starten und Fortsetzen werden nicht angeboten, solange ein anderes Segment läuft; die Konsole nennt es. Pausieren oder beenden Sie dieses zuerst.
 
-Die Abschnittsauswahl zeigt einen angehaltenen Abschnitt mit Zeit als **pausiert**. Bei einem abgeschlossenen Spiel gibt es keine Uhraktion mehr.
+Die Segmentauswahl zeigt ein angehaltenes Segment mit Zeit als **pausiert**. Ein geschlossenes Spiel (beendet, durch Forfait oder nicht erforderlich) bietet keine Uhraktion mehr.
 
-**Korrigieren** setzt die Zeit des ausgewählten Abschnitts. Sie wird im Feld **Zeit (mm:ss)** eingetragen, als Minuten und Sekunden (`20:50`) oder als volle Minuten (`45`). Der Zustand bleibt erhalten: ein laufender Abschnitt läuft weiter, ein pausierter bleibt pausiert. Bei einem geschlossenen Spiel (beendet, durch Forfait oder nicht erforderlich) ist das nicht möglich.
+**Korrigieren** setzt die Zeit des ausgewählten Segments. Sie wird im Feld **Zeit (mm:ss)** eingetragen, als Minuten und Sekunden (`20:50`) oder als volle Minuten (`45`). Der Zustand bleibt erhalten: ein laufendes Segment läuft weiter, ein pausiertes bleibt pausiert. Bei einem geschlossenen Spiel ist das nicht möglich.
 
 Diese Schaltflächen halten den Moment fest, in dem tatsächlich gepfiffen wurde. Einen falsch erfassten Wert korrigieren Sie mit **Korrigieren**. Jede Änderung landet in derselben Prüfspur, mit wer, wann, sowie Zustand und Uhrzeit davor und danach. Das Wiedereröffnen speichert außerdem den Grund.
 

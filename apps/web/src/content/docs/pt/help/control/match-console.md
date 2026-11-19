@@ -32,12 +32,12 @@ vivo para a tela pública do torneio.
 Cada segmento tem seu próprio relógio. Os botões abaixo do segmento selecionado dependem do estado dele:
 
 - **Iniciar partida** começa uma partida agendada e inicia o primeiro segmento.
-- **Iniciar período** inicia um segmento que ainda não rodou.
-- **Pausar** e **Encerrar período** aparecem enquanto um segmento está correndo. Pausar para o relógio onde ele está; uma partida pausada continua em andamento.
-- **Retomar** e **Encerrar período** aparecem quando o segmento está parado com tempo decorrido.
-- **Reabrir período…** aparece em um segmento encerrado. Ele pede um motivo, devolve o segmento à pausa com o tempo mantido e não faz o relógio voltar a correr: para isso, use Retomar.
+- **Iniciar segmento** inicia um segmento que ainda não rodou.
+- **Pausar** e **Encerrar segmento** aparecem enquanto um segmento está correndo. Pausar para o relógio onde ele está; uma partida pausada continua em andamento.
+- **Retomar** e **Encerrar segmento** aparecem quando o segmento está parado com tempo decorrido.
+- **Reabrir segmento…** aparece em um segmento encerrado. Ele pede um motivo, devolve o segmento à pausa com o tempo mantido e não faz o relógio voltar a correr: para isso, use Retomar.
 
-Só um segmento corre por vez. Iniciar período e Retomar não são oferecidos enquanto outro segmento está correndo, e o console informa qual é: pause ou encerre esse primeiro.
+Só um segmento corre por vez. Iniciar segmento e Retomar não são oferecidos enquanto outro segmento está correndo, e o console informa qual é: pause ou encerre esse primeiro.
 
 O seletor de segmento mostra como **pausado** um segmento parado com tempo. Uma partida fechada (finalizada, por W.O. ou não exigida) não oferece nenhuma ação de relógio.
 
