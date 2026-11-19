@@ -161,6 +161,7 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'MatchControlController.command': 'org.operate-match',
   'MatchControlController.console': 'org.operate-match',
   'MatchControlController.recordEvent': 'org.operate-match',
+  'MatchControlController.reopenSegmentRoute': 'org.operate-match',
   'MatchControlController.resolveTimer': 'org.operate-match',
   'MatchControlController.rosterCandidates': 'org.operate-match',
   'MatchControlController.rosters': 'org.operate-match',
