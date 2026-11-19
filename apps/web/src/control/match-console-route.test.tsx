@@ -694,8 +694,58 @@ describe('MatchConsolePage reopen period', () => {
     expect(screen.getByRole('button', { name: 'End period' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Reopen period…' })).toBeNull();
   });
-});
+  it('closes an open reopen confirmation when the selection moves, and reopens nothing', async () => {
+    const sent: unknown[] = [];
+    await renderEndedHalfSelected(sent);
 
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Reopen period…' }));
+    });
+    fireEvent.change(reasonInput(), { target: { value: 'Ended by mistake' } });
+    fireEvent.change(screen.getByLabelText('Active segment'), { target: { value: 'segment-2' } });
+    expect(screen.queryByLabelText('Reason')).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Active segment'), { target: { value: 'segment-1' } });
+    expect(screen.queryByLabelText('Reason')).toBeNull();
+    await act(async () => undefined);
+    expect(sent).toEqual([]);
+  });
+
+  it('closes an open reopen confirmation when the time is corrected, and reopens nothing', async () => {
+    const sent: unknown[] = [];
+    await renderEndedHalfSelected(sent);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Reopen period…' }));
+    });
+    fireEvent.change(reasonInput(), { target: { value: 'Ended by mistake' } });
+    fireEvent.change(screen.getByLabelText('Time (mm:ss)'), { target: { value: '20:50' } });
+    const correctButton = screen.getByRole('button', { name: 'Correct', exact: true });
+    await act(async () => {
+      fireEvent.click(correctButton);
+    });
+
+    await waitFor(() => expect(screen.queryByLabelText('Reason')).toBeNull());
+    expect(screen.queryByRole('button', { name: 'Reopen period', exact: true })).toBeNull();
+    expect(sent).toEqual([]);
+  });
+
+  it('refuses a reason over the server limit, and a whitespace-only reason', async () => {
+    const sent: unknown[] = [];
+    await renderEndedHalfSelected(sent);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Reopen period…' }));
+    });
+    expect(reasonInput().maxLength).toBe(500);
+    fireEvent.change(reasonInput(), { target: { value: 'x'.repeat(501) } });
+    expect(confirmButton().disabled).toBe(true);
+    fireEvent.change(reasonInput(), { target: { value: `  ${'x'.repeat(500)}  ` } });
+    expect(confirmButton().disabled).toBe(false);
+    fireEvent.change(reasonInput(), { target: { value: ' \t ' } });
+    expect(confirmButton().disabled).toBe(true);
+  });
+});
 describe('MatchConsolePage event ledger', () => {
   const manyEvents = {
     ...projection,

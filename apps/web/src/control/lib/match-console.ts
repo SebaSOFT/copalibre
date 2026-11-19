@@ -375,3 +375,27 @@ export function parseClockTime(text: string | undefined): number | undefined {
   }
   return WHOLE_MINUTES.test(value) ? Number(value) * 60 : undefined;
 }
+
+/** The longest reopen reason the server accepts, counted after trimming. */
+export const REOPEN_REASON_MAX_LENGTH = 500;
+
+/** Whether a reopen reason can be sent: non-empty and within the server's limit once trimmed. */
+export function reopenReasonValidOf(reason: string): boolean {
+  const trimmed = reason.trim();
+  return trimmed !== '' && trimmed.length <= REOPEN_REASON_MAX_LENGTH;
+}
+
+/**
+ * The segment a reopen confirmation still applies to: the one it was opened for, while that
+ * segment is the selected one and has ended. Any other state closes the confirmation.
+ */
+export function reopenTargetOf(
+  segments: readonly ConsoleSegment[],
+  openedFor: string | undefined,
+  selectedSegmentId: string,
+): ConsoleSegment | undefined {
+  if (openedFor === undefined || openedFor !== selectedSegmentId) return undefined;
+  return segments.find(
+    (segment) => segment.segmentId === openedFor && segment.state === 'completed',
+  );
+}

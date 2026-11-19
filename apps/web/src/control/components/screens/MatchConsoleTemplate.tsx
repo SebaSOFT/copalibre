@@ -15,6 +15,9 @@ import {
   awaitingSourceText,
   clockActionsOf,
   clockTimeInputOf,
+  REOPEN_REASON_MAX_LENGTH,
+  reopenReasonValidOf,
+  reopenTargetOf,
   type ClockAction,
   type ClockActions,
   type ClockTimeDraft,
@@ -191,8 +194,9 @@ export function MatchConsoleTemplate({
   // What the operator typed into the time field, and for which segment. Until they type, the field
   // shows the selected segment's current time, so Correct never sends a value nobody entered.
   const [clockDraft, setClockDraft] = useState<ClockTimeDraft>();
-  // The reopen confirmation: open only for an ended segment, and cancelled by moving the selection.
-  const [reopenOpen, setReopenOpen] = useState(false);
+  // The segment a reopen confirmation was opened for. It applies only while that segment stays the
+  // selected, ended one, so the reason can never be sent to another period.
+  const [reopenOpenedFor, setReopenOpenedFor] = useState<string>();
   const [reopenReason, setReopenReason] = useState('');
   const [selectedSide, setSelectedSide] = useState('');
   const [selectedPersonId, setSelectedPersonId] = useState('');
@@ -292,6 +296,7 @@ export function MatchConsoleTemplate({
 
   const selectedSegment = selectedSegmentOf(projection.segments, pickedSegmentId);
   const selectedSegmentId = segmentIdOf(selectedSegment);
+  const reopenTarget = reopenTargetOf(projection.segments, reopenOpenedFor, selectedSegmentId);
   // A typed draft counts only while it belongs to the segment now selected. Otherwise the input
   // shows that segment's clock, and Apply clock stays unavailable until the operator types again.
   const typedClockTime = typedClockTimeOf(clockDraft, selectedSegmentId);
@@ -337,16 +342,16 @@ export function MatchConsoleTemplate({
   function issueClockAction(action: Exclude<ClockAction, 'reopen-period'>): void {
     onIssueClockCommand(commandOfClockAction(action), selectedSegmentId);
     setPickedSegmentId('');
-    setReopenOpen(false);
+    closeReopen();
   }
 
   function openReopen(): void {
     setReopenReason('');
-    setReopenOpen(true);
+    setReopenOpenedFor(selectedSegmentId);
   }
 
   function closeReopen(): void {
-    setReopenOpen(false);
+    setReopenOpenedFor(undefined);
     setReopenReason('');
   }
 
@@ -355,12 +360,12 @@ export function MatchConsoleTemplate({
     onCorrectClock(selectedSegmentId, correctedSeconds);
     setClockDraft(undefined);
     setPickedSegmentId('');
+    closeReopen();
   }
 
   function confirmReopen(): void {
-    const reason = reopenReason.trim();
-    if (reason === '') return;
-    onReopenSegment(selectedSegmentId, reason);
+    if (reopenTarget === undefined || !reopenReasonValidOf(reopenReason)) return;
+    onReopenSegment(reopenTarget.segmentId, reopenReason.trim());
     closeReopen();
   }
 
@@ -560,8 +565,8 @@ export function MatchConsoleTemplate({
                 onReason={setReopenReason}
                 periodText={periodTextOf}
                 reason={reopenReason}
-                segment={selectedSegment}
-                visible={reopenOpen}
+                segment={reopenTarget}
+                visible={reopenTarget !== undefined}
               />
               <ClockCorrectionForm
                 canCorrect={correctedSeconds !== undefined}
@@ -1164,6 +1169,7 @@ function ReopenPeriodConfirmation({
         <Input
           aria-label={labels.reason}
           id="console-reopen-reason"
+          maxLength={REOPEN_REASON_MAX_LENGTH}
           onChange={(event) => onReason(event.target.value)}
           value={reason}
         />
@@ -1172,7 +1178,12 @@ function ReopenPeriodConfirmation({
         <Button onClick={onCancel} type="button" variant="secondary">
           {labels.cancel}
         </Button>
-        <Button disabled={reason.trim() === ''} onClick={onConfirm} type="button" variant="primary">
+        <Button
+          disabled={!reopenReasonValidOf(reason)}
+          onClick={onConfirm}
+          type="button"
+          variant="primary"
+        >
           {labels.confirm}
         </Button>
       </div>

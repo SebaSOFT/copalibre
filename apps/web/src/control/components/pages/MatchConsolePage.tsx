@@ -456,7 +456,9 @@ export function MatchConsolePage({
             ? {
                 ...current,
                 segments: current.segments.map((segment) =>
-                  segment.segmentId === segmentId ? { ...segment, state: 'pending' } : segment,
+                  segment.segmentId === segmentId && segment.state === 'completed'
+                    ? { ...segment, state: 'pending' }
+                    : segment,
                 ),
               }
             : current,
