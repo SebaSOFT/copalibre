@@ -29,18 +29,21 @@ vivo para a tela pública do torneio.
 
 ## Controlar o relógio
 
-Cada segmento tem seu próprio relógio, controlado por três botões abaixo do segmento selecionado:
+Cada segmento tem seu próprio relógio. Os botões abaixo do segmento selecionado dependem do estado dele:
 
-- **Iniciar** começa o relógio daquele segmento e para o que estiver correndo — só um corre por vez.
-- **Pausar** o interrompe onde está. Uma partida pausada continua em andamento: a pausa para um
-  relógio, não a competição.
-- **Encerrar período** fecha aquele segmento. Depois disso ele não aceita mais Iniciar nem Pausar, e
-  não encerra a partida — registrar o resultado é uma ação separada.
+- **Iniciar partida** começa uma partida agendada e inicia o primeiro segmento.
+- **Iniciar período** inicia um segmento que ainda não rodou.
+- **Pausar** e **Encerrar período** aparecem enquanto um segmento está correndo. Pausar para o relógio onde ele está; uma partida pausada continua em andamento.
+- **Retomar** e **Encerrar período** aparecem quando o segmento está parado com tempo decorrido.
+- **Reabrir período…** aparece em um segmento encerrado. Ele pede um motivo, devolve o segmento à pausa com o tempo mantido e não faz o relógio voltar a correr: para isso, use Retomar.
 
-Eles registram o momento em que você realmente apitou. O campo de segundos decorridos ao lado
-continua sendo o que sempre foi: a forma de corrigir um valor registrado errado, depois do fato. Os
-dois caminhos ficam na mesma auditoria, com quem fez, quando, e o que o relógio marcava antes e
-depois.
+Só um segmento corre por vez. Iniciar período e Retomar não são oferecidos enquanto outro segmento está correndo, e o console informa qual é: pause ou encerre esse primeiro.
+
+O seletor de segmento mostra como **pausado** um segmento parado com tempo. Uma partida finalizada não oferece nenhuma ação de relógio.
+
+**Corrigir tempo** define o tempo do segmento selecionado, escrito em minutos e segundos (`20:50`) ou em minutos inteiros (`45`). O estado é mantido: um segmento correndo continua correndo, e um pausado continua pausado. Não está disponível em uma partida finalizada.
+
+Esses botões registram o momento em que você realmente apitou. Para corrigir um valor registrado errado, use Corrigir tempo. Todas as alterações ficam na mesma auditoria, com quem fez, quando, e o estado e o relógio antes e depois. A reabertura também registra o motivo.
 
 ## Ler o registro de eventos
 
