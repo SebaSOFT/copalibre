@@ -596,3 +596,55 @@ A timeout that a workspace declares for its integration tests SHALL apply howeve
 #### Scenario: A rescued flake is visible
 - **WHEN** a Playwright retry makes a failing test pass in continuous integration
 - **THEN** the run summary lists that test as flaky
+
+### Requirement: Integration tests share an expensive fixture only among tests that leave it unchanged
+
+An integration suite MAY prepare an expensive fixture once for several tests only when none of those tests writes to it. After those tests run, the suite SHALL verify that the fixture still holds exactly what its preparation wrote, and SHALL fail when it does not. A test that writes, prepares with other options, or needs an empty starting state SHALL keep its own fixture.
+
+#### Scenario: Read-only tests share one load
+
+- **WHEN** several tests of a suite only read the database that one default load produced
+- **THEN** the load runs once for them, and each test still makes its own assertions against that database
+
+#### Scenario: A shared test writes to the fixture
+
+- **WHEN** a test in a shared group changes a row of the shared database
+- **THEN** the suite fails and names the shared fixture as changed
+
+#### Scenario: A test needs a different starting state
+
+- **WHEN** a test loads with other options, simulates a failure part-way, or starts from a database with nothing loaded
+- **THEN** it runs against its own freshly prepared database, as before
+
+### Requirement: The local aggregate integration run declares a measured worker limit
+
+The repository's root integration command SHALL declare how many test files it runs at once. The declared count SHALL come from repeated runs of the same test inventory at several counts. It SHALL be the count with the lowest median wall time among those that do not raise the median summed file time. The measurements and the machine they ran on SHALL be recorded with the change that sets the count.
+
+#### Scenario: The root run uses the declared limit
+
+- **WHEN** a contributor runs the root integration command without a worker option
+- **THEN** no more test files run at once than the declared limit
+
+#### Scenario: A faster count costs more total time
+
+- **WHEN** a worker count lowers the median wall time but raises the median summed file time against the same inventory
+- **THEN** that count is not selected
+
+#### Scenario: A contributor overrides the limit
+
+- **WHEN** a contributor passes an explicit worker option to the root integration command
+- **THEN** the explicit option applies for that run
+
+### Requirement: Continuous integration assigns integration suites to groups from measured durations
+
+The workflow SHALL assign each integration suite to a group whose services that suite needs. A suite SHALL move between groups only with step durations from recent runs that show the move shortens the slower group's elapsed time. Every suite SHALL stay in exactly one group, and the aggregate integration check SHALL keep its identity and fail when any group fails, is cancelled, or does not report.
+
+#### Scenario: A suite moves to the shorter group
+
+- **WHEN** measured durations show one integration group finishing well after the other, and a suite in the slower group needs only services the other group provides
+- **THEN** the suite may move, and the aggregate check still covers it exactly once
+
+#### Scenario: A moved suite loses a service it needs
+
+- **WHEN** a suite is assigned to a group that does not provide one of its required services
+- **THEN** the suite fails in that group instead of skipping
