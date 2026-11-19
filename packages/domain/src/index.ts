@@ -331,6 +331,7 @@ export {
 } from './aggregates/participant-report.js';
 export {
   applyMatchCommand,
+  reopenSegment,
   runningTimers,
   validateRoster,
   type RosterSelection,
@@ -340,6 +341,7 @@ export {
   MatchOperationError,
   type MatchCommand,
   type MatchTransition,
+  type SegmentReopening,
   type RunningTimer,
   type TimerEventCodes,
 } from './aggregates/match-operations.js';
