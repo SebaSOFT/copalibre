@@ -11,6 +11,7 @@ import {
 import { rosterTerminology } from './0004-roster-terminology.js';
 import { resultReasonBackfill } from './0016-result-reason-backfill.js';
 import { fixtureGraphSources } from './0042-fixture-graph-sources.js';
+import { idempotencyClaim } from './0047-idempotency-claim.js';
 
 interface LegacyRosterSchema {
   match_lineups: {
@@ -274,6 +275,10 @@ describe('migrations (integration)', () => {
         expect.arrayContaining([expect.objectContaining({ name: 'deleted_at' })]),
       );
     }
+
+    const idempotencyClaimDown = await migrateDownOneStep(scratch.db);
+    expect(idempotencyClaimDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0046-reversible-removals');
 
     const reversibleRemovalsDown = await migrateDownOneStep(scratch.db);
     expect(reversibleRemovalsDown.error).toBeUndefined();
@@ -1085,6 +1090,82 @@ describe('migrations (integration)', () => {
       undefined,
       'walkover',
     ]);
+  });
+
+  it('0047 reads existing idempotency rows as completed and keeps pending rows on down', async () => {
+    await scratch.db.schema
+      .createTable('match_command_idempotency')
+      .addColumn('idempotency_key', 'text', (column) => column.primaryKey())
+      .addColumn('match_id', 'uuid', (column) => column.notNull())
+      .addColumn('operation', 'text', (column) => column.notNull())
+      .addColumn('request_fingerprint', 'text', (column) => column.notNull())
+      .addColumn('response', 'text', (column) => column.notNull())
+      .addColumn('created_at', 'timestamptz', (column) => column.notNull())
+      .execute();
+    const legacyMatchId = '00000000-0000-7000-8000-000000000008';
+    await scratch.db
+      .insertInto('match_command_idempotency')
+      .values({
+        idempotency_key: 'legacy-key',
+        match_id: legacyMatchId,
+        operation: 'end',
+        request_fingerprint: 'f-legacy',
+        response: JSON.stringify({ status: 'completed' }),
+        created_at: new Date(),
+      })
+      .execute();
+
+    await idempotencyClaim.up(scratch.db);
+
+    const legacy = await scratch.db
+      .selectFrom('match_command_idempotency')
+      .select(['idempotency_key', 'response_pending'])
+      .where('idempotency_key', '=', 'legacy-key')
+      .executeTakeFirstOrThrow();
+    expect(Boolean(legacy.response_pending)).toBe(false);
+
+    await scratch.db
+      .insertInto('match_command_idempotency')
+      .values({
+        idempotency_key: 'pending-key',
+        match_id: legacyMatchId,
+        operation: 'end',
+        request_fingerprint: 'f-pending',
+        response: JSON.stringify({}),
+        response_pending: true,
+        created_at: new Date(),
+      })
+      .execute();
+
+    if (!idempotencyClaim.down) {
+      throw new Error('Idempotency claim migration must support rollback.');
+    }
+    await idempotencyClaim.down(scratch.db);
+
+    // A pending key's command committed; keeping its row stops a retry from applying it again.
+    const remaining = await scratch.db
+      .selectFrom('match_command_idempotency')
+      .select('idempotency_key')
+      .orderBy('idempotency_key')
+      .execute();
+    expect(remaining.map((row) => row.idempotency_key)).toEqual(['legacy-key', 'pending-key']);
+    const table = (await scratch.db.introspection.getTables()).find(
+      (candidate) => candidate.name === 'match_command_idempotency',
+    );
+    expect(table?.columns.map((column) => column.name)).not.toContain('response_pending');
+  });
+
+  it('0047 applies cleanly after a rollback and the full chain reaches the expected version', async () => {
+    await migrateToLatest(scratch.db);
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(EXPECTED_SCHEMA_VERSION);
+
+    const rolledBack = await migrateDownOneStep(scratch.db);
+    expect(rolledBack.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.not.toBe(EXPECTED_SCHEMA_VERSION);
+
+    const reapplied = await migrateToLatest(scratch.db);
+    expect(reapplied.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(EXPECTED_SCHEMA_VERSION);
   });
 
   it('refuses 0031-schedules migration when legacy fixture_schedules has null venue_id', async () => {
