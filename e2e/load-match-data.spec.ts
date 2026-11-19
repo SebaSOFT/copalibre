@@ -76,6 +76,7 @@ function scheduledProjection() {
     rosters: [],
     rosterRoles: [],
     eligibleStaffIds: [],
+    segmentPlan: { addable: [] },
     entrants: [
       { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
       { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },

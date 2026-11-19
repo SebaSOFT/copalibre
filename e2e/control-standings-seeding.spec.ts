@@ -186,6 +186,7 @@ const matchConsoleFixture = {
   rosters: [],
   rosterRoles: [],
   eligibleStaffIds: [],
+  segmentPlan: { addable: [] },
   entrants: [],
   capabilities: [],
   projectionVersion: 1,
