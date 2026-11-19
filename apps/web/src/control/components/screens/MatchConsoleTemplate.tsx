@@ -1,7 +1,7 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState, type ReactNode } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
-import { isSupportedLanguage, resolveLabel } from '@copalibre/domain';
+import { isSupportedLanguage, resolveLabel, type SupportedLanguage } from '@copalibre/domain';
 import type {
   ConsoleEventDefinition,
   ConsoleMatchEvent,
@@ -180,7 +180,6 @@ export function MatchConsoleTemplate({
   // Only an explicit pick: until the operator names a segment, the console shows the one the
   // match is in, so it follows the match from one period to the next.
   const [pickedSegmentId, setPickedSegmentId] = useState('');
-  const [addSegmentPick, setAddSegmentPick] = useState('');
   // What the operator typed into Elapsed seconds, and for which segment. Until they type, the input
   // shows the selected segment's current clock, so Apply clock never sends a value nobody entered.
   const [elapsedDraft, setElapsedDraft] = useState<ElapsedDraft>();
@@ -300,41 +299,23 @@ export function MatchConsoleTemplate({
   );
   // Adding a segment is offered once the match is in progress: a scheduled match gets its
   // regulation from Start, and a finished one takes no more segments.
-  const addSegmentOptions = addSegmentOptionsOf(
-    projection,
-    language,
-    intl.formatMessage(messages.matchConsoleOutsidePlan),
+  const addSegmentNode = (
+    <AddSegmentField
+      disabled={!canControlClock}
+      labels={{
+        button: <FormattedMessage {...messages.matchConsoleAddSegment} />,
+        field: intl.formatMessage(messages.matchConsoleAddSegmentLabel),
+        placeholder: intl.formatMessage(messages.selectPlaceholder),
+      }}
+      onAdd={onAddSegment}
+      options={addSegmentOptionsOf(
+        projection,
+        language,
+        intl.formatMessage(messages.matchConsoleOutsidePlan),
+      )}
+      visible={projection.status === 'in-progress'}
+    />
   );
-  const addSegmentValue = addSegmentOptions.some((option) => option.value === addSegmentPick)
-    ? addSegmentPick
-    : (addSegmentOptions[0]?.value ?? '');
-  const addSegmentNode =
-    projection.status === 'in-progress' && addSegmentOptions.length > 0 ? (
-      <div className="cl-platform-form-grid">
-        <Field
-          id="console-add-segment"
-          label={intl.formatMessage(messages.matchConsoleAddSegmentLabel)}
-        >
-          <Select
-            aria-label={intl.formatMessage(messages.matchConsoleAddSegmentLabel)}
-            disabled={!canControlClock}
-            id="console-add-segment"
-            onValueChange={setAddSegmentPick}
-            options={addSegmentOptions}
-            placeholder={intl.formatMessage(messages.selectPlaceholder)}
-            value={addSegmentValue}
-          />
-        </Field>
-        <Button
-          disabled={!canControlClock || addSegmentValue === ''}
-          onClick={() => onAddSegment(addSegmentValue)}
-          type="button"
-          variant="secondary"
-        >
-          <FormattedMessage {...messages.matchConsoleAddSegment} />
-        </Button>
-      </div>
-    ) : null;
   const clockCommandLabels: Readonly<Record<SegmentClockCommand, string>> = {
     start: intl.formatMessage(messages.matchConsoleStartClock),
     resume: intl.formatMessage(messages.matchConsoleStartClock),
@@ -488,31 +469,15 @@ export function MatchConsoleTemplate({
           {projection.segments.length === 0 ? (
             <>
               <p className="cl-card__description">
-                {projection.status === 'scheduled' && projection.segmentPlan.regulation ? (
-                  <FormattedMessage
-                    {...messages.matchConsoleStartCreates}
-                    values={{
-                      count: projection.segmentPlan.regulation.count,
-                      type: resolveLabel(
-                        projection.segmentPlan.regulation.typeLabel ??
-                          projection.segmentPlan.regulation.type,
-                        language,
-                      ),
-                    }}
-                  />
-                ) : (
-                  <FormattedMessage {...messages.matchConsoleNoSegments} />
-                )}
+                <NoSegmentsLine language={language} projection={projection} />
               </p>
-              {clockActions.commands.length > 0 && (
-                <ClockCommands
-                  commands={clockActions.commands}
-                  disabled={!canControlClock}
-                  label={clockCommandsLabel}
-                  labels={clockCommandLabels}
-                  onCommand={issueClockCommand}
-                />
-              )}
+              <ClockCommands
+                commands={clockActions.commands}
+                disabled={!canControlClock}
+                label={clockCommandsLabel}
+                labels={clockCommandLabels}
+                onCommand={issueClockCommand}
+              />
               {addSegmentNode}
             </>
           ) : (
@@ -1071,6 +1036,71 @@ const variantOf = (primary: boolean): 'primary' | 'secondary' =>
   primary ? 'primary' : 'secondary';
 
 /** The clock commands the match state allows; renders nothing when there are none. */
+/** The line under the clock card while no segment exists: what Start creates, else that there are none. */
+function NoSegmentsLine({
+  language,
+  projection,
+}: {
+  readonly language: SupportedLanguage;
+  readonly projection: MatchConsoleResponse;
+}) {
+  const regulation = projection.segmentPlan.regulation;
+  if (projection.status !== 'scheduled' || regulation === undefined) {
+    return <FormattedMessage {...messages.matchConsoleNoSegments} />;
+  }
+  return (
+    <FormattedMessage
+      {...messages.matchConsoleStartCreates}
+      values={{
+        count: regulation.count,
+        type: resolveLabel(regulation.typeLabel ?? regulation.type, language),
+      }}
+    />
+  );
+}
+
+interface AddSegmentFieldProps {
+  readonly disabled: boolean;
+  readonly labels: {
+    readonly button: ReactNode;
+    readonly field: string;
+    readonly placeholder: string;
+  };
+  readonly onAdd: (type: string) => void;
+  readonly options: readonly { readonly value: string; readonly label: string }[];
+  readonly visible: boolean;
+}
+
+/** The Add segment choice: a declared type picked and appended, offered only while the match is in progress. */
+function AddSegmentField({ disabled, labels, onAdd, options, visible }: AddSegmentFieldProps) {
+  const [pick, setPick] = useState('');
+  if (!visible || options.length === 0) return null;
+  const value = options.some((option) => option.value === pick) ? pick : (options[0]?.value ?? '');
+  return (
+    <div className="cl-platform-form-grid">
+      <Field id="console-add-segment" label={labels.field}>
+        <Select
+          aria-label={labels.field}
+          disabled={disabled}
+          id="console-add-segment"
+          onValueChange={setPick}
+          options={options}
+          placeholder={labels.placeholder}
+          value={value}
+        />
+      </Field>
+      <Button
+        disabled={disabled || value === ''}
+        onClick={() => onAdd(value)}
+        type="button"
+        variant="secondary"
+      >
+        {labels.button}
+      </Button>
+    </div>
+  );
+}
+
 function ClockCommands({
   commands,
   disabled,
