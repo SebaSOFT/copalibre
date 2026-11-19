@@ -39,11 +39,11 @@ Cada segmento tem seu próprio relógio. Os botões abaixo do segmento seleciona
 
 Só um segmento corre por vez. Iniciar período e Retomar não são oferecidos enquanto outro segmento está correndo, e o console informa qual é: pause ou encerre esse primeiro.
 
-O seletor de segmento mostra como **pausado** um segmento parado com tempo. Uma partida finalizada não oferece nenhuma ação de relógio.
+O seletor de segmento mostra como **pausado** um segmento parado com tempo. Uma partida fechada (finalizada, por W.O. ou não exigida) não oferece nenhuma ação de relógio.
 
-**Corrigir tempo** define o tempo do segmento selecionado, escrito em minutos e segundos (`20:50`) ou em minutos inteiros (`45`). O estado é mantido: um segmento correndo continua correndo, e um pausado continua pausado. Não está disponível em uma partida finalizada.
+**Corrigir** define o tempo do segmento selecionado, digitado no campo **Tempo (mm:ss)**, em minutos e segundos (`20:50`) ou em minutos inteiros (`45`). O estado é mantido: um segmento correndo continua correndo, e um pausado continua pausado. Não está disponível em uma partida fechada (finalizada, por W.O. ou não exigida).
 
-Esses botões registram o momento em que você realmente apitou. Para corrigir um valor registrado errado, use Corrigir tempo. Todas as alterações ficam na mesma auditoria, com quem fez, quando, e o estado e o relógio antes e depois. A reabertura também registra o motivo.
+Esses botões registram o momento em que você realmente apitou. Para corrigir um valor registrado errado, use **Corrigir**. Todas as alterações ficam na mesma auditoria, com quem fez, quando, e o estado e o relógio antes e depois. A reabertura também registra o motivo.
 
 ## Ler o registro de eventos
 

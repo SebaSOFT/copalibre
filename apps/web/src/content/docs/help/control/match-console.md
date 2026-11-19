@@ -40,11 +40,11 @@ Each segment has its own clock. The buttons under the segment you selected depen
 
 Only one segment runs at a time. Start period and Resume are withheld while another segment runs, and the console names it: pause or end that one first.
 
-The segment selector shows a stopped segment with time on it as paused. A finalized match offers no clock action.
+The segment selector shows a stopped segment with time on it as paused. A closed match (finalized, forfeited or not-required) offers no clock action.
 
-**Correct time** sets the selected segment's time. Write it as minutes and seconds (`20:50`) or as whole minutes (`45`). It keeps the segment's state: a running segment keeps running, and a paused one stays paused. It is unavailable on a finalized match.
+**Correct** sets the selected segment's time. Type it in the field labelled **Time (mm:ss)**, as minutes and seconds (`20:50`) or as whole minutes (`45`). It keeps the segment's state: a running segment keeps running, and a paused one stays paused. It is unavailable on a closed match (finalized, forfeited or not-required).
 
-These buttons record the moment you actually blew the whistle. Use Correct time to fix a value recorded wrong. Every change lands in the same audit trail, with who did it, when, and the state and clock before and after. A reopen also records its reason.
+These buttons record the moment you actually blew the whistle. Use **Correct** to fix a value recorded wrong. Every change lands in the same audit trail, with who did it, when, and the state and clock before and after. A reopen also records its reason.
 
 ## Reading the event ledger
 

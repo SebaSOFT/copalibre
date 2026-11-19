@@ -41,11 +41,11 @@ Ogni segmento ha il proprio orologio. I pulsanti sotto il segmento selezionato d
 
 Gira un solo segmento alla volta. Avvia periodo e Riprendi non vengono proposti mentre un altro segmento è in corso, e la console lo indica: mettilo in pausa o terminalo prima.
 
-Il selettore del segmento mostra «in pausa» un segmento fermo con del tempo. Una partita finalizzata non offre azioni sull'orologio.
+Il selettore del segmento mostra «in pausa» un segmento fermo con del tempo. Una partita chiusa (finalizzata, per forfait o non richiesta) non offre azioni sull'orologio.
 
-**Correggi l'ora** imposta il tempo del segmento selezionato, scritto in minuti e secondi (`20:50`) o in minuti interi (`45`). Lo stato resta invariato: un segmento in corso continua, uno in pausa resta in pausa. Non è disponibile su una partita finalizzata.
+**Correggi** imposta il tempo del segmento selezionato, da scrivere nel campo **Tempo (mm:ss)**, in minuti e secondi (`20:50`) o in minuti interi (`45`). Lo stato resta invariato: un segmento in corso continua, uno in pausa resta in pausa. Non è disponibile su una partita chiusa (finalizzata, per forfait o non richiesta).
 
-Questi pulsanti registrano il momento in cui hai davvero fischiato. Per correggere un valore registrato male usa Correggi l'ora. Ogni modifica finisce nello stesso registro di audit, con chi, quando, e stato e orologio prima e dopo. La riapertura registra anche il motivo.
+Questi pulsanti registrano il momento in cui hai davvero fischiato. Per correggere un valore registrato male usa **Correggi**. Ogni modifica finisce nello stesso registro di audit, con chi, quando, e stato e orologio prima e dopo. La riapertura registra anche il motivo.
 
 ## Leggere il registro eventi
 

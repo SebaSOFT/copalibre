@@ -42,9 +42,9 @@ Es läuft immer nur ein Abschnitt. Abschnitt starten und Fortsetzen werden nicht
 
 Die Abschnittsauswahl zeigt einen angehaltenen Abschnitt mit Zeit als **pausiert**. Bei einem abgeschlossenen Spiel gibt es keine Uhraktion mehr.
 
-**Zeit korrigieren** setzt die Zeit des ausgewählten Abschnitts. Sie wird als Minuten und Sekunden (`20:50`) oder als volle Minuten (`45`) eingegeben. Der Zustand bleibt erhalten: ein laufender Abschnitt läuft weiter, ein pausierter bleibt pausiert. Bei einem abgeschlossenen Spiel ist das nicht möglich.
+**Korrigieren** setzt die Zeit des ausgewählten Abschnitts. Sie wird im Feld **Zeit (mm:ss)** eingetragen, als Minuten und Sekunden (`20:50`) oder als volle Minuten (`45`). Der Zustand bleibt erhalten: ein laufender Abschnitt läuft weiter, ein pausierter bleibt pausiert. Bei einem geschlossenen Spiel (beendet, durch Forfait oder nicht erforderlich) ist das nicht möglich.
 
-Diese Schaltflächen halten den Moment fest, in dem tatsächlich gepfiffen wurde. Einen falsch erfassten Wert korrigieren Sie mit Zeit korrigieren. Jede Änderung landet in derselben Prüfspur, mit wer, wann, sowie Zustand und Uhrzeit davor und danach. Das Wiedereröffnen speichert außerdem den Grund.
+Diese Schaltflächen halten den Moment fest, in dem tatsächlich gepfiffen wurde. Einen falsch erfassten Wert korrigieren Sie mit **Korrigieren**. Jede Änderung landet in derselben Prüfspur, mit wer, wann, sowie Zustand und Uhrzeit davor und danach. Das Wiedereröffnen speichert außerdem den Grund.
 
 ## Das Ereignisprotokoll lesen
 
