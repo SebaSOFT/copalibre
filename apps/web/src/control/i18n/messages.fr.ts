@@ -332,10 +332,12 @@ export const messages: Record<string, string> = {
     '{count, plural, one {# action refusée} other {# actions refusées}}',
   'control.matchConsole.unnamedEntrant': 'Participant sans nom',
   'control.matchConsole.clockCommands': 'Commandes d’horloge',
-  'control.matchConsole.anotherSegmentRunning': '{segment} est en cours. Mettez-le en pause ou terminez-le avant de démarrer ou de reprendre un autre segment.',
+  'control.matchConsole.anotherSegmentRunning':
+    '{segment} est en cours. Mettez-le en pause ou terminez-le avant de démarrer ou de reprendre un autre segment.',
   'control.matchConsole.correctTimeLabel': 'Temps (mm:ss)',
   'control.matchConsole.correctTime': 'Corriger',
-  'control.matchConsole.reopenConfirm': 'Rouvrir {segment} ? Il repasse en pause avec son temps conservé. Le motif est enregistré dans le journal d’audit.',
+  'control.matchConsole.reopenConfirm':
+    'Rouvrir {segment} ? Il repasse en pause avec son temps conservé. Le motif est enregistré dans le journal d’audit.',
   'control.matchConsole.reopenReason': 'Motif',
   'control.matchConsole.reopenConfirmButton': 'Rouvrir le segment',
   'control.matchConsole.pauseClock': 'Pause',

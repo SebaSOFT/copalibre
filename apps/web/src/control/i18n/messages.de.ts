@@ -335,10 +335,12 @@ export const messages: Record<string, string> = {
     '{count, plural, one {# abgelehnte Aktion} other {# abgelehnte Aktionen}}',
   'control.matchConsole.unnamedEntrant': 'Unbenannter Teilnehmer',
   'control.matchConsole.clockCommands': 'Uhrbefehle',
-  'control.matchConsole.anotherSegmentRunning': '{segment} läuft. Pausieren oder beenden Sie dieses Segment, bevor Sie ein anderes starten oder fortsetzen.',
+  'control.matchConsole.anotherSegmentRunning':
+    '{segment} läuft. Pausieren oder beenden Sie dieses Segment, bevor Sie ein anderes starten oder fortsetzen.',
   'control.matchConsole.correctTimeLabel': 'Zeit (mm:ss)',
   'control.matchConsole.correctTime': 'Korrigieren',
-  'control.matchConsole.reopenConfirm': '{segment} wieder öffnen? Es kehrt pausiert mit seiner Zeit zurück. Der Grund wird im Audit-Protokoll festgehalten.',
+  'control.matchConsole.reopenConfirm':
+    '{segment} wieder öffnen? Es kehrt pausiert mit seiner Zeit zurück. Der Grund wird im Audit-Protokoll festgehalten.',
   'control.matchConsole.reopenReason': 'Grund',
   'control.matchConsole.reopenConfirmButton': 'Segment wieder öffnen',
   'control.matchConsole.pauseClock': 'Pausieren',

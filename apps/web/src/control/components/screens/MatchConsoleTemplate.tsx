@@ -542,7 +542,10 @@ export function MatchConsoleTemplate({
                   />
                 </Field>
               </div>
-              <RunningSegmentLine segmentText={segmentTextOf} segment={clockActions.runningSegment} />
+              <RunningSegmentLine
+                segmentText={segmentTextOf}
+                segment={clockActions.runningSegment}
+              />
               {/* The whistle, not a correction: these record the moment the clock actually changed. */}
               <ClockCommands
                 actions={clockActions.actions}

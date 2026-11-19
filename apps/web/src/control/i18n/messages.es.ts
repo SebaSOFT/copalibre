@@ -333,10 +333,12 @@ export const messages: Record<string, string> = {
     '{count, plural, one {# acción rechazada} other {# acciones rechazadas}}',
   'control.matchConsole.unnamedEntrant': 'Participante sin nombre',
   'control.matchConsole.clockCommands': 'Comandos de reloj',
-  'control.matchConsole.anotherSegmentRunning': '{segment} está en curso. Pausa o termina ese segmento antes de iniciar o reanudar otro.',
+  'control.matchConsole.anotherSegmentRunning':
+    '{segment} está en curso. Pausa o termina ese segmento antes de iniciar o reanudar otro.',
   'control.matchConsole.correctTimeLabel': 'Tiempo (mm:ss)',
   'control.matchConsole.correctTime': 'Corregir',
-  'control.matchConsole.reopenConfirm': '¿Reabrir {segment}? Vuelve a pausa con su tiempo conservado. El motivo queda registrado en el historial de auditoría.',
+  'control.matchConsole.reopenConfirm':
+    '¿Reabrir {segment}? Vuelve a pausa con su tiempo conservado. El motivo queda registrado en el historial de auditoría.',
   'control.matchConsole.reopenReason': 'Motivo',
   'control.matchConsole.reopenConfirmButton': 'Reabrir segmento',
   'control.matchConsole.pauseClock': 'Pausar',

@@ -315,10 +315,12 @@ export const messages: Record<string, string> = {
   'control.interaction.refusedCount': '{count} 项被拒绝操作',
   'control.matchConsole.unnamedEntrant': '未命名参赛者',
   'control.matchConsole.clockCommands': '计时控制',
-  'control.matchConsole.anotherSegmentRunning': '{segment}正在进行。请先暂停或结束它，再开始或继续另一分段。',
+  'control.matchConsole.anotherSegmentRunning':
+    '{segment}正在进行。请先暂停或结束它，再开始或继续另一分段。',
   'control.matchConsole.correctTimeLabel': '时间（mm:ss）',
   'control.matchConsole.correctTime': '更正',
-  'control.matchConsole.reopenConfirm': '重新开启{segment}？它将回到暂停状态并保留当前时间。原因将记入审计记录。',
+  'control.matchConsole.reopenConfirm':
+    '重新开启{segment}？它将回到暂停状态并保留当前时间。原因将记入审计记录。',
   'control.matchConsole.reopenReason': '原因',
   'control.matchConsole.reopenConfirmButton': '重新开启分段',
   'control.matchConsole.pauseClock': '暂停',
