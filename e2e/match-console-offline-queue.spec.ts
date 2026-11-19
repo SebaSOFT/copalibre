@@ -61,6 +61,13 @@ function projection() {
     ],
     rosterRoles: [],
     eligibleStaffIds: [],
+    segmentPlan: {
+      regulation: { type: 'half', typeLabel: 'Half', count: 2, maximum: 2 },
+      addable: [
+        { type: 'half', typeLabel: 'Half', withinPlan: true },
+        { type: 'extra-time', typeLabel: 'Extra time', withinPlan: true },
+      ],
+    },
     entrants: [
       { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
       { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },
@@ -118,6 +125,34 @@ async function mockMatchConsole(page: Page): Promise<void> {
             }),
             { headers: { 'Content-Type': 'text/event-stream' } },
           );
+        }
+
+        if (url === `${path}/segments` && method === 'POST') {
+          // Counted outside the page state, so a replay that the queue sent twice shows up.
+          const posts = Number(window.sessionStorage.getItem('match-console-segment-posts') ?? '0');
+          window.sessionStorage.setItem('match-console-segment-posts', String(posts + 1));
+          const number = state.segments.length + 1;
+          state = {
+            ...state,
+            segments: [
+              ...state.segments,
+              {
+                segmentId: `segment-added-${number}`,
+                type: body.type,
+                number,
+                state: 'pending',
+                elapsedSeconds: 0,
+              },
+            ],
+            projectionVersion: state.projectionVersion + 1,
+          };
+          persist();
+          return Response.json({
+            matchId: state.matchId,
+            status: state.status,
+            clockRunning: false,
+            runningTimers: [],
+          });
         }
 
         if (url === `${path}/events` && method === 'POST') {
@@ -234,6 +269,34 @@ test('queues a recorded event while offline, then drains it once back online', a
   await page.evaluate(() => window.__emitProjectionAck?.());
   await expect(page.locator('.cl-event-sync-mark')).toHaveText('Confirmed');
   await expect(page.locator('.cl-connection-status')).toContainText('Last synced');
+});
+
+test('an added segment queued offline is sent once on reconnection', async ({ page }) => {
+  await mockMatchConsole(page);
+  await seedLoginTransaction(
+    page,
+    `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`,
+  );
+  await page.goto(loginCallbackUrl());
+  await selectEnglish(page);
+  await page.getByRole('button', { name: 'Add segment', exact: true }).waitFor();
+
+  await page.context().setOffline(true);
+  await setOffline(page, true);
+  await page.getByRole('combobox', { name: 'Segment to add' }).selectOption('extra-time');
+  await page.getByRole('button', { name: 'Add segment', exact: true }).click();
+  await expect(page.locator('.cl-connection-status')).toContainText('1 queued action');
+
+  await setOffline(page, false);
+  await page.context().setOffline(false);
+  await page.evaluate(() => window.dispatchEvent(new Event('online')));
+  await expect(page.locator('.cl-connection-status')).not.toContainText('queued', {
+    timeout: 12_000,
+  });
+
+  await expect
+    .poll(() => page.evaluate(() => window.sessionStorage.getItem('match-console-segment-posts')))
+    .toBe('1');
 });
 
 test('the clock form and the clock commands keep a gap between them', async ({ page }) => {

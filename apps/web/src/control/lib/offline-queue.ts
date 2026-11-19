@@ -35,6 +35,13 @@ export type QueuedAction =
       readonly segmentId: string;
     }
   | {
+      readonly kind: 'segment-add';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+      readonly matchId: string;
+      readonly type: string;
+    }
+  | {
       readonly kind: 'timer-resolve';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
@@ -231,6 +238,14 @@ async function replay(client: MatchConsoleApiClient, mutation: QueuedMutation): 
         action.segmentId,
         idempotencyKey,
       );
+    case 'segment-add':
+      return client.addMatchSegment(
+        action.organizationAlias,
+        action.tournamentAlias,
+        action.matchId,
+        action.type,
+        idempotencyKey,
+      );
     case 'timer-resolve':
       return client.resolveMatchTimer(
         action.organizationAlias,
@@ -313,7 +328,12 @@ export function describeQueuedAction(action: QueuedAction): string {
     case 'clock-adjust':
       return `Clock set to ${action.request.elapsedSeconds}s`;
     case 'clock-command':
-      return `Clock ${action.command} on segment ${action.segmentId}`;
+      // A Start that creates the regulation plan has no segment yet to name.
+      return action.segmentId === ''
+        ? `Clock ${action.command}`
+        : `Clock ${action.command} on segment ${action.segmentId}`;
+    case 'segment-add':
+      return `Segment ${action.type} added`;
     case 'timer-resolve':
       return `Timer ${action.timerId} resolved`;
   }

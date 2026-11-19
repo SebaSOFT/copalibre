@@ -896,6 +896,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/segments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a segment of a declared type to a match in progress
+         * @description Appends one pending segment after the last one. A segment beyond the regulation plan is accepted and reported as outside the plan; only a match that is not in progress and a type the discipline does not declare are refused.
+         */
+        post: operations["MatchControlController_addSegment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/clock": {
         parameters: {
             query?: never;
@@ -4439,6 +4459,30 @@ export interface components {
             /** @description Descriptor-declared duration for a timed segment */
             durationSeconds?: number;
         };
+        ConsoleRegulationResponse: {
+            /** @description The discipline's regulation segment type slug */
+            type: string;
+            /** @description The regulation type's declared display label */
+            typeLabel?: Record<string, never>;
+            /** @description Segments Start creates for the match */
+            count: number;
+            /** @description How many regulation segments the ruleset expects; absent when it states none */
+            maximum?: number;
+        };
+        ConsoleAddableSegmentResponse: {
+            /** @description Declared segment type slug an Add segment command may append */
+            type: string;
+            /** @description The type's declared display label */
+            typeLabel?: Record<string, never>;
+            /** @description False only for the regulation type once the plan is full: the addition is allowed and labelled */
+            withinPlan: boolean;
+        };
+        ConsoleSegmentPlanResponse: {
+            /** @description The regulation plan; absent when the discipline declares no segment type */
+            regulation?: components["schemas"]["ConsoleRegulationResponse"];
+            /** @description Every declared segment type, with whether adding it stays within the plan */
+            addable: components["schemas"]["ConsoleAddableSegmentResponse"][];
+        };
         RunningTimerDto: {
             /**
              * Format: uuid
@@ -4540,6 +4584,7 @@ export interface components {
             result: Record<string, never>;
             liveScores: components["schemas"]["ConsoleLiveScoreResponse"][];
             segments: components["schemas"]["ConsoleSegmentResponse"][];
+            segmentPlan: components["schemas"]["ConsoleSegmentPlanResponse"];
             runningTimers: components["schemas"]["RunningTimerDto"][];
             events: components["schemas"]["ConsoleEventResponse"][];
             /** @description Descriptor-owned palette presentation metadata */
@@ -4584,6 +4629,10 @@ export interface components {
              * @description Duel matches only
              */
             winnerEntrantId?: string;
+        };
+        AddSegmentRequest: {
+            /** @description A segment type the bound discipline declares, e.g. "extra-time" or "set" */
+            type: string;
         };
         ClockAdjustmentRequest: {
             /** Format: uuid */
@@ -9248,6 +9297,52 @@ export interface operations {
         };
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchStateResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    MatchControlController_addSegment: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A retried request with the same key and body replays the prior response. */
+                "idempotency-key"?: string;
+            };
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddSegmentRequest"];
+            };
+        };
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -26,6 +26,7 @@ const meta = {
     onCancelFinalize: () => undefined,
     onDismissMutation: () => undefined,
     onFinalize: async () => true,
+    onAddSegment: () => undefined,
     onIssueClockCommand: () => undefined,
     onRecordEvent: () => undefined,
     onResolveTimer: () => undefined,

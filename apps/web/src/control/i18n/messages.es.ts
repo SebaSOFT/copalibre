@@ -352,6 +352,11 @@ export const messages: Record<string, string> = {
   'control.matchConsole.elapsedSeconds': 'Segundos transcurridos',
   'control.matchConsole.applyClock': 'Aplicar reloj',
   'control.matchConsole.noSegments': 'Este partido todavía no tiene segmentos.',
+  'control.matchConsole.startCreates':
+    'Iniciar crea {count, plural, one {# segmento de tipo {type}} other {# segmentos de tipo {type}}}',
+  'control.matchConsole.addSegment': 'Agregar segmento',
+  'control.matchConsole.addSegmentLabel': 'Segmento a agregar',
+  'control.matchConsole.outsidePlan': '(fuera del plan)',
   'control.matchConsole.noEvents': 'No hay eventos para mostrar.',
   'control.matchConsole.recordEvent': 'Registrar evento',
   'control.matchConsole.participant': 'Participante',

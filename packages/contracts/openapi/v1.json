@@ -3457,6 +3457,98 @@
         ]
       }
     },
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/segments": {
+      "post": {
+        "description": "Appends one pending segment after the last one. A segment beyond the regulation plan is accepted and reported as outside the plan; only a match that is not in progress and a type the discipline does not declare are refused.",
+        "operationId": "MatchControlController_addSegment",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "required": false,
+            "in": "header",
+            "description": "A retried request with the same key and body replays the prior response.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddSegmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchStateResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a segment of a declared type to a match in progress",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
     "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/clock": {
       "post": {
         "operationId": "MatchControlController_adjustClock",
@@ -15930,6 +16022,75 @@
           "elapsedSeconds"
         ]
       },
+      "ConsoleRegulationResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "The discipline's regulation segment type slug"
+          },
+          "typeLabel": {
+            "type": "object",
+            "description": "The regulation type's declared display label"
+          },
+          "count": {
+            "type": "number",
+            "description": "Segments Start creates for the match"
+          },
+          "maximum": {
+            "type": "number",
+            "description": "How many regulation segments the ruleset expects; absent when it states none"
+          }
+        },
+        "required": [
+          "type",
+          "count"
+        ]
+      },
+      "ConsoleAddableSegmentResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Declared segment type slug an Add segment command may append"
+          },
+          "typeLabel": {
+            "type": "object",
+            "description": "The type's declared display label"
+          },
+          "withinPlan": {
+            "type": "boolean",
+            "description": "False only for the regulation type once the plan is full: the addition is allowed and labelled"
+          }
+        },
+        "required": [
+          "type",
+          "withinPlan"
+        ]
+      },
+      "ConsoleSegmentPlanResponse": {
+        "type": "object",
+        "properties": {
+          "regulation": {
+            "description": "The regulation plan; absent when the discipline declares no segment type",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ConsoleRegulationResponse"
+              }
+            ]
+          },
+          "addable": {
+            "description": "Every declared segment type, with whether adding it stays within the plan",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsoleAddableSegmentResponse"
+            }
+          }
+        },
+        "required": [
+          "addable"
+        ]
+      },
       "RunningTimerDto": {
         "type": "object",
         "properties": {
@@ -16231,6 +16392,9 @@
               "$ref": "#/components/schemas/ConsoleSegmentResponse"
             }
           },
+          "segmentPlan": {
+            "$ref": "#/components/schemas/ConsoleSegmentPlanResponse"
+          },
           "runningTimers": {
             "type": "array",
             "items": {
@@ -16321,6 +16485,7 @@
           "result",
           "liveScores",
           "segments",
+          "segmentPlan",
           "runningTimers",
           "events",
           "eventDefinitions",
@@ -16357,6 +16522,18 @@
         },
         "required": [
           "sides"
+        ]
+      },
+      "AddSegmentRequest": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "A segment type the bound discipline declares, e.g. \"extra-time\" or \"set\""
+          }
+        },
+        "required": [
+          "type"
         ]
       },
       "ClockAdjustmentRequest": {

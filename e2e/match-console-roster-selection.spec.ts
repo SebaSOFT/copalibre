@@ -57,6 +57,7 @@ function projection(rosters: readonly unknown[] = []) {
     rosters,
     rosterRoles: [{ code: 'captain', label: 'Captain', badge: 'C' }],
     eligibleStaffIds: [],
+    segmentPlan: { addable: [] },
     entrants: [
       { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
       { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },

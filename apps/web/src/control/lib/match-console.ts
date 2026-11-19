@@ -12,18 +12,35 @@ import {
   type SideSource,
   type SideSourceMessages,
 } from '../../lib/side-source.js';
+import { resolveLabel, type SupportedLanguage } from '@copalibre/domain';
 import type {
   ConsoleEventDefinition,
   ConsoleMatchEvent,
   ConsoleRoster,
   ConsoleRosterMember,
   ConsoleSegment,
+  ConsoleSegmentPlan,
   MatchConsoleResponse,
   SegmentClockCommand,
 } from './api-client.js';
 
 export function newIdempotencyKey(): string {
   return uuidv7();
+}
+
+/**
+ * The idempotency key of an Add segment: one per match, projection version and type. Taps
+ * repeated before the console shows the added segment carry the same key, so the server creates
+ * one segment; with no projection loaded yet every tap is its own request.
+ */
+export function segmentAddKey(
+  matchId: string,
+  projectionVersion: number | undefined,
+  type: string,
+): string {
+  return projectionVersion === undefined
+    ? newIdempotencyKey()
+    : `segment-add:${matchId}:${projectionVersion}:${type}`;
 }
 
 export function currentEpochMilliseconds(): number {
@@ -113,9 +130,16 @@ export function clockActionsOf(
   status: MatchConsoleResponse['status'],
   segments: readonly ConsoleSegment[],
   selected: ConsoleSegment | undefined,
+  regulation?: ConsoleSegmentPlan['regulation'],
 ): ClockActions {
   const finalizePrimary =
     status === 'in-progress' && segments.every((segment) => segment.state === 'completed');
+  // A scheduled match with no segments has nothing selected yet: Start creates its regulation.
+  if (status === 'scheduled' && segments.length === 0) {
+    return regulation === undefined
+      ? { commands: [], finalizePrimary }
+      : { commands: [{ command: 'start', primary: true }], finalizePrimary };
+  }
   if (selected === undefined || selected.state === 'completed') {
     return { commands: [], finalizePrimary };
   }
@@ -132,6 +156,24 @@ export function clockActionsOf(
     ],
     finalizePrimary,
   };
+}
+
+/**
+ * The Add segment choices: every declared type, labelled in the operator's language, with the
+ * outside-plan suffix on the ones that would go beyond the plan.
+ */
+export function addSegmentOptionsOf(
+  projection: Pick<MatchConsoleResponse, 'segmentPlan'>,
+  language: SupportedLanguage,
+  outsidePlanSuffix: string,
+): readonly { readonly value: string; readonly label: string }[] {
+  return projection.segmentPlan.addable.map((entry) => {
+    const name = resolveLabel(entry.typeLabel ?? entry.type, language);
+    return {
+      value: entry.type,
+      label: entry.withinPlan ? name : `${name} ${outsidePlanSuffix}`,
+    };
+  });
 }
 
 /**

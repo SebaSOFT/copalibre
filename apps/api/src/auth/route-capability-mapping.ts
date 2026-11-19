@@ -155,6 +155,7 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'ReportReviewController.review': 'org.review-reports',
 
   // org.operate-match
+  'MatchControlController.addSegment': 'org.operate-match',
   'MatchControlController.adjustClock': 'org.operate-match',
   'MatchControlController.bulkLoad': 'org.operate-match',
   'MatchControlController.command': 'org.operate-match',

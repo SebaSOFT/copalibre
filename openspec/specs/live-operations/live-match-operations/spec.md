@@ -192,3 +192,22 @@ without requiring direct database access.
   through the supported API path
 - **THEN** the request SHALL succeed, using either an explicit, grantable assignment or the admin's
   organization-scoped authority, rather than being refused with no path to remedy it
+
+### Requirement: A match is in progress only with a segment set running
+
+A match SHALL enter or resume the in-progress state only when a segment is set running. A Start or Resume command with no segment to set running SHALL be refused as a bad-request error. The match's status and segments SHALL stay unchanged after such a refusal.
+
+#### Scenario: Start is refused for a match with no segments
+
+- **WHEN** a Start command arrives for a scheduled match that has no segments
+- **THEN** the request is refused as a bad-request error and the match stays scheduled
+
+#### Scenario: Start without a named segment starts the first segment not yet ended
+
+- **WHEN** a Start command arrives for a scheduled match whose segments are all pending and names no segment
+- **THEN** the first segment not yet ended starts, and the match becomes in progress
+
+#### Scenario: Resume is refused when every segment has ended
+
+- **WHEN** a Resume command arrives for an in-progress match whose segments have all ended
+- **THEN** the request is refused as a bad-request error and no segment changes state

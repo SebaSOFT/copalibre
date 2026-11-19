@@ -484,6 +484,13 @@ export {
   type ScheduleMutationContext,
 } from './aggregates/schedule-mutation.js';
 export { estimatedMatchMinutes } from './aggregates/match-duration.js';
+export { segmentsDefaultOf } from './aggregates/segment-regulation.js';
+export {
+  addableSegmentsOf,
+  segmentPlanOf,
+  type AddableSegment,
+  type SegmentPlan,
+} from './aggregates/segment-plan.js';
 export {
   isScheduleReasonPreset,
   SCHEDULE_REASON_PRESETS,

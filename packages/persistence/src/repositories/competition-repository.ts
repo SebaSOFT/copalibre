@@ -2613,8 +2613,8 @@ export class CompetitionRepository {
     });
   }
 
-  async resolvedTimerIds(matchId: string): Promise<ReadonlySet<string>> {
-    const rows = await this.db
+  async resolvedTimerIds(matchId: string, uow?: UnitOfWork): Promise<ReadonlySet<string>> {
+    const rows = await (uow?.tx ?? this.db)
       .selectFrom('match_timer_resolutions')
       .select('timer_id')
       .where('match_id', '=', matchId)
@@ -2841,8 +2841,9 @@ export class CompetitionRepository {
     return row?.stage_id;
   }
 
-  async listSegments(matchId: string): Promise<readonly Segment[]> {
-    const rows = await this.db
+  /** With a unit of work, reads on its transaction, so a caller holding a row lock needs no second connection. */
+  async listSegments(matchId: string, uow?: UnitOfWork): Promise<readonly Segment[]> {
+    const rows = await (uow?.tx ?? this.db)
       .selectFrom('segments')
       .selectAll()
       .where('match_id', '=', matchId)
@@ -2964,8 +2965,8 @@ export class CompetitionRepository {
     return (row?.sequence ?? 0) + 1;
   }
 
-  async listEvents(matchId: string): Promise<readonly RecordedEvent[]> {
-    const rows = await this.db
+  async listEvents(matchId: string, uow?: UnitOfWork): Promise<readonly RecordedEvent[]> {
+    const rows = await (uow?.tx ?? this.db)
       .selectFrom('match_events')
       .selectAll()
       .where('match_id', '=', matchId)

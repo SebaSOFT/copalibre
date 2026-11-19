@@ -50,20 +50,6 @@ describe('persisted bracket activation through HTTP', () => {
     await harness?.scratch.drop();
   });
 
-  /** A pending half for a match, so that a start command has a segment to set running. */
-  async function addHalf(matchId: string): Promise<void> {
-    const { db } = harness.scratch;
-    await withTransaction(db, (uow) =>
-      new CompetitionRepository(db).createSegment(uow, {
-        matchId,
-        type: 'half',
-        number: 1,
-        organizationId: harness.organizationId,
-        ...AUDIT,
-      }),
-    );
-  }
-
   async function setup(
     options: {
       count?: number;
@@ -86,7 +72,7 @@ describe('persisted bracket activation through HTTP', () => {
       attribution: { author: 'CopaLibre', licence: 'AGPL-3.0-only' },
       participantTypes: [options.individual ? 'person' : 'team'],
       rosterConstraints: { minPlayers: 1, maxPlayers: 11 },
-      segmentTypes: [],
+      segmentTypes: [{ name: 'half', label: 'Half', timed: false }],
       eventDefinitions: [],
       statistics: [],
       scoringInputs: [],
@@ -239,7 +225,6 @@ describe('persisted bracket activation through HTTP', () => {
     };
   }
   async function play(alias: string, matchId: string, home: string, away: string) {
-    await addHalf(matchId);
     expect((await request('POST', `${matchBase(alias, matchId)}/commands/start`)).statusCode).toBe(
       201,
     );
@@ -485,7 +470,6 @@ describe('persisted bracket activation through HTTP', () => {
           finalBefore.away_entrant_id,
         );
       } else if (started) {
-        await addHalf(finalGame.matchId);
         expect(
           (await request('POST', `${matchBase(cup.alias, finalGame.matchId)}/commands/start`))
             .statusCode,

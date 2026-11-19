@@ -5,6 +5,7 @@ import {
   IsArray,
   IsBoolean,
   IsInt,
+  IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
@@ -218,6 +219,50 @@ export class ConsoleEntrantResponse {
 }
 
 /** The protected read model a live-match console uses to render and recover. */
+export class ConsoleRegulationResponse {
+  @ApiProperty({ description: "The discipline's regulation segment type slug" })
+  type!: string;
+
+  @ApiPropertyOptional({ description: "The regulation type's declared display label" })
+  typeLabel?: string | LocalizedLabel;
+
+  @ApiProperty({ description: 'Segments Start creates for the match' })
+  count!: number;
+
+  @ApiPropertyOptional({
+    description: 'How many regulation segments the ruleset expects; absent when it states none',
+  })
+  maximum?: number;
+}
+
+export class ConsoleAddableSegmentResponse {
+  @ApiProperty({ description: 'Declared segment type slug an Add segment command may append' })
+  type!: string;
+
+  @ApiPropertyOptional({ description: "The type's declared display label" })
+  typeLabel?: string | LocalizedLabel;
+
+  @ApiProperty({
+    description:
+      'False only for the regulation type once the plan is full: the addition is allowed and labelled',
+  })
+  withinPlan!: boolean;
+}
+
+export class ConsoleSegmentPlanResponse {
+  @ApiPropertyOptional({
+    type: ConsoleRegulationResponse,
+    description: 'The regulation plan; absent when the discipline declares no segment type',
+  })
+  regulation?: ConsoleRegulationResponse;
+
+  @ApiProperty({
+    type: [ConsoleAddableSegmentResponse],
+    description: 'Every declared segment type, with whether adding it stays within the plan',
+  })
+  addable!: ConsoleAddableSegmentResponse[];
+}
+
 export class MatchConsoleResponse extends FixtureSourcesResponse {
   @ApiProperty({ format: 'uuid' })
   matchId!: string;
@@ -236,6 +281,9 @@ export class MatchConsoleResponse extends FixtureSourcesResponse {
 
   @ApiProperty({ type: [ConsoleSegmentResponse] })
   segments!: ConsoleSegmentResponse[];
+
+  @ApiProperty({ type: ConsoleSegmentPlanResponse })
+  segmentPlan!: ConsoleSegmentPlanResponse;
 
   @ApiProperty({ type: [RunningTimerDto] })
   runningTimers!: RunningTimerDto[];
@@ -449,6 +497,15 @@ export class SetMatchRosterRequest {
  * than for finalize alone, because start/pause/resume/end use it too: they send
  * only `segmentId`, and finalize sends only the result.
  */
+export class AddSegmentRequest {
+  @ApiProperty({
+    description: 'A segment type the bound discipline declares, e.g. "extra-time" or "set"',
+  })
+  @IsString()
+  @IsNotEmpty()
+  type!: string;
+}
+
 export class MatchCommandRequest {
   @ApiPropertyOptional({
     format: 'uuid',

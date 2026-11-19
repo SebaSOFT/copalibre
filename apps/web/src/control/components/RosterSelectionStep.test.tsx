@@ -44,6 +44,9 @@ function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApi
     resolveMatchTimer: async () => {
       throw new Error('not used in this test');
     },
+    addMatchSegment: async () => {
+      throw new Error('not used in this test');
+    },
     sendMatchCommand: async () => {
       throw new Error('not used in this test');
     },

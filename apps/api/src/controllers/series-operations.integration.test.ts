@@ -61,7 +61,7 @@ function descriptor(): DisciplineDescriptor {
     attribution: { author: 'CopaLibre', licence: 'AGPL-3.0-only' },
     participantTypes: ['team'],
     rosterConstraints: { minPlayers: 1, maxPlayers: 11 },
-    segmentTypes: [],
+    segmentTypes: [{ name: 'half', label: 'Half', timed: false }],
     eventDefinitions: [],
     statistics: [{ code: 'goals', label: 'Goles', aggregation: 'sum' }],
     scoringInputs: [],
@@ -115,15 +115,6 @@ describe('series operations (integration)', () => {
 
   /** Plays one game to a decision: start, then finalize with the winner named. */
   async function playGame(matchId: string, winner: string, loser: string) {
-    await withTransaction(scratch.db, (uow) =>
-      new CompetitionRepository(scratch.db).createSegment(uow, {
-        matchId,
-        type: 'half',
-        number: 1,
-        organizationId,
-        ...AUDIT,
-      }),
-    );
     const started = await request({
       method: 'POST',
       url: `${matchBase(matchId)}/commands/start`,

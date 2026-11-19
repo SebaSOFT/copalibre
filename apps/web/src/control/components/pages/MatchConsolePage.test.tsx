@@ -8,6 +8,7 @@ import { clearAll } from '../../lib/offline-queue.js';
 
 function mockProjection(overrides: Partial<MatchConsoleResponse> = {}): MatchConsoleResponse {
   return {
+    segmentPlan: { addable: [] },
     matchId: 'match-1',
     stageNumber: 1,
     homeEntrantId: 'entrant-home',

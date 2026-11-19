@@ -19,6 +19,7 @@ import {
   descriptionFor,
   eventSyncKey,
   newIdempotencyKey,
+  segmentAddKey,
   undecidedSidesOf,
 } from '../../lib/match-console.js';
 import { sideSourceLabelsFromControlIntl } from '../../lib/matches-view-labels.js';
@@ -393,6 +394,21 @@ export function MatchConsolePage({
     );
   }
 
+  /**
+   * Queued like the clock commands: an addition made in a dead zone is sent once, with its
+   * idempotency key, when the connection returns. The segment appears when the console reloads,
+   * so the key is derived from the projection version the operator is looking at: a repeated
+   * tap before that reload is the same request and creates one segment, and an addition made
+   * after it, on the newer version, is a new one.
+   */
+  async function addSegment(type: string): Promise<void> {
+    await mutate(
+      { kind: 'segment-add', organizationAlias, tournamentAlias, matchId, type },
+      undefined,
+      segmentAddKey(matchId, projection?.projectionVersion, type),
+    );
+  }
+
   async function applyClock(segmentId: string, elapsedSeconds: number): Promise<void> {
     await mutate(
       {
@@ -598,6 +614,7 @@ export function MatchConsolePage({
         onCancelFinalize={cancelFinalize}
         onDismissMutation={dismissMutation}
         onFinalize={finalize}
+        onAddSegment={addSegment}
         onIssueClockCommand={issueClockCommand}
         onRecordEvent={recordEvent}
         onResolveTimer={resolveTimer}

@@ -167,6 +167,13 @@ function projection(input: { readonly capabilities?: readonly string[] } = {}) {
     rosters: [],
     rosterRoles: [],
     eligibleStaffIds: [],
+    segmentPlan: {
+      regulation: { type: 'half', typeLabel: 'Tiempo', count: 2, maximum: 2 },
+      addable: [
+        { type: 'half', typeLabel: 'Tiempo', withinPlan: true },
+        { type: 'extra-time', typeLabel: 'Tiempo extra', withinPlan: true },
+      ],
+    },
     entrants: [
       { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
       { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },
@@ -188,6 +195,8 @@ async function mockMatchConsole(
     readonly loseFirstFinalize?: boolean;
     readonly keepAuthoritativeScore?: boolean;
     readonly withoutSegments?: boolean;
+    readonly status?: 'scheduled' | 'in-progress';
+    readonly segmentPlan?: Record<string, unknown>;
   } = {},
 ): Promise<void> {
   await page.addInitScript(
@@ -264,6 +273,31 @@ async function mockMatchConsole(
           return Response.json(state);
         }
 
+        if (url === `${path}/segments` && method === 'POST') {
+          const number = state.segments.length + 1;
+          state = {
+            ...state,
+            segments: [
+              ...state.segments,
+              {
+                segmentId: `segment-added-${number}`,
+                type: body.type,
+                number,
+                state: 'pending',
+                elapsedSeconds: 0,
+              },
+            ],
+            projectionVersion: state.projectionVersion + 1,
+          };
+          persist();
+          return Response.json({
+            matchId: state.matchId,
+            status: state.status,
+            clockRunning: false,
+            runningTimers: [],
+          });
+        }
+
         if (url === `${path}/timers/timer-1/resolve` && method === 'POST') {
           state = { ...state, runningTimers: [], projectionVersion: state.projectionVersion + 1 };
           persist();
@@ -319,6 +353,8 @@ async function mockMatchConsole(
       initial: {
         ...projection({ capabilities: options.capabilities }),
         ...(options.withoutSegments ? { segments: [] } : {}),
+        ...(options.status === undefined ? {} : { status: options.status }),
+        ...(options.segmentPlan === undefined ? {} : { segmentPlan: options.segmentPlan }),
       },
       path: matchPath,
       loseFirstFinalize: options.loseFirstFinalize ?? false,
@@ -595,6 +631,82 @@ test('shows the running clock in the elapsed input, and applies only a value typ
     .toEqual([{ segmentId: 'segment-1', elapsedSeconds: 1250, activate: true }]);
   await expect(elapsed).toHaveValue('1250');
   await expect(apply).toBeDisabled();
+});
+
+test('a scheduled match with no segments says what Start creates, and sends Start', async ({
+  page,
+}) => {
+  await mockMatchConsole(page, {
+    withoutSegments: true,
+    status: 'scheduled',
+    segmentPlan: {
+      regulation: { type: 'half', typeLabel: 'Tiempo', count: 2, maximum: 2 },
+      addable: [{ type: 'half', typeLabel: 'Tiempo', withinPlan: true }],
+    },
+  });
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await expect(page.getByText('Iniciar crea 2 segmentos de tipo Tiempo')).toBeVisible();
+  await page.getByRole('button', { name: 'Iniciar', exact: true }).click();
+  await expect
+    .poll(() => capturedRequests(page))
+    .toContainEqual(
+      expect.objectContaining({ url: `${matchPath}/commands/start`, method: 'POST' }),
+    );
+});
+
+test('an in-progress match adds extra time from Add segment', async ({ page }) => {
+  await mockMatchConsole(page);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByRole('combobox', { name: 'Segmento a agregar' }).selectOption('extra-time');
+  await page.getByRole('button', { name: 'Agregar segmento', exact: true }).click();
+
+  await expect
+    .poll(() => capturedRequests(page))
+    .toContainEqual(
+      expect.objectContaining({
+        url: `${matchPath}/segments`,
+        method: 'POST',
+        body: { type: 'extra-time' },
+      }),
+    );
+});
+
+test('an addition beyond the plan is labelled as outside it', async ({ page }) => {
+  await mockMatchConsole(page, {
+    segmentPlan: {
+      regulation: { type: 'half', typeLabel: 'Tiempo', count: 2, maximum: 2 },
+      addable: [{ type: 'half', typeLabel: 'Tiempo', withinPlan: false }],
+    },
+  });
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await expect(page.getByRole('combobox', { name: 'Segmento a agregar' })).toContainText(
+    'Tiempo (fuera del plan)',
+  );
+});
+
+test('a match in progress with no segments offers Add segment beside Finalize', async ({
+  page,
+}) => {
+  await mockMatchConsole(page, { withoutSegments: true });
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await expect(page.getByRole('button', { name: 'Agregar segmento', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Finalizar partido' })).toBeVisible();
 });
 
 test('a match with no segments offers no clock, and says why', async ({ page }) => {

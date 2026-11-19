@@ -1212,6 +1212,14 @@ export interface MatchConsoleApiClient {
     segmentId: string,
     idempotencyKey: string,
   ) => Promise<MatchStateResponse>;
+  /** Appends one segment of a declared type to a match in progress. */
+  readonly addMatchSegment: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    type: string,
+    idempotencyKey: string,
+  ) => Promise<MatchStateResponse>;
   readonly recordMatchEvent: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -2144,6 +2152,25 @@ export interface ConsoleRosterRole {
   readonly badge?: string;
 }
 
+/** A declared segment type the console may add, and whether adding it stays within the plan. */
+export interface ConsoleAddableSegment {
+  readonly type: string;
+  readonly typeLabel?: string | LocalizedLabel;
+  readonly withinPlan: boolean;
+}
+
+/** The regulation plan Start creates, and what Add segment may append. */
+export interface ConsoleSegmentPlan {
+  /** Absent when the discipline declares no segment type, so Start has nothing to create. */
+  readonly regulation?: {
+    readonly type: string;
+    readonly typeLabel?: string | LocalizedLabel;
+    readonly count: number;
+    readonly maximum?: number;
+  };
+  readonly addable: readonly ConsoleAddableSegment[];
+}
+
 export interface MatchConsoleResponse {
   readonly matchId: string;
   /** For an embedded bracket-context panel — which stage the match belongs to. */
@@ -2152,6 +2179,7 @@ export interface MatchConsoleResponse {
   readonly result: Record<string, unknown> | null;
   readonly liveScores: readonly ConsoleLiveScore[];
   readonly segments: readonly ConsoleSegment[];
+  readonly segmentPlan: ConsoleSegmentPlan;
   readonly runningTimers: readonly ConsoleTimer[];
   readonly events: readonly ConsoleMatchEvent[];
   readonly eventDefinitions: readonly ConsoleEventDefinition[];
@@ -3113,6 +3141,13 @@ export function createControlApiClient(input: {
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/commands/${command}`,
         { method: 'POST', body: { segmentId }, idempotencyKey },
+      ),
+
+    addMatchSegment: (organizationAlias, tournamentAlias, matchId, type, idempotencyKey) =>
+      requestJson<MatchStateResponse>(
+        input.fetch,
+        `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/segments`,
+        { method: 'POST', body: { type }, idempotencyKey },
       ),
 
     recordMatchEvent: (organizationAlias, tournamentAlias, matchId, body, idempotencyKey) =>

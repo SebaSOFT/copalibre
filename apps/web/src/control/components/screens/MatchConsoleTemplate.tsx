@@ -1,7 +1,7 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState, type ReactNode } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
-import { isSupportedLanguage, resolveLabel } from '@copalibre/domain';
+import { isSupportedLanguage, resolveLabel, type SupportedLanguage } from '@copalibre/domain';
 import type {
   ConsoleEventDefinition,
   ConsoleMatchEvent,
@@ -11,6 +11,7 @@ import type {
   SegmentClockCommand,
 } from '../../lib/api-client.js';
 import {
+  addSegmentOptionsOf,
   awaitingSourceText,
   clockActionsOf,
   type ClockActions,
@@ -100,6 +101,7 @@ export function MatchConsoleTemplate({
   onCancelFinalize,
   onDismissMutation,
   onFinalize,
+  onAddSegment,
   onIssueClockCommand,
   onRecordEvent,
   onResolveTimer,
@@ -123,6 +125,7 @@ export function MatchConsoleTemplate({
   >;
   readonly lastSyncedAt: number | undefined;
   readonly matchId: string;
+  readonly onAddSegment: (type: string) => Promise<void> | void;
   readonly onApplyClock: (segmentId: string, elapsedSeconds: number) => void;
   readonly onCancelFinalize: () => void;
   readonly onDismissMutation: (mutationId: string) => void;
@@ -288,7 +291,31 @@ export function MatchConsoleTemplate({
   // not kicked off starts; one already in progress resumes. Both are "press Start" to the
   // official holding the whistle — the distinction is the domain's, between beginning a match
   // and restarting a clock, and it belongs in the helper rather than in front of them.
-  const clockActions = clockActionsOf(projection.status, projection.segments, selectedSegment);
+  const clockActions = clockActionsOf(
+    projection.status,
+    projection.segments,
+    selectedSegment,
+    projection.segmentPlan.regulation,
+  );
+  // Adding a segment is offered once the match is in progress: a scheduled match gets its
+  // regulation from Start, and a finished one takes no more segments.
+  const addSegmentNode = (
+    <AddSegmentField
+      disabled={!canControlClock}
+      labels={{
+        button: <FormattedMessage {...messages.matchConsoleAddSegment} />,
+        field: intl.formatMessage(messages.matchConsoleAddSegmentLabel),
+        placeholder: intl.formatMessage(messages.selectPlaceholder),
+      }}
+      onAdd={onAddSegment}
+      options={addSegmentOptionsOf(
+        projection,
+        language,
+        intl.formatMessage(messages.matchConsoleOutsidePlan),
+      )}
+      visible={projection.status === 'in-progress'}
+    />
+  );
   const clockCommandLabels: Readonly<Record<SegmentClockCommand, string>> = {
     start: intl.formatMessage(messages.matchConsoleStartClock),
     resume: intl.formatMessage(messages.matchConsoleStartClock),
@@ -440,9 +467,19 @@ export function MatchConsoleTemplate({
         </header>
         <div className="cl-card__content">
           {projection.segments.length === 0 ? (
-            <p className="cl-card__description">
-              <FormattedMessage {...messages.matchConsoleNoSegments} />
-            </p>
+            <>
+              <p className="cl-card__description">
+                <NoSegmentsLine language={language} projection={projection} />
+              </p>
+              <ClockCommands
+                commands={clockActions.commands}
+                disabled={!canControlClock}
+                label={clockCommandsLabel}
+                labels={clockCommandLabels}
+                onCommand={issueClockCommand}
+              />
+              {addSegmentNode}
+            </>
           ) : (
             <>
               <div className="cl-platform-form-grid">
@@ -501,6 +538,7 @@ export function MatchConsoleTemplate({
                 labels={clockCommandLabels}
                 onCommand={issueClockCommand}
               />
+              {addSegmentNode}
             </>
           )}
         </div>
@@ -996,6 +1034,77 @@ const segmentIdOf = (segment: ConsoleSegment | undefined): string => segment?.se
 
 const variantOf = (primary: boolean): 'primary' | 'secondary' =>
   primary ? 'primary' : 'secondary';
+
+/** The line under the clock card while no segment exists: what Start creates, else that there are none. */
+function NoSegmentsLine({
+  language,
+  projection,
+}: {
+  readonly language: SupportedLanguage;
+  readonly projection: MatchConsoleResponse;
+}) {
+  const regulation = projection.segmentPlan.regulation;
+  if (projection.status !== 'scheduled' || regulation === undefined) {
+    return <FormattedMessage {...messages.matchConsoleNoSegments} />;
+  }
+  return (
+    <FormattedMessage
+      {...messages.matchConsoleStartCreates}
+      values={{
+        count: regulation.count,
+        type: resolveLabel(regulation.typeLabel ?? regulation.type, language),
+      }}
+    />
+  );
+}
+
+interface AddSegmentFieldProps {
+  readonly disabled: boolean;
+  readonly labels: {
+    readonly button: ReactNode;
+    readonly field: string;
+    readonly placeholder: string;
+  };
+  readonly onAdd: (type: string) => Promise<void> | void;
+  readonly options: readonly { readonly value: string; readonly label: string }[];
+  readonly visible: boolean;
+}
+
+/** The Add segment choice: a declared type picked and appended, offered only while the match is in progress. */
+function AddSegmentField({ disabled, labels, onAdd, options, visible }: AddSegmentFieldProps) {
+  const [pick, setPick] = useState('');
+  // Held until the addition is queued and a send attempted, so a second tap cannot queue a
+  // second segment while the first one has not reached the segment list yet.
+  const [adding, setAdding] = useState(false);
+  if (!visible || options.length === 0) return null;
+  const value = options.some((option) => option.value === pick) ? pick : (options[0]?.value ?? '');
+  return (
+    <div className="cl-platform-form-grid">
+      <Field id="console-add-segment" label={labels.field}>
+        <Select
+          aria-label={labels.field}
+          disabled={disabled}
+          id="console-add-segment"
+          onValueChange={setPick}
+          options={options}
+          placeholder={labels.placeholder}
+          value={value}
+        />
+      </Field>
+      <Button
+        disabled={disabled || adding || value === ''}
+        onClick={() => {
+          setAdding(true);
+          void Promise.resolve(onAdd(value)).finally(() => setAdding(false));
+        }}
+        type="button"
+        variant="secondary"
+      >
+        {labels.button}
+      </Button>
+    </div>
+  );
+}
 
 /** The clock commands the match state allows; renders nothing when there are none. */
 function ClockCommands({
