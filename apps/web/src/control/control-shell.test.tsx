@@ -355,6 +355,9 @@ describe('the control routes', () => {
       addMatchSegment: async () => {
         throw new Error('not used in this test');
       },
+      reopenMatchSegment: async () => {
+        throw new Error('not used in this test');
+      },
       sendMatchCommand: async () => ({
         matchId: 'match-1',
         status: 'in-progress',

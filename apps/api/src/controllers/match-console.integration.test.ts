@@ -623,12 +623,13 @@ describe('live match console (integration)', () => {
       expect(refused.statusCode).toBe(400);
     }
 
-    // Leave the segment running again for the tests that follow.
-    await request('POST', `${base()}/clock`, 'referee', {
-      segmentId,
-      elapsedSeconds: 90,
-      activate: true,
+    // Reopen the half with a reason and run it again for the tests that follow.
+    const reopened = await request('POST', `${base()}/segments/${segmentId}/reopen`, 'referee', {
+      reason: 'Ended by mistake',
     });
+    expect(reopened.statusCode).toBe(201);
+    await request('POST', `${base()}/clock`, 'referee', { segmentId, elapsedSeconds: 90 });
+    await request('POST', `${base()}/commands/resume`, 'referee', { segmentId });
   });
 
   it('refuses a clock command from an official without the clock-control capability', async () => {
@@ -1441,6 +1442,264 @@ describe('live match console (integration)', () => {
 
     expect(response.statusCode).toBe(403);
     expect(await segmentRowsOf(id)).toHaveLength(2);
+  });
+
+  /** An in-progress match whose first half is running. */
+  async function matchWithRunningHalf(): Promise<string> {
+    const id = await scheduledMatchWithoutSegments();
+    await request('POST', `${matchUrl(id)}/commands/start`, 'referee');
+    return id;
+  }
+
+  /** State and elapsed seconds of each segment of a match, in number order. */
+  async function clockRowsOf(id: string) {
+    const rows = await scratch.db
+      .selectFrom('segments')
+      .select(['state', 'elapsed_seconds'])
+      .where('match_id', '=', id)
+      .orderBy('number')
+      .execute();
+    return rows.map((row) => ({ state: row.state, elapsedSeconds: row.elapsed_seconds }));
+  }
+
+  async function finalizeDirectly(id: string): Promise<void> {
+    await withTransaction(scratch.db, (uow) =>
+      new CompetitionRepository(scratch.db).applyCommand(uow, {
+        matchId: id,
+        command: 'finalize',
+        status: 'finalized',
+        grantedBy: 'seed',
+        organizationId,
+        ...audit,
+      }),
+    );
+  }
+
+  it('keeps the state of a running, a paused and an ended half when its time is corrected', async () => {
+    const id = await matchWithRunningHalf();
+    const [half] = await segmentRowsOf(id);
+    const halfId = half?.segment_id ?? '';
+    const correct = (elapsedSeconds: number) =>
+      request('POST', `${matchUrl(id)}/clock`, 'referee', { segmentId: halfId, elapsedSeconds });
+
+    expect((await correct(1250)).statusCode).toBe(201);
+    expect(await clockRowsOf(id)).toEqual([
+      { state: 'active', elapsedSeconds: 1250 },
+      { state: 'pending', elapsedSeconds: 0 },
+    ]);
+
+    await request('POST', `${matchUrl(id)}/commands/pause`, 'referee', { segmentId: halfId });
+    expect((await correct(1260)).statusCode).toBe(201);
+    expect((await clockRowsOf(id))[0]).toEqual({ state: 'pending', elapsedSeconds: 1260 });
+
+    await request('POST', `${matchUrl(id)}/commands/end`, 'referee', { segmentId: halfId });
+    expect((await correct(2700)).statusCode).toBe(201);
+    expect((await clockRowsOf(id))[0]).toEqual({ state: 'completed', elapsedSeconds: 2700 });
+  });
+
+  it('refuses a time correction and a reopen on a forfeited match, with nothing changed', async () => {
+    const id = await matchWithEndedHalves();
+    await withTransaction(scratch.db, (uow) =>
+      new CompetitionRepository(scratch.db).applyCommand(uow, {
+        matchId: id,
+        command: 'finalize',
+        status: 'forfeited',
+        grantedBy: 'seed',
+        organizationId,
+        ...audit,
+      }),
+    );
+    const [half] = await segmentRowsOf(id);
+    const before = await clockRowsOf(id);
+
+    const correction = await request('POST', `${matchUrl(id)}/clock`, 'referee', {
+      segmentId: half?.segment_id,
+      elapsedSeconds: 600,
+    });
+    expect(correction.statusCode).toBe(400);
+    expect(correction.json().errorCode).toBe('match-control-bad-request');
+
+    const reopen = await request(
+      'POST',
+      `${matchUrl(id)}/segments/${half?.segment_id}/reopen`,
+      'referee',
+      {
+        reason: 'Ended by mistake',
+      },
+    );
+    expect(reopen.statusCode).toBe(400);
+    expect(await clockRowsOf(id)).toEqual(before);
+  });
+
+  it('refuses a time correction on a finalized match, with the time unchanged', async () => {
+    const id = await matchWithEndedHalves();
+    await finalizeDirectly(id);
+    const [half] = await segmentRowsOf(id);
+    const before = await clockRowsOf(id);
+
+    const response = await request('POST', `${matchUrl(id)}/clock`, 'referee', {
+      segmentId: half?.segment_id,
+      elapsedSeconds: 600,
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().errorCode).toBe('match-control-bad-request');
+    expect(await clockRowsOf(id)).toEqual(before);
+  });
+
+  it('refuses a correction that asks to activate an ended half, and leaves it ended', async () => {
+    const id = await matchWithEndedHalves();
+    const [half] = await segmentRowsOf(id);
+    const before = await clockRowsOf(id);
+
+    const response = await request('POST', `${matchUrl(id)}/clock`, 'referee', {
+      segmentId: half?.segment_id,
+      elapsedSeconds: 500,
+      activate: true,
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().errorCode).toBe('match-control-bad-request');
+    expect(await clockRowsOf(id)).toEqual(before);
+  });
+
+  it('accepts a time correction on a scheduled match and keeps the match scheduled', async () => {
+    const id = await scheduledMatchWithoutSegments();
+    const segment = await withTransaction(scratch.db, (uow) =>
+      new CompetitionRepository(scratch.db).createSegment(uow, {
+        matchId: id,
+        type: 'half',
+        number: 1,
+        organizationId,
+        ...audit,
+      }),
+    );
+
+    const response = await request('POST', `${matchUrl(id)}/clock`, 'referee', {
+      segmentId: segment.segmentId,
+      elapsedSeconds: 600,
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(await clockRowsOf(id)).toEqual([{ state: 'pending', elapsedSeconds: 600 }]);
+    expect((await new CompetitionRepository(scratch.db).findMatch(id))?.status).toBe('scheduled');
+  });
+
+  it('reopens an ended half as paused with its time kept, and audits the reason and the actor', async () => {
+    const id = await matchWithEndedHalves();
+    const [half] = await segmentRowsOf(id);
+    const halfId = half?.segment_id ?? '';
+    const [ended] = await clockRowsOf(id);
+
+    const response = await request('POST', `${matchUrl(id)}/segments/${halfId}/reopen`, 'referee', {
+      reason: '  Ended by mistake  ',
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect((await clockRowsOf(id))[0]).toEqual({
+      state: 'pending',
+      elapsedSeconds: ended?.elapsedSeconds,
+    });
+    const history = await new AuditReader(scratch.db).historyFor('segment', halfId);
+    expect(history[history.length - 1]).toMatchObject({
+      action: 'segment.pending',
+      actor: 'referee',
+      authorizationContext: expect.stringMatching(/^capability:match\.control-clock via /),
+      reason: 'Ended by mistake',
+      previousState: { state: 'completed' },
+      resultingState: { state: 'pending' },
+    });
+  });
+
+  it('refuses a reopen with an empty reason, a half that has not ended, and a finalized match, with no change', async () => {
+    const ended = await matchWithEndedHalves();
+    const [endedHalf] = await segmentRowsOf(ended);
+    const endedBefore = await clockRowsOf(ended);
+    for (const reason of ['', '   ']) {
+      const response = await request(
+        'POST',
+        `${matchUrl(ended)}/segments/${endedHalf?.segment_id}/reopen`,
+        'referee',
+        { reason },
+      );
+      expect(response.statusCode).toBe(400);
+    }
+    expect(await clockRowsOf(ended)).toEqual(endedBefore);
+
+    const running = await matchWithRunningHalf();
+    const [runningHalf] = await segmentRowsOf(running);
+    const refusedRunning = await request(
+      'POST',
+      `${matchUrl(running)}/segments/${runningHalf?.segment_id}/reopen`,
+      'referee',
+      { reason: 'Ended by mistake' },
+    );
+    expect(refusedRunning.statusCode).toBe(400);
+    expect(refusedRunning.json().errorCode).toBe('match-control-bad-request');
+    expect((await clockRowsOf(running))[0]?.state).toBe('active');
+    await request('POST', `${matchUrl(running)}/commands/pause`, 'referee');
+    const refusedPaused = await request(
+      'POST',
+      `${matchUrl(running)}/segments/${runningHalf?.segment_id}/reopen`,
+      'referee',
+      { reason: 'Ended by mistake' },
+    );
+    expect(refusedPaused.statusCode).toBe(400);
+    expect((await clockRowsOf(running))[0]?.state).toBe('pending');
+
+    const finalized = await matchWithEndedHalves();
+    await finalizeDirectly(finalized);
+    const [finalizedHalf] = await segmentRowsOf(finalized);
+    const finalizedBefore = await clockRowsOf(finalized);
+    const refusedFinalized = await request(
+      'POST',
+      `${matchUrl(finalized)}/segments/${finalizedHalf?.segment_id}/reopen`,
+      'referee',
+      { reason: 'Ended by mistake' },
+    );
+    expect(refusedFinalized.statusCode).toBe(400);
+    expect(await clockRowsOf(finalized)).toEqual(finalizedBefore);
+  });
+
+  it('replays a retried reopen from its key with equal responses and one audit row', async () => {
+    const id = await matchWithEndedHalves();
+    const [half] = await segmentRowsOf(id);
+    const url = `${matchUrl(id)}/segments/${half?.segment_id}/reopen`;
+    const key = crypto.randomUUID();
+    const payload = { reason: 'Ended by mistake' };
+
+    const first = await request('POST', url, 'referee', payload, key);
+    const replay = await request('POST', url, 'referee', payload, key);
+    const conflict = await request('POST', url, 'referee', { reason: 'A different reason' }, key);
+
+    expect(first.statusCode).toBe(201);
+    expect(replay.json()).toEqual(first.json());
+    expect(conflict.statusCode).toBe(409);
+    const reopens = (
+      await new AuditReader(scratch.db).historyFor('segment', half?.segment_id ?? '')
+    ).filter((entry) => entry.reason === 'Ended by mistake');
+    expect(reopens).toHaveLength(1);
+  });
+
+  it('leaves a coherent record when a reopen and a finalize arrive together', async () => {
+    const id = await matchWithEndedHalves();
+    const [half] = await segmentRowsOf(id);
+
+    const [reopen, finalize] = await Promise.all([
+      request('POST', `${matchUrl(id)}/segments/${half?.segment_id}/reopen`, 'referee', {
+        reason: 'Ended by mistake',
+      }),
+      request('POST', `${matchUrl(id)}/commands/finalize`, 'referee', {
+        sides: entrantIds.map((entrantId) => ({ entrantId, statistics: {} })),
+      }),
+    ]);
+
+    expect(finalize.statusCode).toBe(201);
+    expect([201, 400]).toContain(reopen.statusCode);
+    // Either the reopen landed before the finalize, or the finalize came first and the reopen is refused.
+    const [firstHalf] = await clockRowsOf(id);
+    expect(firstHalf?.state).toBe(reopen.statusCode === 201 ? 'pending' : 'completed');
+    expect((await new CompetitionRepository(scratch.db).findMatch(id))?.status).toBe('finalized');
   });
 });
 

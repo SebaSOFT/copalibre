@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   Allow,
   IsArray,
@@ -10,6 +10,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 import type { LocalizedLabel, ResultReason } from '@copalibre/domain';
@@ -365,10 +366,28 @@ export class ClockAdjustmentRequest {
   @IsInt()
   elapsedSeconds!: number;
 
-  @ApiPropertyOptional({ description: 'Make the selected segment the active clock segment' })
+  @ApiPropertyOptional({
+    description:
+      'Make the selected segment the active clock segment. Never applies to an ended segment: ' +
+      'a request that asks for it is refused, and reopening is a separate command with a reason.',
+  })
   @IsOptional()
   @IsBoolean()
   activate?: boolean;
+}
+
+export class ReopenSegmentRequest {
+  @ApiProperty({
+    minLength: 1,
+    maxLength: 500,
+    description:
+      'Why the ended segment is reopened, in the operator’s words; recorded in the audit trail',
+  })
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  reason!: string;
 }
 
 export class RecordEventRequest {

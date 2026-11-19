@@ -42,6 +42,14 @@ export type QueuedAction =
       readonly type: string;
     }
   | {
+      readonly kind: 'segment-reopen';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+      readonly matchId: string;
+      readonly segmentId: string;
+      readonly reason: string;
+    }
+  | {
       readonly kind: 'timer-resolve';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
@@ -246,6 +254,15 @@ async function replay(client: MatchConsoleApiClient, mutation: QueuedMutation): 
         action.type,
         idempotencyKey,
       );
+    case 'segment-reopen':
+      return client.reopenMatchSegment(
+        action.organizationAlias,
+        action.tournamentAlias,
+        action.matchId,
+        action.segmentId,
+        action.reason,
+        idempotencyKey,
+      );
     case 'timer-resolve':
       return client.resolveMatchTimer(
         action.organizationAlias,
@@ -334,6 +351,8 @@ export function describeQueuedAction(action: QueuedAction): string {
         : `Clock ${action.command} on segment ${action.segmentId}`;
     case 'segment-add':
       return `Segment ${action.type} added`;
+    case 'segment-reopen':
+      return `Reopen segment ${action.segmentId}: ${action.reason}`;
     case 'timer-resolve':
       return `Timer ${action.timerId} resolved`;
   }

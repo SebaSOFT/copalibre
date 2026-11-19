@@ -2481,12 +2481,16 @@ export class CompetitionRepository {
     return match;
   }
 
-  /** Starts, pauses or completes a segment; the clock is derived from this. */
+  /**
+   * Starts, pauses, completes or reopens a segment; the clock is derived from this. A reason is
+   * recorded on the audit row when the caller has one (a reopen always does); other callers pass none.
+   */
   async setSegmentState(
     uow: UnitOfWork,
     input: {
       readonly segmentId: string;
       readonly state: Segment['state'];
+      readonly reason?: string;
     } & AuditContext,
   ): Promise<Segment> {
     const existing = await uow.tx
@@ -2535,6 +2539,7 @@ export class CompetitionRepository {
       // Start/Pause/End has to read from the same trail as a correction to it.
       previousState: { ...toSegment(existing) },
       resultingState: { ...segment },
+      reason: input.reason,
     });
     return segment;
   }

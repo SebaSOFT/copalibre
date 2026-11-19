@@ -39,6 +39,7 @@ import {
   foldLiveScores,
   foldRosterLineup,
   planCorrection,
+  reopenSegment,
   runningTimers,
   segmentPlanOf,
   segmentsDefaultOf,
@@ -112,6 +113,7 @@ import {
   MatchStateResponse,
   RecordEventRequest,
   RecordedEventResponse,
+  ReopenSegmentRequest,
   RosterCandidateResponse,
   SetMatchRosterRequest,
 } from '../dto/match-control.dto.js';
@@ -639,13 +641,20 @@ export class MatchControlController {
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Adjust the authoritative elapsed time or active segment' })
+  @ApiOperation({
+    summary: 'Correct the elapsed time of a segment',
+    description:
+      'Sets the time and keeps the segment state: a running segment keeps running, a paused or ' +
+      'not started one stays stopped, and an ended one stays ended. A finalized match is refused. ' +
+      'Starting or resuming a segment is a clock command; reopening an ended one is a reopen.',
+  })
   @ApiHeader({
     name: 'idempotency-key',
     required: false,
     description: 'A retried request with the same key and body replays the prior response.',
   })
   @ApiOkResponse({ type: MatchConsoleResponse })
+  @ApiBadRequestResponse({ type: ProblemResponse })
   @ApiForbiddenResponse({ type: ProblemResponse })
   async adjustClock(
     @Param('organizationAlias') organizationAlias: string,
@@ -670,8 +679,7 @@ export class MatchControlController {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
     const segments = await competition.listSegments(matchId);
-    const selected = segments.find((segment) => segment.segmentId === body.segmentId);
-    if (!selected)
+    if (!segments.some((segment) => segment.segmentId === body.segmentId))
       throw new NotFoundException(`No segment "${body.segmentId}" in this match`, {
         errorCode: 'match-control-not-found',
       });
@@ -700,8 +708,43 @@ export class MatchControlController {
     };
 
     await withTransaction(this.db, async (uow) => {
+      // The match row lock orders this correction against a finalize, a Start or a reopen on the
+      // same match; the status and the segment state are read under it, so the refusals below
+      // hold for the write that follows.
+      await lockRowsForMutation(
+        this.db,
+        uow.tx.selectFrom('matches').select('match_id').where('match_id', '=', matchId),
+      ).execute();
+      const locked = await competition.findMatch(matchId, uow);
+      if (!locked)
+        throw new NotFoundException(`No match "${matchId}"`, {
+          errorCode: 'match-control-not-found',
+        });
+      // Only a match not yet closed has a clock that may be corrected. A finalized, forfeited or
+      // anulled match is part of its record, and the audited correction workflow is the path over it.
+      if (locked.status !== 'scheduled' && locked.status !== 'in-progress') {
+        throw new BadRequestException(
+          `The clock of match "${matchId}" is ${locked.status} and cannot be corrected here`,
+          { errorCode: 'match-control-bad-request' },
+        );
+      }
+
+      const current = await competition.listSegments(matchId, uow);
+      const selected = current.find((segment) => segment.segmentId === body.segmentId);
+      if (!selected)
+        throw new NotFoundException(`No segment "${body.segmentId}" in this match`, {
+          errorCode: 'match-control-not-found',
+        });
+      // Activating an ended segment would reopen it with no reason. Reopening is its own command.
+      if (body.activate && selected.state === 'completed') {
+        throw new BadRequestException(
+          `Segment "${body.segmentId}" has ended; reopen it with a reason instead of activating it`,
+          { errorCode: 'match-control-bad-request' },
+        );
+      }
+
       if (body.activate) {
-        for (const segment of segments) {
+        for (const segment of current) {
           if (segment.segmentId !== selected.segmentId && segment.state === 'active') {
             await competition.setSegmentState(uow, {
               segmentId: segment.segmentId,
@@ -734,6 +777,144 @@ export class MatchControlController {
         eventType: 'match.console-projection',
         projectionVersion,
         payload: { matchId, command: 'clock-adjusted', segmentId: selected.segmentId },
+      });
+    });
+
+    return this.consoleProjection(organizationAlias, tournamentAlias, matchId, request);
+  }
+
+  @Post('segments/:segmentId/reopen')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.operate-match')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Reopen an ended segment of a match in progress',
+    description:
+      'Returns the segment to paused with its time kept. The reason is required and is recorded in ' +
+      'the audit trail with the actor. Only an ended segment of an in-progress match can be reopened; ' +
+      'a finalized result is changed through the correction workflow.',
+  })
+  @ApiHeader({
+    name: 'idempotency-key',
+    required: false,
+    description: 'A retried request with the same key and body replays the prior response.',
+  })
+  @ApiOkResponse({ type: MatchConsoleResponse })
+  @ApiBadRequestResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async reopenSegmentRoute(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('matchId') matchId: string,
+    @Param('segmentId') segmentId: string,
+    @Req() request: RequestWithSubject,
+    @Body() body: ReopenSegmentRequest,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ): Promise<MatchConsoleResponse> {
+    return this.withIdempotency(
+      idempotencyKey,
+      matchId,
+      'segment-reopen',
+      { segmentId, reason: body.reason },
+      () =>
+        this.reopenSegmentOnce(
+          organizationAlias,
+          tournamentAlias,
+          matchId,
+          segmentId,
+          body,
+          request,
+        ),
+    );
+  }
+
+  private async reopenSegmentOnce(
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    segmentId: string,
+    body: ReopenSegmentRequest,
+    request: RequestWithSubject,
+  ): Promise<MatchConsoleResponse> {
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    const competition = new CompetitionRepository(this.db);
+    const match = await competition.findMatch(matchId);
+    if (!match)
+      throw new NotFoundException(`No match "${matchId}"`, {
+        errorCode: 'match-control-not-found',
+      });
+    const segments = await competition.listSegments(matchId);
+    if (!segments.some((segment) => segment.segmentId === segmentId))
+      throw new NotFoundException(`No segment "${segmentId}" in this match`, {
+        errorCode: 'match-control-not-found',
+      });
+
+    const stageId = await this.stageOf(matchId);
+    const granted = enforceMatchCommand({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+      assignments: await new MatchAssignmentRepository(this.db).forSubject({
+        organizationId: tournament.organizationId,
+        subjectId: request.subject?.subjectId ?? '',
+        matchId,
+        stageId,
+      }),
+      capability: 'match.control-clock',
+      match: { organizationId: tournament.organizationId, matchId, stageId },
+    });
+    const audit = {
+      organizationId: tournament.organizationId,
+      actor: request.subject?.subjectId ?? 'unknown',
+      authorizationContext: `capability:${granted.capability} via ${granted.grantedBy}`,
+    };
+
+    await withTransaction(this.db, async (uow) => {
+      // The match row lock orders this reopen against a finalize or a correction on the same match.
+      await lockRowsForMutation(
+        this.db,
+        uow.tx.selectFrom('matches').select('match_id').where('match_id', '=', matchId),
+      ).execute();
+      const locked = await competition.findMatch(matchId, uow);
+      if (!locked)
+        throw new NotFoundException(`No match "${matchId}"`, {
+          errorCode: 'match-control-not-found',
+        });
+      const segment = (await competition.listSegments(matchId, uow)).find(
+        (candidate) => candidate.segmentId === segmentId,
+      );
+      if (!segment)
+        throw new NotFoundException(`No segment "${segmentId}" in this match`, {
+          errorCode: 'match-control-not-found',
+        });
+
+      const reopening = reopenSegment(locked, segment);
+      if (!reopening.ok) {
+        throw new BadRequestException(reopening.error.message, {
+          errorCode: 'match-control-bad-request',
+        });
+      }
+
+      await competition.setSegmentState(uow, {
+        segmentId,
+        state: reopening.value.segmentState,
+        reason: body.reason,
+        ...audit,
+      });
+      const projectionVersion = await new ProjectionStore(this.db).nextVersion(uow, {
+        projectionType: 'match-console',
+        entityId: matchId,
+      });
+      await uow.publishEvent({
+        organizationId: tournament.organizationId,
+        stream: `match:${matchId}`,
+        entityId: matchId,
+        eventType: 'match.console-projection',
+        projectionVersion,
+        payload: { matchId, command: 'segment-reopened', segmentId },
       });
     });
 

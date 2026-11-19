@@ -925,8 +925,31 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Adjust the authoritative elapsed time or active segment */
+        /**
+         * Correct the elapsed time of a segment
+         * @description Sets the time and keeps the segment state: a running segment keeps running, a paused or not started one stays stopped, and an ended one stays ended. A finalized match is refused. Starting or resuming a segment is a clock command; reopening an ended one is a reopen.
+         */
         post: operations["MatchControlController_adjustClock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/segments/{segmentId}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reopen an ended segment of a match in progress
+         * @description Returns the segment to paused with its time kept. The reason is required and is recorded in the audit trail with the actor. Only an ended segment of an in-progress match can be reopened; a finalized result is changed through the correction workflow.
+         */
+        post: operations["MatchControlController_reopenSegmentRoute"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4638,8 +4661,12 @@ export interface components {
             /** Format: uuid */
             segmentId: string;
             elapsedSeconds: number;
-            /** @description Make the selected segment the active clock segment */
+            /** @description Make the selected segment the active clock segment. Never applies to an ended segment: a request that asks for it is refused, and reopening is a separate command with a reason. */
             activate?: boolean;
+        };
+        ReopenSegmentRequest: {
+            /** @description Why the ended segment is reopened, in the operator’s words; recorded in the audit trail */
+            reason: string;
         };
         RosterCandidateResponse: {
             /** Format: uuid */
@@ -9394,6 +9421,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MatchConsoleResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    MatchControlController_reopenSegmentRoute: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A retried request with the same key and body replays the prior response. */
+                "idempotency-key"?: string;
+            };
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                matchId: string;
+                segmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReopenSegmentRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchConsoleResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
             403: {

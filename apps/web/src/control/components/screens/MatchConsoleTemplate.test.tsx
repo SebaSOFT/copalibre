@@ -18,11 +18,12 @@ function renderConsole(projection: Projection, onAddSegment = jest.fn<(type: str
         lastSyncedAt={undefined}
         matchId={ids.match}
         onAddSegment={onAddSegment}
-        onApplyClock={() => undefined}
+        onCorrectClock={() => undefined}
         onCancelFinalize={() => undefined}
         onDismissMutation={() => undefined}
         onFinalize={async () => true}
         onIssueClockCommand={() => undefined}
+        onReopenSegment={() => undefined}
         onRecordEvent={() => undefined}
         onResolveTimer={() => undefined}
         onRosterSaved={() => undefined}
@@ -41,14 +42,26 @@ function renderConsole(projection: Projection, onAddSegment = jest.fn<(type: str
 }
 
 function clockCard(): HTMLElement {
-  const heading = screen.getByRole('heading', { name: 'Clock and period' });
+  const heading = screen.getByRole('heading', { name: 'Clock and segment' });
   const card = heading.closest('.cl-card');
   if (!(card instanceof HTMLElement)) throw new Error('clock card not found');
   return card;
 }
 
 describe('MatchConsoleTemplate clock card', () => {
-  it('a scheduled match with no segments says what Start creates and offers Start', () => {
+  it('a forfeited match offers no clock action and no time correction', () => {
+    renderConsole({
+      ...consoleProjection,
+      status: 'forfeited',
+      events: [],
+    });
+
+    expect(screen.queryByLabelText('Time (mm:ss)')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Correct' })).toBeNull();
+    expect(clockCard().querySelector('.cl-clock-commands')).toBeNull();
+  });
+
+  it('a scheduled match with no segments says what Start creates and offers Start match', () => {
     renderConsole({
       ...consoleProjection,
       status: 'scheduled',
@@ -58,7 +71,7 @@ describe('MatchConsoleTemplate clock card', () => {
     });
 
     expect(clockCard().textContent).toContain('Start creates 2 Half segments');
-    expect(clockCard().querySelector('button')?.textContent).toBe('Start');
+    expect(clockCard().querySelector('button')?.textContent).toBe('Start match');
     expect(screen.queryByRole('button', { name: 'Add segment' })).toBeNull();
   });
 
@@ -120,7 +133,7 @@ describe('MatchConsoleTemplate clock card', () => {
 
     expect(clockCard().textContent).toContain('This match has no segments yet.');
     expect(screen.getByRole('button', { name: 'Add segment' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Start' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Start match' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Finalize match' })).toBeTruthy();
   });
 });

@@ -4,6 +4,9 @@ import {
   addSegmentOptionsOf,
   awaitingSourceText,
   clockActionsOf,
+  clockOpenOf,
+  clockTimeInputOf,
+  commandOfClockAction,
   currentEpochMilliseconds,
   currentSegmentOf,
   descriptionFor,
@@ -11,14 +14,14 @@ import {
   isEventPermitted,
   memberByNumber,
   newIdempotencyKey,
+  parseClockTime,
   segmentAddKey,
   segmentLabel,
+  segmentPhaseOf,
   selectedSegmentOf,
   sentOffPersonIds,
+  typedClockTimeOf,
   undecidedSidesOf,
-  elapsedInputOf,
-  parseElapsedSeconds,
-  typedElapsedOf,
 } from './lib/match-console.js';
 import type {
   ConsoleEventDefinition,
@@ -329,67 +332,182 @@ describe('currentSegmentOf', () => {
   });
 });
 
+describe('segmentPhaseOf', () => {
+  it('reads a stopped segment with time above zero as paused, and one with none as not started', () => {
+    expect(segmentPhaseOf(segment({ state: 'pending', elapsedSeconds: 0 }))).toBe('not-started');
+    expect(segmentPhaseOf(segment({ state: 'pending', elapsedSeconds: 750 }))).toBe('paused');
+    expect(segmentPhaseOf(segment({ state: 'active', elapsedSeconds: 750 }))).toBe('running');
+    expect(segmentPhaseOf(segment({ state: 'completed', elapsedSeconds: 2700 }))).toBe('ended');
+  });
+});
+
 describe('clockActionsOf', () => {
-  const running = segment({ state: 'active' });
-  const paused = segment({ state: 'pending' });
-  const ended = segment({ state: 'completed' });
+  const notStarted = segment({ segmentId: 'half-1', state: 'pending', elapsedSeconds: 0 });
+  const paused = segment({ segmentId: 'half-1', state: 'pending', elapsedSeconds: 750 });
+  const running = segment({ segmentId: 'half-1', state: 'active', elapsedSeconds: 750 });
+  const ended = segment({ segmentId: 'half-1', state: 'completed', elapsedSeconds: 2700 });
+  const secondNotStarted = segment({
+    segmentId: 'half-2',
+    number: 2,
+    state: 'pending',
+    elapsedSeconds: 0,
+  });
 
-  it('offers only Start, as the primary action, before kick-off', () => {
-    expect(clockActionsOf('scheduled', [paused], paused)).toEqual({
-      commands: [{ command: 'start', primary: true }],
+  it('offers Start match on a scheduled match, as the primary action', () => {
+    expect(clockActionsOf('scheduled', [notStarted], notStarted)).toEqual({
+      actions: [{ action: 'start-match', primary: true }],
       finalizePrimary: false,
     });
   });
 
-  it('offers Pause as the primary action, never Start, while a segment runs', () => {
-    expect(clockActionsOf('in-progress', [running], running)).toEqual({
-      commands: [
-        { command: 'pause', primary: true },
-        { command: 'end', primary: false },
-      ],
+  it('offers Start match on a scheduled match whatever segment is marked running', () => {
+    const runningFirst = segment({ segmentId: 'half-1', state: 'active', elapsedSeconds: 600 });
+    expect(clockActionsOf('scheduled', [runningFirst, secondNotStarted], secondNotStarted)).toEqual(
+      {
+        actions: [{ action: 'start-match', primary: true }],
+        finalizePrimary: false,
+      },
+    );
+  });
+
+  it('offers Start segment alone for a segment not started while nothing runs', () => {
+    expect(clockActionsOf('in-progress', [notStarted, secondNotStarted], notStarted)).toEqual({
+      actions: [{ action: 'start-segment', primary: true }],
       finalizePrimary: false,
     });
   });
 
-  it('offers a resume as the primary action while the clock is stopped mid-match', () => {
+  it('offers Resume and End segment for a paused segment, Resume primary', () => {
     expect(clockActionsOf('in-progress', [paused], paused)).toEqual({
-      commands: [
-        { command: 'resume', primary: true },
-        { command: 'end', primary: false },
+      actions: [
+        { action: 'resume', primary: true },
+        { action: 'end-segment', primary: false },
       ],
       finalizePrimary: false,
     });
   });
 
-  it('offers no clock command for an ended segment and leaves Finalize as the primary action', () => {
+  it('offers Pause and End segment for a running segment, Pause primary', () => {
+    expect(clockActionsOf('in-progress', [running], running)).toEqual({
+      actions: [
+        { action: 'pause', primary: true },
+        { action: 'end-segment', primary: false },
+      ],
+      finalizePrimary: false,
+    });
+  });
+
+  it('offers Reopen segment alone for an ended segment, and Finalize primary when nothing is left', () => {
     expect(clockActionsOf('in-progress', [ended], ended)).toEqual({
-      commands: [],
+      actions: [{ action: 'reopen-segment', primary: false }],
       finalizePrimary: true,
     });
   });
 
-  it('keeps Finalize secondary while another segment still has to be played', () => {
+  it('keeps Finalize secondary while an ended segment sits beside one still to play', () => {
     expect(clockActionsOf('in-progress', [ended, paused], ended)).toEqual({
-      commands: [],
+      actions: [{ action: 'reopen-segment', primary: false }],
       finalizePrimary: false,
     });
   });
 
-  it('offers no clock command without segments and leaves Finalize as the primary action', () => {
-    expect(clockActionsOf('in-progress', [], undefined)).toEqual({
-      commands: [],
-      finalizePrimary: true,
-    });
-    expect(clockActionsOf('scheduled', [], undefined)).toEqual({
-      commands: [],
+  it('withholds Start segment and Resume while another segment runs, and names the running one', () => {
+    const runningFirst = segment({ segmentId: 'half-1', state: 'active', elapsedSeconds: 600 });
+    expect(
+      clockActionsOf('in-progress', [runningFirst, secondNotStarted], secondNotStarted),
+    ).toEqual({
+      actions: [],
       finalizePrimary: false,
+      runningSegment: runningFirst,
     });
+    expect(
+      clockActionsOf('in-progress', [runningFirst, { ...paused, segmentId: 'half-2', number: 2 }], {
+        ...paused,
+        segmentId: 'half-2',
+        number: 2,
+      }),
+    ).toMatchObject({ actions: [], runningSegment: runningFirst });
   });
 
   it('offers nothing once the match is finalized', () => {
     expect(clockActionsOf('finalized', [ended], ended)).toEqual({
-      commands: [],
+      actions: [],
       finalizePrimary: false,
+    });
+  });
+
+  it('maps each clock action to the server command it sends, and Start segment to Resume', () => {
+    expect(commandOfClockAction('start-match')).toBe('start');
+    expect(commandOfClockAction('start-segment')).toBe('resume');
+    expect(commandOfClockAction('resume')).toBe('resume');
+    expect(commandOfClockAction('pause')).toBe('pause');
+    expect(commandOfClockAction('end-segment')).toBe('end');
+  });
+});
+
+describe('parseClockTime', () => {
+  it('reads minutes:seconds and whole minutes as whole seconds', () => {
+    expect(parseClockTime('20:50')).toBe(1250);
+    expect(parseClockTime('0:05')).toBe(5);
+    expect(parseClockTime('45')).toBe(2700);
+    expect(parseClockTime('999:59')).toBe(59_999);
+  });
+
+  it('refuses empty text, a sign, seconds of 60 or more, a fraction and extra characters', () => {
+    expect(parseClockTime(undefined)).toBeUndefined();
+    expect(parseClockTime('')).toBeUndefined();
+    expect(parseClockTime('-1')).toBeUndefined();
+    expect(parseClockTime('1:60')).toBeUndefined();
+    expect(parseClockTime('1.5')).toBeUndefined();
+    expect(parseClockTime('20:5x')).toBeUndefined();
+  });
+});
+
+describe('time field helpers', () => {
+  const half: ConsoleSegment = {
+    segmentId: 'segment-1',
+    type: 'half',
+    number: 1,
+    state: 'active',
+    elapsedSeconds: 1200,
+  };
+
+  it('keeps a typed time only while its draft belongs to the selected segment', () => {
+    const draft = { segmentId: 'segment-1', value: '20:50' };
+
+    expect(typedClockTimeOf(draft, 'segment-1')).toBe('20:50');
+    expect(typedClockTimeOf(draft, 'segment-2')).toBeUndefined();
+    expect(typedClockTimeOf(undefined, 'segment-1')).toBeUndefined();
+  });
+
+  it('shows the typed time, else the selected segment time as mm:ss, else nothing', () => {
+    expect(clockTimeInputOf(half, '45')).toBe('45');
+    expect(clockTimeInputOf(half, undefined)).toBe('20:00');
+    expect(clockTimeInputOf(undefined, undefined)).toBe('');
+  });
+});
+
+describe('clockActionsOf before any segment exists', () => {
+  const regulation = { type: 'half', count: 2, maximum: 2 };
+
+  it('offers Start match as the primary action when the discipline has a regulation plan', () => {
+    expect(clockActionsOf('scheduled', [], undefined, regulation)).toEqual({
+      actions: [{ action: 'start-match', primary: true }],
+      finalizePrimary: false,
+    });
+  });
+
+  it('offers no Start when the discipline declares no segment type', () => {
+    expect(clockActionsOf('scheduled', [], undefined)).toEqual({
+      actions: [],
+      finalizePrimary: false,
+    });
+  });
+
+  it('offers no clock action in progress with no segments, leaving Finalize primary', () => {
+    expect(clockActionsOf('in-progress', [], undefined, regulation)).toEqual({
+      actions: [],
+      finalizePrimary: true,
     });
   });
 });
@@ -410,65 +528,6 @@ describe('selectedSegmentOf', () => {
 
   it('follows the match when the pick no longer names a segment of it', () => {
     expect(selectedSegmentOf(segments, 'gone')?.segmentId).toBe('s2');
-  });
-});
-
-describe('elapsed seconds input helpers', () => {
-  const segment: ConsoleSegment = {
-    segmentId: 'segment-1',
-    type: 'half',
-    number: 1,
-    state: 'active',
-    elapsedSeconds: 1200,
-  };
-
-  it('keeps a typed value only while its draft belongs to the selected segment', () => {
-    const draft = { segmentId: 'segment-1', value: '1250' };
-
-    expect(typedElapsedOf(draft, 'segment-1')).toBe('1250');
-    expect(typedElapsedOf(draft, 'segment-2')).toBeUndefined();
-    expect(typedElapsedOf(undefined, 'segment-1')).toBeUndefined();
-  });
-
-  it('shows the typed value, else the selected segment clock, else nothing', () => {
-    expect(elapsedInputOf(segment, '90')).toBe('90');
-    expect(elapsedInputOf(segment, undefined)).toBe('1200');
-    expect(elapsedInputOf(undefined, undefined)).toBe('');
-  });
-
-  it('accepts whole seconds and refuses every other text', () => {
-    expect(parseElapsedSeconds('0')).toBe(0);
-    expect(parseElapsedSeconds('1250')).toBe(1250);
-    expect(parseElapsedSeconds(undefined)).toBeUndefined();
-    expect(parseElapsedSeconds('')).toBeUndefined();
-    expect(parseElapsedSeconds('-5')).toBeUndefined();
-    expect(parseElapsedSeconds('12.5')).toBeUndefined();
-    expect(parseElapsedSeconds('99999999999999999999')).toBeUndefined();
-  });
-});
-
-describe('clockActionsOf before any segment exists', () => {
-  const regulation = { type: 'half', count: 2, maximum: 2 };
-
-  it('offers Start as the primary action when the discipline has a regulation plan', () => {
-    expect(clockActionsOf('scheduled', [], undefined, regulation)).toEqual({
-      commands: [{ command: 'start', primary: true }],
-      finalizePrimary: false,
-    });
-  });
-
-  it('offers no Start when the discipline declares no segment type', () => {
-    expect(clockActionsOf('scheduled', [], undefined)).toEqual({
-      commands: [],
-      finalizePrimary: false,
-    });
-  });
-
-  it('offers no clock command in progress with no segments, leaving Finalize primary', () => {
-    expect(clockActionsOf('in-progress', [], undefined, regulation)).toEqual({
-      commands: [],
-      finalizePrimary: true,
-    });
   });
 });
 
@@ -498,5 +557,15 @@ describe('addSegmentOptionsOf', () => {
       },
     } as unknown as Pick<MatchConsoleResponse, 'segmentPlan'>;
     expect(addSegmentOptionsOf(english, 'de', 'x')).toEqual([{ value: 'set', label: 'Set' }]);
+  });
+});
+
+describe('clockOpenOf', () => {
+  it('is open only for a scheduled or an in-progress match', () => {
+    expect(clockOpenOf('scheduled')).toBe(true);
+    expect(clockOpenOf('in-progress')).toBe(true);
+    expect(clockOpenOf('finalized')).toBe(false);
+    expect(clockOpenOf('forfeited')).toBe(false);
+    expect(clockOpenOf('not-required')).toBe(false);
   });
 });

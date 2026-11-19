@@ -941,9 +941,41 @@ export const messages = defineMessages({
     id: 'control.matchConsole.clockCommands',
     defaultMessage: 'Clock commands',
   },
-  matchConsoleStartClock: { id: 'control.matchConsole.startClock', defaultMessage: 'Start' },
   matchConsolePauseClock: { id: 'control.matchConsole.pauseClock', defaultMessage: 'Pause' },
-  matchConsoleEndSegment: { id: 'control.matchConsole.endSegment', defaultMessage: 'End period' },
+  matchConsoleEndSegment: { id: 'control.matchConsole.endSegment', defaultMessage: 'End segment' },
+  matchConsoleStartMatch: { id: 'control.matchConsole.startMatch', defaultMessage: 'Start match' },
+  matchConsoleStartSegment: {
+    id: 'control.matchConsole.startSegment',
+    defaultMessage: 'Start segment',
+  },
+  matchConsoleResume: { id: 'control.matchConsole.resume', defaultMessage: 'Resume' },
+  matchConsoleReopenSegment: {
+    id: 'control.matchConsole.reopenSegment',
+    defaultMessage: 'Reopen segment…',
+  },
+  matchConsoleAnotherSegmentRunning: {
+    id: 'control.matchConsole.anotherSegmentRunning',
+    defaultMessage: '{segment} is running. Pause or end it before starting or resuming another.',
+  },
+  matchConsoleCorrectTimeLabel: {
+    id: 'control.matchConsole.correctTimeLabel',
+    defaultMessage: 'Time (mm:ss)',
+  },
+  matchConsoleCorrectTime: { id: 'control.matchConsole.correctTime', defaultMessage: 'Correct' },
+  matchConsoleReopenConfirm: {
+    id: 'control.matchConsole.reopenConfirm',
+    defaultMessage:
+      'Reopen {segment}? It returns to paused with its time kept. The reason is recorded in the audit trail.',
+  },
+  matchConsoleReopenReason: { id: 'control.matchConsole.reopenReason', defaultMessage: 'Reason' },
+  matchConsoleReopenConfirmButton: {
+    id: 'control.matchConsole.reopenConfirmButton',
+    defaultMessage: 'Reopen segment',
+  },
+  matchConsoleSegmentStatePaused: {
+    id: 'control.matchConsole.segmentStatePaused',
+    defaultMessage: 'paused',
+  },
   matchConsoleExpandLedger: {
     id: 'control.matchConsole.expandLedger',
     defaultMessage: 'Show full history',
@@ -987,20 +1019,12 @@ export const messages = defineMessages({
   },
   matchConsoleClockAndPeriod: {
     id: 'control.matchConsole.clockAndPeriod',
-    defaultMessage: 'Clock and period',
+    defaultMessage: 'Clock and segment',
   },
   matchConsoleSegment: { id: 'control.matchConsole.segment', defaultMessage: 'Segment' },
   matchConsoleActiveSegment: {
     id: 'control.matchConsole.activeSegment',
     defaultMessage: 'Active segment',
-  },
-  matchConsoleElapsedSeconds: {
-    id: 'control.matchConsole.elapsedSeconds',
-    defaultMessage: 'Elapsed seconds',
-  },
-  matchConsoleApplyClock: {
-    id: 'control.matchConsole.applyClock',
-    defaultMessage: 'Apply clock',
   },
   matchConsoleNoSegments: {
     id: 'control.matchConsole.noSegments',

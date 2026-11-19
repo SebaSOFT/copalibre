@@ -20,7 +20,7 @@ Operators can quickly navigate to match operation consoles and match report revi
 
 ## Segments
 
-A match is played in segments: halves, sets or periods. Start creates the regulation segments that the match's ruleset declares, such as the two halves of a football match or the sets needed to decide a best-of-three match, and sets the first one running. Pause and End period act on the segment that is running.
+A match is played in segments: halves, sets or periods. Start match creates the regulation segments that the match's ruleset declares, such as the two halves of a football match or the sets needed to decide a best-of-three match, and sets the first one running. Pause and End segment act on the segment that is running.
 
 Add segment appends one more segment of any type the discipline declares, such as extra time, a penalty shootout or a deciding set. A segment beyond the regulation plan is accepted and labelled "(outside the plan)": the organizer decides what is played beyond regulation.
 

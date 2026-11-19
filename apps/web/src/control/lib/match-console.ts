@@ -109,22 +109,63 @@ export function selectedSegmentOf(
   );
 }
 
+/**
+ * Where a segment stands on its own clock, as the operator reads it. A stopped segment with time
+ * above zero is paused: the server stores it as pending, which alone does not tell a half that
+ * never ran from one that was stopped part-way.
+ */
+export type SegmentPhase = 'not-started' | 'paused' | 'running' | 'ended';
+
+export function segmentPhaseOf(
+  segment: Pick<ConsoleSegment, 'state' | 'elapsedSeconds'>,
+): SegmentPhase {
+  if (segment.state === 'active') return 'running';
+  if (segment.state === 'completed') return 'ended';
+  return segment.elapsedSeconds > 0 ? 'paused' : 'not-started';
+}
+
+/**
+ * A clock button, named for what it does to the segment. Start segment and Resume send the same
+ * server command; the labels differ so the operator reads whether a fresh segment starts or the
+ * stopped one continues.
+ */
+export type ClockAction =
+  'start-match' | 'start-segment' | 'resume' | 'pause' | 'end-segment' | 'reopen-segment';
+
 export interface ClockActions {
-  /** Only the commands the match state allows, in the order they are shown. */
-  readonly commands: readonly {
-    readonly command: SegmentClockCommand;
+  /** Only the actions the match and the selected segment allow, primary first. */
+  readonly actions: readonly {
+    readonly action: ClockAction;
     readonly primary: boolean;
   }[];
   /** Whether Finalize is the one primary action: nothing is left to run. */
   readonly finalizePrimary: boolean;
+  /** The running segment, when another segment holds the clock and so blocks starting this one. */
+  readonly runningSegment?: ConsoleSegment;
+}
+
+/** The server command a clock action sends. Reopen has its own endpoint and no command. */
+export function commandOfClockAction(
+  action: Exclude<ClockAction, 'reopen-segment'>,
+): SegmentClockCommand {
+  switch (action) {
+    case 'start-match':
+      return 'start';
+    case 'start-segment':
+    case 'resume':
+      return 'resume';
+    case 'pause':
+      return 'pause';
+    case 'end-segment':
+      return 'end';
+  }
 }
 
 /**
- * What the clock card and the finalize card offer for the selected segment, so the console shows
- * one primary action per state. A stopped clock offers Start (a resume once the match is under
- * way), a running one offers Pause, and an ended segment offers nothing; only a match with no
- * segment left to play makes Finalize the primary action. The match state, not the capability,
- * decides here: a missing capability disables what is offered, it does not change what is offered.
+ * What the clock card and the finalize card offer for the selected segment, one set per state.
+ * The match status and the segment's phase decide it. Start segment and Resume are withheld while
+ * another segment runs, and the running one is named instead: the console never starts a second
+ * clock by accident. A finalized match offers no clock action.
  */
 export function clockActionsOf(
   status: MatchConsoleResponse['status'],
@@ -134,28 +175,50 @@ export function clockActionsOf(
 ): ClockActions {
   const finalizePrimary =
     status === 'in-progress' && segments.every((segment) => segment.state === 'completed');
+  const none: ClockActions = { actions: [], finalizePrimary };
   // A scheduled match with no segments has nothing selected yet: Start creates its regulation.
   if (status === 'scheduled' && segments.length === 0) {
     return regulation === undefined
-      ? { commands: [], finalizePrimary }
-      : { commands: [{ command: 'start', primary: true }], finalizePrimary };
+      ? none
+      : { actions: [{ action: 'start-match', primary: true }], finalizePrimary };
   }
-  if (selected === undefined || selected.state === 'completed') {
-    return { commands: [], finalizePrimary };
-  }
+  if (selected === undefined) return none;
   if (status === 'scheduled') {
-    return { commands: [{ command: 'start', primary: true }], finalizePrimary };
+    return { actions: [{ action: 'start-match', primary: true }], finalizePrimary };
   }
-  if (status !== 'in-progress') return { commands: [], finalizePrimary };
-  return {
-    commands: [
-      selected.state === 'active'
-        ? { command: 'pause', primary: true }
-        : { command: 'resume', primary: true },
-      { command: 'end', primary: false },
-    ],
-    finalizePrimary,
-  };
+  if (status !== 'in-progress') return none;
+  const phase = segmentPhaseOf(selected);
+  // Starting or resuming a segment never runs beside another running one: the running one is named.
+  const runningSegment = segments.find((segment) => segment.state === 'active');
+  const blockedByRunning = runningSegment !== undefined && phase !== 'running';
+
+  switch (phase) {
+    case 'running':
+      return {
+        actions: [
+          { action: 'pause', primary: true },
+          { action: 'end-segment', primary: false },
+        ],
+        finalizePrimary,
+      };
+    case 'ended':
+      // Reopening corrects the record, so it is never the primary action: Finalize stays primary.
+      return { actions: [{ action: 'reopen-segment', primary: false }], finalizePrimary };
+    case 'paused':
+    case 'not-started': {
+      if (blockedByRunning) return { actions: [], finalizePrimary, runningSegment };
+      if (phase === 'not-started') {
+        return { actions: [{ action: 'start-segment', primary: true }], finalizePrimary };
+      }
+      return {
+        actions: [
+          { action: 'resume', primary: true },
+          { action: 'end-segment', primary: false },
+        ],
+        finalizePrimary,
+      };
+    }
+  }
 }
 
 /**
@@ -269,35 +332,76 @@ export function memberByNumber(
   return matches.length === 1 ? matches[0] : undefined;
 }
 
-/** What the operator typed into Elapsed seconds, and for which segment. */
-export interface ElapsedDraft {
+/** What the operator typed into the time correction field, and for which segment. */
+export interface ClockTimeDraft {
   readonly segmentId: string;
   readonly value: string;
 }
 
-/** The typed Elapsed seconds text while the draft belongs to the selected segment, else undefined. */
-export function typedElapsedOf(
-  draft: ElapsedDraft | undefined,
+/** The typed time while the draft belongs to the selected segment, else undefined. */
+export function typedClockTimeOf(
+  draft: ClockTimeDraft | undefined,
   selectedSegmentId: string,
 ): string | undefined {
   return draft?.segmentId === selectedSegmentId ? draft.value : undefined;
 }
 
-/** The Elapsed seconds input text: what was typed, else the selected segment's current clock. */
-export function elapsedInputOf(
+/** The time field text: what was typed, else the selected segment's current time as mm:ss. */
+export function clockTimeInputOf(
   selected: ConsoleSegment | undefined,
   typed: string | undefined,
 ): string {
   if (typed !== undefined) return typed;
-  return selected === undefined ? '' : String(selected.elapsedSeconds);
+  return selected === undefined ? '' : formatClock(selected.elapsedSeconds);
+}
+
+const MINUTES_AND_SECONDS = /^(\d{1,3}):(\d{2})$/;
+const WHOLE_MINUTES = /^\d{1,3}$/;
+
+/**
+ * Whole seconds from the operator's time, written as minutes:seconds (`20:50`, `0:05`) or as whole
+ * minutes (`45`). Undefined for anything else: empty text, a sign, a fraction, seconds of 60 or
+ * more, or extra characters. Correct time is unavailable for every undefined result.
+ */
+export function parseClockTime(text: string | undefined): number | undefined {
+  if (text === undefined) return undefined;
+  const value = text.trim();
+  const clock = MINUTES_AND_SECONDS.exec(value);
+  if (clock) {
+    const seconds = Number(clock[2]);
+    return seconds < 60 ? Number(clock[1]) * 60 + seconds : undefined;
+  }
+  return WHOLE_MINUTES.test(value) ? Number(value) * 60 : undefined;
+}
+
+/** The longest reopen reason the server accepts, counted after trimming. */
+export const REOPEN_REASON_MAX_LENGTH = 500;
+
+/** Whether a reopen reason can be sent: non-empty and within the server's limit once trimmed. */
+export function reopenReasonValidOf(reason: string): boolean {
+  const trimmed = reason.trim();
+  return trimmed !== '' && trimmed.length <= REOPEN_REASON_MAX_LENGTH;
 }
 
 /**
- * Whole seconds from the operator's text, or undefined when the text is absent, empty, signed,
- * fractional or beyond the safe integer range. Apply clock is unavailable for every undefined result.
+ * The segment a reopen confirmation still applies to: the one it was opened for, while that
+ * segment is the selected one and has ended. Any other state closes the confirmation.
  */
-export function parseElapsedSeconds(text: string | undefined): number | undefined {
-  if (text === undefined || !/^\d+$/.test(text)) return undefined;
-  const seconds = Number(text);
-  return Number.isSafeInteger(seconds) ? seconds : undefined;
+export function reopenTargetOf(
+  segments: readonly ConsoleSegment[],
+  openedFor: string | undefined,
+  selectedSegmentId: string,
+): ConsoleSegment | undefined {
+  if (openedFor === undefined || openedFor !== selectedSegmentId) return undefined;
+  return segments.find(
+    (segment) => segment.segmentId === openedFor && segment.state === 'completed',
+  );
+}
+
+/**
+ * Whether a match's clock may still be corrected or driven: only a scheduled or an in-progress
+ * match. A finalized, forfeited or anulled match is closed, and offers no clock action.
+ */
+export function clockOpenOf(status: string): boolean {
+  return status === 'scheduled' || status === 'in-progress';
 }
