@@ -360,13 +360,12 @@ describe('clockActionsOf', () => {
     });
   });
 
-  it('withholds Start match on a scheduled match while another segment runs', () => {
+  it('offers Start match on a scheduled match whatever segment is marked running', () => {
     const runningFirst = segment({ segmentId: 'half-1', state: 'active', elapsedSeconds: 600 });
     expect(clockActionsOf('scheduled', [runningFirst, secondNotStarted], secondNotStarted)).toEqual(
       {
-        actions: [],
+        actions: [{ action: 'start-match', primary: true }],
         finalizePrimary: false,
-        runningSegment: runningFirst,
       },
     );
   });

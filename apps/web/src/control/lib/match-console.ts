@@ -183,16 +183,14 @@ export function clockActionsOf(
       : { actions: [{ action: 'start-match', primary: true }], finalizePrimary };
   }
   if (selected === undefined) return none;
+  if (status === 'scheduled') {
+    return { actions: [{ action: 'start-match', primary: true }], finalizePrimary };
+  }
+  if (status !== 'in-progress') return none;
   const phase = segmentPhaseOf(selected);
   // Starting or resuming a segment never runs beside another running one: the running one is named.
   const runningSegment = segments.find((segment) => segment.state === 'active');
   const blockedByRunning = runningSegment !== undefined && phase !== 'running';
-  if (status === 'scheduled') {
-    return blockedByRunning
-      ? { actions: [], finalizePrimary, runningSegment }
-      : { actions: [{ action: 'start-match', primary: true }], finalizePrimary };
-  }
-  if (status !== 'in-progress') return none;
 
   switch (phase) {
     case 'running':

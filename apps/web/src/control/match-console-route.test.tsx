@@ -285,7 +285,7 @@ describe('MatchConsolePage clock commands', () => {
     expect(screen.getByRole('button', { name: 'Reopen period…' })).toBeTruthy();
   });
 
-  it('withholds Start match while another period runs, and names the running one', async () => {
+  it('offers Start match on a scheduled match even while a period is marked running', async () => {
     const scheduled: MatchConsoleResponse = {
       ...projection,
       status: 'scheduled',
@@ -313,15 +313,7 @@ describe('MatchConsolePage clock commands', () => {
       );
     });
 
-    await act(async () => {
-      fireEvent.change(screen.getByLabelText('Active segment'), {
-        target: { value: 'segment-2' },
-      });
-    });
-
-    expect(screen.queryByRole('button', { name: 'Start match' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Start period' })).toBeNull();
-    expect(screen.getByText(/half 1 is running/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Start match' })).toBeTruthy();
   });
 
   it('starts a scheduled match from its first unplayed period with the start command', async () => {
