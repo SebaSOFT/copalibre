@@ -259,14 +259,27 @@ async function mockMatchConsole(
         }
 
         if (url === `${path}/clock` && method === 'POST') {
+          // A correction sets the time and keeps every segment's state.
           state = {
             ...state,
-            segments: state.segments.map((segment) => ({
-              ...segment,
-              state: segment.segmentId === body.segmentId ? 'active' : 'pending',
-              elapsedSeconds:
-                segment.segmentId === body.segmentId ? body.elapsedSeconds : segment.elapsedSeconds,
-            })),
+            segments: state.segments.map((segment) =>
+              segment.segmentId === body.segmentId
+                ? { ...segment, elapsedSeconds: body.elapsedSeconds }
+                : segment,
+            ),
+            projectionVersion: state.projectionVersion + 1,
+          };
+          persist();
+          return Response.json(state);
+        }
+
+        const reopenMatch = url.match(new RegExp(`^${path}/segments/([^/]+)/reopen$`));
+        if (reopenMatch && method === 'POST') {
+          state = {
+            ...state,
+            segments: state.segments.map((segment) =>
+              segment.segmentId === reopenMatch[1] ? { ...segment, state: 'pending' } : segment,
+            ),
             projectionVersion: state.projectionVersion + 1,
           };
           persist();
@@ -311,13 +324,35 @@ async function mockMatchConsole(
           if (!state.capabilities.includes('match.control-clock')) {
             return new Response('Forbidden', { status: 403 });
           }
+          // A start with no segments creates the regulation, as the server does.
+          if (clockCommand === 'start' && state.segments.length === 0) {
+            state = {
+              ...state,
+              status: 'in-progress',
+              segments: [1, 2].map((number) => ({
+                segmentId: `segment-${number}`,
+                type: 'half',
+                number,
+                state: 'pending',
+                elapsedSeconds: 0,
+              })),
+            };
+          }
+          const target = body.segmentId || 'segment-1';
           const resulting =
             clockCommand === 'end' ? 'completed' : clockCommand === 'pause' ? 'pending' : 'active';
           state = {
             ...state,
             segments: state.segments.map((segment) =>
-              segment.segmentId === body.segmentId
-                ? { ...segment, state: resulting }
+              segment.segmentId === target
+                ? {
+                    ...segment,
+                    state: resulting,
+                    // The clock ran for a minute before it was stopped.
+                    ...(clockCommand === 'pause'
+                      ? { elapsedSeconds: segment.elapsedSeconds + 60 }
+                      : {}),
+                  }
                 : resulting === 'active' && segment.state === 'active'
                   ? { ...segment, state: 'pending' }
                   : segment,
@@ -441,8 +476,8 @@ test('renders clock and declared timer resolution from refreshed authoritative s
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByLabel('Segundos transcurridos').fill('245');
-  await page.getByRole('button', { name: 'Aplicar reloj' }).click();
+  await page.getByLabel('Tiempo (mm:ss)').fill('04:05');
+  await page.getByRole('button', { name: 'Corregir', exact: true }).click();
   await expect(page.getByLabel('Reloj 04:05')).toBeVisible();
   await page.getByRole('button', { name: 'Resolver' }).click();
   await expect(page.getByText('Sin timers activos.')).toBeVisible();
@@ -563,41 +598,71 @@ test('keeps connection and sync state visible in the console header', async ({ p
   await expect(page.getByText('Sin acciones en cola')).toHaveCount(0);
 });
 
-test('starts, pauses and ends a segment’s clock from the console', async ({ page }) => {
-  await mockMatchConsole(page);
+test('starts a match, pauses its half, corrects the time, ends it and reopens it with a reason', async ({
+  page,
+}) => {
+  await mockMatchConsole(page, {
+    withoutSegments: true,
+    status: 'scheduled',
+    segmentPlan: {
+      regulation: { type: 'half', typeLabel: 'Tiempo', count: 2, maximum: 2 },
+      addable: [{ type: 'half', typeLabel: 'Tiempo', withinPlan: true }],
+    },
+  });
   const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  // The fixture's segment is already running, so the clock is advancing and
-  // Iniciar has nothing to start: it is not offered at all.
-  await expect(page.getByRole('button', { name: 'Iniciar' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Pausar' }).click();
-  await expect(page.getByRole('button', { name: 'Pausar' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Iniciar' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Iniciar partido' }).click();
+  await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Iniciar' }).click();
-  await expect(page.getByRole('button', { name: 'Pausar' })).toBeEnabled();
+  // A stopped half with time on it is paused, and offers Resume.
+  await page.getByRole('button', { name: 'Pausar' }).click();
+  await expect(page.locator('#console-segment')).toContainText('pausado');
+  await expect(page.getByRole('button', { name: 'Reanudar' })).toBeVisible();
+
+  // Correcting the time keeps the half paused.
+  await page.locator('input#console-clock-time').fill('20:50');
+  await page.getByRole('button', { name: 'Corregir', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Reanudar' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pausar' })).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Terminar período' }).click();
-  // An ended period accepts no further clock command, so none is offered.
-  for (const name of ['Iniciar', 'Pausar', 'Terminar período']) {
-    await expect(page.getByRole('button', { name })).toHaveCount(0);
-  }
+  await expect(page.getByRole('button', { name: 'Reanudar' })).toHaveCount(0);
 
-  // Polled, not read once: the buttons disable on the optimistic patch, which
-  // lands before the request that caused it does.
+  // The console follows the match to the next unplayed half, so the ended one is picked again.
+  await page.getByLabel('Segmento activo').selectOption('segment-1');
+
+  // Reopening asks for a reason, and returns the half to paused with its time kept.
+  await page.getByRole('button', { name: 'Reabrir período…' }).click();
+  const confirm = page.getByRole('button', { name: 'Reabrir período', exact: true });
+  await expect(confirm).toBeDisabled();
+  await page.getByLabel('Motivo').fill('Terminado por error');
+  await confirm.click();
+  await expect(page.getByRole('button', { name: 'Reanudar' })).toBeVisible();
+
   await expect
     .poll(async () =>
       (await capturedRequests(page))
-        .filter((request) => request.url.includes('/commands/'))
-        .map((request) => request.url.split('/commands/')[1]),
+        .filter(
+          (request) =>
+            request.url.includes('/commands/') ||
+            request.url.endsWith('/clock') ||
+            request.url.includes('/reopen'),
+        )
+        .map((request) => [request.url.split(matchPath)[1], request.body]),
     )
-    .toEqual(['pause', 'resume', 'end']);
+    .toEqual([
+      ['/commands/start', { segmentId: '' }],
+      ['/commands/pause', { segmentId: 'segment-1' }],
+      ['/clock', { segmentId: 'segment-1', elapsedSeconds: 1250 }],
+      ['/commands/end', { segmentId: 'segment-1' }],
+      ['/segments/segment-1/reopen', { reason: 'Terminado por error' }],
+    ]);
 });
 
-test('shows the running clock in the elapsed input, and applies only a value typed into it', async ({
+test('shows the running time in the time field, and corrects only a value typed into it', async ({
   page,
 }) => {
   await mockMatchConsole(page);
@@ -606,21 +671,21 @@ test('shows the running clock in the elapsed input, and applies only a value typ
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  // The running segment reads 120 s. Apply clock is unavailable until the operator types a value,
-  // and nothing reaches the server in the meantime.
-  const elapsed = page.locator('input#console-elapsed-seconds');
-  const apply = page.getByRole('button', { name: 'Aplicar reloj' });
-  await expect(elapsed).toHaveValue('120');
-  await expect(apply).toBeDisabled();
+  // The running segment reads 02:00. Correct is unavailable until the operator types a time, and
+  // nothing reaches the server in the meantime.
+  const time = page.locator('input#console-clock-time');
+  const correct = page.getByRole('button', { name: 'Corregir', exact: true });
+  await expect(time).toHaveValue('02:00');
+  await expect(correct).toBeDisabled();
   await expect
     .poll(async () =>
       (await capturedRequests(page)).filter((request) => request.url.endsWith('/clock')),
     )
     .toEqual([]);
 
-  await elapsed.fill('1250');
-  await expect(apply).toBeEnabled();
-  await apply.click();
+  await time.fill('20:50');
+  await expect(correct).toBeEnabled();
+  await correct.click();
 
   await expect
     .poll(async () =>
@@ -628,9 +693,11 @@ test('shows the running clock in the elapsed input, and applies only a value typ
         .filter((request) => request.url.endsWith('/clock'))
         .map((request) => request.body),
     )
-    .toEqual([{ segmentId: 'segment-1', elapsedSeconds: 1250, activate: true }]);
-  await expect(elapsed).toHaveValue('1250');
-  await expect(apply).toBeDisabled();
+    .toEqual([{ segmentId: 'segment-1', elapsedSeconds: 1250 }]);
+  await expect(time).toHaveValue('20:50');
+  await expect(correct).toBeDisabled();
+  // The running half keeps running.
+  await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
 });
 
 test('a scheduled match with no segments says what Start creates, and sends Start', async ({
@@ -650,7 +717,7 @@ test('a scheduled match with no segments says what Start creates, and sends Star
   await page.waitForURL(`**${target}`);
 
   await expect(page.getByText('Iniciar crea 2 segmentos de tipo Tiempo')).toBeVisible();
-  await page.getByRole('button', { name: 'Iniciar', exact: true }).click();
+  await page.getByRole('button', { name: 'Iniciar partido', exact: true }).click();
   await expect
     .poll(() => capturedRequests(page))
     .toContainEqual(
@@ -717,7 +784,7 @@ test('a match with no segments offers no clock, and says why', async ({ page }) 
   await page.waitForURL(`**${target}`);
 
   await expect(page.getByText('Este partido todavía no tiene segmentos.')).toBeVisible();
-  for (const name of ['Iniciar', 'Pausar', 'Reanudar', 'Aplicar reloj']) {
+  for (const name of ['Iniciar partido', 'Iniciar período', 'Pausar', 'Reanudar', 'Corregir']) {
     await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0);
   }
   await expect(page.getByRole('button', { name: 'Finalizar partido' })).toBeVisible();
@@ -734,7 +801,7 @@ test('does not offer clock commands without the clock-control capability', async
   for (const name of ['Pausar', 'Terminar período']) {
     await expect(page.getByRole('button', { name })).toBeDisabled();
   }
-  await expect(page.getByRole('button', { name: 'Iniciar' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Iniciar período' })).toHaveCount(0);
 });
 
 test('shows the running segment and one primary action while the match is in progress', async ({
@@ -748,7 +815,7 @@ test('shows the running segment and one primary action while the match is in pro
 
   // The segment select names the half in play, not an empty box.
   await expect(page.locator('#console-segment')).toContainText('en juego');
-  await expect(page.getByRole('button', { name: 'Iniciar' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Iniciar período' })).toHaveCount(0);
 
   // One primary action for the state: the clock is running, so it is Pausar.
   const primary = page.locator('main button.cl-btn--primary:visible');

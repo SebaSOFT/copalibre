@@ -155,6 +155,39 @@ async function mockMatchConsole(page: Page): Promise<void> {
           });
         }
 
+        if (url === `${path}/commands/end` && method === 'POST') {
+          state = {
+            ...state,
+            segments: state.segments.map((segment) =>
+              segment.state === 'active' ? { ...segment, state: 'completed' } : segment,
+            ),
+            projectionVersion: state.projectionVersion + 1,
+          };
+          persist();
+          return Response.json({
+            matchId: state.matchId,
+            status: state.status,
+            clockRunning: false,
+            runningTimers: [],
+          });
+        }
+
+        const reopenMatch = url.match(new RegExp(`^${path}/segments/([^/]+)/reopen$`));
+        if (reopenMatch && method === 'POST') {
+          // Counted outside the page state, so a replay that the queue sent twice shows up.
+          const posts = Number(window.sessionStorage.getItem('match-console-reopen-posts') ?? '0');
+          window.sessionStorage.setItem('match-console-reopen-posts', String(posts + 1));
+          state = {
+            ...state,
+            segments: state.segments.map((segment) =>
+              segment.segmentId === reopenMatch[1] ? { ...segment, state: 'pending' } : segment,
+            ),
+            projectionVersion: state.projectionVersion + 1,
+          };
+          persist();
+          return Response.json(state);
+        }
+
         if (url === `${path}/events` && method === 'POST') {
           // The one event definition this refuses on replay, however many
           // are already queued ahead of it — the server-side "same
@@ -246,7 +279,7 @@ test('queues a recorded event while offline, then drains it once back online', a
   );
   await page.goto(loginCallbackUrl());
   await selectEnglish(page);
-  await page.getByRole('button', { name: 'Apply clock' }).waitFor();
+  await page.getByRole('button', { name: 'Correct', exact: true }).waitFor();
 
   await page.context().setOffline(true);
   await setOffline(page, true);
@@ -299,7 +332,9 @@ test('an added segment queued offline is sent once on reconnection', async ({ pa
     .toBe('1');
 });
 
-test('the clock form and the clock commands keep a gap between them', async ({ page }) => {
+test('the time correction form and the clock commands keep a gap between them', async ({
+  page,
+}) => {
   await mockMatchConsole(page);
   await seedLoginTransaction(
     page,
@@ -307,14 +342,47 @@ test('the clock form and the clock commands keep a gap between them', async ({ p
   );
   await page.goto(loginCallbackUrl());
   await selectEnglish(page);
-  const applyClock = page.getByRole('button', { name: 'Apply clock' });
-  await applyClock.waitFor();
+  const time = page.locator('input#console-clock-time');
+  await time.waitFor();
 
-  const gap = await applyClock.evaluate((button) => {
+  const gap = await time.evaluate((input) => {
     const commands = document.querySelector('.cl-clock-commands') as HTMLElement;
-    return commands.getBoundingClientRect().top - button.getBoundingClientRect().bottom;
+    const form = input.closest('.cl-platform-form-grid') as HTMLElement;
+    return form.getBoundingClientRect().top - commands.getBoundingClientRect().bottom;
   });
   expect(gap).toBe(12);
+});
+
+test('a period reopened offline is sent once on reconnection', async ({ page }) => {
+  await mockMatchConsole(page);
+  await seedLoginTransaction(
+    page,
+    `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`,
+  );
+  await page.goto(loginCallbackUrl());
+  await selectEnglish(page);
+  await page.getByRole('button', { name: 'End period' }).click();
+  await expect(page.getByRole('button', { name: 'Reopen period…' })).toBeVisible();
+
+  await page.context().setOffline(true);
+  await setOffline(page, true);
+  await page.getByRole('button', { name: 'Reopen period…' }).click();
+  await page.getByLabel('Reason').fill('Ended by mistake');
+  await page.getByRole('button', { name: 'Reopen period', exact: true }).click();
+  await expect(page.locator('.cl-connection-status')).toContainText('1 queued action');
+
+  await setOffline(page, false);
+  await page.context().setOffline(false);
+  await page.evaluate(() => window.dispatchEvent(new Event('online')));
+  await expect(page.locator('.cl-connection-status')).not.toContainText('queued', {
+    timeout: 12_000,
+  });
+
+  await expect
+    .poll(() => page.evaluate(() => window.sessionStorage.getItem('match-console-reopen-posts')))
+    .toBe('1');
+  // The fixture's half has no time on it, so a reopened half has not started: it offers Start period.
+  await expect(page.getByRole('button', { name: 'Start period' })).toBeVisible();
 });
 
 test('a queued action survives a refresh while offline, and drains once back online', async ({
@@ -325,7 +393,7 @@ test('a queued action survives a refresh while offline, and drains once back onl
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await selectEnglish(page);
-  await page.getByRole('button', { name: 'Apply clock' }).waitFor();
+  await page.getByRole('button', { name: 'Correct', exact: true }).waitFor();
 
   await setOffline(page, true);
   await page.getByRole('button', { name: 'Gol', exact: true }).click();
@@ -366,7 +434,7 @@ test('a queued action survives a refresh while offline, and drains once back onl
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await selectEnglish(page);
-  await expect(page.getByRole('button', { name: 'Apply clock' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Correct', exact: true })).toBeVisible();
   await openSyncDetail(page);
   await expect(page.getByText('goal', { exact: false })).toBeVisible();
 });
@@ -379,7 +447,7 @@ test('a refused item does not block the rest of the queue from draining', async 
   );
   await page.goto(loginCallbackUrl());
   await selectEnglish(page);
-  await page.getByRole('button', { name: 'Apply clock' }).waitFor();
+  await page.getByRole('button', { name: 'Correct', exact: true }).waitFor();
 
   // Two queued items, in order: the first ("Gol") the mock always accepts;
   // the second ("Refuse me") the mock always refuses (400) — see the mock's
@@ -428,7 +496,7 @@ test('the control shell has no unlabeled icon-only buttons', async ({ page }) =>
   );
   await page.goto(loginCallbackUrl());
   await selectEnglish(page);
-  await page.getByRole('button', { name: 'Apply clock' }).waitFor();
+  await page.getByRole('button', { name: 'Correct', exact: true }).waitFor();
 
   const { violations } = await new AxeBuilder({ page }).withRules(['button-name']).analyze();
   expect(violations).toEqual([]);
