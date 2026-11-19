@@ -42,7 +42,7 @@ function renderConsole(projection: Projection, onAddSegment = jest.fn<(type: str
 }
 
 function clockCard(): HTMLElement {
-  const heading = screen.getByRole('heading', { name: 'Clock and period' });
+  const heading = screen.getByRole('heading', { name: 'Clock and segment' });
   const card = heading.closest('.cl-card');
   if (!(card instanceof HTMLElement)) throw new Error('clock card not found');
   return card;

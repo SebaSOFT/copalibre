@@ -628,15 +628,15 @@ test('starts a match, pauses its half, corrects the time, ends it and reopens it
   await expect(page.getByRole('button', { name: 'Reanudar' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pausar' })).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Terminar período' }).click();
+  await page.getByRole('button', { name: 'Terminar segmento' }).click();
   await expect(page.getByRole('button', { name: 'Reanudar' })).toHaveCount(0);
 
   // The console follows the match to the next unplayed half, so the ended one is picked again.
   await page.getByLabel('Segmento activo').selectOption('segment-1');
 
   // Reopening asks for a reason, and returns the half to paused with its time kept.
-  await page.getByRole('button', { name: 'Reabrir período…' }).click();
-  const confirm = page.getByRole('button', { name: 'Reabrir período', exact: true });
+  await page.getByRole('button', { name: 'Reabrir segmento…' }).click();
+  const confirm = page.getByRole('button', { name: 'Reabrir segmento', exact: true });
   await expect(confirm).toBeDisabled();
   await page.getByLabel('Motivo').fill('Terminado por error');
   await confirm.click();
@@ -784,7 +784,7 @@ test('a match with no segments offers no clock, and says why', async ({ page }) 
   await page.waitForURL(`**${target}`);
 
   await expect(page.getByText('Este partido todavía no tiene segmentos.')).toBeVisible();
-  for (const name of ['Iniciar partido', 'Iniciar período', 'Pausar', 'Reanudar', 'Corregir']) {
+  for (const name of ['Iniciar partido', 'Iniciar segmento', 'Pausar', 'Reanudar', 'Corregir']) {
     await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0);
   }
   await expect(page.getByRole('button', { name: 'Finalizar partido' })).toBeVisible();
@@ -798,10 +798,10 @@ test('does not offer clock commands without the clock-control capability', async
   await page.waitForURL(`**${target}`);
 
   // The running segment offers Pause and End; without the capability they are disabled.
-  for (const name of ['Pausar', 'Terminar período']) {
+  for (const name of ['Pausar', 'Terminar segmento']) {
     await expect(page.getByRole('button', { name })).toBeDisabled();
   }
-  await expect(page.getByRole('button', { name: 'Iniciar período' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Iniciar segmento' })).toHaveCount(0);
 });
 
 test('shows the running segment and one primary action while the match is in progress', async ({
@@ -815,7 +815,7 @@ test('shows the running segment and one primary action while the match is in pro
 
   // The segment select names the half in play, not an empty box.
   await expect(page.locator('#console-segment')).toContainText('en juego');
-  await expect(page.getByRole('button', { name: 'Iniciar período' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Iniciar segmento' })).toHaveCount(0);
 
   // One primary action for the state: the clock is running, so it is Pausar.
   const primary = page.locator('main button.cl-btn--primary:visible');

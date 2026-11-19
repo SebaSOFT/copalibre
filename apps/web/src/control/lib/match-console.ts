@@ -125,12 +125,12 @@ export function segmentPhaseOf(
 }
 
 /**
- * A clock button, named for what it does to the period. Start period and Resume send the same
- * server command; the labels differ so the operator reads whether a fresh period starts or the
+ * A clock button, named for what it does to the segment. Start segment and Resume send the same
+ * server command; the labels differ so the operator reads whether a fresh segment starts or the
  * stopped one continues.
  */
 export type ClockAction =
-  'start-match' | 'start-period' | 'resume' | 'pause' | 'end-period' | 'reopen-period';
+  'start-match' | 'start-segment' | 'resume' | 'pause' | 'end-segment' | 'reopen-segment';
 
 export interface ClockActions {
   /** Only the actions the match and the selected segment allow, primary first. */
@@ -146,24 +146,24 @@ export interface ClockActions {
 
 /** The server command a clock action sends. Reopen has its own endpoint and no command. */
 export function commandOfClockAction(
-  action: Exclude<ClockAction, 'reopen-period'>,
+  action: Exclude<ClockAction, 'reopen-segment'>,
 ): SegmentClockCommand {
   switch (action) {
     case 'start-match':
       return 'start';
-    case 'start-period':
+    case 'start-segment':
     case 'resume':
       return 'resume';
     case 'pause':
       return 'pause';
-    case 'end-period':
+    case 'end-segment':
       return 'end';
   }
 }
 
 /**
  * What the clock card and the finalize card offer for the selected segment, one set per state.
- * The match status and the segment's phase decide it. Start period and Resume are withheld while
+ * The match status and the segment's phase decide it. Start segment and Resume are withheld while
  * another segment runs, and the running one is named instead: the console never starts a second
  * clock by accident. A finalized match offers no clock action.
  */
@@ -197,23 +197,23 @@ export function clockActionsOf(
       return {
         actions: [
           { action: 'pause', primary: true },
-          { action: 'end-period', primary: false },
+          { action: 'end-segment', primary: false },
         ],
         finalizePrimary,
       };
     case 'ended':
       // Reopening corrects the record, so it is never the primary action: Finalize stays primary.
-      return { actions: [{ action: 'reopen-period', primary: false }], finalizePrimary };
+      return { actions: [{ action: 'reopen-segment', primary: false }], finalizePrimary };
     case 'paused':
     case 'not-started': {
       if (blockedByRunning) return { actions: [], finalizePrimary, runningSegment };
       if (phase === 'not-started') {
-        return { actions: [{ action: 'start-period', primary: true }], finalizePrimary };
+        return { actions: [{ action: 'start-segment', primary: true }], finalizePrimary };
       }
       return {
         actions: [
           { action: 'resume', primary: true },
-          { action: 'end-period', primary: false },
+          { action: 'end-segment', primary: false },
         ],
         finalizePrimary,
       };

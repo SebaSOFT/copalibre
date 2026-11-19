@@ -168,7 +168,7 @@ export function MatchConsoleTemplate({
   // slug only for a descriptor that hasn't set one, never a hardcoded guess.
   const segmentTypeText = (segment: ConsoleSegment): string =>
     resolveLabel(segment.typeLabel ?? segment.type, language);
-  const periodTextOf = (segment: ConsoleSegment): string =>
+  const segmentTextOf = (segment: ConsoleSegment): string =>
     `${segmentTypeText(segment)} ${segment.number}`;
   const segmentPhaseMessages: Readonly<Record<SegmentPhase, MessageDescriptor>> = {
     'not-started': messages.matchConsoleSegmentStatePending,
@@ -190,13 +190,13 @@ export function MatchConsoleTemplate({
   const [finalizeWinner, setFinalizeWinner] = useState('');
   const [rosterStepOpen, setRosterStepOpen] = useState(false);
   // Only an explicit pick: until the operator names a segment, the console shows the one the
-  // match is in, so it follows the match from one period to the next.
+  // match is in, so it follows the match from one segment to the next.
   const [pickedSegmentId, setPickedSegmentId] = useState('');
   // What the operator typed into the time field, and for which segment. Until they type, the field
   // shows the selected segment's current time, so Correct never sends a value nobody entered.
   const [clockDraft, setClockDraft] = useState<ClockTimeDraft>();
   // The segment a reopen confirmation was opened for. It applies only while that segment stays the
-  // selected, ended one, so the reason can never be sent to another period.
+  // selected, ended one, so the reason can never be sent to another segment.
   const [reopenOpenedFor, setReopenOpenedFor] = useState<string>();
   const [reopenReason, setReopenReason] = useState('');
   const [selectedSide, setSelectedSide] = useState('');
@@ -305,7 +305,7 @@ export function MatchConsoleTemplate({
   const correctedSeconds = parseClockTime(typedClockTime);
   const clockCommandsLabel = intl.formatMessage(messages.matchConsoleClockCommands);
   // Only what the match state and the segment's phase allow is offered, one primary action at a
-  // time. The distinction between starting a fresh period and resuming a stopped one belongs to
+  // time. The distinction between starting a fresh segment and resuming a stopped one belongs to
   // the domain, so each gets its own label rather than one shared "Start".
   const clockActions = clockActionsOf(
     projection.status,
@@ -315,11 +315,11 @@ export function MatchConsoleTemplate({
   );
   const clockActionLabels: Readonly<Record<ClockAction, string>> = {
     'start-match': intl.formatMessage(messages.matchConsoleStartMatch),
-    'start-period': intl.formatMessage(messages.matchConsoleStartPeriod),
+    'start-segment': intl.formatMessage(messages.matchConsoleStartSegment),
     resume: intl.formatMessage(messages.matchConsoleResume),
     pause: intl.formatMessage(messages.matchConsolePauseClock),
-    'end-period': intl.formatMessage(messages.matchConsoleEndSegment),
-    'reopen-period': intl.formatMessage(messages.matchConsoleReopenPeriod),
+    'end-segment': intl.formatMessage(messages.matchConsoleEndSegment),
+    'reopen-segment': intl.formatMessage(messages.matchConsoleReopenSegment),
   };
   // Adding a segment is offered once the match is in progress: a scheduled match gets its
   // regulation from Start, and a finished one takes no more segments.
@@ -340,7 +340,7 @@ export function MatchConsoleTemplate({
       visible={projection.status === 'in-progress'}
     />
   );
-  function issueClockAction(action: Exclude<ClockAction, 'reopen-period'>): void {
+  function issueClockAction(action: Exclude<ClockAction, 'reopen-segment'>): void {
     onIssueClockCommand(commandOfClockAction(action), selectedSegmentId);
     setPickedSegmentId('');
     closeReopen();
@@ -512,7 +512,7 @@ export function MatchConsoleTemplate({
                 labels={clockActionLabels}
                 label={clockCommandsLabel}
                 onAction={(action) =>
-                  action === 'reopen-period' ? openReopen() : issueClockAction(action)
+                  action === 'reopen-segment' ? openReopen() : issueClockAction(action)
                 }
               />
               {addSegmentNode}
@@ -542,7 +542,7 @@ export function MatchConsoleTemplate({
                   />
                 </Field>
               </div>
-              <RunningPeriodLine periodText={periodTextOf} segment={clockActions.runningSegment} />
+              <RunningSegmentLine segmentText={segmentTextOf} segment={clockActions.runningSegment} />
               {/* The whistle, not a correction: these record the moment the clock actually changed. */}
               <ClockCommands
                 actions={clockActions.actions}
@@ -550,22 +550,22 @@ export function MatchConsoleTemplate({
                 labels={clockActionLabels}
                 label={clockCommandsLabel}
                 onAction={(action) =>
-                  action === 'reopen-period' ? openReopen() : issueClockAction(action)
+                  action === 'reopen-segment' ? openReopen() : issueClockAction(action)
                 }
               />
-              <ReopenPeriodConfirmation
+              <ReopenSegmentConfirmation
                 labels={{
                   cancel: intl.formatMessage(messages.matchConsoleCancel),
                   confirm: intl.formatMessage(messages.matchConsoleReopenConfirmButton),
                   dismiss: intl.formatMessage(messages.toastDismiss),
                   reason: intl.formatMessage(messages.matchConsoleReopenReason),
-                  question: (period) =>
-                    intl.formatMessage(messages.matchConsoleReopenConfirm, { period }),
+                  question: (segment) =>
+                    intl.formatMessage(messages.matchConsoleReopenConfirm, { segment }),
                 }}
                 onCancel={closeReopen}
                 onConfirm={confirmReopen}
                 onReason={setReopenReason}
-                periodText={periodTextOf}
+                segmentText={segmentTextOf}
                 reason={reopenReason}
                 segment={reopenTarget}
                 visible={reopenTarget !== undefined}
@@ -1114,53 +1114,53 @@ interface AddSegmentFieldProps {
   readonly visible: boolean;
 }
 
-/** The line that names the running period when another one holds the clock. */
-function RunningPeriodLine({
-  periodText,
+/** The line that names the running segment when another one holds the clock. */
+function RunningSegmentLine({
+  segmentText,
   segment,
 }: {
-  readonly periodText: (segment: ConsoleSegment) => string;
+  readonly segmentText: (segment: ConsoleSegment) => string;
   readonly segment: ConsoleSegment | undefined;
 }) {
   if (segment === undefined) return null;
   return (
     <p className="cl-card__description">
       <FormattedMessage
-        {...messages.matchConsoleAnotherPeriodRunning}
-        values={{ period: periodText(segment) }}
+        {...messages.matchConsoleAnotherSegmentRunning}
+        values={{ segment: segmentText(segment) }}
       />
     </p>
   );
 }
 
-interface ReopenPeriodConfirmationProps {
+interface ReopenSegmentConfirmationProps {
   readonly labels: {
     readonly cancel: string;
     readonly confirm: string;
     readonly dismiss: string;
     readonly reason: string;
-    readonly question: (period: string) => string;
+    readonly question: (segment: string) => string;
   };
   readonly onCancel: () => void;
   readonly onConfirm: () => void;
   readonly onReason: (reason: string) => void;
-  readonly periodText: (segment: ConsoleSegment) => string;
+  readonly segmentText: (segment: ConsoleSegment) => string;
   readonly reason: string;
   readonly segment: ConsoleSegment | undefined;
   readonly visible: boolean;
 }
 
 /** The reopen confirmation, in the finalize card's pattern: a reason is required and it is cancellable. */
-function ReopenPeriodConfirmation({
+function ReopenSegmentConfirmation({
   labels,
   onCancel,
   onConfirm,
   onReason,
-  periodText,
+  segmentText,
   reason,
   segment,
   visible,
-}: ReopenPeriodConfirmationProps) {
+}: ReopenSegmentConfirmationProps) {
   if (!visible || segment === undefined) return null;
   return (
     // Stacked under its question: inline, the reason field and both buttons squeeze into one row
@@ -1168,7 +1168,7 @@ function ReopenPeriodConfirmation({
     <Alert
       block
       dismissLabel={labels.dismiss}
-      heading={labels.question(periodText(segment))}
+      heading={labels.question(segmentText(segment))}
       onDismiss={onCancel}
       tone="warning"
     >

@@ -353,7 +353,7 @@ test('the time correction form and the clock commands keep a gap between them', 
   expect(gap).toBe(12);
 });
 
-test('a period reopened offline is sent once on reconnection', async ({ page }) => {
+test('a segment reopened offline is sent once on reconnection', async ({ page }) => {
   await mockMatchConsole(page);
   await seedLoginTransaction(
     page,
@@ -361,14 +361,14 @@ test('a period reopened offline is sent once on reconnection', async ({ page }) 
   );
   await page.goto(loginCallbackUrl());
   await selectEnglish(page);
-  await page.getByRole('button', { name: 'End period' }).click();
-  await expect(page.getByRole('button', { name: 'Reopen period…' })).toBeVisible();
+  await page.getByRole('button', { name: 'End segment' }).click();
+  await expect(page.getByRole('button', { name: 'Reopen segment…' })).toBeVisible();
 
   await page.context().setOffline(true);
   await setOffline(page, true);
-  await page.getByRole('button', { name: 'Reopen period…' }).click();
+  await page.getByRole('button', { name: 'Reopen segment…' }).click();
   await page.getByLabel('Reason').fill('Ended by mistake');
-  await page.getByRole('button', { name: 'Reopen period', exact: true }).click();
+  await page.getByRole('button', { name: 'Reopen segment', exact: true }).click();
   await expect(page.locator('.cl-connection-status')).toContainText('1 queued action');
 
   await setOffline(page, false);
@@ -381,8 +381,8 @@ test('a period reopened offline is sent once on reconnection', async ({ page }) 
   await expect
     .poll(() => page.evaluate(() => window.sessionStorage.getItem('match-console-reopen-posts')))
     .toBe('1');
-  // The fixture's half has no time on it, so a reopened half has not started: it offers Start period.
-  await expect(page.getByRole('button', { name: 'Start period' })).toBeVisible();
+  // The fixture's half has no time on it, so a reopened half has not started: it offers Start segment.
+  await expect(page.getByRole('button', { name: 'Start segment' })).toBeVisible();
 });
 
 test('a queued action survives a refresh while offline, and drains once back online', async ({

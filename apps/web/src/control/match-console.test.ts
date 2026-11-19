@@ -370,48 +370,48 @@ describe('clockActionsOf', () => {
     );
   });
 
-  it('offers Start period alone for a segment not started while nothing runs', () => {
+  it('offers Start segment alone for a segment not started while nothing runs', () => {
     expect(clockActionsOf('in-progress', [notStarted, secondNotStarted], notStarted)).toEqual({
-      actions: [{ action: 'start-period', primary: true }],
+      actions: [{ action: 'start-segment', primary: true }],
       finalizePrimary: false,
     });
   });
 
-  it('offers Resume and End period for a paused segment, Resume primary', () => {
+  it('offers Resume and End segment for a paused segment, Resume primary', () => {
     expect(clockActionsOf('in-progress', [paused], paused)).toEqual({
       actions: [
         { action: 'resume', primary: true },
-        { action: 'end-period', primary: false },
+        { action: 'end-segment', primary: false },
       ],
       finalizePrimary: false,
     });
   });
 
-  it('offers Pause and End period for a running segment, Pause primary', () => {
+  it('offers Pause and End segment for a running segment, Pause primary', () => {
     expect(clockActionsOf('in-progress', [running], running)).toEqual({
       actions: [
         { action: 'pause', primary: true },
-        { action: 'end-period', primary: false },
+        { action: 'end-segment', primary: false },
       ],
       finalizePrimary: false,
     });
   });
 
-  it('offers Reopen period alone for an ended segment, and Finalize primary when nothing is left', () => {
+  it('offers Reopen segment alone for an ended segment, and Finalize primary when nothing is left', () => {
     expect(clockActionsOf('in-progress', [ended], ended)).toEqual({
-      actions: [{ action: 'reopen-period', primary: false }],
+      actions: [{ action: 'reopen-segment', primary: false }],
       finalizePrimary: true,
     });
   });
 
   it('keeps Finalize secondary while an ended segment sits beside one still to play', () => {
     expect(clockActionsOf('in-progress', [ended, paused], ended)).toEqual({
-      actions: [{ action: 'reopen-period', primary: false }],
+      actions: [{ action: 'reopen-segment', primary: false }],
       finalizePrimary: false,
     });
   });
 
-  it('withholds Start period and Resume while another segment runs, and names the running one', () => {
+  it('withholds Start segment and Resume while another segment runs, and names the running one', () => {
     const runningFirst = segment({ segmentId: 'half-1', state: 'active', elapsedSeconds: 600 });
     expect(
       clockActionsOf('in-progress', [runningFirst, secondNotStarted], secondNotStarted),
@@ -436,12 +436,12 @@ describe('clockActionsOf', () => {
     });
   });
 
-  it('maps each clock action to the server command it sends, and Start period to Resume', () => {
+  it('maps each clock action to the server command it sends, and Start segment to Resume', () => {
     expect(commandOfClockAction('start-match')).toBe('start');
-    expect(commandOfClockAction('start-period')).toBe('resume');
+    expect(commandOfClockAction('start-segment')).toBe('resume');
     expect(commandOfClockAction('resume')).toBe('resume');
     expect(commandOfClockAction('pause')).toBe('pause');
-    expect(commandOfClockAction('end-period')).toBe('end');
+    expect(commandOfClockAction('end-segment')).toBe('end');
   });
 });
 

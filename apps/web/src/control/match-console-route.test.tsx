@@ -272,20 +272,20 @@ describe('MatchConsolePage clock commands', () => {
     });
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'End period' }));
+      fireEvent.click(screen.getByRole('button', { name: 'End segment' }));
     });
 
     await waitFor(() =>
       expect(sent).toEqual([{ matchId: 'match-1', command: 'end', segmentId: 'segment-1' }]),
     );
-    for (const name of ['Start period', 'Resume', 'Pause', 'End period']) {
+    for (const name of ['Start segment', 'Resume', 'Pause', 'End segment']) {
       await waitFor(() => expect(screen.queryByRole('button', { name })).toBeNull());
     }
     // An ended half is offered only its reopening, which asks for a reason.
-    expect(screen.getByRole('button', { name: 'Reopen period…' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Reopen segment…' })).toBeTruthy();
   });
 
-  it('offers Start match on a scheduled match even while a period is marked running', async () => {
+  it('offers Start match on a scheduled match even while a segment is marked running', async () => {
     const scheduled: MatchConsoleResponse = {
       ...projection,
       status: 'scheduled',
@@ -316,7 +316,7 @@ describe('MatchConsolePage clock commands', () => {
     expect(screen.getByRole('button', { name: 'Start match' })).toBeTruthy();
   });
 
-  it('starts a scheduled match from its first unplayed period with the start command', async () => {
+  it('starts a scheduled match from its first unplayed segment with the start command', async () => {
     const sent: unknown[] = [];
     const scheduled: MatchConsoleResponse = {
       ...projection,
@@ -584,7 +584,7 @@ describe('MatchConsolePage time correction', () => {
   it('shows no clock action and no time correction once the match is finalized', async () => {
     await renderConsole({ ...twoSegments, status: 'finalized' });
 
-    for (const name of ['Pause', 'Resume', 'Start period', 'Start match', 'Reopen period…']) {
+    for (const name of ['Pause', 'Resume', 'Start segment', 'Start match', 'Reopen segment…']) {
       expect(screen.queryByRole('button', { name })).toBeNull();
     }
     expect(screen.queryByLabelText('Time (mm:ss)')).toBeNull();
@@ -592,7 +592,7 @@ describe('MatchConsolePage time correction', () => {
   });
 });
 
-describe('MatchConsolePage reopen period', () => {
+describe('MatchConsolePage reopen segment', () => {
   const ended: MatchConsoleResponse = {
     ...projection,
     segments: [
@@ -601,7 +601,7 @@ describe('MatchConsolePage reopen period', () => {
     ],
   };
 
-  /** Renders the console against a server that keeps what Reopen period sent. */
+  /** Renders the console against a server that keeps what Reopen segment sent. */
   async function renderConsole(sent: unknown[]): Promise<void> {
     let current = ended;
     await act(async () => {
@@ -644,14 +644,14 @@ describe('MatchConsolePage reopen period', () => {
 
   const reasonInput = (): HTMLInputElement => screen.getByLabelText('Reason') as HTMLInputElement;
   const confirmButton = (): HTMLButtonElement =>
-    screen.getByRole('button', { name: 'Reopen period' }) as HTMLButtonElement;
+    screen.getByRole('button', { name: 'Reopen segment' }) as HTMLButtonElement;
 
   it('asks for a reason before sending, and sends nothing on cancel or with an empty reason', async () => {
     const sent: unknown[] = [];
     await renderEndedHalfSelected(sent);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Reopen period…' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Reopen segment…' }));
     });
     expect(confirmButton().disabled).toBe(true);
     fireEvent.change(reasonInput(), { target: { value: '   ' } });
@@ -665,12 +665,12 @@ describe('MatchConsolePage reopen period', () => {
     expect(sent).toEqual([]);
   });
 
-  it('sends the reopen with the reason on confirm, and the period then shows as paused', async () => {
+  it('sends the reopen with the reason on confirm, and the segment then shows as paused', async () => {
     const sent: unknown[] = [];
     await renderEndedHalfSelected(sent);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Reopen period…' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Reopen segment…' }));
     });
     fireEvent.change(reasonInput(), { target: { value: 'Ended by mistake' } });
     await act(async () => {
@@ -683,15 +683,15 @@ describe('MatchConsolePage reopen period', () => {
       ]),
     );
     await waitFor(() => expect(screen.getByRole('button', { name: 'Resume' })).toBeTruthy());
-    expect(screen.getByRole('button', { name: 'End period' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Reopen period…' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'End segment' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Reopen segment…' })).toBeNull();
   });
   it('closes an open reopen confirmation when the selection moves, and reopens nothing', async () => {
     const sent: unknown[] = [];
     await renderEndedHalfSelected(sent);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Reopen period…' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Reopen segment…' }));
     });
     fireEvent.change(reasonInput(), { target: { value: 'Ended by mistake' } });
     fireEvent.change(screen.getByLabelText('Active segment'), { target: { value: 'segment-2' } });
@@ -708,7 +708,7 @@ describe('MatchConsolePage reopen period', () => {
     await renderEndedHalfSelected(sent);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Reopen period…' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Reopen segment…' }));
     });
     fireEvent.change(reasonInput(), { target: { value: 'Ended by mistake' } });
     fireEvent.change(screen.getByLabelText('Time (mm:ss)'), { target: { value: '20:50' } });
@@ -718,7 +718,7 @@ describe('MatchConsolePage reopen period', () => {
     });
 
     await waitFor(() => expect(screen.queryByLabelText('Reason')).toBeNull());
-    expect(screen.queryByRole('button', { name: 'Reopen period' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Reopen segment' })).toBeNull();
     expect(sent).toEqual([]);
   });
 
@@ -727,7 +727,7 @@ describe('MatchConsolePage reopen period', () => {
     await renderEndedHalfSelected(sent);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Reopen period…' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Reopen segment…' }));
     });
     expect(reasonInput().maxLength).toBe(500);
     fireEvent.change(reasonInput(), { target: { value: 'x'.repeat(501) } });

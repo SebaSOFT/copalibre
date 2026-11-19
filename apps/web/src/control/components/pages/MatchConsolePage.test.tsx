@@ -124,7 +124,7 @@ describe('MatchConsolePage', () => {
     expect(container.querySelector('.cl-match-console-screen__scoreboard')).not.toBeNull();
     expect(screen.getByText('Match operations')).toBeDefined();
     expect(screen.getByText('Event ledger')).toBeDefined();
-    expect(screen.getByText('Clock and period')).toBeDefined();
+    expect(screen.getByText('Clock and segment')).toBeDefined();
   });
 
   it('shows the bracket-context panel, focused on the open match, once expanded', async () => {
@@ -310,11 +310,11 @@ describe('MatchConsolePage', () => {
       );
       expect(screen.queryByRole('button', { name: 'Resume' })).toBeNull();
       expect(screen.getByRole('button', { name: 'Pause' })).toBeDefined();
-      expect(screen.getByRole('button', { name: 'End period' })).toBeDefined();
+      expect(screen.getByRole('button', { name: 'End segment' })).toBeDefined();
       expect(primaryButtons(container)).toEqual(['Pause']);
     });
 
-    it('offers Start period for a segment not started and nothing to pause', async () => {
+    it('offers Start segment for a segment not started and nothing to pause', async () => {
       const { container } = await renderConsole({ segments: [segment(1, 'pending')] });
 
       await waitFor(() =>
@@ -323,7 +323,7 @@ describe('MatchConsolePage', () => {
         ),
       );
       expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
-      expect(primaryButtons(container)).toEqual(['Start period']);
+      expect(primaryButtons(container)).toEqual(['Start segment']);
     });
 
     it('follows the match to the next segment once one has ended', async () => {
@@ -336,14 +336,14 @@ describe('MatchConsolePage', () => {
           'half 2 · pending',
         ),
       );
-      expect(primaryButtons(container)).toEqual(['Start period']);
+      expect(primaryButtons(container)).toEqual(['Start segment']);
     });
 
     it('leaves Finalize as the one primary action when every segment has ended', async () => {
       const { container } = await renderConsole({ segments: [segment(1, 'completed')] });
 
       await waitFor(() => screen.getByRole('button', { name: 'Finalize match' }));
-      expect(screen.queryByRole('button', { name: 'Start period' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Start segment' })).toBeNull();
       expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
       expect(primaryButtons(container)).toEqual(['Finalize match']);
     });
@@ -353,7 +353,7 @@ describe('MatchConsolePage', () => {
 
       expect(screen.getByText('This match has no segments yet.')).toBeDefined();
       expect(container.querySelector('#console-segment')).toBeNull();
-      expect(screen.queryByRole('button', { name: 'Start period' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Start segment' })).toBeNull();
       expect(primaryButtons(container)).toEqual(['Finalize match']);
     });
 
