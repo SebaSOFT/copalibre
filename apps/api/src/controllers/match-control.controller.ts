@@ -21,6 +21,7 @@ import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiConflictResponse,
+  ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiHeader,
   ApiOkResponse,
@@ -40,6 +41,7 @@ import {
   planCorrection,
   runningTimers,
   segmentPlanOf,
+  segmentsDefaultOf,
   soleMemberWithRole,
   type DisciplineDescriptor,
   type EventDefinition,
@@ -150,6 +152,7 @@ import { staleConfirmationsAfter } from './qualification.js';
 @Controller('organizations/:organizationAlias/tournaments/:tournamentAlias/matches/:matchId')
 export class MatchControlController {
   private readonly logger = new Logger(MatchControlController.name);
+  private readonly uncompiledRulesetsWarned = new Set<string>();
 
   constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
 
@@ -175,24 +178,8 @@ export class MatchControlController {
         errorCode: 'match-control-not-found',
       });
 
-    const [segments, events, resolvedTimerIds] = await Promise.all([
-      competition.listSegments(matchId),
-      competition.listEvents(matchId),
-      competition.resolvedTimerIds(matchId),
-    ]);
     const descriptor = await this.descriptorFor(organizationAlias, tournamentAlias);
-
-    return {
-      matchId,
-      status: match.status,
-      clockRunning: segments.some((segment) => segment.state === 'active'),
-      runningTimers: runningTimers(
-        events,
-        timerCodesOf(descriptor),
-        Date.now(),
-        resolvedTimerIds,
-      ).map(toTimerDto),
-    };
+    return matchStateOf(competition, descriptor, match);
   }
 
   @Get('console')
@@ -366,9 +353,18 @@ export class MatchControlController {
       await withTransaction(this.db, async (uow) => {
         if (command === 'start' || command === 'finalize')
           await assertSidesDecided(this.db, uow, matchId);
+        // Every Start is decided again under the match row lock: a Start that read the match
+        // before another one committed would otherwise start it a second time.
         const committed =
-          plansRegulation && regulationPlan
-            ? await this.planRegulation(uow, { matchId, command, plan: regulationPlan, audit })
+          command === 'start'
+            ? await this.startUnderLock(uow, {
+                matchId,
+                command,
+                ...(plansRegulation && regulationPlan ? { plan: regulationPlan } : {}),
+                segments,
+                target,
+                audit,
+              })
             : { segments, target, transition: transition.value };
         await competition.applyCommand(uow, {
           matchId,
@@ -506,7 +502,7 @@ export class MatchControlController {
     required: false,
     description: 'A retried request with the same key and body replays the prior response.',
   })
-  @ApiOkResponse({ type: MatchStateResponse })
+  @ApiCreatedResponse({ type: MatchStateResponse })
   @ApiUnauthorizedResponse({ type: ProblemResponse })
   @ApiForbiddenResponse({ type: ProblemResponse })
   async addSegment(
@@ -594,7 +590,7 @@ export class MatchControlController {
           );
         }
 
-        const existing = await competition.listSegments(matchId);
+        const existing = await competition.listSegments(matchId, uow);
         const number =
           existing.reduce((highest, segment) => Math.max(highest, segment.number), 0) + 1;
         await competition.createSegment(uow, { matchId, type: body.type, number, ...audit });
@@ -616,9 +612,10 @@ export class MatchControlController {
           },
         });
 
-        // Read inside the transaction: the added segment is pending, so the status and the
-        // running clock this response reports are the same before and after it.
-        const response = await this.state(organizationAlias, tournamentAlias, matchId);
+        // Read on the transaction, which already holds the match row lock: a read on the pool
+        // would need a second connection per request. The added segment is pending, so the
+        // status and the running clock reported are the same before and after it.
+        const response = await matchStateOf(competition, descriptor, locked, uow);
         if (idempotencyKey) {
           await idempotency.record(uow, {
             idempotencyKey,
@@ -2437,9 +2434,18 @@ export class MatchControlController {
         ...durationFor(descriptor, segment.type),
         ...typeLabelFor(descriptor, segment.type),
       })),
+      // Only a match that can still start or take a segment needs its plan; a finished one
+      // skips the ruleset reads and compilation on every console load.
       segmentPlan: segmentPlanResponse(
         descriptor,
-        await this.regulationPlanOf(descriptor, tournamentAlias, tournament.tournamentId, stageId),
+        match.status === 'scheduled' || match.status === 'in-progress'
+          ? await this.regulationPlanOf(
+              descriptor,
+              tournamentAlias,
+              tournament.tournamentId,
+              stageId,
+            )
+          : undefined,
         segments,
       ),
       runningTimers: runningTimers(
@@ -2699,23 +2705,33 @@ export class MatchControlController {
     const compiled = compileEffectiveRuleset(descriptor, latest);
     if (compiled.ok) return segmentPlanOf(descriptor, segmentsOfConfig(compiled.value.config));
 
-    this.logger.warn(
-      `Ruleset of tournament "${tournamentAlias}" does not compile; the discipline's default segments plan the match`,
+    // Once per tournament and process: every console load of its matches lands here.
+    if (!this.uncompiledRulesetsWarned.has(tournamentId)) {
+      this.uncompiledRulesetsWarned.add(tournamentId);
+      this.logger.warn(
+        `Ruleset of tournament "${tournamentAlias}" does not compile; the discipline's default segments plan the match`,
+      );
+    }
+    return segmentPlanOf(
+      descriptor,
+      segmentsDefaultOf(descriptor.defaults as Readonly<Record<string, unknown>> | undefined),
     );
-    return segmentPlanOf(descriptor, segmentsDefaultOf(descriptor));
   }
 
   /**
-   * Creates a scheduled match's regulation plan under the match's row lock, then checks the
-   * start against the planned segments. A second Start that waited on the lock finds the match
-   * in progress and is refused by that same check, so two operators never create two plans.
+   * Checks a Start again under the match's row lock, creating a scheduled match's regulation
+   * plan first when it has none. A second Start that waited on the lock, or that read the match
+   * before the first one committed, finds it in progress and is refused by that same check, so
+   * two operators never start a match twice or create two plans.
    */
-  private async planRegulation(
+  private async startUnderLock(
     uow: UnitOfWork,
     input: {
       readonly matchId: string;
       readonly command: MatchCommand;
-      readonly plan: SegmentPlan;
+      readonly plan?: SegmentPlan;
+      readonly segments: readonly Segment[];
+      readonly target: Segment | undefined;
       readonly audit: {
         readonly organizationId: string;
         readonly actor: string;
@@ -2738,23 +2754,26 @@ export class MatchControlController {
         errorCode: 'match-control-not-found',
       });
 
-    let segments: readonly Segment[] = await competition.listSegments(input.matchId);
-    if (match.status === 'scheduled' && segments.length === 0) {
-      const created: Segment[] = [];
-      for (let number = 1; number <= input.plan.count; number += 1) {
-        created.push(
-          await competition.createSegment(uow, {
-            matchId: input.matchId,
-            type: input.plan.type,
-            number,
-            ...input.audit,
-          }),
-        );
+    let { segments, target } = input;
+    if (input.plan !== undefined && match.status === 'scheduled') {
+      segments = await competition.listSegments(input.matchId, uow);
+      if (segments.length === 0) {
+        const created: Segment[] = [];
+        for (let number = 1; number <= input.plan.count; number += 1) {
+          created.push(
+            await competition.createSegment(uow, {
+              matchId: input.matchId,
+              type: input.plan.type,
+              number,
+              ...input.audit,
+            }),
+          );
+        }
+        segments = created;
       }
-      segments = created;
+      target = segments.find((segment) => segment.state !== 'completed');
     }
 
-    const target = segments.find((segment) => segment.state !== 'completed');
     const transition = applyMatchCommand(match, input.command, target);
     if (!transition.ok) {
       throw new BadRequestException(transition.error.message, {
@@ -2856,8 +2875,29 @@ function segmentsOfConfig(config: unknown): unknown {
     : undefined;
 }
 
-function segmentsDefaultOf(descriptor: DisciplineDescriptor): unknown {
-  return (descriptor.defaults as Readonly<Record<string, unknown>> | undefined)?.['segments'];
+/** A match's live state, read on the given unit of work when there is one. */
+async function matchStateOf(
+  competition: CompetitionRepository,
+  descriptor: DisciplineDescriptor,
+  match: { readonly matchId: string; readonly status: string },
+  uow?: UnitOfWork,
+): Promise<MatchStateResponse> {
+  const [segments, events, resolvedTimerIds] = await Promise.all([
+    competition.listSegments(match.matchId, uow),
+    competition.listEvents(match.matchId, uow),
+    competition.resolvedTimerIds(match.matchId, uow),
+  ]);
+  return {
+    matchId: match.matchId,
+    status: match.status,
+    clockRunning: segments.some((segment) => segment.state === 'active'),
+    runningTimers: runningTimers(
+      events,
+      timerCodesOf(descriptor),
+      Date.now(),
+      resolvedTimerIds,
+    ).map(toTimerDto),
+  };
 }
 
 function isMatchCommand(value: string): value is MatchCommand {

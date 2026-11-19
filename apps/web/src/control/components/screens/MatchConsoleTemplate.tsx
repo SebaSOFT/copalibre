@@ -125,7 +125,7 @@ export function MatchConsoleTemplate({
   >;
   readonly lastSyncedAt: number | undefined;
   readonly matchId: string;
-  readonly onAddSegment: (type: string) => void;
+  readonly onAddSegment: (type: string) => Promise<void> | void;
   readonly onApplyClock: (segmentId: string, elapsedSeconds: number) => void;
   readonly onCancelFinalize: () => void;
   readonly onDismissMutation: (mutationId: string) => void;
@@ -1035,7 +1035,6 @@ const segmentIdOf = (segment: ConsoleSegment | undefined): string => segment?.se
 const variantOf = (primary: boolean): 'primary' | 'secondary' =>
   primary ? 'primary' : 'secondary';
 
-/** The clock commands the match state allows; renders nothing when there are none. */
 /** The line under the clock card while no segment exists: what Start creates, else that there are none. */
 function NoSegmentsLine({
   language,
@@ -1066,7 +1065,7 @@ interface AddSegmentFieldProps {
     readonly field: string;
     readonly placeholder: string;
   };
-  readonly onAdd: (type: string) => void;
+  readonly onAdd: (type: string) => Promise<void> | void;
   readonly options: readonly { readonly value: string; readonly label: string }[];
   readonly visible: boolean;
 }
@@ -1074,6 +1073,9 @@ interface AddSegmentFieldProps {
 /** The Add segment choice: a declared type picked and appended, offered only while the match is in progress. */
 function AddSegmentField({ disabled, labels, onAdd, options, visible }: AddSegmentFieldProps) {
   const [pick, setPick] = useState('');
+  // Held until the addition is queued and a send attempted, so a second tap cannot queue a
+  // second segment while the first one has not reached the segment list yet.
+  const [adding, setAdding] = useState(false);
   if (!visible || options.length === 0) return null;
   const value = options.some((option) => option.value === pick) ? pick : (options[0]?.value ?? '');
   return (
@@ -1090,8 +1092,11 @@ function AddSegmentField({ disabled, labels, onAdd, options, visible }: AddSegme
         />
       </Field>
       <Button
-        disabled={disabled || value === ''}
-        onClick={() => onAdd(value)}
+        disabled={disabled || adding || value === ''}
+        onClick={() => {
+          setAdding(true);
+          void Promise.resolve(onAdd(value)).finally(() => setAdding(false));
+        }}
         type="button"
         variant="secondary"
       >
@@ -1101,6 +1106,7 @@ function AddSegmentField({ disabled, labels, onAdd, options, visible }: AddSegme
   );
 }
 
+/** The clock commands the match state allows; renders nothing when there are none. */
 function ClockCommands({
   commands,
   disabled,

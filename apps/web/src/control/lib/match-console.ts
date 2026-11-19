@@ -28,6 +28,21 @@ export function newIdempotencyKey(): string {
   return uuidv7();
 }
 
+/**
+ * The idempotency key of an Add segment: one per match, projection version and type. Taps
+ * repeated before the console shows the added segment carry the same key, so the server creates
+ * one segment; with no projection loaded yet every tap is its own request.
+ */
+export function segmentAddKey(
+  matchId: string,
+  projectionVersion: number | undefined,
+  type: string,
+): string {
+  return projectionVersion === undefined
+    ? newIdempotencyKey()
+    : `segment-add:${matchId}:${projectionVersion}:${type}`;
+}
+
 export function currentEpochMilliseconds(): number {
   return Date.now();
 }

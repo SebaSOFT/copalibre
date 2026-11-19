@@ -1206,6 +1206,27 @@ describe('live match console (integration)', () => {
     expect((await segmentRowsOf(id)).map((segment) => segment.number)).toEqual([1, 2]);
   });
 
+  it('starts a match that already has segments once when two starts arrive together', async () => {
+    const id = await scheduledMatchWithoutSegments();
+    await withTransaction(scratch.db, (uow) =>
+      new CompetitionRepository(scratch.db).createSegment(uow, {
+        matchId: id,
+        type: 'half',
+        number: 1,
+        organizationId,
+        ...audit,
+      }),
+    );
+
+    const responses = await Promise.all([
+      request('POST', `${matchUrl(id)}/commands/start`, 'referee', undefined, 'start-c'),
+      request('POST', `${matchUrl(id)}/commands/start`, 'referee', undefined, 'start-d'),
+    ]);
+
+    expect(responses.map((response) => response.statusCode).sort()).toEqual([201, 400]);
+    expect((await segmentRowsOf(id)).map((segment) => segment.state)).toEqual(['active']);
+  });
+
   it('answers a replayed start from its key with the recorded response and no new segment', async () => {
     const id = await scheduledMatchWithoutSegments();
     const first = await request(
@@ -1326,6 +1347,24 @@ describe('live match console (integration)', () => {
     expect(first.statusCode).toBe(201);
     expect(second.json()).toEqual(first.json());
     expect(await segmentRowsOf(id)).toHaveLength(3);
+  });
+
+  it('completes more concurrent additions than the pool has connections, numbering each once', async () => {
+    const id = await scheduledMatchWithoutSegments();
+    await request('POST', `${matchUrl(id)}/commands/start`, 'referee');
+
+    // Each addition holds the match row lock on its transaction's connection. A read on the
+    // pool inside that transaction would wait for a connection the lock waiters already hold.
+    const responses = await Promise.all(
+      Array.from({ length: 6 }, (_, index) =>
+        request('POST', `${matchUrl(id)}/segments`, 'referee', { type: 'half' }, `pool-${index}`),
+      ),
+    );
+
+    expect(responses.map((response) => response.statusCode)).toEqual(Array(6).fill(201));
+    expect((await segmentRowsOf(id)).map((segment) => segment.number)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8,
+    ]);
   });
 
   it('refuses an addition to a scheduled or a finalized match, with no segment created', async () => {

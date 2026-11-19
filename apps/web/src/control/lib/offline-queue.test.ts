@@ -422,6 +422,19 @@ describe('describeQueuedAction', () => {
     ).toBe('Clock end on segment segment-2');
   });
 
+  it('names no segment for a Start that creates the regulation plan', () => {
+    expect(
+      describeQueuedAction({
+        kind: 'clock-command',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        command: 'start',
+        segmentId: '',
+      }),
+    ).toBe('Clock start');
+  });
+
   it('assumes no scoring key, reporting whatever statistics the discipline recorded', () => {
     expect(
       describeQueuedAction({

@@ -328,7 +328,10 @@ export function describeQueuedAction(action: QueuedAction): string {
     case 'clock-adjust':
       return `Clock set to ${action.request.elapsedSeconds}s`;
     case 'clock-command':
-      return `Clock ${action.command} on segment ${action.segmentId}`;
+      // A Start that creates the regulation plan has no segment yet to name.
+      return action.segmentId === ''
+        ? `Clock ${action.command}`
+        : `Clock ${action.command} on segment ${action.segmentId}`;
     case 'segment-add':
       return `Segment ${action.type} added`;
     case 'timer-resolve':

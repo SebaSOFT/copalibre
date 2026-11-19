@@ -11,6 +11,7 @@ import {
   isEventPermitted,
   memberByNumber,
   newIdempotencyKey,
+  segmentAddKey,
   segmentLabel,
   selectedSegmentOf,
   sentOffPersonIds,
@@ -60,6 +61,27 @@ describe('newIdempotencyKey', () => {
 
   it('produces a different key on every call', () => {
     expect(newIdempotencyKey()).not.toBe(newIdempotencyKey());
+  });
+});
+
+describe('segmentAddKey', () => {
+  it('gives taps on the same projection and type one key', () => {
+    expect(segmentAddKey('match-1', 7, 'extra-time')).toBe(
+      segmentAddKey('match-1', 7, 'extra-time'),
+    );
+  });
+
+  it('gives a newer projection, another type or another match its own key', () => {
+    const key = segmentAddKey('match-1', 7, 'extra-time');
+    expect(segmentAddKey('match-1', 8, 'extra-time')).not.toBe(key);
+    expect(segmentAddKey('match-1', 7, 'half')).not.toBe(key);
+    expect(segmentAddKey('match-2', 7, 'extra-time')).not.toBe(key);
+  });
+
+  it('gives every tap its own key before a projection is loaded', () => {
+    expect(segmentAddKey('match-1', undefined, 'half')).not.toBe(
+      segmentAddKey('match-1', undefined, 'half'),
+    );
   });
 });
 

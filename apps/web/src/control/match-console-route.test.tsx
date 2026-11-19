@@ -356,6 +356,87 @@ describe('MatchConsolePage clock commands', () => {
   });
 });
 
+describe('MatchConsolePage Add segment', () => {
+  const inProgress: MatchConsoleResponse = {
+    ...projection,
+    segmentPlan: { addable: [{ type: 'extra-time', withinPlan: true }] },
+  };
+
+  it('sends a double tap as one addition, under one idempotency key', async () => {
+    const keys: string[] = [];
+    let release: () => void = () => undefined;
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsolePage
+            client={client({
+              fetchMatchConsole: async () => inProgress,
+              addMatchSegment: async (_organization, _tournament, matchId, _type, key) => {
+                keys.push(key);
+                await new Promise<void>((resolve) => {
+                  release = resolve;
+                });
+                return { matchId, status: 'in-progress', clockRunning: true, runningTimers: [] };
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    const add = screen.getByRole('button', { name: 'Add segment' });
+    await act(async () => {
+      fireEvent.click(add);
+      fireEvent.click(add);
+    });
+    await waitFor(() => expect(keys.length).toBeGreaterThan(0));
+    await act(async () => {
+      release();
+    });
+    await waitFor(() => expect(add).toHaveProperty('disabled', false));
+    // However many sends the queue makes, they carry one key: the server creates one segment.
+    expect(new Set(keys).size).toBe(1);
+  });
+
+  it('repeats the idempotency key for a tap on the projection the console already sent from', async () => {
+    const keys: string[] = [];
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsolePage
+            client={client({
+              fetchMatchConsole: async () => inProgress,
+              addMatchSegment: async (_organization, _tournament, matchId, _type, key) => {
+                keys.push(key);
+                return { matchId, status: 'in-progress', clockRunning: true, runningTimers: [] };
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    const add = screen.getByRole('button', { name: 'Add segment' });
+    await act(async () => {
+      fireEvent.click(add);
+    });
+    await waitFor(() => expect(keys).toHaveLength(1));
+    await waitFor(() => expect(add).toHaveProperty('disabled', false));
+    await act(async () => {
+      fireEvent.click(add);
+    });
+    await waitFor(() => expect(keys).toHaveLength(2));
+    // The server answers the repeat from its idempotency record: one segment, not two.
+    expect(keys[1]).toBe(keys[0]);
+  });
+});
+
 describe('MatchConsolePage elapsed seconds input', () => {
   const applyButton = (): HTMLButtonElement =>
     screen.getByRole('button', { name: 'Apply clock' }) as HTMLButtonElement;
