@@ -115,6 +115,15 @@ describe('series operations (integration)', () => {
 
   /** Plays one game to a decision: start, then finalize with the winner named. */
   async function playGame(matchId: string, winner: string, loser: string) {
+    await withTransaction(scratch.db, (uow) =>
+      new CompetitionRepository(scratch.db).createSegment(uow, {
+        matchId,
+        type: 'half',
+        number: 1,
+        organizationId,
+        ...AUDIT,
+      }),
+    );
     const started = await request({
       method: 'POST',
       url: `${matchBase(matchId)}/commands/start`,

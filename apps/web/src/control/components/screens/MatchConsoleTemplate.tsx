@@ -21,6 +21,10 @@ import {
   selectedSegmentOf,
   sentOffPersonIds,
   undecidedSidesOf,
+  elapsedInputOf,
+  parseElapsedSeconds,
+  typedElapsedOf,
+  type ElapsedDraft,
 } from '../../lib/match-console.js';
 import { sideSourceLabelsFromControlIntl } from '../../lib/matches-view-labels.js';
 import { finalRoundOf } from '../../../lib/side-source.js';
@@ -173,7 +177,9 @@ export function MatchConsoleTemplate({
   // Only an explicit pick: until the operator names a segment, the console shows the one the
   // match is in, so it follows the match from one period to the next.
   const [pickedSegmentId, setPickedSegmentId] = useState('');
-  const [elapsedSeconds, setElapsedSeconds] = useState('0');
+  // What the operator typed into Elapsed seconds, and for which segment. Until they type, the input
+  // shows the selected segment's current clock, so Apply clock never sends a value nobody entered.
+  const [elapsedDraft, setElapsedDraft] = useState<ElapsedDraft>();
   const [selectedSide, setSelectedSide] = useState('');
   const [selectedPersonId, setSelectedPersonId] = useState('');
   const [selectedStaffId, setSelectedStaffId] = useState('');
@@ -272,6 +278,11 @@ export function MatchConsoleTemplate({
 
   const selectedSegment = selectedSegmentOf(projection.segments, pickedSegmentId);
   const selectedSegmentId = segmentIdOf(selectedSegment);
+  // A typed draft counts only while it belongs to the segment now selected. Otherwise the input
+  // shows that segment's clock, and Apply clock stays unavailable until the operator types again.
+  const typedElapsed = typedElapsedOf(elapsedDraft, selectedSegmentId);
+  const elapsedInput = elapsedInputOf(selectedSegment, typedElapsed);
+  const elapsedValue = parseElapsedSeconds(typedElapsed);
   const clockCommandsLabel = intl.formatMessage(messages.matchConsoleClockCommands);
   // Only what the match state allows is offered, one primary action at a time. A match that has
   // not kicked off starts; one already in progress resumes. Both are "press Start" to the
@@ -291,7 +302,9 @@ export function MatchConsoleTemplate({
   }
 
   function applyClock(): void {
-    onApplyClock(selectedSegmentId, Number(elapsedSeconds));
+    if (elapsedValue === undefined) return;
+    onApplyClock(selectedSegmentId, elapsedValue);
+    setElapsedDraft(undefined);
     setPickedSegmentId('');
   }
 
@@ -441,7 +454,10 @@ export function MatchConsoleTemplate({
                     aria-label={intl.formatMessage(messages.matchConsoleActiveSegment)}
                     disabled={!canControlClock}
                     id="console-segment"
-                    onValueChange={setPickedSegmentId}
+                    onValueChange={(segmentId) => {
+                      setPickedSegmentId(segmentId);
+                      setElapsedDraft(undefined);
+                    }}
                     options={projection.segments.map((segment) => ({
                       value: segment.segmentId,
                       label: `${segmentTypeText(segment)} ${segment.number} · ${segmentStateText(segment.state)}`,
@@ -459,13 +475,15 @@ export function MatchConsoleTemplate({
                     disabled={!canControlClock}
                     id="console-elapsed-seconds"
                     min="0"
-                    onChange={(event) => setElapsedSeconds(event.target.value)}
+                    onChange={(event) =>
+                      setElapsedDraft({ segmentId: selectedSegmentId, value: event.target.value })
+                    }
                     type="number"
-                    value={elapsedSeconds}
+                    value={elapsedInput}
                   />
                 </Field>
                 <Button
-                  disabled={!canControlClock || selectedSegmentId === ''}
+                  disabled={!canControlClock || elapsedValue === undefined}
                   onClick={applyClock}
                   type="button"
                   variant="secondary"

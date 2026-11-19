@@ -14,6 +14,9 @@ import {
   selectedSegmentOf,
   sentOffPersonIds,
   undecidedSidesOf,
+  elapsedInputOf,
+  parseElapsedSeconds,
+  typedElapsedOf,
 } from './lib/match-console.js';
 import type {
   ConsoleEventDefinition,
@@ -384,5 +387,39 @@ describe('selectedSegmentOf', () => {
 
   it('follows the match when the pick no longer names a segment of it', () => {
     expect(selectedSegmentOf(segments, 'gone')?.segmentId).toBe('s2');
+  });
+});
+
+describe('elapsed seconds input helpers', () => {
+  const segment: ConsoleSegment = {
+    segmentId: 'segment-1',
+    type: 'half',
+    number: 1,
+    state: 'active',
+    elapsedSeconds: 1200,
+  };
+
+  it('keeps a typed value only while its draft belongs to the selected segment', () => {
+    const draft = { segmentId: 'segment-1', value: '1250' };
+
+    expect(typedElapsedOf(draft, 'segment-1')).toBe('1250');
+    expect(typedElapsedOf(draft, 'segment-2')).toBeUndefined();
+    expect(typedElapsedOf(undefined, 'segment-1')).toBeUndefined();
+  });
+
+  it('shows the typed value, else the selected segment clock, else nothing', () => {
+    expect(elapsedInputOf(segment, '90')).toBe('90');
+    expect(elapsedInputOf(segment, undefined)).toBe('1200');
+    expect(elapsedInputOf(undefined, undefined)).toBe('');
+  });
+
+  it('accepts whole seconds and refuses every other text', () => {
+    expect(parseElapsedSeconds('0')).toBe(0);
+    expect(parseElapsedSeconds('1250')).toBe(1250);
+    expect(parseElapsedSeconds(undefined)).toBeUndefined();
+    expect(parseElapsedSeconds('')).toBeUndefined();
+    expect(parseElapsedSeconds('-5')).toBeUndefined();
+    expect(parseElapsedSeconds('12.5')).toBeUndefined();
+    expect(parseElapsedSeconds('99999999999999999999')).toBeUndefined();
   });
 });

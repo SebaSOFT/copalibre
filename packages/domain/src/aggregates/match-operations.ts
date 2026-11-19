@@ -78,6 +78,17 @@ export function applyMatchCommand(
     );
   }
 
+  // A start or resume sets a segment's clock running. With no segment to set running, the match
+  // would become in progress with nothing to operate, and no later command could repair that.
+  if ((command === 'start' || command === 'resume') && segment === undefined) {
+    return err(
+      new MatchOperationError(`Match "${match.matchId}" has no segment to ${command}`, {
+        matchId: match.matchId,
+        command,
+      }),
+    );
+  }
+
   // A completed segment is a played half. Reopening one is a correction of the
   // record, which belongs to the audited correction workflow, not to a button
   // an official can press twice by accident on a busy touchline.
