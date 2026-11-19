@@ -226,3 +226,36 @@ export function memberByNumber(
   );
   return matches.length === 1 ? matches[0] : undefined;
 }
+
+/** What the operator typed into Elapsed seconds, and for which segment. */
+export interface ElapsedDraft {
+  readonly segmentId: string;
+  readonly value: string;
+}
+
+/** The typed Elapsed seconds text while the draft belongs to the selected segment, else undefined. */
+export function typedElapsedOf(
+  draft: ElapsedDraft | undefined,
+  selectedSegmentId: string,
+): string | undefined {
+  return draft?.segmentId === selectedSegmentId ? draft.value : undefined;
+}
+
+/** The Elapsed seconds input text: what was typed, else the selected segment's current clock. */
+export function elapsedInputOf(
+  selected: ConsoleSegment | undefined,
+  typed: string | undefined,
+): string {
+  if (typed !== undefined) return typed;
+  return selected === undefined ? '' : String(selected.elapsedSeconds);
+}
+
+/**
+ * Whole seconds from the operator's text, or undefined when the text is absent, empty, signed,
+ * fractional or beyond the safe integer range. Apply clock is unavailable for every undefined result.
+ */
+export function parseElapsedSeconds(text: string | undefined): number | undefined {
+  if (text === undefined || !/^\d+$/.test(text)) return undefined;
+  const seconds = Number(text);
+  return Number.isSafeInteger(seconds) ? seconds : undefined;
+}

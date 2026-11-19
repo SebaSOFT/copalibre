@@ -21,6 +21,10 @@ import {
   selectedSegmentOf,
   sentOffPersonIds,
   undecidedSidesOf,
+  elapsedInputOf,
+  parseElapsedSeconds,
+  typedElapsedOf,
+  type ElapsedDraft,
 } from '../../lib/match-console.js';
 import { sideSourceLabelsFromControlIntl } from '../../lib/matches-view-labels.js';
 import { finalRoundOf } from '../../../lib/side-source.js';
@@ -276,9 +280,8 @@ export function MatchConsoleTemplate({
   const selectedSegmentId = segmentIdOf(selectedSegment);
   // A typed draft counts only while it belongs to the segment now selected. Otherwise the input
   // shows that segment's clock, and Apply clock stays unavailable until the operator types again.
-  const typedElapsed =
-    elapsedDraft?.segmentId === selectedSegmentId ? elapsedDraft.value : undefined;
-  const elapsedInput = typedElapsed ?? String(selectedSegment?.elapsedSeconds ?? '');
+  const typedElapsed = typedElapsedOf(elapsedDraft, selectedSegmentId);
+  const elapsedInput = elapsedInputOf(selectedSegment, typedElapsed);
   const elapsedValue = parseElapsedSeconds(typedElapsed);
   const clockCommandsLabel = intl.formatMessage(messages.matchConsoleClockCommands);
   // Only what the match state allows is offered, one primary action at a time. A match that has
@@ -480,9 +483,7 @@ export function MatchConsoleTemplate({
                   />
                 </Field>
                 <Button
-                  disabled={
-                    !canControlClock || selectedSegmentId === '' || elapsedValue === undefined
-                  }
+                  disabled={!canControlClock || elapsedValue === undefined}
                   onClick={applyClock}
                   type="button"
                   variant="secondary"
@@ -992,19 +993,6 @@ export function MatchConsoleTemplate({
 }
 
 const segmentIdOf = (segment: ConsoleSegment | undefined): string => segment?.segmentId ?? '';
-
-/** The operator's Elapsed seconds text, for one segment, kept until that segment stops being selected. */
-interface ElapsedDraft {
-  readonly segmentId: string;
-  readonly value: string;
-}
-
-/** Whole seconds from the operator's text, or undefined when the text is empty, signed, fractional or unsafe. */
-const parseElapsedSeconds = (text: string | undefined): number | undefined => {
-  if (text === undefined || !/^\d+$/.test(text)) return undefined;
-  const seconds = Number(text);
-  return Number.isSafeInteger(seconds) ? seconds : undefined;
-};
 
 const variantOf = (primary: boolean): 'primary' | 'secondary' =>
   primary ? 'primary' : 'secondary';
