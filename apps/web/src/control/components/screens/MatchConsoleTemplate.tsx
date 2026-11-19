@@ -559,7 +559,8 @@ export function MatchConsoleTemplate({
                   confirm: intl.formatMessage(messages.matchConsoleReopenConfirmButton),
                   dismiss: intl.formatMessage(messages.toastDismiss),
                   reason: intl.formatMessage(messages.matchConsoleReopenReason),
-                  question: messages.matchConsoleReopenConfirm,
+                  question: (period) =>
+                    intl.formatMessage(messages.matchConsoleReopenConfirm, { period }),
                 }}
                 onCancel={closeReopen}
                 onConfirm={confirmReopen}
@@ -1138,7 +1139,7 @@ interface ReopenPeriodConfirmationProps {
     readonly confirm: string;
     readonly dismiss: string;
     readonly reason: string;
-    readonly question: MessageDescriptor;
+    readonly question: (period: string) => string;
   };
   readonly onCancel: () => void;
   readonly onConfirm: () => void;
@@ -1162,10 +1163,15 @@ function ReopenPeriodConfirmation({
 }: ReopenPeriodConfirmationProps) {
   if (!visible || segment === undefined) return null;
   return (
-    <Alert block dismissLabel={labels.dismiss} onDismiss={onCancel} tone="warning">
-      <strong>
-        <FormattedMessage {...labels.question} values={{ period: periodText(segment) }} />
-      </strong>
+    // Stacked under its question: inline, the reason field and both buttons squeeze into one row
+    // and become unreadable at phone width.
+    <Alert
+      block
+      dismissLabel={labels.dismiss}
+      heading={labels.question(periodText(segment))}
+      onDismiss={onCancel}
+      tone="warning"
+    >
       <Field id="console-reopen-reason" label={labels.reason}>
         <Input
           aria-label={labels.reason}
