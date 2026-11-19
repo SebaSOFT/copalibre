@@ -1,4 +1,5 @@
 import type { DisciplineDescriptor } from '../descriptors/discipline-descriptor.js';
+import { regulationCountOf, segmentsDefaultOf } from './segment-regulation.js';
 
 /**
  * How long a match is expected to hold its venue and its entrants, in minutes.
@@ -24,17 +25,10 @@ export function estimatedMatchMinutes(
   if (seconds === undefined || seconds <= 0) return undefined;
 
   const count =
-    regulationCountOf(overrides['segments']) ?? regulationCountOf(segmentsDefault(descriptor));
+    regulationCountOf(overrides['segments']) ??
+    regulationCountOf(
+      segmentsDefaultOf(descriptor.defaults as Readonly<Record<string, unknown>> | undefined),
+    );
   if (count === undefined) return undefined;
   return Math.ceil((seconds * count) / 60);
-}
-
-function segmentsDefault(descriptor: Pick<DisciplineDescriptor, 'defaults'>): unknown {
-  return (descriptor.defaults as Readonly<Record<string, unknown>> | undefined)?.['segments'];
-}
-
-function regulationCountOf(value: unknown): number | undefined {
-  if (typeof value !== 'object' || value === null) return undefined;
-  const count = (value as { readonly regulationCount?: unknown }).regulationCount;
-  return typeof count === 'number' && Number.isInteger(count) && count > 0 ? count : undefined;
 }
