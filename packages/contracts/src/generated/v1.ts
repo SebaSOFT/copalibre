@@ -9423,6 +9423,14 @@ export interface operations {
                     "application/json": components["schemas"]["MatchConsoleResponse"];
                 };
             };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
             403: {
                 headers: {
                     [name: string]: unknown;

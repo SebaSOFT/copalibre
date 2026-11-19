@@ -654,6 +654,7 @@ export class MatchControlController {
     description: 'A retried request with the same key and body replays the prior response.',
   })
   @ApiOkResponse({ type: MatchConsoleResponse })
+  @ApiBadRequestResponse({ type: ProblemResponse })
   @ApiForbiddenResponse({ type: ProblemResponse })
   async adjustClock(
     @Param('organizationAlias') organizationAlias: string,

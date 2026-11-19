@@ -3609,6 +3609,16 @@
               }
             }
           },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "",
             "content": {
