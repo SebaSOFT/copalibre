@@ -352,6 +352,106 @@ describe('MatchConsolePage clock commands', () => {
   });
 });
 
+describe('MatchConsolePage elapsed seconds input', () => {
+  const applyButton = (): HTMLButtonElement =>
+    screen.getByRole('button', { name: 'Apply clock' }) as HTMLButtonElement;
+  const elapsedInput = (): HTMLInputElement =>
+    screen.getByLabelText('Elapsed seconds') as HTMLInputElement;
+  const twoSegments: MatchConsoleResponse = {
+    ...projection,
+    segments: [
+      FIRST_SEGMENT,
+      { ...FIRST_SEGMENT, segmentId: 'segment-2', number: 2, state: 'pending', elapsedSeconds: 0 },
+    ],
+  };
+
+  /** Renders the console against a server that keeps what Apply clock sent. */
+  async function renderConsole(shown: MatchConsoleResponse, sent: unknown[] = []): Promise<void> {
+    let current = shown;
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsolePage
+            client={client({
+              fetchMatchConsole: async () => current,
+              adjustMatchClock: async (_organization, _tournament, _matchId, request) => {
+                sent.push(request);
+                current = {
+                  ...current,
+                  segments: current.segments.map((segment) =>
+                    segment.segmentId === request.segmentId
+                      ? { ...segment, elapsedSeconds: request.elapsedSeconds, state: 'active' }
+                      : segment,
+                  ),
+                };
+                return current;
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+  }
+
+  it('shows the current clock and sends nothing until the operator types a value', async () => {
+    const sent: unknown[] = [];
+    await renderConsole(projection, sent);
+
+    expect(elapsedInput().value).toBe('120');
+    expect(applyButton().disabled).toBe(true);
+    fireEvent.click(applyButton());
+    await act(async () => undefined);
+    expect(sent).toEqual([]);
+  });
+
+  it('sends the typed value for the selected segment and shows the clock it set', async () => {
+    const sent: unknown[] = [];
+    await renderConsole(projection, sent);
+
+    fireEvent.change(elapsedInput(), { target: { value: '1250' } });
+    expect(applyButton().disabled).toBe(false);
+    await act(async () => {
+      fireEvent.click(applyButton());
+    });
+
+    await waitFor(() =>
+      expect(sent).toEqual([{ segmentId: 'segment-1', elapsedSeconds: 1250, activate: true }]),
+    );
+    await waitFor(() => expect(elapsedInput().value).toBe('1250'));
+    expect(applyButton().disabled).toBe(true);
+  });
+
+  it.each(['', '-5', '12.5', '99999999999999999999'])(
+    'keeps Apply clock unavailable for the input %j',
+    async (typed) => {
+      const sent: unknown[] = [];
+      await renderConsole(projection, sent);
+
+      fireEvent.change(elapsedInput(), { target: { value: typed } });
+      expect(applyButton().disabled).toBe(true);
+      fireEvent.click(applyButton());
+      await act(async () => undefined);
+      expect(sent).toEqual([]);
+    },
+  );
+
+  it('discards a typed value when another segment is picked, and shows that segment’s clock', async () => {
+    await renderConsole(twoSegments);
+
+    fireEvent.change(elapsedInput(), { target: { value: '900' } });
+    fireEvent.change(screen.getByLabelText('Active segment'), { target: { value: 'segment-2' } });
+    expect(elapsedInput().value).toBe('0');
+    expect(applyButton().disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText('Active segment'), { target: { value: 'segment-1' } });
+    expect(elapsedInput().value).toBe('120');
+    expect(applyButton().disabled).toBe(true);
+  });
+});
+
 describe('MatchConsolePage event ledger', () => {
   const manyEvents = {
     ...projection,
@@ -1511,6 +1611,7 @@ describe('MatchConsolePage', () => {
         );
       });
 
+      fireEvent.change(screen.getByLabelText('Elapsed seconds'), { target: { value: '130' } });
       fireEvent.click(screen.getByRole('button', { name: 'Apply clock' }));
 
       await waitFor(async () => expect(await listPending('match-1')).toHaveLength(1));
@@ -1577,6 +1678,7 @@ describe('MatchConsolePage', () => {
         );
       });
       expect(syncIndicator().textContent).toContain('Last synced');
+      fireEvent.change(screen.getByLabelText('Elapsed seconds'), { target: { value: '130' } });
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Apply clock' }));
       });
