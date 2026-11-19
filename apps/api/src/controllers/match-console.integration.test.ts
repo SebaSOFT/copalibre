@@ -86,10 +86,13 @@ describe('live match console (integration)', () => {
   let organizationId = '';
   let matchId = '';
   let segmentId = '';
+  let stageId = '';
   let timerId = '';
   let rosteredPersonId = '';
   const entrantIds: string[] = [];
   const base = () => `/api/organizations/liga-prueba/tournaments/apertura/matches/${matchId}`;
+  const matchUrl = (id: string) =>
+    `/api/organizations/liga-prueba/tournaments/apertura/matches/${id}`;
 
   beforeAll(async () => {
     scratch = await createMigratedDatabase('match-console');
@@ -225,6 +228,7 @@ describe('live match console (integration)', () => {
         organizationId,
         ...audit,
       });
+      stageId = stage.stageId;
       matchId = match.matchId;
       const segment = await competition.createSegment(uow, {
         matchId,
@@ -906,6 +910,101 @@ describe('live match console (integration)', () => {
       payload: payload as never,
     });
   }
+
+  /** A scheduled match with no segments, appointed to the referee, in this suite's stage. */
+  async function scheduledMatchWithoutSegments(): Promise<string> {
+    const competition = new CompetitionRepository(scratch.db);
+    return withTransaction(scratch.db, async (uow) => {
+      const [fixture] = await competition.createFixtures(uow, {
+        stageId,
+        fixtures: [{ round: 2, homeEntrantId: entrantIds[0], awayEntrantId: entrantIds[1] }],
+        organizationId,
+        ...audit,
+      });
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture?.fixtureId ?? '',
+        number: 1,
+        organizationId,
+        ...audit,
+      });
+      await new MatchAssignmentRepository(scratch.db).appoint(uow, {
+        organizationId,
+        subjectId: 'referee',
+        scope: { kind: 'match', matchId: match.matchId },
+        capabilities: ['match.control-clock', 'match.finalize'],
+        ...audit,
+      });
+      return match.matchId;
+    });
+  }
+
+  it('refuses to start a scheduled match that has no segment, and leaves it scheduled', async () => {
+    const id = await scheduledMatchWithoutSegments();
+
+    const response = await request('POST', `${matchUrl(id)}/commands/start`, 'referee');
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().errorCode).toBe('match-control-bad-request');
+    expect((await new CompetitionRepository(scratch.db).findMatch(id))?.status).toBe('scheduled');
+  });
+
+  it('starts the first pending segment when a start names none, as before', async () => {
+    const id = await scheduledMatchWithoutSegments();
+    const competition = new CompetitionRepository(scratch.db);
+    await withTransaction(scratch.db, (uow) =>
+      competition.createSegment(uow, {
+        matchId: id,
+        type: 'half',
+        number: 1,
+        organizationId,
+        ...audit,
+      }),
+    );
+
+    const response = await request('POST', `${matchUrl(id)}/commands/start`, 'referee');
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({ status: 'in-progress', clockRunning: true });
+    expect((await competition.listSegments(id)).map((segment) => segment.state)).toEqual([
+      'active',
+    ]);
+  });
+
+  it('refuses to resume a match whose every segment has ended, and changes no segment', async () => {
+    const id = await scheduledMatchWithoutSegments();
+    const competition = new CompetitionRepository(scratch.db);
+    await withTransaction(scratch.db, async (uow) => {
+      const segment = await competition.createSegment(uow, {
+        matchId: id,
+        type: 'half',
+        number: 1,
+        organizationId,
+        ...audit,
+      });
+      await competition.setSegmentState(uow, {
+        segmentId: segment.segmentId,
+        state: 'completed',
+        organizationId,
+        ...audit,
+      });
+      await competition.applyCommand(uow, {
+        matchId: id,
+        command: 'start',
+        status: 'in-progress',
+        grantedBy: 'seed',
+        organizationId,
+        ...audit,
+      });
+    });
+
+    const response = await request('POST', `${matchUrl(id)}/commands/resume`, 'referee');
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().errorCode).toBe('match-control-bad-request');
+    expect((await competition.listSegments(id)).map((segment) => segment.state)).toEqual([
+      'completed',
+    ]);
+  });
 });
 
 /**
