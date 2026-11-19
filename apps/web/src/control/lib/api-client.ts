@@ -2187,7 +2187,7 @@ export interface MatchConsoleResponse {
   readonly matchId: string;
   /** For an embedded bracket-context panel — which stage the match belongs to. */
   readonly stageNumber: number;
-  readonly status: 'scheduled' | 'in-progress' | 'finalized';
+  readonly status: 'scheduled' | 'in-progress' | 'finalized' | 'forfeited' | 'not-required';
   readonly result: Record<string, unknown> | null;
   readonly liveScores: readonly ConsoleLiveScore[];
   readonly segments: readonly ConsoleSegment[];

@@ -14,6 +14,7 @@ import {
   addSegmentOptionsOf,
   awaitingSourceText,
   clockActionsOf,
+  clockOpenOf,
   clockTimeInputOf,
   REOPEN_REASON_MAX_LENGTH,
   reopenReasonValidOf,
@@ -578,7 +579,7 @@ export function MatchConsoleTemplate({
                 onChange={(value) => setClockDraft({ segmentId: selectedSegmentId, value })}
                 onCorrect={correctClock}
                 value={clockTimeInput}
-                visible={projection.status !== 'finalized'}
+                visible={clockOpenOf(projection.status)}
               />
               {addSegmentNode}
             </>

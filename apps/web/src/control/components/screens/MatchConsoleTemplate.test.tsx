@@ -49,6 +49,18 @@ function clockCard(): HTMLElement {
 }
 
 describe('MatchConsoleTemplate clock card', () => {
+  it('a forfeited match offers no clock action and no time correction', () => {
+    renderConsole({
+      ...consoleProjection,
+      status: 'forfeited',
+      events: [],
+    });
+
+    expect(screen.queryByLabelText('Time (mm:ss)')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Correct' })).toBeNull();
+    expect(clockCard().querySelector('.cl-clock-commands')).toBeNull();
+  });
+
   it('a scheduled match with no segments says what Start creates and offers Start match', () => {
     renderConsole({
       ...consoleProjection,

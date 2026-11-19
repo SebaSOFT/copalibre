@@ -399,3 +399,11 @@ export function reopenTargetOf(
     (segment) => segment.segmentId === openedFor && segment.state === 'completed',
   );
 }
+
+/**
+ * Whether a match's clock may still be corrected or driven: only a scheduled or an in-progress
+ * match. A finalized, forfeited or anulled match is closed, and offers no clock action.
+ */
+export function clockOpenOf(status: string): boolean {
+  return status === 'scheduled' || status === 'in-progress';
+}

@@ -720,13 +720,13 @@ describe('MatchConsolePage reopen period', () => {
     });
     fireEvent.change(reasonInput(), { target: { value: 'Ended by mistake' } });
     fireEvent.change(screen.getByLabelText('Time (mm:ss)'), { target: { value: '20:50' } });
-    const correctButton = screen.getByRole('button', { name: 'Correct', exact: true });
+    const correctButton = screen.getByRole('button', { name: 'Correct' });
     await act(async () => {
       fireEvent.click(correctButton);
     });
 
     await waitFor(() => expect(screen.queryByLabelText('Reason')).toBeNull());
-    expect(screen.queryByRole('button', { name: 'Reopen period', exact: true })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Reopen period' })).toBeNull();
     expect(sent).toEqual([]);
   });
 

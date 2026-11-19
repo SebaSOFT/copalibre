@@ -4,6 +4,7 @@ import {
   addSegmentOptionsOf,
   awaitingSourceText,
   clockActionsOf,
+  clockOpenOf,
   clockTimeInputOf,
   commandOfClockAction,
   currentEpochMilliseconds,
@@ -557,5 +558,15 @@ describe('addSegmentOptionsOf', () => {
       },
     } as unknown as Pick<MatchConsoleResponse, 'segmentPlan'>;
     expect(addSegmentOptionsOf(english, 'de', 'x')).toEqual([{ value: 'set', label: 'Set' }]);
+  });
+});
+
+describe('clockOpenOf', () => {
+  it('is open only for a scheduled or an in-progress match', () => {
+    expect(clockOpenOf('scheduled')).toBe(true);
+    expect(clockOpenOf('in-progress')).toBe(true);
+    expect(clockOpenOf('finalized')).toBe(false);
+    expect(clockOpenOf('forfeited')).toBe(false);
+    expect(clockOpenOf('not-required')).toBe(false);
   });
 });
