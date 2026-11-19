@@ -28,49 +28,15 @@ const FIXTURE = fileURLToPath(
   new URL('./test-fixtures/rink-hockey-1.1.0.artifact.json', import.meta.url),
 );
 
-/** Every table a default load writes, as its guard counts them. */
-const LOADED_TABLES = [
-  'audit_log',
-  'clubs',
-  'entrants',
-  'fixtures',
-  'group_entrants',
-  'groups',
-  'match_events',
-  'match_rosters',
-  'match_schedule_assignments',
-  'match_schedule_officials',
-  'matches',
-  'object_metadata',
-  'officials',
-  'organizations',
-  'outbox_events',
-  'persons',
-  'players',
-  'projection_versions',
-  'promotion_plans',
-  'schedule_slots',
-  'schedule_venues',
-  'schedules',
-  'seasons',
-  'segments',
-  'stages',
-  'teams',
-  'tournament_rulesets',
-  'tournaments',
-  'venues',
-  'zone_entrants',
-  'zones',
-] as const;
-
 interface Fingerprint {
   readonly rows: Readonly<Record<string, number>>;
   readonly storageKeys: readonly string[];
 }
 
-/** The loaded tables, and the object storage, whose contents differ between two fingerprints. */
+/** The tables, and the object storage, whose contents differ between two fingerprints. */
 function changedBetween(before: Fingerprint, after: Fingerprint): string[] {
-  const changed = LOADED_TABLES.filter((table) => before.rows[table] !== after.rows[table]);
+  const tables = [...new Set([...Object.keys(before.rows), ...Object.keys(after.rows)])].sort();
+  const changed = tables.filter((table) => before.rows[table] !== after.rows[table]);
   const sameKeys =
     before.storageKeys.length === after.storageKeys.length &&
     before.storageKeys.every((key, index) => key === after.storageKeys[index]);
@@ -138,9 +104,12 @@ describePostgres('demo dataset loading (integration)', () => {
     return Number((row as { n: string | number }).n);
   }
 
+  /** Row counts of every table in the scratch database, so a table the loader starts writing later is covered too. */
   async function fingerprint(): Promise<Fingerprint> {
     const rows: Record<string, number> = {};
-    for (const table of LOADED_TABLES) rows[table] = await count(table);
+    for (const table of await scratch.db.introspection.getTables()) {
+      rows[table.name] = await count(table.name);
+    }
     return { rows, storageKeys: storage.keys() };
   }
 
@@ -322,7 +291,7 @@ describePostgres('demo dataset loading (integration)', () => {
 
   describe('read-only tests on one shared default load', () => {
     // These tests only read what one default load wrote. The afterAll fails the group when any of them
-    // changed a table the load writes, or the object storage, and names the changed tables.
+    // changed the row count of any table, or the object storage, and names what changed.
     let report: DemoLoadReport;
     let loaded: Fingerprint | undefined;
 
