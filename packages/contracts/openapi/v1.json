@@ -3551,6 +3551,7 @@
     },
     "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/clock": {
       "post": {
+        "description": "Sets the time and keeps the segment state: a running segment keeps running, a paused or not started one stays stopped, and an ended one stays ended. A finalized match is refused. Starting or resuming a segment is a clock command; reopening an ended one is a reopen.",
         "operationId": "MatchControlController_adjustClock",
         "parameters": [
           {
@@ -3624,7 +3625,107 @@
             "bearer": []
           }
         ],
-        "summary": "Adjust the authoritative elapsed time or active segment",
+        "summary": "Correct the elapsed time of a segment",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/segments/{segmentId}/reopen": {
+      "post": {
+        "description": "Returns the segment to paused with its time kept. The reason is required and is recorded in the audit trail with the actor. Only an ended segment of an in-progress match can be reopened; a finalized result is changed through the correction workflow.",
+        "operationId": "MatchControlController_reopenSegmentRoute",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "segmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "required": false,
+            "in": "header",
+            "description": "A retried request with the same key and body replays the prior response.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReopenSegmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchConsoleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reopen an ended segment of a match in progress",
         "tags": [
           "match-control"
         ]
@@ -16549,12 +16650,26 @@
           },
           "activate": {
             "type": "boolean",
-            "description": "Make the selected segment the active clock segment"
+            "description": "Make the selected segment the active clock segment. Never applies to an ended segment: a request that asks for it is refused, and reopening is a separate command with a reason."
           }
         },
         "required": [
           "segmentId",
           "elapsedSeconds"
+        ]
+      },
+      "ReopenSegmentRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Why the ended segment is reopened, in the operator’s words; recorded in the audit trail"
+          }
+        },
+        "required": [
+          "reason"
         ]
       },
       "RosterCandidateResponse": {
