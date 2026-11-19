@@ -91,6 +91,17 @@ export const FONT_STYLESHEETS = [
   '@fontsource-variable/noto-sans-sc/wght.css',
 ] as const;
 
+/**
+ * The stylesheets public pages load after their first paint rather than with the page's own
+ * stylesheet. Noto Sans SC splits Chinese into 101 `unicode-range` faces, three fifths of the
+ * compressed stylesheet, and a public page's first paint waited for them on every page in every
+ * language. A page in Chinese still loads them before it paints; Control, TV and help load the
+ * whole stylesheet as before.
+ */
+export const DEFERRED_PUBLIC_FONT_STYLESHEETS = [
+  '@fontsource-variable/noto-sans-sc/wght.css',
+] as const satisfies readonly (typeof FONT_STYLESHEETS)[number][];
+
 /** The family each stylesheet in `FONT_STYLESHEETS` declares. */
 export const FONT_FAMILIES = [
   'Barlow',

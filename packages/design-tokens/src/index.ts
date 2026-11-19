@@ -79,7 +79,7 @@ export {
   validateChartPalette,
   type ChartPaletteValidation,
 } from './chart-palette-validation.js';
-export { generateCss } from './generate/css.js';
+export { generateCss, generateDeferredFontsCss, generatePublicCss } from './generate/css.js';
 export {
   generateTailwindTheme,
   generateTailwindModule,

@@ -2,6 +2,7 @@ import { parseArgs } from 'node:util';
 import { Command, Option } from 'clipanion';
 import type { CliContext } from '../cli-context.js';
 import { runCommand } from '../command-support.js';
+import { BEFORE_START_VARIABLE } from '../doctor.js';
 import { DEV_COMPOSE_FILE, resolveDeploymentTopology } from '../process-lifecycle.js';
 import {
   cleanUpAfterSuccess,
@@ -52,7 +53,14 @@ export class StartCommand extends Command<CliContext> {
       }
       const database = await processes.run('docker', ['compose', 'up', '--detach', 'postgres']);
       if (database !== 0) return database;
-      const doctor = await processes.run('docker', ['compose', 'run', '--rm', 'doctor']);
+      const doctor = await processes.run('docker', [
+        'compose',
+        'run',
+        '--rm',
+        '--env',
+        `${BEFORE_START_VARIABLE}=true`,
+        'doctor',
+      ]);
       if (doctor !== 0) return doctor;
       const started = await processes.run('docker', ['compose', 'up', '--detach', '--wait']);
       return cleanUpAfterSuccess(started, { processes, environment, list: PRODUCTION_SINGLE_RUN });

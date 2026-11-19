@@ -1,5 +1,6 @@
 import {
   BREAKPOINTS,
+  DEFERRED_PUBLIC_FONT_STYLESHEETS,
   FONT_STYLESHEETS,
   ICON_TOKENS,
   LAYOUT_TOKENS,
@@ -67,7 +68,20 @@ function lightThemeVariables(indent: string): string[] {
   ];
 }
 
-export function generateCss(): string {
+const importOf = (stylesheet: string): string => `@import '${stylesheet}';`;
+
+/** `copalibre-public.css`: every token and face but the ones a public page loads after it paints. */
+export function generatePublicCss(): string {
+  const deferred: readonly string[] = DEFERRED_PUBLIC_FONT_STYLESHEETS;
+  return generateCss(FONT_STYLESHEETS.filter((stylesheet) => !deferred.includes(stylesheet)));
+}
+
+/** `fonts-deferred.css`: the faces `generatePublicCss` leaves out, for a public page to add. */
+export function generateDeferredFontsCss(): string {
+  return `${DEFERRED_PUBLIC_FONT_STYLESHEETS.map(importOf).join('\n')}\n`;
+}
+
+export function generateCss(fonts: readonly string[] = FONT_STYLESHEETS): string {
   return [
     /*
      * First, and before any rule: CSS requires `@import` to precede everything
@@ -79,7 +93,7 @@ export function generateCss(): string {
      * imports this stylesheet; none of them can forget to. The imports are
      * package paths the web build resolves and bundles, never another origin.
      */
-    ...FONT_STYLESHEETS.map((stylesheet) => `@import '${stylesheet}';`),
+    ...fonts.map(importOf),
     '',
     header(),
     ...fallbackFontFaces(),

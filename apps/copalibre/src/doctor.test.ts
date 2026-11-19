@@ -235,6 +235,54 @@ describe('copalibre doctor', () => {
     );
   });
 
+  it('before start, leaves a key set served by this installation’s api unchecked', async () => {
+    const healthy = dependencies();
+    const unreachable = dependencies({
+      lookupHost: jest.fn(async (host: string) => {
+        if (host === 'api') throw new Error('getaddrinfo ENOTFOUND api');
+        await healthy.lookupHost(host);
+      }),
+      fetch: jest.fn(async (input: string | URL | Request, init?: RequestInit) => {
+        if (String(input instanceof Request ? input.url : input).startsWith('http://api:')) {
+          throw new Error('fetch failed');
+        }
+        return healthy.fetch(input, init);
+      }) as unknown as typeof fetch,
+    });
+    const stackApi = { ...environment, COPALIBRE_JWKS_URI: 'http://api:3001/api/auth/jwks.json' };
+
+    const before = await runDoctor(stackApi, unreachable, { beforeStart: true });
+    expect(before.ok).toBe(true);
+    for (const name of ['dns:COPALIBRE_JWKS_URI', 'jwks-content']) {
+      expect(before.checks).toContainEqual(
+        expect.objectContaining({
+          name,
+          status: 'skip',
+          message: expect.stringContaining('starts after this check'),
+        }),
+      );
+    }
+
+    const running = await runDoctor(stackApi, unreachable);
+    expect(running.ok).toBe(false);
+    expect(running.checks).toContainEqual(
+      expect.objectContaining({ name: 'jwks-content', status: 'fail' }),
+    );
+  });
+
+  it('before start, still checks a key set served by an external identity provider', async () => {
+    const report = await runDoctor(
+      { ...environment, COPALIBRE_JWKS_URI: 'https://id.liga.example/jwks.json' },
+      dependencies({
+        fetch: jest.fn(() => Promise.reject(new Error('ECONNREFUSED'))) as unknown as typeof fetch,
+      }),
+      { beforeStart: true },
+    );
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({ name: 'jwks-content', status: 'fail' }),
+    );
+  });
+
   it('skips the JWKS content check when no URI is configured', async () => {
     await expect(validateJwksContent({}, dependencies())).resolves.toEqual([]);
   });
