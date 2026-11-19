@@ -1497,6 +1497,40 @@ describe('live match console (integration)', () => {
     expect((await clockRowsOf(id))[0]).toEqual({ state: 'completed', elapsedSeconds: 2700 });
   });
 
+  it('refuses a time correction and a reopen on a forfeited match, with nothing changed', async () => {
+    const id = await matchWithEndedHalves();
+    await withTransaction(scratch.db, (uow) =>
+      new CompetitionRepository(scratch.db).applyCommand(uow, {
+        matchId: id,
+        command: 'finalize',
+        status: 'forfeited',
+        grantedBy: 'seed',
+        organizationId,
+        ...audit,
+      }),
+    );
+    const [half] = await segmentRowsOf(id);
+    const before = await clockRowsOf(id);
+
+    const correction = await request('POST', `${matchUrl(id)}/clock`, 'referee', {
+      segmentId: half?.segment_id,
+      elapsedSeconds: 600,
+    });
+    expect(correction.statusCode).toBe(400);
+    expect(correction.json().errorCode).toBe('match-control-bad-request');
+
+    const reopen = await request(
+      'POST',
+      `${matchUrl(id)}/segments/${half?.segment_id}/reopen`,
+      'referee',
+      {
+        reason: 'Ended by mistake',
+      },
+    );
+    expect(reopen.statusCode).toBe(400);
+    expect(await clockRowsOf(id)).toEqual(before);
+  });
+
   it('refuses a time correction on a finalized match, with the time unchanged', async () => {
     const id = await matchWithEndedHalves();
     await finalizeDirectly(id);

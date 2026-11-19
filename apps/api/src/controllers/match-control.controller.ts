@@ -719,9 +719,11 @@ export class MatchControlController {
         throw new NotFoundException(`No match "${matchId}"`, {
           errorCode: 'match-control-not-found',
         });
-      if (locked.status === 'finalized') {
+      // Only a match not yet closed has a clock that may be corrected. A finalized, forfeited or
+      // anulled match is part of its record, and the audited correction workflow is the path over it.
+      if (locked.status !== 'scheduled' && locked.status !== 'in-progress') {
         throw new BadRequestException(
-          `The clock of finalized match "${matchId}" is part of its record and cannot be corrected here`,
+          `The clock of match "${matchId}" is ${locked.status} and cannot be corrected here`,
           { errorCode: 'match-control-bad-request' },
         );
       }
