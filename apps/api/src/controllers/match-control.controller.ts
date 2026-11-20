@@ -136,6 +136,11 @@ import {
 import { assertSidesDecided } from '../assert-sides-decided.js';
 import { readFixtureSources } from './fixture-sources.js';
 import { staleConfirmationsAfter } from './qualification.js';
+import {
+  answerFromKey,
+  keyReusedConflict,
+  type KeyedCommand,
+} from './match-command-idempotency.js';
 
 /**
  * Running a match.
@@ -269,7 +274,15 @@ export class MatchControlController {
     if (idempotencyKey) {
       const previous = await idempotency.find(idempotencyKey);
       if (previous)
-        return replayCommand<MatchStateResponse>(previous, matchId, command, fingerprint);
+        return this.answerStored(
+          idempotency,
+          idempotencyKey,
+          previous,
+          matchId,
+          command,
+          fingerprint,
+          () => this.state(organizationAlias, tournamentAlias, matchId),
+        );
     }
 
     const stageId = await this.stageOf(matchId);
@@ -353,6 +366,21 @@ export class MatchControlController {
 
     try {
       await withTransaction(this.db, async (uow) => {
+        // The key is claimed in this transaction, so a commit always carries it and a rollback
+        // never does. The claim must follow any FOR UPDATE lock on the match row: Start claims
+        // after startUnderLock (see below). Finalize records its key at the end of this
+        // transaction, with the response it already holds.
+        const claimCommand = async (): Promise<void> => {
+          if (idempotencyKey && command !== 'finalize') {
+            await idempotency.claim(uow, {
+              idempotencyKey,
+              matchId,
+              operation: command,
+              requestFingerprint: fingerprint,
+            });
+          }
+        };
+        if (command !== 'start') await claimCommand();
         if (command === 'start' || command === 'finalize')
           await assertSidesDecided(this.db, uow, matchId);
         // Every Start is decided again under the match row lock: a Start that read the match
@@ -368,6 +396,10 @@ export class MatchControlController {
                 audit,
               })
             : { segments, target, transition: transition.value };
+        // Start claims here, after startUnderLock has taken the match row lock. The claim's
+        // foreign key takes a shared lock on that row, and a second Start that had claimed first
+        // would wait on the first one's lock while the first waited on its shared lock: a deadlock.
+        if (command === 'start') await claimCommand();
         await competition.applyCommand(uow, {
           matchId,
           command,
@@ -468,21 +500,24 @@ export class MatchControlController {
       if (!idempotencyKey) throw error;
       const previous = await idempotency.find(idempotencyKey);
       if (!previous) throw error;
-      return replayCommand<MatchStateResponse>(previous, matchId, command, fingerprint);
+      return this.answerStored(
+        idempotency,
+        idempotencyKey,
+        previous,
+        matchId,
+        command,
+        fingerprint,
+        () => this.state(organizationAlias, tournamentAlias, matchId),
+      );
     }
 
     if (command === 'finalize') return finalizeResponse;
 
     const state = await this.state(organizationAlias, tournamentAlias, matchId);
     if (idempotencyKey) {
-      await withTransaction(this.db, (uow) =>
-        idempotency.record(uow, {
-          idempotencyKey,
-          matchId,
-          operation: command,
-          requestFingerprint: fingerprint,
-          response: state as unknown as Record<string, unknown>,
-        }),
+      await idempotency.completeResponse(
+        idempotencyKey,
+        state as unknown as Record<string, unknown>,
       );
     }
     return state;
@@ -664,8 +699,14 @@ export class MatchControlController {
     @Req() request: RequestWithSubject,
     @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<MatchConsoleResponse> {
-    return this.withIdempotency(idempotencyKey, matchId, 'clock-adjust', body, () =>
-      this.adjustClockOnce(organizationAlias, tournamentAlias, matchId, body, request),
+    return this.withIdempotency(
+      idempotencyKey,
+      matchId,
+      'clock-adjust',
+      body,
+      (claim) =>
+        this.adjustClockOnce(organizationAlias, tournamentAlias, matchId, body, request, claim),
+      () => this.consoleProjection(organizationAlias, tournamentAlias, matchId, request),
     );
   }
 
@@ -675,7 +716,8 @@ export class MatchControlController {
     matchId: string,
     body: ClockAdjustmentRequest,
     request: RequestWithSubject,
-  ): Promise<MatchConsoleResponse> {
+    claim: IdempotencyClaim,
+  ): Promise<void> {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
     const segments = await competition.listSegments(matchId);
@@ -710,11 +752,13 @@ export class MatchControlController {
     await withTransaction(this.db, async (uow) => {
       // The match row lock orders this correction against a finalize, a Start or a reopen on the
       // same match; the status and the segment state are read under it, so the refusals below
-      // hold for the write that follows.
+      // hold for the write that follows. The claim follows the lock: its foreign key shares that
+      // row, and a claim taken first would deadlock with a second correction on the same match.
       await lockRowsForMutation(
         this.db,
         uow.tx.selectFrom('matches').select('match_id').where('match_id', '=', matchId),
       ).execute();
+      await claim(uow);
       const locked = await competition.findMatch(matchId, uow);
       if (!locked)
         throw new NotFoundException(`No match "${matchId}"`, {
@@ -779,8 +823,6 @@ export class MatchControlController {
         payload: { matchId, command: 'clock-adjusted', segmentId: selected.segmentId },
       });
     });
-
-    return this.consoleProjection(organizationAlias, tournamentAlias, matchId, request);
   }
 
   @Post('segments/:segmentId/reopen')
@@ -816,7 +858,7 @@ export class MatchControlController {
       matchId,
       'segment-reopen',
       { segmentId, reason: body.reason },
-      () =>
+      (claim) =>
         this.reopenSegmentOnce(
           organizationAlias,
           tournamentAlias,
@@ -824,7 +866,9 @@ export class MatchControlController {
           segmentId,
           body,
           request,
+          claim,
         ),
+      () => this.consoleProjection(organizationAlias, tournamentAlias, matchId, request),
     );
   }
 
@@ -835,7 +879,8 @@ export class MatchControlController {
     segmentId: string,
     body: ReopenSegmentRequest,
     request: RequestWithSubject,
-  ): Promise<MatchConsoleResponse> {
+    claim: IdempotencyClaim,
+  ): Promise<void> {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(matchId);
@@ -874,10 +919,12 @@ export class MatchControlController {
 
     await withTransaction(this.db, async (uow) => {
       // The match row lock orders this reopen against a finalize or a correction on the same match.
+      // The claim follows it, for the reason given in adjustClockOnce.
       await lockRowsForMutation(
         this.db,
         uow.tx.selectFrom('matches').select('match_id').where('match_id', '=', matchId),
       ).execute();
+      await claim(uow);
       const locked = await competition.findMatch(matchId, uow);
       if (!locked)
         throw new NotFoundException(`No match "${matchId}"`, {
@@ -917,8 +964,6 @@ export class MatchControlController {
         payload: { matchId, command: 'segment-reopened', segmentId },
       });
     });
-
-    return this.consoleProjection(organizationAlias, tournamentAlias, matchId, request);
   }
 
   @Post('timers/:timerId/resolve')
@@ -941,8 +986,14 @@ export class MatchControlController {
     @Req() request: RequestWithSubject,
     @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<MatchConsoleResponse> {
-    return this.withIdempotency(idempotencyKey, matchId, 'timer-resolve', { timerId }, () =>
-      this.resolveTimerOnce(organizationAlias, tournamentAlias, matchId, timerId, request),
+    return this.withIdempotency(
+      idempotencyKey,
+      matchId,
+      'timer-resolve',
+      { timerId },
+      (claim) =>
+        this.resolveTimerOnce(organizationAlias, tournamentAlias, matchId, timerId, request, claim),
+      () => this.consoleProjection(organizationAlias, tournamentAlias, matchId, request),
     );
   }
 
@@ -952,7 +1003,8 @@ export class MatchControlController {
     matchId: string,
     timerId: string,
     request: RequestWithSubject,
-  ): Promise<MatchConsoleResponse> {
+    claim: IdempotencyClaim,
+  ): Promise<void> {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
     const [events, descriptor] = await Promise.all([
@@ -989,6 +1041,7 @@ export class MatchControlController {
       authorizationContext: `capability:${granted.capability} via ${granted.grantedBy}`,
     };
     await withTransaction(this.db, async (uow) => {
+      await claim(uow);
       await competition.resolveTimer(uow, { timerId, matchId, ...audit });
       const projectionVersion = await new ProjectionStore(this.db).nextVersion(uow, {
         projectionType: 'match-console',
@@ -1003,7 +1056,6 @@ export class MatchControlController {
         payload: { matchId, command: 'timer-resolved', timerId },
       });
     });
-    return this.consoleProjection(organizationAlias, tournamentAlias, matchId, request);
   }
 
   @Get('rosters')
@@ -1110,8 +1162,22 @@ export class MatchControlController {
     @Req() request: RequestWithSubject,
     @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<MatchConsoleResponse> {
-    return this.withIdempotency(idempotencyKey, matchId, 'roster-select', { entrantId, body }, () =>
-      this.setRosterOnce(organizationAlias, tournamentAlias, matchId, entrantId, body, request),
+    return this.withIdempotency(
+      idempotencyKey,
+      matchId,
+      'roster-select',
+      { entrantId, body },
+      (claim) =>
+        this.setRosterOnce(
+          organizationAlias,
+          tournamentAlias,
+          matchId,
+          entrantId,
+          body,
+          request,
+          claim,
+        ),
+      () => this.consoleProjection(organizationAlias, tournamentAlias, matchId, request),
     );
   }
 
@@ -1122,7 +1188,8 @@ export class MatchControlController {
     entrantId: string,
     body: SetMatchRosterRequest,
     request: RequestWithSubject,
-  ): Promise<MatchConsoleResponse> {
+    claim: IdempotencyClaim,
+  ): Promise<void> {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(matchId);
@@ -1244,6 +1311,7 @@ export class MatchControlController {
       authorizationContext: `capability:${granted.capability} via ${granted.grantedBy}`,
     };
     await withTransaction(this.db, async (uow) => {
+      await claim(uow);
       await competition.setMatchRoster(uow, {
         matchId,
         entrantId,
@@ -1263,8 +1331,6 @@ export class MatchControlController {
         payload: { matchId, command: 'roster-set', entrantId },
       });
     });
-
-    return this.consoleProjection(organizationAlias, tournamentAlias, matchId, request);
   }
 
   @Post('events')
@@ -1293,8 +1359,28 @@ export class MatchControlController {
     @Req() request: RequestWithSubject,
     @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<RecordedEventResponse> {
-    return this.withIdempotency(idempotencyKey, matchId, 'record-event', body, () =>
-      this.recordEventOnce(organizationAlias, tournamentAlias, matchId, body, request),
+    // The recorded event exists only inside the command's transaction, which also stores it on
+    // the key. A record-event key is therefore never pending, and `respond` only returns it.
+    let recorded: RecordedEventResponse | undefined;
+    return this.withIdempotency<RecordedEventResponse>(
+      idempotencyKey,
+      matchId,
+      'record-event',
+      body,
+      async (claim) => {
+        recorded = await this.recordEventOnce(
+          organizationAlias,
+          tournamentAlias,
+          matchId,
+          body,
+          request,
+          claim,
+        );
+      },
+      () => {
+        if (recorded) return Promise.resolve(recorded);
+        throw new Error('A record-event key is completed inside its own transaction');
+      },
     );
   }
 
@@ -1304,6 +1390,7 @@ export class MatchControlController {
     matchId: string,
     body: RecordEventRequest,
     request: RequestWithSubject,
+    claim: IdempotencyClaim,
   ): Promise<RecordedEventResponse> {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
@@ -1524,7 +1611,10 @@ export class MatchControlController {
     // One transaction: the event, the alerts it crossed, and the outbox rows a
     // relay will deliver. Evaluating afterwards would leave a window where the
     // fact exists and the alert it should have raised does not.
-    const { recorded, notifications } = await withTransaction(this.db, async (uow) => {
+    return withTransaction(this.db, async (uow) => {
+      // The fixture lock comes first. The key is claimed at the end of this transaction, with the
+      // complete response, so the claim never upgrades a shared lock on the match row and a
+      // retry always replays the same recorded event.
       await assertSidesDecided(this.db, uow, matchId);
       const audit = {
         organizationId: tournament.organizationId,
@@ -1746,18 +1836,18 @@ export class MatchControlController {
         }
       }
 
-      return { recorded: appended, notifications: raised };
+      const response: RecordedEventResponse = {
+        eventId: appended.eventId,
+        definitionCode: appended.definitionCode,
+        sequence: appended.sequence,
+        ...(appended.side === undefined ? {} : { side: appended.side }),
+        ...(appended.personId === undefined ? {} : { personId: appended.personId }),
+        ...(appended.notes === undefined ? {} : { notes: appended.notes }),
+        notifications: raised,
+      };
+      await claim(uow, response);
+      return response;
     });
-
-    return {
-      eventId: recorded.eventId,
-      definitionCode: recorded.definitionCode,
-      sequence: recorded.sequence,
-      ...(recorded.side === undefined ? {} : { side: recorded.side }),
-      ...(recorded.personId === undefined ? {} : { personId: recorded.personId }),
-      ...(recorded.notes === undefined ? {} : { notes: recorded.notes }),
-      notifications,
-    };
   }
 
   private async materializeDeclaredEffect(
@@ -2974,53 +3064,113 @@ export class MatchControlController {
   }
 
   /**
-   * The generalized form of `finalize`'s own idempotency handling:
-   * every other mutating console command now shares this one check/record
-   * path instead of each carrying its own copy. An omitted key runs `run()`
-   * unguarded — additive only, matching how `finalize` already behaves for a
-   * caller sending no key today. A cache hit replays without ever calling
-   * `run()`, so a retried request skips re-validation and re-authorization
-   * exactly the way `finalize`'s own early check already does.
+   * Runs a console command under its idempotency key.
    *
-   * `run()`'s result is recorded in its own short transaction after `run()`
-   * completes, not folded into `run()`'s own transaction — most of these
-   * routes' responses come from a post-commit read (`consoleProjection()`),
-   * so there is no single transaction that already contains the exact
-   * response object to persist atomically the way `finalize`'s pre-computed
-   * response does.
+   * The key is claimed inside the command's own transaction, by `run`, so a commit always carries
+   * its key and a rollback never does. `respond` reads the response after that commit and stores
+   * it on the key. A key already on record is answered by `answerStored`: a completed key replays,
+   * a reused key is refused, and a claimed key whose response was lost gets the current response
+   * stored on it, without the command being run again. That read goes through the same
+   * authorization as the route's own read (`consoleProjection` enforces the admin-control policy;
+   * `state` is public), so a key reveals nothing its holder could not read without it.
    */
   private async withIdempotency<T>(
     idempotencyKey: string | undefined,
     matchId: string,
     operation: string,
     requestBody: unknown,
-    run: () => Promise<T>,
+    run: (claim: IdempotencyClaim) => Promise<void>,
+    respond: () => Promise<T>,
   ): Promise<T> {
-    if (!idempotencyKey) return run();
+    if (!idempotencyKey) {
+      await run(noClaim);
+      return respond();
+    }
     const idempotency = new MatchCommandIdempotencyRepository(this.db);
     const fingerprint = fingerprintOf(requestBody);
     const previous = await idempotency.find(idempotencyKey);
-    if (previous) return replayCommand<T>(previous, matchId, operation, fingerprint);
-
-    try {
-      const result = await run();
-      await withTransaction(this.db, (uow) =>
-        idempotency.record(uow, {
-          idempotencyKey,
-          matchId,
-          operation,
-          requestFingerprint: fingerprint,
-          response: result as unknown as Record<string, unknown>,
-        }),
+    if (previous) {
+      return this.answerStored(
+        idempotency,
+        idempotencyKey,
+        previous,
+        matchId,
+        operation,
+        fingerprint,
+        respond,
       );
-      return result;
+    }
+
+    const claim: IdempotencyClaim = async (uow, response) => {
+      const keyed = { idempotencyKey, matchId, operation, requestFingerprint: fingerprint };
+      if (response === undefined) await idempotency.claim(uow, keyed);
+      else
+        await idempotency.record(uow, {
+          ...keyed,
+          response: response as Record<string, unknown>,
+        });
+    };
+    try {
+      await run(claim);
     } catch (error) {
+      // A concurrent request with this key may have committed first, or a refusal may follow
+      // a commit this request did not see. Answer from the key if one is on record; otherwise the
+      // refusal stands and nothing was recorded.
       const raced = await idempotency.find(idempotencyKey);
       if (!raced) throw error;
-      return replayCommand<T>(raced, matchId, operation, fingerprint);
+      return this.answerStored(
+        idempotency,
+        idempotencyKey,
+        raced,
+        matchId,
+        operation,
+        fingerprint,
+        respond,
+      );
     }
+    const response = await respond();
+    await idempotency.completeResponse(
+      idempotencyKey,
+      response as unknown as Record<string, unknown>,
+    );
+    return response;
+  }
+
+  /**
+   * Answers a request whose key is already on record. A completed key replays its response, a
+   * reused key is refused, and a claimed key whose response was never stored gets the current
+   * response read and stored on it. The command is never run again on this path.
+   */
+  private async answerStored<T>(
+    idempotency: MatchCommandIdempotencyRepository,
+    idempotencyKey: string,
+    stored: KeyedCommand<unknown>,
+    matchId: string,
+    operation: string,
+    fingerprint: string,
+    respond: () => Promise<T>,
+  ): Promise<T> {
+    const answer = answerFromKey<unknown>(stored, matchId, operation, fingerprint);
+    if (answer.outcome === 'conflict') throw keyReusedConflict(operation);
+    if (answer.outcome === 'replay') return answer.response as T;
+    const response = await respond();
+    await idempotency.completeResponse(
+      idempotencyKey,
+      response as unknown as Record<string, unknown>,
+    );
+    return response;
   }
 }
+
+/**
+ * Claims a request's idempotency key inside the transaction that carries the command's writes. A
+ * command that already holds its complete response passes it, and the key is stored completed.
+ * The claim inserts a row whose foreign key takes a shared lock on the match row, so it must follow
+ * any FOR UPDATE lock the command takes on that row.
+ */
+type IdempotencyClaim = (uow: UnitOfWork, response?: unknown) => Promise<void>;
+
+const noClaim: IdempotencyClaim = async () => undefined;
 
 function segmentPlanResponse(
   descriptor: DisciplineDescriptor,

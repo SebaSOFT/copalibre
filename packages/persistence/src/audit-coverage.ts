@@ -70,6 +70,10 @@ export function recordsAudit(method: RepositoryMethod): boolean {
 export const AUDIT_COVERAGE_EXCEPTIONS: Readonly<Record<string, string>> = Object.freeze({
   'match-command-idempotency-repository.ts:record':
     'idempotency bookkeeping for a finalization retry, not an aggregate mutation',
+  'match-command-idempotency-repository.ts:claim':
+    'idempotency bookkeeping: the key claimed in a console command transaction, whose writes are audited by that command',
+  'match-command-idempotency-repository.ts:completeResponse':
+    'idempotency bookkeeping: stores the response of an already committed command, whose effect is audited by that command',
   'collector-threshold-consumption-repository.ts:record':
     "a rule's derived running total, replaced on every evaluation, not an operator action",
   'csv-import-repository.ts:markValidating':

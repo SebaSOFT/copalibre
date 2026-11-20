@@ -287,3 +287,74 @@ Adding a segment SHALL be refused as a bad-request error when the match is not i
 
 - **WHEN** an operator adds a set to an in-progress best-of-three match that already has three sets
 - **THEN** the set is created and the console state reports set additions as outside the plan
+
+### Requirement: A time correction keeps the segment's state
+
+A correction of a segment's elapsed time that does not ask to activate the segment SHALL set the time and SHALL leave the segment's state unchanged: a running segment keeps running from the corrected time, a paused or not started segment stays stopped, and an ended segment stays ended. The correction SHALL be audited with its actor and the prior and resulting time.
+
+#### Scenario: A running half is corrected
+
+- **WHEN** an operator corrects the time of a running half to 20:50
+- **THEN** the half reads 20:50 and keeps running, and no other segment changes state
+
+#### Scenario: An ended half is corrected
+
+- **WHEN** an operator corrects the time of an ended half to 45:00
+- **THEN** the half reads 45:00 and stays ended
+
+### Requirement: A time correction is refused on a closed match and never reopens an ended segment
+
+A time correction SHALL be refused as a bad-request error when the match is closed: finalized, forfeited or not-required. A time correction that asks to activate a segment SHALL be refused as a bad-request error when that segment has ended. After either refusal the segments' times and states SHALL be unchanged. A time correction on a scheduled or an in-progress match SHALL be accepted.
+
+#### Scenario: A finalized match
+
+- **WHEN** a time correction arrives for a segment of a finalized match
+- **THEN** the request is refused as a bad-request error and the segment's time is unchanged
+
+#### Scenario: A forfeited match
+
+- **WHEN** a time correction arrives for a segment of a forfeited match
+- **THEN** the request is refused as a bad-request error and the segment's time is unchanged
+
+#### Scenario: An old console asks to activate an ended segment
+
+- **WHEN** a time correction with the request to activate arrives for an ended segment of an in-progress match
+- **THEN** the request is refused as a bad-request error and the segment stays ended
+
+#### Scenario: A scheduled match
+
+- **WHEN** a time correction without activation arrives for a segment of a scheduled match
+- **THEN** the time is set, the segment stays not started and the match stays scheduled
+
+### Requirement: An ended segment is reopened only by an explicit command with a reason
+
+An authorized operator with the clock-control capability SHALL be able to reopen an ended segment of an in-progress match with a non-empty reason. The segment SHALL return to paused with its time kept, the audit trail SHALL record the reason, actor and prior and resulting state, every console SHALL receive the change through the realtime stream, and a repeated idempotency key SHALL return the recorded response.
+
+#### Scenario: A half ended by mistake
+
+- **WHEN** an operator reopens the first half of an in-progress match with the reason "Ended by mistake"
+- **THEN** the half is paused with its time kept, and the audit trail shows the reason and the operator
+
+#### Scenario: A repeated reopen
+
+- **WHEN** the same reopen request is sent twice with one idempotency key
+- **THEN** both responses are the same and the audit trail holds one reopen
+
+### Requirement: Reopening is refused when the record would be incoherent
+
+Reopening SHALL be refused as a bad-request error when the reason is empty, when the segment has not ended, or when the match is not in progress. After a refusal the segment's state SHALL be unchanged.
+
+#### Scenario: No reason
+
+- **WHEN** an operator reopens an ended segment with an empty reason
+- **THEN** the request is refused as a bad-request error and the segment stays ended
+
+#### Scenario: A finalized match
+
+- **WHEN** an operator reopens an ended segment of a finalized or forfeited match
+- **THEN** the request is refused as a bad-request error and the segment stays ended
+
+#### Scenario: A segment that has not ended
+
+- **WHEN** an operator reopens a running or paused segment
+- **THEN** the request is refused as a bad-request error and the segment's state is unchanged

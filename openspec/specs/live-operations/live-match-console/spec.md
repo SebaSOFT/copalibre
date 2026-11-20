@@ -605,35 +605,6 @@ The live console SHALL show a line saying there are no events to show in place o
 - **WHEN** an operator opens a match with no recorded events
 - **THEN** the event ledger shows that there are no events to show and draws no empty box above the log note
 
-### Requirement: Apply clock sends only an elapsed value the operator typed
-
-The console's Apply clock SHALL send only an elapsed value that the operator typed for the selected segment. The Elapsed seconds input SHALL show the selected segment's current clock until the operator types, and SHALL follow the selected segment. Apply clock SHALL be unavailable while the input is untouched, empty, negative, or not a whole number.
-
-#### Scenario: Untouched input shows the current clock and sends nothing
-
-- **WHEN** an operator opens a match whose selected segment reads 1200 seconds and does not edit the Elapsed seconds input
-- **THEN** the input shows 1200, Apply clock is unavailable, and no clock request is sent
-
-#### Scenario: A typed value is applied to the selected segment
-
-- **WHEN** the operator types 1250 into the Elapsed seconds input and presses Apply clock
-- **THEN** the console sends that segment's elapsed seconds as 1250 with the request to make it the active segment
-
-#### Scenario: Empty, negative, or fractional input is refused
-
-- **WHEN** the operator clears the Elapsed seconds input, or types a negative or fractional number
-- **THEN** Apply clock is unavailable and no clock request is sent
-
-#### Scenario: The input follows the selected segment
-
-- **WHEN** the operator types a value and then picks another segment, or the match moves on to its next segment
-- **THEN** the typed value is discarded and the input shows the newly selected segment's current clock
-
-#### Scenario: The input returns to the current clock after Apply
-
-- **WHEN** an Apply clock request is sent or queued
-- **THEN** the input shows the selected segment's current clock again, untouched
-
 ### Requirement: The console starts a scheduled match that has no segments
 
 For a scheduled match with no segments whose discipline declares a segment type, the live console SHALL offer Start as the primary clock action and SHALL say how many segments of which type Start creates. Starting SHALL show the created segments with the first one running.
@@ -666,3 +637,89 @@ While a match is in progress, the live console SHALL offer Add segment with ever
 
 - **WHEN** an operator adds a segment while the console is offline
 - **THEN** the addition is queued, the queue count rises, and on reconnection one segment is created
+
+### Requirement: The clock card offers one set of actions per state
+
+The live console SHALL offer, for the selected segment, only the actions of its state: Start match for a scheduled match, Start segment for a segment not started, Pause and End segment for a running segment, Resume and End segment for a paused one, and Reopen segment for an ended one. A closed match (finalized, forfeited or not-required) SHALL show no clock action. The segment selector SHALL show a stopped segment with time above zero as paused.
+
+#### Scenario: A scheduled match
+
+- **WHEN** an operator opens a scheduled match
+- **THEN** the clock card offers Start match and no other clock action
+
+#### Scenario: A paused half
+
+- **WHEN** the selected half is stopped at 12:30
+- **THEN** the selector shows it as paused, and the clock card offers Resume and End segment, not Start segment
+
+#### Scenario: A half not started
+
+- **WHEN** the selected half has never run and no other segment is running
+- **THEN** the clock card offers Start segment and no Resume
+
+#### Scenario: An ended half
+
+- **WHEN** the selected half has ended in an in-progress match
+- **THEN** the clock card offers Reopen segment and no Start, Resume, Pause or End segment
+
+#### Scenario: A closed match
+
+- **WHEN** an operator opens a finalized, forfeited or not-required match
+- **THEN** the clock card offers no clock action and no time correction
+
+### Requirement: A segment starts or resumes only while no other runs
+
+The live console SHALL NOT offer Start segment or Resume for a segment while another segment of the match is running. It SHALL say which segment is running instead.
+
+#### Scenario: The first half is still running
+
+- **WHEN** the operator selects the second half while the first half is running
+- **THEN** the clock card offers neither Start segment nor Resume, and says the first half is running
+
+### Requirement: Correct time sends only a time the operator typed
+
+The console's Correct time SHALL send only a time the operator typed for the selected segment, as minutes:seconds or as whole minutes, and SHALL NOT ask to start the segment. The time field SHALL show the selected segment's current time as minutes:seconds until the operator types, and SHALL follow the selected segment. Correct SHALL be unavailable while the field is untouched, empty, or not a valid time, and on a closed match (finalized, forfeited or not-required).
+
+#### Scenario: Untouched field
+
+- **WHEN** an operator opens a match whose selected segment reads 20:00 and does not edit the time field
+- **THEN** the field shows 20:00, Correct is unavailable, and no request is sent
+
+#### Scenario: A typed time
+
+- **WHEN** the operator types 20:50 and presses Correct
+- **THEN** the console sends that segment's time as 1250 seconds without asking to start it, and the segment keeps its state
+
+#### Scenario: Whole minutes
+
+- **WHEN** the operator types 45 and presses Correct
+- **THEN** the console sends that segment's time as 2700 seconds
+
+#### Scenario: Invalid input
+
+- **WHEN** the operator clears the field, or types a negative value, seconds of 60 or more, or text that is not a time
+- **THEN** Correct is unavailable and no request is sent
+
+#### Scenario: The field follows the selected segment
+
+- **WHEN** the operator types a time and then picks another segment
+- **THEN** the typed time is discarded and the field shows the newly selected segment's current time
+
+### Requirement: Reopen segment asks for a reason
+
+The console's Reopen segment SHALL ask the operator for a reason before sending, SHALL send nothing while the reason is empty, and SHALL go through the offline queue with its idempotency key like the other clock commands.
+
+#### Scenario: Reopening with a reason
+
+- **WHEN** the operator presses Reopen segment on an ended half, types "Ended by mistake" and confirms
+- **THEN** the console sends the reopen with that reason, and the half shows as paused with Resume and End segment offered
+
+#### Scenario: Cancelling
+
+- **WHEN** the operator presses Reopen segment and cancels, or leaves the reason empty
+- **THEN** nothing is sent and the half stays ended
+
+#### Scenario: Reopening offline
+
+- **WHEN** the operator reopens a half while the console is offline
+- **THEN** the reopen is queued, the queue count rises, and on reconnection one reopen is recorded

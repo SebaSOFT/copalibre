@@ -1701,6 +1701,312 @@ describe('live match console (integration)', () => {
     expect(firstHalf?.state).toBe(reopen.statusCode === 201 ? 'pending' : 'completed');
     expect((await new CompetitionRepository(scratch.db).findMatch(id))?.status).toBe('finalized');
   });
+
+  /** The idempotency row for a key, read straight from the table. */
+  function keyRow(key: string) {
+    return scratch.db
+      .selectFrom('match_command_idempotency')
+      .selectAll()
+      .where('idempotency_key', '=', key)
+      .executeTakeFirst();
+  }
+
+  /** The crash window: the command committed, and its response never reached the key. */
+  async function loseResponse(key: string) {
+    await scratch.db
+      .updateTable('match_command_idempotency')
+      .set({ response: JSON.stringify({}), response_pending: true })
+      .where('idempotency_key', '=', key)
+      .execute();
+  }
+
+  /** What a retry must not change: the events, the audit rows of the organization, the clocks. */
+  async function appliedRecord(id: string) {
+    const [events, audits, clocks] = await Promise.all([
+      scratch.db.selectFrom('match_events').select('event_id').where('match_id', '=', id).execute(),
+      scratch.db
+        .selectFrom('audit_log')
+        .select('audit_id')
+        .where('organization_id', '=', organizationId)
+        .execute(),
+      clockRowsOf(id),
+    ]);
+    return { events: events.length, audits: audits.length, clocks };
+  }
+
+  /** A started match with every capability the referee needs; its first half ended when asked. */
+  async function fullyAppointedMatch(options: { endFirstHalf: boolean }): Promise<string> {
+    const competition = new CompetitionRepository(scratch.db);
+    const id = await withTransaction(scratch.db, async (uow) => {
+      const [fixture] = await competition.createFixtures(uow, {
+        stageId,
+        fixtures: [{ round: 3, homeEntrantId: entrantIds[0], awayEntrantId: entrantIds[1] }],
+        organizationId,
+        ...audit,
+      });
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture?.fixtureId ?? '',
+        number: 1,
+        organizationId,
+        ...audit,
+      });
+      await new MatchAssignmentRepository(scratch.db).appoint(uow, {
+        organizationId,
+        subjectId: 'referee',
+        scope: { kind: 'match', matchId: match.matchId },
+        capabilities: [
+          'match.control-clock',
+          'match.finalize',
+          'match.record-event',
+          'match.select-roster',
+        ],
+        ...audit,
+      });
+      return match.matchId;
+    });
+    await request('POST', `${matchUrl(id)}/commands/start`, 'referee');
+    if (options.endFirstHalf) {
+      const [half1] = await segmentRowsOf(id);
+      await request('POST', `${matchUrl(id)}/commands/end`, 'referee', {
+        segmentId: half1?.segment_id,
+      });
+    }
+    return id;
+  }
+
+  /**
+   * A retry after a lost response is answered with a success, the command is not applied again,
+   * and the key ends up completed.
+   */
+  async function expectLostResponseAnsweredOnce(
+    send: (key: string) => ReturnType<typeof request>,
+    id: string,
+  ) {
+    const key = crypto.randomUUID();
+    const first = await send(key);
+    expect(first.statusCode).toBeLessThan(300);
+    const applied = await appliedRecord(id);
+
+    await loseResponse(key);
+    const retry = await send(key);
+
+    expect(retry.statusCode).toBeLessThan(300);
+    expect(retry.json()).not.toEqual({});
+    expect(await appliedRecord(id)).toEqual(applied);
+    expect((await keyRow(key))?.response_pending).toBeFalsy();
+  }
+
+  it('answers an end whose response was lost with the current state, without ending the segment again', async () => {
+    const id = await fullyAppointedMatch({ endFirstHalf: false });
+    const [half1] = await segmentRowsOf(id);
+    await expectLostResponseAnsweredOnce(
+      (key) =>
+        request(
+          'POST',
+          `${matchUrl(id)}/commands/end`,
+          'referee',
+          { segmentId: half1?.segment_id },
+          key,
+        ),
+      id,
+    );
+  });
+
+  it('answers a segment reopen whose response was lost, without reopening the segment again', async () => {
+    const id = await fullyAppointedMatch({ endFirstHalf: true });
+    const [half1] = await segmentRowsOf(id);
+    await expectLostResponseAnsweredOnce(
+      (key) =>
+        request(
+          'POST',
+          `${matchUrl(id)}/segments/${half1?.segment_id}/reopen`,
+          'referee',
+          { reason: 'Ended by mistake' },
+          key,
+        ),
+      id,
+    );
+  });
+
+  it('answers a clock adjustment whose response was lost, without applying it again', async () => {
+    const id = await fullyAppointedMatch({ endFirstHalf: true });
+    const [, half2] = await segmentRowsOf(id);
+    await expectLostResponseAnsweredOnce(
+      (key) =>
+        request(
+          'POST',
+          `${matchUrl(id)}/clock`,
+          'referee',
+          { segmentId: half2?.segment_id, elapsedSeconds: 1500, activate: false },
+          key,
+        ),
+      id,
+    );
+    expect((await clockRowsOf(id))[1]?.elapsedSeconds).toBe(1500);
+  });
+
+  it('answers a roster selection whose response was lost, without setting the roster again', async () => {
+    const id = await fullyAppointedMatch({ endFirstHalf: false });
+    await expectLostResponseAnsweredOnce(
+      (key) =>
+        request('PUT', `${matchUrl(id)}/rosters/${entrantIds[0]}`, 'referee', { members: [] }, key),
+      id,
+    );
+  });
+
+  it('stores an event recording with its commit, so a retry replays the same event', async () => {
+    const id = await fullyAppointedMatch({ endFirstHalf: false });
+    const [half1] = await segmentRowsOf(id);
+    const key = crypto.randomUUID();
+    const payload = {
+      definitionCode: 'manual-penalty',
+      segmentId: half1?.segment_id,
+      occurredAt: Date.now(),
+      side: entrantIds[0],
+    };
+
+    const first = await request('POST', `${matchUrl(id)}/events`, 'referee', payload, key);
+    expect(first.statusCode).toBe(201);
+    const stored = await keyRow(key);
+    expect(stored?.response_pending).toBeFalsy();
+    const storedResponse =
+      typeof stored?.response === 'string' ? JSON.parse(stored.response) : stored?.response;
+    expect(storedResponse).toEqual(first.json());
+
+    const retry = await request('POST', `${matchUrl(id)}/events`, 'referee', payload, key);
+    expect(retry.statusCode).toBe(201);
+    expect(retry.json()).toEqual(first.json());
+    const events = await scratch.db
+      .selectFrom('match_events')
+      .select('event_id')
+      .where('match_id', '=', id)
+      .execute();
+    expect(events).toHaveLength(1);
+  });
+
+  it('records every event when officials record on one match at once with their own keys', async () => {
+    const id = await fullyAppointedMatch({ endFirstHalf: false });
+    const [half1] = await segmentRowsOf(id);
+    // Two requests stay inside the test database's four-connection pool: the transaction holding
+    // the match lock takes a second connection for the event sequence. Whether the two overlap is
+    // timing-dependent, so this checks concurrent keyed recording; it does not force the lock
+    // upgrade that a claim taken before the match row lock would deadlock on.
+    const payloads = [0, 1].map((offset) => ({
+      definitionCode: 'manual-penalty',
+      segmentId: half1?.segment_id,
+      occurredAt: Date.now() + offset,
+      side: entrantIds[offset % 2],
+    }));
+
+    const responses = await Promise.all(
+      payloads.map((payload) =>
+        request('POST', `${matchUrl(id)}/events`, 'referee', payload, crypto.randomUUID()),
+      ),
+    );
+
+    expect(responses.map((response) => response.statusCode)).toEqual([201, 201]);
+    const events = await scratch.db
+      .selectFrom('match_events')
+      .select('event_id')
+      .where('match_id', '=', id)
+      .execute();
+    expect(events).toHaveLength(2);
+  });
+
+  it('records one event when two identical requests with one key arrive together', async () => {
+    const id = await fullyAppointedMatch({ endFirstHalf: false });
+    const [half1] = await segmentRowsOf(id);
+    const key = crypto.randomUUID();
+    const payload = {
+      definitionCode: 'manual-penalty',
+      segmentId: half1?.segment_id,
+      occurredAt: Date.now(),
+      side: entrantIds[0],
+    };
+
+    const responses = await Promise.all([
+      request('POST', `${matchUrl(id)}/events`, 'referee', payload, key),
+      request('POST', `${matchUrl(id)}/events`, 'referee', payload, key),
+    ]);
+
+    expect(responses.map((response) => response.statusCode)).toEqual([201, 201]);
+    const events = await scratch.db
+      .selectFrom('match_events')
+      .select('event_id')
+      .where('match_id', '=', id)
+      .execute();
+    expect(events).toHaveLength(1);
+    expect((await keyRow(key))?.response_pending).toBeFalsy();
+  });
+
+  it('ends a segment once when two identical requests with one key arrive together', async () => {
+    const id = await fullyAppointedMatch({ endFirstHalf: false });
+    const [half1] = await segmentRowsOf(id);
+    const key = crypto.randomUUID();
+    const payload = { segmentId: half1?.segment_id };
+
+    const responses = await Promise.all([
+      request('POST', `${matchUrl(id)}/commands/end`, 'referee', payload, key),
+      request('POST', `${matchUrl(id)}/commands/end`, 'referee', payload, key),
+    ]);
+
+    expect(responses.map((response) => response.statusCode)).toEqual([201, 201]);
+    const ended = await scratch.db
+      .selectFrom('audit_log')
+      .select('audit_id')
+      .where('entity_id', '=', half1?.segment_id ?? '')
+      .where('action', '=', 'segment.completed')
+      .execute();
+    expect(ended).toHaveLength(1);
+    expect((await segmentRowsOf(id))[0]?.state).toBe('completed');
+  });
+
+  it('leaves no key on record for a refused reopen, so the same key runs once the segment has ended', async () => {
+    const id = await fullyAppointedMatch({ endFirstHalf: false });
+    const [half1] = await segmentRowsOf(id);
+    const url = `${matchUrl(id)}/segments/${half1?.segment_id}/reopen`;
+    const key = crypto.randomUUID();
+    const payload = { reason: 'Ended by mistake' };
+
+    const refused = await request('POST', url, 'referee', payload, key);
+    expect(refused.statusCode).toBe(400);
+    expect(await keyRow(key)).toBeUndefined();
+
+    await request('POST', `${matchUrl(id)}/commands/end`, 'referee', {
+      segmentId: half1?.segment_id,
+    });
+    const reopened = await request('POST', url, 'referee', payload, key);
+    expect(reopened.statusCode).toBe(201);
+    expect((await keyRow(key))?.response_pending).toBeFalsy();
+  });
+
+  it('refuses a key left pending by a lost response when it is reused with a different body', async () => {
+    const id = await fullyAppointedMatch({ endFirstHalf: true });
+    const [, half2] = await segmentRowsOf(id);
+    const url = `${matchUrl(id)}/clock`;
+    const key = crypto.randomUUID();
+
+    const first = await request(
+      'POST',
+      url,
+      'referee',
+      { segmentId: half2?.segment_id, elapsedSeconds: 100, activate: false },
+      key,
+    );
+    expect(first.statusCode).toBe(201);
+    await loseResponse(key);
+
+    const conflict = await request(
+      'POST',
+      url,
+      'referee',
+      { segmentId: half2?.segment_id, elapsedSeconds: 999, activate: false },
+      key,
+    );
+    expect(conflict.statusCode).toBe(409);
+    expect(conflict.json().errorCode).toBe('match-control-conflict');
+    expect((await clockRowsOf(id))[1]?.elapsedSeconds).toBe(100);
+  });
 });
 
 /**

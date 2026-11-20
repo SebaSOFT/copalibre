@@ -604,6 +604,8 @@ export interface MatchCommandIdempotencyTable {
   operation: string;
   request_fingerprint: string;
   response: JSONColumnType<Record<string, unknown>>;
+  /** True while the key is claimed but its response is not yet stored (see 0047). */
+  response_pending: ColumnType<boolean, boolean | undefined, boolean>;
   created_at: Timestamp;
 }
 
