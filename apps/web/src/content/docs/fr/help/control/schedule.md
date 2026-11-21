@@ -34,7 +34,7 @@ assignation du lot prend effet ensemble, ou aucune ne le fait.
 ## Combien de temps un match occupe son créneau
 
 Un match placé occupe le début de son créneau plus sa **durée estimée** : le temps réglementaire de la
-discipline (par exemple deux mi-temps de 25 minutes, 50 minutes), avec le nombre de périodes propre au
+discipline (par exemple deux mi-temps de 25 minutes, 50 minutes), avec le nombre de segments propre au
 tournoi. Une discipline sans temps réglementaire (jouée en sets, par exemple) occupe tout le créneau. Le
 lieu reste en outre réservé pendant la transition entre deux matchs. Des créneaux courts ne masquent
 donc jamais un conflit : deux matchs de 50 minutes à quinze minutes d’écart sur un même terrain sont un

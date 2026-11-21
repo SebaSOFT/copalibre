@@ -24,7 +24,7 @@ bestehende Live-Historie zu laden würde mit dieser in Konflikt geraten.
 - **Kader**: dieselbe Spielerauswahl pro Teilnehmer, die auch die Live-Konsole bietet, bis zum Absenden
   nur auf diesem Bildschirm gehalten — nichts wird für das Spiel gespeichert, bis der gesamte Stapel
   gesendet wird.
-- **Abschnitte**: jede Periode/Halbzeit/jeder Satz, den das Spiel hatte, in Spielreihenfolge, jeweils
+- **Segmente**: jede Periode/Halbzeit/jeder Satz, den das Spiel hatte, in Spielreihenfolge, jeweils
   bereits mit ihrer Dauer als abgeschlossen markiert. Hier gibt es keine Live-Uhr.
 - **Ereignisse**: die vollständige Historie des Spiels, in der Reihenfolge, in der sie tatsächlich
   stattfand, jeweils mit ihrem eigenen echten Zeitstempel — nicht dem Moment, in dem Sie es gerade
