@@ -35,7 +35,7 @@ pubblicazione è atomica: ogni assegnazione del lotto entra in vigore insieme, o
 
 Una partita collocata occupa l’inizio del suo slot più la sua **durata stimata**: il tempo
 regolamentare della disciplina (per esempio due tempi da 25 minuti, 50 minuti), con il numero di
-periodi proprio del torneo. Una disciplina senza tempo regolamentare (giocata a set, per esempio)
+segmenti proprio del torneo. Una disciplina senza tempo regolamentare (giocata a set, per esempio)
 occupa l’intero slot. L’impianto resta inoltre riservato per il cambio tra una partita e l’altra.
 Così gli slot brevi non nascondono mai un conflitto: due partite da 50 minuti a quindici minuti di
 distanza sullo stesso campo sono un conflitto d’impianto.

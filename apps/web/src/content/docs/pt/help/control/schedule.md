@@ -35,7 +35,7 @@ vigor junto, ou nenhuma entra.
 
 Uma partida alocada ocupa o início do seu horário mais a sua **duração estimada**: o tempo
 regulamentar da disciplina (por exemplo, dois tempos de 25 minutos, 50 minutos), com a quantidade de
-períodos própria do torneio. Uma disciplina sem tempo regulamentar (jogada em sets, por exemplo) ocupa
+segmentos própria do torneio. Uma disciplina sem tempo regulamentar (jogada em sets, por exemplo) ocupa
 o horário inteiro. O local também fica reservado durante a troca entre partidas. Assim, horários
 curtos nunca escondem um choque: duas partidas de 50 minutos com quinze minutos de diferença no mesmo
 local são um conflito.

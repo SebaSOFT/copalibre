@@ -4160,7 +4160,7 @@ export const messages = defineMessages({
   descriptorDecisionSegmentTypes: {
     id: 'control.descriptor.decisionSegmentTypes',
     defaultMessage:
-      'The phases a match is divided into (halves, sets, rounds). Optional — a discipline decided in one uninterrupted match declares none.',
+      'The segments a match is divided into (halves, sets, rounds). Optional — a discipline decided in one uninterrupted match declares none.',
   },
   descriptorFieldSegmentTypeName: {
     id: 'control.descriptor.fieldSegmentTypeName',

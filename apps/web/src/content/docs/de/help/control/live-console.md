@@ -18,7 +18,7 @@ Schneller Zugriff auf aktive Turniere und Echtzeitoperationen laufender Partien.
 
 ## Segmente
 
-Ein Spiel wird in Segmenten gespielt: Halbzeiten, Sätzen oder Abschnitten. „Spiel starten“ erstellt die Regelsegmente, die das Regelwerk des Spiels vorsieht, etwa die zwei Halbzeiten eines Fußballspiels oder die Sätze, die ein Best-of-Three-Spiel entscheiden, und setzt das erste in Gang. „Pausieren“ und „Segment beenden“ wirken auf das laufende Segment.
+Ein Spiel wird in Segmenten gespielt: Halbzeiten, Sätzen oder Perioden. „Spiel starten“ erstellt die Regelsegmente, die das Regelwerk des Spiels vorsieht, etwa die zwei Halbzeiten eines Fußballspiels oder die Sätze, die ein Best-of-Three-Spiel entscheiden, und setzt das erste in Gang. „Pausieren“ und „Segment beenden“ wirken auf das laufende Segment.
 
 „Segment hinzufügen“ hängt ein weiteres Segment eines Typs an, den die Disziplin vorsieht, etwa Verlängerung, Elfmeterschießen oder einen entscheidenden Satz. Ein Segment über den Regelplan hinaus wird angenommen und mit „(außerhalb des Plans)“ gekennzeichnet: Was über die Regelzeit hinaus gespielt wird, entscheidet der Veranstalter.
 

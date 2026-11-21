@@ -1397,7 +1397,7 @@ export const messages: Record<string, string> = {
     'Il massimo di giocatori deve essere almeno pari al minimo, ed entrambi almeno 1.',
   'control.descriptor.segmentTypesHeading': 'Tipi di segmento',
   'control.descriptor.decisionSegmentTypes':
-    'Le fasi in cui è diviso un incontro (tempi, set, round). Facoltativo — una disciplina decisa in un incontro ininterrotto non ne dichiara nessuno.',
+    'I segmenti in cui è diviso un incontro (tempi, set, round). Facoltativo — una disciplina decisa in un incontro ininterrotto non ne dichiara nessuno.',
   'control.descriptor.fieldSegmentTypeName': 'Nome del segmento',
   'control.descriptor.fieldSegmentTypeLabel': 'Etichetta del segmento',
   'control.descriptor.fieldSegmentTimed': 'Cronometrato',
@@ -1708,7 +1708,7 @@ export const messages: Record<string, string> = {
   'invitation.submit': 'Accetta e inizia',
 
   'control.disciplineSummary.segmentsFieldValue':
-    '{count, plural, one {# tempo regolamentare} other {# tempi regolamentari}} ({overtime, select, true {con supplementari} other {senza supplementari}})',
+    '{count, plural, one {# segmento regolamentare} other {# segmenti regolamentari}} ({overtime, select, true {con supplementari} other {senza supplementari}})',
   'control.booleanYes': 'Sì',
   'control.booleanNo': 'No',
   'control.filePicker.prompt': 'Scegli un file o trascinalo qui.',

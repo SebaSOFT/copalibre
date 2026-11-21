@@ -36,7 +36,7 @@ Die Veröffentlichung ist atomar: Jede Zuweisung im Stapel tritt gemeinsam in Kr
 
 Ein angesetztes Spiel belegt den Beginn seines Zeitfensters plus seine **geschätzte Dauer**: die
 reguläre Spielzeit der Disziplin (zum Beispiel zwei Halbzeiten zu 25 Minuten, also 50 Minuten), mit
-der turniereigenen Zahl der Spielabschnitte. Eine Disziplin ohne reguläre Spielzeit (etwa in Sätzen
+der turniereigenen Zahl der Segmente. Eine Disziplin ohne reguläre Spielzeit (etwa in Sätzen
 gespielt) belegt das ganze Zeitfenster. Die Spielstätte bleibt zusätzlich für den Wechsel zwischen
 zwei Spielen reserviert. Kurze Zeitfenster verdecken also nie einen Konflikt: Zwei 50-Minuten-Spiele
 im Abstand von fünfzehn Minuten auf demselben Platz sind ein Spielstättenkonflikt.
