@@ -293,10 +293,10 @@ once, before anything is submitted.
 ### Requirement: Every mutating console command carries a durable idempotency key
 
 The console SHALL generate a client-side idempotency key for every mutating command it sends — event
-recording, clock adjustment, timer resolution, roster selection, and finalization — and the server
-SHALL persist that key atomically with the command's recorded outcome. A retry carrying the same key
-and the same request SHALL return the previously recorded outcome without re-applying the command.
-Reuse of that key with a different request SHALL be rejected.
+recording, clock commands and clock adjustment, segment reopen, timer resolution, roster selection,
+and finalization — and the server SHALL persist that key atomically with the command's recorded
+outcome. A retry carrying the same key and the same request SHALL return the previously recorded
+outcome without re-applying the command. Reuse of that key with a different request SHALL be rejected.
 
 #### Scenario: A retried event recording is not double-recorded
 - **WHEN** a client retries the same event-recording request with the same idempotency key, because the
@@ -311,6 +311,21 @@ Reuse of that key with a different request SHALL be rejected.
 - **WHEN** a client reuses an idempotency key already recorded against a different request for any
   mutating console command
 - **THEN** the system rejects the new request without applying it
+
+#### Scenario: A command that applied is not refused on retry
+- **WHEN** a command commits but its response never reaches the stored key, and the client retries the
+  same request with the same idempotency key
+- **THEN** the command is not applied a second time, and the retry is answered with the match's current
+  console state instead of a refusal
+
+#### Scenario: Two requests with one key apply once
+- **WHEN** two requests with the same idempotency key and the same body arrive at the same time
+- **THEN** the command is applied exactly once, and both requests are answered with a success that
+  identifies that one outcome
+
+#### Scenario: A failed command leaves its key unused
+- **WHEN** a command is refused or fails before it commits
+- **THEN** its idempotency key is not recorded, and a later request with that key runs the command
 
 ### Requirement: The console durably queues an action it cannot send
 

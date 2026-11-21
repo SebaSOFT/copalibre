@@ -1887,11 +1887,10 @@ describe('live match console (integration)', () => {
   it('records every event when officials record on one match at once with their own keys', async () => {
     const id = await fullyAppointedMatch({ endFirstHalf: false });
     const [half1] = await segmentRowsOf(id);
-    // Two requests stay inside the test database's four-connection pool: the transaction holding
-    // the match lock takes a second connection for the event sequence. Whether the two overlap is
-    // timing-dependent, so this checks concurrent keyed recording; it does not force the lock
-    // upgrade that a claim taken before the match row lock would deadlock on.
-    const payloads = [0, 1].map((offset) => ({
+    // As many requests as the test database's pool has connections. Every read the transaction
+    // holding the match lock makes goes through that transaction, so the lock holder never waits
+    // for a connection that a request queued behind its lock is holding.
+    const payloads = [0, 1, 2, 3].map((offset) => ({
       definitionCode: 'manual-penalty',
       segmentId: half1?.segment_id,
       occurredAt: Date.now() + offset,
@@ -1904,13 +1903,14 @@ describe('live match console (integration)', () => {
       ),
     );
 
-    expect(responses.map((response) => response.statusCode)).toEqual([201, 201]);
+    expect(responses.map((response) => response.statusCode)).toEqual([201, 201, 201, 201]);
     const events = await scratch.db
       .selectFrom('match_events')
-      .select('event_id')
+      .select('sequence')
       .where('match_id', '=', id)
+      .orderBy('sequence')
       .execute();
-    expect(events).toHaveLength(2);
+    expect(events.map((event) => event.sequence)).toEqual([1, 2, 3, 4]);
   });
 
   it('records one event when two identical requests with one key arrive together', async () => {

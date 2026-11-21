@@ -1626,7 +1626,7 @@ export class MatchControlController {
         event: validated.value,
         // The sequence is taken inside the transaction, so two officials
         // recording at once cannot both claim the same one.
-        sequence: await competition.nextEventSequence(matchId),
+        sequence: await competition.nextEventSequence(matchId, uow),
         ...audit,
       });
       const projectionVersion = await new ProjectionStore(this.db).nextVersion(uow, {
@@ -1679,7 +1679,9 @@ export class MatchControlController {
         }
       }
 
-      const log = [...(await competition.listEvents(matchId)), appended];
+      // Read on the transaction: it already holds the event just appended, and a pool read would
+      // take a second connection while this one holds the match's locks.
+      const log = await competition.listEvents(matchId, uow);
       const raised: string[] = [];
 
       if (authoredRuleset && organization && stage) {
