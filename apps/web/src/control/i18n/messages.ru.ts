@@ -1394,7 +1394,7 @@ export const messages: Record<string, string> = {
     'Максимум игроков должен быть не меньше минимума, и оба значения — не меньше 1.',
   'control.descriptor.segmentTypesHeading': 'Типы сегментов',
   'control.descriptor.decisionSegmentTypes':
-    'Фазы, на которые делится матч (таймы, партии, раунды). Необязательно — дисциплина, решаемая в одном непрерывном матче, не объявляет ни одного.',
+    'Сегменты, на которые делится матч (таймы, партии, раунды). Необязательно — дисциплина, решаемая в одном непрерывном матче, не объявляет ни одного.',
   'control.descriptor.fieldSegmentTypeName': 'Название сегмента',
   'control.descriptor.fieldSegmentTypeLabel': 'Метка сегмента',
   'control.descriptor.fieldSegmentTimed': 'С хронометражем',
@@ -1705,7 +1705,7 @@ export const messages: Record<string, string> = {
   'invitation.submit': 'Принять и начать',
 
   'control.disciplineSummary.segmentsFieldValue':
-    '{count, plural, one {# основной период} few {# основных периода} many {# основных периодов} other {# основного периода}} ({overtime, select, true {с овертаймом} other {без овертайма}})',
+    '{count, plural, one {# основной сегмент} few {# основных сегмента} many {# основных сегментов} other {# основного сегмента}} ({overtime, select, true {с овертаймом} other {без овертайма}})',
   'control.booleanYes': 'Да',
   'control.booleanNo': 'Нет',
   'control.filePicker.prompt': 'Выберите файл или перетащите его сюда.',
