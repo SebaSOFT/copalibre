@@ -2959,8 +2959,12 @@ export class CompetitionRepository {
   }
 
   /** Next sequence number for a match's event log. */
-  async nextEventSequence(matchId: string): Promise<number> {
-    const row = await this.db
+  /**
+   * The next sequence for a match's event. A caller writing the event passes its transaction, so the
+   * read shares the connection that holds the match's locks instead of taking a second one.
+   */
+  async nextEventSequence(matchId: string, uow?: UnitOfWork): Promise<number> {
+    const row = await (uow?.tx ?? this.db)
       .selectFrom('match_events')
       .select('sequence')
       .where('match_id', '=', matchId)
