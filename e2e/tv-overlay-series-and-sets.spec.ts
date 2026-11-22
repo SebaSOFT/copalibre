@@ -274,6 +274,7 @@ test('captures the overlays at broadcast and phone size', async ({ page }) => {
   await gotoTv(page, `${TV}/stages/1/matches/1?mode=overlay-full&bg=neutral&lang=es`);
   await expect(page.getByTestId('tv-sets')).toBeVisible();
   await expect(page.getByTestId('tv-segment')).toHaveText('3er set');
+  await expect(page.getByTestId('tv-segment')).toHaveCSS('text-transform', 'none');
   await page.screenshot({ path: 'docs/assets/screenshots/tv-overlay-sets-desktop.png' });
   await gotoTv(page, `${TV}/stages/1/matches/2?mode=overlay-full&bg=neutral&lang=es`);
   await expect(page.getByTestId('tv-series')).toBeVisible();

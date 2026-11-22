@@ -1968,9 +1968,11 @@
   font-weight: var(--cl-weight-bold);
 }
 
+/* The segment reads as the language writes it ("3er set", "2nd Half"), not in capitals. */
 .tv-progress__segment {
   color: var(--tv-live-cyan);
   letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .tv-lower-third__empty {
