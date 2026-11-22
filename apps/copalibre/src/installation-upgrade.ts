@@ -101,6 +101,73 @@ async function rowCounts(options: InstallationUpgradeOptions): Promise<Map<strin
   return parseRowCounts(result.stdout);
 }
 
+export const DATABASE_SIZE_SQL = 'select pg_database_size(current_database())';
+
+/** Kilobytes available on the filesystem in `df -Pk`'s last row, in bytes. */
+export function parseAvailableBytes(output: string): number | undefined {
+  const row = output.trim().split('\n').at(-1)?.trim().split(/\s+/);
+  const available = row?.[3];
+  return available !== undefined && /^\d+$/.test(available) ? Number(available) * 1024 : undefined;
+}
+
+function megabytes(bytes: number): string {
+  return `${Math.ceil(bytes / 1_000_000).toLocaleString('en')} MB`;
+}
+
+/**
+ * Refuses the move when the filesystem that holds PostgreSQL's volume cannot take twice the
+ * database: the new major version's volume is created beside the old one, which stays until the
+ * upgrade succeeded. Runs before anything stops, so a refusal changes nothing.
+ */
+async function checkFreeSpace(
+  options: InstallationUpgradeOptions,
+  legacy: LegacyPostgres,
+): Promise<void> {
+  if (!options.processes.capture) throw new UpgradeStop('this runner cannot measure free space');
+  const size = await options.processes.capture('docker', [
+    'compose',
+    'run',
+    '--rm',
+    '-T',
+    'database-tools',
+    'psql',
+    '--no-psqlrc',
+    '-At',
+    '-c',
+    DATABASE_SIZE_SQL,
+  ]);
+  const databaseBytes = /^\d+$/.test(size.stdout.trim()) ? Number(size.stdout.trim()) : undefined;
+  const space = await options.processes.capture('docker', [
+    'compose',
+    'run',
+    '--rm',
+    '-T',
+    '--no-deps',
+    '--entrypoint',
+    'df',
+    'postgres',
+    '-Pk',
+    '/var/lib/postgresql/data',
+  ]);
+  const availableBytes = space.code === 0 ? parseAvailableBytes(space.stdout) : undefined;
+  if (size.code !== 0 || databaseBytes === undefined || availableBytes === undefined) {
+    throw new UpgradeStop(
+      `could not measure the database and the free space beside its volume ${legacy.volume}; nothing was changed`,
+    );
+  }
+  const needed = databaseBytes * 2;
+  if (availableBytes < needed) {
+    throw new UpgradeStop(
+      `moving to PostgreSQL ${SHIPPED_POSTGRES_MAJOR} needs ${megabytes(needed)} free beside ${legacy.volume} ` +
+        `(twice the database's ${megabytes(databaseBytes)}), and Docker's disk has ${megabytes(availableBytes)}. ` +
+        'Free space there and run "copalibre upgrade" again; nothing was changed',
+    );
+  }
+  options.io.out(
+    `Free space for PostgreSQL ${SHIPPED_POSTGRES_MAJOR}: ${megabytes(availableBytes)}, ${megabytes(needed)} needed.\n`,
+  );
+}
+
 /** Files the upgrade replaces, with where their previous content is kept. */
 interface StagedFile {
   readonly path: string;
@@ -293,6 +360,7 @@ export async function upgradeInstallation(options: InstallationUpgradeOptions): 
       ],
       'could not pull the new images; nothing was changed',
     );
+    if (legacy) await checkFreeSpace(options, legacy);
 
     io.out('Stopping the stack, so no write is lost between the backup and the new release.\n');
     stopped = true;

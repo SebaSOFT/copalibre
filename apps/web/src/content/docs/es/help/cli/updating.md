@@ -63,7 +63,7 @@ lo que diga su marcador, y termina el trabajo.
    upgrade imprime los dos comandos para eliminarlos después.
 
 El stack está detenido desde el paso 2 hasta que el paso 5 termina bien; planifique la ventana según
-el tamaño de su base de datos. El movimiento necesita espacio libre para una segunda copia de la base:
+el tamaño de su base de datos. El movimiento necesita espacio libre en el disco de Docker del doble del tamaño de la base:
 sin él, el upgrade no empieza. Copie el paquete de respaldo fuera del servidor cuando termine.
 
 ### Si modificó docker-compose.yml
