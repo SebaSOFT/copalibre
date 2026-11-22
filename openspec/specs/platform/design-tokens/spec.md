@@ -978,6 +978,18 @@ stylesheet declares, from the application origin, so the face is downloaded once
 - **THEN** the Barlow Condensed 700 Latin file is requested before the stylesheet finishes loading, and only
   once
 
+### Requirement: Public pages paint with their text and heading faces only
+
+A public page not in Chinese SHALL request, before its first paint, only Barlow 400 and Barlow Condensed
+700 among the Latin brand faces. Every other Barlow and Barlow Condensed weight, and JetBrains Mono, SHALL
+load after the first paint and swap in over their metric-matched fallback faces.
+
+#### Scenario: A tournament overview paints before the other weights arrive
+
+- **WHEN** a Spanish tournament overview loads on the mobile slow profile
+- **THEN** no Barlow 500, 600 or 700, Barlow Condensed 400, 500 or 600, or JetBrains Mono file is requested
+  before its first paint, and those faces render once they arrive
+
 ### Requirement: Interface marks never pull a fallback font
 
 The interface's own marks (disclosure carets, state shapes, check marks) SHALL NOT be drawn with characters the
