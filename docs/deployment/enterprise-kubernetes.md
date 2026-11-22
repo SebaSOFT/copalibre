@@ -18,12 +18,12 @@ automatically; `--namespace`/`--release` default to `default`/`copalibre` when o
 Bootstrapping the first administrator runs as a one-shot Job instead of `kubectl exec` into a
 running pod. Run the example from the checkout root after configuring `values.yaml` with the
 required database, identity, email and public URL settings. These image tags are available only
-after the 1.2.6 release is published; for an earlier installation, use its released version:
+after the 2.0.0 release is published; for an earlier installation, use its released version:
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre -f values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6 \
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=2.0.0 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=2.0.0 \
   --set createAdmin.enabled=true \
   --set createAdmin.organizationAlias=my-league \
   --set createAdmin.organizationName="My League" \
@@ -102,9 +102,9 @@ spec:
       restartPolicy: Never
       containers:
         - name: upgrade-check
-          image: ghcr.io/sebasoft/copalibre:1.2.6
+          image: ghcr.io/sebasoft/copalibre:2.0.0
           command: [node, apps/copalibre/dist/main.js]
-          args: [upgrade-check, --target-version, 1.2.6]
+          args: [upgrade-check, --target-version, 2.0.0]
           envFrom:
             - configMapRef:
                 name: my-copalibre-env
@@ -142,8 +142,8 @@ replicas and configuration in `upgrade-values.yaml`:
 ```bash
 helm upgrade my-copalibre deploy/helm/copalibre -n default \
   -f upgrade-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6 \
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=2.0.0 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=2.0.0 \
   --set createAdmin.enabled=false --set doctor.enabled=true \
   --wait --wait-for-jobs --timeout 10m
 ```
