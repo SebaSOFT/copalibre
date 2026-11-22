@@ -139,68 +139,6 @@ async function installResponsiveControlFixture(page: Page): Promise<void> {
   );
 }
 
-async function captureControlTypeScaleScreenshots(page: Page, phase: 'before' | 'after') {
-  const routes = [
-    ['dashboard', '/control/liga-mendocina'],
-    ['settings', '/control/liga-mendocina/preferences'],
-    ['venues', '/control/liga-mendocina/resources'],
-  ] as const;
-
-  for (const [width, height] of [
-    [1440, 900],
-    [390, 844],
-    [375, 844],
-  ] as const) {
-    await page.setViewportSize({ width, height });
-    for (const [name, path] of routes) {
-      const currentPath = await page.evaluate(() => window.location.pathname);
-      if (currentPath !== path) {
-        await page.evaluate((nextPath) => {
-          history.pushState({}, '', nextPath);
-          window.dispatchEvent(new PopStateEvent('popstate'));
-        }, path);
-      }
-      await expect(page.locator('.cl-control')).toBeVisible();
-      await page.evaluate(() => document.fonts.ready);
-      await page.screenshot({
-        path: `docs/assets/screenshots/responsive-type-scale-${phase}-control-${name}-${width}x${height}.png`,
-      });
-    }
-  }
-}
-
-async function applyPreviousControlTypography(page: Page): Promise<void> {
-  await page.addStyleTag({
-    content:
-      ':root { --cl-font-size-lg: 1.25rem; --cl-font-size-xl: 1.5rem; --cl-font-size-2xl: 1.875rem; --cl-font-size-3xl: 2.25rem; }',
-  });
-  await page.evaluate(() => {
-    const selectors = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
-    const removeHeadingSizes = (rules: CSSRuleList, removeRule: (index: number) => void): void => {
-      for (let index = rules.length - 1; index >= 0; index -= 1) {
-        const rule = rules[index];
-        if (
-          rule instanceof CSSStyleRule &&
-          selectors.has(rule.selectorText) &&
-          rule.style.fontSize.includes('--cl-font-size-')
-        ) {
-          removeRule(index);
-        } else if (rule instanceof CSSGroupingRule) {
-          removeHeadingSizes(rule.cssRules, (childIndex) => rule.deleteRule(childIndex));
-        }
-      }
-    };
-
-    for (const sheet of document.styleSheets) {
-      try {
-        removeHeadingSizes(sheet.cssRules, (index) => sheet.deleteRule(index));
-      } catch {
-        // Cross-origin font sheets cannot be changed and carry no heading rules.
-      }
-    }
-  });
-}
-
 test('Control routes remain visible without page overflow at every reference width', async ({
   page,
 }) => {
@@ -251,31 +189,13 @@ test('Control forms use the declared input font size and keep the control height
 test('Control dashboard, settings and venues remain readable at 200% text size', async ({
   page,
 }) => {
-  let pageToCheck = page;
-  const captureScreenshots = process.env.CAPTURE_RESPONSIVE_TYPE_SCALE_SCREENSHOTS === '1';
   await installResponsiveControlFixture(page);
-  if (captureScreenshots) {
-    await page.addInitScript(() => localStorage.setItem('copalibre.language', 'es'));
-  }
   await seedLoginTransaction(page, '/control/liga-mendocina');
   await page.goto(loginCallbackUrl());
   await page.waitForURL('**/control/liga-mendocina');
 
-  if (captureScreenshots) {
-    await applyPreviousControlTypography(page);
-    await captureControlTypeScaleScreenshots(page, 'before');
-
-    pageToCheck = await page.context().newPage();
-    await installResponsiveControlFixture(pageToCheck);
-    await pageToCheck.addInitScript(() => localStorage.setItem('copalibre.language', 'es'));
-    await seedLoginTransaction(pageToCheck, '/control/liga-mendocina');
-    await pageToCheck.goto(loginCallbackUrl());
-    await pageToCheck.waitForURL('**/control/liga-mendocina');
-    await captureControlTypeScaleScreenshots(pageToCheck, 'after');
-  }
-
-  await pageToCheck.setViewportSize({ width: 1280, height: 900 });
-  await pageToCheck.evaluate(() => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.evaluate(() => {
     document.documentElement.style.fontSize = '200%';
   });
 
@@ -285,19 +205,19 @@ test('Control dashboard, settings and venues remain readable at 200% text size',
     '/control/liga-mendocina/resources',
   ]) {
     await test.step(path, async () => {
-      const currentPath = await pageToCheck.evaluate(() => window.location.pathname);
+      const currentPath = await page.evaluate(() => window.location.pathname);
       if (currentPath !== path) {
-        const previousTitle = await pageToCheck.title();
-        await pageToCheck.evaluate((nextPath) => {
+        const previousTitle = await page.title();
+        await page.evaluate((nextPath) => {
           history.pushState({}, '', nextPath);
           window.dispatchEvent(new PopStateEvent('popstate'));
         }, path);
-        await expect.poll(() => pageToCheck.title()).not.toBe(previousTitle);
+        await expect.poll(() => page.title()).not.toBe(previousTitle);
       }
-      await expect(pageToCheck.locator('.cl-control')).toBeVisible();
-      await expectNoPageOverflow(pageToCheck);
+      await expect(page.locator('.cl-control')).toBeVisible();
+      await expectNoPageOverflow(page);
 
-      const clippedLabels = await pageToCheck
+      const clippedLabels = await page
         .locator('main h1, main h2, main h3, main label, main button, main [role="button"]')
         .evaluateAll((elements) =>
           elements.flatMap((element) => {

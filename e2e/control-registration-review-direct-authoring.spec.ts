@@ -98,10 +98,6 @@ test('keeps the registration screen shape while its first read is pending', asyn
   const skeleton = page.locator('.cl-skeleton');
   await expect(skeleton).toBeVisible();
   await expect(skeleton).toHaveAttribute('aria-busy', 'true');
-  await page.screenshot({
-    fullPage: true,
-    path: 'docs/assets/screenshots/control-panel-loading-state.png',
-  });
 });
 
 test('registers a walk-up entrant from the registration review screen, with no CSV file involved', async ({

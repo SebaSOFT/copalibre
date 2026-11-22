@@ -285,13 +285,4 @@ test('a published move reaches public pages, kiosk and another builder without a
   await plain.goto(`/es/${org}/tournaments/${tournament}/matches?view=cards&state=upcoming`);
   await expect(plain.locator('.cl-match-schedule').getByText(/Reprogramado/)).toBeVisible();
   await noJs.close();
-  await spectator.setViewportSize({ width: 1440, height: 900 });
-  await spectator.screenshot({
-    path: 'docs/assets/screenshots/reschedule-public-desktop.png',
-  });
-  await spectator.setViewportSize({ width: 390, height: 844 });
-  await spectator.screenshot({
-    path: 'docs/assets/screenshots/reschedule-public-mobile.png',
-  });
-  await tv.screenshot({ path: 'docs/assets/screenshots/reschedule-tv.png' });
 });
