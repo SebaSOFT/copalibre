@@ -27,6 +27,8 @@ artifacts/
 .lighthouseci/
 # Chrome Launcher can leave temporary WSL profiles with a Windows path as the root name.
 /*lighthouse.*/
+# Screenshots are attached to the pull request, never committed.
+docs/assets/screenshots/
 .cache/
 .eslintcache
 .stylelintcache
