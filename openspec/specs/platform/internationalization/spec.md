@@ -192,7 +192,7 @@ correct.
 
 - **WHEN** the glossary is consulted
 - **THEN** it covers at least `roster`, `seed`/`seeding`, `bracket`, `entrant`, `tiebreak`,
-  `standings`, `zone`/`group`, `alias` and `placement`
+  `standings`, `zone`/`group`, `alias`, `placement` and `segment`
 
 ### Requirement: Translated content accuracy review requires human confirmation before publication
 
@@ -289,3 +289,27 @@ Undecided sides and standings columns SHALL render in the page language.
 
 - **WHEN** a tournament started on a descriptor version without German headers is opened in German
 - **THEN** its column headers fall back to English
+
+### Requirement: Control surfaces name a match segment by one word per language
+
+Every control screen and every control help page SHALL name the generic match segment, a division of a match such as a half, a set or a round, only by the glossary's fixed rendering for the active language. An example segment type name, such as "period" in a list of example types, is not the generic concept and is exempt.
+
+#### Scenario: German load match data
+
+- **WHEN** an operator opens load match data with the interface in German
+- **THEN** the segment list, its add and remove actions and an event's segment field say "Segment", never "Abschnitt"
+
+#### Scenario: Chinese uses one word for the segment
+
+- **WHEN** an operator uses the live console, load match data, the descriptor editor or the discipline summary with the interface in Chinese
+- **THEN** each names the segment 分段, never 赛段 or 阶段, and the promotion plan names its bands 分档
+
+#### Scenario: The discipline summary counts segments
+
+- **WHEN** an operator reads the summary of a discipline with two regulation segments, in Spanish
+- **THEN** it reads "2 segmentos reglamentarios", not a sport-specific word such as "tiempos"
+
+#### Scenario: Example type names stay
+
+- **WHEN** a help page or a field placeholder lists example segment types such as halves, sets or periods
+- **THEN** those example names are kept as they are
