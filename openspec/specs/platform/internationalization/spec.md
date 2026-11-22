@@ -313,3 +313,27 @@ Every control screen and every control help page SHALL name the generic match se
 
 - **WHEN** a help page or a field placeholder lists example segment types such as halves, sets or periods
 - **THEN** those example names are kept as they are
+
+### Requirement: Public and TV surfaces name a match segment by one word per language
+
+Every public page, every TV surface and the help that documents them SHALL name the generic match segment, a division of a match such as a half, a set or a round, only by the glossary's fixed rendering for the active language. A segment type label that a discipline declares, shown alone or with an ordinal, is not the generic concept and is exempt.
+
+#### Scenario: German TV help names the segment in play
+
+- **WHEN** a reader opens the German help page for the TV surfaces
+- **THEN** it calls the segment in play "Segment", never "Abschnitt"
+
+#### Scenario: Russian TV help names the segment in play
+
+- **WHEN** a reader opens the Russian help page for the TV surfaces
+- **THEN** it calls the segment in play "сегмент", never "отрезок"
+
+#### Scenario: A discipline's own label stays on the overlay
+
+- **WHEN** the TV overlay shows a match in the second of two halves, in Spanish
+- **THEN** it names the segment with the discipline's label and the ordinal, "2do Tiempo", rather than the generic word
+
+#### Scenario: A stage word is not a segment word
+
+- **WHEN** a public page or TV surface names a tournament stage, in Chinese
+- **THEN** it says 阶段 for the stage, and no public or TV string uses 阶段 or 赛段 for a segment
