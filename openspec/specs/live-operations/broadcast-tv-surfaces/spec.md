@@ -595,7 +595,7 @@ For a match inside a series the overlay SHALL show the series state next to the 
 - **THEN** it shows the two completed sets and the current one
 
 ### Requirement: The overlay names the segment in play by its place
-The overlay SHALL name the segment in play with the viewer's language's ordinal and the discipline's label for the segment type ("2nd Half", "2da vuelta", "3er Set"), counting among the segments of that type. A type the match plays once SHALL be named without a number. On a portrait frame the lower third SHALL use at most two rows, the score and the segment on the first and the series and sets on the second, none of them wrapping.
+The overlay SHALL name the segment in play with the viewer's language's ordinal and the discipline's label for the segment type ("2nd Half", "2da vuelta", "3er set"), counting among the segments of that type. A type the match plays once SHALL be named without a number.
 
 #### Scenario: The second half
 - **WHEN** the overlay shows a match in the second of two halves
@@ -605,13 +605,35 @@ The overlay SHALL name the segment in play with the viewer's language's ordinal 
 - **WHEN** the active segment is the second lap of a match that also played a half
 - **THEN** it is named "2nd Lap", not "3rd Lap"
 
-#### Scenario: A phone-shaped frame keeps two rows
-- **WHEN** the lower third shows a series, sets and a segment in a portrait frame
-- **THEN** the score and segment share one row, the series and sets another, and nothing wraps
+#### Scenario: A label without an ordinal is unchanged
+- **WHEN** the match plays one segment of a type the discipline labels "Prórroga"
+- **THEN** the overlay names it "Prórroga"
 
 #### Scenario: A plain match is unchanged
 - **WHEN** the match is neither in a series nor played in sets
 - **THEN** the overlay renders as before
+
+### Requirement: The segment label follows the language's case after the ordinal
+In Spanish, Portuguese, Italian, French and Russian the label SHALL follow the ordinal in lower case, except a word written in capitals or with an inner capital, which keeps its case. English SHALL keep the label's title case, and German and Chinese SHALL keep the label as declared. The overlay SHALL paint the segment in the case it is written, not in capitals.
+
+#### Scenario: The label follows the ordinal in lower case
+- **WHEN** a Spanish overlay shows the second of two segments of a type the discipline labels "Tiempo"
+- **THEN** it names the segment "2do tiempo"
+
+#### Scenario: The segment is painted as written
+- **WHEN** a Spanish overlay shows the third of several sets
+- **THEN** the screen reads "3er set", not "3ER SET"
+
+#### Scenario: An acronym keeps its case
+- **WHEN** a Spanish overlay shows the second of two segments of a type the discipline labels "OT"
+- **THEN** it names the segment "2do OT"
+
+### Requirement: A portrait lower third keeps two rows
+On a portrait frame the lower third SHALL use at most two rows, the score and the segment on the first and the series and sets on the second, none of them wrapping.
+
+#### Scenario: A phone-shaped frame keeps two rows
+- **WHEN** the lower third shows a series, sets and a segment in a portrait frame
+- **THEN** the score and segment share one row, the series and sets another, and nothing wraps
 
 ### Requirement: TV surfaces apply a reschedule on its event
 
