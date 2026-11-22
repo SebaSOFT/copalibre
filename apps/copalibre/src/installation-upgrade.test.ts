@@ -183,6 +183,18 @@ describe('upgradeInstallation from a 1.2.6 installation', () => {
     });
   });
 
+  it('creates backups/ before database-tools mounts it, so Docker does not create it as root', async () => {
+    await inInstallation(async (directory) => {
+      let backupsExisted: boolean | undefined;
+      const docker = fakeDocker((call) => {
+        if (call.includes(DATABASE_SIZE_SQL)) backupsExisted = existsSync('backups');
+        return undefined;
+      });
+      await expect(upgradeInstallation(options(directory, docker))).resolves.toBe(0);
+      expect(backupsExisted).toBe(true);
+    });
+  });
+
   it('refuses, changing nothing, when Docker has less free space than twice the database', async () => {
     await inInstallation(async (directory) => {
       // 1.5 GB free for a 1 GB database: enough for one copy, not for two.
