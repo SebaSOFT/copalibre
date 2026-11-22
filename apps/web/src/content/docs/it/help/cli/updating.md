@@ -63,7 +63,7 @@ suo marcatore, e completa il lavoro.
    conservati; l'aggiornamento stampa i due comandi per rimuoverli in seguito.
 
 Lo stack è fermo dal passo 2 finché il passo 5 riesce; pianificate la finestra in base alla
-dimensione del database. Lo spostamento richiede spazio libero per una seconda copia del database:
+dimensione del database. Lo spostamento richiede sul disco di Docker spazio libero pari al doppio del database:
 senza, l'aggiornamento non parte. A fine aggiornamento copiate il pacchetto di backup fuori dall'host.
 
 ### Se avete modificato docker-compose.yml
