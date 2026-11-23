@@ -4213,6 +4213,7 @@ describe('live match clock and organization liveMatches projections', () => {
       {
         matchId: timedMatchId,
         stageNumber: 1,
+        stageName: 'Timed stage',
         matchNumber: 1,
         home: 'Clock Home',
         away: 'Clock Away',
