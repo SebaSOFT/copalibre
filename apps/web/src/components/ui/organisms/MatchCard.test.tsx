@@ -591,4 +591,49 @@ describe('MatchCard compact presentation', () => {
     expect(container.querySelector('.cl-match-card__sides')).toBeNull();
     expect(container.querySelector('.cl-match-card__header')).toBeNull();
   });
+
+  it('renders LiveMatchScoreboard with active segment label and paused indicator when clock is provided', () => {
+    render(
+      <MatchCard
+        match={baseMatch({
+          state: 'live',
+          clock: {
+            segmentNumber: 2,
+            elapsedSeconds: 930,
+            running: false,
+            asOf: '2026-04-01T18:15:30.000Z',
+          },
+          segments: [
+            {
+              number: 1,
+              type: 'half',
+              label: { en: 'Half', es: 'Tiempo' },
+              state: 'completed',
+              timed: true,
+            },
+            {
+              number: 2,
+              type: 'half',
+              label: { en: 'Half', es: 'Tiempo' },
+              state: 'active',
+              timed: true,
+            },
+          ],
+        })}
+        labels={{
+          ...labels,
+          clockStopped: 'Stopped',
+          liveClockAriaLabel: '{segment}, {time}',
+          lastUpdated: 'Last updated at {time}',
+        }}
+        locale="en"
+      />,
+    );
+
+    const timer = screen.getByRole('timer');
+    expect(timer.textContent).toContain('2nd Half');
+    expect(timer.textContent).toContain('15:30');
+    expect(timer.textContent).toContain('Stopped');
+    expect(timer.getAttribute('aria-label')).toBe('2nd Half, 15:30');
+  });
 });

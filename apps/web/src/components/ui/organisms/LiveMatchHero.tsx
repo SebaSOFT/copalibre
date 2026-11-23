@@ -1,14 +1,21 @@
 import { useEffect, useState } from 'react';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import { RealtimeClient } from '@copalibre/realtime';
+import { matchReportUrl } from '../../../lib/bracket.js';
 import { Badge } from '../atoms/Badge.js';
 import { Card, CardDescription, CardTitle } from '../atoms/Card.js';
 import { EntrantName } from '../atoms/EntrantName.js';
 import { Icon } from '../atoms/icon.js';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.js';
 import { ValueFlash } from '../atoms/ValueFlash.js';
+import {
+  LiveMatchScoreboard,
+  type LiveMatchScoreboardLabels,
+} from '../molecules/LiveMatchScoreboard.js';
 import { useEntryOnce } from '../../../lib/use-entry-once.js';
 import { applyEvent, markConnected, type LiveDashboard } from '../../../lib/live-state.js';
-import { formatClock } from '../../../lib/matches-view.js';
+import { applyTemplate } from '../../../lib/matches-view.js';
+import { activeSegmentLabel } from '../../../lib/segment-label.js';
 import { presentState, type ResultStateLabels } from '../../../lib/result-state.js';
 
 /**
@@ -27,7 +34,12 @@ import { presentState, type ResultStateLabels } from '../../../lib/result-state.
 export interface LiveMatchHeroProps {
   readonly initial: LiveDashboard;
   readonly streamPath: string;
+  readonly organizationAlias?: string;
+  readonly tournamentAlias?: string;
+  readonly localePrefix?: string;
   readonly versusLabel: string;
+  readonly openMatchLabel: string;
+  readonly clockLabels: LiveMatchScoreboardLabels;
   readonly usingLastKnownText: string;
   readonly noMatchesText: string;
   readonly nextKickoffText: string;
@@ -38,10 +50,20 @@ export interface LiveMatchHeroProps {
   readonly resultStateLabels: ResultStateLabels;
 }
 
+function resolveLanguageTag(locale: string): SupportedLanguage {
+  const base = locale.split('-')[0] ?? 'en';
+  return isSupportedLanguage(base) ? base : 'en';
+}
+
 export function LiveMatchHero({
   initial,
   streamPath,
+  organizationAlias,
+  tournamentAlias,
+  localePrefix = '',
   versusLabel,
+  openMatchLabel,
+  clockLabels,
   usingLastKnownText,
   noMatchesText,
   nextKickoffText,
@@ -51,6 +73,7 @@ export function LiveMatchHero({
   referenceDate,
   resultStateLabels,
 }: LiveMatchHeroProps): React.JSX.Element {
+  const language = resolveLanguageTag(locale);
   const [dashboard, setDashboard] = useState(initial);
   const [connectionStale, setConnectionStale] = useState(false);
   const enteringMatchIds = useEntryOnce(
@@ -112,19 +135,66 @@ export function LiveMatchHero({
           <div className="cl-match-card-grid">
             {dashboard.matches.map((match) => {
               const badge = presentState(match.state, resultStateLabels);
+              const reportUrl =
+                organizationAlias && tournamentAlias
+                  ? matchReportUrl({
+                      organizationAlias,
+                      tournamentAlias,
+                      stageNumber: match.stageNumber,
+                      matchNumber: match.stageOrdinal ?? match.matchNumber,
+                      localePrefix,
+                    })
+                  : undefined;
+              const fallbackClock =
+                match.clock ??
+                (match.clockSeconds !== undefined
+                  ? {
+                      segmentNumber: 1,
+                      elapsedSeconds: match.clockSeconds,
+                      running: false,
+                      asOf: '',
+                    }
+                  : undefined);
+              const cardClasses = [
+                enteringMatchIds.has(match.matchId) ? 'cl-enter-once' : '',
+                reportUrl ? 'cl-match-card--linked' : '',
+              ]
+                .filter(Boolean)
+                .join(' ');
+              const homeName = match.sides[0]?.name ?? '';
+              const awayName = match.sides[1]?.name ?? '';
               return (
                 <Card
                   as="article"
                   aria-label={match.sides.map((side) => side.name).join(` ${versusLabel} `)}
-                  className={enteringMatchIds.has(match.matchId) ? 'cl-enter-once' : ''}
+                  className={cardClasses}
                   key={match.matchId}
                 >
+                  {reportUrl && (
+                    <a
+                      aria-label={applyTemplate(openMatchLabel, {
+                        home: homeName,
+                        away: awayName,
+                      })}
+                      className="cl-match-card__hit-area cl-focusable"
+                      href={reportUrl}
+                    />
+                  )}
                   <Badge className={badge.className}>
                     {badge.state !== 'live' && <Icon name={badge.icon} size={16} />}
                     <span>{badge.label}</span>
                   </Badge>
-                  {match.clockSeconds !== undefined && (
-                    <span className="cl-match-card__clock">{formatClock(match.clockSeconds)}</span>
+                  {match.state === 'live' && (
+                    <LiveMatchScoreboard
+                      clock={fallbackClock}
+                      labels={clockLabels}
+                      lastUpdatedAt={dashboard.lastUpdatedAt}
+                      locale={locale}
+                      segmentLabel={activeSegmentLabel(match.segments, match.clock, language)}
+                      segments={match.segments}
+                      timeZone={timeZone}
+                      usingLastKnown={dashboard.usingLastKnown || connectionStale}
+                    />
                   )}
                   {/* Polite: a score arriving mid-sentence must not interrupt. */}
                   <div aria-live="polite">

@@ -831,10 +831,26 @@ export const messages = defineMessages({
     defaultMessage: 'On aggregate {home}–{away}',
   },
 
-  // LiveMatchHero.tsx (formatted at build time, passed down as a prop)
+  // LiveMatchHero.tsx / LiveMatchClock.tsx / LiveMatchScoreboard.tsx
   liveUsingLastKnown: {
     id: 'publicWeb.live.usingLastKnown',
     defaultMessage: 'Showing the last known state.',
+  },
+  liveLastUpdated: {
+    id: 'publicWeb.live.lastUpdated',
+    defaultMessage: 'Updated at {time}',
+  },
+  liveClockStopped: {
+    id: 'publicWeb.live.clockStopped',
+    defaultMessage: 'Stopped',
+  },
+  liveClockAriaLabel: {
+    id: 'publicWeb.live.clockAriaLabel',
+    defaultMessage: '{segment}, {time}',
+  },
+  liveOpenMatch: {
+    id: 'publicWeb.live.openMatch',
+    defaultMessage: 'Open the match {home} against {away}',
   },
 
   // pages/[organization]/tournaments/[tournament].astro
@@ -994,6 +1010,10 @@ export const messages = defineMessages({
   tournamentsViewDetails: {
     id: 'publicWeb.tournamentsPage.viewDetails',
     defaultMessage: 'View tournament',
+  },
+  organizationMoreLive: {
+    id: 'publicWeb.organization.moreLive',
+    defaultMessage: '+{count} live',
   },
 
   // Organization page — merged with the former tournament listing.
@@ -1206,6 +1226,10 @@ export const messages = defineMessages({
   tvDashboardClockLabel: {
     id: 'publicWeb.tvDashboard.clockLabel',
     defaultMessage: 'Local time',
+  },
+  tvDashboardClockStopped: {
+    id: 'publicWeb.tvDashboard.clockStopped',
+    defaultMessage: 'Stopped',
   },
   tvDashboardLeading: {
     id: 'publicWeb.tvDashboard.leading',

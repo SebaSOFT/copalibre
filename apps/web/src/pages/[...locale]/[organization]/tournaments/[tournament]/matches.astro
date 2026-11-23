@@ -10,7 +10,12 @@ import MatchScheduleFilters, {
   type MatchScheduleState,
   type MatchScheduleView,
 } from '../../../../../components/ui/organisms/MatchScheduleFilters.astro';
-import { fetchOverview, mapOverviewResponse } from '../../../../../lib/public-api-client.ts';
+import {
+  fetchLive,
+  fetchOverview,
+  mapLiveResponse,
+  mapOverviewResponse,
+} from '../../../../../lib/public-api-client.ts';
 import { buildOverview, displayName } from '../../../../../lib/overview.ts';
 import { publicIntl, matchCardLabels } from '../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../lib/i18n/public-messages.en.ts';
@@ -69,6 +74,23 @@ const schedule = await loadSchedule({
 if (!schedule) {
   return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
+
+const liveDashboard = schedule.stageRows.some((row) => row.state === 'live')
+  ? await fetchLive(organization!, tournament!).then((data) =>
+      data ? mapLiveResponse(data) : undefined,
+    )
+  : undefined;
+const liveSeeds = (liveDashboard?.matches ?? []).map((live) => ({
+  matchId: live.matchId,
+  projectionVersion: live.projectionVersion,
+  state: live.state,
+  ...(live.clock === undefined ? {} : { clock: live.clock }),
+  ...(live.segments === undefined ? {} : { segments: live.segments }),
+  homeScore: live.sides[0]?.score,
+  awayScore: live.sides[1]?.score,
+  homeEntrantId: live.sides[0]?.entrantId,
+  awayEntrantId: live.sides[1]?.entrantId,
+}));
 
 // Zone/group facets come from every match in the active stage(s), so a state filter does not
 // make structural choices disappear when no match in that state belongs to one facet.
@@ -258,10 +280,19 @@ const trail = publicTrail(trailBase, [
       stages={schedule.stages}
       tournamentAlias={tournament!}
     />
+    {liveSeeds.length > 0 && (
+      <div data-live-stream={model.streamPath} hidden>
+        {liveSeeds.map((seed) => (
+          <span data-live-match-seed={JSON.stringify(seed)} />
+        ))}
+      </div>
+    )}
   </Container>
 </PublicLayout>
 
 <script>
   import { mountPublicSchedule } from '../../../../../lib/public-schedule-live.ts';
+  import { mountPublicLiveScoreboards } from '../../../../../lib/public-live-scoreboards.ts';
   mountPublicSchedule();
+  mountPublicLiveScoreboards();
 </script>

@@ -171,6 +171,10 @@ export const messages: Record<string, string> = {
   'publicWeb.series.aggregate': 'По сумме {home}–{away}',
 
   'publicWeb.live.usingLastKnown': 'Отображается последнее известное состояние.',
+  'publicWeb.live.lastUpdated': 'Обновлено в {time}',
+  'publicWeb.live.clockStopped': 'Остановлено',
+  'publicWeb.live.clockAriaLabel': '{segment}, {time}',
+  'publicWeb.live.openMatch': 'Открыть матч {home} против {away}',
 
   'publicWeb.tournamentPage.description': 'Результаты, турнирная таблица и регламент {tournament}.',
 
@@ -226,6 +230,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tournamentsPage.runnerUp': 'Финалист',
   'publicWeb.tournamentsPage.thirdPlace': 'Третье место',
   'publicWeb.tournamentsPage.viewDetails': 'Смотреть турнир',
+  'publicWeb.organization.moreLive': '+{count} в эфире',
   'publicWeb.orgPage.featuredHeading': 'Рекомендуем',
   'publicWeb.orgPage.clubsHeading': 'Клубы',
   'publicWeb.orgPage.noClubs': 'Клубы пока не зарегистрированы.',
@@ -381,6 +386,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.possession': 'Владение',
   'publicWeb.tvDashboard.penalty': 'Штраф',
   'publicWeb.tvDashboard.clockLabel': 'Местное время',
+  'publicWeb.tvDashboard.clockStopped': 'Остановлено',
   'publicWeb.tvDashboard.leading': 'Впереди',
   'publicWeb.tvDashboard.nextMatch': 'Следующий матч',
   'publicWeb.tvDashboard.zoneLegend': 'Группа или зона',

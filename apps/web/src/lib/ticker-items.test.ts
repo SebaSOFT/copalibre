@@ -301,6 +301,45 @@ describe('buildTickerItems', () => {
     expect(items[0]?.homeEntrantId).toBeUndefined();
     expect(items[0]?.awayEntrantId).toBeUndefined();
   });
+
+  it('places live matches first before finished and upcoming matches and shows 0 : 0 when scores are absent', () => {
+    const items = buildTickerItems({
+      matches: [
+        {
+          stageNumber: 1,
+          matchNumber: 1,
+          state: 'final',
+          startsAt: '18:00',
+          home: { name: 'Alpha', score: 2 },
+          away: { name: 'Beta', score: 1 },
+        },
+        {
+          stageNumber: 1,
+          matchNumber: 2,
+          state: 'upcoming',
+          startsAt: '21:00',
+          home: { name: 'Gamma' },
+          away: { name: 'Delta' },
+        },
+        {
+          stageNumber: 1,
+          matchNumber: 3,
+          state: 'live',
+          startsAt: '19:30',
+          home: { name: 'Andes' },
+          away: { name: 'Concepción' },
+        },
+      ],
+      labels,
+      language: 'en',
+    });
+
+    expect(items.map((item) => item.subject)).toEqual(['Andes', 'Alpha', 'Gamma']);
+    expect(items[0]?.tone).toBe('live');
+    expect(items[0]?.figure).toBe('0 : 0');
+    expect(items[1]?.figure).toBe('2 : 1');
+    expect(items[2]?.figure).toBe(labels.versus);
+  });
 });
 
 describe('the configured-only overtime label', () => {

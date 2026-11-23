@@ -24,8 +24,10 @@ import { withSourceDepth, type MatchCardData } from '../../../../lib/matches-vie
 import {
   fetchOverview,
   fetchCompletion,
+  fetchLive,
   fetchPublicTableLayouts,
   fetchPublicTableProjection,
+  mapLiveResponse,
   mapOverviewResponse,
   publicTableCsvUrl,
 } from '../../../../lib/public-api-client.ts';
@@ -74,7 +76,13 @@ if (!overviewData) {
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
 
-const completionData = await fetchCompletion(organization!, tournament!);
+const [completionData, liveData, layoutsResponse] = await Promise.all([
+  fetchCompletion(organization!, tournament!),
+  model.liveCount > 0 || model.status === 'live'
+    ? fetchLive(organization!, tournament!)
+    : Promise.resolve(undefined),
+  fetchPublicTableLayouts(organization!, tournament!),
+]);
 const completion = completionData ?? {
   totalMatches: 0,
   resolvedMatches: 0,
@@ -84,6 +92,33 @@ const completion = completionData ?? {
   forfeitedMatches: 0,
   stages: [],
 };
+const liveDashboard = liveData ? mapLiveResponse(liveData) : undefined;
+const liveByMatchId = new Map((liveDashboard?.matches ?? []).map((m) => [m.matchId, m]));
+const overlayedMatches: readonly OverviewMatch[] = model.matches.map((match) => {
+  const live = match.matchId ? liveByMatchId.get(match.matchId) : undefined;
+  if (!live) return match;
+  const state =
+    live.state === 'live' ||
+    live.state === 'upcoming' ||
+    live.state === 'final' ||
+    live.state === 'disputed'
+      ? live.state
+      : match.state;
+  return {
+    ...match,
+    state,
+    home: {
+      ...match.home,
+      ...(live.sides[0]?.entrantId === undefined ? {} : { entrantId: live.sides[0].entrantId }),
+      ...(live.sides[0]?.score === undefined ? {} : { score: live.sides[0].score }),
+    },
+    away: {
+      ...match.away,
+      ...(live.sides[1]?.entrantId === undefined ? {} : { entrantId: live.sides[1].entrantId }),
+      ...(live.sides[1]?.score === undefined ? {} : { score: live.sides[1].score }),
+    },
+  };
+});
 const completionLabels = completionFigureLabels(intl, completion);
 const stateLabels = resultStateLabels(intl);
 
@@ -91,7 +126,6 @@ const stateLabels = resultStateLabels(intl);
 // stage's own group-phase layout, matching what a spectator lands here
 // expecting to see. A tournament whose discipline declares no group-phase
 // layout (or that has not played a match yet) simply renders no table.
-const layoutsResponse = await fetchPublicTableLayouts(organization!, tournament!);
 const declaredLayouts = layoutsResponse?.layouts ?? [];
 
 const earliestStageNumber = overviewData.matches.reduce(
@@ -164,7 +198,7 @@ const tickerPerformerProjection =
 
 const tickerChrome = tickerChromeLabels(intl);
 const tickerItems = buildTickerItems({
-  matches: model.matches,
+  matches: overlayedMatches,
   ...(tickerPerformerProjection === undefined ? {} : { performers: tickerPerformerProjection }),
   ...(leaderProjection === undefined ? {} : { leaders: leaderProjection }),
   labels: tickerLabels(intl),
@@ -173,7 +207,7 @@ const tickerItems = buildTickerItems({
 });
 
 const localePrefix = locale ? `/${locale}` : '';
-const fixtureSummary = summarizeOverviewMatches(model.matches);
+const fixtureSummary = summarizeOverviewMatches(overlayedMatches);
 function hasPersistedMatchId(
   match: OverviewMatch,
 ): match is OverviewMatch & { readonly matchId: string } {
@@ -210,6 +244,7 @@ const standingsEntrantCount = new Set(model.standings.map((row) => row.entrantId
 const tiebreakLine = standingsTiebreakLine(intl, model);
 
 function baseCardDataOf(match: OverviewMatch & { readonly matchId: string }): MatchCardData {
+  const live = liveByMatchId.get(match.matchId);
   return {
     matchId: match.matchId,
     stageNumber: match.stageNumber,
@@ -239,6 +274,13 @@ function baseCardDataOf(match: OverviewMatch & { readonly matchId: string }): Ma
     ...(match.state === 'upcoming' || match.away.score === undefined
       ? {}
       : { awayScore: match.away.score }),
+    ...(live?.clock === undefined
+      ? {}
+      : { clock: live.clock, clockSeconds: live.clock.elapsedSeconds }),
+    ...(live?.segments === undefined ? {} : { segments: live.segments }),
+    ...(live?.projectionVersion === undefined ? {} : { projectionVersion: live.projectionVersion }),
+    ...(match.home.entrantId === undefined ? {} : { homeEntrantId: match.home.entrantId }),
+    ...(match.away.entrantId === undefined ? {} : { awayEntrantId: match.away.entrantId }),
     ...(match.startsAt === '' ? {} : { scheduledAt: match.startsAt }),
     ...(match.venueName === undefined ? {} : { venueName: match.venueName }),
   };
@@ -246,11 +288,22 @@ function baseCardDataOf(match: OverviewMatch & { readonly matchId: string }): Ma
 
 // Knockout depth and placements are read across the whole tournament, so a card names its round.
 const cardDataById = new Map(
-  withSourceDepth(model.matches.filter(hasPersistedMatchId).map(baseCardDataOf)).map((card) => [
+  withSourceDepth(overlayedMatches.filter(hasPersistedMatchId).map(baseCardDataOf)).map((card) => [
     card.matchId,
     card,
   ]),
 );
+const liveSeeds = (liveDashboard?.matches ?? []).map((live) => ({
+  matchId: live.matchId,
+  projectionVersion: live.projectionVersion,
+  state: live.state,
+  ...(live.clock === undefined ? {} : { clock: live.clock }),
+  ...(live.segments === undefined ? {} : { segments: live.segments }),
+  homeScore: live.sides[0]?.score,
+  awayScore: live.sides[1]?.score,
+  homeEntrantId: live.sides[0]?.entrantId,
+  awayEntrantId: live.sides[1]?.entrantId,
+}));
 function matchCardDataOf(match: OverviewMatch & { readonly matchId: string }): MatchCardData {
   return cardDataById.get(match.matchId) ?? baseCardDataOf(match);
 }
@@ -346,6 +399,13 @@ const trail = publicTrail(trailBase, []);
     streamPath={model.streamPath}
   />
   <Container variant="public">
+    {liveSeeds.length > 0 && (
+      <div data-live-stream={model.streamPath} hidden>
+        {liveSeeds.map((seed) => (
+          <span data-live-match-seed={JSON.stringify(seed)} />
+        ))}
+      </div>
+    )}
     <TournamentOverviewHero
       model={model}
       labels={heroLabels}
@@ -533,8 +593,10 @@ const trail = publicTrail(trailBase, []);
   // data-access-at-page-tier rule. Patches ScoreTicker's own rendered DOM;
   // never a requirement for the page's content, only an enhancement of it.
   import { mountLiveTicker } from '../../../../lib/ticker-live.ts';
+  import { mountPublicLiveScoreboards } from '../../../../lib/public-live-scoreboards.ts';
 
   mountLiveTicker();
+  mountPublicLiveScoreboards();
 </script>
 
 <style>

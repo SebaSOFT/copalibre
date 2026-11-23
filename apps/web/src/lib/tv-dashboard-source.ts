@@ -94,6 +94,8 @@ export function settleLeftLive(
       })),
     };
     if (settled.state !== 'live') {
+      delete updated.clock;
+      delete updated.clockReceivedAt;
       delete updated.clockSeconds;
       delete updated.possessionEntrantId;
       delete updated.activePenalties;

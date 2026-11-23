@@ -26,13 +26,24 @@ const { heading, entries, labels, locale, timeZone } = Astro.props;
     <ul class="cl-match-card-grid cl-overview-now__grid">
       {entries.map((entry) => (
         <li class:list={['cl-overview-now__item', `cl-overview-now__item--${entry.kind}`]}>
-          <MatchCard
-            labels={labels}
-            locale={locale}
-            match={entry.match}
-            reportUrl={entry.href}
-            timeZone={timeZone}
-          />
+          {entry.match.state === 'live' ? (
+            <MatchCard
+              client:load
+              labels={labels}
+              locale={locale}
+              match={entry.match}
+              reportUrl={entry.href}
+              timeZone={timeZone}
+            />
+          ) : (
+            <MatchCard
+              labels={labels}
+              locale={locale}
+              match={entry.match}
+              reportUrl={entry.href}
+              timeZone={timeZone}
+            />
+          )}
         </li>
       ))}
     </ul>

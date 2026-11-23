@@ -19,7 +19,8 @@ import {
 } from './ui/organisms/BroadcastAlertBanner.js';
 import { resolveLiveTvMatchEvent } from '../../lib/tv-match-events.js';
 import { presentState } from '../../lib/result-state.js';
-import { applyTemplate, formatClock } from '../../lib/matches-view.js';
+import { applyTemplate } from '../../lib/matches-view.js';
+import { activeSegmentLabel } from '../../lib/segment-label.js';
 import { formatTimestamp } from '../../lib/format-timestamp.js';
 import {
   findPinnedMatch,
@@ -60,6 +61,7 @@ import { tvMatchProgress } from '../../lib/tv-match-progress.js';
 import type { PublicSeriesState } from '../../lib/series.js';
 import { TvChampions } from './ui/organisms/TvChampions.js';
 import { EntrantEmblem } from '../ui/molecules/EntrantEmblem.js';
+import { LiveMatchClock } from '../ui/atoms/LiveMatchClock.js';
 import { ValueFlash } from '../ui/atoms/ValueFlash.js';
 import { useHydrated, usePrefersReducedMotion } from '../../lib/island-browser-state.js';
 
@@ -182,6 +184,20 @@ export function leadingTvSide(match: LiveMatch | undefined): 'home' | 'away' | u
   const away = match.sides[1]?.score;
   if (home === undefined || away === undefined || home === away) return undefined;
   return home > away ? 'home' : 'away';
+}
+
+function clockForMatch(match: LiveMatch | undefined): LiveMatch['clock'] {
+  if (!match || match.state !== 'live') return undefined;
+  if (match.clock !== undefined) return match.clock;
+  if (match.clockSeconds !== undefined) {
+    return {
+      segmentNumber: 1,
+      elapsedSeconds: match.clockSeconds,
+      running: false,
+      asOf: '',
+    };
+  }
+  return undefined;
 }
 
 export function TvDashboard({
@@ -722,16 +738,12 @@ export function TvDashboard({
     undecidedSide,
   ]);
   const visibleBracket = bracketData?.stageNumber === bracketStage ? bracketData : undefined;
-  // The match's own clock when it has one; otherwise the wall clock of a tournament still being
-  // played. A finished tournament carries a date instead, below.
-  const displayedClock =
-    spotlightMatch?.clockSeconds !== undefined
-      ? formatClock(spotlightMatch.clockSeconds)
-      : allFinal
-        ? ''
-        : currentTime;
-  const showsWallClock =
-    spotlightMatch?.clockSeconds === undefined && !allFinal && currentTime !== '';
+  const spotlightClock = clockForMatch(spotlightMatch);
+  const clockLabels = {
+    clockStopped: dashboardLabels.clockStopped,
+    clockAriaLabel: dashboardLabels.clockAriaLabel,
+  };
+  const showsWallClock = !allFinal && currentTime !== '';
   const finishedText =
     allFinal && lastMatchAt !== undefined
       ? applyTemplate(dashboardLabels.finishedOn, {
@@ -804,14 +816,19 @@ export function TvDashboard({
                 spotlightMatch.sides[1]?.name ??
                 'Visitante'}
             </span>
-            {displayedClock && (
-              <span
+            {spotlightClock !== undefined && (
+              <LiveMatchClock
                 className="tv-lower-third__clock"
-                data-time={displayedClock}
-                aria-label={displayedClock}
+                clock={spotlightClock}
+                labels={clockLabels}
+                segmentLabel={progress.segmentLabel}
+                variant="tv"
               />
             )}
-            <TvSeriesAndSets labels={dashboardLabels} progress={progress} />
+            <TvSeriesAndSets
+              labels={dashboardLabels}
+              progress={spotlightClock ? { ...progress, segmentLabel: undefined } : progress}
+            />
             <TvMatchIndicators
               match={spotlightMatch}
               possessionLabel={dashboardLabels.possession}
@@ -879,23 +896,28 @@ export function TvDashboard({
               />
               <span>{statusBadge.label}</span>
             </div>
-            {showsWallClock && (
-              <span className="tv-scorebug__clock-label">{dashboardLabels.clockLabel}</span>
-            )}
-            {displayedClock && (
-              <span
-                className="tv-scorebug__clock"
-                data-time={displayedClock}
-                role="timer"
-                aria-label={
-                  showsWallClock
-                    ? `${dashboardLabels.clockLabel} ${displayedClock}`
-                    : displayedClock
-                }
+            {spotlightClock && (
+              <LiveMatchClock
+                className="tv-scorebug__clock tv-scorebug__game-clock"
+                clock={spotlightClock}
+                labels={clockLabels}
+                segmentLabel={progress.segmentLabel}
+                variant="tv"
               />
             )}
-            {showsWallClock && clockZoneLabel && (
-              <span className="tv-scorebug__clock-zone">{clockZoneLabel}</span>
+            {showsWallClock && (
+              <span className="tv-scorebug__wall-clock-group">
+                <span className="tv-scorebug__clock-label">{dashboardLabels.clockLabel}</span>
+                <span
+                  className="tv-scorebug__clock tv-scorebug__clock--wall"
+                  data-time={currentTime}
+                  role={spotlightClock ? undefined : 'timer'}
+                  aria-label={`${dashboardLabels.clockLabel} ${currentTime}`}
+                />
+                {clockZoneLabel && (
+                  <span className="tv-scorebug__clock-zone">{clockZoneLabel}</span>
+                )}
+              </span>
             )}
             {finishedText !== undefined && (
               <span
@@ -955,10 +977,14 @@ export function TvDashboard({
                         </>
                       )}
                     </div>
-                    {spotlightMatch.clockSeconds !== undefined && (
-                      <span className="tv-presentation-match__clock">
-                        {formatClock(spotlightMatch.clockSeconds)}
-                      </span>
+                    {(spotlightClock || progress.segmentLabel) && (
+                      <LiveMatchClock
+                        className="tv-presentation-match__clock"
+                        clock={spotlightClock}
+                        labels={clockLabels}
+                        segmentLabel={progress.segmentLabel}
+                        variant="tv"
+                      />
                     )}
                   </div>
                   <TvTeamSide
@@ -1078,6 +1104,16 @@ export function TvDashboard({
                     </strong>
                     <span title={match.sides[1]?.name}>{match.sides[1]?.name ?? 'Visitante'}</span>
                   </div>
+                  {(clockForMatch(match) ||
+                    activeSegmentLabel(match.segments, match.clock, language)) && (
+                    <LiveMatchClock
+                      className="tv-dashboard-match__clock"
+                      clock={clockForMatch(match)}
+                      labels={clockLabels}
+                      segmentLabel={activeSegmentLabel(match.segments, match.clock, language)}
+                      variant="tv"
+                    />
+                  )}
                   <TvMatchIndicators
                     match={match}
                     possessionLabel={dashboardLabels.possession}
@@ -1238,6 +1274,15 @@ export function TvDashboard({
                       >
                         {presentState(spotlightMatch.state, dashboardLabels.resultState).label}
                       </div>
+                      {spotlightClock !== undefined && (
+                        <LiveMatchClock
+                          className="tv-match-spotlight__clock"
+                          clock={spotlightClock}
+                          labels={clockLabels}
+                          segmentLabel={progress.segmentLabel}
+                          variant="tv"
+                        />
+                      )}
                     </div>
 
                     {/* Away Side */}
@@ -1250,7 +1295,10 @@ export function TvDashboard({
                     />
                   </div>
 
-                  <TvSeriesAndSets labels={dashboardLabels} progress={progress} />
+                  <TvSeriesAndSets
+                    labels={dashboardLabels}
+                    progress={spotlightClock ? { ...progress, segmentLabel: undefined } : progress}
+                  />
 
                   {liveMatchEvents.length > 0 ? (
                     <TvEventTicker

@@ -171,6 +171,10 @@ export const messages: Record<string, string> = {
   'publicWeb.series.aggregate': 'Au cumul {home}–{away}',
 
   'publicWeb.live.usingLastKnown': 'Affichage du dernier état connu.',
+  'publicWeb.live.lastUpdated': 'Dernière mise à jour à {time}',
+  'publicWeb.live.clockStopped': 'Arrêté',
+  'publicWeb.live.clockAriaLabel': '{segment}, {time}',
+  'publicWeb.live.openMatch': 'Voir le match {home} contre {away}',
 
   'publicWeb.tournamentPage.description': 'Résultats, classement et règlement de {tournament}.',
 
@@ -226,6 +230,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tournamentsPage.runnerUp': 'Deuxième',
   'publicWeb.tournamentsPage.thirdPlace': 'Troisième place',
   'publicWeb.tournamentsPage.viewDetails': 'Voir le tournoi',
+  'publicWeb.organization.moreLive': '+{count} en direct',
   'publicWeb.orgPage.featuredHeading': 'À la une',
   'publicWeb.orgPage.clubsHeading': 'Clubs',
   'publicWeb.orgPage.noClubs': "Aucun club enregistré pour l'instant.",
@@ -378,6 +383,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.possession': 'Possession',
   'publicWeb.tvDashboard.penalty': 'Pénalité',
   'publicWeb.tvDashboard.clockLabel': 'Heure locale',
+  'publicWeb.tvDashboard.clockStopped': 'Arrêté',
   'publicWeb.tvDashboard.leading': 'En tête',
   'publicWeb.tvDashboard.nextMatch': 'Prochain match',
   'publicWeb.tvDashboard.zoneLegend': 'Groupe ou zone',

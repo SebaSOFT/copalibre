@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves public layout adoption, compact stat-header hints, the tournament settings workspace, cookie-held Control sessions and TV island hydration, state shapes drawn as registry icons, and emblem atoms importing their rendition paths, match scores read through one live rule, phone match lists grouped by day, every public locale route guarding its locale segment, the overview hero opening venue popovers, and stage pages naming their breadcrumb, control values read through shared tiebreaker names, the wizard step and zone cards, the dashboard matches-today count and the analytics export, the API reference page with its link on the token card, the organization screen reading the role beside a personal page of its own, and public islands and the Chinese faces arriving after the first paint, and the player dialog localizing its labels (440/1896)', () => {
+test('the graph resolves public layout adoption, compact stat-header hints, the tournament settings workspace, cookie-held Control sessions and TV island hydration, state shapes drawn as registry icons, and emblem atoms importing their rendition paths, match scores read through one live rule, phone match lists grouped by day, every public locale route guarding its locale segment, the overview hero opening venue popovers, and stage pages naming their breadcrumb, control values read through shared tiebreaker names, the wizard step and zone cards, the dashboard matches-today count and the analytics export, the API reference page with its link on the token card, the organization screen reading the role beside a personal page of its own, and public islands and the Chinese faces arriving after the first paint, the player dialog localizing its labels, and the shared live match clock and scoreboard composition (445/1930)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 440);
-  assert.equal(graph.edges.length, 1896);
+  assert.equal(graph.nodes.size, 445);
+  assert.equal(graph.edges.length, 1930);
 });
 
 test('a type-only import is not counted as a render', () => {

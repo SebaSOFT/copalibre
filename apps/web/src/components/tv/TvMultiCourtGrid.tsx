@@ -2,14 +2,16 @@ import { rescheduledStatement } from '../../lib/reschedule.js';
 import { measureSchedule, animateSchedule } from '../../lib/schedule-travel.js';
 import { useEffect, useRef, useState } from 'react';
 import { RealtimeClient } from '@copalibre/realtime';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import {
   applyEvent,
   markConnected,
   type LiveDashboard,
   type LiveMatch,
 } from '../../lib/live-state.js';
-import { formatClock } from '../../lib/matches-view.js';
+import { activeSegmentLabel } from '../../lib/segment-label.js';
 import { presentState, type ResultStateLabels } from '../../lib/result-state.js';
+import { LiveMatchClock } from '../ui/atoms/LiveMatchClock.js';
 import { ValueFlash } from '../ui/atoms/ValueFlash.js';
 import { Icon } from '../ui/atoms/icon.js';
 import { useHydrated, usePrefersReducedMotion } from '../../lib/island-browser-state.js';
@@ -30,6 +32,13 @@ export interface TvMultiCourtGridProps {
   readonly resultStateLabels: ResultStateLabels;
   readonly noMatchesLabel: string;
   readonly ariaLabel: string;
+  readonly clockStoppedLabel?: string;
+  readonly clockAriaLabel?: string;
+}
+
+function resolveLanguageTag(locale: string): SupportedLanguage {
+  const base = locale.split('-')[0] ?? 'en';
+  return isSupportedLanguage(base) ? base : 'en';
 }
 
 function resolveGridSize(requested: CourtGridSize | 'auto', liveCount: number): CourtGridSize {
@@ -67,6 +76,8 @@ export function TvMultiCourtGrid({
   resultStateLabels,
   noMatchesLabel,
   ariaLabel,
+  clockStoppedLabel = '',
+  clockAriaLabel = '{segment}, {time}',
 }: TvMultiCourtGridProps): React.JSX.Element {
   const [dashboard, setDashboard] = useState<LiveDashboard>(initial);
   const [pageIndex, setPageIndex] = useState(0);
@@ -144,6 +155,8 @@ export function TvMultiCourtGrid({
       {visibleMatches.map((match) => (
         <CourtCard
           key={match.matchId}
+          clockAriaLabel={clockAriaLabel}
+          clockStoppedLabel={clockStoppedLabel}
           match={match}
           locale={locale}
           rescheduledLabel={rescheduledLabel}
@@ -161,15 +174,33 @@ function CourtCard({
   rescheduledLabel,
   venueName,
   resultStateLabels,
+  clockStoppedLabel,
+  clockAriaLabel,
 }: {
   readonly match: LiveMatch;
   readonly locale: string;
   readonly rescheduledLabel?: string;
   readonly venueName: string | undefined;
   readonly resultStateLabels: ResultStateLabels;
+  readonly clockStoppedLabel: string;
+  readonly clockAriaLabel: string;
 }): React.JSX.Element {
   const badge = presentState(match.state, resultStateLabels);
   const [home, away] = match.sides;
+  const language = resolveLanguageTag(locale);
+  const courtClock =
+    match.state !== 'live'
+      ? undefined
+      : (match.clock ??
+        (match.clockSeconds !== undefined
+          ? {
+              segmentNumber: 1,
+              elapsedSeconds: match.clockSeconds,
+              running: false,
+              asOf: '',
+            }
+          : undefined));
+  const segmentLabel = activeSegmentLabel(match.segments, match.clock, language);
 
   return (
     <article
@@ -206,8 +237,17 @@ function CourtCard({
           )}
           <span>{badge.label}</span>
         </span>
-        {match.clockSeconds !== undefined && (
-          <span className="tv-court-card__clock">{formatClock(match.clockSeconds)}</span>
+        {(courtClock || segmentLabel) && (
+          <LiveMatchClock
+            className="tv-court-card__clock"
+            clock={courtClock}
+            labels={{
+              clockStopped: clockStoppedLabel,
+              clockAriaLabel,
+            }}
+            segmentLabel={segmentLabel}
+            variant="tv"
+          />
         )}
       </div>
     </article>

@@ -836,6 +836,35 @@ describe('public-api-client', () => {
       const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
       expect(result.matches[0]).not.toHaveProperty('activePenalties');
     });
+
+    it('maps structured clock and computes lastUpdatedAt from clock.asOf', () => {
+      const response = {
+        matches: [
+          {
+            matchId: 'm1',
+            matchNumber: 1,
+            state: 'in-progress',
+            projectionVersion: 4,
+            clock: {
+              segmentNumber: 2,
+              elapsedSeconds: 185,
+              running: true,
+              asOf: '2026-04-01T18:03:05.000Z',
+            },
+            sides: [{ entrantId: 'e1', name: 'A', abbreviation: 'A', score: 1 }],
+          },
+        ],
+      };
+      const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
+      expect(result.matches[0]?.clock).toEqual({
+        segmentNumber: 2,
+        elapsedSeconds: 185,
+        running: true,
+        asOf: '2026-04-01T18:03:05.000Z',
+      });
+      expect(result.matches[0]?.clockSeconds).toBe(185);
+      expect(result.lastUpdatedAt).toBe('2026-04-01T18:03:05.000Z');
+    });
   });
 
   describe('mapBracketResponse', () => {

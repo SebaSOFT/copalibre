@@ -375,39 +375,53 @@ export function mapPublicWinnerZones(
 }
 
 export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
+  const receivedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  let lastUpdatedAt: string | undefined;
+  const matches = response.matches.map((m) => {
+    const state = publicMatchState(m.state);
+    if (m.clock?.asOf && (lastUpdatedAt === undefined || m.clock.asOf > lastUpdatedAt)) {
+      lastUpdatedAt = m.clock.asOf;
+    }
+    return {
+      matchId: m.matchId,
+      scheduleVersion: m.scheduleVersion,
+      rescheduledFrom: m.rescheduledFrom,
+      scheduledAt: m.scheduledAt,
+      venueName: m.venueName,
+      stageNumber: m.stageNumber,
+      matchNumber: m.matchNumber,
+      ...(m.stageOrdinal === undefined ? {} : { stageOrdinal: m.stageOrdinal }),
+      ...(m.segments === undefined || m.segments.length === 0 ? {} : { segments: m.segments }),
+      ...(m.clock === undefined
+        ? {}
+        : {
+            clock: m.clock,
+            clockSeconds: m.clock.elapsedSeconds,
+            clockReceivedAt: receivedAt,
+          }),
+      state,
+      projectionVersion: m.projectionVersion,
+      ...(m.possessionEntrantId === undefined ||
+      !m.sides.some((side) => side.entrantId === m.possessionEntrantId)
+        ? {}
+        : { possessionEntrantId: m.possessionEntrantId }),
+      ...(m.activePenalties === undefined ? {} : { activePenalties: m.activePenalties }),
+      sides: m.sides.map((s) => ({
+        entrantId: s.entrantId,
+        name: s.name,
+        abbreviation: s.abbreviation,
+        clubId: s.clubId,
+        emblemObjectId: s.emblemObjectId,
+        score: s.score,
+        state,
+      })),
+    };
+  });
   return {
     standingsVersion: 0,
     usingLastKnown: true,
-    matches: response.matches.map((m) => {
-      const state = publicMatchState(m.state);
-      return {
-        matchId: m.matchId,
-        scheduleVersion: m.scheduleVersion,
-        rescheduledFrom: m.rescheduledFrom,
-        scheduledAt: m.scheduledAt,
-        venueName: m.venueName,
-        stageNumber: m.stageNumber,
-        matchNumber: m.matchNumber,
-        ...(m.stageOrdinal === undefined ? {} : { stageOrdinal: m.stageOrdinal }),
-        ...(m.segments === undefined || m.segments.length === 0 ? {} : { segments: m.segments }),
-        state,
-        projectionVersion: m.projectionVersion,
-        ...(m.possessionEntrantId === undefined ||
-        !m.sides.some((side) => side.entrantId === m.possessionEntrantId)
-          ? {}
-          : { possessionEntrantId: m.possessionEntrantId }),
-        ...(m.activePenalties === undefined ? {} : { activePenalties: m.activePenalties }),
-        sides: m.sides.map((s) => ({
-          entrantId: s.entrantId,
-          name: s.name,
-          abbreviation: s.abbreviation,
-          clubId: s.clubId,
-          emblemObjectId: s.emblemObjectId,
-          score: s.score,
-          state,
-        })),
-      };
-    }),
+    ...(lastUpdatedAt === undefined ? {} : { lastUpdatedAt }),
+    matches,
   } as LiveDashboard;
 }
 
@@ -442,7 +456,11 @@ export function mapMatchesViewResponse(
         awayClubId: m.awayClubId,
         awayEmblemObjectId: m.awayEmblemObjectId,
         awayScore: m.awayScore,
-        clockSeconds: m.clockSeconds,
+        clockSeconds: m.clock?.elapsedSeconds ?? m.clockSeconds,
+        ...(m.clock === undefined ? {} : { clock: m.clock }),
+        ...(m.segments === undefined || m.segments.length === 0
+          ? {}
+          : { segments: m.segments as MatchCardData['segments'] }),
         venueName: m.venueName,
         scheduledAt: m.scheduledAt,
         latestEvent: m.latestEvent,

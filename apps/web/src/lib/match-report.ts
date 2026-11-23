@@ -1,5 +1,6 @@
 import type { PublicMatchReportResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import { descriptorLabel, humanizeCode } from './descriptor-label.ts';
+import type { LiveMatchClock, LiveSegment } from './live-state.js';
 import { formatSideSource, sourceMatchLabel, type SideSourceMessages } from './side-source.ts';
 
 export interface MatchReportTimelineEvent {
@@ -63,6 +64,8 @@ export interface MatchReportModel {
   readonly schedulePublished: boolean;
   readonly officials: readonly MatchReportOfficial[];
   readonly timeline: readonly MatchReportTimelineGroup[];
+  readonly segments?: readonly LiveSegment[];
+  readonly clock?: LiveMatchClock;
 }
 
 /**
@@ -161,6 +164,10 @@ export function buildMatchReport(
       roleLabels: official.roles.map(officialRoleLabel),
     })),
     timeline,
+    ...(response.segments === undefined || response.segments.length === 0
+      ? {}
+      : { segments: response.segments as readonly LiveSegment[] }),
+    ...(response.clock === undefined ? {} : { clock: response.clock }),
   };
 }
 
