@@ -3626,6 +3626,35 @@ export interface components {
             startsAt: number;
             venue: components["schemas"]["PublicScheduleVenueResponse"] | null;
         };
+        PublicMatchClockResponse: {
+            /** @description 1-based number of the active segment */
+            segmentNumber: number;
+            /** @description Elapsed seconds in the active segment when read */
+            elapsedSeconds: number;
+            /** @description Whether the active segment clock is currently running */
+            running: boolean;
+            /**
+             * Format: date-time
+             * @description Server timestamp at which `elapsedSeconds` was read
+             */
+            asOf: string;
+        };
+        PublicSegmentSummaryResponse: {
+            /** @description 1-based order within the match */
+            number: number;
+            /** @description The discipline's own segment type name */
+            type: string;
+            /** @description The segment type's display label in every language the discipline wrote it in. */
+            label?: {
+                [key: string]: unknown;
+            };
+            /** @description Whether the segment runs against a clock; false for one played to a target */
+            timed?: boolean;
+            /** @enum {string} */
+            state: "pending" | "active" | "completed";
+            /** @description What each side scored in this segment alone, home first */
+            scores?: number[];
+        };
         PublicMatchesViewEventResponse: {
             /** @description The event's own discipline-declared label */
             label: string;
@@ -3725,6 +3754,10 @@ export interface components {
             awayScore?: number;
             /** @description Present only while the match is in progress */
             clockSeconds?: number;
+            /** @description Active timed segment clock snapshot, omitted when idle or untimed */
+            clock?: components["schemas"]["PublicMatchClockResponse"];
+            /** @description The match’s segments and what each side scored in each, present while live */
+            segments?: components["schemas"]["PublicSegmentSummaryResponse"][];
             venueName?: string;
             /** Format: date-time */
             scheduledAt?: string;
@@ -5890,6 +5923,18 @@ export interface components {
             /** @description Rank three only when a completed ranked stage explicitly resolves one entrant. */
             thirdPlace?: components["schemas"]["PublicTournamentEntrantPodiumResponse"];
         };
+        PublicOrganizationLiveMatchResponse: {
+            /** Format: uuid */
+            matchId: string;
+            stageNumber: number;
+            matchNumber: number;
+            home: string;
+            away: string;
+            homeHiddenAtRequest?: boolean;
+            awayHiddenAtRequest?: boolean;
+            homeScore: number;
+            awayScore: number;
+        };
         PublicTournamentListingItemResponse: {
             /** Format: uuid */
             tournamentId: string;
@@ -5907,6 +5952,8 @@ export interface components {
             emblemObjectId?: string;
             /** @description Whether the organizer flagged this tournament as featured. Independent of `status`: live is urgent, featured is curated, and a tournament can be either, both, or neither. */
             featured: boolean;
+            /** @description Matches currently in progress for this tournament; empty otherwise. */
+            liveMatches?: components["schemas"]["PublicOrganizationLiveMatchResponse"][];
         };
         PublicOverviewClubResponse: {
             /** Format: uuid */
@@ -6093,22 +6140,6 @@ export interface components {
                 [key: string]: unknown;
             };
         };
-        PublicSegmentSummaryResponse: {
-            /** @description 1-based order within the match */
-            number: number;
-            /** @description The discipline's own segment type name */
-            type: string;
-            /** @description The segment type's display label in every language the discipline wrote it in. */
-            label?: {
-                [key: string]: unknown;
-            };
-            /** @description Whether the segment runs against a clock; false for one played to a target */
-            timed?: boolean;
-            /** @enum {string} */
-            state: "pending" | "active" | "completed";
-            /** @description What each side scored in this segment alone, home first */
-            scores?: number[];
-        };
         PublicMatchReportResponse: {
             nodeKey?: string;
             branch?: string;
@@ -6155,6 +6186,8 @@ export interface components {
             timeline: components["schemas"]["PublicMatchEventResponse"][];
             /** @description The match’s segments and what each side scored in each */
             segments?: components["schemas"]["PublicSegmentSummaryResponse"][];
+            /** @description Active timed segment clock snapshot, omitted when idle or untimed */
+            clock?: components["schemas"]["PublicMatchClockResponse"];
         };
         PublicLiveMatchSideResponse: {
             /** Format: uuid */
@@ -6200,6 +6233,8 @@ export interface components {
             stageOrdinal?: number;
             /** @description The match’s segments and what each side scored in each */
             segments?: components["schemas"]["PublicSegmentSummaryResponse"][];
+            /** @description Active timed segment clock snapshot, omitted when idle or untimed */
+            clock?: components["schemas"]["PublicMatchClockResponse"];
             state: string;
             projectionVersion: number;
             sides: components["schemas"]["PublicLiveMatchSideResponse"][];
@@ -6324,6 +6359,10 @@ export interface components {
             awayScore?: number;
             /** @description Present only while the match is in progress */
             clockSeconds?: number;
+            /** @description Active timed segment clock snapshot, omitted when idle or untimed */
+            clock?: components["schemas"]["PublicMatchClockResponse"];
+            /** @description The match’s segments and what each side scored in each, present while live */
+            segments?: components["schemas"]["PublicSegmentSummaryResponse"][];
             venueName?: string;
             /** Format: date-time */
             scheduledAt?: string;

@@ -127,7 +127,7 @@ import {
   type SeriesCorrectionOutlook,
 } from './stage-series.js';
 import { DATABASE } from '../database.token.js';
-import { elapsedSecondsOf } from './segment-clock.js';
+import { clockChangedPayloadOf, elapsedSecondsOf } from './segment-clock.js';
 import {
   afterOutcomeChange,
   blockedPropagationOf,
@@ -313,14 +313,23 @@ export class MatchControlController {
     // so a discipline that declares no segment type is still refused here, before any write.
     const plansRegulation =
       command === 'start' && match.status === 'scheduled' && segments.length === 0;
-    const regulationPlan = plansRegulation
-      ? await this.regulationPlanOf(
-          await this.descriptorFor(organizationAlias, tournamentAlias),
-          tournamentAlias,
-          tournament.tournamentId,
-          stageId,
-        )
-      : undefined;
+    const descriptor =
+      command !== 'finalize'
+        ? await new TournamentRepository(this.db).findDescriptor(
+            tournament.disciplineRef.descriptorId,
+            tournament.disciplineRef.version,
+          )
+        : undefined;
+    if (plansRegulation && !descriptor) {
+      throw new NotFoundException(
+        `Tournament "${tournamentAlias}" names a discipline that is no longer installed`,
+        { errorCode: 'match-control-not-found' },
+      );
+    }
+    const regulationPlan =
+      plansRegulation && descriptor
+        ? await this.regulationPlanOf(descriptor, tournamentAlias, tournament.tournamentId, stageId)
+        : undefined;
     // The segment the operator named, not merely whichever is running: after a
     // pause nothing is running, so resolving the target by "currently active"
     // alone left `resume` with nothing to restart and the clock stopped for
@@ -408,6 +417,7 @@ export class MatchControlController {
           ...audit,
         });
 
+        let updatedTarget: Segment | undefined;
         if (committed.target && committed.transition.segmentState) {
           // Only one segment runs at a time: starting or resuming one stops
           // whichever was left running, the same rule the manual adjustment's
@@ -423,7 +433,7 @@ export class MatchControlController {
               }
             }
           }
-          await competition.setSegmentState(uow, {
+          updatedTarget = await competition.setSegmentState(uow, {
             segmentId: committed.target.segmentId,
             state: committed.transition.segmentState,
             ...audit,
@@ -446,6 +456,16 @@ export class MatchControlController {
             clockRunning: committed.transition.clockRunning,
           },
         });
+
+        if (command !== 'finalize' && updatedTarget) {
+          await publishClockChanged(uow, {
+            organizationId: tournament.organizationId,
+            matchId,
+            segment: updatedTarget,
+            descriptor: descriptor ?? undefined,
+            projectionVersion,
+          });
+        }
 
         if (command === 'finalize') {
           if (!body?.sides?.length) {
@@ -743,6 +763,10 @@ export class MatchControlController {
       capability: 'match.control-clock',
       match: { organizationId: tournament.organizationId, matchId, stageId },
     });
+    const descriptor = await new TournamentRepository(this.db).findDescriptor(
+      tournament.disciplineRef.descriptorId,
+      tournament.disciplineRef.version,
+    );
     const audit = {
       organizationId: tournament.organizationId,
       actor: request.subject?.subjectId ?? 'unknown',
@@ -805,7 +829,7 @@ export class MatchControlController {
           });
         }
       }
-      await competition.adjustSegmentClock(uow, {
+      const adjusted = await competition.adjustSegmentClock(uow, {
         segmentId: selected.segmentId,
         elapsedSeconds: body.elapsedSeconds,
         ...audit,
@@ -821,6 +845,13 @@ export class MatchControlController {
         eventType: 'match.console-projection',
         projectionVersion,
         payload: { matchId, command: 'clock-adjusted', segmentId: selected.segmentId },
+      });
+      await publishClockChanged(uow, {
+        organizationId: tournament.organizationId,
+        matchId,
+        segment: adjusted,
+        descriptor: descriptor ?? undefined,
+        projectionVersion,
       });
     });
   }
@@ -911,6 +942,10 @@ export class MatchControlController {
       capability: 'match.control-clock',
       match: { organizationId: tournament.organizationId, matchId, stageId },
     });
+    const descriptor = await new TournamentRepository(this.db).findDescriptor(
+      tournament.disciplineRef.descriptorId,
+      tournament.disciplineRef.version,
+    );
     const audit = {
       organizationId: tournament.organizationId,
       actor: request.subject?.subjectId ?? 'unknown',
@@ -945,7 +980,7 @@ export class MatchControlController {
         });
       }
 
-      await competition.setSegmentState(uow, {
+      const reopened = await competition.setSegmentState(uow, {
         segmentId,
         state: reopening.value.segmentState,
         reason: body.reason,
@@ -962,6 +997,13 @@ export class MatchControlController {
         eventType: 'match.console-projection',
         projectionVersion,
         payload: { matchId, command: 'segment-reopened', segmentId },
+      });
+      await publishClockChanged(uow, {
+        organizationId: tournament.organizationId,
+        matchId,
+        segment: reopened,
+        descriptor: descriptor ?? undefined,
+        projectionVersion,
       });
     });
   }
@@ -3440,6 +3482,28 @@ function replayCommand<T>(
     });
   }
   return stored.response as unknown as T;
+}
+
+async function publishClockChanged(
+  uow: UnitOfWork,
+  input: {
+    readonly organizationId: string;
+    readonly matchId: string;
+    readonly segment: Segment;
+    readonly descriptor: DisciplineDescriptor | undefined;
+    readonly projectionVersion: number;
+  },
+): Promise<void> {
+  const payload = clockChangedPayloadOf(input.matchId, input.segment, input.descriptor, Date.now());
+  if (!payload) return;
+  await uow.publishEvent({
+    organizationId: input.organizationId,
+    stream: `match:${input.matchId}`,
+    entityId: input.matchId,
+    eventType: 'match.clock-changed',
+    projectionVersion: input.projectionVersion,
+    payload: payload as unknown as Record<string, unknown>,
+  });
 }
 
 export type { RecordedEvent };

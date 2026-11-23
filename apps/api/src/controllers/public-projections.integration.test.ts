@@ -1,5 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
-import { footballDescriptor } from '@copalibre/domain';
+import { footballDescriptor, tennisDescriptor } from '@copalibre/domain';
 import {
   CompetitionRepository,
   TournamentRepository,
@@ -3558,5 +3558,308 @@ describe('overview standings of a mixed-format stage', () => {
 
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.every((row) => row.zoneName === undefined)).toBe(true);
+  });
+});
+
+describe('live match clock and organization liveMatches projections', () => {
+  it('returns matching clock on /live and /matches-view for timed segments, none for untimed, and liveMatches on organization listing', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const competition = new CompetitionRepository(scratch.db);
+    const enrollments = new EnrollmentRepository(scratch.db);
+    const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+    const db = scratch.db as Kysely<Database>;
+
+    const football = footballDescriptor();
+    const tennis = tennisDescriptor({ descriptorId: newId() });
+
+    const [liveTournament, untimedTournament] = await withTransaction(db, async (uow) => {
+      await tournaments.saveDescriptor(uow, tennis, { organizationId, ...audit });
+      const t1 = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-clock-timed',
+        name: 'Copa Clock Timed',
+        descriptor: football,
+        ...audit,
+      });
+      const t2 = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-clock-untimed',
+        name: 'Copa Clock Untimed',
+        descriptor: tennis,
+        ...audit,
+      });
+      return [t1, t2] as const;
+    });
+
+    await withTransaction(db, async (uow) => {
+      await tournaments.publish(uow, {
+        tournamentId: liveTournament.tournamentId,
+        organizationId,
+        ...audit,
+      });
+      await tournaments.publish(uow, {
+        tournamentId: untimedTournament.tournamentId,
+        organizationId,
+        ...audit,
+      });
+    });
+
+    const { timedMatchId, untimedMatchId } = await withTransaction(db, async (uow) => {
+      const homeTeam = await enrollments.createTeam(uow, {
+        organizationId,
+        alias: 'clock-home',
+        name: 'Clock Home',
+        ...audit,
+      });
+      const awayTeam = await enrollments.createTeam(uow, {
+        organizationId,
+        alias: 'clock-away',
+        name: 'Clock Away',
+        ...audit,
+      });
+      const homeEntrant = await enrollments.registerEntrant(uow, {
+        tournamentId: liveTournament.tournamentId,
+        organizationId,
+        entrantRef: { kind: 'team', teamId: homeTeam.teamId },
+        ...audit,
+      });
+      const awayEntrant = await enrollments.registerEntrant(uow, {
+        tournamentId: liveTournament.tournamentId,
+        organizationId,
+        entrantRef: { kind: 'team', teamId: awayTeam.teamId },
+        ...audit,
+      });
+
+      const timedStage = await competition.createStageInTournament(uow, {
+        tournamentId: liveTournament.tournamentId,
+        number: 1,
+        name: 'Timed stage',
+        format: 'single-elimination',
+        organizationId,
+        ...audit,
+      });
+      const [timedFixture] = await competition.createFixtures(uow, {
+        stageId: timedStage.stageId,
+        fixtures: [
+          {
+            round: 1,
+            homeEntrantId: homeEntrant.entrantId,
+            awayEntrantId: awayEntrant.entrantId,
+          },
+        ],
+        organizationId,
+        ...audit,
+      });
+      if (!timedFixture) throw new Error('Expected timed fixture');
+      const timedMatch = await competition.createMatch(uow, {
+        fixtureId: timedFixture.fixtureId,
+        number: 1,
+        organizationId,
+        ...audit,
+      });
+      await competition.applyCommand(uow, {
+        matchId: timedMatch.matchId,
+        command: 'start',
+        status: 'in-progress',
+        grantedBy: 'seed',
+        organizationId,
+        ...audit,
+      });
+      await uow.tx
+        .updateTable('matches')
+        .set({
+          result: JSON.stringify({
+            sides: [
+              { entrantId: homeEntrant.entrantId, statistics: { goals: 2 } },
+              { entrantId: awayEntrant.entrantId, statistics: { goals: 1 } },
+            ],
+          }),
+        })
+        .where('match_id', '=', timedMatch.matchId)
+        .execute();
+      const timedSegment = await competition.createSegment(uow, {
+        matchId: timedMatch.matchId,
+        type: 'half',
+        number: 1,
+        organizationId,
+        ...audit,
+      });
+      await competition.setSegmentState(uow, {
+        segmentId: timedSegment.segmentId,
+        state: 'active',
+        organizationId,
+        ...audit,
+      });
+      await competition.adjustSegmentClock(uow, {
+        segmentId: timedSegment.segmentId,
+        elapsedSeconds: 585,
+        organizationId,
+        ...audit,
+      });
+
+      const untimedStage = await competition.createStageInTournament(uow, {
+        tournamentId: untimedTournament.tournamentId,
+        number: 1,
+        name: 'Untimed stage',
+        format: 'single-elimination',
+        organizationId,
+        ...audit,
+      });
+      const [untimedFixture] = await competition.createFixtures(uow, {
+        stageId: untimedStage.stageId,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        ...audit,
+      });
+      if (!untimedFixture) throw new Error('Expected untimed fixture');
+      const untimedMatch = await competition.createMatch(uow, {
+        fixtureId: untimedFixture.fixtureId,
+        number: 1,
+        organizationId,
+        ...audit,
+      });
+      await competition.applyCommand(uow, {
+        matchId: untimedMatch.matchId,
+        command: 'start',
+        status: 'in-progress',
+        grantedBy: 'seed',
+        organizationId,
+        ...audit,
+      });
+      const untimedSegment = await competition.createSegment(uow, {
+        matchId: untimedMatch.matchId,
+        type: 'set',
+        number: 1,
+        organizationId,
+        ...audit,
+      });
+      await competition.setSegmentState(uow, {
+        segmentId: untimedSegment.segmentId,
+        state: 'active',
+        organizationId,
+        ...audit,
+      });
+
+      return { timedMatchId: timedMatch.matchId, untimedMatchId: untimedMatch.matchId };
+    });
+
+    const [liveTimedRes, mvTimedRes] = await Promise.all([
+      request({
+        method: 'GET',
+        url: `/api/organizations/liga-orbital/tournaments/${liveTournament.alias}/live`,
+      }),
+      request({
+        method: 'GET',
+        url: `/api/organizations/liga-orbital/tournaments/${liveTournament.alias}/matches-view`,
+      }),
+    ]);
+    expect(liveTimedRes.statusCode).toBe(200);
+    expect(mvTimedRes.statusCode).toBe(200);
+
+    const liveTimedMatch = JSON.parse(liveTimedRes.payload as string).matches.find(
+      (m: { matchId: string }) => m.matchId === timedMatchId,
+    );
+    const mvTimedMatch = JSON.parse(mvTimedRes.payload as string).matches.find(
+      (m: { matchId: string }) => m.matchId === timedMatchId,
+    );
+
+    expect(liveTimedMatch.clock).toMatchObject({
+      segmentNumber: 1,
+      running: true,
+    });
+    expect(liveTimedMatch.clock.elapsedSeconds).toBeGreaterThanOrEqual(585);
+    expect(Date.parse(liveTimedMatch.clock.asOf)).not.toBeNaN();
+    expect(mvTimedMatch.clock).toMatchObject({
+      segmentNumber: 1,
+      running: true,
+    });
+    expect(mvTimedMatch.clock.elapsedSeconds).toBeGreaterThanOrEqual(585);
+    expect(mvTimedMatch.clockSeconds).toBe(mvTimedMatch.clock.elapsedSeconds);
+    expect(mvTimedMatch.segments).toEqual([
+      expect.objectContaining({
+        number: 1,
+        type: 'half',
+        timed: true,
+        state: 'active',
+        label: expect.objectContaining({ en: 'Half' }),
+      }),
+    ]);
+
+    const [liveUntimedRes, mvUntimedRes, timedReportRes, untimedReportRes] = await Promise.all([
+      request({
+        method: 'GET',
+        url: `/api/organizations/liga-orbital/tournaments/${untimedTournament.alias}/live`,
+      }),
+      request({
+        method: 'GET',
+        url: `/api/organizations/liga-orbital/tournaments/${untimedTournament.alias}/matches-view`,
+      }),
+      request({
+        method: 'GET',
+        url: `/api/organizations/liga-orbital/tournaments/${liveTournament.alias}/stages/1/matches/1`,
+      }),
+      request({
+        method: 'GET',
+        url: `/api/organizations/liga-orbital/tournaments/${untimedTournament.alias}/stages/1/matches/1`,
+      }),
+    ]);
+    expect(liveUntimedRes.statusCode).toBe(200);
+    expect(mvUntimedRes.statusCode).toBe(200);
+    expect(timedReportRes.statusCode).toBe(200);
+    expect(untimedReportRes.statusCode).toBe(200);
+
+    const timedReport = JSON.parse(timedReportRes.payload as string);
+    expect(timedReport.clock).toMatchObject({ segmentNumber: 1, running: true });
+    expect(timedReport.clock.elapsedSeconds).toBeGreaterThanOrEqual(585);
+    expect(Date.parse(timedReport.clock.asOf)).not.toBeNaN();
+
+    const untimedReport = JSON.parse(untimedReportRes.payload as string);
+    expect(untimedReport.clock).toBeUndefined();
+
+    const liveUntimedMatch = JSON.parse(liveUntimedRes.payload as string).matches.find(
+      (m: { matchId: string }) => m.matchId === untimedMatchId,
+    );
+    const mvUntimedMatch = JSON.parse(mvUntimedRes.payload as string).matches.find(
+      (m: { matchId: string }) => m.matchId === untimedMatchId,
+    );
+    expect(liveUntimedMatch.clock).toBeUndefined();
+    expect(mvUntimedMatch.clock).toBeUndefined();
+    expect(mvUntimedMatch.clockSeconds).toBeUndefined();
+
+    const listingRes = await request({
+      method: 'GET',
+      url: '/api/organizations/liga-orbital/public/tournaments',
+    });
+    expect(listingRes.statusCode).toBe(200);
+    const listingBody = JSON.parse(listingRes.payload as string) as {
+      tournaments: {
+        alias: string;
+        status: string;
+        liveMatches: {
+          matchId: string;
+          stageNumber: number;
+          matchNumber: number;
+          home: string;
+          away: string;
+          homeScore: number;
+          awayScore: number;
+        }[];
+      }[];
+    };
+    const timedListing = listingBody.tournaments.find((t) => t.alias === liveTournament.alias);
+    expect(timedListing?.liveMatches).toEqual([
+      {
+        matchId: timedMatchId,
+        stageNumber: 1,
+        matchNumber: 1,
+        home: 'Clock Home',
+        away: 'Clock Away',
+        homeScore: 2,
+        awayScore: 1,
+      },
+    ]);
+
+    const nonLiveListing = listingBody.tournaments.find((t) => t.alias === 'copa-upcoming-clean');
+    expect(nonLiveListing?.liveMatches).toEqual([]);
   });
 });

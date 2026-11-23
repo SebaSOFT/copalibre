@@ -26,6 +26,7 @@ import {
   PublicPersonProfileResponse,
   PlayerStatisticsDrilldownResponse,
   PublicOrganizationTournamentListResponse,
+  PublicOrganizationLiveMatchResponse,
   PublicTournamentListingItemResponse,
   PublicTournamentWinnerZoneResponse,
 } from '../dto/public-tournament.dto.js';
@@ -65,6 +66,7 @@ import { segmentedTableResponse, tableResponse } from './table-projections.contr
 import { evaluateStoredPromotion, promotionPlanFromStored } from './promotion-plans.js';
 import { eventLabelFields, rosterRolesOf } from './public-match-labels.js';
 import { segmentSummariesOf } from './public-segments.js';
+import { publicClockOf } from './segment-clock.js';
 import { publicRuleset } from './public-ruleset.js';
 import {
   entrantVisibilityById,
@@ -177,6 +179,8 @@ export class PublicTournamentListingController {
       if (status === 'finished') {
         winners = await resolveTournamentWinners(this.db, t);
       }
+      const liveMatches =
+        status === 'live' ? await liveMatchesForTournamentListing(this.db, t, matches) : [];
 
       tournamentItems.push({
         tournamentId: t.tournamentId,
@@ -188,6 +192,7 @@ export class PublicTournamentListingController {
         ...(winners && winners.length > 0 ? { winners } : {}),
         ...(t.emblemObjectId ? { emblemObjectId: t.emblemObjectId } : {}),
         featured: t.featured,
+        liveMatches,
       });
     }
 
@@ -209,6 +214,70 @@ export class PublicTournamentListingController {
 }
 
 const resolveTournamentWinnersLogger = new Logger('resolveTournamentWinners');
+
+/**
+ * The stage ordinal of every match of a tournament, keyed by match id: the same 1-based position
+ * the public match route and the matches view address a match by, taken from each stage's full,
+ * unscoped match list. `matches.number` cannot stand in for it, being a per-fixture series index.
+ */
+async function stageOrdinalsOf(
+  db: Kysely<Database>,
+  tournamentId: string,
+): Promise<ReadonlyMap<string, number>> {
+  const stages = await new CompetitionRepository(db).listStagesOfTournament(tournamentId);
+  const readModel = new StageReadModel(db);
+  const perStage = await Promise.all(
+    stages.map(async (stage) => stageMatchOrdinals(await readModel.matches(stage.stageId))),
+  );
+  return new Map(perStage.flatMap((ordinals) => [...ordinals]));
+}
+
+async function liveMatchesForTournamentListing(
+  db: Kysely<Database>,
+  tournament: Tournament,
+  matches: Awaited<ReturnType<PublicOverviewReadModel['matchesForTournament']>>,
+): Promise<PublicOrganizationLiveMatchResponse[]> {
+  const inProgress = matches.filter((m) => m.status === 'in-progress');
+  if (inProgress.length === 0) return [];
+
+  const entrantIds = [
+    ...new Set(
+      inProgress.flatMap((m) =>
+        [m.homeEntrantId, m.awayEntrantId].filter((id): id is string => id !== undefined),
+      ),
+    ),
+  ];
+  const [entrantDetails, entrantVisibility, ordinalByMatchId] = await Promise.all([
+    new EnrollmentRepository(db).resolveEntrantPodiumDetails(entrantIds),
+    entrantVisibilityById(db, tournament, entrantIds),
+    stageOrdinalsOf(db, tournament.tournamentId),
+  ]);
+
+  const sideName = (entrantId: string | undefined, hidden: boolean | undefined): string => {
+    if (!entrantId || hidden) return '';
+    return entrantDetails.get(entrantId)?.name ?? 'Unknown';
+  };
+
+  return inProgress.map((m) => {
+    const homeHidden = m.homeEntrantId
+      ? entrantVisibility.get(m.homeEntrantId)?.hiddenAtRequest
+      : undefined;
+    const awayHidden = m.awayEntrantId
+      ? entrantVisibility.get(m.awayEntrantId)?.hiddenAtRequest
+      : undefined;
+    return {
+      matchId: m.matchId,
+      stageNumber: m.stageNumber,
+      matchNumber: ordinalByMatchId.get(m.matchId) ?? m.matchNumber ?? m.round,
+      home: sideName(m.homeEntrantId, homeHidden),
+      away: sideName(m.awayEntrantId, awayHidden),
+      ...(homeHidden ? { homeHiddenAtRequest: true } : {}),
+      ...(awayHidden ? { awayHiddenAtRequest: true } : {}),
+      homeScore: m.scores?.[0] ?? 0,
+      awayScore: m.scores?.[1] ?? 0,
+    };
+  });
+}
 
 export async function resolveTournamentWinners(
   db: Kysely<Database>,
@@ -480,12 +549,7 @@ export class PublicProjectionsController {
    * unscoped match list. `matches.number` cannot stand in for it, being a per-fixture series index.
    */
   private async stageOrdinalsOf(tournamentId: string): Promise<ReadonlyMap<string, number>> {
-    const stages = await new CompetitionRepository(this.db).listStagesOfTournament(tournamentId);
-    const readModel = new StageReadModel(this.db);
-    const perStage = await Promise.all(
-      stages.map(async (stage) => stageMatchOrdinals(await readModel.matches(stage.stageId))),
-    );
-    return new Map(perStage.flatMap((ordinals) => [...ordinals]));
+    return stageOrdinalsOf(this.db, tournamentId);
   }
 
   @Get('overview')
@@ -863,6 +927,8 @@ export class PublicProjectionsController {
     } | null;
     const rosterRoles = rosterRolesOf(descriptor);
     const scores = result?.sides === undefined ? undefined : publicScores(result.sides, descriptor);
+    const clock =
+      match.status === 'in-progress' ? publicClockOf(segments, descriptor, Date.now()) : undefined;
 
     return {
       organizationAlias,
@@ -981,6 +1047,7 @@ export class PublicProjectionsController {
               match.away_entrant_id ?? undefined,
             ]),
           }),
+      ...(clock === undefined ? {} : { clock }),
     };
   }
 
@@ -1028,6 +1095,7 @@ export class PublicProjectionsController {
       ),
     );
     const competition = new CompetitionRepository(this.db);
+    const now = Date.now();
     const detailByMatch = await Promise.all(
       liveMatches.map(async (match) => {
         const [events, resolvedTimerIds, segments] = await Promise.all([
@@ -1041,7 +1109,7 @@ export class PublicProjectionsController {
         const penalties = runningTimers(
           events,
           { starts: timerStarts, stops: [] },
-          Date.now(),
+          now,
           resolvedTimerIds,
         ).flatMap((timer) => {
           if (timer.side === undefined || !participants.has(timer.side)) return [];
@@ -1055,6 +1123,7 @@ export class PublicProjectionsController {
         });
         return {
           penalties,
+          clock: publicClockOf(segments, descriptor, now),
           segments:
             descriptor === null || descriptor === undefined || segments.length === 0
               ? []
@@ -1139,6 +1208,9 @@ export class PublicProjectionsController {
         ...(detailByMatch[index]?.segments.length
           ? { segments: detailByMatch[index]?.segments }
           : {}),
+        ...(detailByMatch[index]?.clock === undefined
+          ? {}
+          : { clock: detailByMatch[index]?.clock }),
       })),
     };
   }
@@ -1512,6 +1584,8 @@ export class PublicProjectionsController {
           ...(row.homeScore === undefined ? {} : { homeScore: row.homeScore }),
           ...(row.awayScore === undefined ? {} : { awayScore: row.awayScore }),
           ...(row.clockSeconds === undefined ? {} : { clockSeconds: row.clockSeconds }),
+          ...(row.clock === undefined ? {} : { clock: row.clock }),
+          ...(row.segments === undefined ? {} : { segments: [...row.segments] }),
           ...(row.venueName === undefined ? {} : { venueName: row.venueName }),
           ...(row.scheduledAt === undefined ? {} : { scheduledAt: row.scheduledAt }),
           ...(row.latestEvent === undefined ? {} : { latestEvent: row.latestEvent }),

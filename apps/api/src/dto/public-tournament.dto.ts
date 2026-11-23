@@ -353,6 +353,23 @@ export class PublicSegmentSummaryResponse {
   scores?: number[];
 }
 
+export class PublicMatchClockResponse {
+  @ApiProperty({ description: '1-based number of the active segment' })
+  segmentNumber!: number;
+
+  @ApiProperty({ description: 'Elapsed seconds in the active segment when read' })
+  elapsedSeconds!: number;
+
+  @ApiProperty({ description: 'Whether the active segment clock is currently running' })
+  running!: boolean;
+
+  @ApiProperty({
+    format: 'date-time',
+    description: 'Server timestamp at which `elapsedSeconds` was read',
+  })
+  asOf!: string;
+}
+
 export class PublicLiveMatchResponse extends FixtureSourcesResponse {
   @ApiPropertyOptional({ format: 'date-time' })
   scheduledAt?: string;
@@ -385,6 +402,12 @@ export class PublicLiveMatchResponse extends FixtureSourcesResponse {
     description: 'The match’s segments and what each side scored in each',
   })
   segments?: PublicSegmentSummaryResponse[];
+
+  @ApiPropertyOptional({
+    type: () => PublicMatchClockResponse,
+    description: 'Active timed segment clock snapshot, omitted when idle or untimed',
+  })
+  clock?: PublicMatchClockResponse;
 
   @ApiProperty()
   state!: string;
@@ -617,6 +640,12 @@ export class PublicMatchReportResponse extends FixtureSourcesResponse {
     description: 'The match’s segments and what each side scored in each',
   })
   segments?: PublicSegmentSummaryResponse[];
+
+  @ApiPropertyOptional({
+    type: () => PublicMatchClockResponse,
+    description: 'Active timed segment clock snapshot, omitted when idle or untimed',
+  })
+  clock?: PublicMatchClockResponse;
 }
 
 export class PublicBracketSlotResponse {
@@ -1060,6 +1089,35 @@ export class PublicTournamentDatesResponse {
   archivedAt?: string;
 }
 
+export class PublicOrganizationLiveMatchResponse {
+  @ApiProperty({ format: 'uuid' })
+  matchId!: string;
+
+  @ApiProperty()
+  stageNumber!: number;
+
+  @ApiProperty()
+  matchNumber!: number;
+
+  @ApiProperty()
+  home!: string;
+
+  @ApiProperty()
+  away!: string;
+
+  @ApiPropertyOptional()
+  homeHiddenAtRequest?: boolean;
+
+  @ApiPropertyOptional()
+  awayHiddenAtRequest?: boolean;
+
+  @ApiProperty()
+  homeScore!: number;
+
+  @ApiProperty()
+  awayScore!: number;
+}
+
 export class PublicTournamentListingItemResponse {
   @ApiProperty({ format: 'uuid' })
   tournamentId!: string;
@@ -1094,6 +1152,12 @@ export class PublicTournamentListingItemResponse {
       'urgent, featured is curated, and a tournament can be either, both, or neither.',
   })
   featured!: boolean;
+
+  @ApiPropertyOptional({
+    type: () => [PublicOrganizationLiveMatchResponse],
+    description: 'Matches currently in progress for this tournament; empty otherwise.',
+  })
+  liveMatches?: PublicOrganizationLiveMatchResponse[];
 }
 
 export class PublicOrganizationTournamentListResponse {
@@ -1194,6 +1258,18 @@ export class PublicMatchesViewMatchResponse extends FixtureSourcesResponse {
 
   @ApiPropertyOptional({ description: 'Present only while the match is in progress' })
   clockSeconds?: number;
+
+  @ApiPropertyOptional({
+    type: () => PublicMatchClockResponse,
+    description: 'Active timed segment clock snapshot, omitted when idle or untimed',
+  })
+  clock?: PublicMatchClockResponse;
+
+  @ApiPropertyOptional({
+    type: () => [PublicSegmentSummaryResponse],
+    description: 'The match’s segments and what each side scored in each, present while live',
+  })
+  segments?: PublicSegmentSummaryResponse[];
 
   @ApiPropertyOptional()
   venueName?: string;
