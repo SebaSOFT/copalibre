@@ -9,10 +9,7 @@ rely on color alone to communicate match or result state.
 
 ### Requirement: Live competition dashboard reflects current match state
 
-The public live dashboard SHALL show the current live match's clock, score, and series progress, and
-SHALL update this view when the public SSE channel emits a relevant event, without a full page
-reload. The dashboard's initial state SHALL be fetched server-side, per request, from the
-tournament's real current match state, never from fixture or sample data.
+The public live dashboard SHALL show the current live match's running clock with its segment, score, and series progress, and SHALL update this view when the public SSE channel emits a relevant event, without a full page reload. The dashboard's initial state SHALL be fetched server-side, per request, from the tournament's real current match state, never from fixture or sample data.
 
 #### Scenario: Score update arrives over SSE
 - **WHEN** the public SSE channel emits a `match.updated` event with a new score for the currently displayed live match
@@ -31,6 +28,11 @@ tournament's real current match state, never from fixture or sample data.
 - **WHEN** a visitor loads the dashboard while a match is live
 - **THEN** the server-rendered page already shows its current state, including a live match started
   after the site was last built
+
+#### Scenario: A clock change arrives over SSE
+
+- **WHEN** the public SSE channel emits `match.clock-changed` pausing the displayed match at 09:45
+- **THEN** the dashboard's clock shows 09:45 as stopped without a page reload
 
 ### Requirement: Bracket view never encodes result state by color alone
 Every winner/loser or match-state indicator in the public bracket view SHALL pair its color with a
@@ -230,11 +232,11 @@ and with JavaScript unavailable.
   potential winning chain of not-yet-resolved matches
 
 ### Requirement: Public live dashboard renders unified match hero without duplicate cards
-The public live dashboard SHALL render active live matches through a single unified presentation tier, ensuring each in-progress match is displayed once with its state, score, and entrant names. An elapsed clock SHALL appear when the live projection supplies one. It SHALL NOT render a duplicate static card section alongside the interactive real-time island.
+The public live dashboard SHALL render active live matches through a single unified presentation tier, ensuring each in-progress match is displayed once with its state, score, entrant names and a link to its match page. A running clock with its segment SHALL appear when the live projection supplies a clock. It SHALL NOT render a duplicate static card section alongside the interactive real-time island.
 
 #### Scenario: Live matches are active
 - **WHEN** a tournament has one or more matches in state `live`
-- **THEN** each live match is rendered exactly once within the live match grid with live scores, state, entrant names, and elapsed time when supplied
+- **THEN** each live match is rendered exactly once within the live match grid with live scores, state, entrant names, and its running clock and segment when supplied
 
 #### Scenario: Persisted active match reaches the public live view
 - **WHEN** a published tournament has a persisted match with status `in-progress`
@@ -243,6 +245,11 @@ The public live dashboard SHALL render active live matches through a single unif
 #### Scenario: Server render and client island agree
 - **WHEN** the live dashboard renders server-side and hydrates the client island
 - **THEN** the initial server markup is adopted by the real-time client without re-rendering duplicate elements or shifting card positions
+
+#### Scenario: A live card opens its match
+
+- **WHEN** a visitor activates a live match on the dashboard
+- **THEN** the browser opens that match's public report page
 
 ### Requirement: Public live dashboard displays structured empty state when no matches are active
 When the requested tournament has no matches currently in state `live`, the public live dashboard SHALL display an explicit empty-state notification card explaining that no matches are currently in progress, rather than an empty void or an isolated last-known-state alert at the page footer.
@@ -298,3 +305,36 @@ version a surface already holds SHALL be ignored.
 
 - **WHEN** a reconnecting page replays events up to before the resolution and then the resolution itself
 - **THEN** the side ends showing the entrant, never reverting to its source label afterwards
+
+### Requirement: A live match carries its clock in every public projection
+
+While a match is in progress with an active timed segment, the public live projection and the matches view SHALL include a `clock` with the active segment number, elapsed seconds, whether it is running, and the server time it was read at. An untimed segment SHALL carry no clock.
+
+#### Scenario: The live projection has the clock the matches view has
+
+- **WHEN** a match's first segment has run for 585 seconds
+- **THEN** the live projection and the matches view both return a running clock with `elapsedSeconds: 585` and the same segment number
+
+#### Scenario: A set has no clock
+
+- **WHEN** the active segment's type is declared untimed
+- **THEN** neither projection includes a clock for that match
+
+### Requirement: A live match shows one scoreboard on every public surface
+
+Every public surface that shows a live match (overview, live page, matches list, match page) SHALL show its sides, score, segment label and a clock that advances on its own while running and stops when paused, and SHALL link to the match page. When the realtime connection is lost, each SHALL show the time of its last update.
+
+#### Scenario: The clock runs between events
+
+- **WHEN** a visitor watches a live match's card for 20 seconds with no event recorded
+- **THEN** its clock advances by 20 seconds
+
+#### Scenario: The same match reads the same everywhere
+
+- **WHEN** a live match appears on the overview, the live page, the matches list and its own page
+- **THEN** each shows the same score, segment label and clock
+
+#### Scenario: A lost connection says how old the score is
+
+- **WHEN** the public stream disconnects while a match is live
+- **THEN** its scoreboard shows the time of the last update it received, in the organization's time zone

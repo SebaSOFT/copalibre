@@ -131,3 +131,22 @@ only the match, the side and the entrant.
 
 - **WHEN** that resolution happens
 - **THEN** tournament B's public stream receives nothing for it
+
+### Requirement: The public stream publishes a match's clock changes
+
+Every command that changes a segment's clock (start, pause, adjust, end, reopen, segment change) SHALL publish a `match.clock-changed` event on the match's stream in the same unit of work. Its public payload SHALL carry only `matchId`, `segmentNumber`, `elapsedSeconds`, `running` and `changedAt`, and no other console projection field SHALL become public.
+
+#### Scenario: A referee starts the clock
+
+- **WHEN** an official starts the active segment's clock of a match in a published tournament
+- **THEN** the tournament's public stream delivers `match.clock-changed` for that match with `running: true` and the segment's elapsed seconds
+
+#### Scenario: A pause reaches every public viewer
+
+- **WHEN** an official pauses a running clock at 09:45
+- **THEN** the public stream delivers `match.clock-changed` with `running: false` and `elapsedSeconds: 585`
+
+#### Scenario: Console detail stays private
+
+- **WHEN** a clock command publishes its console projection and its clock change
+- **THEN** the public stream carries the clock change and does not carry the console projection or any field outside the five listed
