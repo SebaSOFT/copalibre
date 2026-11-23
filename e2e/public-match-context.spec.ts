@@ -978,6 +978,21 @@ test.describe('public competition context labels', () => {
     const oroQf1 = canvases.nth(0).locator('[data-match="1"]');
     await expect(oroQf1.locator('.cl-slot__origin').first()).toHaveText('1.° Grupo C');
 
+    // Bracket Final node with two pending feeders keeps both sides in the same form (never mixed).
+    const oroFinalNode = canvases.nth(0).locator('[data-match="12"]');
+    await expect(oroFinalNode.locator('astro-island[ssr]')).toHaveCount(0);
+    const finalNodeSides = (
+      await oroFinalNode.locator('[data-testid="entrant-name"]').allInnerTexts()
+    ).map((text) => text.trim());
+    expect(
+      finalNodeSides[0] === 'Ganador de Semifinal 1' &&
+        finalNodeSides[1] === 'Ganador de Semifinal 2'
+        ? 'both-long'
+        : finalNodeSides[0] === 'G Semifinal 1' && finalNodeSides[1] === 'G Semifinal 2'
+          ? 'both-short'
+          : finalNodeSides,
+    ).toMatch(/^both-(?:long|short)$/);
+
     // Deterministic placement order across Copa Oro and Copa Plata despite shuffled API arrays.
     const expectedOrder = ['3º puesto', '5º al 8º puesto', '5º puesto', '7º puesto'];
     const placementLists = page.locator('.cl-placement-games');

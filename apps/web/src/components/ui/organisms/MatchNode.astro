@@ -44,6 +44,10 @@ const {
   organizationTimeZone,
 } = Astro.props;
 const node = toNode(Astro.props.match, resultStateLabels(intl), sideSourceLabels(intl));
+const pendingSyncGroup =
+  node.slots.length === 2 && node.slots.every((slot) => slot.pending)
+    ? `match-node-${stageNumber}-${Astro.props.match.matchId ?? node.matchNumber}`
+    : undefined;
 const highlight = Astro.props.highlightEntrants === true;
 const Wrapper = highlight ? 'div' : 'a';
 const reasonLabels = resultReasonLabels(intl);
@@ -93,6 +97,7 @@ const legScores =
             <EntrantName
               client:load
               pending
+              syncGroup={pendingSyncGroup}
               fullName={slot.label}
               abbreviation={slot.abbreviation}
             />

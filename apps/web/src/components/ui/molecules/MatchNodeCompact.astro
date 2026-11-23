@@ -90,19 +90,30 @@ const spoken = `${sides[0]?.name ?? ''} ${sides[0]?.score ?? '—'} – ${sides[
   .cl-match-compact ol {
     display: grid;
     gap: var(--cl-space-1);
+    min-width: 0;
     margin: 0;
     padding: 0;
     list-style: none;
   }
   .cl-match-compact li {
     display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: var(--cl-space-1);
+    min-width: 0;
     font-size: var(--cl-font-size-xs);
   }
   .cl-match-compact__name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-family: var(--cl-font-display);
     letter-spacing: var(--cl-tracking-wide);
+  }
+  .cl-match-compact__score {
+    flex-shrink: 0;
   }
   .cl-match-compact__winner {
     font-weight: var(--cl-weight-bold);

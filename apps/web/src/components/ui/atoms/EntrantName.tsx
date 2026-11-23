@@ -1,6 +1,71 @@
 import { resultStateIcon } from '../../../lib/result-state.js';
 import { Icon } from './icon.js';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+
+interface SyncGroupState {
+  readonly members: Map<symbol, boolean>;
+  readonly listeners: Set<() => void>;
+}
+
+const syncGroups = new Map<string, SyncGroupState>();
+
+function isGroupOverflowing(group: SyncGroupState): boolean {
+  for (const overflowing of group.members.values()) {
+    if (overflowing) return true;
+  }
+  return false;
+}
+
+function getOrCreateSyncGroup(groupKey: string): SyncGroupState {
+  let group = syncGroups.get(groupKey);
+  if (!group) {
+    group = { members: new Map(), listeners: new Set() };
+    syncGroups.set(groupKey, group);
+  }
+  return group;
+}
+
+function notifySyncGroup(group: SyncGroupState): void {
+  for (const listener of group.listeners) listener();
+}
+
+function cleanupSyncGroup(groupKey: string): void {
+  const group = syncGroups.get(groupKey);
+  if (group && group.members.size === 0 && group.listeners.size === 0) {
+    syncGroups.delete(groupKey);
+  }
+}
+
+function subscribeSyncGroup(groupKey: string | undefined, listener: () => void): () => void {
+  if (groupKey === undefined) return () => undefined;
+  const group = getOrCreateSyncGroup(groupKey);
+  group.listeners.add(listener);
+  return () => {
+    group.listeners.delete(listener);
+    cleanupSyncGroup(groupKey);
+  };
+}
+
+function getSyncGroupSnapshot(groupKey: string | undefined): boolean {
+  if (groupKey === undefined) return false;
+  const group = syncGroups.get(groupKey);
+  return group ? isGroupOverflowing(group) : false;
+}
+
+function updateSyncGroupMember(groupKey: string, memberId: symbol, overflowing: boolean): void {
+  const group = getOrCreateSyncGroup(groupKey);
+  if (group.members.get(memberId) === overflowing) return;
+  group.members.set(memberId, overflowing);
+  notifySyncGroup(group);
+}
+
+function removeSyncGroupMember(groupKey: string, memberId: symbol): void {
+  const group = syncGroups.get(groupKey);
+  if (!group) return;
+  const existed = group.members.delete(memberId);
+  cleanupSyncGroup(groupKey);
+  if (existed) notifySyncGroup(group);
+}
 
 /**
  * Keeps a tournament entrant identifiable in narrow surfaces without inventing
@@ -14,6 +79,7 @@ export function EntrantName({
   inline = false,
   pending = false,
   compact: preferCompact = false,
+  syncGroup,
   onOverflowChange,
 }: {
   readonly fullName: string;
@@ -24,13 +90,22 @@ export function EntrantName({
   readonly pending?: boolean;
   /** Explicit dense presentations remain meaningful before hydration. */
   readonly compact?: boolean;
+  /** Coordinates compact fallback across separate island mounts sharing one match node. */
+  readonly syncGroup?: string;
   /** Reports whether this label overflows its box so sibling sides can coordinate one form. */
   readonly onOverflowChange?: (overflowing: boolean) => void;
 }): React.JSX.Element {
   const ref = useRef<HTMLSpanElement>(null);
+  const [memberId] = useState(() => Symbol());
   const onOverflowChangeRef = useRef(onOverflowChange);
   const [compact, setCompact] = useState(false);
-  const showAbbreviation = (compact || preferCompact) && abbreviation !== undefined;
+  const overflowScrollWidthRef = useRef(0);
+  const groupCompact = useSyncExternalStore(
+    (listener) => subscribeSyncGroup(syncGroup, listener),
+    () => getSyncGroupSnapshot(syncGroup),
+    () => false,
+  );
+  const showAbbreviation = (compact || groupCompact || preferCompact) && abbreviation !== undefined;
 
   useEffect(() => {
     onOverflowChangeRef.current = onOverflowChange;
@@ -39,19 +114,34 @@ export function EntrantName({
   useEffect(() => {
     const element = ref.current;
     if (!element || abbreviation === undefined || typeof ResizeObserver === 'undefined') return;
-    const update = (): void => {
-      const overflowing = element.scrollWidth > element.clientWidth;
+    overflowScrollWidthRef.current = 0;
+    const setOverflow = (overflowing: boolean): void => {
       setCompact(overflowing);
       onOverflowChangeRef.current?.(overflowing);
+      if (syncGroup !== undefined) updateSyncGroupMember(syncGroup, memberId, overflowing);
+    };
+    const update = (): void => {
+      if (overflowScrollWidthRef.current > 0) {
+        if (element.clientWidth >= overflowScrollWidthRef.current) {
+          overflowScrollWidthRef.current = 0;
+          setOverflow(false);
+        }
+        return;
+      }
+      const overflowing = element.scrollWidth > element.clientWidth;
+      if (overflowing) overflowScrollWidthRef.current = element.scrollWidth;
+      setOverflow(overflowing);
     };
     const observer = new ResizeObserver(update);
     observer.observe(element);
     update();
     return () => {
       observer.disconnect();
+      overflowScrollWidthRef.current = 0;
       onOverflowChangeRef.current?.(false);
+      if (syncGroup !== undefined) removeSyncGroupMember(syncGroup, memberId);
     };
-  }, [abbreviation, fullName]);
+  }, [abbreviation, fullName, memberId, syncGroup]);
 
   return (
     <span
