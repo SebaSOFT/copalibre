@@ -62,7 +62,7 @@ it('names elimination rounds from actual depth, never from an assumed entrant co
   });
   expect(sourceMatchLabel(source, labels, 4)).toEqual({
     long: 'Quarter-final 1',
-    short: 'QF 1',
+    short: 'Quarter 1',
   });
   expect(sourceMatchLabel(source, labels, 2)).toEqual({ long: 'Final', short: 'F' });
   expect(sourceMatchLabel(source, labels, 6)?.long).toBe('Round 2, match 1');
