@@ -64,7 +64,8 @@ finishes the job.
    prints the two commands that remove them later.
 
 The stack is down from step 2 until step 5 succeeds; plan the window by the size of your database.
-The move needs free space for a second copy of the database: the upgrade refuses to start without it.
+The move needs free space on Docker's disk for twice the database: the upgrade measures both before
+it stops anything and refuses to start without it.
 Copy the backup packet off the host once the upgrade finished.
 
 ### If you changed docker-compose.yml

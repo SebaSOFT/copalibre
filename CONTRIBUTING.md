@@ -53,8 +53,9 @@ list every changed key with its language and old and new text in the pull reques
 `node scripts/list-changed-strings.mjs` for control and public message catalogues; list email-copy
 changes manually by language and field. For every UI pull request, include before/after screenshot
 pairs for each touched screen: 1440×900 desktop, 390×844 mobile and 1920×1080 TV where applicable.
-Capture them in Spanish with the Panamericano demo, commit them under `docs/assets/screenshots` and
-embed them in the pull request body.
+Capture them in Spanish with the Panamericano demo and attach them to the pull request body (drag
+them into the GitHub editor). Never commit screenshots: keep local captures under `.artifacts/`,
+which Git ignores.
 
 ## Correct a translation
 

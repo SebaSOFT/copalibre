@@ -245,9 +245,9 @@ test('publishes an undecided eight-entrant final through the real API and retain
     ]);
     await page.reload();
     await expect(time).not.toHaveValue('');
-    for (const [name, width, height] of [
-      ['desktop', 1440, 900],
-      ['mobile', 390, 844],
+    for (const [width, height] of [
+      [1440, 900],
+      [390, 844],
     ] as const) {
       await page.setViewportSize({ width, height });
       const typography = await page.getByTestId('entrant-name').evaluateAll((names) =>
@@ -263,10 +263,6 @@ test('publishes an undecided eight-entrant final through the real API and retain
         }),
       );
       expect(typography).toBe(true);
-      await time.evaluate((element) => element.scrollIntoView({ block: 'center' }));
-      await page.screenshot({
-        path: `docs/assets/screenshots/control-undecided-final-${name}.png`,
-      });
     }
   } finally {
     if (child.connected) child.send('close');
@@ -429,17 +425,6 @@ test('reports a rest conflict a quarter-final result makes real, without moving 
     ).json();
     expect(stored.assignments).toHaveLength(2);
     expect(stored.conflicts).toEqual([expect.objectContaining({ kind: 'rest-rule' })]);
-
-    for (const [name, width, height] of [
-      ['desktop', 1440, 900],
-      ['mobile', 390, 844],
-    ] as const) {
-      await page.setViewportSize({ width, height });
-      await arisen.evaluate((element) => element.scrollIntoView({ block: 'center' }));
-      await page.screenshot({
-        path: `docs/assets/screenshots/control-schedule-arisen-conflict-${name}.png`,
-      });
-    }
   } finally {
     await real.close();
   }
@@ -938,14 +923,6 @@ test('stores a minimum rest, asks a reason for published moves from the keyboard
     dialog.getByText('3 partidos · 2 con el motivo del lote · 1 excepción'),
   ).toBeVisible();
 
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.screenshot({
-    path: 'docs/assets/screenshots/control-schedule-reason-prompt-desktop.png',
-  });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({
-    path: 'docs/assets/screenshots/control-schedule-reason-prompt-mobile.png',
-  });
   await page.setViewportSize({ width: 1440, height: 900 });
 
   await page.keyboard.press('Enter');

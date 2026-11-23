@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readInstallationMarker, writeInstallationMarker } from './installation-marker.js';
 import {
+  DATABASE_SIZE_SQL,
+  parseAvailableBytes,
   parseRowCounts,
   rowCountDifferences,
   upgradeInstallation,
@@ -28,6 +30,14 @@ const LEGACY_SURVEY: InstallationSurvey = {
   project: 'copalibre',
 };
 
+/** A 1 GB database; Docker's disk has 10 GB free unless a test says otherwise. */
+const DATABASE_BYTES = 1_000_000_000;
+const AMPLE_KB = 10_000_000;
+const dfOutput = (availableKb: number): string =>
+  `Filesystem     1024-blocks     Used Available Capacity Mounted on\n/dev/sdc         263174212 40000000 ${availableKb}      14% /var/lib/postgresql/data\n`;
+const isRowCount = (call: string): boolean =>
+  call.includes('psql') && !call.includes(DATABASE_SIZE_SQL);
+
 interface FakeDocker {
   readonly processes: ProcessRunner;
   readonly calls: string[];
@@ -41,9 +51,15 @@ function fakeDocker(
   const respond = (arguments_: readonly string[]): ProcessOutput => {
     const call = arguments_.join(' ');
     calls.push(call);
-    const counted = calls.filter((entry) => entry.includes('psql')).length;
+    const counted = calls.filter((entry) => isRowCount(entry)).length;
     const given = answer(call, counted) ?? {};
-    const stdout = call.includes('psql') ? COUNTS : call.startsWith('ps --all') ? '' : '';
+    const stdout = call.includes(DATABASE_SIZE_SQL)
+      ? `${DATABASE_BYTES}\n`
+      : call.includes('--entrypoint df')
+        ? dfOutput(AMPLE_KB)
+        : isRowCount(call)
+          ? COUNTS
+          : '';
     return { code: 0, stdout, stderr: '', ...given };
   };
   return {
@@ -109,7 +125,7 @@ describe('upgradeInstallation from a 1.2.6 installation', () => {
         'pull --policy missing',
         'compose stop',
         'pg_dump',
-        'psql',
+        '-At -F |',
         'down --remove-orphans',
         'up --detach --wait postgres',
         'run --rm database-setup',
@@ -144,6 +160,72 @@ describe('upgradeInstallation from a 1.2.6 installation', () => {
       await upgradeInstallation(options(directory, docker));
       expect(docker.calls[0]).toBe(
         `compose -f ${join(directory, 'docker-compose.yml')}.2.0.0.next --project-directory ${directory} --env-file ${join(directory, '.env')}.2.0.0.next pull --policy missing`,
+      );
+    });
+  });
+
+  it('measures the database and the free space beside its volume after the pull and before anything stops', async () => {
+    await inInstallation(async (directory) => {
+      const docker = fakeDocker();
+      const upgrade = options(directory, docker);
+      await expect(upgradeInstallation(upgrade)).resolves.toBe(0);
+      const sequence = [
+        'pull --policy missing',
+        `run --rm -T database-tools psql --no-psqlrc -At -c ${DATABASE_SIZE_SQL}`,
+        'run --rm -T --no-deps --entrypoint df postgres -Pk /var/lib/postgresql/data',
+        'compose stop',
+      ].map((fragment) => at(docker.calls, fragment));
+      expect(sequence.every((index) => index >= 0)).toBe(true);
+      expect(sequence).toEqual([...sequence].sort((a, b) => a - b));
+      expect(upgrade.output.join('')).toContain(
+        'Free space for PostgreSQL 18: 10,240 MB, 2,000 MB needed.',
+      );
+    });
+  });
+
+  it('creates backups/ before database-tools mounts it, so Docker does not create it as root', async () => {
+    await inInstallation(async (directory) => {
+      let backupsExisted: boolean | undefined;
+      const docker = fakeDocker((call) => {
+        if (call.includes(DATABASE_SIZE_SQL)) backupsExisted = existsSync('backups');
+        return undefined;
+      });
+      await expect(upgradeInstallation(options(directory, docker))).resolves.toBe(0);
+      expect(backupsExisted).toBe(true);
+    });
+  });
+
+  it('refuses, changing nothing, when Docker has less free space than twice the database', async () => {
+    await inInstallation(async (directory) => {
+      // 1.5 GB free for a 1 GB database: enough for one copy, not for two.
+      const docker = fakeDocker((call) =>
+        call.includes('--entrypoint df') ? { stdout: dfOutput(1_500_000) } : undefined,
+      );
+      const upgrade = options(directory, docker);
+      await expect(upgradeInstallation(upgrade)).resolves.toBe(1);
+
+      expect(docker.calls.some((call) => call.includes('compose stop'))).toBe(false);
+      expect(docker.calls.some((call) => call.includes('pg_dump'))).toBe(false);
+      expect(await readFile('docker-compose.yml', 'utf8')).toBe(OLD_COMPOSE);
+      expect(existsSync('docker-compose.yml.2.0.0.next')).toBe(false);
+      expect((await readInstallationMarker(directory))?.version).toBe('1.2.6');
+      expect(upgrade.output.join('')).toContain(
+        "needs 2,000 MB free beside copalibre_postgres-data (twice the database's 1,000 MB), and Docker's disk has 1,536 MB",
+      );
+    });
+  });
+
+  it('refuses, changing nothing, when the free space cannot be measured', async () => {
+    await inInstallation(async (directory) => {
+      const docker = fakeDocker((call) =>
+        call.includes('--entrypoint df') ? { code: 1, stdout: '' } : undefined,
+      );
+      const upgrade = options(directory, docker);
+      await expect(upgradeInstallation(upgrade)).resolves.toBe(1);
+      expect(docker.calls.some((call) => call.includes('compose stop'))).toBe(false);
+      expect(await readFile('docker-compose.yml', 'utf8')).toBe(OLD_COMPOSE);
+      expect(upgrade.output.join('')).toContain(
+        'could not measure the database and the free space',
       );
     });
   });
@@ -278,6 +360,7 @@ describe('upgradeInstallation in other states', () => {
       });
       await expect(upgradeInstallation(upgrade)).resolves.toBe(0);
       expect(docker.calls.some((call) => call.includes('psql'))).toBe(false);
+      expect(docker.calls.some((call) => call.includes('--entrypoint df'))).toBe(false);
       expect(docker.calls.some((call) => call.includes('down'))).toBe(false);
       expect(docker.calls).toContain(
         'compose up --detach --wait --remove-orphans --force-recreate',
@@ -300,5 +383,13 @@ describe('row counts', () => {
       'public.c: absent -> 0',
     ]);
     expect(rowCountDifferences(before, before)).toEqual([]);
+  });
+});
+
+describe('free space', () => {
+  it("reads the available kilobytes of df's last row as bytes", () => {
+    expect(parseAvailableBytes(dfOutput(2))).toBe(2048);
+    expect(parseAvailableBytes('Filesystem 1024-blocks Used Available\n')).toBeUndefined();
+    expect(parseAvailableBytes('')).toBeUndefined();
   });
 });

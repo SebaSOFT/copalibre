@@ -64,7 +64,7 @@ gleich was ihr Marker angibt, und schließt die Arbeit ab.
    sie erhalten; das Upgrade gibt die zwei Befehle aus, die sie später entfernen.
 
 Der Stack ist von Schritt 2 an gestoppt, bis Schritt 5 gelingt; planen Sie das Zeitfenster nach der
-Größe Ihrer Datenbank. Das Verschieben braucht freien Platz für eine zweite Kopie der Datenbank: ohne
+Größe Ihrer Datenbank. Das Verschieben braucht auf dem Docker-Datenträger freien Platz für die doppelte Größe der Datenbank: ohne
 ihn startet das Upgrade nicht. Kopieren Sie das Sicherungspaket nach dem Upgrade vom Host weg.
 
 ### Wenn Sie docker-compose.yml geändert haben

@@ -74,15 +74,22 @@ function captureOutput(): { text: () => string; restore: () => void } {
   };
 }
 
-/** Docker on a 1.2.6 host: the legacy PostgreSQL volume exists and holds a 17 cluster. */
+/**
+ * Docker on a 1.2.6 host: the legacy PostgreSQL volume exists and holds a 17 cluster of 1 GB, on a
+ * disk with 10 GB free.
+ */
 function dockerWithPostgres17(): ProcessRunner & { run: jest.Mock<ProcessRunner['run']> } {
+  const answer = (arguments_: readonly string[]): string => {
+    const call = arguments_.join(' ');
+    if (arguments_[0] === 'run') return '17\n';
+    if (call.includes('pg_database_size')) return '1000000000\n';
+    if (call.includes('--entrypoint df'))
+      return 'Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/sdc 263174212 40000000 10000000 14% /var/lib/postgresql/data\n';
+    return '';
+  };
   return {
     run: jest.fn<ProcessRunner['run']>(async () => 0),
-    capture: async (_command, arguments_) => ({
-      code: 0,
-      stdout: arguments_[0] === 'run' ? '17\n' : '',
-      stderr: '',
-    }),
+    capture: async (_command, arguments_) => ({ code: 0, stdout: answer(arguments_), stderr: '' }),
   };
 }
 

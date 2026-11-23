@@ -696,18 +696,4 @@ test('captures screenshots of bracket series progress at DESIGN.md breakpoints',
   await expect(
     canvas.locator('[data-match="WB-R1-M2"] [data-series-status="decided"]'),
   ).toBeVisible();
-
-  for (const width of [375, 768, 1024, 1440]) {
-    await page.setViewportSize({ width, height: 900 });
-    await page.waitForTimeout(200);
-    await canvas.screenshot({
-      path: `docs/assets/screenshots/control-series-progress-${width}.png`,
-    });
-  }
-
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.screenshot({
-    fullPage: true,
-    path: 'docs/assets/screenshots/control-series-progress-seeding-builder.png',
-  });
 });

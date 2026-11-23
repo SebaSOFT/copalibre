@@ -234,9 +234,7 @@ test('captures the launcher at desktop and phone size', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${LAUNCHER}&view=overlay&lang=es`);
   await expect(page.getByRole('heading', { name: 'Lanzador de pantalla TV' })).toBeVisible();
-  await page.screenshot({ path: 'docs/assets/screenshots/tv-launcher-desktop.png' });
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole('link', { name: /Lanzar pantalla TV/ })).toBeVisible();
-  await page.screenshot({ path: 'docs/assets/screenshots/tv-launcher-mobile.png' });
 });

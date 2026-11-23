@@ -63,7 +63,7 @@ ainsi, quel que soit son marqueur, et termine le travail.
    mise à niveau affiche les deux commandes qui les supprimeront plus tard.
 
 La pile est arrêtée de l'étape 2 jusqu'à la réussite de l'étape 5 ; prévoyez la fenêtre selon la
-taille de votre base. Le déplacement demande de l'espace libre pour une deuxième copie de la base :
+taille de votre base. Le déplacement demande sur le disque de Docker un espace libre double de la taille de la base :
 sans lui, la mise à niveau ne démarre pas. Copiez l'archive de sauvegarde hors de l'hôte une fois la
 mise à niveau terminée.
 

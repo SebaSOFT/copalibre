@@ -357,11 +357,29 @@ describe('script-aware typography', () => {
     }
   });
 
-  it('leaves the Chinese faces out of the public stylesheet, for the page to add after it paints', () => {
+  it('paints a public page with its text and heading faces only, and adds the rest after it paints', () => {
     const publicCss = generatePublicCss();
-    expect(publicCss).not.toContain('noto-sans-sc');
-    expect(generateDeferredFontsCss()).toBe(
-      "@import '@fontsource-variable/noto-sans-sc/wght.css';\n",
+    const imports = (css: string): string[] =>
+      [...css.matchAll(/^@import '([^']+)';$/gm)].map((match) => match[1] ?? '');
+    expect(imports(publicCss)).toEqual([
+      '@fontsource/barlow/400.css',
+      '@fontsource/barlow-condensed/700.css',
+      '@fontsource-variable/roboto-condensed/wght.css',
+      '@fontsource-variable/roboto/wght.css',
+    ]);
+    expect(imports(generateDeferredFontsCss())).toEqual([
+      '@fontsource/barlow/500.css',
+      '@fontsource/barlow/600.css',
+      '@fontsource/barlow/700.css',
+      '@fontsource/barlow-condensed/400.css',
+      '@fontsource/barlow-condensed/500.css',
+      '@fontsource/barlow-condensed/600.css',
+      '@fontsource-variable/jetbrains-mono/wght.css',
+      '@fontsource-variable/noto-sans-sc/wght.css',
+    ]);
+    // Every face is in exactly one of the two.
+    expect([...imports(publicCss), ...imports(generateDeferredFontsCss())].sort()).toEqual(
+      [...FONT_STYLESHEETS].sort(),
     );
     // The same tokens and stacks: only the faces a page asks for change.
     expect(publicCss.replace(/^@import .*\n/gm, '')).toBe(

@@ -62,7 +62,7 @@ marcador dela, e conclui o trabalho.
    mantidos; a atualização mostra os dois comandos para removê-los depois.
 
 A pilha fica parada do passo 2 até o passo 5 dar certo; planeje a janela pelo tamanho do seu banco. A
-mudança precisa de espaço livre para uma segunda cópia do banco: sem ele, a atualização não começa.
+mudança precisa de espaço livre no disco do Docker com o dobro do tamanho do banco: sem ele, a atualização não começa.
 Copie o pacote de backup para fora do servidor quando a atualização terminar.
 
 ### Se você alterou o docker-compose.yml

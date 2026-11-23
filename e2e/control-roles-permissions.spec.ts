@@ -125,10 +125,6 @@ test('admin invites a referee and changes a user status immediately', async ({ p
   await expect(page.getByText('referee@example.test')).toBeVisible();
 
   await page.getByLabel('Rol de invitación').selectOption('club-admin');
-  await page.screenshot({
-    path: 'docs/assets/screenshots/control-roles-after.png',
-    fullPage: true,
-  });
   await page.getByLabel('Correo electrónico').fill('new-referee@example.test');
   await page.getByLabel('Rol de invitación').selectOption('referee');
   await page.getByText('Enviar invitación').click();

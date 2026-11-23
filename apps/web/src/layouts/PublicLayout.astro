@@ -2,8 +2,9 @@
 import type { IntlShape } from 'react-intl';
 import '@copalibre/design-tokens/generated/copalibre-public.css';
 /*
-  The faces `copalibre-public.css` leaves out (Chinese): a page in Chinese loads them before it
-  paints, every other page once it has painted, so operator text in Chinese still renders in them.
+  The faces `copalibre-public.css` leaves out (every Latin weight but the text and heading faces,
+  JetBrains Mono, and Chinese): a page in Chinese loads them before it paints, every other page
+  once it has painted, swapping them in over metric-matched fallbacks.
 */
 import deferredFontsHref from '@copalibre/design-tokens/generated/fonts-deferred.css?url';
 /*
