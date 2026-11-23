@@ -217,6 +217,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
                         locale={intl.locale}
                         match={match}
                         labels={labels}
+                        timeZone={model.organizationTimeZone}
                         reportUrl={matchReportUrl({
                           organizationAlias: organization!,
                           tournamentAlias: tournament!,
@@ -306,6 +307,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
               locale={intl.locale}
               match={match}
               labels={labels}
+              timeZone={model.organizationTimeZone}
               reportUrl={matchReportUrl({
                 organizationAlias: organization!,
                 tournamentAlias: tournament!,
