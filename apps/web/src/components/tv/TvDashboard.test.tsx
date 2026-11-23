@@ -7,6 +7,8 @@ import type { PublicSeriesState } from '../../lib/series.js';
 import type { StandingsRowView } from '../../lib/overview.js';
 import { publicIntl, tvDashboardLabels, tvStatisticsLabels } from '../../lib/i18n/public-intl.js';
 import { hydrateWithReducedMotion } from '../../lib/island-hydration.test-support.js';
+import type { PinnedMatchRef } from '../../lib/tv-dashboard-source.js';
+import type { TvMatchEntry } from '../../lib/tv-match-list.js';
 
 const tvLabels = tvStatisticsLabels(publicIntl('en'));
 const dashboardLabels = tvDashboardLabels(publicIntl('en'));
@@ -1794,4 +1796,167 @@ describe('TvDashboard hydration', () => {
       }
     },
   );
+});
+
+describe('TvDashboard refresh keeps the matches the live projection does not list', () => {
+  const dashboardLabels = tvDashboardLabels(publicIntl('en'));
+  const tvLabels = tvStatisticsLabels(publicIntl('en'));
+  const POLL_MS = 1000;
+
+  const match = (
+    ordinal: number,
+    state: 'live' | 'upcoming' | 'final',
+    home = 0,
+    away = 0,
+  ): LiveMatch => ({
+    matchId: `m${ordinal}`,
+    stageNumber: 1,
+    matchNumber: 1,
+    stageOrdinal: ordinal,
+    state,
+    projectionVersion: 1,
+    sides: [
+      { entrantId: `h${ordinal}`, name: `Home ${ordinal}`, score: home, state },
+      { entrantId: `a${ordinal}`, name: `Away ${ordinal}`, score: away, state },
+    ],
+  });
+
+  const listEntry = (ordinal: number, stateLabel: string): TvMatchEntry => ({
+    key: `m${ordinal}`,
+    scope: 'Stage 1',
+    stateLabel,
+    home: { label: `Home ${ordinal}`, name: `Home ${ordinal}` },
+    away: { label: `Away ${ordinal}`, name: `Away ${ordinal}` },
+  });
+
+  /** A matches-view row: the fields the view reads, with the snapshot's own state and score. */
+  const viewRow = (ordinal: number, status: string, homeScore?: number, awayScore?: number) => ({
+    matchId: `m${ordinal}`,
+    stageNumber: 1,
+    matchNumber: 1,
+    stageOrdinal: ordinal,
+    round: 1,
+    status,
+    homeName: `Home ${ordinal}`,
+    awayName: `Away ${ordinal}`,
+    homeScore,
+    awayScore,
+  });
+
+  let originalFetch: typeof fetch;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    window.history.pushState({}, '', '/tv/liga-argentina/tournaments/apertura-2026');
+    originalFetch = globalThis.fetch;
+  });
+
+  afterEach(() => {
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
+    window.history.pushState({}, '', '/');
+    jest.useRealTimers();
+  });
+
+  function stubRefresh(live: readonly LiveMatch[], view: readonly unknown[]): void {
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async (url: string) =>
+        url.endsWith('/matches-view')
+          ? new Response(JSON.stringify({ matches: view }), {
+              headers: { 'content-type': 'application/json' },
+            })
+          : new Response(JSON.stringify({ matches: live }), {
+              headers: { 'content-type': 'application/json' },
+            }),
+    });
+  }
+
+  function renderRefreshing(
+    initialMatches: readonly LiveMatch[],
+    pinned?: PinnedMatchRef,
+    initialView?: 'standings' | 'matches',
+    matchList?: readonly TvMatchEntry[],
+  ): void {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={{ standingsVersion: 0, usingLastKnown: true, matches: initialMatches }}
+        initialView={initialView}
+        labels={tvLabels}
+        language="en"
+        matchList={matchList}
+        organizationAlias="liga-argentina"
+        tournamentAlias="apertura-2026"
+        pinnedMatch={pinned}
+        pollIntervalMs={POLL_MS}
+        standings={[]}
+        streamPath="/stream"
+      />,
+    );
+  }
+
+  async function pollOnce(): Promise<void> {
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(POLL_MS);
+    });
+  }
+
+  it('keeps a pinned scheduled match after a poll whose live projection is empty', async () => {
+    stubRefresh([], [viewRow(1, 'final', 1, 0), viewRow(2, 'upcoming')]);
+    renderRefreshing([match(1, 'final', 1, 0), match(2, 'upcoming')], {
+      stageNumber: 1,
+      ordinal: 2,
+    });
+    expect(screen.getByTestId('tv-match-spotlight').textContent).toContain('Away 2');
+
+    await pollOnce();
+
+    expect(screen.queryByTestId('tv-match-not-found')).toBeNull();
+    expect(screen.getByTestId('tv-match-spotlight').textContent).toContain('Away 2');
+  });
+
+  it('keeps a scheduled match listed in the match list after a poll', async () => {
+    stubRefresh([match(1, 'live', 2, 1)], [viewRow(1, 'live', 2, 1), viewRow(2, 'upcoming')]);
+    renderRefreshing([match(1, 'live', 1, 1), match(2, 'upcoming')], undefined, 'matches', [
+      listEntry(1, 'Live'),
+      listEntry(2, 'Upcoming'),
+    ]);
+    expect(document.body.textContent).toContain('Away 2');
+
+    await pollOnce();
+
+    expect(document.body.textContent).toContain('Away 2');
+    expect(document.body.textContent).toContain('Home 2');
+  });
+
+  it('shows a match that left the live projection with the matches view state and score', async () => {
+    stubRefresh([], [viewRow(1, 'final', 3, 0)]);
+    renderRefreshing([match(1, 'live', 1, 0)], { stageNumber: 1, ordinal: 1 });
+    expect(document.querySelector('.tv-score-center__digits')?.textContent).toContain('1');
+
+    await pollOnce();
+
+    const digits = document.querySelector('.tv-score-center__digits')?.textContent ?? '';
+    expect(digits).toContain('3');
+    expect(digits).not.toContain('1');
+    expect(screen.queryByTestId('tv-match-not-found')).toBeNull();
+  });
+
+  it('keeps a match that left the live projection as it was when the matches view fails', async () => {
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async (url: string) =>
+        url.endsWith('/matches-view')
+          ? new Response('', { status: 500 })
+          : new Response(JSON.stringify({ matches: [] }), {
+              headers: { 'content-type': 'application/json' },
+            }),
+    });
+    renderRefreshing([match(1, 'live', 1, 0)], { stageNumber: 1, ordinal: 1 });
+
+    await pollOnce();
+
+    expect(document.querySelector('.tv-score-center__digits')?.textContent).toContain('1');
+    expect(screen.queryByTestId('tv-match-not-found')).toBeNull();
+  });
 });

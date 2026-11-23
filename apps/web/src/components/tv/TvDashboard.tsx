@@ -21,7 +21,13 @@ import { resolveLiveTvMatchEvent } from '../../lib/tv-match-events.js';
 import { presentState } from '../../lib/result-state.js';
 import { applyTemplate, formatClock } from '../../lib/matches-view.js';
 import { formatTimestamp } from '../../lib/format-timestamp.js';
-import { findPinnedMatch, type PinnedMatchRef } from '../../lib/tv-dashboard-source.js';
+import {
+  findPinnedMatch,
+  overlayLive,
+  settleLeftLive,
+  type PinnedMatchRef,
+  type SnapshotScore,
+} from '../../lib/tv-dashboard-source.js';
 import { pageTvMatches, tvMatchEntriesOf, type TvMatchEntry } from '../../lib/tv-match-list.js';
 import { resolveTvBranding, tvStateColor, type TvBranding } from '../../lib/tv-branding.js';
 import type { StandingsRowView } from '../../lib/overview.js';
@@ -303,6 +309,7 @@ export function TvDashboard({
         ['live', 'matches-view'].map((path) => fetch(`${base}/${path}`)),
       );
       let scheduleRefreshed = false;
+      const snapshotScores = new Map<string, SnapshotScore>();
       if (scheduleResponse?.ok) {
         const snapshot = (await scheduleResponse.json()) as PublicMatchesViewResponse;
         if (
@@ -310,6 +317,13 @@ export function TvDashboard({
           snapshot.matches.every((match) => typeof match.status === 'string')
         ) {
           scheduleRefreshed = true;
+          for (const match of snapshot.matches) {
+            snapshotScores.set(match.matchId, {
+              state: match.status,
+              homeScore: match.homeScore,
+              awayScore: match.awayScore,
+            });
+          }
           const entries = tvMatchEntriesOf(
             snapshot.matches.map((match) => ({
               ...match,
@@ -338,12 +352,18 @@ export function TvDashboard({
       if (res?.ok) {
         const liveData = await res.json();
         if (liveData && Array.isArray(liveData.matches)) {
+          const liveMatches = liveData.matches as readonly LiveMatch[];
+          const liveIds = new Set(liveMatches.map((match) => match.matchId));
           setProjectionStale(!scheduleRefreshed);
           setDashboard((current) => ({
             ...current,
-            matches: liveData.matches,
+            matches: settleLeftLive(
+              overlayLive(current, { ...current, matches: liveMatches }).matches,
+              liveIds,
+              snapshotScores,
+            ),
           }));
-          return liveData.matches as readonly LiveMatch[];
+          return liveMatches;
         }
       }
       setProjectionStale(true);
