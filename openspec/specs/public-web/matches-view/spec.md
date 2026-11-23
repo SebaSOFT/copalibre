@@ -466,3 +466,17 @@ The Live page SHALL list its live matches, then the next 5 upcoming matches in k
 
 - **WHEN** 64 matches are upcoming
 - **THEN** Live lists 5 of them, the earliest first, each linking to a different report, followed by a link to Matches
+
+### Requirement: Every public match card reads its time in the organization's time zone
+
+Every public surface that renders a match card, including the stage page, SHALL format its date and time in the organization's time zone, so the same match shows the same date and time on every public page.
+
+#### Scenario: Stage page and matches page agree
+
+- **WHEN** an organization in America/Argentina/Buenos_Aires has a match at 19:00 local time and a spectator opens its stage page and the matches page
+- **THEN** both show the match at 19:00 on the same day
+
+#### Scenario: A late match keeps its day
+
+- **WHEN** a match starts at 21:15 local time in a zone three hours behind UTC
+- **THEN** the stage page shows it on its local day at 21:15, not on the next day

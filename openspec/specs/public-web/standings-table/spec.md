@@ -173,3 +173,26 @@ A successful public player profile response SHALL be publicly cacheable for 60 s
 
 - **WHEN** a client reads a profile the tournament does not show publicly
 - **THEN** the API answers 404 without `Cache-Control: public`
+
+### Requirement: The standings CSV link is served on the app origin
+
+Every public standings CSV download link SHALL be a path on the app origin under the API path prefix. It SHALL NOT contain the API's internal address.
+
+#### Scenario: Link in a Compose installation
+
+- **WHEN** the web role runs with `COPALIBRE_API_INTERNAL_URL` set to `http://api:3001` and a spectator opens a stage page
+- **THEN** the download link starts with `/api/organizations/` and the browser receives the CSV
+
+### Requirement: The player dialog shows localized statistic labels and roles
+
+The player dialog SHALL show each statistic's label in the page language when the profile carries a localized label, falling back to the stored label, and SHALL show the competition role with the same localized role names the player page uses.
+
+#### Scenario: Spanish dialog
+
+- **WHEN** a spectator on a Spanish page opens a player whose profile carries `localizedLabel.es` "Goles" and the role `player`
+- **THEN** the dialog shows "Goles" and "Jugador"
+
+#### Scenario: Unknown role
+
+- **WHEN** the profile carries a role the catalogue does not name
+- **THEN** the dialog shows the role as stored, as literal text
