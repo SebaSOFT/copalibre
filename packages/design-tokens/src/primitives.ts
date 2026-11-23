@@ -93,12 +93,25 @@ export const FONT_STYLESHEETS = [
 
 /**
  * The stylesheets public pages load after their first paint rather than with the page's own
- * stylesheet. Noto Sans SC splits Chinese into 101 `unicode-range` faces, three fifths of the
- * compressed stylesheet, and a public page's first paint waited for them on every page in every
- * language. A page in Chinese still loads them before it paints; Control, TV and help load the
- * whole stylesheet as before.
+ * stylesheet. A public page paints with two Latin faces: Barlow 400 for its text and Barlow
+ * Condensed 700 for its main heading, the largest paint. Every other weight, and JetBrains Mono,
+ * swaps in afterwards over a metric-matched fallback, so nothing moves. On the slow mobile profile
+ * the five faces a tournament overview also used cost about 130 KB before its first paint, which
+ * put the heading's paint over its budget.
+ *
+ * Noto Sans SC splits Chinese into 101 `unicode-range` faces, three fifths of the compressed
+ * stylesheet. The Cyrillic Roboto faces stay with the page: they have no metric-matched fallback,
+ * and a browser downloads them only for Cyrillic text. A page in Chinese loads every deferred face
+ * before it paints; Control, TV and help load the whole stylesheet as before.
  */
 export const DEFERRED_PUBLIC_FONT_STYLESHEETS = [
+  '@fontsource/barlow/500.css',
+  '@fontsource/barlow/600.css',
+  '@fontsource/barlow/700.css',
+  '@fontsource/barlow-condensed/400.css',
+  '@fontsource/barlow-condensed/500.css',
+  '@fontsource/barlow-condensed/600.css',
+  '@fontsource-variable/jetbrains-mono/wght.css',
   '@fontsource-variable/noto-sans-sc/wght.css',
 ] as const satisfies readonly (typeof FONT_STYLESHEETS)[number][];
 

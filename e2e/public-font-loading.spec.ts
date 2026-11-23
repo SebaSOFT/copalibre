@@ -19,6 +19,9 @@ import { expect, test } from './fixtures.js';
 const PHONE = { width: 412, height: 823 };
 const HEADING_FACE = /barlow-condensed-latin-700-normal\.[^/]+\.woff2$/;
 const FALLBACK_SCRIPT_FACES = /\/(noto-sans-sc|roboto|roboto-condensed)-[^/]*\.woff2$/;
+/** The Latin faces a public page adds after its first paint: all but its text and heading faces. */
+const DEFERRED_LATIN_FACES =
+  /\/(barlow-latin-(500|600|700)|barlow-condensed-latin-(400|500|600)|jetbrains-mono-latin)-[^/]*\.woff2$/;
 
 let fixture: Awaited<ReturnType<typeof startPerformanceFixtureApi>> | undefined;
 
@@ -59,6 +62,14 @@ async function recordLayoutShifts(page: Page): Promise<void> {
       }
     }).observe({ type: 'layout-shift', buffered: true });
   });
+}
+
+/** Waits until the stylesheet a public page adds after its first paint has loaded, and its faces. */
+async function deferredFacesLoaded(page: Page): Promise<void> {
+  await page.waitForFunction(() =>
+    [...document.styleSheets].some((sheet) => sheet.href?.includes('fonts-deferred')),
+  );
+  await page.evaluate(() => document.fonts.ready);
 }
 
 /*
@@ -105,7 +116,7 @@ test.describe('public fonts on a phone', () => {
       await delayFonts(page);
       await page.goto(route);
       await page.waitForLoadState('load');
-      await page.evaluate(() => document.fonts.ready);
+      await deferredFacesLoaded(page);
       // Let the frame after the swap be laid out and reported.
       await page.evaluate(
         () =>
@@ -140,6 +151,31 @@ test.describe('public fonts on a phone', () => {
 
       expect(fonts.filter((path) => HEADING_FACE.test(path))).toHaveLength(1);
       expect(fonts.filter((path) => FALLBACK_SCRIPT_FACES.test(path))).toEqual([]);
+    });
+
+    test(`requests no deferred Latin face before the first paint: ${route}`, async ({ page }) => {
+      await page.setViewportSize(PHONE);
+      await page.goto(route);
+      await page.waitForLoadState('load');
+      await deferredFacesLoaded(page);
+
+      const timing = await page.evaluate(() => ({
+        // The page adds the deferred stylesheet once a frame has painted: its first paint.
+        paint:
+          performance.getEntriesByName('first-paint')[0]?.startTime ?? Number.POSITIVE_INFINITY,
+        fonts: performance
+          .getEntriesByType('resource')
+          .filter((entry) => /\.woff2$/.test(new URL(entry.name).pathname))
+          .map((entry) => ({ path: new URL(entry.name).pathname, start: entry.startTime })),
+      }));
+      const deferred = timing.fonts.filter((font) => DEFERRED_LATIN_FACES.test(font.path));
+      // The page uses them: they arrive, only after it painted.
+      expect(deferred.length).toBeGreaterThan(0);
+      for (const font of deferred) {
+        expect(font.start, `${font.path} before the first paint`).toBeGreaterThanOrEqual(
+          timing.paint,
+        );
+      }
     });
   }
 });
