@@ -1052,6 +1052,60 @@ test.describe('B2: public tournament page', () => {
     expect(ran).toBeUndefined();
   });
 
+  test('the standings CSV link is a path on the app origin that serves the file', async ({
+    page,
+  }) => {
+    const csvPath = `${TOURNAMENT}/public/tables/top-scorers/csv`;
+    await page.route(`**${csvPath}`, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'text/csv; charset=utf-8',
+        body: 'player,goals,cards\nGoleador Uno,9,4/5\n',
+      }),
+    );
+
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    await page.locator('[data-full-layout-code="top-scorers"]').click();
+
+    await expect(page.getByRole('link', { name: 'Download CSV' })).toHaveAttribute('href', csvPath);
+    const response = await page.evaluate(async (href) => {
+      const reply = await fetch(href);
+      return { status: reply.status, type: reply.headers.get('content-type') ?? '' };
+    }, csvPath);
+    expect(response.status).toBe(200);
+    expect(response.type).toContain('text/csv');
+  });
+
+  test('the player dialog on a Spanish page shows Spanish statistic labels and role', async ({
+    page,
+  }) => {
+    await page.route(PLAYER_PROFILE_PATH, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          displayName: 'Goleador Uno',
+          careerStatistics: [
+            {
+              statistics: [
+                { label: 'Goals', localizedLabel: { en: 'Goals', es: 'Goles' }, value: 10 },
+              ],
+            },
+          ],
+          competitionHistory: [{ tournamentName: 'Copa', teamName: 'Talleres', role: 'player' }],
+        }),
+      }),
+    );
+
+    await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    await page.locator('[data-full-layout-code="top-scorers"]').click();
+    await page.getByRole('link', { name: 'Goleador Uno' }).click();
+
+    const dialog = page.locator('#cl-player-dialog');
+    await expect(dialog.locator('.cl-stat-label')).toHaveText('Goles');
+    await expect(dialog.getByRole('cell', { name: 'Jugador' })).toBeVisible();
+  });
+
   test('shows tournament-total and match-by-match statistics, excluding composite columns from match rows, and switches declared layouts', async ({
     page,
   }) => {

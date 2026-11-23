@@ -6,6 +6,7 @@ import {
   findPinnedMatch,
   lastMatchAt,
   overlayLive,
+  settleLeftLive,
 } from './tv-dashboard-source.js';
 
 const overviewMatch = (
@@ -117,5 +118,110 @@ describe('lastMatchAt', () => {
 
   it('is absent when no match has a date', () => {
     expect(lastMatchAt([{ startsAt: '' }])).toBeUndefined();
+  });
+});
+
+describe('settleLeftLive', () => {
+  const liveMatch = (matchId: string, state: LiveMatch['state']): LiveMatch => ({
+    matchId,
+    stageNumber: 1,
+    matchNumber: 1,
+    stageOrdinal: 1,
+    state,
+    projectionVersion: 1,
+    sides: [
+      { entrantId: `${matchId}-h`, name: 'Home', score: 1, state },
+      { entrantId: `${matchId}-a`, name: 'Away', score: 0, state },
+    ],
+  });
+
+  it('takes the state and score of a match that left the live projection from the snapshot', () => {
+    const settled = settleLeftLive(
+      [liveMatch('m1', 'live')],
+      new Set(),
+      new Map([['m1', { state: 'final', homeScore: 3, awayScore: 2 }]]),
+    );
+
+    expect(settled[0]?.state).toBe('final');
+    expect(settled[0]?.sides.map((side) => [side.score, side.state])).toEqual([
+      [3, 'final'],
+      [2, 'final'],
+    ]);
+  });
+
+  it('keeps a match the live projection still lists', () => {
+    const current = liveMatch('m1', 'live');
+    const settled = settleLeftLive(
+      [current],
+      new Set(['m1']),
+      new Map([['m1', { state: 'final', homeScore: 3, awayScore: 2 }]]),
+    );
+
+    expect(settled[0]).toBe(current);
+  });
+
+  it('keeps a match with no snapshot entry, and a match that was not live', () => {
+    const live = liveMatch('m1', 'live');
+    const upcoming = liveMatch('m2', 'upcoming');
+    const settled = settleLeftLive(
+      [live, upcoming],
+      new Set(),
+      new Map([['m2', { state: 'final', homeScore: 9, awayScore: 9 }]]),
+    );
+
+    expect(settled[0]).toBe(live);
+    expect(settled[1]).toBe(upcoming);
+  });
+
+  it('keeps the stored score when the snapshot has none', () => {
+    const settled = settleLeftLive(
+      [liveMatch('m1', 'live')],
+      new Set(),
+      new Map([['m1', { state: 'final' }]]),
+    );
+
+    expect(settled[0]?.sides.map((side) => side.score)).toEqual([1, 0]);
+  });
+
+  it('clears live-only telemetry when a match settles to final', () => {
+    const withTelemetry: LiveMatch = {
+      ...liveMatch('m1', 'live'),
+      clockSeconds: 420,
+      possessionEntrantId: 'm1-h',
+      activePenalties: [{ timerId: 'p1', entrantId: 'm1-a', remainingSeconds: 90 }],
+    };
+
+    const settled = settleLeftLive(
+      [withTelemetry],
+      new Set(),
+      new Map([['m1', { state: 'final', homeScore: 3, awayScore: 2 }]]),
+    );
+
+    expect(settled[0]?.state).toBe('final');
+    expect(settled[0]?.clockSeconds).toBeUndefined();
+    expect(settled[0]?.possessionEntrantId).toBeUndefined();
+    expect(settled[0]?.activePenalties).toBeUndefined();
+  });
+
+  it('keeps live-only telemetry when the snapshot still reports the match as live', () => {
+    const withTelemetry: LiveMatch = {
+      ...liveMatch('m1', 'live'),
+      clockSeconds: 420,
+      possessionEntrantId: 'm1-h',
+      activePenalties: [{ timerId: 'p1', entrantId: 'm1-a', remainingSeconds: 90 }],
+    };
+
+    const settled = settleLeftLive(
+      [withTelemetry],
+      new Set(),
+      new Map([['m1', { state: 'live', homeScore: 2, awayScore: 1 }]]),
+    );
+
+    expect(settled[0]?.state).toBe('live');
+    expect(settled[0]?.clockSeconds).toBe(420);
+    expect(settled[0]?.possessionEntrantId).toBe('m1-h');
+    expect(settled[0]?.activePenalties).toEqual([
+      { timerId: 'p1', entrantId: 'm1-a', remainingSeconds: 90 },
+    ]);
   });
 });

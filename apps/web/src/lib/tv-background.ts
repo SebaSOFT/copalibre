@@ -22,8 +22,10 @@ function isTvBackground(value: string | null): value is TvBackground {
   return value !== null && TV_BACKGROUNDS.some((background) => background === value);
 }
 
+/** Six hex digits, with or without a leading `#`; the result is always lowercase `#rrggbb`. */
 function validChromaKey(value: string | null | undefined): string | undefined {
-  return value && /^#[\da-f]{6}$/i.test(value) ? value.toLowerCase() : undefined;
+  const match = value ? /^#?([\da-f]{6})$/i.exec(value) : null;
+  return match?.[1] === undefined ? undefined : `#${match[1].toLowerCase()}`;
 }
 
 /**

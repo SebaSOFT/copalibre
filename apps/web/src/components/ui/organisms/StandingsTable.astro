@@ -187,6 +187,13 @@ const isPlayerRanking =
 // mechanism BracketView.astro uses for `data-journey-matches`), not called as
 // `intl.formatMessage` from within the script itself.
 const playerDialogLabels = {
+  locale: intl.locale,
+  roles: {
+    player: intl.formatMessage(messages.playerProfileRolePlayer),
+    substitute: intl.formatMessage(messages.playerProfileRoleSubstitute),
+    coach: intl.formatMessage(messages.playerProfileRoleCoach),
+    staff: intl.formatMessage(messages.playerProfileRoleStaff),
+  },
   fallbackTitle: intl.formatMessage(messages.playerProfileHeading),
   loadingPlaceholder: intl.formatMessage(messages.standingsPlayerDialogLoadingPlaceholder),
   loadingFetch: intl.formatMessage(messages.standingsPlayerDialogLoadingFetch),
@@ -628,6 +635,8 @@ const playerDialogLabels = {
 
   function readPlayerDialogLabels(root: ParentNode): PlayerDialogLabels {
     const fallback: PlayerDialogLabels = {
+      locale: 'en',
+      roles: {},
       fallbackTitle: 'Player Profile',
       loadingPlaceholder: 'Loading player details...',
       loadingFetch: 'Loading...',

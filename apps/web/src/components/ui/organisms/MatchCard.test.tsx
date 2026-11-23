@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
 import { publicIntl, sideSourceLabels } from '../../../lib/i18n/public-intl.js';
 import { MatchCard, resolveCompactEntrant } from './MatchCard.js';
@@ -340,6 +341,28 @@ describe('MatchCard', () => {
       timeZone,
     }).format(new Date(instant));
     expect(timestamp?.getAttribute('title')).toBe(expected);
+  });
+
+  it('keeps the organization day when a UTC instant crosses midnight', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-11-20T12:00:00.000Z'));
+    try {
+      const { container } = render(
+        <MatchCard
+          match={baseMatch({ scheduledAt: '2026-11-19T00:15:00.000Z' })}
+          labels={labels}
+          locale="es"
+          timeZone="America/Argentina/Buenos_Aires"
+        />,
+      );
+      const text = container.querySelector('time.cl-responsive-timestamp')?.textContent ?? '';
+      expect(text).toContain('18');
+      expect(text).toContain('21:15');
+      expect(text).not.toContain('19');
+      expect(text).not.toContain('00:15');
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
 

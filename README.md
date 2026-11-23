@@ -216,8 +216,6 @@ is planned and tracked as an OpenSpec proposal in
   assessment, findings and pending actions (Spanish)
 - [`docs/release/screen-reader-checklist.md`](docs/release/screen-reader-checklist.md) — required
   manual accessibility pass and per-release results record
-- [`docs/release/results/2.0.0-screen-reader.md`](docs/release/results/2.0.0-screen-reader.md) —
-  the 2.0.0 screen-reader results
 - [`docs/DEPENDENCY-SECURITY-INCIDENTS.md`](docs/DEPENDENCY-SECURITY-INCIDENTS.md) — incident
   register contract and maintainer evidence workflow
 - [`docs/TESTING.md`](docs/TESTING.md) — testing conventions

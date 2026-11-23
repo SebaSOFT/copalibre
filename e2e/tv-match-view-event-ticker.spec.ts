@@ -92,6 +92,8 @@ const emptyMatchReport = { ...enrichedMatchReport, timeline: [] };
 
 let apiServer: Server;
 let currentMatchReport: typeof enrichedMatchReport;
+let currentLive: typeof live = live;
+let currentMatchesView: readonly unknown[] = [];
 
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
@@ -103,7 +105,11 @@ test.beforeAll(async ({ workerPort }) => {
       return;
     }
     if (path === `${BASE}/live`) {
-      res.end(JSON.stringify(live));
+      res.end(JSON.stringify(currentLive));
+      return;
+    }
+    if (path === `${BASE}/matches-view`) {
+      res.end(JSON.stringify({ matches: currentMatchesView }));
       return;
     }
     if (path === `${BASE}/stages/1/matches/1`) {
@@ -122,6 +128,41 @@ test.afterAll(async () => {
 });
 
 test.describe('TV match view event ticker', () => {
+  test.beforeEach(() => {
+    currentLive = live;
+    currentMatchesView = [];
+  });
+
+  test('keeps the pinned match after a refresh whose live projection no longer lists it', async ({
+    page,
+  }) => {
+    currentMatchReport = enrichedMatchReport;
+    await gotoTv(page, TV_MATCH_PATH);
+    await expect(page.getByText('Club Andes').first()).toBeVisible();
+
+    // The match finishes: the live projection drops it and the matches view reports it final.
+    currentLive = { matches: [] };
+    currentMatchesView = [
+      {
+        matchId: 'match-1',
+        stageNumber: 1,
+        matchNumber: 1,
+        stageOrdinal: 1,
+        round: 1,
+        status: 'final',
+        homeName: 'Club Andes',
+        awayName: 'Deportivo Sur',
+        homeScore: 2,
+        awayScore: 0,
+      },
+    ];
+
+    // The refresh runs every 15 s; the score moving to the matches view's value proves it ran.
+    await expect(page.locator('.tv-score-center__digits')).toContainText('2', { timeout: 30_000 });
+    await expect(page.getByText('Club Andes').first()).toBeVisible();
+    await expect(page.getByText('Este partido no existe')).toHaveCount(0);
+  });
+
   test('shows the match’s recorded goal and card events alongside the score', async ({ page }) => {
     currentMatchReport = enrichedMatchReport;
     await gotoTv(page, TV_MATCH_PATH);

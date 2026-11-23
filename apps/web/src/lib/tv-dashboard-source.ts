@@ -63,6 +63,45 @@ export function overlayLive(base: LiveDashboard, live: LiveDashboard): LiveDashb
   };
 }
 
+/** The state and score a matches-view snapshot reports for one match. */
+export interface SnapshotScore {
+  readonly state: ResultState;
+  readonly homeScore?: number;
+  readonly awayScore?: number;
+}
+
+/**
+ * A match that was live and is no longer in the live projection (it finished, or the projection
+ * dropped it) takes its state and score from the matches view. A match the live projection still
+ * lists, or one with no snapshot entry, is returned as it is.
+ */
+export function settleLeftLive(
+  matches: readonly LiveMatch[],
+  liveIds: ReadonlySet<string>,
+  snapshot: ReadonlyMap<string, SnapshotScore>,
+): readonly LiveMatch[] {
+  return matches.map((match) => {
+    if (match.state !== 'live' || liveIds.has(match.matchId)) return match;
+    const settled = snapshot.get(match.matchId);
+    if (settled === undefined) return match;
+    const updated: { -readonly [K in keyof LiveMatch]: LiveMatch[K] } = {
+      ...match,
+      state: settled.state,
+      sides: match.sides.map((side, index) => ({
+        ...side,
+        state: settled.state,
+        score: (index === 0 ? settled.homeScore : settled.awayScore) ?? side.score,
+      })),
+    };
+    if (settled.state !== 'live') {
+      delete updated.clockSeconds;
+      delete updated.possessionEntrantId;
+      delete updated.activePenalties;
+    }
+    return updated;
+  });
+}
+
 /** A match addressed the way the public match route addresses it: by stage and ordinal within it. */
 export interface PinnedMatchRef {
   readonly stageNumber: number;

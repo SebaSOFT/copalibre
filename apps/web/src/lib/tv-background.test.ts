@@ -58,4 +58,35 @@ describe('resolveTvBackground', () => {
       }).chromaKey,
     ).toBe(DEFAULT_CHROMA_KEY);
   });
+
+  /* eslint-disable no-restricted-syntax -- fixtures: the chroma colours a request names, not app styling */
+  it('accepts a six-digit chroma color with or without its leading hash, in lowercase', () => {
+    for (const chroma of ['00ff00', '#00FF00', '%2300ff00', '%2300FF00']) {
+      expect(
+        resolveTvBackground({
+          searchParams: new URLSearchParams(`bg=chroma&chroma=${chroma}`),
+        }).chromaKey,
+      ).toBe('#00ff00');
+    }
+  });
+
+  it('rejects shorthand, alpha, named and other malformed chroma values', () => {
+    for (const chroma of ['0f0', '#00ff00ff', 'green', '00ff0', 'gg00ff']) {
+      expect(
+        resolveTvBackground({
+          searchParams: new URLSearchParams(`bg=chroma&chroma=${chroma}`),
+        }).chromaKey,
+      ).toBe(DEFAULT_CHROMA_KEY);
+    }
+  });
+
+  it('selects the chroma background for a bare hex overlay chroma', () => {
+    expect(
+      resolveTvBackground({
+        overlayMode: 'lower',
+        searchParams: new URLSearchParams('mode=overlay&chroma=00ff00'),
+      }),
+    ).toEqual({ background: 'chroma', chromaKey: '#00ff00' });
+  });
+  /* eslint-enable no-restricted-syntax */
 });

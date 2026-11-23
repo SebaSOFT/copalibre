@@ -6,6 +6,8 @@ import {
 } from './player-dialog-content.js';
 
 const labels: PlayerDialogLabels = {
+  locale: 'en',
+  roles: {},
   fallbackTitle: 'Player',
   loadingPlaceholder: 'Loading details',
   loadingFetch: 'Loading',
@@ -106,6 +108,45 @@ describe('the player dialog content', () => {
 
     expect(content.querySelector('.cl-player-profile__tag')?.textContent).toBe('Age: 0');
     expect(content.querySelectorAll('tbody td')[2]?.textContent).toBe('');
+  });
+
+  it('shows statistic labels in the page language, falling back to the stored label', () => {
+    const spanish: PlayerDialogLabels = {
+      ...labels,
+      locale: 'es',
+      roles: { player: 'Jugador' },
+    };
+    const content = buildPlayerDialogContent(
+      document,
+      {
+        careerStatistics: [
+          {
+            statistics: [
+              { label: 'Goals', localizedLabel: { en: 'Goals', es: 'Goles' }, value: 10 },
+              { label: 'Appearances', value: 4 },
+            ],
+          },
+        ],
+        competitionHistory: [{ tournamentName: 'Copa', teamName: 'Casa', role: 'player' }],
+      },
+      spanish,
+    );
+
+    expect([...content.querySelectorAll('.cl-stat-item')].map((item) => item.textContent)).toEqual([
+      'Goles 10',
+      'Appearances 4',
+    ]);
+    expect(content.querySelector('tbody td:nth-child(3)')?.textContent).toBe('Jugador');
+  });
+
+  it('shows a role the catalogue does not name as stored', () => {
+    const content = buildPlayerDialogContent(
+      document,
+      { competitionHistory: [{ tournamentName: 'Copa', teamName: 'Casa', role: 'referee' }] },
+      { ...labels, locale: 'es', roles: { player: 'Jugador' } },
+    );
+
+    expect(content.querySelector('tbody td:nth-child(3)')?.textContent).toBe('referee');
   });
 
   it('writes a status message as text', () => {

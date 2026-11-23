@@ -1,4 +1,11 @@
+import type { LocalizedLabel } from '@copalibre/domain';
+import { localizedText } from './localized-label.js';
+
 export interface PlayerDialogLabels {
+  /** The page language: statistic labels are shown in it. */
+  locale: string;
+  /** Competition role (as stored) to its name in the page language. */
+  roles: Readonly<Record<string, string>>;
   fallbackTitle: string;
   loadingPlaceholder: string;
   loadingFetch: string;
@@ -21,6 +28,7 @@ interface PlayerDialogHistoryItem {
 
 interface PlayerDialogStatistic {
   readonly label: string;
+  readonly localizedLabel?: LocalizedLabel;
   readonly value: number;
 }
 
@@ -90,7 +98,12 @@ function statisticsSection(
       const item = doc.createElement('div');
       item.className = 'cl-stat-item';
       item.append(
-        textElement(doc, 'span', 'cl-stat-label', statistic.label),
+        textElement(
+          doc,
+          'span',
+          'cl-stat-label',
+          localizedText(statistic.localizedLabel ?? statistic.label, labels.locale),
+        ),
         ' ',
         textElement(doc, 'strong', 'cl-stat-val', String(statistic.value)),
       );
@@ -100,7 +113,17 @@ function statisticsSection(
   return grid;
 }
 
-function historyRow(doc: Document, item: PlayerDialogHistoryItem): HTMLTableRowElement {
+/** The role in the page language; a role the catalogue does not name stays as stored. */
+function roleText(role: string | undefined, labels: PlayerDialogLabels): string {
+  if (role === undefined) return '';
+  return Object.hasOwn(labels.roles, role) ? (labels.roles[role] ?? role) : role;
+}
+
+function historyRow(
+  doc: Document,
+  item: PlayerDialogHistoryItem,
+  labels: PlayerDialogLabels,
+): HTMLTableRowElement {
   const row = doc.createElement('tr');
   const tournament = doc.createElement('td');
   tournament.append(textElement(doc, 'strong', undefined, item.tournamentName));
@@ -110,7 +133,7 @@ function historyRow(doc: Document, item: PlayerDialogHistoryItem): HTMLTableRowE
   row.append(
     tournament,
     textElement(doc, 'td', undefined, team),
-    textElement(doc, 'td', undefined, item.role ?? ''),
+    textElement(doc, 'td', undefined, roleText(item.role, labels)),
   );
   return row;
 }
@@ -135,7 +158,7 @@ function historySection(
   const head = doc.createElement('thead');
   head.append(headerRow);
   const rows = doc.createElement('tbody');
-  rows.append(...history.map((item) => historyRow(doc, item)));
+  rows.append(...history.map((item) => historyRow(doc, item, labels)));
   table.append(head, rows);
   return table;
 }

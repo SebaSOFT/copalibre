@@ -114,6 +114,17 @@ test.beforeAll(async ({ workerPort }) => {
       res.end(JSON.stringify(overview));
       return;
     }
+    if (path === `${TOURNAMENT}/stages/1/bracket`) {
+      res.end(
+        JSON.stringify({
+          format: 'round-robin',
+          zones: [
+            { zoneId: 'zone-norte', zoneName: 'Zona Norte', format: 'round-robin', matches: [] },
+          ],
+        }),
+      );
+      return;
+    }
     if (path === `${TOURNAMENT}/matches-view`) {
       const state = new URLSearchParams(query).get('state');
       const matches = liveAtZero
@@ -290,6 +301,31 @@ test('formats schedule dates and times in English and German using the organizat
     }).format(instant);
     await expect(scheduledRow.getByRole('cell').first()).toHaveText(expected);
   }
+});
+
+test('a stage page card shows the same local time as the matches page for the same match', async ({
+  page,
+}) => {
+  liveAtZero = true;
+  const instant = new Date(liveAtZeroMatch.scheduledAt);
+  const timeZone = 'America/Argentina/Buenos_Aires';
+  const cardHour = new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZone,
+  }).format(instant);
+  const matchesTime = new Intl.DateTimeFormat('en', { timeStyle: 'short', timeZone }).format(
+    instant,
+  );
+
+  await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`);
+  await expect(page.locator(`[data-match="${liveAtZeroMatch.matchId}"]`)).toContainText(cardHour);
+
+  await page.goto(matchesPath);
+  await expect(
+    page.getByRole('row').filter({ hasText: 'Palmira' }).getByRole('cell').first(),
+  ).toContainText(matchesTime);
 });
 
 test('every filter row carries a visible title, and only the rows that apply appear', async ({
