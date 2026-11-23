@@ -292,7 +292,13 @@ const trail = publicTrail(trailBase, [
 
 <script>
   import { mountPublicSchedule } from '../../../../../lib/public-schedule-live.ts';
-  import { mountPublicLiveScoreboards } from '../../../../../lib/public-live-scoreboards.ts';
+
   mountPublicSchedule();
-  mountPublicLiveScoreboards();
+  if (document.querySelector('[data-live-stream]')) {
+    void import('../../../../../lib/public-live-scoreboards.ts').then(
+      ({ mountPublicLiveScoreboards }) => {
+        mountPublicLiveScoreboards();
+      },
+    );
+  }
 </script>

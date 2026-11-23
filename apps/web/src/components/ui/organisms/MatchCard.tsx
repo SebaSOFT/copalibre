@@ -2,7 +2,7 @@ import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import { formatPlacement, formatSideSource, sourceMatchLabel } from '../../../lib/side-source.js';
 import { rescheduledStatement } from '../../../lib/reschedule.js';
 import { useHydrated } from '../../../lib/island-browser-state.js';
-import { useLiveScoreboardPatch } from '../../../lib/live-scoreboard-store.js';
+import { useLiveScoreboardPatch } from '../../../lib/live-scoreboard-hooks.js';
 import { activeSegmentLabel } from '../../../lib/segment-label.js';
 import { Badge } from '../atoms/Badge.js';
 import { Icon } from '../atoms/icon.js';

@@ -1,4 +1,3 @@
-import { useSyncExternalStore } from 'react';
 import type { EventEnvelope } from '@copalibre/realtime';
 import { readScores, type LiveMatchClock, type LiveSegment } from './live-state.js';
 import type { ResultState } from './result-state.js';
@@ -160,39 +159,35 @@ export function resetLiveScoreboardStore(): void {
   notifyStatus();
 }
 
-function subscribeMatch(matchId: string | undefined, onStoreChange: () => void): () => void {
+export function getLiveScoreboardPatch(
+  matchId: string | undefined,
+): LiveScoreboardMatchPatch | undefined {
+  return matchId ? matchPatches.get(matchId) : undefined;
+}
+
+export function getLiveStreamStatus(): LiveStreamStatus {
+  return streamStatus;
+}
+
+export function subscribeLiveScoreboardMatch(
+  matchId: string | undefined,
+  onStoreChange: () => void,
+): () => void {
   if (!matchId) return () => undefined;
   let set = matchListeners.get(matchId);
   if (!set) {
     set = new Set();
     matchListeners.set(matchId, set);
   }
-  set.add(onStoreChange);
+  const listeners = set;
+  listeners.add(onStoreChange);
   return () => {
-    set?.delete(onStoreChange);
-    if (set?.size === 0) matchListeners.delete(matchId);
+    listeners.delete(onStoreChange);
+    if (listeners.size === 0) matchListeners.delete(matchId);
   };
 }
 
-function subscribeStatus(onStoreChange: () => void): () => void {
+export function subscribeLiveStreamStatus(onStoreChange: () => void): () => void {
   statusListeners.add(onStoreChange);
   return () => statusListeners.delete(onStoreChange);
-}
-
-const serverPatch = (): undefined => undefined;
-const SERVER_STATUS: LiveStreamStatus = { usingLastKnown: false };
-const serverStatus = (): LiveStreamStatus => SERVER_STATUS;
-
-export function useLiveScoreboardPatch(
-  matchId: string | undefined,
-): LiveScoreboardMatchPatch | undefined {
-  return useSyncExternalStore(
-    (cb) => subscribeMatch(matchId, cb),
-    () => (matchId ? matchPatches.get(matchId) : undefined),
-    serverPatch,
-  );
-}
-
-export function useLiveStreamStatus(): LiveStreamStatus {
-  return useSyncExternalStore(subscribeStatus, () => streamStatus, serverStatus);
 }

@@ -1,10 +1,7 @@
 import { jest } from '@jest/globals';
 import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
-import {
-  resetLiveScoreboardStore,
-  useLiveScoreboardPatch,
-  useLiveStreamStatus,
-} from './live-scoreboard-store.js';
+import { resetLiveScoreboardStore } from './live-scoreboard-store.js';
+import { useLiveScoreboardPatch, useLiveStreamStatus } from './live-scoreboard-hooks.js';
 import { mountPublicLiveScoreboards } from './public-live-scoreboards.js';
 import { act, renderHook } from '@testing-library/react';
 

@@ -1,15 +1,14 @@
 import type { EventEnvelope } from '@copalibre/realtime';
 import {
+  getLiveScoreboardPatch,
+  getLiveStreamStatus,
   publishLiveScoreboardEvent,
   resetLiveScoreboardStore,
   seedLiveScoreboardMatch,
   setLiveStreamStatus,
-  useLiveScoreboardPatch,
-  useLiveStreamStatus,
+  subscribeLiveScoreboardMatch,
+  subscribeLiveStreamStatus,
 } from './live-scoreboard-store.js';
-import { act, renderHook } from '@testing-library/react';
-import { createElement } from 'react';
-import { renderToString } from 'react-dom/server.node';
 
 function envelope(
   overrides: Partial<EventEnvelope> & { readonly payload: Record<string, unknown> },
@@ -49,98 +48,91 @@ describe('live-scoreboard-store', () => {
       awayScore: 99,
     });
 
-    const { result } = renderHook(() => ({
-      patch: useLiveScoreboardPatch('match-1'),
-      status: useLiveStreamStatus(),
-    }));
-    expect(result.current.patch?.state).toBe('upcoming');
-
-    act(() => {
-      publishLiveScoreboardEvent(
-        envelope({
-          eventType: 'match.started',
-          projectionVersion: 4,
-          payload: { matchId: 'match-1' },
-        }),
-      );
-      publishLiveScoreboardEvent(
-        envelope({
-          eventType: 'match.event-recorded',
-          projectionVersion: 5,
-          payload: { matchId: 'match-1', scores: { 'home-1': 2, 'away-1': 1 } },
-        }),
-      );
+    const matchNotifications: number[] = [];
+    const statusNotifications: number[] = [];
+    const unsubscribeMatch = subscribeLiveScoreboardMatch('match-1', () => {
+      matchNotifications.push(1);
     });
-    expect(result.current.patch?.state).toBe('live');
-    expect(result.current.patch?.homeScore).toBe(2);
-    expect(result.current.patch?.awayScore).toBe(1);
-    expect(result.current.status.lastUpdatedAt).toBe('2026-04-01T18:10:00.000Z');
+    const unsubscribeStatus = subscribeLiveStreamStatus(() => {
+      statusNotifications.push(1);
+    });
+
+    expect(getLiveScoreboardPatch('match-1')?.state).toBe('upcoming');
+    expect(getLiveScoreboardPatch(undefined)).toBeUndefined();
+
+    publishLiveScoreboardEvent(
+      envelope({
+        eventType: 'match.started',
+        projectionVersion: 4,
+        payload: { matchId: 'match-1' },
+      }),
+    );
+    publishLiveScoreboardEvent(
+      envelope({
+        eventType: 'match.event-recorded',
+        projectionVersion: 5,
+        payload: { matchId: 'match-1', scores: { 'home-1': 2, 'away-1': 1 } },
+      }),
+    );
+    expect(getLiveScoreboardPatch('match-1')?.state).toBe('live');
+    expect(getLiveScoreboardPatch('match-1')?.homeScore).toBe(2);
+    expect(getLiveScoreboardPatch('match-1')?.awayScore).toBe(1);
+    expect(getLiveStreamStatus().lastUpdatedAt).toBe('2026-04-01T18:10:00.000Z');
+    expect(matchNotifications).toHaveLength(2);
+    expect(statusNotifications).toHaveLength(2);
 
     // Stale or unrelated events are ignored.
-    act(() => {
-      publishLiveScoreboardEvent(
-        envelope({
-          eventType: 'result.superseded',
-          projectionVersion: 5,
-          payload: { matchId: 'match-1' },
-        }),
-      );
-      publishLiveScoreboardEvent(
-        envelope({
-          eventType: 'standings.recalculated',
-          projectionVersion: 9,
-          payload: {},
-        }),
-      );
-    });
-    expect(result.current.patch?.state).toBe('live');
+    publishLiveScoreboardEvent(
+      envelope({
+        eventType: 'result.superseded',
+        projectionVersion: 5,
+        payload: { matchId: 'match-1' },
+      }),
+    );
+    publishLiveScoreboardEvent(
+      envelope({
+        eventType: 'standings.recalculated',
+        projectionVersion: 9,
+        payload: {},
+      }),
+    );
+    expect(getLiveScoreboardPatch('match-1')?.state).toBe('live');
 
-    act(() => {
-      publishLiveScoreboardEvent(
-        envelope({
-          eventType: 'result.superseded',
-          projectionVersion: 6,
-          payload: { matchId: 'match-1' },
-        }),
-      );
-    });
-    expect(result.current.patch?.state).toBe('disputed');
+    publishLiveScoreboardEvent(
+      envelope({
+        eventType: 'result.superseded',
+        projectionVersion: 6,
+        payload: { matchId: 'match-1' },
+      }),
+    );
+    expect(getLiveScoreboardPatch('match-1')?.state).toBe('disputed');
+
+    unsubscribeMatch();
+    unsubscribeStatus();
   });
 
-  it('validates clock payloads and deduplicates identical stream status updates', () => {
-    const { result } = renderHook(() => useLiveStreamStatus());
-    act(() => {
-      setLiveStreamStatus({ usingLastKnown: false });
-      setLiveStreamStatus({ usingLastKnown: true, lastUpdatedAt: '2026-04-01T18:11:00.000Z' });
-    });
-    expect(result.current).toEqual({
+  it('validates clock payloads, handles undefined match subscriptions, and deduplicates stream status', () => {
+    const statusListener = (): void => undefined;
+    const unsubscribeStatus = subscribeLiveStreamStatus(statusListener);
+    const unsubscribeEmpty = subscribeLiveScoreboardMatch(undefined, () => undefined);
+    expect(unsubscribeEmpty()).toBeUndefined();
+
+    setLiveStreamStatus({ usingLastKnown: false });
+    setLiveStreamStatus({ usingLastKnown: true, lastUpdatedAt: '2026-04-01T18:11:00.000Z' });
+    expect(getLiveStreamStatus()).toEqual({
       usingLastKnown: true,
       lastUpdatedAt: '2026-04-01T18:11:00.000Z',
     });
 
-    const patchHook = renderHook(() => useLiveScoreboardPatch('match-2'));
-    act(() => {
-      publishLiveScoreboardEvent(
-        envelope({
-          eventType: 'match.clock-changed',
-          projectionVersion: 2,
-          payload: { matchId: 'match-2', segmentNumber: 'invalid' },
-        }),
-      );
-    });
-    expect(patchHook.result.current).toBeUndefined();
-  });
+    publishLiveScoreboardEvent(
+      envelope({
+        eventType: 'match.clock-changed',
+        projectionVersion: 2,
+        payload: { matchId: 'match-2', segmentNumber: 'invalid' },
+      }),
+    );
+    expect(getLiveScoreboardPatch('match-2')).toBeUndefined();
 
-  it('returns stable SSR server snapshots for useLiveScoreboardPatch and useLiveStreamStatus', () => {
-    function ServerProbe(): string {
-      const patch = useLiveScoreboardPatch('match-ssr');
-      const status = useLiveStreamStatus();
-      return `${patch?.state ?? 'none'}:${status.usingLastKnown}`;
-    }
-
-    const first = renderToString(createElement(ServerProbe));
-    const second = renderToString(createElement(ServerProbe));
-    expect(first).toBe('none:false');
-    expect(second).toBe('none:false');
+    unsubscribeStatus();
   });
 });

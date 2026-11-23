@@ -1,7 +1,7 @@
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import { formatTimestamp } from '../../../lib/format-timestamp.js';
 import { useHydrated } from '../../../lib/island-browser-state.js';
-import { useLiveScoreboardPatch, useLiveStreamStatus } from '../../../lib/live-scoreboard-store.js';
+import { useLiveScoreboardPatch, useLiveStreamStatus } from '../../../lib/live-scoreboard-hooks.js';
 import type { LiveMatchClock as LiveMatchClockState } from '../../../lib/live-state.js';
 import { applyTemplate } from '../../../lib/matches-view.js';
 import { activeSegmentLabel, type SegmentLabelInput } from '../../../lib/segment-label.js';

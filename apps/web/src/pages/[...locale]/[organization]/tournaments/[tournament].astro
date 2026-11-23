@@ -593,10 +593,15 @@ const trail = publicTrail(trailBase, []);
   // data-access-at-page-tier rule. Patches ScoreTicker's own rendered DOM;
   // never a requirement for the page's content, only an enhancement of it.
   import { mountLiveTicker } from '../../../../lib/ticker-live.ts';
-  import { mountPublicLiveScoreboards } from '../../../../lib/public-live-scoreboards.ts';
 
   mountLiveTicker();
-  mountPublicLiveScoreboards();
+  if (document.querySelector('[data-live-stream]')) {
+    void import('../../../../lib/public-live-scoreboards.ts').then(
+      ({ mountPublicLiveScoreboards }) => {
+        mountPublicLiveScoreboards();
+      },
+    );
+  }
 </script>
 
 <style>
