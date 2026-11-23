@@ -1,5 +1,5 @@
 export const PERFORMANCE_BUDGETS = Object.freeze({
-  lcpMs: 2500,
+  lcpMs: 2200,
   cls: 0.1,
   inpMs: 200,
   compressedScriptBytes: 150 * 1024,
