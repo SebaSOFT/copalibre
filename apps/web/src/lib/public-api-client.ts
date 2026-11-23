@@ -165,6 +165,11 @@ export async function fetchPublicTableProjection(
   return fetchOr404<TableProjectionResponse>(url);
 }
 
+/**
+ * A download link for the browser: a path on the app origin under the API prefix, which the web
+ * role proxies to the API. It never carries the server-side API address, which a browser cannot
+ * resolve.
+ */
 export function publicTableCsvUrl(
   organizationAlias: string,
   tournamentAlias: string,
@@ -172,11 +177,10 @@ export function publicTableCsvUrl(
   stageNumber?: number,
   clubId?: string,
 ): string {
-  const baseUrl = getApiBaseUrl();
   const scoped =
     stageNumber === undefined
-      ? `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}`
-      : `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageNumber.toString())}`;
+      ? `${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}`
+      : `${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageNumber.toString())}`;
   const params = new URLSearchParams();
   if (clubId) params.set('clubId', clubId);
   const query = params.size === 0 ? '' : `?${params}`;

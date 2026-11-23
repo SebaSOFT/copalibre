@@ -419,16 +419,25 @@ describe('public-api-client', () => {
   });
 
   describe('publicTableCsvUrl', () => {
-    it('builds a tournament-wide CSV URL', () => {
+    it('builds a tournament-wide CSV path on the app origin', () => {
       expect(publicTableCsvUrl('org1', 'tourney1', 'top-scorers')).toBe(
-        'http://api.test/api/organizations/org1/tournaments/tourney1/public/tables/top-scorers/csv',
+        '/api/organizations/org1/tournaments/tourney1/public/tables/top-scorers/csv',
       );
     });
 
-    it('builds a stage-scoped CSV URL and retains the club filter', () => {
+    it('builds a stage-scoped CSV path and retains the club filter', () => {
       expect(publicTableCsvUrl('org1', 'tourney1', 'group-standings-default', 2, 'club-123')).toBe(
-        'http://api.test/api/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default/csv?clubId=club-123',
+        '/api/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default/csv?clubId=club-123',
       );
+    });
+
+    it('never carries the server-side API address, whatever it is set to', () => {
+      process.env.COPALIBRE_API_INTERNAL_URL = 'http://api:3001';
+
+      const url = publicTableCsvUrl('org1', 'tourney1', 'group-standings-default', 1);
+
+      expect(url.startsWith('/api/organizations/')).toBe(true);
+      expect(url).not.toContain('api:3001');
     });
   });
 
