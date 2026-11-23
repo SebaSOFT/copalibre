@@ -297,20 +297,36 @@ export interface MatchStakeInput {
   readonly formatDate?: (scheduledAt: string) => string;
 }
 
-function slotReferencesMatch(
-  slot: BracketMatch['slots'][number],
+function matchesCurrentMatch(
+  slot: Extract<BracketMatch['slots'][number], { kind: 'winner-of' | 'loser-of' }>,
   currentNodeKey: string | undefined,
   currentMatchId: string | undefined,
   currentMatchNumber: number,
 ): boolean {
-  if (slot.kind !== 'winner-of' && slot.kind !== 'loser-of') return false;
   if (slot.nodeKey !== undefined && currentNodeKey !== undefined) {
     return slot.nodeKey === currentNodeKey;
   }
   if (slot.matchId !== undefined && currentMatchId !== undefined) {
     return slot.matchId === currentMatchId;
   }
-  return slot.matchNumber !== undefined && slot.matchNumber === currentMatchNumber;
+  return slot.matchNumber === currentMatchNumber;
+}
+
+function outgoingSlotKind(
+  slot: BracketMatch['slots'][number],
+  currentNodeKey: string | undefined,
+  currentMatchId: string | undefined,
+  currentMatchNumber: number,
+): 'winner-of' | 'loser-of' | undefined {
+  if (slot.kind === 'entrant') {
+    if (slot.from === undefined || currentMatchId === undefined) return undefined;
+    if (slot.from.matchId !== currentMatchId) return undefined;
+    return slot.from.outcome === 'winner' ? 'winner-of' : 'loser-of';
+  }
+  if (slot.kind !== 'winner-of' && slot.kind !== 'loser-of') return undefined;
+  return matchesCurrentMatch(slot, currentNodeKey, currentMatchId, currentMatchNumber)
+    ? slot.kind
+    : undefined;
 }
 
 interface OutgoingStakeEdge {
@@ -327,11 +343,9 @@ function collectOutgoingStakeEdges(
   const edges: OutgoingStakeEdge[] = [];
   for (const target of bracketMatches) {
     for (const slot of target.slots) {
-      if (
-        (slot.kind === 'winner-of' || slot.kind === 'loser-of') &&
-        slotReferencesMatch(slot, currentNodeKey, currentMatchId, currentMatchNumber)
-      ) {
-        edges.push({ kind: slot.kind, target });
+      const kind = outgoingSlotKind(slot, currentNodeKey, currentMatchId, currentMatchNumber);
+      if (kind !== undefined) {
+        edges.push({ kind, target });
       }
     }
   }
