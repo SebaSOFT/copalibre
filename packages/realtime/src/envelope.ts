@@ -65,6 +65,7 @@ export const PUBLIC_EVENT_FIELDS: Readonly<Record<string, readonly string[]>> = 
   'match.finalized': ['matchId', 'result'],
   'result.superseded': ['matchId', 'reason'],
   'match.started': ['matchId', 'startedAt'],
+  'match.clock-changed': ['matchId', 'segmentNumber', 'elapsedSeconds', 'running', 'changedAt'],
   'match.event-recorded': [
     'matchId',
     'definitionCode',

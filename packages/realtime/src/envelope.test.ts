@@ -99,4 +99,45 @@ describe('what a public stream may say', () => {
     });
     expect(publicised?.payload).not.toHaveProperty('privateOfficialId');
   });
+
+  it('publishes match.clock-changed with only its five allowed fields', () => {
+    const publicised = sanitiseForPublic(
+      toEnvelope({
+        ...row,
+        eventType: 'match.clock-changed',
+        payload: {
+          matchId: 'm-1',
+          segmentNumber: 1,
+          elapsedSeconds: 585,
+          running: true,
+          changedAt: '2026-11-23T01:42:10.000Z',
+          operatorId: 'secret-referee',
+          internalNote: 'do not leak',
+        },
+      }),
+    );
+
+    expect(publicised?.payload).toEqual({
+      matchId: 'm-1',
+      segmentNumber: 1,
+      elapsedSeconds: 585,
+      running: true,
+      changedAt: '2026-11-23T01:42:10.000Z',
+    });
+    expect(publicised?.payload).not.toHaveProperty('operatorId');
+    expect(publicised?.payload).not.toHaveProperty('internalNote');
+  });
+
+  it('keeps match.console-projection strictly private', () => {
+    expect(
+      sanitiseForPublic(
+        toEnvelope({
+          ...row,
+          eventType: 'match.console-projection',
+          payload: { matchId: 'm-1', status: 'in-progress', clockRunning: true },
+        }),
+      ),
+    ).toBeUndefined();
+    expect(isPublicEventType('match.console-projection')).toBe(false);
+  });
 });
