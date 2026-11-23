@@ -1940,6 +1940,7 @@ describe('TvDashboard refresh keeps the matches the live projection does not lis
     expect(digits).toContain('3');
     expect(digits).not.toContain('1');
     expect(screen.queryByTestId('tv-match-not-found')).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('keeps a match that left the live projection as it was when the matches view fails', async () => {
@@ -1958,5 +1959,6 @@ describe('TvDashboard refresh keeps the matches the live projection does not lis
 
     expect(document.querySelector('.tv-score-center__digits')?.textContent).toContain('1');
     expect(screen.queryByTestId('tv-match-not-found')).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe(dashboardLabels.stale);
   });
 });

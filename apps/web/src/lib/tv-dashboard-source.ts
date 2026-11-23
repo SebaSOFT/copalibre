@@ -84,7 +84,7 @@ export function settleLeftLive(
     if (match.state !== 'live' || liveIds.has(match.matchId)) return match;
     const settled = snapshot.get(match.matchId);
     if (settled === undefined) return match;
-    return {
+    const updated: { -readonly [K in keyof LiveMatch]: LiveMatch[K] } = {
       ...match,
       state: settled.state,
       sides: match.sides.map((side, index) => ({
@@ -93,6 +93,12 @@ export function settleLeftLive(
         score: (index === 0 ? settled.homeScore : settled.awayScore) ?? side.score,
       })),
     };
+    if (settled.state !== 'live') {
+      delete updated.clockSeconds;
+      delete updated.possessionEntrantId;
+      delete updated.activePenalties;
+    }
+    return updated;
   });
 }
 
