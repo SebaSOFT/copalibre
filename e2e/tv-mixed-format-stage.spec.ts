@@ -403,11 +403,9 @@ test('captures screenshots of the zone-aware kiosk at broadcast size', async ({ 
 
   await gotoTv(page, `${tvPath}?view=standings`);
   await expect(page.getByTestId('tv-standings-zone')).toHaveCount(2);
-  await page.screenshot({ path: 'docs/assets/screenshots/tv-mixed-stage-standings.png' });
 
   await gotoTv(page, `${tvPath}?view=matches`);
   await expect(page.getByTestId('tv-match-list')).toBeVisible();
-  await page.screenshot({ path: 'docs/assets/screenshots/tv-mixed-stage-matches.png' });
 
   await gotoTv(page, tvPath);
   await page.getByRole('button', { name: 'Bracket' }).click();
@@ -418,5 +416,4 @@ test('captures screenshots of the zone-aware kiosk at broadcast size', async ({ 
     // eslint-disable-next-line no-restricted-syntax -- asserting a computed browser style value, not an app styling literal
     'rgba(0, 0, 0, 0)',
   );
-  await page.screenshot({ path: 'docs/assets/screenshots/tv-mixed-stage-bracket.png' });
 });

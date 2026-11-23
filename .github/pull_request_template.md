@@ -16,7 +16,8 @@
 
 ## UI screenshots
 
-<!-- Embed before/after pairs for every touched screen here. -->
+<!-- Attach before/after pairs for every touched screen here (drag the images into this editor).
+     Never commit screenshots to the repository. -->
 
 ## Checklist
 
@@ -31,5 +32,4 @@
 - [ ] Task checkboxes updated in the OpenSpec change's `tasks.md`
 - [ ] Changed interface strings are listed above (key, language, old → new)
 - [ ] UI changes include before/after screenshot pairs for each touched screen (1440×900 desktop,
-      390×844 mobile, TV 1920×1080), captured in Spanish on the Panamericano demo, committed under
-      `docs/assets/screenshots` and embedded above
+      390×844 mobile, TV 1920×1080), captured in Spanish on the Panamericano demo and attached above (not committed)

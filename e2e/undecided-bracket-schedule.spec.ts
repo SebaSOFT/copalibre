@@ -223,11 +223,7 @@ test('names every undecided side on the public programme and seats the entrant i
   await expect(page.getByText('Place 3').filter({ visible: true })).toBeVisible();
   await expect(page.getByText('TBD', { exact: true })).toHaveCount(0);
 
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.screenshot({ path: 'docs/assets/screenshots/undecided-public-desktop.png' });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: 'docs/assets/screenshots/undecided-public-mobile.png' });
-  // Back to the desktop layout: a phone lists days, and the card checked below is the wide layout's.
+  // The card checked below is the wide layout's: a phone lists days.
   await page.setViewportSize({ width: 1440, height: 900 });
 
   await page.evaluate(() => Object.assign(window, { documentMarker: 'same-document' }));
@@ -257,7 +253,6 @@ test('the broadcast list names the sources a final waits on', async ({ page }) =
   const list = page.getByTestId('tv-match-list');
   await expect(list).toBeVisible();
   await expect(list.getByRole('listitem', { name: /Winner of Semi-final 2/ })).toBeVisible();
-  await page.screenshot({ path: 'docs/assets/screenshots/undecided-tv.png' });
 });
 
 test('the console states what an undecided final awaits and offers no controls', async ({
@@ -348,6 +343,4 @@ test('the console states what an undecided final awaits and offers no controls',
   await expect(page.getByRole('button', { name: 'Gol', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Iniciar', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /Finalizar/ })).toHaveCount(0);
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.screenshot({ path: 'docs/assets/screenshots/undecided-console-desktop.png' });
 });
