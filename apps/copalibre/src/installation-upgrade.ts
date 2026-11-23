@@ -124,6 +124,9 @@ async function checkFreeSpace(
   legacy: LegacyPostgres,
 ): Promise<void> {
   if (!options.processes.capture) throw new UpgradeStop('this runner cannot measure free space');
+  // database-tools bind-mounts ./backups. Docker would create a missing one as root, and the backup
+  // that follows could not stage its dump there, so the CLI creates it first, as the operator.
+  await mkdir(join(options.cwd, 'backups'), { recursive: true });
   const size = await options.processes.capture('docker', [
     'compose',
     'run',
