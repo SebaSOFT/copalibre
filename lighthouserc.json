@@ -32,7 +32,7 @@
       "assertions": {
         "largest-contentful-paint": [
           "warn",
-          { "aggregationMethod": "median", "maxNumericValue": 2625 }
+          { "aggregationMethod": "median", "maxNumericValue": 2310 }
         ],
         "cumulative-layout-shift": [
           "warn",

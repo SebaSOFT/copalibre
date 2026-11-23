@@ -182,6 +182,7 @@ test('Lighthouse assertions match the published performance budgets', () => {
     options['largest-contentful-paint'].maxNumericValue,
     withTimingTolerance(PERFORMANCE_BUDGETS.lcpMs),
   );
+  assert.equal(options['largest-contentful-paint'].maxNumericValue, 2310);
   assert.equal(options['cumulative-layout-shift'].maxNumericValue, PERFORMANCE_BUDGETS.cls);
   assert.equal(
     options['resource-summary:script:size'].maxNumericValue,

@@ -753,3 +753,36 @@ SHALL take effect after hydration. The production build SHALL raise no React hyd
 #### Scenario: A rail tab responds once the page is interactive
 - **WHEN** a viewer or a test clicks a rail tab after the island reports it has hydrated
 - **THEN** the selected view shows and stays selected
+
+### Requirement: A TV refresh keeps the matches the live projection does not list
+
+A TV surface's periodic refresh SHALL lay the live projection over the matches it already holds and SHALL NOT replace them with the live projection alone. A match that leaves the live projection SHALL take its state and score from the matches view read in the same refresh.
+
+#### Scenario: A pinned scheduled match survives a refresh
+
+- **WHEN** the pinned route shows a scheduled match and the refresh interval elapses with no match live
+- **THEN** the same match is still shown and the not-found state is not rendered
+
+#### Scenario: The next match stays listed
+
+- **WHEN** the kiosk lists the next scheduled matches and a refresh returns an empty live projection
+- **THEN** those matches stay listed
+
+#### Scenario: A finished match leaves the live projection
+
+- **WHEN** a match that was live is absent from the next live response and the matches view reports it final
+- **THEN** the surface shows it final with the matches view's score
+
+### Requirement: The chroma key accepts a bare hex value
+
+A TV route SHALL accept the `chroma` query value as six hexadecimal digits with or without a leading `#` and SHALL use it as that colour. Any other value SHALL be ignored.
+
+#### Scenario: Bare hex
+
+- **WHEN** an overlay is opened with `chroma=00ff00`
+- **THEN** the background renders `#00ff00`
+
+#### Scenario: Unsupported value
+
+- **WHEN** an overlay is opened with `chroma=green`
+- **THEN** the route renders its default background
