@@ -72,7 +72,7 @@ test('exempt paths are never scanned', () => {
 
 test('a tracked file name starting with a change number fails, a migration does not', () => {
   assert.equal(numberedFileName(`docs/reviews/${num(222)}-owned-control-coverage.md`), true);
-  assert.equal(numberedFileName(`docs/assets/screenshots/${num(239)}-bracket.png`), true);
+  assert.equal(numberedFileName(`docs/assets/videos/${num(239)}-bracket.mp4`), true);
   assert.equal(numberedFileName('docs/reviews/owned-control-coverage.md'), false);
   assert.equal(
     numberedFileName('packages/persistence/src/migrations/0001-initial-schema.ts'),
@@ -81,7 +81,7 @@ test('a tracked file name starting with a change number fails, a migration does 
 });
 
 test('reports a numbered change name embedded in a path', () => {
-  assert.deepEqual(kinds(`path: 'docs/assets/screenshots/${num(240)}-series-progress.png'`), [
+  assert.deepEqual(kinds(`path: 'docs/assets/videos/${num(240)}-series-progress.mp4'`), [
     'numbered change name',
   ]);
 });

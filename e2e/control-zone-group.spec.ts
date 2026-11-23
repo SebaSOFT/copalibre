@@ -800,14 +800,6 @@ test.describe('generate a cup ahead and confirm its qualifiers', () => {
     await expect(
       semi.getByText('2nd Grupo B', { exact: true }).or(semi.getByTitle('2nd Grupo B')).first(),
     ).toBeVisible();
-    await publicPage.setViewportSize({ width: 1440, height: 900 });
-    await publicPage.screenshot({
-      path: 'docs/assets/screenshots/next-stage-ahead-public-desktop.png',
-    });
-    await publicPage.setViewportSize({ width: 390, height: 844 });
-    await publicPage.screenshot({
-      path: 'docs/assets/screenshots/next-stage-ahead-public-mobile.png',
-    });
     await publicPage.close();
 
     // While a group game remains, the confirmation says why and offers nothing to confirm.
@@ -824,7 +816,6 @@ test.describe('generate a cup ahead and confirm its qualifiers', () => {
     await expect(page.locator('[data-qualification-entrant="1"]')).toHaveText('Deportivo Norte');
     await expect(page.locator('[data-qualification-entrant="4"]')).toHaveText('Sportivo Este');
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.screenshot({ path: 'docs/assets/screenshots/next-stage-ahead-qualification.png' });
 
     await page.getByRole('button', { name: 'Confirmar clasificación' }).click();
     await expect(page.getByText('Clasificación confirmada: 4 lugares completados.')).toBeVisible();
