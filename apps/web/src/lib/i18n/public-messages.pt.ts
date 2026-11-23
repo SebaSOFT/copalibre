@@ -171,6 +171,10 @@ export const messages: Record<string, string> = {
   'publicWeb.series.aggregate': 'No agregado {home}–{away}',
 
   'publicWeb.live.usingLastKnown': 'Mostrando o último estado conhecido.',
+  'publicWeb.live.lastUpdated': 'Atualizado às {time}',
+  'publicWeb.live.clockStopped': 'Parado',
+  'publicWeb.live.clockAriaLabel': '{segment}, {time}',
+  'publicWeb.live.openMatch': 'Ver a partida {home} contra {away}',
 
   'publicWeb.tournamentPage.description':
     'Resultados, classificação e regulamento de {tournament}.',
@@ -227,6 +231,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tournamentsPage.runnerUp': 'Vice-campeão',
   'publicWeb.tournamentsPage.thirdPlace': 'Terceiro lugar',
   'publicWeb.tournamentsPage.viewDetails': 'Ver torneio',
+  'publicWeb.organization.moreLive': '+{count} ao vivo',
   'publicWeb.orgPage.featuredHeading': 'Destaque',
   'publicWeb.orgPage.clubsHeading': 'Clubes',
   'publicWeb.orgPage.noClubs': 'Ainda não há clubes registrados.',
@@ -380,6 +385,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.possession': 'Posse',
   'publicWeb.tvDashboard.penalty': 'Penalidade',
   'publicWeb.tvDashboard.clockLabel': 'Hora local',
+  'publicWeb.tvDashboard.clockStopped': 'Parado',
   'publicWeb.tvDashboard.leading': 'Na frente',
   'publicWeb.tvDashboard.nextMatch': 'Próxima partida',
   'publicWeb.tvDashboard.zoneLegend': 'Grupo ou zona',

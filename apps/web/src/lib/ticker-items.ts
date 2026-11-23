@@ -74,7 +74,8 @@ export function matchItem(
   overtimeFor?: OvertimeResolver,
   time?: { readonly language: string; readonly timeZone?: string },
 ): TickerItem {
-  const played = match.home.score !== undefined && match.away.score !== undefined;
+  const showScore =
+    match.state === 'live' || (match.home.score !== undefined && match.away.score !== undefined);
   const overtime = overtimeFor?.(match);
   const tone =
     match.state === 'live' ? 'live' : match.state === 'upcoming' ? 'upcoming' : 'positive';
@@ -94,7 +95,7 @@ export function matchItem(
     tone,
     subject: match.home.name,
     opponent: match.away.name,
-    figure: played ? `${match.home.score} : ${match.away.score}` : labels.versus,
+    figure: showScore ? `${match.home.score ?? 0} : ${match.away.score ?? 0}` : labels.versus,
     // Read as a person reads a time, in the organization's zone: never the ISO instant itself.
     ...(match.startsAt === ''
       ? {}
@@ -142,7 +143,11 @@ export function buildTickerItems(input: {
   readonly timeZone?: string;
 }): readonly TickerItem[] {
   const { matches, performers, leaders, labels, language, overtimeFor, timeZone } = input;
-  const items: TickerItem[] = matches.map((match, index) =>
+  const orderedMatches = [
+    ...matches.filter((match) => match.state === 'live'),
+    ...matches.filter((match) => match.state !== 'live'),
+  ];
+  const items: TickerItem[] = orderedMatches.map((match, index) =>
     matchItem(match, index, labels, overtimeFor, {
       language,
       ...(timeZone === undefined ? {} : { timeZone }),

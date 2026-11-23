@@ -742,7 +742,296 @@ describe('scorebug clock', () => {
     );
 
     const clockBug = document.querySelector('.tv-lower-third__clock');
-    expect(clockBug?.getAttribute('data-time')).toBe('34:05');
+    expect(clockBug?.textContent).toContain('34:05');
+  });
+
+  it('never renders the wall clock inside overlay, spotlight, or presentation game-clock slots when the match has no clock', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-01T22:34:10.000Z'));
+    try {
+      const noClockLive: LiveDashboard = {
+        standingsVersion: 0,
+        usingLastKnown: true,
+        matches: [
+          {
+            matchId: 'm-untimed',
+            stageNumber: 1,
+            matchNumber: 1,
+            stageOrdinal: 1,
+            state: 'live',
+            projectionVersion: 1,
+            sides: [
+              { entrantId: 'h', name: 'Talleres', abbreviation: 'TAL', score: 2, state: 'live' },
+              { entrantId: 'a', name: 'Club Andes', abbreviation: 'AND', score: 1, state: 'live' },
+            ],
+          },
+        ],
+      };
+
+      const { rerender } = render(
+        <TvDashboard
+          dashboardLabels={dashboardLabels}
+          labels={tvLabels}
+          language="en"
+          initial={noClockLive}
+          pollIntervalMs={0}
+          streamPath="/stream"
+          timeZone="America/Argentina/San_Juan"
+          pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
+          presentation="lower"
+        />,
+      );
+
+      expect(document.querySelector('.tv-lower-third__clock')).toBeNull();
+      expect(screen.getByTestId('tv-lower-third').textContent).not.toContain('19:34');
+
+      rerender(
+        <TvDashboard
+          dashboardLabels={dashboardLabels}
+          labels={tvLabels}
+          language="en"
+          initial={noClockLive}
+          pollIntervalMs={0}
+          streamPath="/stream"
+          timeZone="America/Argentina/San_Juan"
+          pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
+          presentation="kiosk"
+          layoutVariant="kiosk"
+        />,
+      );
+
+      expect(document.querySelector('.tv-match-spotlight__clock')).toBeNull();
+      expect(screen.getByTestId('tv-match-spotlight').textContent).not.toContain('19:34');
+      expect(document.querySelector('.tv-scorebug__clock-label')?.textContent).toBe('Local time');
+      expect(document.querySelector('.tv-scorebug__clock--wall')?.getAttribute('data-time')).toBe(
+        '19:34',
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('keeps the labelled header wall clock beside a live match game clock', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-01T22:34:10.000Z'));
+    try {
+      const liveWithStructuredClock: LiveDashboard = {
+        standingsVersion: 0,
+        usingLastKnown: true,
+        matches: [
+          {
+            matchId: 'm-live',
+            stageNumber: 1,
+            matchNumber: 1,
+            stageOrdinal: 1,
+            state: 'live',
+            projectionVersion: 1,
+            clock: {
+              segmentNumber: 1,
+              elapsedSeconds: 900,
+              running: false,
+              asOf: '2026-03-01T22:34:00.000Z',
+            },
+            segments: [
+              {
+                number: 1,
+                type: 'half',
+                label: { en: 'Half', es: 'Tiempo' },
+                state: 'active',
+                timed: true,
+              },
+              {
+                number: 2,
+                type: 'half',
+                label: { en: 'Half', es: 'Tiempo' },
+                state: 'pending',
+                timed: true,
+              },
+            ],
+            sides: [
+              { entrantId: 'h', name: 'Talleres', abbreviation: 'TAL', score: 2, state: 'live' },
+              { entrantId: 'a', name: 'Club Andes', abbreviation: 'AND', score: 1, state: 'live' },
+            ],
+          },
+        ],
+      };
+
+      render(
+        <TvDashboard
+          dashboardLabels={dashboardLabels}
+          labels={tvLabels}
+          language="en"
+          initial={liveWithStructuredClock}
+          pollIntervalMs={0}
+          streamPath="/stream"
+          timeZone="America/Argentina/San_Juan"
+        />,
+      );
+
+      const gameClock = document.querySelector('.tv-scorebug__game-clock');
+      expect(gameClock?.textContent).toContain('1st Half');
+      expect(gameClock?.textContent).toContain('15:00');
+      expect(gameClock?.textContent).toContain('Stopped');
+      expect(document.querySelector('.tv-scorebug__clock-label')?.textContent).toBe('Local time');
+      expect(document.querySelector('.tv-scorebug__clock--wall')?.getAttribute('data-time')).toBe(
+        '19:34',
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('renders the segment label once on lower-third and kiosk spotlight for both timed and untimed matches', () => {
+    const timedSetMatch: LiveDashboard = {
+      standingsVersion: 0,
+      usingLastKnown: false,
+      matches: [
+        {
+          matchId: 'm-timed',
+          stageNumber: 1,
+          matchNumber: 1,
+          stageOrdinal: 1,
+          state: 'live',
+          projectionVersion: 1,
+          clock: {
+            segmentNumber: 1,
+            elapsedSeconds: 585,
+            running: true,
+            asOf: '2026-03-01T22:34:00.000Z',
+          },
+          segments: [
+            {
+              number: 1,
+              type: 'half',
+              label: { es: 'Tiempo', en: 'Half' },
+              state: 'active',
+              timed: true,
+            },
+            {
+              number: 2,
+              type: 'half',
+              label: { es: 'Tiempo', en: 'Half' },
+              state: 'pending',
+              timed: true,
+            },
+          ],
+          sides: [
+            { entrantId: 'h', name: 'Talleres', abbreviation: 'TAL', score: 1, state: 'live' },
+            { entrantId: 'a', name: 'Club Andes', abbreviation: 'AND', score: 0, state: 'live' },
+          ],
+        },
+      ],
+    };
+
+    const { rerender, unmount } = render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={timedSetMatch}
+        pollIntervalMs={0}
+        streamPath="/stream"
+        pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
+        presentation="lower"
+      />,
+    );
+    expect(screen.getByTestId('tv-lower-third').textContent?.match(/1st Half/g)).toHaveLength(1);
+    expect(screen.queryByTestId('tv-segment')).toBeNull();
+
+    rerender(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={timedSetMatch}
+        pollIntervalMs={0}
+        streamPath="/stream"
+        pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
+        presentation="kiosk"
+        layoutVariant="kiosk"
+      />,
+    );
+    expect(screen.getByTestId('tv-match-spotlight').textContent?.match(/1st Half/g)).toHaveLength(
+      1,
+    );
+    expect(screen.queryByTestId('tv-segment')).toBeNull();
+    unmount();
+
+    const untimedSetMatch: LiveDashboard = {
+      standingsVersion: 0,
+      usingLastKnown: false,
+      matches: [
+        {
+          matchId: 'm-set',
+          stageNumber: 1,
+          matchNumber: 1,
+          stageOrdinal: 1,
+          state: 'live',
+          projectionVersion: 1,
+          segments: [
+            {
+              number: 1,
+              type: 'set',
+              label: { en: 'Set', es: 'Set' },
+              state: 'completed',
+              timed: false,
+              scores: [25, 20],
+            },
+            {
+              number: 2,
+              type: 'set',
+              label: { en: 'Set', es: 'Set' },
+              state: 'completed',
+              timed: false,
+              scores: [18, 25],
+            },
+            {
+              number: 3,
+              type: 'set',
+              label: { en: 'Set', es: 'Set' },
+              state: 'active',
+              timed: false,
+              scores: [12, 9],
+            },
+          ],
+          sides: [
+            { entrantId: 'h', name: 'Talleres', abbreviation: 'TAL', score: 1, state: 'live' },
+            { entrantId: 'a', name: 'Club Andes', abbreviation: 'AND', score: 1, state: 'live' },
+          ],
+        },
+      ],
+    };
+
+    const { rerender: rerenderUntimed } = render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={untimedSetMatch}
+        pollIntervalMs={0}
+        streamPath="/stream"
+        pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
+        presentation="lower"
+      />,
+    );
+    expect(document.querySelector('.tv-lower-third__clock')).toBeNull();
+    expect(screen.getByTestId('tv-segment').textContent).toBe('3rd Set');
+
+    rerenderUntimed(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={untimedSetMatch}
+        pollIntervalMs={0}
+        streamPath="/stream"
+        pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
+        presentation="kiosk"
+        layoutVariant="kiosk"
+      />,
+    );
+    expect(document.querySelector('.tv-match-spotlight__clock')).toBeNull();
+    expect(screen.getByTestId('tv-segment').textContent).toBe('3rd Set');
   });
 });
 

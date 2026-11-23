@@ -18,7 +18,11 @@ import {
   mapOverviewResponse,
   mapLiveResponse,
 } from '../../../../../lib/public-api-client.ts';
-import { publicIntl, resultStateLabels } from '../../../../../lib/i18n/public-intl.ts';
+import {
+  liveClockLabels,
+  publicIntl,
+  resultStateLabels,
+} from '../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../../lib/locale.ts';
@@ -115,7 +119,15 @@ const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.liveP
       client:idle
       initial={dashboard}
       streamPath={model.streamPath}
+      organizationAlias={organization!}
+      tournamentAlias={tournament!}
+      localePrefix={localePrefix}
       versusLabel={intl.formatMessage(messages.tickerVersus)}
+      openMatchLabel={intl.formatMessage(messages.liveOpenMatch, {
+        home: '{home}',
+        away: '{away}',
+      })}
+      clockLabels={liveClockLabels(intl)}
       usingLastKnownText={intl.formatMessage(messages.liveUsingLastKnown)}
       noMatchesText={intl.formatMessage(messages.livePageNoMatches)}
       nextKickoffText={intl.formatMessage(messages.livePageNextKickoff)}

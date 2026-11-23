@@ -6,9 +6,13 @@
 import { rescheduledStatement } from '../../../lib/reschedule.ts';
 import { Badge } from '../atoms/Badge.tsx';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
+import { LiveMatchScoreboard } from '../molecules/LiveMatchScoreboard.tsx';
+import type { LiveMatchClock, LiveSegment } from '../../../lib/live-state.ts';
 import type { MatchReportModel } from '../../../lib/match-report.ts';
-import { formatEntrant } from '../../../lib/i18n/public-intl.ts';
+import { formatEntrant, liveClockLabels } from '../../../lib/i18n/public-intl.ts';
 import { displayedScore } from '../../../lib/matches-view.ts';
+import { activeSegmentLabel } from '../../../lib/segment-label.ts';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import type { IntlShape } from 'react-intl';
 
 export interface Props {
@@ -19,11 +23,33 @@ export interface Props {
   /** The match state in the page language. The stage/round/match position lives in the breadcrumb. */
   readonly statusLabel: string;
   readonly rescheduledLabel?: string;
+  readonly liveMatchId?: string;
+  readonly homeEntrantId?: string;
+  readonly awayEntrantId?: string;
+  readonly liveClock?: LiveMatchClock;
+  readonly liveSegments?: readonly LiveSegment[];
 }
 
-const { model, intl, locale, timeZone, statusLabel, rescheduledLabel } = Astro.props;
+const {
+  model,
+  intl,
+  locale,
+  timeZone,
+  statusLabel,
+  rescheduledLabel,
+  liveMatchId,
+  homeEntrantId,
+  awayEntrantId,
+  liveClock,
+  liveSegments,
+} = Astro.props;
 const home = formatEntrant(intl, model.home);
 const away = formatEntrant(intl, model.away);
+const resolvedLanguage: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
+const effectiveClock = liveClock ?? model.clock;
+const effectiveSegments = liveSegments ?? model.segments;
+const liveSegmentLabel = activeSegmentLabel(effectiveSegments, effectiveClock, resolvedLanguage);
+const clockLabels = liveClockLabels(intl);
 const rescheduled =
   model.status === 'upcoming'
     ? rescheduledStatement(model.rescheduledFrom, model.venueName, locale, rescheduledLabel)
@@ -33,6 +59,18 @@ const rescheduled =
 <header class="cl-match-hero">
   <div class="cl-match-hero__meta">
     <Badge className={`cl-badge--${model.status.toLowerCase()}`}>{statusLabel}</Badge>
+    {model.status === 'live' && (effectiveClock || liveSegmentLabel) && (
+      <LiveMatchScoreboard
+        client:load
+        clock={effectiveClock}
+        labels={clockLabels}
+        locale={locale}
+        matchId={liveMatchId}
+        segmentLabel={liveSegmentLabel}
+        segments={effectiveSegments}
+        timeZone={timeZone}
+      />
+    )}
   </div>
 
   <div class="cl-scoreboard">
@@ -41,11 +79,23 @@ const rescheduled =
         <span class="cl-team-name">{home.fullName}</span>
         {home.abbreviation && <span class="cl-team-abbreviation">{home.abbreviation}</span>}
       </span>
-      <span class="cl-team-score">{displayedScore(model.status, model.home.score) ?? '—'}</span>
+      <span
+        class="cl-team-score"
+        data-live-score-match={liveMatchId}
+        data-live-score-entrant={homeEntrantId}
+      >
+        {displayedScore(model.status, model.home.score) ?? '—'}
+      </span>
     </div>
     <div class="cl-scoreboard__divider">–</div>
     <div class="cl-scoreboard__side cl-scoreboard__side--away">
-      <span class="cl-team-score">{displayedScore(model.status, model.away.score) ?? '—'}</span>
+      <span
+        class="cl-team-score"
+        data-live-score-match={liveMatchId}
+        data-live-score-entrant={awayEntrantId}
+      >
+        {displayedScore(model.status, model.away.score) ?? '—'}
+      </span>
       <span class="cl-team-identity">
         <span class="cl-team-name">{away.fullName}</span>
         {away.abbreviation && <span class="cl-team-abbreviation">{away.abbreviation}</span>}
@@ -81,6 +131,8 @@ const rescheduled =
 
   .cl-match-hero__meta {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     justify-content: center;
     gap: 0.75rem;
     margin-bottom: 1rem;

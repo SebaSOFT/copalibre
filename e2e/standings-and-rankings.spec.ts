@@ -756,6 +756,21 @@ test.describe('B2: public tournament page', () => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
     await page.locator('[data-full-layout-code="group-standings-default"]').click();
     await expect(page).toHaveURL(/tab=group-standings-default/);
+    await page.waitForFunction(() => {
+      const deferredHrefs = Array.from(
+        document.querySelectorAll<HTMLMetaElement>('meta[name="copalibre:deferred-stylesheet"]'),
+      ).map((meta) => meta.content);
+      const links = Array.from(
+        document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
+      );
+      return deferredHrefs.every((href) =>
+        links.some((link) => link.getAttribute('href') === href && link.sheet !== null),
+      );
+    });
+    await page.evaluate(async () => {
+      void document.body.offsetHeight;
+      await document.fonts.ready;
+    });
     await page.evaluate(() => {
       (window as unknown as { __sameDocument: boolean }).__sameDocument = true;
       document.querySelector('.cl-standings-section')?.scrollIntoView();

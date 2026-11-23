@@ -12,9 +12,12 @@ import MatchBracketContext from '../../../../../../../../components/ui/organisms
 import { buildMatchReport } from '../../../../../../../../lib/match-report.ts';
 import {
   fetchBracket,
+  fetchLive,
   fetchMatchReport,
   mapBracketResponse,
+  mapLiveResponse,
 } from '../../../../../../../../lib/public-api-client.ts';
+import { publicStreamPath } from '@copalibre/routing';
 import { selectStageLayout } from '../../../../../../../../lib/bracket.ts';
 import { humanizeCode } from '../../../../../../../../lib/descriptor-label.ts';
 import { messages } from '../../../../../../../../lib/i18n/public-messages.en.ts';
@@ -88,6 +91,35 @@ const model = buildMatchReport(response, {
       : humanizeCode(code),
 });
 
+const liveDashboard =
+  model.status === 'live'
+    ? await fetchLive(organization!, tournament!).then((data) =>
+        data ? mapLiveResponse(data) : undefined,
+      )
+    : undefined;
+const liveMatch = liveDashboard?.matches.find(
+  (candidate) =>
+    candidate.stageNumber === stageNumber &&
+    (candidate.stageOrdinal ?? candidate.matchNumber) === matchNumber,
+);
+const liveStreamPath =
+  model.status === 'live'
+    ? publicStreamPath({ organizationAlias: organization!, tournamentAlias: tournament! })
+    : undefined;
+const liveMatchSeed = liveMatch
+  ? {
+      matchId: liveMatch.matchId,
+      projectionVersion: liveMatch.projectionVersion,
+      state: liveMatch.state,
+      ...(liveMatch.clock === undefined ? {} : { clock: liveMatch.clock }),
+      ...(liveMatch.segments === undefined ? {} : { segments: liveMatch.segments }),
+      homeScore: liveMatch.sides[0]?.score,
+      awayScore: liveMatch.sides[1]?.score,
+      homeEntrantId: liveMatch.sides[0]?.entrantId,
+      awayEntrantId: liveMatch.sides[1]?.entrantId,
+    }
+  : undefined;
+
 const trailBase = trailBaseOf({
   organizationAlias: organization!,
   organizationName: model.organizationName,
@@ -149,6 +181,11 @@ const structuredData = {
       />
     </PageHeader>
     <article class="cl-match-page">
+      {liveStreamPath && liveMatchSeed && (
+        <div data-live-stream={liveStreamPath} hidden>
+          <span data-live-match-seed={JSON.stringify(liveMatchSeed)} />
+        </div>
+      )}
       <MatchHero
         intl={intl}
         rescheduledLabel={intl.formatMessage(messages.matchRescheduled, {
@@ -159,6 +196,11 @@ const structuredData = {
         timeZone={response.organizationTimeZone ?? 'UTC'}
         model={model}
         statusLabel={statusLabels[model.status]}
+        liveMatchId={liveMatch?.matchId}
+        homeEntrantId={liveMatch?.sides[0]?.entrantId}
+        awayEntrantId={liveMatch?.sides[1]?.entrantId}
+        liveClock={liveMatch?.clock}
+        liveSegments={liveMatch?.segments}
       />
 
       {bracketMatches.length > 0 && (
@@ -209,5 +251,13 @@ const structuredData = {
 
 <script>
   import { mountPublicSchedule } from '../../../../../../../../lib/public-schedule-live.ts';
+
   mountPublicSchedule();
+  if (document.querySelector('[data-live-stream]')) {
+    void import('../../../../../../../../lib/public-live-scoreboards.ts').then(
+      ({ mountPublicLiveScoreboards }) => {
+        mountPublicLiveScoreboards();
+      },
+    );
+  }
 </script>

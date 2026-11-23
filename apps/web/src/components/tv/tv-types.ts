@@ -43,6 +43,8 @@ export interface TvDashboardLabels {
   readonly penalty: string;
   /** Names the wall clock the header shows for a tournament still being played. */
   readonly clockLabel: string;
+  readonly clockStopped: string;
+  readonly clockAriaLabel: string;
   readonly leading: string;
   readonly nextMatch: string;
   readonly zoneLegend: string;

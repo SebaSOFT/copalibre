@@ -10,7 +10,7 @@ defines when those budgets block release review.
 ### Requirement: Public pages meet a performance budget on slow mobile networks
 
 On slow 4G for mid-range phones, public overview, matches and match pages SHALL meet LCP at most
-2.5 s, CLS at most 0.1, INP at most 200 ms, JavaScript at most 150 KB and total transfer at most
+2.2 s, CLS at most 0.1, INP at most 200 ms, JavaScript at most 150 KB and total transfer at most
 1 MB. Lighthouse CI SHALL use the median of three runs per page and 5% timing tolerance. A
 Lighthouse User Flow SHALL measure INP; TBT SHALL be diagnostic only.
 

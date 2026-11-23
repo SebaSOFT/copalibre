@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { LiveMatchHero } from './LiveMatchHero.js';
-import { publicIntl, resultStateLabels } from '../../../lib/i18n/public-intl.js';
+import { liveClockLabels, publicIntl, resultStateLabels } from '../../../lib/i18n/public-intl.js';
 import { messages as publicMessages } from '../../../lib/i18n/public-messages.en.js';
 import type { LiveDashboard } from '../../../lib/live-state.js';
 import type { SupportedLanguage } from '../../../lib/language-preference.js';
@@ -73,13 +73,24 @@ function labelsFor(locale: SupportedLanguage) {
   return resultStateLabels(publicIntl(locale));
 }
 
+function openMatchTemplate(locale: SupportedLanguage): string {
+  return publicIntl(locale).formatMessage(publicMessages.liveOpenMatch, {
+    home: '{home}',
+    away: '{away}',
+  });
+}
+
 const meta = {
   title: 'Public/LiveMatchHero',
   component: LiveMatchHero,
   args: {
     initial: DASHBOARD,
     streamPath: '/stories/no-stream',
+    organizationAlias: 'liga-san-juan',
+    tournamentAlias: 'apertura-2026',
     versusLabel: publicIntl('en').formatMessage(publicMessages.tickerVersus),
+    openMatchLabel: openMatchTemplate('en'),
+    clockLabels: liveClockLabels(publicIntl('en')),
     usingLastKnownText: '',
     noMatchesText: publicIntl('en').formatMessage(publicMessages.livePageNoMatches),
     nextKickoffText: publicIntl('en').formatMessage(publicMessages.livePageNextKickoff),
@@ -95,15 +106,20 @@ type Story = StoryObj<typeof meta>;
 export const UsingLastKnown: Story = {
   render: (_args, context) => {
     const locale = context.globals.locale as SupportedLanguage;
+    const intl = publicIntl(locale);
     return (
       <LiveMatchHero
         initial={DASHBOARD}
         resultStateLabels={labelsFor(locale)}
         streamPath="/stories/no-stream"
-        versusLabel={publicIntl(locale).formatMessage(publicMessages.tickerVersus)}
-        usingLastKnownText={publicIntl(locale).formatMessage(publicMessages.liveUsingLastKnown)}
-        noMatchesText={publicIntl(locale).formatMessage(publicMessages.livePageNoMatches)}
-        nextKickoffText={publicIntl(locale).formatMessage(publicMessages.livePageNextKickoff)}
+        organizationAlias="liga-san-juan"
+        tournamentAlias="apertura-2026"
+        versusLabel={intl.formatMessage(publicMessages.tickerVersus)}
+        openMatchLabel={openMatchTemplate(locale)}
+        clockLabels={liveClockLabels(intl)}
+        usingLastKnownText={intl.formatMessage(publicMessages.liveUsingLastKnown)}
+        noMatchesText={intl.formatMessage(publicMessages.livePageNoMatches)}
+        nextKickoffText={intl.formatMessage(publicMessages.livePageNextKickoff)}
         locale={locale}
         referenceDate={Date.UTC(2026, 8, 23)}
       />
@@ -115,15 +131,20 @@ export const UsingLastKnown: Story = {
 export const NoMatches: Story = {
   render: (_args, context) => {
     const locale = context.globals.locale as SupportedLanguage;
+    const intl = publicIntl(locale);
     return (
       <LiveMatchHero
         initial={{ matches: [], standingsVersion: 0, usingLastKnown: false }}
         resultStateLabels={labelsFor(locale)}
         streamPath="/stories/no-stream"
-        versusLabel={publicIntl(locale).formatMessage(publicMessages.tickerVersus)}
+        organizationAlias="liga-san-juan"
+        tournamentAlias="apertura-2026"
+        versusLabel={intl.formatMessage(publicMessages.tickerVersus)}
+        openMatchLabel={openMatchTemplate(locale)}
+        clockLabels={liveClockLabels(intl)}
         usingLastKnownText=""
-        noMatchesText={publicIntl(locale).formatMessage(publicMessages.livePageNoMatches)}
-        nextKickoffText={publicIntl(locale).formatMessage(publicMessages.livePageNextKickoff)}
+        noMatchesText={intl.formatMessage(publicMessages.livePageNoMatches)}
+        nextKickoffText={intl.formatMessage(publicMessages.livePageNextKickoff)}
         nextKickoffAt="2026-09-24T16:00:00.000Z"
         locale={locale}
         referenceDate={Date.UTC(2026, 8, 23)}

@@ -21,6 +21,19 @@ const isInProgress = tournament.status === 'live';
 const isFinished = tournament.status === 'finished';
 const isUpcoming = tournament.status === 'upcoming';
 const winners = tournament.winners ?? [];
+const liveMatches = tournament.liveMatches ?? [];
+const firstLiveMatch = liveMatches[0];
+const hiddenPersonLabel = intl.formatMessage(messages.personHiddenAtRequest);
+const liveHomeName = firstLiveMatch
+  ? firstLiveMatch.homeHiddenAtRequest
+    ? hiddenPersonLabel
+    : firstLiveMatch.home
+  : '';
+const liveAwayName = firstLiveMatch
+  ? firstLiveMatch.awayHiddenAtRequest
+    ? hiddenPersonLabel
+    : firstLiveMatch.away
+  : '';
 ---
 
 <article
@@ -69,14 +82,37 @@ const winners = tournament.winners ?? [];
 
   {isFinished && winners.length > 0 && <ChampionPodium winners={winners} intl={intl} />}
 
+  {firstLiveMatch && (
+    <div class="cl-tournament-card__live">
+      <p class="cl-tournament-card__live-match">
+        <span>{liveHomeName}</span>
+        <span class="cl-tournament-card__live-score">
+          {firstLiveMatch.homeScore} – {firstLiveMatch.awayScore}
+        </span>
+        <span>{liveAwayName}</span>
+      </p>
+      {liveMatches.length > 1 && (
+        <p class="cl-tournament-card__live-more">
+          {intl.formatMessage(messages.organizationMoreLive, { count: liveMatches.length - 1 })}
+        </p>
+      )}
+    </div>
+  )}
+
   <footer class="cl-card-footer">
     <div class="cl-card-actions">
-      <Button href={tournamentUrl} variant="primary">
-        {intl.formatMessage(messages.tournamentsViewDetails)}
-      </Button>
-      {isInProgress && (
-        <Button href={liveUrl} variant="secondary">
-          {intl.formatMessage(messages.livePageTitle)} &rarr;
+      {liveMatches.length > 0 ? (
+        <>
+          <Button href={liveUrl} variant="primary">
+            {intl.formatMessage(messages.livePageTitle)} &rarr;
+          </Button>
+          <Button href={tournamentUrl} variant="secondary">
+            {intl.formatMessage(messages.tournamentsViewDetails)}
+          </Button>
+        </>
+      ) : (
+        <Button href={tournamentUrl} variant="primary">
+          {intl.formatMessage(messages.tournamentsViewDetails)}
         </Button>
       )}
     </div>

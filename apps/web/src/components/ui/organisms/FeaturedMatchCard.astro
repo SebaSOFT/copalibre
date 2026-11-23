@@ -21,14 +21,26 @@ const { heading, match, href, labels, locale, timeZone, organizationAlias } = As
     <h2 id="featured-match-heading">{heading}</h2>
   </div>
   <div class="cl-featured-match__card">
-    <MatchCard
-      labels={labels}
-      locale={locale}
-      match={match}
-      organizationAlias={organizationAlias}
-      reportUrl={href}
-      timeZone={timeZone}
-    />
+    {match.state === 'live' ? (
+      <MatchCard
+        client:load
+        labels={labels}
+        locale={locale}
+        match={match}
+        organizationAlias={organizationAlias}
+        reportUrl={href}
+        timeZone={timeZone}
+      />
+    ) : (
+      <MatchCard
+        labels={labels}
+        locale={locale}
+        match={match}
+        organizationAlias={organizationAlias}
+        reportUrl={href}
+        timeZone={timeZone}
+      />
+    )}
   </div>
 </section>
 

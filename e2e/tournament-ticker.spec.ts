@@ -88,6 +88,11 @@ const topScorers = {
 };
 
 let apiServer: Server;
+let activeOverview = overview;
+
+test.beforeEach(() => {
+  activeOverview = overview;
+});
 
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
@@ -99,7 +104,7 @@ test.beforeAll(async ({ workerPort }) => {
       path === `${base}/overview` ||
       path === `/api/organizations/${ORGANIZATION}/public/tournaments/${TOURNAMENT_ALIAS}/overview`
     ) {
-      res.end(JSON.stringify(overview));
+      res.end(JSON.stringify(activeOverview));
       return;
     }
     if (path === `${base}/public/tables`) {
@@ -147,6 +152,54 @@ test.describe('Tournament ticker', () => {
     // ranked by that layout's `defaultSort` — the goals, not the rank column.
     await expect(ticker.getByText('Nicolás Fernández').first()).toBeVisible();
     await expect(ticker.getByText('11').first()).toBeVisible();
+  });
+
+  test('places the live match first in the ticker with its score rather than vs', async ({
+    page,
+  }) => {
+    activeOverview = {
+      ...overview,
+      matches: [
+        {
+          matchNumber: 3,
+          stageNumber: 1,
+          homeName: 'Gimnasia',
+          awayName: 'Maipú',
+          homeScore: 2,
+          awayScore: 0,
+          status: 'finalized',
+          scheduledAt: '2026-02-28T18:00:00Z',
+        },
+        {
+          matchNumber: 2,
+          stageNumber: 1,
+          homeName: 'Godoy Cruz',
+          awayName: 'Independiente Rivadavia',
+          status: 'scheduled',
+          scheduledAt: '2026-03-01T18:00:00Z',
+        },
+        {
+          matchNumber: 1,
+          stageNumber: 1,
+          homeName: 'Talleres',
+          awayName: 'San Martín',
+          homeScore: 3,
+          awayScore: 1,
+          status: 'in-progress',
+          scheduledAt: '2026-03-01T15:00:00Z',
+        },
+      ],
+    };
+
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    const firstItem = page.locator('[data-ticker-track] .cl-ticker__item').first();
+    await expect(firstItem).toBeVisible();
+    await expect(firstItem).toContainText('Live');
+    await expect(firstItem).toContainText('Talleres');
+    await expect(firstItem).toContainText('San Martín');
+    await expect(firstItem.locator('.cl-ticker__figure')).toHaveText('3 : 1');
+    await expect(firstItem.locator('.cl-ticker__figure')).not.toHaveText(/vs/i);
   });
 
   /*

@@ -239,6 +239,11 @@ export function tvDashboardLabels(intl: IntlShape) {
     possession: intl.formatMessage(messages.tvDashboardPossession),
     penalty: intl.formatMessage(messages.tvDashboardPenalty),
     clockLabel: intl.formatMessage(messages.tvDashboardClockLabel),
+    clockStopped: intl.formatMessage(messages.tvDashboardClockStopped),
+    clockAriaLabel: intl.formatMessage(messages.liveClockAriaLabel, {
+      segment: '{segment}',
+      time: '{time}',
+    }),
     leading: intl.formatMessage(messages.tvDashboardLeading),
     nextMatch: intl.formatMessage(messages.tvDashboardNextMatch),
     zoneLegend: intl.formatMessage(messages.tvDashboardZoneLegend),
@@ -264,6 +269,28 @@ export function tvMultiCourtGridLabels(intl: IntlShape) {
     resultState: resultStateLabels(intl),
     noMatches: intl.formatMessage(messages.tvMultiCourtGridNoMatches),
     ariaLabel: intl.formatMessage(messages.tvMultiCourtGridAriaLabel),
+    clockStopped: intl.formatMessage(messages.tvDashboardClockStopped),
+    clockAriaLabel: intl.formatMessage(messages.liveClockAriaLabel, {
+      segment: '{segment}',
+      time: '{time}',
+    }),
+  };
+}
+
+export interface LiveClockLabels {
+  readonly clockStopped: string;
+  readonly clockAriaLabel: string;
+  readonly lastUpdated: string;
+}
+
+export function liveClockLabels(intl: IntlShape): LiveClockLabels {
+  return {
+    clockStopped: intl.formatMessage(messages.liveClockStopped),
+    clockAriaLabel: intl.formatMessage(messages.liveClockAriaLabel, {
+      segment: '{segment}',
+      time: '{time}',
+    }),
+    lastUpdated: intl.formatMessage(messages.liveLastUpdated, { time: '{time}' }),
   };
 }
 
@@ -305,6 +332,9 @@ export interface MatchCardLabels {
    * props are JSON-serialized, and a function does not survive that.
    */
   readonly clockAriaLabel: string;
+  readonly clockStopped?: string;
+  readonly liveClockAriaLabel?: string;
+  readonly lastUpdated?: string;
   readonly venueAriaLabel: string;
   /** Absent on a surface (e.g. control-web) that doesn't show kickoff time. */
   readonly scheduledAtAriaLabel?: string;
@@ -345,6 +375,12 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
     },
     empty: intl.formatMessage(messages.matchesViewEmpty),
     clockAriaLabel: intl.formatMessage(messages.matchesViewClockAriaLabel, { time: '{time}' }),
+    clockStopped: intl.formatMessage(messages.liveClockStopped),
+    liveClockAriaLabel: intl.formatMessage(messages.liveClockAriaLabel, {
+      segment: '{segment}',
+      time: '{time}',
+    }),
+    lastUpdated: intl.formatMessage(messages.liveLastUpdated, { time: '{time}' }),
     venueAriaLabel: intl.formatMessage(messages.matchesViewVenueAriaLabel, { venue: '{venue}' }),
     scheduledAtAriaLabel: intl.formatMessage(messages.matchesViewScheduledAtAriaLabel, {
       time: '{time}',

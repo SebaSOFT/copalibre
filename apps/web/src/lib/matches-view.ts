@@ -7,6 +7,7 @@ import {
   type SideSourceMessages,
 } from './side-source.js';
 import type { PreviousPlacement } from './reschedule.js';
+import type { LiveMatchClock, LiveSegment } from './live-state.js';
 import type { ResultState } from './result-state.js';
 import type { PublicSeriesState } from './series.js';
 
@@ -44,6 +45,13 @@ export interface MatchCardData {
   readonly awayEmblemObjectId?: string;
   readonly awayScore?: number;
   readonly clockSeconds?: number;
+  readonly clock?: LiveMatchClock;
+  readonly segments?: readonly (Omit<LiveSegment, 'label'> & {
+    readonly label?: string | Readonly<Record<string, unknown>>;
+  })[];
+  readonly projectionVersion?: number;
+  readonly homeEntrantId?: string;
+  readonly awayEntrantId?: string;
   /**
    * Raw ISO instant, rendered client-side via `ResponsiveTimestamp` so "today"
    * is the viewer's calendar day, not the server's.

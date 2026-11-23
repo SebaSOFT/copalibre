@@ -82,6 +82,33 @@ test.beforeAll(async ({ workerPort }) => {
       res.end(JSON.stringify(liveResponse));
       return;
     }
+    if (path === `${BASE}/stages/1/matches/1`) {
+      res.end(
+        JSON.stringify({
+          organizationAlias: ORGANIZATION,
+          organizationName: 'Liga Mendocina',
+          organizationTimeZone: 'America/Argentina/Mendoza',
+          tournamentAlias: TOURNAMENT,
+          tournamentName: 'Apertura 2026',
+          stageNumber: 1,
+          stageFormat: 'round-robin',
+          matchNumber: 1,
+          round: 1,
+          status: 'live',
+          homeEntrantId: '01936f4a-0001-7000-8000-000000000001',
+          homeName: 'Andes',
+          homeScore: 2,
+          awayEntrantId: '01936f4a-0002-7000-8000-000000000002',
+          awayName: 'Concepción',
+          awayScore: 1,
+          schedulePublished: true,
+          officials: [],
+          rosters: { home: [], away: [] },
+          timeline: [],
+        }),
+      );
+      return;
+    }
     res.statusCode = 404;
     res.end(JSON.stringify({ message: 'not found' }));
   });
@@ -147,4 +174,85 @@ test('each active match renders once in the live hero without JavaScript', async
   await expect(hero.getByText('Andes')).toBeVisible();
   await expect(hero.getByText('Concepción')).toBeVisible();
   await expect(page.getByText('No live matches in progress')).toHaveCount(0);
+});
+
+test.describe('live dashboard clock and match navigation', () => {
+  test.use({ javaScriptEnabled: true });
+
+  test('running clock advances without reload and activating the card opens its match report', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes('/events/public/')) {
+          return new Response(new ReadableStream<Uint8Array>({ start() {} }), {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' },
+          });
+        }
+        return originalFetch(input, init);
+      };
+    });
+
+    liveResponse = {
+      matches: [
+        {
+          matchId: '01936f4a-1001-7000-8000-000000000001',
+          stageNumber: 1,
+          matchNumber: 1,
+          stageOrdinal: 1,
+          state: 'live',
+          projectionVersion: 1,
+          segments: [
+            {
+              number: 1,
+              type: 'half',
+              label: { en: 'Half', es: 'Tiempo' },
+              timed: true,
+              state: 'active',
+            },
+            {
+              number: 2,
+              type: 'half',
+              label: { en: 'Half', es: 'Tiempo' },
+              timed: true,
+              state: 'pending',
+            },
+          ],
+          clock: {
+            segmentNumber: 1,
+            elapsedSeconds: 585,
+            running: true,
+            asOf: new Date().toISOString(),
+          },
+          sides: [
+            { entrantId: '01936f4a-0001-7000-8000-000000000001', name: 'Andes', score: 2 },
+            { entrantId: '01936f4a-0002-7000-8000-000000000002', name: 'Concepción', score: 1 },
+          ],
+        },
+      ],
+    };
+
+    await page.goto(PAGE);
+
+    const hero = page.locator('.cl-match-card-grid').first();
+    const timer = hero.getByRole('timer');
+    await expect(timer).toBeVisible();
+    await expect(timer.locator('.cl-live-clock__segment')).toHaveText('1st Half');
+
+    const readSeconds = async (): Promise<number> => {
+      const text = (await timer.locator('.cl-live-clock__digits').innerText()).trim();
+      const [mm = '0', ss = '0'] = text.split(':');
+      return Number(mm) * 60 + Number(ss);
+    };
+
+    expect(await readSeconds()).toBeGreaterThanOrEqual(585);
+    await expect.poll(readSeconds, { timeout: 6_000 }).toBeGreaterThan(586);
+
+    await hero.getByRole('link', { name: /Open the match Andes against Concepción/i }).click();
+    await page.waitForURL(`**/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/1/matches/1`);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Andes vs Concepción');
+  });
 });

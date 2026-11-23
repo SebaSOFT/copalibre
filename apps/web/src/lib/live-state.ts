@@ -34,6 +34,13 @@ export interface LiveSegment {
   readonly scores?: readonly number[];
 }
 
+export interface LiveMatchClock {
+  readonly segmentNumber: number;
+  readonly elapsedSeconds: number;
+  readonly running: boolean;
+  readonly asOf: string;
+}
+
 export interface LiveMatch {
   readonly matchId: string;
   readonly scheduleVersion?: number;
@@ -51,6 +58,9 @@ export interface LiveMatch {
   /** What the last applied event said; a lower one is stale and ignored. */
   readonly projectionVersion: number;
   readonly clockSeconds?: number;
+  readonly clock?: LiveMatchClock;
+  /** Monotonic `performance.now()` timestamp when `clock` was received client-side. */
+  readonly clockReceivedAt?: number;
   /** Present only when a public projection explicitly supplies a participating side. */
   readonly possessionEntrantId?: string;
   readonly activePenalties?: readonly {
@@ -67,6 +77,8 @@ export interface LiveDashboard {
   readonly standingsVersion: number;
   /** False once a stream connects; the page says so rather than pretending. */
   readonly usingLastKnown: boolean;
+  /** ISO instant of the latest projection or event reflected on the dashboard. */
+  readonly lastUpdatedAt?: string;
 }
 
 /**
@@ -82,11 +94,20 @@ export function applyEvent(dashboard: LiveDashboard, event: EventEnvelope): Live
     case 'match.rescheduled':
     case 'match.anulled':
       return patchSchedule(dashboard, event);
+    case 'match.clock-changed':
+      return applyClockChanged(dashboard, event);
     case 'match.event-recorded':
     case 'match.started':
     case 'match.finalized':
-    case 'result.superseded':
-      return { ...dashboard, matches: dashboard.matches.map((match) => patch(match, event)) };
+    case 'result.superseded': {
+      let changed = false;
+      const matches = dashboard.matches.map((match) => {
+        const next = patch(match, event);
+        if (next !== match) changed = true;
+        return next;
+      });
+      return changed ? { ...dashboard, matches, lastUpdatedAt: event.createdAt } : dashboard;
+    }
     case 'standings.recalculated':
       return event.projectionVersion > dashboard.standingsVersion
         ? { ...dashboard, standingsVersion: event.projectionVersion }
@@ -143,16 +164,55 @@ function patch(match: LiveMatch, event: EventEnvelope): LiveMatch {
       ? event.payload.clockSeconds
       : match.clockSeconds;
 
-  return {
+  const next: { -readonly [K in keyof LiveMatch]: LiveMatch[K] } = {
     ...match,
     projectionVersion: event.projectionVersion,
     state,
     ...(event.eventType === 'match.started' ? { rescheduledFrom: null } : {}),
-    clockSeconds,
     sides: outcome
       ? sides.map((side, index) => ({ ...side, state: index === 0 ? outcome.home : outcome.away }))
       : sides,
   };
+  if (state !== 'live') {
+    delete next.clock;
+    delete next.clockReceivedAt;
+  } else {
+    next.clockSeconds = clockSeconds;
+  }
+  return next;
+}
+
+function applyClockChanged(dashboard: LiveDashboard, event: EventEnvelope): LiveDashboard {
+  const matchId = typeof event.payload.matchId === 'string' ? event.payload.matchId : undefined;
+  const segmentNumber = event.payload.segmentNumber;
+  const elapsedSeconds = event.payload.elapsedSeconds;
+  const running = event.payload.running;
+  if (
+    !matchId ||
+    typeof segmentNumber !== 'number' ||
+    typeof elapsedSeconds !== 'number' ||
+    typeof running !== 'boolean'
+  ) {
+    return dashboard;
+  }
+  const asOf =
+    typeof event.payload.changedAt === 'string' ? event.payload.changedAt : event.createdAt;
+  const receivedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  let changed = false;
+  const matches = dashboard.matches.map((match) => {
+    if (match.matchId !== matchId || event.projectionVersion <= match.projectionVersion) {
+      return match;
+    }
+    changed = true;
+    return {
+      ...match,
+      projectionVersion: event.projectionVersion,
+      clock: { segmentNumber, elapsedSeconds, running, asOf },
+      clockSeconds: elapsedSeconds,
+      clockReceivedAt: receivedAt,
+    };
+  });
+  return changed ? { ...dashboard, matches, lastUpdatedAt: asOf } : dashboard;
 }
 
 function nextState(current: ResultState, eventType: string): ResultState {
@@ -164,7 +224,7 @@ function nextState(current: ResultState, eventType: string): ResultState {
   return current;
 }
 
-function readScores(
+export function readScores(
   payload: Readonly<Record<string, unknown>>,
 ): Record<string, number> | undefined {
   if (typeof payload.scores === 'object' && payload.scores !== null) {

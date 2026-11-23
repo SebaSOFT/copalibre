@@ -169,6 +169,10 @@ export const messages: Record<string, string> = {
   'publicWeb.series.aggregate': '两回合总比分 {home}–{away}',
 
   'publicWeb.live.usingLastKnown': '正在显示最后已知状态。',
+  'publicWeb.live.lastUpdated': '最后更新于 {time}',
+  'publicWeb.live.clockStopped': '已暂停',
+  'publicWeb.live.clockAriaLabel': '{segment}，{time}',
+  'publicWeb.live.openMatch': '查看比赛 {home} 对阵 {away}',
 
   'publicWeb.tournamentPage.description': '{tournament} 的结果、排名和规则。',
 
@@ -223,6 +227,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tournamentsPage.runnerUp': '亚军',
   'publicWeb.tournamentsPage.thirdPlace': '季军',
   'publicWeb.tournamentsPage.viewDetails': '查看赛事',
+  'publicWeb.organization.moreLive': '+{count} 场直播',
   'publicWeb.orgPage.featuredHeading': '精选',
   'publicWeb.orgPage.clubsHeading': '俱乐部',
   'publicWeb.orgPage.noClubs': '尚未注册任何俱乐部。',
@@ -374,6 +379,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.possession': '控球',
   'publicWeb.tvDashboard.penalty': '处罚',
   'publicWeb.tvDashboard.clockLabel': '当地时间',
+  'publicWeb.tvDashboard.clockStopped': '已暂停',
   'publicWeb.tvDashboard.leading': '领先',
   'publicWeb.tvDashboard.nextMatch': '下一场比赛',
   'publicWeb.tvDashboard.zoneLegend': '组别或区域',

@@ -20,9 +20,14 @@ import {
 import { readStandings } from '../standings/read.js';
 import { readPublicScheduleChanges, type PublicPlacement } from './schedule.js';
 import { readStageSeriesByPosition, type PublicSeriesState } from '../controllers/stage-series.js';
-import { elapsedSecondsOf } from '../controllers/segment-clock.js';
+import { segmentSummariesOf } from '../controllers/public-segments.js';
+import { publicClockOf } from '../controllers/segment-clock.js';
 import { readFixtureSources } from '../controllers/fixture-sources.js';
 import type { FixtureSourcesResponse } from '../dto/fixture-side-source.dto.js';
+import type {
+  PublicMatchClockResponse,
+  PublicSegmentSummaryResponse,
+} from '../dto/public-tournament.dto.js';
 
 /**
  * A stage/zone/group/series-agnostic flat list of matches — the shared read
@@ -51,6 +56,8 @@ export interface MatchesViewRow extends FixtureSourcesResponse {
   readonly homeScore?: number;
   readonly awayScore?: number;
   readonly clockSeconds?: number;
+  readonly clock?: PublicMatchClockResponse;
+  readonly segments?: readonly PublicSegmentSummaryResponse[];
   readonly venueName?: string;
   readonly scheduledAt?: string;
   readonly latestEvent?: { readonly label: string; readonly occurredAt: string };
@@ -196,7 +203,15 @@ async function readStageMatchesView(
         status === 'live' ? competition.listSegments(record.matchId) : Promise.resolve([]),
       ]);
       const latestEvent = events.at(-1);
-      const activeSegment = segments.find((segment) => segment.state === 'active');
+      const now = Date.now();
+      const clock = status === 'live' ? publicClockOf(segments, descriptor, now) : undefined;
+      const segmentSummaries =
+        status === 'live' && descriptor && segments.length > 0
+          ? segmentSummariesOf(descriptor, segments, events, [
+              record.homeEntrantId,
+              record.awayEntrantId,
+            ])
+          : undefined;
       const schedule = scheduleByMatch.get(record.matchId);
 
       return {
@@ -237,9 +252,8 @@ async function readStageMatchesView(
         ...(scores?.[1] === undefined ? {} : { awayScore: scores[1] }),
         ...(schedule?.venueName === undefined ? {} : { venueName: schedule.venueName }),
         ...(schedule?.scheduledAt === undefined ? {} : { scheduledAt: schedule.scheduledAt }),
-        ...(activeSegment === undefined
-          ? {}
-          : { clockSeconds: elapsedSecondsOf(activeSegment, Date.now()) }),
+        ...(clock === undefined ? {} : { clock, clockSeconds: clock.elapsedSeconds }),
+        ...(segmentSummaries === undefined ? {} : { segments: segmentSummaries }),
         ...(latestEvent === undefined
           ? {}
           : {

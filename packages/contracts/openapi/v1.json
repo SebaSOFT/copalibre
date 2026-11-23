@@ -14068,6 +14068,76 @@
           "venue"
         ]
       },
+      "PublicMatchClockResponse": {
+        "type": "object",
+        "properties": {
+          "segmentNumber": {
+            "type": "number",
+            "description": "1-based number of the active segment"
+          },
+          "elapsedSeconds": {
+            "type": "number",
+            "description": "Elapsed seconds in the active segment when read"
+          },
+          "running": {
+            "type": "boolean",
+            "description": "Whether the active segment clock is currently running"
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Server timestamp at which `elapsedSeconds` was read"
+          }
+        },
+        "required": [
+          "segmentNumber",
+          "elapsedSeconds",
+          "running",
+          "asOf"
+        ]
+      },
+      "PublicSegmentSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "description": "1-based order within the match"
+          },
+          "type": {
+            "type": "string",
+            "description": "The discipline's own segment type name"
+          },
+          "label": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The segment type's display label in every language the discipline wrote it in."
+          },
+          "timed": {
+            "type": "boolean",
+            "description": "Whether the segment runs against a clock; false for one played to a target"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "active",
+              "completed"
+            ]
+          },
+          "scores": {
+            "description": "What each side scored in this segment alone, home first",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "number",
+          "type",
+          "state"
+        ]
+      },
       "PublicMatchesViewEventResponse": {
         "type": "object",
         "properties": {
@@ -14353,6 +14423,21 @@
           "clockSeconds": {
             "type": "number",
             "description": "Present only while the match is in progress"
+          },
+          "clock": {
+            "description": "Active timed segment clock snapshot, omitted when idle or untimed",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicMatchClockResponse"
+              }
+            ]
+          },
+          "segments": {
+            "description": "The match’s segments and what each side scored in each, present while live",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicSegmentSummaryResponse"
+            }
           },
           "venueName": {
             "type": "string"
@@ -19913,6 +19998,48 @@
           "champion"
         ]
       },
+      "PublicOrganizationLiveMatchResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stageNumber": {
+            "type": "number"
+          },
+          "matchNumber": {
+            "type": "number"
+          },
+          "home": {
+            "type": "string"
+          },
+          "away": {
+            "type": "string"
+          },
+          "homeHiddenAtRequest": {
+            "type": "boolean"
+          },
+          "awayHiddenAtRequest": {
+            "type": "boolean"
+          },
+          "homeScore": {
+            "type": "number"
+          },
+          "awayScore": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "matchId",
+          "stageNumber",
+          "matchNumber",
+          "home",
+          "away",
+          "homeScore",
+          "awayScore"
+        ]
+      },
       "PublicTournamentListingItemResponse": {
         "type": "object",
         "properties": {
@@ -19954,6 +20081,13 @@
           "featured": {
             "type": "boolean",
             "description": "Whether the organizer flagged this tournament as featured. Independent of `status`: live is urgent, featured is curated, and a tournament can be either, both, or neither."
+          },
+          "liveMatches": {
+            "description": "Matches currently in progress for this tournament; empty otherwise.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicOrganizationLiveMatchResponse"
+            }
           }
         },
         "required": [
@@ -20562,48 +20696,6 @@
           "payload"
         ]
       },
-      "PublicSegmentSummaryResponse": {
-        "type": "object",
-        "properties": {
-          "number": {
-            "type": "number",
-            "description": "1-based order within the match"
-          },
-          "type": {
-            "type": "string",
-            "description": "The discipline's own segment type name"
-          },
-          "label": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "The segment type's display label in every language the discipline wrote it in."
-          },
-          "timed": {
-            "type": "boolean",
-            "description": "Whether the segment runs against a clock; false for one played to a target"
-          },
-          "state": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "active",
-              "completed"
-            ]
-          },
-          "scores": {
-            "description": "What each side scored in this segment alone, home first",
-            "type": "array",
-            "items": {
-              "type": "number"
-            }
-          }
-        },
-        "required": [
-          "number",
-          "type",
-          "state"
-        ]
-      },
       "PublicMatchReportResponse": {
         "type": "object",
         "properties": {
@@ -20792,6 +20884,14 @@
             "items": {
               "$ref": "#/components/schemas/PublicSegmentSummaryResponse"
             }
+          },
+          "clock": {
+            "description": "Active timed segment clock snapshot, omitted when idle or untimed",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicMatchClockResponse"
+              }
+            ]
           }
         },
         "required": [
@@ -20971,6 +21071,14 @@
             "items": {
               "$ref": "#/components/schemas/PublicSegmentSummaryResponse"
             }
+          },
+          "clock": {
+            "description": "Active timed segment clock snapshot, omitted when idle or untimed",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicMatchClockResponse"
+              }
+            ]
           },
           "state": {
             "type": "string"
@@ -21430,6 +21538,21 @@
           "clockSeconds": {
             "type": "number",
             "description": "Present only while the match is in progress"
+          },
+          "clock": {
+            "description": "Active timed segment clock snapshot, omitted when idle or untimed",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicMatchClockResponse"
+              }
+            ]
+          },
+          "segments": {
+            "description": "The match’s segments and what each side scored in each, present while live",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicSegmentSummaryResponse"
+            }
           },
           "venueName": {
             "type": "string"

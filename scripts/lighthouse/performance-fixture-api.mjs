@@ -463,6 +463,11 @@ export async function startPerformanceFixtureApi({ port = 0, host = '127.0.0.1' 
       sendJson(response, 200, completion);
       return;
     }
+
+    if (pathname === `${tournamentRoot}/live`) {
+      sendJson(response, 200, { matches: [] });
+      return;
+    }
     if (pathname === `${tournamentRoot}/matches-view`) {
       const stageParam = url.searchParams.get('stageNumber');
       const stageNumber = stageParam === null ? undefined : Number(stageParam);

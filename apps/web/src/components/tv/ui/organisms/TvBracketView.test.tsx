@@ -38,6 +38,8 @@ const labels: TvDashboardLabels = {
   possession: 'Posesión',
   penalty: 'Sanción',
   clockLabel: 'Hora local',
+  clockStopped: 'Detenido',
+  clockAriaLabel: '{segment}, {time}',
   leading: 'En cabeza',
   nextMatch: 'Próximo partido',
   zoneLegend: 'Grupo o zona',

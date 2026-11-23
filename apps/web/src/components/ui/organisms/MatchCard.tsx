@@ -1,10 +1,15 @@
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import { formatPlacement, formatSideSource, sourceMatchLabel } from '../../../lib/side-source.js';
 import { rescheduledStatement } from '../../../lib/reschedule.js';
+import { useHydrated } from '../../../lib/island-browser-state.js';
+import { useLiveScoreboardPatch } from '../../../lib/live-scoreboard-hooks.js';
+import { activeSegmentLabel } from '../../../lib/segment-label.js';
 import { Badge } from '../atoms/Badge.js';
 import { Icon } from '../atoms/icon.js';
 import { Card } from '../atoms/Card.js';
 import { EntrantName } from '../atoms/EntrantName.js';
 import { EntrantEmblem } from '../molecules/EntrantEmblem.js';
+import { LiveMatchScoreboard } from '../molecules/LiveMatchScoreboard.js';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.js';
 import { presentState } from '../../../lib/result-state.js';
 import { seriesScore, seriesSegments, seriesPending, toSeriesInput } from '../../../lib/series.js';
@@ -61,6 +66,11 @@ export function resolveCompactEntrant(
   return abbreviation?.trim() || fullName || undecided;
 }
 
+function resolveLanguageTag(locale: string): SupportedLanguage {
+  const base = locale.split('-')[0] ?? 'en';
+  return isSupportedLanguage(base) ? base : 'en';
+}
+
 export function MatchCard({
   match,
   labels,
@@ -73,6 +83,17 @@ export function MatchCard({
   compactNames = 'abbreviated',
   headingLevel = 3,
 }: MatchCardProps): React.JSX.Element {
+  const hydrated = useHydrated();
+  const livePatch = useLiveScoreboardPatch(match.matchId);
+  const usePatch = hydrated && livePatch !== undefined;
+  const effectiveState = usePatch && livePatch.state !== undefined ? livePatch.state : match.state;
+  const effectiveClock = usePatch ? livePatch.clock : match.clock;
+  const effectiveSegments = (usePatch ? livePatch.segments : undefined) ?? match.segments;
+  const effectiveSegmentLabel = activeSegmentLabel(
+    effectiveSegments,
+    effectiveClock,
+    resolveLanguageTag(locale),
+  );
   const MatchHeading = `h${Math.min(Math.max(headingLevel, 2), 6)}` as
     'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   const homeSource = formatSideSource(
@@ -90,10 +111,10 @@ export function MatchCard({
       : sourceMatchLabel(match.awaySource, labels.sideSource, match.sourceFinalRound),
   );
   const rescheduled =
-    match.state === 'upcoming'
+    effectiveState === 'upcoming'
       ? rescheduledStatement(match.rescheduledFrom, match.venueName, locale, labels.rescheduled)
       : '';
-  const badge = presentState(match.state, labels.state);
+  const badge = presentState(effectiveState, labels.state);
   const linkedClass = reportUrl === undefined ? '' : ' cl-match-card--linked';
   const title = matchCardTitle(match, labels);
   // The title already names the group or the placement; the scope line keeps what it does not.
@@ -109,10 +130,14 @@ export function MatchCard({
   const hasFullTrace =
     (match.homeTrace !== undefined && match.homeTrace.length > 0) ||
     (match.awayTrace !== undefined && match.awayTrace.length > 0);
-  const homeScore = displayedScore(match.state, match.homeScore);
-  const awayScore = displayedScore(match.state, match.awayScore);
+  const rawHomeScore =
+    usePatch && livePatch.homeScore !== undefined ? livePatch.homeScore : match.homeScore;
+  const rawAwayScore =
+    usePatch && livePatch.awayScore !== undefined ? livePatch.awayScore : match.awayScore;
+  const homeScore = displayedScore(effectiveState, rawHomeScore);
+  const awayScore = displayedScore(effectiveState, rawAwayScore);
   const showScores =
-    match.state !== 'upcoming' || (homeScore !== undefined && awayScore !== undefined);
+    effectiveState !== 'upcoming' || (homeScore !== undefined && awayScore !== undefined);
   const homeName = match.homeName ?? homeSource.long;
   const awayName = match.awayName ?? awaySource.long;
   const versus = labels.versus ?? 'vs';
@@ -250,13 +275,34 @@ export function MatchCard({
           {badge.state !== 'live' && <Icon name={badge.icon} size={16} />}
           <span>{badge.label}</span>
         </Badge>
-        {match.clockSeconds !== undefined && (
-          <span
-            className="cl-match-card__clock"
-            title={applyTemplate(labels.clockAriaLabel, { time: formatClock(match.clockSeconds) })}
-          >
-            {formatClock(match.clockSeconds)}
-          </span>
+        {effectiveState === 'live' &&
+        (effectiveClock !== undefined || effectiveSegmentLabel !== undefined) ? (
+          <LiveMatchScoreboard
+            clock={effectiveClock}
+            labels={{
+              clockStopped: labels.clockStopped ?? '',
+              clockAriaLabel: labels.liveClockAriaLabel ?? labels.clockAriaLabel,
+              lastUpdated: labels.lastUpdated ?? '{time}',
+            }}
+            locale={locale}
+            matchId={match.matchId}
+            segmentLabel={effectiveSegmentLabel}
+            segments={effectiveSegments}
+            showLastUpdated={Boolean(labels.lastUpdated)}
+            timeZone={timeZone}
+          />
+        ) : (
+          effectiveState === 'live' &&
+          match.clockSeconds !== undefined && (
+            <span
+              className="cl-match-card__clock"
+              title={applyTemplate(labels.clockAriaLabel, {
+                time: formatClock(match.clockSeconds),
+              })}
+            >
+              {formatClock(match.clockSeconds)}
+            </span>
+          )
         )}
       </div>
 

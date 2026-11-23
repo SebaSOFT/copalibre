@@ -233,7 +233,7 @@ test('on a phone-shaped frame the lower third keeps the score and the sets on tw
   await gotoTv(page, `${TV}/stages/1/matches/2?mode=overlay&bg=neutral`);
 
   const series = await page.getByTestId('tv-series').boundingBox();
-  const score = await page.locator('.tv-lower-third__clock').boundingBox();
+  const score = await page.locator('.tv-lower-third__score').boundingBox();
   if (series === null || score === null) throw new Error('the overlay did not render');
   // Series on the second row, below the score's row and never wrapped to a third.
   expect(series.y).toBeGreaterThan(score.y + score.height - 1);

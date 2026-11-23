@@ -948,6 +948,73 @@ describe('live match console (integration)', () => {
     expect((await new CompetitionRepository(scratch.db).findMatch(id))?.status).toBe('in-progress');
   });
 
+  it('publishes match.clock-changed outbox rows with the five public fields on start, pause, and adjust', async () => {
+    const id = await scheduledMatchWithoutSegments();
+
+    const started = await request('POST', `${matchUrl(id)}/commands/start`, 'referee');
+    expect(started.statusCode).toBe(201);
+
+    const segments = await new CompetitionRepository(scratch.db).listSegments(id);
+    const firstSegment = segments[0];
+    if (!firstSegment) throw new Error('Expected regulation segment');
+
+    const paused = await request('POST', `${matchUrl(id)}/commands/pause`, 'referee', {
+      segmentId: firstSegment.segmentId,
+    });
+    expect(paused.statusCode).toBe(201);
+
+    const adjusted = await request('POST', `${matchUrl(id)}/clock`, 'referee', {
+      segmentId: firstSegment.segmentId,
+      elapsedSeconds: 585,
+      activate: true,
+    });
+    expect(adjusted.statusCode).toBe(201);
+
+    const pending = await new OutboxReader(scratch.db).pending();
+    const clockEvents = pending.filter(
+      (event) => event.entityId === id && event.eventType === 'match.clock-changed',
+    );
+    const consoleEvents = pending.filter(
+      (event) => event.entityId === id && event.eventType === 'match.console-projection',
+    );
+
+    expect(clockEvents).toHaveLength(3);
+    expect(consoleEvents).toHaveLength(3);
+
+    for (let i = 0; i < 3; i += 1) {
+      const clockEvent = clockEvents[i];
+      const consoleEvent = consoleEvents[i];
+      expect(clockEvent?.stream).toBe(`match:${id}`);
+      expect(clockEvent?.projectionVersion).toBe(consoleEvent?.projectionVersion);
+      expect(Object.keys(clockEvent?.payload ?? {}).sort()).toEqual([
+        'changedAt',
+        'elapsedSeconds',
+        'matchId',
+        'running',
+        'segmentNumber',
+      ]);
+      expect(Date.parse(String(clockEvent?.payload.changedAt))).not.toBeNaN();
+    }
+
+    expect(clockEvents[0]?.payload).toMatchObject({
+      matchId: id,
+      segmentNumber: 1,
+      elapsedSeconds: 0,
+      running: true,
+    });
+    expect(clockEvents[1]?.payload).toMatchObject({
+      matchId: id,
+      segmentNumber: 1,
+      running: false,
+    });
+    expect(clockEvents[2]?.payload).toMatchObject({
+      matchId: id,
+      segmentNumber: 1,
+      elapsedSeconds: 585,
+      running: true,
+    });
+  });
+
   it('starts the first pending segment when a start names none, as before', async () => {
     const id = await scheduledMatchWithoutSegments();
     const competition = new CompetitionRepository(scratch.db);

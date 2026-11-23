@@ -43,6 +43,8 @@ const meta = {
     resultStateLabels: labels.resultState,
     noMatchesLabel: labels.noMatches,
     ariaLabel: labels.ariaLabel,
+    clockStoppedLabel: labels.clockStopped,
+    clockAriaLabel: labels.clockAriaLabel,
     venueNameByMatchId: {
       'match-1': 'Cancha 1',
       'match-2': 'Cancha 2',
@@ -107,6 +109,8 @@ export const Rescheduled: Story = {
         locale={locale}
         rescheduledLabel={tvDashboardLabels(intl).rescheduled}
         resultStateLabels={tvMultiCourtGridLabels(intl).resultState}
+        clockStoppedLabel={tvMultiCourtGridLabels(intl).clockStopped}
+        clockAriaLabel={tvMultiCourtGridLabels(intl).clockAriaLabel}
       />
     );
   },

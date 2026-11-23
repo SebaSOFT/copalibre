@@ -190,7 +190,7 @@ test('all three TV layouts meet broadcast-size minimums at 1920×1080', async ({
       expect((await fontSize(selector)) + 0.01).toBeGreaterThanOrEqual(minimum);
 
     await expectMinimum(score, 12 * vmin);
-    await expectMinimum('.tv-scorebug__clock', 6 * vmin);
+    await expectMinimum('.tv-scorebug__clock--wall', 3 * vmin);
     await expectMinimum(team, 3.5 * vmin);
     await expectMinimum(table, 2.2 * vmin);
 
