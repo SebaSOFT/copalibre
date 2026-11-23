@@ -18,12 +18,12 @@ automatically; `--namespace`/`--release` default to `default`/`copalibre` when o
 Bootstrapping the first administrator runs as a one-shot Job instead of `kubectl exec` into a
 running pod. Run the example from the checkout root after configuring `values.yaml` with the
 required database, identity, email and public URL settings. These image tags are available only
-after the 1.2.6 release is published; for an earlier installation, use its released version:
+after the 2.0.0 release is published; for an earlier installation, use its released version:
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre -f values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6 \
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=2.0.0 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=2.0.0 \
   --set createAdmin.enabled=true \
   --set createAdmin.organizationAlias=my-league \
   --set createAdmin.organizationName="My League" \
@@ -51,6 +51,31 @@ and require measured margin below the limit. Keep ingress on the old release dur
 rolling cutover only after verifying the migration works with both old and new application versions.
 If that compatibility or timing is not proven for the target release, this procedure does not meet
 the downtime limit. Do not scale everything to zero and expect the limit to hold.
+
+### From 1.x to 2.0
+
+2.0.0 changes how the roles reach the database and where the API answers. Prepare these before
+step 1; the Compose upgrade does them for you, the chart does not.
+
+- **PostgreSQL stays yours.** The 17 to 18 move in `copalibre upgrade` is Compose only; the chart
+  never touches your database. CI and the release validation run 2.0.0 against PostgreSQL 18 only.
+- **Database roles.** Create `copalibre_owner` and `copalibre_app` once with
+  `deploy/postgres/roles.sql` as a superuser (see [Database Roles](../self-hosting.md#database-roles)).
+  Point `env.DATABASE_URL` at `copalibre_app` and `migrationEnv.DATABASE_MIGRATION_URL` at
+  `copalibre_owner`. Left empty, migrations run with `DATABASE_URL` and `copalibre doctor` fails
+  `database:runtime-privileges`.
+- **Routes under `/api`.** Every API route, health check included, moved under `/api`;
+  `/.well-known/jwks.json` is gone. An `env.COPALIBRE_JWKS_URI` that names the installation's own
+  API becomes `http://<api-service>:3001/api/auth/jwks.json`; an external provider's URL stays. The
+  web role routes `/api` and `/events`, so the ingress keeps one host for Control and the public
+  site. Probes and monitors that called `/health` on the API call `/api/health`.
+- **Session cookies.** Control's access token moves to an `HttpOnly` cookie. Set
+  `env.COPALIBRE_SESSION_COOKIE_SECURE` to match how operators reach the installation (see
+  [Session cookies](../self-hosting.md#session-cookies)); operators sign in once more after the
+  upgrade.
+- **Content Security Policy.** With an external OIDC provider, check the derived identity origin
+  (see [Content Security Policy](#content-security-policy)).
+- **Both image pins** move to `2.0.0` together.
 
 ### 1. Capture configuration and recovery evidence
 
@@ -102,9 +127,9 @@ spec:
       restartPolicy: Never
       containers:
         - name: upgrade-check
-          image: ghcr.io/sebasoft/copalibre:1.2.6
+          image: ghcr.io/sebasoft/copalibre:2.0.0
           command: [node, apps/copalibre/dist/main.js]
-          args: [upgrade-check, --target-version, 1.2.6]
+          args: [upgrade-check, --target-version, 2.0.0]
           envFrom:
             - configMapRef:
                 name: my-copalibre-env
@@ -142,8 +167,8 @@ replicas and configuration in `upgrade-values.yaml`:
 ```bash
 helm upgrade my-copalibre deploy/helm/copalibre -n default \
   -f upgrade-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6 \
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=2.0.0 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=2.0.0 \
   --set createAdmin.enabled=false --set doctor.enabled=true \
   --wait --wait-for-jobs --timeout 10m
 ```

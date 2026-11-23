@@ -469,13 +469,13 @@ against a partially upgraded database to fit the budget.
    ```
 3. Set **both** image references in `.env`:
    ```dotenv
-   COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.6
-   COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.6
+   COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:2.0.0
+   COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:2.0.0
    ```
 4. Pull images and run the target runtime's compatibility check without starting dependencies:
    ```bash
    docker compose pull
-   docker compose run --rm --no-deps upgrade-check --target-version 1.2.6
+   docker compose run --rm --no-deps upgrade-check --target-version 2.0.0
    ```
    The check reports incompatible installed modules and pending migrations without applying them.
    Resolve failures before proceeding. Keep PostgreSQL running for this check.
