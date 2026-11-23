@@ -1,4 +1,4 @@
-## [2.0.0](https://github.com/SebaSOFT/copalibre/compare/v1.2.6...v2.0.0) (2026-11-22)
+## [2.0.0](https://github.com/SebaSOFT/copalibre/compare/v1.2.6...v2.0.0) (2026-11-23)
 
 ### Breaking changes
 
@@ -23,6 +23,7 @@
 - `copalibre doctor` configures the settings an installation is missing ([#558](https://github.com/SebaSOFT/copalibre/pull/558)); `start` and `restart` work on a fresh install and after `stop`, and Mailgun delivers under Compose without an explicit region; the tournament overview meets its paint budget ([#559](https://github.com/SebaSOFT/copalibre/pull/559), [#522](https://github.com/SebaSOFT/copalibre/pull/522)).
 - Grant the first super-admin from the host, only while none is active ([#551](https://github.com/SebaSOFT/copalibre/pull/551)).
 - Remove single-run containers once the stack is up ([#556](https://github.com/SebaSOFT/copalibre/pull/556)).
+- Before it stops anything, the upgrade measures the database and the free space beside its PostgreSQL volume, and refuses the move, changing nothing, when Docker's disk holds less than twice the database ([#571](https://github.com/SebaSOFT/copalibre/pull/571), [#573](https://github.com/SebaSOFT/copalibre/pull/573)).
 - Let operators publish their own `/.well-known/` files ([#508](https://github.com/SebaSOFT/copalibre/pull/508)).
 - Serve the fonts from the application origin ([#509](https://github.com/SebaSOFT/copalibre/pull/509)).
 - Package the MCP server as an MCPB bundle, attached to each release and published to Smithery ([#457](https://github.com/SebaSOFT/copalibre/pull/457)).
@@ -62,7 +63,7 @@
 - The overview shows the discipline, venues, entrant count and tiebreakers; match cards name their group or round and show a live 0–0; long match lists are grouped by day on phones ([#537](https://github.com/SebaSOFT/copalibre/pull/537), [#532](https://github.com/SebaSOFT/copalibre/pull/532), [#534](https://github.com/SebaSOFT/copalibre/pull/534)).
 - Responsive data tables, humanized tournament data, clearer hierarchy and filter disclosure ([#485](https://github.com/SebaSOFT/copalibre/pull/485), [#468](https://github.com/SebaSOFT/copalibre/pull/468), [#474](https://github.com/SebaSOFT/copalibre/pull/474)).
 - Emblem renditions and a size-scaled emblem frame, with a stored abbreviation as fallback ([#528](https://github.com/SebaSOFT/copalibre/pull/528), [#455](https://github.com/SebaSOFT/copalibre/pull/455)).
-- Public performance budgets: the header paints closed, the web role compresses, fonts have metric-matched fallbacks ([#524](https://github.com/SebaSOFT/copalibre/pull/524), [#527](https://github.com/SebaSOFT/copalibre/pull/527)).
+- Public performance budgets: the header paints closed, the web role compresses, fonts have metric-matched fallbacks, and a public page paints with its text and heading faces only, adding the other weights after its first paint ([#524](https://github.com/SebaSOFT/copalibre/pull/524), [#527](https://github.com/SebaSOFT/copalibre/pull/527), [#574](https://github.com/SebaSOFT/copalibre/pull/574)).
 - The page-not-found composition for deep unknown paths, the page language for undecided sides and column headers, and valid markup semantics ([#535](https://github.com/SebaSOFT/copalibre/pull/535), [#498](https://github.com/SebaSOFT/copalibre/pull/498), [#496](https://github.com/SebaSOFT/copalibre/pull/496), [#481](https://github.com/SebaSOFT/copalibre/pull/481)).
 
 ### Control experience
@@ -89,7 +90,7 @@
 - Dependency refresh and advisory remediation: Dependabot batches, library updates, `astro`, `@astrojs/node`, `hono`, `@hono/node-server`, `basic-ftp`, `image-size` and `onnxruntime-web` raised or pinned for their advisories, with the remediations recorded ([#425](https://github.com/SebaSOFT/copalibre/pull/425), [#426](https://github.com/SebaSOFT/copalibre/pull/426), [#446](https://github.com/SebaSOFT/copalibre/pull/446), [#512](https://github.com/SebaSOFT/copalibre/pull/512), [#514](https://github.com/SebaSOFT/copalibre/pull/514), [#529](https://github.com/SebaSOFT/copalibre/pull/529), [#530](https://github.com/SebaSOFT/copalibre/pull/530), [#531](https://github.com/SebaSOFT/copalibre/pull/531), [#533](https://github.com/SebaSOFT/copalibre/pull/533), [#536](https://github.com/SebaSOFT/copalibre/pull/536), [#540](https://github.com/SebaSOFT/copalibre/pull/540), [#546](https://github.com/SebaSOFT/copalibre/pull/546)).
 - Test reliability: a faster integration suite sharing the demo load, clone tests with a realistic timeout, and four e2e tests that no longer fail on clean code ([#563](https://github.com/SebaSOFT/copalibre/pull/563), [#484](https://github.com/SebaSOFT/copalibre/pull/484), [#502](https://github.com/SebaSOFT/copalibre/pull/502)).
 - The CLI build check runs when a workspace package changes; the accepted specs validate with OpenSpec 2.0.0 ([#554](https://github.com/SebaSOFT/copalibre/pull/554), [#560](https://github.com/SebaSOFT/copalibre/pull/560), [#440](https://github.com/SebaSOFT/copalibre/pull/440)).
-- Contributor documentation: the release procedure, delivery lessons, tooling reference and proposal rules; an operator research kit; stale screenshots removed ([#419](https://github.com/SebaSOFT/copalibre/pull/419), [#526](https://github.com/SebaSOFT/copalibre/pull/526), [#428](https://github.com/SebaSOFT/copalibre/pull/428), [#447](https://github.com/SebaSOFT/copalibre/pull/447), [#471](https://github.com/SebaSOFT/copalibre/pull/471), [#510](https://github.com/SebaSOFT/copalibre/pull/510)).
+- Contributor documentation: the release procedure, delivery lessons, tooling reference and proposal rules; an operator research kit; screenshots are attached to pull requests instead of committed ([#419](https://github.com/SebaSOFT/copalibre/pull/419), [#526](https://github.com/SebaSOFT/copalibre/pull/526), [#428](https://github.com/SebaSOFT/copalibre/pull/428), [#447](https://github.com/SebaSOFT/copalibre/pull/447), [#471](https://github.com/SebaSOFT/copalibre/pull/471), [#510](https://github.com/SebaSOFT/copalibre/pull/510), [#572](https://github.com/SebaSOFT/copalibre/pull/572)).
 
 ## [1.2.6](https://github.com/SebaSOFT/copalibre/compare/v1.2.5...v1.2.6) (2026-10-09)
 
