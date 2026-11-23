@@ -175,6 +175,12 @@ export class BracketMatchResponse extends FixtureSourcesResponse {
   status!: string;
 
   @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Winning entrant id when the node is finalized and a winner is recorded',
+  })
+  winnerEntrantId?: string;
+
+  @ApiPropertyOptional({
     description: 'Declared match format, e.g. BO3 — absent when the stage declares none',
     example: 'BO3',
   })

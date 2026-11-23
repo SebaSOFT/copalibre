@@ -3728,6 +3728,8 @@ export interface components {
             /** Format: uuid */
             matchId: string;
             stageNumber: number;
+            /** @description The stage name as the organizer named it; absent when empty */
+            stageName?: string;
             matchNumber: number;
             round: number;
             /** @enum {string} */
@@ -5193,6 +5195,11 @@ export interface components {
             /** @enum {string} */
             status: "scheduled" | "live" | "finalized";
             /**
+             * Format: uuid
+             * @description Winning entrant id when the node is finalized and a winner is recorded
+             */
+            winnerEntrantId?: string;
+            /**
              * @description Declared match format, e.g. BO3 — absent when the stage declares none
              * @example BO3
              */
@@ -5927,6 +5934,8 @@ export interface components {
             /** Format: uuid */
             matchId: string;
             stageNumber: number;
+            /** @description The stage name as the organizer named it; absent when empty */
+            stageName?: string;
             matchNumber: number;
             home: string;
             away: string;
@@ -5998,6 +6007,8 @@ export interface components {
             /** @description The 1-based ordinal of the match within its stage, the one the public match route addresses it by. Absent before a fixture becomes a match. */
             stageOrdinal?: number;
             stageNumber: number;
+            /** @description The stage name as the organizer named it; absent when empty */
+            stageName?: string;
             round: number;
             /** @description The zone of the match's group as the organizer named it; absent for an implicit zone */
             zoneName?: string;
@@ -6157,12 +6168,23 @@ export interface components {
             tournamentName: string;
             disciplineImages?: components["schemas"]["PublicObjectReferenceResponse"][];
             stageNumber: number;
+            /** @description The stage name as the organizer named it; absent when empty */
+            stageName?: string;
+            /** @description The zone the match belongs to as the organizer named it; absent for an implicit zone */
+            zoneName?: string;
+            /** @description The match group as the organizer named it; absent for an implicit group */
+            groupName?: string;
             /** @description The stage's competition format — identifies which stage this match belongs to, so a client can decide whether a bracket-context panel applies without a second request. */
             stageFormat: string;
             matchNumber: number;
             round: number;
             /** @enum {string} */
             status: "upcoming" | "live" | "final";
+            /**
+             * Format: uuid
+             * @description Winning entrant id when the match is finalized and a winner is recorded
+             */
+            winnerEntrantId?: string;
             /** Format: uuid */
             homeEntrantId?: string;
             homeName?: string;
@@ -6228,6 +6250,8 @@ export interface components {
             /** Format: uuid */
             matchId: string;
             stageNumber: number;
+            /** @description The stage name as the organizer named it; absent when empty */
+            stageName?: string;
             matchNumber: number;
             /** @description The 1-based ordinal of the match within its stage, the one the public match route addresses it by. */
             stageOrdinal?: number;
@@ -6292,6 +6316,11 @@ export interface components {
             round: number;
             position: number;
             status: string;
+            /**
+             * Format: uuid
+             * @description Winning entrant id when the node is finalized and a winner is recorded
+             */
+            winnerEntrantId?: string;
             format?: string;
             /** @description The match's stage-unique ordinal for the public report page's URL — present only when this graph node resolved to a real persisted match; a purely theoretical winner-of/loser-of placeholder has none yet */
             matchNumber?: number;
@@ -6333,6 +6362,8 @@ export interface components {
             /** Format: uuid */
             matchId: string;
             stageNumber: number;
+            /** @description The stage name as the organizer named it; absent when empty */
+            stageName?: string;
             matchNumber: number;
             round: number;
             /** @enum {string} */

@@ -738,6 +738,11 @@ export function toBracketMatch(
     round: match.round,
     position: match.position,
     status: recorded?.status ?? 'scheduled',
+    ...(recorded !== undefined &&
+    recorded.status === 'finalized' &&
+    recorded.winnerEntrantId !== undefined
+      ? { winnerEntrantId: recorded.winnerEntrantId }
+      : {}),
     ...(options.matchFormat === undefined ? {} : { format: options.matchFormat }),
     slots: slotsOf(match).map((slot, index) => {
       const recordedEntrantId = index === 0 ? recorded?.homeEntrantId : recorded?.awayEntrantId;
