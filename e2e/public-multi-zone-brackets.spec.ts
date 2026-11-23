@@ -135,9 +135,11 @@ test('renders one bracket diagram per zone with a jump-list, real entrant data, 
   await expect(page.getByRole('link', { name: 'Copa de Oro' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Copa de Plata' })).toBeVisible();
 
-  // Both zone headings render.
-  await expect(page.getByRole('heading', { name: 'Copa de Oro' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Copa de Plata' })).toBeVisible();
+  // Both zone headings render (the section heading and each bracket's own zone band heading).
+  await expect(page.getByRole('heading', { name: 'Copa de Oro', level: 2 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Copa de Oro', level: 4 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Copa de Plata', level: 2 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Copa de Plata', level: 4 })).toBeVisible();
 
   // Neither zone's round-1/position-1 node collided into a TBD placeholder: both show their
   // real entrant names and scores despite sharing round/position.

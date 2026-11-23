@@ -220,7 +220,7 @@ test('names every undecided side on the public programme and seats the entrant i
   await expect(source(final, 'Winner of Semi-final 2')).toBeVisible();
   await expect(final.getByText('Estadio Central')).toBeVisible();
   await expect(source(page, 'Loser of Semi-final 1')).toBeVisible();
-  await expect(page.getByText('Place 3').filter({ visible: true })).toBeVisible();
+  await expect(page.getByText('3rd place').filter({ visible: true })).toBeVisible();
   await expect(page.getByText('TBD', { exact: true })).toHaveCount(0);
 
   // The card checked below is the wide layout's: a phone lists days.
