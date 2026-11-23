@@ -1,4 +1,5 @@
 import { formatMatchRef as formatSourceMatchRef, type SideSourceMessages } from '../side-source.js';
+import type { CompetitionContextLabels } from '../competition-context.js';
 import { createIntl, createIntlCache, type IntlShape } from 'react-intl';
 import type { SupportedLanguage } from '@copalibre/domain';
 import { messages as esMessages } from './public-messages.es.js';
@@ -222,9 +223,19 @@ export function tvDashboardLabels(intl: IntlShape) {
     focalPanelLabel: intl.formatMessage(messages.tvDashboardFocalPanelLabel),
     focalPanelTitle: intl.formatMessage(messages.tvDashboardFeaturedMatchTitle),
     recapTitle: intl.formatMessage(messages.tvDashboardRecapTitle),
-    stageMatch: intl.formatMessage(messages.tvDashboardStageMatch, {
-      stage: '{stage}',
-      match: '{match}',
+    contextLabels: competitionContextLabels(intl),
+    bracketBranch: {
+      winners: intl.formatMessage(messages.tvDashboardBracketBranchWinners),
+      losers: intl.formatMessage(messages.tvDashboardBracketBranchLosers),
+      grandFinal: intl.formatMessage(messages.tvDashboardBracketBranchGrandFinal),
+      placement: intl.formatMessage(messages.tvDashboardBracketBranchPlacement),
+    },
+    bracketRoundFinal: intl.formatMessage(messages.bracketRoundFinal),
+    bracketRoundSemifinals: intl.formatMessage(messages.bracketRoundSemifinals),
+    bracketRoundQuarterfinals: intl.formatMessage(messages.bracketRoundQuarterfinals),
+    zonePrefix: intl.formatMessage(messages.placementZonePrefix, {
+      zone: '{zone}',
+      placement: '{placement}',
     }),
     matchEventsLabel: intl.formatMessage(messages.tvDashboardMatchEventsLabel),
     statsAndTablesLabel: intl.formatMessage(messages.tvDashboardStatsAndTablesLabel),
@@ -316,6 +327,8 @@ export interface MatchCardLabels {
   readonly matchHeading: string;
   /** "Round {round}", a card's title when it has no group and no knockout round name. */
   readonly roundHeading?: string;
+  /** "{zone} · {placement}" when a placement card sits outside its own zone section. */
+  readonly zonePrefix?: string;
   readonly sideSource: SideSourceMessages;
   readonly rescheduled?: string;
   readonly state: ResultStateLabels;
@@ -361,6 +374,10 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
   return {
     matchHeading: intl.formatMessage(messages.breadcrumbMatch, { match: '{match}' }),
     roundHeading: intl.formatMessage(messages.bracketRoundHeading, { round: '{round}' }),
+    zonePrefix: intl.formatMessage(messages.placementZonePrefix, {
+      zone: '{zone}',
+      placement: '{placement}',
+    }),
     sideSource: sideSourceLabels(intl),
     rescheduled: intl.formatMessage(messages.matchRescheduled, {
       time: '{time}',
@@ -706,17 +723,55 @@ export function bracketBranchLabel(intl: IntlShape, branch: string): string {
   }
 }
 
-/** What a placement game decides, in the page's language: "3rd place", "Places 5–8". */
+/** What a placement game decides, in the page's language: "3rd place", "5th–8th place". */
 export function bracketRoleLabel(intl: IntlShape, role: string): string {
   const parsed = parseBracketRole(role);
   switch (parsed.kind) {
     case 'place':
-      return intl.formatMessage(messages.bracketRolePlace, { place: parsed.place });
+      return intl.formatMessage(messages.placementPlace, { place: parsed.place });
     case 'places':
-      return intl.formatMessage(messages.bracketRolePlaces, { from: parsed.from, to: parsed.to });
+      return intl.formatMessage(messages.placementPlaces, { from: parsed.from, to: parsed.to });
     default:
       return parsed.code;
   }
+}
+
+/** Templates used by `competitionContext` across public pages and TV. */
+export function competitionContextLabels(intl: IntlShape): CompetitionContextLabels {
+  const stripPosition = (value: string): string =>
+    value.replace(/第?\s*\{position\}\s*场?/g, '').trim();
+  return {
+    stageHeading: intl.formatMessage(messages.breadcrumbStage, { stage: '{stage}' }),
+    roundHeading: intl.formatMessage(messages.bracketRoundHeading, { round: '{round}' }),
+    matchHeading: intl.formatMessage(messages.breadcrumbMatch, { match: '{match}' }),
+    finalLabel: intl.formatMessage(messages.bracketRoundFinal),
+    semiFinalLabel: stripPosition(
+      intl.formatMessage(messages.sideSourceSemiFinal, { position: '{position}' }),
+    ),
+    quarterFinalLabel: stripPosition(
+      intl.formatMessage(messages.sideSourceQuarterFinal, { position: '{position}' }),
+    ),
+    sideSource: sideSourceLabels(intl),
+  };
+}
+
+function placementPlaceTemplate(intl: IntlShape): string {
+  const direct = intl.formatMessage(messages.placementPlace, { place: '{place}' });
+  if (direct.includes('{place}')) return direct;
+  // ICU `selectordinal` ignores string placeholders (`NaNth`), so resolve with a large sentinel
+  // number and turn its rendered ordinal token back into `{ordinal}` for `side-source`.
+  return intl
+    .formatMessage(messages.placementPlace, { place: 987654 })
+    .replace(/987,?654[^\s–—-]*/, '{ordinal}');
+}
+
+function placementPlacesTemplate(intl: IntlShape): string {
+  const direct = intl.formatMessage(messages.placementPlaces, { from: '{from}', to: '{to}' });
+  if (direct.includes('{from}') && direct.includes('{to}')) return direct;
+  return intl
+    .formatMessage(messages.placementPlaces, { from: 987654, to: 987655 })
+    .replace(/987,?654[^\s–—-]*/, '{fromOrdinal}')
+    .replace(/987,?655[^\s–—-]*/, '{toOrdinal}');
 }
 
 /** Plain templates shared by server-rendered and client-rendered side sources. */
@@ -747,8 +802,12 @@ export function sideSourceLabels(intl: IntlShape): SideSourceMessages {
     quarterFinalShort: intl.formatMessage(messages.sideSourceQuarterFinalShort, {
       position: '{position}',
     }),
-    place: intl.formatMessage(messages.sideSourcePlace, { place: '{place}' }),
-    places: intl.formatMessage(messages.sideSourcePlaces, { from: '{from}', to: '{to}' }),
+    place: placementPlaceTemplate(intl),
+    places: placementPlacesTemplate(intl),
+    feeder: intl.formatMessage(messages.placementFeeder, {
+      places: '{places}',
+      position: '{position}',
+    }),
     unknown: intl.formatMessage(messages.sideSourceUnknown),
     seed: intl.formatMessage(messages.sideSourceSeed, { seed: '{seed}' }),
     bye: intl.formatMessage(messages.sideSourceBye),

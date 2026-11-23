@@ -104,14 +104,14 @@ describe('layoutPublicBracket', () => {
     expect(Math.abs(at('R3-M1').y - middle)).toBeLessThanOrEqual(PUBLIC_GEOMETRY.grid);
   });
 
-  it('draws no placement game in the bracket and lists them best-ranked round first', () => {
+  it('draws no placement game in the bracket and lists them by best place, then round', () => {
     expect(layout.nodes.some((node) => node.match.branch === 'placement')).toBe(false);
     const games = placementGamesOf([
       ...bracket,
       { ...match('PL-R2-M1', 2, 1, 'placement', []), role: 'places-5-8' },
       { ...match('PL-R3-M2', 3, 2, 'placement', []), role: 'place-5' },
     ]);
-    expect(games.map((game) => game.matchId)).toEqual(['PL-R3-M1', 'PL-R3-M2', 'PL-R2-M1']);
+    expect(games.map((game) => game.matchId)).toEqual(['PL-R3-M1', 'PL-R2-M1', 'PL-R3-M2']);
   });
 
   it('falls back to the ordinary layout when the matches are not one tree with one final', () => {

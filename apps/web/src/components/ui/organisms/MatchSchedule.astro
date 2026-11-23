@@ -103,7 +103,7 @@ const sideOf = (match: MatchCardData, side: 'home' | 'away'): SourceText | undef
     cardLabels.sideSource,
     source === undefined
       ? undefined
-      : sourceMatchLabel(source, cardLabels.sideSource, match.sourceFinalRound),
+      : sourceMatchLabel(source, cardLabels.sideSource, match.sourceFinalRound, match.zoneNodeKeys),
   );
 };
 
@@ -254,9 +254,12 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
                     intl={intl}
                     localePrefix={localePrefix}
                     matches={zone.matches}
+                    matchesView={zone.scheduleRows}
                     organizationAlias={organizationAlias}
+                    organizationTimeZone={scheduleTimeZone}
                     stageNumber={stage.stageNumber}
                     tournamentAlias={tournamentAlias}
+                    zoneName={zone.name}
                   />
                 ) : (
                   zone.groups.map((group) => {
@@ -301,6 +304,7 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
                                     client:load
                                     compact={presentation === 'compact-cards'}
                                     headingLevel={matchHeadingLevel}
+                                    inZoneSection={hasZoneHeading}
                                     labels={cardLabels}
                                     locale={intl.locale}
                                     match={scheduledMatch(match)}

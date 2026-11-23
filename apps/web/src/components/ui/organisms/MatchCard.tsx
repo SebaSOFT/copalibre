@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import { isImplicitGroupZoneName } from '../../../lib/competition-context.js';
 import { formatPlacement, formatSideSource, sourceMatchLabel } from '../../../lib/side-source.js';
 import { rescheduledStatement } from '../../../lib/reschedule.js';
 import { useHydrated } from '../../../lib/island-browser-state.js';
@@ -51,6 +53,8 @@ export interface MatchCardProps {
   readonly compactNames?: 'abbreviated' | 'full';
   /** Heading depth in the page outline. */
   readonly headingLevel?: number;
+  /** True when this card sits inside its zone's own heading section so placement titles omit the zone prefix. */
+  readonly inZoneSection?: boolean;
 }
 
 /**
@@ -82,7 +86,12 @@ export function MatchCard({
   compact = false,
   compactNames = 'abbreviated',
   headingLevel = 3,
+  inZoneSection = false,
 }: MatchCardProps): React.JSX.Element {
+  const bothUndecided = match.homeName === undefined && match.awayName === undefined;
+  const [homeOverflow, setHomeOverflow] = useState(false);
+  const [awayOverflow, setAwayOverflow] = useState(false);
+  const syncCompactUndecided = bothUndecided && (homeOverflow || awayOverflow);
   const hydrated = useHydrated();
   const livePatch = useLiveScoreboardPatch(match.matchId);
   const usePatch = hydrated && livePatch !== undefined;
@@ -101,14 +110,24 @@ export function MatchCard({
     labels.sideSource,
     match.homeSource === undefined
       ? undefined
-      : sourceMatchLabel(match.homeSource, labels.sideSource, match.sourceFinalRound),
+      : sourceMatchLabel(
+          match.homeSource,
+          labels.sideSource,
+          match.sourceFinalRound,
+          match.zoneNodeKeys,
+        ),
   );
   const awaySource = formatSideSource(
     match.awaySource,
     labels.sideSource,
     match.awaySource === undefined
       ? undefined
-      : sourceMatchLabel(match.awaySource, labels.sideSource, match.sourceFinalRound),
+      : sourceMatchLabel(
+          match.awaySource,
+          labels.sideSource,
+          match.sourceFinalRound,
+          match.zoneNodeKeys,
+        ),
   );
   const rescheduled =
     effectiveState === 'upcoming'
@@ -116,10 +135,20 @@ export function MatchCard({
       : '';
   const badge = presentState(effectiveState, labels.state);
   const linkedClass = reportUrl === undefined ? '' : ' cl-match-card--linked';
-  const title = matchCardTitle(match, labels);
+  const title = matchCardTitle(match, labels, { inZoneSection });
+  const placementIncludesZone =
+    title.names === 'placement' &&
+    !inZoneSection &&
+    match.multiZoneStage === true &&
+    match.zoneName !== undefined;
+  const visibleZoneName =
+    placementIncludesZone ||
+    (match.groupName !== undefined && isImplicitGroupZoneName(match.zoneName))
+      ? undefined
+      : match.zoneName;
   // The title already names the group or the placement; the scope line keeps what it does not.
   const scopeLine = [
-    match.zoneName,
+    visibleZoneName,
     title.names === 'group' ? undefined : match.groupName,
     match.placement === undefined || title.names === 'placement'
       ? undefined
@@ -322,6 +351,8 @@ export function MatchCard({
           />
           <EntrantName
             pending={match.homeName === undefined}
+            compact={syncCompactUndecided}
+            onOverflowChange={bothUndecided ? setHomeOverflow : undefined}
             fullName={homeName}
             abbreviation={match.homeName === undefined ? homeSource.short : match.homeAbbreviation}
           />
@@ -347,6 +378,8 @@ export function MatchCard({
           />
           <EntrantName
             pending={match.awayName === undefined}
+            compact={syncCompactUndecided}
+            onOverflowChange={bothUndecided ? setAwayOverflow : undefined}
             fullName={awayName}
             abbreviation={match.awayName === undefined ? awaySource.short : match.awayAbbreviation}
           />

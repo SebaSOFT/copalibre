@@ -1,8 +1,10 @@
 ---
 import type { IntlShape } from 'react-intl';
+import { AdvancingBadge } from '../atoms/AdvancingBadge.tsx';
 import { Badge } from '../atoms/Badge.tsx';
 import { Card } from '../atoms/Card.tsx';
 import { EntrantName } from '../atoms/EntrantName.tsx';
+import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
 import EmblemImage from '../atoms/EmblemImage.astro';
 import StateBadge from '../atoms/StateBadge.astro';
 import Button from '../atoms/Button.astro';
@@ -27,12 +29,25 @@ interface Props {
   readonly stageNumber: number;
   readonly localePrefix?: string;
   readonly highlightEntrants?: boolean;
+  readonly scheduledAt?: string;
+  readonly venueName?: string;
+  readonly organizationTimeZone?: string;
 }
-const { intl, organizationAlias, tournamentAlias, stageNumber, localePrefix = '' } = Astro.props;
+const {
+  intl,
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  localePrefix = '',
+  scheduledAt,
+  venueName,
+  organizationTimeZone,
+} = Astro.props;
 const node = toNode(Astro.props.match, resultStateLabels(intl), sideSourceLabels(intl));
 const highlight = Astro.props.highlightEntrants === true;
 const Wrapper = highlight ? 'div' : 'a';
 const reasonLabels = resultReasonLabels(intl);
+const advancesLabel = intl.formatMessage(messages.bracketAdvances);
 // Every card links, resolved or not — the match report page already
 // renders correctly for a not-yet-played match, so a winner-of/loser-of
 // placeholder still points somewhere real, not a dead end.
@@ -69,6 +84,7 @@ const legScores =
           class:list={[
             slot.pending ? 'cl-slot--pending' : 'cl-slot',
             slot.winner && 'cl-slot--winner',
+            slot.eliminated && 'cl-slot--eliminated',
           ]}
         >
           {/* Named, never blank: a blank cell reads as a bug, "Ganador del 3"
@@ -97,30 +113,36 @@ const legScores =
                   }
                 />
               )}
-              {highlight && slot.entrantId !== undefined ? (
-                <>
-                  <span data-journey-fallback>
-                    <EntrantName client:load fullName={slot.fullName} />
-                  </span>
-                  <Button
-                    hidden
-                    aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
-                      entrant: slot.fullName,
-                    })}
-                    aria-pressed="false"
-                    class="cl-journey-name"
-                    data-entrant-id={slot.entrantId}
-                    title={slot.fullName}
-                    variant="secondary"
-                  >
-                    {slot.fullName}
-                  </Button>
-                </>
-              ) : (
-                <EntrantName client:load fullName={slot.fullName} />
-              )}
+              <div class="cl-slot__identity">
+                {highlight && slot.entrantId !== undefined ? (
+                  <>
+                    <span data-journey-fallback>
+                      <EntrantName client:load fullName={slot.fullName} />
+                    </span>
+                    <Button
+                      hidden
+                      aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
+                        entrant: slot.fullName,
+                      })}
+                      aria-pressed="false"
+                      class="cl-journey-name"
+                      data-entrant-id={slot.entrantId}
+                      title={slot.fullName}
+                      variant="secondary"
+                    >
+                      {slot.fullName}
+                    </Button>
+                  </>
+                ) : (
+                  <EntrantName client:load fullName={slot.fullName} />
+                )}
+                {slot.originLabel !== undefined && (
+                  <span class="cl-slot__origin">{slot.originLabel}</span>
+                )}
+              </div>
             </>
           )}
+          {slot.advancing && <AdvancingBadge label={advancesLabel} />}
           {slot.resultReason && (
             // A walkover 0-10 must not read like an actual 10-goal win — the
             // reason a result looks the way it does is shown, not just the
@@ -131,6 +153,19 @@ const legScores =
         </li>
       ))}
     </ol>
+    {node.state === 'upcoming' && (scheduledAt !== undefined || venueName !== undefined) && (
+      <p class="cl-match-node__schedule">
+        {scheduledAt !== undefined && (
+          <ResponsiveTimestamp
+            locale={intl.locale}
+            timestamp={scheduledAt}
+            timeZone={organizationTimeZone}
+          />
+        )}
+        {scheduledAt !== undefined && venueName !== undefined && ' · '}
+        {venueName !== undefined && <span>{venueName}</span>}
+      </p>
+    )}
     {series !== undefined && seriesInput !== undefined && (
       <SeriesStateBar
         {...seriesStateBarLabels(intl, seriesInput, {
@@ -166,6 +201,21 @@ const legScores =
     gap: var(--cl-space-2);
   }
   /* The name takes the row's slack and reads from the left, next to its emblem. */
+  .cl-slot__identity {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+  }
+  .cl-slot__origin {
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .cl-slot :global(.cl-entrant-name),
   .cl-slot--pending :global(.cl-entrant-name),
   .cl-slot :global(.cl-journey-name) {
@@ -181,5 +231,19 @@ const legScores =
   .cl-slot--winner :global(.cl-entrant-name),
   .cl-slot--winner :global(.cl-stat-tile__value) {
     font-weight: var(--cl-weight-bold);
+  }
+  .cl-slot--eliminated,
+  .cl-slot--eliminated :global(.cl-entrant-name),
+  .cl-slot--eliminated :global(.cl-stat-tile__value) {
+    color: var(--cl-text-muted);
+  }
+  .cl-match-node__schedule {
+    margin: var(--cl-space-1) 0 0;
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 </style>

@@ -57,35 +57,79 @@ export const SIDE_SOURCE_KEYS = [
   'ordinal3',
   'ordinalOther',
 ] as const;
-export type SideSourceMessages = Readonly<Record<(typeof SIDE_SOURCE_KEYS)[number], string>>;
+export type SideSourceMessages = Readonly<Record<(typeof SIDE_SOURCE_KEYS)[number], string>> & {
+  /** Optional template combining range and position (`"{places} ({position})"`). */
+  readonly feeder?: string;
+};
 export interface SourceText {
   readonly long: string;
   readonly short: string;
+}
+
+export interface PlacementSourceOptions {
+  readonly siblingKeys?: readonly (string | undefined)[];
+}
+
+/** Placement meaning comes from structural keys, never an API's English display label. */
+export function formatPlacementSourceText(
+  key: string,
+  messages: SideSourceMessages,
+  options: PlacementSourceOptions = {},
+): SourceText | undefined {
+  const generatedPlacement = /^PL(\d+)-R\d+-M(\d+)(?:-G\d+)?$/.exec(key);
+  if (generatedPlacement) {
+    const from = Number(generatedPlacement[1]);
+    const position = Number(generatedPlacement[2]);
+    const resolved =
+      options.siblingKeys === undefined ? undefined : placementOf(key, options.siblingKeys);
+    const range: Placement =
+      resolved !== undefined && resolved.to !== undefined && resolved.to >= from
+        ? resolved
+        : { from, to: from + 3 };
+    const places = formatPlacement(range, messages);
+    const feeder = messages.feeder ?? '{places} ({position})';
+    return {
+      long: applyTemplate(feeder, { places, position }).trim(),
+      short: applyTemplate(feeder, { places: `${range.from}–${range.to}`, position }).trim(),
+    };
+  }
+  const places = /^(?:placement|places?)-(\d+)(?:-(\d+))?$/.exec(key);
+  if (!places) return undefined;
+  if (places[2] === undefined) {
+    const place = Number(places[1]);
+    return {
+      long: formatPlacement({ from: place }, messages).trim(),
+      short: ordinalOf(place, messages).trim(),
+    };
+  }
+  const from = Number(places[1]);
+  const to = Number(places[2]);
+  return {
+    long: formatPlacement({ from, to }, messages).trim(),
+    short: `${places[1] ?? ''}–${places[2]}`,
+  };
 }
 
 /** Placement meaning comes from structural keys, never an API's English display label. */
 export function formatPlacementSource(
   key: string,
   messages: SideSourceMessages,
+  options: PlacementSourceOptions = {},
 ): string | undefined {
-  const generatedPlacement = /^PL(\d+)-R\d+-M\d+(?:-G\d+)?$/.exec(key);
-  if (generatedPlacement) {
-    return applyTemplate(messages.place, { place: generatedPlacement[1] ?? '' });
-  }
-  const places = /^(?:placement|places?)-(\d+)(?:-(\d+))?$/.exec(key);
-  if (!places) return undefined;
-  return places[2] === undefined
-    ? applyTemplate(messages.place, { place: places[1] ?? '' })
-    : applyTemplate(messages.places, { from: places[1] ?? '', to: places[2] });
+  return formatPlacementSourceText(key, messages, options)?.long;
 }
 
 /** A human label for generated bracket ids such as `SE-R2-M1` or `PL5-R1-M1`. */
 export function formatMatchRef(
   key: string,
   messages: SideSourceMessages,
-  options: { readonly finalRound?: number; readonly matchNumber?: number } = {},
+  options: {
+    readonly finalRound?: number;
+    readonly matchNumber?: number;
+    readonly siblingKeys?: readonly (string | undefined)[];
+  } = {},
 ): string {
-  const placement = formatPlacementSource(key, messages);
+  const placement = formatPlacementSource(key, messages, { siblingKeys: options.siblingKeys });
   if (placement !== undefined) return placement;
 
   const structural = /^(?:SE|WB|LB|GF)-R(\d+)-M(\d+)(?:-G\d+)?$/.exec(key);
@@ -97,7 +141,7 @@ export function formatMatchRef(
       position: Number(structural[2]),
     };
     return (
-      sourceMatchLabel(source, messages, options.finalRound)?.long ??
+      sourceMatchLabel(source, messages, options.finalRound, options.siblingKeys)?.long ??
       applyTemplate(messages.round, {
         round: source.round,
         position: source.position,
@@ -132,9 +176,18 @@ export function placementOf(
 }
 
 export function formatPlacement(placement: Placement, messages: SideSourceMessages): string {
-  return placement.to === undefined
-    ? applyTemplate(messages.place, { place: placement.from })
-    : applyTemplate(messages.places, { from: placement.from, to: placement.to });
+  if (placement.to === undefined) {
+    return applyTemplate(messages.place, {
+      place: placement.from,
+      ordinal: ordinalOf(placement.from, messages),
+    });
+  }
+  return applyTemplate(messages.places, {
+    from: placement.from,
+    to: placement.to,
+    fromOrdinal: ordinalOf(placement.from, messages),
+    toOrdinal: ordinalOf(placement.to, messages),
+  });
 }
 
 /**
@@ -145,10 +198,11 @@ export function sourceMatchLabel(
   source: SideSource,
   messages: SideSourceMessages,
   finalRound?: number,
+  siblingKeys?: readonly (string | undefined)[],
 ): SourceText | undefined {
   const key = source.nodeKey ?? source.matchId ?? '';
-  const placement = formatPlacementSource(key, messages);
-  if (placement !== undefined) return { long: placement, short: placement };
+  const placement = formatPlacementSourceText(key, messages, { siblingKeys });
+  if (placement !== undefined) return placement;
   const structural = /^(?:SE|WB|LB)-R(\d+)-M(\d+)(?:-G\d+)?$/.exec(key);
   const round = source.round ?? (structural ? Number(structural[1]) : undefined);
   const matchNumber =

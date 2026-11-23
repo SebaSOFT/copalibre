@@ -19,6 +19,8 @@ function mapBracketZoneMatches(
   undecidedSide: string,
 ): readonly BracketMatch[] {
   const finalRound = finalRoundOf(matches);
+  const zoneNodeKeys = matches.map((match) => match.nodeKey);
+  const hasPlacementKeys = zoneNodeKeys.some((key) => /^PL\d+-/.test(key ?? ''));
   // Sources are scoped to one zone; positions from another zone can collide.
   const sourcePositions = new Map(matches.map((match) => [match.matchId, match.position]));
   const sourceNumber = (matchId?: string): number | undefined => {
@@ -31,6 +33,7 @@ function mapBracketZoneMatches(
     matchId: m.matchId,
     nodeKey: m.nodeKey,
     sourceFinalRound: finalRound,
+    ...(hasPlacementKeys ? { zoneNodeKeys } : {}),
     matchNumber: m.matchNumber ?? m.position,
     roundNumber: m.round,
     position: m.position,
@@ -41,6 +44,7 @@ function mapBracketZoneMatches(
       : m.status === 'scheduled'
         ? 'upcoming'
         : m.status) as MatchState,
+    ...(m.winnerEntrantId === undefined ? {} : { winnerEntrantId: m.winnerEntrantId }),
     scores: m.slots.map((s) => s.score),
     resultReasons: m.slots.map((s) => s.resultReason as ResultReason | undefined),
     slots: m.slots.map((s, index): SlotSource => {
@@ -84,6 +88,16 @@ function mapBracketZoneMatches(
         ...(s.from === undefined
           ? {}
           : { from: { matchId: s.from.matchId, outcome: s.from.outcome } }),
+        ...(persisted?.kind === 'qualifier'
+          ? {
+              qualifierOrigin: {
+                ...(persisted.position === undefined ? {} : { position: persisted.position }),
+                ...(persisted.qualifierLabel === undefined
+                  ? {}
+                  : { qualifierLabel: persisted.qualifierLabel }),
+              },
+            }
+          : {}),
       };
     }),
     ...(m.series === undefined ? {} : { series: m.series as PublicSeriesState }),

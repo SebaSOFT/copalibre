@@ -19,6 +19,7 @@ import {
 } from './ui/organisms/BroadcastAlertBanner.js';
 import { resolveLiveTvMatchEvent } from '../../lib/tv-match-events.js';
 import { presentState } from '../../lib/result-state.js';
+import { competitionContext } from '../../lib/competition-context.js';
 import { applyTemplate } from '../../lib/matches-view.js';
 import { activeSegmentLabel } from '../../lib/segment-label.js';
 import { formatTimestamp } from '../../lib/format-timestamp.js';
@@ -350,6 +351,7 @@ export function TvDashboard({
               state: dashboardLabels.resultState,
               round: dashboardLabels.bracketRound,
               sideSource: dashboardLabels.sideSource,
+              zonePrefix: dashboardLabels.zonePrefix,
             },
           );
           setScheduledMatches((current) =>
@@ -394,6 +396,7 @@ export function TvDashboard({
     dashboardLabels.resultState,
     dashboardLabels.bracketRound,
     dashboardLabels.sideSource,
+    dashboardLabels.zonePrefix,
   ]);
 
   useEffect(() => {
@@ -772,6 +775,21 @@ export function TvDashboard({
   ) : null;
 
   const fixedView = initialView !== undefined;
+  const matchContextOf = (match: LiveMatch) =>
+    competitionContext(
+      {
+        stageNumber: match.stageNumber,
+        stageName: match.stageName,
+        zoneName: match.zoneName,
+        groupName: match.groupName,
+        round: match.round,
+        matchNumber: match.stageOrdinal ?? match.matchNumber,
+        nodeKey: match.nodeKey,
+        sourceFinalRound: match.sourceFinalRound,
+        zoneNodeKeys: match.zoneNodeKeys,
+      },
+      dashboardLabels.contextLabels,
+    );
   const labelStage = (ref: PinnedMatchRef | undefined): string =>
     ref === undefined ? '' : `${ref.stageNumber} · ${ref.ordinal}`;
   const eventsForMatch = (matchId: string): readonly TvMatchEvent[] =>
@@ -944,10 +962,17 @@ export function TvDashboard({
             {spotlightMatch ? (
               <div className="tv-presentation-match">
                 <p className="tv-match-spotlight__stage">
-                  {applyTemplate(dashboardLabels.stageMatch, {
-                    stage: spotlightMatch.stageNumber,
-                    match: spotlightMatch.stageOrdinal ?? spotlightMatch.matchNumber,
-                  })}
+                  {(() => {
+                    const ctx = matchContextOf(spotlightMatch);
+                    return (
+                      <>
+                        <span>{ctx.line}</span>
+                        {ctx.matchLabel && (
+                          <span className="tv-match-spotlight__match-number">{ctx.matchLabel}</span>
+                        )}
+                      </>
+                    );
+                  })()}
                 </p>
                 <div className="tv-presentation-match__sides">
                   <TvTeamSide
@@ -1085,10 +1110,10 @@ export function TvDashboard({
                 >
                   <header>
                     <span>
-                      {applyTemplate(dashboardLabels.stageMatch, {
-                        stage: match.stageNumber,
-                        match: match.stageOrdinal ?? match.matchNumber,
-                      })}
+                      {(() => {
+                        const ctx = matchContextOf(match);
+                        return ctx.matchLabel ? `${ctx.line} · ${ctx.matchLabel}` : ctx.line;
+                      })()}
                     </span>
                     <span className={`tv-scorebug__badge tv-scorebug__badge--${match.state}`}>
                       {presentState(match.state, dashboardLabels.resultState).label}
@@ -1232,10 +1257,19 @@ export function TvDashboard({
                 /* Spotlight Match Presentation */
                 <div className="tv-match-spotlight" data-testid="tv-match-spotlight">
                   <div className="tv-match-spotlight__stage">
-                    {applyTemplate(dashboardLabels.stageMatch, {
-                      stage: spotlightMatch.stageNumber,
-                      match: spotlightMatch.stageOrdinal ?? spotlightMatch.matchNumber,
-                    })}
+                    {(() => {
+                      const ctx = matchContextOf(spotlightMatch);
+                      return (
+                        <>
+                          <span>{ctx.line}</span>
+                          {ctx.matchLabel && (
+                            <span className="tv-match-spotlight__match-number">
+                              {ctx.matchLabel}
+                            </span>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                   <div className="tv-match-spotlight__vs-grid">
                     {/* Home side */}

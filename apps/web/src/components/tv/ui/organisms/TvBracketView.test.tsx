@@ -1,11 +1,18 @@
 import { render, screen } from '@testing-library/react';
-import { publicIntl, sideSourceLabels } from '../../../../lib/i18n/public-intl.js';
+import {
+  competitionContextLabels,
+  publicIntl,
+  sideSourceLabels,
+  tvDashboardLabels,
+} from '../../../../lib/i18n/public-intl.js';
 import { TvBracketView } from './TvBracketView.js';
 import type { BracketZone } from '../../../../lib/bracket-projection.js';
 import type { TvDashboardLabels } from '../../tv-types.js';
 
+const esIntl = publicIntl('es');
+
 const labels: TvDashboardLabels = {
-  sideSource: sideSourceLabels(publicIntl('es')),
+  sideSource: sideSourceLabels(esIntl),
   resultState: {
     final: 'Final',
     live: 'En vivo',
@@ -24,7 +31,17 @@ const labels: TvDashboardLabels = {
   focalPanelLabel: 'Foco',
   focalPanelTitle: 'Partido destacado',
   recapTitle: 'Resumen del torneo',
-  stageMatch: 'Etapa {stage} · Partido {match}',
+  contextLabels: competitionContextLabels(esIntl),
+  bracketBranch: {
+    winners: 'Cuadro principal',
+    losers: 'Cuadro de perdedores',
+    grandFinal: 'Gran final',
+    placement: 'Partidos de clasificación',
+  },
+  bracketRoundFinal: 'Final',
+  bracketRoundSemifinals: 'Semifinales',
+  bracketRoundQuarterfinals: 'Cuartos de final',
+  zonePrefix: '{zone} · {placement}',
   matchEventsLabel: 'Eventos',
   statsAndTablesLabel: 'Estadísticas',
   sidebarSectionsLabel: 'Secciones',
@@ -87,11 +104,94 @@ function zones(): readonly BracketZone[] {
 }
 
 describe('TvBracketView', () => {
-  it('groups matchup cards by zone and round', () => {
+  it('groups matchup cards by zone and round with localized headings', () => {
     render(<TvBracketView labels={labels} zones={zones()} />);
     expect(screen.getByText('Zona A')).toBeDefined();
-    expect(screen.getByText(/winners · Ronda 1/)).toBeDefined();
-    expect(screen.getByText(/winners · Ronda 2/)).toBeDefined();
+    expect(screen.getByText('Zona A · Semifinales')).toBeDefined();
+    expect(screen.getByText('Zona A · Final')).toBeDefined();
+  });
+
+  it('localizes 3-round winners and placement headings in Spanish without raw technical keys', () => {
+    const copaOro: BracketZone[] = [
+      {
+        zoneId: 'z-oro',
+        zoneName: 'Copa Oro',
+        matches: [
+          {
+            matchId: 'qf1',
+            matchNumber: 1,
+            roundNumber: 1,
+            branch: 'winners',
+            nodeKey: 'SE-R1-M1',
+            state: 'upcoming',
+            slots: [
+              { kind: 'seed', seed: 1 },
+              { kind: 'seed', seed: 8 },
+            ],
+          },
+          {
+            matchId: 'sf1',
+            matchNumber: 2,
+            roundNumber: 2,
+            branch: 'winners',
+            nodeKey: 'SE-R2-M1',
+            state: 'upcoming',
+            slots: [
+              { kind: 'winner-of', matchNumber: 1 },
+              { kind: 'seed', seed: 4 },
+            ],
+          },
+          {
+            matchId: 'fin',
+            matchNumber: 3,
+            roundNumber: 3,
+            branch: 'winners',
+            nodeKey: 'SE-R3-M1',
+            state: 'upcoming',
+            slots: [
+              { kind: 'winner-of', matchNumber: 2 },
+              { kind: 'seed', seed: 2 },
+            ],
+          },
+          {
+            matchId: 'pl5-1',
+            matchNumber: 4,
+            roundNumber: 1,
+            branch: 'placement',
+            nodeKey: 'PL5-R1-M1',
+            role: 'PL5-R1-M1',
+            state: 'upcoming',
+            slots: [
+              { kind: 'loser-of', matchNumber: 1 },
+              { kind: 'seed', seed: 5 },
+            ],
+          },
+          {
+            matchId: 'pl5-2',
+            matchNumber: 5,
+            roundNumber: 1,
+            branch: 'placement',
+            nodeKey: 'PL5-R1-M2',
+            role: 'PL5-R1-M2',
+            state: 'upcoming',
+            slots: [
+              { kind: 'seed', seed: 6 },
+              { kind: 'seed', seed: 7 },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const { container } = render(
+      <TvBracketView labels={tvDashboardLabels(esIntl)} zones={copaOro} />,
+    );
+    expect(screen.getByText('Copa Oro · Cuartos de final')).toBeDefined();
+    expect(screen.getByText('Copa Oro · Semifinales')).toBeDefined();
+    expect(screen.getByText('Copa Oro · Final')).toBeDefined();
+    expect(screen.getByText('Partidos de clasificación · 5º al 8º puesto')).toBeDefined();
+    expect(container.textContent).not.toMatch(/\bwinners\b/i);
+    expect(container.textContent).not.toMatch(/\bplacement\b/i);
   });
 
   it('shows resolved entrants and their published scores', () => {

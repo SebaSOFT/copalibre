@@ -31,6 +31,7 @@ export interface MatchCardData {
   readonly rescheduledFrom?: PreviousPlacement | null;
   readonly matchId: string;
   readonly stageNumber: number;
+  readonly stageName?: string;
   readonly matchNumber: number;
   readonly round?: number;
   readonly state: ResultState;
@@ -62,6 +63,10 @@ export interface MatchCardData {
   readonly latestEvent?: { readonly label: string; readonly occurredAt: string };
   readonly zoneName?: string;
   readonly groupName?: string;
+  /** Zone-scoped sibling node keys when a zone carries `PL*` placement feeders. */
+  readonly zoneNodeKeys?: readonly (string | undefined)[];
+  /** True when this match's stage has more than one explicit zone. */
+  readonly multiZoneStage?: boolean;
   readonly homePosition?: number;
   readonly awayPosition?: number;
   readonly series?: PublicSeriesState;
@@ -141,6 +146,8 @@ export interface MatchCardTitleLabels {
   readonly sideSource: SideSourceMessages;
   /** "Round {round}"; absent on a surface that does not title by round. */
   readonly roundHeading?: string;
+  /** "{zone} · {placement}" when a placement match sits outside its own zone section. */
+  readonly zonePrefix?: string;
 }
 
 export interface MatchCardTitle {
@@ -162,15 +169,31 @@ const KNOCKOUT_NODE = /^(?:SE|WB|LB)-R\d+-M\d+(?:-G\d+)?$/;
 export function matchCardTitle(
   match: Pick<
     MatchCardData,
-    'groupName' | 'nodeKey' | 'round' | 'matchNumber' | 'sourceFinalRound' | 'placement'
+    | 'groupName'
+    | 'zoneName'
+    | 'multiZoneStage'
+    | 'nodeKey'
+    | 'round'
+    | 'matchNumber'
+    | 'sourceFinalRound'
+    | 'placement'
   >,
   labels: MatchCardTitleLabels,
+  options: { readonly inZoneSection?: boolean } = {},
 ): MatchCardTitle {
   const number = applyTemplate(labels.matchHeading, { match: String(match.matchNumber) });
   if (match.groupName !== undefined) return { title: match.groupName, number, names: 'group' };
   if (match.placement !== undefined) {
+    const basePlacement = formatPlacement(match.placement, labels.sideSource);
+    const title =
+      !options.inZoneSection && match.multiZoneStage && match.zoneName !== undefined
+        ? applyTemplate(labels.zonePrefix ?? '{zone} · {placement}', {
+            zone: match.zoneName,
+            placement: basePlacement,
+          })
+        : basePlacement;
     return {
-      title: formatPlacement(match.placement, labels.sideSource),
+      title,
       number,
       names: 'placement',
     };
@@ -289,18 +312,37 @@ export function withSourceDepth<Match extends MatchCardData>(
   matches: readonly Match[],
 ): readonly Match[] {
   const depths = new Map<string, number>();
+  const keysByScope = new Map<string, (string | undefined)[]>();
+  const zonesByStage = new Map<number, Set<string>>();
   const keyOf = (match: Match): string => JSON.stringify([match.stageNumber, match.zoneName]);
   for (const match of matches) {
-    if (match.nodeKey?.startsWith('SE-') && match.round !== undefined)
-      depths.set(keyOf(match), Math.max(depths.get(keyOf(match)) ?? 0, match.round));
+    const scopeKey = keyOf(match);
+    const scopeKeys = keysByScope.get(scopeKey);
+    if (scopeKeys) scopeKeys.push(match.nodeKey);
+    else keysByScope.set(scopeKey, [match.nodeKey]);
+
+    if (match.zoneName !== undefined) {
+      const stageZones = zonesByStage.get(match.stageNumber);
+      if (stageZones) stageZones.add(match.zoneName);
+      else zonesByStage.set(match.stageNumber, new Set([match.zoneName]));
+    }
+
+    if (match.nodeKey?.startsWith('SE-') && match.round !== undefined) {
+      depths.set(scopeKey, Math.max(depths.get(scopeKey) ?? 0, match.round));
+    }
   }
-  const keys = matches.map((match) => match.nodeKey);
   return matches.map((match) => {
-    const placement = placementOf(match.nodeKey, keys);
+    const scopeKey = keyOf(match);
+    const zoneKeys = keysByScope.get(scopeKey) ?? [];
+    const placement = placementOf(match.nodeKey, zoneKeys);
+    const hasPlacementKeys = zoneKeys.some((key) => /^PL\d+-/.test(key ?? ''));
+    const multiZoneStage = (zonesByStage.get(match.stageNumber)?.size ?? 0) > 1;
     return {
       ...match,
-      sourceFinalRound: depths.get(keyOf(match)),
+      sourceFinalRound: depths.get(scopeKey),
       ...(placement === undefined ? {} : { placement }),
+      ...(hasPlacementKeys ? { zoneNodeKeys: zoneKeys } : {}),
+      ...(multiZoneStage ? { multiZoneStage: true } : {}),
     };
   });
 }

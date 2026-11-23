@@ -416,7 +416,7 @@ describe('MatchCard undecided sides', () => {
     if (!third) throw new Error('missing third-place game');
     render(<MatchCard match={{ ...third, sourceFinalRound: 3 }} labels={labels} locale="en" />);
 
-    expect(screen.getByText('Place 3')).toBeDefined();
+    expect(screen.getByText('3rd place')).toBeDefined();
     expect(screen.getByText('Loser of Semi-final 1')).toBeDefined();
     expect(screen.getByText('Loser of Semi-final 2')).toBeDefined();
   });
@@ -432,6 +432,135 @@ describe('MatchCard undecided sides', () => {
         ?.textContent?.replace(/\s+/g, ' ')
         .trim(),
     ).toContain('W Semi-final 1 vs W Semi-final 2');
+  });
+
+  it('keeps both undecided sides in the same form when only one overflows', () => {
+    const [, , card] = withSourceDepth([semi(1), semi(2), final]);
+    if (!card) throw new Error('missing final');
+    const OriginalResizeObserver = globalThis.ResizeObserver;
+    const widthMap = new WeakMap<Element, { scrollWidth: number; clientWidth: number }>();
+
+    class MockResizeObserver {
+      private readonly cb: ResizeObserverCallback;
+      constructor(cb: ResizeObserverCallback) {
+        this.cb = cb;
+      }
+      observe(target: Element): void {
+        const text = target.textContent ?? '';
+        const overflows = text.includes('Winner of Semi-final 2');
+        Object.defineProperty(target, 'scrollWidth', {
+          configurable: true,
+          value: overflows ? 180 : 120,
+        });
+        Object.defineProperty(target, 'clientWidth', { configurable: true, value: 140 });
+        widthMap.set(target, { scrollWidth: overflows ? 180 : 120, clientWidth: 140 });
+        this.cb([], this as unknown as ResizeObserver);
+      }
+      unobserve(): void {}
+      disconnect(): void {}
+    }
+
+    globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+    try {
+      const { container } = render(<MatchCard match={card} labels={labels} locale="en" />);
+      const names = [...container.querySelectorAll('[data-testid="entrant-name"]')];
+      expect(names).toHaveLength(2);
+      expect(names.every((el) => el.querySelector('abbr') !== null)).toBe(true);
+      expect(names.map((el) => el.textContent?.trim())).toEqual([
+        'W Semi-final 1',
+        'W Semi-final 2',
+      ]);
+    } finally {
+      globalThis.ResizeObserver = OriginalResizeObserver;
+    }
+  });
+
+  it('distinguishes placement feeders by range and position in both full and compact cards', () => {
+    const feeder1 = baseMatch({
+      matchId: 'pl1',
+      nodeKey: 'PL5-R1-M1',
+      round: 1,
+      homeName: undefined,
+      awayName: undefined,
+    });
+    const feeder2 = baseMatch({
+      matchId: 'pl2',
+      nodeKey: 'PL5-R1-M2',
+      round: 1,
+      homeName: undefined,
+      awayName: undefined,
+    });
+    const final5th = baseMatch({
+      matchId: 'pl5',
+      nodeKey: 'PL5-R2-M1',
+      round: 2,
+      homeName: undefined,
+      awayName: undefined,
+      homeSource: { kind: 'winner-of', nodeKey: 'PL5-R1-M1', round: 1, position: 1 },
+      awaySource: { kind: 'winner-of', nodeKey: 'PL5-R1-M2', round: 1, position: 2 },
+    });
+    const [, , card] = withSourceDepth([feeder1, feeder2, final5th]);
+    if (!card) throw new Error('missing 5th-place final');
+
+    const { rerender } = render(<MatchCard match={card} labels={labels} locale="en" />);
+    expect(screen.getByText('Winner of 5th–8th place (1)')).toBeDefined();
+    expect(screen.getByText('Winner of 5th–8th place (2)')).toBeDefined();
+
+    rerender(<MatchCard compact match={card} labels={labels} locale="en" />);
+    expect(
+      document
+        .querySelector('.cl-match-card__compact-content')
+        ?.textContent?.replace(/\s+/g, ' ')
+        .trim(),
+    ).toContain('W 5–8 (1) vs W 5–8 (2)');
+  });
+
+  it('prefixes placement titles with the zone outside its section and hides implicit Grupos scope', () => {
+    const [, card] = withSourceDepth([
+      baseMatch({
+        matchId: 'z1',
+        zoneName: 'Copa Oro',
+        nodeKey: 'placement-3',
+        round: 1,
+      }),
+      baseMatch({
+        matchId: 'z2',
+        zoneName: 'Copa Plata',
+        nodeKey: 'placement-3',
+        round: 1,
+      }),
+    ]);
+    if (!card) throw new Error('missing zone placement card');
+
+    const { rerender } = render(
+      <MatchCard
+        match={card}
+        labels={{ ...labels, zonePrefix: '{zone} · {placement}' }}
+        locale="en"
+      />,
+    );
+    expect(screen.getByText('Copa Plata · 3rd place')).toBeDefined();
+    expect(screen.queryByTitle(/^Zone\/group:/)).toBeNull();
+
+    rerender(
+      <MatchCard
+        inZoneSection
+        match={card}
+        labels={{ ...labels, zonePrefix: '{zone} · {placement}' }}
+        locale="en"
+      />,
+    );
+    expect(screen.getByText('3rd place')).toBeDefined();
+    expect(screen.getByTitle('Zone/group: Copa Plata')).toBeDefined();
+
+    rerender(
+      <MatchCard
+        match={baseMatch({ zoneName: 'Grupos', groupName: 'Grupo A' })}
+        labels={labels}
+        locale="en"
+      />,
+    );
+    expect(screen.queryByTitle(/^Zone\/group:/)).toBeNull();
   });
 });
 

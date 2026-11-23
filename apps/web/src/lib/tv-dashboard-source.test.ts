@@ -102,6 +102,60 @@ describe('overlayLive', () => {
     const merged = overlayLive(dashboardFromOverview([]), liveSecond);
     expect(merged.matches).toHaveLength(1);
   });
+
+  it('derives zone-scoped bracket context in dashboardFromOverview and preserves it across overlayLive', () => {
+    const richBase = dashboardFromOverview([
+      overviewMatch(2, 1, {
+        stageName: 'Copas',
+        zoneName: 'Copa Oro',
+        round: 1,
+        nodeKey: 'PL5-R1-M1',
+      }),
+      overviewMatch(2, 2, {
+        stageName: 'Copas',
+        zoneName: 'Copa Oro',
+        round: 1,
+        nodeKey: 'PL5-R1-M2',
+      }),
+      overviewMatch(2, 3, {
+        stageName: 'Copas',
+        zoneName: 'Copa Oro',
+        round: 3,
+        nodeKey: 'SE-R3-M1',
+      }),
+    ]);
+    expect(richBase.matches[0]?.stageName).toBe('Copas');
+    expect(richBase.matches[0]?.zoneName).toBe('Copa Oro');
+    expect(richBase.matches[0]?.sourceFinalRound).toBe(3);
+    expect(richBase.matches[0]?.zoneNodeKeys).toEqual(['PL5-R1-M1', 'PL5-R1-M2', 'SE-R3-M1']);
+
+    const sparseLive: LiveDashboard = {
+      standingsVersion: 5,
+      usingLastKnown: false,
+      matches: [
+        {
+          matchId: 'm-2-1',
+          stageNumber: 2,
+          matchNumber: 1,
+          stageOrdinal: 1,
+          state: 'live',
+          projectionVersion: 2,
+          sides: [
+            { entrantId: 'h', name: 'Home', score: 1, state: 'live' },
+            { entrantId: 'a', name: 'Away', score: 0, state: 'live' },
+          ],
+        },
+      ],
+    };
+    const merged = overlayLive(richBase, sparseLive);
+    expect(merged.matches[0]).toMatchObject({
+      stageName: 'Copas',
+      zoneName: 'Copa Oro',
+      nodeKey: 'PL5-R1-M1',
+      sourceFinalRound: 3,
+      zoneNodeKeys: ['PL5-R1-M1', 'PL5-R1-M2', 'SE-R3-M1'],
+    });
+  });
 });
 
 describe('lastMatchAt', () => {

@@ -1,9 +1,11 @@
 ---
 import type { IntlShape } from 'react-intl';
 import BracketGraph from './BracketGraph.astro';
+import { AdvancingBadge } from '../atoms/AdvancingBadge.tsx';
 import Button from '../atoms/Button.astro';
 import '../../../styles/entrant-path.css';
 import { OutcomeLegend, type BracketOutcome } from '../molecules/OutcomeLegend.tsx';
+import type { MatchCardData } from '../../../lib/matches-view.ts';
 import {
   bracketMatchId,
   describeSlot,
@@ -33,6 +35,11 @@ interface Props {
   readonly highlightMatchNumber?: number;
   /** First heading level for this bracket, based on the page's outline. */
   readonly headingLevel?: number;
+  /** Explicit zone name used as the main bracket heading. */
+  readonly zoneName?: string;
+  /** Zone matches-view rows supplying schedule time and venue for upcoming bracket nodes. */
+  readonly matchesView?: readonly MatchCardData[];
+  readonly organizationTimeZone?: string;
 }
 const {
   intl,
@@ -42,7 +49,16 @@ const {
   localePrefix = '',
   highlightMatchNumber,
   headingLevel = 2,
+  zoneName,
+  matchesView,
+  organizationTimeZone,
 } = Astro.props;
+const zoneNodeKeys = Astro.props.matches.map((match) => match.nodeKey);
+const branchLabel = (branch: string): string =>
+  (branch === 'winners' || branch === 'winner') && zoneName?.trim()
+    ? zoneName.trim()
+    : bracketBranchLabel(intl, branch);
+const advancesLabel = intl.formatMessage(messages.bracketAdvances);
 const rounds = toRounds(Astro.props.matches);
 const placementGames = placementGamesOf(Astro.props.matches);
 
@@ -116,9 +132,12 @@ const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((b
         intl={intl}
         localePrefix={localePrefix}
         matches={Astro.props.matches}
+        matchesView={matchesView}
         organizationAlias={organizationAlias}
+        organizationTimeZone={organizationTimeZone}
         stageNumber={stageNumber}
         tournamentAlias={tournamentAlias}
+        zoneName={zoneName}
       />
     </div>
   ))}
@@ -143,52 +162,81 @@ const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((b
     <OutlineHeading>{intl.formatMessage(messages.bracketOutlineHeading)}</OutlineHeading>
     {outlineBranches.map(({ branch, rounds: branchRounds }) => (
       <section class="cl-bracket-stage__outline-branch">
-        <BranchHeading>{bracketBranchLabel(intl, branch)}</BranchHeading>
+        <BranchHeading>{branchLabel(branch)}</BranchHeading>
         {branchRounds.map((round) => (
           <>
             <RoundHeading>{bracketRoundTitle(intl, round, branchRounds)}</RoundHeading>
             <ol class="cl-bracket-stage__outline-list">
               {round.matches.map((match) => {
                 const outcomes = nodeOutcomes(match);
+                const isDrawnKnockout =
+                  match.state === 'final' &&
+                  match.scores?.[0] !== undefined &&
+                  match.scores?.[1] !== undefined &&
+                  match.scores[0] === match.scores[1] &&
+                  match.winnerEntrantId !== undefined;
                 return (
                   <li data-journey-match={bracketMatchId(match)}>
                     {match.role !== undefined && (
                       <strong>{bracketRoleLabel(intl, match.role)}: </strong>
                     )}
-                    {match.slots.map((slot, index) => (
-                      <>
-                        {index > 0 && ' — '}
-                        {slot.kind === 'entrant' && slot.entrantId !== undefined ? (
-                          <>
-                            <span data-journey-fallback>
-                              {describeSlot(slot, sideSourceLabels(intl), match.sourceFinalRound)}
+                    {match.slots.map((slot, index) => {
+                      const slotAdvances =
+                        isDrawnKnockout &&
+                        slot.kind === 'entrant' &&
+                        slot.entrantId === match.winnerEntrantId;
+                      return (
+                        <>
+                          {index > 0 && ' — '}
+                          {slot.kind === 'entrant' && slot.entrantId !== undefined ? (
+                            <>
+                              <span data-journey-fallback>
+                                {describeSlot(
+                                  slot,
+                                  sideSourceLabels(intl),
+                                  match.sourceFinalRound,
+                                  zoneNodeKeys,
+                                )}
+                              </span>
+                              <Button
+                                hidden
+                                aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
+                                  entrant: slot.name,
+                                })}
+                                aria-pressed="false"
+                                class="cl-journey-name"
+                                data-entrant-id={slot.entrantId}
+                                variant="secondary"
+                              >
+                                {slot.name}
+                              </Button>
+                            </>
+                          ) : (
+                            <span>
+                              {describeSlot(
+                                slot,
+                                sideSourceLabels(intl),
+                                match.sourceFinalRound,
+                                zoneNodeKeys,
+                              )}
                             </span>
-                            <Button
-                              hidden
-                              aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
-                                entrant: slot.name,
-                              })}
-                              aria-pressed="false"
-                              class="cl-journey-name"
-                              data-entrant-id={slot.entrantId}
-                              variant="secondary"
-                            >
-                              {slot.name}
-                            </Button>
-                          </>
-                        ) : (
-                          <span>
-                            {describeSlot(slot, sideSourceLabels(intl), match.sourceFinalRound)}
-                          </span>
-                        )}
-                        {match.scores?.[index] !== undefined && (
-                          <span class="cl-row__figure cl-tabular-nums"> {match.scores[index]}</span>
-                        )}
-                        {outcomes[index] !== undefined && (
-                          <span> ({outcomeLabels[outcomes[index]!]})</span>
-                        )}
-                      </>
-                    ))}
+                          )}
+                          {match.scores?.[index] !== undefined && (
+                            <span class="cl-row__figure cl-tabular-nums">
+                              {' '}
+                              {match.scores[index]}
+                            </span>
+                          )}
+                          {slotAdvances ? (
+                            <AdvancingBadge label={advancesLabel} />
+                          ) : (
+                            outcomes[index] !== undefined && (
+                              <span> ({outcomeLabels[outcomes[index]!]})</span>
+                            )
+                          )}
+                        </>
+                      );
+                    })}
                   </li>
                 );
               })}

@@ -1734,7 +1734,39 @@ describe('TvDashboard pinned match and views', () => {
     });
 
     expect(screen.getByRole('heading', { level: 2, name: 'Partido destacado' })).toBeTruthy();
-    expect(screen.getByText('Etapa 1 · Partido 1')).toBeTruthy();
+    expect(screen.getByText('Fase 1')).toBeTruthy();
+    expect(screen.getByText('Partido 1')).toBeTruthy();
+  });
+
+  it('renders competition context and secondary match number in spotlight header', () => {
+    const initial = stageOfThree('live');
+    renderTv({
+      dashboardLabels: tvDashboardLabels(publicIntl('es')),
+      initial: {
+        ...initial,
+        matches: initial.matches.map((match, index) =>
+          index === 0
+            ? {
+                ...match,
+                stageNumber: 2,
+                stageName: 'Copas',
+                zoneName: 'Copa Oro',
+                matchNumber: 5,
+                stageOrdinal: 5,
+                nodeKey: 'PL5-R1-M1',
+                round: 1,
+                zoneNodeKeys: ['PL5-R1-M1', 'PL5-R1-M2', 'PL5-R2-M1'],
+              }
+            : match,
+        ),
+      },
+      language: 'es',
+      pinnedMatch: { stageNumber: 2, ordinal: 5 },
+    });
+
+    const spotlight = screen.getByTestId('tv-match-spotlight');
+    expect(spotlight.textContent).toContain('Copas · Copa Oro · Semifinal 5º al 8º puesto');
+    expect(spotlight.textContent).toContain('Partido 5');
   });
 
   it('uses localized copy for the tournament recap title', () => {

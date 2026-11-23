@@ -14,6 +14,7 @@ export function EntrantName({
   inline = false,
   pending = false,
   compact: preferCompact = false,
+  onOverflowChange,
 }: {
   readonly fullName: string;
   readonly abbreviation?: string;
@@ -23,19 +24,33 @@ export function EntrantName({
   readonly pending?: boolean;
   /** Explicit dense presentations remain meaningful before hydration. */
   readonly compact?: boolean;
+  /** Reports whether this label overflows its box so sibling sides can coordinate one form. */
+  readonly onOverflowChange?: (overflowing: boolean) => void;
 }): React.JSX.Element {
   const ref = useRef<HTMLSpanElement>(null);
+  const onOverflowChangeRef = useRef(onOverflowChange);
   const [compact, setCompact] = useState(false);
   const showAbbreviation = (compact || preferCompact) && abbreviation !== undefined;
 
   useEffect(() => {
+    onOverflowChangeRef.current = onOverflowChange;
+  }, [onOverflowChange]);
+
+  useEffect(() => {
     const element = ref.current;
     if (!element || abbreviation === undefined || typeof ResizeObserver === 'undefined') return;
-    const update = (): void => setCompact(element.scrollWidth > element.clientWidth);
+    const update = (): void => {
+      const overflowing = element.scrollWidth > element.clientWidth;
+      setCompact(overflowing);
+      onOverflowChangeRef.current?.(overflowing);
+    };
     const observer = new ResizeObserver(update);
     observer.observe(element);
     update();
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      onOverflowChangeRef.current?.(false);
+    };
   }, [abbreviation, fullName]);
 
   return (

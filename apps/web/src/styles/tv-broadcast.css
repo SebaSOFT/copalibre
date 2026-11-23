@@ -725,12 +725,22 @@
 }
 
 .tv-match-spotlight__stage {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: var(--cl-space-2);
   font-family: var(--cl-font-mono);
   font-size: clamp(0.85rem, 1.6vmin, 1.1rem);
   color: var(--tv-live-cyan);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   text-align: center;
+}
+
+.tv-match-spotlight__match-number {
+  color: var(--tv-text-muted);
+  font-size: 0.85em;
 }
 
 .tv-match-spotlight__vs-grid {

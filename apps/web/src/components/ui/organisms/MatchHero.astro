@@ -4,12 +4,14 @@
  * badge/scoreboard/venue header, unchanged in markup and styling.
  */
 import { rescheduledStatement } from '../../../lib/reschedule.ts';
+import { AdvancingBadge } from '../atoms/AdvancingBadge.tsx';
 import { Badge } from '../atoms/Badge.tsx';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
 import { LiveMatchScoreboard } from '../molecules/LiveMatchScoreboard.tsx';
 import type { LiveMatchClock, LiveSegment } from '../../../lib/live-state.ts';
 import type { MatchReportModel } from '../../../lib/match-report.ts';
 import { formatEntrant, liveClockLabels } from '../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { displayedScore } from '../../../lib/matches-view.ts';
 import { activeSegmentLabel } from '../../../lib/segment-label.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
@@ -28,6 +30,7 @@ export interface Props {
   readonly awayEntrantId?: string;
   readonly liveClock?: LiveMatchClock;
   readonly liveSegments?: readonly LiveSegment[];
+  readonly stakeLines?: readonly string[];
 }
 
 const {
@@ -42,6 +45,7 @@ const {
   awayEntrantId,
   liveClock,
   liveSegments,
+  stakeLines = [],
 } = Astro.props;
 const home = formatEntrant(intl, model.home);
 const away = formatEntrant(intl, model.away);
@@ -54,6 +58,25 @@ const rescheduled =
   model.status === 'upcoming'
     ? rescheduledStatement(model.rescheduledFrom, model.venueName, locale, rescheduledLabel)
     : '';
+const resolvedHomeEntrantId = homeEntrantId ?? model.home.entrantId;
+const resolvedAwayEntrantId = awayEntrantId ?? model.away.entrantId;
+const isDrawnFinal =
+  model.status === 'final' &&
+  model.home.score !== undefined &&
+  model.away.score !== undefined &&
+  model.home.score === model.away.score &&
+  model.winnerEntrantId !== undefined;
+const homeAdvances =
+  isDrawnFinal &&
+  resolvedHomeEntrantId !== undefined &&
+  model.winnerEntrantId === resolvedHomeEntrantId;
+const awayAdvances =
+  isDrawnFinal &&
+  resolvedAwayEntrantId !== undefined &&
+  model.winnerEntrantId === resolvedAwayEntrantId;
+const homeEliminated = awayAdvances && !homeAdvances;
+const awayEliminated = homeAdvances && !awayAdvances;
+const advancesLabel = intl.formatMessage(messages.bracketAdvances);
 ---
 
 <header class="cl-match-hero">
@@ -74,10 +97,17 @@ const rescheduled =
   </div>
 
   <div class="cl-scoreboard">
-    <div class="cl-scoreboard__side cl-scoreboard__side--home">
+    <div
+      class:list={[
+        'cl-scoreboard__side',
+        'cl-scoreboard__side--home',
+        homeEliminated && 'cl-scoreboard__side--eliminated',
+      ]}
+    >
       <span class="cl-team-identity">
         <span class="cl-team-name">{home.fullName}</span>
         {home.abbreviation && <span class="cl-team-abbreviation">{home.abbreviation}</span>}
+        {homeAdvances && <AdvancingBadge label={advancesLabel} />}
       </span>
       <span
         class="cl-team-score"
@@ -88,7 +118,13 @@ const rescheduled =
       </span>
     </div>
     <div class="cl-scoreboard__divider">–</div>
-    <div class="cl-scoreboard__side cl-scoreboard__side--away">
+    <div
+      class:list={[
+        'cl-scoreboard__side',
+        'cl-scoreboard__side--away',
+        awayEliminated && 'cl-scoreboard__side--eliminated',
+      ]}
+    >
       <span
         class="cl-team-score"
         data-live-score-match={liveMatchId}
@@ -99,6 +135,7 @@ const rescheduled =
       <span class="cl-team-identity">
         <span class="cl-team-name">{away.fullName}</span>
         {away.abbreviation && <span class="cl-team-abbreviation">{away.abbreviation}</span>}
+        {awayAdvances && <AdvancingBadge label={advancesLabel} />}
       </span>
     </div>
   </div>
@@ -115,6 +152,13 @@ const rescheduled =
     <p class="cl-match-venue" role="status">
       {rescheduled}
     </p>
+  )}
+  {stakeLines.length > 0 && (
+    <ul class="cl-match-stakes">
+      {stakeLines.map((line) => (
+        <li class="cl-match-stakes__item">{line}</li>
+      ))}
+    </ul>
   )}
 </header>
 
@@ -216,5 +260,30 @@ const rescheduled =
   .cl-text-muted {
     color: var(--cl-text-muted);
     font-size: 0.875rem;
+  }
+
+  .cl-scoreboard__side--eliminated {
+    color: var(--cl-text-muted);
+  }
+
+  .cl-scoreboard__side--eliminated .cl-team-score {
+    color: var(--cl-text-muted);
+  }
+
+  .cl-match-stakes {
+    list-style: none;
+    margin: var(--cl-space-3) 0 0;
+    padding: var(--cl-space-3) 0 0;
+    border-top: 1px solid var(--cl-border-muted);
+    display: grid;
+    gap: var(--cl-space-1);
+    justify-items: center;
+  }
+
+  .cl-match-stakes__item {
+    color: var(--cl-text-secondary);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    letter-spacing: var(--cl-tracking-wide);
   }
 </style>

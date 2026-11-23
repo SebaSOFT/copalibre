@@ -67,8 +67,6 @@ export const messages = defineMessages({
     id: 'publicWeb.sideSource.quarterFinalShort',
     defaultMessage: 'Quarter-final {position}',
   },
-  sideSourcePlace: { id: 'publicWeb.sideSource.place', defaultMessage: 'Place {place}' },
-  sideSourcePlaces: { id: 'publicWeb.sideSource.places', defaultMessage: 'Places {from}–{to}' },
   sideSourceUnknown: { id: 'publicWeb.sideSource.unknown', defaultMessage: 'Awaiting participant' },
   sideSourceSeed: { id: 'publicWeb.sideSource.seed', defaultMessage: 'Seed {seed}' },
   sideSourceBye: { id: 'publicWeb.sideSource.bye', defaultMessage: 'Bye' },
@@ -543,14 +541,40 @@ export const messages = defineMessages({
     id: 'publicWeb.bracket.branch.placement',
     defaultMessage: 'Placement games',
   },
-  // A placement game: the single place it decides, or the range it sorts.
-  bracketRolePlace: {
-    id: 'publicWeb.bracket.role.place',
+  bracketAdvances: { id: 'publicWeb.bracket.advances', defaultMessage: 'Advances' },
+  // Unified placement vocabulary used across cards, brackets and reports.
+  placementPlace: {
+    id: 'publicWeb.placement.place',
     defaultMessage: '{place, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} place',
   },
-  bracketRolePlaces: {
-    id: 'publicWeb.bracket.role.places',
-    defaultMessage: 'Places {from}–{to}',
+  placementPlaces: {
+    id: 'publicWeb.placement.places',
+    defaultMessage:
+      '{from, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}–{to, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} place',
+  },
+  placementFeeder: {
+    id: 'publicWeb.placement.feeder',
+    defaultMessage: '{places} ({position})',
+  },
+  placementZonePrefix: {
+    id: 'publicWeb.placement.zonePrefix',
+    defaultMessage: '{zone} · {placement}',
+  },
+  matchReportStakeWinner: {
+    id: 'publicWeb.matchReport.stakeWinner',
+    defaultMessage: 'Winner plays {match}{when}',
+  },
+  matchReportStakeLoser: {
+    id: 'publicWeb.matchReport.stakeLoser',
+    defaultMessage: 'Loser plays {match}{when}',
+  },
+  matchReportStakePlace: {
+    id: 'publicWeb.matchReport.stakePlace',
+    defaultMessage: 'Decides {place}',
+  },
+  matchReportStakeChampion: {
+    id: 'publicWeb.matchReport.stakeChampion',
+    defaultMessage: 'Decides the {zone} champion',
   },
   // the bracket stage's own chrome, its key, and its textual view.
   bracketStageAriaLabel: { id: 'publicWeb.bracket.stageAriaLabel', defaultMessage: 'Bracket' },
@@ -1170,9 +1194,21 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.recapTitle',
     defaultMessage: 'Tournament recap',
   },
-  tvDashboardStageMatch: {
-    id: 'publicWeb.tvDashboard.stageMatch',
-    defaultMessage: 'Stage {stage} · Match {match}',
+  tvDashboardBracketBranchWinners: {
+    id: 'publicWeb.tvDashboard.bracketBranch.winners',
+    defaultMessage: 'Main bracket',
+  },
+  tvDashboardBracketBranchLosers: {
+    id: 'publicWeb.tvDashboard.bracketBranch.losers',
+    defaultMessage: "Losers' bracket",
+  },
+  tvDashboardBracketBranchGrandFinal: {
+    id: 'publicWeb.tvDashboard.bracketBranch.grandFinal',
+    defaultMessage: 'Grand final',
+  },
+  tvDashboardBracketBranchPlacement: {
+    id: 'publicWeb.tvDashboard.bracketBranch.placement',
+    defaultMessage: 'Placement games',
   },
   // Pinned-match compact event ticker.
   tvDashboardMatchEventsLabel: {

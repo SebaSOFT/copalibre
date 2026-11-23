@@ -11,6 +11,7 @@ import {
 import { layoutPublicBracket, type BracketDensity } from '../../../lib/public-bracket-layout.ts';
 import { bracketBranchLabel, bracketRoleLabel } from '../../../lib/i18n/public-intl.ts';
 import { bracketRoundHeading, bracketRoundTitle } from '../../../lib/bracket-round-heading.ts';
+import type { MatchCardData } from '../../../lib/matches-view.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 /**
@@ -28,6 +29,9 @@ interface Props {
   readonly highlightMatchNumber?: number;
   readonly density: BracketDensity;
   readonly headingLevel: number;
+  readonly zoneName?: string;
+  readonly matchesView?: readonly MatchCardData[];
+  readonly organizationTimeZone?: string;
 }
 const {
   intl,
@@ -37,7 +41,17 @@ const {
   localePrefix = '',
   highlightMatchNumber,
   density,
+  zoneName,
+  matchesView,
+  organizationTimeZone,
 } = Astro.props;
+const branchLabel = (branch: string): string =>
+  (branch === 'winners' || branch === 'winner') && zoneName?.trim()
+    ? zoneName.trim()
+    : bracketBranchLabel(intl, branch);
+const scheduleByMatchNumber = new Map(
+  (matchesView ?? []).map((row) => [row.matchNumber, row] as const),
+);
 const rounds = toRounds(Astro.props.matches);
 const championship = championshipMatch(Astro.props.matches);
 const layout = layoutPublicBracket(Astro.props.matches, density);
@@ -108,11 +122,18 @@ const captionOf = (match: (typeof layout.nodes)[number]['match']): string | unde
       class="cl-bracket-stage__band"
       style={`left: ${band.x}px; top: ${HEAD - 100}px;`}
     >
-      {bracketBranchLabel(intl, band.branch)}
+      {branchLabel(band.branch)}
     </BranchHeading>
   ))}
   {placedRounds.map(({ round, nodes, heads }) => (
-    <section aria-label={bracketRoundHeading(intl, round, rounds)} class="cl-bracket-stage__round">
+    <section
+      aria-label={
+        (round.branch === 'winners' || round.branch === 'winner') && zoneName?.trim()
+          ? `${zoneName.trim()} · ${bracketRoundTitle(intl, round, rounds)}`
+          : bracketRoundHeading(intl, round, rounds)
+      }
+      class="cl-bracket-stage__round"
+    >
       {heads.map((head) => (
         <RoundHeading
           class="cl-bracket-stage__round-label"
@@ -154,8 +175,11 @@ const captionOf = (match: (typeof layout.nodes)[number]['match']): string | unde
                 localePrefix={localePrefix}
                 match={node.match}
                 organizationAlias={organizationAlias}
+                organizationTimeZone={organizationTimeZone}
+                scheduledAt={scheduleByMatchNumber.get(node.match.matchNumber)?.scheduledAt}
                 stageNumber={stageNumber}
                 tournamentAlias={tournamentAlias}
+                venueName={scheduleByMatchNumber.get(node.match.matchNumber)?.venueName}
               />
             )}
           </div>

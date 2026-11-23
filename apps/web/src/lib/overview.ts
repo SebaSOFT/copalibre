@@ -22,6 +22,7 @@ export interface OverviewMatch {
   /** The match's 1-based position in its stage, which the public and TV match routes address it by. */
   readonly stageOrdinal?: number;
   readonly stageNumber: number;
+  readonly stageName?: string;
   /** The fixture's structural key (`SE-R2-M1`, `placement-3`), which names knockout rounds. */
   readonly nodeKey?: string;
   readonly round?: number;

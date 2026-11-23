@@ -6,7 +6,7 @@ import {
   type LayoutMatch,
   type LayoutSlot,
 } from './bracket-layout.ts';
-import type { BracketMatch, SlotSource } from './bracket.ts';
+import { comparePlacementMatches, type BracketMatch, type SlotSource } from './bracket.ts';
 
 /**
  * The public bracket's geometry: the same `placeBracket` the operator canvas uses, with the
@@ -16,12 +16,12 @@ import type { BracketMatch, SlotSource } from './bracket.ts';
 export const PUBLIC_GEOMETRY: BracketGeometry = {
   ...DEFAULT_GEOMETRY,
   nodeWidth: 248,
-  nodeHeight: 140,
+  nodeHeight: 184,
   columnGap: 32,
   rowGap: 28,
   bracketGap: 128,
 };
-const SERIES_NODE_HEIGHT = 200;
+const SERIES_NODE_HEIGHT = 236;
 
 /**
  * The same bracket for a narrow screen: a card that is only abbreviations and scores, so a split bracket's five columns fit a phone's width.
@@ -76,17 +76,10 @@ function layoutSlot(slot: SlotSource, idByNumber: ReadonlyMap<number, string>): 
 export const isPlacementGame = (match: BracketMatch): boolean => match.branch === 'placement';
 
 /**
- * The placement games, best-ranked round first (third, fifth and seventh place before the round
- * that sorts the fifth to eighth), the order a results list reads in.
+ * The placement games, ordered by best place settled, then round ascending, then position.
  */
 export function placementGamesOf(matches: readonly BracketMatch[]): readonly BracketMatch[] {
-  return matches
-    .filter(isPlacementGame)
-    .sort(
-      (a, b) =>
-        b.roundNumber - a.roundNumber ||
-        (a.position ?? a.matchNumber) - (b.position ?? b.matchNumber),
-    );
+  return matches.filter(isPlacementGame).sort(comparePlacementMatches);
 }
 
 export function layoutPublicBracket(
