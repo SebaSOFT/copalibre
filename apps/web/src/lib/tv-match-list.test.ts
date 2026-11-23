@@ -126,7 +126,7 @@ describe('tvMatchEntriesOf', () => {
     expect(semi?.away.pending).toBe(false);
     expect(semi?.scope).toBe('Playoffs · Round 2');
     expect(final?.away).toMatchObject({
-      label: 'W Semi-final 2',
+      label: 'W Semi 2',
       name: 'Winner of Semi-final 2',
       pending: true,
     });

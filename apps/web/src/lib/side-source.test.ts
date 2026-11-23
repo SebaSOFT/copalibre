@@ -58,11 +58,11 @@ it('names elimination rounds from actual depth, never from an assumed entrant co
   const source = { kind: 'winner-of' as const, nodeKey: 'SE-R2-M1' };
   expect(sourceMatchLabel(source, labels, 3)).toEqual({
     long: 'Semi-final 1',
-    short: 'Semi-final 1',
+    short: 'Semi 1',
   });
   expect(sourceMatchLabel(source, labels, 4)).toEqual({
     long: 'Quarter-final 1',
-    short: 'Quarter-final 1',
+    short: 'QF 1',
   });
   expect(sourceMatchLabel(source, labels, 2)).toEqual({ long: 'Final', short: 'F' });
   expect(sourceMatchLabel(source, labels, 6)?.long).toBe('Round 2, match 1');

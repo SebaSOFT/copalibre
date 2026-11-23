@@ -161,6 +161,7 @@ const captionOf = (match: (typeof layout.nodes)[number]['match']): string | unde
             {caption !== undefined && <p class="cl-bracket-stage__caption">{caption}</p>}
             {density === 'compact' ? (
               <MatchNodeCompact
+                advancesLabel={intl.formatMessage(messages.bracketAdvances)}
                 intl={intl}
                 localePrefix={localePrefix}
                 match={node.match}

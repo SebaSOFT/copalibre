@@ -431,7 +431,7 @@ describe('MatchCard undecided sides', () => {
         .querySelector('.cl-match-card__compact-content')
         ?.textContent?.replace(/\s+/g, ' ')
         .trim(),
-    ).toContain('W Semi-final 1 vs W Semi-final 2');
+    ).toContain('W Semi 1 vs W Semi 2');
   });
 
   it('keeps both undecided sides in the same form when only one overflows', () => {
@@ -466,10 +466,7 @@ describe('MatchCard undecided sides', () => {
       const names = [...container.querySelectorAll('[data-testid="entrant-name"]')];
       expect(names).toHaveLength(2);
       expect(names.every((el) => el.querySelector('abbr') !== null)).toBe(true);
-      expect(names.map((el) => el.textContent?.trim())).toEqual([
-        'W Semi-final 1',
-        'W Semi-final 2',
-      ]);
+      expect(names.map((el) => el.textContent?.trim())).toEqual(['W Semi 1', 'W Semi 2']);
     } finally {
       globalThis.ResizeObserver = OriginalResizeObserver;
     }

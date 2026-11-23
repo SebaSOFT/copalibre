@@ -57,7 +57,7 @@ export const messages = defineMessages({
   },
   sideSourceSemiFinalShort: {
     id: 'publicWeb.sideSource.semiFinalShort',
-    defaultMessage: 'Semi-final {position}',
+    defaultMessage: 'Semi {position}',
   },
   sideSourceQuarterFinal: {
     id: 'publicWeb.sideSource.quarterFinal',
@@ -65,7 +65,7 @@ export const messages = defineMessages({
   },
   sideSourceQuarterFinalShort: {
     id: 'publicWeb.sideSource.quarterFinalShort',
-    defaultMessage: 'Quarter-final {position}',
+    defaultMessage: 'QF {position}',
   },
   sideSourceUnknown: { id: 'publicWeb.sideSource.unknown', defaultMessage: 'Awaiting participant' },
   sideSourceSeed: { id: 'publicWeb.sideSource.seed', defaultMessage: 'Seed {seed}' },

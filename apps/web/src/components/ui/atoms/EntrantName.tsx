@@ -78,6 +78,7 @@ export function EntrantName({
   className,
   inline = false,
   pending = false,
+  showPendingIcon = true,
   compact: preferCompact = false,
   syncGroup,
   onOverflowChange,
@@ -88,6 +89,8 @@ export function EntrantName({
   /** Flow within surrounding text, inheriting its font, size and emphasis. */
   readonly inline?: boolean;
   readonly pending?: boolean;
+  /** Shows the upcoming icon before pending labels; compact cards already carry a state icon in their gutter. */
+  readonly showPendingIcon?: boolean;
   /** Explicit dense presentations remain meaningful before hydration. */
   readonly compact?: boolean;
   /** Coordinates compact fallback across separate island mounts sharing one match node. */
@@ -151,7 +154,7 @@ export function EntrantName({
       aria-label={fullName}
       title={showAbbreviation ? undefined : fullName}
     >
-      {pending && (
+      {pending && showPendingIcon && (
         <>
           <Icon name={resultStateIcon('upcoming')} size={16} />{' '}
         </>

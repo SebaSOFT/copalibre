@@ -883,7 +883,7 @@ test.describe('public competition context labels', () => {
       finalSideTexts[0] === 'Ganador de Semifinal 1' &&
         finalSideTexts[1] === 'Ganador de Semifinal 2'
         ? 'both-long'
-        : finalSideTexts[0] === 'G Semifinal 1' && finalSideTexts[1] === 'G Semifinal 2'
+        : finalSideTexts[0] === 'G Semi 1' && finalSideTexts[1] === 'G Semi 2'
           ? 'both-short'
           : finalSideTexts,
     ).toMatch(/^both-(?:long|short)$/);
@@ -921,12 +921,47 @@ test.describe('public competition context labels', () => {
     const huracanSlot = drawnNode.locator('li', { hasText: 'Huracán' });
     const uvtSlot = drawnNode.locator('li', { hasText: 'Uvt' });
     await expect(huracanSlot.locator('.cl-advancing-badge')).toHaveText('Avanza');
+    const desktopHurNameBox = await huracanSlot
+      .locator('[data-testid="entrant-name"]')
+      .evaluate((el) => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }));
+    expect(desktopHurNameBox.scrollWidth).toBeLessThanOrEqual(desktopHurNameBox.clientWidth);
     await expect(uvtSlot).toHaveClass(/cl-slot--eliminated/);
     await expect(uvtSlot.locator('.cl-advancing-badge')).toHaveCount(0);
 
     // Score-win match (4–2) shows no "Avanza" badge.
     const scoreWinNode = fullCanvas.locator('[data-match="1"]');
     await expect(scoreWinNode.locator('.cl-advancing-badge')).toHaveCount(0);
+
+    // On a 390px phone viewport, compact cards show the advancing icon, accessible label, eliminated muted state, and "G Semi 1" without clipping or squishing "HUR".
+    await page.setViewportSize({ width: 390, height: 844 });
+    const compactCanvas = page.locator('.cl-bracket-stage__canvas[data-density="compact"]').first();
+    await expect(compactCanvas).toBeVisible();
+    const compactDrawnCard = compactCanvas.locator('.cl-match-compact[data-match="2"]');
+    await expect(compactDrawnCard).toHaveAttribute('aria-label', /Avanza/);
+    const compactHurRow = compactDrawnCard.locator('li', { hasText: 'HUR' });
+    const compactUvtRow = compactDrawnCard.locator('li', { hasText: 'UVT' });
+    await expect(compactHurRow.locator('.cl-match-compact__advancing')).toBeVisible();
+    await expect(compactUvtRow).toHaveClass(/cl-match-compact__eliminated/);
+    await expect(compactUvtRow.locator('.cl-match-compact__advancing')).toHaveCount(0);
+    const hurNameBox = await compactHurRow
+      .locator('.cl-match-compact__name')
+      .evaluate((el) => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }));
+    expect(hurNameBox.scrollWidth).toBeLessThanOrEqual(hurNameBox.clientWidth);
+    const drawnCardClip = await compactDrawnCard.evaluate((card) => ({
+      scrollHeight: card.scrollHeight,
+      clientHeight: card.clientHeight,
+    }));
+    expect(drawnCardClip.scrollHeight).toBeLessThanOrEqual(drawnCardClip.clientHeight + 1);
+    const compactFinalSides = compactCanvas.locator(
+      '.cl-match-compact[data-match="12"] .cl-match-compact__name',
+    );
+    await expect(compactFinalSides).toHaveText(['G Semi 1', 'G Semi 2']);
+    const pendingNameChecks = await compactFinalSides.evaluateAll((els) =>
+      els.map((el) => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth })),
+    );
+    for (const check of pendingNameChecks) {
+      expect(check.scrollWidth).toBeLessThanOrEqual(check.clientWidth + 1);
+    }
 
     // Drawn match report hero shows "Avanza" on Huracán and eliminated state on Uvt.
     await page.goto(`${ES_TOURNAMENT}/stages/2/matches/2`);
@@ -988,7 +1023,7 @@ test.describe('public competition context labels', () => {
       finalNodeSides[0] === 'Ganador de Semifinal 1' &&
         finalNodeSides[1] === 'Ganador de Semifinal 2'
         ? 'both-long'
-        : finalNodeSides[0] === 'G Semifinal 1' && finalNodeSides[1] === 'G Semifinal 2'
+        : finalNodeSides[0] === 'G Semi 1' && finalNodeSides[1] === 'G Semi 2'
           ? 'both-short'
           : finalNodeSides,
     ).toMatch(/^both-(?:long|short)$/);

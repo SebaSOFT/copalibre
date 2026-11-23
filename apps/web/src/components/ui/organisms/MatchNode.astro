@@ -144,10 +144,10 @@ const legScores =
                 {slot.originLabel !== undefined && (
                   <span class="cl-slot__origin">{slot.originLabel}</span>
                 )}
+                {slot.advancing && <AdvancingBadge label={advancesLabel} />}
               </div>
             </>
           )}
-          {slot.advancing && <AdvancingBadge label={advancesLabel} />}
           {slot.resultReason && (
             // A walkover 0-10 must not read like an actual 10-goal win — the
             // reason a result looks the way it does is shown, not just the
@@ -220,6 +220,10 @@ const legScores =
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .cl-slot__identity :global(.cl-advancing-badge) {
+    align-self: flex-start;
+    margin-top: var(--cl-space-1);
   }
   .cl-slot :global(.cl-entrant-name),
   .cl-slot--pending :global(.cl-entrant-name),

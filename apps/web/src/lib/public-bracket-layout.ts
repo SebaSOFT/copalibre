@@ -24,13 +24,16 @@ export const PUBLIC_GEOMETRY: BracketGeometry = {
 const SERIES_NODE_HEIGHT = 236;
 
 /**
- * The same bracket for a narrow screen: a card that is only abbreviations and scores, so a split bracket's five columns fit a phone's width.
+ * The same bracket for a narrow screen: compact cards that remain well under 60% of
+ * `PUBLIC_GEOMETRY` width inside `.cl-bracket-stage__scroll--compact` while giving pending
+ * feeder labels, advancing badges, and round headings room to read cleanly without clipping
+ * or overlapping.
  */
 export const COMPACT_GEOMETRY: BracketGeometry = {
   ...DEFAULT_GEOMETRY,
-  nodeWidth: 66,
+  nodeWidth: 116,
   nodeHeight: 56,
-  columnGap: 6,
+  columnGap: 12,
   rowGap: 14,
   bracketGap: 96,
 };

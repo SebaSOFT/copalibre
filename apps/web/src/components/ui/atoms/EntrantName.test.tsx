@@ -56,6 +56,23 @@ describe('EntrantName', () => {
     expect(screen.getByText('Casa de Italia').textContent).toBe('Casa de Italia');
   });
 
+  it('omits the upcoming icon when showPendingIcon is false while keeping pending state, aria-label, and abbr', () => {
+    render(
+      <EntrantName
+        pending
+        showPendingIcon={false}
+        compact
+        fullName="Ganador de Semifinal 1"
+        abbreviation="G SF1"
+      />,
+    );
+    const name = screen.getByTestId('entrant-name');
+    expect(name.querySelector('svg')).toBeNull();
+    expect(name.classList.contains('cl-entrant-name--pending')).toBe(true);
+    expect(name.getAttribute('aria-label')).toBe('Ganador de Semifinal 1');
+    expect(name.querySelector('abbr')?.textContent).toBe('G SF1');
+  });
+
   it('synchronizes compact form across separate mounts sharing syncGroup and reverts when overflow clears', () => {
     ResizeObserverMock.widthByText = (text) =>
       text.includes('Semifinal 2') ? { client: 140, scroll: 180 } : { client: 140, scroll: 120 };
