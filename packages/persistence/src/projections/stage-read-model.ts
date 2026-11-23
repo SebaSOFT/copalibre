@@ -44,6 +44,7 @@ export interface StageSeriesMatchRecord {
   readonly status: string;
   readonly scores?: readonly (number | undefined)[];
   readonly resultReasons?: readonly (ResultReason | undefined)[];
+  readonly winnerEntrantId?: string;
 }
 
 /** The stored identity of a persisted graph's node; absent on every legacy fixture. */
@@ -73,6 +74,7 @@ export interface StageMatchRecord {
   readonly awayEntrantId?: string;
   readonly scores?: readonly (number | undefined)[];
   readonly resultReasons?: readonly (ResultReason | undefined)[];
+  readonly winnerEntrantId?: string;
   /**
    * Every game of this fixture in play order — one entry for an ordinary fixture, one per game
    * for a series. Present always, so a reader never has to decide whether absence means "not a
@@ -201,13 +203,17 @@ export class StageReadModel {
 
       const games = fixtureRows
         .filter((row) => row.match_id !== null)
-        .map((row, index) => ({
-          matchId: row.match_id as string,
-          number: row.number ?? index + 1,
-          status: row.status ?? 'scheduled',
-          ...resultFieldsOf(row.result),
-        }));
+        .map((row, index) => {
+          const gameStatus = row.status ?? 'scheduled';
+          return {
+            matchId: row.match_id as string,
+            number: row.number ?? index + 1,
+            status: gameStatus,
+            ...resultFieldsOf(row.result, gameStatus),
+          };
+        });
 
+      const status = first.status ?? 'scheduled';
       return {
         matchId: first.match_id ?? first.fixture_id,
         fixtureId: first.fixture_id,
@@ -215,10 +221,10 @@ export class StageReadModel {
         ...(first.role === null ? {} : { role: first.role }),
         position,
         ...(node === undefined ? {} : { node }),
-        status: first.status ?? 'scheduled',
+        status,
         ...(first.home_entrant_id === null ? {} : { homeEntrantId: first.home_entrant_id }),
         ...(first.away_entrant_id === null ? {} : { awayEntrantId: first.away_entrant_id }),
-        ...resultFieldsOf(first.result),
+        ...resultFieldsOf(first.result, status),
         games,
       };
     });
@@ -275,18 +281,33 @@ function scoresOf(
  * The scoreline fields a persisted result contributes, or nothing at all when there is no
  * result. Written once because every game of a series needs it as much as the cross does.
  */
-function resultFieldsOf(raw: unknown): {
+export function resultFieldsOf(
+  raw: unknown,
+  status?: string,
+): {
   readonly scores?: readonly (number | undefined)[];
   readonly resultReasons?: readonly (ResultReason | undefined)[];
+  readonly winnerEntrantId?: string;
 } {
   const result = raw as {
+    readonly winnerEntrantId?: unknown;
     readonly sides?: readonly {
       readonly statistics?: Record<string, number>;
       readonly resultReason?: ResultReason;
     }[];
   } | null;
   if (result?.sides === undefined) return {};
-  return { scores: scoresOf(result.sides), resultReasons: resultReasonsOf(result.sides) };
+  const winnerEntrantId =
+    status === 'finalized' &&
+    typeof result.winnerEntrantId === 'string' &&
+    result.winnerEntrantId.length > 0
+      ? result.winnerEntrantId
+      : undefined;
+  return {
+    scores: scoresOf(result.sides),
+    resultReasons: resultReasonsOf(result.sides),
+    ...(winnerEntrantId === undefined ? {} : { winnerEntrantId }),
+  };
 }
 
 /** Parallel to `scoresOf` — why a side's result is what it is. */

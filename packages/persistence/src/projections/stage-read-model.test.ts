@@ -1,4 +1,4 @@
-import { stageMatchOrdinals, type StageMatchRecord } from './stage-read-model.js';
+import { resultFieldsOf, stageMatchOrdinals, type StageMatchRecord } from './stage-read-model.js';
 
 function record(matchId: string, round: number, position: number): StageMatchRecord {
   return {
@@ -46,5 +46,32 @@ describe('stageMatchOrdinals', () => {
 
   it('returns an empty map for an empty stage', () => {
     expect(stageMatchOrdinals([]).size).toBe(0);
+  });
+});
+
+describe('resultFieldsOf', () => {
+  it('surfaces winnerEntrantId only when the match status is finalized', () => {
+    const raw = {
+      winnerEntrantId: 'entrant-away',
+      sides: [
+        { entrantId: 'entrant-home', statistics: { goals: 3 }, resultReason: 'played' },
+        { entrantId: 'entrant-away', statistics: { goals: 3 }, resultReason: 'played' },
+      ],
+    };
+
+    expect(resultFieldsOf(raw, 'finalized')).toEqual({
+      scores: [3, 3],
+      resultReasons: ['played', 'played'],
+      winnerEntrantId: 'entrant-away',
+    });
+    expect(resultFieldsOf(raw, 'in-progress')).toEqual({
+      scores: [3, 3],
+      resultReasons: ['played', 'played'],
+    });
+    expect(resultFieldsOf(raw, 'scheduled')).toEqual({
+      scores: [3, 3],
+      resultReasons: ['played', 'played'],
+    });
+    expect(resultFieldsOf(null, 'finalized')).toEqual({});
   });
 });
