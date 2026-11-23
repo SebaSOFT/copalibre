@@ -1664,6 +1664,17 @@ function components(): string {
     // not the header row it sits in, which already wraps — held its full
     // unbroken width and pushed the card past the viewport.
     '.cl-match-card__clock { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-figure-lg); line-height: var(--cl-line-height-figure); color: var(--cl-state-live); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }',
+    '.cl-live-clock { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: var(--cl-space-2); font-family: var(--cl-font-mono); font-variant-numeric: tabular-nums; line-height: var(--cl-line-height-figure); max-width: 100%; overflow-wrap: anywhere; }',
+    '.cl-live-clock--public { color: var(--cl-state-live); font-size: var(--cl-font-size-figure-lg); }',
+    '.cl-live-clock__segment { font-family: var(--cl-font-display); font-size: var(--cl-font-size-xs); font-weight: var(--cl-weight-semibold); text-transform: none; letter-spacing: var(--cl-tracking-wide); color: var(--cl-text-secondary); }',
+    '.cl-live-clock__digits { font-variant-numeric: tabular-nums; }',
+    '.cl-live-clock__stopped { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); color: var(--cl-state-warning); }',
+    '.cl-live-scoreboard { display: grid; gap: var(--cl-space-1); min-width: 0; }',
+    '.cl-live-scoreboard__updated { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); overflow-wrap: anywhere; }',
+    '.cl-tournament-card__live { display: grid; gap: var(--cl-space-1); padding: var(--cl-space-3); background: var(--cl-surface-chrome); border-left: 4px solid var(--cl-state-live); min-width: 0; }',
+    '.cl-tournament-card__live-match { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--cl-space-2); margin: 0; color: var(--cl-text-primary); font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); font-weight: var(--cl-weight-semibold); min-width: 0; overflow-wrap: anywhere; }',
+    '.cl-tournament-card__live-score { font-family: var(--cl-font-mono); font-variant-numeric: tabular-nums; color: var(--cl-state-live); white-space: nowrap; }',
+    '.cl-tournament-card__live-more { margin: 0; font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); color: var(--cl-text-muted); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
     // A grid of match cards, promoted out of `MatchCardGrid.astro`'s scoped
     // style so the React surfaces can compose it too. While it lived there,
     // `LiveMatchHero` had no grid to reach and stacked one full-width card per
