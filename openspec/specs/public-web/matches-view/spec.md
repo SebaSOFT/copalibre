@@ -349,10 +349,7 @@ on color alone.
 
 ### Requirement: An undecided side names its source
 
-A match card SHALL show an undecided side as its source, in the organization's language: the winner or
-loser of a named match, or a placement label. It SHALL NOT be blank or a generic placeholder. A decided
-side SHALL show its entrant. The wording SHALL be discipline-agnostic, SHALL NOT rely on color alone,
-and SHALL render without JavaScript.
+A match card SHALL show an undecided side as its source, in the organization's language: the winner or loser of a named match, or a placement label. It SHALL NOT be blank or a generic placeholder, and its two sides SHALL NOT read the same while their sources differ. Both sides SHALL use the same long or short form. A decided side SHALL show its entrant. The wording SHALL be discipline-agnostic, SHALL NOT rely on color alone, and SHALL render without JavaScript.
 
 #### Scenario: An undecided semi-final names its feeders
 
@@ -370,6 +367,16 @@ and SHALL render without JavaScript.
 - **WHEN** a spectator views an unplayed third-place game whose semi-finals are unplayed
 - **THEN** the card is labelled third place and its sides read "Loser of Semi-final 1" and "Loser of
   Semi-final 2"
+
+#### Scenario: Two placement feeders are told apart
+
+- **WHEN** a spectator views an unplayed 5th-place game fed by the winners of the two 5th-to-8th placement semi-finals
+- **THEN** its sides read "Ganador de 5º al 8º puesto (1)" and "Ganador de 5º al 8º puesto (2)", not the same text twice
+
+#### Scenario: Both sides share one form
+
+- **WHEN** a final's two sources are both undecided
+- **THEN** both sides use the long form, or both the short form, never one of each
 
 #### Scenario: The source renders without JavaScript
 
@@ -480,3 +487,45 @@ Every public surface that renders a match card, including the stage page, SHALL 
 
 - **WHEN** a match starts at 21:15 local time in a zone three hours behind UTC
 - **THEN** the stage page shows it on its local day at 21:15, not on the next day
+
+### Requirement: A placement label counts places within its zone
+
+A placement game's label SHALL count the places it settles among the games of its own zone only, SHALL use one wording family on cards and in brackets, and SHALL name its zone when it appears outside that zone's own section in a stage with more than one zone.
+
+#### Scenario: Three cups with placement semi-finals
+
+- **WHEN** each of three cups has two 5th-to-8th placement semi-finals
+- **THEN** each of those games reads "5º al 8º puesto", not "Puestos 5–16"
+
+#### Scenario: A placement game in the Now strip
+
+- **WHEN** a Copa Plata 5th-place game appears in a list that mixes zones
+- **THEN** it reads "Copa Plata · 5º puesto"
+
+### Requirement: Bracket nodes show their schedule and the zone they belong to
+
+A bracket SHALL be titled by its zone's name when the stage has explicit zones. A node of a scheduled match SHALL show its date and time in the organization's time zone and its venue when published. A decided slot filled from a qualifier position SHALL keep that position's label as secondary text.
+
+#### Scenario: A scheduled semi-final node
+
+- **WHEN** a semi-final is scheduled for 23 November at 18:00 at Aldo Cantoni
+- **THEN** its bracket node shows that date, time and venue, not only a scheduled badge
+
+#### Scenario: A cup bracket heading
+
+- **WHEN** a stage has the zones Copa Oro, Copa Plata and Copa Bronce
+- **THEN** each main bracket is titled with its zone name
+
+#### Scenario: A qualified slot keeps its origin
+
+- **WHEN** the entrant ranked first in Grupo C fills a quarter-final slot
+- **THEN** the slot shows the entrant and, as secondary text, "1.° Grupo C"
+
+### Requirement: Placement games are listed in one order in every zone
+
+A zone's placement games SHALL be listed by the best place each settles, then by round, then by position, and every zone of a stage SHALL use that same order.
+
+#### Scenario: Copa Oro and Copa Plata placement lists
+
+- **WHEN** both cups have a 3rd-place game, two 5th-to-8th semi-finals, a 5th-place and a 7th-place game
+- **THEN** both list 3rd place, the two 5th-to-8th semi-finals, 5th place, then 7th place

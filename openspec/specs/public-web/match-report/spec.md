@@ -54,3 +54,45 @@ Roster roles, official roles and timeline event names SHALL be resolved from the
 #### Scenario: A missing language falls back
 - **WHEN** the descriptor has no label in the page language
 - **THEN** the label of the fallback chain is shown and never the raw code
+
+### Requirement: The match page names its competition context
+
+The match page subtitle and breadcrumb SHALL name the match's stage by its organizer name, its zone and its group when they are explicit, and its round by its place in the stage graph (final, semi-final, quarter-final, placement place or range), else by round number. The match number SHALL be secondary. Two matches of one stage SHALL NOT share the same context line.
+
+#### Scenario: Two finals in two cups
+
+- **WHEN** a spectator opens the Copa Oro final and then the Copa Bronce final of the same stage
+- **THEN** one reads "Copas · Copa Oro · Final" and the other "Copas · Copa Bronce · Final", each followed by its match number
+
+#### Scenario: A placement semi-final names its range
+
+- **WHEN** a spectator opens a 5th-to-8th placement semi-final of Copa Oro
+- **THEN** its context reads "Copas · Copa Oro · Semifinal 5º al 8º puesto", not "Ronda 1"
+
+#### Scenario: A group match names its group
+
+- **WHEN** a spectator opens a round-one match of Grupo A in the group stage
+- **THEN** its context reads "Fase de grupos · Grupo A · Ronda 1"
+
+### Requirement: A knockout match page states what is at stake
+
+The match page of a match in a stage graph SHALL state where its winner and its loser go, naming each target match by its context and its scheduled start when published, or the place or title the match settles. A match with no outgoing edge and no settled place SHALL show no such statement.
+
+#### Scenario: A quarter-final names both targets
+
+- **WHEN** a spectator opens a Copa Oro quarter-final whose winner plays a semi-final and whose loser plays a 5th-to-8th semi-final
+- **THEN** the page states both targets with their context and, when scheduled, their date and time
+
+#### Scenario: A final names the title
+
+- **WHEN** a spectator opens the Copa Oro final
+- **THEN** the page states that the match decides the Copa Oro champion
+
+### Requirement: A drawn knockout result names the side that advanced
+
+When a finalized match in a stage graph has level scores and a recorded winner, the match report hero and its bracket node SHALL mark the winner with text that it advanced, not by colour alone. A match won on the score SHALL show no such mark.
+
+#### Scenario: A 3–3 quarter-final
+
+- **WHEN** a quarter-final finished 3–3 and its recorded winner went on to the semi-final
+- **THEN** the hero and the bracket node mark that side as advancing in the page language
