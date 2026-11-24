@@ -298,6 +298,39 @@ const bracket = {
   ],
 };
 
+const organizationClubHistory = {
+  organizationAlias: ORGANIZATION,
+  organizationName: 'Liga Mendocina',
+  club: { clubId: HISPANO_ID, name: 'Club Hispano', abbreviation: 'HIS', alias: 'club-hispano' },
+  tournaments: [
+    {
+      alias: TOURNAMENT_ALIAS,
+      name: 'Apertura 2026',
+      status: 'live',
+      discipline: {
+        descriptorId: 'rink-hockey',
+        version: '1.0.0',
+        name: 'Rink Hockey',
+        localizedName: { en: 'Rink Hockey', es: 'Hockey sobre patines' },
+      },
+    },
+    {
+      alias: 'apertura-2025',
+      name: 'Apertura 2025',
+      status: 'finished',
+      discipline: { descriptorId: 'rink-hockey', version: '1.0.0', name: 'Rink Hockey' },
+      placements: [{ place: 'champion', zoneName: 'Copa Oro' }],
+    },
+    {
+      alias: 'clausura-2024',
+      name: 'Clausura 2024',
+      status: 'finished',
+      discipline: { descriptorId: 'rink-hockey', version: '1.0.0', name: 'Rink Hockey' },
+      placements: [{ place: 'runner-up' }],
+    },
+  ],
+};
+
 let apiServer: Server;
 
 test.beforeAll(async ({ workerPort }) => {
@@ -343,6 +376,10 @@ test.beforeAll(async ({ workerPort }) => {
           ],
         }),
       );
+      return;
+    }
+    if (path === `/api/organizations/${ORGANIZATION}/public/clubs/club-hispano`) {
+      res.end(JSON.stringify(organizationClubHistory));
       return;
     }
     if (path === `${API}/stages/2/bracket`) {
@@ -454,11 +491,61 @@ test('every club page section renders with JavaScript disabled', async ({ browse
   await context.close();
 });
 
-test('an organization club card links to its club page only when the club has one', async ({
+test('an organization club card links to its organization club page only when the club has an alias', async ({
   page,
 }) => {
   await page.goto(`/${ORGANIZATION}`);
 
-  await expect(page.locator(`a[href="${BASE}/clubs/club-hispano"]`)).toHaveCount(1);
+  await expect(page.locator(`a[href="/${ORGANIZATION}/clubs/club-hispano"]`)).toHaveCount(1);
   await expect(page.locator('a', { hasText: 'Club Sin Alias' })).toHaveCount(0);
+});
+
+test('the organization club page lists honours and tournaments, each linking to its club page', async ({
+  page,
+}) => {
+  await page.goto(`/es/${ORGANIZATION}/clubs/club-hispano`);
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Club Hispano' })).toBeVisible();
+  const honours = page.locator('section[aria-labelledby="organization-club-honours-heading"]');
+  await expect(honours.locator('h2')).toHaveText(/Títulos y podios/);
+  // Titles first, then runner-up places; the zone is named when the final stage had several.
+  await expect(honours.locator('tbody tr').nth(0)).toContainText('Campeón · Copa Oro');
+  await expect(honours.locator('tbody tr').nth(0)).toContainText('Apertura 2025');
+  await expect(honours.locator('tbody tr').nth(1)).toContainText('Clausura 2024');
+  await expect(
+    honours.locator(`a[href="/es/${ORGANIZATION}/tournaments/apertura-2025/clubs/club-hispano"]`),
+  ).toHaveCount(1);
+
+  const tournaments = page.locator(
+    'section[aria-labelledby="organization-club-tournaments-heading"]',
+  );
+  await expect(tournaments.locator('tbody tr')).toHaveCount(3);
+  await expect(tournaments.locator('tbody tr').nth(0)).toContainText('Apertura 2026');
+  await expect(tournaments.locator('tbody tr').nth(0)).toContainText('Hockey sobre patines');
+  await expect(tournaments.locator(`a[href="/es${BASE}/clubs/club-hispano"]`)).toHaveCount(1);
+  await expect(page.locator('nav a', { hasText: 'Liga Mendocina' }).first()).toHaveAttribute(
+    'href',
+    `/es/${ORGANIZATION}`,
+  );
+});
+
+test('the organization club page renders with JavaScript disabled', async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+
+  await page.goto(`/${ORGANIZATION}/clubs/club-hispano`);
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Club Hispano' })).toBeVisible();
+  await expect(page.locator('#organization-club-honours-heading')).toBeVisible();
+  await expect(page.locator('#organization-club-tournaments-heading')).toBeVisible();
+
+  await context.close();
+});
+
+test('an unknown organization club answers with the page-not-found composition', async ({
+  page,
+}) => {
+  const response = await page.goto(`/${ORGANIZATION}/clubs/no-existe`);
+
+  expect(response?.status()).toBe(404);
 });
