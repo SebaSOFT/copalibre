@@ -273,3 +273,8 @@ export const TournamentHonourBoardSingleTier: Story = {
 export const FeaturedMatchCard: Story = {
   args: { component: 'featured-match-card', height: 420 },
 };
+
+/** The organization time-zone note placed near public schedule headings. */
+export const TimeZoneNote: Story = {
+  args: { component: 'time-zone-note', height: 100 },
+};

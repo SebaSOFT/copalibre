@@ -87,9 +87,7 @@ is resolved. Without a saved plan, they SHALL omit promotion data.
 
 ### Requirement: Public standings present promotion bands and export them
 
-The standings table SHALL render one rail and legend entry per supplied promotion band and show a
-qualification column only for rows with resolved promotion data. Its CSV export SHALL retain the table
-scope and include band and seed columns when promotion bands are supplied.
+The standings table SHALL render one rail and legend entry per supplied promotion band, each band in its own categorical colour beside its name, and show a qualification column and an order column only for rows with resolved promotion data. The legend SHALL state each band's range in that same order. Its CSV export SHALL retain the table scope and include band and seed columns when promotion bands are supplied.
 
 #### Scenario: CSV exports a plan-backed table
 
@@ -101,6 +99,19 @@ scope and include band and seed columns when promotion bands are supplied.
 
 - **WHEN** a standings cell begins with a spreadsheet formula character
 - **THEN** the CSV export escapes the cell before download
+
+#### Scenario: The legend range matches the visible order
+
+- **WHEN** a plan bands entries 1–8 to Copa Oro, 9–16 to Copa Plata and 17–24 to Copa Bronce, and the
+  team ranked 16th in the table has plan order 17
+- **THEN** that row's order column shows 17, its tag names Copa Bronce, and the legend reads "Copa
+  Bronce · orden 17–24", so no legend range contradicts a row
+
+#### Scenario: Bands are told apart without colour
+
+- **WHEN** a table shows three bands
+- **THEN** each band's rail and tag use a different categorical colour and every rail stands beside the
+  band's name
 
 ### Requirement: The player dialog shows stored text as text
 
@@ -196,3 +207,27 @@ The player dialog SHALL show each statistic's label in the page language when th
 
 - **WHEN** the profile carries a role the catalogue does not name
 - **THEN** the dialog shows the role as stored, as literal text
+
+### Requirement: A stage with several groups shows one standings table per group
+
+A public standings presentation of a stage whose table projection holds more than one group segment SHALL render one table per group, headed by the group's name and in segment order, on the stage page, the tournament overview and the TV standings. Shared controls (club filter, CSV export, legends) SHALL appear once per stage, not per group.
+
+#### Scenario: Six groups on the stage page
+
+- **WHEN** a spectator opens a group stage whose projection holds segments Grupo A to Grupo F
+- **THEN** the page shows six tables headed Grupo A to Grupo F, each ranking its own four entrants, and
+  one club filter and one CSV link after them
+
+#### Scenario: A single group keeps one table
+
+- **WHEN** a stage's projection holds one segment
+- **THEN** one table without a group heading is shown
+
+### Requirement: A knockout stage page shows no league table
+
+A public stage page, or a zone of a mixed stage, laid out as a bracket SHALL NOT render a group-phase standings table. A placement stage rendered as a ranked table keeps its table.
+
+#### Scenario: Cups drawn as brackets
+
+- **WHEN** a spectator opens a stage of three cups drawn as brackets
+- **THEN** the page shows the brackets and no table ranking the 24 entrants on their knockout games

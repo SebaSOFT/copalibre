@@ -4,7 +4,7 @@ import type { MatchCardLabels } from '../../../lib/i18n/public-intl.ts';
 import type { MatchCardData } from '../../../lib/matches-view.ts';
 
 export interface TournamentNowStripEntry {
-  readonly kind: 'live' | 'upcoming' | 'final';
+  readonly kind: 'live' | 'delayed' | 'upcoming' | 'final';
   readonly match: MatchCardData;
   readonly href: string;
 }
@@ -15,9 +15,10 @@ interface Props {
   readonly labels: MatchCardLabels;
   readonly locale: string;
   readonly timeZone?: string;
+  readonly referenceDate?: number;
 }
 
-const { heading, entries, labels, locale, timeZone } = Astro.props;
+const { heading, entries, labels, locale, timeZone, referenceDate } = Astro.props;
 ---
 
 <section class="cl-overview-now" aria-labelledby="overview-now-heading">
@@ -32,6 +33,7 @@ const { heading, entries, labels, locale, timeZone } = Astro.props;
               labels={labels}
               locale={locale}
               match={entry.match}
+              referenceDate={referenceDate}
               reportUrl={entry.href}
               timeZone={timeZone}
             />
@@ -40,6 +42,7 @@ const { heading, entries, labels, locale, timeZone } = Astro.props;
               labels={labels}
               locale={locale}
               match={entry.match}
+              referenceDate={referenceDate}
               reportUrl={entry.href}
               timeZone={timeZone}
             />
@@ -63,23 +66,30 @@ const { heading, entries, labels, locale, timeZone } = Astro.props;
 
   .cl-overview-now__item {
     min-width: 0;
-    border-inline-start: var(--cl-space-1) solid var(--cl-border-muted);
-    padding-inline-start: var(--cl-space-2);
   }
 
-  .cl-overview-now__item > :global(.cl-match-card) {
+  .cl-overview-now__item > :global(astro-island) {
+    display: contents;
+  }
+
+  .cl-overview-now__item :global(.cl-match-card) {
     height: 100%;
+    box-sizing: border-box;
   }
 
-  .cl-overview-now__item--live {
+  .cl-overview-now__item--live :global(.cl-match-card) {
     border-inline-start-color: var(--cl-state-live);
   }
 
-  .cl-overview-now__item--upcoming {
+  .cl-overview-now__item--delayed :global(.cl-match-card) {
+    border-inline-start-color: var(--cl-state-warning);
+  }
+
+  .cl-overview-now__item--upcoming :global(.cl-match-card) {
     border-inline-start-color: var(--cl-state-upcoming);
   }
 
-  .cl-overview-now__item--final {
+  .cl-overview-now__item--final :global(.cl-match-card) {
     border-inline-start-color: var(--cl-state-positive);
   }
 </style>

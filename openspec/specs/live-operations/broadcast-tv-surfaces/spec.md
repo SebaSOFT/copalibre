@@ -837,3 +837,12 @@ Every TV event list, ticker and alert SHALL name a recorded event by its discipl
 
 - **WHEN** an English TV shows a match whose away side has no name or abbreviation yet
 - **THEN** that side reads "Away", not "Visitante"
+
+### Requirement: TV standings are grouped by group
+
+TV standings SHALL render one block per group, headed by the group's name, inside each zone block, with each entrant ranked within its group, from the same ranking as the public table.
+
+#### Scenario: Six groups on the kiosk
+
+- **WHEN** the kiosk shows the standings of a stage with groups A to F
+- **THEN** it draws six blocks headed Grupo A to Grupo F, each ranking its own entrants

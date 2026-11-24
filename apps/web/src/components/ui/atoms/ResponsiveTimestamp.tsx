@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   formatTimestamp,
   fullDateTime,
@@ -6,6 +7,26 @@ import {
 } from '../../../lib/format-timestamp.js';
 
 export type ResponsiveTimestampFormat = TimestampFormat;
+
+const MINUTE_TICK_MS = 60_000;
+const minuteListeners = new Set<() => void>();
+let minuteInterval: ReturnType<typeof setInterval> | undefined;
+
+function subscribeMinuteTick(listener: () => void): () => void {
+  minuteListeners.add(listener);
+  if (minuteInterval === undefined) {
+    minuteInterval = setInterval(() => {
+      for (const notify of minuteListeners) notify();
+    }, MINUTE_TICK_MS);
+  }
+  return () => {
+    minuteListeners.delete(listener);
+    if (minuteListeners.size === 0 && minuteInterval !== undefined) {
+      clearInterval(minuteInterval);
+      minuteInterval = undefined;
+    }
+  };
+}
 
 export interface ResponsiveTimestampProps {
   readonly timestamp: string | number | Date;
@@ -29,7 +50,7 @@ export interface ResponsiveTimestampProps {
 
 /**
  * A schedule, event, or log timestamp rendered relative to the viewing date —
- * `HH:mm` for today, `d-MMM HH:mm` for any other day — instead of a raw ISO
+ * `{Day} HH:mm` within ±1 day, `d-MMM HH:mm` otherwise — instead of a raw ISO
  * string or a fixed full-date format that never shortens.
  */
 export function ResponsiveTimestamp({
@@ -41,11 +62,51 @@ export function ResponsiveTimestamp({
   className,
 }: ResponsiveTimestampProps): React.JSX.Element {
   const date = toDate(timestamp);
+  const valid = !Number.isNaN(date.getTime());
+  const dateMs = valid ? date.getTime() : Number.NaN;
+  const refMs =
+    referenceDate === undefined
+      ? undefined
+      : referenceDate instanceof Date
+        ? referenceDate.getTime()
+        : referenceDate;
+  const propKey = `${dateMs}|${locale}|${format}|${timeZone ?? ''}|${refMs ?? ''}`;
+
+  const initialText = valid
+    ? formatTimestamp(date, {
+        locale,
+        format,
+        ...(referenceDate === undefined ? {} : { referenceDate }),
+        ...(timeZone === undefined ? {} : { timeZone }),
+      })
+    : String(timestamp);
+
+  const [liveState, setLiveState] = useState<{
+    readonly key: string;
+    readonly text: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!valid || (format !== 'dynamic' && format !== 'relative')) return undefined;
+    return subscribeMinuteTick(() => {
+      const nextText = formatTimestamp(dateMs, {
+        locale,
+        format,
+        referenceDate: Date.now(),
+        ...(timeZone === undefined ? {} : { timeZone }),
+      });
+      setLiveState((prev) => {
+        const current = prev?.key === propKey ? prev.text : initialText;
+        if (nextText === current) return prev;
+        return { key: propKey, text: nextText };
+      });
+    });
+  }, [valid, dateMs, locale, format, timeZone, propKey, initialText]);
 
   // A malformed value has no ISO instant to carry in `dateTime` — render it
   // verbatim rather than throwing out of `toISOString()`, matching the
   // graceful degradation the pre-existing relative-time formatter had.
-  if (Number.isNaN(date.getTime())) {
+  if (!valid) {
     return (
       <span className={`cl-responsive-timestamp ${className ?? ''}`.trim()}>
         {String(timestamp)}
@@ -53,18 +114,15 @@ export function ResponsiveTimestamp({
     );
   }
 
+  const displayedText = liveState?.key === propKey ? liveState.text : initialText;
+
   return (
     <time
       className={`cl-responsive-timestamp ${className ?? ''}`.trim()}
       dateTime={date.toISOString()}
       title={fullDateTime(date, locale, timeZone)}
     >
-      {formatTimestamp(date, {
-        locale,
-        format,
-        ...(referenceDate === undefined ? {} : { referenceDate }),
-        ...(timeZone === undefined ? {} : { timeZone }),
-      })}
+      {displayedText}
     </time>
   );
 }

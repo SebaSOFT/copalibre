@@ -175,6 +175,7 @@ export const messages = defineMessages({
 
   // Result-state labels (lib/result-state.ts)
   resultStateLive: { id: 'publicWeb.resultState.live', defaultMessage: 'Live' },
+  resultStateDelayed: { id: 'publicWeb.resultState.delayed', defaultMessage: 'Delayed' },
   resultStateUpcoming: { id: 'publicWeb.resultState.upcoming', defaultMessage: 'Upcoming' },
   resultStateFinal: { id: 'publicWeb.resultState.final', defaultMessage: 'Final' },
   resultStateDisputed: { id: 'publicWeb.resultState.disputed', defaultMessage: 'Disputed' },
@@ -659,6 +660,16 @@ export const messages = defineMessages({
     defaultMessage: 'Upcoming',
   },
   matchesViewFilterFinal: { id: 'publicWeb.matchesView.filterFinal', defaultMessage: 'Final' },
+  matchesViewFilterDay: { id: 'publicWeb.matchesView.filterDay', defaultMessage: 'Day' },
+  matchesViewFilterDayAll: { id: 'publicWeb.matchesView.filterDayAll', defaultMessage: 'All' },
+  matchesViewFilterDayToday: {
+    id: 'publicWeb.matchesView.filterDayToday',
+    defaultMessage: 'Today',
+  },
+  matchesViewFilterDayTomorrow: {
+    id: 'publicWeb.matchesView.filterDayTomorrow',
+    defaultMessage: 'Tomorrow',
+  },
   matchesViewEmpty: {
     id: 'publicWeb.matchesView.empty',
     defaultMessage: 'No matches in this scope yet.',
@@ -734,6 +745,18 @@ export const messages = defineMessages({
   scheduleDayMatchCount: {
     id: 'publicWeb.schedule.dayMatchCount',
     defaultMessage: '{count, plural, one {# match} other {# matches}}',
+  },
+  scheduleTimeZoneNote: {
+    id: 'publicWeb.schedule.timeZoneNote',
+    defaultMessage: 'Times: {zone} ({offset})',
+  },
+  scheduleTimeZoneNoteUtc: {
+    id: 'publicWeb.schedule.timeZoneNoteUtc',
+    defaultMessage: 'Times: {zone}',
+  },
+  scheduleDayHeading: {
+    id: 'publicWeb.schedule.dayHeading',
+    defaultMessage: '{relative} · {date}',
   },
   scheduleColumnAway: {
     id: 'publicWeb.schedule.columnAway',

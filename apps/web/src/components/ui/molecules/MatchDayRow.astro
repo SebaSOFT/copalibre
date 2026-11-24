@@ -5,6 +5,8 @@ import StateBadge from '../atoms/StateBadge.astro';
 import { matchCardLabels } from '../../../lib/i18n/public-intl.ts';
 import { clubEmblemUrl } from '../../../lib/public-image-paths.ts';
 import { formatSideSource, sourceMatchLabel } from '../../../lib/side-source.ts';
+import { formatTimestamp } from '../../../lib/format-timestamp.ts';
+import { isDelayed } from '../../../lib/match-state.ts';
 import { displayedScore, matchCardTitle, type MatchCardData } from '../../../lib/matches-view.ts';
 
 /**
@@ -17,20 +19,28 @@ interface Props {
   readonly organizationAlias?: string;
   readonly organizationTimeZone?: string;
   readonly reportUrl?: string;
+  readonly referenceDate?: number;
 }
 
-const { match, intl, organizationAlias, organizationTimeZone, reportUrl } = Astro.props;
+const {
+  match,
+  intl,
+  organizationAlias,
+  organizationTimeZone,
+  reportUrl,
+  referenceDate = Date.now(),
+} = Astro.props;
 const labels = matchCardLabels(intl);
 const title = matchCardTitle(match, labels);
+const delayed = isDelayed(match, referenceDate);
 
 const kickoff =
   match.scheduledAt !== undefined && !Number.isNaN(Date.parse(match.scheduledAt))
-    ? new Intl.DateTimeFormat(intl.locale, {
-        hour: '2-digit',
-        minute: '2-digit',
-        hourCycle: 'h23',
+    ? formatTimestamp(match.scheduledAt, {
+        locale: intl.locale,
+        format: 'time-only',
         timeZone: organizationTimeZone ?? 'UTC',
-      }).format(new Date(match.scheduledAt))
+      })
     : undefined;
 
 const homeScore = displayedScore(match.state, match.homeScore);
@@ -80,7 +90,7 @@ const Root = reportUrl === undefined ? 'div' : 'a';
       {kickoff && <time datetime={match.scheduledAt}>{kickoff}</time>}
       <span class="cl-match-day-row__title">{title.title}</span>
     </span>
-    <StateBadge state={match.state} intl={intl} />
+    <StateBadge state={match.state} delayed={delayed} intl={intl} />
   </span>
   <span class="cl-match-day-row__sides">
     <span class="cl-match-day-row__side">

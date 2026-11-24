@@ -15,7 +15,8 @@ import { EntrantName } from '../atoms/EntrantName.js';
 import { EntrantEmblem } from '../molecules/EntrantEmblem.js';
 import { LiveMatchScoreboard } from '../molecules/LiveMatchScoreboard.js';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.js';
-import { presentState } from '../../../lib/result-state.js';
+import { isDelayed } from '../../../lib/match-state.js';
+import { presentDelayedState, presentState } from '../../../lib/result-state.js';
 import { seriesScore, seriesSegments, seriesPending, toSeriesInput } from '../../../lib/series.js';
 import {
   applyTemplate,
@@ -43,6 +44,8 @@ export interface MatchCardProps {
   readonly locale: string;
   /** Public schedules use the organization's zone; other callers may keep viewer-local time. */
   readonly timeZone?: string;
+  /** Request instant for deterministic SSR/client relative-day and delayed rendering. */
+  readonly referenceDate?: number;
   /** Wraps the card in a link when present — the public site's report page. */
   readonly reportUrl?: string;
   /** Builds same-origin emblem routes for persisted team entrants. */
@@ -82,6 +85,7 @@ export function MatchCard({
   labels,
   locale,
   timeZone,
+  referenceDate,
   reportUrl,
   organizationAlias,
   band,
@@ -132,7 +136,13 @@ export function MatchCard({
     effectiveState === 'upcoming'
       ? rescheduledStatement(match.rescheduledFrom, match.venueName, locale, labels.rescheduled)
       : '';
-  const badge = presentState(effectiveState, labels.state);
+  const delayed =
+    effectiveState === 'upcoming' &&
+    isDelayed({ state: effectiveState, scheduledAt: match.scheduledAt }, referenceDate);
+  const badge =
+    delayed && labels.delayed
+      ? presentDelayedState(labels.delayed)
+      : presentState(effectiveState, labels.state);
   const linkedClass = reportUrl === undefined ? '' : ' cl-match-card--linked';
   const title = matchCardTitle(match, labels, { inZoneSection });
   const placementIncludesZone =
@@ -193,13 +203,7 @@ export function MatchCard({
           ? awaySource.short
           : resolveCompactEntrant(awaySource.short, match.awayAbbreviation, match.awayName);
     const hasScores = homeScore !== undefined && awayScore !== undefined;
-    const timeStr =
-      !hasScores && match.scheduledAt !== undefined
-        ? new Intl.DateTimeFormat(locale, {
-            timeStyle: 'short',
-            ...(timeZone === undefined ? {} : { timeZone }),
-          }).format(new Date(match.scheduledAt))
-        : '';
+    const showCompactTime = !hasScores && match.scheduledAt !== undefined;
     const compactBody = (
       <Card
         as="article"
@@ -256,7 +260,23 @@ export function MatchCard({
               {awayCompactName}
             </span>
           </span>
-          {timeStr && <span className="cl-match-card__compact-time"> {timeStr}</span>}
+          {showCompactTime && match.scheduledAt !== undefined && (
+            <span className="cl-match-card__compact-time">
+              {' '}
+              <ResponsiveTimestamp
+                locale={locale}
+                referenceDate={referenceDate}
+                timeZone={timeZone}
+                timestamp={match.scheduledAt}
+              />
+            </span>
+          )}
+          {delayed && labels.delayed && (
+            <Badge className={`cl-match-card__compact-state ${badge.className}`}>
+              <Icon name={badge.icon} size={16} />
+              <span>{badge.label}</span>
+            </Badge>
+          )}
           {rescheduled && (
             <span className="cl-match-card__venue cl-match-card__compact-rescheduled">
               {rescheduled}
@@ -419,6 +439,7 @@ export function MatchCard({
               <ResponsiveTimestamp
                 timestamp={match.scheduledAt}
                 locale={locale}
+                referenceDate={referenceDate}
                 timeZone={timeZone}
               />
             </span>

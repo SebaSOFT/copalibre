@@ -8,6 +8,7 @@ import {
   type SideSource,
   type SideSourceMessages,
 } from './side-source.js';
+import { isDelayed } from './match-state.js';
 import { presentState, type ResultStateLabels } from './result-state.js';
 
 /** Matches per row on a broadcast-size frame. */
@@ -28,6 +29,7 @@ export interface TvMatchEntry {
   /** Where the match belongs and when: `Grupo A · Ronda 2`. */
   readonly scope: string;
   readonly stateLabel: string;
+  readonly delayed?: boolean;
   readonly home: {
     readonly label: string;
     readonly name: string;
@@ -49,14 +51,17 @@ export function tvMatchEntriesOf(
   rows: readonly MatchCardData[],
   labels: {
     readonly state: ResultStateLabels;
+    readonly delayed?: string;
     readonly round: string;
     readonly sideSource: SideSourceMessages;
     readonly zonePrefix?: string;
     readonly overallPlace?: string;
     readonly overallPlaceOffsetOf?: (row: MatchCardData) => number | undefined;
   },
+  now: Date | number = Date.now(),
 ): readonly TvMatchEntry[] {
   return withSourceDepth(rows).map((row): TvMatchEntry => {
+    const delayed = isDelayed(row, now);
     const where = row.groupName ?? row.zoneName;
     const side = (
       name: string | undefined,
@@ -111,7 +116,10 @@ export function tvMatchEntriesOf(
       ...(row.venueName === undefined ? {} : { venueName: row.venueName }),
       ...(row.rescheduledFrom === undefined ? {} : { rescheduledFrom: row.rescheduledFrom }),
       scope,
-      stateLabel: presentState(row.state, labels.state).label,
+      stateLabel: delayed
+        ? (labels.delayed ?? presentState(row.state, labels.state).label)
+        : presentState(row.state, labels.state).label,
+      ...(delayed ? { delayed: true } : {}),
       home: side(row.homeName, row.homeAbbreviation, row.homeScore, row.homeSource),
       away: side(row.awayName, row.awayAbbreviation, row.awayScore, row.awaySource),
     };

@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
 import { matchCardLabels, publicIntl, sideSourceLabels } from '../../../lib/i18n/public-intl.js';
+import { formatTimestamp } from '../../../lib/format-timestamp.js';
 import { MatchCard, resolveCompactEntrant } from './MatchCard.js';
 import { withSourceDepth, type MatchCardData } from '../../../lib/matches-view.js';
 import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
@@ -686,7 +687,9 @@ describe('MatchCard compact presentation', () => {
     );
   });
 
-  it('renders full entrant names, versus, and the scheduled time for an upcoming match', () => {
+  it('renders full entrant names, versus, and the short dynamic scheduled timestamp for an upcoming match', () => {
+    const referenceDate = Date.parse('2026-07-20T12:00:00.000Z');
+    const scheduledAt = '2026-08-01T18:30:00.000Z';
     const { container } = render(
       <MatchCard
         compact
@@ -694,19 +697,70 @@ describe('MatchCard compact presentation', () => {
           state: 'upcoming',
           homeName: 'Norte',
           awayName: 'Sur',
-          scheduledAt: '2026-08-01T18:30:00.000Z',
+          scheduledAt,
         })}
         labels={labels}
         locale="en-GB"
+        referenceDate={referenceDate}
+        timeZone="UTC"
       />,
     );
 
-    const expectedTime = new Intl.DateTimeFormat('en-GB', { timeStyle: 'short' }).format(
-      new Date('2026-08-01T18:30:00.000Z'),
-    );
+    const expectedTime = formatTimestamp(scheduledAt, {
+      locale: 'en-GB',
+      referenceDate,
+      timeZone: 'UTC',
+    });
     expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toBe(
       `Norte vs Sur ${expectedTime}`,
     );
+  });
+
+  it('uses relative-day words in compact mode and shows a visible delayed badge when past kickoff', () => {
+    const referenceDate = Date.parse('2026-08-01T18:50:00.000Z');
+    const scheduledAt = '2026-08-01T18:30:00.000Z';
+    const { container } = render(
+      <MatchCard
+        compact
+        match={baseMatch({
+          state: 'upcoming',
+          homeName: 'Norte',
+          awayName: 'Sur',
+          scheduledAt,
+        })}
+        labels={{ ...labels, delayed: 'Delayed' }}
+        locale="en"
+        referenceDate={referenceDate}
+        timeZone="UTC"
+      />,
+    );
+
+    expect(container.querySelector('.cl-match-card__compact-dot.cl-state--delayed')).not.toBeNull();
+    expect(
+      container.querySelector('.cl-match-card__compact-state.cl-state--delayed')?.textContent,
+    ).toBe('Delayed');
+    expect(container.querySelector('.cl-match-card__compact-time')?.textContent?.trim()).toBe(
+      'Today 18:30',
+    );
+  });
+
+  it('renders the delayed badge in full mode once more than 15 minutes have elapsed', () => {
+    const referenceDate = Date.parse('2026-08-01T18:50:00.000Z');
+    render(
+      <MatchCard
+        match={baseMatch({
+          state: 'upcoming',
+          scheduledAt: '2026-08-01T18:30:00.000Z',
+        })}
+        labels={{ ...labels, delayed: 'Delayed' }}
+        locale="en"
+        referenceDate={referenceDate}
+        timeZone="UTC"
+      />,
+    );
+
+    const badge = screen.getByText('Delayed').closest('.cl-badge');
+    expect(badge?.classList.contains('cl-state--delayed')).toBe(true);
   });
 
   it('renders the decided score with a positive-state dot for a final match', () => {

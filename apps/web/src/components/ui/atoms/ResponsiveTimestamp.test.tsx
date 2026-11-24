@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { jest } from '@jest/globals';
+import { act, render, screen } from '@testing-library/react';
 import { ResponsiveTimestamp } from './ResponsiveTimestamp.js';
 
 /**
@@ -29,7 +30,7 @@ describe('ResponsiveTimestamp', () => {
   const referenceDate = new Date('2026-09-04T12:00:00.000Z');
   const otherDayTimestamp = '2025-11-02T14:30:00.000Z';
 
-  it('renders same-day timestamps as HH:mm', () => {
+  it('renders same-day timestamps as Today HH:mm', () => {
     render(
       <ResponsiveTimestamp
         locale="en"
@@ -37,7 +38,7 @@ describe('ResponsiveTimestamp', () => {
         timestamp={sameDayTimestamp}
       />,
     );
-    expect(screen.getByText(localTime(sameDayTimestamp)).tagName).toBe('TIME');
+    expect(screen.getByText(`Today ${localTime(sameDayTimestamp)}`).tagName).toBe('TIME');
   });
 
   it('renders a different-day timestamp as d-MMM HH:mm', () => {
@@ -60,7 +61,7 @@ describe('ResponsiveTimestamp', () => {
         timestamp={sameDayTimestamp}
       />,
     );
-    const el = screen.getByText(localTime(sameDayTimestamp));
+    const el = screen.getByText(`Today ${localTime(sameDayTimestamp)}`);
     expect(el.getAttribute('dateTime')).toBe(sameDayTimestamp);
     expect(el.getAttribute('title')).toBeTruthy();
   });
@@ -143,5 +144,91 @@ describe('ResponsiveTimestamp', () => {
   it('renders a malformed value verbatim instead of throwing', () => {
     render(<ResponsiveTimestamp locale="en" timestamp="not-a-date" />);
     expect(screen.getByText('not-a-date')).toBeTruthy();
+  });
+
+  describe('shared minute-tick updates', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('shares one 60-second interval across instances, updates across midnight, and cleans up on unmount', () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-11-23T23:59:30.000Z'));
+
+      const { unmount } = render(
+        <>
+          <ResponsiveTimestamp
+            locale="en"
+            referenceDate={new Date('2026-11-23T23:59:30.000Z')}
+            timestamp="2026-11-23T20:00:00.000Z"
+            timeZone="UTC"
+          />
+          <ResponsiveTimestamp
+            locale="en"
+            referenceDate={new Date('2026-11-23T23:59:30.000Z')}
+            timestamp="2026-11-24T10:00:00.000Z"
+            timeZone="UTC"
+          />
+        </>,
+      );
+
+      expect(screen.getByText('Today 20:00')).toBeTruthy();
+      expect(screen.getByText('Tomorrow 10:00')).toBeTruthy();
+      // One shared module-level interval for both mounted atoms.
+      expect(jest.getTimerCount()).toBe(1);
+
+      act(() => {
+        jest.advanceTimersByTime(60_000);
+      });
+
+      expect(screen.getByText('Yesterday 20:00')).toBeTruthy();
+      expect(screen.getByText('Today 10:00')).toBeTruthy();
+
+      unmount();
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    it('skips re-renders when the formatted output does not change on tick and does not schedule intervals for fixed formats', () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-11-23T12:00:00.000Z'));
+
+      const { unmount: unmountFixed } = render(
+        <ResponsiveTimestamp
+          format="time-only"
+          locale="en"
+          timestamp="2026-11-23T20:00:00.000Z"
+          timeZone="UTC"
+        />,
+      );
+      expect(jest.getTimerCount()).toBe(0);
+      unmountFixed();
+
+      const { rerender, unmount } = render(
+        <ResponsiveTimestamp
+          locale="en"
+          referenceDate={new Date('2026-11-23T12:00:00.000Z')}
+          timestamp="2026-11-23T20:00:00.000Z"
+          timeZone="UTC"
+        />,
+      );
+      const timeEl = screen.getByText('Today 20:00');
+      act(() => {
+        jest.advanceTimersByTime(60_000);
+      });
+      // Text stayed "Today 20:00" -> same element, no change.
+      expect(screen.getByText('Today 20:00')).toBe(timeEl);
+
+      // Prop changes reflect immediately without waiting for the next minute tick.
+      rerender(
+        <ResponsiveTimestamp
+          locale="es"
+          referenceDate={new Date('2026-11-23T12:00:00.000Z')}
+          timestamp="2026-11-23T20:00:00.000Z"
+          timeZone="UTC"
+        />,
+      );
+      expect(screen.getByText('Hoy 20:00')).toBeTruthy();
+      unmount();
+    });
   });
 });

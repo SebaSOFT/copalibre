@@ -17,9 +17,20 @@ const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const MATCH_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const TV_PATH = `/tv/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 
-type ClockFixtureMode = 'sample' | 'timed' | 'untimed' | 'grouped-standings';
+type ClockFixtureMode = 'sample' | 'timed' | 'untimed' | 'grouped-standings' | 'delayed-schedule';
 let clockFixtureMode: ClockFixtureMode = 'sample';
 let apiServer: Server;
+
+function mendozaDayKey(offsetDays: number): string {
+  const todayKey = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'America/Argentina/Mendoza',
+  }).format(new Date());
+  const [year = 2026, month = 1, day = 1] = todayKey.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + offsetDays)).toISOString().slice(0, 10);
+}
 
 const TIMED_SEGMENTS = [
   {
@@ -70,7 +81,116 @@ const groupedStandingsPreview = GROUP_NAMES.flatMap((groupName, groupIndex) =>
   })),
 );
 
-function buildClockFixtureResponses(mode: 'timed' | 'untimed' | 'grouped-standings') {
+function buildDelayedScheduleFixture() {
+  const now = Date.now();
+  const delayedAt = new Date(now - 20 * 60_000).toISOString();
+  const tomorrowAt = `${mendozaDayKey(1)}T15:00:00.000Z`;
+  const futureAt = `${mendozaDayKey(4)}T15:00:00.000Z`;
+
+  const matches = [
+    {
+      matchId: 'dddddddd-dddd-4ddd-8ddd-000000000001',
+      stageNumber: 1,
+      stageOrdinal: 1,
+      matchNumber: 1,
+      round: 1,
+      status: 'scheduled',
+      homeEntrantId: 'del-1',
+      homeName: 'Equipo Demorado',
+      homeAbbreviation: 'DEM',
+      awayEntrantId: 'del-2',
+      awayName: 'Visita Demorada',
+      awayAbbreviation: 'VDM',
+      venueName: 'Cancha 1',
+      scheduledAt: delayedAt,
+    },
+    {
+      matchId: 'dddddddd-dddd-4ddd-8ddd-000000000002',
+      stageNumber: 1,
+      stageOrdinal: 2,
+      matchNumber: 2,
+      round: 1,
+      status: 'scheduled',
+      homeEntrantId: 'up-1',
+      homeName: 'Próximo Mañana',
+      homeAbbreviation: 'PMN',
+      awayEntrantId: 'up-2',
+      awayName: 'Visita Mañana',
+      awayAbbreviation: 'VMN',
+      venueName: 'Cancha 2',
+      scheduledAt: tomorrowAt,
+    },
+    {
+      matchId: 'dddddddd-dddd-4ddd-8ddd-000000000003',
+      stageNumber: 1,
+      stageOrdinal: 3,
+      matchNumber: 3,
+      round: 2,
+      status: 'scheduled',
+      homeEntrantId: 'up-3',
+      homeName: 'Próximo Futuro',
+      homeAbbreviation: 'PFT',
+      awayEntrantId: 'up-4',
+      awayName: 'Visita Futuro',
+      awayAbbreviation: 'VFT',
+      venueName: 'Cancha 3',
+      scheduledAt: futureAt,
+    },
+  ];
+
+  return {
+    organizations: [
+      {
+        organizationId: '01900000-0000-7000-8000-000000000001',
+        alias: ORGANIZATION,
+        name: 'Liga Mendocina',
+        primaryLanguage: 'es',
+        timezone: 'America/Argentina/Mendoza',
+      },
+    ],
+    overview: {
+      organizationAlias: ORGANIZATION,
+      organizationName: 'Liga Mendocina',
+      organizationTimeZone: 'America/Argentina/Mendoza',
+      tournamentAlias: TOURNAMENT,
+      tournamentName: 'Apertura 2026',
+      seasonName: '2026',
+      status: 'live',
+      ruleset: {},
+      clubs: [],
+      matches,
+    },
+    live: { matches: [] },
+    matchesView: {
+      matches: matches.map((m) => ({ ...m, status: 'upcoming' })),
+    },
+    report: {
+      organizationAlias: ORGANIZATION,
+      organizationName: 'Liga Mendocina',
+      organizationTimeZone: 'America/Argentina/Mendoza',
+      tournamentAlias: TOURNAMENT,
+      tournamentName: 'Apertura 2026',
+      stageNumber: 1,
+      stageFormat: 'round-robin',
+      matchNumber: 1,
+      round: 1,
+      status: 'upcoming',
+      homeEntrantId: 'del-1',
+      homeName: 'Equipo Demorado',
+      awayEntrantId: 'del-2',
+      awayName: 'Visita Demorada',
+      schedulePublished: true,
+      officials: [],
+      rosters: { home: [], away: [] },
+      timeline: [],
+    },
+  };
+}
+
+function buildClockFixtureResponses(
+  mode: 'timed' | 'untimed' | 'grouped-standings' | 'delayed-schedule',
+) {
+  if (mode === 'delayed-schedule') return buildDelayedScheduleFixture();
   const segments = mode === 'untimed' ? UNTIMED_SEGMENTS : TIMED_SEGMENTS;
   const clock =
     mode === 'timed'
@@ -513,4 +633,44 @@ test('view=standings renders one block per group headed by the group name', asyn
       await expect(block).not.toContainText(`Club ${String.fromCharCode(65 + index + 1)}1`);
     }
   }
+});
+
+test('TV match list uses short dynamic timestamps, marks delayed matches with clock icon, and never offers a delayed match as next match', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await mockOpenStream(page);
+  clockFixtureMode = 'delayed-schedule';
+
+  // 1. TV match list uses short dynamic timestamps and shows delayed badge + clock icon.
+  await gotoTv(page, `${TV_PATH}?view=matches&lang=es`);
+  const list = page.getByTestId('tv-match-list');
+  await expect(list).toBeVisible();
+
+  const delayedEntry = list.locator('.tv-match-list__entry').filter({ hasText: 'DEM' });
+  const delayedBadge = delayedEntry.locator('.tv-match-list__state.cl-state--delayed');
+  await expect(delayedBadge).toBeVisible();
+  await expect(delayedBadge).toContainText('Demorado');
+  await expect(delayedBadge.locator('svg.cl-icon')).toHaveCount(1);
+
+  const tomorrowEntry = list.locator('.tv-match-list__entry').filter({ hasText: 'PMN' });
+  await expect(tomorrowEntry.locator('.tv-match-list__round')).toContainText(/Mañana \d{2}:\d{2}/);
+
+  const futureEntry = list.locator('.tv-match-list__entry').filter({ hasText: 'PFT' });
+  const futureRoundText = (await futureEntry.locator('.tv-match-list__round').textContent()) ?? '';
+  expect(futureRoundText).toMatch(/\d{1,2}-[\p{L}.]+ \d{2}:\d{2}/u);
+  expect(futureRoundText).not.toMatch(/\d{2}\/\d{2}\/\d{2}/);
+
+  // 2. Kiosk spotlight skips the delayed match and selects the first upcoming match.
+  await gotoTv(page, `${TV_PATH}?lang=es`);
+  const spotlight = page.getByTestId('tv-match-spotlight');
+  await expect(spotlight).toContainText('Próximo Mañana');
+  await expect(spotlight).not.toContainText('Equipo Demorado');
+
+  // 3. Presentation next-match crawl excludes the delayed match.
+  await gotoTv(page, `${TV_PATH}?layout=presentation&lang=es`);
+  const nextMatches = page.getByTestId('tv-next-match');
+  await expect(nextMatches).toHaveCount(2);
+  await expect(nextMatches.nth(0)).toContainText('Próximo Mañana');
+  await expect(nextMatches.nth(1)).toContainText('Próximo Futuro');
 });

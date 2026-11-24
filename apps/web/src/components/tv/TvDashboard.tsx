@@ -18,7 +18,12 @@ import {
   type BroadcastAlertItem,
 } from './ui/organisms/BroadcastAlertBanner.js';
 import { resolveLiveTvMatchEvent } from '../../lib/tv-match-events.js';
-import { presentState } from '../../lib/result-state.js';
+import { isDelayed } from '../../lib/match-state.js';
+import {
+  presentDelayedState,
+  presentState,
+  type StatePresentation,
+} from '../../lib/result-state.js';
 import { competitionContext } from '../../lib/competition-context.js';
 import { applyTemplate } from '../../lib/matches-view.js';
 import { activeSegmentLabel } from '../../lib/segment-label.js';
@@ -170,6 +175,7 @@ export interface TvDashboardProps {
   readonly dashboardLabels: TvDashboardLabels;
   readonly language: SupportedLanguage;
   readonly pollIntervalMs?: number;
+  readonly referenceDate?: number;
 }
 
 /** The zone's short name (`ART`, `GMT-3`) as the viewer's language writes it at `at`. */
@@ -233,6 +239,7 @@ export function TvDashboard({
   language,
   pollIntervalMs = 15_000,
   initialView,
+  referenceDate,
 }: TvDashboardProps): React.JSX.Element {
   const [dashboard, setDashboard] = useState<LiveDashboard>(initial);
   const [liveMatchEvents, setLiveMatchEvents] = useState(matchEvents ?? []);
@@ -276,6 +283,7 @@ export function TvDashboard({
   const showStaleMark = projectionStale || bracketStale;
   const [currentTime, setCurrentTime] = useState<string>('');
   const [clockZoneLabel, setClockZoneLabel] = useState<string | undefined>(undefined);
+  const [effectiveNow, setEffectiveNow] = useState<number>(() => referenceDate ?? Date.now());
   const prefersReducedMotion = usePrefersReducedMotion();
   const hydrated = useHydrated();
   const isOverlay = presentation === 'lower';
@@ -304,13 +312,14 @@ export function TvDashboard({
   // label is read here with the time, not during render: the server's ICU and the browser's can
   // name a zone differently, and both values only show once the clock does.
   useEffect(() => {
-    const updateClock = () => {
+    const updateClock = (tickNow: boolean) => {
       const now = new Date();
       setCurrentTime(formatTimestamp(now, { locale: language, format: 'time-only', timeZone }));
       setClockZoneLabel(timeZone ? timeZoneLabel(now, language, timeZone) : undefined);
+      if (tickNow) setEffectiveNow(now.getTime());
     };
-    updateClock();
-    const timer = setInterval(updateClock, 15_000);
+    updateClock(false);
+    const timer = setInterval(() => updateClock(true), 15_000);
     return () => clearInterval(timer);
   }, [language, timeZone]);
 
@@ -349,10 +358,12 @@ export function TvDashboard({
             })),
             {
               state: dashboardLabels.resultState,
+              delayed: dashboardLabels.delayed,
               round: dashboardLabels.bracketRound,
               sideSource: dashboardLabels.sideSource,
               zonePrefix: dashboardLabels.zonePrefix,
             },
+            Date.now(),
           );
           setScheduledMatches((current) =>
             entries.flatMap((entry) => {
@@ -394,6 +405,7 @@ export function TvDashboard({
     organizationAlias,
     tournamentAlias,
     dashboardLabels.resultState,
+    dashboardLabels.delayed,
     dashboardLabels.bracketRound,
     dashboardLabels.sideSource,
     dashboardLabels.zonePrefix,
@@ -583,7 +595,7 @@ export function TvDashboard({
 
   const liveMatches = matches.filter((m) => m.state === 'live');
   const upcomingMatches = matches
-    .filter((match) => match.state === 'upcoming')
+    .filter((match) => match.state === 'upcoming' && !isDelayed(match, effectiveNow))
     .sort((a, b) => (a.scheduledAt ?? '').localeCompare(b.scheduledAt ?? ''))
     .slice(0, 4);
   const allFinal = matches.length > 0 && matches.every((m) => m.state === 'final');
@@ -667,14 +679,7 @@ export function TvDashboard({
       : deriveTopPerformers(labels, language, performerProjection, standings, clubs);
   const facts: readonly TournamentFact[] = deriveTournamentFacts(labels, matches);
 
-  // Status Badge Determination
-  const statusBadgeState = isLive ? 'live' : allFinal ? 'final' : 'upcoming';
-  const statusBadge = {
-    label: dashboardLabels.resultState[statusBadgeState],
-    type: statusBadgeState,
-  };
-
-  // Spotlight Match (pinned match or active live match or first match)
+  // Spotlight Match (pinned match or active live match or first non-delayed upcoming match)
   // An overlay is composited over one match: the pinned one, or the live match of its court. With
   // neither it shows no match, since a guess would put the same match on every overlay.
   const isOverlayPresentation = presentation === 'lower' || presentation === 'full';
@@ -691,7 +696,31 @@ export function TvDashboard({
         ? courtMatch
         : isOverlayPresentation
           ? undefined
-          : (liveMatches[0] ?? matches[0]);
+          : (liveMatches[0] ??
+            upcomingMatches[0] ??
+            matches.find((match) => !isDelayed(match, effectiveNow)) ??
+            matches[0]);
+  const isMatchDelayed = (match: LiveMatch): boolean =>
+    isDelayed(match, effectiveNow) && dashboardLabels.delayed !== undefined;
+  const matchBadgeFor = (match: LiveMatch): StatePresentation =>
+    isMatchDelayed(match) && dashboardLabels.delayed !== undefined
+      ? presentDelayedState(dashboardLabels.delayed)
+      : presentState(match.state, dashboardLabels.resultState);
+  const spotlightDelayed = spotlightMatch !== undefined && isMatchDelayed(spotlightMatch);
+  const statusBadgeState = isLive
+    ? 'live'
+    : allFinal
+      ? 'final'
+      : spotlightDelayed
+        ? 'delayed'
+        : 'upcoming';
+  const statusBadge = {
+    label:
+      statusBadgeState === 'delayed'
+        ? (dashboardLabels.delayed ?? dashboardLabels.resultState.upcoming)
+        : dashboardLabels.resultState[statusBadgeState],
+    type: statusBadgeState,
+  };
   const leadingSide = leadingTvSide(spotlightMatch);
   const noMatchMessage = pinnedMissing
     ? dashboardLabels.matchNotFound
@@ -962,8 +991,10 @@ export function TvDashboard({
             <header className="tv-layout-panel-heading">
               <h2>{dashboardLabels.focalPanelTitle}</h2>
               {spotlightMatch && (
-                <span className={`tv-scorebug__badge tv-scorebug__badge--${spotlightMatch.state}`}>
-                  {presentState(spotlightMatch.state, dashboardLabels.resultState).label}
+                <span
+                  className={`tv-scorebug__badge tv-scorebug__badge--${isMatchDelayed(spotlightMatch) ? 'delayed' : spotlightMatch.state}`}
+                >
+                  {matchBadgeFor(spotlightMatch).label}
                 </span>
               )}
             </header>
@@ -1043,6 +1074,7 @@ export function TvDashboard({
                     homeLabel={labels.homeSide}
                     initialEventIds={eventIdsForMatch(spotlightMatch.matchId)}
                     language={language}
+                    referenceDate={effectiveNow}
                     timeZone={timeZone}
                   />
                 )}
@@ -1086,7 +1118,7 @@ export function TvDashboard({
                       <small>
                         {formatTimestamp(match.scheduledAt, {
                           locale: language,
-                          format: 'time-only',
+                          referenceDate: effectiveNow,
                           timeZone,
                         })}
                       </small>
@@ -1164,6 +1196,7 @@ export function TvDashboard({
                       homeLabel={labels.homeSide}
                       initialEventIds={eventIdsForMatch(match.matchId)}
                       language={language}
+                      referenceDate={effectiveNow}
                       timeZone={timeZone}
                     />
                   )}
@@ -1191,7 +1224,7 @@ export function TvDashboard({
                       <small>
                         {formatTimestamp(match.scheduledAt, {
                           locale: language,
-                          format: 'time-only',
+                          referenceDate: effectiveNow,
                           timeZone,
                         })}
                       </small>
@@ -1314,15 +1347,17 @@ export function TvDashboard({
                         style={{
                           padding: '0.4vmin 1.4vmin',
                           background: 'var(--tv-bg-elevated)',
-                          border: `1px solid ${tvStateColor(spotlightMatch.state)}`,
+                          border: `1px solid ${isMatchDelayed(spotlightMatch) ? 'var(--cl-state-warning)' : tvStateColor(spotlightMatch.state)}`,
                           fontFamily: 'var(--cl-font-mono)',
                           fontSize:
                             'clamp(var(--cl-font-size-xs), 1.4vmin, var(--cl-font-size-base))',
-                          color: tvStateColor(spotlightMatch.state),
+                          color: isMatchDelayed(spotlightMatch)
+                            ? 'var(--cl-state-warning)'
+                            : tvStateColor(spotlightMatch.state),
                           textTransform: 'uppercase',
                         }}
                       >
-                        {presentState(spotlightMatch.state, dashboardLabels.resultState).label}
+                        {matchBadgeFor(spotlightMatch).label}
                       </div>
                       {spotlightClock !== undefined && (
                         <LiveMatchClock
@@ -1358,6 +1393,7 @@ export function TvDashboard({
                       homeLabel={labels.homeSide}
                       initialEventIds={initialMatchEventIds}
                       language={language}
+                      referenceDate={effectiveNow}
                       timeZone={timeZone}
                     />
                   ) : null}
@@ -1451,6 +1487,7 @@ export function TvDashboard({
                     labels={dashboardLabels}
                     page={rail.page}
                     pages={matchPages}
+                    referenceDate={effectiveNow}
                     timeZone={timeZone}
                   />
                 )}

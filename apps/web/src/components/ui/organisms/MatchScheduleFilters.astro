@@ -20,6 +20,7 @@ export interface MatchScheduleFiltersLabels {
   readonly stageFilterAriaLabel: string;
   readonly zoneFilterAriaLabel: string;
   readonly groupFilterAriaLabel: string;
+  readonly dayFilterAriaLabel?: string;
   readonly stateFilterAriaLabel: string;
   readonly viewFilterAriaLabel: string;
   /** The visible title of each row, in the page's language. */
@@ -27,8 +28,14 @@ export interface MatchScheduleFiltersLabels {
     readonly stage: string;
     readonly zone: string;
     readonly group: string;
+    readonly day?: string;
     readonly state: string;
     readonly view: string;
+  };
+  readonly dayOptions?: {
+    readonly all: string;
+    readonly today: string;
+    readonly tomorrow: string;
   };
   readonly viewOptions: { readonly rows: string; readonly cards: string };
   readonly filters: {
@@ -39,6 +46,11 @@ export interface MatchScheduleFiltersLabels {
   };
 }
 
+export interface MatchScheduleDayOption {
+  readonly key: string;
+  readonly label: string;
+}
+
 interface Props {
   readonly stages: readonly MatchScheduleStageOption[];
   readonly activeStageNumber?: number;
@@ -46,6 +58,10 @@ interface Props {
   readonly activeZone?: string;
   readonly groups: readonly string[];
   readonly activeGroup?: string;
+  readonly days?: readonly MatchScheduleDayOption[];
+  readonly activeDay?: string;
+  readonly todayKey?: string;
+  readonly tomorrowKey?: string;
   readonly state: MatchScheduleState;
   readonly view: MatchScheduleView;
   /** Whether the viewer may choose between rows and cards: only for a short scope. */
@@ -58,6 +74,7 @@ interface Props {
       stageNumber: number | undefined;
       zone: string | undefined;
       group: string | undefined;
+      day: string | undefined;
       state: MatchScheduleState;
       view: MatchScheduleView;
     }>,
@@ -71,6 +88,10 @@ const {
   activeZone,
   groups,
   activeGroup,
+  days = [],
+  activeDay,
+  todayKey,
+  tomorrowKey,
   state,
   view,
   offerView,
@@ -78,6 +99,8 @@ const {
   labels,
   buildUrl,
 } = Astro.props;
+const hasToday = todayKey !== undefined && days.some((day) => day.key === todayKey);
+const hasTomorrow = tomorrowKey !== undefined && days.some((day) => day.key === tomorrowKey);
 ---
 
 <details class="cl-match-schedule-filters" open={filtersOpen}>
@@ -151,6 +174,48 @@ const {
               aria-current={activeGroup === group ? 'true' : undefined}
             >
               {group}
+            </a>
+          ))}
+        </nav>
+      </div>
+    )}
+
+    {days.length > 0 && labels.titles.day && labels.dayOptions && (
+      <div class="cl-filter-row">
+        <span class="cl-filter-row__title">{labels.titles.day}</span>
+        <nav class="cl-pill-group" aria-label={labels.dayFilterAriaLabel ?? labels.titles.day}>
+          <a
+            class="cl-pill cl-focusable"
+            href={buildUrl({ day: undefined })}
+            aria-current={activeDay === undefined ? 'true' : undefined}
+          >
+            {labels.dayOptions.all}
+          </a>
+          {hasToday && (
+            <a
+              class="cl-pill cl-focusable"
+              href={buildUrl({ day: todayKey })}
+              aria-current={activeDay === todayKey ? 'true' : undefined}
+            >
+              {labels.dayOptions.today}
+            </a>
+          )}
+          {hasTomorrow && (
+            <a
+              class="cl-pill cl-focusable"
+              href={buildUrl({ day: tomorrowKey })}
+              aria-current={activeDay === tomorrowKey ? 'true' : undefined}
+            >
+              {labels.dayOptions.tomorrow}
+            </a>
+          )}
+          {days.map((day) => (
+            <a
+              class="cl-pill cl-focusable"
+              href={buildUrl({ day: day.key })}
+              aria-current={activeDay === day.key ? 'true' : undefined}
+            >
+              {day.label}
             </a>
           ))}
         </nav>

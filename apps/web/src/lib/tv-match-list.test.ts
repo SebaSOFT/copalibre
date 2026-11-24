@@ -145,6 +145,31 @@ describe('tvMatchEntriesOf', () => {
     expect(entry?.home.score).toBeUndefined();
     expect(entry?.away.score).toBeUndefined();
   });
+
+  it('marks an upcoming match more than 15 minutes past kickoff as delayed', () => {
+    const now = Date.parse('2026-08-01T18:20:00.000Z');
+    const [delayedEntry, onTimeEntry] = tvMatchEntriesOf(
+      [
+        row({
+          matchId: 'm-delayed',
+          state: 'upcoming',
+          scheduledAt: '2026-08-01T18:00:00.000Z',
+        }),
+        row({
+          matchId: 'm-ontime',
+          state: 'upcoming',
+          scheduledAt: '2026-08-01T18:10:00.000Z',
+        }),
+      ],
+      { ...labels, delayed: 'Delayed' },
+      now,
+    );
+
+    expect(delayedEntry?.delayed).toBe(true);
+    expect(delayedEntry?.stateLabel).toBe('Delayed');
+    expect(onTimeEntry?.delayed).toBeUndefined();
+    expect(onTimeEntry?.stateLabel).toBe('NEXT');
+  });
 });
 
 describe('pageTvMatches', () => {

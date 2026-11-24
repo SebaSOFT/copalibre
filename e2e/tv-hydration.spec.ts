@@ -40,6 +40,20 @@ const CLOCK = {
   asOf: new Date().toISOString(),
 };
 
+const UPCOMING_TODAY_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+const UPCOMING_TOMORROW_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+
+function mendozaDayKey(offsetDays: number): string {
+  const todayKey = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'America/Argentina/Mendoza',
+  }).format(new Date());
+  const [year = 2026, month = 1, day = 1] = todayKey.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + offsetDays)).toISOString().slice(0, 10);
+}
+
 const overview = {
   organizationAlias: ORGANIZATION,
   organizationName: 'Liga Mendocina',
@@ -67,6 +81,23 @@ const overview = {
       awayAbbreviation: 'CDI',
       awayScore: 1,
       venueName: 'Cancha 1',
+      scheduledAt: `${mendozaDayKey(0)}T23:00:00.000Z`,
+    },
+    {
+      matchId: UPCOMING_TOMORROW_ID,
+      stageNumber: 1,
+      stageOrdinal: 2,
+      matchNumber: 2,
+      round: 1,
+      status: 'scheduled',
+      homeEntrantId: 'en-3',
+      homeName: 'Andes',
+      homeAbbreviation: 'AND',
+      awayEntrantId: 'en-4',
+      awayName: 'Huracán',
+      awayAbbreviation: 'HUR',
+      venueName: 'Cancha 2',
+      scheduledAt: `${mendozaDayKey(1)}T15:00:00.000Z`,
     },
   ],
 };
@@ -106,9 +137,23 @@ const matchesView = {
       awayAbbreviation: 'CDI',
       awayScore: 1,
       venueName: 'Cancha 1',
+      scheduledAt: `${mendozaDayKey(0)}T23:00:00.000Z`,
       segments: SEGMENTS,
       clock: CLOCK,
       clockSeconds: CLOCK.elapsedSeconds,
+    },
+    {
+      matchId: UPCOMING_TODAY_ID,
+      stageNumber: 1,
+      matchNumber: 2,
+      round: 1,
+      status: 'upcoming',
+      homeName: 'Andes',
+      homeAbbreviation: 'AND',
+      awayName: 'Huracán',
+      awayAbbreviation: 'HUR',
+      venueName: 'Cancha 2',
+      scheduledAt: `${mendozaDayKey(1)}T15:00:00.000Z`,
     },
   ],
 };
@@ -217,4 +262,30 @@ test('a rail tab clicked once the kiosk has hydrated shows its section and keeps
 
   await expect(tab).toHaveClass(/tv-rail-tab--active/);
   await expect(page.getByTestId('tv-rail-content')).toBeVisible();
+});
+
+test('TV match list and presentation next-match crawl hydrate with relative day words and zero warnings', async ({
+  page,
+}) => {
+  const consoleHydrationWarnings: string[] = [];
+  const pageErrors: string[] = [];
+  page.on('console', (msg) => {
+    if ((msg.type() === 'error' || msg.type() === 'warning') && HYDRATION_ERROR.test(msg.text())) {
+      consoleHydrationWarnings.push(msg.text());
+    }
+  });
+  page.on('pageerror', (error) => {
+    if (HYDRATION_ERROR.test(error.message)) pageErrors.push(error.message);
+  });
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await gotoTv(page, `${TV_PATH}?view=matches&lang=en`);
+  await expect(page.getByTestId('tv-match-list')).toContainText(/Today \d{2}:\d{2}/);
+  await expect(page.getByTestId('tv-match-list')).toContainText(/Tomorrow \d{2}:\d{2}/);
+
+  await gotoTv(page, `${TV_PATH}?layout=presentation&lang=es`);
+  await expect(page.getByTestId('tv-next-match')).toContainText(/Mañana \d{2}:\d{2}/);
+
+  expect(consoleHydrationWarnings).toEqual([]);
+  expect(pageErrors).toEqual([]);
 });

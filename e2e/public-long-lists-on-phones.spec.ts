@@ -38,7 +38,7 @@ const matches = PER_DAY.flatMap((count, day) =>
       homeName: `Local ${ordinal}`,
       awayName: `Visitante ${ordinal}`,
       ...(status === 'final' ? { homeScore: 2, awayScore: 1 } : {}),
-      scheduledAt: `2026-11-${String(utcDay).padStart(2, '0')}T${kickoff}:00.000Z`,
+      scheduledAt: `2099-11-${String(utcDay).padStart(2, '0')}T${kickoff}:00.000Z`,
     };
   }),
 );

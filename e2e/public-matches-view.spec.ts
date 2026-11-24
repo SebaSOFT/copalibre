@@ -104,9 +104,65 @@ const undecidedFinal = {
 
 let apiServer: Server;
 let liveAtZero = false;
+let multiDayMode = false;
 test.beforeEach(() => {
   liveAtZero = false;
+  multiDayMode = false;
 });
+
+function buenosAiresDayKey(offsetDays: number): string {
+  const todayKey = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'America/Argentina/Buenos_Aires',
+  }).format(new Date());
+  const [year = 2026, month = 1, day = 1] = todayKey.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + offsetDays)).toISOString().slice(0, 10);
+}
+
+function multiDayMatches() {
+  const todayKey = buenosAiresDayKey(0);
+  const tomorrowKey = buenosAiresDayKey(1);
+  const laterKey = buenosAiresDayKey(3);
+  return [
+    {
+      matchId: '00000000-0000-7000-8000-000000000101',
+      stageNumber: 1,
+      matchNumber: 1,
+      status: 'upcoming',
+      round: 1,
+      homeName: 'Equipo Hoy',
+      awayName: 'Visita Hoy',
+      venueName: 'Cancha 1',
+      scheduledAt: `${todayKey}T23:00:00.000Z`,
+    },
+    {
+      matchId: '00000000-0000-7000-8000-000000000102',
+      stageNumber: 1,
+      matchNumber: 2,
+      status: 'upcoming',
+      round: 1,
+      homeName: 'Equipo Mañana',
+      awayName: 'Visita Mañana',
+      venueName: 'Cancha 2',
+      scheduledAt: `${tomorrowKey}T15:00:00.000Z`,
+    },
+    {
+      matchId: '00000000-0000-7000-8000-000000000103',
+      stageNumber: 1,
+      matchNumber: 3,
+      status: 'final',
+      round: 2,
+      homeName: 'Equipo Futuro',
+      homeScore: 2,
+      awayName: 'Visita Futuro',
+      awayScore: 0,
+      venueName: 'Cancha 3',
+      scheduledAt: `${laterKey}T15:00:00.000Z`,
+    },
+  ];
+}
 
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
@@ -129,13 +185,15 @@ test.beforeAll(async ({ workerPort }) => {
     }
     if (path === `${TOURNAMENT}/matches-view`) {
       const state = new URLSearchParams(query).get('state');
-      const matches = liveAtZero
-        ? [undecidedFinal, liveAtZeroMatch]
-        : state === 'live'
-          ? [liveMatch]
-          : state === 'final'
-            ? [finalizedMatch]
-            : [finalizedMatch, liveMatch];
+      const matches = multiDayMode
+        ? multiDayMatches()
+        : liveAtZero
+          ? [undecidedFinal, liveAtZeroMatch]
+          : state === 'live'
+            ? [liveMatch]
+            : state === 'final'
+              ? [finalizedMatch]
+              : [finalizedMatch, liveMatch];
       res.end(JSON.stringify({ matches }));
       return;
     }
@@ -296,12 +354,20 @@ test('formats schedule dates and times in English and German using the organizat
     await expectNoVisibleIdentifiers(page, [ORGANIZATION, TOURNAMENT_ALIAS]);
 
     const scheduledRow = page.getByRole('row').filter({ hasText: 'Talleres' });
-    const expected = new Intl.DateTimeFormat(locale, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
+    const parts = new Intl.DateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'short',
+      timeZone,
+    }).formatToParts(instant);
+    const day = parts.find((part) => part.type === 'day')?.value ?? '';
+    const month = parts.find((part) => part.type === 'month')?.value ?? '';
+    const time = new Intl.DateTimeFormat(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
       timeZone,
     }).format(instant);
-    await expect(scheduledRow.getByRole('cell').first()).toHaveText(expected);
+    await expect(scheduledRow.getByRole('cell').first()).toHaveText(`${day}-${month} ${time}`);
   }
 });
 
@@ -311,23 +377,22 @@ test('a stage page card shows the same local time as the matches page for the sa
   liveAtZero = true;
   const instant = new Date(liveAtZeroMatch.scheduledAt);
   const timeZone = 'America/Argentina/Buenos_Aires';
-  const cardHour = new Intl.DateTimeFormat('en-GB', {
+  const expectedTime = new Intl.DateTimeFormat('en', {
     hour: '2-digit',
     minute: '2-digit',
     hourCycle: 'h23',
     timeZone,
   }).format(instant);
-  const matchesTime = new Intl.DateTimeFormat('en', { timeStyle: 'short', timeZone }).format(
-    instant,
-  );
 
   await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`);
-  await expect(page.locator(`[data-match="${liveAtZeroMatch.matchId}"]`)).toContainText(cardHour);
+  await expect(page.locator(`[data-match="${liveAtZeroMatch.matchId}"]`)).toContainText(
+    expectedTime,
+  );
 
   await page.goto(matchesPath);
   await expect(
     page.getByRole('row').filter({ hasText: 'Palmira' }).getByRole('cell').first(),
-  ).toContainText(matchesTime);
+  ).toContainText(expectedTime);
 });
 
 test('every filter row carries a visible title, and only the rows that apply appear', async ({
@@ -336,10 +401,79 @@ test('every filter row carries a visible title, and only the rows that apply app
   await page.goto(matchesPath);
   await page.locator('.cl-match-schedule-filters > summary').click();
 
-  await expect(page.locator('.cl-filter-row__title')).toHaveText(['State', 'View']);
+  await expect(page.locator('.cl-filter-row__title')).toHaveText(['Day', 'State', 'View']);
   await expect(
     page.getByRole('navigation', { name: 'Choose how matches are shown' }),
   ).toBeVisible();
+});
+
+test('at 1440px the Day filter row filters to one calendar day, writes day= to the URL, and shows the time-zone note once', async ({
+  page,
+}) => {
+  multiDayMode = true;
+  const tomorrowKey = buenosAiresDayKey(1);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/es${matchesPath}`);
+
+  const note = page.locator('.cl-time-zone-note');
+  await expect(note).toHaveCount(1);
+  await expect(note).toContainText('Horarios:');
+  await expect(note).toContainText(/GMT-3|Argentina/);
+
+  await page.locator('.cl-match-schedule-filters > summary').click();
+  await expect(page.locator('.cl-filter-row__title')).toContainText(['Día']);
+
+  const dayNav = page.getByRole('navigation', { name: 'Día' });
+  await expect(dayNav).toBeVisible();
+  await dayNav.getByRole('link', { name: 'Mañana', exact: true }).click();
+
+  const url = new URL(page.url());
+  expect(url.searchParams.get('day')).toBe(tomorrowKey);
+
+  const wide = page.locator('.cl-match-schedule__nested');
+  await expect(wide.getByText('Equipo Mañana', { exact: true })).toBeVisible();
+  await expect(wide.getByText('Equipo Hoy', { exact: true })).toHaveCount(0);
+  await expect(wide.getByText('Equipo Futuro', { exact: true })).toHaveCount(0);
+});
+
+test('day filter works with JavaScript disabled, preserves day= across other filters, and shows the English time-zone note once', async ({
+  browser,
+}) => {
+  multiDayMode = true;
+  const tomorrowKey = buenosAiresDayKey(1);
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(matchesPath);
+
+  const note = page.locator('.cl-time-zone-note');
+  await expect(note).toHaveCount(1);
+  await expect(note).toContainText('Times:');
+  await expect(note).toContainText(/GMT-3|Argentina/);
+
+  await page.locator('.cl-match-schedule-filters > summary').click();
+  await page
+    .getByRole('navigation', { name: 'Day' })
+    .getByRole('link', { name: 'Tomorrow', exact: true })
+    .click();
+
+  const afterDay = new URL(page.url());
+  expect(afterDay.searchParams.get('day')).toBe(tomorrowKey);
+  const wide = page.locator('.cl-match-schedule__nested');
+  await expect(wide.getByText('Equipo Mañana', { exact: true })).toBeVisible();
+  await expect(wide.getByText('Equipo Hoy', { exact: true })).toHaveCount(0);
+  await expect(wide.getByText('Equipo Futuro', { exact: true })).toHaveCount(0);
+
+  // Combining day= with another filter (view=cards) keeps day= in the URL.
+  await page.getByRole('link', { name: 'Cards', exact: true }).click();
+  const afterCards = new URL(page.url());
+  expect(afterCards.searchParams.get('day')).toBe(tomorrowKey);
+  expect(afterCards.searchParams.get('view')).toBe('cards');
+  await expect(wide.getByText('Equipo Mañana', { exact: true })).toBeVisible();
+  await expect(wide.getByText('Equipo Hoy', { exact: true })).toHaveCount(0);
+
+  await context.close();
 });
 
 test('the view toggle switches between the table and the cards and keeps the filter', async ({

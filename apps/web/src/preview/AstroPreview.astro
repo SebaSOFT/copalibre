@@ -30,6 +30,7 @@ import StateBadge from '../components/ui/atoms/StateBadge.astro';
 import BroadcastStatusPanel from '../components/ui/molecules/BroadcastStatusPanel.astro';
 import RulesetBriefing from '../components/ui/molecules/RulesetBriefing.astro';
 import SeriesStateBar from '../components/ui/molecules/SeriesStateBar.astro';
+import TimeZoneNote from '../components/ui/molecules/TimeZoneNote.astro';
 import TournamentHero from '../components/ui/molecules/TournamentHero.astro';
 import TournamentOverviewHero from '../components/ui/organisms/TournamentOverviewHero.astro';
 import BracketView from '../components/ui/organisms/BracketView.astro';
@@ -74,6 +75,7 @@ import {
   seriesStateBarLabels,
   tickerChromeLabels,
   tickerLabels,
+  timeZoneNoteLabels,
   tournamentHeroLabels,
   completionFigureLabels,
 } from '../lib/i18n/public-intl.ts';
@@ -142,6 +144,7 @@ const PREVIEWABLE = new Set([
   'broadcast-status-panel',
   'ruleset-briefing',
   'series-state-bar',
+  'time-zone-note',
   'tournament-hero',
   'tournament-overview-hero',
   'tournament-now-strip',
@@ -596,6 +599,13 @@ const [compactSample] = referenceJourneyBracket(true);
          outcome text render — a decided series would hide the pending copy. */
       component === 'series-state-bar' && <SeriesStateBar {...seriesBarProps} />
     }
+    {component === 'time-zone-note' && (
+      <TimeZoneNote
+        locale={locale}
+        timeZone={overview.organizationTimeZone}
+        {...timeZoneNoteLabels(intl)}
+      />
+    )}
     {component === 'tournament-hero' && <TournamentHero labels={heroLabels} model={overview} />}
     {component === 'tournament-overview-hero' && (
       <TournamentOverviewHero
@@ -761,14 +771,21 @@ const [compactSample] = referenceJourneyBracket(true);
           stageFilterAriaLabel: intl.formatMessage(messages.matchesViewStageFilterAriaLabel),
           zoneFilterAriaLabel: intl.formatMessage(messages.matchesViewZoneFilterAriaLabel),
           groupFilterAriaLabel: intl.formatMessage(messages.matchesViewGroupFilterAriaLabel),
+          dayFilterAriaLabel: intl.formatMessage(messages.matchesViewFilterDay),
           stateFilterAriaLabel: intl.formatMessage(messages.matchesViewStateFilterAriaLabel),
           viewFilterAriaLabel: intl.formatMessage(messages.matchesViewViewFilterAriaLabel),
           titles: {
             stage: intl.formatMessage(messages.matchesViewStageFilterTitle),
             zone: intl.formatMessage(messages.matchesViewZoneFilterTitle),
             group: intl.formatMessage(messages.matchesViewGroupFilterTitle),
+            day: intl.formatMessage(messages.matchesViewFilterDay),
             state: intl.formatMessage(messages.matchesViewStateFilterTitle),
             view: intl.formatMessage(messages.matchesViewViewFilterTitle),
+          },
+          dayOptions: {
+            all: intl.formatMessage(messages.matchesViewFilterDayAll),
+            today: intl.formatMessage(messages.matchesViewFilterDayToday),
+            tomorrow: intl.formatMessage(messages.matchesViewFilterDayTomorrow),
           },
           viewOptions: {
             rows: intl.formatMessage(messages.matchesViewViewRows),

@@ -2,6 +2,7 @@ import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-proje
 import { resolveLabel, type SupportedLanguage } from '@copalibre/domain';
 import type { OverviewMatch } from './overview.js';
 import { formatTimestamp } from './format-timestamp.js';
+import { isDelayed } from './match-state.js';
 import { primaryColumn } from './tv-statistics.js';
 
 /**
@@ -50,6 +51,7 @@ export interface TickerItem {
 
 export interface TickerLabels {
   readonly live: string;
+  readonly delayed?: string;
   readonly upcoming: string;
   readonly final: string;
   readonly leader: string;
@@ -72,8 +74,14 @@ export function matchItem(
   index: number,
   labels: TickerLabels,
   overtimeFor?: OvertimeResolver,
-  time?: { readonly language: string; readonly timeZone?: string },
+  time?: {
+    readonly language: string;
+    readonly timeZone?: string;
+    readonly referenceDate?: Date | number;
+  },
 ): TickerItem {
+  const referenceDate = time?.referenceDate ?? Date.now();
+  const delayed = isDelayed(match, referenceDate);
   const showScore =
     match.state === 'live' || (match.home.score !== undefined && match.away.score !== undefined);
   const overtime = overtimeFor?.(match);
@@ -89,9 +97,11 @@ export function matchItem(
     badge:
       match.state === 'live'
         ? labels.live
-        : match.state === 'upcoming'
-          ? labels.upcoming
-          : labels.final,
+        : delayed
+          ? (labels.delayed ?? labels.upcoming)
+          : match.state === 'upcoming'
+            ? labels.upcoming
+            : labels.final,
     tone,
     subject: match.home.name,
     opponent: match.away.name,
@@ -106,6 +116,9 @@ export function matchItem(
               : formatTimestamp(match.startsAt, {
                   locale: time.language,
                   ...(time.timeZone === undefined ? {} : { timeZone: time.timeZone }),
+                  ...(time.referenceDate === undefined
+                    ? {}
+                    : { referenceDate: time.referenceDate }),
                 }),
         }),
     ...(overtime === undefined ? {} : { overtime }),
@@ -141,16 +154,47 @@ export function buildTickerItems(input: {
   readonly overtimeFor?: OvertimeResolver;
   /** The organization's IANA zone, in which each kick-off is read. */
   readonly timeZone?: string;
+  /** Request instant for deterministic SSR/client relative-day and delayed checks. */
+  readonly referenceDate?: Date | number;
 }): readonly TickerItem[] {
-  const { matches, performers, leaders, labels, language, overtimeFor, timeZone } = input;
-  const orderedMatches = [
-    ...matches.filter((match) => match.state === 'live'),
-    ...matches.filter((match) => match.state !== 'live'),
-  ];
+  const { matches, performers, leaders, labels, language, overtimeFor, timeZone, referenceDate } =
+    input;
+  const ref = referenceDate ?? Date.now();
+  const groupRank = (match: OverviewMatch): number => {
+    if (match.state === 'live') return 0;
+    if (isDelayed(match, ref)) return 1;
+    if (match.state === 'upcoming') return 2;
+    return 3;
+  };
+  const kickoffOf = (match: OverviewMatch): number | undefined => {
+    const parsed = Date.parse(match.startsAt);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+  const compareTie = (left: OverviewMatch, right: OverviewMatch): number =>
+    left.stageNumber - right.stageNumber ||
+    (left.matchNumber ?? left.stageOrdinal ?? 0) - (right.matchNumber ?? right.stageOrdinal ?? 0);
+
+  const orderedMatches = [...matches].sort((left, right) => {
+    const leftGroup = groupRank(left);
+    const rightGroup = groupRank(right);
+    if (leftGroup !== rightGroup) return leftGroup - rightGroup;
+
+    const leftKickoff = kickoffOf(left);
+    const rightKickoff = kickoffOf(right);
+    if (leftKickoff !== undefined && rightKickoff !== undefined && leftKickoff !== rightKickoff) {
+      return leftGroup === 3 ? rightKickoff - leftKickoff : leftKickoff - rightKickoff;
+    }
+    if (leftKickoff !== rightKickoff) {
+      return leftKickoff !== undefined ? -1 : 1;
+    }
+    return compareTie(left, right);
+  });
+
   const items: TickerItem[] = orderedMatches.map((match, index) =>
     matchItem(match, index, labels, overtimeFor, {
       language,
       ...(timeZone === undefined ? {} : { timeZone }),
+      ...(referenceDate === undefined ? {} : { referenceDate }),
     }),
   );
 

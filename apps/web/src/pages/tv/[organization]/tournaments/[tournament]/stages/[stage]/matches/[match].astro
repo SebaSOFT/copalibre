@@ -239,6 +239,7 @@ if (presentation !== 'lower') {
   }
 }
 
+const referenceDate = Date.now();
 const tournamentDisplayName = tournamentName ?? intl.formatMessage(messages.pageHeaderLoading);
 const organizationDisplayName = organizationName ?? intl.formatMessage(messages.pageHeaderLoading);
 ---
@@ -268,6 +269,7 @@ const organizationDisplayName = organizationName ?? intl.formatMessage(messages.
     pinnedMatch={{ stageNumber, ordinal: matchOrdinal }}
     seriesByMatchId={seriesByMatchId}
     timeZone={organizationTimeZone}
+    referenceDate={referenceDate}
     lastMatchAt={overviewLastMatchAt}
     matchEvents={matchEvents}
     rosterActors={rosterActors}

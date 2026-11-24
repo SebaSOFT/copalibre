@@ -35,7 +35,7 @@ const match = (
   ...(homeScore === undefined ? {} : { homeScore }),
   ...(awayScore === undefined ? {} : { awayScore }),
   ...(status === 'scheduled'
-    ? { scheduledAt: `2026-10-27T${String(12 + matchNumber).padStart(2, '0')}:00:00Z` }
+    ? { scheduledAt: `2099-10-27T${String(12 + matchNumber).padStart(2, '0')}:00:00Z` }
     : {}),
   venueName: `Cancha ${matchNumber}`,
 });

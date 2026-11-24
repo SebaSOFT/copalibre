@@ -6,7 +6,9 @@
 import { rescheduledStatement } from '../../../lib/reschedule.ts';
 import { AdvancingBadge } from '../atoms/AdvancingBadge.tsx';
 import { Badge } from '../atoms/Badge.tsx';
+import Icon from '../atoms/Icon.astro';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
+import { formatTimeZoneParts } from '../../../lib/format-timestamp.ts';
 import { LiveMatchScoreboard } from '../molecules/LiveMatchScoreboard.tsx';
 import type { LiveMatchClock, LiveSegment } from '../../../lib/live-state.ts';
 import type { MatchReportModel } from '../../../lib/match-report.ts';
@@ -31,6 +33,8 @@ export interface Props {
   readonly liveClock?: LiveMatchClock;
   readonly liveSegments?: readonly LiveSegment[];
   readonly stakeLines?: readonly string[];
+  readonly referenceDate?: number;
+  readonly delayed?: boolean;
 }
 
 const {
@@ -46,7 +50,10 @@ const {
   liveClock,
   liveSegments,
   stakeLines = [],
+  referenceDate,
+  delayed = false,
 } = Astro.props;
+const tzParts = formatTimeZoneParts(locale, timeZone ?? 'UTC', referenceDate);
 const home = formatEntrant(intl, model.home);
 const away = formatEntrant(intl, model.away);
 const resolvedLanguage: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
@@ -81,7 +88,14 @@ const advancesLabel = intl.formatMessage(messages.bracketAdvances);
 
 <header class="cl-match-hero">
   <div class="cl-match-hero__meta">
-    <Badge className={`cl-badge--${model.status.toLowerCase()}`}>{statusLabel}</Badge>
+    {delayed ? (
+      <Badge className="cl-state--delayed">
+        <Icon name="clock" size={16} />
+        <span>{statusLabel}</span>
+      </Badge>
+    ) : (
+      <Badge className={`cl-badge--${model.status.toLowerCase()}`}>{statusLabel}</Badge>
+    )}
     {model.status === 'live' && (effectiveClock || liveSegmentLabel) && (
       <LiveMatchScoreboard
         client:load
@@ -142,7 +156,14 @@ const advancesLabel = intl.formatMessage(messages.bracketAdvances);
 
   {model.scheduledAt ? (
     <p class="cl-match-venue">
-      <ResponsiveTimestamp locale={locale} timestamp={model.scheduledAt} timeZone={timeZone} />
+      <ResponsiveTimestamp
+        format="full"
+        locale={locale}
+        referenceDate={referenceDate}
+        timestamp={model.scheduledAt}
+        timeZone={timeZone}
+      />
+      {` (${tzParts.isUtc ? 'UTC' : tzParts.offset || tzParts.zoneName})`}
       {model.venueName ? ` · ${model.venueName}` : ''}
     </p>
   ) : model.status === 'upcoming' ? (

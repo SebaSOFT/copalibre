@@ -71,6 +71,19 @@ export function presentState(state: ResultState, labels: ResultStateLabels): Sta
   return { state, label: labels[state], icon: ICON[state], className: CLASS_NAME[state] };
 }
 
+/**
+ * View-level delayed presentation: uses the upcoming tone with the amber warning token,
+ * clock icon, and localized delayed label so delayed is never conveyed by colour alone.
+ */
+export function presentDelayedState(label: string): StatePresentation {
+  return {
+    state: 'upcoming',
+    label,
+    icon: 'clock',
+    className: 'cl-state--delayed',
+  };
+}
+
 /** Every state, for the legend the page shows once. */
 export function resultLegend(labels: ResultStateLabels): readonly StatePresentation[] {
   return ALL_STATES.map((state) => presentState(state, labels));

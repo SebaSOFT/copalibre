@@ -338,3 +338,17 @@ Every public surface that shows a live match (overview, live page, matches list,
 
 - **WHEN** the public stream disconnects while a match is live
 - **THEN** its scoreboard shows the time of the last update it received, in the organization's time zone
+
+### Requirement: Public and TV standings previews follow the public table's ranking
+
+Every standings preview on public and TV surfaces SHALL use the same ranking as the public table route for that stage and layout, rank entrants within their group, and carry each row's group and zone. The live page SHALL show its leaders only while that stage has unplayed matches.
+
+#### Scenario: Two leaders level on points
+
+- **WHEN** two entrants have 9 points and the layout sorts by goal difference next
+- **THEN** the live page, the TV standings and the public table list them in the same order
+
+#### Scenario: The group stage is over
+
+- **WHEN** every match of the ranked group stage is final and the cup stage is in play
+- **THEN** the live page shows no leaders section

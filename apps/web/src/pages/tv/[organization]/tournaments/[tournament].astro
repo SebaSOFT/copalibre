@@ -280,6 +280,7 @@ if (presentation !== 'lower' && featuredStage !== undefined) {
   carries none of the three, and the venue is what a court overlay follows a match by. A lower third
   has no rail to put the match list in.
 */
+const referenceDate = Date.now();
 const court = Astro.url.searchParams.get('court') ?? undefined;
 let venueNameByMatchId: Record<string, string> = {};
 let seriesByMatchId: Record<string, PublicSeriesState> = {};
@@ -300,20 +301,25 @@ try {
     );
     if (presentation !== 'lower') {
       const dashboardText = tvDashboardLabels(intl);
-      matchList = tvMatchEntriesOf(rows, {
-        state: dashboardText.resultState,
-        round: dashboardText.bracketRound,
-        sideSource: dashboardText.sideSource,
-        zonePrefix: dashboardText.zonePrefix,
-        ...(dashboardText.overallPlace === undefined
-          ? {}
-          : { overallPlace: dashboardText.overallPlace }),
-        overallPlaceOffsetOf: (row) =>
-          initialBracket?.stageNumber === row.stageNumber
-            ? initialBracket.zones.find((zone) => zone.zoneName === row.zoneName)
-                ?.overallPlaceOffset
-            : undefined,
-      });
+      matchList = tvMatchEntriesOf(
+        rows,
+        {
+          state: dashboardText.resultState,
+          delayed: dashboardText.delayed,
+          round: dashboardText.bracketRound,
+          sideSource: dashboardText.sideSource,
+          zonePrefix: dashboardText.zonePrefix,
+          ...(dashboardText.overallPlace === undefined
+            ? {}
+            : { overallPlace: dashboardText.overallPlace }),
+          overallPlaceOffsetOf: (row) =>
+            initialBracket?.stageNumber === row.stageNumber
+              ? initialBracket.zones.find((zone) => zone.zoneName === row.zoneName)
+                  ?.overallPlaceOffset
+              : undefined,
+        },
+        referenceDate,
+      );
     }
   }
 } catch {
@@ -336,6 +342,7 @@ const tickerItems =
         labels: tickerLabels(intl),
         language,
         ...(organizationTimeZone === undefined ? {} : { timeZone: organizationTimeZone }),
+        referenceDate,
       })
     : [];
 ---
@@ -408,6 +415,7 @@ const tickerItems =
       labels={tvStatisticsLabels(intl)}
       dashboardLabels={tvDashboardLabels(intl)}
       language={language}
+      referenceDate={referenceDate}
       timeZone={organizationTimeZone}
       lastMatchAt={lastMatchAt(overviewMatches)}
     />

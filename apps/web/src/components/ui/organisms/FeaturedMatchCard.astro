@@ -11,9 +11,11 @@ interface Props {
   readonly locale: string;
   readonly timeZone?: string;
   readonly organizationAlias?: string;
+  readonly referenceDate?: number;
 }
 
-const { heading, match, href, labels, locale, timeZone, organizationAlias } = Astro.props;
+const { heading, match, href, labels, locale, timeZone, organizationAlias, referenceDate } =
+  Astro.props;
 ---
 
 <section class="cl-featured-match" aria-labelledby="featured-match-heading">
@@ -28,6 +30,7 @@ const { heading, match, href, labels, locale, timeZone, organizationAlias } = As
         locale={locale}
         match={match}
         organizationAlias={organizationAlias}
+        referenceDate={referenceDate}
         reportUrl={href}
         timeZone={timeZone}
       />
@@ -37,6 +40,7 @@ const { heading, match, href, labels, locale, timeZone, organizationAlias } = As
         locale={locale}
         match={match}
         organizationAlias={organizationAlias}
+        referenceDate={referenceDate}
         reportUrl={href}
         timeZone={timeZone}
       />

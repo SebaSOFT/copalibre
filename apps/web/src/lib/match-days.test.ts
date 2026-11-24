@@ -1,4 +1,10 @@
-import { calendarDayKey, matchDays, openMatchDay } from './match-days.js';
+import {
+  availableMatchDays,
+  calendarDayKey,
+  formatDayHeading,
+  matchDays,
+  openMatchDay,
+} from './match-days.js';
 import type { MatchCardData } from './matches-view.js';
 
 const match = (overrides: Partial<MatchCardData> = {}): MatchCardData => ({
@@ -101,5 +107,48 @@ describe('calendarDayKey', () => {
     expect(
       calendarDayKey(Date.parse('2026-11-14T01:15:00.000Z'), 'America/Argentina/Buenos_Aires'),
     ).toBe('2026-11-13');
+  });
+});
+
+describe('availableMatchDays', () => {
+  it('returns dated match days in ascending order and excludes undated matches', () => {
+    const days = availableMatchDays(
+      [
+        match({ matchId: 'undated' }),
+        match({ matchId: 'd2', scheduledAt: '2026-11-15T14:00:00.000Z' }),
+        match({ matchId: 'd1', scheduledAt: '2026-11-14T01:15:00.000Z' }),
+      ],
+      'America/Argentina/Buenos_Aires',
+    );
+
+    expect(days).toEqual([
+      { key: '2026-11-13', instant: '2026-11-14T01:15:00.000Z' },
+      { key: '2026-11-15', instant: '2026-11-15T14:00:00.000Z' },
+    ]);
+  });
+});
+
+describe('formatDayHeading', () => {
+  it('prefixes the relative word within ±1 day and leaves further dates alone', () => {
+    const referenceDate = new Date('2026-11-23T15:00:00.000Z');
+    const tomorrow = formatDayHeading({
+      instant: '2026-11-24T18:00:00.000Z',
+      locale: 'es',
+      timeZone: 'America/Argentina/Buenos_Aires',
+      referenceDate,
+      template: '{relative} · {date}',
+    });
+    expect(tomorrow).toMatch(/^Mañana · /);
+    expect(tomorrow).toContain('24');
+
+    const later = formatDayHeading({
+      instant: '2026-11-27T18:00:00.000Z',
+      locale: 'es',
+      timeZone: 'America/Argentina/Buenos_Aires',
+      referenceDate,
+      template: '{relative} · {date}',
+    });
+    expect(later).not.toContain('·');
+    expect(later).toContain('27');
   });
 });

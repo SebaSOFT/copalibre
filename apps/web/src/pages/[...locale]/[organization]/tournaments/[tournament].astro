@@ -16,14 +16,19 @@ import FeaturedMatchCard from '../../../../components/ui/organisms/FeaturedMatch
 import ScoreTicker from '../../../../components/ui/organisms/ScoreTicker.astro';
 import StandingsTable from '../../../../components/ui/organisms/StandingsTable.astro';
 import RulesetBriefing from '../../../../components/ui/molecules/RulesetBriefing.astro';
+import TimeZoneNote from '../../../../components/ui/molecules/TimeZoneNote.astro';
 import { withPodiumEmblems } from '../../../../lib/podium-emblems.ts';
 import {
   buildOverview,
   displayName,
+  groupOverviewMatchesByDay,
   overviewLeadFor,
+  selectNowStripMatches,
   summarizeOverviewMatches,
   type OverviewMatch,
 } from '../../../../lib/overview.ts';
+import { isDelayed } from '../../../../lib/match-state.ts';
+import { formatTimestamp } from '../../../../lib/format-timestamp.ts';
 import { selectStageLayout } from '../../../../lib/bracket.ts';
 import { mapBracketResponse } from '../../../../lib/bracket-projection.ts';
 import {
@@ -50,6 +55,7 @@ import {
   tickerChromeLabels,
   matchCardLabels,
   tickerLabels,
+  timeZoneNoteLabels,
   tournamentHeroLabels,
   tournamentStatusLineLabels,
   completionFigureLabels,
@@ -287,6 +293,7 @@ const tickerPerformerProjection =
         ),
       };
 
+const referenceDate = Date.now();
 const tickerChrome = tickerChromeLabels(intl);
 const tickerItems = buildTickerItems({
   matches: overlayedMatches,
@@ -295,16 +302,19 @@ const tickerItems = buildTickerItems({
   labels: tickerLabels(intl),
   language: resolvedLocale,
   ...(model.organizationTimeZone === undefined ? {} : { timeZone: model.organizationTimeZone }),
+  referenceDate,
 });
 
 const localePrefix = locale ? `/${locale}` : '';
-const fixtureSummary = summarizeOverviewMatches(overlayedMatches);
 function hasPersistedMatchId(
   match: OverviewMatch,
 ): match is OverviewMatch & { readonly matchId: string } {
   return match.matchId !== undefined;
 }
+const persistedMatches = overlayedMatches.filter(hasPersistedMatchId);
+const fixtureSummary = summarizeOverviewMatches(persistedMatches, 4, referenceDate);
 const liveMatches = fixtureSummary.live.filter(hasPersistedMatchId);
+const delayedMatches = fixtureSummary.delayed.filter(hasPersistedMatchId);
 const nextMatches = fixtureSummary.upcoming.filter(hasPersistedMatchId);
 const latestResults = fixtureSummary.latestResults.filter(hasPersistedMatchId);
 const compactMatchLabels = matchCardLabels(intl);
@@ -422,37 +432,66 @@ function matchPagePath(match: OverviewMatch): string {
 }
 
 const nextFeaturedMatch = overviewLead === 'schedule-preview' ? nextMatches[0] : undefined;
-const nowEntries = [
-  ...(liveMatches[0] === undefined ? [] : [{ kind: 'live' as const, match: liveMatches[0] }]),
-  ...(nextMatches[0] === undefined ? [] : [{ kind: 'upcoming' as const, match: nextMatches[0] }]),
-  ...(latestResults[0] === undefined ? [] : [{ kind: 'final' as const, match: latestResults[0] }]),
-].map((entry) => ({
-  kind: entry.kind,
-  match: matchCardDataOf(entry.match),
-  href: matchPagePath(entry.match),
+const nowSelected =
+  overviewLead === 'now-strip'
+    ? selectNowStripMatches(fixtureSummary, 3).filter(hasPersistedMatchId)
+    : [];
+const nowEntries = nowSelected.map((match) => ({
+  kind:
+    match.state === 'live'
+      ? ('live' as const)
+      : isDelayed(match, referenceDate)
+        ? ('delayed' as const)
+        : ('upcoming' as const),
+  match: matchCardDataOf(match),
+  href: matchPagePath(match),
 }));
 const featuredMatchIds = new Set(
-  (overviewLead === 'now-strip'
-    ? [liveMatches[0], nextMatches[0], latestResults[0]]
-    : [nextFeaturedMatch]
-  )
+  (overviewLead === 'now-strip' ? nowSelected : [nextFeaturedMatch])
     .filter((match): match is OverviewMatch & { readonly matchId: string } => match !== undefined)
     .map((match) => match.matchId),
 );
 const remainingLiveMatches = liveMatches.filter((match) => !featuredMatchIds.has(match.matchId));
+const remainingDelayedMatches = delayedMatches.filter(
+  (match) => !featuredMatchIds.has(match.matchId),
+);
 const remainingNextMatches = nextMatches.filter((match) => !featuredMatchIds.has(match.matchId));
 const remainingLatestResults = latestResults.filter(
   (match) => !featuredMatchIds.has(match.matchId),
 );
+const dayHeadingTemplate = intl.formatMessage(messages.scheduleDayHeading, {
+  relative: '{relative}',
+  date: '{date}',
+});
+const tbdLabel = intl.formatMessage(messages.resultStateTbd);
+const nextMatchDayGroups = groupOverviewMatchesByDay(remainingNextMatches, {
+  locale: resolvedLocale,
+  timeZone: model.organizationTimeZone,
+  referenceDate,
+  dayHeadingTemplate,
+  tbdLabel,
+});
+const latestResultDayGroups = groupOverviewMatchesByDay(remainingLatestResults, {
+  locale: resolvedLocale,
+  timeZone: model.organizationTimeZone,
+  referenceDate,
+  dayHeadingTemplate,
+  tbdLabel,
+});
 
 const nextKickoff = model.matches
-  .filter((match) => match.state === 'upcoming' && Date.parse(match.startsAt) >= Date.now())
+  .filter(
+    (match) =>
+      match.state === 'upcoming' &&
+      !isDelayed(match, referenceDate) &&
+      Number.isFinite(Date.parse(match.startsAt)),
+  )
   .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))[0];
 const noLiveDescription = nextKickoff
   ? intl.formatMessage(messages.interactionNextKickoff, {
-      time: intl.formatDate(new Date(nextKickoff.startsAt), {
-        dateStyle: 'medium',
-        timeStyle: 'short',
+      time: formatTimestamp(nextKickoff.startsAt, {
+        locale: resolvedLocale,
+        format: 'full',
         timeZone: model.organizationTimeZone,
       }),
     })
@@ -530,6 +569,7 @@ const trail = publicTrail(trailBase, []);
         entries={nowEntries}
         labels={compactMatchLabels}
         locale={resolvedLocale}
+        referenceDate={referenceDate}
         timeZone={model.organizationTimeZone}
       />
     )}
@@ -569,6 +609,7 @@ const trail = publicTrail(trailBase, []);
         href={matchPagePath(nextFeaturedMatch)}
         labels={compactMatchLabels}
         locale={resolvedLocale}
+        referenceDate={referenceDate}
         timeZone={model.organizationTimeZone}
         organizationAlias={organization}
       />
@@ -590,6 +631,12 @@ const trail = publicTrail(trailBase, []);
   <Container variant="public">
     <section aria-labelledby="overview-matches-heading">
       <h2 id="overview-matches-heading">{intl.formatMessage(messages.matchGridHeading)}</h2>
+      <TimeZoneNote
+        locale={resolvedLocale}
+        referenceDate={referenceDate}
+        timeZone={model.organizationTimeZone}
+        {...timeZoneNoteLabels(intl)}
+      />
       {remainingLiveMatches.length > 0 && (
         <section aria-labelledby="overview-live-heading">
           <h3 id="overview-live-heading">{intl.formatMessage(messages.matchesViewFilterLive)}</h3>
@@ -602,6 +649,28 @@ const trail = publicTrail(trailBase, []);
                   labels={compactMatchLabels}
                   locale={resolvedLocale}
                   match={matchCardDataOf(match)}
+                  referenceDate={referenceDate}
+                  reportUrl={matchPagePath(match)}
+                  timeZone={model.organizationTimeZone}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {remainingDelayedMatches.length > 0 && (
+        <section aria-labelledby="overview-delayed-heading">
+          <h3 id="overview-delayed-heading">{intl.formatMessage(messages.resultStateDelayed)}</h3>
+          <ul class="cl-match-card-grid cl-match-card-grid--compact-summary">
+            {remainingDelayedMatches.map((match) => (
+              <li>
+                <MatchCard
+                  compact
+                  compactNames="full"
+                  labels={compactMatchLabels}
+                  locale={resolvedLocale}
+                  match={matchCardDataOf(match)}
+                  referenceDate={referenceDate}
                   reportUrl={matchPagePath(match)}
                   timeZone={model.organizationTimeZone}
                 />
@@ -613,21 +682,27 @@ const trail = publicTrail(trailBase, []);
       {remainingNextMatches.length > 0 && (
         <section aria-labelledby="overview-next-heading">
           <h3 id="overview-next-heading">{intl.formatMessage(messages.overviewNextMatches)}</h3>
-          <ul class="cl-match-card-grid cl-match-card-grid--compact-summary">
-            {remainingNextMatches.map((match) => (
-              <li>
-                <MatchCard
-                  compact
-                  compactNames="full"
-                  labels={compactMatchLabels}
-                  locale={resolvedLocale}
-                  match={matchCardDataOf(match)}
-                  reportUrl={matchPagePath(match)}
-                  timeZone={model.organizationTimeZone}
-                />
-              </li>
-            ))}
-          </ul>
+          {nextMatchDayGroups.map((group) => (
+            <div class="cl-overview-day-group">
+              <h4 class="cl-overview-day-heading">{group.heading}</h4>
+              <ul class="cl-match-card-grid cl-match-card-grid--compact-summary">
+                {group.matches.map((match) => (
+                  <li>
+                    <MatchCard
+                      compact
+                      compactNames="full"
+                      labels={compactMatchLabels}
+                      locale={resolvedLocale}
+                      match={matchCardDataOf(match)}
+                      referenceDate={referenceDate}
+                      reportUrl={matchPagePath(match)}
+                      timeZone={model.organizationTimeZone}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </section>
       )}
       {remainingLatestResults.length > 0 && (
@@ -635,21 +710,27 @@ const trail = publicTrail(trailBase, []);
           <h3 id="overview-results-heading">
             {intl.formatMessage(messages.overviewLatestResults)}
           </h3>
-          <ul class="cl-match-card-grid cl-match-card-grid--compact-summary">
-            {remainingLatestResults.map((match) => (
-              <li>
-                <MatchCard
-                  compact
-                  compactNames="full"
-                  labels={compactMatchLabels}
-                  locale={resolvedLocale}
-                  match={matchCardDataOf(match)}
-                  reportUrl={matchPagePath(match)}
-                  timeZone={model.organizationTimeZone}
-                />
-              </li>
-            ))}
-          </ul>
+          {latestResultDayGroups.map((group) => (
+            <div class="cl-overview-day-group">
+              <h4 class="cl-overview-day-heading">{group.heading}</h4>
+              <ul class="cl-match-card-grid cl-match-card-grid--compact-summary">
+                {group.matches.map((match) => (
+                  <li>
+                    <MatchCard
+                      compact
+                      compactNames="full"
+                      labels={compactMatchLabels}
+                      locale={resolvedLocale}
+                      match={matchCardDataOf(match)}
+                      referenceDate={referenceDate}
+                      reportUrl={matchPagePath(match)}
+                      timeZone={model.organizationTimeZone}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </section>
       )}
       <p>
@@ -780,6 +861,21 @@ const trail = publicTrail(trailBase, []);
     />
   </Container>
 </PublicLayout>
+
+<style>
+  .cl-overview-day-group + .cl-overview-day-group {
+    margin-block-start: var(--cl-space-3);
+  }
+
+  .cl-overview-day-heading {
+    margin: 0 0 var(--cl-space-2);
+    color: var(--cl-text-secondary);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    letter-spacing: var(--cl-tracking-wide);
+    text-transform: uppercase;
+  }
+</style>
 
 <script>
   // Page tier: the only place on this page allowed to own a

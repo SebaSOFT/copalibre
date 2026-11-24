@@ -42,7 +42,7 @@ const scheduled = {
   homeName: 'Andes',
   awayName: 'Concepción',
   status: 'scheduled',
-  scheduledAt: '2026-09-24T16:00:00.000Z',
+  scheduledAt: '2099-09-24T16:00:00.000Z',
 };
 
 const overview = {
@@ -59,9 +59,51 @@ const overview = {
 };
 
 let liveResponse: { matches: unknown[] } = { matches: [] };
-let overviewMode: 'default' | 'grouped-in-play' | 'group-stage-complete' = 'default';
+let overviewMode: 'default' | 'grouped-in-play' | 'group-stage-complete' | 'delayed-queue' =
+  'default';
 let apiServer: Server;
 test.use({ javaScriptEnabled: false });
+
+function buildDelayedQueueOverview() {
+  const now = Date.now();
+  return {
+    ...overview,
+    matches: [
+      {
+        matchId: '01936f4a-1001-7000-8000-000000000001',
+        stageNumber: 1,
+        stageOrdinal: 1,
+        matchNumber: 1,
+        homeName: 'Andes',
+        awayName: 'Concepción',
+        status: 'in-progress',
+        homeScore: 2,
+        awayScore: 1,
+        scheduledAt: new Date(now - 35 * 60_000).toISOString(),
+      },
+      {
+        matchId: '01936f4a-1002-7000-8000-000000000002',
+        stageNumber: 1,
+        stageOrdinal: 2,
+        matchNumber: 2,
+        homeName: 'Club Demorado',
+        awayName: 'Visita Demorada',
+        status: 'scheduled',
+        scheduledAt: new Date(now - 20 * 60_000).toISOString(),
+      },
+      ...Array.from({ length: 6 }, (_, index) => ({
+        matchId: `01936f4a-1003-7000-8000-00000000000${index + 3}`,
+        stageNumber: 1,
+        stageOrdinal: index + 3,
+        matchNumber: index + 3,
+        homeName: `Futuro Local ${index + 1}`,
+        awayName: `Futuro Visita ${index + 1}`,
+        status: 'scheduled',
+        scheduledAt: new Date(now + (index + 1) * 3_600_000).toISOString(),
+      })),
+    ],
+  };
+}
 
 const groupedStandingsPreview = [
   {
@@ -107,27 +149,29 @@ test.beforeAll(async ({ workerPort }) => {
     }
     if (path === `${BASE}/overview`) {
       const response =
-        overviewMode === 'grouped-in-play'
-          ? {
-              ...overview,
-              standingsStageNumber: 1,
-              matches: [
-                { ...scheduled, stageNumber: 1, matchNumber: 1, status: 'finalized' },
-                { ...scheduled, stageNumber: 1, matchNumber: 2, status: 'scheduled' },
-              ],
-              standingsPreview: groupedStandingsPreview,
-            }
-          : overviewMode === 'group-stage-complete'
+        overviewMode === 'delayed-queue'
+          ? buildDelayedQueueOverview()
+          : overviewMode === 'grouped-in-play'
             ? {
                 ...overview,
                 standingsStageNumber: 1,
                 matches: [
                   { ...scheduled, stageNumber: 1, matchNumber: 1, status: 'finalized' },
-                  { ...scheduled, stageNumber: 2, matchNumber: 1, status: 'scheduled' },
+                  { ...scheduled, stageNumber: 1, matchNumber: 2, status: 'scheduled' },
                 ],
                 standingsPreview: groupedStandingsPreview,
               }
-            : overview;
+            : overviewMode === 'group-stage-complete'
+              ? {
+                  ...overview,
+                  standingsStageNumber: 1,
+                  matches: [
+                    { ...scheduled, stageNumber: 1, matchNumber: 1, status: 'finalized' },
+                    { ...scheduled, stageNumber: 2, matchNumber: 1, status: 'scheduled' },
+                  ],
+                  standingsPreview: groupedStandingsPreview,
+                }
+              : overview;
       res.end(JSON.stringify(response));
       return;
     }
@@ -190,9 +234,9 @@ test('empty live view has a localized next kickoff and owned leaders table witho
 
   await expect(page.getByText('No hay partidos en vivo')).toBeVisible();
   await expect(page.getByText('Próximo partido programado:')).toBeVisible();
-  const kickoff = page.locator('time[datetime="2026-09-24T16:00:00.000Z"]').first();
+  const kickoff = page.locator('time[datetime="2099-09-24T16:00:00.000Z"]').first();
   await expect(kickoff).toBeVisible();
-  expect(await kickoff.textContent()).not.toContain('2026-09-24T16:00:00.000Z');
+  expect(await kickoff.textContent()).not.toContain('2099-09-24T16:00:00.000Z');
   const trail = page.getByRole('navigation', { name: 'Ruta de navegación' });
   await expect(trail.getByRole('link')).toHaveCount(2);
   await expect(trail.getByRole('link').nth(1)).toHaveAttribute(
@@ -257,6 +301,81 @@ test('each active match renders once in the live hero without JavaScript', async
   await expect(hero.getByText('Andes')).toBeVisible();
   await expect(hero.getByText('Concepción')).toBeVisible();
   await expect(page.getByText('No live matches in progress')).toHaveCount(0);
+});
+
+test('marks an unstarted match 20 minutes past kickoff as Demorado after live matches, excludes it from the 5 upcoming and next kickoff, and renders the time-zone note above Upcoming', async ({
+  page,
+}) => {
+  overviewMode = 'delayed-queue';
+  liveResponse = {
+    matches: [
+      {
+        matchId: '01936f4a-1001-7000-8000-000000000001',
+        stageNumber: 1,
+        matchNumber: 1,
+        state: 'live',
+        projectionVersion: 1,
+        sides: [
+          { entrantId: '01936f4a-0001-7000-8000-000000000001', name: 'Andes', score: 2 },
+          { entrantId: '01936f4a-0002-7000-8000-000000000002', name: 'Concepción', score: 1 },
+        ],
+      },
+    ],
+  };
+
+  await page.goto(`/es${PAGE}`);
+
+  const liveHero = page.locator('.cl-match-card-grid').first();
+  const delayedSection = page.locator('section[aria-labelledby="live-delayed-heading"]');
+  const upcomingHeading = page.getByRole('heading', { name: 'Próximos', level: 2 });
+  const timeZoneNote = page.locator('.cl-time-zone-note');
+
+  await expect(liveHero).toContainText('Andes');
+  await expect(delayedSection).toBeVisible();
+  await expect(delayedSection.getByRole('heading', { name: 'Demorado', level: 2 })).toBeVisible();
+  await expect(delayedSection).toContainText('Club Demorado');
+  const delayedBadge = delayedSection.locator('.cl-state--delayed');
+  await expect(delayedBadge).toContainText('Demorado');
+  await expect(delayedBadge.locator('svg.cl-icon')).toHaveCount(1);
+
+  await expect(timeZoneNote).toHaveCount(1);
+  await expect(timeZoneNote).toContainText('Horarios:');
+  await expect(upcomingHeading).toBeVisible();
+
+  // Order: live hero -> delayed section -> time-zone note -> Upcoming heading.
+  const order = await page.evaluate(() => {
+    const heroEl = document.querySelector('.cl-match-card-grid');
+    const delayedEl = document.querySelector('section[aria-labelledby="live-delayed-heading"]');
+    const tzEl = document.querySelector('.cl-time-zone-note');
+    const upcomingEl = Array.from(document.querySelectorAll('h2')).find(
+      (h) => h.textContent?.trim() === 'Próximos',
+    );
+    if (!heroEl || !delayedEl || !tzEl || !upcomingEl) return null;
+    const after = (a: Element, b: Element) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    return after(heroEl, delayedEl) && after(delayedEl, tzEl) && after(tzEl, upcomingEl);
+  });
+  expect(order).toBe(true);
+
+  const upcomingGrid = page.locator('.cl-match-card-grid').nth(2);
+  await expect(upcomingGrid.locator('article')).toHaveCount(5);
+  await expect(upcomingGrid).not.toContainText('Club Demorado');
+  await expect(upcomingGrid).toContainText('Futuro Local 1');
+  await expect(upcomingGrid).toContainText('Futuro Local 5');
+  await expect(upcomingGrid).not.toContainText('Futuro Local 6');
+
+  // With no live match, the delayed match is never offered as the next kickoff.
+  liveResponse = { matches: [] };
+  await page.goto(`/es${PAGE}`);
+  await expect(page.getByText('Próximo partido programado:')).toBeVisible();
+  const nextKickoffTime = page
+    .locator('.cl-live-hero, .cl-interaction-empty-state, main')
+    .getByText(/Próximo partido programado:/)
+    .locator('..')
+    .locator('time')
+    .first();
+  const delayedMatchTime = await delayedSection.locator('time').first().getAttribute('datetime');
+  expect(await nextKickoffTime.getAttribute('datetime')).not.toBe(delayedMatchTime);
 });
 
 test.describe('live dashboard clock and match navigation', () => {
