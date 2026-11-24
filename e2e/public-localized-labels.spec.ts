@@ -4,9 +4,9 @@ import { expect, gotoTv, test } from './support/tv-ready.js';
 /**
  * Localized public & TV labels across organization listing, stage matches view, and TV routes:
  * - Organization page shows localized discipline name ("Hockey sobre patines", not "Rink Hockey")
- * - Fase 1 page shows localized deciding factor ("Decidido por: Promedio de goles") only on
- *   the tiebreak-separated match, localized latestEvent kinds ("Gol", "Gol de tiro libre directo"),
- *   and zero raw "Rule " or English "Goal" strings
+ * - Fase 1 page shows no standings tie-break on any match card, even on the tiebreak-separated
+ *   match, localized latestEvent kinds ("Gol", "Gol de tiro libre directo"), and zero raw "Rule "
+ *   or English "Goal" strings
  * - Pinned-match TV page in Spanish lists "Gol" and "Gol de tiro libre directo" events
  * - English TV page renders "Away" (not "Visitante") when the away side has no name
  */
@@ -375,7 +375,7 @@ test.afterAll(async () => {
 });
 
 test.describe('localized public and TV labels', () => {
-  test('Fase 1 stage page renders Spanish deciding factor and latest event kinds without English leaks, across desktop and mobile viewports', async ({
+  test('Fase 1 stage page renders Spanish latest event kinds and no card tie-break without English leaks, across desktop and mobile viewports', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -394,9 +394,8 @@ test.describe('localized public and TV labels', () => {
     await expect(plainCard.locator('.cl-match-card__deciding-factor')).toHaveCount(0);
     await expect(plainCard.locator('.cl-match-card__event')).toHaveText('Gol');
 
-    await expect(tiebreakCard.locator('.cl-match-card__deciding-factor')).toHaveText(
-      'Decidido por: Promedio de goles',
-    );
+    await expect(tiebreakCard.locator('.cl-match-card__deciding-factor')).toHaveCount(0);
+    await expect(tiebreakCard).not.toContainText('Promedio de goles');
     await expect(tiebreakCard.locator('.cl-match-card__event')).toHaveText(
       'Gol de tiro libre directo',
     );
