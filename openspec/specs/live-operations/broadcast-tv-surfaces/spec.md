@@ -823,3 +823,17 @@ A TV screen that features or pins a match SHALL name it by the same context the 
 
 - **WHEN** the TV pins match 5 of the cup stage, a Copa Oro 5th-to-8th placement semi-final
 - **THEN** its header reads "Copas · Copa Oro · Semifinal 5º al 8º puesto" with the match number secondary, not "Etapa 2 · Partido 5"
+
+### Requirement: TV event names and side fallbacks follow the TV language
+
+Every TV event list, ticker and alert SHALL name a recorded event by its discipline label in the TV language through the discipline-label fallback chain, never by the descriptor's default text when a label in that language exists. A side with no name or abbreviation SHALL fall back to the catalogue's home or away word in the TV language.
+
+#### Scenario: A Spanish TV lists goals
+
+- **WHEN** a Spanish TV shows a pinned match with a goal and a direct free kick goal recorded
+- **THEN** the events read "Gol" and "Gol de tiro libre directo", not "Goal" and "Direct free kick goal"
+
+#### Scenario: An English TV with an unnamed side
+
+- **WHEN** an English TV shows a match whose away side has no name or abbreviation yet
+- **THEN** that side reads "Away", not "Visitante"

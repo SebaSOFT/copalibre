@@ -1197,3 +1197,12 @@ A path of more than one unknown segment SHALL show the adopted 404 page.
 
 - **WHEN** a visitor opens `/es/nope/{org}/tournaments/{tournament}` for a tournament that exists
 - **THEN** the page shows 404 and its two actions
+
+### Requirement: Public tournament cards name the discipline in the page language
+
+A public tournament card on the organization page or the site home SHALL show the tournament's discipline by its localized name in the page language through the supported-language fallback chain, the same name the tournament overview shows.
+
+#### Scenario: A Spanish organization page
+
+- **WHEN** a Spanish organization page lists a rink hockey tournament whose discipline is named "Hockey sobre patines" in Spanish
+- **THEN** the card reads "Hockey sobre patines", not "Rink Hockey"

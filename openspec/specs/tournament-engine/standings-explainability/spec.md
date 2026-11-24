@@ -267,3 +267,17 @@ NOT stringify the object into `"[object Object]"`.
   labels
 - **THEN** `decidingFactorLabel` returns a human-readable rule description containing the parameter's
   text name rather than a raw object stringification
+
+### Requirement: The deciding factor between two entrants is published as a code
+
+The standings explanation SHALL be able to name, for two entrants, the first tiebreak comparator that separated them while tied, as its tiebreaker code and its 1-based position in the tiebreak order, and SHALL return none when no comparator separated them. Public projections SHALL carry this code, not a sentence built in one language.
+
+#### Scenario: Two entrants separated by goal average
+
+- **WHEN** two entrants level on points are ranked by goal average, the third rule of the order
+- **THEN** their deciding factor is the code `goal-average` with rule position 3
+
+#### Scenario: Entrants that no tiebreak separated
+
+- **WHEN** two entrants of a group were never tied with each other
+- **THEN** no deciding factor is returned for that pair

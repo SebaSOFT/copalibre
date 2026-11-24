@@ -62,15 +62,16 @@ venue line entirely — never a placeholder — when none is assigned.
 - **THEN** its card shows no venue line, not an empty or placeholder one
 
 ### Requirement: A match card shows its latest recorded event generically
-A card for a match with at least one recorded event SHALL show that latest event's description and
-the moment it occurred, whatever discipline event type it is — the card SHALL NOT special-case any
-specific event code, so a discipline that declares a new event type appears correctly with no card
-change required. A card for a match with no recorded event SHALL show no event line at all.
+A card for a match with at least one recorded event SHALL show that latest event's description, in the page language through the discipline-label fallback chain, and the moment it occurred, whatever discipline event type it is. The card SHALL NOT special-case any specific event code, so a discipline that declares a new event type appears correctly with no card change required. A card for a match with no recorded event SHALL show no event line at all.
 
 #### Scenario: The latest event is shown regardless of its type
 - **WHEN** a match's most recently recorded event is any event type its discipline declares
 - **THEN** the card shows that event's description and timing, without the card needing to know that
   specific event code in advance
+
+#### Scenario: The latest event is in the page language
+- **WHEN** a Spanish page shows a card whose latest event is a goal whose descriptor labels it "Gol" in Spanish
+- **THEN** the card reads "Gol", not "Goal"
 
 #### Scenario: A match with no events shows no event line
 - **WHEN** a match has no recorded events yet
@@ -92,18 +93,14 @@ rendering rules — never both a bare position and series state on the same card
   standings position
 
 ### Requirement: A finalized match states its deciding factor without exposing the full trace
-A card for a finalized match whose result required a tiebreak comparator to separate two standings
-rows SHALL show one line naming the deciding factor (for example, "decided by head-to-head goal
-difference"). It SHALL NOT expose the full internal comparator trace, its intermediate values, or any
-line beyond the single deciding-factor statement. A card for a finalized match whose result required
-no tiebreak comparison SHALL show no deciding-factor line.
+A card for a finalized match SHALL show one line naming the deciding factor only when a tiebreak comparator separated this match's two entrants, who were tied before it. The factor SHALL be named by its tiebreaker code in the page language, never by an engine-built sentence. It SHALL NOT expose the full comparator trace, its intermediate values, or any further line.
 
 #### Scenario: A tiebreak-decided match names its deciding factor
-- **WHEN** a finalized match's outcome caused a tiebreak comparator to separate two standings rows
-- **THEN** its card states the deciding factor in one line
+- **WHEN** a finalized match's two entrants were tied on points and goal average separated them
+- **THEN** its card reads "Decidido por: Promedio de goles" on a Spanish page
 
 #### Scenario: A match with no tiebreak involved shows no deciding-factor line
-- **WHEN** a finalized match's outcome required no tiebreak comparison
+- **WHEN** no tiebreak comparator separated a finalized match's two entrants, even if each was separated from someone else
 - **THEN** its card shows no deciding-factor line
 
 #### Scenario: The deciding-factor line never carries the full trace
