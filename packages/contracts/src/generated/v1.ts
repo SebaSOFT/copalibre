@@ -5924,6 +5924,22 @@ export interface components {
             /** Format: date-time */
             archivedAt?: string;
         };
+        PublicTournamentProgressResponse: {
+            /** @description Stage number of the first stage with unresolved matches; absent when all matches are resolved */
+            currentStageNumber?: number;
+            /** @description Stage name of the first stage with unresolved matches; absent when empty or when all matches are resolved */
+            currentStageName?: string;
+            /** @description Number of resolved matches across the tournament */
+            resolvedMatches: number;
+            /** @description Total resolvable matches across the tournament */
+            totalMatches: number;
+        };
+        PublicTournamentScheduleWindowResponse: {
+            /** Format: date-time */
+            firstKickoffAt?: string;
+            /** Format: date-time */
+            lastKickoffAt?: string;
+        };
         PublicTournamentEntrantPodiumResponse: {
             /** Format: uuid */
             entrantId: string;
@@ -5970,6 +5986,10 @@ export interface components {
             status: "upcoming" | "live" | "finished";
             discipline: components["schemas"]["PublicTournamentDisciplineSummaryResponse"];
             dates?: components["schemas"]["PublicTournamentDatesResponse"];
+            progress?: components["schemas"]["PublicTournamentProgressResponse"];
+            schedule?: components["schemas"]["PublicTournamentScheduleWindowResponse"];
+            /** @description Number of distinct venues with at least one published match in this tournament */
+            venueCount?: number;
             winners?: components["schemas"]["PublicTournamentWinnerZoneResponse"][];
             /**
              * Format: uuid
@@ -6056,6 +6076,21 @@ export interface components {
             /** Format: date-time */
             scheduledAt?: string;
         };
+        PublicOverviewStageZoneResponse: {
+            /** @description Zone name; absent for an implicit zone */
+            zoneName?: string;
+            /** @description Effective competition format of this zone */
+            format: string;
+        };
+        PublicOverviewStageResponse: {
+            stageNumber: number;
+            /** @description The stage name as the organizer named it; absent when empty */
+            stageName?: string;
+            /** @description Effective competition format of this stage */
+            format: string;
+            /** @description Declared non-implicit zones of this stage with their effective formats */
+            zones?: components["schemas"]["PublicOverviewStageZoneResponse"][];
+        };
         PublicStandingsRowResponse: {
             rank: number;
             /** Format: uuid */
@@ -6075,6 +6110,8 @@ export interface components {
             };
             /** @description The zone this row is ranked in. Present only when the stage mixes formats, so each table zone is ranked on its own; absent for a stage with a single table. */
             zoneName?: string;
+            /** @description The group this row is ranked in. Present when the stage defines named groups; absent for an ungrouped stage. */
+            groupName?: string;
         };
         PublicOverviewResponse: {
             organizationAlias: string;
@@ -6094,6 +6131,14 @@ export interface components {
             /** @description Every venue holding a published match, sorted by name. Free-form venue details are never published. */
             venues?: components["schemas"]["PublicOverviewVenueResponse"][];
             matches: components["schemas"]["PublicOverviewMatchResponse"][];
+            stages?: components["schemas"]["PublicOverviewStageResponse"][];
+            /** @description Stage number ranked by standingsPreview */
+            standingsStageNumber?: number;
+            /**
+             * @description Source of standingsPreview; engine when discipline declares no group-phase layout
+             * @enum {string}
+             */
+            standingsSource?: "table-projection" | "engine";
             standingsPreview?: components["schemas"]["PublicStandingsRowResponse"][];
             /**
              * @description Whether `standingsPreview` rows count one result per series or one per played match. Absent when the previewed stage declares no series at all.
@@ -6360,6 +6405,8 @@ export interface components {
             zoneName?: string;
             /** @description The format this zone plays: its own when it declares one, otherwise the stage’s. Decides how the zone is drawn. */
             format: string;
+            /** @description 0-based overall place offset for this zone when incoming promotion bands map 1-to-1 onto zones contiguously from 1 */
+            overallPlaceOffset?: number;
             matches: components["schemas"]["PublicBracketMatchResponse"][];
         };
         PublicBracketResponse: {

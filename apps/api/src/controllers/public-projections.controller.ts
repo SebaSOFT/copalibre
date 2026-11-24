@@ -48,7 +48,11 @@ import {
 } from '../table-projections/read.js';
 
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
-import { orderZonesByPromotionBands, resolveStageZones } from './bracket-zones.js';
+import {
+  orderZonesByPromotionBands,
+  overallPlaceOffsetsForZones,
+  resolveStageZones,
+} from './bracket-zones.js';
 import { stageQualifierPlans } from './stage-qualifiers.js';
 import { bracketLinks, graphRecordsOf, placementMatchOf } from './bracket-placements.js';
 import { persistedBracketMatches } from './persisted-bracket.js';
@@ -76,6 +80,7 @@ import {
 import { generateFixtures } from '@copalibre/tournament-engine';
 import {
   resolveLabel,
+  resolveEffectiveTableLayouts,
   ageAt,
   primaryScoreOf,
   effectiveFormat,
@@ -83,7 +88,9 @@ import {
   isImplicitZone,
   type DisciplineDescriptor,
   type StatisticCollector,
+  type TableLayoutDefinition,
   type Tournament,
+  type TournamentFormat,
   deriveTournamentStatus,
   runningTimers,
 } from '@copalibre/domain';
@@ -185,6 +192,11 @@ export class PublicTournamentListingController {
       }
       const liveMatches =
         status === 'live' ? await liveMatchesForTournamentListing(this.db, t, matches) : [];
+      const { progress, schedule } = listingProgressAndSchedule(matches);
+      const venues = await readPublicVenues(
+        this.db,
+        matches.map((m) => m.matchId),
+      );
 
       tournamentItems.push({
         tournamentId: t.tournamentId,
@@ -193,6 +205,9 @@ export class PublicTournamentListingController {
         status,
         discipline,
         ...(dates ? { dates } : {}),
+        ...(progress ? { progress } : {}),
+        ...(schedule ? { schedule } : {}),
+        ...(venues.length > 0 ? { venueCount: venues.length } : {}),
         ...(winners && winners.length > 0 ? { winners } : {}),
         ...(t.emblemObjectId ? { emblemObjectId: t.emblemObjectId } : {}),
         featured: t.featured,
@@ -612,15 +627,91 @@ export class PublicProjectionsController {
       rulesetData ?? undefined,
     );
 
-    const stages = await new CompetitionRepository(this.db).listStages(season.seasonId);
+    const competition = new CompetitionRepository(this.db);
+    const stages = [...(await competition.listStages(season.seasonId))].sort(
+      (a, b) => a.number - b.number,
+    );
+    const zonesByStage = await Promise.all(
+      stages.map(async (stage) => ({
+        stage,
+        zones: await competition.listZonesOfStage(stage.stageId),
+      })),
+    );
+    const overviewStages = zonesByStage.map(({ stage, zones }) => {
+      const stageName = stage.name.trim();
+      const declaredZones = zones.filter((zone) => !isImplicitZone(zone));
+      return {
+        stageNumber: stage.number,
+        ...(stageName.length > 0 ? { stageName } : {}),
+        format: stage.format,
+        ...(declaredZones.length > 0
+          ? {
+              zones: declaredZones.map((zone) => ({
+                zoneName: zone.name,
+                format: effectiveFormat(zone, stage),
+              })),
+            }
+          : {}),
+      };
+    });
+
+    const selectedEntry = selectOverviewStandingsStage(zonesByStage, matches);
     let standingsPreview: PublicOverviewResponse['standingsPreview'] = undefined;
     let standingsGrain: PublicOverviewResponse['standingsGrain'] = undefined;
-    if (stages.length > 0) {
-      const stage = stages[0];
-      if (stage) {
+    let standingsStageNumber: PublicOverviewResponse['standingsStageNumber'] = undefined;
+    let standingsSource: PublicOverviewResponse['standingsSource'] = undefined;
+
+    if (selectedEntry) {
+      const selectedStage = selectedEntry.stage;
+      standingsStageNumber = selectedStage.number;
+      const effectiveLayouts = descriptor
+        ? resolveEffectiveTableLayouts(descriptor, rulesetData?.overrides)
+        : [];
+      const groupPhaseLayout = effectiveLayouts.find(
+        (layout) =>
+          layout.target === 'group-phase' &&
+          (layout.entityGranularity === 'team' || layout.entityGranularity === 'club'),
+      );
+
+      if (groupPhaseLayout) {
+        const projection = await readSegmentedTableProjection(
+          this.db,
+          {
+            organizationId: tournament.organizationId,
+            tournament: {
+              tournamentId: tournament.tournamentId,
+              disciplineRef: tournament.disciplineRef,
+            },
+            stageId: selectedStage.stageId,
+          },
+          groupPhaseLayout.code,
+        );
+        const segments =
+          projection.segments.length > 0 ? projection.segments : [{ rows: projection.rows }];
+        standingsPreview = await formatOverviewStandingsRows(
+          this.db,
+          tournament,
+          segments.flatMap((segment) =>
+            segment.rows.map((row) => ({
+              rank: row.rank,
+              entrantId: row.entrantId ?? row.actorId,
+              sharedRank: row.sharedRank,
+              statistics: tableRowStatistics(row, projection.layout),
+              ...(segment.zoneName === undefined ? {} : { zoneName: segment.zoneName }),
+              ...(segment.groupName === undefined ? {} : { groupName: segment.groupName }),
+              fallbackName: row.entrantName ?? row.actorName,
+              fallbackAbbreviation: row.entrantAbbreviation,
+              fallbackClubId: row.clubId,
+              fallbackEmblemObjectId: row.emblemObjectId,
+            })),
+          ),
+        );
+        standingsGrain = projection.grain;
+        standingsSource = 'table-projection';
+      } else {
         // A stage mixing formats ranks each of its table zones on its own; its rows say which zone
         // they belong to so a client does not present them as one table.
-        const byZone = await readStandingsByZone(this.db, tournament, stage.number);
+        const byZone = await readStandingsByZone(this.db, tournament, selectedStage.number);
         const standings = byZone
           ? {
               rows: byZone.zones.flatMap((zone) =>
@@ -628,43 +719,24 @@ export class PublicProjectionsController {
               ),
               grain: byZone.zones.find((zone) => 'grain' in zone.result)?.result.grain,
             }
-          : await readStandings(this.db, tournament, stage.number);
+          : await readStandings(this.db, tournament, selectedStage.number);
 
-        const standingsEntrantIds = standings.rows.map((r) => r.entrantId);
-        const standingsDetails = await new EnrollmentRepository(
-          this.db,
-        ).resolveEntrantPodiumDetails(standingsEntrantIds);
-        const standingsVisibility = await entrantVisibilityById(
+        standingsPreview = await formatOverviewStandingsRows(
           this.db,
           tournament,
-          standingsEntrantIds,
-        );
-
-        standingsPreview = standings.rows.map((r) => {
-          const visibility = standingsVisibility.get(r.entrantId);
-          const details = standingsDetails.get(r.entrantId);
-          return {
+          standings.rows.map((r) => ({
             rank: r.rank,
             entrantId: r.entrantId,
-            ...(visibility?.hiddenAtRequest
-              ? { hiddenAtRequest: true }
-              : { name: details?.name ?? 'Unknown' }),
-            ...(visibility === undefined
-              ? {}
-              : { publicProfileAvailable: visibility.publicProfileAvailable }),
-            ...(visibility?.publicProfileAvailable === false
-              ? {}
-              : { abbreviation: details?.abbreviation }),
-            ...(visibility?.publicProfileAvailable === false ? {} : { clubId: details?.clubId }),
-            ...(visibility?.publicProfileAvailable === false
-              ? {}
-              : { emblemObjectId: details?.emblemObjectId }),
             sharedRank: r.sharedRank,
             statistics: r.statistics,
             ...('zoneName' in r && typeof r.zoneName === 'string' ? { zoneName: r.zoneName } : {}),
-          };
-        });
+            ...('groupName' in r && typeof r.groupName === 'string'
+              ? { groupName: r.groupName }
+              : {}),
+          })),
+        );
         standingsGrain = standings.grain;
+        standingsSource = 'engine';
       }
     }
 
@@ -764,6 +836,9 @@ export class PublicProjectionsController {
           scheduledAt: scheduleChanges.get(m.matchId)?.scheduledAt,
         };
       }),
+      stages: overviewStages,
+      ...(standingsStageNumber === undefined ? {} : { standingsStageNumber }),
+      ...(standingsSource === undefined ? {} : { standingsSource }),
       standingsPreview,
       standingsGrain,
       clubs: clubRows.map((c) => ({
@@ -1270,6 +1345,10 @@ export class PublicProjectionsController {
       declaredZones,
       promotionPlans.map(({ plan }) => plan),
     );
+    const overallOffsets = overallPlaceOffsetsForZones(
+      zones,
+      promotionPlans.map(({ plan }) => plan),
+    );
 
     // Computed once, from every zone combined — a per-zone fetch below cannot
     // reconstruct this on its own, since it has no visibility into how many
@@ -1278,6 +1357,8 @@ export class PublicProjectionsController {
 
     const zoneResponses = await Promise.all(
       zones.map(async (zone) => {
+        const overallPlaceOffset =
+          zone.zoneName === undefined ? undefined : overallOffsets.get(zone.zoneName);
         const zoneRecords = await readModel.matches(stage.stageId, undefined, zone.zoneId);
         if (zoneRecords.length > 0 && zoneRecords.every((record) => record.node !== undefined)) {
           const series = await readStageSeriesByPosition(this.db, {
@@ -1305,6 +1386,7 @@ export class PublicProjectionsController {
           return {
             ...zone,
             format: effectiveFormat(zone, stage),
+            ...(overallPlaceOffset === undefined ? {} : { overallPlaceOffset }),
             matches: persistedBracketMatches(
               zoneRecords,
               (record) => {
@@ -1366,7 +1448,12 @@ export class PublicProjectionsController {
           })),
         });
         if (!generated.ok) {
-          return { ...zone, format, matches: [] };
+          return {
+            ...zone,
+            format,
+            ...(overallPlaceOffset === undefined ? {} : { overallPlaceOffset }),
+            matches: [],
+          };
         }
         const graph = generated.value;
 
@@ -1415,6 +1502,7 @@ export class PublicProjectionsController {
         return {
           ...zone,
           format,
+          ...(overallPlaceOffset === undefined ? {} : { overallPlaceOffset }),
           matches: [
             ...bracketMatches.map((m) => {
               const series = seriesByPosition.get(`${m.round}:${m.position}`);
@@ -2223,4 +2311,169 @@ async function resolveFixtureScopeContext(
     ...(zone === undefined || isImplicitZone(zone) ? {} : { zoneName: zone.name }),
     ...(group === undefined || isImplicitGroup(group) ? {} : { groupName: group.name }),
   };
+}
+
+const BRACKET_FORMATS: ReadonlySet<string> = new Set([
+  'single-elimination',
+  'double-elimination',
+  'gauntlet',
+  'bracket-groups',
+  'custom-bracket',
+  'ffa-bracket',
+  'ffa-bracket-groups',
+]);
+
+function isResolvedListingMatch(status: string): boolean {
+  return status === 'finalized' || status === 'finished' || status === 'forfeited';
+}
+
+function listingProgressAndSchedule(
+  matches: readonly {
+    readonly stageNumber: number;
+    readonly stageName?: string;
+    readonly status: string;
+    readonly scheduledAt?: string;
+  }[],
+): {
+  readonly progress?: PublicTournamentListingItemResponse['progress'];
+  readonly schedule?: PublicTournamentListingItemResponse['schedule'];
+} {
+  if (matches.length === 0) return {};
+
+  const resolvable = matches.filter((m) => m.status !== 'not-required');
+  const totalMatches = resolvable.length;
+  const resolvedMatches = resolvable.filter((m) => isResolvedListingMatch(m.status)).length;
+  const firstUnresolved = resolvable
+    .filter((m) => !isResolvedListingMatch(m.status))
+    .reduce<(typeof resolvable)[number] | undefined>(
+      (earliest, candidate) =>
+        earliest === undefined || candidate.stageNumber < earliest.stageNumber
+          ? candidate
+          : earliest,
+      undefined,
+    );
+
+  const progress: PublicTournamentListingItemResponse['progress'] = {
+    ...(resolvedMatches < totalMatches && firstUnresolved !== undefined
+      ? {
+          currentStageNumber: firstUnresolved.stageNumber,
+          ...(firstUnresolved.stageName ? { currentStageName: firstUnresolved.stageName } : {}),
+        }
+      : {}),
+    resolvedMatches,
+    totalMatches,
+  };
+
+  let firstMs = Number.POSITIVE_INFINITY;
+  let lastMs = Number.NEGATIVE_INFINITY;
+  let firstKickoffAt: string | undefined;
+  let lastKickoffAt: string | undefined;
+  for (const match of matches) {
+    if (match.scheduledAt === undefined) continue;
+    const ms = Date.parse(match.scheduledAt);
+    if (!Number.isFinite(ms)) continue;
+    if (ms < firstMs) {
+      firstMs = ms;
+      firstKickoffAt = match.scheduledAt;
+    }
+    if (ms > lastMs) {
+      lastMs = ms;
+      lastKickoffAt = match.scheduledAt;
+    }
+  }
+
+  return {
+    progress,
+    ...(firstKickoffAt !== undefined && lastKickoffAt !== undefined
+      ? { schedule: { firstKickoffAt, lastKickoffAt } }
+      : {}),
+  };
+}
+
+function selectOverviewStandingsStage<
+  StageEntry extends {
+    readonly stage: { readonly number: number; readonly format: TournamentFormat };
+    readonly zones: readonly { readonly format?: TournamentFormat }[];
+  },
+>(
+  zonesByStage: readonly StageEntry[],
+  matches: readonly { readonly stageNumber: number; readonly status: string }[],
+): StageEntry | undefined {
+  const nonBracket = zonesByStage.filter(({ stage, zones }) =>
+    zones.length === 0
+      ? !BRACKET_FORMATS.has(stage.format)
+      : zones.some((zone) => !BRACKET_FORMATS.has(effectiveFormat(zone, stage))),
+  );
+  const withResolved = [...nonBracket]
+    .reverse()
+    .find(({ stage }) =>
+      matches.some((m) => m.stageNumber === stage.number && isResolvedListingMatch(m.status)),
+    );
+  return withResolved ?? nonBracket[0] ?? zonesByStage[0];
+}
+
+function tableRowStatistics(
+  row: TableProjectionRow,
+  layout: TableLayoutDefinition,
+): Record<string, number> {
+  const statistics: Record<string, number> = {};
+  for (const column of layout.columns) {
+    if (column.source.kind === 'rank') continue;
+    const cell = row.cells[column.code];
+    if (cell && typeof cell.raw === 'number' && Number.isFinite(cell.raw)) {
+      statistics[column.code] = cell.raw;
+    }
+  }
+  return statistics;
+}
+
+async function formatOverviewStandingsRows(
+  db: Kysely<Database>,
+  tournament: Tournament,
+  rows: readonly {
+    readonly rank: number;
+    readonly entrantId: string;
+    readonly sharedRank: boolean;
+    readonly statistics: Record<string, number>;
+    readonly zoneName?: string;
+    readonly groupName?: string;
+    readonly fallbackName?: string;
+    readonly fallbackAbbreviation?: string;
+    readonly fallbackClubId?: string;
+    readonly fallbackEmblemObjectId?: string;
+  }[],
+): Promise<PublicOverviewResponse['standingsPreview']> {
+  const entrantIds = rows.map((row) => row.entrantId);
+  const [standingsDetails, standingsVisibility] = await Promise.all([
+    new EnrollmentRepository(db).resolveEntrantPodiumDetails(entrantIds),
+    entrantVisibilityById(db, tournament, entrantIds),
+  ]);
+  return rows.map((row) => {
+    const visibility = standingsVisibility.get(row.entrantId);
+    const details = standingsDetails.get(row.entrantId);
+    const abbreviation = details?.abbreviation ?? row.fallbackAbbreviation;
+    const clubId = details?.clubId ?? row.fallbackClubId;
+    const emblemObjectId = details?.emblemObjectId ?? row.fallbackEmblemObjectId;
+    return {
+      rank: row.rank,
+      entrantId: row.entrantId,
+      ...(visibility?.hiddenAtRequest
+        ? { hiddenAtRequest: true }
+        : { name: details?.name ?? row.fallbackName ?? 'Unknown' }),
+      ...(visibility === undefined
+        ? {}
+        : { publicProfileAvailable: visibility.publicProfileAvailable }),
+      ...(visibility?.publicProfileAvailable === false || abbreviation === undefined
+        ? {}
+        : { abbreviation }),
+      ...(visibility?.publicProfileAvailable === false || clubId === undefined ? {} : { clubId }),
+      ...(visibility?.publicProfileAvailable === false || emblemObjectId === undefined
+        ? {}
+        : { emblemObjectId }),
+      sharedRank: row.sharedRank,
+      statistics: row.statistics,
+      ...(row.zoneName === undefined ? {} : { zoneName: row.zoneName }),
+      ...(row.groupName === undefined ? {} : { groupName: row.groupName }),
+    };
+  });
 }

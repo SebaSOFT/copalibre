@@ -19967,6 +19967,44 @@
           }
         }
       },
+      "PublicTournamentProgressResponse": {
+        "type": "object",
+        "properties": {
+          "currentStageNumber": {
+            "type": "number",
+            "description": "Stage number of the first stage with unresolved matches; absent when all matches are resolved"
+          },
+          "currentStageName": {
+            "type": "string",
+            "description": "Stage name of the first stage with unresolved matches; absent when empty or when all matches are resolved"
+          },
+          "resolvedMatches": {
+            "type": "number",
+            "description": "Number of resolved matches across the tournament"
+          },
+          "totalMatches": {
+            "type": "number",
+            "description": "Total resolvable matches across the tournament"
+          }
+        },
+        "required": [
+          "resolvedMatches",
+          "totalMatches"
+        ]
+      },
+      "PublicTournamentScheduleWindowResponse": {
+        "type": "object",
+        "properties": {
+          "firstKickoffAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastKickoffAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "PublicTournamentEntrantPodiumResponse": {
         "type": "object",
         "properties": {
@@ -20107,6 +20145,16 @@
           },
           "dates": {
             "$ref": "#/components/schemas/PublicTournamentDatesResponse"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/PublicTournamentProgressResponse"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/PublicTournamentScheduleWindowResponse"
+          },
+          "venueCount": {
+            "type": "number",
+            "description": "Number of distinct venues with at least one published match in this tournament"
           },
           "winners": {
             "type": "array",
@@ -20412,6 +20460,49 @@
           "status"
         ]
       },
+      "PublicOverviewStageZoneResponse": {
+        "type": "object",
+        "properties": {
+          "zoneName": {
+            "type": "string",
+            "description": "Zone name; absent for an implicit zone"
+          },
+          "format": {
+            "type": "string",
+            "description": "Effective competition format of this zone"
+          }
+        },
+        "required": [
+          "format"
+        ]
+      },
+      "PublicOverviewStageResponse": {
+        "type": "object",
+        "properties": {
+          "stageNumber": {
+            "type": "number"
+          },
+          "stageName": {
+            "type": "string",
+            "description": "The stage name as the organizer named it; absent when empty"
+          },
+          "format": {
+            "type": "string",
+            "description": "Effective competition format of this stage"
+          },
+          "zones": {
+            "description": "Declared non-implicit zones of this stage with their effective formats",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicOverviewStageZoneResponse"
+            }
+          }
+        },
+        "required": [
+          "stageNumber",
+          "format"
+        ]
+      },
       "PublicStandingsRowResponse": {
         "type": "object",
         "properties": {
@@ -20455,6 +20546,10 @@
           "zoneName": {
             "type": "string",
             "description": "The zone this row is ranked in. Present only when the stage mixes formats, so each table zone is ranked on its own; absent for a stage with a single table."
+          },
+          "groupName": {
+            "type": "string",
+            "description": "The group this row is ranked in. Present when the stage defines named groups; absent for an ungrouped stage."
           }
         },
         "required": [
@@ -20515,6 +20610,24 @@
             "items": {
               "$ref": "#/components/schemas/PublicOverviewMatchResponse"
             }
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicOverviewStageResponse"
+            }
+          },
+          "standingsStageNumber": {
+            "type": "number",
+            "description": "Stage number ranked by standingsPreview"
+          },
+          "standingsSource": {
+            "type": "string",
+            "enum": [
+              "table-projection",
+              "engine"
+            ],
+            "description": "Source of standingsPreview; engine when discipline declares no group-phase layout"
           },
           "standingsPreview": {
             "type": "array",
@@ -21427,6 +21540,10 @@
           "format": {
             "type": "string",
             "description": "The format this zone plays: its own when it declares one, otherwise the stage’s. Decides how the zone is drawn."
+          },
+          "overallPlaceOffset": {
+            "type": "number",
+            "description": "0-based overall place offset for this zone when incoming promotion bands map 1-to-1 onto zones contiguously from 1"
           },
           "matches": {
             "type": "array",
