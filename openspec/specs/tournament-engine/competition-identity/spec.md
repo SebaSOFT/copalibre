@@ -250,3 +250,26 @@ raw birth date; it SHALL receive, at most, an age computed from it.
 #### Scenario: A public read of a person with no birth date shows no age
 - **WHEN** a surface that may read public competition data requests a person with no birth date set
 - **THEN** no age is present in what it receives, rather than a default or a guess
+
+### Requirement: A club alias rename is recorded
+Changing a club's alias from one value to a different value SHALL record the previous alias as a
+redirect to the new one within the organization, in the same transaction and with an audit record.
+Giving an alias to a club that had none, or saving the same alias, SHALL record nothing. A rename SHALL
+keep every recorded chain one step long, and SHALL drop a recorded redirect whose old alias is current
+again.
+
+#### Scenario: A rename records the old alias
+- **WHEN** an organizer changes a club's alias from `club-hispano` to `hispano`
+- **THEN** `club-hispano` resolves to `hispano` within the organization, and an `alias.renamed` audit record names both
+
+#### Scenario: A first alias is not a rename
+- **WHEN** a club with no alias is given the alias `club-1`
+- **THEN** no redirect is recorded
+
+#### Scenario: A second rename repoints the first
+- **WHEN** a club's alias goes from `a` to `b` and then from `b` to `c`
+- **THEN** both `a` and `b` resolve directly to `c`
+
+#### Scenario: Renaming back drops the stale redirect
+- **WHEN** a club's alias goes from `a` to `b` and then back to `a`
+- **THEN** `b` resolves to `a`, and no redirect from `a` remains
