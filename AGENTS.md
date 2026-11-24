@@ -36,7 +36,7 @@ rtk err yarn format:check
 rtk err yarn typecheck            # grouped tsc errors; silent when clean
 rtk test yarn test                # last 5 lines: the pass/fail summary
 rtk test yarn test:integration
-rtk test yarn test:e2e
+PLAYWRIGHT_HTML_OPEN=never rtk test yarn test:e2e  # avoids HTML report server hang on failure
 rtk bypass yarn <script>          # unfiltered, when filtered output looks wrong (`rtk proxy` is a deprecated alias)
 ```
 
@@ -226,7 +226,7 @@ This pillar governs interaction design, not just data modeling: a live-operation
 
 Treat stored text as hostile in the browser. Names and labels are written by operators, including club administrators, and public pages share an origin with Control. A client script never hands them to an HTML parser: build DOM nodes and use `textContent`. `scripts/check-html-sinks.mjs` fails on `innerHTML`, `insertAdjacentHTML`, `document.write` and `dangerouslySetInnerHTML`, and keeps a register of reviewed `set:html` uses.
 
-Replacing an `innerHTML` template with DOM nodes drops the whitespace between inline elements, so `AR Age: 28` becomes `ARAge: 28`. Assert the container's `textContent`, not each node's. An Astro component's scoped `<style>` does not reach nodes a script creates, nor markup assigned through `innerHTML`.
+Replacing an `innerHTML` template with DOM nodes drops the whitespace between inline elements, so `AR Age: 28` becomes `ARAge: 28`. Assert the container's `textContent`, not each node's. An Astro component's scoped `<style>` does not reach nodes a script creates, markup assigned through `innerHTML`, or classes inside child React components (use `:global(...)`).
 
 Versioned first-party modules are JSON from `packages/module-catalogue/`, installed only through `apps/seed`; migrations and application startup never seed them. SQLite integration parsing must preserve `{{ ... }}` rule expressions as strings rather than treating them as nested JSON.
 
@@ -242,7 +242,7 @@ Add `*.test.ts(x)` beside unit-tested code and `*.integration.test.ts` for datab
 
 `apps/web` has no `jest-dom`, so use plain matchers on `textContent` and `document.activeElement`. Control's tests render in Spanish.
 
-Do not assert a short-lived class with `toHaveClass`. `cl-flash-on-change` lives 600ms and Playwright's polling backs off to 1s, so it can miss the class and fail at random. Record it with a `MutationObserver` from `page.addInitScript`, and read any computed style in that callback.
+Do not assert a short-lived class with `toHaveClass`. `cl-flash-on-change` lives 600ms and Playwright's polling backs off to 1s, so it can miss the class and fail at random. Record it with a `MutationObserver` from `page.addInitScript`, and read any computed style in that callback. Before Playwright geometry/scroll checks on public pages, wait for `<meta name="copalibre:deferred-stylesheet">` and `document.fonts.ready`; keep React hooks out of framework-free browser stores.
 
 ## Help and API Reference
 
@@ -283,7 +283,7 @@ Before creating or updating a PR, you MUST guarantee the CI will pass by running
 - `yarn test` and/or `yarn test:integration` (for backend)
 - `yarn test:e2e` (for frontend)
 - `yarn workspace @copalibre/design-tokens scan:forbidden` and `yarn workspace @copalibre/design-tokens check:integrity` (the `forbidden-token-scan` job runs both). The `--cl-*` custom-property namespace is reserved for declared design tokens, so name a component-local property without that prefix.
-- `node scripts/check-change-number-references.mjs`, `node scripts/check-html-sinks.mjs`, and every `node --test` suite under `scripts/`, `scripts/lib/` and `apps/web/scripts/`
+- `node scripts/check-copy-voice.mjs`, `node scripts/check-change-number-references.mjs`, `node scripts/check-html-sinks.mjs`, and every `node --test` suite under `scripts/`, `scripts/lib/` and `apps/web/scripts/`
 - `openspec validate --specs --strict` (the `enterprise-readiness-doc-lint` job runs it): the accepted spec baseline stays strictly valid. Keep a requirement's statement to its normative sentences (under 500 characters) and put examples and cases in scenarios
 
 Screenshots are never committed: `docs/assets/screenshots/` is ignored and no e2e test writes one.
@@ -374,7 +374,7 @@ run` steps, through `registry-mirrors` in the daemon's configuration for `docker
 
 Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes: before/after pairs of every touched screen at desktop 1440x900 (TV 1920x1080) and mobile 390x844, in Spanish, on the demo dataset (`docs/DEMO-DATA.md`). They are attached to the PR body in GitHub's editor, never committed. An agent cannot upload them: it captures them under `.artifacts/screenshots/` (ignored), lists the file paths in the PR body under "UI screenshots", and asks the owner to attach them. A change with no UI (CLI, API, CI) shows the real command output instead. Git ignore rules are authoritative: never force-add anything under `openspec/changes/`, whether active or archived. Commit only accepted specification deltas under `openspec/specs/`. Never commit `.env` files, credentials, or production connection strings. Never insert users, role assignments, password hashes or tokens into a database by hand, not even in development: use a supported command, and if none exists, stop and report the gap instead of working around it.
 
-Every PR that adds or changes catalogue strings lists each key, language, old text and new text in its body. Run `node scripts/list-changed-strings.mjs` to print the list; the CI lint job checks it on pull requests. Every UI PR includes the before/after pairs described above.
+Every PR that adds or changes catalogue strings lists each key, language, old text and new text in its body. Run `node scripts/list-changed-strings.mjs --compact` and update the PR body (`gh pr edit`) before `git push` so CI's `synchronize` snapshot sees it (`ci.yml` skips `edited`). Every UI PR includes the before/after pairs described above.
 
 Before every commit, run `node --test scripts/lib/component-graph.test.mjs`. When a change alters the web component graph, update the asserted node and edge counts and baseline description in that same commit; keep the zero-unresolved-import assertion passing.
 
@@ -505,6 +505,8 @@ The shell is zsh. An unquoted `?` or `*` that matches no file aborts the whole c
   attach via CDP.
 - Use this for the "start the dev server and use the feature in a browser before reporting complete" step
   required for UI/frontend changes (see Code and Architecture guidance above), not just ad hoc scraping.
+  Re-capture after the final UI edit and check `scrollWidth <= clientWidth` / `scrollHeight <= clientHeight`
+  in `es`, `en`, and `de`; `screenshot` writes to `~/.agent-browser/tmp/screenshots/` (copy from stdout).
 
 ## Feature Delivery Pipeline
 
