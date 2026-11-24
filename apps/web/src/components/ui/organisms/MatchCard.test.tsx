@@ -856,4 +856,50 @@ describe('MatchCard compact presentation', () => {
     expect(timer.textContent).toContain('Stopped');
     expect(timer.getAttribute('aria-label')).toBe('2nd Half, 15:30');
   });
+
+  it('links team names to club pages only on regular cards when aliases are valid, never on compact cards', () => {
+    const matchWithClubs = baseMatch({
+      homeClubAlias: 'club-hispano',
+      awayClubAlias: 'andes-talleres',
+    });
+
+    const { container, rerender } = render(
+      <MatchCard
+        match={matchWithClubs}
+        labels={labels}
+        locale="en"
+        localePrefix="/es"
+        organizationAlias="liga-mendocina"
+        tournamentAlias="apertura-2026"
+        reportUrl="/es/liga-mendocina/tournaments/apertura-2026/stages/1/matches/1"
+      />,
+    );
+
+    const teamLinks = [...container.querySelectorAll('.cl-match-card__team-link')].map((el) =>
+      el.getAttribute('href'),
+    );
+    expect(teamLinks).toEqual([
+      '/es/liga-mendocina/tournaments/apertura-2026/clubs/club-hispano',
+      '/es/liga-mendocina/tournaments/apertura-2026/clubs/andes-talleres',
+    ]);
+    expect(container.querySelector('.cl-match-card__report-link')?.getAttribute('href')).toBe(
+      '/es/liga-mendocina/tournaments/apertura-2026/stages/1/matches/1',
+    );
+
+    rerender(
+      <MatchCard
+        compact
+        match={matchWithClubs}
+        labels={labels}
+        locale="en"
+        localePrefix="/es"
+        organizationAlias="liga-mendocina"
+        tournamentAlias="apertura-2026"
+        reportUrl="/es/liga-mendocina/tournaments/apertura-2026/stages/1/matches/1"
+      />,
+    );
+
+    expect(container.querySelectorAll('.cl-match-card__team-link')).toHaveLength(0);
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+  });
 });

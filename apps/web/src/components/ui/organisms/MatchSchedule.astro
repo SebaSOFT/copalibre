@@ -19,6 +19,7 @@ import { formatTimestamp } from '../../../lib/format-timestamp.ts';
 import { matchCardLabels, resultStateLabels } from '../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { clubEmblemUrl } from '../../../lib/public-image-paths.ts';
+import { optionalClubPageUrl } from '../../../lib/club-url.ts';
 
 /**
  * A tournament's matches as a schedule: stage, then zone, then group, then round, each level named
@@ -114,6 +115,18 @@ const sideOf = (match: MatchCardData, side: 'home' | 'away'): SourceText | undef
   );
 };
 
+const sideHref = (match: MatchCardData, side: 'home' | 'away'): string | undefined => {
+  const name = side === 'home' ? match.homeName : match.awayName;
+  if (name === undefined) return undefined;
+  const clubAlias = side === 'home' ? match.homeClubAlias : match.awayClubAlias;
+  return optionalClubPageUrl({
+    organizationAlias,
+    tournamentAlias,
+    clubAlias,
+    localePrefix,
+  });
+};
+
 const sideCell = (match: MatchCardData, side: 'home' | 'away'): DataTableCellContent => {
   const isHome = side === 'home';
   const name = isHome ? match.homeName : match.awayName;
@@ -170,6 +183,7 @@ const columns: readonly DataTableColumn[] = [
     header: intl.formatMessage(messages.scheduleColumnHome),
     render: (row) =>
       (row as MatchCardData).homeName ?? sideOf(row as MatchCardData, 'home')?.long ?? '—',
+    href: (row) => sideHref(row as MatchCardData, 'home'),
     renderContent: (row) => sideCell(row as MatchCardData, 'home'),
   },
   {
@@ -201,6 +215,7 @@ const columns: readonly DataTableColumn[] = [
     header: intl.formatMessage(messages.scheduleColumnAway),
     render: (row) =>
       (row as MatchCardData).awayName ?? sideOf(row as MatchCardData, 'away')?.long ?? '—',
+    href: (row) => sideHref(row as MatchCardData, 'away'),
     renderContent: (row) => sideCell(row as MatchCardData, 'away'),
   },
   {
@@ -336,6 +351,8 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
                                     referenceDate={referenceDate}
                                     reportUrl={reportOf(match.stageNumber, match.matchNumber)}
                                     organizationAlias={organizationAlias}
+                                    tournamentAlias={tournamentAlias}
+                                    localePrefix={localePrefix}
                                     timeZone={scheduleTimeZone}
                                   />
                                 ))}

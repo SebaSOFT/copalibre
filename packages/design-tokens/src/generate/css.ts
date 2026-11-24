@@ -1698,6 +1698,10 @@ function components(): string {
     // sees it — `>` never matched past it, so the name rendered at its full,
     // unconstrained width and pushed the 188px reference width sideways.
     ".cl-match-card__side span[data-testid='entrant-name'] { flex: 1 1 auto; font-family: var(--cl-font-display); font-weight: var(--cl-weight-medium); font-size: var(--cl-font-size-lg); line-height: var(--cl-line-height-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
+    '.cl-match-card__team-link { position: relative; z-index: 2; flex: 1 1 auto; min-width: var(--cl-touch-target); min-height: var(--cl-touch-target); display: inline-flex; align-items: center; color: inherit; text-decoration: none; border-radius: var(--cl-radius-sm); }',
+    '.cl-match-card__team-link:hover { text-decoration: underline; color: var(--cl-text-accent); }',
+    '.cl-match-card__team-link:focus-visible { outline: var(--cl-focus-ring); outline-offset: 2px; }',
+    ".cl-match-card__team-link span[data-testid='entrant-name'] { flex: 1 1 auto; min-width: 0; }",
     '.cl-match-card__side .cl-stat-tile__value { flex: 0 0 auto; font-size: var(--cl-font-size-figure-2xl); line-height: var(--cl-line-height-figure); background: none; padding: 0; }',
     '.cl-match-card__scope, .cl-match-card__venue, .cl-match-card__event { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); line-height: var(--cl-line-height-label); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
     '.cl-match-card__event { color: var(--cl-text-secondary); }',

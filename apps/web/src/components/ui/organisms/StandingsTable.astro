@@ -9,6 +9,7 @@ import type {
 import { publicTableLayoutLabel } from '../../../lib/public-table-layout-label.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { API_PATH_PREFIX } from '../../../lib/api-path.ts';
+import { isValidClubAlias, optionalClubPageUrl } from '../../../lib/club-url.ts';
 import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
 import type { ClubView, StandingsRowView } from '../../../lib/overview.ts';
 import { columnHint } from '../../../lib/column-hints.ts';
@@ -42,7 +43,9 @@ interface Props {
   readonly renderPart?: 'all' | 'header' | 'footer';
   readonly headingText?: string;
   readonly activeLayoutCode?: string;
+  readonly activeClubAlias?: string;
   readonly activeClubId?: string;
+  readonly highlightClubAlias?: string;
   readonly clubs?: readonly ClubView[];
   readonly intl: IntlShape;
   readonly canonicalPath?: string;
@@ -74,7 +77,9 @@ const {
   searchQuery,
   headingText,
   activeLayoutCode,
+  activeClubAlias,
   activeClubId,
+  highlightClubAlias,
   clubs = [],
   intl,
   canonicalPath = '',
@@ -125,6 +130,7 @@ type DisplayRow = Pick<TableRowResponse, 'actorName' | 'cells'> &
       | 'entrantName'
       | 'entrantAbbreviation'
       | 'clubId'
+      | 'clubAlias'
       | 'emblemObjectId'
       | 'nationality'
       | 'shirtNumber'
@@ -144,6 +150,7 @@ const allRows: readonly DisplayRow[] =
         entrantName: row.name,
         entrantAbbreviation: row.abbreviation,
         clubId: row.clubId,
+        clubAlias: row.clubAlias,
         emblemObjectId: row.emblemObjectId,
         hiddenAtRequest: row.hiddenAtRequest,
         publicProfileAvailable: row.publicProfileAvailable,
@@ -153,6 +160,20 @@ const allRows: readonly DisplayRow[] =
           points: { raw: row.points, formatted: String(row.points) },
         },
       }));
+const aliasedClubs = clubs.filter((club) => isValidClubAlias(club.alias));
+const clubAliasById = new Map(aliasedClubs.map((club) => [club.clubId, club.alias!] as const));
+const localePrefix = intl.locale === 'en' ? '' : `/${intl.locale}`;
+const activeClubQuery = activeClubAlias
+  ? `club=${encodeURIComponent(activeClubAlias)}`
+  : activeClubId
+    ? `clubId=${encodeURIComponent(activeClubId)}`
+    : undefined;
+const resolveRowClubAlias = (row: DisplayRow): string | undefined =>
+  isValidClubAlias(row.clubAlias)
+    ? row.clubAlias
+    : row.clubId
+      ? clubAliasById.get(row.clubId)
+      : undefined;
 const isPlayerRanking =
   layout?.target === 'player-ranking' ||
   layout?.entityGranularity === 'person' ||
@@ -167,6 +188,10 @@ const rowClassNames = rows.map((row, index) => {
   const classes: string[] = [];
   if (previewRows !== undefined) classes.push(index % 2 === 0 ? 'cl-row' : 'cl-row--alt');
   if (row.promotionBandLabel !== undefined) classes.push('cl-standings-row--promotion');
+  const rowClubAlias = resolveRowClubAlias(row);
+  if (highlightClubAlias !== undefined && rowClubAlias === highlightClubAlias) {
+    classes.push('cl-standings-row--highlighted');
+  }
   return classes.length > 0 ? classes.join(' ') : undefined;
 });
 const grain = projection?.grain ?? previewGrain;
@@ -328,7 +353,7 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
           <ul role="tablist">
             {layouts.map((l) => {
               const isActive = l.code === effectiveLayoutCode;
-              const tabUrl = `${canonicalPath}?tab=${encodeURIComponent(l.code)}${activeClubId ? `&clubId=${encodeURIComponent(activeClubId)}` : ''}`;
+              const tabUrl = `${canonicalPath}?tab=${encodeURIComponent(l.code)}${activeClubQuery ? `&${activeClubQuery}` : ''}`;
               return (
                 <li role="presentation">
                   <a
@@ -349,7 +374,7 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
     </>
   )}
 
-  {!isTableOnly && renderPart === 'all' && showControls && clubs.length > 0 && (
+  {!isTableOnly && renderPart === 'all' && showControls && aliasedClubs.length > 0 && (
     <div
       class="cl-club-filter"
       role="group"
@@ -361,16 +386,16 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
       <ClubFilterChip
         href={`${canonicalPath}${effectiveLayoutCode ? `?tab=${encodeURIComponent(effectiveLayoutCode)}` : ''}`}
         label={intl.formatMessage(messages.matchesViewFilterAll)}
-        active={!activeClubId}
+        active={!activeClubAlias && !activeClubId}
         filter="all"
       />
-      {clubs.map((club) => (
+      {aliasedClubs.map((club) => (
         <ClubFilterChip
-          href={`${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}clubId=${encodeURIComponent(club.clubId)}`}
+          href={`${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}club=${encodeURIComponent(club.alias!)}`}
           label={club.name}
           abbreviation={club.abbreviation}
-          active={club.clubId === activeClubId}
-          filter={club.clubId}
+          active={club.alias === activeClubAlias || club.clubId === activeClubId}
+          filter={club.alias!}
           club
           emblemSrc={
             organizationAlias && club.emblemObjectId
@@ -395,7 +420,11 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
             placeholder={intl.formatMessage(messages.standingsTableSearchPlaceholder)}
             hiddenParams={[
               ...(effectiveLayoutCode ? [{ name: 'tab', value: effectiveLayoutCode }] : []),
-              ...(activeClubId ? [{ name: 'clubId', value: activeClubId }] : []),
+              ...(activeClubAlias
+                ? [{ name: 'club', value: activeClubAlias }]
+                : activeClubId
+                  ? [{ name: 'clubId', value: activeClubId }]
+                  : []),
             ]}
             inputDataAttr="data-table-search-input"
             formDataAttr="data-table-search-form"
@@ -487,194 +516,248 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, index) => (
-                  <tr
-                    class={rowClassNames[index]}
-                    data-promotion-band-index={row.promotionBandIndex}
-                    data-player-name={isPlayerRanking ? row.actorName : undefined}
-                  >
-                    {displayColumns.map((column, columnIndex) => {
-                      if (column.code === '__promotion') {
-                        return (
-                          <td class="cl-standings-qualification-cell" data-priority="low">
-                            <span
-                              class="cl-standings-qualification-tag"
-                              data-promotion-band-index={row.promotionBandIndex}
-                            >
-                              {row.promotionBandLabel}
-                            </span>
-                            {row.promotionSeed !== undefined && (
+                {rows.map((row, index) => {
+                  const rowClubAlias = resolveRowClubAlias(row);
+                  const isHighlighted =
+                    highlightClubAlias !== undefined && rowClubAlias === highlightClubAlias;
+                  const clubHref = optionalClubPageUrl({
+                    organizationAlias,
+                    tournamentAlias,
+                    clubAlias: rowClubAlias,
+                    localePrefix,
+                  });
+                  const emblemFilterHref =
+                    showControls && isValidClubAlias(rowClubAlias) && canonicalPath
+                      ? `${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}club=${encodeURIComponent(rowClubAlias)}`
+                      : undefined;
+                  return (
+                    <tr
+                      class={rowClassNames[index]}
+                      data-promotion-band-index={row.promotionBandIndex}
+                      data-player-name={isPlayerRanking ? row.actorName : undefined}
+                      data-club-highlighted={isHighlighted ? 'true' : undefined}
+                    >
+                      {displayColumns.map((column, columnIndex) => {
+                        if (column.code === '__promotion') {
+                          return (
+                            <td class="cl-standings-qualification-cell" data-priority="low">
                               <span
-                                class="cl-standings-qualification-seed"
-                                title={promotionOrderHint}
+                                class="cl-standings-qualification-tag"
+                                data-promotion-band-index={row.promotionBandIndex}
                               >
-                                {intl.formatMessage(messages.standingsSeedTag, {
-                                  seed: row.promotionSeed,
-                                })}
+                                {row.promotionBandLabel}
                               </span>
-                            )}
-                          </td>
-                        );
-                      }
-                      const isOrderColumn = column.code === '__promotionOrder';
-                      const isNumberColumn = column.code === '__shirtNumber';
-                      const isPlayerNameCell =
-                        isPlayerRanking &&
-                        (column.code === 'person' ||
-                          column.code === 'player' ||
+                              {row.promotionSeed !== undefined && (
+                                <span
+                                  class="cl-standings-qualification-seed"
+                                  title={promotionOrderHint}
+                                >
+                                  {intl.formatMessage(messages.standingsSeedTag, {
+                                    seed: row.promotionSeed,
+                                  })}
+                                </span>
+                              )}
+                            </td>
+                          );
+                        }
+                        const isOrderColumn = column.code === '__promotionOrder';
+                        const isNumberColumn = column.code === '__shirtNumber';
+                        const isPlayerNameCell =
+                          isPlayerRanking &&
+                          (column.code === 'person' ||
+                            column.code === 'player' ||
+                            column.code === 'entrant' ||
+                            column.code === 'name');
+                        const isNameCell =
+                          column.code === 'name' ||
                           column.code === 'entrant' ||
-                          column.code === 'name');
-                      const isNameCell =
-                        column.code === 'name' ||
-                        column.code === 'entrant' ||
-                        column.code === 'team';
-                      const cellFormatted = isOrderColumn
-                        ? row.promotionSeed !== undefined
-                          ? String(row.promotionSeed)
-                          : ''
-                        : isNumberColumn
-                          ? row.shirtNumber !== undefined
-                            ? String(row.shirtNumber)
+                          column.code === 'team';
+                        const cellFormatted = isOrderColumn
+                          ? row.promotionSeed !== undefined
+                            ? String(row.promotionSeed)
                             : ''
-                          : (row.cells[column.code]?.formatted ?? '—');
-                      const cellRaw = isOrderColumn
-                        ? row.promotionSeed
-                        : isNumberColumn
-                          ? row.shirtNumber
-                          : row.cells[column.code]?.raw;
-                      const cellMissing = cellRaw === undefined;
-                      const isNumericSort =
-                        typeof cellRaw === 'number' ||
-                        (isNumberColumn && cellRaw !== undefined && /^\d+$/.test(String(cellRaw)));
-                      const playerPageUrl = `${canonicalPath}/players/${row.actorId}${
-                        isPlayerRanking && effectiveLayoutCode
-                          ? `?layout=${encodeURIComponent(effectiveLayoutCode)}`
-                          : ''
-                      }`;
-                      const apiProfileUrl =
-                        organizationAlias && tournamentAlias && row.actorId
-                          ? `${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(row.actorId)}/public/profile`
-                          : playerPageUrl;
-                      const apiStatisticsUrl =
-                        organizationAlias && tournamentAlias && row.actorId && effectiveLayoutCode
-                          ? `${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(row.actorId)}/public/statistics?layout=${encodeURIComponent(effectiveLayoutCode)}`
-                          : undefined;
+                          : isNumberColumn
+                            ? row.shirtNumber !== undefined
+                              ? String(row.shirtNumber)
+                              : ''
+                            : (row.cells[column.code]?.formatted ?? '—');
+                        const cellRaw = isOrderColumn
+                          ? row.promotionSeed
+                          : isNumberColumn
+                            ? row.shirtNumber
+                            : row.cells[column.code]?.raw;
+                        const cellMissing = cellRaw === undefined;
+                        const isNumericSort =
+                          typeof cellRaw === 'number' ||
+                          (isNumberColumn &&
+                            cellRaw !== undefined &&
+                            /^\d+$/.test(String(cellRaw)));
+                        const playerPageUrl = `${canonicalPath}/players/${row.actorId}${
+                          isPlayerRanking && effectiveLayoutCode
+                            ? `?layout=${encodeURIComponent(effectiveLayoutCode)}`
+                            : ''
+                        }`;
+                        const apiProfileUrl =
+                          organizationAlias && tournamentAlias && row.actorId
+                            ? `${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(row.actorId)}/public/profile`
+                            : playerPageUrl;
+                        const apiStatisticsUrl =
+                          organizationAlias && tournamentAlias && row.actorId && effectiveLayoutCode
+                            ? `${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(row.actorId)}/public/statistics?layout=${encodeURIComponent(effectiveLayoutCode)}`
+                            : undefined;
 
-                      const cellBody = (
-                        <>
-                          {isPlayerNameCell && row.hiddenAtRequest ? (
-                            intl.formatMessage(messages.personHiddenAtRequest)
-                          ) : isPlayerNameCell &&
-                            row.actorId &&
-                            row.publicProfileAvailable !== false ? (
-                            <a
-                              href={playerPageUrl}
-                              class="cl-player-link"
-                              data-player-id={row.actorId}
-                              data-profile-url={apiProfileUrl}
-                              data-profile-href={playerPageUrl}
-                              data-statistics-url={apiStatisticsUrl}
-                              data-tournament-alias={tournamentAlias}
-                            >
+                        const cellBody = (
+                          <>
+                            {isPlayerNameCell && row.hiddenAtRequest ? (
+                              intl.formatMessage(messages.personHiddenAtRequest)
+                            ) : isPlayerNameCell &&
+                              row.actorId &&
+                              row.publicProfileAvailable !== false ? (
+                              <a
+                                href={playerPageUrl}
+                                class="cl-player-link"
+                                data-player-id={row.actorId}
+                                data-profile-url={apiProfileUrl}
+                                data-profile-href={playerPageUrl}
+                                data-statistics-url={apiStatisticsUrl}
+                                data-tournament-alias={tournamentAlias}
+                              >
+                                <ResponsivePlayerName
+                                  client:after-paint
+                                  fullName={row.actorName ?? cellFormatted}
+                                  nationalityCode={row.nationality}
+                                />
+                              </a>
+                            ) : isPlayerNameCell ? (
                               <ResponsivePlayerName
                                 client:after-paint
                                 fullName={row.actorName ?? cellFormatted}
                                 nationalityCode={row.nationality}
                               />
-                            </a>
-                          ) : isPlayerNameCell ? (
-                            <ResponsivePlayerName
-                              client:after-paint
-                              fullName={row.actorName ?? cellFormatted}
-                              nationalityCode={row.nationality}
-                            />
-                          ) : column.code === 'name' ||
-                            column.code === 'entrant' ||
-                            column.code === 'team' ? (
-                            <span class="cl-standings-entrant">
-                              {(previewRows !== undefined || row.entrantId !== undefined) && (
-                                <EmblemImage
-                                  abbreviation={row.entrantAbbreviation}
-                                  alt={row.entrantName ?? cellFormatted}
-                                  decorative
-                                  placeholderAlt={intl.formatMessage(
-                                    messages.orgPageEmblemPlaceholderAlt,
-                                  )}
-                                  size={32}
-                                  src={
-                                    organizationAlias && row.clubId && row.emblemObjectId
-                                      ? clubEmblemUrl(organizationAlias, row.clubId)
-                                      : undefined
-                                  }
-                                />
-                              )}
-                              <EntrantName
-                                abbreviation={row.entrantAbbreviation}
-                                client:after-paint
-                                fullName={row.entrantName ?? cellFormatted}
-                              />
-                            </span>
-                          ) : (
-                            cellFormatted
-                          )}
-                        </>
-                      );
-                      return (
-                        <td
-                          class={
-                            isPlayerNameCell || isNameCell
-                              ? 'cl-cell-name'
-                              : column.format === 'text'
-                                ? 'cl-table__num'
-                                : 'cl-table__num cl-tabular-nums'
-                          }
-                          data-priority={priorityOf(column.code)}
-                          data-sort-value={cellMissing ? undefined : String(cellRaw)}
-                          data-sort-type={isNumericSort ? 'number' : 'text'}
-                          data-sort-missing={cellMissing ? 'true' : undefined}
-                        >
-                          {isPlayerNameCell || isNameCell ? (
-                            <span class="cl-cell-name__row">
-                              <span class="cl-cell-name__text">{cellBody}</span>
-                            </span>
-                          ) : (
-                            cellBody
-                          )}
-                          {columnIndex === hostColumnIndex && lowColumnIndexes.length > 0 && (
-                            <details class="cl-more">
-                              <summary>
-                                <span class="cl-visually-hidden">
-                                  {`${moreColumnsLabel}: ${row.entrantName ?? row.actorName ?? cellFormatted}`}
-                                </span>
-                              </summary>
-                              <dl class="cl-more__list">
-                                {lowColumnIndexes.map((index) => (
-                                  <>
-                                    <dt>{hints[index]?.label}</dt>
-                                    <dd>
-                                      {displayColumns[index]?.code === '__promotion'
-                                        ? (row.promotionBandLabel ?? '—')
-                                        : displayColumns[index]?.code === '__promotionOrder'
-                                          ? row.promotionSeed !== undefined
-                                            ? String(row.promotionSeed)
-                                            : ''
-                                          : displayColumns[index]?.code === '__shirtNumber'
-                                            ? row.shirtNumber !== undefined
-                                              ? String(row.shirtNumber)
+                            ) : column.code === 'name' ||
+                              column.code === 'entrant' ||
+                              column.code === 'team' ? (
+                              <span class="cl-standings-entrant">
+                                {(previewRows !== undefined || row.entrantId !== undefined) &&
+                                  (emblemFilterHref ? (
+                                    <a
+                                      href={emblemFilterHref}
+                                      data-club-filter={rowClubAlias}
+                                      class="cl-standings-entrant__emblem-link cl-focusable"
+                                      aria-label={`${intl.formatMessage(messages.standingsFilterByClub)}: ${row.entrantName ?? cellFormatted}`}
+                                    >
+                                      <EmblemImage
+                                        abbreviation={row.entrantAbbreviation}
+                                        alt={row.entrantName ?? cellFormatted}
+                                        decorative
+                                        placeholderAlt={intl.formatMessage(
+                                          messages.orgPageEmblemPlaceholderAlt,
+                                        )}
+                                        size={32}
+                                        src={
+                                          organizationAlias && row.clubId && row.emblemObjectId
+                                            ? clubEmblemUrl(organizationAlias, row.clubId)
+                                            : undefined
+                                        }
+                                      />
+                                    </a>
+                                  ) : (
+                                    <EmblemImage
+                                      abbreviation={row.entrantAbbreviation}
+                                      alt={row.entrantName ?? cellFormatted}
+                                      decorative
+                                      placeholderAlt={intl.formatMessage(
+                                        messages.orgPageEmblemPlaceholderAlt,
+                                      )}
+                                      size={32}
+                                      src={
+                                        organizationAlias && row.clubId && row.emblemObjectId
+                                          ? clubEmblemUrl(organizationAlias, row.clubId)
+                                          : undefined
+                                      }
+                                    />
+                                  ))}
+                                {clubHref ? (
+                                  <a
+                                    href={clubHref}
+                                    class="cl-standings-entrant__link cl-focusable"
+                                  >
+                                    <EntrantName
+                                      abbreviation={row.entrantAbbreviation}
+                                      client:after-paint
+                                      fullName={row.entrantName ?? cellFormatted}
+                                    />
+                                  </a>
+                                ) : (
+                                  <EntrantName
+                                    abbreviation={row.entrantAbbreviation}
+                                    client:after-paint
+                                    fullName={row.entrantName ?? cellFormatted}
+                                  />
+                                )}
+                              </span>
+                            ) : (
+                              cellFormatted
+                            )}
+                          </>
+                        );
+                        return (
+                          <td
+                            class={
+                              isPlayerNameCell || isNameCell
+                                ? 'cl-cell-name'
+                                : column.format === 'text'
+                                  ? 'cl-table__num'
+                                  : 'cl-table__num cl-tabular-nums'
+                            }
+                            data-priority={priorityOf(column.code)}
+                            data-sort-value={cellMissing ? undefined : String(cellRaw)}
+                            data-sort-type={isNumericSort ? 'number' : 'text'}
+                            data-sort-missing={cellMissing ? 'true' : undefined}
+                          >
+                            {isPlayerNameCell || isNameCell ? (
+                              <span class="cl-cell-name__row">
+                                <span class="cl-cell-name__text">{cellBody}</span>
+                              </span>
+                            ) : (
+                              cellBody
+                            )}
+                            {columnIndex === hostColumnIndex && lowColumnIndexes.length > 0 && (
+                              <details class="cl-more">
+                                <summary>
+                                  <span class="cl-visually-hidden">
+                                    {`${moreColumnsLabel}: ${row.entrantName ?? row.actorName ?? cellFormatted}`}
+                                  </span>
+                                </summary>
+                                <dl class="cl-more__list">
+                                  {lowColumnIndexes.map((index) => (
+                                    <>
+                                      <dt>{hints[index]?.label}</dt>
+                                      <dd>
+                                        {displayColumns[index]?.code === '__promotion'
+                                          ? (row.promotionBandLabel ?? '—')
+                                          : displayColumns[index]?.code === '__promotionOrder'
+                                            ? row.promotionSeed !== undefined
+                                              ? String(row.promotionSeed)
                                               : ''
-                                            : (row.cells[displayColumns[index]?.code ?? '']
-                                                ?.formatted ?? '—')}
-                                    </dd>
-                                  </>
-                                ))}
-                              </dl>
-                            </details>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                                            : displayColumns[index]?.code === '__shirtNumber'
+                                              ? row.shirtNumber !== undefined
+                                                ? String(row.shirtNumber)
+                                                : ''
+                                              : (row.cells[displayColumns[index]?.code ?? '']
+                                                  ?.formatted ?? '—')}
+                                      </dd>
+                                    </>
+                                  ))}
+                                </dl>
+                              </details>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             <p class="cl-standings-empty" data-standings-empty hidden>
@@ -696,7 +779,7 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
         </div>
       )}
 
-      {renderPart === 'footer' && showControls && clubs.length > 0 && (
+      {renderPart === 'footer' && showControls && aliasedClubs.length > 0 && (
         <div
           class="cl-club-filter"
           role="group"
@@ -708,16 +791,16 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
           <ClubFilterChip
             href={`${canonicalPath}${effectiveLayoutCode ? `?tab=${encodeURIComponent(effectiveLayoutCode)}` : ''}`}
             label={intl.formatMessage(messages.matchesViewFilterAll)}
-            active={!activeClubId}
+            active={!activeClubAlias && !activeClubId}
             filter="all"
           />
-          {clubs.map((club) => (
+          {aliasedClubs.map((club) => (
             <ClubFilterChip
-              href={`${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}clubId=${encodeURIComponent(club.clubId)}`}
+              href={`${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}club=${encodeURIComponent(club.alias!)}`}
               label={club.name}
               abbreviation={club.abbreviation}
-              active={club.clubId === activeClubId}
-              filter={club.clubId}
+              active={club.alias === activeClubAlias || club.clubId === activeClubId}
+              filter={club.alias!}
               club
               emblemSrc={
                 organizationAlias && club.emblemObjectId
@@ -1134,6 +1217,24 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
     gap: var(--cl-space-2);
     min-width: 0;
     max-width: 100%;
+  }
+  .cl-standings-entrant__link {
+    color: inherit;
+    text-decoration: none;
+    min-width: 0;
+  }
+  .cl-standings-entrant__link:hover {
+    color: var(--cl-text-accent);
+    text-decoration: underline;
+  }
+  .cl-standings-entrant__emblem-link {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .cl-standings-row--highlighted > td {
+    background: color-mix(in srgb, var(--cl-accent-cyan-500) 10%, transparent);
+    font-weight: var(--cl-weight-semibold);
   }
   .cl-table-tabs ul {
     display: flex;

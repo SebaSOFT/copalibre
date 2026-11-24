@@ -39,11 +39,13 @@ export interface MatchCardData {
   readonly homeName?: string;
   readonly homeAbbreviation?: string;
   readonly homeClubId?: string;
+  readonly homeClubAlias?: string;
   readonly homeEmblemObjectId?: string;
   readonly homeScore?: number;
   readonly awayName?: string;
   readonly awayAbbreviation?: string;
   readonly awayClubId?: string;
+  readonly awayClubAlias?: string;
   readonly awayEmblemObjectId?: string;
   readonly awayScore?: number;
   readonly clockSeconds?: number;

@@ -68,6 +68,7 @@ export interface MatchReportModel {
     readonly entrantId?: string;
     readonly name: string;
     readonly abbreviation?: string;
+    readonly clubAlias?: string;
     readonly score?: number;
     readonly roster: readonly MatchReportRosterMember[];
   };
@@ -75,6 +76,7 @@ export interface MatchReportModel {
     readonly entrantId?: string;
     readonly name: string;
     readonly abbreviation?: string;
+    readonly clubAlias?: string;
     readonly score?: number;
     readonly roster: readonly MatchReportRosterMember[];
   };
@@ -143,6 +145,7 @@ function buildReportSide(input: {
   readonly hiddenAtRequest: boolean | undefined;
   readonly name: string | undefined;
   readonly abbreviation: string | undefined;
+  readonly clubAlias: string | undefined;
   readonly score: number | undefined;
   readonly source: PublicMatchReportResponse['homeSource'];
   readonly roster: PublicMatchReportResponse['rosters']['home'];
@@ -168,6 +171,9 @@ function buildReportSide(input: {
     ...(input.entrantId === undefined ? {} : { entrantId: input.entrantId }),
     name: input.hiddenAtRequest ? input.hiddenPersonLabel : (input.name ?? sideName),
     abbreviation: input.abbreviation,
+    ...(input.hiddenAtRequest || input.clubAlias === undefined
+      ? {}
+      : { clubAlias: input.clubAlias }),
     score: input.score,
     roster: input.roster.map(input.withRoleLabels),
   };
@@ -219,6 +225,7 @@ export function buildMatchReport(
       hiddenAtRequest: response.homeHiddenAtRequest,
       name: response.homeName,
       abbreviation: response.homeAbbreviation,
+      clubAlias: response.homeClubAlias,
       score: response.homeScore,
       source: response.homeSource,
       roster: response.rosters.home,
@@ -231,6 +238,7 @@ export function buildMatchReport(
       hiddenAtRequest: response.awayHiddenAtRequest,
       name: response.awayName,
       abbreviation: response.awayAbbreviation,
+      clubAlias: response.awayClubAlias,
       score: response.awayScore,
       source: response.awaySource,
       roster: response.rosters.away,

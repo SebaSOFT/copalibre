@@ -43,6 +43,7 @@ export interface SideView {
   /** The short label; absent when nobody chose one. */
   readonly abbreviation?: string;
   readonly clubId?: string;
+  readonly clubAlias?: string;
   readonly emblemObjectId?: string;
   readonly score?: number;
   /** Absent for a synthetic fixture with no persisted entrant yet; needed to correlate live events. */
@@ -57,6 +58,7 @@ export interface StandingsRowView {
   readonly publicProfileAvailable?: boolean;
   readonly abbreviation?: string;
   readonly clubId?: string;
+  readonly clubAlias?: string;
   readonly emblemObjectId?: string;
   readonly played: number;
   readonly points: number;
