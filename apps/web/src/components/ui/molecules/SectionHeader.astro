@@ -1,0 +1,50 @@
+---
+/**
+ * A section's heading, with an optional action link beside it. Every club section and listing that
+ * needs a heading and a single follow-on link uses it.
+ */
+interface Props {
+  readonly headingId: string;
+  readonly heading: string;
+  readonly actionHref?: string;
+  readonly actionLabel?: string;
+  /** A count shown after the heading, for listings that state how many they hold. */
+  readonly count?: number;
+}
+
+const { headingId, heading, actionHref, actionLabel, count } = Astro.props;
+---
+
+<div class="cl-section-header">
+  <h2 id={headingId} class="cl-section-header__title">
+    {heading}
+  </h2>
+  {count !== undefined && <span class="cl-section-header__count">({count})</span>}
+  {actionHref && actionLabel && (
+    <a class="cl-pill cl-focusable" href={actionHref}>
+      {actionLabel}
+    </a>
+  )}
+</div>
+
+<style>
+  .cl-section-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--cl-space-3);
+    margin-block-end: var(--cl-space-3);
+  }
+
+  .cl-section-header__title {
+    margin: 0;
+    font-family: var(--cl-font-display);
+  }
+
+  .cl-section-header__count {
+    color: var(--cl-text-muted);
+    font-size: var(--cl-font-size-sm);
+    font-weight: var(--cl-weight-semibold);
+  }
+</style>

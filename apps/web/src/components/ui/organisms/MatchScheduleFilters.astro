@@ -1,4 +1,7 @@
 ---
+import Button from '../atoms/Button.astro';
+import Form from '../atoms/Form.astro';
+import Input from '../atoms/Input.astro';
 import Select from '../atoms/Select.astro';
 
 /**
@@ -42,6 +45,8 @@ export interface MatchScheduleFiltersLabels {
     readonly view: string;
   };
   readonly clubAll?: string;
+  /** Submits the club choice with scripting off; hidden once the script auto-submits on change. */
+  readonly clubApply?: string;
   readonly dayOptions?: {
     readonly all: string;
     readonly today: string;
@@ -115,6 +120,9 @@ const {
   buildUrl,
 } = Astro.props;
 const hasToday = todayKey !== undefined && days.some((day) => day.key === todayKey);
+// The club choice is a plain GET form: every other active filter travels as a hidden field, so the
+// submitted URL keeps them. The path is the page's own, without its query.
+const clubFormAction = buildUrl({ club: undefined }).split('?')[0];
 const hasTomorrow = tomorrowKey !== undefined && days.some((day) => day.key === tomorrowKey);
 ---
 
@@ -195,11 +203,19 @@ const hasTomorrow = tomorrowKey !== undefined && days.some((day) => day.key === 
       </div>
     )}
 
-    {clubs.length > 0 && labels.titles.club && labels.clubAll && (
-      <div class="cl-filter-row">
+    {clubs.length > 0 && labels.titles.club && labels.clubAll && labels.clubApply && (
+      <Form action={clubFormAction} class="cl-filter-row" data-schedule-club-form>
         <span class="cl-filter-row__title" id="matches-club-filter-label">
           {labels.titles.club}
         </span>
+        {activeStageNumber !== undefined && (
+          <Input name="stageNumber" value={String(activeStageNumber)} />
+        )}
+        {activeZone !== undefined && <Input name="zone" value={activeZone} />}
+        {activeGroup !== undefined && <Input name="group" value={activeGroup} />}
+        {activeDay !== undefined && <Input name="day" value={activeDay} />}
+        {state !== 'all' && <Input name="state" value={state} />}
+        {view !== 'rows' && <Input name="view" value={view} />}
         <Select
           name="club"
           ariaLabel={labels.clubFilterAriaLabel ?? labels.titles.club}
@@ -220,7 +236,10 @@ const hasTomorrow = tomorrowKey !== undefined && days.some((day) => day.key === 
             })),
           ]}
         />
-      </div>
+        <Button type="submit" variant="secondary" data-schedule-club-submit>
+          {labels.clubApply}
+        </Button>
+      </Form>
     )}
 
     {days.length > 0 && labels.titles.day && labels.dayOptions && (
@@ -349,6 +368,9 @@ const hasTomorrow = tomorrowKey !== undefined && days.some((day) => day.key === 
       flex-basis: 100%;
     }
   }
+  [data-schedule-club-submit][hidden] {
+    display: none;
+  }
   .cl-filter-row__title {
     min-width: 4.5rem;
     color: var(--cl-text-muted);
@@ -360,13 +382,12 @@ const hasTomorrow = tomorrowKey !== undefined && days.some((day) => day.key === 
 </style>
 
 <script>
-  document
-    .querySelectorAll<HTMLSelectElement>('select[data-schedule-club-select]')
-    .forEach((select) => {
-      select.addEventListener('change', () => {
-        const selected = select.selectedOptions[0];
-        const href = selected?.dataset.href;
-        if (href) window.location.assign(href);
-      });
+  document.querySelectorAll<HTMLFormElement>('form[data-schedule-club-form]').forEach((form) => {
+    const select = form.querySelector<HTMLSelectElement>('select[data-schedule-club-select]');
+    const submit = form.querySelector<HTMLButtonElement>('[data-schedule-club-submit]');
+    if (submit) submit.hidden = true;
+    select?.addEventListener('change', () => {
+      form.requestSubmit();
     });
+  });
 </script>

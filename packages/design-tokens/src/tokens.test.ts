@@ -468,6 +468,7 @@ describe('the badge contract', () => {
       'stage',
       'muted',
       'positive',
+      'negative',
     ]);
     for (const tone of Object.values(BADGE_TONES)) {
       expect(SEMANTIC_COLORS[tone.color]).toBeDefined();

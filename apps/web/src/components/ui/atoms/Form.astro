@@ -1,0 +1,19 @@
+---
+/**
+ * A server-rendered form whose fields travel in the query string. A public filter is a GET form, so the
+ * filtered view is a plain URL that works with scripting off.
+ */
+import type { HTMLAttributes } from 'astro/types';
+
+interface Props extends HTMLAttributes<'form'> {
+  readonly action: string;
+  readonly method?: 'get';
+  readonly class?: string;
+}
+
+const { action, method = 'get', class: extraClass = '', ...attributes } = Astro.props;
+---
+
+<form action={action} method={method} class:list={[extraClass]} {...attributes}>
+  <slot />
+</form>

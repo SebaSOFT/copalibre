@@ -883,6 +883,9 @@ function components(): string {
     '  }',
     '}',
     '.cl-select { font-family: var(--cl-font-mono); }',
+    // The public filter bars' native select: quiet, panel-coloured, one control height, and no layout
+    // of its own beyond the row it sits in.
+    '.cl-public-select { min-height: var(--cl-touch-target); max-width: 100%; padding: var(--cl-space-1) var(--cl-space-3); background: var(--cl-surface-panel); color: var(--cl-text-primary); border: 1px solid var(--cl-border-muted); font-family: var(--cl-font-body); font-size: var(--cl-font-size-sm); }',
     // The trigger is a button, which centres its text and wraps a long label
     // onto a second line, growing past the 44px control height. It reads like
     // Input instead: left-aligned, one line, clipped. The atom keeps the full

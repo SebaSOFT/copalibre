@@ -177,6 +177,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
 ---
 
 <PublicLayout
+  tournamentHasClubs={(model.clubs ?? []).length > 0}
   title={pageTitle}
   canonicalPath={stagePath}
   intl={intl}

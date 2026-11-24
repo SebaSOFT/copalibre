@@ -73,7 +73,15 @@ const stageParam = Astro.url.searchParams.get('stageNumber');
 const stageNumber = stageParam ? Number(stageParam) : undefined;
 const zoneParam = Astro.url.searchParams.get('zone') ?? undefined;
 const groupParam = Astro.url.searchParams.get('group') ?? undefined;
-const clubParam = Astro.url.searchParams.get('club') ?? undefined;
+// The club choice is honoured only when it names one of the tournament's clubs. A blank value, a
+// malformed alias or an alias of another club is no filter, and does not open the filter disclosure.
+const clubOptions = (model.clubs ?? [])
+  .filter((club): club is typeof club & { readonly alias: string } => isValidClubAlias(club.alias))
+  .map((club) => ({ alias: club.alias, name: club.name }));
+const requestedClub = Astro.url.searchParams.get('club')?.trim() ?? '';
+const clubParam = clubOptions.some((club) => club.alias === requestedClub)
+  ? requestedClub
+  : undefined;
 const rawDayParam = Astro.url.searchParams.get('day');
 const dayParam =
   rawDayParam !== null && /^\d{4}-\d{2}-\d{2}$/.test(rawDayParam) ? rawDayParam : undefined;
@@ -194,10 +202,6 @@ function buildUrl(
   return `${localePrefix}${model.canonicalPath}/matches${query ? `?${query}` : ''}`;
 }
 
-const clubOptions = (model.clubs ?? [])
-  .filter((club): club is typeof club & { readonly alias: string } => isValidClubAlias(club.alias))
-  .map((club) => ({ alias: club.alias, name: club.name }));
-
 const canonicalPath = `${localePrefix}${model.canonicalPath}/matches`;
 const structuredData = {
   '@type': 'SportsEvent' as const,
@@ -217,6 +221,7 @@ const trail = publicTrail(trailBase, [
 ---
 
 <PublicLayout
+  tournamentHasClubs={(model.clubs ?? []).length > 0}
   title={`${intl.formatMessage(messages.matchesViewPageTitle)} — ${displayName(model)}`}
   canonicalPath={canonicalPath}
   intl={intl}
@@ -283,6 +288,7 @@ const trail = publicTrail(trailBase, [
           view: intl.formatMessage(messages.matchesViewViewFilterTitle),
         },
         clubAll: intl.formatMessage(messages.matchesViewFilterClubAll),
+        clubApply: intl.formatMessage(messages.matchesViewFilterClubApply),
         dayOptions: {
           all: intl.formatMessage(messages.matchesViewFilterDayAll),
           today: intl.formatMessage(messages.matchesViewFilterDayToday),

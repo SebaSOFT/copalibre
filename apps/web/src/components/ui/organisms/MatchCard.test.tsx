@@ -49,6 +49,40 @@ function baseMatch(overrides: Partial<MatchCardData> = {}): MatchCardData {
 }
 
 describe('MatchCard', () => {
+  it.each([
+    ['won', 'cl-badge--positive', 'Won'],
+    ['drawn', 'cl-badge--muted', 'Drawn'],
+    ['lost', 'cl-badge--negative', 'Lost'],
+  ] as const)(
+    'renders a %s outcome as a labelled badge with its tone',
+    (kind, toneClass, label) => {
+      const { container } = render(
+        <MatchCard
+          match={baseMatch({ state: 'final', homeScore: 2, awayScore: 1 })}
+          labels={labels}
+          locale="en"
+          outcome={{ kind, label }}
+        />,
+      );
+
+      const badge = container.querySelector('.cl-match-card__outcome');
+      expect(badge?.textContent).toBe(label);
+      expect(badge?.classList.contains(toneClass)).toBe(true);
+    },
+  );
+
+  it('renders no outcome badge when no outcome is given', () => {
+    const { container } = render(
+      <MatchCard
+        match={baseMatch({ state: 'final', homeScore: 2, awayScore: 1 })}
+        labels={labels}
+        locale="en"
+      />,
+    );
+
+    expect(container.querySelector('.cl-match-card__outcome')).toBeNull();
+  });
+
   it('uses the match number as its card heading at the requested depth', () => {
     render(<MatchCard headingLevel={3} match={baseMatch()} labels={labels} locale="en" />);
 

@@ -543,6 +543,7 @@ const trail = publicTrail(trailBase, []);
 ---
 
 <PublicLayout
+  tournamentHasClubs={(model.clubs ?? []).length > 0}
   title={`${displayName(model)} — ${model.organizationName}`}
   description={description}
   canonicalPath={canonicalPath}

@@ -38,8 +38,28 @@ import { optionalClubPageUrl } from '../../../lib/club-url.js';
  * already documents: this file must never import `react-intl`'s formatting
  * machinery itself, only accept already-resolved strings.
  */
+/**
+ * The viewer's side in a finished match, as a labelled badge. The caller supplies the words in the
+ * page's language; the card supplies the icon and tone for each kind.
+ */
+export interface MatchCardOutcome {
+  readonly kind: 'won' | 'drawn' | 'lost';
+  readonly label: string;
+}
+
+const OUTCOME_BADGE: Record<
+  MatchCardOutcome['kind'],
+  { readonly className: string; readonly icon: 'check' | 'minus' | 'close' }
+> = {
+  won: { className: 'cl-badge--positive', icon: 'check' },
+  drawn: { className: 'cl-badge--muted', icon: 'minus' },
+  lost: { className: 'cl-badge--negative', icon: 'close' },
+};
+
 export interface MatchCardProps {
   readonly match: MatchCardData;
+  /** The viewer's result in this finished match, shown as a labelled badge; absent on other surfaces. */
+  readonly outcome?: MatchCardOutcome;
   readonly labels: MatchCardLabels;
   /** Required: threaded straight into `ResponsiveTimestamp`, which no longer guesses one. */
   readonly locale: string;
@@ -100,6 +120,7 @@ export function MatchCard({
   compactNames = 'abbreviated',
   headingLevel = 3,
   inZoneSection = false,
+  outcome,
 }: MatchCardProps): React.JSX.Element {
   const bothUndecided = match.homeName === undefined && match.awayName === undefined;
   const [homeOverflow, setHomeOverflow] = useState(false);
@@ -348,6 +369,12 @@ export function MatchCard({
           {badge.state !== 'live' && <Icon name={badge.icon} size={16} />}
           <span>{badge.label}</span>
         </Badge>
+        {outcome !== undefined && (
+          <Badge className={`cl-match-card__outcome ${OUTCOME_BADGE[outcome.kind].className}`}>
+            <Icon name={OUTCOME_BADGE[outcome.kind].icon} size={16} />
+            <span>{outcome.label}</span>
+          </Badge>
+        )}
         {effectiveState === 'live' &&
         (effectiveClock !== undefined || effectiveSegmentLabel !== undefined) ? (
           <LiveMatchScoreboard

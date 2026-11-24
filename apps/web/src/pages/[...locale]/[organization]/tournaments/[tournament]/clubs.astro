@@ -4,10 +4,10 @@ import PublicLayout from '../../../../../layouts/PublicLayout.astro';
 import Container from '../../../../../components/ui/atoms/layout/Container.astro';
 import { Card } from '../../../../../components/ui/atoms/Card.tsx';
 import { Badge } from '../../../../../components/ui/atoms/Badge.tsx';
-import EmblemImage from '../../../../../components/ui/atoms/EmblemImage.astro';
 import Breadcrumb from '../../../../../components/ui/organisms/Breadcrumb.astro';
 import PageHeader from '../../../../../components/ui/organisms/PageHeader.astro';
 import EmptyState from '../../../../../components/ui/molecules/EmptyState.astro';
+import ClubIdentity from '../../../../../components/ui/molecules/ClubIdentity.astro';
 import { publicTrail, trailBaseOf } from '../../../../../lib/breadcrumb.ts';
 import {
   clubIndexUrl,
@@ -175,6 +175,7 @@ const structuredData = {
   intl={intl}
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
+  tournamentHasClubs={clubs.length > 0}
 >
   <Container variant="public">
     <PageHeader
@@ -199,46 +200,22 @@ const structuredData = {
         href={`${localePrefix}${model.canonicalPath}/matches`}
       />
     ) : (
-      <ul class="cl-club-index-grid">
+      <ul class="cl-match-card-grid">
         {clubCards.map(({ club, href, statusText, band, emblemSrc }) => (
-          <li class="cl-club-index-grid__item">
-            <Card as="article" className="cl-club-index-card">
-              <div class="cl-club-index-card__identity">
-                <EmblemImage
-                  size={48}
-                  src={emblemSrc}
-                  abbreviation={club.abbreviation}
-                  alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: club.name })}
-                  placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
-                />
-                <div class="cl-club-index-card__text">
-                  <h2 class="cl-club-index-card__name">
-                    {href ? (
-                      <a class="cl-club-index-card__link cl-focusable" href={href}>
-                        {club.name}
-                      </a>
-                    ) : (
-                      club.name
-                    )}
-                  </h2>
-                  {club.abbreviation && (
-                    <span class="cl-club-index-card__abbr">{club.abbreviation}</span>
-                  )}
-                </div>
-              </div>
-              {(band || statusText) && (
-                <div class="cl-club-index-card__meta">
-                  {band && (
-                    <Badge
-                      className="cl-club-index-card__band"
-                      data-promotion-band-index={band.index}
-                    >
-                      {band.label}
-                    </Badge>
-                  )}
-                  {statusText && <p class="cl-club-index-card__status">{statusText}</p>}
-                </div>
-              )}
+          <li>
+            <Card as="article" aria-label={club.name}>
+              <ClubIdentity
+                name={club.name}
+                abbreviation={club.abbreviation}
+                emblemSrc={emblemSrc}
+                placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                href={href}
+              >
+                <span slot="meta">
+                  {band && <Badge data-promotion-band-index={band.index}>{band.label}</Badge>}
+                  {statusText && <span>{statusText}</span>}
+                </span>
+              </ClubIdentity>
             </Card>
           </li>
         ))}
@@ -246,83 +223,3 @@ const structuredData = {
     )}
   </Container>
 </PublicLayout>
-
-<style>
-  .cl-club-index-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
-    gap: var(--cl-space-4);
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  .cl-club-index-grid__item {
-    min-width: 0;
-  }
-
-  .cl-club-index-grid__item :global(.cl-club-index-card) {
-    display: flex;
-    flex-direction: column;
-    gap: var(--cl-space-3);
-    height: 100%;
-    box-sizing: border-box;
-    padding: var(--cl-space-4);
-  }
-
-  .cl-club-index-card__identity {
-    display: flex;
-    align-items: center;
-    gap: var(--cl-space-3);
-    min-width: 0;
-  }
-
-  .cl-club-index-card__text {
-    display: flex;
-    flex-direction: column;
-    gap: var(--cl-space-1);
-    min-width: 0;
-  }
-
-  .cl-club-index-card__name {
-    margin: 0;
-    font-family: var(--cl-font-display);
-    font-size: var(--cl-font-size-lg);
-    line-height: var(--cl-line-height-snug);
-    overflow-wrap: anywhere;
-  }
-
-  .cl-club-index-card__link {
-    color: var(--cl-text-primary);
-    text-decoration: none;
-  }
-
-  .cl-club-index-card__link:hover {
-    color: var(--cl-text-accent);
-    text-decoration: underline;
-  }
-
-  .cl-club-index-card__abbr {
-    color: var(--cl-text-muted);
-    font-family: var(--cl-font-mono);
-    font-size: var(--cl-font-size-xs);
-    letter-spacing: var(--cl-tracking-wide);
-    text-transform: uppercase;
-  }
-
-  .cl-club-index-card__meta {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--cl-space-2);
-    margin-block-start: auto;
-    padding-block-start: var(--cl-space-2);
-    border-top: 1px solid var(--cl-border-muted);
-  }
-
-  .cl-club-index-card__status {
-    margin: 0;
-    color: var(--cl-text-secondary);
-    font-size: var(--cl-font-size-sm);
-  }
-</style>

@@ -1,0 +1,31 @@
+---
+/**
+ * A vertical stack of sections with one spacing step between them. A layout primitive: pages compose
+ * their sections with it instead of declaring their own gaps.
+ */
+interface Props {
+  readonly gap?: 'md' | 'lg';
+  readonly class?: string;
+}
+
+const { gap = 'lg', class: extraClass = '' } = Astro.props;
+---
+
+<div class:list={['cl-stack', `cl-stack--${gap}`, extraClass]}>
+  <slot />
+</div>
+
+<style>
+  .cl-stack {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cl-stack--md {
+    gap: var(--cl-space-6);
+  }
+
+  .cl-stack--lg {
+    gap: var(--cl-space-8);
+  }
+</style>

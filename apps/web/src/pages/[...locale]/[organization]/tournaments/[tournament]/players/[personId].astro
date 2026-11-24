@@ -99,6 +99,7 @@ const nextMatch = nextMatchCandidate
 ---
 
 <PublicLayout
+  tournamentHasClubs={(model.clubs ?? []).length > 0}
   title={title}
   description={intl.formatMessage(messages.playerProfileHeading)}
   canonicalPath={canonicalPath}

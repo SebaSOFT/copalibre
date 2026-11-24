@@ -46,6 +46,11 @@ import BracketGraph from '../components/ui/organisms/BracketGraph.astro';
 import MatchNodeCompact from '../components/ui/molecules/MatchNodeCompact.astro';
 import PlacementGames from '../components/ui/molecules/PlacementGames.astro';
 import ClubFilterChip from '../components/ui/molecules/ClubFilterChip.astro';
+import ClubIdentity from '../components/ui/molecules/ClubIdentity.astro';
+import SectionHeader from '../components/ui/molecules/SectionHeader.astro';
+import Stack from '../components/ui/atoms/layout/Stack.astro';
+import Form from '../components/ui/atoms/Form.astro';
+import Input from '../components/ui/atoms/Input.astro';
 import DataTable from '../components/ui/organisms/DataTable.astro';
 import MatchCardGrid from '../components/ui/organisms/MatchCardGrid.astro';
 import MatchBracketContext from '../components/ui/organisms/MatchBracketContext.astro';
@@ -181,6 +186,11 @@ const PREVIEWABLE = new Set([
   'organization-header',
   'player-profile-view',
   'club-filter-chip',
+  'club-identity',
+  'section-header',
+  'stack',
+  'form',
+  'input',
   'standings-table',
   'standings-table-promotion',
   'tournament-card',
@@ -909,6 +919,48 @@ const [compactSample] = referenceJourneyBracket(true);
         tournamentAlias="reference-cup"
         profile={referencePlayerProfile()}
       />
+    )}
+    {component === 'club-identity' && (
+      <div>
+        <ClubIdentity name="Club Hispano" abbreviation="HIS" placeholderAlt="Crest" />
+        <ClubIdentity
+          name="Lomas de Rivadavia"
+          abbreviation="LDR"
+          placeholderAlt="Crest"
+          href="#"
+          size="sm"
+        />
+      </div>
+    )}
+    {component === 'section-header' && (
+      <div>
+        <SectionHeader headingId="preview-heading-plain" heading="Results" />
+        <SectionHeader
+          headingId="preview-heading-action"
+          heading="Standing"
+          actionHref="#"
+          actionLabel="View stage standings"
+          count={8}
+        />
+      </div>
+    )}
+    {component === 'form' && (
+      <Form action="#" class="cl-filter-row">
+        <Input name="zone" value="Zona Norte" />
+        <Input type="search" name="q" value="Liga" id="preview-form-search" class="cl-input" />
+        <Button type="submit" variant="secondary">
+          {intl.formatMessage(messages.interactionViewMatches)}
+        </Button>
+      </Form>
+    )}
+    {component === 'input' && (
+      <Input type="search" name="q" value="Liga" id="preview-input-search" class="cl-input" />
+    )}
+    {component === 'stack' && (
+      <Stack gap="md">
+        <p>{intl.formatMessage(messages.clubIndexTitle)}</p>
+        <p>{intl.formatMessage(messages.clubIndexEmptyDescription)}</p>
+      </Stack>
     )}
     {component === 'club-filter-chip' && (
       <div class="cl-preview-chip-row">
