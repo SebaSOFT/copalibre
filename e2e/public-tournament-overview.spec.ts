@@ -135,7 +135,7 @@ const demoMatches = Array.from({ length: 72 }, (_, index) => {
     awayName: DEMO_CLUBS[awayClub],
     ...(played ? { awayScore: index % 2 === 0 ? 2 : 3 } : {}),
     scheduledAt: played
-      ? `2026-10-${String(23 + index).padStart(2, '0')}T19:00:00.000Z`
+      ? `2026-10-23T${String(15 + index).padStart(2, '0')}:00:00.000Z`
       : `2099-06-${String(Math.floor((index - 6) / 5) + 1).padStart(2, '0')}T${String(
           19 + ((index - 6) % 5),
         ).padStart(2, '0')}:00:00.000Z`,
@@ -303,6 +303,7 @@ const factsOverview = (venueCount: number) => ({
 let apiServer: Server;
 let noLiveMatches = false;
 let nowStripOverview = false;
+let scheduleDaysOverview = false;
 let demoScaleOverview = false;
 let completedOverview = false;
 let multiStageOverview = false;
@@ -311,11 +312,126 @@ let factsVenueCount = 0;
 test.beforeEach(() => {
   factsVenueCount = 0;
   nowStripOverview = false;
+  scheduleDaysOverview = false;
   noLiveMatches = false;
   demoScaleOverview = false;
   completedOverview = false;
   multiStageOverview = false;
 });
+
+function mendozaDayKey(offsetDays: number): string {
+  const todayKey = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'America/Argentina/Mendoza',
+  }).format(new Date());
+  const [year = 2026, month = 1, day = 1] = todayKey.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + offsetDays)).toISOString().slice(0, 10);
+}
+
+function buildScheduleDaysOverview() {
+  const now = Date.now();
+  const yesterdayKey = mendozaDayKey(-1);
+  const minus3Key = mendozaDayKey(-3);
+  const tomorrowKey = mendozaDayKey(1);
+  const plus3Key = mendozaDayKey(3);
+  return {
+    ...overview,
+    matches: [
+      {
+        matchId: '00000000-0000-7000-8000-000000000701',
+        stageNumber: 1,
+        stageOrdinal: 1,
+        matchNumber: 1,
+        round: 1,
+        groupName: 'Grupo A',
+        status: 'finalized',
+        homeEntrantId: 'h-final-old',
+        homeName: 'Final Viejo Local',
+        homeScore: 1,
+        awayEntrantId: 'a-final-old',
+        awayName: 'Final Viejo Visita',
+        awayScore: 0,
+        scheduledAt: `${minus3Key}T15:00:00.000Z`,
+      },
+      {
+        matchId: '00000000-0000-7000-8000-000000000702',
+        stageNumber: 1,
+        stageOrdinal: 2,
+        matchNumber: 2,
+        round: 1,
+        groupName: 'Grupo A',
+        status: 'finalized',
+        homeEntrantId: 'h-final-new',
+        homeName: 'Último Resultado Local',
+        homeScore: 3,
+        awayEntrantId: 'a-final-new',
+        awayName: 'Último Resultado Visita',
+        awayScore: 2,
+        scheduledAt: `${yesterdayKey}T15:00:00.000Z`,
+      },
+      {
+        matchId: '00000000-0000-7000-8000-000000000703',
+        stageNumber: 1,
+        stageOrdinal: 3,
+        matchNumber: 3,
+        round: 2,
+        groupName: 'Grupo B',
+        status: 'scheduled',
+        homeEntrantId: 'h-up-late',
+        homeName: 'Próximo Lejano Local',
+        awayEntrantId: 'a-up-late',
+        awayName: 'Próximo Lejano Visita',
+        scheduledAt: `${plus3Key}T15:00:00.000Z`,
+      },
+      {
+        matchId: '00000000-0000-7000-8000-000000000704',
+        stageNumber: 1,
+        stageOrdinal: 4,
+        matchNumber: 4,
+        round: 2,
+        groupName: 'Grupo B',
+        status: 'scheduled',
+        homeEntrantId: 'h-up-soon',
+        homeName: 'Próximo Mañana Local',
+        awayEntrantId: 'a-up-soon',
+        awayName: 'Próximo Mañana Visita',
+        scheduledAt: `${tomorrowKey}T15:00:00.000Z`,
+      },
+      {
+        matchId: '00000000-0000-7000-8000-000000000705',
+        stageNumber: 1,
+        stageOrdinal: 5,
+        matchNumber: 5,
+        round: 2,
+        groupName: 'Grupo C',
+        status: 'scheduled',
+        homeEntrantId: 'h-delayed',
+        homeName: 'Demorado Local',
+        awayEntrantId: 'a-delayed',
+        awayName: 'Demorado Visita',
+        scheduledAt: new Date(now - 20 * 60_000).toISOString(),
+      },
+      {
+        matchId: '00000000-0000-7000-8000-000000000706',
+        stageNumber: 1,
+        stageOrdinal: 6,
+        matchNumber: 6,
+        round: 2,
+        groupName: 'Grupo C',
+        status: 'in-progress',
+        homeEntrantId: 'h-live',
+        homeName: 'En Vivo Local',
+        homeScore: 1,
+        awayEntrantId: 'a-live',
+        awayName: 'En Vivo Visita',
+        awayScore: 1,
+        scheduledAt: new Date(now - 35 * 60_000).toISOString(),
+      },
+    ],
+  };
+}
 
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
@@ -326,51 +442,53 @@ test.beforeAll(async ({ workerPort }) => {
         res.end(JSON.stringify(factsOverview(factsVenueCount)));
         return;
       }
-      const response = nowStripOverview
-        ? { ...overview, matches: nowStripMatches }
-        : multiStageOverview
-          ? {
-              ...overview,
-              stages: [
-                { stageNumber: 1, stageName: 'Fase de grupos', format: 'round-robin', zones: [] },
-                { stageNumber: 2, stageName: 'Copas', format: 'single-elimination', zones: [] },
-              ],
-            }
-          : completedOverview
+      const response = scheduleDaysOverview
+        ? buildScheduleDaysOverview()
+        : nowStripOverview
+          ? { ...overview, matches: nowStripMatches }
+          : multiStageOverview
             ? {
                 ...overview,
-                status: 'finished',
-                winners: [
-                  {
-                    zoneId: 'zone-finished',
-                    zoneName: 'Zona Campeonato',
-                    champion: { entrantId: 'home-1', name: 'Club Andes', abbreviation: 'AND' },
-                    runnerUp: { entrantId: 'away-1', name: 'Deportivo Sur', abbreviation: 'SUR' },
-                  },
+                stages: [
+                  { stageNumber: 1, stageName: 'Fase de grupos', format: 'round-robin', zones: [] },
+                  { stageNumber: 2, stageName: 'Copas', format: 'single-elimination', zones: [] },
                 ],
-                matches: overview.matches.map((match) => ({ ...match, status: 'finalized' })),
               }
-            : demoScaleOverview
+            : completedOverview
               ? {
                   ...overview,
-                  matches: demoMatches,
-                  standingsPreview: demoStandingsPreview,
-                  standingsGrain: 'match',
-                  ruleset: {
-                    ...overview.ruleset,
-                    tiebreakers: 'points,score-difference,goal-average,goals-for,goals-against',
-                  },
+                  status: 'finished',
+                  winners: [
+                    {
+                      zoneId: 'zone-finished',
+                      zoneName: 'Zona Campeonato',
+                      champion: { entrantId: 'home-1', name: 'Club Andes', abbreviation: 'AND' },
+                      runnerUp: { entrantId: 'away-1', name: 'Deportivo Sur', abbreviation: 'SUR' },
+                    },
+                  ],
+                  matches: overview.matches.map((match) => ({ ...match, status: 'finalized' })),
                 }
-              : noLiveMatches
+              : demoScaleOverview
                 ? {
                     ...overview,
-                    matches: overview.matches.map((match) => ({
-                      ...match,
-                      status: 'scheduled',
-                      scheduledAt: '2099-06-01T19:00:00.000Z',
-                    })),
+                    matches: demoMatches,
+                    standingsPreview: demoStandingsPreview,
+                    standingsGrain: 'match',
+                    ruleset: {
+                      ...overview.ruleset,
+                      tiebreakers: 'points,score-difference,goal-average,goals-for,goals-against',
+                    },
                   }
-                : overview;
+                : noLiveMatches
+                  ? {
+                      ...overview,
+                      matches: overview.matches.map((match) => ({
+                        ...match,
+                        status: 'scheduled',
+                        scheduledAt: '2099-06-01T19:00:00.000Z',
+                      })),
+                    }
+                  : overview;
       res.end(JSON.stringify(response));
       return;
     }
@@ -480,7 +598,7 @@ test.describe('tournament overview progress and rules', () => {
     await expect(ticker).not.toContainText('Player Statistics');
   });
 
-  test('Now titles each card by its group and shows a live match at 0–0 as 0 and 0', async ({
+  test('Now titles each card by its group, holds no final when live, and shows a live match at 0–0 as 0 and 0', async ({
     page,
   }) => {
     nowStripOverview = true;
@@ -492,17 +610,22 @@ test.describe('tournament overview progress and rules', () => {
 
     const nowStrip = page.locator('.cl-overview-now');
     const live = nowStrip.locator('.cl-overview-now__item--live .cl-match-card');
-    const next = nowStrip.locator('.cl-overview-now__item--upcoming .cl-match-card');
-    const latest = nowStrip.locator('.cl-overview-now__item--final .cl-match-card');
     await expect(live.locator('.cl-match-card__heading')).toHaveText(/^Grupo A\s*Partido 3$/);
-    await expect(next.locator('.cl-match-card__heading')).toHaveText(/^Grupo B\s*Partido 7$/);
-    await expect(latest.locator('.cl-match-card__heading')).toHaveText(/^Grupo C\s*Partido 2$/);
     await expect(live.locator('.cl-match-card__side .cl-stat-tile__value')).toHaveText(['0', '0']);
-    // A match that has not started keeps no score at all.
-    await expect(next.locator('.cl-match-card__side .cl-stat-tile__value')).toHaveCount(0);
+    // When a match is live, the now strip excludes both upcoming and final matches.
+    await expect(nowStrip.locator('.cl-overview-now__item--upcoming')).toHaveCount(0);
+    await expect(nowStrip.locator('.cl-overview-now__item--final')).toHaveCount(0);
+
+    const nextSection = page.locator('section[aria-labelledby="overview-next-heading"]');
+    await expect(nextSection).toContainText('Red Star');
+    await expect(nextSection).toContainText('Palmira');
+
+    const resultsSection = page.locator('section[aria-labelledby="overview-results-heading"]');
+    await expect(resultsSection).toContainText('Huracán');
+    await expect(resultsSection).toContainText('Valenciano');
   });
 
-  test('4.1: on the 72-match demo scale, kickoff is in the first viewport and the page stays below 2,500px', async ({
+  test('4.1: on the 72-match demo scale, kickoff is in the first viewport and the page stays below 2,650px', async ({
     page,
   }) => {
     demoScaleOverview = true;
@@ -532,32 +655,18 @@ test.describe('tournament overview progress and rules', () => {
     await expect(firstUpcoming).toContainText('Red Star');
     await expect(firstUpcoming).toContainText('Corazonistas Bogotá');
     await expect(firstUpcoming.locator('.cl-match-card')).toBeVisible();
-    const firstFinal = nowStrip.locator('.cl-overview-now__item--final .cl-match-card').first();
-    await expect(firstFinal).toBeVisible();
-    const [upcomingCardHeight, finalCardHeight] = await Promise.all([
-      firstUpcoming
-        .locator('.cl-match-card')
-        .evaluate((card) => card.getBoundingClientRect().height),
-      firstFinal.evaluate((card) => card.getBoundingClientRect().height),
-    ]);
-    expect(Math.abs(upcomingCardHeight - finalCardHeight)).toBeLessThanOrEqual(1);
-    const [headingLineHeight, scoreLineHeight] = await Promise.all([
-      firstUpcoming
-        .locator('.cl-match-card__heading')
-        .evaluate((heading) => getComputedStyle(heading).lineHeight),
-      firstFinal
-        .locator('.cl-stat-tile__value')
-        .first()
-        .evaluate((score) => getComputedStyle(score).lineHeight),
-    ]);
+    // Now strip holds no final match; the latest finals appear under Latest results instead.
+    await expect(nowStrip.locator('.cl-overview-now__item--final')).toHaveCount(0);
+    const headingLineHeight = await firstUpcoming
+      .locator('.cl-match-card__heading')
+      .evaluate((heading) => getComputedStyle(heading).lineHeight);
     expect(headingLineHeight).not.toBe('normal');
-    expect(scoreLineHeight).not.toBe('normal');
     await expect(
       page.locator('section[aria-labelledby="overview-next-heading"] .cl-match-card--compact'),
     ).toHaveCount(3);
     await expect(
       page.locator('section[aria-labelledby="overview-results-heading"] .cl-match-card--compact'),
-    ).toHaveCount(3);
+    ).toHaveCount(4);
     await expect(
       page.locator('.cl-club-filter, .cl-table-tabs, [data-table-sort-button]'),
     ).toHaveCount(0);
@@ -569,7 +678,7 @@ test.describe('tournament overview progress and rules', () => {
     const pageHeight = await page.evaluate(() =>
       Math.max(document.body.scrollHeight, document.documentElement.scrollHeight),
     );
-    expect(pageHeight).toBeLessThan(2500);
+    expect(pageHeight).toBeLessThan(2650);
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
@@ -580,6 +689,70 @@ test.describe('tournament overview progress and rules', () => {
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
+  });
+
+  test('overview keeps finals out of now strip, groups upcoming and results by day with day-or-date compact times, renders time-zone note once, and orders ticker by state and time', async ({
+    page,
+  }) => {
+    scheduleDaysOverview = true;
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.route('**/events/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': ok\n\n' }),
+    );
+    await page.goto(PAGE);
+
+    const nowStrip = page.locator('.cl-overview-now');
+    await expect(nowStrip.locator('.cl-overview-now__item--final')).toHaveCount(0);
+    await expect(nowStrip.locator('.cl-overview-now__item--live')).toContainText('En Vivo Local');
+    await expect(nowStrip.locator('.cl-overview-now__item--delayed')).toContainText(
+      'Demorado Local',
+    );
+
+    const matchesSection = page.locator('section[aria-labelledby="overview-matches-heading"]');
+    const tzNote = matchesSection.locator('.cl-time-zone-note');
+    await expect(tzNote).toHaveCount(1);
+    await expect(tzNote).toContainText('Horarios:');
+    await expect(tzNote).toContainText(/GMT-3|Argentina/);
+
+    const nextSection = matchesSection.locator('section[aria-labelledby="overview-next-heading"]');
+    const nextHeadings = nextSection.locator('h4.cl-overview-day-heading');
+    await expect(nextHeadings).toHaveCount(2);
+    await expect(nextHeadings.nth(0)).toContainText(/^Mañana · /);
+
+    const nextTimes = await nextSection
+      .locator('.cl-match-card__compact-time time')
+      .allTextContents();
+    expect(nextTimes.length).toBe(2);
+    expect(nextTimes[0]).toMatch(/^Mañana \d{2}:\d{2}$/);
+    expect(nextTimes[1]).toMatch(/^\d{1,2}-[\p{L}.]+ \d{2}:\d{2}$/u);
+    for (const text of nextTimes) {
+      expect(text.trim()).not.toMatch(/^\d{2}:\d{2}$/);
+    }
+
+    const resultsSection = matchesSection.locator(
+      'section[aria-labelledby="overview-results-heading"]',
+    );
+    const resultHeadings = resultsSection.locator('h4.cl-overview-day-heading');
+    await expect(resultHeadings).toHaveCount(2);
+    await expect(resultHeadings.nth(0)).toContainText(/^Ayer · /);
+    // Latest final appears first under Últimos resultados.
+    await expect(resultsSection.locator('.cl-match-card--compact').first()).toContainText(
+      'Último Resultado Local',
+    );
+
+    // Ticker orders match items: live -> delayed -> upcoming ascending -> final descending.
+    const tickerMatchIds = await page
+      .locator('.cl-ticker__track .cl-ticker__item[data-match-id]')
+      .evaluateAll((items) => items.map((item) => item.getAttribute('data-match-id')));
+    // The ticker repeats items across copies; take the first 6 distinct sequence entries.
+    expect(tickerMatchIds.slice(0, 6)).toEqual([
+      '00000000-0000-7000-8000-000000000706', // live
+      '00000000-0000-7000-8000-000000000705', // delayed
+      '00000000-0000-7000-8000-000000000704', // upcoming tomorrow (ascending)
+      '00000000-0000-7000-8000-000000000703', // upcoming +3d (ascending)
+      '00000000-0000-7000-8000-000000000702', // final yesterday (descending)
+      '00000000-0000-7000-8000-000000000701', // final -3d (descending)
+    ]);
   });
 
   test('the completion summary stays with the full-width overview hero', async ({ page }) => {

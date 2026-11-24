@@ -213,8 +213,8 @@ test('no machine timestamp reaches the screen, the ticker included', async ({ pa
 
   const text = await page.locator('body').innerText();
   expect(text).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
-  // The kick-off reads as a date and a time in the organization's zone: 12:00Z + 1 h = 10:00.
-  await expect(page.locator('.cl-ticker__meta').first()).toContainText('1-nov 10:00');
+  // Latest finalized match first (D9 descending): match 36 at 2025-11-03T00:00Z = 2-nov 21:00 in San Juan.
+  await expect(page.locator('.cl-ticker__meta').first()).toContainText('2-nov 21:00');
 });
 
 test('the dashboard and the pinned route keep the same bottom margin', async ({ page }) => {

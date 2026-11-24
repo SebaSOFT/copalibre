@@ -203,6 +203,7 @@ test('every filter row is titled and the view choice is offered for a short scop
     'Stage',
     'Zone',
     'Group',
+    'Day',
     'State',
     'View',
   ]);
@@ -211,6 +212,7 @@ test('every filter row is titled and the view choice is offered for a short scop
   await expect(page.locator('.cl-filter-row__title')).toHaveText([
     'Stage',
     'Group',
+    'Day',
     'State',
     'View',
   ]);

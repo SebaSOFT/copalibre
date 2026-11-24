@@ -182,17 +182,20 @@ test.describe('TV kiosk', () => {
 });
 
 test.describe('public matches page', () => {
-  test('a same-day kickoff renders as a bare HH:mm, not a raw ISO string', async ({ page }) => {
+  test('a same-day kickoff renders as Today HH:mm, not bare HH:mm or a raw ISO string', async ({
+    page,
+  }) => {
     await page.goto(`${PUBLIC_BASE}/matches?view=cards`);
     const [firstMatch] = overview.matches;
     if (firstMatch === undefined) throw new Error('Fixture must declare at least one match');
-    // The fixture's own kick-off, not "now": the suite can cross a minute before this test runs.
-    const expected = new Intl.DateTimeFormat('en', {
+    const timeText = new Intl.DateTimeFormat('en', {
       hour: '2-digit',
       minute: '2-digit',
       hourCycle: 'h23',
     }).format(new Date(firstMatch.scheduledAt));
-    await expect(page.getByText(expected, { exact: true }).first()).toBeVisible();
+    const timestamp = page.locator('.cl-match-card__venue time.cl-responsive-timestamp').first();
+    await expect(timestamp).toBeVisible();
+    await expect(timestamp).toHaveText(`Today ${timeText}`);
     await expect(page.getByText(firstMatch.scheduledAt, { exact: true })).toHaveCount(0);
   });
 });
