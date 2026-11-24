@@ -104,6 +104,8 @@ export interface ClubView {
   readonly abbreviation?: string;
   readonly alias?: string;
   readonly emblemObjectId?: string;
+  /** Aliases the club held before a rename; a link naming one is redirected to `alias`. */
+  readonly formerAliases?: readonly string[];
 }
 
 /** A ruleset field's effective value, its declared dot-path, and its resolved display label. */
