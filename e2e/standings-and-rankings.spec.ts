@@ -109,6 +109,7 @@ const topScorersFixture = {
   target: 'player-ranking',
   label: 'Top Scorers',
   columns: [
+    { code: 'rank', header: '#', format: 'number' },
     { code: 'player', header: 'Player', format: 'text' },
     { code: 'goals', header: 'Goals', format: 'number' },
     { code: 'cards', header: 'Y/R Cards', format: 'fraction' },
@@ -118,9 +119,12 @@ const topScorersFixture = {
     {
       actorId: 'p-1',
       entityId: 'p-1',
+      actorName: 'Goleador Uno',
+      shirtNumber: 3,
       rank: 1,
       sharedRank: false,
       cells: {
+        rank: { raw: 1, formatted: '1' },
         player: { formatted: 'Goleador Uno' },
         goals: { raw: 9, formatted: '9' },
         cards: { formatted: '4/5', numerator: 4, denominator: 5 },
@@ -129,12 +133,28 @@ const topScorersFixture = {
     {
       actorId: 'p-2',
       entityId: 'p-2',
+      actorName: 'Goleador Dos',
+      shirtNumber: 10,
       rank: 2,
       sharedRank: false,
       cells: {
+        rank: { raw: 2, formatted: '2' },
         player: { formatted: 'Goleador Dos' },
         goals: { raw: 5, formatted: '5' },
         cards: { formatted: '1/0', numerator: 1, denominator: 0 },
+      },
+    },
+    {
+      actorId: 'p-3',
+      entityId: 'p-3',
+      actorName: 'León Vega',
+      rank: 3,
+      sharedRank: false,
+      cells: {
+        rank: { raw: 3, formatted: '3' },
+        player: { formatted: 'León Vega' },
+        goals: { raw: 2, formatted: '2' },
+        cards: { formatted: '—', numerator: 0, denominator: 0 },
       },
     },
   ],
@@ -161,6 +181,8 @@ const playerProfileFixture = {
       tournamentAlias: TOURNAMENT_ALIAS,
       teamId: 'tm-1',
       teamName: 'Talleres',
+      entrantId: 'Talleres',
+      shirtNumber: 3,
       role: 'player',
       entrantAbbreviation: 'TAL',
       disciplineDescriptorId: 'football',
@@ -171,7 +193,65 @@ const playerProfileFixture = {
     {
       disciplineDescriptorId: 'football',
       disciplineName: 'Football',
-      statistics: [{ code: 'career-goals', label: 'Career goals', value: 9 }],
+      localizedDisciplineName: { en: 'Football', es: 'Fútbol' },
+      statistics: [
+        {
+          code: 'career-goals',
+          label: 'Career goals',
+          localizedLabel: { en: 'Career goals', es: 'Goles en carrera' },
+          value: 9,
+        },
+        {
+          code: 'career-assists',
+          label: 'Career assists',
+          localizedLabel: { en: 'Career assists', es: 'Asistencias en carrera' },
+          value: 0,
+        },
+      ],
+    },
+  ],
+};
+
+// A person with a team in the tournament, no recorded shirt number, no upcoming
+// match left, and a zero-valued declared career statistic alongside a non-zero one.
+const playerProfileFixtureNoNumber = {
+  personId: 'p-3',
+  displayName: 'León Vega',
+  nationality: 'AR',
+  age: 22,
+  competitionHistory: [
+    {
+      tournamentId: 't-1',
+      tournamentName: 'Apertura 2026',
+      tournamentAlias: TOURNAMENT_ALIAS,
+      teamId: 'tm-3',
+      teamName: 'San Martín',
+      entrantId: 'San Martín',
+      role: 'player',
+      entrantAbbreviation: 'SMT',
+      disciplineDescriptorId: 'football',
+      disciplineDescriptorVersion: '1.2.0',
+    },
+  ],
+  careerStatistics: [
+    {
+      disciplineDescriptorId: 'football',
+      disciplineName: 'Football',
+      localizedDisciplineName: { en: 'Football', es: 'Fútbol' },
+      statistics: [
+        {
+          code: 'goals',
+          label: 'Goals',
+          localizedLabel: { en: 'Goals', es: 'Goles' },
+          value: 0,
+        },
+        {
+          code: 'assists',
+          label: 'Assists',
+          localizedLabel: { en: 'Assists', es: 'Asistencias' },
+          value: 4,
+        },
+      ],
     },
   ],
 };
@@ -205,8 +285,28 @@ const topScorersStatisticsFixture = {
     cards: { formatted: '4/5', numerator: 4, denominator: 5 },
   },
   matches: [
-    { stageNumber: 1, matchNumber: 1, cells: { goals: { raw: 5, formatted: '5' } } },
-    { stageNumber: 1, matchNumber: 2, cells: { goals: { raw: 4, formatted: '4' } } },
+    {
+      stageNumber: 1,
+      matchNumber: 1,
+      scheduledAt: '2026-01-01T00:00:00.000Z',
+      side: 'home' as const,
+      opponentName: 'Independiente',
+      opponentAbbreviation: 'IND',
+      ownScore: 2,
+      opponentScore: 1,
+      cells: { goals: { raw: 5, formatted: '5' } },
+    },
+    {
+      stageNumber: 1,
+      matchNumber: 2,
+      scheduledAt: '2026-01-05T21:00:00.000Z',
+      side: 'away' as const,
+      opponentName: 'San Martín',
+      opponentAbbreviation: 'SMT',
+      ownScore: 4,
+      opponentScore: 3,
+      cells: { goals: { raw: 4, formatted: '4' } },
+    },
   ],
 };
 
@@ -219,7 +319,19 @@ const disciplineDrilldownStatisticsFixture = {
     { code: 'assists', header: 'Assists', format: 'number' },
   ],
   tournamentTotal: { player: { formatted: 'Goleador Uno' }, assists: { raw: 3, formatted: '3' } },
-  matches: [{ stageNumber: 1, matchNumber: 1, cells: { assists: { raw: 3, formatted: '3' } } }],
+  matches: [
+    {
+      stageNumber: 1,
+      matchNumber: 1,
+      scheduledAt: '2026-01-01T00:00:00.000Z',
+      side: 'home' as const,
+      opponentName: 'Independiente',
+      opponentAbbreviation: 'IND',
+      ownScore: 2,
+      opponentScore: 1,
+      cells: { assists: { raw: 3, formatted: '3' } },
+    },
+  ],
 };
 
 // p-2 has no recorded roster appearance in this tournament: no tournament
@@ -370,6 +482,47 @@ test.describe('B2: public tournament page', () => {
         { clubId: 'club-independiente', name: 'Club Atlético Independiente' },
       ],
       ruleset: {},
+    };
+    const upcomingMatchForTalleres = {
+      stageNumber: 1,
+      round: 2,
+      matchNumber: 2,
+      status: 'upcoming',
+      homeEntrantId: 'Talleres',
+      homeName: 'Talleres',
+      homeAbbreviation: 'TAL',
+      awayEntrantId: 'Independiente',
+      awayName: 'Independiente',
+      awayAbbreviation: 'IND',
+      scheduledAt: '2026-01-02T18:00:00.000Z',
+      venueName: 'Estadio Central',
+    };
+    const disciplineDrilldownTableFixture = {
+      layoutCode: 'discipline-drilldown',
+      target: 'player-ranking',
+      label: 'Discipline Drilldown',
+      columns: [
+        { code: 'rank', header: '#', format: 'number' },
+        { code: 'player', header: 'Player', format: 'text' },
+        { code: 'assists', header: 'Assists', format: 'number' },
+      ],
+      defaultSort: [{ columnCode: 'assists', direction: 'desc' }],
+      rows: [
+        {
+          actorId: 'p-1',
+          entityId: 'p-1',
+          actorName: 'Goleador Uno',
+          shirtNumber: 3,
+          rank: 1,
+          sharedRank: false,
+          cells: {
+            rank: { raw: 1, formatted: '1' },
+            player: { formatted: 'Goleador Uno' },
+            assists: { raw: 3, formatted: '3' },
+          },
+        },
+      ],
+      projectionVersion: 3,
     };
     const finishedReport = {
       organizationAlias: ORGANIZATION,
@@ -598,7 +751,14 @@ test.describe('B2: public tournament page', () => {
         return;
       }
       if (req.url?.split('?')[0] === `${TOURNAMENT}/matches-view`) {
-        res.end(JSON.stringify({ matches: overview.matches }));
+        const query = new URLSearchParams(req.url.split('?')[1] ?? '');
+        const stateParam = query.get('state');
+        const allMatches = [...overview.matches, upcomingMatchForTalleres];
+        const filtered =
+          stateParam && stateParam !== 'all'
+            ? allMatches.filter((m) => m.status === stateParam)
+            : allMatches;
+        res.end(JSON.stringify({ matches: filtered }));
         return;
       }
       if (req.url === `${TOURNAMENT}/live`) {
@@ -615,6 +775,10 @@ test.describe('B2: public tournament page', () => {
       }
       if (req.url === `${TOURNAMENT}/public/tables/top-scorers`) {
         res.end(JSON.stringify(topScorersFixture));
+        return;
+      }
+      if (req.url === `${TOURNAMENT}/public/tables/discipline-drilldown`) {
+        res.end(JSON.stringify(disciplineDrilldownTableFixture));
         return;
       }
       if (req.url === `${TOURNAMENT}/public/tables/top-scorers?clubId=club-talleres`) {
@@ -645,6 +809,10 @@ test.describe('B2: public tournament page', () => {
         res.end(JSON.stringify(playerProfileFixtureNoStats));
         return;
       }
+      if (req.url === `${TOURNAMENT}/persons/p-3/public/profile`) {
+        res.end(JSON.stringify(playerProfileFixtureNoNumber));
+        return;
+      }
       if (req.url === `${TOURNAMENT}/persons/p-1/public/statistics?layout=top-scorers`) {
         res.end(JSON.stringify(topScorersStatisticsFixture));
         return;
@@ -654,6 +822,10 @@ test.describe('B2: public tournament page', () => {
         return;
       }
       if (req.url === `${TOURNAMENT}/persons/p-2/public/statistics?layout=top-scorers`) {
+        res.end(JSON.stringify(playerStatisticsFixtureNoStats));
+        return;
+      }
+      if (req.url === `${TOURNAMENT}/persons/p-3/public/statistics?layout=top-scorers`) {
         res.end(JSON.stringify(playerStatisticsFixtureNoStats));
         return;
       }
@@ -775,11 +947,12 @@ test.describe('B2: public tournament page', () => {
       `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches?view=cards&state=final`,
     );
 
-    const entrantName = page.getByTestId('entrant-name').first();
+    const grid = page.locator('.cl-matches-view__grid');
+    const entrantName = grid.getByTestId('entrant-name').first();
     await expect(entrantName).toBeVisible({ timeout: 15_000 });
-    await expect(
-      page.locator('astro-island').filter({ has: entrantName }).first(),
-    ).not.toHaveAttribute('ssr', '', { timeout: 15_000 });
+    await expect(grid.locator('astro-island').first()).not.toHaveAttribute('ssr', '', {
+      timeout: 15_000,
+    });
     // `flex: none` on top of the existing forced width: this span is now a real `flex: 1 1 auto` item of
     // `.cl-match-card__side` (its ownership-scanner selector fix widened
     // what it matches — the entrant name previously fell outside it
@@ -1435,5 +1608,219 @@ test.describe('B2: public tournament page', () => {
     expect(new Set(bandColors.map((entry) => entry.rowRail)).size).toBe(3);
     expect(new Set(bandColors.map((entry) => entry.tagRail)).size).toBe(3);
     expect(new Set(bandColors.map((entry) => entry.legendRail)).size).toBe(3);
+  });
+
+  test('player profile shows header club and shirt number, next-match card, match links, and zero-valued career statistics', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-1`);
+
+    const headerMeta = page.locator('.cl-player-profile__meta');
+    await expect(headerMeta.getByText('Club: Talleres (TAL)', { exact: true })).toBeVisible();
+    await expect(headerMeta.getByText('#3', { exact: true })).toBeVisible();
+
+    // Next-match card displays opponent, date/time, venue, and links to the match report.
+    const nextMatchCard = page.locator('.cl-player-profile__next-match');
+    await expect(nextMatchCard).toBeVisible();
+    await expect(
+      nextMatchCard.getByRole('heading', { name: 'Next match', exact: true }),
+    ).toBeVisible();
+    await expect(nextMatchCard.locator('time[datetime="2026-01-02T18:00:00.000Z"]')).toBeVisible();
+    await expect(nextMatchCard.getByText('Estadio Central', { exact: true })).toBeVisible();
+    const nextMatchLink = nextMatchCard.getByRole('link', { name: 'Independiente', exact: true });
+    await expect(nextMatchLink).toHaveAttribute(
+      'href',
+      `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/matches/2`,
+    );
+
+    // Zero-valued declared career stat stays visible alongside non-zero career tiles.
+    const careerList = page.locator('.cl-player-profile__stat-list');
+    await expect(careerList.getByText('Career goals', { exact: true })).toBeVisible();
+    await expect(careerList.getByText('9', { exact: true })).toBeVisible();
+    await expect(careerList.getByText('Career assists', { exact: true })).toBeVisible();
+    await expect(careerList.getByText('0', { exact: true })).toBeVisible();
+
+    // Match-by-match rows show date, opponent, score, and link directly to the match report.
+    const statsSection = page.getByRole('heading', { name: 'Tournament Statistics' }).locator('..');
+    const matchTable = statsSection.getByRole('table').nth(1);
+    const firstMatchLink = matchTable.locator(`a[href$="/stages/1/matches/1"]`);
+    const secondMatchLink = matchTable.locator(`a[href$="/stages/1/matches/2"]`);
+    await expect(firstMatchLink).toContainText('Independiente');
+    await expect(firstMatchLink).toContainText('2–1');
+    await expect(secondMatchLink).toContainText('San Martín');
+    await expect(secondMatchLink).toContainText('4–3');
+
+    await firstMatchLink.click();
+    await page.waitForURL(`**/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/matches/1`);
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Talleres vs Independiente' }),
+    ).toBeVisible();
+
+    // Follow the next-match link on a fresh visit to verify it lands on match 2.
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-1`);
+    await page.locator('.cl-player-profile__next-match a').click();
+    await page.waitForURL(`**/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/matches/2`);
+
+    // A player without a shirt number or upcoming match omits both cleanly, while
+    // keeping a zero-valued career statistic visible in Spanish too.
+    await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-3`);
+    const p3Meta = page.locator('.cl-player-profile__meta');
+    await expect(p3Meta.getByText('Club: San Martín (SMT)', { exact: true })).toBeVisible();
+    await expect(p3Meta).not.toContainText('#');
+    await expect(page.locator('.cl-player-profile__next-match')).toHaveCount(0);
+    await expect(page.locator('#player-next-match-heading')).toHaveCount(0);
+
+    const p3CareerList = page.locator('.cl-player-profile__stat-list');
+    await expect(p3CareerList.getByText('Goles', { exact: true })).toBeVisible();
+    await expect(p3CareerList.getByText('0', { exact: true })).toBeVisible();
+    await expect(p3CareerList.getByText('Asistencias', { exact: true })).toBeVisible();
+    await expect(p3CareerList.getByText('4', { exact: true })).toBeVisible();
+  });
+
+  test('player dialog shows club, shirt number, tournament totals, and Ver perfil link preserving layout', async ({
+    page,
+  }) => {
+    await page.route(PLAYER_PROFILE_PATH, (route) => route.fulfill({ json: playerProfileFixture }));
+    await page.route(`**${TOURNAMENT}/persons/p-1/public/statistics*`, (route) => {
+      const url = new URL(route.request().url());
+      const layout = url.searchParams.get('layout');
+      if (layout === 'discipline-drilldown') {
+        return route.fulfill({ json: disciplineDrilldownStatisticsFixture });
+      }
+      return route.fulfill({ json: topScorersStatisticsFixture });
+    });
+
+    await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}?tab=discipline-drilldown`);
+    await page.getByRole('link', { name: 'Goleador Uno' }).click();
+
+    const dialog = page.locator('#cl-player-dialog');
+    await expect(dialog).toBeVisible();
+    const meta = dialog.locator('.cl-modal-meta');
+    await expect(meta.getByText('Club: Talleres (TAL)', { exact: true })).toBeVisible();
+    await expect(meta.getByText('#3', { exact: true })).toBeVisible();
+    await expect(dialog.locator('.cl-modal-tournament-totals__line')).toHaveText('Assists: 3');
+
+    const viewProfileLink = dialog.locator('.cl-player-dialog__profile-link');
+    await expect(viewProfileLink).toHaveText('Ver perfil');
+    await expect(viewProfileLink).toHaveAttribute(
+      'href',
+      `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-1?layout=discipline-drilldown`,
+    );
+
+    await viewProfileLink.click();
+    await page.waitForURL(
+      `**/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-1?layout=discipline-drilldown`,
+    );
+    await expect(page.getByRole('tab', { name: 'Discipline Drilldown' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
+  test('player search filters case- and accent-insensitively with scripts off and in place with scripts on while preserving ranks', async ({
+    browser,
+    page,
+  }) => {
+    // 1. JavaScript disabled: GET form submission reloads with ?q=leon and preserves rank 3.
+    const noScriptContext = await browser.newContext({ javaScriptEnabled: false });
+    const noScriptPage = await noScriptContext.newPage();
+    await noScriptPage.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}?tab=top-scorers`);
+
+    const noScriptForm = noScriptPage.locator('form[data-table-search-form]');
+    await noScriptForm.locator('input[data-table-search-input]').fill('leon');
+    await noScriptForm.locator('button[type="submit"]').click();
+
+    await noScriptPage.waitForURL((url) => url.searchParams.get('q') === 'leon');
+    expect(new URL(noScriptPage.url()).searchParams.get('tab')).toBe('top-scorers');
+    const noScriptRows = noScriptPage.locator('#standings tbody tr');
+    await expect(noScriptRows).toHaveCount(1);
+    await expect(noScriptRows.first()).toContainText('León Vega');
+    await expect(noScriptRows.first().locator('td').first()).toHaveText('3');
+    await expect(noScriptPage.getByRole('cell', { name: 'Goleador Uno' })).toHaveCount(0);
+    await noScriptContext.close();
+
+    // 2. JavaScript enabled: typing filters in place without reload, preserves rank, updates ?q=.
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}?tab=top-scorers`);
+    await page.evaluate(() => {
+      (window as unknown as { __sameDocument: boolean }).__sameDocument = true;
+    });
+
+    const input = page.locator('input[data-table-search-input]');
+    await input.fill('leon');
+
+    await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe('leon');
+    expect(
+      await page.evaluate(() => (window as unknown as { __sameDocument?: boolean }).__sameDocument),
+    ).toBe(true);
+
+    const visibleRows = page.locator('#standings tbody tr:not([hidden])');
+    await expect(visibleRows).toHaveCount(1);
+    await expect(visibleRows.first()).toContainText('León Vega');
+    await expect(visibleRows.first().locator('td').first()).toHaveText('3');
+
+    await input.fill('');
+    await expect.poll(() => new URL(page.url()).searchParams.has('q')).toBe(false);
+    await expect(page.locator('#standings tbody tr:not([hidden])')).toHaveCount(3);
+  });
+
+  test('person-granularity table places shirt number before player name, shows sort indicators, and renders zero-denominator fractions cleanly', async ({
+    page,
+  }) => {
+    await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}?tab=top-scorers`);
+
+    const table = page.locator('#standings table[data-sortable-table]');
+    const headers = table.locator('thead th');
+    const headerTexts = await headers.allTextContents();
+    const cleanedHeaders = headerTexts.map((text) => text.trim());
+    const numberIndex = cleanedHeaders.indexOf('N.º');
+    const playerIndex = cleanedHeaders.indexOf('Player');
+    expect(numberIndex).toBeGreaterThan(-1);
+    expect(playerIndex).toBe(numberIndex + 1);
+
+    // Rank column starts ascending with a visible sort indicator.
+    const rankTh = headers.nth(0);
+    await expect(rankTh).toHaveAttribute('aria-sort', 'ascending');
+    await expect(rankTh.locator('.cl-sort-indicator')).toBeVisible();
+    await expect(rankTh.locator('.cl-sort-indicator')).toHaveCSS('opacity', '1');
+
+    const goalsTh = headers.filter({ hasText: 'Goals' });
+    await expect(goalsTh).toHaveAttribute('aria-sort', 'none');
+    await expect(goalsTh.locator('.cl-sort-indicator')).toHaveCSS('opacity', '0.4');
+
+    // Click Goals twice: ascending, then descending.
+    const goalsButton = goalsTh.locator('[data-table-sort-button]');
+    await goalsButton.click();
+    await expect(goalsTh).toHaveAttribute('aria-sort', 'ascending');
+    await expect(rankTh).toHaveAttribute('aria-sort', 'none');
+
+    await goalsButton.click();
+    await expect(goalsTh).toHaveAttribute('aria-sort', 'descending');
+    await expect(rankTh).toHaveAttribute('aria-sort', 'none');
+    await expect(goalsTh.locator('.cl-sort-indicator')).toHaveCSS('opacity', '1');
+    await expect(rankTh.locator('.cl-sort-indicator')).toHaveCSS('opacity', '0.4');
+
+    const goalsIndex = cleanedHeaders.indexOf('Goals');
+    const goalsOrder = await table
+      .locator('tbody tr')
+      .evaluateAll(
+        (rows, idx) => rows.map((row) => row.querySelectorAll('td').item(idx)?.textContent?.trim()),
+        goalsIndex,
+      );
+    expect(goalsOrder).toEqual(['9', '5', '2']);
+
+    // Zero-denominator fraction renders cleanly without "0/0".
+    const leonRow = table.locator('tbody tr', { hasText: 'León Vega' });
+    await expect(leonRow).toContainText('—');
+    await expect(table).not.toContainText('0/0');
+
+    // English locale uses "No." before the player name.
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}?tab=top-scorers`);
+    const enHeaders = await page
+      .locator('#standings table[data-sortable-table] thead th')
+      .allTextContents();
+    const enCleaned = enHeaders.map((text) => text.trim());
+    const enNumberIndex = enCleaned.indexOf('No.');
+    expect(enNumberIndex).toBeGreaterThan(-1);
+    expect(enCleaned.indexOf('Player')).toBe(enNumberIndex + 1);
   });
 });
