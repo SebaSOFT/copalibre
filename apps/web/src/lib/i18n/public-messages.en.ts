@@ -1528,6 +1528,42 @@ export const messages = defineMessages({
     id: 'publicWeb.clubIndex.bandUnassigned',
     defaultMessage: 'Unassigned',
   },
+  organizationClubPageDescription: {
+    id: 'publicWeb.organizationClubPage.description',
+    defaultMessage: '{club} in {organization}: tournaments played and titles won.',
+  },
+  organizationClubPageHonoursHeading: {
+    id: 'publicWeb.organizationClubPage.honoursHeading',
+    defaultMessage: 'Titles and podiums',
+  },
+  organizationClubPageTournamentsHeading: {
+    id: 'publicWeb.organizationClubPage.tournamentsHeading',
+    defaultMessage: 'Tournaments',
+  },
+  organizationClubPageTournamentsEmpty: {
+    id: 'publicWeb.organizationClubPage.tournamentsEmpty',
+    defaultMessage: 'This club has not played a published tournament yet.',
+  },
+  organizationClubPageTournamentColumn: {
+    id: 'publicWeb.organizationClubPage.tournamentColumn',
+    defaultMessage: 'Tournament',
+  },
+  organizationClubPageDisciplineColumn: {
+    id: 'publicWeb.organizationClubPage.disciplineColumn',
+    defaultMessage: 'Discipline',
+  },
+  organizationClubPageStatusColumn: {
+    id: 'publicWeb.organizationClubPage.statusColumn',
+    defaultMessage: 'Status',
+  },
+  organizationClubPagePlaceColumn: {
+    id: 'publicWeb.organizationClubPage.placeColumn',
+    defaultMessage: 'Place',
+  },
+  organizationClubPagePlaceInZone: {
+    id: 'publicWeb.organizationClubPage.placeInZone',
+    defaultMessage: '{place} · {zone}',
+  },
   clubPageDescription: {
     id: 'publicWeb.clubPage.description',
     defaultMessage: 'Club overview, standing, results and squad for {club} in {tournament}.',

@@ -7857,6 +7857,45 @@
         ]
       }
     },
+    "/api/organizations/{organizationAlias}/public/clubs/{clubAlias}": {
+      "get": {
+        "operationId": "PublicOrganizationClubController_clubHistory",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicOrganizationClubHistoryResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A club's tournaments and podium places in its organization",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    },
     "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/overview": {
       "get": {
         "operationId": "PublicProjectionsController_overview",
@@ -20325,6 +20364,129 @@
           "clubs"
         ]
       },
+      "PublicOverviewClubResponse": {
+        "type": "object",
+        "properties": {
+          "clubId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "abbreviation": {
+            "type": "string"
+          },
+          "alias": {
+            "type": "string"
+          },
+          "emblemObjectId": {
+            "type": "string"
+          },
+          "formerAliases": {
+            "description": "Aliases this club held before a rename, within its organization. A public URL naming one of them is redirected to the current alias. Absent when the club was never renamed.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "clubId",
+          "name"
+        ]
+      },
+      "PublicClubPlacementResponse": {
+        "type": "object",
+        "properties": {
+          "place": {
+            "type": "string",
+            "enum": [
+              "champion",
+              "runner-up",
+              "third-place"
+            ]
+          },
+          "zoneName": {
+            "type": "string",
+            "description": "The zone the place was won in, when the final stage has zones"
+          }
+        },
+        "required": [
+          "place"
+        ]
+      },
+      "PublicOrganizationClubTournamentResponse": {
+        "type": "object",
+        "properties": {
+          "alias": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "upcoming",
+              "live",
+              "finished"
+            ]
+          },
+          "discipline": {
+            "$ref": "#/components/schemas/PublicTournamentDisciplineSummaryResponse"
+          },
+          "dates": {
+            "$ref": "#/components/schemas/PublicTournamentDatesResponse"
+          },
+          "emblemObjectId": {
+            "type": "string"
+          },
+          "placements": {
+            "description": "The club's podium places in a finished tournament. Absent when it has none.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicClubPlacementResponse"
+            }
+          }
+        },
+        "required": [
+          "alias",
+          "name",
+          "status",
+          "discipline"
+        ]
+      },
+      "PublicOrganizationClubHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "organizationAlias": {
+            "type": "string"
+          },
+          "organizationName": {
+            "type": "string"
+          },
+          "organizationEmblemObjectId": {
+            "type": "string"
+          },
+          "club": {
+            "$ref": "#/components/schemas/PublicOverviewClubResponse"
+          },
+          "tournaments": {
+            "description": "Published tournaments with a team entrant from the club, newest first. Draft tournaments never appear.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicOrganizationClubTournamentResponse"
+            }
+          }
+        },
+        "required": [
+          "organizationAlias",
+          "organizationName",
+          "club",
+          "tournaments"
+        ]
+      },
       "PublicObjectReferenceResponse": {
         "type": "object",
         "properties": {
@@ -20636,38 +20798,6 @@
           "entrantId",
           "sharedRank",
           "statistics"
-        ]
-      },
-      "PublicOverviewClubResponse": {
-        "type": "object",
-        "properties": {
-          "clubId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "abbreviation": {
-            "type": "string"
-          },
-          "alias": {
-            "type": "string"
-          },
-          "emblemObjectId": {
-            "type": "string"
-          },
-          "formerAliases": {
-            "description": "Aliases this club held before a rename, within its organization. A public URL naming one of them is redirected to the current alias. Absent when the club was never renamed.",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "clubId",
-          "name"
         ]
       },
       "PublicOverviewResponse": {

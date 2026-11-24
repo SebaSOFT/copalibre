@@ -45,6 +45,7 @@ import {
   PublicProjectionsController,
   PublicTournamentListingController,
 } from '../controllers/public-projections.controller.js';
+import { PublicOrganizationClubController } from '../controllers/public-organization-club.controller.js';
 import {
   NativeAuthController,
   PersonalAccessTokenController,
@@ -95,6 +96,7 @@ export const OPENAPI_CONTROLLERS = [
   ReportReviewController,
   InstallationBootstrapController,
   PublicTournamentListingController,
+  PublicOrganizationClubController,
   PublicProjectionsController,
   PublicObjectsController,
   NativeAuthController,

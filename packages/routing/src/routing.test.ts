@@ -41,8 +41,22 @@ describe('canonical public paths', () => {
       { ...BASE, clubAlias: 'club-hispano', locale: 'es' },
       '/es/liga-mendocina/tournaments/apertura-2026/clubs/club-hispano',
     ],
+    [
+      { organizationAlias: 'liga-mendocina', clubAlias: 'club-hispano' },
+      '/liga-mendocina/clubs/club-hispano',
+    ],
+    [
+      { organizationAlias: 'liga-mendocina', clubAlias: 'club-hispano', locale: 'es' },
+      '/es/liga-mendocina/clubs/club-hispano',
+    ],
   ])('builds %j', (input, expected) => {
     expect(publicPath(input)).toBe(expected);
+  });
+
+  it('refuses a club index that names no tournament', () => {
+    expect(() => publicPath({ organizationAlias: 'liga-mendocina', clubIndex: true })).toThrow(
+      RouteError,
+    );
   });
 
   it('has a home', () => {

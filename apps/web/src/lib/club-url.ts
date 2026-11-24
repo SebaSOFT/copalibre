@@ -87,3 +87,37 @@ export function optionalClubPageUrl(input: {
     return undefined;
   }
 }
+
+/** Builds the organization club page URL: the club across its organization's tournaments. */
+export function organizationClubPageUrl(input: {
+  readonly organizationAlias: string;
+  readonly clubAlias: string;
+  readonly localePrefix?: string;
+}): string {
+  if (!isValidClubAlias(input.clubAlias)) {
+    throw new RouteError(
+      `clubAlias "${input.clubAlias}" is not a valid alias (UUIDs and invalid tokens are refused)`,
+    );
+  }
+  return publicPath({
+    organizationAlias: input.organizationAlias,
+    clubAlias: input.clubAlias,
+    locale: localeFromPrefix(input.localePrefix),
+  });
+}
+
+/** The organization club page URL, or `undefined` when an alias is missing or malformed. */
+export function optionalOrganizationClubPageUrl(input: {
+  readonly organizationAlias?: string;
+  readonly clubAlias?: string;
+  readonly localePrefix?: string;
+}): string | undefined {
+  if (!isValidClubAlias(input.organizationAlias) || !isValidClubAlias(input.clubAlias)) {
+    return undefined;
+  }
+  return organizationClubPageUrl({
+    organizationAlias: input.organizationAlias,
+    clubAlias: input.clubAlias,
+    localePrefix: input.localePrefix,
+  });
+}

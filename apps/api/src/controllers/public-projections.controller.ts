@@ -34,6 +34,10 @@ import {
 import { TableLayoutListResponse, TableProjectionResponse } from '../dto/table-projections.dto.js';
 import { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
+import {
+  disciplineSummaryOf,
+  loadDescriptorsById,
+} from '../organization-club/discipline-summary.js';
 import { readStandings, readStandingsByZone } from '../standings/read.js';
 import { readMatchesView } from '../matches-view/read.js';
 import { readPublicScheduleChanges, readPublicVenues } from '../matches-view/schedule.js';
@@ -153,17 +157,7 @@ export class PublicTournamentListingController {
       organization.organizationId,
     );
 
-    const descriptorRows = await this.db
-      .selectFrom('discipline_descriptors')
-      .select(['descriptor_id as descriptorId', 'document'])
-      .execute();
-    const descriptorMap = new Map<string, DisciplineDescriptor>();
-    for (const d of descriptorRows) {
-      const parsed = (
-        typeof d.document === 'string' ? JSON.parse(d.document) : d.document
-      ) as DisciplineDescriptor;
-      descriptorMap.set(d.descriptorId, parsed);
-    }
+    const descriptorMap = await loadDescriptorsById(this.db);
 
     const overviewReadModel = new PublicOverviewReadModel(this.db);
     const tournamentItems: PublicTournamentListingItemResponse[] = [];
@@ -173,15 +167,10 @@ export class PublicTournamentListingController {
       const matches = await overviewReadModel.matchesForTournament(t.tournamentId);
       const status = deriveTournamentStatus(t.status, matches);
 
-      const desc = descriptorMap.get(t.disciplineRef.descriptorId);
-      const discipline = {
-        descriptorId: t.disciplineRef.descriptorId,
-        version: t.disciplineRef.version,
-        name: desc?.name ? resolveLabel(desc.name, 'en') : undefined,
-        ...(desc?.name !== undefined && typeof desc.name !== 'string'
-          ? { localizedName: desc.name }
-          : {}),
-      };
+      const discipline = disciplineSummaryOf(
+        t.disciplineRef,
+        descriptorMap.get(t.disciplineRef.descriptorId),
+      );
 
       const dates =
         t.startedAt || t.archivedAt
