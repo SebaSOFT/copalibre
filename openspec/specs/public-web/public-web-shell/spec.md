@@ -1235,3 +1235,62 @@ The tournament ticker SHALL list live matches first, then delayed matches, then 
 
 - **WHEN** the tournament has finals on 18 and 22 November and fixtures on 23 and 24 November
 - **THEN** the ticker lists the 23 November fixtures before the 24 November ones, then the 22 November finals before the 18 November ones
+
+### Requirement: The player profile header names the player's club and number
+
+Within a published tournament, a player's public profile header SHALL name the club the player
+represents in that tournament, linked to that club's public page when one is served, and SHALL show
+the shirt number from the player's most recent finalized match roster in that tournament when a
+roster records one.
+
+#### Scenario: A player with recorded rosters
+- **WHEN** a spectator opens the profile of a player whose latest finalized roster in the tournament
+  gives number 3 for Club Hispano
+- **THEN** the header shows "Club Hispano" and number 3
+
+#### Scenario: No recorded number
+- **WHEN** no finalized roster of the tournament gives the player a number
+- **THEN** the header shows the club and no number, with no placeholder such as "—"
+
+### Requirement: The player profile shows the player's next match
+
+A player's public profile SHALL show the next live or scheduled match of the entrant the player
+represents in the current tournament, with its date and time in the organization's time zone, the
+opponent or the undecided side's source, the venue when assigned, and a link to its report. It SHALL
+show nothing in that place when no such match exists.
+
+#### Scenario: A semi-final is scheduled
+- **WHEN** the player's club has a scheduled semi-final against Lomas de Rivadavia
+- **THEN** the profile shows that match as the next match, linked to its report
+
+#### Scenario: The club is out of the tournament
+- **WHEN** the player's entrant has no live or scheduled match left
+- **THEN** the profile shows no next-match block
+
+### Requirement: Each profile match row identifies its match
+
+Each row of a player's match-by-match table SHALL show the match's date, opponent and final score,
+and SHALL link to that match's public report.
+
+#### Scenario: Reading a group game row
+- **WHEN** a spectator reads a row of the match-by-match table
+- **THEN** it shows the date, the opponent and the score, and following it opens that match's report
+
+### Requirement: Career totals keep zero-valued statistics
+
+A player's career totals SHALL list every organization-granularity statistic the discipline
+declares, in declaration order, showing 0 for one the player has not recorded.
+
+#### Scenario: A player who has not scored
+- **WHEN** a spectator opens the profile of a player with 4 appearances and no goal
+- **THEN** the career totals show both "Goles 0" and "Partidos jugados 4"
+
+### Requirement: Ticker top-performer items name the person
+
+A tournament ticker's top-performer item SHALL name the ranked person and carry the person's entrant
+abbreviation as secondary text, falling back to the entrant name only when the row carries no person
+name.
+
+#### Scenario: Top scorer item
+- **WHEN** the ticker renders the top scorer, Mateo Moreno of Casa de Italia with 10 goals
+- **THEN** the item reads Mateo Moreno with 10 goals and "CIT" as secondary text, not "Casa de Italia"

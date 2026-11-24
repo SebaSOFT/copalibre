@@ -73,3 +73,13 @@ it.each([
   initializeEntrantHighlight(root);
   expect(root.dataset.journeyReady).toBeUndefined();
 });
+it('pre-highlights an initial entrant when data-initial-entrant-id is set', () => {
+  const root = bracket();
+  root.dataset.initialEntrantId = 'a';
+  initializeEntrantHighlight(root);
+  expect(
+    query<HTMLButtonElement>(root, 'button[data-entrant-id="a"]').getAttribute('aria-pressed'),
+  ).toBe('true');
+  expect(root.querySelectorAll('[data-entrant-path="included"]')).toHaveLength(3);
+  expect(root.querySelectorAll('[data-entrant-path="excluded"]')).toHaveLength(1);
+});

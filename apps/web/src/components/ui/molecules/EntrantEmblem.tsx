@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { emblemMonogramFit } from '../../../lib/entrant-emblem.js';
+import { emblemMonogramStep } from '../../../lib/entrant-emblem.js';
 import { emblemSizes, emblemSrcset } from '../../../lib/public-image-paths.js';
 import { Icon } from '../atoms/icon.js';
 
@@ -35,8 +35,7 @@ export function EntrantEmblem({
   const imageRef = useRef<HTMLImageElement>(null);
   const imageVisible = src !== undefined && failedSrc !== src;
   const hiddenFromAssistiveTechnology = bare || decorative;
-  const fit = emblemMonogramFit(abbreviation);
-  const abbreviationLength = Array.from(abbreviation ?? '').length;
+  const monogramStep = emblemMonogramStep(abbreviation);
   const sizes = emblemSizes(size);
   const srcSet = src !== undefined && sizes !== undefined ? emblemSrcset(src) : undefined;
   const pixels = typeof size === 'number' ? size : undefined;
@@ -84,19 +83,9 @@ export function EntrantEmblem({
         />
       ) : (
         <span aria-hidden="true" className="cl-entrant-emblem__fallback">
-          {fit && abbreviation !== undefined ? (
+          {monogramStep && abbreviation !== undefined ? (
             <span
-              className={[
-                'cl-entrant-emblem__monogram',
-                fit === 'reduced' && 'cl-entrant-emblem__monogram--reduced',
-                fit === 'figure' &&
-                  abbreviationLength === 4 &&
-                  typeof size === 'number' &&
-                  size <= 32 &&
-                  'cl-entrant-emblem__monogram--small-tight',
-              ]
-                .filter(Boolean)
-                .join(' ')}
+              className={`cl-entrant-emblem__monogram cl-entrant-emblem__monogram--${monogramStep}`}
             >
               {abbreviation}
             </span>

@@ -1512,4 +1512,116 @@ export const messages = defineMessages({
     id: 'publicWeb.matchRosters.onFieldNo',
     defaultMessage: 'No',
   },
+  clubIndexTitle: {
+    id: 'publicWeb.clubIndex.title',
+    defaultMessage: 'Teams',
+  },
+  clubIndexDescription: {
+    id: 'publicWeb.clubIndex.description',
+    defaultMessage: 'Participating clubs in {tournament}.',
+  },
+  clubIndexEmptyDescription: {
+    id: 'publicWeb.clubIndex.emptyDescription',
+    defaultMessage: 'No clubs are registered in this tournament yet.',
+  },
+  clubIndexBandUnassigned: {
+    id: 'publicWeb.clubIndex.bandUnassigned',
+    defaultMessage: 'Unassigned',
+  },
+  clubPageDescription: {
+    id: 'publicWeb.clubPage.description',
+    defaultMessage: 'Club overview, standing, results and squad for {club} in {tournament}.',
+  },
+  clubPageNextMatchHeading: {
+    id: 'publicWeb.clubPage.nextMatchHeading',
+    defaultMessage: 'Next match',
+  },
+  clubPageStandingHeading: {
+    id: 'publicWeb.clubPage.standingHeading',
+    defaultMessage: 'Standing',
+  },
+  clubPageStandingLink: {
+    id: 'publicWeb.clubPage.standingLink',
+    defaultMessage: 'View stage standings',
+  },
+  clubPageResultsHeading: {
+    id: 'publicWeb.clubPage.resultsHeading',
+    defaultMessage: 'Results',
+  },
+  clubPageResultsEmpty: {
+    id: 'publicWeb.clubPage.resultsEmpty',
+    defaultMessage: 'No finished matches recorded yet.',
+  },
+  clubPageSquadHeading: {
+    id: 'publicWeb.clubPage.squadHeading',
+    defaultMessage: 'Squad',
+  },
+  clubPageSquadEmpty: {
+    id: 'publicWeb.clubPage.squadEmpty',
+    defaultMessage: 'No squad statistics recorded yet.',
+  },
+  clubPagePathHeading: {
+    id: 'publicWeb.clubPage.pathHeading',
+    defaultMessage: 'Knockout path',
+  },
+  clubPagePathLink: {
+    id: 'publicWeb.clubPage.pathLink',
+    defaultMessage: 'View path in bracket',
+  },
+  clubPageStatusInCompetition: {
+    id: 'publicWeb.clubPage.status.inCompetition',
+    defaultMessage: 'In competition: {zone}, {round}',
+  },
+  clubPageStatusInCompetitionRoundOnly: {
+    id: 'publicWeb.clubPage.status.inCompetitionRoundOnly',
+    defaultMessage: 'In competition: {round}',
+  },
+  clubPageStatusEliminated: {
+    id: 'publicWeb.clubPage.status.eliminated',
+    defaultMessage: 'Eliminated in {round} of {zone}',
+  },
+  clubPageStatusEliminatedRoundOnly: {
+    id: 'publicWeb.clubPage.status.eliminatedRoundOnly',
+    defaultMessage: 'Eliminated in {round}',
+  },
+  clubPageStatusGroupStage: {
+    id: 'publicWeb.clubPage.status.groupStage',
+    defaultMessage: 'Group stage',
+  },
+  clubPageStatusChampion: {
+    id: 'publicWeb.clubPage.status.champion',
+    defaultMessage: 'Champion of {zone}',
+  },
+  clubPageStatusChampionNoZone: {
+    id: 'publicWeb.clubPage.status.championNoZone',
+    defaultMessage: 'Champion',
+  },
+  clubPageStatusGroupStageEliminated: {
+    id: 'publicWeb.clubPage.status.groupStageEliminated',
+    defaultMessage: 'Eliminated in the group stage',
+  },
+  clubPageOutcomeWon: {
+    id: 'publicWeb.clubPage.outcome.won',
+    defaultMessage: 'Won',
+  },
+  clubPageOutcomeDrawn: {
+    id: 'publicWeb.clubPage.outcome.drawn',
+    defaultMessage: 'Drawn',
+  },
+  clubPageOutcomeLost: {
+    id: 'publicWeb.clubPage.outcome.lost',
+    defaultMessage: 'Lost',
+  },
+  matchesViewFilterClub: {
+    id: 'publicWeb.matchesView.filterClub',
+    defaultMessage: 'Club',
+  },
+  matchesViewFilterClubAll: {
+    id: 'publicWeb.matchesView.filterClubAll',
+    defaultMessage: 'All clubs',
+  },
+  matchesViewFilterClubApply: {
+    id: 'publicWeb.matchesView.filterClubApply',
+    defaultMessage: 'Apply',
+  },
 });

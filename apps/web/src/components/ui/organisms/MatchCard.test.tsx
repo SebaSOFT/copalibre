@@ -49,6 +49,75 @@ function baseMatch(overrides: Partial<MatchCardData> = {}): MatchCardData {
 }
 
 describe('MatchCard', () => {
+  it('gives the title its own truncating slot with the full title as its tooltip, linked or not', () => {
+    const { container, rerender } = render(
+      <MatchCard
+        match={baseMatch({
+          state: 'final',
+          homeScore: 2,
+          awayScore: 1,
+          groupName: 'Cuartos de final 1',
+        })}
+        labels={labels}
+        locale="en"
+        outcome={{ kind: 'won', label: 'Won' }}
+      />,
+    );
+
+    const title = container.querySelector('.cl-match-card__title');
+    expect(title?.textContent).toBe('Cuartos de final 1');
+    expect(title?.getAttribute('title')).toBe('Cuartos de final 1');
+    expect(
+      container.querySelector('.cl-match-card__header .cl-match-card__outcome'),
+    ).not.toBeNull();
+
+    rerender(
+      <MatchCard
+        match={baseMatch({ state: 'final', homeScore: 2, awayScore: 1, groupName: 'Grupo A' })}
+        labels={labels}
+        locale="en"
+        reportUrl="/report/1"
+      />,
+    );
+    expect(
+      container.querySelector('a.cl-match-card__report-link .cl-match-card__title')?.textContent,
+    ).toBe('Grupo A');
+  });
+
+  it.each([
+    ['won', 'cl-badge--positive', 'Won'],
+    ['drawn', 'cl-badge--muted', 'Drawn'],
+    ['lost', 'cl-badge--negative', 'Lost'],
+  ] as const)(
+    'renders a %s outcome as a labelled badge with its tone',
+    (kind, toneClass, label) => {
+      const { container } = render(
+        <MatchCard
+          match={baseMatch({ state: 'final', homeScore: 2, awayScore: 1 })}
+          labels={labels}
+          locale="en"
+          outcome={{ kind, label }}
+        />,
+      );
+
+      const badge = container.querySelector('.cl-match-card__outcome');
+      expect(badge?.textContent).toBe(label);
+      expect(badge?.classList.contains(toneClass)).toBe(true);
+    },
+  );
+
+  it('renders no outcome badge when no outcome is given', () => {
+    const { container } = render(
+      <MatchCard
+        match={baseMatch({ state: 'final', homeScore: 2, awayScore: 1 })}
+        labels={labels}
+        locale="en"
+      />,
+    );
+
+    expect(container.querySelector('.cl-match-card__outcome')).toBeNull();
+  });
+
   it('uses the match number as its card heading at the requested depth', () => {
     render(<MatchCard headingLevel={3} match={baseMatch()} labels={labels} locale="en" />);
 
@@ -855,5 +924,51 @@ describe('MatchCard compact presentation', () => {
     expect(timer.textContent).toContain('15:30');
     expect(timer.textContent).toContain('Stopped');
     expect(timer.getAttribute('aria-label')).toBe('2nd Half, 15:30');
+  });
+
+  it('links team names to club pages only on regular cards when aliases are valid, never on compact cards', () => {
+    const matchWithClubs = baseMatch({
+      homeClubAlias: 'club-hispano',
+      awayClubAlias: 'andes-talleres',
+    });
+
+    const { container, rerender } = render(
+      <MatchCard
+        match={matchWithClubs}
+        labels={labels}
+        locale="en"
+        localePrefix="/es"
+        organizationAlias="liga-mendocina"
+        tournamentAlias="apertura-2026"
+        reportUrl="/es/liga-mendocina/tournaments/apertura-2026/stages/1/matches/1"
+      />,
+    );
+
+    const teamLinks = [...container.querySelectorAll('.cl-match-card__team-link')].map((el) =>
+      el.getAttribute('href'),
+    );
+    expect(teamLinks).toEqual([
+      '/es/liga-mendocina/tournaments/apertura-2026/clubs/club-hispano',
+      '/es/liga-mendocina/tournaments/apertura-2026/clubs/andes-talleres',
+    ]);
+    expect(container.querySelector('.cl-match-card__report-link')?.getAttribute('href')).toBe(
+      '/es/liga-mendocina/tournaments/apertura-2026/stages/1/matches/1',
+    );
+
+    rerender(
+      <MatchCard
+        compact
+        match={matchWithClubs}
+        labels={labels}
+        locale="en"
+        localePrefix="/es"
+        organizationAlias="liga-mendocina"
+        tournamentAlias="apertura-2026"
+        reportUrl="/es/liga-mendocina/tournaments/apertura-2026/stages/1/matches/1"
+      />,
+    );
+
+    expect(container.querySelectorAll('.cl-match-card__team-link')).toHaveLength(0);
+    expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 });

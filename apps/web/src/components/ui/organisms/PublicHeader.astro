@@ -45,8 +45,10 @@ interface Props {
    */
   readonly localeOptions?: readonly LocaleOption[];
   readonly tournamentNavigation?: PublicTournamentNavigation;
+  /** The teams tab opens the club index only when the tournament has clubs; otherwise it keeps its anchor. */
+  readonly tournamentHasClubs?: boolean;
 }
-const { intl, localeOptions = [], tournamentNavigation } = Astro.props;
+const { intl, localeOptions = [], tournamentNavigation, tournamentHasClubs = false } = Astro.props;
 
 const locale = intl.locale;
 const currentPathname = Astro.url.pathname;
@@ -91,7 +93,9 @@ const tournamentLinks: readonly {
         },
         {
           section: 'teams',
-          href: tournamentNavigation.tournamentPath + '#teams',
+          href: tournamentHasClubs
+            ? tournamentNavigation.tournamentPath + '/clubs'
+            : tournamentNavigation.tournamentPath + '#teams',
           label: intl.formatMessage(messages.headerTournamentTeams),
         },
       ];

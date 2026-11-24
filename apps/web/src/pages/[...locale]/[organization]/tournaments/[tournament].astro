@@ -27,6 +27,7 @@ import {
   summarizeOverviewMatches,
   type OverviewMatch,
 } from '../../../../lib/overview.ts';
+import { resolveClubFilter } from '../../../../lib/club-page.ts';
 import { isDelayed } from '../../../../lib/match-state.ts';
 import { formatTimestamp } from '../../../../lib/format-timestamp.ts';
 import { selectStageLayout } from '../../../../lib/bracket.ts';
@@ -159,7 +160,21 @@ const standingsStageNumber =
   (Number.isFinite(earliestStageNumber) ? earliestStageNumber : undefined);
 
 const requestedTab = Astro.url.searchParams.get('tab');
-const activeClubId = Astro.url.searchParams.get('clubId') ?? undefined;
+const clubResolution = resolveClubFilter(Astro.url.searchParams, model.clubs);
+if ('redirectSearch' in clubResolution) {
+  const location = clubResolution.redirectSearch
+    ? `${Astro.url.pathname}?${clubResolution.redirectSearch}`
+    : Astro.url.pathname;
+  return new Response(null, { status: 301, headers: { Location: location } });
+}
+const activeClubAlias = clubResolution.activeClubAlias;
+const activeClubId = clubResolution.activeClubId;
+const clubFilter = activeClubAlias
+  ? { club: activeClubAlias }
+  : activeClubId
+    ? { clubId: activeClubId }
+    : undefined;
+const isFilteredByClub = activeClubAlias !== undefined || activeClubId !== undefined;
 const searchQuery = Astro.url.searchParams.get('q') ?? undefined;
 
 const defaultLayout =
@@ -175,11 +190,11 @@ const activeProjection = activeLayout
       tournament!,
       activeLayout.code,
       activeLayout.target === 'group-phase' ? standingsStageNumber : undefined,
-      activeClubId,
+      clubFilter,
     )
   : undefined;
 const activeSegments = activeProjection?.segments ?? [];
-const visibleSegments = activeClubId
+const visibleSegments = isFilteredByClub
   ? activeSegments.filter((segment) => segment.rows.length > 0)
   : activeSegments;
 const isMultiGroupStandings = activeSegments.length > 1;
@@ -350,7 +365,7 @@ const isGroupPhaseStandings =
   activeLayout?.target === 'group-phase' ||
   (activeLayout === undefined && model.standings.length > 0);
 const standingsEntrantCount = isGroupPhaseStandings
-  ? activeSegments.length > 0 && !activeClubId
+  ? activeSegments.length > 0 && !isFilteredByClub
     ? new Set(
         activeSegments
           .flatMap((segment) => segment.rows)
@@ -376,6 +391,7 @@ function baseCardDataOf(match: OverviewMatch & { readonly matchId: string }): Ma
     homeName: match.home.name,
     ...(match.home.abbreviation === undefined ? {} : { homeAbbreviation: match.home.abbreviation }),
     ...(match.home.clubId === undefined ? {} : { homeClubId: match.home.clubId }),
+    ...(match.home.clubAlias === undefined ? {} : { homeClubAlias: match.home.clubAlias }),
     ...(match.home.emblemObjectId === undefined
       ? {}
       : { homeEmblemObjectId: match.home.emblemObjectId }),
@@ -385,6 +401,7 @@ function baseCardDataOf(match: OverviewMatch & { readonly matchId: string }): Ma
     awayName: match.away.name,
     ...(match.away.abbreviation === undefined ? {} : { awayAbbreviation: match.away.abbreviation }),
     ...(match.away.clubId === undefined ? {} : { awayClubId: match.away.clubId }),
+    ...(match.away.clubAlias === undefined ? {} : { awayClubAlias: match.away.clubAlias }),
     ...(match.away.emblemObjectId === undefined
       ? {}
       : { awayEmblemObjectId: match.away.emblemObjectId }),
@@ -500,7 +517,7 @@ const noLiveDescription = nextKickoff
 
 const canonicalPath = `${localePrefix}${model.canonicalPath}`;
 const fullLayoutHref = (layout: (typeof declaredLayouts)[number]): string =>
-  `${canonicalPath}?tab=${encodeURIComponent(layout.code)}`;
+  `${canonicalPath}?tab=${encodeURIComponent(layout.code)}${activeClubAlias ? `&club=${encodeURIComponent(activeClubAlias)}` : ''}`;
 const earliestStart = overviewData.matches
   .map((m) => m.scheduledAt)
   .filter(Boolean)
@@ -526,6 +543,7 @@ const trail = publicTrail(trailBase, []);
 ---
 
 <PublicLayout
+  tournamentHasClubs={(model.clubs ?? []).length > 0}
   title={`${displayName(model)} — ${model.organizationName}`}
   description={description}
   canonicalPath={canonicalPath}
@@ -610,9 +628,11 @@ const trail = publicTrail(trailBase, []);
         href={matchPagePath(nextFeaturedMatch)}
         labels={compactMatchLabels}
         locale={resolvedLocale}
+        localePrefix={localePrefix}
         referenceDate={referenceDate}
         timeZone={model.organizationTimeZone}
         organizationAlias={organization}
+        tournamentAlias={tournament}
       />
     )}
     {overviewLead === 'schedule-preview' &&
@@ -751,6 +771,7 @@ const trail = publicTrail(trailBase, []);
           entrantCount={standingsEntrantCount > 0 ? standingsEntrantCount : undefined}
           tiebreakLine={tiebreakLine}
           activeLayoutCode={activeLayout?.code}
+          activeClubAlias={activeClubAlias}
           activeClubId={activeClubId}
           searchQuery={searchQuery}
           clubs={model.clubs}
@@ -770,6 +791,7 @@ const trail = publicTrail(trailBase, []);
               chrome="table-only"
               showControls={isFullLayoutView}
               activeLayoutCode={activeLayout?.code}
+              activeClubAlias={activeClubAlias}
               activeClubId={activeClubId}
               clubs={model.clubs}
               intl={intl}
@@ -790,13 +812,14 @@ const trail = publicTrail(trailBase, []);
                   tournament!,
                   activeLayout.code,
                   activeLayout.target === 'group-phase' ? standingsStageNumber : undefined,
-                  activeClubId,
+                  clubFilter,
                 )
               : undefined
           }
           showControls={isFullLayoutView}
           renderPart="footer"
           activeLayoutCode={activeLayout?.code}
+          activeClubAlias={activeClubAlias}
           activeClubId={activeClubId}
           searchQuery={searchQuery}
           clubs={model.clubs}
@@ -819,7 +842,7 @@ const trail = publicTrail(trailBase, []);
                 tournament!,
                 activeLayout.code,
                 activeLayout.target === 'group-phase' ? standingsStageNumber : undefined,
-                activeClubId,
+                clubFilter,
               )
             : undefined
         }
@@ -827,6 +850,7 @@ const trail = publicTrail(trailBase, []);
         entrantCount={standingsEntrantCount > 0 ? standingsEntrantCount : undefined}
         tiebreakLine={tiebreakLine}
         activeLayoutCode={activeLayout?.code}
+        activeClubAlias={activeClubAlias}
         activeClubId={activeClubId}
         searchQuery={searchQuery}
         clubs={model.clubs}

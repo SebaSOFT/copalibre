@@ -15,6 +15,7 @@
 import type { IntlShape } from 'react-intl';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import type { MatchReportModel } from '../../../lib/match-report.ts';
+import { optionalClubPageUrl } from '../../../lib/club-url.ts';
 
 export interface Props {
   readonly model: MatchReportModel;
@@ -35,60 +36,76 @@ const { model, intl, locale, organization, tournament } = Astro.props;
     <p class="cl-text-muted">{intl.formatMessage(messages.matchRostersEmpty)}</p>
   ) : (
     <div class="cl-rosters-grid">
-      {[model.home, model.away].map((side) => (
-        <div class="cl-roster-box">
-          <h3 class="cl-roster-team">{side.name}</h3>
-          {side.roster.length === 0 ? (
-            <p class="cl-text-muted">{intl.formatMessage(messages.matchRostersTeamEmpty)}</p>
-          ) : (
-            <div class="cl-table-scroll">
-              <table class="cl-table">
-                <thead>
-                  <tr>
-                    <th scope="col" style="width: 44px;">
-                      {intl.formatMessage(messages.matchRostersColumnNumber)}
-                    </th>
-                    <th scope="col">{intl.formatMessage(messages.matchRostersColumnPlayer)}</th>
-                    <th scope="col">{intl.formatMessage(messages.matchRostersColumnRoles)}</th>
-                    <th scope="col" style="width: 80px;">
-                      {intl.formatMessage(messages.matchRostersColumnOnField)}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {side.roster.map((member) => (
+      {[model.home, model.away].map((side) => {
+        const sideClubHref = optionalClubPageUrl({
+          organizationAlias: organization,
+          tournamentAlias: tournament,
+          clubAlias: side.clubAlias,
+          localePrefix: locale ? `/${locale}` : '',
+        });
+        return (
+          <div class="cl-roster-box">
+            <h3 class="cl-roster-team">
+              {sideClubHref ? (
+                <a class="cl-roster-team__link cl-focusable" href={sideClubHref}>
+                  {side.name}
+                </a>
+              ) : (
+                side.name
+              )}
+            </h3>
+            {side.roster.length === 0 ? (
+              <p class="cl-text-muted">{intl.formatMessage(messages.matchRostersTeamEmpty)}</p>
+            ) : (
+              <div class="cl-table-scroll">
+                <table class="cl-table">
+                  <thead>
                     <tr>
-                      <td class="cl-num-cell">{member.number ?? '—'}</td>
-                      <td class="cl-name-cell">
-                        {member.personId && member.publicProfileAvailable !== false ? (
-                          <a
-                            href={`${locale ? `/${locale}` : ''}/${encodeURIComponent(organization)}/tournaments/${encodeURIComponent(tournament)}/players/${encodeURIComponent(member.personId)}`}
-                            class="cl-player-link"
-                          >
-                            {member.name}
-                          </a>
-                        ) : (
-                          member.name
-                        )}
-                      </td>
-                      <td>{member.roleLabels.length > 0 ? member.roleLabels.join(', ') : '—'}</td>
-                      <td>
-                        <span
-                          class={`cl-indicator ${member.onField ? 'cl-indicator--active' : ''}`}
-                        >
-                          {member.onField
-                            ? intl.formatMessage(messages.matchRostersOnFieldYes)
-                            : intl.formatMessage(messages.matchRostersOnFieldNo)}
-                        </span>
-                      </td>
+                      <th scope="col" style="width: 44px;">
+                        {intl.formatMessage(messages.matchRostersColumnNumber)}
+                      </th>
+                      <th scope="col">{intl.formatMessage(messages.matchRostersColumnPlayer)}</th>
+                      <th scope="col">{intl.formatMessage(messages.matchRostersColumnRoles)}</th>
+                      <th scope="col" style="width: 80px;">
+                        {intl.formatMessage(messages.matchRostersColumnOnField)}
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      ))}
+                  </thead>
+                  <tbody>
+                    {side.roster.map((member) => (
+                      <tr>
+                        <td class="cl-num-cell">{member.number ?? '—'}</td>
+                        <td class="cl-name-cell">
+                          {member.personId && member.publicProfileAvailable !== false ? (
+                            <a
+                              href={`${locale ? `/${locale}` : ''}/${encodeURIComponent(organization)}/tournaments/${encodeURIComponent(tournament)}/players/${encodeURIComponent(member.personId)}`}
+                              class="cl-player-link"
+                            >
+                              {member.name}
+                            </a>
+                          ) : (
+                            member.name
+                          )}
+                        </td>
+                        <td>{member.roleLabels.length > 0 ? member.roleLabels.join(', ') : '—'}</td>
+                        <td>
+                          <span
+                            class={`cl-indicator ${member.onField ? 'cl-indicator--active' : ''}`}
+                          >
+                            {member.onField
+                              ? intl.formatMessage(messages.matchRostersOnFieldYes)
+                              : intl.formatMessage(messages.matchRostersOnFieldNo)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   )}
 </section>
@@ -124,6 +141,15 @@ const { model, intl, locale, organization, tournament } = Astro.props;
     font-size: 1rem;
     font-weight: 600;
     color: var(--cl-text-accent);
+  }
+
+  .cl-roster-team__link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .cl-roster-team__link:hover {
+    text-decoration: underline;
   }
 
   .cl-num-cell {

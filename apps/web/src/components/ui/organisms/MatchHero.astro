@@ -18,12 +18,16 @@ import { displayedScore } from '../../../lib/matches-view.ts';
 import { activeSegmentLabel } from '../../../lib/segment-label.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import type { IntlShape } from 'react-intl';
+import { optionalClubPageUrl } from '../../../lib/club-url.ts';
 
 export interface Props {
   readonly model: MatchReportModel;
   readonly intl: IntlShape;
   readonly locale: string;
   readonly timeZone?: string;
+  readonly organizationAlias?: string;
+  readonly tournamentAlias?: string;
+  readonly localePrefix?: string;
   /** The match state in the page language. The stage/round/match position lives in the breadcrumb. */
   readonly statusLabel: string;
   readonly rescheduledLabel?: string;
@@ -42,6 +46,9 @@ const {
   intl,
   locale,
   timeZone,
+  organizationAlias,
+  tournamentAlias,
+  localePrefix = '',
   statusLabel,
   rescheduledLabel,
   liveMatchId,
@@ -53,6 +60,18 @@ const {
   referenceDate,
   delayed = false,
 } = Astro.props;
+const homeClubHref = optionalClubPageUrl({
+  organizationAlias,
+  tournamentAlias,
+  clubAlias: model.home.clubAlias,
+  localePrefix,
+});
+const awayClubHref = optionalClubPageUrl({
+  organizationAlias,
+  tournamentAlias,
+  clubAlias: model.away.clubAlias,
+  localePrefix,
+});
 const tzParts = formatTimeZoneParts(locale, timeZone ?? 'UTC', referenceDate);
 const home = formatEntrant(intl, model.home);
 const away = formatEntrant(intl, model.away);
@@ -119,7 +138,15 @@ const advancesLabel = intl.formatMessage(messages.bracketAdvances);
       ]}
     >
       <span class="cl-team-identity">
-        <span class="cl-team-name">{home.fullName}</span>
+        <span class="cl-team-name">
+          {homeClubHref ? (
+            <a class="cl-team-name__link cl-focusable" href={homeClubHref}>
+              {home.fullName}
+            </a>
+          ) : (
+            home.fullName
+          )}
+        </span>
         {home.abbreviation && <span class="cl-team-abbreviation">{home.abbreviation}</span>}
         {homeAdvances && <AdvancingBadge label={advancesLabel} />}
       </span>
@@ -147,7 +174,15 @@ const advancesLabel = intl.formatMessage(messages.bracketAdvances);
         {displayedScore(model.status, model.away.score) ?? '—'}
       </span>
       <span class="cl-team-identity">
-        <span class="cl-team-name">{away.fullName}</span>
+        <span class="cl-team-name">
+          {awayClubHref ? (
+            <a class="cl-team-name__link cl-focusable" href={awayClubHref}>
+              {away.fullName}
+            </a>
+          ) : (
+            away.fullName
+          )}
+        </span>
         {away.abbreviation && <span class="cl-team-abbreviation">{away.abbreviation}</span>}
         {awayAdvances && <AdvancingBadge label={advancesLabel} />}
       </span>
@@ -236,6 +271,16 @@ const advancesLabel = intl.formatMessage(messages.bracketAdvances);
     font-size: 1.5rem;
     font-weight: 700;
     font-family: var(--cl-font-display);
+  }
+
+  .cl-team-name__link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .cl-team-name__link:hover {
+    color: var(--cl-text-accent);
+    text-decoration: underline;
   }
 
   .cl-team-identity {

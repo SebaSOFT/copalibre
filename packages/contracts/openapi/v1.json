@@ -8144,9 +8144,19 @@
             }
           },
           {
-            "name": "clubId",
-            "required": true,
+            "name": "club",
+            "required": false,
             "in": "query",
+            "description": "Filter rows to entrants of this club alias",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": false,
+            "in": "query",
+            "description": "Legacy filter: entrants of this club id",
             "schema": {
               "type": "string"
             }
@@ -8199,9 +8209,19 @@
             }
           },
           {
-            "name": "clubId",
-            "required": true,
+            "name": "club",
+            "required": false,
             "in": "query",
+            "description": "Filter rows to entrants of this club alias",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": false,
+            "in": "query",
+            "description": "Legacy filter: entrants of this club id",
             "schema": {
               "type": "string"
             }
@@ -8263,9 +8283,19 @@
             }
           },
           {
-            "name": "clubId",
-            "required": true,
+            "name": "club",
+            "required": false,
             "in": "query",
+            "description": "Filter rows to entrants of this club alias",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": false,
+            "in": "query",
+            "description": "Legacy filter: entrants of this club id",
             "schema": {
               "type": "string"
             }
@@ -8326,9 +8356,19 @@
             }
           },
           {
-            "name": "clubId",
-            "required": true,
+            "name": "club",
+            "required": false,
             "in": "query",
+            "description": "Filter rows to entrants of this club alias",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": false,
+            "in": "query",
+            "description": "Legacy filter: entrants of this club id",
             "schema": {
               "type": "string"
             }
@@ -14404,8 +14444,17 @@
             "type": "string",
             "format": "uuid"
           },
+          "homeClubAlias": {
+            "type": "string",
+            "description": "Home club's alias, when present"
+          },
           "homeEmblemObjectId": {
             "type": "string"
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The winning entrant of a finished match; absent when no side won"
           },
           "awayEntrantId": {
             "type": "string",
@@ -14426,6 +14475,10 @@
           "awayClubId": {
             "type": "string",
             "format": "uuid"
+          },
+          "awayClubAlias": {
+            "type": "string",
+            "description": "Away club's alias, when present"
           },
           "awayEmblemObjectId": {
             "type": "string"
@@ -17718,6 +17771,10 @@
             "format": "uuid",
             "description": "The entrant club, when one is resolved"
           },
+          "clubAlias": {
+            "type": "string",
+            "description": "The entrant club's alias, when one is resolved"
+          },
           "emblemObjectId": {
             "type": "string",
             "description": "The entrant club's uploaded emblem, when one is present"
@@ -20199,7 +20256,7 @@
           "featured"
         ]
       },
-      "PublicOverviewClubResponse": {
+      "PublicOrganizationClubResponse": {
         "type": "object",
         "properties": {
           "clubId": {
@@ -20217,6 +20274,10 @@
           },
           "emblemObjectId": {
             "type": "string"
+          },
+          "tournamentAlias": {
+            "type": "string",
+            "description": "Alias of the organization's first in-progress published tournament with an entrant from this club, when one exists"
           }
         },
         "required": [
@@ -20246,7 +20307,7 @@
           "clubs": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PublicOverviewClubResponse"
+              "$ref": "#/components/schemas/PublicOrganizationClubResponse"
             }
           }
         },
@@ -20568,6 +20629,31 @@
           "entrantId",
           "sharedRank",
           "statistics"
+        ]
+      },
+      "PublicOverviewClubResponse": {
+        "type": "object",
+        "properties": {
+          "clubId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "abbreviation": {
+            "type": "string"
+          },
+          "alias": {
+            "type": "string"
+          },
+          "emblemObjectId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "clubId",
+          "name"
         ]
       },
       "PublicOverviewResponse": {
@@ -21013,6 +21099,10 @@
           "homeAbbreviation": {
             "type": "string"
           },
+          "homeClubAlias": {
+            "type": "string",
+            "description": "Home club's alias, when present"
+          },
           "awayEntrantId": {
             "type": "string",
             "format": "uuid"
@@ -21025,6 +21115,10 @@
           },
           "awayAbbreviation": {
             "type": "string"
+          },
+          "awayClubAlias": {
+            "type": "string",
+            "description": "Away club's alias, when present"
           },
           "homeScore": {
             "type": "number"
@@ -21706,8 +21800,17 @@
             "type": "string",
             "format": "uuid"
           },
+          "homeClubAlias": {
+            "type": "string",
+            "description": "Home club's alias, when present"
+          },
           "homeEmblemObjectId": {
             "type": "string"
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The winning entrant of a finished match; absent when no side won"
           },
           "awayEntrantId": {
             "type": "string",
@@ -21728,6 +21831,10 @@
           "awayClubId": {
             "type": "string",
             "format": "uuid"
+          },
+          "awayClubAlias": {
+            "type": "string",
+            "description": "Away club's alias, when present"
           },
           "awayEmblemObjectId": {
             "type": "string"

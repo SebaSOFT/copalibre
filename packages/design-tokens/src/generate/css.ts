@@ -496,6 +496,12 @@ function imageFrame(): string {
     '',
     '.cl-entrant-emblem--bare .cl-entrant-emblem__fallback { color: var(--cl-text-primary); }',
     '',
+    // The frame is a size container, so each monogram step is a share of the tile's own width, at every
+    // size the emblem renders. A step's share is the glyph width of its characters (about 0.6em each,
+    // monospace) fitted inside the tile's inset. A longer abbreviation takes a smaller share.
+    // Each length step is a share of the tile's own size, which every emblem sets as a custom property. A
+    // share fits the step's characters (about 0.6em each, monospace) inside the tile's inset, so a longer
+    // abbreviation takes a smaller share at every size.
     '.cl-entrant-emblem__monogram {',
     '  font-family: var(--cl-font-mono);',
     '  font-size: var(--cl-font-size-xl);',
@@ -505,12 +511,10 @@ function imageFrame(): string {
     '  white-space: nowrap;',
     '  text-align: center;',
     '}',
-    '.cl-entrant-emblem__monogram--reduced { font-size: var(--cl-font-size-lg); }',
-    '.cl-entrant-emblem--small .cl-entrant-emblem__monogram { font-size: var(--cl-font-size-sm); }',
-    '.cl-entrant-emblem--small .cl-entrant-emblem__monogram--small-tight { transform: scaleX(0.9); }',
-    '.cl-entrant-emblem--micro .cl-entrant-emblem__monogram--small-tight { transform: scaleX(0.7); }',
-    '.cl-entrant-emblem--small .cl-entrant-emblem__monogram--reduced { font-size: var(--cl-font-size-xs); transform: scaleX(0.66); }',
-    '.cl-entrant-emblem--micro .cl-entrant-emblem__monogram--reduced { transform: scaleX(0.55); }',
+    '.cl-entrant-emblem__monogram--short { font-size: calc(var(--entrant-emblem-size) * 0.34); }',
+    '.cl-entrant-emblem__monogram--medium { font-size: calc(var(--entrant-emblem-size) * 0.26); }',
+    '.cl-entrant-emblem__monogram--long { font-size: calc(var(--entrant-emblem-size) * 0.2); }',
+    '.cl-entrant-emblem__monogram--longest { font-size: calc(var(--entrant-emblem-size) * 0.17); }',
     '',
     '/* Operator surfaces cut less: density over drama. */',
     '.cl-image-frame--control {',
@@ -883,6 +887,9 @@ function components(): string {
     '  }',
     '}',
     '.cl-select { font-family: var(--cl-font-mono); }',
+    // The public filter bars' native select: quiet, panel-coloured, one control height, and no layout
+    // of its own beyond the row it sits in.
+    '.cl-public-select { min-height: var(--cl-touch-target); max-width: 100%; padding: var(--cl-space-1) var(--cl-space-3); background: var(--cl-surface-panel); color: var(--cl-text-primary); border: 1px solid var(--cl-border-muted); font-family: var(--cl-font-body); font-size: var(--cl-font-size-sm); }',
     // The trigger is a button, which centres its text and wraps a long label
     // onto a second line, growing past the 44px control height. It reads like
     // Input instead: left-aligned, one line, clipped. The atom keeps the full
@@ -1662,6 +1669,11 @@ function components(): string {
     // for `LIVE` — plus a running clock exceeds the card, so the pair wraps
     // rather than widening the card past the viewport.
     '.cl-match-card__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cl-space-3); min-width: 0; }',
+    // The title takes the row's free width and truncates with an ellipsis; the badges beside it never wrap
+    // or shrink, so the status and outcome sit on the title row on every card at every width.
+    '.cl-match-card__title { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+    '.cl-match-card__header > .cl-match-card__heading { flex: 1 1 0; min-width: 0; }',
+    '.cl-match-card__header > .cl-badge { flex: 0 0 auto; white-space: nowrap; }',
     // `overflow-wrap: anywhere`: an ISO datetime has
     // no space to wrap at, so at the 188px reference width the clock alone —
     // not the header row it sits in, which already wraps — held its full
@@ -1698,6 +1710,10 @@ function components(): string {
     // sees it — `>` never matched past it, so the name rendered at its full,
     // unconstrained width and pushed the 188px reference width sideways.
     ".cl-match-card__side span[data-testid='entrant-name'] { flex: 1 1 auto; font-family: var(--cl-font-display); font-weight: var(--cl-weight-medium); font-size: var(--cl-font-size-lg); line-height: var(--cl-line-height-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
+    '.cl-match-card__team-link { position: relative; z-index: 2; flex: 1 1 auto; min-width: var(--cl-touch-target); min-height: var(--cl-touch-target); display: inline-flex; align-items: center; color: inherit; text-decoration: none; border-radius: var(--cl-radius-sm); }',
+    '.cl-match-card__team-link:hover { text-decoration: underline; color: var(--cl-text-accent); }',
+    '.cl-match-card__team-link:focus-visible { outline: var(--cl-focus-ring); outline-offset: 2px; }',
+    ".cl-match-card__team-link span[data-testid='entrant-name'] { flex: 1 1 auto; min-width: 0; }",
     '.cl-match-card__side .cl-stat-tile__value { flex: 0 0 auto; font-size: var(--cl-font-size-figure-2xl); line-height: var(--cl-line-height-figure); background: none; padding: 0; }',
     '.cl-match-card__scope, .cl-match-card__venue, .cl-match-card__event { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); line-height: var(--cl-line-height-label); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
     '.cl-match-card__event { color: var(--cl-text-secondary); }',

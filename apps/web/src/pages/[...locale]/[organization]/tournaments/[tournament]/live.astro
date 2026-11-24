@@ -118,6 +118,7 @@ const leaderBlockHeading = (block: (typeof leaderBlocks)[number]): string | unde
 ---
 
 <PublicLayout
+  tournamentHasClubs={(model.clubs ?? []).length > 0}
   title={`${intl.formatMessage(messages.livePageTitle)} — ${displayName(model)}`}
   canonicalPath={canonicalPath}
   intl={intl}

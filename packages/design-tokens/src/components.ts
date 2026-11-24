@@ -39,6 +39,12 @@ export const BADGE_TONES = {
     border: true,
     nonColourCue: 'Result label',
   },
+  negative: {
+    color: 'state-destructive',
+    weight: 'semibold',
+    border: true,
+    nonColourCue: 'Result label',
+  },
 } as const satisfies Record<
   string,
   {

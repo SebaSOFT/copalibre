@@ -468,6 +468,7 @@ describe('the badge contract', () => {
       'stage',
       'muted',
       'positive',
+      'negative',
     ]);
     for (const tone of Object.values(BADGE_TONES)) {
       expect(SEMANTIC_COLORS[tone.color]).toBeDefined();
@@ -563,14 +564,19 @@ describe('the CSS output', () => {
     for (const name of Object.keys(SEMANTIC_COLORS)) expect(css).toContain(`--cl-${name}:`);
   });
 
-  it('keeps emblem monograms on one line and fits long abbreviations in small frames', () => {
+  it('keeps emblem monograms on one line and sizes each length step from the frame width', () => {
     expect(css).toContain('white-space: nowrap;');
-    expect(css).toContain(
-      '.cl-entrant-emblem--micro .cl-entrant-emblem__monogram--small-tight { transform: scaleX(0.7); }',
-    );
-    expect(css).toContain(
-      '.cl-entrant-emblem--micro .cl-entrant-emblem__monogram--reduced { transform: scaleX(0.55); }',
-    );
+    // Every step is a share of the tile, so a longer abbreviation takes a smaller one at every size.
+    const shares = ['short', 'medium', 'long', 'longest'].map((step) => {
+      const match = css.match(
+        new RegExp(
+          `\\.cl-entrant-emblem__monogram--${step} \\{ font-size: calc\\(var\\(--entrant-emblem-size\\) \\* ([0-9.]+)\\); \\}`,
+        ),
+      );
+      return Number(match?.[1]);
+    });
+    expect(shares.every((share) => share > 0)).toBe(true);
+    expect([...shares].sort((a, b) => b - a)).toEqual(shares);
   });
 
   it('declares every font-size and breakpoint primitive', () => {

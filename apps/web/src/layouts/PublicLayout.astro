@@ -39,6 +39,8 @@ interface Props {
   readonly ogImage?: string;
   readonly structuredData?: JsonLdStructuredData;
   readonly localeVariants?: readonly SupportedLanguage[] | readonly string[];
+  /** Whether the tournament has clubs; the header's teams tab opens the club index only then. */
+  readonly tournamentHasClubs?: boolean;
 }
 
 const {
@@ -52,6 +54,7 @@ const {
   ogImage,
   structuredData,
   localeVariants,
+  tournamentHasClubs = false,
 } = Astro.props;
 
 const site = Astro.site?.toString().replace(/\/$/, '') ?? '';
@@ -136,6 +139,7 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
       intl={intl}
       localeOptions={localeOptions}
       tournamentNavigation={tournamentNavigation}
+      tournamentHasClubs={tournamentHasClubs}
     />
     <slot name="ticker" />
     <main

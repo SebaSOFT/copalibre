@@ -18,6 +18,7 @@ import { seriesScore, seriesSegments, type SegmentState, type SeriesInput } from
 import { displayName, type OverviewModel } from '../overview.js';
 import { PUBLIC_TIEBREAKER_LABELS, tiebreakerLabelsForCatalog } from '../tiebreaker-labels.js';
 import type { TournamentStatusLineLabels } from '../tournament-status-line.js';
+import type { ClubStatus, KnockoutRoundKind } from '../club-page.js';
 
 /** Labels for every non-`played` `ResultReason` — `played` never renders one. */
 export type ResultReasonLabels = Readonly<Record<Exclude<ResultReason, 'played'>, string>>;
@@ -942,4 +943,47 @@ export function sideSourceLabels(intl: IntlShape): SideSourceMessages {
     ordinal3: intl.formatMessage(messages.sideSourceOrdinal3),
     ordinalOther: intl.formatMessage(messages.sideSourceOrdinalOther, { n: '{n}' }),
   };
+}
+
+/** Formats a knockout round kind into a localized display label. */
+export function knockoutRoundLabel(
+  intl: IntlShape,
+  roundKind: KnockoutRoundKind,
+  roundNumber?: number,
+): string {
+  if (roundKind === 'final') return intl.formatMessage(messages.bracketRoundFinal);
+  if (roundKind === 'semiFinal') return intl.formatMessage(messages.bracketRoundSemifinals);
+  if (roundKind === 'quarterFinal') return intl.formatMessage(messages.bracketRoundQuarterfinals);
+  return intl.formatMessage(messages.bracketRoundHeading, { round: roundNumber ?? 1 });
+}
+
+/** Formats a club's tournament status into words using the active catalogue. */
+export function formatClubStatus(
+  intl: IntlShape,
+  status: ClubStatus | undefined,
+  options: { readonly withBand?: boolean } = {},
+): string | undefined {
+  if (!status) return undefined;
+  if (status.kind === 'groupStage') {
+    return intl.formatMessage(messages.clubPageStatusGroupStage);
+  }
+  if (status.kind === 'groupStageEliminated') {
+    return intl.formatMessage(messages.clubPageStatusGroupStageEliminated);
+  }
+  // A band badge already names the competition, so the status keeps the round alone beside it.
+  const zone = options.withBand ? undefined : status.zone;
+  if (status.kind === 'champion') {
+    return zone
+      ? intl.formatMessage(messages.clubPageStatusChampion, { zone })
+      : intl.formatMessage(messages.clubPageStatusChampionNoZone);
+  }
+  const round = knockoutRoundLabel(intl, status.roundKind, status.roundNumber);
+  if (status.kind === 'inCompetition') {
+    return zone
+      ? intl.formatMessage(messages.clubPageStatusInCompetition, { zone, round })
+      : intl.formatMessage(messages.clubPageStatusInCompetitionRoundOnly, { round });
+  }
+  return zone
+    ? intl.formatMessage(messages.clubPageStatusEliminated, { zone, round })
+    : intl.formatMessage(messages.clubPageStatusEliminatedRoundOnly, { round });
 }

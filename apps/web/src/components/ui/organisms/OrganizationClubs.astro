@@ -1,14 +1,17 @@
 ---
 /**
- * Extracted from the organization page, unchanged
- * in markup and styling.
+ * The organization's clubs. A club with an active tournament links to its club page and sits in a card;
+ * a club without one is plain content, with the same identity block and no card affordance.
  */
 import type { IntlShape } from 'react-intl';
-import type { PublicOverviewClubResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
-import EmblemImage from '../atoms/EmblemImage.astro';
+import type { PublicOrganizationClubResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import { Card } from '../atoms/Card.tsx';
+import ClubIdentity from '../molecules/ClubIdentity.astro';
+import SectionHeader from '../molecules/SectionHeader.astro';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
+import { optionalClubPageUrl } from '../../../lib/club-url.ts';
 
-export interface ClubWithEmblemSrc extends PublicOverviewClubResponse {
+export interface ClubWithEmblemSrc extends PublicOrganizationClubResponse {
   /** Pre-built by the page (`clubEmblemUrl`) — data access stays at the page tier. */
   readonly emblemSrc?: string;
 }
@@ -16,40 +19,54 @@ export interface ClubWithEmblemSrc extends PublicOverviewClubResponse {
 export interface Props {
   readonly clubs: readonly ClubWithEmblemSrc[];
   readonly intl: IntlShape;
+  readonly organizationAlias?: string;
+  readonly localePrefix?: string;
 }
 
-const { clubs, intl } = Astro.props;
+const { clubs, intl, organizationAlias, localePrefix = '' } = Astro.props;
 ---
 
 <section class="cl-listing-section" aria-labelledby="heading-clubs">
-  <div class="cl-section-header">
-    <h2 id="heading-clubs" class="cl-section-title">
-      {intl.formatMessage(messages.orgPageClubsHeading)}
-    </h2>
-    <span class="cl-section-count">({clubs.length})</span>
-  </div>
+  <SectionHeader
+    headingId="heading-clubs"
+    heading={intl.formatMessage(messages.orgPageClubsHeading)}
+    count={clubs.length}
+  />
   {clubs.length === 0 ? (
-    <div class="cl-empty-state">
-      <p>{intl.formatMessage(messages.orgPageNoClubs)}</p>
-    </div>
+    <p>{intl.formatMessage(messages.orgPageNoClubs)}</p>
   ) : (
-    <div class="cl-club-grid">
-      {clubs.map((club) => (
-        <div class="cl-club-card">
-          <EmblemImage
-            alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: club.name })}
-            placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
-            size={48}
-            src={club.emblemSrc}
-          />
-          <div class="cl-club-info">
-            <span class="cl-club-name" title={club.name}>
-              {club.name}
-            </span>
-          </div>
-        </div>
-      ))}
-    </div>
+    <ul class="cl-match-card-grid">
+      {clubs.map((club) => {
+        const clubHref = optionalClubPageUrl({
+          organizationAlias,
+          tournamentAlias: club.tournamentAlias,
+          clubAlias: club.alias,
+          localePrefix,
+        });
+        return (
+          <li>
+            {clubHref ? (
+              <Card as="article">
+                <ClubIdentity
+                  name={club.name}
+                  abbreviation={club.abbreviation}
+                  emblemSrc={club.emblemSrc}
+                  placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                  href={clubHref}
+                />
+              </Card>
+            ) : (
+              <ClubIdentity
+                name={club.name}
+                abbreviation={club.abbreviation}
+                emblemSrc={club.emblemSrc}
+                placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+              />
+            )}
+          </li>
+        );
+      })}
+    </ul>
   )}
 </section>
 
@@ -57,65 +74,6 @@ const { clubs, intl } = Astro.props;
   .cl-listing-section {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
-  }
-
-  .cl-section-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .cl-section-title {
-    font-size: var(--cl-font-size-xl);
-    font-weight: 700;
-    margin: 0;
-    color: var(--cl-text-primary);
-  }
-
-  .cl-section-count {
-    font-size: var(--cl-font-size-sm);
-    color: var(--cl-text-muted);
-    font-weight: 600;
-  }
-
-  .cl-empty-state {
-    padding: 3rem 1rem;
-    text-align: center;
-    background-color: var(--cl-surface-panel);
-    border-radius: 12px;
-    border: 1px dashed var(--cl-border-muted);
-    color: var(--cl-text-muted);
-  }
-
-  .cl-club-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-    gap: 1rem;
-  }
-
-  .cl-club-card {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem;
-    background-color: var(--cl-surface-panel);
-    border: 1px solid var(--cl-border-muted);
-    border-radius: 12px;
-  }
-
-  .cl-club-info {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-
-  .cl-club-name {
-    font-size: var(--cl-font-size-sm);
-    font-weight: 600;
-    color: var(--cl-text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    gap: var(--cl-space-5);
   }
 </style>

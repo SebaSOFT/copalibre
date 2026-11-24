@@ -32,6 +32,15 @@ describe('canonical public paths', () => {
       { ...BASE, participantAlias: 'casa-de-italia' },
       '/liga-mendocina/tournaments/apertura-2026/participants/casa-de-italia',
     ],
+    [{ ...BASE, clubIndex: true }, '/liga-mendocina/tournaments/apertura-2026/clubs'],
+    [
+      { ...BASE, clubAlias: 'club-hispano' },
+      '/liga-mendocina/tournaments/apertura-2026/clubs/club-hispano',
+    ],
+    [
+      { ...BASE, clubAlias: 'club-hispano', locale: 'es' },
+      '/es/liga-mendocina/tournaments/apertura-2026/clubs/club-hispano',
+    ],
   ])('builds %j', (input, expected) => {
     expect(publicPath(input)).toBe(expected);
   });

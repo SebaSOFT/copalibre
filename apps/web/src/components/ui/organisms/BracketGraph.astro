@@ -27,6 +27,8 @@ interface Props {
   readonly stageNumber: number;
   readonly localePrefix?: string;
   readonly highlightMatchNumber?: number;
+  readonly initialEntrantId?: string;
+  readonly initialPath?: ReadonlySet<string>;
   readonly density: BracketDensity;
   readonly headingLevel: number;
   readonly zoneName?: string;
@@ -41,6 +43,8 @@ const {
   stageNumber,
   localePrefix = '',
   highlightMatchNumber,
+  initialEntrantId,
+  initialPath,
   density,
   zoneName,
   matchesView,
@@ -151,6 +155,13 @@ const captionOf = (match: (typeof layout.nodes)[number]['match']): string | unde
           <div
             aria-current={focused ? 'true' : undefined}
             data-journey-match={density === 'full' ? bracketMatchId(node.match) : undefined}
+            data-entrant-path={
+              density === 'full' && initialPath?.size
+                ? initialPath.has(bracketMatchId(node.match))
+                  ? 'included'
+                  : 'excluded'
+                : undefined
+            }
             class:list={[
               'cl-bracket-stage__node',
               championship?.matchNumber === node.match.matchNumber &&
@@ -174,6 +185,7 @@ const captionOf = (match: (typeof layout.nodes)[number]['match']): string | unde
             ) : (
               <MatchNode
                 highlightEntrants
+                highlightedEntrantId={initialEntrantId}
                 intl={intl}
                 localePrefix={localePrefix}
                 match={node.match}

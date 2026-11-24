@@ -119,7 +119,18 @@ describe('matches view (integration)', () => {
           customScripts: [],
           ...audit,
         });
-        const norte = await enrollment.createTeam(uow, { organizationId, name: 'Norte', ...audit });
+        const clubNorte = await enrollment.createClub(uow, {
+          organizationId,
+          alias: 'club-norte',
+          name: 'Club Norte',
+          ...audit,
+        });
+        const norte = await enrollment.createTeam(uow, {
+          organizationId,
+          clubId: clubNorte.clubId,
+          name: 'Norte',
+          ...audit,
+        });
         const sur = await enrollment.createTeam(uow, { organizationId, name: 'Sur', ...audit });
         const [home, away] = await Promise.all([
           enrollment.registerEntrant(uow, {
@@ -357,13 +368,23 @@ describe('matches view (integration)', () => {
       const final = body.matches.find((m) => m.status === 'final');
       expect(final).toMatchObject({
         homeName: 'Norte',
+        homeClubAlias: 'club-norte',
         awayName: 'Sur',
         homeScore: 2,
         awayScore: 1,
       });
       expect(final?.clockSeconds).toBeUndefined();
-      expect(final).not.toHaveProperty('homeClubId');
+      expect(final).not.toHaveProperty('awayClubId');
+      expect(final).not.toHaveProperty('awayClubAlias');
       expect(final).not.toHaveProperty('rawTrace');
+
+      const report = await get(
+        `/api/organizations/${organizationAlias}/tournaments/apertura-mv/stages/1/matches/1`,
+      );
+      expect(report.statusCode).toBe(200);
+      const reportBody = report.json() as Record<string, unknown>;
+      expect(reportBody.homeClubAlias).toBe('club-norte');
+      expect(reportBody).not.toHaveProperty('awayClubAlias');
 
       const live = body.matches.find((m) => m.status === 'live');
       expect(live?.clockSeconds).toBeGreaterThanOrEqual(0);

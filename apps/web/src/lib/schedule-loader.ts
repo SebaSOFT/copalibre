@@ -2,6 +2,7 @@ import type { SupportedLanguage } from '@copalibre/domain';
 import { selectStageLayout } from './bracket.js';
 import { calendarDayKey } from './format-timestamp.js';
 import { buildSchedule, type ScheduleStage, type ScheduleStageInput } from './match-schedule.js';
+import { filterMatchesByClub } from './club-page.js';
 import type { MatchCardData } from './matches-view.js';
 import {
   fetchBracket,
@@ -54,6 +55,7 @@ export async function loadSchedule(args: {
   readonly state: ScheduleStateFilter;
   readonly zone?: string;
   readonly group?: string;
+  readonly club?: string;
   readonly day?: string;
   readonly timeZone?: string;
   readonly hiddenPlayerLabel?: string;
@@ -67,6 +69,7 @@ export async function loadSchedule(args: {
     state,
     zone,
     group,
+    club,
     day,
     timeZone,
     hiddenPlayerLabel,
@@ -98,14 +101,15 @@ export async function loadSchedule(args: {
     zone === undefined ? stageRows : stageRows.filter((row) => row.zoneName === zone);
   const groupRows =
     group === undefined ? zoneRows : zoneRows.filter((row) => row.groupName === group);
-  const stateRows = state === 'all' ? groupRows : groupRows.filter((row) => row.state === state);
+  const clubRows = club === undefined ? groupRows : filterMatchesByClub(groupRows, club);
+  const stateRows = state === 'all' ? clubRows : clubRows.filter((row) => row.state === state);
   const rows = filterRowsByDay(stateRows, day, timeZone);
 
   const shown = stageOptions.filter(
     (one) => stageNumber === undefined || one.stageNumber === stageNumber,
   );
-  // A state or day filter asks for a list of matches, which a bracket is not: the zones are listed instead.
-  const knockoutAsBracket = state === 'all' && day === undefined;
+  // A state, day, or club filter asks for a list of matches, which a bracket is not: the zones are listed instead.
+  const knockoutAsBracket = state === 'all' && day === undefined && club === undefined;
   const inputs: readonly ScheduleStageInput[] = await Promise.all(
     shown.map(async (one) => {
       // State-filtered match lists still need the bracket's declared zone order for their filters.

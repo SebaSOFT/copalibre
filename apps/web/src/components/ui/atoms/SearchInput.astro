@@ -1,6 +1,8 @@
 ---
 import Button from './Button.astro';
+import Form from './Form.astro';
 import Icon from './Icon.astro';
+import Input from './Input.astro';
 
 /**
  * Reusable GET search input atom with a magnifying-glass-only submit button.
@@ -48,7 +50,7 @@ const formAttrs = formDataAttr ? { [formDataAttr]: '' } : {};
 const inputAttrs = inputDataAttr ? { [inputDataAttr]: '' } : {};
 ---
 
-<form
+<Form
   action={action}
   method="get"
   class={`cl-search-input ${extraClass}`.trim()}
@@ -58,12 +60,12 @@ const inputAttrs = inputDataAttr ? { [inputDataAttr]: '' } : {};
   {hiddenParams
     .filter((param) => param.value.length > 0)
     .map((param) => (
-      <input type="hidden" name={param.name} value={param.value} />
+      <Input name={param.name} value={param.value} />
     ))}
   <label for={id} class="cl-visually-hidden">
     {label}
   </label>
-  <input
+  <Input
     id={id}
     type="search"
     name={name}
@@ -80,7 +82,7 @@ const inputAttrs = inputDataAttr ? { [inputDataAttr]: '' } : {};
   >
     <Icon name="search" size={16} />
   </Button>
-</form>
+</Form>
 
 <style>
   .cl-search-input {

@@ -1,6 +1,6 @@
 ---
 import Icon from './Icon.astro';
-import { emblemMonogramFit } from '../../../lib/entrant-emblem.ts';
+import { emblemMonogramStep } from '../../../lib/entrant-emblem.ts';
 import { emblemSizes, emblemSrcset } from '../../../lib/public-image-paths.ts';
 
 /**
@@ -35,8 +35,7 @@ const {
   eager = false,
 } = Astro.props;
 const srcset = src ? emblemSrcset(src) : undefined;
-const fit = emblemMonogramFit(abbreviation);
-const abbreviationLength = Array.from(abbreviation ?? '').length;
+const monogramStep = emblemMonogramStep(abbreviation);
 const hiddenFromAssistiveTechnology = bare || decorative;
 ---
 
@@ -71,16 +70,9 @@ const hiddenFromAssistiveTechnology = bare || decorative;
     role={hiddenFromAssistiveTechnology ? undefined : 'img'}
     style={src ? 'display: none' : undefined}
   >
-    {fit && abbreviation !== undefined ? (
+    {monogramStep && abbreviation !== undefined ? (
       <span
-        class:list={[
-          'cl-entrant-emblem__monogram',
-          fit === 'reduced' && 'cl-entrant-emblem__monogram--reduced',
-          fit === 'figure' &&
-            abbreviationLength === 4 &&
-            size <= 32 &&
-            'cl-entrant-emblem__monogram--small-tight',
-        ]}
+        class:list={['cl-entrant-emblem__monogram', `cl-entrant-emblem__monogram--${monogramStep}`]}
       >
         {abbreviation}
       </span>

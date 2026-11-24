@@ -30,7 +30,7 @@ export function publicTournamentNavigation(
   let current: PublicTournamentSection = 'overview';
   if (route[0] === 'matches' || route[0] === 'live') current = 'matches';
   else if (route[0] === 'stages') current = route[2] === 'matches' ? 'matches' : 'brackets';
-  else if (route[0] === 'players') current = 'teams';
+  else if (route[0] === 'clubs' || route[0] === 'players') current = 'teams';
 
   return { tournamentPath, stageNumber, current };
 }

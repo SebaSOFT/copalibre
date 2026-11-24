@@ -148,20 +148,44 @@ export async function fetchPublicTableLayouts(
   return fetchOr404<TableLayoutListResponse>(url);
 }
 
+export type PublicTableClubFilter =
+  | string
+  | {
+      readonly club?: string;
+      readonly clubId?: string;
+    };
+
+function appendTableClubFilter(params: URLSearchParams, clubFilter?: PublicTableClubFilter): void {
+  if (!clubFilter) return;
+  if (typeof clubFilter === 'string') {
+    params.set('clubId', clubFilter);
+    return;
+  }
+  if (clubFilter.club) {
+    params.set('club', clubFilter.club);
+    return;
+  }
+  if (clubFilter.clubId) {
+    params.set('clubId', clubFilter.clubId);
+  }
+}
+
 /** `stageNumber` absent reads a tournament-wide layout; present reads a stage-scoped one. */
 export async function fetchPublicTableProjection(
   organizationAlias: string,
   tournamentAlias: string,
   layoutCode: string,
   stageNumber?: number,
-  clubId?: string,
+  clubFilter?: PublicTableClubFilter,
 ): Promise<TableProjectionResponse | undefined> {
   const baseUrl = getApiBaseUrl();
   const scoped =
     stageNumber === undefined
       ? `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}`
       : `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageNumber.toString())}`;
-  const query = clubId ? `?clubId=${encodeURIComponent(clubId)}` : '';
+  const params = new URLSearchParams();
+  appendTableClubFilter(params, clubFilter);
+  const query = params.size === 0 ? '' : `?${params}`;
   const url = `${scoped}/public/tables/${encodeURIComponent(layoutCode)}${query}`;
   return fetchOr404<TableProjectionResponse>(url);
 }
@@ -176,14 +200,14 @@ export function publicTableCsvUrl(
   tournamentAlias: string,
   layoutCode: string,
   stageNumber?: number,
-  clubId?: string,
+  clubFilter?: PublicTableClubFilter,
 ): string {
   const scoped =
     stageNumber === undefined
       ? `${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}`
       : `${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageNumber.toString())}`;
   const params = new URLSearchParams();
-  if (clubId) params.set('clubId', clubId);
+  appendTableClubFilter(params, clubFilter);
   const query = params.size === 0 ? '' : `?${params}`;
   return `${scoped}/public/tables/${encodeURIComponent(layoutCode)}/csv${query}`;
 }
@@ -247,6 +271,11 @@ export function mapOverviewResponse(
   const intl = publicIntl(language);
   const hiddenPlayerLabel = intl.formatMessage(publicMessages.personHiddenAtRequest);
   const undecidedSide = intl.formatMessage(publicMessages.resultStateTbd);
+  const clubAliasById = new Map(
+    (response.clubs ?? [])
+      .filter((club): club is typeof club & { readonly alias: string } => Boolean(club.alias))
+      .map((club) => [club.clubId, club.alias] as const),
+  );
   return {
     organizationAlias: response.organizationAlias,
     tournamentAlias: response.tournamentAlias,
@@ -299,6 +328,9 @@ export function mapOverviewResponse(
         name: m.homeHiddenAtRequest ? hiddenPlayerLabel : (m.homeName ?? undecidedSide),
         abbreviation: m.homeAbbreviation,
         clubId: m.homeClubId,
+        ...(m.homeClubId && clubAliasById.has(m.homeClubId)
+          ? { clubAlias: clubAliasById.get(m.homeClubId) }
+          : {}),
         emblemObjectId: m.homeEmblemObjectId,
         score: m.homeScore,
         entrantId: m.homeEntrantId,
@@ -307,6 +339,9 @@ export function mapOverviewResponse(
         name: m.awayHiddenAtRequest ? hiddenPlayerLabel : (m.awayName ?? undecidedSide),
         abbreviation: m.awayAbbreviation,
         clubId: m.awayClubId,
+        ...(m.awayClubId && clubAliasById.has(m.awayClubId)
+          ? { clubAlias: clubAliasById.get(m.awayClubId) }
+          : {}),
         emblemObjectId: m.awayEmblemObjectId,
         score: m.awayScore,
         entrantId: m.awayEntrantId,
@@ -324,6 +359,9 @@ export function mapOverviewResponse(
         : { publicProfileAvailable: s.publicProfileAvailable }),
       abbreviation: s.abbreviation,
       clubId: s.clubId,
+      ...(s.clubId && clubAliasById.has(s.clubId)
+        ? { clubAlias: clubAliasById.get(s.clubId) }
+        : {}),
       emblemObjectId: s.emblemObjectId,
       played: s.statistics['played'] ?? 0,
       points: s.statistics['points'] ?? 0,
@@ -463,12 +501,19 @@ export function mapMatchesViewResponse(
         homeName: m.homeHiddenAtRequest ? hiddenPlayerLabel : m.homeName,
         homeAbbreviation: m.homeAbbreviation,
         homeClubId: m.homeClubId,
+        ...(m.homeClubAlias === undefined || m.homeHiddenAtRequest
+          ? {}
+          : { homeClubAlias: m.homeClubAlias }),
         homeEmblemObjectId: m.homeEmblemObjectId,
         homeScore: m.homeScore,
         ...(m.awayEntrantId === undefined ? {} : { awayEntrantId: m.awayEntrantId }),
+        ...(m.winnerEntrantId === undefined ? {} : { winnerEntrantId: m.winnerEntrantId }),
         awayName: m.awayHiddenAtRequest ? hiddenPlayerLabel : m.awayName,
         awayAbbreviation: m.awayAbbreviation,
         awayClubId: m.awayClubId,
+        ...(m.awayClubAlias === undefined || m.awayHiddenAtRequest
+          ? {}
+          : { awayClubAlias: m.awayClubAlias }),
         awayEmblemObjectId: m.awayEmblemObjectId,
         awayScore: m.awayScore,
         clockSeconds: m.clock?.elapsedSeconds ?? m.clockSeconds,

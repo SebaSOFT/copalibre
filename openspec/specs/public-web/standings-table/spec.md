@@ -231,3 +231,62 @@ A public stage page, or a zone of a mixed stage, laid out as a bracket SHALL NOT
 
 - **WHEN** a spectator opens a stage of three cups drawn as brackets
 - **THEN** the page shows the brackets and no table ranking the 24 entrants on their knockout games
+
+### Requirement: The player dialog summarizes the profile and leads to it
+
+The player dialog SHALL show the player's club and shirt number for the current tournament and the
+selected layout's tournament totals, and SHALL offer a link to the player's full public profile with
+the same layout selected.
+
+#### Scenario: From the statistics table to the profile
+- **WHEN** a spectator opens a player from the player-statistics table and follows the dialog's
+  profile link
+- **THEN** the full profile opens with the layout the table was showing
+
+#### Scenario: Dialog header
+- **WHEN** the dialog opens for a player whose latest roster gives number 3 for Club Hispano
+- **THEN** its header shows Club Hispano and number 3 next to the player's name
+
+### Requirement: A player table can be searched by name
+
+A public person-granularity table SHALL offer a name search, carried in the URL's query string and
+applied by the server, that keeps each matching row's tournament-wide rank, and SHALL apply the same
+filter in place when scripts run.
+
+#### Scenario: Search without scripts
+- **WHEN** a visitor with scripts off submits "moreno" in the player-statistics search
+- **THEN** the page reloads with the query in the URL and lists only rows whose player name matches,
+  each with its tournament-wide rank
+
+#### Scenario: Accent-insensitive search
+- **WHEN** a visitor searches "leon"
+- **THEN** rows naming "León" match
+
+### Requirement: A player table shows the shirt number
+
+A public person-granularity table SHALL show a number column before the player column, holding the
+number from the player's most recent finalized roster in the tournament, blank when none is
+recorded.
+
+#### Scenario: Number column
+- **WHEN** a visitor reads the player-statistics table
+- **THEN** each row shows the player's latest roster number before the name
+
+### Requirement: The sorted column is indicated
+
+A public table SHALL mark the column it is sorted by with a visible direction indicator and expose
+the same state to assistive technology.
+
+#### Scenario: Sorted by goals
+- **WHEN** the player table is sorted by goals descending
+- **THEN** the goals header shows a descending indicator and carries `aria-sort="descending"`
+
+### Requirement: A fraction with nothing attempted follows the zero-value display
+
+A fraction cell whose numerator and denominator are both zero SHALL render as its layout's zero-value
+display, never as "0/0".
+
+#### Scenario: No direct free kicks taken
+- **WHEN** a player has taken no direct free kick
+- **THEN** the free-kick fraction cell renders as the layout's zero display, the same as an
+  unrecorded goal count

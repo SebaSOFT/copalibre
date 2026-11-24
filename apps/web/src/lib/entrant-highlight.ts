@@ -41,5 +41,7 @@ export function initializeEntrantHighlight(root: HTMLElement): void {
     fallback.hidden = true;
   const hint = root.querySelector<HTMLElement>('[data-journey-hint]');
   if (hint && buttons.length > 0) hint.hidden = false;
+  const initialEntrantId = root.dataset.initialEntrantId;
+  if (initialEntrantId) update(initialEntrantId);
   root.dataset.journeyReady = 'true';
 }

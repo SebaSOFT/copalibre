@@ -188,6 +188,14 @@ export class PublicOverviewClubResponse {
   emblemObjectId?: string;
 }
 
+export class PublicOrganizationClubResponse extends PublicOverviewClubResponse {
+  @ApiPropertyOptional({
+    description:
+      "Alias of the organization's first in-progress published tournament with an entrant from this club, when one exists",
+  })
+  tournamentAlias?: string;
+}
+
 export class PublicOverviewVenueResponse {
   @ApiProperty()
   alias!: string;
@@ -670,6 +678,9 @@ export class PublicMatchReportResponse extends FixtureSourcesResponse {
   @ApiPropertyOptional()
   homeAbbreviation?: string;
 
+  @ApiPropertyOptional({ description: "Home club's alias, when present" })
+  homeClubAlias?: string;
+
   @ApiPropertyOptional({ format: 'uuid' })
   awayEntrantId?: string;
 
@@ -681,6 +692,9 @@ export class PublicMatchReportResponse extends FixtureSourcesResponse {
 
   @ApiPropertyOptional()
   awayAbbreviation?: string;
+
+  @ApiPropertyOptional({ description: "Away club's alias, when present" })
+  awayClubAlias?: string;
 
   @ApiPropertyOptional()
   homeScore?: number;
@@ -1352,8 +1366,8 @@ export class PublicOrganizationTournamentListResponse {
   @ApiProperty({ type: [PublicTournamentListingItemResponse] })
   tournaments!: PublicTournamentListingItemResponse[];
 
-  @ApiProperty({ type: [PublicOverviewClubResponse] })
-  clubs!: PublicOverviewClubResponse[];
+  @ApiProperty({ type: [PublicOrganizationClubResponse] })
+  clubs!: PublicOrganizationClubResponse[];
 }
 
 /** A card's latest recorded event — deliberately generic, never a specific event code. */
@@ -1420,8 +1434,17 @@ export class PublicMatchesViewMatchResponse extends FixtureSourcesResponse {
   @ApiPropertyOptional({ format: 'uuid' })
   homeClubId?: string;
 
+  @ApiPropertyOptional({ description: "Home club's alias, when present" })
+  homeClubAlias?: string;
+
   @ApiPropertyOptional()
   homeEmblemObjectId?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'The winning entrant of a finished match; absent when no side won',
+  })
+  winnerEntrantId?: string;
 
   @ApiPropertyOptional({ format: 'uuid' })
   awayEntrantId?: string;
@@ -1440,6 +1463,9 @@ export class PublicMatchesViewMatchResponse extends FixtureSourcesResponse {
 
   @ApiPropertyOptional({ format: 'uuid' })
   awayClubId?: string;
+
+  @ApiPropertyOptional({ description: "Away club's alias, when present" })
+  awayClubAlias?: string;
 
   @ApiPropertyOptional()
   awayEmblemObjectId?: string;

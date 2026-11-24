@@ -26,6 +26,7 @@ import Icon from '../components/ui/atoms/Icon.astro';
 import Logo from '../components/ui/atoms/Logo.astro';
 import PersonPhotoImage from '../components/ui/atoms/PersonPhotoImage.astro';
 import SearchInput from '../components/ui/atoms/SearchInput.astro';
+import Select from '../components/ui/atoms/Select.astro';
 import SortIndicator from '../components/ui/atoms/SortIndicator.astro';
 import { ICON_REGISTRY } from '../lib/icon-registry.js';
 import StateBadge from '../components/ui/atoms/StateBadge.astro';
@@ -45,6 +46,11 @@ import BracketGraph from '../components/ui/organisms/BracketGraph.astro';
 import MatchNodeCompact from '../components/ui/molecules/MatchNodeCompact.astro';
 import PlacementGames from '../components/ui/molecules/PlacementGames.astro';
 import ClubFilterChip from '../components/ui/molecules/ClubFilterChip.astro';
+import ClubIdentity from '../components/ui/molecules/ClubIdentity.astro';
+import SectionHeader from '../components/ui/molecules/SectionHeader.astro';
+import Stack from '../components/ui/atoms/layout/Stack.astro';
+import Form from '../components/ui/atoms/Form.astro';
+import Input from '../components/ui/atoms/Input.astro';
 import DataTable from '../components/ui/organisms/DataTable.astro';
 import MatchCardGrid from '../components/ui/organisms/MatchCardGrid.astro';
 import MatchBracketContext from '../components/ui/organisms/MatchBracketContext.astro';
@@ -139,10 +145,12 @@ const PREVIEWABLE = new Set([
   'emblem-image',
   'emblem-image-fallbacks',
   'emblem-image-matrix',
+  'emblem-image-long-abbreviation',
   'logo',
   'person-photo-image',
   'person-photo-cutout',
   'search-input',
+  'select',
   'sort-indicator',
   'state-badge',
   'broadcast-status-panel',
@@ -179,6 +187,11 @@ const PREVIEWABLE = new Set([
   'organization-header',
   'player-profile-view',
   'club-filter-chip',
+  'club-identity',
+  'section-header',
+  'stack',
+  'form',
+  'input',
   'standings-table',
   'standings-table-promotion',
   'tournament-card',
@@ -591,6 +604,20 @@ const [compactSample] = referenceJourneyBracket(true);
         hiddenParams={[{ name: 'tab', value: 'player-statistics' }]}
       />
     )}
+    {component === 'select' && (
+      <Select
+        name="club"
+        ariaLabel={intl.formatMessage(messages.matchesViewFilterClub)}
+        options={[
+          {
+            value: '',
+            label: intl.formatMessage(messages.matchesViewFilterClubAll),
+            selected: true,
+          },
+          { value: 'meridian-athletic', label: 'Meridian Athletic' },
+        ]}
+      />
+    )}
     {component === 'sort-indicator' && (
       <div class="cl-preview-chip-row">
         <SortIndicator direction="ascending" />
@@ -893,6 +920,71 @@ const [compactSample] = referenceJourneyBracket(true);
         tournamentAlias="reference-cup"
         profile={referencePlayerProfile()}
       />
+    )}
+    {component === 'emblem-image-long-abbreviation' && (
+      <div>
+        {['CUDB', 'CCBA', 'ESTSM', 'ACSM', 'BATA'].map((abbreviation) => (
+          <div>
+            {[48, 32, 24].map((size) => (
+              <EmblemImage
+                abbreviation={abbreviation}
+                alt={abbreviation}
+                placeholderAlt={abbreviation}
+                size={size}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    )}
+    {component === 'club-identity' && (
+      <div>
+        <ClubIdentity name="Club Hispano" abbreviation="HIS" placeholderAlt="Crest" />
+        <ClubIdentity
+          name="Lomas de Rivadavia"
+          abbreviation="LDR"
+          placeholderAlt="Crest"
+          href="#"
+          size="sm"
+        />
+        <ClubIdentity
+          name="Club Hispano"
+          abbreviation="HIS"
+          placeholderAlt="Crest"
+          headingLevel={1}
+          size="lg"
+        />
+      </div>
+    )}
+    {component === 'section-header' && (
+      <div>
+        <SectionHeader headingId="preview-heading-plain" heading="Results" />
+        <SectionHeader
+          headingId="preview-heading-action"
+          heading="Standing"
+          actionHref="#"
+          actionLabel="View stage standings"
+          count={8}
+        />
+      </div>
+    )}
+    {component === 'form' && (
+      <Form action="#" class="cl-filter-row">
+        <Input name="zone" value="Zona Norte" />
+        <Input type="search" name="q" value="Liga" id="preview-form-search" class="cl-input" />
+        <Button type="submit" variant="secondary">
+          {intl.formatMessage(messages.interactionViewMatches)}
+        </Button>
+      </Form>
+    )}
+    {component === 'input' && (
+      <Input type="search" name="q" value="Liga" id="preview-input-search" class="cl-input" />
+    )}
+    {component === 'stack' && (
+      <Stack gap="md">
+        <p>{intl.formatMessage(messages.clubIndexTitle)}</p>
+        <p>{intl.formatMessage(messages.clubIndexEmptyDescription)}</p>
+      </Stack>
     )}
     {component === 'club-filter-chip' && (
       <div class="cl-preview-chip-row">

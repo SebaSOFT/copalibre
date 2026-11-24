@@ -18,6 +18,8 @@ export type ViewMode = 'default' | 'compact' | 'broadcast' | 'overlay';
 export interface RouteInput {
   readonly organizationAlias: string;
   readonly tournamentAlias?: string;
+  readonly clubIndex?: boolean;
+  readonly clubAlias?: string;
   readonly stageNumber?: number;
   readonly roundNumber?: number;
   readonly matchNumber?: number;
@@ -38,6 +40,7 @@ export function validateRouteInput(input: RouteInput): void {
   for (const [field, value] of [
     ['organizationAlias', input.organizationAlias],
     ['tournamentAlias', input.tournamentAlias],
+    ['clubAlias', input.clubAlias],
     ['participantAlias', input.participantAlias],
   ] as const) {
     if (value === undefined) continue;
@@ -67,8 +70,20 @@ export function validateRouteInput(input: RouteInput): void {
   if (input.tournamentAlias === undefined && input.stageNumber !== undefined) {
     throw new RouteError('A stage belongs to a tournament; name the tournament');
   }
+  if (
+    input.tournamentAlias === undefined &&
+    (input.clubIndex === true || input.clubAlias !== undefined)
+  ) {
+    throw new RouteError('A club route belongs to a tournament; name the tournament');
+  }
   if (input.stageNumber === undefined && input.matchNumber !== undefined) {
     throw new RouteError('A match belongs to a stage; name the stage');
+  }
+  if (
+    (input.clubIndex === true || input.clubAlias !== undefined) &&
+    input.stageNumber !== undefined
+  ) {
+    throw new RouteError('A club route cannot combine with a stage segment');
   }
 }
 
@@ -79,6 +94,11 @@ export function publicPath(input: RouteInput): string {
   const segments = [input.organizationAlias];
   if (input.tournamentAlias !== undefined) {
     segments.push('tournaments', input.tournamentAlias);
+  }
+  if (input.clubAlias !== undefined) {
+    segments.push('clubs', input.clubAlias);
+  } else if (input.clubIndex === true) {
+    segments.push('clubs');
   }
   if (input.stageNumber !== undefined) segments.push('stages', String(input.stageNumber));
   if (input.roundNumber !== undefined) segments.push('rounds', String(input.roundNumber));

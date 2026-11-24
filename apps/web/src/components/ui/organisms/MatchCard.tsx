@@ -28,6 +28,7 @@ import {
 import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
 import { ValueFlash } from '../atoms/ValueFlash.js';
 import { clubEmblemUrl } from '../../../lib/public-image-paths.js';
+import { optionalClubPageUrl } from '../../../lib/club-url.js';
 
 /**
  * The matches-view card: one shared React component for both the public
@@ -37,8 +38,28 @@ import { clubEmblemUrl } from '../../../lib/public-image-paths.js';
  * already documents: this file must never import `react-intl`'s formatting
  * machinery itself, only accept already-resolved strings.
  */
+/**
+ * The viewer's side in a finished match, as a labelled badge. The caller supplies the words in the
+ * page's language; the card supplies the icon and tone for each kind.
+ */
+export interface MatchCardOutcome {
+  readonly kind: 'won' | 'drawn' | 'lost';
+  readonly label: string;
+}
+
+const OUTCOME_BADGE: Record<
+  MatchCardOutcome['kind'],
+  { readonly className: string; readonly icon: 'check' | 'minus' | 'close' }
+> = {
+  won: { className: 'cl-badge--positive', icon: 'check' },
+  drawn: { className: 'cl-badge--muted', icon: 'minus' },
+  lost: { className: 'cl-badge--negative', icon: 'close' },
+};
+
 export interface MatchCardProps {
   readonly match: MatchCardData;
+  /** The viewer's result in this finished match, shown as a labelled badge; absent on other surfaces. */
+  readonly outcome?: MatchCardOutcome;
   readonly labels: MatchCardLabels;
   /** Required: threaded straight into `ResponsiveTimestamp`, which no longer guesses one. */
   readonly locale: string;
@@ -50,6 +71,10 @@ export interface MatchCardProps {
   readonly reportUrl?: string;
   /** Builds same-origin emblem routes for persisted team entrants. */
   readonly organizationAlias?: string;
+  /** Builds club page links for teams in regular cards when `clubAlias` is present. */
+  readonly tournamentAlias?: string;
+  /** Optional locale prefix (`'/es'`, etc.) for club page links. */
+  readonly localePrefix?: string;
   /** Opaque band assigned by a public list; other surfaces retain their default card surface. */
   readonly band?: 'panel' | 'base';
   /** Single-line ticker presentation — a dense listing's own row shape, not a smaller version of the full card. */
@@ -88,11 +113,14 @@ export function MatchCard({
   referenceDate,
   reportUrl,
   organizationAlias,
+  tournamentAlias,
+  localePrefix,
   band,
   compact = false,
   compactNames = 'abbreviated',
   headingLevel = 3,
   inZoneSection = false,
+  outcome,
 }: MatchCardProps): React.JSX.Element {
   const bothUndecided = match.homeName === undefined && match.awayName === undefined;
   const [homeOverflow, setHomeOverflow] = useState(false);
@@ -187,6 +215,24 @@ export function MatchCard({
   const awayEmblemSrc =
     organizationAlias && match.awayClubId && match.awayEmblemObjectId
       ? clubEmblemUrl(organizationAlias, match.awayClubId)
+      : undefined;
+  const homeClubUrl =
+    match.homeName !== undefined
+      ? optionalClubPageUrl({
+          organizationAlias,
+          tournamentAlias,
+          clubAlias: match.homeClubAlias,
+          localePrefix,
+        })
+      : undefined;
+  const awayClubUrl =
+    match.awayName !== undefined
+      ? optionalClubPageUrl({
+          organizationAlias,
+          tournamentAlias,
+          clubAlias: match.awayClubAlias,
+          localePrefix,
+        })
       : undefined;
 
   if (compact) {
@@ -299,14 +345,18 @@ export function MatchCard({
       <div className="cl-match-card__header">
         <MatchHeading className="cl-match-card__heading">
           {reportUrl === undefined ? (
-            title.title
+            <span className="cl-match-card__title" title={title.title}>
+              {title.title}
+            </span>
           ) : (
             <a
               aria-label={`${matchTitle}: ${homeName} ${versus} ${awayName}`}
               className="cl-match-card__report-link cl-focusable"
               href={reportUrl}
             >
-              {title.title}
+              <span className="cl-match-card__title" title={title.title}>
+                {title.title}
+              </span>
             </a>
           )}
           {title.number !== undefined && (
@@ -323,6 +373,12 @@ export function MatchCard({
           {badge.state !== 'live' && <Icon name={badge.icon} size={16} />}
           <span>{badge.label}</span>
         </Badge>
+        {outcome !== undefined && (
+          <Badge className={`cl-match-card__outcome ${OUTCOME_BADGE[outcome.kind].className}`}>
+            <Icon name={OUTCOME_BADGE[outcome.kind].icon} size={16} />
+            <span>{outcome.label}</span>
+          </Badge>
+        )}
         {effectiveState === 'live' &&
         (effectiveClock !== undefined || effectiveSegmentLabel !== undefined) ? (
           <LiveMatchScoreboard
@@ -368,13 +424,29 @@ export function MatchCard({
             size={32}
             src={homeEmblemSrc}
           />
-          <EntrantName
-            pending={match.homeName === undefined}
-            compact={syncCompactUndecided}
-            onOverflowChange={bothUndecided ? setHomeOverflow : undefined}
-            fullName={homeName}
-            abbreviation={match.homeName === undefined ? homeSource.short : match.homeAbbreviation}
-          />
+          {homeClubUrl ? (
+            <a className="cl-match-card__team-link cl-focusable" href={homeClubUrl}>
+              <EntrantName
+                pending={match.homeName === undefined}
+                compact={syncCompactUndecided}
+                onOverflowChange={bothUndecided ? setHomeOverflow : undefined}
+                fullName={homeName}
+                abbreviation={
+                  match.homeName === undefined ? homeSource.short : match.homeAbbreviation
+                }
+              />
+            </a>
+          ) : (
+            <EntrantName
+              pending={match.homeName === undefined}
+              compact={syncCompactUndecided}
+              onOverflowChange={bothUndecided ? setHomeOverflow : undefined}
+              fullName={homeName}
+              abbreviation={
+                match.homeName === undefined ? homeSource.short : match.homeAbbreviation
+              }
+            />
+          )}
           {match.state !== 'upcoming' && match.homePosition !== undefined && (
             <Badge
               className="cl-badge--rank"
@@ -395,13 +467,29 @@ export function MatchCard({
             size={32}
             src={awayEmblemSrc}
           />
-          <EntrantName
-            pending={match.awayName === undefined}
-            compact={syncCompactUndecided}
-            onOverflowChange={bothUndecided ? setAwayOverflow : undefined}
-            fullName={awayName}
-            abbreviation={match.awayName === undefined ? awaySource.short : match.awayAbbreviation}
-          />
+          {awayClubUrl ? (
+            <a className="cl-match-card__team-link cl-focusable" href={awayClubUrl}>
+              <EntrantName
+                pending={match.awayName === undefined}
+                compact={syncCompactUndecided}
+                onOverflowChange={bothUndecided ? setAwayOverflow : undefined}
+                fullName={awayName}
+                abbreviation={
+                  match.awayName === undefined ? awaySource.short : match.awayAbbreviation
+                }
+              />
+            </a>
+          ) : (
+            <EntrantName
+              pending={match.awayName === undefined}
+              compact={syncCompactUndecided}
+              onOverflowChange={bothUndecided ? setAwayOverflow : undefined}
+              fullName={awayName}
+              abbreviation={
+                match.awayName === undefined ? awaySource.short : match.awayAbbreviation
+              }
+            />
+          )}
           {match.state !== 'upcoming' && match.awayPosition !== undefined && (
             <Badge
               className="cl-badge--rank"

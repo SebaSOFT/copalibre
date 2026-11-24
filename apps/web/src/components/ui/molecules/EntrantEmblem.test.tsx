@@ -21,13 +21,27 @@ describe('EntrantEmblem', () => {
     ).toBe(true);
   });
 
-  it('keeps four characters in a single line in a 24px frame', () => {
+  it('sets a four-character monogram to the medium step in a 24px frame', () => {
     render(<EntrantEmblem abbreviation="ESTM" alt="Estudiantil San Miguel" size={24} />);
 
     const monogram = screen.getByText('ESTM');
-    expect(monogram.classList.contains('cl-entrant-emblem__monogram--small-tight')).toBe(true);
+    expect(monogram.classList.contains('cl-entrant-emblem__monogram--medium')).toBe(true);
     expect(
       monogram.closest('.cl-entrant-emblem')?.classList.contains('cl-entrant-emblem--micro'),
+    ).toBe(true);
+  });
+
+  it.each([
+    ['CUDB', 'medium'],
+    ['CCBA', 'medium'],
+    ['ESTSM', 'long'],
+    ['ACSMX', 'long'],
+    ['BATAXX', 'longest'],
+  ] as const)('sets %s to the %s step at 48px', (abbreviation, step) => {
+    render(<EntrantEmblem abbreviation={abbreviation} alt="Club" size={48} />);
+
+    expect(
+      screen.getByText(abbreviation).classList.contains(`cl-entrant-emblem__monogram--${step}`),
     ).toBe(true);
   });
 

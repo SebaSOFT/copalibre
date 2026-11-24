@@ -33,9 +33,9 @@ describe('EmblemImage display atom', () => {
     expect(emblemAstro).not.toMatch(/\sonerror=/);
   });
 
-  it('renders a persisted abbreviation at the shared fit size and never invents or truncates one', () => {
-    expect(emblemAstro).toContain('const fit = emblemMonogramFit(abbreviation)');
-    expect(emblemAstro).toContain("'cl-entrant-emblem__monogram--reduced'");
+  it('sizes a persisted abbreviation to its length step from the tile and never invents or truncates one', () => {
+    expect(emblemAstro).toContain('const monogramStep = emblemMonogramStep(abbreviation)');
+    expect(emblemAstro).toContain('`cl-entrant-emblem__monogram--${monogramStep}`');
     expect(emblemAstro).toContain('{abbreviation}');
     expect(emblemAstro).toContain('<Icon name="club"');
   });

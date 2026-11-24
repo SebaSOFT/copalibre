@@ -41,11 +41,13 @@ const timeZone = model.organizationTimeZone ?? 'UTC';
         homeName: match.home.name,
         homeAbbreviation: match.home.abbreviation,
         homeClubId: match.home.clubId,
+        homeClubAlias: match.home.clubAlias,
         homeEmblemObjectId: match.home.emblemObjectId,
         homeScore: match.home.score,
         awayName: match.away.name,
         awayAbbreviation: match.away.abbreviation,
         awayClubId: match.away.clubId,
+        awayClubAlias: match.away.clubAlias,
         awayEmblemObjectId: match.away.emblemObjectId,
         awayScore: match.away.score,
         ...(match.startsAt
@@ -70,6 +72,8 @@ const timeZone = model.organizationTimeZone ?? 'UTC';
           referenceDate={referenceDate}
           timeZone={timeZone}
           organizationAlias={model.organizationAlias}
+          tournamentAlias={model.tournamentAlias}
+          localePrefix={localePrefix}
         />
       );
 

@@ -1,6 +1,8 @@
 import {
   bracketBranchLabel,
   bracketRoleLabel,
+  formatClubStatus,
+  knockoutRoundLabel,
   matchCardLabels,
   formatActor,
   formatDateTime,
@@ -428,5 +430,80 @@ describe('bracketRoleLabel', () => {
     expect(bracketRoleLabel(publicIntl('es'), 'place-5', 16)).toBe('5º puesto · 21.º general');
     expect(bracketRoleLabel(publicIntl('en'), 'place-5')).toBe('5th place');
     expect(bracketRoleLabel(publicIntl('en'), 'places-5-8', 16)).toBe('5th–8th place');
+  });
+});
+
+describe('knockoutRoundLabel and formatClubStatus', () => {
+  it('keeps the zone in the status only when no band badge is shown beside it', () => {
+    const intl = publicIntl('en');
+    const inCompetition = {
+      kind: 'inCompetition' as const,
+      zone: 'Gold Cup',
+      roundKind: 'semiFinal' as const,
+      roundNumber: 2,
+    };
+    const eliminated = {
+      kind: 'eliminated' as const,
+      zone: 'Silver Cup',
+      roundKind: 'quarterFinal' as const,
+      roundNumber: 1,
+    };
+    expect(formatClubStatus(intl, inCompetition, { withBand: true })).toBe(
+      'In competition: Semi-finals',
+    );
+    expect(formatClubStatus(intl, eliminated, { withBand: true })).toBe(
+      'Eliminated in Quarter-finals',
+    );
+    expect(formatClubStatus(intl, eliminated, { withBand: false })).toBe(
+      'Eliminated in Quarter-finals of Silver Cup',
+    );
+    expect(formatClubStatus(intl, { kind: 'champion', zone: 'Gold Cup' }, { withBand: true })).toBe(
+      'Champion',
+    );
+  });
+
+  it('formats knockout round labels across round kinds', () => {
+    const intl = publicIntl('en');
+    expect(knockoutRoundLabel(intl, 'final')).toBe('Final');
+    expect(knockoutRoundLabel(intl, 'semiFinal')).toBe('Semi-finals');
+    expect(knockoutRoundLabel(intl, 'quarterFinal')).toBe('Quarter-finals');
+    expect(knockoutRoundLabel(intl, 'round', 2)).toBe('Round 2');
+    expect(knockoutRoundLabel(intl, 'round')).toBe('Round 1');
+  });
+
+  it('formats all club tournament status variants', () => {
+    const intl = publicIntl('en');
+    expect(formatClubStatus(intl, undefined)).toBeUndefined();
+    expect(formatClubStatus(intl, { kind: 'groupStage' })).toBe('Group stage');
+    expect(
+      formatClubStatus(intl, {
+        kind: 'inCompetition',
+        zone: 'Gold Cup',
+        roundKind: 'semiFinal',
+        roundNumber: 2,
+      }),
+    ).toBe('In competition: Gold Cup, Semi-finals');
+    expect(
+      formatClubStatus(intl, {
+        kind: 'inCompetition',
+        roundKind: 'final',
+        roundNumber: 3,
+      }),
+    ).toBe('In competition: Final');
+    expect(
+      formatClubStatus(intl, {
+        kind: 'eliminated',
+        zone: 'Silver Cup',
+        roundKind: 'quarterFinal',
+        roundNumber: 1,
+      }),
+    ).toBe('Eliminated in Quarter-finals of Silver Cup');
+    expect(
+      formatClubStatus(intl, {
+        kind: 'eliminated',
+        roundKind: 'round',
+        roundNumber: 1,
+      }),
+    ).toBe('Eliminated in Round 1');
   });
 });

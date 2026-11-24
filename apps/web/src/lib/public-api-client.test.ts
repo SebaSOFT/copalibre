@@ -249,7 +249,9 @@ describe('public-api-client', () => {
             round: 1,
             status: 'final',
             homeName: 'Norte',
+            homeClubAlias: 'norte',
             awayName: 'Sur',
+            awayClubAlias: 'sur',
             homeScore: 2,
             awayScore: 1,
             zoneName: 'Group B',
@@ -279,9 +281,11 @@ describe('public-api-client', () => {
           state: 'final',
           homeName: 'Norte',
           homeAbbreviation: undefined,
+          homeClubAlias: 'norte',
           homeScore: 2,
           awayName: 'Sur',
           awayAbbreviation: undefined,
+          awayClubAlias: 'sur',
           awayScore: 1,
           clockSeconds: undefined,
           venueName: undefined,
@@ -423,6 +427,29 @@ describe('public-api-client', () => {
       );
     });
 
+    it('reads layouts with ?club= when an alias filter object is supplied', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ layoutCode: 'top-scorers', rows: [] }),
+      } as unknown as Response);
+
+      await fetchPublicTableProjection('org1', 'tourney1', 'top-scorers', undefined, {
+        club: 'club-hispano',
+      });
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/api/organizations/org1/tournaments/tourney1/public/tables/top-scorers?club=club-hispano',
+      );
+
+      await fetchPublicTableProjection('org1', 'tourney1', 'group-standings-default', 2, {
+        club: 'club-hispano',
+        clubId: 'club-123',
+      });
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/api/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default?club=club-hispano',
+      );
+    });
+
     it('returns undefined on 404', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
         ok: false,
@@ -443,6 +470,13 @@ describe('public-api-client', () => {
     it('builds a stage-scoped CSV path and retains the club filter', () => {
       expect(publicTableCsvUrl('org1', 'tourney1', 'group-standings-default', 2, 'club-123')).toBe(
         '/api/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default/csv?clubId=club-123',
+      );
+      expect(
+        publicTableCsvUrl('org1', 'tourney1', 'group-standings-default', 2, {
+          club: 'club-hispano',
+        }),
+      ).toBe(
+        '/api/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default/csv?club=club-hispano',
       );
     });
 

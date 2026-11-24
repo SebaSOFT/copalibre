@@ -11,11 +11,23 @@ interface Props {
   readonly locale: string;
   readonly timeZone?: string;
   readonly organizationAlias?: string;
+  readonly tournamentAlias?: string;
+  readonly localePrefix?: string;
   readonly referenceDate?: number;
 }
 
-const { heading, match, href, labels, locale, timeZone, organizationAlias, referenceDate } =
-  Astro.props;
+const {
+  heading,
+  match,
+  href,
+  labels,
+  locale,
+  timeZone,
+  organizationAlias,
+  tournamentAlias,
+  localePrefix,
+  referenceDate,
+} = Astro.props;
 ---
 
 <section class="cl-featured-match" aria-labelledby="featured-match-heading">
@@ -28,21 +40,25 @@ const { heading, match, href, labels, locale, timeZone, organizationAlias, refer
         client:load
         labels={labels}
         locale={locale}
+        localePrefix={localePrefix}
         match={match}
         organizationAlias={organizationAlias}
         referenceDate={referenceDate}
         reportUrl={href}
         timeZone={timeZone}
+        tournamentAlias={tournamentAlias}
       />
     ) : (
       <MatchCard
         labels={labels}
         locale={locale}
+        localePrefix={localePrefix}
         match={match}
         organizationAlias={organizationAlias}
         referenceDate={referenceDate}
         reportUrl={href}
         timeZone={timeZone}
+        tournamentAlias={tournamentAlias}
       />
     )}
   </div>

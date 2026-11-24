@@ -39,11 +39,13 @@ export interface MatchCardData {
   readonly homeName?: string;
   readonly homeAbbreviation?: string;
   readonly homeClubId?: string;
+  readonly homeClubAlias?: string;
   readonly homeEmblemObjectId?: string;
   readonly homeScore?: number;
   readonly awayName?: string;
   readonly awayAbbreviation?: string;
   readonly awayClubId?: string;
+  readonly awayClubAlias?: string;
   readonly awayEmblemObjectId?: string;
   readonly awayScore?: number;
   readonly clockSeconds?: number;
@@ -54,6 +56,8 @@ export interface MatchCardData {
   readonly projectionVersion?: number;
   readonly homeEntrantId?: string;
   readonly awayEntrantId?: string;
+  /** The winning entrant of a finished match; absent when no side won. */
+  readonly winnerEntrantId?: string;
   /**
    * Raw ISO instant, rendered client-side via `ResponsiveTimestamp` so "today"
    * is the viewer's calendar day, not the server's.
