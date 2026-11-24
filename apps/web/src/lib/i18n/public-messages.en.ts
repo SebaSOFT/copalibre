@@ -1584,6 +1584,18 @@ export const messages = defineMessages({
     id: 'publicWeb.clubPage.status.groupStage',
     defaultMessage: 'Group stage',
   },
+  clubPageStatusChampion: {
+    id: 'publicWeb.clubPage.status.champion',
+    defaultMessage: 'Champion of {zone}',
+  },
+  clubPageStatusChampionNoZone: {
+    id: 'publicWeb.clubPage.status.championNoZone',
+    defaultMessage: 'Champion',
+  },
+  clubPageStatusGroupStageEliminated: {
+    id: 'publicWeb.clubPage.status.groupStageEliminated',
+    defaultMessage: 'Eliminated in the group stage',
+  },
   clubPageOutcomeWon: {
     id: 'publicWeb.clubPage.outcome.won',
     defaultMessage: 'Won',
@@ -1603,5 +1615,9 @@ export const messages = defineMessages({
   matchesViewFilterClubAll: {
     id: 'publicWeb.matchesView.filterClubAll',
     defaultMessage: 'All clubs',
+  },
+  matchesViewFilterClubApply: {
+    id: 'publicWeb.matchesView.filterClubApply',
+    defaultMessage: 'Apply',
   },
 });

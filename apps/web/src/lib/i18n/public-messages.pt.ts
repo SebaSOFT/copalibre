@@ -492,9 +492,13 @@ export const messages: Record<string, string> = {
   'publicWeb.clubPage.status.eliminated': 'Eliminado em {round} de {zone}',
   'publicWeb.clubPage.status.eliminatedRoundOnly': 'Eliminado em {round}',
   'publicWeb.clubPage.status.groupStage': 'Etapa de grupos',
+  'publicWeb.clubPage.status.champion': 'Campeão de {zone}',
+  'publicWeb.clubPage.status.championNoZone': 'Campeão',
+  'publicWeb.clubPage.status.groupStageEliminated': 'Eliminado na etapa de grupos',
   'publicWeb.clubPage.outcome.won': 'Vitória',
   'publicWeb.clubPage.outcome.drawn': 'Empate',
   'publicWeb.clubPage.outcome.lost': 'Derrota',
   'publicWeb.matchesView.filterClub': 'Clube',
   'publicWeb.matchesView.filterClubAll': 'Todos os clubes',
+  'publicWeb.matchesView.filterClubApply': 'Aplicar',
 };

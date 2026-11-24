@@ -32,6 +32,8 @@ export type ClubStatus =
       readonly roundKind: KnockoutRoundKind;
       readonly roundNumber?: number;
     }
+  | { readonly kind: 'champion'; readonly zone?: string }
+  | { readonly kind: 'groupStageEliminated' }
   | { readonly kind: 'groupStage' };
 
 export interface ClubNextMatch {
@@ -49,6 +51,8 @@ export interface ClubNextMatch {
 }
 
 export interface ClubResultRow {
+  /** The match as the regular match card renders it, with the club's side and outcome beside it. */
+  readonly match: MatchCardData;
   readonly matchId: string;
   readonly stageNumber: number;
   readonly matchNumber: number;
@@ -147,10 +151,28 @@ function matchSideForClub(
   return undefined;
 }
 
-function resolveClubMatchOutcome(
-  match: Pick<MatchCardData, 'homeScore' | 'awayScore' | 'series'>,
+/**
+ * The club's outcome in a finished match. The reported winner decides first, so a level match settled by
+ * a deciding factor or a series reads as won or lost. Otherwise the score decides. A level knockout match
+ * without a reported winner has no outcome; a level group match is drawn.
+ */
+export function resolveClubMatchOutcome(
+  match: Pick<
+    MatchCardData,
+    'homeScore' | 'awayScore' | 'series' | 'winnerEntrantId' | 'homeEntrantId' | 'awayEntrantId'
+  >,
   side: 'home' | 'away',
+  options: { readonly knockout: boolean },
 ): ClubMatchOutcome | undefined {
+  if (match.winnerEntrantId !== undefined) {
+    const winnerSide =
+      match.winnerEntrantId === match.homeEntrantId
+        ? 'home'
+        : match.winnerEntrantId === match.awayEntrantId
+          ? 'away'
+          : undefined;
+    if (winnerSide !== undefined) return winnerSide === side ? 'won' : 'lost';
+  }
   const ownScore = side === 'home' ? match.homeScore : match.awayScore;
   const opponentScore = side === 'home' ? match.awayScore : match.homeScore;
   if (ownScore === undefined || opponentScore === undefined) return undefined;
@@ -159,7 +181,15 @@ function resolveClubMatchOutcome(
   if (match.series?.winner !== undefined) {
     return match.series.winner === side ? 'won' : 'lost';
   }
-  return 'drawn';
+  return options.knockout ? undefined : 'drawn';
+}
+
+function hasKnockoutStage(stages?: readonly PublicOverviewStageResponse[]): boolean {
+  return (stages ?? []).some(
+    (stage) =>
+      selectStageLayout(stage.format) === 'bracket' ||
+      (stage.zones ?? []).some((zone) => selectStageLayout(zone.format) === 'bracket'),
+  );
 }
 
 function isKnockoutMatch(
@@ -281,6 +311,13 @@ export function deriveClubStatus(
 
   const lastEntry = knockoutEntries[knockoutEntries.length - 1];
   if (!lastEntry) {
+    // Out of the group phase once a knockout stage exists, the club is in no knockout match, and none
+    // of its group matches is still to play.
+    const groupMatchOpen = clubEntries.some(
+      ({ match }) =>
+        !isKnockoutMatch(match, stages) && (match.state === 'live' || match.state === 'upcoming'),
+    );
+    if (hasKnockoutStage(stages) && !groupMatchOpen) return { kind: 'groupStageEliminated' };
     return { kind: 'groupStage' };
   }
 
@@ -298,9 +335,13 @@ export function deriveClubStatus(
     };
   }
 
-  const outcome = resolveClubMatchOutcome(lastEntry.match, lastEntry.side);
+  const outcome = resolveClubMatchOutcome(lastEntry.match, lastEntry.side, { knockout: true });
   const zone = lastEntry.match.zoneName ?? lastEntry.match.stageName;
   const roundKind = deriveKnockoutRoundKind(lastEntry.match);
+
+  if (outcome === 'won' && roundKind === 'final') {
+    return { kind: 'champion', ...(zone === undefined ? {} : { zone }) };
+  }
 
   if (outcome === 'lost') {
     return {
@@ -390,11 +431,15 @@ export function resolveClubNextOpponentName(
   return sideSource.unknown;
 }
 
-function buildClubResultRow(match: MatchCardData, side: 'home' | 'away'): ClubResultRow {
+function buildClubResultRow(
+  match: MatchCardData,
+  side: 'home' | 'away',
+  options: { readonly knockout: boolean },
+): ClubResultRow {
   const isHome = side === 'home';
   const ownScore = isHome ? match.homeScore : match.awayScore;
   const opponentScore = isHome ? match.awayScore : match.homeScore;
-  const outcome = resolveClubMatchOutcome(match, side);
+  const outcome = resolveClubMatchOutcome(match, side, options);
   const opponentName = isHome ? match.awayName : match.homeName;
   const opponentAbbreviation = isHome ? match.awayAbbreviation : match.homeAbbreviation;
   const opponentClubAlias = isHome ? match.awayClubAlias : match.homeClubAlias;
@@ -402,6 +447,7 @@ function buildClubResultRow(match: MatchCardData, side: 'home' | 'away'): ClubRe
   const opponentEmblemObjectId = isHome ? match.awayEmblemObjectId : match.homeEmblemObjectId;
 
   const row: {
+    match: MatchCardData;
     matchId: string;
     stageNumber: number;
     matchNumber: number;
@@ -423,6 +469,7 @@ function buildClubResultRow(match: MatchCardData, side: 'home' | 'away'): ClubRe
     opponentClubId?: string;
     opponentEmblemObjectId?: string;
   } = {
+    match,
     matchId: match.matchId,
     stageNumber: match.stageNumber,
     matchNumber: match.matchNumber,
@@ -451,11 +498,14 @@ function buildClubResultRow(match: MatchCardData, side: 'home' | 'away'): ClubRe
 export function deriveClubResults(
   matches: readonly MatchCardData[],
   club: ClubIdentityRef,
+  stages?: readonly PublicOverviewStageResponse[],
 ): readonly ClubResultRow[] {
   return clubMatchesWithSide(matches, club)
     .filter(({ match }) => match.state === 'final')
     .sort((left, right) => compareScheduledAsc(left.match, right.match))
-    .map(({ match, side }) => buildClubResultRow(match, side));
+    .map(({ match, side }) =>
+      buildClubResultRow(match, side, { knockout: isKnockoutMatch(match, stages) }),
+    );
 }
 
 /**
@@ -575,7 +625,10 @@ export function deriveClubKnockoutPath(
     ...(zoneName === undefined ? {} : { zoneName }),
     ...(zoneAnchor ? { zoneAnchor } : {}),
     matches: stageMatches.map(({ match, side }) => {
-      const outcome = match.state === 'final' ? resolveClubMatchOutcome(match, side) : undefined;
+      const outcome =
+        match.state === 'final'
+          ? resolveClubMatchOutcome(match, side, { knockout: true })
+          : undefined;
       return {
         match,
         side,

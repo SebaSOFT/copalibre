@@ -507,6 +507,7 @@ export function mapMatchesViewResponse(
         homeEmblemObjectId: m.homeEmblemObjectId,
         homeScore: m.homeScore,
         ...(m.awayEntrantId === undefined ? {} : { awayEntrantId: m.awayEntrantId }),
+        ...(m.winnerEntrantId === undefined ? {} : { winnerEntrantId: m.winnerEntrantId }),
         awayName: m.awayHiddenAtRequest ? hiddenPlayerLabel : m.awayName,
         awayAbbreviation: m.awayAbbreviation,
         awayClubId: m.awayClubId,

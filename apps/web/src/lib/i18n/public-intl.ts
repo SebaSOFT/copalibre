@@ -966,6 +966,14 @@ export function formatClubStatus(
   if (status.kind === 'groupStage') {
     return intl.formatMessage(messages.clubPageStatusGroupStage);
   }
+  if (status.kind === 'groupStageEliminated') {
+    return intl.formatMessage(messages.clubPageStatusGroupStageEliminated);
+  }
+  if (status.kind === 'champion') {
+    return status.zone
+      ? intl.formatMessage(messages.clubPageStatusChampion, { zone: status.zone })
+      : intl.formatMessage(messages.clubPageStatusChampionNoZone);
+  }
   const round = knockoutRoundLabel(intl, status.roundKind, status.roundNumber);
   if (status.kind === 'inCompetition') {
     return status.zone

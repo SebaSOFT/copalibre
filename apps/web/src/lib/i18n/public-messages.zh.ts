@@ -484,9 +484,13 @@ export const messages: Record<string, string> = {
   'publicWeb.clubPage.status.eliminated': '在 {zone} 的 {round} 淘汰',
   'publicWeb.clubPage.status.eliminatedRoundOnly': '在 {round} 淘汰',
   'publicWeb.clubPage.status.groupStage': '小组赛',
+  'publicWeb.clubPage.status.champion': '{zone}冠军',
+  'publicWeb.clubPage.status.championNoZone': '冠军',
+  'publicWeb.clubPage.status.groupStageEliminated': '小组赛后淘汰',
   'publicWeb.clubPage.outcome.won': '胜',
   'publicWeb.clubPage.outcome.drawn': '平',
   'publicWeb.clubPage.outcome.lost': '负',
   'publicWeb.matchesView.filterClub': '俱乐部',
   'publicWeb.matchesView.filterClubAll': '全部俱乐部',
+  'publicWeb.matchesView.filterClubApply': '应用',
 };
