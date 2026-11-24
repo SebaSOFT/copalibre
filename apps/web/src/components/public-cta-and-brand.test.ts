@@ -113,8 +113,8 @@ describe('public tables and filter pills', () => {
   });
 
   it('renders standings through the shared table treatment', () => {
-    expect(standings).toContain(
-      "class:list={['cl-table cl-table--priority', { 'cl-table--fill': fillColumnIndex >= 0 }]}",
+    expect(standings).toMatch(
+      /class:list=\{\[\s*'cl-table cl-table--priority',\s*\{ 'cl-table--fill': fillColumnIndex >= 0 \},?\s*\]\}/,
     );
     expect(standings).toContain(
       'data-sortable-table={showControls && previewRows === undefined ? true : undefined}',
@@ -125,7 +125,9 @@ describe('public tables and filter pills', () => {
 
   it('renders declared columns as accessible local sort controls', () => {
     expect(standings).toContain('data-sortable-table');
-    expect(standings).toContain('aria-sort="none"');
+    expect(standings).toContain('aria-sort={columnAriaSort}');
+    expect(standings).toContain("'ascending'");
+    expect(standings).toContain("'none'");
     expect(standings).toContain('data-column-code');
     expect(standings).toContain('data-sort-value');
     expect(standings).toContain('data-player-id');

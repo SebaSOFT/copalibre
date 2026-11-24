@@ -134,6 +134,43 @@ describe('buildTickerItems', () => {
     expect(items[0]?.meta).toBe('Goles');
   });
 
+  it('uses the player name as performer subject and combines metric with entrant abbreviation', () => {
+    const withPlayer: TableProjectionResponse = {
+      ...footballScorers,
+      rows: [
+        {
+          actorId: 'player-10',
+          actorName: 'Mateo Moreno',
+          entrantName: 'Casa de Italia',
+          entrantAbbreviation: 'CIT',
+          rank: 1,
+          sharedRank: false,
+          cells: { rank: { formatted: '1', raw: 1 }, goals: { formatted: '10', raw: 10 } },
+        },
+        {
+          actorId: 'player-11',
+          actorName: '',
+          entrantName: 'Club Hispano',
+          rank: 2,
+          sharedRank: false,
+          cells: { rank: { formatted: '2', raw: 2 }, goals: { formatted: '8', raw: 8 } },
+        },
+      ],
+    };
+    const items = buildTickerItems({
+      matches: [],
+      performers: withPlayer,
+      labels,
+      language: 'en',
+    });
+    expect(items).toHaveLength(2);
+    expect(items[0]?.subject).toBe('Mateo Moreno');
+    expect(items[0]?.meta).toBe('Goals · CIT');
+    expect(items[0]?.figure).toBe('10');
+    expect(items[1]?.subject).toBe('Club Hispano');
+    expect(items[1]?.meta).toBe('Goals');
+  });
+
   it('shows no top-performer item for a discipline that declares no player ranking', () => {
     // Tennis declares only a group-standings layout, so nothing is passed here.
     const items = buildTickerItems({ matches, labels, language: 'en' });

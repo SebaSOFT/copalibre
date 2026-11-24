@@ -5130,7 +5130,7 @@ describe('overview table-projection preview, listing progress/schedule/venueCoun
   });
 });
 
-describe('player profile completeness (0466)', () => {
+describe('player profile completeness and drilldown match ordinals', () => {
   const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
 
   it('returns distinct stage ordinals, match summaries, and working match report links across two stages', async () => {
@@ -5623,7 +5623,7 @@ describe('player profile completeness (0466)', () => {
       expect(reportOppScore).toBe(row.opponentScore);
     }
 
-    // Task 3.2: public profile returns shirtNumber (latest finalized = 3), clubAlias, zero-valued career statistics,
+    // Public profile returns shirtNumber (latest finalized = 3), clubAlias, zero-valued career statistics,
     // and identical anonymous vs authenticated responses.
     const anonProfile = await request({
       method: 'GET',

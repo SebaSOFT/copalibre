@@ -13,9 +13,26 @@ import type {
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { personPhotoUrl } from '../../../lib/public-api-client.ts';
 import { columnHint } from '../../../lib/column-hints.ts';
+import { formatTimestamp } from '../../../lib/format-timestamp.ts';
 import { localizedText } from '../../../lib/localized-label.ts';
+import {
+  currentTournamentHistoryEntry,
+  formatPlayerMatchRowLabel,
+} from '../../../lib/player-profile.ts';
+import type { ResultState } from '../../../lib/result-state.ts';
+import { Card } from '../atoms/Card.tsx';
 import PersonPhotoImage from '../atoms/PersonPhotoImage.astro';
+import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
+import StateBadge from '../atoms/StateBadge.astro';
 import DataTable from './DataTable.astro';
+
+export interface PlayerNextMatchView {
+  readonly scheduledAt?: string;
+  readonly opponent: string;
+  readonly venueName?: string;
+  readonly state: ResultState;
+  readonly href: string;
+}
 
 interface Props {
   readonly profile: PublicPersonProfileResponse;
@@ -28,6 +45,9 @@ interface Props {
   readonly statisticsLayouts?: readonly TableLayoutSummaryResponse[];
   readonly activeStatisticsLayoutCode?: string;
   readonly statistics?: PlayerStatisticsDrilldownResponse;
+  readonly nextMatch?: PlayerNextMatchView;
+  readonly organizationTimeZone?: string;
+  readonly referenceDate?: number;
 }
 
 const {
@@ -39,7 +59,17 @@ const {
   statisticsLayouts = [],
   activeStatisticsLayoutCode,
   statistics,
+  nextMatch,
+  organizationTimeZone,
+  referenceDate = Date.now(),
 } = Astro.props;
+
+const currentHistory = currentTournamentHistoryEntry(profile.competitionHistory, tournamentAlias);
+const currentClubDisplay = currentHistory
+  ? currentHistory.entrantAbbreviation
+    ? `${currentHistory.teamName} (${currentHistory.entrantAbbreviation})`
+    : currentHistory.teamName
+  : undefined;
 
 /** Tournament-total row: cells keyed directly by column code (not nested under `.cells`). */
 const totalColumns = (statistics?.columns ?? []).map((column) => {
@@ -71,15 +101,37 @@ const matchStatColumns = (statistics?.columns ?? [])
         (row as PlayerStatisticsMatchRowResponse).cells[column.code]?.formatted ?? '—',
     };
   });
+const matchRowTemplate = intl.formatMessage(messages.playerProfileMatchRowLabel, {
+  date: '{date}',
+  opponent: '{opponent}',
+  score: '{score}',
+});
 const matchColumns = [
   {
     key: 'match',
     header: intl.formatMessage(messages.playerProfileMatchColumnHeading),
+    href: (row: unknown) => {
+      const match = row as PlayerStatisticsMatchRowResponse;
+      return `${canonicalPath}/stages/${match.stageNumber}/matches/${match.matchNumber}`;
+    },
     render: (row: unknown) => {
       const match = row as PlayerStatisticsMatchRowResponse;
-      return intl.formatMessage(messages.playerProfileMatchLabel, {
-        stage: match.stageNumber,
-        match: match.matchNumber,
+      const date = match.scheduledAt
+        ? formatTimestamp(match.scheduledAt, {
+            locale: intl.locale,
+            ...(organizationTimeZone === undefined ? {} : { timeZone: organizationTimeZone }),
+            referenceDate,
+          })
+        : undefined;
+      const score =
+        match.ownScore !== undefined && match.opponentScore !== undefined
+          ? `${match.ownScore}–${match.opponentScore}`
+          : undefined;
+      return formatPlayerMatchRowLabel({
+        ...(date === undefined ? {} : { date }),
+        opponent: match.opponentName,
+        ...(score === undefined ? {} : { score }),
+        template: matchRowTemplate,
       });
     },
   },
@@ -143,6 +195,20 @@ const historyColumns = [
     <div class="cl-player-profile__identity">
       <h1 class="cl-player-profile__name">{profile.displayName}</h1>
       <div class="cl-player-profile__meta">
+        {currentClubDisplay && (
+          <span class="cl-player-profile__tag">
+            {intl.formatMessage(messages.playerProfileClubLabel, {
+              club: currentClubDisplay,
+            })}
+          </span>
+        )}
+        {currentHistory?.shirtNumber !== undefined && (
+          <span class="cl-player-profile__tag">
+            {intl.formatMessage(messages.playerProfileShirtNumber, {
+              number: currentHistory.shirtNumber,
+            })}
+          </span>
+        )}
         {profile.nationality && (
           <span class="cl-player-profile__tag">
             {intl.formatMessage(messages.playerProfileNationality, {
@@ -158,6 +224,38 @@ const historyColumns = [
       </div>
     </div>
   </header>
+
+  {nextMatch && (
+    <Card
+      as="section"
+      className="cl-player-profile__next-match"
+      aria-labelledby="player-next-match-heading"
+    >
+      <div class="cl-player-profile__next-match-head">
+        <h2 id="player-next-match-heading" class="cl-player-profile__section-title">
+          {intl.formatMessage(messages.playerProfileNextMatchHeading)}
+        </h2>
+        {nextMatch.state === 'live' && <StateBadge state="live" intl={intl} />}
+      </div>
+      <div class="cl-player-profile__next-match-body">
+        <a class="cl-player-profile__next-match-link cl-focusable" href={nextMatch.href}>
+          {nextMatch.opponent}
+        </a>
+        <div class="cl-player-profile__next-match-meta">
+          {nextMatch.scheduledAt && (
+            <ResponsiveTimestamp
+              client:after-paint
+              timestamp={nextMatch.scheduledAt}
+              locale={intl.locale}
+              timeZone={organizationTimeZone}
+              referenceDate={referenceDate}
+            />
+          )}
+          {nextMatch.venueName && <span>{nextMatch.venueName}</span>}
+        </div>
+      </div>
+    </Card>
+  )}
 
   <section class="cl-player-profile__section" aria-labelledby="player-stats-heading">
     <h2 id="player-stats-heading" class="cl-player-profile__section-title">
@@ -367,5 +465,43 @@ const historyColumns = [
   .cl-player-profile__layout-tab--active {
     border-bottom-color: var(--cl-border-accent);
     color: var(--cl-text-accent);
+  }
+  .cl-player-profile__next-match-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--cl-space-2);
+    flex-wrap: wrap;
+    margin-block-end: var(--cl-space-2);
+  }
+  .cl-player-profile__next-match-head .cl-player-profile__section-title {
+    margin: 0;
+  }
+  .cl-player-profile__next-match-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-1);
+  }
+  .cl-player-profile__next-match-link {
+    color: var(--cl-text-accent);
+    font-weight: var(--cl-weight-bold);
+    text-decoration: none;
+  }
+  .cl-player-profile__next-match-link:hover {
+    text-decoration: underline;
+  }
+  .cl-player-profile__next-match-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cl-space-1) var(--cl-space-3);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    color: var(--cl-text-secondary);
+  }
+  .cl-player-profile__next-match-meta > span + span::before,
+  .cl-player-profile__next-match-meta > :global(.cl-responsive-timestamp) + span::before {
+    content: '·';
+    margin-inline-end: var(--cl-space-3);
+    color: var(--cl-text-muted);
   }
 </style>

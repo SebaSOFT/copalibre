@@ -278,3 +278,13 @@ export const FeaturedMatchCard: Story = {
 export const TimeZoneNote: Story = {
   args: { component: 'time-zone-note', height: 100 },
 };
+
+/** Compact GET search form with a magnifying-glass submit button. */
+export const SearchInput: Story = {
+  args: { component: 'search-input', height: 120 },
+};
+
+/** Sort-direction indicator glyph in ascending, descending and neutral states. */
+export const SortIndicator: Story = {
+  args: { component: 'sort-indicator', height: 100 },
+};

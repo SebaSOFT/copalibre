@@ -1,5 +1,7 @@
 import type { LocalizedLabel } from '@copalibre/domain';
+import type { PlayerStatisticsDrilldownResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import { localizedText } from './localized-label.js';
+import { applyTemplate } from './matches-view.js';
 
 export interface PlayerDialogLabels {
   /** The page language: statistic labels are shown in it. */
@@ -17,11 +19,19 @@ export interface PlayerDialogLabels {
   noCareerStatistics: string;
   noCompetitionHistory: string;
   loadError: string;
+  viewProfile?: string;
+  shirtNumberTemplate?: string;
+  clubLabelTemplate?: string;
+  ageTemplate?: string;
+  tournamentTotalsHeading?: string;
 }
 
-interface PlayerDialogHistoryItem {
+export interface PlayerDialogHistoryItem {
   readonly tournamentName: string;
+  readonly tournamentAlias?: string;
   readonly teamName: string;
+  readonly clubAlias?: string;
+  readonly shirtNumber?: number | string;
   readonly role?: string;
   readonly entrantAbbreviation?: string;
 }
@@ -40,6 +50,54 @@ export interface PlayerDialogProfile {
     readonly statistics?: readonly PlayerDialogStatistic[];
   }[];
   readonly competitionHistory?: readonly PlayerDialogHistoryItem[];
+}
+
+export interface PlayerDialogTournamentTotal {
+  readonly label: string;
+  readonly value: string;
+}
+
+export interface PlayerDialogContext {
+  readonly tournamentAlias?: string;
+  readonly profileHref?: string;
+  readonly tournamentTotals?: readonly PlayerDialogTournamentTotal[];
+}
+
+/**
+ * Extracts the first `limit` collector totals from a player drilldown response
+ * for display inside the compact quick-view dialog.
+ */
+export function extractDialogTournamentTotals(
+  statistics: PlayerStatisticsDrilldownResponse | undefined,
+  locale: string,
+  limit = 2,
+): readonly PlayerDialogTournamentTotal[] {
+  const total = statistics?.tournamentTotal;
+  if (!total) return [];
+  const matchCellCodes = new Set(
+    (statistics.matches ?? []).flatMap((match) => Object.keys(match.cells)),
+  );
+  const collectorColumns =
+    matchCellCodes.size > 0
+      ? statistics.columns.filter((column) => matchCellCodes.has(column.code))
+      : statistics.columns.filter(
+          (column) =>
+            column.code !== 'rank' &&
+            column.code !== 'name' &&
+            column.code !== 'person' &&
+            column.code !== 'player',
+        );
+
+  return collectorColumns.slice(0, limit).flatMap((column) => {
+    const cell = total[column.code];
+    if (!cell) return [];
+    return [
+      {
+        label: localizedText(column.header, locale),
+        value: cell.formatted,
+      },
+    ];
+  });
 }
 
 /**
@@ -67,10 +125,44 @@ export function playerDialogMessage(
   return textElement(doc, 'p', className, text);
 }
 
-function metaSection(doc: Document, profile: PlayerDialogProfile): HTMLElement | undefined {
+function metaSection(
+  doc: Document,
+  profile: PlayerDialogProfile,
+  labels: PlayerDialogLabels,
+  context?: PlayerDialogContext,
+): HTMLElement | undefined {
+  const currentEntry = context?.tournamentAlias
+    ? (profile.competitionHistory ?? []).find(
+        (item) => item.tournamentAlias === context.tournamentAlias,
+      )
+    : undefined;
+  const clubName = currentEntry
+    ? currentEntry.entrantAbbreviation
+      ? `${currentEntry.teamName} (${currentEntry.entrantAbbreviation})`
+      : currentEntry.teamName
+    : undefined;
+  const clubTag =
+    clubName !== undefined
+      ? labels.clubLabelTemplate
+        ? applyTemplate(labels.clubLabelTemplate, { club: clubName })
+        : clubName
+      : undefined;
+  const shirtNumberTag =
+    currentEntry?.shirtNumber !== undefined
+      ? applyTemplate(labels.shirtNumberTemplate ?? '#{number}', {
+          number: currentEntry.shirtNumber,
+        })
+      : undefined;
+  const ageTag =
+    profile.age !== undefined
+      ? applyTemplate(labels.ageTemplate ?? 'Age: {age}', { age: profile.age })
+      : undefined;
+
   const tags = [
+    ...(clubTag ? [clubTag] : []),
+    ...(shirtNumberTag ? [shirtNumberTag] : []),
     ...(profile.nationality ? [profile.nationality] : []),
-    ...(profile.age !== undefined ? [`Age: ${profile.age}`] : []),
+    ...(ageTag ? [ageTag] : []),
   ];
   if (tags.length === 0) return undefined;
   const meta = doc.createElement('div');
@@ -80,6 +172,24 @@ function metaSection(doc: Document, profile: PlayerDialogProfile): HTMLElement |
     meta.append(textElement(doc, 'span', 'cl-player-profile__tag', tag));
   });
   return meta;
+}
+
+function tournamentTotalsSection(
+  doc: Document,
+  labels: PlayerDialogLabels,
+  totals: readonly PlayerDialogTournamentTotal[] | undefined,
+): HTMLElement | undefined {
+  if (!totals || totals.length === 0) return undefined;
+  const container = doc.createElement('div');
+  container.className = 'cl-modal-tournament-totals';
+  if (labels.tournamentTotalsHeading) {
+    container.append(
+      textElement(doc, 'h4', 'cl-modal-section-title', labels.tournamentTotalsHeading),
+    );
+  }
+  const summary = totals.map((item) => `${item.label}: ${item.value}`).join(' · ');
+  container.append(textElement(doc, 'p', 'cl-modal-tournament-totals__line', summary));
+  return container;
 }
 
 function statisticsSection(
@@ -163,6 +273,23 @@ function historySection(
   return table;
 }
 
+function actionsSection(
+  doc: Document,
+  labels: PlayerDialogLabels,
+  context?: PlayerDialogContext,
+): HTMLElement | undefined {
+  if (!context?.profileHref || !labels.viewProfile) return undefined;
+  const actions = doc.createElement('div');
+  actions.className = 'cl-modal-actions';
+  const link = doc.createElement('a');
+  link.className =
+    'cl-btn cl-btn--secondary cl-btn--persuade cl-chamfer cl-chamfer--control cl-focusable cl-player-dialog__profile-link';
+  link.href = context.profileHref;
+  link.textContent = labels.viewProfile;
+  actions.append(link);
+  return actions;
+}
+
 /**
  * The dialog's body. An absence is stated, never rendered as zero: a person with
  * no recorded roster history gets an explicit "none recorded" line, the same
@@ -172,16 +299,21 @@ export function buildPlayerDialogContent(
   doc: Document,
   profile: PlayerDialogProfile,
   labels: PlayerDialogLabels,
+  context?: PlayerDialogContext,
 ): HTMLElement {
   const content = doc.createElement('div');
   content.className = 'cl-modal-profile';
-  const meta = metaSection(doc, profile);
+  const meta = metaSection(doc, profile, labels, context);
   if (meta) content.append(meta);
+  const tournamentTotals = tournamentTotalsSection(doc, labels, context?.tournamentTotals);
+  if (tournamentTotals) content.append(tournamentTotals);
   content.append(
     textElement(doc, 'h4', 'cl-modal-section-title', labels.careerStatisticsHeading),
     statisticsSection(doc, profile, labels),
     textElement(doc, 'h4', 'cl-modal-section-title', labels.competitionHistoryHeading),
     historySection(doc, profile, labels),
   );
+  const actions = actionsSection(doc, labels, context);
+  if (actions) content.append(actions);
   return content;
 }

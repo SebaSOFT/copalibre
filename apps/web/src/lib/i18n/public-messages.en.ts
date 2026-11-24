@@ -514,6 +514,30 @@ export const messages = defineMessages({
     id: 'publicWeb.standings.playerDialog.loadError',
     defaultMessage: 'Unable to load player details.',
   },
+  playerDialogViewProfile: {
+    id: 'publicWeb.playerDialog.viewProfile',
+    defaultMessage: 'View profile',
+  },
+  standingsTableSearchLabel: {
+    id: 'publicWeb.standingsTable.searchLabel',
+    defaultMessage: 'Search players',
+  },
+  standingsTableSearchPlaceholder: {
+    id: 'publicWeb.standingsTable.searchPlaceholder',
+    defaultMessage: 'Player name',
+  },
+  standingsTableColumnNumber: {
+    id: 'publicWeb.standingsTable.columnNumber',
+    defaultMessage: 'No.',
+  },
+  standingsTableSortedAscending: {
+    id: 'publicWeb.standingsTable.sortedAscending',
+    defaultMessage: 'Sorted ascending',
+  },
+  standingsTableSortedDescending: {
+    id: 'publicWeb.standingsTable.sortedDescending',
+    defaultMessage: 'Sorted descending',
+  },
 
   // TournamentHero.astro
   heroLiveCount: { id: 'publicWeb.hero.liveCount', defaultMessage: '{count} live' },
@@ -1059,9 +1083,21 @@ export const messages = defineMessages({
     id: 'publicWeb.playerProfile.matchColumnHeading',
     defaultMessage: 'Match',
   },
-  playerProfileMatchLabel: {
-    id: 'publicWeb.playerProfile.matchLabel',
-    defaultMessage: 'Stage {stage} · Match {match}',
+  playerProfileMatchRowLabel: {
+    id: 'publicWeb.playerProfile.matchRowLabel',
+    defaultMessage: '{date} · {opponent} · {score}',
+  },
+  playerProfileNextMatchHeading: {
+    id: 'publicWeb.playerProfile.nextMatchHeading',
+    defaultMessage: 'Next match',
+  },
+  playerProfileShirtNumber: {
+    id: 'publicWeb.playerProfile.shirtNumber',
+    defaultMessage: '#{number}',
+  },
+  playerProfileClubLabel: {
+    id: 'publicWeb.playerProfile.clubLabel',
+    defaultMessage: 'Club: {club}',
   },
 
   // Organization tournament listing
