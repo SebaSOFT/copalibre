@@ -6,6 +6,7 @@ import { publicTrail, trailBaseOf } from '../../../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
 import BracketView from '../../../../../../components/ui/organisms/BracketView.astro';
 import ResultLegend from '../../../../../../components/ui/molecules/ResultLegend.astro';
+import TimeZoneNote from '../../../../../../components/ui/molecules/TimeZoneNote.astro';
 import StandingsTable from '../../../../../../components/ui/organisms/StandingsTable.astro';
 import { MatchCard } from '../../../../../../components/ui/organisms/MatchCard.tsx';
 import MatchDayList from '../../../../../../components/ui/organisms/MatchDayList.astro';
@@ -31,6 +32,7 @@ import {
   publicIntl,
   matchCardLabels,
   resultStateLabels,
+  timeZoneNoteLabels,
 } from '../../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
@@ -88,6 +90,7 @@ const stageMatches = await fetchMatchesView(organization!, tournament!, { stageN
 );
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const referenceDate = Date.now();
 const localePrefix = locale ? `/${locale}` : '';
 const stagePath = `${localePrefix}${model.canonicalPath}/stages/${stageNumber}`;
 const activeClubId = Astro.url.searchParams.get('clubId') ?? undefined;
@@ -175,6 +178,12 @@ const zoneHeading = (name: string | undefined, index: number): string =>
         collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
       />
     </PageHeader>
+    <TimeZoneNote
+      locale={resolvedLocale}
+      referenceDate={referenceDate}
+      timeZone={model.organizationTimeZone}
+      {...timeZoneNoteLabels(intl)}
+    />
     <p>
       <a href={`${localePrefix}${model.canonicalPath}/matches?stageNumber=${stageNumber}`}>
         {intl.formatMessage(messages.matchesViewSeeAll)}
@@ -219,6 +228,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
                   matches={stageMatches.filter((match) => match.zoneName === zone.zoneName)}
                   organizationAlias={organization!}
                   organizationTimeZone={model.organizationTimeZone}
+                  referenceDate={referenceDate}
                   reportUrlOf={reportUrlOf}
                 />
                 <div class="cl-matches-view__grid cl-match-days__wide">
@@ -232,6 +242,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
                         locale={intl.locale}
                         match={match}
                         labels={labels}
+                        referenceDate={referenceDate}
                         timeZone={model.organizationTimeZone}
                         reportUrl={matchReportUrl({
                           organizationAlias: organization!,
@@ -375,6 +386,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
           matches={stageMatches}
           organizationAlias={organization!}
           organizationTimeZone={model.organizationTimeZone}
+          referenceDate={referenceDate}
           reportUrlOf={reportUrlOf}
         />
         <div class="cl-matches-view__grid cl-match-days__wide">
@@ -385,6 +397,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
               locale={intl.locale}
               match={match}
               labels={labels}
+              referenceDate={referenceDate}
               timeZone={model.organizationTimeZone}
               reportUrl={matchReportUrl({
                 organizationAlias: organization!,

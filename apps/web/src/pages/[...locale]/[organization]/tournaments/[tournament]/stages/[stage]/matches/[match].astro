@@ -26,11 +26,15 @@ import { selectStageLayout } from '../../../../../../../../lib/bracket.ts';
 import { humanizeCode } from '../../../../../../../../lib/descriptor-label.ts';
 import { messages } from '../../../../../../../../lib/i18n/public-messages.en.ts';
 import {
+  formatTimeZoneParts,
+  formatTimestamp,
+} from '../../../../../../../../lib/format-timestamp.ts';
+import { isDelayed } from '../../../../../../../../lib/match-state.ts';
+import {
   competitionContextLabels,
   publicIntl,
   resultStateLabels,
   sideSourceLabels,
-  formatDateTime,
 } from '../../../../../../../../lib/i18n/public-intl.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../../../../../lib/locale.ts';
@@ -167,6 +171,9 @@ const context = competitionContext(
   },
   contextLabels,
 );
+const referenceDate = Date.now();
+const scheduleTimeZone = response.organizationTimeZone ?? 'UTC';
+const tzParts = formatTimeZoneParts(resolvedLocale, scheduleTimeZone, referenceDate);
 const stakeLines =
   bracketMatches.length > 0
     ? matchStakeLines({
@@ -197,7 +204,12 @@ const stakeLines =
           fallbackChampionScope: model.tournamentName,
           formatOverallPlace,
         },
-        formatDate: (at) => formatDateTime(intl, at, response.organizationTimeZone ?? 'UTC'),
+        formatDate: (at) =>
+          formatTimestamp(at, {
+            locale: resolvedLocale,
+            timeZone: scheduleTimeZone,
+            referenceDate,
+          }),
       })
     : [];
 const trailBase = trailBaseOf({
@@ -224,14 +236,22 @@ const trail = publicTrail(trailBase, [
   },
 ]);
 const statusLabels = resultStateLabels(intl);
+const matchDelayed = isDelayed(
+  { state: model.status, scheduledAt: model.scheduledAt },
+  referenceDate,
+);
+const heroStatusLabel = matchDelayed
+  ? intl.formatMessage(messages.resultStateDelayed)
+  : statusLabels[model.status];
+const formattedKickoff = model.scheduledAt
+  ? `${formatTimestamp(model.scheduledAt, {
+      locale: resolvedLocale,
+      format: 'full',
+      timeZone: scheduleTimeZone,
+    })} (${tzParts.isUtc ? 'UTC' : tzParts.offset || tzParts.zoneName})`
+  : undefined;
 const matchHeading = `${model.home.name} ${intl.formatMessage(messages.tickerVersus)} ${model.away.name}`;
-const matchHeadingDescription = [
-  context.line,
-  context.matchLabel,
-  model.scheduledAt
-    ? formatDateTime(intl, model.scheduledAt, response.organizationTimeZone ?? 'UTC')
-    : undefined,
-]
+const matchHeadingDescription = [context.line, context.matchLabel, formattedKickoff]
   .filter((part): part is string => part !== undefined)
   .join(' · ');
 const structuredData = {
@@ -275,9 +295,11 @@ const structuredData = {
           venue: '{venue}',
         })}
         locale={intl.locale}
-        timeZone={response.organizationTimeZone ?? 'UTC'}
+        timeZone={scheduleTimeZone}
         model={model}
-        statusLabel={statusLabels[model.status]}
+        statusLabel={heroStatusLabel}
+        delayed={matchDelayed}
+        referenceDate={referenceDate}
         liveMatchId={liveMatch?.matchId}
         homeEntrantId={liveMatch?.sides[0]?.entrantId}
         awayEntrantId={liveMatch?.sides[1]?.entrantId}
@@ -315,6 +337,7 @@ const structuredData = {
           model={model}
           intl={intl}
           organizationTimeZone={response.organizationTimeZone}
+          referenceDate={referenceDate}
         />
       </div>
     </article>

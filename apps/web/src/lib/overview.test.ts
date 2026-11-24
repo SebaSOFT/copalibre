@@ -309,3 +309,51 @@ describe('groupStandingsByZone', () => {
     expect(groupStandingsByZone([])).toEqual([]);
   });
 });
+
+describe('groupOverviewMatchesByDay', () => {
+  it('groups ordered matches by calendar day in the organization zone with relative headings within ±1 day', async () => {
+    const { groupOverviewMatchesByDay } = await import('./overview.js');
+    const referenceDate = Date.parse('2026-11-23T15:00:00.000Z');
+    const matches = [
+      {
+        matchId: 'm1',
+        stageNumber: 1,
+        state: 'upcoming' as const,
+        startsAt: '2026-11-24T12:00:00.000Z',
+        home: { name: 'A' },
+        away: { name: 'B' },
+      },
+      {
+        matchId: 'm2',
+        stageNumber: 1,
+        state: 'upcoming' as const,
+        startsAt: '2026-11-24T18:00:00.000Z',
+        home: { name: 'C' },
+        away: { name: 'D' },
+      },
+      {
+        matchId: 'm3',
+        stageNumber: 1,
+        state: 'upcoming' as const,
+        startsAt: '2026-11-27T12:00:00.000Z',
+        home: { name: 'E' },
+        away: { name: 'F' },
+      },
+    ];
+
+    const groups = groupOverviewMatchesByDay(matches, {
+      locale: 'es',
+      timeZone: 'America/Argentina/Buenos_Aires',
+      referenceDate,
+      tbdLabel: 'A definir',
+    });
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0]?.key).toBe('2026-11-24');
+    expect(groups[0]?.heading).toContain('Mañana');
+    expect(groups[0]?.matches).toHaveLength(2);
+    expect(groups[1]?.key).toBe('2026-11-27');
+    expect(groups[1]?.heading).not.toContain('Mañana');
+    expect(groups[1]?.matches).toHaveLength(1);
+  });
+});

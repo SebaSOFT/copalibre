@@ -135,6 +135,11 @@ export function resultStateLabels(intl: IntlShape): ResultStateLabels {
   };
 }
 
+/** Resolves the delayed result-state label once for atoms/organisms. */
+export function delayedStateLabel(intl: IntlShape): string {
+  return intl.formatMessage(messages.resultStateDelayed);
+}
+
 /** The ticker's own vocabulary; the state badges reuse `resultStateLabels`. */
 export function tickerLabels(intl: IntlShape) {
   const state = resultStateLabels(intl);
@@ -220,6 +225,7 @@ export function tvDashboardLabels(intl: IntlShape) {
       venue: '{venue}',
     }),
     resultState: resultStateLabels(intl),
+    delayed: intl.formatMessage(messages.resultStateDelayed),
     noMatchesScheduled: intl.formatMessage(messages.tvDashboardNoMatchesScheduled),
     standingsUnavailable: intl.formatMessage(messages.tvDashboardStandingsUnavailable),
     clubColumn: intl.formatMessage(messages.tvDashboardClubColumn),
@@ -338,6 +344,7 @@ export interface MatchCardLabels {
   readonly sideSource: SideSourceMessages;
   readonly rescheduled?: string;
   readonly state: ResultStateLabels;
+  readonly delayed?: string;
   readonly filters: {
     readonly all: string;
     readonly live: string;
@@ -391,6 +398,7 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
       venue: '{venue}',
     }),
     state: resultStateLabels(intl),
+    delayed: intl.formatMessage(messages.resultStateDelayed),
     filters: {
       all: intl.formatMessage(messages.matchesViewFilterAll),
       live: intl.formatMessage(messages.matchesViewFilterLive),
@@ -617,6 +625,21 @@ function rulesetValue(intl: IntlShape, value: string): string {
     return intl.formatMessage(messages.rulesetValueUnknown);
   }
   return value;
+}
+
+export function timeZoneNoteLabels(intl: IntlShape): {
+  readonly template: string;
+  readonly utcTemplate: string;
+} {
+  return {
+    template: intl.formatMessage(messages.scheduleTimeZoneNote, {
+      zone: '{zone}',
+      offset: '{offset}',
+    }),
+    utcTemplate: intl.formatMessage(messages.scheduleTimeZoneNoteUtc, {
+      zone: '{zone}',
+    }),
+  };
 }
 
 /**

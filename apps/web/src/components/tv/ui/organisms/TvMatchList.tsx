@@ -1,4 +1,7 @@
+import { Badge } from '../../../ui/atoms/Badge.js';
+import { Icon } from '../../../ui/atoms/icon.js';
 import { EntrantName } from '../../../ui/atoms/EntrantName.js';
+import { formatTimestamp } from '../../../../lib/format-timestamp.js';
 import { rescheduledStatement } from '../../../../lib/reschedule.js';
 import { applyTemplate } from '../../../../lib/matches-view.js';
 import type { TvMatchEntry } from '../../../../lib/tv-match-list.js';
@@ -15,6 +18,7 @@ export function TvMatchList({
   labels,
   locale = 'en',
   timeZone,
+  referenceDate,
 }: {
   readonly pages: readonly (readonly (readonly TvMatchEntry[])[])[];
   /** The zero-based page shown; clamped to the pages that exist. */
@@ -22,6 +26,7 @@ export function TvMatchList({
   readonly labels: TvDashboardLabels;
   readonly locale?: string;
   readonly timeZone?: string;
+  readonly referenceDate?: number;
 }): React.JSX.Element {
   const shown = pages[Math.min(Math.max(page, 0), Math.max(pages.length - 1, 0))] ?? [];
   const entries = shown.flat();
@@ -42,11 +47,11 @@ export function TvMatchList({
           const placement = [
             entry.scope,
             entry.scheduledAt
-              ? new Intl.DateTimeFormat(locale, {
-                  dateStyle: 'short',
-                  timeStyle: 'short',
-                  ...(timeZone === undefined ? {} : { timeZone }),
-                }).format(new Date(entry.scheduledAt))
+              ? formatTimestamp(entry.scheduledAt, {
+                  locale,
+                  timeZone,
+                  referenceDate,
+                })
               : undefined,
             entry.venueName,
           ]
@@ -80,6 +85,12 @@ export function TvMatchList({
                   abbreviation={showAbbreviations ? entry.away.abbreviation : undefined}
                 />
               </span>
+              {entry.delayed && (
+                <Badge className="tv-match-list__state cl-state--delayed">
+                  <Icon name="clock" size={16} />
+                  <span>{entry.stateLabel}</span>
+                </Badge>
+              )}
               {rescheduled && <span className="tv-match-list__rescheduled">{rescheduled}</span>}
             </li>
           );

@@ -1,5 +1,11 @@
 import type { EventEnvelope } from '@copalibre/realtime';
-import { decide, presentState, resultLegend, type ResultStateLabels } from './result-state.js';
+import {
+  decide,
+  presentDelayedState,
+  presentState,
+  resultLegend,
+  type ResultStateLabels,
+} from './result-state.js';
 import { describeSlot, isResolved, matchReportUrl, toNode, toRounds } from './bracket.js';
 import { sampleBracket } from './bracket-sample.js';
 import {
@@ -43,6 +49,15 @@ describe('a state is never a colour alone', () => {
       label: 'LIVE',
       icon: 'live',
       className: 'cl-state--live',
+    });
+  });
+
+  it('presents a delayed match with the amber delayed token, clock icon, and label', () => {
+    expect(presentDelayedState('Delayed')).toEqual({
+      state: 'upcoming',
+      label: 'Delayed',
+      icon: 'clock',
+      className: 'cl-state--delayed',
     });
   });
 

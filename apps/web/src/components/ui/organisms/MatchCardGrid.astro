@@ -4,7 +4,8 @@ import { MatchCard } from './MatchCard.tsx';
 import type { OverviewModel } from '../../../lib/overview.ts';
 import type { MatchCardData } from '../../../lib/matches-view.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
-import { formatDateTime, matchCardLabels } from '../../../lib/i18n/public-intl.ts';
+import { formatTimestamp } from '../../../lib/format-timestamp.ts';
+import { matchCardLabels } from '../../../lib/i18n/public-intl.ts';
 
 interface Props {
   readonly model: OverviewModel;
@@ -13,8 +14,9 @@ interface Props {
   readonly localePrefix?: string;
   /** Single-line ticker presentation; defaults to the full detailed card. */
   readonly compact?: boolean;
+  readonly referenceDate?: number;
 }
-const { model, intl, localePrefix = '', compact = false } = Astro.props;
+const { model, intl, localePrefix = '', compact = false, referenceDate = Date.now() } = Astro.props;
 const labels = matchCardLabels(intl);
 const timeZone = model.organizationTimeZone ?? 'UTC';
 ---
@@ -49,7 +51,11 @@ const timeZone = model.organizationTimeZone ?? 'UTC';
         ...(match.startsAt
           ? {
               scheduledAt: match.startsAt,
-              scheduledAtLabel: formatDateTime(intl, match.startsAt, timeZone),
+              scheduledAtLabel: formatTimestamp(match.startsAt, {
+                locale: intl.locale,
+                timeZone,
+                referenceDate,
+              }),
             }
           : {}),
       };
@@ -61,6 +67,7 @@ const timeZone = model.organizationTimeZone ?? 'UTC';
           labels={labels}
           locale={intl.locale}
           band={index % 2 === 0 ? 'panel' : 'base'}
+          referenceDate={referenceDate}
           timeZone={timeZone}
           organizationAlias={model.organizationAlias}
         />

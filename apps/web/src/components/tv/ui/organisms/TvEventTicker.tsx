@@ -18,6 +18,7 @@ export function TvEventTicker({
   ariaLabel,
   language,
   timeZone,
+  referenceDate,
   initialEventIds,
 }: {
   readonly events: readonly TvMatchEvent[];
@@ -26,6 +27,7 @@ export function TvEventTicker({
   readonly ariaLabel: string;
   readonly language: SupportedLanguage;
   readonly timeZone?: string;
+  readonly referenceDate?: number;
   /** Initial server-rendered ids, retained when the first live event mounts this ticker. */
   readonly initialEventIds?: readonly string[];
 }): React.JSX.Element {
@@ -42,6 +44,7 @@ export function TvEventTicker({
           <ResponsiveTimestamp
             className="tv-event-ticker__time"
             locale={language}
+            referenceDate={referenceDate}
             timestamp={event.occurredAt}
             timeZone={timeZone}
           />

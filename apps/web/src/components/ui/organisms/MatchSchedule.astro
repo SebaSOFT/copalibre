@@ -13,12 +13,10 @@ import { matchReportUrl } from '../../../lib/bracket.ts';
 import { formatSideSource, sourceMatchLabel, type SourceText } from '../../../lib/side-source.ts';
 import { displayedScore, type MatchCardData } from '../../../lib/matches-view.ts';
 import type { ScheduleStage, ScheduleZone } from '../../../lib/match-schedule.ts';
-import { presentState } from '../../../lib/result-state.ts';
-import {
-  formatDateTime,
-  matchCardLabels,
-  resultStateLabels,
-} from '../../../lib/i18n/public-intl.ts';
+import { presentDelayedState, presentState } from '../../../lib/result-state.ts';
+import { isDelayed } from '../../../lib/match-state.ts';
+import { formatTimestamp } from '../../../lib/format-timestamp.ts';
+import { matchCardLabels, resultStateLabels } from '../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { clubEmblemUrl } from '../../../lib/public-image-paths.ts';
 
@@ -49,6 +47,7 @@ interface Props {
    * schedule shows from the medium breakpoint up.
    */
   readonly dayRows?: readonly MatchCardData[];
+  readonly referenceDate?: number;
 }
 const {
   stages,
@@ -63,16 +62,24 @@ const {
   openStage,
   emptyLabel,
   dayRows,
+  referenceDate = Date.now(),
 } = Astro.props;
 
 const cardLabels = matchCardLabels(intl);
 const stateLabels = resultStateLabels(intl);
+const delayedLabel = cardLabels.delayed ?? intl.formatMessage(messages.resultStateDelayed);
 const scheduleTimeZone = organizationTimeZone ?? 'UTC';
 const scheduledMatch = (match: MatchCardData): MatchCardData => ({
   ...match,
   ...(match.scheduledAt === undefined
     ? {}
-    : { scheduledAtLabel: formatDateTime(intl, match.scheduledAt, scheduleTimeZone) }),
+    : {
+        scheduledAtLabel: formatTimestamp(match.scheduledAt, {
+          locale: intl.locale,
+          timeZone: scheduleTimeZone,
+          referenceDate,
+        }),
+      }),
 });
 const stageLabel = (stage: ScheduleStage): string =>
   stage.stageName || intl.formatMessage(messages.breadcrumbStage, { stage: stage.stageNumber });
@@ -143,7 +150,16 @@ const columns: readonly DataTableColumn[] = [
               cardLabels.rescheduled,
             )
           : '';
-      return [scheduledAt ? formatDateTime(intl, scheduledAt, scheduleTimeZone) : '—', previous]
+      return [
+        scheduledAt
+          ? formatTimestamp(scheduledAt, {
+              locale: intl.locale,
+              timeZone: scheduleTimeZone,
+              referenceDate,
+            })
+          : '—',
+        previous,
+      ]
         .filter(Boolean)
         .join(' · ');
     },
@@ -190,9 +206,17 @@ const columns: readonly DataTableColumn[] = [
   {
     key: 'state',
     header: intl.formatMessage(messages.scheduleColumnState),
-    render: (row) => presentState((row as MatchCardData).state, stateLabels).label,
+    render: (row) => {
+      const match = row as MatchCardData;
+      return isDelayed(match, referenceDate)
+        ? delayedLabel
+        : presentState(match.state, stateLabels).label;
+    },
     renderContent: (row) => {
-      const shown = presentState((row as MatchCardData).state, stateLabels);
+      const match = row as MatchCardData;
+      const shown = isDelayed(match, referenceDate)
+        ? presentDelayedState(delayedLabel)
+        : presentState(match.state, stateLabels);
       return { text: shown.label, icon: shown.icon };
     },
   },
@@ -223,6 +247,7 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
       matches={dayRows}
       organizationAlias={organizationAlias}
       organizationTimeZone={scheduleTimeZone}
+      referenceDate={referenceDate}
       reportUrlOf={(match) => reportOf(match.stageNumber, match.matchNumber)}
     />
   )}
@@ -308,6 +333,7 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
                                     labels={cardLabels}
                                     locale={intl.locale}
                                     match={scheduledMatch(match)}
+                                    referenceDate={referenceDate}
                                     reportUrl={reportOf(match.stageNumber, match.matchNumber)}
                                     organizationAlias={organizationAlias}
                                     timeZone={scheduleTimeZone}

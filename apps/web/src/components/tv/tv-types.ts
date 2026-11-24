@@ -22,6 +22,7 @@ export interface TvDashboardLabels {
   readonly awaySide: string;
   readonly rescheduled?: string;
   readonly resultState: ResultStateLabels;
+  readonly delayed?: string;
   readonly noMatchesScheduled: string;
   readonly standingsUnavailable: string;
   readonly clubColumn: string;

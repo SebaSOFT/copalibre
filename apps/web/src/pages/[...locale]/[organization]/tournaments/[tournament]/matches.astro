@@ -5,6 +5,7 @@ import PageHeader from '../../../../../components/ui/organisms/PageHeader.astro'
 import { publicTrail, trailBaseOf } from '../../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../../layouts/PublicLayout.astro';
 import FeaturedMatchCard from '../../../../../components/ui/organisms/FeaturedMatchCard.astro';
+import TimeZoneNote from '../../../../../components/ui/molecules/TimeZoneNote.astro';
 import MatchSchedule from '../../../../../components/ui/organisms/MatchSchedule.astro';
 import MatchScheduleFilters, {
   type MatchScheduleState,
@@ -17,10 +18,16 @@ import {
   mapOverviewResponse,
 } from '../../../../../lib/public-api-client.ts';
 import { buildOverview, displayName } from '../../../../../lib/overview.ts';
-import { publicIntl, matchCardLabels } from '../../../../../lib/i18n/public-intl.ts';
+import {
+  publicIntl,
+  matchCardLabels,
+  timeZoneNoteLabels,
+} from '../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import { distinctFacetValues, featuredMatchForSchedule } from '../../../../../lib/matches-view.ts';
+import { calendarDayKey, formatTimestamp } from '../../../../../lib/format-timestamp.ts';
+import { availableMatchDays } from '../../../../../lib/match-days.ts';
 import { offersViewChoice } from '../../../../../lib/match-schedule.ts';
 import { loadSchedule } from '../../../../../lib/schedule-loader.ts';
 import { matchReportUrl } from '../../../../../lib/bracket.ts';
@@ -50,6 +57,13 @@ if (!overviewData) {
   return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const referenceDate = Date.now();
+const scheduleTimeZone = model.organizationTimeZone ?? 'UTC';
+const todayKey = calendarDayKey(referenceDate, scheduleTimeZone);
+const [todayYear = 0, todayMonth = 1, todayDay = 1] = todayKey.split('-').map(Number);
+const tomorrowKey = new Date(Date.UTC(todayYear, todayMonth - 1, todayDay + 1))
+  .toISOString()
+  .slice(0, 10);
 
 const stateParam = Astro.url.searchParams.get('state');
 const state: MatchScheduleState =
@@ -58,6 +72,9 @@ const stageParam = Astro.url.searchParams.get('stageNumber');
 const stageNumber = stageParam ? Number(stageParam) : undefined;
 const zoneParam = Astro.url.searchParams.get('zone') ?? undefined;
 const groupParam = Astro.url.searchParams.get('group') ?? undefined;
+const rawDayParam = Astro.url.searchParams.get('day');
+const dayParam =
+  rawDayParam !== null && /^\d{4}-\d{2}-\d{2}$/.test(rawDayParam) ? rawDayParam : undefined;
 const cardsRequested = Astro.url.searchParams.get('view') === 'cards';
 const compact = Astro.url.searchParams.get('compact') === 'true';
 
@@ -68,9 +85,11 @@ const schedule = await loadSchedule({
   hiddenPlayerLabel: intl.formatMessage(messages.personHiddenAtRequest),
   undecidedSide: intl.formatMessage(messages.resultStateTbd),
   language: resolvedLocale,
+  timeZone: scheduleTimeZone,
   ...(stageNumber === undefined ? {} : { stageNumber }),
   ...(zoneParam === undefined ? {} : { zone: zoneParam }),
   ...(groupParam === undefined ? {} : { group: groupParam }),
+  ...(dayParam === undefined ? {} : { day: dayParam }),
 });
 if (!schedule) {
   return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
@@ -101,6 +120,14 @@ const zoneFiltered =
     ? schedule.stageRows
     : schedule.stageRows.filter((row) => row.zoneName === zoneParam);
 const groups = distinctFacetValues(zoneFiltered, 'groupName');
+const days = availableMatchDays(schedule.stageRows, scheduleTimeZone).map((day) => ({
+  key: day.key,
+  label: formatTimestamp(day.instant, {
+    locale: resolvedLocale,
+    format: 'date-only',
+    timeZone: scheduleTimeZone,
+  }),
+}));
 
 // A large scope is only ever a table; a short one may be shown as cards.
 const offerView = offersViewChoice(schedule.rows.length);
@@ -115,6 +142,7 @@ const filtersOpen =
   stageNumber !== undefined ||
   zoneParam !== undefined ||
   groupParam !== undefined ||
+  dayParam !== undefined ||
   state !== 'all' ||
   (offerView && view !== 'rows');
 
@@ -123,6 +151,7 @@ function buildUrl(
     stageNumber: number | undefined;
     zone: string | undefined;
     group: string | undefined;
+    day: string | undefined;
     state: MatchScheduleState;
     view: MatchScheduleView;
     compact: boolean;
@@ -133,6 +162,7 @@ function buildUrl(
     stageNumber,
     zone: zoneParam,
     group: groupParam,
+    day: dayParam,
     state,
     view,
     compact,
@@ -144,6 +174,8 @@ function buildUrl(
   else params.set('zone', next.zone);
   if (next.group === undefined) params.delete('group');
   else params.set('group', next.group);
+  if (next.day === undefined) params.delete('day');
+  else params.set('day', next.day);
   if (next.state === 'all') params.delete('state');
   else params.set('state', next.state);
   if (next.view === 'cards') params.set('view', 'cards');
@@ -192,6 +224,13 @@ const trail = publicTrail(trailBase, [
       />
     </PageHeader>
 
+    <TimeZoneNote
+      locale={resolvedLocale}
+      referenceDate={referenceDate}
+      timeZone={model.organizationTimeZone}
+      {...timeZoneNoteLabels(intl)}
+    />
+
     <MatchScheduleFilters
       filtersOpen={filtersOpen}
       stages={schedule.stageOptions.map((one) => ({
@@ -204,6 +243,10 @@ const trail = publicTrail(trailBase, [
       activeZone={zoneParam}
       groups={groups}
       activeGroup={groupParam}
+      days={days}
+      activeDay={dayParam}
+      todayKey={todayKey}
+      tomorrowKey={tomorrowKey}
       state={state}
       view={view}
       offerView={offerView}
@@ -212,14 +255,21 @@ const trail = publicTrail(trailBase, [
         stageFilterAriaLabel: intl.formatMessage(messages.matchesViewStageFilterAriaLabel),
         zoneFilterAriaLabel: intl.formatMessage(messages.matchesViewZoneFilterAriaLabel),
         groupFilterAriaLabel: intl.formatMessage(messages.matchesViewGroupFilterAriaLabel),
+        dayFilterAriaLabel: intl.formatMessage(messages.matchesViewFilterDay),
         stateFilterAriaLabel: intl.formatMessage(messages.matchesViewStateFilterAriaLabel),
         viewFilterAriaLabel: intl.formatMessage(messages.matchesViewViewFilterAriaLabel),
         titles: {
           stage: intl.formatMessage(messages.matchesViewStageFilterTitle),
           zone: intl.formatMessage(messages.matchesViewZoneFilterTitle),
           group: intl.formatMessage(messages.matchesViewGroupFilterTitle),
+          day: intl.formatMessage(messages.matchesViewFilterDay),
           state: intl.formatMessage(messages.matchesViewStateFilterTitle),
           view: intl.formatMessage(messages.matchesViewViewFilterTitle),
+        },
+        dayOptions: {
+          all: intl.formatMessage(messages.matchesViewFilterDayAll),
+          today: intl.formatMessage(messages.matchesViewFilterDayToday),
+          tomorrow: intl.formatMessage(messages.matchesViewFilterDayTomorrow),
         },
         viewOptions: {
           rows: intl.formatMessage(messages.matchesViewViewRows),
@@ -243,6 +293,7 @@ const trail = publicTrail(trailBase, [
         })}
         labels={labels}
         locale={resolvedLocale}
+        referenceDate={referenceDate}
         timeZone={model.organizationTimeZone}
         organizationAlias={organization!}
       />
@@ -278,6 +329,7 @@ const trail = publicTrail(trailBase, [
       organizationAlias={organization!}
       organizationTimeZone={model.organizationTimeZone}
       presentation={presentation}
+      referenceDate={referenceDate}
       stages={schedule.stages}
       tournamentAlias={tournament!}
     />

@@ -174,6 +174,7 @@ describe('TvDashboard', () => {
         language="en"
         layoutVariant="dashboard"
         initial={{ matches: layoutMatches, standingsVersion: 1, usingLastKnown: false }}
+        referenceDate={Date.UTC(2026, 10, 7, 17, 0)}
         streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
         standings={layoutStandings}
         pollIntervalMs={0}
@@ -2312,5 +2313,75 @@ describe('TvDashboard refresh keeps the matches the live projection does not lis
     expect(text).toContain('Home');
     expect(text).not.toContain('Visitante');
     expect(text).not.toContain('Local');
+  });
+
+  it('excludes delayed matches from next-match panels and picks the non-delayed upcoming match as spotlight', () => {
+    const referenceDate = Date.UTC(2026, 10, 7, 18, 25);
+    const delayedMatch: LiveMatch = {
+      matchId: 'delayed-1',
+      stageNumber: 1,
+      matchNumber: 1,
+      stageOrdinal: 1,
+      state: 'upcoming',
+      projectionVersion: 1,
+      scheduledAt: new Date(Date.UTC(2026, 10, 7, 18, 0)).toISOString(),
+      sides: [
+        { entrantId: 'd-home', name: 'Delayed Home', state: 'upcoming', score: 0 },
+        { entrantId: 'd-away', name: 'Delayed Away', state: 'upcoming', score: 0 },
+      ],
+    };
+    const nextMatch: LiveMatch = {
+      matchId: 'next-1',
+      stageNumber: 1,
+      matchNumber: 2,
+      stageOrdinal: 2,
+      state: 'upcoming',
+      projectionVersion: 1,
+      scheduledAt: new Date(Date.UTC(2026, 10, 8, 19, 0)).toISOString(),
+      sides: [
+        { entrantId: 'n-home', name: 'Next Home', state: 'upcoming', score: 0 },
+        { entrantId: 'n-away', name: 'Next Away', state: 'upcoming', score: 0 },
+      ],
+    };
+
+    const { rerender } = render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={{ standingsVersion: 0, usingLastKnown: false, matches: [delayedMatch, nextMatch] }}
+        labels={tvLabels}
+        language="en"
+        layoutVariant="kiosk"
+        pollIntervalMs={0}
+        referenceDate={referenceDate}
+        standings={[]}
+        streamPath="/stream"
+        timeZone="UTC"
+      />,
+    );
+
+    const spotlightText = screen.getByTestId('tv-match-spotlight').textContent ?? '';
+    expect(spotlightText).toContain('Next Home');
+    expect(spotlightText).not.toContain('Delayed Home');
+
+    rerender(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={{ standingsVersion: 0, usingLastKnown: false, matches: [delayedMatch, nextMatch] }}
+        labels={tvLabels}
+        language="en"
+        layoutVariant="presentation"
+        pollIntervalMs={0}
+        referenceDate={referenceDate}
+        standings={[]}
+        streamPath="/stream"
+        timeZone="UTC"
+      />,
+    );
+
+    const nextItems = screen.getAllByTestId('tv-next-match');
+    expect(nextItems).toHaveLength(1);
+    expect(nextItems[0]?.textContent).toContain('Next Home');
+    expect(nextItems[0]?.textContent).toContain('Tomorrow 19:00');
+    expect(nextItems[0]?.textContent).not.toContain('Delayed Home');
   });
 });

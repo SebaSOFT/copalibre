@@ -1,0 +1,38 @@
+---
+import { formatTimeZoneParts } from '../../../lib/format-timestamp.ts';
+import { applyTemplate } from '../../../lib/matches-view.ts';
+
+/**
+ * Displays the organization's schedule time zone once near a public schedule heading
+ * (e.g. "Horarios: hora de Argentina (GMT-3)" or "Horarios: UTC").
+ * Takes pre-resolved templates so no i18n formatting runs below the organism tier.
+ */
+interface Props {
+  readonly locale: string;
+  readonly timeZone?: string;
+  readonly template: string;
+  readonly utcTemplate: string;
+  readonly referenceDate?: Date | number;
+  readonly class?: string;
+}
+
+const { locale, timeZone, template, utcTemplate, referenceDate, class: className } = Astro.props;
+const parts = formatTimeZoneParts(locale, timeZone ?? 'UTC', referenceDate);
+const noteText = parts.isUtc
+  ? applyTemplate(utcTemplate, { zone: 'UTC' })
+  : parts.offset
+    ? applyTemplate(template, { zone: parts.zoneName, offset: parts.offset })
+    : applyTemplate(utcTemplate, { zone: parts.zoneName });
+---
+
+<p class:list={['cl-time-zone-note', className]}>{noteText}</p>
+
+<style>
+  .cl-time-zone-note {
+    margin: var(--cl-space-1) 0 var(--cl-space-3);
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    letter-spacing: var(--cl-tracking-wide);
+  }
+</style>

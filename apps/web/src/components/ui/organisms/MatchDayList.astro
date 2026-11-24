@@ -1,7 +1,7 @@
 ---
 import type { IntlShape } from 'react-intl';
 import MatchDayRow from '../molecules/MatchDayRow.astro';
-import { matchDays, openMatchDay } from '../../../lib/match-days.ts';
+import { formatDayHeading, matchDays, openMatchDay } from '../../../lib/match-days.ts';
 import { resultStateLabels } from '../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import type { MatchCardData } from '../../../lib/matches-view.ts';
@@ -19,22 +19,35 @@ interface Props {
   readonly organizationTimeZone?: string;
   /** The report link of a match, or nothing when it has none. */
   readonly reportUrlOf: (match: MatchCardData) => string | undefined;
+  readonly referenceDate?: number;
 }
 
-const { matches, intl, organizationAlias, organizationTimeZone, reportUrlOf } = Astro.props;
+const {
+  matches,
+  intl,
+  organizationAlias,
+  organizationTimeZone,
+  reportUrlOf,
+  referenceDate = Date.now(),
+} = Astro.props;
 const timeZone = organizationTimeZone ?? 'UTC';
 const days = matchDays(matches, timeZone);
 const open = openMatchDay(days);
 const liveLabel = resultStateLabels(intl).live;
+const dayHeadingTemplate = intl.formatMessage(messages.scheduleDayHeading, {
+  relative: '{relative}',
+  date: '{date}',
+});
 const dayLabel = (instant: string | undefined): string =>
   instant === undefined
     ? intl.formatMessage(messages.resultStateTbd)
-    : new Intl.DateTimeFormat(intl.locale, {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
+    : formatDayHeading({
+        instant,
+        locale: intl.locale,
         timeZone,
-      }).format(new Date(instant));
+        referenceDate,
+        template: dayHeadingTemplate,
+      });
 ---
 
 {days.length > 0 && (
@@ -61,6 +74,7 @@ const dayLabel = (instant: string | undefined): string =>
                 match={match}
                 organizationAlias={organizationAlias}
                 organizationTimeZone={timeZone}
+                referenceDate={referenceDate}
                 reportUrl={reportUrlOf(match)}
               />
             </li>

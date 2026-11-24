@@ -12,9 +12,10 @@ export interface Props {
   readonly model: MatchReportModel;
   readonly intl: IntlShape;
   readonly organizationTimeZone?: string;
+  readonly referenceDate?: number;
 }
 
-const { model, intl, organizationTimeZone } = Astro.props;
+const { model, intl, organizationTimeZone, referenceDate } = Astro.props;
 ---
 
 <section class="cl-section-card cl-chamfer" aria-labelledby="timeline-heading">
@@ -36,6 +37,7 @@ const { model, intl, organizationTimeZone } = Astro.props;
                 client:load
                 timestamp={event.occurredAt}
                 locale={intl.locale}
+                referenceDate={referenceDate}
                 timeZone={organizationTimeZone}
                 className="cl-timeline-time"
               />

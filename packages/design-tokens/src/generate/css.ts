@@ -973,6 +973,7 @@ function components(): string {
     // putting the four accents side by side in the workbench).
     '.cl-state--live { border-left-color: var(--cl-state-live); }',
     '.cl-state--upcoming { border-left-color: var(--cl-state-upcoming); }',
+    '.cl-state--delayed { border-left-color: var(--cl-state-warning); }',
     '.cl-state--positive { border-left-color: var(--cl-state-positive); }',
     '.cl-state--muted { border-left-color: var(--cl-border-muted); }',
     // A card's counts read as figures, sized below the screen's summary tiles so
@@ -1322,6 +1323,7 @@ function components(): string {
     // A confirmed/verified computed result — same positive role as `--final`,
     // its own name because "final" already means a finished match.
     '.cl-badge--verified { background: var(--cl-badge-verified-background, color-mix(in srgb, var(--cl-state-positive) 15%, transparent)); color: var(--cl-state-positive); border: 1px solid color-mix(in srgb, var(--cl-state-positive) 40%, transparent); }',
+    '.cl-badge.cl-state--delayed { background: color-mix(in srgb, var(--cl-state-warning) 15%, transparent); color: var(--cl-state-warning); border: 1px solid color-mix(in srgb, var(--cl-state-warning) 40%, transparent); font-weight: var(--cl-weight-semibold); }',
     '',
     '.cl-btn {',
     // A link wearing the button treatment is a button, underline included —
@@ -1733,6 +1735,7 @@ function components(): string {
     // the same thing), but the dot still has to actually be that color.
     '.cl-match-card__compact-dot.cl-state--live { background: var(--cl-state-live); }',
     '.cl-match-card__compact-dot.cl-state--upcoming { background: var(--cl-state-upcoming); }',
+    '.cl-match-card__compact-dot.cl-state--delayed { background: var(--cl-state-warning); }',
     '.cl-match-card__compact-dot.cl-state--positive { background: var(--cl-state-positive); }',
     '.cl-match-card__compact-dot.cl-state--destructive { background: var(--cl-state-destructive); }',
     '.cl-match-card__compact-dot.cl-state--muted { background: var(--cl-border-muted); }',
@@ -1744,6 +1747,7 @@ function components(): string {
     '.cl-match-card__compact-side--away { grid-column: 1; grid-row: 2; }',
     '.cl-match-card__compact-time { grid-column: 2; grid-row: 2; white-space: nowrap; }',
     '.cl-match-card__compact-rescheduled { grid-column: 1 / -1; }',
+    '.cl-match-card__compact-state { grid-column: 1 / -1; justify-self: start; }',
     '.cl-match-card--compact-full-names .cl-match-card__compact-side > span { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }',
     '.cl-match-card__compact-side { display: inline-flex; align-items: center; gap: var(--cl-space-1); min-width: 0; }',
     '.cl-match-card__compact-side > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
