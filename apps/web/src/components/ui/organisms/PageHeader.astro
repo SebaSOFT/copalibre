@@ -16,7 +16,9 @@ const {
   class: className = '',
   visuallyHidden = false,
 } = Astro.props;
-const missingTitle = title === undefined || title === null || title.trim() === '';
+// A page whose identity block carries its own heading (the identity slot) has no title to load.
+const hasIdentity = Astro.slots.has('identity');
+const missingTitle = !hasIdentity && (title === undefined || title === null || title.trim() === '');
 ---
 
 <header class:list={['cl-page-header', className]}>
@@ -25,7 +27,13 @@ const missingTitle = title === undefined || title === null || title.trim() === '
       <slot name="breadcrumb" />
     </div>
   )}
-  {missingTitle ? (
+  {hasIdentity ? (
+    <div class="cl-page-header__row">
+      <div class="cl-page-header__content">
+        <slot name="identity" />
+      </div>
+    </div>
+  ) : missingTitle ? (
     <div class="cl-page-header__row">
       <h1
         class:list={['cl-page-header__title', titleClass, { 'cl-visually-hidden': visuallyHidden }]}

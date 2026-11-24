@@ -2,7 +2,6 @@
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
 import Container from '../../../../../../components/ui/atoms/layout/Container.astro';
-import { Card } from '../../../../../../components/ui/atoms/Card.tsx';
 import { Badge } from '../../../../../../components/ui/atoms/Badge.tsx';
 import TimeZoneNote from '../../../../../../components/ui/molecules/TimeZoneNote.astro';
 import Breadcrumb from '../../../../../../components/ui/organisms/Breadcrumb.astro';
@@ -185,7 +184,6 @@ if (playerLayout) {
 
 const clubRef = { alias: club, clubId: clubInfo.clubId };
 const status = deriveClubStatus(overlayedMatches, clubRef, model.stages);
-const statusText = formatClubStatus(intl, status);
 const nextMatch = deriveClubNextMatch(overlayedMatches, clubRef);
 const results = deriveClubResults(overlayedMatches, clubRef, model.stages);
 const squad = deriveClubSquad(squadProjection, clubRef, {
@@ -196,6 +194,10 @@ const knockoutPath = deriveClubKnockoutPath(overlayedMatches, clubRef, model.sta
 const matchesRowFilter = (row: { readonly clubAlias?: string; readonly clubId?: string }) =>
   row.clubAlias === club || row.clubId === clubInfo.clubId;
 const clubStandingRow = standingsProjection?.rows.find(matchesRowFilter);
+// A band badge names the competition beside the status, so the status then keeps the round alone.
+const statusText = formatClubStatus(intl, status, {
+  withBand: clubStandingRow?.promotionBandLabel !== undefined,
+});
 const clubGroupSegment = (standingsProjection?.segments ?? []).find(
   (segment) => segment.groupName !== undefined && segment.rows.some(matchesRowFilter),
 );
@@ -351,27 +353,22 @@ const structuredData = {
   tournamentHasClubs={(model.clubs ?? []).length > 0}
 >
   <Container variant="public">
-    <PageHeader
-      title={clubInfo.name}
-      description={statusText}
-      loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
-    >
+    <PageHeader loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}>
       <Breadcrumb
         slot="breadcrumb"
         items={trail}
         ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
         collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
       />
-    </PageHeader>
-
-    <Card as="section" aria-label={clubInfo.name}>
       <ClubIdentity
+        slot="identity"
         name={clubInfo.name}
         abbreviation={clubInfo.abbreviation}
         emblemSrc={clubEmblemSrc}
+        headingLevel={1}
         placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
       >
-        <span slot="meta">
+        <span slot="badges">
           {clubStandingRow?.promotionBandLabel && (
             <Badge data-promotion-band-index={clubStandingRow.promotionBandIndex}>
               {clubStandingRow.promotionBandLabel}
@@ -385,8 +382,9 @@ const structuredData = {
             </Badge>
           )}
         </span>
+        <span slot="status">{statusText}</span>
       </ClubIdentity>
-    </Card>
+    </PageHeader>
 
     <TimeZoneNote
       locale={resolvedLocale}
@@ -470,8 +468,8 @@ const structuredData = {
             chrome="full"
             clubs={model.clubs}
             heading={clubGroupSegment?.groupName}
-            headingText={intl.formatMessage(messages.clubPageStandingHeading)}
             highlightClubAlias={club}
+            omitHeading
             intl={intl}
             layout={groupPhaseLayout}
             organizationAlias={organization!}

@@ -42,6 +42,8 @@ interface Props {
   /** Multi-group wrapper mode: `'header'` or `'footer'` emits shared chrome without repeating the table. */
   readonly renderPart?: 'all' | 'header' | 'footer';
   readonly headingText?: string;
+  /** The enclosing section supplies its own heading; the table then keeps only its group subtitle. */
+  readonly omitHeading?: boolean;
   readonly activeLayoutCode?: string;
   readonly activeClubAlias?: string;
   readonly activeClubId?: string;
@@ -76,6 +78,7 @@ const {
   tiebreakLine,
   searchQuery,
   headingText,
+  omitHeading = false,
   activeLayoutCode,
   activeClubAlias,
   activeClubId,
@@ -313,7 +316,7 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
 
 <Wrapper
   id={Wrapper === 'section' ? sectionId : undefined}
-  aria-labelledby={Wrapper === 'section' ? 'standings-heading' : undefined}
+  aria-labelledby={Wrapper === 'section' && !omitHeading ? 'standings-heading' : undefined}
   class={
     Wrapper === 'section' ? 'cl-standings-section' : isTableOnly ? 'cl-standings-group' : undefined
   }
@@ -321,7 +324,7 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
   {showHeader && (
     <>
       <div class="cl-standings-header">
-        <h2 id="standings-heading">{heading}</h2>
+        {!omitHeading && <h2 id="standings-heading">{heading}</h2>}
         {renderPart === 'all' && showControls && csvHref && (
           <Button href={csvHref} variant="secondary">
             {intl.formatMessage(messages.standingsCsvExport)}

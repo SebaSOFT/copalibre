@@ -1,8 +1,9 @@
 ---
 /**
  * A club's crest with its name and abbreviation: the one identity block every club surface shares.
- * With `href` the block is a link; without it, the same markup is plain content. The `meta` slot takes
- * the badges and status line a surface places beside the identity.
+ * With `href` the block is a link; without it, the same markup is plain content. With `headingLevel`
+ * the name is that heading, so a page whose identity is its title states the name once. The `badges`
+ * slot sits on its own row, and the `status` slot on a row below it.
  */
 import EmblemImage from '../atoms/EmblemImage.astro';
 
@@ -13,10 +14,20 @@ interface Props {
   readonly placeholderAlt: string;
   readonly href?: string;
   readonly size?: 'sm' | 'md';
+  readonly headingLevel?: 1 | 2 | 3;
 }
 
-const { name, abbreviation, emblemSrc, placeholderAlt, href, size = 'md' } = Astro.props;
+const {
+  name,
+  abbreviation,
+  emblemSrc,
+  placeholderAlt,
+  href,
+  size = 'md',
+  headingLevel,
+} = Astro.props;
 const Tag = href ? 'a' : 'div';
+const NameTag = headingLevel === undefined ? 'span' : (`h${headingLevel}` as 'h1' | 'h2' | 'h3');
 ---
 
 <Tag
@@ -32,9 +43,14 @@ const Tag = href ? 'a' : 'div';
     decorative
   />
   <span class="cl-club-identity__text">
-    <span class="cl-club-identity__name">{name}</span>
+    <NameTag class="cl-club-identity__name">{name}</NameTag>
     {abbreviation && <span class="cl-club-identity__abbr">{abbreviation}</span>}
-    <slot name="meta" />
+    <span class="cl-club-identity__badges">
+      <slot name="badges" />
+    </span>
+    <span class="cl-club-identity__status">
+      <slot name="status" />
+    </span>
   </span>
 </Tag>
 
@@ -62,9 +78,11 @@ const Tag = href ? 'a' : 'div';
   }
 
   .cl-club-identity__name {
+    margin: 0;
     color: var(--cl-text-primary);
     font-family: var(--cl-font-display);
     font-size: var(--cl-font-size-lg);
+    font-weight: inherit;
     line-height: var(--cl-line-height-snug);
     overflow-wrap: anywhere;
   }
@@ -79,5 +97,19 @@ const Tag = href ? 'a' : 'div';
     font-size: var(--cl-font-size-xs);
     letter-spacing: var(--cl-tracking-wide);
     text-transform: uppercase;
+  }
+
+  .cl-club-identity__badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--cl-space-2);
+  }
+
+  .cl-club-identity__status {
+    display: block;
+    margin: 0;
+    color: var(--cl-text-secondary);
+    font-size: var(--cl-font-size-base);
   }
 </style>

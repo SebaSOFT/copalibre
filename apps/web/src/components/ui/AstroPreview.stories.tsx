@@ -69,6 +69,11 @@ export const ContainerWidths: Story = {
   args: { component: 'container', height: 460 },
 };
 
+/** Five-letter abbreviations in the placeholder tile at 48, 32 and 24 pixels: each fits its frame. */
+export const LongAbbreviationMonograms: Story = {
+  args: { component: 'emblem-image-long-abbreviation', height: 320 },
+};
+
 /** A club's crest, name and abbreviation: plain content, then the same block as a link. */
 export const ClubIdentity: Story = {
   args: { component: 'club-identity', height: 160 },

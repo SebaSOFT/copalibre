@@ -496,6 +496,12 @@ function imageFrame(): string {
     '',
     '.cl-entrant-emblem--bare .cl-entrant-emblem__fallback { color: var(--cl-text-primary); }',
     '',
+    // The frame is a size container, so each monogram step is a share of the tile's own width, at every
+    // size the emblem renders. A step's share is the glyph width of its characters (about 0.6em each,
+    // monospace) fitted inside the tile's inset. A longer abbreviation takes a smaller share.
+    // Each length step is a share of the tile's own size, which every emblem sets as a custom property. A
+    // share fits the step's characters (about 0.6em each, monospace) inside the tile's inset, so a longer
+    // abbreviation takes a smaller share at every size.
     '.cl-entrant-emblem__monogram {',
     '  font-family: var(--cl-font-mono);',
     '  font-size: var(--cl-font-size-xl);',
@@ -505,12 +511,10 @@ function imageFrame(): string {
     '  white-space: nowrap;',
     '  text-align: center;',
     '}',
-    '.cl-entrant-emblem__monogram--reduced { font-size: var(--cl-font-size-lg); }',
-    '.cl-entrant-emblem--small .cl-entrant-emblem__monogram { font-size: var(--cl-font-size-sm); }',
-    '.cl-entrant-emblem--small .cl-entrant-emblem__monogram--small-tight { transform: scaleX(0.9); }',
-    '.cl-entrant-emblem--micro .cl-entrant-emblem__monogram--small-tight { transform: scaleX(0.7); }',
-    '.cl-entrant-emblem--small .cl-entrant-emblem__monogram--reduced { font-size: var(--cl-font-size-xs); transform: scaleX(0.66); }',
-    '.cl-entrant-emblem--micro .cl-entrant-emblem__monogram--reduced { transform: scaleX(0.55); }',
+    '.cl-entrant-emblem__monogram--short { font-size: calc(var(--entrant-emblem-size) * 0.34); }',
+    '.cl-entrant-emblem__monogram--medium { font-size: calc(var(--entrant-emblem-size) * 0.26); }',
+    '.cl-entrant-emblem__monogram--long { font-size: calc(var(--entrant-emblem-size) * 0.2); }',
+    '.cl-entrant-emblem__monogram--longest { font-size: calc(var(--entrant-emblem-size) * 0.17); }',
     '',
     '/* Operator surfaces cut less: density over drama. */',
     '.cl-image-frame--control {',
@@ -1665,6 +1669,11 @@ function components(): string {
     // for `LIVE` — plus a running clock exceeds the card, so the pair wraps
     // rather than widening the card past the viewport.
     '.cl-match-card__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cl-space-3); min-width: 0; }',
+    // The title takes the row's free width and truncates with an ellipsis; the badges beside it never wrap
+    // or shrink, so the status and outcome sit on the title row on every card at every width.
+    '.cl-match-card__title { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+    '.cl-match-card__header > .cl-match-card__heading { flex: 1 1 0; min-width: 0; }',
+    '.cl-match-card__header > .cl-badge { flex: 0 0 auto; white-space: nowrap; }',
     // `overflow-wrap: anywhere`: an ISO datetime has
     // no space to wrap at, so at the 188px reference width the clock alone —
     // not the header row it sits in, which already wraps — held its full

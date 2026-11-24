@@ -961,6 +961,7 @@ export function knockoutRoundLabel(
 export function formatClubStatus(
   intl: IntlShape,
   status: ClubStatus | undefined,
+  options: { readonly withBand?: boolean } = {},
 ): string | undefined {
   if (!status) return undefined;
   if (status.kind === 'groupStage') {
@@ -969,18 +970,20 @@ export function formatClubStatus(
   if (status.kind === 'groupStageEliminated') {
     return intl.formatMessage(messages.clubPageStatusGroupStageEliminated);
   }
+  // A band badge already names the competition, so the status keeps the round alone beside it.
+  const zone = options.withBand ? undefined : status.zone;
   if (status.kind === 'champion') {
-    return status.zone
-      ? intl.formatMessage(messages.clubPageStatusChampion, { zone: status.zone })
+    return zone
+      ? intl.formatMessage(messages.clubPageStatusChampion, { zone })
       : intl.formatMessage(messages.clubPageStatusChampionNoZone);
   }
   const round = knockoutRoundLabel(intl, status.roundKind, status.roundNumber);
   if (status.kind === 'inCompetition') {
-    return status.zone
-      ? intl.formatMessage(messages.clubPageStatusInCompetition, { zone: status.zone, round })
+    return zone
+      ? intl.formatMessage(messages.clubPageStatusInCompetition, { zone, round })
       : intl.formatMessage(messages.clubPageStatusInCompetitionRoundOnly, { round });
   }
-  return status.zone
-    ? intl.formatMessage(messages.clubPageStatusEliminated, { zone: status.zone, round })
+  return zone
+    ? intl.formatMessage(messages.clubPageStatusEliminated, { zone, round })
     : intl.formatMessage(messages.clubPageStatusEliminatedRoundOnly, { round });
 }

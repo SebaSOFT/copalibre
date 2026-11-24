@@ -382,6 +382,47 @@ describe('deriveClubResults', () => {
 });
 
 describe('deriveClubSquad', () => {
+
+  it('reads the appearances column from a layout whose matches-played column is pj, between player and the primary statistic', () => {
+    const projection: TableProjectionResponse = {
+      layoutCode: 'player-statistics',
+      target: 'player-ranking',
+      label: 'Player Statistics',
+      projectionVersion: 1,
+      grain: 'match',
+      columns: [
+        { code: 'rank', header: '#', format: 'number' },
+        { code: 'player', header: 'Player', format: 'text' },
+        { code: 'g', header: 'G', format: 'number' },
+        { code: 'pj', header: 'PJ', format: 'number' },
+      ],
+      defaultSort: [{ columnCode: 'g', direction: 'desc' }],
+      rows: [
+        {
+          rank: 1,
+          actorId: '01936f4a-0501-7000-8000-000000000501',
+          actorName: 'Aldo Cantoni',
+          clubId: '01936f4a-0502-7000-8000-000000000502',
+          clubAlias: 'club-hispano',
+          shirtNumber: 9,
+          publicProfileAvailable: true,
+          cells: {
+            player: { formatted: 'Aldo Cantoni' },
+            g: { raw: 3, formatted: '3' },
+            pj: { raw: 2, formatted: '2' },
+          },
+        },
+      ],
+    } as unknown as TableProjectionResponse;
+
+    const squad = deriveClubSquad(projection, { alias: 'club-hispano' });
+
+    expect(squad.appearancesColumn?.code).toBe('pj');
+    expect(squad.primaryStatColumn?.code).toBe('g');
+    expect(squad.members[0]?.appearances).toBe('2');
+    expect(squad.members[0]?.primaryStat).toBe('3');
+  });
+
   const baseProjection: TableProjectionResponse = {
     layoutCode: 'player-stats',
     target: 'player-ranking',

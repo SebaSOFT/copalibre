@@ -113,7 +113,10 @@ export type ClubFilterResolution =
 
 const KNOCKOUT_NODE_PATTERN = /^(?:SE|WB|LB|PL\d+)-R\d+-M\d+|^placement/i;
 const IDENTITY_COLUMN_CODES = new Set(['rank', 'name', 'entrant', 'team', 'person', 'player']);
+// The layout's column for matches played: the demo's rink-hockey layout names it `pj`, the football
+// layout `played`, and a layout may name it by appearances.
 const APPEARANCES_COLUMN_CODES = new Set([
+  'pj',
   'played',
   'appearances',
   'player-appearances',

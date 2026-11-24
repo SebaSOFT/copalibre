@@ -434,6 +434,34 @@ describe('bracketRoleLabel', () => {
 });
 
 describe('knockoutRoundLabel and formatClubStatus', () => {
+  it('keeps the zone in the status only when no band badge is shown beside it', () => {
+    const intl = publicIntl('en');
+    const inCompetition = {
+      kind: 'inCompetition' as const,
+      zone: 'Gold Cup',
+      roundKind: 'semiFinal' as const,
+      roundNumber: 2,
+    };
+    const eliminated = {
+      kind: 'eliminated' as const,
+      zone: 'Silver Cup',
+      roundKind: 'quarterFinal' as const,
+      roundNumber: 1,
+    };
+    expect(formatClubStatus(intl, inCompetition, { withBand: true })).toBe(
+      'In competition: Semi-finals',
+    );
+    expect(formatClubStatus(intl, eliminated, { withBand: true })).toBe(
+      'Eliminated in Quarter-finals',
+    );
+    expect(formatClubStatus(intl, eliminated, { withBand: false })).toBe(
+      'Eliminated in Quarter-finals of Silver Cup',
+    );
+    expect(formatClubStatus(intl, { kind: 'champion', zone: 'Gold Cup' }, { withBand: true })).toBe(
+      'Champion',
+    );
+  });
+
   it('formats knockout round labels across round kinds', () => {
     const intl = publicIntl('en');
     expect(knockoutRoundLabel(intl, 'final')).toBe('Final');

@@ -345,14 +345,18 @@ export function MatchCard({
       <div className="cl-match-card__header">
         <MatchHeading className="cl-match-card__heading">
           {reportUrl === undefined ? (
-            title.title
+            <span className="cl-match-card__title" title={title.title}>
+              {title.title}
+            </span>
           ) : (
             <a
               aria-label={`${matchTitle}: ${homeName} ${versus} ${awayName}`}
               className="cl-match-card__report-link cl-focusable"
               href={reportUrl}
             >
-              {title.title}
+              <span className="cl-match-card__title" title={title.title}>
+                {title.title}
+              </span>
             </a>
           )}
           {title.number !== undefined && (

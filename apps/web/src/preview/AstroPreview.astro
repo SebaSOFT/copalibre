@@ -145,6 +145,7 @@ const PREVIEWABLE = new Set([
   'emblem-image',
   'emblem-image-fallbacks',
   'emblem-image-matrix',
+  'emblem-image-long-abbreviation',
   'logo',
   'person-photo-image',
   'person-photo-cutout',
@@ -919,6 +920,22 @@ const [compactSample] = referenceJourneyBracket(true);
         tournamentAlias="reference-cup"
         profile={referencePlayerProfile()}
       />
+    )}
+    {component === 'emblem-image-long-abbreviation' && (
+      <div>
+        {['CUDB', 'CCBA', 'ESTSM', 'ACSM', 'BATA'].map((abbreviation) => (
+          <div>
+            {[48, 32, 24].map((size) => (
+              <EmblemImage
+                abbreviation={abbreviation}
+                alt={abbreviation}
+                placeholderAlt={abbreviation}
+                size={size}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
     )}
     {component === 'club-identity' && (
       <div>

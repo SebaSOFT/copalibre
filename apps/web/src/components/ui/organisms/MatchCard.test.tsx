@@ -49,6 +49,41 @@ function baseMatch(overrides: Partial<MatchCardData> = {}): MatchCardData {
 }
 
 describe('MatchCard', () => {
+  it('gives the title its own truncating slot with the full title as its tooltip, linked or not', () => {
+    const { container, rerender } = render(
+      <MatchCard
+        match={baseMatch({
+          state: 'final',
+          homeScore: 2,
+          awayScore: 1,
+          groupName: 'Cuartos de final 1',
+        })}
+        labels={labels}
+        locale="en"
+        outcome={{ kind: 'won', label: 'Won' }}
+      />,
+    );
+
+    const title = container.querySelector('.cl-match-card__title');
+    expect(title?.textContent).toBe('Cuartos de final 1');
+    expect(title?.getAttribute('title')).toBe('Cuartos de final 1');
+    expect(
+      container.querySelector('.cl-match-card__header .cl-match-card__outcome'),
+    ).not.toBeNull();
+
+    rerender(
+      <MatchCard
+        match={baseMatch({ state: 'final', homeScore: 2, awayScore: 1, groupName: 'Grupo A' })}
+        labels={labels}
+        locale="en"
+        reportUrl="/report/1"
+      />,
+    );
+    expect(
+      container.querySelector('a.cl-match-card__report-link .cl-match-card__title')?.textContent,
+    ).toBe('Grupo A');
+  });
+
   it.each([
     ['won', 'cl-badge--positive', 'Won'],
     ['drawn', 'cl-badge--muted', 'Drawn'],
