@@ -306,6 +306,7 @@ let nowStripOverview = false;
 let scheduleDaysOverview = false;
 let demoScaleOverview = false;
 let completedOverview = false;
+let clubsOverview = false;
 let multiStageOverview = false;
 /** How many venues the overview names, with its discipline and five tiebreakers; 0 leaves them out. */
 let factsVenueCount = 0;
@@ -438,6 +439,22 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
     if (path === `${TOURNAMENT}/overview`) {
+      if (clubsOverview) {
+        res.end(
+          JSON.stringify({
+            ...overview,
+            clubs: [
+              {
+                clubId: '01936f4a-0401-7000-8000-000000000401',
+                name: 'Club Andes',
+                abbreviation: 'AND',
+                alias: 'andes-talleres',
+              },
+            ],
+          }),
+        );
+        return;
+      }
       if (factsVenueCount > 0) {
         res.end(JSON.stringify(factsOverview(factsVenueCount)));
         return;
@@ -1010,6 +1027,22 @@ test.describe('public empty states without JavaScript', () => {
     await expect(lifecycleBadge).not.toHaveClass(/cl-badge--live/);
   });
 
+  test('the teams tab opens the club index only when the tournament has clubs', async ({
+    page,
+  }) => {
+    clubsOverview = true;
+    try {
+      await page.goto(PAGE);
+      await expect(
+        page
+          .locator('#cl-public-tournament-nav nav')
+          .getByRole('link', { name: 'Equipos', exact: true }),
+      ).toHaveAttribute('href', `${PAGE}/clubs`);
+    } finally {
+      clubsOverview = false;
+    }
+  });
+
   test('the tournament header links its sections in server-rendered markup', async ({ page }) => {
     await page.goto(PAGE);
 
@@ -1032,7 +1065,7 @@ test.describe('public empty states without JavaScript', () => {
     );
     await expect(navigation.getByRole('link', { name: 'Equipos', exact: true })).toHaveAttribute(
       'href',
-      `${PAGE}/clubs`,
+      `${PAGE}#teams`,
     );
     await expect(page.locator('#standings')).toBeAttached();
   });

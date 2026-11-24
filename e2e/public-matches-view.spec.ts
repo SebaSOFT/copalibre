@@ -112,6 +112,18 @@ test.beforeEach(() => {
   clubMode = false;
 });
 
+const clubFixtures = [
+  {
+    clubId: '01936f4a-0301-7000-8000-000000000301',
+    name: 'Club Andes',
+    abbreviation: 'AND',
+    alias: 'andes-talleres',
+  },
+  { clubId: '01936f4a-0302-7000-8000-000000000302', name: 'Palmira', alias: 'palmira' },
+  { clubId: '01936f4a-0303-7000-8000-000000000303', name: 'Huracán', alias: 'huracan' },
+  { clubId: '01936f4a-0304-7000-8000-000000000304', name: 'Deportivo Sur', alias: 'deportivo-sur' },
+];
+
 const clubRows = [
   {
     matchId: '00000000-0000-7000-8000-000000000301',
@@ -210,7 +222,7 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     const [path, query] = (req.url ?? '').split('?');
     if (path === `${TOURNAMENT}/overview`) {
-      res.end(JSON.stringify(overview));
+      res.end(JSON.stringify(clubMode ? { ...overview, clubs: clubFixtures } : overview));
       return;
     }
     if (path === `${TOURNAMENT}/stages/1/bracket`) {
@@ -716,9 +728,30 @@ test('the club filter narrows the schedule to one club by alias with JavaScript 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${matchesPath}?club=andes-talleres`);
 
-  const body = page.locator('body');
+  const body = page.locator('.cl-match-schedule__nested');
   await expect(body).toContainText('Palmira');
   await expect(body).toContainText('Club Andes');
+  await expect(body).not.toContainText('Huracán');
+
+  await context.close();
+});
+
+test('the club select with the Apply button narrows the schedule with JavaScript disabled', async ({
+  browser,
+}) => {
+  clubMode = true;
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(matchesPath);
+  await page.locator('.cl-match-schedule-filters > summary').click();
+  await page.locator('select[name="club"]').selectOption('andes-talleres');
+  await page.getByRole('button', { name: 'Apply', exact: true }).click();
+
+  await expect(page).toHaveURL(/club=andes-talleres/);
+  const body = page.locator('.cl-match-schedule__nested');
+  await expect(body).toContainText('Palmira');
   await expect(body).not.toContainText('Huracán');
 
   await context.close();

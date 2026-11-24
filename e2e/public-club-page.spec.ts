@@ -346,9 +346,13 @@ test('the club page shows identity, next match, standing, results, squad and the
   await page.goto(`${BASE}/clubs/club-hispano`);
 
   await expect(page.getByRole('heading', { level: 1, name: 'Club Hispano' })).toBeVisible();
-  await expect(page.locator('.cl-club-header-card__band')).toHaveText('Copa Oro');
+  await expect(
+    page.locator('section[aria-label="Club Hispano"] [data-promotion-band-index]'),
+  ).toHaveText('Copa Oro');
   await expect(page.locator('#club-next-match-heading')).toBeVisible();
-  await expect(page.locator('.cl-club-result-card')).toHaveCount(2);
+  await expect(
+    page.locator('section[aria-labelledby="club-results-heading"] .cl-match-card-grid > li'),
+  ).toHaveCount(2);
   await expect(page.locator('#club-standing-heading')).toBeVisible();
   await expect(page.locator('#club-squad-heading')).toBeVisible();
   await expect(page.locator(`a[href="${BASE}/players/p-1?layout=top-scorers"]`)).toHaveCount(1);
