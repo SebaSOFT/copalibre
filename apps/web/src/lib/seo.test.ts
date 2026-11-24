@@ -222,10 +222,10 @@ describe('SEO and structured data utilities', () => {
 
       // liga-orbital: 1 org root + 7 non-primary org locales = 8
       // + 1 tournament root + 7 non-primary tournament locales = 8
-      // + 1 club index + 7 non-primary club index locales = 8
+      // (no aliased clubs, so no club index or club page)
       // liga-vacia: 1 org root + 7 non-primary org locales = 8
-      // total = 8 + 8 + 8 + 8 = 32 entries
-      expect(entries).toHaveLength(32);
+      // total = 8 + 8 + 8 = 24 entries
+      expect(entries).toHaveLength(24);
 
       // Check organization routes
       expect(

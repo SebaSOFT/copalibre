@@ -45,6 +45,10 @@ export function buildSitemapEntries(data: readonly OrgWithTournaments[]): readon
         });
       }
 
+      // A tournament without aliased clubs has no club index and no club page to advertise.
+      const clubAliases = (t.clubAliases ?? []).filter((alias) => isValidClubAlias(alias));
+      if (clubAliases.length === 0) continue;
+
       entries.push({
         input: {
           organizationAlias: org.organizationAlias,
@@ -66,8 +70,7 @@ export function buildSitemapEntries(data: readonly OrgWithTournaments[]): readon
         });
       }
 
-      for (const clubAlias of t.clubAliases ?? []) {
-        if (!isValidClubAlias(clubAlias)) continue;
+      for (const clubAlias of clubAliases) {
         entries.push({
           input: {
             organizationAlias: org.organizationAlias,
@@ -95,20 +98,44 @@ export function buildSitemapEntries(data: readonly OrgWithTournaments[]): readon
   return entries;
 }
 
+/** Concurrent work over `items`, with at most `limit` calls in flight; results keep the input order. */
+export async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next;
+      next += 1;
+      results[index] = await mapper(items[index] as T);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+/** Overview fetches in flight at once while the sitemap is built; bounded so a large catalogue is not a burst. */
+export const SITEMAP_OVERVIEW_CONCURRENCY = 4;
+
 export async function fetchPublicSitemapRoutes(): Promise<readonly SitemapEntry[]> {
   const orgs = (await fetchOrganizations()) ?? [];
   const orgData: OrgWithTournaments[] = [];
 
   for (const org of orgs) {
     const tournamentList = await fetchOrganizationTournaments(org.alias);
-    const tournaments = await Promise.all(
-      (tournamentList?.tournaments ?? []).map(async (t) => {
+    const tournaments = await mapWithConcurrency(
+      tournamentList?.tournaments ?? [],
+      SITEMAP_OVERVIEW_CONCURRENCY,
+      async (t) => {
         const overview = await fetchOverview(org.alias, t.alias).catch(() => undefined);
         const clubAliases = (overview?.clubs ?? [])
           .map((club) => club.alias)
           .filter((alias): alias is string => isValidClubAlias(alias));
         return { alias: t.alias, clubAliases };
-      }),
+      },
     );
     orgData.push({
       organizationAlias: org.alias,
