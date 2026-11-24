@@ -1,11 +1,19 @@
 import type { SitemapEntry } from '@copalibre/routing';
-import { fetchOrganizations, fetchOrganizationTournaments } from './public-api-client.js';
+import {
+  fetchOrganizations,
+  fetchOrganizationTournaments,
+  fetchOverview,
+} from './public-api-client.js';
+import { isValidClubAlias } from './club-url.js';
 
 export const NON_PRIMARY_LOCALES = ['es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const;
 
 export interface OrgWithTournaments {
   readonly organizationAlias: string;
-  readonly tournaments: readonly { readonly alias: string }[];
+  readonly tournaments: readonly {
+    readonly alias: string;
+    readonly clubAliases?: readonly string[];
+  }[];
 }
 
 export function buildSitemapEntries(data: readonly OrgWithTournaments[]): readonly SitemapEntry[] {
@@ -36,6 +44,51 @@ export function buildSitemapEntries(data: readonly OrgWithTournaments[]): readon
           changeFrequency: 'hourly',
         });
       }
+
+      entries.push({
+        input: {
+          organizationAlias: org.organizationAlias,
+          tournamentAlias: t.alias,
+          clubIndex: true,
+        },
+        changeFrequency: 'daily',
+      });
+
+      for (const locale of NON_PRIMARY_LOCALES) {
+        entries.push({
+          input: {
+            organizationAlias: org.organizationAlias,
+            tournamentAlias: t.alias,
+            clubIndex: true,
+            locale,
+          },
+          changeFrequency: 'daily',
+        });
+      }
+
+      for (const clubAlias of t.clubAliases ?? []) {
+        if (!isValidClubAlias(clubAlias)) continue;
+        entries.push({
+          input: {
+            organizationAlias: org.organizationAlias,
+            tournamentAlias: t.alias,
+            clubAlias,
+          },
+          changeFrequency: 'daily',
+        });
+
+        for (const locale of NON_PRIMARY_LOCALES) {
+          entries.push({
+            input: {
+              organizationAlias: org.organizationAlias,
+              tournamentAlias: t.alias,
+              clubAlias,
+              locale,
+            },
+            changeFrequency: 'daily',
+          });
+        }
+      }
     }
   }
 
@@ -48,9 +101,18 @@ export async function fetchPublicSitemapRoutes(): Promise<readonly SitemapEntry[
 
   for (const org of orgs) {
     const tournamentList = await fetchOrganizationTournaments(org.alias);
+    const tournaments = await Promise.all(
+      (tournamentList?.tournaments ?? []).map(async (t) => {
+        const overview = await fetchOverview(org.alias, t.alias).catch(() => undefined);
+        const clubAliases = (overview?.clubs ?? [])
+          .map((club) => club.alias)
+          .filter((alias): alias is string => isValidClubAlias(alias));
+        return { alias: t.alias, clubAliases };
+      }),
+    );
     orgData.push({
       organizationAlias: org.alias,
-      tournaments: (tournamentList?.tournaments ?? []).map((t) => ({ alias: t.alias })),
+      tournaments,
     });
   }
 

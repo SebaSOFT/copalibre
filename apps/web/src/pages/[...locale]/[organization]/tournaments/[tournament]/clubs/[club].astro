@@ -1,0 +1,858 @@
+---
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
+import Container from '../../../../../../components/ui/atoms/layout/Container.astro';
+import { Card } from '../../../../../../components/ui/atoms/Card.tsx';
+import { Badge } from '../../../../../../components/ui/atoms/Badge.tsx';
+import EmblemImage from '../../../../../../components/ui/atoms/EmblemImage.astro';
+import Icon from '../../../../../../components/ui/atoms/Icon.astro';
+import { ResponsiveTimestamp } from '../../../../../../components/ui/atoms/ResponsiveTimestamp.tsx';
+import TimeZoneNote from '../../../../../../components/ui/molecules/TimeZoneNote.astro';
+import Breadcrumb from '../../../../../../components/ui/organisms/Breadcrumb.astro';
+import PageHeader from '../../../../../../components/ui/organisms/PageHeader.astro';
+import DataTable, {
+  type DataTableColumn,
+} from '../../../../../../components/ui/organisms/DataTable.astro';
+import { MatchCard } from '../../../../../../components/ui/organisms/MatchCard.tsx';
+import StandingsTable from '../../../../../../components/ui/organisms/StandingsTable.astro';
+import { publicTrail, trailBaseOf } from '../../../../../../lib/breadcrumb.ts';
+import { matchReportUrl } from '../../../../../../lib/bracket.ts';
+import {
+  deriveClubKnockoutPath,
+  deriveClubNextMatch,
+  deriveClubResults,
+  deriveClubSquad,
+  deriveClubStatus,
+  type ClubSquadMember,
+} from '../../../../../../lib/club-page.ts';
+import {
+  clubIndexUrl,
+  clubPageUrl,
+  isValidClubAlias,
+  optionalClubPageUrl,
+} from '../../../../../../lib/club-url.ts';
+import { columnHint } from '../../../../../../lib/column-hints.ts';
+import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
+import type { MatchCardData } from '../../../../../../lib/matches-view.ts';
+import {
+  clubEmblemUrl,
+  fetchLive,
+  fetchMatchesView,
+  fetchOverview,
+  fetchPublicTableLayouts,
+  fetchPublicTableProjection,
+  mapLiveResponse,
+  mapMatchesViewResponse,
+  mapOverviewResponse,
+} from '../../../../../../lib/public-api-client.ts';
+import {
+  formatClubStatus,
+  knockoutRoundLabel,
+  matchCardLabels,
+  publicIntl,
+  timeZoneNoteLabels,
+} from '../../../../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../../../../lib/i18n/public-messages.en.ts';
+import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../../../lib/locale.ts';
+import { isPublicLocaleSegment } from '../../../../../../lib/public-route-guards.ts';
+
+export const prerender = false;
+
+const { locale, organization, tournament, club } = Astro.params;
+if (!isPublicLocaleSegment(locale)) {
+  Astro.response.status = 404;
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvePathLocale(Astro.url.pathname)));
+}
+
+const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
+const intl = publicIntl(resolvedLocale);
+const localePrefix = locale ? `/${locale}` : '';
+
+if (!isValidClubAlias(club)) {
+  Astro.response.status = 404;
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
+}
+
+let overviewData: Awaited<ReturnType<typeof fetchOverview>>;
+try {
+  overviewData = await fetchOverview(organization!, tournament!);
+} catch {
+  overviewData = undefined;
+}
+if (!overviewData) {
+  Astro.response.status = 404;
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
+}
+
+const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const clubInfo = model.clubs?.find((entry) => entry.alias === club);
+if (!clubInfo) {
+  Astro.response.status = 404;
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
+}
+
+let matchesViewRaw: Awaited<ReturnType<typeof fetchMatchesView>>;
+try {
+  matchesViewRaw = await fetchMatchesView(organization!, tournament!, { state: 'all' });
+} catch {
+  matchesViewRaw = undefined;
+}
+
+let layoutsRaw: Awaited<ReturnType<typeof fetchPublicTableLayouts>>;
+try {
+  layoutsRaw = await fetchPublicTableLayouts(organization!, tournament!);
+} catch {
+  layoutsRaw = undefined;
+}
+
+let liveRaw: Awaited<ReturnType<typeof fetchLive>>;
+if (model.liveCount > 0 || model.status === 'live') {
+  try {
+    liveRaw = await fetchLive(organization!, tournament!);
+  } catch {
+    liveRaw = undefined;
+  }
+}
+
+const liveDashboard = liveRaw ? mapLiveResponse(liveRaw) : undefined;
+const liveByMatchId = new Map(
+  (liveDashboard?.matches ?? []).map((entry) => [entry.matchId, entry]),
+);
+
+const mappedMatches: readonly MatchCardData[] = matchesViewRaw
+  ? mapMatchesViewResponse(
+      matchesViewRaw,
+      intl.formatMessage(messages.personHiddenAtRequest),
+      resolvedLocale,
+    ).matches
+  : [];
+
+const overlayedMatches: readonly MatchCardData[] = mappedMatches.map((match) => {
+  const live = liveByMatchId.get(match.matchId);
+  if (!live) return match;
+  return {
+    ...match,
+    state: live.state,
+    ...(live.clock === undefined
+      ? {}
+      : { clock: live.clock, clockSeconds: live.clock.elapsedSeconds }),
+    ...(live.segments === undefined ? {} : { segments: live.segments }),
+    ...(live.projectionVersion === undefined ? {} : { projectionVersion: live.projectionVersion }),
+    ...(live.sides[0]?.score === undefined ? {} : { homeScore: live.sides[0].score }),
+    ...(live.sides[1]?.score === undefined ? {} : { awayScore: live.sides[1].score }),
+  };
+});
+
+const declaredLayouts = layoutsRaw?.layouts ?? [];
+const groupPhaseLayout = declaredLayouts.find((one) => one.target === 'group-phase');
+const playerLayout = declaredLayouts.find(
+  (one) =>
+    one.entityGranularity === 'person' ||
+    one.entityGranularity === 'player' ||
+    one.target === 'player-ranking',
+);
+
+const earliestStageNumber = overviewData.matches.reduce(
+  (earliest, match) => Math.min(earliest, match.stageNumber),
+  Infinity,
+);
+const standingsStageNumber =
+  model.standingsStageNumber ??
+  (Number.isFinite(earliestStageNumber) ? earliestStageNumber : undefined);
+
+let standingsProjection: Awaited<ReturnType<typeof fetchPublicTableProjection>>;
+if (groupPhaseLayout) {
+  try {
+    standingsProjection = await fetchPublicTableProjection(
+      organization!,
+      tournament!,
+      groupPhaseLayout.code,
+      standingsStageNumber,
+    );
+  } catch {
+    standingsProjection = undefined;
+  }
+}
+
+let squadProjection: Awaited<ReturnType<typeof fetchPublicTableProjection>>;
+if (playerLayout) {
+  try {
+    squadProjection = await fetchPublicTableProjection(
+      organization!,
+      tournament!,
+      playerLayout.code,
+      undefined,
+      { club },
+    );
+  } catch {
+    squadProjection = undefined;
+  }
+}
+
+const clubRef = { alias: club, clubId: clubInfo.clubId };
+const status = deriveClubStatus(overlayedMatches, clubRef, model.stages);
+const statusText = formatClubStatus(intl, status);
+const nextMatch = deriveClubNextMatch(overlayedMatches, clubRef);
+const results = deriveClubResults(overlayedMatches, clubRef);
+const squad = deriveClubSquad(squadProjection, clubRef, {
+  hiddenPlayerLabel: intl.formatMessage(messages.personHiddenAtRequest),
+});
+const knockoutPath = deriveClubKnockoutPath(overlayedMatches, clubRef, model.stages);
+
+const matchesRowFilter = (row: { readonly clubAlias?: string; readonly clubId?: string }) =>
+  row.clubAlias === club || row.clubId === clubInfo.clubId;
+const clubStandingRow = standingsProjection?.rows.find(matchesRowFilter);
+const clubGroupSegment = (standingsProjection?.segments ?? []).find(
+  (segment) => segment.groupName !== undefined && segment.rows.some(matchesRowFilter),
+);
+const standingTableProjection = standingsProjection
+  ? clubGroupSegment
+    ? { ...standingsProjection, rows: clubGroupSegment.rows }
+    : { ...standingsProjection, rows: standingsProjection.rows.filter(matchesRowFilter) }
+  : undefined;
+
+const tournamentCanonicalPath = `${localePrefix}${model.canonicalPath}`;
+const stageStandingsHref =
+  standingsStageNumber !== undefined
+    ? `${tournamentCanonicalPath}/stages/${standingsStageNumber}`
+    : `${tournamentCanonicalPath}#standings`;
+
+const referenceDate = Date.now();
+const labels = matchCardLabels(intl);
+const clubEmblemSrc = clubInfo.emblemObjectId
+  ? clubEmblemUrl(organization!, clubInfo.clubId)
+  : undefined;
+
+const liveSeeds = (liveDashboard?.matches ?? [])
+  .filter((live) => live.sides.some((side) => side.clubId === clubInfo.clubId))
+  .map((live) => ({
+    matchId: live.matchId,
+    projectionVersion: live.projectionVersion,
+    state: live.state,
+    ...(live.clock === undefined ? {} : { clock: live.clock }),
+    ...(live.segments === undefined ? {} : { segments: live.segments }),
+    homeScore: live.sides[0]?.score,
+    awayScore: live.sides[1]?.score,
+    homeEntrantId: live.sides[0]?.entrantId,
+    awayEntrantId: live.sides[1]?.entrantId,
+  }));
+
+const outcomeLabelOf = (outcome: 'won' | 'drawn' | 'lost'): string =>
+  outcome === 'won'
+    ? intl.formatMessage(messages.clubPageOutcomeWon)
+    : outcome === 'lost'
+      ? intl.formatMessage(messages.clubPageOutcomeLost)
+      : intl.formatMessage(messages.clubPageOutcomeDrawn);
+
+const outcomeIconOf = (outcome: 'won' | 'drawn' | 'lost'): 'check' | 'close' | 'minus' =>
+  outcome === 'won' ? 'check' : outcome === 'lost' ? 'close' : 'minus';
+
+const outcomeBadgeClassOf = (outcome: 'won' | 'drawn' | 'lost'): string =>
+  outcome === 'won'
+    ? 'cl-badge--positive'
+    : outcome === 'lost'
+      ? 'cl-badge--muted cl-club-outcome--lost'
+      : 'cl-badge--muted';
+
+const hasSquadNumbers = squad.members.some((member) => member.shirtNumber !== undefined);
+const squadColumns: readonly DataTableColumn[] = [
+  ...(hasSquadNumbers
+    ? [
+        {
+          key: 'number',
+          header: intl.formatMessage(messages.standingsTableColumnNumber),
+          render: (row: unknown) => {
+            const member = row as ClubSquadMember;
+            return member.shirtNumber !== undefined ? String(member.shirtNumber) : '';
+          },
+        } satisfies DataTableColumn,
+      ]
+    : []),
+  {
+    key: 'player',
+    header: intl.formatMessage(messages.matchRostersColumnPlayer),
+    name: true,
+    render: (row) => (row as ClubSquadMember).displayName,
+    href: (row) => {
+      const member = row as ClubSquadMember;
+      if (!member.profileAvailable || !member.actorId) return undefined;
+      return `${tournamentCanonicalPath}/players/${encodeURIComponent(member.actorId)}${
+        playerLayout ? `?layout=${encodeURIComponent(playerLayout.code)}` : ''
+      }`;
+    },
+  },
+  ...(squad.appearancesColumn
+    ? (() => {
+        const hint = columnHint(squad.appearancesColumn, resolvedLocale);
+        return [
+          {
+            key: squad.appearancesColumn.code,
+            header: hint.label,
+            ...(hint.hint === undefined ? {} : { headerHint: hint.hint }),
+            render: (row: unknown) => (row as ClubSquadMember).appearances ?? '—',
+          } satisfies DataTableColumn,
+        ];
+      })()
+    : []),
+  ...(squad.primaryStatColumn
+    ? (() => {
+        const hint = columnHint(squad.primaryStatColumn, resolvedLocale);
+        return [
+          {
+            key: squad.primaryStatColumn.code,
+            header: hint.label,
+            ...(hint.hint === undefined ? {} : { headerHint: hint.hint }),
+            render: (row: unknown) => (row as ClubSquadMember).primaryStat ?? '—',
+          } satisfies DataTableColumn,
+        ];
+      })()
+    : []),
+];
+
+const canonicalPath = clubPageUrl({
+  organizationAlias: organization!,
+  tournamentAlias: tournament!,
+  clubAlias: club,
+  localePrefix,
+});
+const tournamentName = displayName(model);
+const pageTitle = `${clubInfo.name} — ${tournamentName}`;
+const description = intl.formatMessage(messages.clubPageDescription, {
+  club: clubInfo.name,
+  tournament: tournamentName,
+});
+
+const trailBase = trailBaseOf({
+  organizationAlias: organization!,
+  organizationName: model.organizationName,
+  tournamentName,
+  canonicalPath: model.canonicalPath,
+  localePrefix,
+});
+const trail = publicTrail(trailBase, [
+  {
+    label: intl.formatMessage(messages.clubIndexTitle),
+    href: clubIndexUrl({
+      organizationAlias: organization!,
+      tournamentAlias: tournament!,
+      localePrefix,
+    }),
+  },
+  { label: clubInfo.name },
+]);
+
+const bracketPathHref = knockoutPath
+  ? `${tournamentCanonicalPath}/stages/${knockoutPath.stageNumber}?club=${encodeURIComponent(club)}${
+      knockoutPath.zoneAnchor ? `#${knockoutPath.zoneAnchor}` : ''
+    }`
+  : undefined;
+
+const structuredData = {
+  '@type': 'SportsOrganization' as const,
+  name: clubInfo.name,
+  url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${canonicalPath}`,
+  ...(clubEmblemSrc
+    ? { logo: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${clubEmblemSrc}` }
+    : {}),
+};
+---
+
+<PublicLayout
+  title={pageTitle}
+  description={description}
+  canonicalPath={canonicalPath}
+  intl={intl}
+  disciplineImages={overviewData.disciplineImages}
+  structuredData={structuredData}
+>
+  <Container variant="public">
+    <PageHeader
+      title={clubInfo.name}
+      description={statusText}
+      loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
+    >
+      <Breadcrumb
+        slot="breadcrumb"
+        items={trail}
+        ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+        collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+      />
+    </PageHeader>
+
+    <Card as="section" className="cl-club-header-card" aria-label={clubInfo.name}>
+      <div class="cl-club-header-card__identity">
+        <EmblemImage
+          size={64}
+          eager
+          src={clubEmblemSrc}
+          abbreviation={clubInfo.abbreviation}
+          alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: clubInfo.name })}
+          placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+        />
+        <div class="cl-club-header-card__details">
+          <div class="cl-club-header-card__badges">
+            {clubInfo.abbreviation && (
+              <Badge className="cl-badge--stage">{clubInfo.abbreviation}</Badge>
+            )}
+            {clubStandingRow?.promotionBandLabel && (
+              <Badge
+                className="cl-club-header-card__band"
+                data-promotion-band-index={clubStandingRow.promotionBandIndex}
+              >
+                {clubStandingRow.promotionBandLabel}
+              </Badge>
+            )}
+            {clubStandingRow?.promotionSeed !== undefined && (
+              <Badge className="cl-badge--muted">
+                {intl.formatMessage(messages.standingsSeedTag, {
+                  seed: clubStandingRow.promotionSeed,
+                })}
+              </Badge>
+            )}
+          </div>
+          {statusText && <p class="cl-club-header-card__status">{statusText}</p>}
+        </div>
+      </div>
+    </Card>
+
+    <TimeZoneNote
+      locale={resolvedLocale}
+      referenceDate={referenceDate}
+      timeZone={model.organizationTimeZone}
+      {...timeZoneNoteLabels(intl)}
+    />
+
+    {liveSeeds.length > 0 && (
+      <div data-live-stream={model.streamPath} hidden>
+        {liveSeeds.map((seed) => (
+          <span data-live-match-seed={JSON.stringify(seed)} />
+        ))}
+      </div>
+    )}
+
+    <div class="cl-club-sections">
+      {nextMatch && (
+        <section aria-labelledby="club-next-match-heading" class="cl-club-section">
+          <h2 id="club-next-match-heading" class="cl-club-section__heading">
+            {intl.formatMessage(messages.clubPageNextMatchHeading)}
+          </h2>
+          <div class="cl-club-section__card">
+            {nextMatch.isLive ? (
+              <MatchCard
+                client:load
+                headingLevel={3}
+                labels={labels}
+                locale={resolvedLocale}
+                localePrefix={localePrefix}
+                match={nextMatch.match}
+                organizationAlias={organization!}
+                referenceDate={referenceDate}
+                reportUrl={matchReportUrl({
+                  organizationAlias: organization!,
+                  tournamentAlias: tournament!,
+                  stageNumber: nextMatch.match.stageNumber,
+                  matchNumber: nextMatch.match.matchNumber,
+                  localePrefix,
+                })}
+                timeZone={model.organizationTimeZone}
+                tournamentAlias={tournament!}
+              />
+            ) : (
+              <MatchCard
+                headingLevel={3}
+                labels={labels}
+                locale={resolvedLocale}
+                localePrefix={localePrefix}
+                match={nextMatch.match}
+                organizationAlias={organization!}
+                referenceDate={referenceDate}
+                reportUrl={matchReportUrl({
+                  organizationAlias: organization!,
+                  tournamentAlias: tournament!,
+                  stageNumber: nextMatch.match.stageNumber,
+                  matchNumber: nextMatch.match.matchNumber,
+                  localePrefix,
+                })}
+                timeZone={model.organizationTimeZone}
+                tournamentAlias={tournament!}
+              />
+            )}
+          </div>
+        </section>
+      )}
+
+      {standingTableProjection && standingTableProjection.rows.length > 0 && (
+        <section aria-labelledby="club-standing-heading" class="cl-club-section">
+          <div class="cl-club-section__header">
+            <h2 id="club-standing-heading" class="cl-club-section__heading">
+              {intl.formatMessage(messages.clubPageStandingHeading)}
+            </h2>
+            <a class="cl-pill cl-focusable" href={stageStandingsHref}>
+              {intl.formatMessage(messages.clubPageStandingLink)}
+            </a>
+          </div>
+          <StandingsTable
+            canonicalPath={tournamentCanonicalPath}
+            chrome="full"
+            clubs={model.clubs}
+            heading={clubGroupSegment?.groupName}
+            headingText={intl.formatMessage(messages.clubPageStandingHeading)}
+            highlightClubAlias={club}
+            intl={intl}
+            layout={groupPhaseLayout}
+            organizationAlias={organization!}
+            projection={standingTableProjection}
+            showControls={false}
+            tournamentAlias={tournament!}
+          />
+        </section>
+      )}
+
+      <section aria-labelledby="club-results-heading" class="cl-club-section">
+        <h2 id="club-results-heading" class="cl-club-section__heading">
+          {intl.formatMessage(messages.clubPageResultsHeading)}
+        </h2>
+        {results.length === 0 ? (
+          <p class="cl-club-section__empty">{intl.formatMessage(messages.clubPageResultsEmpty)}</p>
+        ) : (
+          <ul class="cl-club-results">
+            {results.map((result) => {
+              const reportHref = matchReportUrl({
+                organizationAlias: organization!,
+                tournamentAlias: tournament!,
+                stageNumber: result.stageNumber,
+                matchNumber: result.matchNumber,
+                localePrefix,
+              });
+              const opponentHref = optionalClubPageUrl({
+                organizationAlias: organization!,
+                tournamentAlias: tournament!,
+                clubAlias: result.opponentClubAlias,
+                localePrefix,
+              });
+              const contextParts = [
+                result.stageName,
+                result.groupName,
+                result.zoneName,
+                result.round !== undefined
+                  ? intl.formatMessage(messages.bracketRoundHeading, { round: result.round })
+                  : undefined,
+              ].filter((part): part is string => Boolean(part));
+              const opponentDisplay =
+                result.opponentName ?? intl.formatMessage(messages.resultStateTbd);
+              const scoreText =
+                result.ownScore !== undefined && result.opponentScore !== undefined
+                  ? `${result.ownScore}–${result.opponentScore}`
+                  : '—';
+              return (
+                <li class="cl-club-results__item">
+                  <Card as="article" className="cl-club-result-card">
+                    <div class="cl-club-result-card__meta">
+                      {result.scheduledAt && (
+                        <ResponsiveTimestamp
+                          locale={resolvedLocale}
+                          referenceDate={referenceDate}
+                          timestamp={result.scheduledAt}
+                          timeZone={model.organizationTimeZone}
+                        />
+                      )}
+                      {contextParts.length > 0 && (
+                        <span class="cl-club-result-card__context">{contextParts.join(' · ')}</span>
+                      )}
+                    </div>
+                    <div class="cl-club-result-card__main">
+                      <div class="cl-club-result-card__opponent">
+                        <EmblemImage
+                          size={24}
+                          bare
+                          decorative
+                          abbreviation={result.opponentAbbreviation}
+                          alt={opponentDisplay}
+                          placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                          src={
+                            result.opponentClubId && result.opponentEmblemObjectId
+                              ? clubEmblemUrl(organization!, result.opponentClubId)
+                              : undefined
+                          }
+                        />
+                        {opponentHref ? (
+                          <a
+                            class="cl-club-result-card__opponent-link cl-focusable"
+                            href={opponentHref}
+                          >
+                            {opponentDisplay}
+                          </a>
+                        ) : (
+                          <span>{opponentDisplay}</span>
+                        )}
+                      </div>
+                      <div class="cl-club-result-card__figures">
+                        <a
+                          class="cl-club-result-card__score cl-tabular-nums cl-focusable"
+                          href={reportHref}
+                        >
+                          {scoreText}
+                        </a>
+                        {result.outcome && (
+                          <Badge className={outcomeBadgeClassOf(result.outcome)}>
+                            <Icon name={outcomeIconOf(result.outcome)} size={16} />
+                            <span>{outcomeLabelOf(result.outcome)}</span>
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section aria-labelledby="club-squad-heading" class="cl-club-section">
+        <h2 id="club-squad-heading" class="cl-club-section__heading">
+          {intl.formatMessage(messages.clubPageSquadHeading)}
+        </h2>
+        {squad.members.length === 0 ? (
+          <p class="cl-club-section__empty">{intl.formatMessage(messages.clubPageSquadEmpty)}</p>
+        ) : (
+          <DataTable
+            ariaLabel={intl.formatMessage(messages.clubPageSquadHeading)}
+            columns={squadColumns}
+            mobileMode="priority"
+            moreColumnsLabel={intl.formatMessage(messages.standingsMoreColumns)}
+            rows={squad.members}
+          />
+        )}
+      </section>
+
+      {knockoutPath && (
+        <section aria-labelledby="club-path-heading" class="cl-club-section">
+          <div class="cl-club-section__header">
+            <h2 id="club-path-heading" class="cl-club-section__heading">
+              {intl.formatMessage(messages.clubPagePathHeading)}
+            </h2>
+            {bracketPathHref && (
+              <a class="cl-pill cl-focusable" href={bracketPathHref}>
+                {intl.formatMessage(messages.clubPagePathLink)}
+              </a>
+            )}
+          </div>
+          <ol class="cl-club-path-list">
+            {knockoutPath.matches.map((entry) => {
+              const opponentName =
+                entry.side === 'home' ? entry.match.awayName : entry.match.homeName;
+              const ownScore =
+                entry.side === 'home' ? entry.match.homeScore : entry.match.awayScore;
+              const opponentScore =
+                entry.side === 'home' ? entry.match.awayScore : entry.match.homeScore;
+              const roundLabel = knockoutRoundLabel(intl, entry.roundKind, entry.roundNumber);
+              const reportHref = matchReportUrl({
+                organizationAlias: organization!,
+                tournamentAlias: tournament!,
+                stageNumber: entry.match.stageNumber,
+                matchNumber: entry.match.matchNumber,
+                localePrefix,
+              });
+              return (
+                <li class="cl-club-path-list__item">
+                  <Card as="article" className="cl-club-path-card">
+                    <span class="cl-club-path-card__round">{roundLabel}</span>
+                    <a class="cl-club-path-card__link cl-focusable" href={reportHref}>
+                      {opponentName ?? intl.formatMessage(messages.resultStateTbd)}
+                    </a>
+                    {ownScore !== undefined && opponentScore !== undefined && (
+                      <span class="cl-club-path-card__score cl-tabular-nums">
+                        {`${ownScore}–${opponentScore}`}
+                      </span>
+                    )}
+                    {entry.outcome && (
+                      <Badge className={outcomeBadgeClassOf(entry.outcome)}>
+                        <Icon name={outcomeIconOf(entry.outcome)} size={16} />
+                        <span>{outcomeLabelOf(entry.outcome)}</span>
+                      </Badge>
+                    )}
+                  </Card>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      )}
+    </div>
+  </Container>
+</PublicLayout>
+
+<script>
+  import { mountPublicSchedule } from '../../../../../../lib/public-schedule-live.ts';
+
+  mountPublicSchedule();
+  if (document.querySelector('[data-live-stream]')) {
+    void import('../../../../../../lib/public-live-scoreboards.ts').then(
+      ({ mountPublicLiveScoreboards }) => {
+        mountPublicLiveScoreboards();
+      },
+    );
+  }
+</script>
+
+<style>
+  .cl-club-header-card {
+    margin-block-end: var(--cl-space-5);
+    padding: var(--cl-space-5);
+  }
+
+  .cl-club-header-card__identity {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--cl-space-4);
+  }
+
+  .cl-club-header-card__details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-2);
+    min-width: 0;
+  }
+
+  .cl-club-header-card__badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--cl-space-2);
+  }
+
+  .cl-club-header-card__status {
+    margin: 0;
+    color: var(--cl-text-secondary);
+    font-size: var(--cl-font-size-base);
+  }
+
+  .cl-club-sections {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-8);
+    margin-block-start: var(--cl-space-6);
+  }
+
+  .cl-club-section__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--cl-space-3);
+    margin-block-end: var(--cl-space-3);
+  }
+
+  .cl-club-section__heading {
+    margin: 0 0 var(--cl-space-3);
+    font-family: var(--cl-font-display);
+  }
+
+  .cl-club-section__header .cl-club-section__heading {
+    margin: 0;
+  }
+
+  .cl-club-section__card {
+    inline-size: min(100%, 24rem);
+  }
+
+  .cl-club-section__empty {
+    margin: 0;
+    color: var(--cl-text-muted);
+  }
+
+  .cl-club-results,
+  .cl-club-path-list {
+    display: grid;
+    gap: var(--cl-space-3);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .cl-club-result-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-2);
+    padding: var(--cl-space-3) var(--cl-space-4);
+  }
+
+  .cl-club-result-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cl-space-2);
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+  }
+
+  .cl-club-result-card__main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--cl-space-3);
+  }
+
+  .cl-club-result-card__opponent {
+    display: flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+    min-width: 0;
+    font-weight: var(--cl-weight-semibold);
+  }
+
+  .cl-club-result-card__opponent-link,
+  .cl-club-result-card__score,
+  .cl-club-path-card__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--cl-touch-target);
+    color: var(--cl-text-primary);
+    text-decoration: none;
+  }
+
+  .cl-club-result-card__opponent-link:hover,
+  .cl-club-result-card__score:hover,
+  .cl-club-path-card__link:hover {
+    color: var(--cl-text-accent);
+    text-decoration: underline;
+  }
+
+  .cl-club-result-card__figures {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--cl-space-3);
+  }
+
+  .cl-club-result-card__score,
+  .cl-club-path-card__score {
+    font-family: var(--cl-font-mono);
+    font-weight: var(--cl-weight-bold);
+  }
+
+  .cl-club-path-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--cl-space-3);
+    padding: var(--cl-space-3) var(--cl-space-4);
+  }
+
+  .cl-club-path-card__round {
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--cl-tracking-wide);
+  }
+
+  :global(.cl-club-outcome--lost) {
+    color: var(--cl-state-destructive);
+    background: color-mix(in srgb, var(--cl-state-destructive) 15%, transparent);
+    border-color: var(--cl-state-destructive);
+  }
+</style>

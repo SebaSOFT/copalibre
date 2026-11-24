@@ -204,7 +204,12 @@ const structuredData = listData
         />
       )}
 
-      <OrganizationClubs clubs={orgClubs} intl={intl} />
+      <OrganizationClubs
+        clubs={orgClubs}
+        intl={intl}
+        organizationAlias={organization!}
+        localePrefix={localePrefix}
+      />
     </Container>
   )}
 </PublicLayout>

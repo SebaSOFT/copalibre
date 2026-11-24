@@ -46,5 +46,14 @@ describe('publicTournamentNavigation', () => {
         '',
       ),
     ).toMatchObject({ current: 'teams' });
+    expect(
+      publicTournamentNavigation('/es/liga-mendocina/tournaments/apertura-2026/clubs', ''),
+    ).toMatchObject({ current: 'teams' });
+    expect(
+      publicTournamentNavigation(
+        '/es/liga-mendocina/tournaments/apertura-2026/clubs/club-hispano',
+        '',
+      ),
+    ).toMatchObject({ current: 'teams' });
   });
 });

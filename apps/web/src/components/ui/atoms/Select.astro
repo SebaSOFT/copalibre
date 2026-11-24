@@ -1,0 +1,62 @@
+---
+/**
+ * Server-rendered select control atom for public filter bars.
+ * Progressive-enhancement scripts can attach a `change` listener via `dataAttr`.
+ */
+export interface SelectOption {
+  readonly value: string;
+  readonly label: string;
+  readonly selected?: boolean;
+  readonly href?: string;
+}
+
+interface Props {
+  readonly name: string;
+  readonly options: readonly SelectOption[];
+  readonly id?: string;
+  readonly ariaLabel?: string;
+  readonly ariaLabelledBy?: string;
+  readonly dataAttr?: string;
+  readonly class?: string;
+}
+
+const {
+  name,
+  options,
+  id,
+  ariaLabel,
+  ariaLabelledBy,
+  dataAttr,
+  class: extraClass = '',
+} = Astro.props;
+
+const selectAttrs = dataAttr ? { [dataAttr]: '' } : {};
+---
+
+<select
+  id={id}
+  name={name}
+  aria-label={ariaLabel}
+  aria-labelledby={ariaLabelledBy}
+  class={`cl-select cl-focusable cl-public-select ${extraClass}`.trim()}
+  {...selectAttrs}
+>
+  {options.map((option) => (
+    <option value={option.value} selected={option.selected} data-href={option.href}>
+      {option.label}
+    </option>
+  ))}
+</select>
+
+<style>
+  .cl-public-select {
+    min-height: var(--cl-touch-target);
+    max-width: 100%;
+    padding: var(--cl-space-1) var(--cl-space-3);
+    background: var(--cl-surface-panel);
+    color: var(--cl-text-primary);
+    border: 1px solid var(--cl-border-muted);
+    font-family: var(--cl-font-body);
+    font-size: var(--cl-font-size-sm);
+  }
+</style>

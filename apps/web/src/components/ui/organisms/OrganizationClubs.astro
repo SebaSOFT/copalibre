@@ -1,14 +1,15 @@
 ---
 /**
- * Extracted from the organization page, unchanged
- * in markup and styling.
+ * Extracted from the organization page; clubs with an active tournament link
+ * render as interactive cards, while inactive clubs render as plain content.
  */
 import type { IntlShape } from 'react-intl';
-import type { PublicOverviewClubResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import type { PublicOrganizationClubResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import EmblemImage from '../atoms/EmblemImage.astro';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
+import { optionalClubPageUrl } from '../../../lib/club-url.ts';
 
-export interface ClubWithEmblemSrc extends PublicOverviewClubResponse {
+export interface ClubWithEmblemSrc extends PublicOrganizationClubResponse {
   /** Pre-built by the page (`clubEmblemUrl`) — data access stays at the page tier. */
   readonly emblemSrc?: string;
 }
@@ -16,9 +17,11 @@ export interface ClubWithEmblemSrc extends PublicOverviewClubResponse {
 export interface Props {
   readonly clubs: readonly ClubWithEmblemSrc[];
   readonly intl: IntlShape;
+  readonly organizationAlias?: string;
+  readonly localePrefix?: string;
 }
 
-const { clubs, intl } = Astro.props;
+const { clubs, intl, organizationAlias, localePrefix = '' } = Astro.props;
 ---
 
 <section class="cl-listing-section" aria-labelledby="heading-clubs">
@@ -34,21 +37,43 @@ const { clubs, intl } = Astro.props;
     </div>
   ) : (
     <div class="cl-club-grid">
-      {clubs.map((club) => (
-        <div class="cl-club-card">
-          <EmblemImage
-            alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: club.name })}
-            placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
-            size={48}
-            src={club.emblemSrc}
-          />
-          <div class="cl-club-info">
-            <span class="cl-club-name" title={club.name}>
-              {club.name}
-            </span>
+      {clubs.map((club) => {
+        const clubHref = optionalClubPageUrl({
+          organizationAlias,
+          tournamentAlias: club.tournamentAlias,
+          clubAlias: club.alias,
+          localePrefix,
+        });
+        return clubHref ? (
+          <a class="cl-club-card cl-club-card--linked cl-focusable" href={clubHref}>
+            <EmblemImage
+              alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: club.name })}
+              placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+              size={48}
+              src={club.emblemSrc}
+            />
+            <div class="cl-club-info">
+              <span class="cl-club-name" title={club.name}>
+                {club.name}
+              </span>
+            </div>
+          </a>
+        ) : (
+          <div class="cl-club-item">
+            <EmblemImage
+              alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: club.name })}
+              placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+              size={48}
+              src={club.emblemSrc}
+            />
+            <div class="cl-club-info">
+              <span class="cl-club-name" title={club.name}>
+                {club.name}
+              </span>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   )}
 </section>
@@ -102,6 +127,26 @@ const { clubs, intl } = Astro.props;
     background-color: var(--cl-surface-panel);
     border: 1px solid var(--cl-border-muted);
     border-radius: 12px;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .cl-club-card--linked:hover,
+  .cl-club-card--linked:focus-visible {
+    border-color: var(--cl-border-accent);
+    background-color: var(--cl-surface-hover);
+  }
+
+  .cl-club-card--linked:hover .cl-club-name {
+    color: var(--cl-text-accent);
+    text-decoration: underline;
+  }
+
+  .cl-club-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
   }
 
   .cl-club-info {

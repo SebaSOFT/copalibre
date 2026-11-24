@@ -222,9 +222,10 @@ describe('SEO and structured data utilities', () => {
 
       // liga-orbital: 1 org root + 7 non-primary org locales = 8
       // + 1 tournament root + 7 non-primary tournament locales = 8
+      // + 1 club index + 7 non-primary club index locales = 8
       // liga-vacia: 1 org root + 7 non-primary org locales = 8
-      // total = 8 + 8 + 8 = 24 entries
-      expect(entries).toHaveLength(24);
+      // total = 8 + 8 + 8 + 8 = 32 entries
+      expect(entries).toHaveLength(32);
 
       // Check organization routes
       expect(
@@ -279,6 +280,44 @@ describe('SEO and structured data utilities', () => {
             !e.input.tournamentAlias,
         ),
       ).toBe(true);
+    });
+
+    it('emits club index and valid club pages across all eight locales while skipping invalid aliases', () => {
+      const entries = buildSitemapEntries([
+        {
+          organizationAlias: 'liga-orbital',
+          tournaments: [
+            {
+              alias: 'apertura-2026',
+              clubAliases: ['club-hispano', '01936f4a-0001-7000-8000-000000000001'],
+            },
+          ],
+        },
+      ]);
+
+      // 8 org + 8 tournament + 8 clubIndex + 8 club-hispano = 32
+      expect(entries).toHaveLength(32);
+      expect(
+        entries.some(
+          (e) =>
+            e.input.organizationAlias === 'liga-orbital' &&
+            e.input.tournamentAlias === 'apertura-2026' &&
+            e.input.clubIndex === true &&
+            e.input.locale === 'es',
+        ),
+      ).toBe(true);
+      expect(
+        entries.some(
+          (e) =>
+            e.input.organizationAlias === 'liga-orbital' &&
+            e.input.tournamentAlias === 'apertura-2026' &&
+            e.input.clubAlias === 'club-hispano' &&
+            e.input.locale === 'zh',
+        ),
+      ).toBe(true);
+      expect(
+        entries.some((e) => e.input.clubAlias === '01936f4a-0001-7000-8000-000000000001'),
+      ).toBe(false);
     });
   });
 });

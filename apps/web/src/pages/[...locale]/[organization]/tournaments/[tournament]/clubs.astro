@@ -1,0 +1,328 @@
+---
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import PublicLayout from '../../../../../layouts/PublicLayout.astro';
+import Container from '../../../../../components/ui/atoms/layout/Container.astro';
+import { Card } from '../../../../../components/ui/atoms/Card.tsx';
+import { Badge } from '../../../../../components/ui/atoms/Badge.tsx';
+import EmblemImage from '../../../../../components/ui/atoms/EmblemImage.astro';
+import Breadcrumb from '../../../../../components/ui/organisms/Breadcrumb.astro';
+import PageHeader from '../../../../../components/ui/organisms/PageHeader.astro';
+import EmptyState from '../../../../../components/ui/molecules/EmptyState.astro';
+import { publicTrail, trailBaseOf } from '../../../../../lib/breadcrumb.ts';
+import {
+  clubIndexUrl,
+  isValidClubAlias,
+  optionalClubPageUrl,
+} from '../../../../../lib/club-url.ts';
+import { deriveClubStatus } from '../../../../../lib/club-page.ts';
+import { buildOverview, displayName } from '../../../../../lib/overview.ts';
+import type { MatchCardData } from '../../../../../lib/matches-view.ts';
+import {
+  clubEmblemUrl,
+  fetchMatchesView,
+  fetchOverview,
+  fetchPublicTableLayouts,
+  fetchPublicTableProjection,
+  mapMatchesViewResponse,
+  mapOverviewResponse,
+} from '../../../../../lib/public-api-client.ts';
+import { formatClubStatus, publicIntl } from '../../../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../../../lib/i18n/public-messages.en.ts';
+import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../../lib/locale.ts';
+import { isPublicLocaleSegment } from '../../../../../lib/public-route-guards.ts';
+
+export const prerender = false;
+
+const { locale, organization, tournament } = Astro.params;
+if (!isPublicLocaleSegment(locale)) {
+  Astro.response.status = 404;
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvePathLocale(Astro.url.pathname)));
+}
+
+const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
+const intl = publicIntl(resolvedLocale);
+const localePrefix = locale ? `/${locale}` : '';
+
+let overviewData: Awaited<ReturnType<typeof fetchOverview>>;
+try {
+  overviewData = await fetchOverview(organization!, tournament!);
+} catch {
+  overviewData = undefined;
+}
+if (!overviewData) {
+  Astro.response.status = 404;
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
+}
+
+const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const clubs = model.clubs ?? [];
+
+let matchesViewRaw: Awaited<ReturnType<typeof fetchMatchesView>>;
+try {
+  matchesViewRaw = await fetchMatchesView(organization!, tournament!, { state: 'all' });
+} catch {
+  matchesViewRaw = undefined;
+}
+const allMatches: readonly MatchCardData[] = matchesViewRaw
+  ? mapMatchesViewResponse(
+      matchesViewRaw,
+      intl.formatMessage(messages.personHiddenAtRequest),
+      resolvedLocale,
+    ).matches
+  : [];
+
+let layoutsRaw: Awaited<ReturnType<typeof fetchPublicTableLayouts>>;
+try {
+  layoutsRaw = await fetchPublicTableLayouts(organization!, tournament!);
+} catch {
+  layoutsRaw = undefined;
+}
+const groupPhaseLayout = layoutsRaw?.layouts.find((one) => one.target === 'group-phase');
+const earliestStageNumber = overviewData.matches.reduce(
+  (earliest, match) => Math.min(earliest, match.stageNumber),
+  Infinity,
+);
+const standingsStageNumber =
+  model.standingsStageNumber ??
+  (Number.isFinite(earliestStageNumber) ? earliestStageNumber : undefined);
+
+let standingsProjection: Awaited<ReturnType<typeof fetchPublicTableProjection>>;
+if (groupPhaseLayout) {
+  try {
+    standingsProjection = await fetchPublicTableProjection(
+      organization!,
+      tournament!,
+      groupPhaseLayout.code,
+      standingsStageNumber,
+    );
+  } catch {
+    standingsProjection = undefined;
+  }
+}
+
+const bandByClubKey = new Map<string, { readonly label: string; readonly index?: number }>();
+for (const row of standingsProjection?.rows ?? []) {
+  if (!row.promotionBandLabel) continue;
+  const entry = {
+    label: row.promotionBandLabel,
+    ...(row.promotionBandIndex === undefined ? {} : { index: row.promotionBandIndex }),
+  };
+  if (row.clubAlias) bandByClubKey.set(`alias:${row.clubAlias}`, entry);
+  if (row.clubId) bandByClubKey.set(`id:${row.clubId}`, entry);
+}
+
+const clubCards = clubs.map((club) => {
+  const href = optionalClubPageUrl({
+    organizationAlias: organization!,
+    tournamentAlias: tournament!,
+    clubAlias: club.alias,
+    localePrefix,
+  });
+  const status = deriveClubStatus(
+    allMatches,
+    {
+      ...(isValidClubAlias(club.alias) ? { alias: club.alias } : {}),
+      clubId: club.clubId,
+    },
+    model.stages,
+  );
+  const statusText = formatClubStatus(intl, status);
+  const band =
+    (club.alias ? bandByClubKey.get(`alias:${club.alias}`) : undefined) ??
+    bandByClubKey.get(`id:${club.clubId}`);
+
+  return {
+    club,
+    href,
+    statusText,
+    band,
+    emblemSrc: club.emblemObjectId ? clubEmblemUrl(organization!, club.clubId) : undefined,
+  };
+});
+
+const canonicalPath = clubIndexUrl({
+  organizationAlias: organization!,
+  tournamentAlias: tournament!,
+  localePrefix,
+});
+const tournamentName = displayName(model);
+const pageHeading = intl.formatMessage(messages.clubIndexTitle);
+const pageTitle = `${pageHeading} — ${tournamentName}`;
+const description = intl.formatMessage(messages.clubIndexDescription, {
+  tournament: tournamentName,
+});
+
+const trailBase = trailBaseOf({
+  organizationAlias: organization!,
+  organizationName: model.organizationName,
+  tournamentName,
+  canonicalPath: model.canonicalPath,
+  localePrefix,
+});
+const trail = publicTrail(trailBase, [{ label: pageHeading }]);
+
+const structuredData = {
+  '@type': 'SportsEvent' as const,
+  name: pageTitle,
+  url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${canonicalPath}`,
+};
+---
+
+<PublicLayout
+  title={pageTitle}
+  description={description}
+  canonicalPath={canonicalPath}
+  intl={intl}
+  disciplineImages={overviewData.disciplineImages}
+  structuredData={structuredData}
+>
+  <Container variant="public">
+    <PageHeader
+      title={`${tournamentName} — ${pageHeading}`}
+      description={description}
+      loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
+    >
+      <Breadcrumb
+        slot="breadcrumb"
+        items={trail}
+        ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+        collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+      />
+    </PageHeader>
+
+    {clubCards.length === 0 ? (
+      <EmptyState
+        icon="team"
+        heading={pageHeading}
+        description={intl.formatMessage(messages.clubIndexEmptyDescription)}
+        actionLabel={intl.formatMessage(messages.interactionViewMatches)}
+        href={`${localePrefix}${model.canonicalPath}/matches`}
+      />
+    ) : (
+      <ul class="cl-club-index-grid">
+        {clubCards.map(({ club, href, statusText, band, emblemSrc }) => (
+          <li class="cl-club-index-grid__item">
+            <Card as="article" className="cl-club-index-card">
+              <div class="cl-club-index-card__identity">
+                <EmblemImage
+                  size={48}
+                  src={emblemSrc}
+                  abbreviation={club.abbreviation}
+                  alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: club.name })}
+                  placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                />
+                <div class="cl-club-index-card__text">
+                  <h2 class="cl-club-index-card__name">
+                    {href ? (
+                      <a class="cl-club-index-card__link cl-focusable" href={href}>
+                        {club.name}
+                      </a>
+                    ) : (
+                      club.name
+                    )}
+                  </h2>
+                  {club.abbreviation && (
+                    <span class="cl-club-index-card__abbr">{club.abbreviation}</span>
+                  )}
+                </div>
+              </div>
+              {(band || statusText) && (
+                <div class="cl-club-index-card__meta">
+                  {band && (
+                    <Badge
+                      className="cl-club-index-card__band"
+                      data-promotion-band-index={band.index}
+                    >
+                      {band.label}
+                    </Badge>
+                  )}
+                  {statusText && <p class="cl-club-index-card__status">{statusText}</p>}
+                </div>
+              )}
+            </Card>
+          </li>
+        ))}
+      </ul>
+    )}
+  </Container>
+</PublicLayout>
+
+<style>
+  .cl-club-index-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+    gap: var(--cl-space-4);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .cl-club-index-grid__item {
+    min-width: 0;
+  }
+
+  .cl-club-index-grid__item :global(.cl-club-index-card) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-3);
+    height: 100%;
+    box-sizing: border-box;
+    padding: var(--cl-space-4);
+  }
+
+  .cl-club-index-card__identity {
+    display: flex;
+    align-items: center;
+    gap: var(--cl-space-3);
+    min-width: 0;
+  }
+
+  .cl-club-index-card__text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-1);
+    min-width: 0;
+  }
+
+  .cl-club-index-card__name {
+    margin: 0;
+    font-family: var(--cl-font-display);
+    font-size: var(--cl-font-size-lg);
+    line-height: var(--cl-line-height-snug);
+    overflow-wrap: anywhere;
+  }
+
+  .cl-club-index-card__link {
+    color: var(--cl-text-primary);
+    text-decoration: none;
+  }
+
+  .cl-club-index-card__link:hover {
+    color: var(--cl-text-accent);
+    text-decoration: underline;
+  }
+
+  .cl-club-index-card__abbr {
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    letter-spacing: var(--cl-tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .cl-club-index-card__meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--cl-space-2);
+    margin-block-start: auto;
+    padding-block-start: var(--cl-space-2);
+    border-top: 1px solid var(--cl-border-muted);
+  }
+
+  .cl-club-index-card__status {
+    margin: 0;
+    color: var(--cl-text-secondary);
+    font-size: var(--cl-font-size-sm);
+  }
+</style>
