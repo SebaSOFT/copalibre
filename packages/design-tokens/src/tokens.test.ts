@@ -1006,6 +1006,10 @@ describe('the CSS output', () => {
     );
   });
 
+  it('styles data-table captions as left-aligned headers', () => {
+    expect(css).toMatch(/\.cl-data-table__caption \{[^}]*text-align: left;/);
+  });
+
   it('gives focus a two-layer ring', () => {
     // One ring vanishes against whichever surface happens to match it.
     expect(css).toContain('.cl-focusable:focus-visible');

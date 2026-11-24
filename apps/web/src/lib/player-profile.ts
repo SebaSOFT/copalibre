@@ -1,4 +1,5 @@
 import type { PublicPersonCompetitionHistoryResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import type { TableCellResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 import { applyTemplate, type MatchCardData } from './matches-view.js';
 import { formatSideSource, type SideSourceMessages } from './side-source.js';
 
@@ -100,4 +101,20 @@ export function formatPlayerMatchRowLabel(params: {
     return applyTemplate(params.template, { date, opponent, score });
   }
   return [date, opponent, score].filter((part) => part.length > 0).join(' · ');
+}
+
+/**
+ * Formats a player-statistics cell for the profile tables and quick-view dialog.
+ * Preserves any non-empty server-formatted value and replaces empty/missing cells
+ * with the column's declared `zeroDisplay`, "0" for numeric counts, or "—" for
+ * ratios, fractions, and percentages so applicable discipline columns never render
+ * as blank voids.
+ */
+export function formatPlayerStatCell(
+  cell: TableCellResponse | undefined,
+  column: { readonly format: string; readonly zeroDisplay?: string },
+): string {
+  if (cell?.formatted !== undefined && cell.formatted !== '') return cell.formatted;
+  if (column.zeroDisplay !== undefined && column.zeroDisplay !== '') return column.zeroDisplay;
+  return column.format === 'number' ? '0' : '—';
 }

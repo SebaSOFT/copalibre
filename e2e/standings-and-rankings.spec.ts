@@ -347,6 +347,33 @@ const playerStatisticsFixtureNoStats = {
   matches: [],
 };
 
+// p-3 played matches with unrecorded event collectors and zero-denominator fractions.
+const playerStatisticsFixtureZeroes = {
+  layoutCode: 'top-scorers',
+  label: 'Player Statistics',
+  columns: [
+    { code: 'pj', header: 'Matches played', shortHeader: 'MP', format: 'number' },
+    { code: 'g', header: 'Goals', shortHeader: 'G', format: 'number' },
+    { code: 'fd', header: 'Direct free kicks', shortHeader: 'DFK', format: 'fraction' },
+    { code: 'az', header: 'Blue cards', shortHeader: 'BC', format: 'number' },
+    {
+      code: 'azpp',
+      header: 'Blue cards per match',
+      shortHeader: 'BCpm',
+      format: 'decimal-2',
+      zeroDisplay: '-',
+    },
+  ],
+  tournamentTotal: {
+    pj: { raw: 4, formatted: '4' },
+    g: { raw: undefined, formatted: '' },
+    fd: { raw: undefined, formatted: '', numerator: 0, denominator: 0 },
+    az: { raw: undefined, formatted: '' },
+    azpp: { raw: 0, formatted: '-' },
+  },
+  matches: [],
+};
+
 const liveFixture = {
   matches: [
     {
@@ -826,7 +853,7 @@ test.describe('B2: public tournament page', () => {
         return;
       }
       if (req.url === `${TOURNAMENT}/persons/p-3/public/statistics?layout=top-scorers`) {
-        res.end(JSON.stringify(playerStatisticsFixtureNoStats));
+        res.end(JSON.stringify(playerStatisticsFixtureZeroes));
         return;
       }
       res.statusCode = 404;
@@ -1822,5 +1849,29 @@ test.describe('B2: public tournament page', () => {
     const enNumberIndex = enCleaned.indexOf('No.');
     expect(enNumberIndex).toBeGreaterThan(-1);
     expect(enCleaned.indexOf('Player')).toBe(enNumberIndex + 1);
+  });
+
+  test('player profile fills data table width and renders zero or dash for every unrecorded discipline column', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-3`);
+    const statsSection = page.getByRole('heading', { name: 'Tournament Statistics' }).locator('..');
+    const totalTable = statsSection.getByRole('table').first();
+    const cells = await totalTable.locator('tbody td').allTextContents();
+    expect(cells.map((value) => value.trim())).toEqual(['4', '0', '—', '0', '-']);
+
+    // Narrow data tables stretch both table and row grid to fill their .cl-data-table container.
+    const widths = await totalTable.evaluate((el) => {
+      const container = el.closest('.cl-data-table');
+      const headerRow = el.querySelector('thead tr');
+      return {
+        tableWidth: el.getBoundingClientRect().width,
+        rowWidth: headerRow ? headerRow.getBoundingClientRect().width : 0,
+        containerWidth: container ? container.clientWidth : 0,
+      };
+    });
+    expect(widths.containerWidth).toBeGreaterThan(0);
+    expect(widths.tableWidth).toBeGreaterThanOrEqual(widths.containerWidth - 2);
+    expect(widths.rowWidth).toBeGreaterThanOrEqual(widths.containerWidth - 2);
   });
 });

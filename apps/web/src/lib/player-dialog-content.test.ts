@@ -280,4 +280,25 @@ describe('extractDialogTournamentTotals', () => {
   it('returns an empty list when tournamentTotal is absent', () => {
     expect(extractDialogTournamentTotals(undefined, 'en')).toEqual([]);
   });
+
+  it('replaces empty formatted collector cells with zero instead of blank strings', () => {
+    const statistics: PlayerStatisticsDrilldownResponse = {
+      layoutCode: 'player-stats',
+      label: { en: 'Player Stats', es: 'Estadísticas' },
+      columns: [
+        { code: 'played', header: { en: 'Played', es: 'Partidos jugados' }, format: 'number' },
+        { code: 'goals', header: { en: 'Goals', es: 'Goles' }, format: 'number' },
+      ],
+      tournamentTotal: {
+        played: { raw: 4, formatted: '4' },
+        goals: { raw: undefined, formatted: '' },
+      },
+      matches: [],
+    };
+
+    expect(extractDialogTournamentTotals(statistics, 'es', 2)).toEqual([
+      { label: 'Partidos jugados', value: '4' },
+      { label: 'Goles', value: '0' },
+    ]);
+  });
 });

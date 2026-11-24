@@ -2,6 +2,7 @@ import type { LocalizedLabel } from '@copalibre/domain';
 import type { PlayerStatisticsDrilldownResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import { localizedText } from './localized-label.js';
 import { applyTemplate } from './matches-view.js';
+import { formatPlayerStatCell } from './player-profile.js';
 
 export interface PlayerDialogLabels {
   /** The page language: statistic labels are shown in it. */
@@ -94,7 +95,7 @@ export function extractDialogTournamentTotals(
     return [
       {
         label: localizedText(column.header, locale),
-        value: cell.formatted,
+        value: formatPlayerStatCell(cell, column),
       },
     ];
   });

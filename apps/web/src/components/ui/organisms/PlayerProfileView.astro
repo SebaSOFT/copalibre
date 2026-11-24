@@ -18,6 +18,7 @@ import { localizedText } from '../../../lib/localized-label.ts';
 import {
   currentTournamentHistoryEntry,
   formatPlayerMatchRowLabel,
+  formatPlayerStatCell,
 } from '../../../lib/player-profile.ts';
 import type { ResultState } from '../../../lib/result-state.ts';
 import { Card } from '../atoms/Card.tsx';
@@ -79,7 +80,10 @@ const totalColumns = (statistics?.columns ?? []).map((column) => {
     header: hint.label,
     ...(hint.hint === undefined ? {} : { headerHint: hint.hint }),
     render: (row: unknown) =>
-      (row as Record<string, TableCellResponse | undefined>)[column.code]?.formatted ?? '—',
+      formatPlayerStatCell(
+        (row as Record<string, TableCellResponse | undefined>)[column.code],
+        column,
+      ),
   };
 });
 
@@ -98,7 +102,7 @@ const matchStatColumns = (statistics?.columns ?? [])
       header: hint.label,
       ...(hint.hint === undefined ? {} : { headerHint: hint.hint }),
       render: (row: unknown) =>
-        (row as PlayerStatisticsMatchRowResponse).cells[column.code]?.formatted ?? '—',
+        formatPlayerStatCell((row as PlayerStatisticsMatchRowResponse).cells[column.code], column),
     };
   });
 const matchRowTemplate = intl.formatMessage(messages.playerProfileMatchRowLabel, {

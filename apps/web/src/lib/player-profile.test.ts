@@ -5,6 +5,7 @@ import {
   currentTournamentHistoryEntry,
   findPlayerNextMatch,
   formatPlayerMatchRowLabel,
+  formatPlayerStatCell,
   resolveNextMatchOpponent,
 } from './player-profile.js';
 
@@ -160,5 +161,32 @@ describe('formatPlayerMatchRowLabel', () => {
         template: '{date} · {opponent} · {score}',
       }),
     ).toBe('10-nov 18:00 · Lomas de Rivadavia');
+  });
+});
+
+describe('formatPlayerStatCell', () => {
+  it('keeps non-empty server-formatted values unchanged', () => {
+    expect(formatPlayerStatCell({ raw: 4, formatted: '4' }, { format: 'number' })).toBe('4');
+    expect(
+      formatPlayerStatCell({ raw: 0, formatted: '-' }, { format: 'decimal-2', zeroDisplay: '-' }),
+    ).toBe('-');
+  });
+
+  it('uses column zeroDisplay before falling back to 0 for numbers and em-dash for ratios', () => {
+    expect(formatPlayerStatCell({ raw: undefined, formatted: '' }, { format: 'number' })).toBe('0');
+    expect(formatPlayerStatCell({ raw: undefined, formatted: '' }, { format: 'fraction' })).toBe(
+      '—',
+    );
+    expect(formatPlayerStatCell({ raw: undefined, formatted: '' }, { format: 'percentage' })).toBe(
+      '—',
+    );
+    expect(
+      formatPlayerStatCell(
+        { raw: undefined, formatted: '' },
+        { format: 'decimal-2', zeroDisplay: '-' },
+      ),
+    ).toBe('-');
+    expect(formatPlayerStatCell(undefined, { format: 'number' })).toBe('0');
+    expect(formatPlayerStatCell(undefined, { format: 'decimal-2' })).toBe('—');
   });
 });
