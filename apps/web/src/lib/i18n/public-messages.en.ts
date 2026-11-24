@@ -1524,6 +1524,10 @@ export const messages = defineMessages({
     id: 'publicWeb.clubIndex.emptyDescription',
     defaultMessage: 'No clubs are registered in this tournament yet.',
   },
+  clubIndexBandUnassigned: {
+    id: 'publicWeb.clubIndex.bandUnassigned',
+    defaultMessage: 'Unassigned',
+  },
   clubPageDescription: {
     id: 'publicWeb.clubPage.description',
     defaultMessage: 'Club overview, standing, results and squad for {club} in {tournament}.',

@@ -675,3 +675,46 @@ export function resolveClubFilter(
 
   return {};
 }
+
+/** A club as the index lists it: its name and the band it holds, when a band has taken it. */
+export interface ClubIndexEntry {
+  readonly name: string;
+  readonly bandLabel?: string;
+}
+
+/**
+ * One heading group of the club index. A band group names its declared band; the unassigned group
+ * holds the clubs no declared band has taken yet. A flat list has neither.
+ */
+export interface ClubIndexGroup<Entry extends ClubIndexEntry> {
+  readonly bandLabel?: string;
+  readonly unassigned: boolean;
+  readonly clubs: readonly Entry[];
+}
+
+/**
+ * Groups the club index by the tournament's declared bands. Groups follow the declared band order, not
+ * the alphabet; clubs inside a group are alphabetical by name in the page language's collation; clubs
+ * no declared band has taken go in a final unassigned group. With no declared band, one flat
+ * alphabetical list with no heading.
+ */
+export function groupClubIndexByBand<Entry extends ClubIndexEntry>(
+  clubs: readonly Entry[],
+  declaredBandLabels: readonly string[],
+  collator: Intl.Collator,
+): readonly ClubIndexGroup<Entry>[] {
+  const alphabetical = [...clubs].sort((left, right) => collator.compare(left.name, right.name));
+  if (declaredBandLabels.length === 0) {
+    return [{ unassigned: false, clubs: alphabetical }];
+  }
+  const groups: ClubIndexGroup<Entry>[] = [];
+  for (const bandLabel of declaredBandLabels) {
+    const members = alphabetical.filter((club) => club.bandLabel === bandLabel);
+    if (members.length > 0) groups.push({ bandLabel, unassigned: false, clubs: members });
+  }
+  const unassigned = alphabetical.filter(
+    (club) => club.bandLabel === undefined || !declaredBandLabels.includes(club.bandLabel),
+  );
+  if (unassigned.length > 0) groups.push({ unassigned: true, clubs: unassigned });
+  return groups;
+}

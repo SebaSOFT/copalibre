@@ -476,6 +476,7 @@ export const messages: Record<string, string> = {
   'publicWeb.clubIndex.title': 'Squadre',
   'publicWeb.clubIndex.description': 'Club partecipanti a {tournament}.',
   'publicWeb.clubIndex.emptyDescription': 'Nessun club registrato in questo torneo al momento.',
+  'publicWeb.clubIndex.bandUnassigned': 'Senza coppa assegnata',
   'publicWeb.clubPage.description':
     'Panoramica, classifica, risultati e rosa di {club} in {tournament}.',
   'publicWeb.clubPage.nextMatchHeading': 'Prossima partita',

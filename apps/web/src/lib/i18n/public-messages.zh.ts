@@ -469,6 +469,7 @@ export const messages: Record<string, string> = {
   'publicWeb.clubIndex.title': '球队',
   'publicWeb.clubIndex.description': '{tournament} 参赛俱乐部。',
   'publicWeb.clubIndex.emptyDescription': '本届赛事尚无已登记的俱乐部。',
+  'publicWeb.clubIndex.bandUnassigned': '未分配杯赛',
   'publicWeb.clubPage.description': '{club} 在 {tournament} 的概况、积分榜、赛果与阵容。',
   'publicWeb.clubPage.nextMatchHeading': '下一场比赛',
   'publicWeb.clubPage.standingHeading': '排名',

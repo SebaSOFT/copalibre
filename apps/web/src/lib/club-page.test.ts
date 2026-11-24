@@ -10,6 +10,7 @@ import {
   deriveClubSquad,
   deriveClubStatus,
   filterMatchesByClub,
+  groupClubIndexByBand,
   resolveClubFilter,
   resolveClubMatchOutcome,
   resolveClubNextOpponentName,
@@ -382,7 +383,6 @@ describe('deriveClubResults', () => {
 });
 
 describe('deriveClubSquad', () => {
-
   it('reads the appearances column from a layout whose matches-played column is pj, between player and the primary statistic', () => {
     const projection: TableProjectionResponse = {
       layoutCode: 'player-statistics',
@@ -881,5 +881,89 @@ describe('deriveClubResults with the reported winner', () => {
       KNOCKOUT_STAGES,
     );
     expect(results.map((r) => r.outcome)).toEqual(['won']);
+  });
+});
+
+describe('groupClubIndexByBand', () => {
+  const collator = new Intl.Collator('es');
+  const club = (name: string, bandLabel?: string) => ({
+    name,
+    ...(bandLabel ? { bandLabel } : {}),
+  });
+
+  it('follows the declared band order, not the alphabet, with clubs alphabetical inside each band', () => {
+    const groups = groupClubIndexByBand(
+      [
+        club('Zeta', 'Copa Plata'),
+        club('Club Hispano', 'Copa Oro'),
+        club('Atlético Bello', 'Copa Oro'),
+        club('Andes', 'Copa Bronce'),
+      ],
+      ['Copa Oro', 'Copa Plata', 'Copa Bronce'],
+      collator,
+    );
+
+    expect(groups.map((group) => group.bandLabel)).toEqual([
+      'Copa Oro',
+      'Copa Plata',
+      'Copa Bronce',
+    ]);
+    expect(groups[0]?.clubs.map((entry) => entry.name)).toEqual(['Atlético Bello', 'Club Hispano']);
+    expect(groups.every((group) => !group.unassigned)).toBe(true);
+  });
+
+  it('puts clubs no declared band has taken in a final unassigned group', () => {
+    const groups = groupClubIndexByBand(
+      [club('Lomas de Rivadavia'), club('Andes', 'Copa Oro')],
+      ['Copa Oro'],
+      collator,
+    );
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0]?.bandLabel).toBe('Copa Oro');
+    expect(groups[1]).toEqual({ unassigned: true, clubs: [club('Lomas de Rivadavia')] });
+  });
+
+  it('treats a club holding a band that is not declared as unassigned', () => {
+    const groups = groupClubIndexByBand([club('Andes', 'Copa Retirada')], ['Copa Oro'], collator);
+
+    expect(groups).toEqual([{ unassigned: true, clubs: [club('Andes', 'Copa Retirada')] }]);
+  });
+
+  it('shows no empty band group', () => {
+    const groups = groupClubIndexByBand(
+      [club('Andes', 'Copa Oro')],
+      ['Copa Oro', 'Copa Plata'],
+      collator,
+    );
+
+    expect(groups.map((group) => group.bandLabel)).toEqual(['Copa Oro']);
+  });
+
+  it('is one flat alphabetical list with no heading when no band is declared', () => {
+    const groups = groupClubIndexByBand([club('Zeta'), club('Andes'), club('Lomas')], [], collator);
+
+    expect(groups).toEqual([
+      { unassigned: false, clubs: [club('Andes'), club('Lomas'), club('Zeta')] },
+    ]);
+  });
+
+  it('sorts accented names by the page language collation, not by code point', () => {
+    const accents = new Intl.Collator('es');
+    const flat = groupClubIndexByBand(
+      [club('Cañada'), club('Canada'), club('Ávila'), club('Zeta')],
+      [],
+      accents,
+    );
+    expect(flat[0]?.clubs.map((entry) => entry.name)).toEqual([
+      'Ávila',
+      'Canada',
+      'Cañada',
+      'Zeta',
+    ]);
+  });
+
+  it('returns no group for an empty index', () => {
+    expect(groupClubIndexByBand([], ['Copa Oro'], collator)).toEqual([]);
   });
 });

@@ -7,6 +7,8 @@ import { Badge } from '../../../../../components/ui/atoms/Badge.tsx';
 import Breadcrumb from '../../../../../components/ui/organisms/Breadcrumb.astro';
 import PageHeader from '../../../../../components/ui/organisms/PageHeader.astro';
 import EmptyState from '../../../../../components/ui/molecules/EmptyState.astro';
+import SectionHeader from '../../../../../components/ui/molecules/SectionHeader.astro';
+import Stack from '../../../../../components/ui/atoms/layout/Stack.astro';
 import ClubIdentity from '../../../../../components/ui/molecules/ClubIdentity.astro';
 import { publicTrail, trailBaseOf } from '../../../../../lib/breadcrumb.ts';
 import {
@@ -14,7 +16,7 @@ import {
   isValidClubAlias,
   optionalClubPageUrl,
 } from '../../../../../lib/club-url.ts';
-import { deriveClubStatus } from '../../../../../lib/club-page.ts';
+import { deriveClubStatus, groupClubIndexByBand } from '../../../../../lib/club-page.ts';
 import { buildOverview, displayName } from '../../../../../lib/overview.ts';
 import type { MatchCardData } from '../../../../../lib/matches-view.ts';
 import {
@@ -126,10 +128,11 @@ const clubCards = clubs.map((club) => {
     },
     model.stages,
   );
-  const statusText = formatClubStatus(intl, status);
   const band =
     (club.alias ? bandByClubKey.get(`alias:${club.alias}`) : undefined) ??
     bandByClubKey.get(`id:${club.clubId}`);
+  // With a band badge beside the status, the status names only the round.
+  const statusText = formatClubStatus(intl, status, { withBand: band !== undefined });
 
   return {
     club,
@@ -139,6 +142,14 @@ const clubCards = clubs.map((club) => {
     emblemSrc: club.emblemObjectId ? clubEmblemUrl(organization!, club.clubId) : undefined,
   };
 });
+
+// The index follows the tournament's declared bands: each band a group in declared order, the clubs no
+// band has taken yet last. Without a declared band it is one alphabetical list.
+const clubGroups = groupClubIndexByBand(
+  clubCards.map((card) => ({ ...card, name: card.club.name, bandLabel: card.band?.label })),
+  (standingsProjection?.promotionBands ?? []).map((band) => band.label),
+  new Intl.Collator(resolvedLocale),
+);
 
 const canonicalPath = clubIndexUrl({
   organizationAlias: organization!,
@@ -200,26 +211,49 @@ const structuredData = {
         href={`${localePrefix}${model.canonicalPath}/matches`}
       />
     ) : (
-      <ul class="cl-match-card-grid">
-        {clubCards.map(({ club, href, statusText, band, emblemSrc }) => (
-          <li>
-            <Card as="article" aria-label={club.name}>
-              <ClubIdentity
-                name={club.name}
-                abbreviation={club.abbreviation}
-                emblemSrc={emblemSrc}
-                placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
-                href={href}
-              >
-                <span slot="meta">
-                  {band && <Badge data-promotion-band-index={band.index}>{band.label}</Badge>}
-                  {statusText && <span>{statusText}</span>}
-                </span>
-              </ClubIdentity>
-            </Card>
-          </li>
-        ))}
-      </ul>
+      <Stack>
+        {clubGroups.map((group, groupIndex) => {
+          const headed = group.bandLabel !== undefined || group.unassigned;
+          const headingId = `club-band-${groupIndex}`;
+          return (
+            <section aria-labelledby={headed ? headingId : undefined}>
+              {headed && (
+                <SectionHeader
+                  headingId={headingId}
+                  heading={
+                    group.unassigned
+                      ? intl.formatMessage(messages.clubIndexBandUnassigned)
+                      : (group.bandLabel ?? '')
+                  }
+                  count={group.clubs.length}
+                />
+              )}
+              <ul class="cl-match-card-grid">
+                {group.clubs.map(({ club, href, statusText, band, emblemSrc }) => (
+                  <li>
+                    <Card as="article" aria-label={club.name}>
+                      <ClubIdentity
+                        name={club.name}
+                        abbreviation={club.abbreviation}
+                        emblemSrc={emblemSrc}
+                        placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                        href={href}
+                      >
+                        {band && (
+                          <span slot="badges">
+                            <Badge data-promotion-band-index={band.index}>{band.label}</Badge>
+                          </span>
+                        )}
+                        {statusText && <span slot="status">{statusText}</span>}
+                      </ClubIdentity>
+                    </Card>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+      </Stack>
     )}
   </Container>
 </PublicLayout>
