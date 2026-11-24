@@ -186,6 +186,14 @@ export class PublicOverviewClubResponse {
 
   @ApiPropertyOptional()
   emblemObjectId?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      'Aliases this club held before a rename, within its organization. A public URL naming one of them ' +
+      'is redirected to the current alias. Absent when the club was never renamed.',
+  })
+  formerAliases?: string[];
 }
 
 export class PublicOrganizationClubResponse extends PublicOverviewClubResponse {

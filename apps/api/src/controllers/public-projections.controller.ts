@@ -15,6 +15,7 @@ import {
   StageReadModel,
   stageMatchOrdinals,
   PublicOverviewReadModel,
+  AliasRepository,
 } from '@copalibre/persistence';
 import {
   PublicOverviewResponse,
@@ -815,6 +816,12 @@ export class PublicProjectionsController {
       .distinct()
       .orderBy('clubs.name')
       .execute();
+    // Former aliases ride on the overview because every page that names a club by alias already
+    // reads it: an old link is redirected without a second request.
+    const formerClubAliases =
+      clubRows.length > 0
+        ? await new AliasRepository(this.db).clubFormerAliases(tournament.organizationId)
+        : new Map<string, readonly string[]>();
 
     const status = deriveTournamentStatus(tournament.status, matches);
     let winners: PublicTournamentWinnerZoneResponse[] | undefined = undefined;
@@ -907,6 +914,7 @@ export class PublicProjectionsController {
         abbreviation: c.abbreviation ?? undefined,
         ...(c.alias ? { alias: c.alias } : {}),
         ...(c.emblemObjectId ? { emblemObjectId: c.emblemObjectId } : {}),
+        ...formerAliasesOf(c.alias, formerClubAliases),
       })),
       ruleset,
       ...(Object.keys(rulesetLabels).length > 0 ? { rulesetLabels } : {}),
@@ -2756,4 +2764,13 @@ async function formatOverviewStandingsRows(
       ...(row.groupName === undefined ? {} : { groupName: row.groupName }),
     };
   });
+}
+
+/** The `formerAliases` field of an overview club: absent when the club has none. */
+export function formerAliasesOf(
+  alias: string | null,
+  formerByCurrent: ReadonlyMap<string, readonly string[]>,
+): { readonly formerAliases?: string[] } {
+  const former = alias ? formerByCurrent.get(alias) : undefined;
+  return former && former.length > 0 ? { formerAliases: [...former] } : {};
 }

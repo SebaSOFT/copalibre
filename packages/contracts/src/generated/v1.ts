@@ -6038,6 +6038,8 @@ export interface components {
             abbreviation?: string;
             alias?: string;
             emblemObjectId?: string;
+            /** @description Aliases this club held before a rename, within its organization. A public URL naming one of them is redirected to the current alias. Absent when the club was never renamed. */
+            formerAliases?: string[];
             /** @description Alias of the organization's first in-progress published tournament with an entrant from this club, when one exists */
             tournamentAlias?: string;
         };
@@ -6056,6 +6058,8 @@ export interface components {
             abbreviation?: string;
             alias?: string;
             emblemObjectId?: string;
+            /** @description Aliases this club held before a rename, within its organization. A public URL naming one of them is redirected to the current alias. Absent when the club was never renamed. */
+            formerAliases?: string[];
         };
         PublicClubPlacementResponse: {
             /** @enum {string} */
