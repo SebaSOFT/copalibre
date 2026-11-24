@@ -140,6 +140,7 @@ export function tickerLabels(intl: IntlShape) {
   const state = resultStateLabels(intl);
   return {
     live: state.live,
+    delayed: intl.formatMessage(messages.resultStateDelayed),
     upcoming: state.upcoming,
     final: state.final,
     leader: intl.formatMessage(messages.tickerLeader),

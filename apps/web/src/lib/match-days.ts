@@ -1,4 +1,7 @@
+import { calendarDayKey, relativeDayWord, toDate } from './format-timestamp.js';
 import type { MatchCardData } from './matches-view.js';
+
+export { calendarDayKey };
 
 /** One calendar day of a schedule in the organization's time zone; `key` is absent for undated matches. */
 export interface MatchDay {
@@ -14,16 +17,6 @@ function kickoffOf(match: MatchCardData): number | undefined {
   if (match.scheduledAt === undefined) return undefined;
   const time = Date.parse(match.scheduledAt);
   return Number.isNaN(time) ? undefined : time;
-}
-
-/** The `yyyy-mm-dd` calendar day an instant falls on in `timeZone`. */
-export function calendarDayKey(instant: number, timeZone: string | undefined): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    ...(timeZone === undefined ? {} : { timeZone }),
-  }).format(new Date(instant));
 }
 
 const byKickoff = (left: MatchCardData, right: MatchCardData): number =>
@@ -94,4 +87,42 @@ export function openMatchDay(days: readonly MatchDay[]): MatchDay | undefined {
     [...days].reverse().find((day) => day.key !== undefined) ??
     days[0]
   );
+}
+
+/** Distinct dated match days in ascending chronological order, for filter pills. */
+export function availableMatchDays(
+  matches: readonly MatchCardData[],
+  timeZone: string | undefined,
+): readonly { readonly key: string; readonly instant: string }[] {
+  return matchDays(matches, timeZone).flatMap((day) =>
+    day.key !== undefined && day.instant !== undefined
+      ? [{ key: day.key, instant: day.instant }]
+      : [],
+  );
+}
+
+/**
+ * Formats a day heading such as `"Mañana · mar 24 nov"` within ±1 calendar day of `referenceDate`
+ * or `"mar 24 nov"` otherwise.
+ */
+export function formatDayHeading(input: {
+  readonly instant: string | number | Date;
+  readonly locale: string;
+  readonly timeZone?: string;
+  readonly referenceDate?: Date | number;
+  readonly template?: string;
+}): string {
+  const date = toDate(input.instant);
+  if (Number.isNaN(date.getTime())) return String(input.instant);
+  const formattedDate = new Intl.DateTimeFormat(input.locale, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    ...(input.timeZone === undefined ? {} : { timeZone: input.timeZone }),
+  }).format(date);
+  const reference = input.referenceDate ?? Date.now();
+  const relative = relativeDayWord(date, reference, input.locale, input.timeZone);
+  if (relative === undefined) return formattedDate;
+  const template = input.template ?? '{relative} · {date}';
+  return template.replace('{relative}', relative).replace('{date}', formattedDate);
 }

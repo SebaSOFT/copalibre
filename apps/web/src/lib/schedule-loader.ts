@@ -1,5 +1,6 @@
 import type { SupportedLanguage } from '@copalibre/domain';
 import { selectStageLayout } from './bracket.js';
+import { calendarDayKey } from './format-timestamp.js';
 import { buildSchedule, type ScheduleStage, type ScheduleStageInput } from './match-schedule.js';
 import type { MatchCardData } from './matches-view.js';
 import {
@@ -12,14 +13,32 @@ import {
 
 export type ScheduleStateFilter = 'all' | 'live' | 'upcoming' | 'final';
 
+/**
+ * Filters match rows to those whose scheduled kickoff falls on `day` (`YYYY-MM-DD`) in `timeZone`.
+ * Undated or invalid-kickoff rows are excluded when `day` is set and kept when `day` is undefined.
+ */
+export function filterRowsByDay<Row extends Pick<MatchCardData, 'scheduledAt'>>(
+  rows: readonly Row[],
+  day: string | undefined,
+  timeZone: string | undefined,
+): readonly Row[] {
+  if (day === undefined) return rows;
+  return rows.filter((row) => {
+    if (row.scheduledAt === undefined) return false;
+    const kickoff = Date.parse(row.scheduledAt);
+    if (Number.isNaN(kickoff)) return false;
+    return calendarDayKey(kickoff, timeZone) === day;
+  });
+}
+
 export interface LoadedSchedule {
   /** `stageName` is empty when the tournament reports none: the caller supplies the numbered fallback. */
   readonly stageOptions: readonly { readonly stageNumber: number; readonly stageName: string }[];
   /** Promotion-band order from the stage bracket, used by the zone filter. */
   readonly zoneOrder: readonly string[];
-  /** All rows in the selected stage scope, before state, zone, or group filters. */
+  /** All rows in the selected stage scope, before state, zone, group, or day filters. */
   readonly stageRows: readonly MatchCardData[];
-  /** The rows left once state, zone, and group filters are applied. */
+  /** The rows left once state, zone, group, and day filters are applied. */
   readonly rows: readonly MatchCardData[];
   readonly stages: readonly ScheduleStage[];
 }
@@ -35,6 +54,8 @@ export async function loadSchedule(args: {
   readonly state: ScheduleStateFilter;
   readonly zone?: string;
   readonly group?: string;
+  readonly day?: string;
+  readonly timeZone?: string;
   readonly hiddenPlayerLabel?: string;
   readonly undecidedSide: string;
   readonly language?: SupportedLanguage;
@@ -46,6 +67,8 @@ export async function loadSchedule(args: {
     state,
     zone,
     group,
+    day,
+    timeZone,
     hiddenPlayerLabel,
     undecidedSide,
     language,
@@ -75,13 +98,14 @@ export async function loadSchedule(args: {
     zone === undefined ? stageRows : stageRows.filter((row) => row.zoneName === zone);
   const groupRows =
     group === undefined ? zoneRows : zoneRows.filter((row) => row.groupName === group);
-  const rows = state === 'all' ? groupRows : groupRows.filter((row) => row.state === state);
+  const stateRows = state === 'all' ? groupRows : groupRows.filter((row) => row.state === state);
+  const rows = filterRowsByDay(stateRows, day, timeZone);
 
   const shown = stageOptions.filter(
     (one) => stageNumber === undefined || one.stageNumber === stageNumber,
   );
-  // A state filter asks for a list of matches, which a bracket is not: the zones are listed instead.
-  const knockoutAsBracket = state === 'all';
+  // A state or day filter asks for a list of matches, which a bracket is not: the zones are listed instead.
+  const knockoutAsBracket = state === 'all' && day === undefined;
   const inputs: readonly ScheduleStageInput[] = await Promise.all(
     shown.map(async (one) => {
       // State-filtered match lists still need the bracket's declared zone order for their filters.

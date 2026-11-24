@@ -1,6 +1,7 @@
 import type { PreviousPlacement } from './reschedule.js';
 import { publicPath, publicStreamPath, type RouteInput } from '@copalibre/routing';
 import { IMPLICIT_SEASON_NAME } from '@copalibre/domain';
+import { isDelayed } from './match-state.js';
 
 /**
  * The public overview's view model.
@@ -172,6 +173,7 @@ export interface OverviewInput extends RouteInput {
 
 export interface OverviewMatchSummary {
   readonly live: readonly OverviewMatch[];
+  readonly delayed: readonly OverviewMatch[];
   readonly upcoming: readonly OverviewMatch[];
   readonly latestResults: readonly OverviewMatch[];
 }
@@ -180,6 +182,7 @@ export interface OverviewMatchSummary {
 export function summarizeOverviewMatches(
   matches: readonly OverviewMatch[],
   limit = 4,
+  now: Date | number = Date.now(),
 ): OverviewMatchSummary {
   const kickoffOf = (match: OverviewMatch): number => {
     const kickoff = Date.parse(match.startsAt);
@@ -196,8 +199,12 @@ export function summarizeOverviewMatches(
       .filter((match) => match.state === 'live')
       .sort(compareKickoff)
       .slice(0, count),
+    delayed: matches
+      .filter((match) => isDelayed(match, now))
+      .sort(compareKickoff)
+      .slice(0, count),
     upcoming: matches
-      .filter((match) => match.state === 'upcoming')
+      .filter((match) => match.state === 'upcoming' && !isDelayed(match, now))
       .sort(compareKickoff)
       .slice(0, count),
     latestResults: matches
@@ -210,6 +217,30 @@ export function summarizeOverviewMatches(
       .sort((left, right) => compareKickoff(right, left))
       .slice(0, count),
   };
+}
+
+/**
+ * Selects up to `limit` matches for the overview's "Now" strip:
+ * 1. live matches,
+ * 2. delayed matches,
+ * 3. the next upcoming match only when nothing is live.
+ * Never includes finished matches.
+ */
+export function selectNowStripMatches(
+  summary: OverviewMatchSummary,
+  limit = 3,
+): readonly OverviewMatch[] {
+  const max = Math.max(0, Math.trunc(limit));
+  if (max === 0) return [];
+  const selected: OverviewMatch[] = [...summary.live.slice(0, max)];
+  for (const match of summary.delayed) {
+    if (selected.length >= max) break;
+    selected.push(match);
+  }
+  if (summary.live.length === 0 && selected.length < max && summary.upcoming[0] !== undefined) {
+    selected.push(summary.upcoming[0]);
+  }
+  return selected;
 }
 
 export function buildOverview(input: OverviewInput): OverviewModel {

@@ -48,6 +48,7 @@ export const messages: Record<string, string> = {
   'publicWeb.layout.footer': 'Опубликовано с CopaLibre — AGPL-3.0',
 
   'publicWeb.resultState.live': 'В эфире',
+  'publicWeb.resultState.delayed': 'Задерживается',
   'publicWeb.resultState.upcoming': 'Запланировано',
   'publicWeb.resultState.final': 'Итог',
   'publicWeb.resultState.disputed': 'Оспаривается',
@@ -264,6 +265,10 @@ export const messages: Record<string, string> = {
   'publicWeb.matchesView.filterLive': 'В эфире',
   'publicWeb.matchesView.filterUpcoming': 'Предстоящие',
   'publicWeb.matchesView.filterFinal': 'Завершённые',
+  'publicWeb.matchesView.filterDay': 'День',
+  'publicWeb.matchesView.filterDayAll': 'Все',
+  'publicWeb.matchesView.filterDayToday': 'Сегодня',
+  'publicWeb.matchesView.filterDayTomorrow': 'Завтра',
   'publicWeb.matchesView.empty': 'В этой области пока нет матчей.',
   'publicWeb.matchesView.clockAriaLabel': 'Прошло времени: {time}',
   'publicWeb.matchesView.venueAriaLabel': 'Площадка: {venue}',
@@ -286,6 +291,9 @@ export const messages: Record<string, string> = {
   'publicWeb.schedule.columnScore': 'Счёт',
   'publicWeb.schedule.dayMatchCount':
     '{count, plural, one {# матч} few {# матча} many {# матчей} other {# матча}}',
+  'publicWeb.schedule.timeZoneNote': 'Время: {zone} ({offset})',
+  'publicWeb.schedule.timeZoneNoteUtc': 'Время: {zone}',
+  'publicWeb.schedule.dayHeading': '{relative} · {date}',
   'publicWeb.schedule.columnAway': 'Гости',
   'publicWeb.schedule.columnState': 'Статус',
   'publicWeb.schedule.columnVenue': 'Место',

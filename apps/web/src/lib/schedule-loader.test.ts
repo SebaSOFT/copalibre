@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { loadSchedule } from './schedule-loader.js';
+import { filterRowsByDay, loadSchedule } from './schedule-loader.js';
 
 const row = (matchNumber: number, stageNumber: number, zoneName: string, groupName?: string) => ({
   matchId: `m-${matchNumber}`,
@@ -177,5 +177,57 @@ describe('loadSchedule', () => {
         undecidedSide: 'A definir',
       }),
     ).toBeUndefined();
+  });
+
+  it('filters by calendar day in the organization zone, preserves stageRows, and lists knockout zones as rows', async () => {
+    serve({
+      ...routes,
+      [`${BASE}/matches-view`]: {
+        matches: [
+          { ...row(1, 1, 'Groups', 'A'), scheduledAt: '2026-11-14T01:15:00.000Z' }, // Nov 13 in Buenos Aires
+          { ...row(2, 1, 'Groups', 'B'), scheduledAt: '2026-11-14T15:00:00.000Z' }, // Nov 14 in Buenos Aires
+          { ...row(3, 2, 'Gold'), scheduledAt: '2026-11-14T01:30:00.000Z' }, // Nov 13 in Buenos Aires
+          { ...row(4, 2, 'Silver') }, // undated
+        ],
+      },
+    });
+
+    const loaded = await loadSchedule({
+      organization: 'liga',
+      tournament: 'apertura',
+      state: 'all',
+      day: '2026-11-13',
+      timeZone: 'America/Argentina/Buenos_Aires',
+      undecidedSide: 'A definir',
+    });
+
+    expect(loaded?.stageRows).toHaveLength(4);
+    expect(loaded?.rows.map((one) => one.matchNumber)).toEqual([1, 3]);
+    expect(loaded?.stages[1]?.zones[0]?.kind).toBe('rows');
+
+    const combined = await loadSchedule({
+      organization: 'liga',
+      tournament: 'apertura',
+      state: 'all',
+      zone: 'Groups',
+      day: '2026-11-13',
+      timeZone: 'America/Argentina/Buenos_Aires',
+      undecidedSide: 'A definir',
+    });
+    expect(combined?.rows.map((one) => one.matchNumber)).toEqual([1]);
+  });
+});
+
+describe('filterRowsByDay', () => {
+  it('keeps undated rows when day is undefined and excludes them when day is set', () => {
+    const items = [
+      { id: '1', scheduledAt: '2026-11-14T01:15:00.000Z' },
+      { id: '2', scheduledAt: undefined },
+      { id: '3', scheduledAt: 'invalid' },
+    ];
+    expect(filterRowsByDay(items, undefined, 'UTC')).toHaveLength(3);
+    expect(
+      filterRowsByDay(items, '2026-11-13', 'America/Argentina/Buenos_Aires').map((one) => one.id),
+    ).toEqual(['1']);
   });
 });

@@ -3,6 +3,7 @@ import {
   displayName,
   groupStandingsByZone,
   overviewLeadFor,
+  selectNowStripMatches,
   shortLabel,
   shouldShowChampionPodium,
   summarizeOverviewMatches,
@@ -83,9 +84,11 @@ describe('the overview model', () => {
         match('m6', 'final', '2026-10-21T12:00:00Z', 2),
       ],
       1,
+      new Date('2026-10-21T11:00:00Z'),
     );
 
     expect(summary.live.map((one) => one.matchId)).toEqual(['m2']);
+    expect(summary.delayed).toEqual([]);
     expect(summary.upcoming.map((one) => one.matchId)).toEqual(['m4']);
     expect(summary.latestResults.map((one) => one.matchId)).toEqual(['m6']);
   });
@@ -110,7 +113,11 @@ describe('the overview model', () => {
       away: { name: 'Away', score: 1 },
     }));
 
-    const summary = summarizeOverviewMatches([...upcoming, ...results]);
+    const summary = summarizeOverviewMatches(
+      [...upcoming, ...results],
+      4,
+      new Date('2026-10-21T11:00:00Z'),
+    );
 
     expect(summary.upcoming.map((one) => one.matchId)).toEqual([
       'upcoming-0',
@@ -124,6 +131,62 @@ describe('the overview model', () => {
       'final-3',
       'final-2',
     ]);
+  });
+
+  it('separates delayed matches from upcoming and builds the now strip without finals', () => {
+    const match = (
+      matchId: string,
+      state: OverviewMatch['state'],
+      startsAt: string,
+      score?: number,
+    ): OverviewMatch => ({
+      matchId,
+      stageNumber: 1,
+      matchNumber: Number(matchId.replace(/\D/g, '') || 1),
+      state,
+      startsAt,
+      home: { name: 'Home', ...(score === undefined ? {} : { score }) },
+      away: { name: 'Away', ...(score === undefined ? {} : { score: 0 }) },
+    });
+
+    const now = new Date('2026-11-23T14:20:00Z');
+    const summary = summarizeOverviewMatches(
+      [
+        match('m1', 'final', '2026-11-23T12:00:00Z', 2),
+        match('m2', 'upcoming', '2026-11-23T14:00:00Z'), // +20 min -> delayed
+        match('m3', 'upcoming', '2026-11-23T14:10:00Z'), // +10 min -> still upcoming
+        match('m4', 'upcoming', '2026-11-23T16:00:00Z'), // future upcoming
+      ],
+      4,
+      now,
+    );
+
+    expect(summary.delayed.map((one) => one.matchId)).toEqual(['m2']);
+    expect(summary.upcoming.map((one) => one.matchId)).toEqual(['m3', 'm4']);
+
+    // No live match -> delayed + first upcoming only (never m4 or final m1).
+    expect(selectNowStripMatches(summary).map((one) => one.matchId)).toEqual(['m2', 'm3']);
+
+    // When a live match exists, upcoming is omitted from the now strip.
+    const withLive = summarizeOverviewMatches(
+      [
+        match('m1', 'final', '2026-11-23T12:00:00Z', 2),
+        match('m2', 'upcoming', '2026-11-23T14:00:00Z'),
+        match('m3', 'upcoming', '2026-11-23T14:10:00Z'),
+        match('m5', 'live', '2026-11-23T14:05:00Z', 1),
+      ],
+      4,
+      now,
+    );
+    expect(selectNowStripMatches(withLive).map((one) => one.matchId)).toEqual(['m5', 'm2']);
+
+    // Only finished matches -> now strip is empty (never shows a final).
+    const onlyFinal = summarizeOverviewMatches(
+      [match('m1', 'final', '2026-11-23T12:00:00Z', 2)],
+      4,
+      now,
+    );
+    expect(selectNowStripMatches(onlyFinal)).toEqual([]);
   });
 
   it('shows the podium only for a finished overview with multiple resolved zones', () => {
