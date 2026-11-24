@@ -5071,6 +5071,8 @@ export interface components {
             emblemObjectId?: string;
             /** @description ISO 3166-1 alpha-2 nationality code, present only at person granularity */
             nationality?: string;
+            /** @description Shirt number from the person’s most recent finalized match roster in the tournament, when recorded */
+            shirtNumber?: number | string;
             /** @description The person requested to be hidden from public pages */
             hiddenAtRequest?: boolean;
             /** @description A public player profile may be linked from this row */
@@ -6493,6 +6495,10 @@ export interface components {
             /** Format: uuid */
             teamId: string;
             teamName: string;
+            /** @description Public club alias when the team belongs to a club with an alias */
+            clubAlias?: string;
+            /** @description Shirt number from the player’s most recent finalized match roster in this tournament, when recorded */
+            shirtNumber?: number | string;
             /** @enum {string} */
             role: "player" | "substitute" | "coach" | "staff";
             /** Format: uuid */
@@ -6545,6 +6551,26 @@ export interface components {
             stageNumber: number;
             /** @description Public match number within its stage, for linking to this match’s public report */
             matchNumber: number;
+            /**
+             * Format: date-time
+             * @description Published kickoff instant in ISO-8601 UTC when scheduled
+             */
+            scheduledAt?: string;
+            /**
+             * @description The player’s side in this match
+             * @enum {string}
+             */
+            side: "home" | "away";
+            /** @description Opponent entrant display name */
+            opponentName: string;
+            /** @description Opponent entrant abbreviation, when resolved */
+            opponentAbbreviation?: string;
+            /** @description Opponent club alias, when the opponent belongs to a club with an alias */
+            opponentClubAlias?: string;
+            /** @description Final score of the player’s side */
+            ownScore?: number;
+            /** @description Final score of the opponent’s side */
+            opponentScore?: number;
             /** @description One cell per collector-kind declared column, keyed by column code — composite and computed columns are aggregate ratios/expressions that do not apply to a single match, so they never appear here */
             cells: components["schemas"]["TableCellResponse"];
         };

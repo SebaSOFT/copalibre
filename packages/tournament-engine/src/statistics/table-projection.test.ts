@@ -221,7 +221,7 @@ describe('projectTableLayout', () => {
     });
   });
 
-  it('formats a composite column as 0/0 without throwing when neither side was recorded', () => {
+  it('formats a zero-denominator zero-numerator fraction column as the column zero display instead of 0/0', () => {
     const layout: TableLayoutDefinition = {
       ...GROUP_STANDINGS,
       columns: [
@@ -235,6 +235,17 @@ describe('projectTableLayout', () => {
           },
           format: 'fraction',
         },
+        {
+          code: 'penalties-dashed',
+          header: { en: 'Penalties' },
+          source: {
+            kind: 'composite',
+            numerator: 'penalties-scored',
+            denominator: 'penalties-taken',
+          },
+          format: 'fraction',
+          zeroDisplay: '—',
+        },
       ],
       defaultSort: [],
     };
@@ -243,8 +254,45 @@ describe('projectTableLayout', () => {
 
     expect(projection.rows[0]?.cells['penalties']).toEqual({
       raw: undefined,
-      formatted: '0/0',
+      formatted: '',
       numerator: 0,
+      denominator: 0,
+    });
+    expect(projection.rows[0]?.cells['penalties-dashed']).toEqual({
+      raw: undefined,
+      formatted: '—',
+      numerator: 0,
+      denominator: 0,
+    });
+  });
+
+  it('keeps numerator/0 fraction formatting when numerator is positive', () => {
+    const layout: TableLayoutDefinition = {
+      ...GROUP_STANDINGS,
+      columns: [
+        {
+          code: 'cards',
+          header: { en: 'Y/R' },
+          source: {
+            kind: 'composite',
+            numerator: 'yellow-cards',
+            denominator: 'red-cards',
+          },
+          format: 'fraction',
+          zeroDisplay: '—',
+        },
+      ],
+      defaultSort: [],
+    };
+
+    const projection = projectTableLayout([figure('a-1', 'yellow-cards', 2)], layout, {
+      actors: [team('a-1', 'Alice')],
+    });
+
+    expect(projection.rows[0]?.cells['cards']).toEqual({
+      raw: undefined,
+      formatted: '2/0',
+      numerator: 2,
       denominator: 0,
     });
   });

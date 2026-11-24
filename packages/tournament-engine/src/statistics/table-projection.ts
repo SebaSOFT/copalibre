@@ -42,6 +42,8 @@ export interface TableProjectionActor {
   readonly tags?: readonly string[];
   /** Present only for a person-granularity actor whose roster entry recorded one. */
   readonly nationality?: string;
+  /** Shirt number from the person's latest finalized match roster in the tournament, when recorded. */
+  readonly shirtNumber?: number | string;
 }
 
 export interface TableProjectionContext {
@@ -70,6 +72,7 @@ export interface TableRow {
   readonly entrantName?: string;
   readonly entrantAbbreviation?: string;
   readonly nationality?: string;
+  readonly shirtNumber?: number | string;
   /** 1-based; rows sharing a rank were not separated by `defaultSort`. */
   readonly rank: number;
   readonly sharedRank: boolean;
@@ -186,7 +189,9 @@ function resolveCell(
         raw,
         formatted:
           column.format === 'fraction'
-            ? `${numerator}/${denominator}`
+            ? numerator === 0 && denominator === 0
+              ? (column.zeroDisplay ?? '')
+              : `${numerator}/${denominator}`
             : formatColumnValue(raw, column),
         numerator,
         denominator,
@@ -300,6 +305,7 @@ function assignRanks(
         ? {}
         : { entrantAbbreviation: row.actor.entrantAbbreviation }),
       ...(row.actor.nationality === undefined ? {} : { nationality: row.actor.nationality }),
+      ...(row.actor.shirtNumber === undefined ? {} : { shirtNumber: row.actor.shirtNumber }),
       rank,
       sharedRank: (rankCounts.get(rank) ?? 1) > 1,
       cells,

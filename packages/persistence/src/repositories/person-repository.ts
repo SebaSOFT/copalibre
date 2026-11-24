@@ -745,6 +745,7 @@ export class PersonRepository {
     const rows = await this.db
       .selectFrom('players')
       .innerJoin('teams', 'teams.team_id', 'players.team_id')
+      .leftJoin('clubs', 'clubs.club_id', 'teams.club_id')
       .innerJoin('entrants', 'entrants.team_id', 'teams.team_id')
       .innerJoin('tournaments', 'tournaments.tournament_id', 'entrants.tournament_id')
       .select([
@@ -756,6 +757,7 @@ export class PersonRepository {
         'tournaments.created_at as tournamentCreatedAt',
         'teams.team_id as teamId',
         'teams.name as teamName',
+        'clubs.alias as clubAlias',
         'players.role as role',
         'entrants.entrant_id as entrantId',
         'entrants.abbreviation as entrantAbbreviation',
@@ -779,6 +781,7 @@ export class PersonRepository {
       disciplineRef: { descriptorId: r.descriptorId, version: r.descriptorVersion },
       teamId: r.teamId,
       teamName: r.teamName,
+      ...(r.clubAlias === null || r.clubAlias === '' ? {} : { clubAlias: r.clubAlias }),
       role: r.role as PlayerRole,
       entrantId: r.entrantId,
       entrantName: r.teamName,
@@ -893,6 +896,7 @@ export interface PersonCompetitionHistoryItem {
   readonly disciplineRef: { readonly descriptorId: string; readonly version: string };
   readonly teamId: string;
   readonly teamName: string;
+  readonly clubAlias?: string;
   readonly role: PlayerRole;
   readonly entrantId?: string;
   readonly entrantName?: string;

@@ -17726,6 +17726,17 @@
             "type": "string",
             "description": "ISO 3166-1 alpha-2 nationality code, present only at person granularity"
           },
+          "shirtNumber": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Shirt number from the person’s most recent finalized match roster in the tournament, when recorded"
+          },
           "hiddenAtRequest": {
             "type": "boolean",
             "description": "The person requested to be hidden from public pages"
@@ -21836,6 +21847,21 @@
           "teamName": {
             "type": "string"
           },
+          "clubAlias": {
+            "type": "string",
+            "description": "Public club alias when the team belongs to a club with an alias"
+          },
+          "shirtNumber": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Shirt number from the player’s most recent finalized match roster in this tournament, when recorded"
+          },
           "role": {
             "type": "string",
             "enum": [
@@ -21996,6 +22022,39 @@
             "type": "number",
             "description": "Public match number within its stage, for linking to this match’s public report"
           },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Published kickoff instant in ISO-8601 UTC when scheduled"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "home",
+              "away"
+            ],
+            "description": "The player’s side in this match"
+          },
+          "opponentName": {
+            "type": "string",
+            "description": "Opponent entrant display name"
+          },
+          "opponentAbbreviation": {
+            "type": "string",
+            "description": "Opponent entrant abbreviation, when resolved"
+          },
+          "opponentClubAlias": {
+            "type": "string",
+            "description": "Opponent club alias, when the opponent belongs to a club with an alias"
+          },
+          "ownScore": {
+            "type": "number",
+            "description": "Final score of the player’s side"
+          },
+          "opponentScore": {
+            "type": "number",
+            "description": "Final score of the opponent’s side"
+          },
           "cells": {
             "description": "One cell per collector-kind declared column, keyed by column code — composite and computed columns are aggregate ratios/expressions that do not apply to a single match, so they never appear here",
             "allOf": [
@@ -22008,6 +22067,8 @@
         "required": [
           "stageNumber",
           "matchNumber",
+          "side",
+          "opponentName",
           "cells"
         ]
       },

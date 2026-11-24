@@ -230,6 +230,14 @@ export class StageReadModel {
     });
   }
 
+  /**
+   * Public 1-based stage ordinals keyed by matchId, derived from the stage's
+   * full, unscoped match list — never `matches.number`.
+   */
+  async matchOrdinals(stageId: string): Promise<ReadonlyMap<string, number>> {
+    return stageMatchOrdinals(await this.matches(stageId));
+  }
+
   /** Finalized results as the accounting engine reads them. */
   async outcomes(
     stageId: string,
