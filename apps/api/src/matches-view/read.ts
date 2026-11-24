@@ -9,17 +9,17 @@ import {
   type Database,
   type StageMatchRecord,
 } from '@copalibre/persistence';
-import { decidingFactorLabel, type TraceNode } from '@copalibre/rules';
+import { decidingFactorNodeBetween, type TraceNode } from '@copalibre/rules';
 import {
   isImplicitGroup,
   isImplicitZone,
-  resolveLabel,
-  type EventDefinition,
+  type LocalizedLabel,
   type Tournament,
 } from '@copalibre/domain';
 import { readStandings } from '../standings/read.js';
 import { readPublicScheduleChanges, type PublicPlacement } from './schedule.js';
 import { readStageSeriesByPosition, type PublicSeriesState } from '../controllers/stage-series.js';
+import { eventLabelFields } from '../controllers/public-match-labels.js';
 import { segmentSummariesOf } from '../controllers/public-segments.js';
 import { publicClockOf } from '../controllers/segment-clock.js';
 import { readFixtureSources } from '../controllers/fixture-sources.js';
@@ -61,13 +61,20 @@ export interface MatchesViewRow extends FixtureSourcesResponse {
   readonly segments?: readonly PublicSegmentSummaryResponse[];
   readonly venueName?: string;
   readonly scheduledAt?: string;
-  readonly latestEvent?: { readonly label: string; readonly occurredAt: string };
+  readonly latestEvent?: {
+    readonly definitionCode: string;
+    readonly label: string;
+    readonly labels?: LocalizedLabel;
+    readonly occurredAt: string;
+  };
   readonly zoneName?: string;
   readonly groupName?: string;
   readonly homePosition?: number;
   readonly awayPosition?: number;
   readonly series?: PublicSeriesState;
   readonly decidingFactor?: string;
+  readonly decidingFactorCode?: string;
+  readonly decidingFactorRule?: number;
   readonly rawTrace?: readonly TraceNode[];
 }
 
@@ -206,9 +213,17 @@ async function readStageMatchesView(
       const scores = record.scores;
       const status = publicMatchStatus(record.status);
 
-      const decidingFactor =
-        series === undefined && standings !== undefined
-          ? decidingFactorOf(standings.rawTrace, record.homeEntrantId, record.awayEntrantId)
+      const matchedDecidingFactor =
+        status === 'final' &&
+        series === undefined &&
+        standings !== undefined &&
+        record.homeEntrantId !== undefined &&
+        record.awayEntrantId !== undefined
+          ? decidingFactorNodeBetween(
+              standings.rawTrace,
+              record.homeEntrantId,
+              record.awayEntrantId,
+            )
           : undefined;
 
       const [events, segments] = await Promise.all([
@@ -272,7 +287,11 @@ async function readStageMatchesView(
           ? {}
           : {
               latestEvent: {
-                label: eventLabel(latestEvent.definitionCode, definitionByCode),
+                definitionCode: latestEvent.definitionCode,
+                ...eventLabelFields(
+                  definitionByCode.get(latestEvent.definitionCode),
+                  latestEvent.definitionCode,
+                ),
                 occurredAt: latestEvent.occurredAt,
               },
             }),
@@ -290,7 +309,13 @@ async function readStageMatchesView(
                 : { awayPosition: standings.position.get(record.awayEntrantId) }),
             }
           : { series }),
-        ...(decidingFactor === undefined ? {} : { decidingFactor }),
+        ...(matchedDecidingFactor === undefined
+          ? {}
+          : {
+              decidingFactor: matchedDecidingFactor.node.label,
+              decidingFactorCode: matchedDecidingFactor.node.id,
+              decidingFactorRule: matchedDecidingFactor.rule,
+            }),
         ...(standings === undefined ? {} : { rawTrace: standings.rawTrace }),
       };
     }),
@@ -301,14 +326,6 @@ function publicMatchStatus(status: string): 'upcoming' | 'live' | 'final' {
   if (status === 'finalized') return 'final';
   if (status === 'in-progress') return 'live';
   return 'upcoming';
-}
-
-function eventLabel(
-  definitionCode: string,
-  definitionByCode: ReadonlyMap<string, EventDefinition>,
-): string {
-  const definition = definitionByCode.get(definitionCode);
-  return definition ? resolveLabel(definition.label, 'en') : definitionCode;
 }
 
 async function zoneAndGroupNamesByScope(
@@ -375,17 +392,6 @@ async function positionAndTraceFor(
   } catch {
     return { position: new Map(), rawTrace: [] };
   }
-}
-
-function decidingFactorOf(
-  rawTrace: readonly TraceNode[],
-  homeEntrantId: string | undefined,
-  awayEntrantId: string | undefined,
-): string | undefined {
-  return (
-    (homeEntrantId === undefined ? undefined : decidingFactorLabel(rawTrace, homeEntrantId)) ??
-    (awayEntrantId === undefined ? undefined : decidingFactorLabel(rawTrace, awayEntrantId))
-  );
 }
 
 interface ScheduleInfo {

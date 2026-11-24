@@ -24,7 +24,8 @@ const match: MatchCardData = {
   groupName: 'Grupo A',
   homePosition: 1,
   awayPosition: 2,
-  decidingFactor: 'head-to-head goal difference',
+  decidingFactorCode: 'head-to-head',
+  decidingFactorRule: 2,
   homeTrace: ['Comparator: head-to-head goal difference — Club Andes ahead'],
   awayTrace: ['Comparator: head-to-head goal difference — Deportivo Sur behind'],
 };

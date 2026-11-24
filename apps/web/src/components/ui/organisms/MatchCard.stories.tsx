@@ -149,7 +149,8 @@ export const WithDecidingFactor: Story = {
         homeScore: 1,
         awayScore: 1,
         clockSeconds: undefined,
-        decidingFactor: 'Penales 4-3',
+        decidingFactorCode: 'goal-average',
+        decidingFactorRule: 3,
       }}
     />
   ),

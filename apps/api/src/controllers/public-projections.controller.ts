@@ -166,6 +166,9 @@ export class PublicTournamentListingController {
         descriptorId: t.disciplineRef.descriptorId,
         version: t.disciplineRef.version,
         name: desc?.name ? resolveLabel(desc.name, 'en') : undefined,
+        ...(desc?.name !== undefined && typeof desc.name !== 'string'
+          ? { localizedName: desc.name }
+          : {}),
       };
 
       const dates =
@@ -1611,6 +1614,12 @@ export class PublicProjectionsController {
           ...(row.awayPosition === undefined ? {} : { awayPosition: row.awayPosition }),
           ...(row.series === undefined ? {} : { series: seriesResponseOf(row.series) }),
           ...(row.decidingFactor === undefined ? {} : { decidingFactor: row.decidingFactor }),
+          ...(row.decidingFactorCode === undefined
+            ? {}
+            : { decidingFactorCode: row.decidingFactorCode }),
+          ...(row.decidingFactorRule === undefined
+            ? {}
+            : { decidingFactorRule: row.decidingFactorRule }),
         };
       }),
     };

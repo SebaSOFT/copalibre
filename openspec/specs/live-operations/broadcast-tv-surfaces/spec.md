@@ -307,11 +307,15 @@ A TV scorebug SHALL show possession only when the public live projection explici
 - **THEN** the TV scorebug omits the corresponding indicator rather than showing a default or guessed value
 
 ### Requirement: Full-frame TV bracket presents published elimination matches
-The full-frame TV kiosk and full overlay SHALL show a bracket section for an elimination stage using the published stage graph. It SHALL retain zone and round context, named pending sources, scores when published, and match state. Lower-third overlays and stages without an elimination bracket SHALL not show bracket cards.
+The full-frame TV kiosk and full overlay SHALL show a bracket section for an elimination stage using the published stage graph. It SHALL retain zone and round context, named pending sources, scores when published, and match state. Branch and round headings SHALL be names in the TV language, never raw branch identifiers. Lower-third overlays and stages without an elimination bracket SHALL not show bracket cards.
 
 #### Scenario: Published bracket with unresolved slots
 - **WHEN** the featured stage is an elimination stage with published bracket matches
 - **THEN** the TV section displays matchup cards grouped by zone and round, with unresolved entrants identified by their source matches rather than blank or invented names
+
+#### Scenario: Branch and round names in Spanish
+- **WHEN** the TV language is Spanish and the bracket has a main branch and a placement branch
+- **THEN** the headings read like "Copa Oro · Cuartos de final" and "Partidos de clasificación · 5º al 8º puesto", never "winners" or "placement"
 
 #### Scenario: Non-elimination stage or unavailable bracket
 - **WHEN** the featured stage is round robin or its bracket projection is unavailable
@@ -810,3 +814,12 @@ The scorebug, the overlay match bug, the pinned-match panel and each multicourt 
 
 - **WHEN** the kiosk shows a live match
 - **THEN** the header's wall clock carries its "Hora local" label and renders smaller than the match's score and game clock
+
+### Requirement: The TV names a featured match by its competition context
+
+A TV screen that features or pins a match SHALL name it by the same context the public match page uses: stage, explicit zone and group, and round name, with the match number secondary. It SHALL NOT identify the match by stage and match numbers alone.
+
+#### Scenario: A pinned placement semi-final
+
+- **WHEN** the TV pins match 5 of the cup stage, a Copa Oro 5th-to-8th placement semi-final
+- **THEN** its header reads "Copas · Copa Oro · Semifinal 5º al 8º puesto" with the match number secondary, not "Etapa 2 · Partido 5"

@@ -816,7 +816,9 @@ export function TvDashboard({
               {statusBadge.label}
             </span>
             <span className="tv-lower-third__side">
-              {spotlightMatch.sides[0]?.abbreviation ?? spotlightMatch.sides[0]?.name ?? 'Local'}
+              {spotlightMatch.sides[0]?.abbreviation ??
+                spotlightMatch.sides[0]?.name ??
+                dashboardLabels.homeSide}
             </span>
             <span className="tv-lower-third__score">
               {spotlightMatch.state === 'upcoming' ? (
@@ -832,7 +834,7 @@ export function TvDashboard({
             <span className="tv-lower-third__side">
               {spotlightMatch.sides[1]?.abbreviation ??
                 spotlightMatch.sides[1]?.name ??
-                'Visitante'}
+                dashboardLabels.awaySide}
             </span>
             {spotlightClock !== undefined && (
               <LiveMatchClock
@@ -979,7 +981,7 @@ export function TvDashboard({
                     clubs={clubs}
                     leading={leadingSide === 'home'}
                     leadingLabel={dashboardLabels.leading}
-                    name={spotlightMatch.sides[0]?.name ?? 'Local'}
+                    name={spotlightMatch.sides[0]?.name ?? dashboardLabels.homeSide}
                     abbreviation={spotlightMatch.sides[0]?.abbreviation}
                     clubId={spotlightMatch.sides[0]?.clubId}
                     roleLabel={labels.homeSide}
@@ -1016,7 +1018,7 @@ export function TvDashboard({
                     clubs={clubs}
                     leading={leadingSide === 'away'}
                     leadingLabel={dashboardLabels.leading}
-                    name={spotlightMatch.sides[1]?.name ?? 'Visitante'}
+                    name={spotlightMatch.sides[1]?.name ?? dashboardLabels.awaySide}
                     abbreviation={spotlightMatch.sides[1]?.abbreviation}
                     clubId={spotlightMatch.sides[1]?.clubId}
                     roleLabel={labels.awaySide}
@@ -1071,9 +1073,9 @@ export function TvDashboard({
               <ol>
                 {upcomingMatches.map((match) => (
                   <li data-testid="tv-next-match" key={match.matchId}>
-                    <span>{match.sides[0]?.name ?? 'Local'}</span>
+                    <span>{match.sides[0]?.name ?? dashboardLabels.homeSide}</span>
                     <span>–</span>
-                    <span>{match.sides[1]?.name ?? 'Visitante'}</span>
+                    <span>{match.sides[1]?.name ?? dashboardLabels.awaySide}</span>
                     {match.scheduledAt && (
                       <small>
                         {formatTimestamp(match.scheduledAt, {
@@ -1120,14 +1122,18 @@ export function TvDashboard({
                     </span>
                   </header>
                   <div className="tv-dashboard-match__scoreline">
-                    <span title={match.sides[0]?.name}>{match.sides[0]?.name ?? 'Local'}</span>
+                    <span title={match.sides[0]?.name}>
+                      {match.sides[0]?.name ?? dashboardLabels.homeSide}
+                    </span>
                     <strong
                       aria-label={`${match.sides[0]?.score ?? 0} : ${match.sides[1]?.score ?? 0}`}
                     >
                       <ValueFlash value={match.sides[0]?.score ?? 0} /> :{' '}
                       <ValueFlash value={match.sides[1]?.score ?? 0} />
                     </strong>
-                    <span title={match.sides[1]?.name}>{match.sides[1]?.name ?? 'Visitante'}</span>
+                    <span title={match.sides[1]?.name}>
+                      {match.sides[1]?.name ?? dashboardLabels.awaySide}
+                    </span>
                   </div>
                   {(clockForMatch(match) ||
                     activeSegmentLabel(match.segments, match.clock, language)) && (
@@ -1168,9 +1174,13 @@ export function TvDashboard({
               <ol className="tv-dashboard-upcoming-grid">
                 {upcomingMatches.map((match) => (
                   <li data-testid="tv-upcoming-match" key={match.matchId}>
-                    <span title={match.sides[0]?.name}>{match.sides[0]?.name ?? 'Local'}</span>
+                    <span title={match.sides[0]?.name}>
+                      {match.sides[0]?.name ?? dashboardLabels.homeSide}
+                    </span>
                     <strong aria-label={dashboardLabels.resultState.upcoming}>–</strong>
-                    <span title={match.sides[1]?.name}>{match.sides[1]?.name ?? 'Visitante'}</span>
+                    <span title={match.sides[1]?.name}>
+                      {match.sides[1]?.name ?? dashboardLabels.awaySide}
+                    </span>
                     {match.scheduledAt && (
                       <small>
                         {formatTimestamp(match.scheduledAt, {
@@ -1275,7 +1285,7 @@ export function TvDashboard({
                     {/* Home side */}
                     <TvTeamSide
                       clubs={clubs}
-                      name={spotlightMatch.sides[0]?.name ?? 'Local'}
+                      name={spotlightMatch.sides[0]?.name ?? dashboardLabels.homeSide}
                       abbreviation={spotlightMatch.sides[0]?.abbreviation}
                       clubId={spotlightMatch.sides[0]?.clubId}
                       roleLabel={labels.homeSide}
@@ -1322,7 +1332,7 @@ export function TvDashboard({
                     {/* Away Side */}
                     <TvTeamSide
                       clubs={clubs}
-                      name={spotlightMatch.sides[1]?.name ?? 'Visitante'}
+                      name={spotlightMatch.sides[1]?.name ?? dashboardLabels.awaySide}
                       abbreviation={spotlightMatch.sides[1]?.abbreviation}
                       clubId={spotlightMatch.sides[1]?.clubId}
                       roleLabel={labels.awaySide}

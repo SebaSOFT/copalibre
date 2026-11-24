@@ -87,7 +87,11 @@ if (selectedOrganization && selectedTournament) {
     const stageNames = new Map(
       (completion?.stages ?? []).map((stage) => [stage.stageNumber, stage.stageName]),
     );
-    matchChoices = mapMatchesViewResponse(matchesView ?? { matches: [] }).matches.map((match) => ({
+    matchChoices = mapMatchesViewResponse(
+      matchesView ?? { matches: [] },
+      undefined,
+      language,
+    ).matches.map((match) => ({
       stage: match.stageNumber,
       stageName: stageNames.get(match.stageNumber) ?? '',
       match: match.matchNumber,

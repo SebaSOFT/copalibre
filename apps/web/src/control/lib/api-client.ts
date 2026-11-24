@@ -2595,10 +2595,27 @@ export function createControlApiClient(input: {
         input.fetch,
         `${tournamentPath(baseUrl, organizationAlias, tournamentAlias)}/internal-matches-view${query}`,
       ).then(({ matches }) => ({
-        matches: matches.map(({ status, ...match }): MatchCardData => ({
-          ...match,
-          state: status,
-        })),
+        matches: matches.map((row): MatchCardData => {
+          const { status, latestEvent, ...match } = row;
+          const rest = { ...match };
+          delete (rest as { decidingFactor?: unknown }).decidingFactor;
+          return {
+            ...rest,
+            ...(latestEvent === undefined
+              ? {}
+              : {
+                  latestEvent: {
+                    definitionCode: latestEvent.definitionCode,
+                    label: latestEvent.label,
+                    ...(latestEvent.labels === undefined
+                      ? {}
+                      : { labels: latestEvent.labels as LocalizedLabel }),
+                    occurredAt: latestEvent.occurredAt,
+                  },
+                }),
+            state: status,
+          };
+        }),
       }));
     },
 

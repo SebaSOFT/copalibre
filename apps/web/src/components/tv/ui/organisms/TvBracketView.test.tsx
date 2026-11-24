@@ -13,6 +13,8 @@ const esIntl = publicIntl('es');
 
 const labels: TvDashboardLabels = {
   sideSource: sideSourceLabels(esIntl),
+  homeSide: 'Local',
+  awaySide: 'Visitante',
   resultState: {
     final: 'Final',
     live: 'En vivo',

@@ -26,6 +26,7 @@ export { mapBracketResponse } from './bracket-projection.js';
 export type { BracketZone } from './bracket-projection.js';
 export { clubEmblemUrl, organizationEmblemUrl } from './public-image-paths.js';
 import { withSourceDepth, type MatchCardData } from './matches-view.js';
+import { eventLabel } from './event-label.js';
 import type { PublicSeriesState } from './series.js';
 import { publicIntl } from './i18n/public-intl.js';
 import { messages as publicMessages } from './i18n/public-messages.en.js';
@@ -430,6 +431,7 @@ export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
 export function mapMatchesViewResponse(
   response: PublicMatchesViewResponse,
   hiddenPlayerLabel = 'Player hidden at their request',
+  language: SupportedLanguage = 'en',
 ): {
   readonly matches: readonly MatchCardData[];
 } {
@@ -466,13 +468,22 @@ export function mapMatchesViewResponse(
           : { segments: m.segments as MatchCardData['segments'] }),
         venueName: m.venueName,
         scheduledAt: m.scheduledAt,
-        latestEvent: m.latestEvent,
+        latestEvent:
+          m.latestEvent === undefined
+            ? undefined
+            : {
+                definitionCode: m.latestEvent.definitionCode,
+                label: eventLabel(m.latestEvent, language),
+                ...(m.latestEvent.labels === undefined ? {} : { labels: m.latestEvent.labels }),
+                occurredAt: m.latestEvent.occurredAt,
+              },
         zoneName: m.zoneName,
         groupName: m.groupName,
         homePosition: m.homePosition,
         awayPosition: m.awayPosition,
         series: m.series as PublicSeriesState | undefined,
-        decidingFactor: m.decidingFactor,
+        decidingFactorCode: m.decidingFactorCode,
+        decidingFactorRule: m.decidingFactorRule,
       })),
     ),
   };

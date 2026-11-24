@@ -1,5 +1,6 @@
 ---
 import type { IntlShape } from 'react-intl';
+import { isSupportedLanguage, resolveLabel } from '@copalibre/domain';
 import type { PodiumListingItem } from '../../../lib/podium-emblems.ts';
 import ChampionPodium from './ChampionPodium.astro';
 import Button from '../atoms/Button.astro';
@@ -24,6 +25,11 @@ const winners = tournament.winners ?? [];
 const liveMatches = tournament.liveMatches ?? [];
 const firstLiveMatch = liveMatches[0];
 const hiddenPersonLabel = intl.formatMessage(messages.personHiddenAtRequest);
+const shortLocale = intl.locale.split('-')[0] ?? 'en';
+const language = isSupportedLanguage(shortLocale) ? shortLocale : 'en';
+const disciplineName = tournament.discipline.localizedName
+  ? resolveLabel(tournament.discipline.localizedName, language)
+  : tournament.discipline.name;
 const liveHomeName = firstLiveMatch
   ? firstLiveMatch.homeHiddenAtRequest
     ? hiddenPersonLabel
@@ -49,9 +55,7 @@ const liveAwayName = firstLiveMatch
 >
   <header class="cl-card-header">
     <div class="cl-card-meta">
-      {tournament.discipline.name && (
-        <span class="cl-discipline-badge">{tournament.discipline.name}</span>
-      )}
+      {disciplineName && <span class="cl-discipline-badge">{disciplineName}</span>}
       <span
         class:list={[
           'cl-status-badge',

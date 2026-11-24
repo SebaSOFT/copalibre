@@ -6,6 +6,8 @@ import { rescheduledStatement } from '../../../lib/reschedule.js';
 import { useHydrated } from '../../../lib/island-browser-state.js';
 import { useLiveScoreboardPatch } from '../../../lib/live-scoreboard-hooks.js';
 import { activeSegmentLabel } from '../../../lib/segment-label.js';
+import { eventLabel } from '../../../lib/event-label.js';
+import { resolveTiebreakerLabel } from '../../../lib/tiebreaker-labels.js';
 import { Badge } from '../atoms/Badge.js';
 import { Icon } from '../atoms/icon.js';
 import { Card } from '../atoms/Card.js';
@@ -98,11 +100,8 @@ export function MatchCard({
   const effectiveState = usePatch && livePatch.state !== undefined ? livePatch.state : match.state;
   const effectiveClock = usePatch ? livePatch.clock : match.clock;
   const effectiveSegments = (usePatch ? livePatch.segments : undefined) ?? match.segments;
-  const effectiveSegmentLabel = activeSegmentLabel(
-    effectiveSegments,
-    effectiveClock,
-    resolveLanguageTag(locale),
-  );
+  const language = resolveLanguageTag(locale);
+  const effectiveSegmentLabel = activeSegmentLabel(effectiveSegments, effectiveClock, language);
   const MatchHeading = `h${Math.min(Math.max(headingLevel, 2), 6)}` as
     'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   const homeSource = formatSideSource(
@@ -436,9 +435,11 @@ export function MatchCard({
       {match.latestEvent !== undefined && (
         <p
           className="cl-match-card__event"
-          title={applyTemplate(labels.latestEventAriaLabel, { event: match.latestEvent.label })}
+          title={applyTemplate(labels.latestEventAriaLabel, {
+            event: eventLabel(match.latestEvent, language),
+          })}
         >
-          {match.latestEvent.label}
+          {eventLabel(match.latestEvent, language)}
         </p>
       )}
 
@@ -451,9 +452,16 @@ export function MatchCard({
         />
       )}
 
-      {match.state === 'final' && match.decidingFactor !== undefined && (
+      {match.state === 'final' && match.decidingFactorCode !== undefined && (
         <p className="cl-match-card__deciding-factor" title={labels.decidedByAriaLabel}>
-          {applyTemplate(labels.decidedBy, { factor: match.decidingFactor })}
+          {applyTemplate(labels.decidedBy, {
+            factor: resolveTiebreakerLabel(
+              match.decidingFactorCode,
+              labels.tiebreakers,
+              undefined,
+              language,
+            ),
+          })}
         </p>
       )}
 

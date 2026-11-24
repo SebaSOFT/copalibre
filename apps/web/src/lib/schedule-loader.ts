@@ -1,3 +1,4 @@
+import type { SupportedLanguage } from '@copalibre/domain';
 import { selectStageLayout } from './bracket.js';
 import { buildSchedule, type ScheduleStage, type ScheduleStageInput } from './match-schedule.js';
 import type { MatchCardData } from './matches-view.js';
@@ -36,6 +37,7 @@ export async function loadSchedule(args: {
   readonly group?: string;
   readonly hiddenPlayerLabel?: string;
   readonly undecidedSide: string;
+  readonly language?: SupportedLanguage;
 }): Promise<LoadedSchedule | undefined> {
   const {
     organization,
@@ -46,6 +48,7 @@ export async function loadSchedule(args: {
     group,
     hiddenPlayerLabel,
     undecidedSide,
+    language,
   } = args;
   const [completion, view] = await Promise.all([
     fetchCompletion(organization, tournament),
@@ -56,7 +59,7 @@ export async function loadSchedule(args: {
   ]);
   if (!view) return undefined;
 
-  const stageRows = mapMatchesViewResponse(view, hiddenPlayerLabel).matches;
+  const stageRows = mapMatchesViewResponse(view, hiddenPlayerLabel, language).matches;
   const declared = (completion?.stages ?? []).map((one) => ({
     stageNumber: one.stageNumber,
     stageName: one.stageName,

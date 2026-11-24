@@ -14141,9 +14141,20 @@
       "PublicMatchesViewEventResponse": {
         "type": "object",
         "properties": {
+          "definitionCode": {
+            "type": "string",
+            "description": "The event definition's discipline code"
+          },
           "label": {
             "type": "string",
             "description": "The event's own discipline-declared label"
+          },
+          "labels": {
+            "type": "object",
+            "description": "The event's localized discipline labels",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "occurredAt": {
             "type": "string",
@@ -14151,6 +14162,7 @@
           }
         },
         "required": [
+          "definitionCode",
           "label",
           "occurredAt"
         ]
@@ -14479,7 +14491,16 @@
           },
           "decidingFactor": {
             "type": "string",
+            "deprecated": true,
             "description": "One line naming the tiebreak comparator that decided a finalized, standings-relevant match — never the full internal comparator trace"
+          },
+          "decidingFactorCode": {
+            "type": "string",
+            "description": "Tiebreaker code of the comparator that separated this match’s two entrants while tied"
+          },
+          "decidingFactorRule": {
+            "type": "number",
+            "description": "1-based position of that comparator in the tiebreak order"
           },
           "homeTrace": {
             "description": "The home entrant's full internal comparator trace — present only when the requesting subject holds org.view-internal-standings for this tournament, and only for a match whose result needed a tiebreak comparator",
@@ -19919,6 +19940,13 @@
           },
           "name": {
             "type": "string"
+          },
+          "localizedName": {
+            "type": "object",
+            "description": "The discipline name as declared, with its available translations",
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -21637,7 +21665,16 @@
           },
           "decidingFactor": {
             "type": "string",
+            "deprecated": true,
             "description": "One line naming the tiebreak comparator that decided a finalized, standings-relevant match — never the full internal comparator trace"
+          },
+          "decidingFactorCode": {
+            "type": "string",
+            "description": "Tiebreaker code of the comparator that separated this match’s two entrants while tied"
+          },
+          "decidingFactorRule": {
+            "type": "number",
+            "description": "1-based position of that comparator in the tiebreak order"
           }
         },
         "required": [

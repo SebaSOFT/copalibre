@@ -1606,6 +1606,8 @@ function controlMatchResponseOf(
     ...(row.awayPosition === undefined ? {} : { awayPosition: row.awayPosition }),
     ...(row.series === undefined ? {} : { series: seriesResponseOf(row.series) }),
     ...(row.decidingFactor === undefined ? {} : { decidingFactor: row.decidingFactor }),
+    ...(row.decidingFactorCode === undefined ? {} : { decidingFactorCode: row.decidingFactorCode }),
+    ...(row.decidingFactorRule === undefined ? {} : { decidingFactorRule: row.decidingFactorRule }),
     ...(homeTrace.length === 0 ? {} : { homeTrace: [...homeTrace] }),
     ...(awayTrace.length === 0 ? {} : { awayTrace: [...awayTrace] }),
   };

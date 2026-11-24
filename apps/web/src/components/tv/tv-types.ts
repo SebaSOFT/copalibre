@@ -18,6 +18,8 @@ export interface TvClubItem {
 export interface TvDashboardLabels {
   readonly stale?: string;
   readonly sideSource: SideSourceMessages;
+  readonly homeSide: string;
+  readonly awaySide: string;
   readonly rescheduled?: string;
   readonly resultState: ResultStateLabels;
   readonly noMatchesScheduled: string;

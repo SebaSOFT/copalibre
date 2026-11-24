@@ -702,6 +702,46 @@ describe('the control API client', () => {
     ]);
   });
 
+  it('maps decidingFactorCode, decidingFactorRule, and localized latestEvent without deprecated decidingFactor', async () => {
+    const client = createControlApiClient({
+      fetch: async () =>
+        response({
+          matches: [
+            {
+              matchId: 'm-1',
+              stageNumber: 1,
+              matchNumber: 1,
+              round: 1,
+              status: 'final',
+              decidingFactor: 'Rule 2 (Goal average)',
+              decidingFactorCode: 'goal-average',
+              decidingFactorRule: 2,
+              latestEvent: {
+                definitionCode: 'goal',
+                label: 'Goal',
+                labels: { en: 'Goal', es: 'Gol' },
+                occurredAt: '2026-08-01T20:15:00.000Z',
+              },
+            },
+          ],
+        }),
+    });
+    const result = await client.fetchMatchesView?.('liga-orbital', 'copa-verano');
+    expect(result?.matches[0]).toMatchObject({
+      matchId: 'm-1',
+      state: 'final',
+      decidingFactorCode: 'goal-average',
+      decidingFactorRule: 2,
+      latestEvent: {
+        definitionCode: 'goal',
+        label: 'Goal',
+        labels: { en: 'Goal', es: 'Gol' },
+        occurredAt: '2026-08-01T20:15:00.000Z',
+      },
+    });
+    expect('decidingFactor' in (result?.matches[0] ?? {})).toBe(false);
+  });
+
   it('manages tournament emblems and formats tournament emblem URLs', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({

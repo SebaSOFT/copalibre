@@ -1,4 +1,6 @@
 import type { PublicMatchReportResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import type { SupportedLanguage } from '@copalibre/domain';
+import { eventLabel } from './event-label.js';
 
 /**
  * One recorded match event, adapted for the TV ticker from the same
@@ -46,10 +48,12 @@ export function buildActorDirectory(
  */
 export function buildEventLabelDirectory(
   response: PublicMatchReportResponse,
+  language: SupportedLanguage = 'en',
+  primaryLanguage: SupportedLanguage = 'en',
 ): Readonly<Record<string, string>> {
   const labels: Record<string, string> = {};
   for (const event of response.timeline) {
-    labels[event.definitionCode] = event.label;
+    labels[event.definitionCode] = eventLabel(event, language, primaryLanguage);
   }
   return labels;
 }
@@ -98,13 +102,15 @@ export function resolveLiveTvMatchEvent(
 export function buildTvMatchEvents(
   response: PublicMatchReportResponse,
   hiddenPersonLabel = 'Player hidden at their request',
+  language: SupportedLanguage = 'en',
+  primaryLanguage: SupportedLanguage = 'en',
 ): readonly TvMatchEvent[] {
   const actors = buildActorDirectory(response.rosters);
 
   return response.timeline.map((event) => ({
     eventId: event.eventId,
     definitionCode: event.definitionCode,
-    label: event.label,
+    label: eventLabel(event, language, primaryLanguage),
     occurredAt: event.occurredAt,
     ...(event.side === undefined
       ? {}

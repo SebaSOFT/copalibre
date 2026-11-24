@@ -1,6 +1,8 @@
 import type { SideSourceMessages } from '../../lib/side-source.js';
 import type { IntlShape } from 'react-intl';
 import type { MatchCardLabels } from '../../lib/i18n/public-intl.js';
+import { tiebreakerLabelsForCatalog } from '../../lib/tiebreaker-labels.js';
+import { TIEBREAKER_LABELS } from './tiebreaker-labels.js';
 import { messages } from '../i18n/messages.en.js';
 
 /**
@@ -52,6 +54,7 @@ export function matchCardLabelsFromControlIntl(intl: IntlShape): MatchCardLabels
     position: intl.formatMessage(messages.matchesViewPosition, { position: '{position}' }),
     decidedBy: intl.formatMessage(messages.matchesViewDecidedBy, { factor: '{factor}' }),
     decidedByAriaLabel: intl.formatMessage(messages.matchesViewDecidedByAriaLabel),
+    tiebreakers: tiebreakerLabelsForCatalog(intl, TIEBREAKER_LABELS),
     fullTraceHeading: intl.formatMessage(messages.matchesViewFullTraceHeading),
     seriesAriaLabel: intl.formatMessage(messages.matchesViewSeriesAriaLabel, {
       bestOf: '{bestOf}',

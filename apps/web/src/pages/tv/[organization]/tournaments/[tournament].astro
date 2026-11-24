@@ -236,7 +236,11 @@ if (layoutVariant !== 'kiosk') {
           ? [
               [
                 matchId,
-                buildTvMatchEvents(report, intl.formatMessage(messages.personHiddenAtRequest)),
+                buildTvMatchEvents(
+                  report,
+                  intl.formatMessage(messages.personHiddenAtRequest),
+                  language,
+                ),
               ],
             ]
           : [],
@@ -286,6 +290,7 @@ try {
     const rows = mapMatchesViewResponse(
       view,
       intl.formatMessage(messages.personHiddenAtRequest),
+      language,
     ).matches;
     venueNameByMatchId = Object.fromEntries(
       rows.flatMap((row) => (row.venueName === undefined ? [] : [[row.matchId, row.venueName]])),
