@@ -16,6 +16,7 @@ const HISPANO_ID = '01936f4a-0a00-7000-8000-000000000001';
 const LOMAS_ID = '01936f4a-0a00-7000-8000-000000000002';
 const TIRO_ID = '01936f4a-0a00-7000-8000-000000000004';
 const UNALIASED_ID = '01936f4a-0a00-7000-8000-000000000003';
+const ATLETICO_ID = '01936f4a-0a00-7000-8000-000000000005';
 
 const clubs = [
   { clubId: HISPANO_ID, name: 'Club Hispano', abbreviation: 'HIS', alias: 'club-hispano' },
@@ -27,6 +28,7 @@ const clubs = [
   },
   { clubId: TIRO_ID, name: 'Tiro Federal', abbreviation: 'TIR', alias: 'tiro-federal' },
   { clubId: UNALIASED_ID, name: 'Club Sin Alias', abbreviation: 'SIN' },
+  { clubId: ATLETICO_ID, name: 'Atlético Bello', abbreviation: 'ATB', alias: 'atletico-bello' },
 ];
 
 const overview = {
@@ -109,6 +111,17 @@ const matches = [
     awayClubAlias: 'tiro-federal',
     scheduledAt: '2026-12-05T21:00:00.000Z',
   },
+  // The final of the same zone: a bracket's deepest round names the rounds before it.
+  {
+    matchId: '00000000-0000-7000-8000-000000000203',
+    stageNumber: 2,
+    matchNumber: 35,
+    status: 'upcoming',
+    round: 3,
+    nodeKey: 'SE-R3-M1',
+    zoneName: 'Copa Oro',
+    scheduledAt: '2026-12-12T21:00:00.000Z',
+  },
 ];
 
 const groupStandings = {
@@ -117,10 +130,11 @@ const groupStandings = {
   label: 'Group Standings',
   columns: [
     { code: 'name', header: 'Team', format: 'text' },
-    { code: 'played', header: 'PJ', format: 'number' },
+    { code: 'pj', header: 'PJ', format: 'number' },
     { code: 'points', header: 'Pts', format: 'number' },
   ],
   defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+  promotionBands: [{ label: 'Copa Oro' }, { label: 'Copa Plata' }],
   rows: [
     {
       actorId: HISPANO_ID,
@@ -134,7 +148,7 @@ const groupStandings = {
       promotionSeed: 2,
       cells: {
         name: { formatted: 'Club Hispano' },
-        played: { raw: 2, formatted: '2' },
+        pj: { raw: 2, formatted: '2' },
         points: { raw: 6, formatted: '6' },
       },
     },
@@ -147,7 +161,7 @@ const groupStandings = {
       sharedRank: false,
       cells: {
         name: { formatted: 'Lomas de Rivadavia' },
-        played: { raw: 2, formatted: '2' },
+        pj: { raw: 2, formatted: '2' },
         points: { raw: 3, formatted: '3' },
       },
     },
@@ -158,9 +172,26 @@ const groupStandings = {
       clubAlias: 'tiro-federal',
       rank: 3,
       sharedRank: false,
+      promotionBandLabel: 'Copa Plata',
+      promotionBandIndex: 1,
       cells: {
         name: { formatted: 'Tiro Federal' },
-        played: { raw: 2, formatted: '2' },
+        pj: { raw: 2, formatted: '2' },
+        points: { raw: 0, formatted: '0' },
+      },
+    },
+    {
+      actorId: ATLETICO_ID,
+      entrantId: ATLETICO_ID,
+      clubId: ATLETICO_ID,
+      clubAlias: 'atletico-bello',
+      rank: 4,
+      sharedRank: false,
+      promotionBandLabel: 'Copa Oro',
+      promotionBandIndex: 0,
+      cells: {
+        name: { formatted: 'Atlético Bello' },
+        pj: { raw: 2, formatted: '2' },
         points: { raw: 0, formatted: '0' },
       },
     },
@@ -177,7 +208,7 @@ const squadRows = [
     publicProfileAvailable: true,
     cells: {
       name: { formatted: 'Aldo Cantoni' },
-      played: { raw: 2, formatted: '2' },
+      pj: { raw: 2, formatted: '2' },
       goals: { raw: 3, formatted: '3' },
     },
   },
@@ -189,7 +220,7 @@ const squadRows = [
     hiddenAtRequest: true,
     cells: {
       name: { formatted: 'Jugador Oculto' },
-      played: { raw: 1, formatted: '1' },
+      pj: { raw: 1, formatted: '1' },
       goals: { raw: 0, formatted: '0' },
     },
   },
@@ -201,7 +232,7 @@ const squadRows = [
     publicProfileAvailable: true,
     cells: {
       name: { formatted: 'Otro Jugador' },
-      played: { raw: 2, formatted: '2' },
+      pj: { raw: 2, formatted: '2' },
       goals: { raw: 1, formatted: '1' },
     },
   },
@@ -213,7 +244,7 @@ const squadLayout = {
   label: 'Top Scorers',
   columns: [
     { code: 'name', header: 'Player', format: 'text' },
-    { code: 'played', header: 'PJ', format: 'number' },
+    { code: 'pj', header: 'PJ', format: 'number' },
     { code: 'goals', header: 'Goals', format: 'number' },
   ],
   defaultSort: [{ columnCode: 'goals', direction: 'desc' }],
@@ -337,6 +368,15 @@ test('the club index lists every aliased club and leaves the unaliased one as pl
   await expect(page.locator(`a[href="${BASE}/clubs/lomas-de-rivadavia"]`)).toHaveCount(1);
   await expect(page.locator(`a[href="${BASE}/clubs/tiro-federal"]`)).toHaveCount(1);
   await expect(page.getByText('Club Sin Alias', { exact: true })).toBeVisible();
+  // Grouped by the declared bands: Copa Oro first, its clubs alphabetical; the unassigned clubs last.
+  const bandHeadings = page.locator('section[aria-labelledby^="club-band-"] h2');
+  await expect(bandHeadings.nth(0)).toHaveText('Copa Oro');
+  await expect(bandHeadings.nth(1)).toHaveText('Copa Plata');
+  await expect(bandHeadings.nth(2)).toHaveText('Unassigned');
+  const names = page.locator('.cl-club-identity__name');
+  await expect(names.nth(0)).toHaveText('Atlético Bello');
+  await expect(names.nth(1)).toHaveText('Club Hispano');
+  await expect(names.nth(2)).toHaveText('Tiro Federal');
   await expect(page.locator('a', { hasText: 'Club Sin Alias' })).toHaveCount(0);
 });
 
@@ -346,15 +386,26 @@ test('the club page shows identity, next match, standing, results, squad and the
   await page.goto(`${BASE}/clubs/club-hispano`);
 
   await expect(page.getByRole('heading', { level: 1, name: 'Club Hispano' })).toBeVisible();
-  await expect(
-    page.locator('section[aria-label="Club Hispano"] [data-promotion-band-index]'),
-  ).toHaveText('Copa Oro');
+  // The band is said once, in its own row; the status beneath it keeps the round alone.
+  await expect(page.locator('.cl-club-identity__badges [data-promotion-band-index]')).toHaveText(
+    'Copa Oro',
+  );
+  await expect(page.locator('.cl-club-identity__status')).toHaveText('In competition: Semi-finals');
+  // One H1 names the club; the standing heading is the only heading above its table.
+  await expect(page.locator('h1')).toHaveText('Club Hispano');
+  await expect(page.locator('section[aria-labelledby="club-standing-heading"] h2')).toHaveCount(1);
+  await expect(page.locator('section[aria-labelledby="club-standing-heading"] h2')).toHaveText(
+    'Standing',
+  );
   await expect(page.locator('#club-next-match-heading')).toBeVisible();
   await expect(
     page.locator('section[aria-labelledby="club-results-heading"] .cl-match-card-grid > li'),
   ).toHaveCount(2);
   await expect(page.locator('#club-standing-heading')).toBeVisible();
   await expect(page.locator('#club-squad-heading')).toBeVisible();
+  await expect(
+    page.locator('section[aria-labelledby="club-squad-heading"] th', { hasText: 'PJ' }),
+  ).toHaveCount(1);
   await expect(page.locator(`a[href="${BASE}/players/p-1?layout=top-scorers"]`)).toHaveCount(1);
   await expect(page.locator(`a[href*="/players/p-2"]`)).toHaveCount(0);
   await expect(page.getByText('Otro Jugador', { exact: true })).toHaveCount(0);
