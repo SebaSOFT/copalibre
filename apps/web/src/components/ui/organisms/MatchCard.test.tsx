@@ -27,8 +27,6 @@ const labels: MatchCardLabels = {
   zoneGroupAriaLabel: 'Zone/group: {scope}',
   positionInGroup: '{group} — position #{position}',
   position: 'Position #{position}',
-  decidedBy: 'Decided by: {factor}',
-  decidedByAriaLabel: 'A full explanation is available to an authorized organizer.',
   fullTraceHeading: 'Full standings comparator trace',
   seriesAriaLabel: 'Best of {bestOf} series: {home} to {away}',
   seriesPending: 'Series undecided at {home}–{away}',
@@ -291,67 +289,18 @@ describe('MatchCard', () => {
     expect(screen.queryByTitle(/^Position/)).toBeNull();
   });
 
-  it('shows the deciding-factor line localized by code only for a final match that carries one', () => {
+  it('never states a standings tie-break on a match card, even when the match row carries one', () => {
     const esLabels = matchCardLabels(publicIntl('es'));
-    const { rerender } = render(
+    const { container } = render(
       <MatchCard
         match={baseMatch({ state: 'final', decidingFactorCode: 'goal-average' })}
         labels={esLabels}
         locale="es"
       />,
     );
-    expect(screen.getByText('Decidido por: Promedio de goles')).toBeDefined();
 
-    rerender(
-      <MatchCard
-        match={baseMatch({ state: 'final', decidingFactorCode: 'disciplinary-points' })}
-        labels={labels}
-        locale="en"
-      />,
-    );
-    expect(screen.getByText('Decided by: Disciplinary points')).toBeDefined();
-
-    rerender(
-      <MatchCard
-        match={baseMatch({ state: 'final', decidingFactorCode: 'disciplinary-points' })}
-        labels={esLabels}
-        locale="es"
-      />,
-    );
-    expect(screen.getByText('Decidido por: Disciplinary points')).toBeDefined();
-
-    rerender(<MatchCard match={baseMatch({ state: 'final' })} labels={labels} locale="en" />);
-    expect(screen.queryByText(/^Decided by:/)).toBeNull();
-
-    rerender(
-      <MatchCard
-        match={baseMatch({ state: 'upcoming', decidingFactorCode: 'head-to-head' })}
-        labels={labels}
-        locale="en"
-      />,
-    );
-    expect(screen.queryByText(/^Decided by:/)).toBeNull();
-  });
-
-  it('renders latestEvent using the card locale when localized labels are present', () => {
-    const esLabels = matchCardLabels(publicIntl('es'));
-    render(
-      <MatchCard
-        match={baseMatch({
-          state: 'live',
-          latestEvent: {
-            definitionCode: 'goal',
-            label: 'Goal',
-            labels: { en: 'Goal', es: 'Gol' },
-            occurredAt: '2026-08-01T20:15:00.000Z',
-          },
-        })}
-        labels={esLabels}
-        locale="es"
-      />,
-    );
-    expect(screen.getByText('Gol')).toBeDefined();
-    expect(screen.queryByText('Goal')).toBeNull();
+    expect(container.textContent).not.toContain('Promedio de goles');
+    expect(container.querySelector('.cl-match-card__deciding-factor')).toBeNull();
   });
 
   it('never renders a trace panel when the response carries no trace (the public shape)', () => {

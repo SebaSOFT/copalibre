@@ -1539,9 +1539,6 @@ export const messages: Record<string, string> = {
   'control.matchesView.zoneGroupAriaLabel': 'Zone/Gruppe: {scope}',
   'control.matchesView.positionInGroup': '{group} — Position #{position}',
   'control.matchesView.position': 'Position #{position}',
-  'control.matchesView.decidedBy': 'Entschieden durch: {factor}',
-  'control.matchesView.decidedByAriaLabel':
-    'Der entscheidende Faktor zwischen gleichstehenden Tabellenplätzen.',
   'control.matchesView.fullTraceHeading': 'Vollständige Spur des Tabellenvergleichs',
   'control.matchesView.versus': 'vs',
   'control.matchesView.resultState.live': 'LIVE',

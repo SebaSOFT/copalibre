@@ -14,6 +14,7 @@ import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
 import type { ClubView, StandingsRowView } from '../../../lib/overview.ts';
 import { columnHint } from '../../../lib/column-hints.ts';
 import { filterProjectionRowsByQuery } from '../../../lib/player-search.ts';
+import { standingsTieBreaks } from '../../../lib/standings-tie-breaks.ts';
 import Button from '../atoms/Button.astro';
 import Icon from '../atoms/Icon.astro';
 import SearchInput from '../atoms/SearchInput.astro';
@@ -142,6 +143,7 @@ type DisplayRow = Pick<TableRowResponse, 'actorName' | 'cells'> &
       | 'promotionBandLabel'
       | 'promotionBandIndex'
       | 'promotionSeed'
+      | 'separatedFromAboveBy'
     >
   >;
 const allRows: readonly DisplayRow[] =
@@ -187,6 +189,17 @@ const rows: readonly DisplayRow[] =
   showSearch && effectiveSearchQuery.trim().length > 0
     ? filterProjectionRowsByQuery(allRows, effectiveSearchQuery)
     : allRows;
+// Which later column separated rows level on the leading one, read from the table's own order so the
+// list agrees with it. Stated only for a complete entrant table: a club filter or a search no longer
+// shows each pair side by side, and a player table's secondary columns are noise here.
+const tieBreaks =
+  previewRows === undefined &&
+  !isPlayerRanking &&
+  activeClubAlias === undefined &&
+  activeClubId === undefined &&
+  rows === allRows
+    ? standingsTieBreaks(allRows, projection?.columns ?? [], intl.locale)
+    : [];
 const rowClassNames = rows.map((row, index) => {
   const classes: string[] = [];
   if (previewRows !== undefined) classes.push(index % 2 === 0 ? 'cl-row' : 'cl-row--alt');
@@ -766,6 +779,22 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
             <p class="cl-standings-empty" data-standings-empty hidden>
               {intl.formatMessage(messages.standingsEmpty)}
             </p>
+            {tieBreaks.length > 0 && (
+              <div
+                class="cl-standings-tie-breaks"
+                role="group"
+                aria-label={intl.formatMessage(messages.standingsTieBreaksHeading)}
+              >
+                <p class="cl-standings-tie-breaks__heading">
+                  {intl.formatMessage(messages.standingsTieBreaksHeading)}
+                </p>
+                <ul class="cl-standings-tie-breaks__list">
+                  {tieBreaks.map((tieBreak) => (
+                    <li>{intl.formatMessage(messages.standingsTieBreakLine, { ...tieBreak })}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -1307,6 +1336,21 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
     gap: 8px;
     margin-bottom: 16px;
     flex-wrap: wrap;
+  }
+  .cl-standings-tie-breaks {
+    margin: var(--cl-space-3) 0 0 0;
+    font-size: var(--cl-font-size-xs);
+    color: var(--cl-text-muted);
+  }
+  .cl-standings-tie-breaks__heading {
+    margin: 0;
+    font-weight: var(--cl-weight-semibold);
+    color: var(--cl-text-secondary);
+  }
+  .cl-standings-tie-breaks__list {
+    margin: var(--cl-space-1) 0 0 0;
+    padding: 0;
+    list-style: none;
   }
   .cl-table-legend {
     display: flex;

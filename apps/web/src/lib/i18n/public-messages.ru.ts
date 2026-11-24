@@ -287,6 +287,8 @@ export const messages: Record<string, string> = {
     '{count, plural, one {# поле} few {# поля} many {# полей} other {# поля}}',
   'publicWeb.standings.entrantCount':
     '{count, plural, one {# участник} few {# участника} many {# участников} other {# участника}}',
+  'publicWeb.standings.tieBreaksHeading': 'Разрешение равенства',
+  'publicWeb.standings.tieBreakLine': '{above} выше {below} по критерию «{criterion}»',
   'publicWeb.standings.tiebreakLine': 'Критерии распределения мест: {list}',
   'publicWeb.matchesView.scheduledAtAriaLabel': 'Начало: {time}',
   'publicWeb.matchesView.latestEventAriaLabel': 'Последнее событие: {event}',
@@ -316,9 +318,6 @@ export const messages: Record<string, string> = {
   'publicWeb.matchesView.viewCards': 'Карточки',
   'publicWeb.matchesView.positionInGroup': '{group} — позиция №{position}',
   'publicWeb.matchesView.position': 'Позиция №{position}',
-  'publicWeb.matchesView.decidedBy': 'Решено по: {factor}',
-  'publicWeb.matchesView.decidedByAriaLabel':
-    'Решающий фактор между позициями с равными показателями. Полное объяснение доступно уполномоченному организатору в панели управления.',
   'publicWeb.matchesView.fullTraceHeading': 'Полная трассировка компаратора турнирной таблицы',
   'publicWeb.matchesView.seeAll': 'Смотреть все матчи',
   'publicWeb.overview.nextMatches': 'Следующие матчи',

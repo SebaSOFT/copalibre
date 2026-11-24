@@ -182,7 +182,6 @@ describe('publicIntl formats real translated text, not an English fallback', () 
     // props, which a function does not survive.
     const labels = matchCardLabels(publicIntl('es'));
     expect(labels.clockAriaLabel).toBe('Tiempo transcurrido: {time}');
-    expect(labels.decidedBy).toBe('Decidido por: {factor}');
     expect(labels.seriesAriaLabel).toBe('Serie al mejor de {bestOf}: {home} a {away}');
     expect(labels.filters.live).toBe('En vivo');
     expect(labels.state.final).toBe('Finalizado');

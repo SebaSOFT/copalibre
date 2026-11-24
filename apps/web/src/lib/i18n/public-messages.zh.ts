@@ -279,6 +279,8 @@ export const messages: Record<string, string> = {
   'publicWeb.overview.venueAddress': '地址',
   'publicWeb.overview.venueCourtCount': '{count, plural, other {# 块场地}}',
   'publicWeb.standings.entrantCount': '{count, plural, other {# 名参赛者}}',
+  'publicWeb.standings.tieBreaksHeading': '平局判定',
+  'publicWeb.standings.tieBreakLine': '{above} 凭{criterion}排在 {below} 之前',
   'publicWeb.standings.tiebreakLine': '平局判定：{list}',
   'publicWeb.matchesView.scheduledAtAriaLabel': '开赛时间：{time}',
   'publicWeb.matchesView.latestEventAriaLabel': '最新事件：{event}',
@@ -307,9 +309,6 @@ export const messages: Record<string, string> = {
   'publicWeb.matchesView.viewCards': '卡片',
   'publicWeb.matchesView.positionInGroup': '{group} — 第 {position} 名',
   'publicWeb.matchesView.position': '第 {position} 名',
-  'publicWeb.matchesView.decidedBy': '决定因素：{factor}',
-  'publicWeb.matchesView.decidedByAriaLabel':
-    '并列名次之间的决定因素。获授权的组织者可在控制面板查看完整说明。',
   'publicWeb.matchesView.fullTraceHeading': '完整的排名比较器追踪记录',
   'publicWeb.matchesView.seeAll': '查看所有比赛',
   'publicWeb.overview.nextMatches': '接下来的比赛',

@@ -369,8 +369,6 @@ export interface MatchCardLabels {
   readonly zoneGroupAriaLabel: string;
   readonly positionInGroup: string;
   readonly position: string;
-  readonly decidedBy: string;
-  readonly decidedByAriaLabel: string;
   readonly tiebreakers?: Readonly<Record<string, string>>;
   readonly fullTraceHeading: string;
   readonly seriesAriaLabel: string;
@@ -429,8 +427,6 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
       position: '{position}',
     }),
     position: intl.formatMessage(messages.matchesViewPosition, { position: '{position}' }),
-    decidedBy: intl.formatMessage(messages.matchesViewDecidedBy, { factor: '{factor}' }),
-    decidedByAriaLabel: intl.formatMessage(messages.matchesViewDecidedByAriaLabel),
     tiebreakers: tiebreakerLabelsForCatalog(intl, PUBLIC_TIEBREAKER_LABELS),
     fullTraceHeading: intl.formatMessage(messages.matchesViewFullTraceHeading),
     seriesAriaLabel: intl.formatMessage(messages.seriesAriaLabel, {

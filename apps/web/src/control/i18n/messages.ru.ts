@@ -1519,9 +1519,6 @@ export const messages: Record<string, string> = {
   'control.matchesView.zoneGroupAriaLabel': 'Зона/группа: {scope}',
   'control.matchesView.positionInGroup': '{group} — позиция №{position}',
   'control.matchesView.position': 'Позиция №{position}',
-  'control.matchesView.decidedBy': 'Решено по: {factor}',
-  'control.matchesView.decidedByAriaLabel':
-    'Решающий фактор между позициями с равными показателями.',
   'control.matchesView.fullTraceHeading': 'Полная трассировка компаратора турнирной таблицы',
   'control.matchesView.versus': 'vs',
   'control.matchesView.resultState.live': 'В эфире',

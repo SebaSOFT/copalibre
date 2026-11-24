@@ -1443,8 +1443,6 @@ export const messages: Record<string, string> = {
   'control.matchesView.zoneGroupAriaLabel': '区域/小组：{scope}',
   'control.matchesView.positionInGroup': '{group} — 第 {position} 名',
   'control.matchesView.position': '第 {position} 名',
-  'control.matchesView.decidedBy': '决定因素：{factor}',
-  'control.matchesView.decidedByAriaLabel': '并列名次之间的决定因素。',
   'control.matchesView.fullTraceHeading': '完整的排名比较器追踪记录',
   'control.matchesView.versus': 'vs',
   'control.matchesView.resultState.live': '进行中',

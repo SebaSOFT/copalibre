@@ -7,7 +7,6 @@ import { useHydrated } from '../../../lib/island-browser-state.js';
 import { useLiveScoreboardPatch } from '../../../lib/live-scoreboard-hooks.js';
 import { activeSegmentLabel } from '../../../lib/segment-label.js';
 import { eventLabel } from '../../../lib/event-label.js';
-import { resolveTiebreakerLabel } from '../../../lib/tiebreaker-labels.js';
 import { Badge } from '../atoms/Badge.js';
 import { Icon } from '../atoms/icon.js';
 import { Card } from '../atoms/Card.js';
@@ -559,19 +558,6 @@ export function MatchCard({
           homeName={match.homeName}
           awayName={match.awayName}
         />
-      )}
-
-      {match.state === 'final' && match.decidingFactorCode !== undefined && (
-        <p className="cl-match-card__deciding-factor" title={labels.decidedByAriaLabel}>
-          {applyTemplate(labels.decidedBy, {
-            factor: resolveTiebreakerLabel(
-              match.decidingFactorCode,
-              labels.tiebreakers,
-              undefined,
-              language,
-            ),
-          })}
-        </p>
       )}
 
       {hasFullTrace && (

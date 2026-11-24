@@ -378,6 +378,14 @@ export const messages = defineMessages({
     id: 'publicWeb.standings.filterClubLabel',
     defaultMessage: 'Club',
   },
+  standingsTieBreaksHeading: {
+    id: 'publicWeb.standings.tieBreaksHeading',
+    defaultMessage: 'Tiebreaks',
+  },
+  standingsTieBreakLine: {
+    id: 'publicWeb.standings.tieBreakLine',
+    defaultMessage: '{above} ahead of {below} on {criterion}',
+  },
   standingsColumnLegend: {
     id: 'publicWeb.standings.columnLegend',
     defaultMessage: 'Table abbreviations',
@@ -833,15 +841,6 @@ export const messages = defineMessages({
   matchesViewPosition: {
     id: 'publicWeb.matchesView.position',
     defaultMessage: 'Position #{position}',
-  },
-  matchesViewDecidedBy: {
-    id: 'publicWeb.matchesView.decidedBy',
-    defaultMessage: 'Decided by: {factor}',
-  },
-  matchesViewDecidedByAriaLabel: {
-    id: 'publicWeb.matchesView.decidedByAriaLabel',
-    defaultMessage:
-      'The deciding factor between tied standings rows. A full explanation is available to an authorized organizer in the control panel.',
   },
   matchesViewFullTraceHeading: {
     id: 'publicWeb.matchesView.fullTraceHeading',

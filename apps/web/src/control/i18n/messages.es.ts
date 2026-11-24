@@ -1520,8 +1520,6 @@ export const messages: Record<string, string> = {
   'control.matchesView.zoneGroupAriaLabel': 'Zona/grupo: {scope}',
   'control.matchesView.positionInGroup': '{group} — posición #{position}',
   'control.matchesView.position': 'Posición #{position}',
-  'control.matchesView.decidedBy': 'Decidido por: {factor}',
-  'control.matchesView.decidedByAriaLabel': 'El factor decisivo entre posiciones empatadas.',
   'control.matchesView.fullTraceHeading': 'Traza completa del comparador de posiciones',
   'control.matchesView.versus': 'vs',
   'control.matchesView.resultState.live': 'En vivo',

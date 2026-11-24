@@ -1513,8 +1513,6 @@ export const messages: Record<string, string> = {
   'control.matchesView.zoneGroupAriaLabel': 'Zona/grupo: {scope}',
   'control.matchesView.positionInGroup': '{group} — posição nº {position}',
   'control.matchesView.position': 'Posição nº {position}',
-  'control.matchesView.decidedBy': 'Decidido por: {factor}',
-  'control.matchesView.decidedByAriaLabel': 'O fator decisivo entre posições empatadas.',
   'control.matchesView.fullTraceHeading': 'Rastro completo do comparador de classificação',
   'control.matchesView.versus': 'vs',
   'control.matchesView.resultState.live': 'Ao vivo',

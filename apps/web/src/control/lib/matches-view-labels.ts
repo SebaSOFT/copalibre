@@ -52,8 +52,6 @@ export function matchCardLabelsFromControlIntl(intl: IntlShape): MatchCardLabels
       position: '{position}',
     }),
     position: intl.formatMessage(messages.matchesViewPosition, { position: '{position}' }),
-    decidedBy: intl.formatMessage(messages.matchesViewDecidedBy, { factor: '{factor}' }),
-    decidedByAriaLabel: intl.formatMessage(messages.matchesViewDecidedByAriaLabel),
     tiebreakers: tiebreakerLabelsForCatalog(intl, TIEBREAKER_LABELS),
     fullTraceHeading: intl.formatMessage(messages.matchesViewFullTraceHeading),
     seriesAriaLabel: intl.formatMessage(messages.matchesViewSeriesAriaLabel, {
