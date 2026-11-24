@@ -1206,3 +1206,17 @@ A public tournament card on the organization page or the site home SHALL show th
 
 - **WHEN** a Spanish organization page lists a rink hockey tournament whose discipline is named "Hockey sobre patines" in Spanish
 - **THEN** the card reads "Hockey sobre patines", not "Rink Hockey"
+
+### Requirement: A tournament listing card states its stage and schedule window
+
+An in-progress or upcoming tournament's listing card SHALL show its first and last match days in the organization's time zone, its venue count, and, while in progress, the name of the stage in play and its played and total match counts. A field the tournament lacks SHALL be omitted, never shown empty.
+
+#### Scenario: In progress
+
+- **WHEN** a tournament with matches from 18 to 24 November at seven venues is in its cup stage with 48 of 72 matches played
+- **THEN** its card shows 18–24 November, seven venues, the cup stage's name and 48 of 72 matches
+
+#### Scenario: No schedule yet
+
+- **WHEN** an upcoming tournament has no scheduled match
+- **THEN** its card shows no date range and no progress

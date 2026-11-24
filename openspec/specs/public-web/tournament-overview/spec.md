@@ -118,11 +118,15 @@ tabs allowing spectators to jump between zones.
 - **THEN** its section renders a matches grid accompanied by that zone's standings table
 
 ### Requirement: Tournament progress is shown per stage, zone and group
-The tournament page's progress card SHALL show an overall bar and one bar per stage, and for a stage with zones or groups one bar per zone or group, each labelled with its name and its played and total counts. Every bar SHALL have a text alternative and SHALL NOT convey state by colour alone. The card SHALL size to its content and SHALL NOT span the page width when it has little to show.
+The tournament page SHALL state in its hero which stages are finished and which stage is in play with its played and total counts, and SHALL show after the now strip a progress card with an overall bar and one bar per stage and per zone or group, each labelled with its name and counts. Every bar SHALL have a text alternative and SHALL NOT convey state by colour alone. The card SHALL size to its content.
 
 #### Scenario: A staged tournament shows nested progress
 - **WHEN** a tournament has a group stage of six groups and a cup stage of three zones
 - **THEN** the card shows the overall bar, one bar for each stage and one bar for each group and zone with its counts
+
+#### Scenario: The hero names the stage in play
+- **WHEN** the group stage is complete and each cup has played 4 of its 12 matches
+- **THEN** the hero reads that the group stage is finished and that the cup stage is in play, with each cup's 4 of 12
 
 #### Scenario: A tournament with no matches stays unmeasured
 - **WHEN** the tournament has no matches
@@ -238,12 +242,17 @@ Each listed venue SHALL open a popup with its name, address and court count, und
 
 ### Requirement: The standings header states the entrant count and tiebreakers
 
-The overview standings header SHALL show how many entrants it ranks and the first three tiebreakers in order, followed by an ellipsis when more are declared.
+The overview standings header SHALL show how many entrants it ranks and the first three tiebreakers in order, followed by an ellipsis when more are declared, only for a team or club table. A player-ranking table SHALL show neither.
 
 #### Scenario: Five tiebreakers
 
 - **WHEN** the ruleset declares five tiebreakers for 24 entrants
 - **THEN** the header shows 24 entrants and the first three tiebreakers followed by an ellipsis
+
+#### Scenario: Player statistics carry no team subtitle
+
+- **WHEN** a spectator opens the player-statistics view of the overview
+- **THEN** no entrant count or team tiebreak line is shown above the player table
 
 ### Requirement: The standings table fills its panel
 
@@ -253,3 +262,26 @@ The public standings table SHALL span the full width of its panel, with the name
 
 - **WHEN** a visitor opens standings at 1440 px
 - **THEN** the table is as wide as its panel and its name column is its widest
+
+### Requirement: The ruleset section states each stage's format
+
+When a tournament has more than one stage, the ruleset section's format entry SHALL name each stage with its own format, and a zone whose format differs from its stage's SHALL be named with its own. A single-stage tournament keeps its single format entry.
+
+#### Scenario: Groups then cups
+
+- **WHEN** a tournament has a round-robin group stage named "Fase de grupos" and a knockout stage named "Copas"
+- **THEN** the format entry names both stages with their formats and does not state a single round-robin format for the tournament
+
+### Requirement: A banded knockout stage states overall places
+
+When a promotion plan's bands map one to one onto a knockout stage's zones and cover contiguous ranges from 1, each placement shown on public and TV surfaces SHALL state its overall place, the zone's offset plus the place within it, and a finished stage's overview SHALL list every entrant by overall place. Without such a mapping no overall place SHALL be stated.
+
+#### Scenario: Fifth place of the third cup
+
+- **WHEN** three bands of eight entrants feed Copa Oro, Copa Plata and Copa Bronce in that order
+- **THEN** Copa Bronce's fifth-place match states 21st overall and Copa Oro's states 5th overall
+
+#### Scenario: Overlapping bands
+
+- **WHEN** a zone is fed by two bands whose ranges are not contiguous
+- **THEN** its placements state only their place within the zone
