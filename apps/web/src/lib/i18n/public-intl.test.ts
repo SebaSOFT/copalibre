@@ -1,6 +1,8 @@
 import {
   bracketBranchLabel,
   bracketRoleLabel,
+  formatClubStatus,
+  knockoutRoundLabel,
   matchCardLabels,
   formatActor,
   formatDateTime,
@@ -428,5 +430,52 @@ describe('bracketRoleLabel', () => {
     expect(bracketRoleLabel(publicIntl('es'), 'place-5', 16)).toBe('5º puesto · 21.º general');
     expect(bracketRoleLabel(publicIntl('en'), 'place-5')).toBe('5th place');
     expect(bracketRoleLabel(publicIntl('en'), 'places-5-8', 16)).toBe('5th–8th place');
+  });
+});
+
+describe('knockoutRoundLabel and formatClubStatus', () => {
+  it('formats knockout round labels across round kinds', () => {
+    const intl = publicIntl('en');
+    expect(knockoutRoundLabel(intl, 'final')).toBe('Final');
+    expect(knockoutRoundLabel(intl, 'semiFinal')).toBe('Semi-finals');
+    expect(knockoutRoundLabel(intl, 'quarterFinal')).toBe('Quarter-finals');
+    expect(knockoutRoundLabel(intl, 'round', 2)).toBe('Round 2');
+    expect(knockoutRoundLabel(intl, 'round')).toBe('Round 1');
+  });
+
+  it('formats all club tournament status variants', () => {
+    const intl = publicIntl('en');
+    expect(formatClubStatus(intl, undefined)).toBeUndefined();
+    expect(formatClubStatus(intl, { kind: 'groupStage' })).toBe('Group stage');
+    expect(
+      formatClubStatus(intl, {
+        kind: 'inCompetition',
+        zone: 'Gold Cup',
+        roundKind: 'semiFinal',
+        roundNumber: 2,
+      }),
+    ).toBe('In competition: Gold Cup, Semi-finals');
+    expect(
+      formatClubStatus(intl, {
+        kind: 'inCompetition',
+        roundKind: 'final',
+        roundNumber: 3,
+      }),
+    ).toBe('In competition: Final');
+    expect(
+      formatClubStatus(intl, {
+        kind: 'eliminated',
+        zone: 'Silver Cup',
+        roundKind: 'quarterFinal',
+        roundNumber: 1,
+      }),
+    ).toBe('Eliminated in Quarter-finals of Silver Cup');
+    expect(
+      formatClubStatus(intl, {
+        kind: 'eliminated',
+        roundKind: 'round',
+        roundNumber: 1,
+      }),
+    ).toBe('Eliminated in Round 1');
   });
 });
