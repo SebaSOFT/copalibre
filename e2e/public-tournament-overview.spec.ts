@@ -1032,10 +1032,9 @@ test.describe('public empty states without JavaScript', () => {
     );
     await expect(navigation.getByRole('link', { name: 'Equipos', exact: true })).toHaveAttribute(
       'href',
-      `${PAGE}#teams`,
+      `${PAGE}/clubs`,
     );
     await expect(page.locator('#standings')).toBeAttached();
-    await expect(page.locator('#teams')).toBeAttached();
   });
 
   test('the completed overview leads with the honour board without JavaScript', async ({

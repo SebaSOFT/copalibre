@@ -63,6 +63,7 @@ const groupStandingsFixture = {
     {
       actorId: 'Talleres',
       entrantId: 'Talleres',
+      clubId: 'club-talleres',
       rank: 1,
       sharedRank: false,
       cells: {
@@ -76,6 +77,7 @@ const groupStandingsFixture = {
     {
       actorId: 'Independiente',
       entrantId: 'Independiente',
+      clubId: 'club-independiente',
       rank: 2,
       sharedRank: false,
       cells: {
@@ -505,8 +507,17 @@ test.describe('B2: public tournament page', () => {
         },
       ],
       clubs: [
-        { clubId: 'club-talleres', name: 'Club Atlético Talleres', abbreviation: 'TAL' },
-        { clubId: 'club-independiente', name: 'Club Atlético Independiente' },
+        {
+          clubId: 'club-talleres',
+          name: 'Club Atlético Talleres',
+          abbreviation: 'TAL',
+          alias: 'club-talleres',
+        },
+        {
+          clubId: 'club-independiente',
+          name: 'Club Atlético Independiente',
+          alias: 'club-independiente',
+        },
       ],
       ruleset: {},
     };
@@ -637,8 +648,18 @@ test.describe('B2: public tournament page', () => {
       organizationAlias: ORGANIZATION,
       organizationName: 'Liga Mendocina',
       clubs: [
-        { clubId: 'club-talleres', name: 'Club Atlético Talleres', abbreviation: 'TAL' },
-        { clubId: 'club-independiente', name: 'Club Atlético Independiente', abbreviation: 'IND' },
+        {
+          clubId: 'club-talleres',
+          name: 'Club Atlético Talleres',
+          abbreviation: 'TAL',
+          alias: 'club-talleres',
+        },
+        {
+          clubId: 'club-independiente',
+          name: 'Club Atlético Independiente',
+          abbreviation: 'IND',
+          alias: 'club-independiente',
+        },
       ],
       tournaments: [
         {
@@ -693,8 +714,18 @@ test.describe('B2: public tournament page', () => {
       seasonName: '2025',
       matches: [],
       clubs: [
-        { clubId: 'club-talleres', name: 'Club Atlético Talleres', abbreviation: 'TAL' },
-        { clubId: 'club-independiente', name: 'Club Atlético Independiente', abbreviation: 'IND' },
+        {
+          clubId: 'club-talleres',
+          name: 'Club Atlético Talleres',
+          abbreviation: 'TAL',
+          alias: 'club-talleres',
+        },
+        {
+          clubId: 'club-independiente',
+          name: 'Club Atlético Independiente',
+          abbreviation: 'IND',
+          alias: 'club-independiente',
+        },
       ],
       ruleset: {},
     };
@@ -808,11 +839,11 @@ test.describe('B2: public tournament page', () => {
         res.end(JSON.stringify(disciplineDrilldownTableFixture));
         return;
       }
-      if (req.url === `${TOURNAMENT}/public/tables/top-scorers?clubId=club-talleres`) {
+      if (req.url === `${TOURNAMENT}/public/tables/top-scorers?club=club-talleres`) {
         res.end(JSON.stringify(topScorersFixture));
         return;
       }
-      if (req.url === `${TOURNAMENT}/public/tables/top-scorers?clubId=club-independiente`) {
+      if (req.url === `${TOURNAMENT}/public/tables/top-scorers?club=club-independiente`) {
         res.end(JSON.stringify(topScorersFilteredToIndependiente));
         return;
       }
@@ -1070,7 +1101,7 @@ test.describe('B2: public tournament page', () => {
 
     const chip = page.getByRole('link', { name: 'Club Atlético Independiente' });
     await chip.click();
-    await expect(page).toHaveURL(/clubId=club-independiente/);
+    await expect(page).toHaveURL(/club=club-independiente/);
     await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toHaveCount(0);
     expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
 
@@ -1150,7 +1181,7 @@ test.describe('B2: public tournament page', () => {
     // No emblem uploaded in this fixture: the stored abbreviation stands in.
     await expect(chip.locator('.cl-entrant-emblem__monogram')).toHaveText('TAL');
 
-    const emblem = chip.locator('.cl-entrant-emblem--small');
+    const emblem = chip.locator('.cl-entrant-emblem--small').first();
     await expect(emblem).toBeVisible();
     const emblemBox = await emblem.boundingBox();
     expect(emblemBox?.width).toBe(32);
@@ -1224,7 +1255,11 @@ test.describe('B2: public tournament page', () => {
     // one filtering link.
     const independienteFilter = page.getByRole('link', { name: 'Club Atlético Independiente' });
     await independienteFilter.click();
-    await page.waitForURL(/clubId=club-independiente/);
+    await page.waitForURL(/club=club-independiente/);
+    await expect(page.getByRole('link', { name: 'Download CSV' })).toHaveAttribute(
+      'href',
+      /club=club-independiente/,
+    );
 
     // Only that club's player, with the same row data the unfiltered table
     // showed for them — not recomputed as if they led a smaller table (the
@@ -1250,6 +1285,33 @@ test.describe('B2: public tournament page', () => {
 
     // Matches / ticker is unaffected throughout.
     await expect(page.getByRole('heading', { name: 'Matches' }).first()).toBeVisible();
+  });
+
+  test('a team name in the standings opens its club page', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    await page.locator('[data-full-layout-code="group-standings-default"]').click();
+
+    await page
+      .locator(`a[href="/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/clubs/club-talleres"]`)
+      .first()
+      .click();
+
+    await expect(page).toHaveURL(
+      new RegExp(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/clubs/club-talleres$`),
+    );
+  });
+
+  test('a legacy clubId page URL answers 301 to the club alias form', async ({ page }) => {
+    const response = await page.request.get(
+      `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}?clubId=club-independiente&tab=group-standings-default`,
+      { maxRedirects: 0 },
+    );
+
+    expect(response.status()).toBe(301);
+    const location = response.headers()['location'] ?? '';
+    expect(location).toContain('club=club-independiente');
+    expect(location).toContain('tab=group-standings-default');
+    expect(location).not.toContain('clubId=');
   });
 
   test('standings render a visible header row and never overflow the page at 375px', async ({

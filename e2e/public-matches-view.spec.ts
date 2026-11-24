@@ -105,10 +105,51 @@ const undecidedFinal = {
 let apiServer: Server;
 let liveAtZero = false;
 let multiDayMode = false;
+let clubMode = false;
 test.beforeEach(() => {
   liveAtZero = false;
   multiDayMode = false;
+  clubMode = false;
 });
+
+const clubRows = [
+  {
+    matchId: '00000000-0000-7000-8000-000000000301',
+    stageNumber: 1,
+    matchNumber: 1,
+    status: 'upcoming',
+    round: 1,
+    homeName: 'Club Andes',
+    homeClubAlias: 'andes-talleres',
+    awayName: 'Deportivo Sur',
+    awayClubAlias: 'deportivo-sur',
+    scheduledAt: '2026-08-28T18:00:00.000Z',
+  },
+  {
+    matchId: '00000000-0000-7000-8000-000000000302',
+    stageNumber: 1,
+    matchNumber: 2,
+    status: 'upcoming',
+    round: 1,
+    homeName: 'Palmira',
+    homeClubAlias: 'palmira',
+    awayName: 'Club Andes',
+    awayClubAlias: 'andes-talleres',
+    scheduledAt: '2026-08-28T19:00:00.000Z',
+  },
+  {
+    matchId: '00000000-0000-7000-8000-000000000303',
+    stageNumber: 1,
+    matchNumber: 3,
+    status: 'upcoming',
+    round: 1,
+    homeName: 'Huracán',
+    homeClubAlias: 'huracan',
+    awayName: 'Deportivo Sur',
+    awayClubAlias: 'deportivo-sur',
+    scheduledAt: '2026-08-28T20:00:00.000Z',
+  },
+];
 
 function buenosAiresDayKey(offsetDays: number): string {
   const todayKey = new Intl.DateTimeFormat('en-CA', {
@@ -185,15 +226,17 @@ test.beforeAll(async ({ workerPort }) => {
     }
     if (path === `${TOURNAMENT}/matches-view`) {
       const state = new URLSearchParams(query).get('state');
-      const matches = multiDayMode
-        ? multiDayMatches()
-        : liveAtZero
-          ? [undecidedFinal, liveAtZeroMatch]
-          : state === 'live'
-            ? [liveMatch]
-            : state === 'final'
-              ? [finalizedMatch]
-              : [finalizedMatch, liveMatch];
+      const matches = clubMode
+        ? clubRows
+        : multiDayMode
+          ? multiDayMatches()
+          : liveAtZero
+            ? [undecidedFinal, liveAtZeroMatch]
+            : state === 'live'
+              ? [liveMatch]
+              : state === 'final'
+                ? [finalizedMatch]
+                : [finalizedMatch, liveMatch];
       res.end(JSON.stringify({ matches }));
       return;
     }
@@ -661,4 +704,22 @@ test.describe('match card timestamp locale', () => {
     ).toEqual([]);
     expect(pageErrors).toEqual([]);
   });
+});
+
+test('the club filter narrows the schedule to one club by alias with JavaScript disabled', async ({
+  browser,
+}) => {
+  clubMode = true;
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${matchesPath}?club=andes-talleres`);
+
+  const body = page.locator('body');
+  await expect(body).toContainText('Palmira');
+  await expect(body).toContainText('Club Andes');
+  await expect(body).not.toContainText('Huracán');
+
+  await context.close();
 });
