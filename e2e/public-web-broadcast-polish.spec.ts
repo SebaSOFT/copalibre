@@ -189,7 +189,7 @@ test.afterAll(async () => {
 });
 
 test.describe('Public Web & Broadcast Polish', () => {
-  test('stage and player pages use centered public and reading columns', async ({ page }) => {
+  test('stage and player pages use centered public columns', async ({ page }) => {
     await expectCenteredPageContainer(
       page,
       `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`,
@@ -198,7 +198,7 @@ test.describe('Public Web & Broadcast Polish', () => {
     await expectCenteredPageContainer(
       page,
       `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/${PERSON_ID}`,
-      'reading',
+      'public',
     );
   });
 
