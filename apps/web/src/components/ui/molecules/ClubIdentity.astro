@@ -3,7 +3,8 @@
  * A club's crest with its name and abbreviation: the one identity block every club surface shares.
  * With `href` the block is a link; without it, the same markup is plain content. With `headingLevel`
  * the name is that heading, so a page whose identity is its title states the name once. The `badges`
- * slot sits on its own row, and the `status` slot on a row below it.
+ * slot sits on its own row, and the `status` slot on a row below it. `size="lg"` is the page-title
+ * scale: the name takes the `h1` type size, so a club page's identity outranks its section headings.
  */
 import EmblemImage from '../atoms/EmblemImage.astro';
 
@@ -13,7 +14,7 @@ interface Props {
   readonly emblemSrc?: string;
   readonly placeholderAlt: string;
   readonly href?: string;
-  readonly size?: 'sm' | 'md';
+  readonly size?: 'sm' | 'md' | 'lg';
   readonly headingLevel?: 1 | 2 | 3;
 }
 
@@ -35,7 +36,7 @@ const NameTag = headingLevel === undefined ? 'span' : (`h${headingLevel}` as 'h1
   href={href}
 >
   <EmblemImage
-    size={size === 'sm' ? 32 : 48}
+    size={size === 'sm' ? 32 : size === 'lg' ? 64 : 48}
     src={emblemSrc}
     abbreviation={abbreviation}
     alt={name}
@@ -89,6 +90,16 @@ const NameTag = headingLevel === undefined ? 'span' : (`h${headingLevel}` as 'h1
 
   .cl-club-identity--sm .cl-club-identity__name {
     font-size: var(--cl-font-size-base);
+  }
+
+  .cl-club-identity--lg {
+    gap: var(--cl-space-4);
+  }
+
+  .cl-club-identity--lg .cl-club-identity__name {
+    font-size: var(--cl-font-size-3xl);
+    line-height: var(--cl-line-height-display);
+    letter-spacing: var(--cl-tracking-wide);
   }
 
   .cl-club-identity__abbr {
