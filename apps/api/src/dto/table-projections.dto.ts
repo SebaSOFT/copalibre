@@ -50,6 +50,13 @@ export class TableRowResponse {
   })
   nationality?: string;
 
+  @ApiPropertyOptional({
+    oneOf: [{ type: 'number' }, { type: 'string' }],
+    description:
+      'Shirt number from the person’s most recent finalized match roster in the tournament, when recorded',
+  })
+  shirtNumber?: number | string;
+
   @ApiPropertyOptional({ description: 'The person requested to be hidden from public pages' })
   hiddenAtRequest?: boolean;
 

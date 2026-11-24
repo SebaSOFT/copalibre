@@ -464,12 +464,17 @@ Below the 768px breakpoint, Matches and the stage page SHALL list matches by day
 
 ### Requirement: Live lists the next five matches
 
-The Live page SHALL list its live matches, then the next 5 upcoming matches in kickoff order, then a link to the upcoming matches on Matches. Each upcoming match SHALL link to its own match report.
+The Live page SHALL list its live matches, then its delayed matches, then the next 5 upcoming matches whose kickoff has not passed, in kickoff order, then a link to the upcoming matches on Matches. Each listed match SHALL link to its own match report.
 
 #### Scenario: Many upcoming matches
 
 - **WHEN** 64 matches are upcoming
 - **THEN** Live lists 5 of them, the earliest first, each linking to a different report, followed by a link to Matches
+
+#### Scenario: A delayed match is not upcoming
+
+- **WHEN** a match is still scheduled 20 minutes after its kickoff
+- **THEN** Live lists it after the live matches as delayed and not among the 5 upcoming matches
 
 ### Requirement: Every public match card reads its time in the organization's time zone
 
@@ -526,3 +531,21 @@ A zone's placement games SHALL be listed by the best place each settles, then by
 
 - **WHEN** both cups have a 3rd-place game, two 5th-to-8th semi-finals, a 5th-place and a 7th-place game
 - **THEN** both list 3rd place, the two 5th-to-8th semi-finals, 5th place, then 7th place
+
+### Requirement: The schedule filters by match day
+
+Matches SHALL offer a day filter with an all-days choice, today and tomorrow when those days have matches, and one choice per match day, each a calendar day in the organization's time zone. The selected day SHALL be kept in the URL as `day=YYYY-MM-DD`, SHALL combine with the other filters, and SHALL work without JavaScript.
+
+#### Scenario: Tomorrow's matches
+
+- **WHEN** a spectator chooses tomorrow on Matches at 1440px
+- **THEN** only matches whose kickoff falls on the next calendar day in the organization's time zone are listed and the URL carries that date
+
+### Requirement: A scheduled match past its kickoff reads as delayed
+
+A public surface SHALL label a scheduled match as delayed once 15 minutes have passed since its kickoff without it going live or final, SHALL NOT list it among upcoming matches, and SHALL NOT convey the state by colour alone. The state is derived at render time and never stored.
+
+#### Scenario: Unstarted after kickoff
+
+- **WHEN** a match scheduled for 08:30 is still scheduled at 08:50
+- **THEN** its card reads delayed and the overview's upcoming list does not include it

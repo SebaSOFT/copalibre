@@ -1,0 +1,107 @@
+---
+import Button from './Button.astro';
+import Icon from './Icon.astro';
+
+/**
+ * Reusable GET search input atom with a magnifying-glass-only submit button.
+ *
+ * Works with JavaScript disabled via `<form method="get">` and preserves active
+ * query parameters (`tab`, `clubId`, etc.) as hidden inputs; scripts can attach
+ * progressive in-place filtering via `inputDataAttr` / `formDataAttr`.
+ */
+export interface HiddenSearchParam {
+  readonly name: string;
+  readonly value: string;
+}
+
+interface Props {
+  readonly action: string;
+  readonly name?: string;
+  readonly value?: string;
+  readonly label: string;
+  readonly placeholder: string;
+  readonly submitLabel?: string;
+  readonly hiddenParams?: readonly HiddenSearchParam[];
+  readonly id?: string;
+  readonly inputDataAttr?: string;
+  readonly formDataAttr?: string;
+  readonly serverFiltered?: boolean;
+  readonly class?: string;
+}
+
+const {
+  action,
+  name = 'q',
+  value = '',
+  label,
+  placeholder,
+  submitLabel = label,
+  hiddenParams = [],
+  id = 'cl-search-input',
+  inputDataAttr,
+  formDataAttr,
+  serverFiltered = false,
+  class: extraClass = '',
+} = Astro.props;
+
+const formAttrs = formDataAttr ? { [formDataAttr]: '' } : {};
+const inputAttrs = inputDataAttr ? { [inputDataAttr]: '' } : {};
+---
+
+<form
+  action={action}
+  method="get"
+  class={`cl-search-input ${extraClass}`.trim()}
+  data-server-filtered={serverFiltered ? 'true' : 'false'}
+  {...formAttrs}
+>
+  {hiddenParams
+    .filter((param) => param.value.length > 0)
+    .map((param) => (
+      <input type="hidden" name={param.name} value={param.value} />
+    ))}
+  <label for={id} class="cl-visually-hidden">
+    {label}
+  </label>
+  <input
+    id={id}
+    type="search"
+    name={name}
+    value={value}
+    placeholder={placeholder}
+    class="cl-input cl-focusable cl-search-input__field"
+    {...inputAttrs}
+  />
+  <Button
+    type="submit"
+    variant="secondary"
+    class="cl-search-input__submit"
+    aria-label={submitLabel}
+  >
+    <Icon name="search" size={16} />
+  </Button>
+</form>
+
+<style>
+  .cl-search-input {
+    display: flex;
+    align-items: stretch;
+    gap: var(--cl-space-2);
+    inline-size: 100%;
+    max-inline-size: 24rem;
+    min-inline-size: 0;
+  }
+  .cl-search-input__field {
+    flex: 1 1 0%;
+    min-inline-size: 0;
+    background: var(--cl-surface-panel);
+    color: var(--cl-text-primary);
+    border-color: var(--cl-border-muted);
+  }
+  .cl-search-input__submit {
+    flex: none;
+    min-inline-size: var(--cl-touch-target);
+    min-block-size: var(--cl-touch-target);
+    padding: var(--cl-space-2);
+  }
+</style>

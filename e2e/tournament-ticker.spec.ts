@@ -79,10 +79,19 @@ const topScorers = {
   rows: [
     {
       actorId: 'player-1',
-      entrantName: 'Nicolás Fernández',
+      actorName: 'Mateo Moreno',
+      entrantName: 'Casa de Italia',
+      entrantAbbreviation: 'CIT',
       rank: 1,
       sharedRank: false,
       cells: { rank: { formatted: '1', raw: 1 }, goals: { formatted: '11', raw: 11 } },
+    },
+    {
+      actorId: 'player-2',
+      entrantName: 'Nicolás Fernández',
+      rank: 2,
+      sharedRank: false,
+      cells: { rank: { formatted: '2', raw: 2 }, goals: { formatted: '9', raw: 9 } },
     },
   ],
 };
@@ -150,8 +159,33 @@ test.describe('Tournament ticker', () => {
 
     // A top performer, read from the discipline's own declared layout and
     // ranked by that layout's `defaultSort` — the goals, not the rank column.
-    await expect(ticker.getByText('Nicolás Fernández').first()).toBeVisible();
+    await expect(ticker.getByText('Mateo Moreno').first()).toBeVisible();
     await expect(ticker.getByText('11').first()).toBeVisible();
+  });
+
+  test('performer ticker items name the ranked person with entrant abbreviation in meta and fall back to entrantName only when actorName is absent', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    const items = page.locator('[data-ticker-track] .cl-ticker__item:not([aria-hidden="true"])');
+    const namedPerformer = items.filter({ hasText: 'Mateo Moreno' });
+    await expect(namedPerformer.locator('.cl-ticker__subject')).toHaveText('Mateo Moreno');
+    await expect(namedPerformer.locator('.cl-ticker__figure')).toHaveText('11');
+    await expect(namedPerformer.locator('.cl-ticker__meta')).toHaveText('(Goals · CIT)');
+    await expect(namedPerformer).not.toContainText('Casa de Italia');
+
+    const fallbackPerformer = items.filter({ hasText: 'Nicolás Fernández' });
+    await expect(fallbackPerformer.locator('.cl-ticker__subject')).toHaveText('Nicolás Fernández');
+    await expect(fallbackPerformer.locator('.cl-ticker__figure')).toHaveText('9');
+    await expect(fallbackPerformer.locator('.cl-ticker__meta')).toHaveText('(Goals)');
+
+    // Spanish page renders localized metric alongside the entrant abbreviation.
+    await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    const esItems = page.locator('[data-ticker-track] .cl-ticker__item:not([aria-hidden="true"])');
+    const esNamedPerformer = esItems.filter({ hasText: 'Mateo Moreno' });
+    await expect(esNamedPerformer.locator('.cl-ticker__subject')).toHaveText('Mateo Moreno');
+    await expect(esNamedPerformer.locator('.cl-ticker__meta')).toHaveText('(Goles · CIT)');
   });
 
   test('places the live match first in the ticker with its score rather than vs', async ({

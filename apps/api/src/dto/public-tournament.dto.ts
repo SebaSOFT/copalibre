@@ -963,6 +963,18 @@ export class PublicPersonCompetitionHistoryResponse {
   @ApiProperty()
   teamName!: string;
 
+  @ApiPropertyOptional({
+    description: 'Public club alias when the team belongs to a club with an alias',
+  })
+  clubAlias?: string;
+
+  @ApiPropertyOptional({
+    oneOf: [{ type: 'number' }, { type: 'string' }],
+    description:
+      'Shirt number from the player’s most recent finalized match roster in this tournament, when recorded',
+  })
+  shirtNumber?: number | string;
+
   @ApiProperty({ enum: ['player', 'substitute', 'coach', 'staff'] })
   role!: 'player' | 'substitute' | 'coach' | 'staff';
 
@@ -1068,6 +1080,32 @@ export class PlayerStatisticsMatchRowResponse {
     description: 'Public match number within its stage, for linking to this match’s public report',
   })
   matchNumber!: number;
+
+  @ApiPropertyOptional({
+    format: 'date-time',
+    description: 'Published kickoff instant in ISO-8601 UTC when scheduled',
+  })
+  scheduledAt?: string;
+
+  @ApiProperty({ enum: ['home', 'away'], description: 'The player’s side in this match' })
+  side!: 'home' | 'away';
+
+  @ApiProperty({ description: 'Opponent entrant display name' })
+  opponentName!: string;
+
+  @ApiPropertyOptional({ description: 'Opponent entrant abbreviation, when resolved' })
+  opponentAbbreviation?: string;
+
+  @ApiPropertyOptional({
+    description: 'Opponent club alias, when the opponent belongs to a club with an alias',
+  })
+  opponentClubAlias?: string;
+
+  @ApiPropertyOptional({ description: 'Final score of the player’s side' })
+  ownScore?: number;
+
+  @ApiPropertyOptional({ description: 'Final score of the opponent’s side' })
+  opponentScore?: number;
 
   @ApiProperty({
     description:

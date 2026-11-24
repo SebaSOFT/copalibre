@@ -3,14 +3,21 @@ import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
 import Container from '../../../../../../components/ui/atoms/layout/Container.astro';
 import PlayerProfileView from '../../../../../../components/ui/organisms/PlayerProfileView.astro';
 import {
+  fetchMatchesView,
   fetchOverview,
   fetchPlayerProfile,
   fetchPlayerStatistics,
   fetchPublicTableLayouts,
+  mapMatchesViewResponse,
   mapOverviewResponse,
 } from '../../../../../../lib/public-api-client.ts';
 import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
-import { publicIntl } from '../../../../../../lib/i18n/public-intl.ts';
+import {
+  currentTournamentHistoryEntry,
+  findPlayerNextMatch,
+  resolveNextMatchOpponent,
+} from '../../../../../../lib/player-profile.ts';
+import { publicIntl, sideSourceLabels } from '../../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../../../lib/locale.ts';
@@ -46,15 +53,49 @@ const activeStatisticsLayout =
   (requestedLayoutCode
     ? statisticsLayouts.find((one) => one.code === requestedLayoutCode)
     : undefined) ?? statisticsLayouts[0];
-const statistics = activeStatisticsLayout
-  ? await fetchPlayerStatistics(organization!, tournament!, personId!, activeStatisticsLayout.code)
-  : undefined;
+const currentHistory = currentTournamentHistoryEntry(profile.competitionHistory, tournament);
+const [statistics, matchesViewData] = await Promise.all([
+  activeStatisticsLayout
+    ? fetchPlayerStatistics(organization!, tournament!, personId!, activeStatisticsLayout.code)
+    : Promise.resolve(undefined),
+  currentHistory?.entrantId
+    ? fetchMatchesView(organization!, tournament!, { state: 'all' })
+    : Promise.resolve(undefined),
+]);
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
 const title = `${profile.displayName} — ${displayName(model)}`;
 const localePrefix = locale ? `/${locale}` : '';
 const tournamentCanonicalPath = `${localePrefix}${model.canonicalPath}`;
 const canonicalPath = `${tournamentCanonicalPath}/players/${personId}`;
+const referenceDate = Date.now();
+const mappedMatches = matchesViewData
+  ? mapMatchesViewResponse(
+      matchesViewData,
+      intl.formatMessage(messages.personHiddenAtRequest),
+      resolvedLocale,
+    ).matches
+  : [];
+const nextMatchCandidate = currentHistory?.entrantId
+  ? findPlayerNextMatch(mappedMatches, currentHistory.entrantId)
+  : undefined;
+const nextMatch = nextMatchCandidate
+  ? {
+      ...(nextMatchCandidate.match.scheduledAt === undefined
+        ? {}
+        : { scheduledAt: nextMatchCandidate.match.scheduledAt }),
+      opponent: resolveNextMatchOpponent(
+        nextMatchCandidate.match,
+        nextMatchCandidate.side,
+        sideSourceLabels(intl),
+      ),
+      ...(nextMatchCandidate.match.venueName === undefined
+        ? {}
+        : { venueName: nextMatchCandidate.match.venueName }),
+      state: nextMatchCandidate.match.state,
+      href: `${tournamentCanonicalPath}/stages/${nextMatchCandidate.match.stageNumber}/matches/${nextMatchCandidate.match.matchNumber}`,
+    }
+  : undefined;
 ---
 
 <PublicLayout
@@ -64,7 +105,7 @@ const canonicalPath = `${tournamentCanonicalPath}/players/${personId}`;
   intl={intl}
   disciplineImages={overviewData.disciplineImages}
 >
-  <Container class="cl-player-profile-page" variant="reading">
+  <Container class="cl-player-profile-page" variant="public">
     <nav class="cl-player-profile-page__back">
       <a href={tournamentCanonicalPath}>
         {intl.formatMessage(messages.playerProfileBackTo, { name: displayName(model) })}
@@ -80,6 +121,9 @@ const canonicalPath = `${tournamentCanonicalPath}/players/${personId}`;
         statisticsLayouts={statisticsLayouts}
         activeStatisticsLayoutCode={activeStatisticsLayout?.code}
         statistics={statistics}
+        nextMatch={nextMatch}
+        organizationTimeZone={model.organizationTimeZone}
+        referenceDate={referenceDate}
       />
     </div>
   </Container>

@@ -23,6 +23,7 @@ import {
   readTableProjection,
   type SegmentedTableProjectionResult,
   type TableProjectionResult,
+  type TableProjectionRow,
 } from '../table-projections/read.js';
 import { DATABASE } from '../database.token.js';
 import { resolveTournament } from './standings.controller.js';
@@ -252,6 +253,29 @@ export class TableProjectionsController {
   }
 }
 
+function tableRowResponse(row: TableProjectionRow): TableProjectionResponse['rows'][number] {
+  return {
+    actorId: row.actorId,
+    ...(row.entrantId === undefined ? {} : { entrantId: row.entrantId }),
+    actorName: row.actorName,
+    ...(row.entrantName === undefined ? {} : { entrantName: row.entrantName }),
+    ...(row.entrantAbbreviation === undefined
+      ? {}
+      : { entrantAbbreviation: row.entrantAbbreviation }),
+    ...(row.clubId === undefined ? {} : { clubId: row.clubId }),
+    ...(row.emblemObjectId === undefined ? {} : { emblemObjectId: row.emblemObjectId }),
+    ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
+    ...(row.shirtNumber === undefined ? {} : { shirtNumber: row.shirtNumber }),
+    ...(row.hiddenAtRequest === undefined ? {} : { hiddenAtRequest: row.hiddenAtRequest }),
+    ...(row.publicProfileAvailable === undefined
+      ? {}
+      : { publicProfileAvailable: row.publicProfileAvailable }),
+    rank: row.rank,
+    sharedRank: row.sharedRank,
+    cells: row.cells,
+  };
+}
+
 /** Shared with `PublicProjectionsController`'s read-only table routes. */
 export function tableResponse(result: TableProjectionResult): TableProjectionResponse {
   return {
@@ -269,25 +293,7 @@ export function tableResponse(result: TableProjectionResult): TableProjectionRes
       format: column.format,
     })),
     defaultSort: result.layout.defaultSort.map((rule) => ({ ...rule })),
-    rows: result.rows.map((row) => ({
-      actorId: row.actorId,
-      ...(row.entrantId === undefined ? {} : { entrantId: row.entrantId }),
-      actorName: row.actorName,
-      ...(row.entrantName === undefined ? {} : { entrantName: row.entrantName }),
-      ...(row.entrantAbbreviation === undefined
-        ? {}
-        : { entrantAbbreviation: row.entrantAbbreviation }),
-      ...(row.clubId === undefined ? {} : { clubId: row.clubId }),
-      ...(row.emblemObjectId === undefined ? {} : { emblemObjectId: row.emblemObjectId }),
-      ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
-      ...(row.hiddenAtRequest === undefined ? {} : { hiddenAtRequest: row.hiddenAtRequest }),
-      ...(row.publicProfileAvailable === undefined
-        ? {}
-        : { publicProfileAvailable: row.publicProfileAvailable }),
-      rank: row.rank,
-      sharedRank: row.sharedRank,
-      cells: row.cells,
-    })),
+    rows: result.rows.map(tableRowResponse),
     projectionVersion: result.projectionVersion,
     ...(result.grain === undefined ? {} : { grain: result.grain }),
     ...(result.countColumnCode === undefined ? {} : { countColumnCode: result.countColumnCode }),
@@ -308,25 +314,7 @@ export function segmentedTableResponse(
       ...(segment.groupId === undefined ? {} : { groupId: segment.groupId }),
       ...(segment.groupName === undefined ? {} : { groupName: segment.groupName }),
       ...(segment.zoneName === undefined ? {} : { zoneName: segment.zoneName }),
-      rows: segment.rows.map((row) => ({
-        actorId: row.actorId,
-        ...(row.entrantId === undefined ? {} : { entrantId: row.entrantId }),
-        actorName: row.actorName,
-        ...(row.entrantName === undefined ? {} : { entrantName: row.entrantName }),
-        ...(row.entrantAbbreviation === undefined
-          ? {}
-          : { entrantAbbreviation: row.entrantAbbreviation }),
-        ...(row.clubId === undefined ? {} : { clubId: row.clubId }),
-        ...(row.emblemObjectId === undefined ? {} : { emblemObjectId: row.emblemObjectId }),
-        ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
-        ...(row.hiddenAtRequest === undefined ? {} : { hiddenAtRequest: row.hiddenAtRequest }),
-        ...(row.publicProfileAvailable === undefined
-          ? {}
-          : { publicProfileAvailable: row.publicProfileAvailable }),
-        rank: row.rank,
-        sharedRank: row.sharedRank,
-        cells: row.cells,
-      })),
+      rows: segment.rows.map(tableRowResponse),
     })),
   };
 }

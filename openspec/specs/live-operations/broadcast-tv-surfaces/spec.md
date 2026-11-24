@@ -199,14 +199,18 @@ exception.
   introduces no undeclared token
 
 ### Requirement: Reusable `ResponsiveTimestamp` Atom
-The system SHALL provide a reusable, restylable `ResponsiveTimestamp` atom component that dynamically calculates and renders kickoff, event, or log time relative to the viewing date across TV broadcast, public spectator, and operator control surfaces. It SHALL also support a relative-time format for feeds that intentionally show elapsed time rather than a clock time.
+The system SHALL provide a reusable, restylable `ResponsiveTimestamp` atom component that renders kickoff, event, or log time relative to the viewing date in the organization's time zone across TV broadcast, public spectator, and operator control surfaces, naming yesterday, today and tomorrow with the language's own relative-day word. It SHALL also support a relative-time format for feeds that intentionally show elapsed time rather than a clock time.
 
 #### Scenario: Same-day timestamp calculation
 - **WHEN** a scheduled or recorded timestamp occurs on the current viewing date
-- **THEN** `ResponsiveTimestamp` outputs the localized hour and minute (e.g. `14:30`) in an accessible `<time datetime="...">` element.
+- **THEN** `ResponsiveTimestamp` outputs the language's word for today and the localized hour and minute (e.g. `Hoy 14:30`) in an accessible `<time datetime="...">` element.
+
+#### Scenario: Next-day timestamp calculation
+- **WHEN** a scheduled timestamp occurs on the next calendar date in the organization's time zone
+- **THEN** `ResponsiveTimestamp` outputs the language's word for tomorrow and the time (e.g. `Mañana 08:30`).
 
 #### Scenario: Different-day timestamp calculation
-- **WHEN** a scheduled or recorded timestamp occurs on a different calendar date
+- **WHEN** a scheduled or recorded timestamp occurs more than one calendar day away
 - **THEN** `ResponsiveTimestamp` outputs the localized abbreviated day, month, and time (e.g. `02-Nov 14:30`).
 
 #### Scenario: Relative-time rendering for an activity feed
@@ -846,3 +850,12 @@ TV standings SHALL render one block per group, headed by the group's name, insid
 
 - **WHEN** the kiosk shows the standings of a stage with groups A to F
 - **THEN** it draws six blocks headed Grupo A to Grupo F, each ranking its own entrants
+
+### Requirement: TV lists mark delayed matches and never offer them as next
+
+A TV surface SHALL label a scheduled match as delayed once 15 minutes have passed since its kickoff without it going live or final, and SHALL NOT present a delayed match as the next match.
+
+#### Scenario: A kickoff passed unstarted
+
+- **WHEN** a match scheduled for 13:00 is still scheduled at 13:20
+- **THEN** TV lists show it as delayed and the next-match slot shows the following match instead

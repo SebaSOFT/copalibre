@@ -139,6 +139,12 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.playerDialog.columnTeam': 'Команда',
   'publicWeb.standings.playerDialog.columnRole': 'Роль',
   'publicWeb.standings.playerDialog.loadError': 'Не удалось загрузить данные игрока.',
+  'publicWeb.playerDialog.viewProfile': 'Смотреть профиль',
+  'publicWeb.standingsTable.searchLabel': 'Поиск игроков',
+  'publicWeb.standingsTable.searchPlaceholder': 'Имя игрока',
+  'publicWeb.standingsTable.columnNumber': '№',
+  'publicWeb.standingsTable.sortedAscending': 'По возрастанию',
+  'publicWeb.standingsTable.sortedDescending': 'По убыванию',
 
   'publicWeb.hero.liveCount': '{count} в эфире',
   'publicWeb.hero.noLiveMatches': 'Нет матчей в эфире',
@@ -231,7 +237,10 @@ export const messages: Record<string, string> = {
   'publicWeb.playerProfile.noTournamentStats':
     'Для этого игрока не зафиксирована статистика турнира.',
   'publicWeb.playerProfile.matchColumnHeading': 'Матч',
-  'publicWeb.playerProfile.matchLabel': 'Этап {stage} · Матч {match}',
+  'publicWeb.playerProfile.matchRowLabel': '{date} · {opponent} · {score}',
+  'publicWeb.playerProfile.nextMatchHeading': 'Следующий матч',
+  'publicWeb.playerProfile.shirtNumber': '#{number}',
+  'publicWeb.playerProfile.clubLabel': 'Клуб: {club}',
 
   'publicWeb.tournamentsPage.title': 'Турниры',
   'publicWeb.tournamentsPage.liveHeading': 'В прямом эфире и активные',

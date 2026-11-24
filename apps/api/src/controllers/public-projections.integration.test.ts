@@ -5129,3 +5129,583 @@ describe('overview table-projection preview, listing progress/schedule/venueCoun
     expect(emptyItem?.venueCount).toBeUndefined();
   });
 });
+
+describe('player profile completeness and drilldown match ordinals', () => {
+  const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+
+  it('returns distinct stage ordinals, match summaries, and working match report links across two stages', async () => {
+    const db = scratch.db as Kysely<Database>;
+    const tournaments = new TournamentRepository(db);
+    const enrollment = new EnrollmentRepository(db);
+    const competition = new CompetitionRepository(db);
+    const people = new PersonRepository(db);
+    const statistics = new StatisticRepository(db);
+
+    const alias = `copa-0466-drilldown-${newId().slice(0, 6)}`;
+    const base = footballDescriptor();
+    const descriptor = {
+      ...base,
+      descriptorId: newId(),
+      version: '1.0.0-0466',
+      tableLayouts: [
+        {
+          code: 'player-stats-0466',
+          target: 'player-ranking' as const,
+          label: { en: 'Player Stats' },
+          entityGranularity: 'person' as const,
+          defaultSort: [{ columnCode: 'goals', direction: 'desc' as const }],
+          columns: [
+            {
+              code: 'player',
+              header: { en: 'Player' },
+              source: { kind: 'actor-name' as const },
+              format: 'text' as const,
+            },
+            {
+              code: 'goals',
+              header: { en: 'Goals' },
+              source: { kind: 'collector' as const, code: 'goals-for' },
+              format: 'number' as const,
+            },
+            {
+              code: 'appearances',
+              header: { en: 'MP' },
+              source: { kind: 'collector' as const, code: 'player-appearances' },
+              format: 'number' as const,
+            },
+          ],
+        },
+      ],
+      collectors: [
+        {
+          code: 'goals-for',
+          label: { en: 'Goals', es: 'Goles' },
+          source: {
+            kind: 'event' as const,
+            definitionCodes: ['goal'],
+            actorSource: 'primary' as const,
+          },
+          measure: { kind: 'count' as const },
+          granularity: { actor: 'person' as const, competition: 'match' as const },
+        },
+        {
+          code: 'player-appearances',
+          label: { en: 'Appearances', es: 'Partidos jugados' },
+          source: { kind: 'participation' as const },
+          measure: { kind: 'count' as const },
+          granularity: { actor: 'person' as const, competition: 'match' as const },
+        },
+      ],
+    };
+
+    const { tournamentId, personId, expectedKickoffs, matchSummaries } = await withTransaction(
+      db,
+      async (uow) => {
+        await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...audit });
+        const created = await tournaments.create(uow, {
+          organizationId,
+          alias,
+          name: 'Copa 0466 Drilldown',
+          descriptor,
+          ...audit,
+        });
+
+        const clubHispano = await enrollment.createClub(uow, {
+          organizationId,
+          alias: `club-hispano-${newId().slice(0, 6)}`,
+          name: 'Club Hispano',
+          abbreviation: 'HIS',
+          ...audit,
+        });
+        const clubLomas = await enrollment.createClub(uow, {
+          organizationId,
+          alias: `club-lomas-${newId().slice(0, 6)}`,
+          name: 'Lomas de Rivadavia',
+          abbreviation: 'LOM',
+          ...audit,
+        });
+        const clubItalia = await enrollment.createClub(uow, {
+          organizationId,
+          alias: `club-italia-${newId().slice(0, 6)}`,
+          name: 'Casa de Italia',
+          abbreviation: 'CIT',
+          ...audit,
+        });
+        const clubAndes = await enrollment.createClub(uow, {
+          organizationId,
+          alias: `club-andes-${newId().slice(0, 6)}`,
+          name: 'Andes Talleres',
+          abbreviation: 'AND',
+          ...audit,
+        });
+
+        const teamHispano = await enrollment.createTeam(uow, {
+          organizationId,
+          clubId: clubHispano.clubId,
+          name: 'Club Hispano',
+          abbreviation: 'HIS',
+          ...audit,
+        });
+        const teamLomas = await enrollment.createTeam(uow, {
+          organizationId,
+          clubId: clubLomas.clubId,
+          name: 'Lomas de Rivadavia',
+          abbreviation: 'LOM',
+          ...audit,
+        });
+        const teamItalia = await enrollment.createTeam(uow, {
+          organizationId,
+          clubId: clubItalia.clubId,
+          name: 'Casa de Italia',
+          abbreviation: 'CIT',
+          ...audit,
+        });
+        const teamAndes = await enrollment.createTeam(uow, {
+          organizationId,
+          clubId: clubAndes.clubId,
+          name: 'Andes Talleres',
+          abbreviation: 'AND',
+          ...audit,
+        });
+
+        const { person } = await people.register(uow, {
+          organizationId,
+          displayName: 'Santiago Bello',
+          ...audit,
+        });
+        await people.enlist(uow, {
+          personId: person.personId,
+          teamId: teamHispano.teamId,
+          role: 'player',
+          organizationId,
+          ...audit,
+        });
+
+        const [eHispano, eLomas, eItalia, eAndes] = await Promise.all([
+          enrollment.registerEntrant(uow, {
+            organizationId,
+            tournamentId: created.tournamentId,
+            entrantRef: { kind: 'team', teamId: teamHispano.teamId },
+            ...audit,
+          }),
+          enrollment.registerEntrant(uow, {
+            organizationId,
+            tournamentId: created.tournamentId,
+            entrantRef: { kind: 'team', teamId: teamLomas.teamId },
+            ...audit,
+          }),
+          enrollment.registerEntrant(uow, {
+            organizationId,
+            tournamentId: created.tournamentId,
+            entrantRef: { kind: 'team', teamId: teamItalia.teamId },
+            ...audit,
+          }),
+          enrollment.registerEntrant(uow, {
+            organizationId,
+            tournamentId: created.tournamentId,
+            entrantRef: { kind: 'team', teamId: teamAndes.teamId },
+            ...audit,
+          }),
+        ]);
+
+        const groupStage = await competition.createStageInTournament(uow, {
+          tournamentId: created.tournamentId,
+          number: 1,
+          name: 'Grupos',
+          format: 'round-robin',
+          organizationId,
+          ...audit,
+        });
+        const koStage = await competition.createStageInTournament(uow, {
+          tournamentId: created.tournamentId,
+          number: 2,
+          name: 'Cuartos',
+          format: 'single-elimination',
+          organizationId,
+          ...audit,
+        });
+
+        // Four group fixtures -> ordinals 1, 2, 3, 4; player plays in ordinals 1, 3, and 4 (plus knockout 1).
+        const groupFixtures = await competition.createFixtures(uow, {
+          stageId: groupStage.stageId,
+          fixtures: [
+            { round: 1, homeEntrantId: eLomas.entrantId, awayEntrantId: eHispano.entrantId },
+            { round: 1, homeEntrantId: eItalia.entrantId, awayEntrantId: eAndes.entrantId },
+            { round: 2, homeEntrantId: eHispano.entrantId, awayEntrantId: eItalia.entrantId },
+            { round: 3, homeEntrantId: eAndes.entrantId, awayEntrantId: eHispano.entrantId },
+          ],
+          organizationId,
+          ...audit,
+        });
+        const koFixtures = await competition.createFixtures(uow, {
+          stageId: koStage.stageId,
+          fixtures: [
+            { round: 1, homeEntrantId: eHispano.entrantId, awayEntrantId: eLomas.entrantId },
+          ],
+          organizationId,
+          ...audit,
+        });
+
+        const koFixture = koFixtures[0];
+        if (!koFixture) throw new Error('Expected knockout fixture');
+
+        const createdMatches = await Promise.all([
+          ...groupFixtures.map((fixture) =>
+            competition.createMatch(uow, {
+              fixtureId: fixture.fixtureId,
+              number: 1,
+              organizationId,
+              ...audit,
+            }),
+          ),
+          competition.createMatch(uow, {
+            fixtureId: koFixture.fixtureId,
+            number: 1,
+            organizationId,
+            ...audit,
+          }),
+        ]);
+        const [m1, , m3, m4, mKo] = createdMatches;
+        if (!m1 || !m3 || !m4 || !mKo) throw new Error('Expected created matches');
+
+        const now = new Date();
+        const venueId = newId();
+        const scheduleId = newId();
+        await uow.tx
+          .insertInto('venues')
+          .values({
+            venue_id: venueId,
+            organization_id: organizationId,
+            alias: `estadio-${newId().slice(0, 6)}`,
+            name: 'Estadio Cantoni',
+            address: null,
+            concurrent_capacity: 1,
+            details: null,
+            created_at: now,
+            deleted_at: null,
+          })
+          .execute();
+        await uow.tx
+          .insertInto('schedules')
+          .values({
+            schedule_id: scheduleId,
+            organization_id: organizationId,
+            name: 'Main',
+            starts_at: '1763300000000',
+            ends_at: '1763900000000',
+            slot_minutes: 60,
+            turnaround_minutes: 30,
+            created_at: now,
+          })
+          .execute();
+        await uow.tx
+          .insertInto('schedule_venues')
+          .values({ schedule_id: scheduleId, venue_id: venueId })
+          .execute();
+
+        const playerMatchSpecs = [
+          {
+            match: m1,
+            stageNumber: 1,
+            expectedOrdinal: 1,
+            homeId: eLomas.entrantId,
+            awayId: eHispano.entrantId,
+            homeGoals: 1,
+            awayGoals: 2,
+            side: 'away' as const,
+            opponentName: 'Lomas de Rivadavia',
+            opponentAbbreviation: 'LOM',
+            opponentClubAlias: clubLomas.alias,
+            ownScore: 2,
+            opponentScore: 1,
+            playerGoals: 1,
+            shirtNumber: 12,
+            startsAtMs: 1763300000000,
+          },
+          {
+            match: m3,
+            stageNumber: 1,
+            expectedOrdinal: 3,
+            homeId: eHispano.entrantId,
+            awayId: eItalia.entrantId,
+            homeGoals: 4,
+            awayGoals: 0,
+            side: 'home' as const,
+            opponentName: 'Casa de Italia',
+            opponentAbbreviation: 'CIT',
+            opponentClubAlias: clubItalia.alias,
+            ownScore: 4,
+            opponentScore: 0,
+            playerGoals: 2,
+            shirtNumber: 8,
+            startsAtMs: 1763400000000,
+          },
+          {
+            match: m4,
+            stageNumber: 1,
+            expectedOrdinal: 4,
+            homeId: eAndes.entrantId,
+            awayId: eHispano.entrantId,
+            homeGoals: 3,
+            awayGoals: 3,
+            side: 'away' as const,
+            opponentName: 'Andes Talleres',
+            opponentAbbreviation: 'AND',
+            opponentClubAlias: clubAndes.alias,
+            ownScore: 3,
+            opponentScore: 3,
+            playerGoals: 0,
+            shirtNumber: 5,
+            startsAtMs: 1763500000000,
+          },
+          {
+            match: mKo,
+            stageNumber: 2,
+            expectedOrdinal: 1,
+            homeId: eHispano.entrantId,
+            awayId: eLomas.entrantId,
+            homeGoals: 5,
+            awayGoals: 1,
+            side: 'home' as const,
+            opponentName: 'Lomas de Rivadavia',
+            opponentAbbreviation: 'LOM',
+            opponentClubAlias: clubLomas.alias,
+            ownScore: 5,
+            opponentScore: 1,
+            playerGoals: 3,
+            shirtNumber: 3,
+            startsAtMs: 1763600000000,
+          },
+        ];
+
+        for (const spec of playerMatchSpecs) {
+          const slotId = newId();
+          await uow.tx
+            .insertInto('schedule_slots')
+            .values({
+              slot_id: slotId,
+              schedule_id: scheduleId,
+              venue_id: venueId,
+              starts_at: String(spec.startsAtMs),
+              created_at: now,
+            })
+            .execute();
+          await uow.tx
+            .insertInto('match_schedule_assignments')
+            .values({
+              match_id: spec.match.matchId,
+              slot_id: slotId,
+              published: true,
+              created_at: now,
+            })
+            .execute();
+
+          await uow.tx
+            .insertInto('match_rosters')
+            .values({
+              match_id: spec.match.matchId,
+              entrant_id: eHispano.entrantId,
+              roster_members: JSON.stringify([
+                {
+                  personId: person.personId,
+                  name: 'Santiago Bello',
+                  number: spec.shirtNumber,
+                  onField: true,
+                },
+              ]),
+              updated_at: now,
+            })
+            .execute();
+
+          await statistics.projectMatch(uow, {
+            organizationId,
+            matchId: spec.match.matchId,
+            projectionVersion: 1,
+            figures: [
+              ...(spec.playerGoals > 0
+                ? [
+                    {
+                      collectorCode: 'goals-for',
+                      actorGranularity: 'person' as const,
+                      actorId: person.personId,
+                      competitionGranularity: 'match' as const,
+                      competitionId: spec.match.matchId,
+                      value: spec.playerGoals,
+                      samples: 1,
+                    },
+                  ]
+                : []),
+              {
+                collectorCode: 'player-appearances',
+                actorGranularity: 'person',
+                actorId: person.personId,
+                competitionGranularity: 'match',
+                competitionId: spec.match.matchId,
+                value: 1,
+                samples: 1,
+              },
+            ],
+          });
+
+          await competition.recordResult(uow, {
+            matchId: spec.match.matchId,
+            result: {
+              sides: [
+                { entrantId: spec.homeId, statistics: { goals: spec.homeGoals } },
+                { entrantId: spec.awayId, statistics: { goals: spec.awayGoals } },
+              ],
+              winnerEntrantId:
+                spec.homeGoals > spec.awayGoals
+                  ? spec.homeId
+                  : spec.awayGoals > spec.homeGoals
+                    ? spec.awayId
+                    : undefined,
+              recordedAt: now.toISOString(),
+            },
+            organizationId,
+            ...audit,
+          });
+        }
+
+        return {
+          tournamentId: created.tournamentId,
+          personId: person.personId,
+          expectedKickoffs: playerMatchSpecs.map((s) => new Date(s.startsAtMs).toISOString()),
+          matchSummaries: playerMatchSpecs,
+        };
+      },
+    );
+
+    await withTransaction(db, (uow) =>
+      tournaments.publish(uow, {
+        tournamentId,
+        organizationId,
+        ...audit,
+      }),
+    );
+
+    const statsResponse = await request({
+      method: 'GET',
+      url: `/api/organizations/liga-orbital/tournaments/${alias}/persons/${personId}/public/statistics?layout=player-stats-0466`,
+    });
+    expect(statsResponse.statusCode).toBe(200);
+    const statsBody = JSON.parse(statsResponse.payload as string);
+
+    expect(statsBody.matches).toHaveLength(4);
+    for (const [i, spec] of matchSummaries.entries()) {
+      const row = statsBody.matches[i];
+      expect(row).toMatchObject({
+        stageNumber: spec.stageNumber,
+        matchNumber: spec.expectedOrdinal,
+        scheduledAt: expectedKickoffs[i],
+        side: spec.side,
+        opponentName: spec.opponentName,
+        opponentAbbreviation: spec.opponentAbbreviation,
+        opponentClubAlias: spec.opponentClubAlias,
+        ownScore: spec.ownScore,
+        opponentScore: spec.opponentScore,
+      });
+      expect(row.matchId).toBeUndefined();
+      expect(row.fixtureId).toBeUndefined();
+      expect(row.entrantId).toBeUndefined();
+
+      // Verify following (stageNumber, matchNumber) reaches the exact same match report.
+      const reportResponse = await request({
+        method: 'GET',
+        url: `/api/organizations/liga-orbital/tournaments/${alias}/stages/${row.stageNumber}/matches/${row.matchNumber}`,
+      });
+      expect(reportResponse.statusCode).toBe(200);
+      const report = JSON.parse(reportResponse.payload as string);
+      expect(report.scheduledAt).toBe(row.scheduledAt);
+      const reportOwnScore = row.side === 'home' ? report.homeScore : report.awayScore;
+      const reportOppScore = row.side === 'home' ? report.awayScore : report.homeScore;
+      expect(reportOwnScore).toBe(row.ownScore);
+      expect(reportOppScore).toBe(row.opponentScore);
+    }
+
+    // Public profile returns shirtNumber (latest finalized = 3), clubAlias, zero-valued career statistics,
+    // and identical anonymous vs authenticated responses.
+    const anonProfile = await request({
+      method: 'GET',
+      url: `/api/organizations/liga-orbital/tournaments/${alias}/persons/${personId}/public/profile`,
+    });
+    const authProfile = await request({
+      method: 'GET',
+      url: `/api/organizations/liga-orbital/tournaments/${alias}/persons/${personId}/public/profile`,
+      token: 'not-a-real-token',
+    });
+    expect(anonProfile.statusCode).toBe(200);
+    expect(anonProfile.headers['cache-control']).toBe('public, max-age=60');
+    expect(authProfile.payload).toBe(anonProfile.payload);
+
+    const profile = JSON.parse(anonProfile.payload as string);
+    const historyEntry = profile.competitionHistory.find(
+      (h: { tournamentAlias: string }) => h.tournamentAlias === alias,
+    );
+    expect(historyEntry).toMatchObject({
+      shirtNumber: 3,
+      teamName: 'Club Hispano',
+    });
+    expect(typeof historyEntry.clubAlias).toBe('string');
+
+    const discStats = profile.careerStatistics.find(
+      (d: { disciplineDescriptorId: string }) =>
+        d.disciplineDescriptorId === descriptor.descriptorId,
+    );
+    expect(discStats?.statistics).toEqual([
+      expect.objectContaining({ code: 'goals-for', value: 6, samples: 3 }),
+      expect.objectContaining({ code: 'player-appearances', value: 4, samples: 4 }),
+    ]);
+
+    // Also verify a player with 4 appearances and 0 goals still receives goals-for at value 0.
+    const zeroScorer = await withTransaction(db, async (uow) => {
+      const { person } = await people.register(uow, {
+        organizationId,
+        displayName: 'Francisco V Arriaga',
+        ...audit,
+      });
+      const team = await enrollment.createTeam(uow, {
+        organizationId,
+        name: 'Casa de Italia B',
+        ...audit,
+      });
+      await people.enlist(uow, {
+        personId: person.personId,
+        teamId: team.teamId,
+        role: 'player',
+        organizationId,
+        ...audit,
+      });
+      await enrollment.registerEntrant(uow, {
+        organizationId,
+        tournamentId: createdIdOf(profile, alias),
+        entrantRef: { kind: 'team', teamId: team.teamId },
+        ...audit,
+      });
+      return person;
+    });
+    const zeroProfile = await request({
+      method: 'GET',
+      url: `/api/organizations/liga-orbital/tournaments/${alias}/persons/${zeroScorer.personId}/public/profile`,
+    });
+    expect(zeroProfile.statusCode).toBe(200);
+    const zeroBody = JSON.parse(zeroProfile.payload as string);
+    const zeroDisc = zeroBody.careerStatistics.find(
+      (d: { disciplineDescriptorId: string }) =>
+        d.disciplineDescriptorId === descriptor.descriptorId,
+    );
+    expect(zeroDisc?.statistics).toEqual([
+      expect.objectContaining({ code: 'goals-for', value: 0, samples: 0 }),
+      expect.objectContaining({ code: 'player-appearances', value: 0, samples: 0 }),
+    ]);
+  });
+});
+
+function createdIdOf(
+  profile: { competitionHistory: { tournamentAlias: string; tournamentId: string }[] },
+  alias: string,
+): string {
+  const match = profile.competitionHistory.find((h) => h.tournamentAlias === alias);
+  if (!match) throw new Error(`Expected history entry for ${alias}`);
+  return match.tournamentId;
+}

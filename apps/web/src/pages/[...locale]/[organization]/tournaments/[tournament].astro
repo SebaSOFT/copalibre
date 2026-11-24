@@ -160,6 +160,7 @@ const standingsStageNumber =
 
 const requestedTab = Astro.url.searchParams.get('tab');
 const activeClubId = Astro.url.searchParams.get('clubId') ?? undefined;
+const searchQuery = Astro.url.searchParams.get('q') ?? undefined;
 
 const defaultLayout =
   declaredLayouts.find((one) => one.target === 'group-phase') ?? declaredLayouts[0];
@@ -751,6 +752,7 @@ const trail = publicTrail(trailBase, []);
           tiebreakLine={tiebreakLine}
           activeLayoutCode={activeLayout?.code}
           activeClubId={activeClubId}
+          searchQuery={searchQuery}
           clubs={model.clubs}
           intl={intl}
           canonicalPath={canonicalPath}
@@ -796,6 +798,7 @@ const trail = publicTrail(trailBase, []);
           renderPart="footer"
           activeLayoutCode={activeLayout?.code}
           activeClubId={activeClubId}
+          searchQuery={searchQuery}
           clubs={model.clubs}
           intl={intl}
           canonicalPath={canonicalPath}
@@ -825,6 +828,7 @@ const trail = publicTrail(trailBase, []);
         tiebreakLine={tiebreakLine}
         activeLayoutCode={activeLayout?.code}
         activeClubId={activeClubId}
+        searchQuery={searchQuery}
         clubs={model.clubs}
         intl={intl}
         canonicalPath={canonicalPath}

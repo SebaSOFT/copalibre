@@ -337,3 +337,21 @@ Every public page, every TV surface and the help that documents them SHALL name 
 
 - **WHEN** a public page or TV surface names a tournament stage, in Chinese
 - **THEN** it says 阶段 for the stage, and no public or TV string uses 阶段 or 赛段 for a segment
+
+### Requirement: Public schedules state the organization's time zone
+
+Every public page that lists or shows a kickoff SHALL state once, near its schedule heading, the organization's time zone by its localized generic name and current UTC offset, and the match page SHALL show the offset beside its kickoff.
+
+#### Scenario: An Argentine organization
+
+- **WHEN** a spectator opens Matches of an organization in `America/Argentina/Buenos_Aires` in Spanish
+- **THEN** the page states that times are in Argentine time with the offset GMT-3
+
+### Requirement: Public and TV dates use one short and one long format
+
+Public and TV surfaces SHALL render instants through the shared timestamp formatter in two formats only: the short format (relative day or day-month, with the time) for lists, cards, tickers and TV, and the long format for the match page header and the live page's next kickoff. No surface SHALL show a kickoff as a time alone outside a list headed by its day.
+
+#### Scenario: A compact card
+
+- **WHEN** an overview compact card shows a match tomorrow at 08:30
+- **THEN** it reads "Mañana 08:30", not "8:30"

@@ -203,14 +203,17 @@ export function buildTickerItems(input: {
     const metric = column ? resolveLabel(column.header, language) : undefined;
     for (const row of performers.rows.slice(0, 5)) {
       const cell = column ? row.cells[column.code] : undefined;
+      const metaParts = [metric, row.entrantAbbreviation].filter((part): part is string =>
+        Boolean(part && part.trim().length > 0),
+      );
       items.push({
         key: `performer-${row.actorId}`,
         kind: 'performer',
         badge: resolveLabel(performers.label, language),
         tone: 'positive',
-        subject: row.entrantName ?? `#${row.rank}`,
+        subject: row.actorName || row.entrantName || `#${row.rank}`,
         figure: cell?.formatted ?? String(cell?.raw ?? '0'),
-        ...(metric === undefined ? {} : { meta: metric }),
+        ...(metaParts.length === 0 ? {} : { meta: metaParts.join(' · ') }),
       });
     }
   }

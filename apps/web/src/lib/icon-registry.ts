@@ -32,6 +32,7 @@ export const ICON_REGISTRY = {
   pause: { set: 'lucide', name: 'pause' },
   play: { set: 'lucide', name: 'play' },
   retry: { set: 'lucide', name: 'rotate-ccw' },
+  search: { set: 'lucide', name: 'search' },
   'start-clock': { set: 'lucide', name: 'timer' },
   team: { set: 'lucide', name: 'users' },
   trophy: { set: 'lucide', name: 'trophy' },

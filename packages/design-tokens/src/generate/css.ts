@@ -1030,6 +1030,7 @@ function components(): string {
     // `overflow-x: auto` scroll it — the admin standings panel clipped
     // columns with no scrollbar to reach them.
     '.cl-data-table__table { min-width: 100%; width: max-content; border-collapse: collapse; }',
+    '.cl-data-table__caption { text-align: left; padding: var(--cl-space-3) var(--cl-space-4); border-bottom: 1px solid var(--cl-border-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); font-weight: var(--cl-weight-bold); text-transform: uppercase; letter-spacing: var(--cl-tracking-wider); color: var(--cl-text-secondary); }',
     '.cl-data-table__table th { text-align: left; padding: var(--cl-space-3) var(--cl-space-4); border-bottom: 1px solid var(--cl-border-muted); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
     '.cl-data-table__table td { padding: var(--cl-space-3) var(--cl-space-4); }',
     // A table wider than its content shares the spare width across every auto

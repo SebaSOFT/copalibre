@@ -37,10 +37,12 @@ import { readStandings, readStandingsByZone } from '../standings/read.js';
 import { readMatchesView } from '../matches-view/read.js';
 import { readPublicScheduleChanges, readPublicVenues } from '../matches-view/schedule.js';
 import {
+  latestFinalizedShirtNumbers,
   listEffectiveTableLayouts,
   readPlayerStatisticsDrilldown,
   readSegmentedTableProjection,
   readTableProjection,
+  stageOrdinalsOf,
   type PlayerStatisticsDrilldownResult,
   type SegmentedTableProjectionResult,
   type TableProjectionResult,
@@ -86,6 +88,7 @@ import {
   effectiveFormat,
   isImplicitGroup,
   isImplicitZone,
+  readableAt,
   type DisciplineDescriptor,
   type StatisticCollector,
   type TableLayoutDefinition,
@@ -233,23 +236,6 @@ export class PublicTournamentListingController {
 }
 
 const resolveTournamentWinnersLogger = new Logger('resolveTournamentWinners');
-
-/**
- * The stage ordinal of every match of a tournament, keyed by match id: the same 1-based position
- * the public match route and the matches view address a match by, taken from each stage's full,
- * unscoped match list. `matches.number` cannot stand in for it, being a per-fixture series index.
- */
-async function stageOrdinalsOf(
-  db: Kysely<Database>,
-  tournamentId: string,
-): Promise<ReadonlyMap<string, number>> {
-  const stages = await new CompetitionRepository(db).listStagesOfTournament(tournamentId);
-  const readModel = new StageReadModel(db);
-  const perStage = await Promise.all(
-    stages.map(async (stage) => stageMatchOrdinals(await readModel.matches(stage.stageId))),
-  );
-  return new Map(perStage.flatMap((ordinals) => [...ordinals]));
-}
 
 async function liveMatchesForTournamentListing(
   db: Kysely<Database>,
@@ -887,10 +873,12 @@ export class PublicProjectionsController {
 
     // `matches.number` is a per-fixture series-game index (always 1 for a
     // non-series fixture) — never stage-unique, so this resolves the target
-    // match by indexing into the stage's own deterministic order instead of
-    // filtering by that column.
+    // match via the stage's shared ordinal map instead of filtering by that column.
     const stageMatches = await new StageReadModel(this.db).matches(stage.stageId);
-    const targetRecord = stageMatches[matchNumber - 1];
+    const ordinals = stageMatchOrdinals(stageMatches);
+    const targetRecord = stageMatches.find(
+      (record) => ordinals.get(record.matchId) === matchNumber,
+    );
     if (!targetRecord)
       throw new NotFoundException(`No match ${matchNumberValue} in stage ${stageNumberValue}`, {
         errorCode: 'public-projection-not-found',
@@ -1984,66 +1972,62 @@ export class PublicProjectionsController {
       );
     }
 
-    const [history, careerDisciplineTotals] = await Promise.all([
+    const [history, careerDisciplineTotals, descriptorRows] = await Promise.all([
       people.competitionHistory(tournament.organizationId, personId),
       people.careerTotals(tournament.organizationId, personId),
+      this.db
+        .selectFrom('discipline_descriptors')
+        .select(['descriptor_id as descriptorId', 'version', 'document'])
+        .execute(),
     ]);
 
-    const descriptorRows = await this.db
-      .selectFrom('discipline_descriptors')
-      .select(['descriptor_id as descriptorId', 'document'])
-      .execute();
     const descriptorMap = new Map<string, DisciplineDescriptor>();
+    const descriptorVersionMap = new Map<string, DisciplineDescriptor>();
     for (const d of descriptorRows) {
       const parsed = (
         typeof d.document === 'string' ? JSON.parse(d.document) : d.document
       ) as DisciplineDescriptor;
       descriptorMap.set(d.descriptorId, parsed);
+      descriptorVersionMap.set(`${d.descriptorId}@${d.version}`, parsed);
     }
 
-    const careerStatistics = careerDisciplineTotals.map((disc) => {
-      const desc = descriptorMap.get(disc.descriptorId);
-      const localizedDisciplineName =
-        desc?.name !== undefined && typeof desc.name !== 'string' ? desc.name : undefined;
-      const collectorMap = new Map<string, StatisticCollector>();
-      if (desc?.collectors) {
-        for (const c of desc.collectors) {
-          collectorMap.set(c.code, c);
-        }
-      }
-      return {
-        disciplineDescriptorId: disc.descriptorId,
-        disciplineName:
-          disc.disciplineName ?? (desc?.name ? resolveLabel(desc.name, 'en') : undefined),
-        ...(localizedDisciplineName === undefined ? {} : { localizedDisciplineName }),
-        statistics: disc.totals.map((tot) => {
-          const colDef = collectorMap.get(tot.collectorCode);
-          const localizedLabel =
-            colDef?.label !== undefined && typeof colDef.label !== 'string'
-              ? colDef.label
-              : undefined;
-          const label = colDef?.label ? resolveLabel(colDef.label, 'en') : tot.collectorCode;
-          return {
-            code: tot.collectorCode,
-            label,
-            ...(localizedLabel === undefined ? {} : { localizedLabel }),
-            value: tot.value,
-            samples: tot.samples,
-          };
+    const uniqueTournamentIds = [...new Set(history.map((item) => item.tournamentId))];
+    const shirtNumbersByTournament = new Map(
+      await Promise.all(
+        uniqueTournamentIds.map(async (tid) => {
+          const numbers = await latestFinalizedShirtNumbers(this.db, {
+            organizationId: tournament.organizationId,
+            tournamentId: tid,
+            personIds: [personId],
+          });
+          return [tid, numbers.get(personId)] as const;
         }),
-      };
+      ),
+    );
+
+    const careerStatistics = buildCareerStatistics({
+      careerDisciplineTotals,
+      history,
+      descriptorMap,
+      descriptorVersionMap,
     });
 
     const competitionHistory = history.map((item) => {
-      const desc = descriptorMap.get(item.disciplineRef.descriptorId);
+      const desc =
+        descriptorVersionMap.get(
+          `${item.disciplineRef.descriptorId}@${item.disciplineRef.version}`,
+        ) ?? descriptorMap.get(item.disciplineRef.descriptorId);
       const localizedDisciplineName =
         desc?.name !== undefined && typeof desc.name !== 'string' ? desc.name : undefined;
+      const shirtNumber = shirtNumbersByTournament.get(item.tournamentId);
       return {
         tournamentId: item.tournamentId,
         tournamentName: item.tournamentName,
         tournamentAlias: item.tournamentAlias,
         teamId: item.teamId,
         teamName: item.teamName,
+        ...(item.clubAlias === undefined ? {} : { clubAlias: item.clubAlias }),
+        ...(shirtNumber === undefined ? {} : { shirtNumber }),
         role: item.role,
         entrantId: item.entrantId,
         entrantName: item.entrantName,
@@ -2121,6 +2105,8 @@ export class PublicProjectionsController {
         tournament: {
           tournamentId: tournament.tournamentId,
           disciplineRef: tournament.disciplineRef,
+          includesMinors: tournament.includesMinors,
+          showYouthProfiles: tournament.showYouthProfiles,
         },
       },
       personId,
@@ -2160,7 +2146,7 @@ export class PublicProjectionsController {
     const protectRows = (source: readonly TableProjectionRow[]): TableProjectionRow[] =>
       source.map((row) => {
         const visibility = visibilityById.get(row.actorId) ?? personVisibility(tournament);
-        const { nationality, ...withoutNationality } = row;
+        const { nationality, shirtNumber, ...withoutProtected } = row;
         const suppressedCodes = new Set([
           ...(visibility.hiddenAtRequest ? actorNameCodes : []),
           ...(!visibility.publicProfileAvailable ? entrantNameCodes : []),
@@ -2176,7 +2162,7 @@ export class PublicProjectionsController {
               )
             : row.cells;
         return {
-          ...withoutNationality,
+          ...withoutProtected,
           ...(!visibility.publicProfileAvailable
             ? {
                 entrantName: undefined,
@@ -2188,6 +2174,7 @@ export class PublicProjectionsController {
           ...(visibility.hiddenAtRequest ? { actorName: '', hiddenAtRequest: true } : {}),
           publicProfileAvailable: visibility.publicProfileAvailable,
           ...(visibility.nationalityVisible && nationality !== undefined ? { nationality } : {}),
+          ...(visibility.hiddenAtRequest || shirtNumber === undefined ? {} : { shirtNumber }),
           cells,
         };
       });
@@ -2213,6 +2200,117 @@ function canShowPublicPlayerProfile(tournament: Tournament, hiddenFromPublic?: b
   );
 }
 
+function buildCareerStatistics(input: {
+  readonly careerDisciplineTotals: Awaited<ReturnType<PersonRepository['careerTotals']>>;
+  readonly history: Awaited<ReturnType<PersonRepository['competitionHistory']>>;
+  readonly descriptorMap: ReadonlyMap<string, DisciplineDescriptor>;
+  readonly descriptorVersionMap: ReadonlyMap<string, DisciplineDescriptor>;
+}): PublicPersonProfileResponse['careerStatistics'] {
+  const totalsByDescriptor = new Map(
+    input.careerDisciplineTotals
+      .filter((disc) => disc.descriptorId !== 'default')
+      .map((disc) => [disc.descriptorId, disc]),
+  );
+  const versionByDescriptor = new Map<string, string>();
+  const orderedDescriptorIds: string[] = [];
+  const addDescriptorId = (descriptorId: string, version?: string) => {
+    if (version !== undefined && !versionByDescriptor.has(descriptorId)) {
+      versionByDescriptor.set(descriptorId, version);
+    }
+    if (!orderedDescriptorIds.includes(descriptorId)) orderedDescriptorIds.push(descriptorId);
+  };
+  for (const disc of input.careerDisciplineTotals) {
+    if (disc.descriptorId !== 'default') addDescriptorId(disc.descriptorId);
+  }
+  for (const item of input.history) {
+    addDescriptorId(item.disciplineRef.descriptorId, item.disciplineRef.version);
+  }
+
+  const result: PublicPersonProfileResponse['careerStatistics'] = [];
+  for (const descriptorId of orderedDescriptorIds) {
+    const version = versionByDescriptor.get(descriptorId);
+    const desc =
+      (version !== undefined
+        ? input.descriptorVersionMap.get(`${descriptorId}@${version}`)
+        : undefined) ?? input.descriptorMap.get(descriptorId);
+    const existing = totalsByDescriptor.get(descriptorId);
+    const statistics = mergeCareerDisciplineCollectors(desc, existing?.totals ?? []);
+    if (statistics.length === 0) continue;
+
+    const localizedDisciplineName =
+      desc?.name !== undefined && typeof desc.name !== 'string' ? desc.name : undefined;
+    result.push({
+      disciplineDescriptorId: descriptorId,
+      disciplineName:
+        existing?.disciplineName ?? (desc?.name ? resolveLabel(desc.name, 'en') : undefined),
+      ...(localizedDisciplineName === undefined ? {} : { localizedDisciplineName }),
+      statistics,
+    });
+  }
+
+  const unclaimed = input.careerDisciplineTotals.find((disc) => disc.descriptorId === 'default');
+  if (unclaimed && unclaimed.totals.length > 0) {
+    result.push({
+      disciplineDescriptorId: unclaimed.descriptorId,
+      disciplineName: unclaimed.disciplineName,
+      statistics: unclaimed.totals.map((tot) => ({
+        code: tot.collectorCode,
+        label: tot.collectorCode,
+        value: tot.value,
+        samples: tot.samples,
+      })),
+    });
+  }
+  return result;
+}
+
+function mergeCareerDisciplineCollectors(
+  desc: DisciplineDescriptor | undefined,
+  recordedTotals: readonly {
+    readonly collectorCode: string;
+    readonly value: number;
+    readonly samples: number;
+  }[],
+): PublicPersonProfileResponse['careerStatistics'][number]['statistics'] {
+  const recordedByCode = new Map(recordedTotals.map((tot) => [tot.collectorCode, tot]));
+  const collectorMap = new Map<string, StatisticCollector>();
+  const emitted = new Set<string>();
+  const statistics: PublicPersonProfileResponse['careerStatistics'][number]['statistics'] = [];
+
+  for (const collector of desc?.collectors ?? []) {
+    collectorMap.set(collector.code, collector);
+    if (!readableAt(collector, { actor: 'person', competition: 'organization' })) continue;
+    const recorded = recordedByCode.get(collector.code);
+    statistics.push(careerStatisticItem(collector.code, collector, recorded));
+    emitted.add(collector.code);
+  }
+
+  for (const tot of recordedTotals) {
+    if (emitted.has(tot.collectorCode)) continue;
+    statistics.push(
+      careerStatisticItem(tot.collectorCode, collectorMap.get(tot.collectorCode), tot),
+    );
+  }
+  return statistics;
+}
+
+function careerStatisticItem(
+  code: string,
+  colDef: StatisticCollector | undefined,
+  recorded: { readonly value: number; readonly samples: number } | undefined,
+): PublicPersonProfileResponse['careerStatistics'][number]['statistics'][number] {
+  const localizedLabel =
+    colDef?.label !== undefined && typeof colDef.label !== 'string' ? colDef.label : undefined;
+  const label = colDef?.label ? resolveLabel(colDef.label, 'en') : code;
+  return {
+    code,
+    label,
+    ...(localizedLabel === undefined ? {} : { localizedLabel }),
+    value: recorded?.value ?? 0,
+    samples: recorded?.samples ?? 0,
+  };
+}
+
 function playerStatisticsResponse(
   result: PlayerStatisticsDrilldownResult,
 ): PlayerStatisticsDrilldownResponse {
@@ -2234,6 +2332,15 @@ function playerStatisticsResponse(
     matches: result.matches.map((row) => ({
       stageNumber: row.match.stageNumber,
       matchNumber: row.match.matchNumber,
+      ...(row.scheduledAt === undefined ? {} : { scheduledAt: row.scheduledAt }),
+      side: row.side,
+      opponentName: row.opponentName,
+      ...(row.opponentAbbreviation === undefined
+        ? {}
+        : { opponentAbbreviation: row.opponentAbbreviation }),
+      ...(row.opponentClubAlias === undefined ? {} : { opponentClubAlias: row.opponentClubAlias }),
+      ...(row.ownScore === undefined ? {} : { ownScore: row.ownScore }),
+      ...(row.opponentScore === undefined ? {} : { opponentScore: row.opponentScore }),
       cells: row.cells,
     })),
   };

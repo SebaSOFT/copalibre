@@ -203,11 +203,12 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
   }
 
   /*
-   * A table without its own scroll container scrolls itself. A `.cl-table` always sits in
-   * `.cl-table-scroll`, and a block-level table would stop filling it: its columns would keep
-   * their content width however wide the panel is.
+   * A table without its own scroll container scrolls itself. Both `.cl-table` (inside
+   * `.cl-table-scroll`) and `.cl-data-table__table` (inside `.cl-data-table`) already sit
+   * inside their own scroll container; making them block-level stops their columns from
+   * filling the panel width and adds a duplicate scrollbar gutter.
    */
-  :global(main table:not(.cl-table)) {
+  :global(main table:not(.cl-table):not(.cl-data-table__table)) {
     display: block;
     max-width: 100%;
     overflow-x: auto;

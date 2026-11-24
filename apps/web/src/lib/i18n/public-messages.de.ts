@@ -140,6 +140,12 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.playerDialog.columnTeam': 'Team',
   'publicWeb.standings.playerDialog.columnRole': 'Rolle',
   'publicWeb.standings.playerDialog.loadError': 'Spielerdetails konnten nicht geladen werden.',
+  'publicWeb.playerDialog.viewProfile': 'Profil ansehen',
+  'publicWeb.standingsTable.searchLabel': 'Spieler suchen',
+  'publicWeb.standingsTable.searchPlaceholder': 'Spielername',
+  'publicWeb.standingsTable.columnNumber': 'Nr.',
+  'publicWeb.standingsTable.sortedAscending': 'Aufsteigend sortiert',
+  'publicWeb.standingsTable.sortedDescending': 'Absteigend sortiert',
 
   'publicWeb.hero.liveCount': '{count} live',
   'publicWeb.hero.noLiveMatches': 'Keine live-spiele',
@@ -232,7 +238,10 @@ export const messages: Record<string, string> = {
   'publicWeb.playerProfile.noTournamentStats':
     'Für diesen Spieler sind keine Turnierstatistiken erfasst.',
   'publicWeb.playerProfile.matchColumnHeading': 'Spiel',
-  'publicWeb.playerProfile.matchLabel': 'Etappe {stage} · Spiel {match}',
+  'publicWeb.playerProfile.matchRowLabel': '{date} · {opponent} · {score}',
+  'publicWeb.playerProfile.nextMatchHeading': 'Nächstes Spiel',
+  'publicWeb.playerProfile.shirtNumber': '#{number}',
+  'publicWeb.playerProfile.clubLabel': 'Verein: {club}',
 
   'publicWeb.tournamentsPage.title': 'Turniere',
   'publicWeb.tournamentsPage.liveHeading': 'Live & Aktiv',

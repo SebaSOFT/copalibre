@@ -1138,4 +1138,42 @@ describe('public-api-client', () => {
       });
     });
   });
+
+  describe('mapMatchesViewResponse', () => {
+    it('preserves homeEntrantId and awayEntrantId when present and omits them when absent', () => {
+      const response = {
+        matches: [
+          {
+            matchId: 'm-1',
+            stageNumber: 1,
+            matchNumber: 1,
+            round: 1,
+            status: 'upcoming' as const,
+            homeEntrantId: 'e-home',
+            homeName: 'Talleres',
+            awayEntrantId: 'e-away',
+            awayName: 'Independiente',
+          },
+          {
+            matchId: 'm-2',
+            stageNumber: 1,
+            matchNumber: 2,
+            round: 1,
+            status: 'final' as const,
+            homeName: 'San Martín',
+            awayName: 'Gimnasia',
+          },
+        ],
+      };
+
+      const result = mapMatchesViewResponse(
+        response as unknown as Parameters<typeof mapMatchesViewResponse>[0],
+      );
+
+      expect(result.matches[0]?.homeEntrantId).toBe('e-home');
+      expect(result.matches[0]?.awayEntrantId).toBe('e-away');
+      expect(result.matches[1]).not.toHaveProperty('homeEntrantId');
+      expect(result.matches[1]).not.toHaveProperty('awayEntrantId');
+    });
+  });
 });

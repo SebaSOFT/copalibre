@@ -1,0 +1,68 @@
+---
+import Icon from './Icon.astro';
+
+/**
+ * Shared sort-direction glyph rendered inside sortable table headers.
+ *
+ * Reads the enclosing `th[aria-sort]` state via CSS so client-side sort scripts
+ * only update `aria-sort` and the indicator flips automatically without extra
+ * DOM mutations.
+ */
+interface Props {
+  readonly direction?: 'none' | 'ascending' | 'descending';
+  readonly class?: string;
+}
+
+const { direction = 'none', class: extraClass = '' } = Astro.props;
+---
+
+<span
+  aria-hidden="true"
+  class={`cl-sort-indicator ${extraClass}`.trim()}
+  data-sort-indicator={direction}
+>
+  <Icon name="chevron-down" size={16} class="cl-sort-indicator__glyph" />
+</span>
+
+<style>
+  .cl-sort-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    color: var(--cl-text-muted);
+    opacity: 0.4;
+    transition:
+      color var(--cl-motion-fast, 120ms),
+      opacity var(--cl-motion-fast, 120ms);
+  }
+  .cl-sort-indicator__glyph {
+    transition: transform var(--cl-motion-fast, 120ms);
+  }
+  .cl-sort-indicator[data-sort-indicator='ascending'],
+  .cl-sort-indicator[data-sort-indicator='descending'] {
+    color: var(--cl-text-accent);
+    opacity: 1;
+  }
+  .cl-sort-indicator[data-sort-indicator='ascending'] .cl-sort-indicator__glyph {
+    transform: rotate(180deg);
+  }
+  :global(th[aria-sort='none']) .cl-sort-indicator {
+    color: var(--cl-text-muted);
+    opacity: 0.4;
+  }
+  :global(th[aria-sort='none']) .cl-sort-indicator__glyph {
+    transform: rotate(0deg);
+  }
+  :global(th[aria-sort='ascending']) .cl-sort-indicator,
+  :global(th[aria-sort='descending']) .cl-sort-indicator {
+    color: var(--cl-text-accent);
+    opacity: 1;
+  }
+  :global(th[aria-sort='ascending']) .cl-sort-indicator__glyph {
+    transform: rotate(180deg);
+  }
+  :global(th[aria-sort='descending']) .cl-sort-indicator__glyph {
+    transform: rotate(0deg);
+  }
+</style>

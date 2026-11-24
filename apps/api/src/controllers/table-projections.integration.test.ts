@@ -884,5 +884,55 @@ describe('table projections (integration)', () => {
       );
       expect(response.statusCode).toBe(404);
     });
+
+    it('populates shirtNumber on person-granularity table rows and strips it when hiddenAtRequest', async () => {
+      const people = new PersonRepository(scratch.db);
+      await withTransaction(scratch.db, async (uow) => {
+        await uow.tx
+          .updateTable('match_rosters')
+          .set({
+            roster_members: JSON.stringify([
+              { personId: personScorer, name: 'Goleador', number: 10, onField: true },
+            ]),
+          })
+          .where('match_id', '=', matchId)
+          .where('entrant_id', '=', entrantTalleres)
+          .execute();
+      });
+
+      const visibleResponse = await getAnonymous(
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+      );
+      expect(visibleResponse.statusCode).toBe(200);
+      expect(visibleResponse.json().rows[0]).toMatchObject({
+        actorId: personScorer,
+        shirtNumber: 10,
+      });
+
+      await withTransaction(scratch.db, (uow) =>
+        people.setHiddenFromPublic(uow, {
+          personId: personScorer,
+          organizationId,
+          hiddenFromPublic: true,
+          ...AUDIT,
+        }),
+      );
+
+      const hiddenResponse = await getAnonymous(
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+      );
+      expect(hiddenResponse.statusCode).toBe(200);
+      expect(hiddenResponse.json().rows[0].hiddenAtRequest).toBe(true);
+      expect(hiddenResponse.json().rows[0].shirtNumber).toBeUndefined();
+
+      await withTransaction(scratch.db, (uow) =>
+        people.setHiddenFromPublic(uow, {
+          personId: personScorer,
+          organizationId,
+          hiddenFromPublic: false,
+          ...AUDIT,
+        }),
+      );
+    });
   });
 });

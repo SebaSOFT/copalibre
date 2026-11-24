@@ -25,6 +25,8 @@ import EmblemImage from '../components/ui/atoms/EmblemImage.astro';
 import Icon from '../components/ui/atoms/Icon.astro';
 import Logo from '../components/ui/atoms/Logo.astro';
 import PersonPhotoImage from '../components/ui/atoms/PersonPhotoImage.astro';
+import SearchInput from '../components/ui/atoms/SearchInput.astro';
+import SortIndicator from '../components/ui/atoms/SortIndicator.astro';
 import { ICON_REGISTRY } from '../lib/icon-registry.js';
 import StateBadge from '../components/ui/atoms/StateBadge.astro';
 import BroadcastStatusPanel from '../components/ui/molecules/BroadcastStatusPanel.astro';
@@ -140,6 +142,8 @@ const PREVIEWABLE = new Set([
   'logo',
   'person-photo-image',
   'person-photo-cutout',
+  'search-input',
+  'sort-indicator',
   'state-badge',
   'broadcast-status-panel',
   'ruleset-briefing',
@@ -579,6 +583,21 @@ const [compactSample] = referenceJourneyBracket(true);
       />
     )}
     {component === 'state-badge' && <StateBadge intl={intl} state="final" />}
+    {component === 'search-input' && (
+      <SearchInput
+        action="#"
+        label={intl.formatMessage(messages.standingsTableSearchLabel)}
+        placeholder={intl.formatMessage(messages.standingsTableSearchPlaceholder)}
+        hiddenParams={[{ name: 'tab', value: 'player-statistics' }]}
+      />
+    )}
+    {component === 'sort-indicator' && (
+      <div class="cl-preview-chip-row">
+        <SortIndicator direction="ascending" />
+        <SortIndicator direction="descending" />
+        <SortIndicator direction="none" />
+      </div>
+    )}
     {component === 'broadcast-status-panel' && (
       <>
         <BroadcastStatusPanel

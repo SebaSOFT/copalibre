@@ -1216,13 +1216,20 @@ export class EnrollmentRepository {
         readonly name: string;
         readonly abbreviation?: string;
         readonly clubId?: string;
+        readonly clubAlias?: string;
         readonly emblemObjectId?: string;
       }
     >
   > {
     const details = new Map<
       string,
-      { name: string; abbreviation?: string; clubId?: string; emblemObjectId?: string }
+      {
+        name: string;
+        abbreviation?: string;
+        clubId?: string;
+        clubAlias?: string;
+        emblemObjectId?: string;
+      }
     >();
     if (entrantIds.length === 0) return details;
 
@@ -1257,6 +1264,7 @@ export class EnrollmentRepository {
               'teams.name as name',
               'teams.abbreviation as team_abbreviation',
               'teams.club_id as club_id',
+              'clubs.alias as club_alias',
               'clubs.abbreviation as club_abbreviation',
               'clubs.emblem_object_id as emblem_object_id',
             ])
@@ -1281,6 +1289,9 @@ export class EnrollmentRepository {
             name: team.name,
             ...(abbreviation === undefined ? {} : { abbreviation }),
             ...(team.club_id === null ? {} : { clubId: team.club_id }),
+            ...(team.club_alias === null || team.club_alias === ''
+              ? {}
+              : { clubAlias: team.club_alias }),
             ...(team.emblem_object_id === null ? {} : { emblemObjectId: team.emblem_object_id }),
           });
         }

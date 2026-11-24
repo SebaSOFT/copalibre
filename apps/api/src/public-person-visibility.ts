@@ -8,12 +8,14 @@ export interface PublicPersonVisibility {
   readonly nationalityVisible: boolean;
 }
 
-export function youthProfilesSuppressed(tournament: Tournament): boolean {
+export function youthProfilesSuppressed(
+  tournament: Pick<Tournament, 'includesMinors' | 'showYouthProfiles'>,
+): boolean {
   return tournament.includesMinors === true && tournament.showYouthProfiles !== true;
 }
 
 export function personVisibility(
-  tournament: Tournament,
+  tournament: Pick<Tournament, 'includesMinors' | 'showYouthProfiles'>,
   hiddenFromPublic = false,
 ): PublicPersonVisibility {
   const hiddenAtRequest = hiddenFromPublic;
@@ -27,7 +29,7 @@ export function personVisibility(
 
 export async function personVisibilityById(
   db: Kysely<Database>,
-  tournament: Tournament,
+  tournament: Pick<Tournament, 'includesMinors' | 'showYouthProfiles'>,
   personIds: readonly string[],
 ): Promise<ReadonlyMap<string, PublicPersonVisibility>> {
   const uniqueIds = [...new Set(personIds)];
@@ -49,7 +51,7 @@ export async function personVisibilityById(
 
 export async function entrantVisibilityById(
   db: Kysely<Database>,
-  tournament: Tournament,
+  tournament: Pick<Tournament, 'tournamentId' | 'includesMinors' | 'showYouthProfiles'>,
   entrantIds: readonly string[],
 ): Promise<ReadonlyMap<string, PublicPersonVisibility>> {
   const uniqueIds = [...new Set(entrantIds)];
