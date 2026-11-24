@@ -382,6 +382,7 @@ export function mapOverviewResponse(
       abbreviation: c.abbreviation,
       alias: c.alias,
       emblemObjectId: c.emblemObjectId,
+      ...(c.formerAliases && c.formerAliases.length > 0 ? { formerAliases: c.formerAliases } : {}),
     })),
   } as OverviewInput;
 }

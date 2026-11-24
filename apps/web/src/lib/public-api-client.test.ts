@@ -590,6 +590,27 @@ describe('public-api-client', () => {
       expect(result.standings[0].points).toBe(3);
     });
 
+    it('carries a renamed club’s former aliases and omits the field for a club never renamed', () => {
+      const response = {
+        organizationAlias: 'org',
+        tournamentAlias: 't',
+        organizationName: 'Org',
+        tournamentName: 'T',
+        seasonName: 'S',
+        ruleset: {},
+        matches: [],
+        clubs: [
+          { clubId: 'club-1', name: 'Hispano', alias: 'hispano', formerAliases: ['club-hispano'] },
+          { clubId: 'club-2', name: 'Red Star', alias: 'red-star', formerAliases: [] },
+        ],
+      };
+      const result = mapOverviewResponse(
+        response as unknown as Parameters<typeof mapOverviewResponse>[0],
+      );
+      expect(result.clubs?.[0]?.formerAliases).toEqual(['club-hispano']);
+      expect(result.clubs?.[1]).not.toHaveProperty('formerAliases');
+    });
+
     it('carries the structure a card is titled by: node key, round, zone and group', () => {
       const match = {
         matchId: 'match-1',

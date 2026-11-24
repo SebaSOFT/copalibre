@@ -1738,6 +1738,80 @@ describe('public projections routes', () => {
       expect(byClubId.get(clubIdle.clubId)).not.toHaveProperty('tournamentAlias');
     });
 
+    it('lists the former aliases of a renamed club on the tournament overview', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const enrollments = new EnrollmentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+      const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+
+      const { clubId, steadyClubId, tournamentId } = await withTransaction(
+        scratch.db as Kysely<Database>,
+        async (uow) => {
+          const club = await enrollments.createClub(uow, {
+            organizationId,
+            alias: 'club-renombrado',
+            name: 'Club Renombrado',
+            ...audit,
+          });
+          const steady = await enrollments.createClub(uow, {
+            organizationId,
+            alias: 'club-estable',
+            name: 'Club Estable',
+            ...audit,
+          });
+          const tournament = await tournaments.create(uow, {
+            organizationId,
+            alias: 'copa-alias-renombrado',
+            name: 'Copa Alias Renombrado',
+            descriptor,
+            ...audit,
+          });
+          for (const entry of [club, steady]) {
+            const team = await enrollments.createTeam(uow, {
+              organizationId,
+              clubId: entry.clubId,
+              name: `${entry.name} Primera`,
+              ...audit,
+            });
+            await enrollments.registerEntrant(uow, {
+              organizationId,
+              tournamentId: tournament.tournamentId,
+              entrantRef: { kind: 'team', teamId: team.teamId },
+              ...audit,
+            });
+          }
+          return {
+            clubId: club.clubId,
+            steadyClubId: steady.clubId,
+            tournamentId: tournament.tournamentId,
+          };
+        },
+      );
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.publish(uow, { tournamentId, organizationId, ...audit }),
+      );
+      for (const alias of ['club-renombrado-2', 'renombrado']) {
+        await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+          enrollments.updateClub(uow, { clubId, organizationId, alias, ...audit }),
+        );
+      }
+
+      const response = await request({
+        method: 'GET',
+        url: '/api/organizations/liga-orbital/tournaments/copa-alias-renombrado/overview',
+      });
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload as string) as {
+        clubs: { clubId: string; alias?: string; formerAliases?: string[] }[];
+      };
+      const renamed = body.clubs.find((club) => club.clubId === clubId);
+      expect(renamed?.alias).toBe('renombrado');
+      expect(renamed?.formerAliases).toEqual(['club-renombrado', 'club-renombrado-2']);
+      expect(body.clubs.find((club) => club.clubId === steadyClubId)).not.toHaveProperty(
+        'formerAliases',
+      );
+    });
+
     it('does not link a club whose only entrant in a tournament is a person of its team', async () => {
       const tournaments = new TournamentRepository(scratch.db);
       const enrollments = new EnrollmentRepository(scratch.db);
