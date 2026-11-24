@@ -290,6 +290,9 @@ const structuredData = {
       )}
       <MatchHero
         intl={intl}
+        organizationAlias={organization!}
+        tournamentAlias={tournament!}
+        localePrefix={localePrefix}
         rescheduledLabel={intl.formatMessage(messages.matchRescheduled, {
           time: '{time}',
           venue: '{venue}',

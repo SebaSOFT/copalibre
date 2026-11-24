@@ -29,6 +29,7 @@ interface Props {
   readonly stageNumber: number;
   readonly localePrefix?: string;
   readonly highlightEntrants?: boolean;
+  readonly highlightedEntrantId?: string;
   readonly scheduledAt?: string;
   readonly venueName?: string;
   readonly organizationTimeZone?: string;
@@ -129,7 +130,9 @@ const legScores =
                       aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
                         entrant: slot.fullName,
                       })}
-                      aria-pressed="false"
+                      aria-pressed={
+                        slot.entrantId === Astro.props.highlightedEntrantId ? 'true' : 'false'
+                      }
                       class="cl-journey-name"
                       data-entrant-id={slot.entrantId}
                       title={slot.fullName}

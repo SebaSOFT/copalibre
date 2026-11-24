@@ -15,6 +15,7 @@ import { personPhotoUrl } from '../../../lib/public-api-client.ts';
 import { columnHint } from '../../../lib/column-hints.ts';
 import { formatTimestamp } from '../../../lib/format-timestamp.ts';
 import { localizedText } from '../../../lib/localized-label.ts';
+import { optionalClubPageUrl } from '../../../lib/club-url.ts';
 import {
   currentTournamentHistoryEntry,
   formatPlayerMatchRowLabel,
@@ -71,6 +72,12 @@ const currentClubDisplay = currentHistory
     ? `${currentHistory.teamName} (${currentHistory.entrantAbbreviation})`
     : currentHistory.teamName
   : undefined;
+const currentClubHref = optionalClubPageUrl({
+  organizationAlias,
+  tournamentAlias,
+  clubAlias: currentHistory?.clubAlias,
+  localePrefix: intl.locale === 'en' ? '' : `/${intl.locale}`,
+});
 
 /** Tournament-total row: cells keyed directly by column code (not nested under `.cells`). */
 const totalColumns = (statistics?.columns ?? []).map((column) => {
@@ -199,13 +206,23 @@ const historyColumns = [
     <div class="cl-player-profile__identity">
       <h1 class="cl-player-profile__name">{profile.displayName}</h1>
       <div class="cl-player-profile__meta">
-        {currentClubDisplay && (
-          <span class="cl-player-profile__tag">
-            {intl.formatMessage(messages.playerProfileClubLabel, {
-              club: currentClubDisplay,
-            })}
-          </span>
-        )}
+        {currentClubDisplay &&
+          (currentClubHref ? (
+            <a
+              class="cl-player-profile__tag cl-player-profile__tag--link cl-focusable"
+              href={currentClubHref}
+            >
+              {intl.formatMessage(messages.playerProfileClubLabel, {
+                club: currentClubDisplay,
+              })}
+            </a>
+          ) : (
+            <span class="cl-player-profile__tag">
+              {intl.formatMessage(messages.playerProfileClubLabel, {
+                club: currentClubDisplay,
+              })}
+            </span>
+          ))}
         {currentHistory?.shirtNumber !== undefined && (
           <span class="cl-player-profile__tag">
             {intl.formatMessage(messages.playerProfileShirtNumber, {
@@ -397,6 +414,14 @@ const historyColumns = [
     border-radius: 4px;
     font-size: var(--cl-font-size-sm);
     font-weight: 500;
+  }
+  .cl-player-profile__tag--link {
+    color: var(--cl-text-accent);
+    text-decoration: none;
+  }
+  .cl-player-profile__tag--link:hover {
+    border-color: var(--cl-border-accent);
+    text-decoration: underline;
   }
   .cl-player-profile__section-title {
     margin: 0 0 12px 0;

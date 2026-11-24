@@ -17,6 +17,7 @@ import {
   selectStageLayout,
   matchReportUrl,
 } from '../../../../../../lib/bracket.ts';
+import { resolveClubFilter, zoneAnchorSlug } from '../../../../../../lib/club-page.ts';
 import {
   fetchBracket,
   fetchMatchesView,
@@ -90,10 +91,23 @@ const stageMatches = await fetchMatchesView(organization!, tournament!, { stageN
 );
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const clubResolution = resolveClubFilter(Astro.url.searchParams, model.clubs);
+if ('redirectSearch' in clubResolution) {
+  const location = clubResolution.redirectSearch
+    ? `${Astro.url.pathname}?${clubResolution.redirectSearch}`
+    : Astro.url.pathname;
+  return new Response(null, { status: 301, headers: { Location: location } });
+}
 const referenceDate = Date.now();
 const localePrefix = locale ? `/${locale}` : '';
 const stagePath = `${localePrefix}${model.canonicalPath}/stages/${stageNumber}`;
-const activeClubId = Astro.url.searchParams.get('clubId') ?? undefined;
+const activeClubAlias = clubResolution.activeClubAlias;
+const activeClubId = clubResolution.activeClubId;
+const clubFilter = activeClubAlias
+  ? { club: activeClubAlias }
+  : activeClubId
+    ? { clubId: activeClubId }
+    : undefined;
 
 // This stage's own group-phase table (e.g. a round-robin group's standings),
 // when its discipline declares one — an elimination stage naturally has
@@ -105,7 +119,7 @@ const layoutsResponse = needsStandingsTable
   : undefined;
 const groupPhaseLayout = layoutsResponse?.layouts.find((one) => one.target === 'group-phase');
 const standingsCsvHref = groupPhaseLayout
-  ? publicTableCsvUrl(organization!, tournament!, groupPhaseLayout.code, stageNumber, activeClubId)
+  ? publicTableCsvUrl(organization!, tournament!, groupPhaseLayout.code, stageNumber, clubFilter)
   : undefined;
 const standingsProjection = groupPhaseLayout
   ? await fetchPublicTableProjection(
@@ -113,7 +127,7 @@ const standingsProjection = groupPhaseLayout
       tournament!,
       groupPhaseLayout.code,
       stageNumber,
-      activeClubId,
+      clubFilter,
     )
   : undefined;
 
@@ -201,11 +215,15 @@ const zoneHeading = (name: string | undefined, index: number): string =>
           </ul>
         </nav>
         {bracketData.zones.map((zone, index) => (
-          <section aria-labelledby={`cl-bracket-zone-${index}`}>
+          <section
+            id={zone.zoneName ? zoneAnchorSlug(zone.zoneName) : undefined}
+            aria-labelledby={`cl-bracket-zone-${index}`}
+          >
             <h2 id={`cl-bracket-zone-${index}`}>{zoneHeading(zone.zoneName, index)}</h2>
             {zoneLayouts[index] === 'bracket' ? (
               <BracketView
                 headingLevel={3}
+                highlightClubId={activeClubId}
                 intl={intl}
                 localePrefix={localePrefix}
                 matches={zone.matches}
@@ -240,10 +258,13 @@ const zoneHeading = (name: string | undefined, index: number): string =>
                         headingLevel={3}
                         inZoneSection={bracketData.zones.length > 1}
                         locale={intl.locale}
+                        localePrefix={localePrefix}
                         match={match}
                         labels={labels}
+                        organizationAlias={organization!}
                         referenceDate={referenceDate}
                         timeZone={model.organizationTimeZone}
+                        tournamentAlias={tournament!}
                         reportUrl={matchReportUrl({
                           organizationAlias: organization!,
                           tournamentAlias: tournament!,
@@ -260,6 +281,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
                   if (zoneSegments.length === 1) {
                     return (
                       <StandingsTable
+                        activeClubAlias={activeClubAlias}
                         activeClubId={activeClubId}
                         canonicalPath={stagePath}
                         clubs={model.clubs}
@@ -279,6 +301,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
                       aria-label={zoneHeading(zone.zoneName, index)}
                     >
                       <StandingsTable
+                        activeClubAlias={activeClubAlias}
                         activeClubId={activeClubId}
                         canonicalPath={stagePath}
                         clubs={model.clubs}
@@ -293,6 +316,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
                       <div class="cl-standings-groups">
                         {zoneSegments.map((segment) => (
                           <StandingsTable
+                            activeClubAlias={activeClubAlias}
                             activeClubId={activeClubId}
                             canonicalPath={stagePath}
                             chrome="table-only"
@@ -308,6 +332,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
                         ))}
                       </div>
                       <StandingsTable
+                        activeClubAlias={activeClubAlias}
                         activeClubId={activeClubId}
                         canonicalPath={stagePath}
                         clubs={model.clubs}
@@ -348,12 +373,16 @@ const zoneHeading = (name: string | undefined, index: number): string =>
           </nav>
         )}
         {bracketData.zones.map((zone, index) => (
-          <section aria-labelledby={`cl-bracket-zone-${index}`}>
+          <section
+            id={zone.zoneName ? zoneAnchorSlug(zone.zoneName) : undefined}
+            aria-labelledby={`cl-bracket-zone-${index}`}
+          >
             {bracketData.zones.length > 1 && (
               <h2 id={`cl-bracket-zone-${index}`}>{zoneHeading(zone.zoneName, index)}</h2>
             )}
             <BracketView
               headingLevel={bracketData.zones.length > 1 ? 3 : 2}
+              highlightClubId={activeClubId}
               intl={intl}
               localePrefix={localePrefix}
               matches={zone.matches}
@@ -395,10 +424,13 @@ const zoneHeading = (name: string | undefined, index: number): string =>
               client:load
               headingLevel={3}
               locale={intl.locale}
+              localePrefix={localePrefix}
               match={match}
               labels={labels}
+              organizationAlias={organization!}
               referenceDate={referenceDate}
               timeZone={model.organizationTimeZone}
+              tournamentAlias={tournament!}
               reportUrl={matchReportUrl({
                 organizationAlias: organization!,
                 tournamentAlias: tournament!,
@@ -417,6 +449,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
       (stageSegments.length > 1 ? (
         <section id="standings" aria-labelledby="standings-heading" class="cl-standings-section">
           <StandingsTable
+            activeClubAlias={activeClubAlias}
             activeClubId={activeClubId}
             canonicalPath={stagePath}
             clubs={model.clubs}
@@ -430,6 +463,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
           <div class="cl-standings-groups">
             {stageSegments.map((segment) => (
               <StandingsTable
+                activeClubAlias={activeClubAlias}
                 activeClubId={activeClubId}
                 canonicalPath={stagePath}
                 chrome="table-only"
@@ -444,6 +478,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
             ))}
           </div>
           <StandingsTable
+            activeClubAlias={activeClubAlias}
             activeClubId={activeClubId}
             canonicalPath={stagePath}
             clubs={model.clubs}
@@ -458,6 +493,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
         </section>
       ) : (
         <StandingsTable
+          activeClubAlias={activeClubAlias}
           activeClubId={activeClubId}
           canonicalPath={stagePath}
           clubs={model.clubs}

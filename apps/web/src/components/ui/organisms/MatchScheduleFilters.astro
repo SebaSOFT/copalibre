@@ -1,4 +1,6 @@
 ---
+import Select from '../atoms/Select.astro';
+
 /**
  * Consolidated hierarchical match-schedule filter bar:
  * stage tabs -> zone pills (only when the active stage has >1 zone) ->
@@ -15,11 +17,17 @@ export interface MatchScheduleStageOption {
 export type MatchScheduleState = 'all' | 'live' | 'upcoming' | 'final';
 export type MatchScheduleView = 'rows' | 'cards';
 
+export interface MatchScheduleClubOption {
+  readonly alias: string;
+  readonly name: string;
+}
+
 export interface MatchScheduleFiltersLabels {
   readonly disclosureLabel: string;
   readonly stageFilterAriaLabel: string;
   readonly zoneFilterAriaLabel: string;
   readonly groupFilterAriaLabel: string;
+  readonly clubFilterAriaLabel?: string;
   readonly dayFilterAriaLabel?: string;
   readonly stateFilterAriaLabel: string;
   readonly viewFilterAriaLabel: string;
@@ -28,10 +36,12 @@ export interface MatchScheduleFiltersLabels {
     readonly stage: string;
     readonly zone: string;
     readonly group: string;
+    readonly club?: string;
     readonly day?: string;
     readonly state: string;
     readonly view: string;
   };
+  readonly clubAll?: string;
   readonly dayOptions?: {
     readonly all: string;
     readonly today: string;
@@ -58,6 +68,8 @@ interface Props {
   readonly activeZone?: string;
   readonly groups: readonly string[];
   readonly activeGroup?: string;
+  readonly clubs?: readonly MatchScheduleClubOption[];
+  readonly activeClub?: string;
   readonly days?: readonly MatchScheduleDayOption[];
   readonly activeDay?: string;
   readonly todayKey?: string;
@@ -74,6 +86,7 @@ interface Props {
       stageNumber: number | undefined;
       zone: string | undefined;
       group: string | undefined;
+      club: string | undefined;
       day: string | undefined;
       state: MatchScheduleState;
       view: MatchScheduleView;
@@ -88,6 +101,8 @@ const {
   activeZone,
   groups,
   activeGroup,
+  clubs = [],
+  activeClub,
   days = [],
   activeDay,
   todayKey,
@@ -177,6 +192,34 @@ const hasTomorrow = tomorrowKey !== undefined && days.some((day) => day.key === 
             </a>
           ))}
         </nav>
+      </div>
+    )}
+
+    {clubs.length > 0 && labels.titles.club && labels.clubAll && (
+      <div class="cl-filter-row">
+        <span class="cl-filter-row__title" id="matches-club-filter-label">
+          {labels.titles.club}
+        </span>
+        <Select
+          name="club"
+          ariaLabel={labels.clubFilterAriaLabel ?? labels.titles.club}
+          ariaLabelledBy="matches-club-filter-label"
+          dataAttr="data-schedule-club-select"
+          options={[
+            {
+              value: '',
+              label: labels.clubAll,
+              selected: activeClub === undefined,
+              href: buildUrl({ club: undefined }),
+            },
+            ...clubs.map((club) => ({
+              value: club.alias,
+              label: club.name,
+              selected: activeClub === club.alias,
+              href: buildUrl({ club: club.alias }),
+            })),
+          ]}
+        />
       </div>
     )}
 
@@ -315,3 +358,15 @@ const hasTomorrow = tomorrowKey !== undefined && days.some((day) => day.key === 
     letter-spacing: var(--cl-tracking-wide);
   }
 </style>
+
+<script>
+  document
+    .querySelectorAll<HTMLSelectElement>('select[data-schedule-club-select]')
+    .forEach((select) => {
+      select.addEventListener('change', () => {
+        const selected = select.selectedOptions[0];
+        const href = selected?.dataset.href;
+        if (href) window.location.assign(href);
+      });
+    });
+</script>

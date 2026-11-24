@@ -31,6 +31,7 @@ import { availableMatchDays } from '../../../../../lib/match-days.ts';
 import { offersViewChoice } from '../../../../../lib/match-schedule.ts';
 import { loadSchedule } from '../../../../../lib/schedule-loader.ts';
 import { matchReportUrl } from '../../../../../lib/bracket.ts';
+import { isValidClubAlias } from '../../../../../lib/club-url.ts';
 import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../../lib/locale.ts';
 import { isPublicLocaleSegment } from '../../../../../lib/public-route-guards.ts';
 
@@ -72,6 +73,7 @@ const stageParam = Astro.url.searchParams.get('stageNumber');
 const stageNumber = stageParam ? Number(stageParam) : undefined;
 const zoneParam = Astro.url.searchParams.get('zone') ?? undefined;
 const groupParam = Astro.url.searchParams.get('group') ?? undefined;
+const clubParam = Astro.url.searchParams.get('club') ?? undefined;
 const rawDayParam = Astro.url.searchParams.get('day');
 const dayParam =
   rawDayParam !== null && /^\d{4}-\d{2}-\d{2}$/.test(rawDayParam) ? rawDayParam : undefined;
@@ -89,6 +91,7 @@ const schedule = await loadSchedule({
   ...(stageNumber === undefined ? {} : { stageNumber }),
   ...(zoneParam === undefined ? {} : { zone: zoneParam }),
   ...(groupParam === undefined ? {} : { group: groupParam }),
+  ...(clubParam === undefined ? {} : { club: clubParam }),
   ...(dayParam === undefined ? {} : { day: dayParam }),
 });
 if (!schedule) {
@@ -142,6 +145,7 @@ const filtersOpen =
   stageNumber !== undefined ||
   zoneParam !== undefined ||
   groupParam !== undefined ||
+  clubParam !== undefined ||
   dayParam !== undefined ||
   state !== 'all' ||
   (offerView && view !== 'rows');
@@ -151,6 +155,7 @@ function buildUrl(
     stageNumber: number | undefined;
     zone: string | undefined;
     group: string | undefined;
+    club: string | undefined;
     day: string | undefined;
     state: MatchScheduleState;
     view: MatchScheduleView;
@@ -162,6 +167,7 @@ function buildUrl(
     stageNumber,
     zone: zoneParam,
     group: groupParam,
+    club: clubParam,
     day: dayParam,
     state,
     view,
@@ -174,6 +180,8 @@ function buildUrl(
   else params.set('zone', next.zone);
   if (next.group === undefined) params.delete('group');
   else params.set('group', next.group);
+  if (next.club === undefined) params.delete('club');
+  else params.set('club', next.club);
   if (next.day === undefined) params.delete('day');
   else params.set('day', next.day);
   if (next.state === 'all') params.delete('state');
@@ -185,6 +193,10 @@ function buildUrl(
   const query = params.toString();
   return `${localePrefix}${model.canonicalPath}/matches${query ? `?${query}` : ''}`;
 }
+
+const clubOptions = (model.clubs ?? [])
+  .filter((club): club is typeof club & { readonly alias: string } => isValidClubAlias(club.alias))
+  .map((club) => ({ alias: club.alias, name: club.name }));
 
 const canonicalPath = `${localePrefix}${model.canonicalPath}/matches`;
 const structuredData = {
@@ -243,6 +255,8 @@ const trail = publicTrail(trailBase, [
       activeZone={zoneParam}
       groups={groups}
       activeGroup={groupParam}
+      clubs={clubOptions}
+      activeClub={clubParam}
       days={days}
       activeDay={dayParam}
       todayKey={todayKey}
@@ -255,6 +269,7 @@ const trail = publicTrail(trailBase, [
         stageFilterAriaLabel: intl.formatMessage(messages.matchesViewStageFilterAriaLabel),
         zoneFilterAriaLabel: intl.formatMessage(messages.matchesViewZoneFilterAriaLabel),
         groupFilterAriaLabel: intl.formatMessage(messages.matchesViewGroupFilterAriaLabel),
+        clubFilterAriaLabel: intl.formatMessage(messages.matchesViewFilterClub),
         dayFilterAriaLabel: intl.formatMessage(messages.matchesViewFilterDay),
         stateFilterAriaLabel: intl.formatMessage(messages.matchesViewStateFilterAriaLabel),
         viewFilterAriaLabel: intl.formatMessage(messages.matchesViewViewFilterAriaLabel),
@@ -262,10 +277,12 @@ const trail = publicTrail(trailBase, [
           stage: intl.formatMessage(messages.matchesViewStageFilterTitle),
           zone: intl.formatMessage(messages.matchesViewZoneFilterTitle),
           group: intl.formatMessage(messages.matchesViewGroupFilterTitle),
+          club: intl.formatMessage(messages.matchesViewFilterClub),
           day: intl.formatMessage(messages.matchesViewFilterDay),
           state: intl.formatMessage(messages.matchesViewStateFilterTitle),
           view: intl.formatMessage(messages.matchesViewViewFilterTitle),
         },
+        clubAll: intl.formatMessage(messages.matchesViewFilterClubAll),
         dayOptions: {
           all: intl.formatMessage(messages.matchesViewFilterDayAll),
           today: intl.formatMessage(messages.matchesViewFilterDayToday),
@@ -293,9 +310,11 @@ const trail = publicTrail(trailBase, [
         })}
         labels={labels}
         locale={resolvedLocale}
+        localePrefix={localePrefix}
         referenceDate={referenceDate}
         timeZone={model.organizationTimeZone}
         organizationAlias={organization!}
+        tournamentAlias={tournament!}
       />
     )}
 

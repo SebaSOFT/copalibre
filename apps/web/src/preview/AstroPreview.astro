@@ -26,6 +26,7 @@ import Icon from '../components/ui/atoms/Icon.astro';
 import Logo from '../components/ui/atoms/Logo.astro';
 import PersonPhotoImage from '../components/ui/atoms/PersonPhotoImage.astro';
 import SearchInput from '../components/ui/atoms/SearchInput.astro';
+import Select from '../components/ui/atoms/Select.astro';
 import SortIndicator from '../components/ui/atoms/SortIndicator.astro';
 import { ICON_REGISTRY } from '../lib/icon-registry.js';
 import StateBadge from '../components/ui/atoms/StateBadge.astro';
@@ -143,6 +144,7 @@ const PREVIEWABLE = new Set([
   'person-photo-image',
   'person-photo-cutout',
   'search-input',
+  'select',
   'sort-indicator',
   'state-badge',
   'broadcast-status-panel',
@@ -589,6 +591,20 @@ const [compactSample] = referenceJourneyBracket(true);
         label={intl.formatMessage(messages.standingsTableSearchLabel)}
         placeholder={intl.formatMessage(messages.standingsTableSearchPlaceholder)}
         hiddenParams={[{ name: 'tab', value: 'player-statistics' }]}
+      />
+    )}
+    {component === 'select' && (
+      <Select
+        name="club"
+        ariaLabel={intl.formatMessage(messages.matchesViewFilterClub)}
+        options={[
+          {
+            value: '',
+            label: intl.formatMessage(messages.matchesViewFilterClubAll),
+            selected: true,
+          },
+          { value: 'meridian-athletic', label: 'Meridian Athletic' },
+        ]}
       />
     )}
     {component === 'sort-indicator' && (

@@ -288,3 +288,8 @@ export const SearchInput: Story = {
 export const SortIndicator: Story = {
   args: { component: 'sort-indicator', height: 100 },
 };
+
+/** Server-rendered select control for public filter bars. */
+export const Select: Story = {
+  args: { component: 'select', height: 100 },
+};

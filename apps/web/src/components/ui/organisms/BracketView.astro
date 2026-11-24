@@ -9,6 +9,7 @@ import type { MatchCardData } from '../../../lib/matches-view.ts';
 import {
   bracketMatchId,
   describeSlot,
+  entrantPath,
   nodeOutcomes,
   stageOutcomes,
   toRounds,
@@ -33,6 +34,8 @@ interface Props {
   readonly localePrefix?: string;
   /** The match a report page is about; drawn with a heavier edge and `aria-current`. */
   readonly highlightMatchNumber?: number;
+  /** Pre-selected club id (e.g., from `?club=` on the stage page) whose entrant path is highlighted. */
+  readonly highlightClubId?: string;
   /** First heading level for this bracket, based on the page's outline. */
   readonly headingLevel?: number;
   /** Explicit zone name used as the main bracket heading. */
@@ -49,12 +52,26 @@ const {
   stageNumber,
   localePrefix = '',
   highlightMatchNumber,
+  highlightClubId,
   headingLevel = 2,
   zoneName,
   matchesView,
   organizationTimeZone,
   overallPlaceOffset,
 } = Astro.props;
+const initialEntrantId = highlightClubId
+  ? Astro.props.matches
+      .flatMap((match) => match.slots)
+      .find(
+        (slot): slot is Extract<typeof slot, { readonly kind: 'entrant' }> =>
+          slot.kind === 'entrant' &&
+          slot.clubId === highlightClubId &&
+          slot.entrantId !== undefined,
+      )?.entrantId
+  : undefined;
+const initialPath = initialEntrantId
+  ? entrantPath(Astro.props.matches, initialEntrantId)
+  : undefined;
 const zoneNodeKeys = Astro.props.matches.map((match) => match.nodeKey);
 const branchLabel = (branch: string): string =>
   (branch === 'winners' || branch === 'winner') && zoneName?.trim()
@@ -101,7 +118,11 @@ const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((b
   sources and outcomes instead. The stylesheet decides which is showing, so the
   choice survives with JavaScript unavailable.
 */}
-<section aria-label={intl.formatMessage(messages.bracketStageAriaLabel)} class="cl-bracket-stage">
+<section
+  aria-label={intl.formatMessage(messages.bracketStageAriaLabel)}
+  class="cl-bracket-stage"
+  data-initial-entrant-id={initialEntrantId}
+>
   <Heading class="cl-visually-hidden">{intl.formatMessage(messages.bracketStageAriaLabel)}</Heading>
   <script
     is:inline
@@ -131,6 +152,8 @@ const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((b
         density={density}
         headingLevel={headingLevel}
         highlightMatchNumber={highlightMatchNumber}
+        initialEntrantId={initialEntrantId}
+        initialPath={initialPath}
         intl={intl}
         localePrefix={localePrefix}
         matches={Astro.props.matches}
@@ -180,7 +203,16 @@ const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((b
                   match.scores[0] === match.scores[1] &&
                   match.winnerEntrantId !== undefined;
                 return (
-                  <li data-journey-match={bracketMatchId(match)}>
+                  <li
+                    data-journey-match={bracketMatchId(match)}
+                    data-entrant-path={
+                      initialPath?.size
+                        ? initialPath.has(bracketMatchId(match))
+                          ? 'included'
+                          : 'excluded'
+                        : undefined
+                    }
+                  >
                     {match.role !== undefined && (
                       <strong>{bracketRoleLabel(intl, match.role, overallPlaceOffset)}: </strong>
                     )}
@@ -207,7 +239,9 @@ const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((b
                                 aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
                                   entrant: slot.name,
                                 })}
-                                aria-pressed="false"
+                                aria-pressed={
+                                  slot.entrantId === initialEntrantId ? 'true' : 'false'
+                                }
                                 class="cl-journey-name"
                                 data-entrant-id={slot.entrantId}
                                 variant="secondary"
