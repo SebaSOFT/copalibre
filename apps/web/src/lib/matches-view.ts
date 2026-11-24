@@ -1,3 +1,4 @@
+import type { LocalizedLabel } from '@copalibre/domain';
 import {
   formatPlacement,
   placementOf,
@@ -60,7 +61,12 @@ export interface MatchCardData {
   readonly scheduledAt?: string;
   /** The full localized date/time, used only to fill the accessible label's `{time}` placeholder. */
   readonly scheduledAtLabel?: string;
-  readonly latestEvent?: { readonly label: string; readonly occurredAt: string };
+  readonly latestEvent?: {
+    readonly definitionCode?: string;
+    readonly label: string;
+    readonly labels?: LocalizedLabel;
+    readonly occurredAt: string;
+  };
   readonly zoneName?: string;
   readonly groupName?: string;
   /** Zone-scoped sibling node keys when a zone carries `PL*` placement feeders. */
@@ -70,7 +76,8 @@ export interface MatchCardData {
   readonly homePosition?: number;
   readonly awayPosition?: number;
   readonly series?: PublicSeriesState;
-  readonly decidingFactor?: string;
+  readonly decidingFactorCode?: string;
+  readonly decidingFactorRule?: number;
   /** Present only on the control-web response, for an authorized viewer. */
   readonly homeTrace?: readonly string[];
   readonly awayTrace?: readonly string[];

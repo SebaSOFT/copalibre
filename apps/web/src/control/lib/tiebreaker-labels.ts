@@ -5,7 +5,10 @@ import {
   resolveLabel,
   type SupportedLanguage,
 } from '@copalibre/domain';
+import { formatTiebreakerCodeFromCatalog, humanizeCode } from '../../lib/tiebreaker-labels.js';
 import { messages } from '../i18n/messages.en.js';
+
+export { humanizeCode };
 
 /**
  * The localized name of each tiebreaker a discipline can list by code. A code a later release adds
@@ -23,15 +26,6 @@ export const TIEBREAKER_LABELS: Readonly<Record<string, typeof messages.tiebreak
   'head-to-head': messages.tiebreakerHeadToHead,
 };
 
-/** `sets-won` -> `Sets won`: a machine code as sentence-case words, for a code with no catalogue name. */
-export function humanizeCode(code: string): string {
-  const words = code
-    .replace(/[-_.]+/g, ' ')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .trim();
-  return words.charAt(0).toUpperCase() + words.slice(1);
-}
-
 function languageOf(intl: IntlShape): SupportedLanguage {
   const short = intl.locale.split('-')[0] ?? 'en';
   return isSupportedLanguage(short) ? short : 'en';
@@ -39,8 +33,7 @@ function languageOf(intl: IntlShape): SupportedLanguage {
 
 /** The name of one tiebreaker code in the operator's language. */
 export function formatTiebreakerCode(intl: IntlShape, code: string): string {
-  const descriptor = TIEBREAKER_LABELS[code];
-  return descriptor ? intl.formatMessage(descriptor) : humanizeCode(code);
+  return formatTiebreakerCodeFromCatalog(intl, TIEBREAKER_LABELS, code);
 }
 
 /**

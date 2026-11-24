@@ -67,6 +67,7 @@ const schedule = await loadSchedule({
   state,
   hiddenPlayerLabel: intl.formatMessage(messages.personHiddenAtRequest),
   undecidedSide: intl.formatMessage(messages.resultStateTbd),
+  language: resolvedLocale,
   ...(stageNumber === undefined ? {} : { stageNumber }),
   ...(zoneParam === undefined ? {} : { zone: zoneParam }),
   ...(groupParam === undefined ? {} : { group: groupParam }),

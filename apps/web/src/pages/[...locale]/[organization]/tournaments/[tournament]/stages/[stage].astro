@@ -79,7 +79,11 @@ const layoutMode = mixedZones ? 'zones' : (zoneLayouts[0] ?? selectStageLayout(b
 const stageMatches = await fetchMatchesView(organization!, tournament!, { stageNumber }).then(
   (res) =>
     res
-      ? mapMatchesViewResponse(res, intl.formatMessage(messages.personHiddenAtRequest)).matches
+      ? mapMatchesViewResponse(
+          res,
+          intl.formatMessage(messages.personHiddenAtRequest),
+          resolvedLocale,
+        ).matches
       : [],
 );
 

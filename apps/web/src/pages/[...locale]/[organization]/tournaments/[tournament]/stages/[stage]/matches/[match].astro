@@ -93,6 +93,7 @@ if (selectStageLayout(response.stageFormat) === 'bracket') {
     const mapped = mapMatchesViewResponse(
       rawMatchesView,
       intl.formatMessage(messages.personHiddenAtRequest),
+      resolvedLocale,
     ).matches;
     const effectiveZone = ownZoneName ?? response.zoneName;
     zoneMatchesView =

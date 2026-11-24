@@ -16,6 +16,7 @@ import type { IconName } from '../icon-registry.js';
 import { parseBracketRole } from '../bracket-role.js';
 import { seriesScore, seriesSegments, type SegmentState, type SeriesInput } from '../series.js';
 import { displayName, type OverviewModel } from '../overview.js';
+import { PUBLIC_TIEBREAKER_LABELS, tiebreakerLabelsForCatalog } from '../tiebreaker-labels.js';
 
 /** Labels for every non-`played` `ResultReason` — `played` never renders one. */
 export type ResultReasonLabels = Readonly<Record<Exclude<ResultReason, 'played'>, string>>;
@@ -210,6 +211,8 @@ export function tvDashboardLabels(intl: IntlShape) {
   return {
     stale: intl.formatMessage(messages.tickerStale),
     sideSource: sideSourceLabels(intl),
+    homeSide: intl.formatMessage(messages.tvStatsHomeSide),
+    awaySide: intl.formatMessage(messages.tvStatsAwaySide),
     rescheduled: intl.formatMessage(messages.matchRescheduled, {
       time: '{time}',
       venue: '{venue}',
@@ -357,6 +360,7 @@ export interface MatchCardLabels {
   readonly position: string;
   readonly decidedBy: string;
   readonly decidedByAriaLabel: string;
+  readonly tiebreakers?: Readonly<Record<string, string>>;
   readonly fullTraceHeading: string;
   readonly seriesAriaLabel: string;
   readonly seriesPending: string;
@@ -415,6 +419,7 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
     position: intl.formatMessage(messages.matchesViewPosition, { position: '{position}' }),
     decidedBy: intl.formatMessage(messages.matchesViewDecidedBy, { factor: '{factor}' }),
     decidedByAriaLabel: intl.formatMessage(messages.matchesViewDecidedByAriaLabel),
+    tiebreakers: tiebreakerLabelsForCatalog(intl, PUBLIC_TIEBREAKER_LABELS),
     fullTraceHeading: intl.formatMessage(messages.matchesViewFullTraceHeading),
     seriesAriaLabel: intl.formatMessage(messages.seriesAriaLabel, {
       bestOf: '{bestOf}',

@@ -150,6 +150,62 @@ describe('buildTvMatchEvents', () => {
       'Participante oculto',
     );
   });
+
+  it('resolves localized event labels for a Spanish TV from labels.es', () => {
+    const localizedReport: PublicMatchReportResponse = {
+      ...report(),
+      timeline: [
+        {
+          eventId: 'event-es-1',
+          definitionCode: 'goal',
+          label: 'Goal',
+          labels: { en: 'Goal', es: 'Gol' },
+          occurredAt: '2026-08-19T12:00:00.000Z',
+          sequence: 1,
+          side: 'entrant-home',
+          personId: 'person-1',
+          payload: {},
+        },
+        {
+          eventId: 'event-es-2',
+          definitionCode: 'direct-free-kick-goal',
+          label: 'Direct free kick goal',
+          labels: { en: 'Direct free kick goal', es: 'Gol de tiro libre directo' },
+          occurredAt: '2026-08-19T12:05:00.000Z',
+          sequence: 2,
+          side: 'entrant-away',
+          personId: 'person-2',
+          payload: {},
+        },
+      ],
+    };
+
+    const events = buildTvMatchEvents(localizedReport, 'Participante oculto', 'es');
+    expect(events.map((event) => event.label)).toEqual(['Gol', 'Gol de tiro libre directo']);
+
+    const labelsByCode = buildEventLabelDirectory(localizedReport, 'es');
+    expect(labelsByCode).toEqual({
+      goal: 'Gol',
+      'direct-free-kick-goal': 'Gol de tiro libre directo',
+    });
+
+    const liveEvent = resolveLiveTvMatchEvent(
+      {
+        eventId: 'event-es-live',
+        payload: {
+          definitionCode: 'direct-free-kick-goal',
+          occurredAt: '2026-08-19T12:12:00.000Z',
+        },
+      },
+      {
+        homeEntrantId: 'entrant-home',
+        awayEntrantId: 'entrant-away',
+        actors: buildActorDirectory(localizedReport.rosters),
+        labelsByCode,
+      },
+    );
+    expect(liveEvent?.label).toBe('Gol de tiro libre directo');
+  });
 });
 
 describe('buildActorDirectory', () => {

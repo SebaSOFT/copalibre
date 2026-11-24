@@ -74,7 +74,11 @@ try {
   );
   if (report) {
     pinnedReport = report;
-    matchEvents = buildTvMatchEvents(report, intl.formatMessage(messages.personHiddenAtRequest));
+    matchEvents = buildTvMatchEvents(
+      report,
+      intl.formatMessage(messages.personHiddenAtRequest),
+      language,
+    );
     // Resolves a *live* event's actor the same way the initial
     // timeline above already resolves one, for `BroadcastAlertBanner`.
     rosterActors = buildActorDirectory(report.rosters);
@@ -189,6 +193,7 @@ try {
       mapMatchesViewResponse(
         view,
         intl.formatMessage(messages.personHiddenAtRequest),
+        language,
       ).matches.flatMap((row) => (row.series === undefined ? [] : [[row.matchId, row.series]])),
     );
   }

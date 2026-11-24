@@ -254,12 +254,21 @@ describe('public-api-client', () => {
             awayScore: 1,
             zoneName: 'Group B',
             homePosition: 1,
-            decidingFactor: 'Rule 2 (Head-to-head)',
+            decidingFactorCode: 'head-to-head',
+            decidingFactorRule: 2,
+            latestEvent: {
+              definitionCode: 'goal',
+              label: 'Goal',
+              labels: { en: 'Goal', es: 'Gol' },
+              occurredAt: '2026-08-01T20:15:00.000Z',
+            },
           },
         ],
       };
       const result = mapMatchesViewResponse(
         response as unknown as Parameters<typeof mapMatchesViewResponse>[0],
+        undefined,
+        'es',
       );
       expect(result.matches).toEqual([
         {
@@ -277,13 +286,19 @@ describe('public-api-client', () => {
           clockSeconds: undefined,
           venueName: undefined,
           scheduledAt: undefined,
-          latestEvent: undefined,
+          latestEvent: {
+            definitionCode: 'goal',
+            label: 'Gol',
+            labels: { en: 'Goal', es: 'Gol' },
+            occurredAt: '2026-08-01T20:15:00.000Z',
+          },
           zoneName: 'Group B',
           groupName: undefined,
           homePosition: 1,
           awayPosition: undefined,
           series: undefined,
-          decidingFactor: 'Rule 2 (Head-to-head)',
+          decidingFactorCode: 'head-to-head',
+          decidingFactorRule: 2,
         },
       ]);
     });

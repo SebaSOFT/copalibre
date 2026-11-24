@@ -2282,4 +2282,35 @@ describe('TvDashboard refresh keeps the matches the live projection does not lis
     expect(screen.queryByTestId('tv-match-not-found')).toBeNull();
     expect(screen.getByRole('status').textContent).toBe(dashboardLabels.stale);
   });
+
+  it('uses the TV language side fallback ("Home" / "Away") instead of Spanish literals when sides are unnamed', () => {
+    const unnamedSides: LiveMatch = {
+      matchId: 'm-unnamed',
+      stageNumber: 1,
+      matchNumber: 1,
+      stageOrdinal: 1,
+      state: 'live',
+      projectionVersion: 1,
+      sides: [
+        { entrantId: 'e-home', score: 1, state: 'live' } as unknown as LiveMatch['sides'][number],
+        { entrantId: 'e-away', score: 0, state: 'live' } as unknown as LiveMatch['sides'][number],
+      ],
+    };
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={{ standingsVersion: 0, usingLastKnown: true, matches: [unnamedSides] }}
+        labels={tvLabels}
+        language="en"
+        standings={[]}
+        streamPath="/stream"
+      />,
+    );
+
+    const text = screen.getByTestId('tv-match-spotlight').textContent ?? '';
+    expect(text).toContain('Away');
+    expect(text).toContain('Home');
+    expect(text).not.toContain('Visitante');
+    expect(text).not.toContain('Local');
+  });
 });

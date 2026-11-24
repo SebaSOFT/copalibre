@@ -82,6 +82,13 @@ describe('TournamentCard CTAs consume the shared Button', () => {
     expect(source).not.toContain('cl-button-primary');
     expect(source).not.toContain('cl-button-live');
   });
+
+  it('resolves localized discipline names before falling back to tournament.discipline.name', () => {
+    expect(source).toContain('isSupportedLanguage');
+    expect(source).toContain('resolveLabel');
+    expect(source).toContain('tournament.discipline.localizedName');
+    expect(source).not.toContain('>{tournament.discipline.name}<');
+  });
 });
 
 describe('public tables and filter pills', () => {
