@@ -139,8 +139,12 @@ const groupStandings = {
     { code: 'name', header: 'Team', format: 'text' },
     { code: 'pj', header: 'PJ', format: 'number' },
     { code: 'points', header: 'Pts', format: 'number' },
+    { code: 'gd', header: 'Diferencia de gol', shortHeader: 'DG', format: 'number' },
   ],
-  defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+  defaultSort: [
+    { columnCode: 'points', direction: 'desc' },
+    { columnCode: 'gd', direction: 'desc' },
+  ],
   promotionBands: [{ label: 'Copa Oro' }, { label: 'Copa Plata' }],
   rows: [
     {
@@ -174,6 +178,7 @@ const groupStandings = {
     },
     {
       actorId: TIRO_ID,
+      actorName: 'Tiro Federal',
       entrantId: TIRO_ID,
       clubId: TIRO_ID,
       clubAlias: 'tiro-federal',
@@ -189,11 +194,14 @@ const groupStandings = {
     },
     {
       actorId: ATLETICO_ID,
+      actorName: 'Atlético Bello',
       entrantId: ATLETICO_ID,
       clubId: ATLETICO_ID,
       clubAlias: 'atletico-bello',
       rank: 4,
       sharedRank: false,
+      // Level with Tiro Federal on points; goal difference put it below.
+      separatedFromAboveBy: 'gd',
       promotionBandLabel: 'Copa Oro',
       promotionBandIndex: 0,
       cells: {

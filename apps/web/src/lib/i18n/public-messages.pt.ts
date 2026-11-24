@@ -286,6 +286,8 @@ export const messages: Record<string, string> = {
   'publicWeb.overview.venueCourtCount': '{count, plural, one {# quadra} other {# quadras}}',
   'publicWeb.standings.entrantCount':
     '{count, plural, one {# participante} other {# participantes}}',
+  'publicWeb.standings.tieBreaksHeading': 'Desempates',
+  'publicWeb.standings.tieBreakLine': '{above} à frente de {below} por {criterion}',
   'publicWeb.standings.tiebreakLine': 'Desempate: {list}',
   'publicWeb.matchesView.scheduledAtAriaLabel': 'Início: {time}',
   'publicWeb.matchesView.latestEventAriaLabel': 'Último evento: {event}',
@@ -314,9 +316,6 @@ export const messages: Record<string, string> = {
   'publicWeb.matchesView.viewCards': 'Cartões',
   'publicWeb.matchesView.positionInGroup': '{group} — posição nº {position}',
   'publicWeb.matchesView.position': 'Posição nº {position}',
-  'publicWeb.matchesView.decidedBy': 'Decidido por: {factor}',
-  'publicWeb.matchesView.decidedByAriaLabel':
-    'O fator decisivo entre posições empatadas. Um organizador autorizado pode ver a explicação completa no painel de controle.',
   'publicWeb.matchesView.fullTraceHeading': 'Rastro completo do comparador de classificação',
   'publicWeb.matchesView.seeAll': 'Ver todas as partidas',
   'publicWeb.overview.nextMatches': 'Próximas partidas',

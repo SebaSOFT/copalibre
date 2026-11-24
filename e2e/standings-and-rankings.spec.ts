@@ -912,6 +912,71 @@ test.describe('B2: public tournament page', () => {
     }
   });
 
+  test('names the column that separated teams level on points under the group table', async ({
+    page,
+  }) => {
+    const row = (
+      name: string,
+      rank: number,
+      points: number,
+      gd: number,
+      separatedFromAboveBy?: string,
+    ) => ({
+      actorId: name,
+      actorName: name,
+      entrantId: name,
+      entrantName: name,
+      rank,
+      sharedRank: false,
+      ...(separatedFromAboveBy === undefined ? {} : { separatedFromAboveBy }),
+      cells: {
+        name: { formatted: name },
+        points: { raw: points, formatted: String(points) },
+        gd: { raw: gd, formatted: String(gd) },
+      },
+    });
+    groupStandingsResponse = {
+      ...groupStandingsFixture,
+      columns: [
+        { code: 'name', header: { en: 'Team', es: 'Equipo' }, format: 'text' },
+        { code: 'points', header: { en: 'Pts', es: 'Pts' }, format: 'number' },
+        {
+          code: 'gd',
+          header: { en: 'Goal difference', es: 'Diferencia de gol' },
+          shortHeader: { en: 'GD', es: 'Dif' },
+          format: 'number',
+        },
+      ],
+      defaultSort: [
+        { columnCode: 'points', direction: 'desc' },
+        { columnCode: 'gd', direction: 'desc' },
+      ],
+      rows: [
+        row('Talleres', 1, 6, 9),
+        row('Independiente', 2, 6, 6, 'gd'),
+        row('Gimnasia', 3, 3, -2),
+      ],
+    };
+    try {
+      await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+      const tieBreaks = page.locator('.cl-standings-tie-breaks');
+      await expect(tieBreaks).toHaveAttribute('aria-label', 'Desempates');
+      await expect(tieBreaks.locator('li')).toHaveText([
+        'Talleres por delante de Independiente por Diferencia de gol',
+      ]);
+    } finally {
+      groupStandingsResponse = groupStandingsFixture;
+    }
+  });
+
+  test('shows no tie-break list when every team is separated by points', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    await expect(page.getByRole('heading', { name: 'Group Standings' })).toBeVisible();
+    await expect(page.locator('.cl-standings-tie-breaks')).toHaveCount(0);
+  });
+
   test('keeps the name on a phone in German and moves the other columns into a disclosure', async ({
     page,
   }) => {

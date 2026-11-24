@@ -5109,6 +5109,8 @@ export interface components {
             rank: number;
             /** @description True when another row holds the same rank */
             sharedRank: boolean;
+            /** @description Code of the sort column that put this row below the row above, when the two compare equal on the leading sort column. Absent on the first row, when the leading column separates them, and when they share a rank. */
+            separatedFromAboveBy?: string;
             /** @description Destination zone from the saved promotion band this entrant qualifies for */
             promotionBandLabel?: string;
             /** @description Zero-based position used to give each configured promotion band a visual rail */

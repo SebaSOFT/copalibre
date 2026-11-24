@@ -273,6 +273,9 @@ function tableRowResponse(row: TableProjectionRow): TableProjectionResponse['row
       : { publicProfileAvailable: row.publicProfileAvailable }),
     rank: row.rank,
     sharedRank: row.sharedRank,
+    ...(row.separatedFromAboveBy === undefined
+      ? {}
+      : { separatedFromAboveBy: row.separatedFromAboveBy }),
     cells: row.cells,
   };
 }

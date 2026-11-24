@@ -120,9 +120,10 @@ test('shows every match with venue/clock and the full comparator trace on a tieb
   await expect(page.getByTestId('entrant-name').first()).toHaveCSS('text-transform', 'uppercase');
   await expectCompleteHeadingOutline(page, 'matches view');
 
-  // The full trace, not just the summary line, reaches this authorized screen —
-  // collapsed by default, so open it before checking its content is present.
-  await expect(page.getByText('Decided by: Head-to-head')).toBeVisible();
+  // The full trace reaches this authorized screen — collapsed by default, so open it before
+  // checking its content is present. The card states no one-line standings tie-break: that
+  // criterion describes the table, not the match.
+  await expect(page.getByText(/Decided by/)).toHaveCount(0);
   await page.getByText('Full standings comparator trace').click();
   await expect(page.getByText('Club Andes ahead by 2')).toBeVisible();
   await expect(page.getByText('Deportivo Sur behind by 2')).toBeVisible();

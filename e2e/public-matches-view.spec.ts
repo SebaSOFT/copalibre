@@ -6,8 +6,9 @@ import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 /**
  * The public matches view: a flat, filterable card grid of a
  * tournament's matches, server-rendered so the default and every
- * state-filtered view work with scripting off. The deciding-factor line is
- * deliberately a one-line summary here — the full comparator trace only ever
+ * state-filtered view work with scripting off. A card states no standings
+ * tie-break: that criterion describes the table, not the match, and is named
+ * under the standings table instead. The full comparator trace only ever
  * reaches the authorized control-web equivalent, proven separately in
  * `e2e/control-matches-view.spec.ts`.
  */
@@ -313,7 +314,7 @@ test('lists each match as a two-line day row on a phone in German, with whole te
   expect(await name.evaluate((element) => element.scrollHeight <= element.clientHeight)).toBe(true);
 });
 
-test('shows every match with venue, clock, and a one-line deciding-factor summary — no full trace', async ({
+test('shows every match with venue and clock, and no standings tie-break or trace on a card', async ({
   page,
 }) => {
   await page.goto(cardsPath);
@@ -336,7 +337,7 @@ test('shows every match with venue, clock, and a one-line deciding-factor summar
   const wide = schedule.locator('.cl-match-schedule__nested');
   await expect(wide.getByText('Club Andes', { exact: true })).toBeVisible();
   await expect(wide.getByText('Estadio Central')).toBeVisible();
-  await expect(wide.getByText('Decided by: Head-to-head')).toBeVisible();
+  await expect(wide.getByText(/Decided by/)).toHaveCount(0);
 
   // The public card never carries the internal comparator trace lines.
   await expect(page.getByText(/ahead by|behind by/)).toHaveCount(0);

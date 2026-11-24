@@ -76,6 +76,12 @@ export interface TableRow {
   /** 1-based; rows sharing a rank were not separated by `defaultSort`. */
   readonly rank: number;
   readonly sharedRank: boolean;
+  /**
+   * The sort column that put this row below the row above, when the two compare equal on the
+   * leading sort column. Absent on the first row, when the leading column separates them, and when
+   * they share a rank.
+   */
+  readonly separatedFromAboveBy?: string;
   readonly cells: Readonly<Record<string, TableCell>>;
 }
 
@@ -245,6 +251,23 @@ function sortRows(rows: readonly BuiltRow[], sort: readonly TableSortRule[]): re
   return [...rows].sort((a, b) => compareRows(a, b, sort));
 }
 
+/**
+ * The first sort column on which `below` differs from `above`, when it is not the leading one: the
+ * column that separated two rows level on the leading criterion.
+ */
+function separatingColumn(
+  above: BuiltRow,
+  below: BuiltRow,
+  sort: readonly TableSortRule[],
+): string | undefined {
+  const index = sort.findIndex(
+    (rule) =>
+      compareValues(above.state[rule.columnCode], below.state[rule.columnCode], rule.direction) !==
+      0,
+  );
+  return index > 0 ? sort[index]?.columnCode : undefined;
+}
+
 function compareRows(a: BuiltRow, b: BuiltRow, sort: readonly TableSortRule[]): number {
   for (const rule of sort) {
     const result = compareValues(
@@ -276,7 +299,11 @@ function assignRanks(
 
   // Standard competition ranking (1, 1, 3, ...): a row shares the previous
   // row's rank only when every sort rule compares equal to it.
-  const ranked: Array<{ readonly row: BuiltRow; readonly rank: number }> = [];
+  const ranked: Array<{
+    readonly row: BuiltRow;
+    readonly rank: number;
+    readonly separatedFromAboveBy?: string;
+  }> = [];
   let previous: { readonly row: BuiltRow; readonly rank: number } | undefined;
   let position = 0;
   for (const row of rows) {
@@ -285,14 +312,20 @@ function assignRanks(
       previous !== undefined && compareRows(previous.row, row, sort) === 0
         ? previous.rank
         : position;
-    const entry = { row, rank };
+    const separatedFromAboveBy =
+      previous === undefined ? undefined : separatingColumn(previous.row, row, sort);
+    const entry = {
+      row,
+      rank,
+      ...(separatedFromAboveBy === undefined ? {} : { separatedFromAboveBy }),
+    };
     ranked.push(entry);
     previous = entry;
   }
   const rankCounts = new Map<number, number>();
   for (const { rank } of ranked) rankCounts.set(rank, (rankCounts.get(rank) ?? 0) + 1);
 
-  return ranked.map(({ row, rank }) => {
+  return ranked.map(({ row, rank, separatedFromAboveBy }) => {
     const cells = rankColumnCode
       ? { ...row.cells, [rankColumnCode]: { raw: rank, formatted: String(rank) } }
       : row.cells;
@@ -308,6 +341,7 @@ function assignRanks(
       ...(row.actor.shirtNumber === undefined ? {} : { shirtNumber: row.actor.shirtNumber }),
       rank,
       sharedRank: (rankCounts.get(rank) ?? 1) > 1,
+      ...(separatedFromAboveBy === undefined ? {} : { separatedFromAboveBy }),
       cells,
     };
   });

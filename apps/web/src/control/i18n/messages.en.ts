@@ -4525,14 +4525,6 @@ export const messages = defineMessages({
     id: 'control.matchesView.position',
     defaultMessage: 'Position #{position}',
   },
-  matchesViewDecidedBy: {
-    id: 'control.matchesView.decidedBy',
-    defaultMessage: 'Decided by: {factor}',
-  },
-  matchesViewDecidedByAriaLabel: {
-    id: 'control.matchesView.decidedByAriaLabel',
-    defaultMessage: 'The deciding factor between tied standings rows.',
-  },
   matchesViewFullTraceHeading: {
     id: 'control.matchesView.fullTraceHeading',
     defaultMessage: 'Full standings comparator trace',

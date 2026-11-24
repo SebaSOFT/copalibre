@@ -322,6 +322,32 @@ describe('projectTableLayout', () => {
     expect(projection.rows[0]?.cells['rank']).toEqual({ raw: 1, formatted: '1' });
   });
 
+  it('names the sort column that separated a row from the row above only below the leading column', () => {
+    const figures = [
+      figure('tm-a', 'goals-for', 4),
+      figure('tm-a', 'goals-against', 2),
+      figure('tm-a', 'points', 6),
+      figure('tm-b', 'goals-for', 2),
+      figure('tm-b', 'goals-against', 1),
+      figure('tm-b', 'points', 6),
+      figure('tm-c', 'goals-for', 1),
+      figure('tm-c', 'goals-against', 5),
+      figure('tm-c', 'points', 3),
+    ];
+
+    const projection = projectTableLayout(figures, GROUP_STANDINGS, {
+      actors: [team('tm-a', 'Atlas'), team('tm-b', 'Boca'), team('tm-c', 'Colo')],
+    });
+
+    // Atlas and Boca are level on points and goal difference separates them; Colo is below on points.
+    expect(projection.rows.map((row) => row.separatedFromAboveBy)).toEqual([
+      undefined,
+      'gd',
+      undefined,
+    ]);
+    expect(projection.rows[0]).not.toHaveProperty('separatedFromAboveBy');
+  });
+
   it('gives tied rows the same rank when every sort column matches', () => {
     const figures = [
       figure('tm-a', 'goals-for', 3),
@@ -338,6 +364,8 @@ describe('projectTableLayout', () => {
 
     expect(projection.rows.map((row) => row.rank)).toEqual([1, 1]);
     expect(projection.rows.every((row) => row.sharedRank)).toBe(true);
+    // Level on every sort column: no column separated them.
+    expect(projection.rows[1]).not.toHaveProperty('separatedFromAboveBy');
   });
 
   it('applies requiresRole and minSamples qualification filters', () => {
