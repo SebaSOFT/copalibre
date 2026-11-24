@@ -59,8 +59,39 @@ const overview = {
 };
 
 let liveResponse: { matches: unknown[] } = { matches: [] };
+let overviewMode: 'default' | 'grouped-in-play' | 'group-stage-complete' = 'default';
 let apiServer: Server;
 test.use({ javaScriptEnabled: false });
+
+const groupedStandingsPreview = [
+  {
+    rank: 1,
+    entrantId: 'ent-talleres',
+    name: 'Talleres',
+    abbreviation: 'TAL',
+    zoneName: 'Grupos',
+    groupName: 'Grupo A',
+    statistics: { played: 2, points: 6 },
+  },
+  {
+    rank: 2,
+    entrantId: 'ent-andes',
+    name: 'Andes',
+    abbreviation: 'AND',
+    zoneName: 'Grupos',
+    groupName: 'Grupo A',
+    statistics: { played: 2, points: 6 },
+  },
+  {
+    rank: 1,
+    entrantId: 'ent-san-martin',
+    name: 'San Martín',
+    abbreviation: 'SM',
+    zoneName: 'Grupos',
+    groupName: 'Grupo B',
+    statistics: { played: 2, points: 4 },
+  },
+];
 
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
@@ -75,7 +106,29 @@ test.beforeAll(async ({ workerPort }) => {
       return;
     }
     if (path === `${BASE}/overview`) {
-      res.end(JSON.stringify(overview));
+      const response =
+        overviewMode === 'grouped-in-play'
+          ? {
+              ...overview,
+              standingsStageNumber: 1,
+              matches: [
+                { ...scheduled, stageNumber: 1, matchNumber: 1, status: 'finalized' },
+                { ...scheduled, stageNumber: 1, matchNumber: 2, status: 'scheduled' },
+              ],
+              standingsPreview: groupedStandingsPreview,
+            }
+          : overviewMode === 'group-stage-complete'
+            ? {
+                ...overview,
+                standingsStageNumber: 1,
+                matches: [
+                  { ...scheduled, stageNumber: 1, matchNumber: 1, status: 'finalized' },
+                  { ...scheduled, stageNumber: 2, matchNumber: 1, status: 'scheduled' },
+                ],
+                standingsPreview: groupedStandingsPreview,
+              }
+            : overview;
+      res.end(JSON.stringify(response));
       return;
     }
     if (path === `${BASE}/live`) {
@@ -121,6 +174,7 @@ test.afterAll(async () => {
 
 test.beforeEach(() => {
   liveResponse = { matches: [] };
+  overviewMode = 'default';
 });
 
 test('uses the centered public container at reference widths', async ({ page }) => {
@@ -148,6 +202,35 @@ test('empty live view has a localized next kickoff and owned leaders table witho
   await expect(trail.locator('[aria-current="page"]')).toHaveText('En vivo');
   await expect(page.locator('.cl-standings-section table.cl-table')).toBeVisible();
   await expect(page.locator('.cl-standings-section tbody tr.cl-row')).toHaveCount(1);
+});
+
+test('leaders follow public table order and group rows per group while group stage has unplayed matches', async ({
+  page,
+}) => {
+  overviewMode = 'grouped-in-play';
+  await page.goto(`/es${PAGE}`);
+
+  const section = page.locator('.cl-standings-section');
+  await expect(section.getByRole('heading', { name: 'Líderes' })).toBeVisible();
+  const groupHeadings = section.locator('h3.cl-standings-group-heading');
+  await expect(groupHeadings).toHaveText(['Grupo A', 'Grupo B']);
+
+  const groups = section.locator('.cl-standings-group');
+  await expect(groups).toHaveCount(2);
+  await expect(groups.nth(0).locator('tbody tr')).toHaveCount(2);
+  await expect(groups.nth(0).locator('tbody tr').nth(0)).toContainText('Talleres');
+  await expect(groups.nth(0).locator('tbody tr').nth(1)).toContainText('Andes');
+  await expect(groups.nth(1).locator('tbody tr').nth(0)).toContainText('San Martín');
+});
+
+test('leaders section is omitted once every match of standingsStageNumber is final', async ({
+  page,
+}) => {
+  overviewMode = 'group-stage-complete';
+  await page.goto(`/es${PAGE}`);
+
+  await expect(page.locator('.cl-standings-section')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Líderes' })).toHaveCount(0);
 });
 
 test('each active match renders once in the live hero without JavaScript', async ({ page }) => {

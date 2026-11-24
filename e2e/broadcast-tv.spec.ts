@@ -17,7 +17,7 @@ const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const MATCH_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const TV_PATH = `/tv/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 
-type ClockFixtureMode = 'sample' | 'timed' | 'untimed';
+type ClockFixtureMode = 'sample' | 'timed' | 'untimed' | 'grouped-standings';
 let clockFixtureMode: ClockFixtureMode = 'sample';
 let apiServer: Server;
 
@@ -56,8 +56,22 @@ const UNTIMED_SEGMENTS = [
   },
 ];
 
-function buildClockFixtureResponses(mode: 'timed' | 'untimed') {
-  const segments = mode === 'timed' ? TIMED_SEGMENTS : UNTIMED_SEGMENTS;
+const GROUP_NAMES = ['Grupo A', 'Grupo B', 'Grupo C', 'Grupo D', 'Grupo E', 'Grupo F'] as const;
+
+const groupedStandingsPreview = GROUP_NAMES.flatMap((groupName, groupIndex) =>
+  Array.from({ length: 4 }, (_, rowIndex) => ({
+    rank: rowIndex + 1,
+    entrantId: `g-${groupIndex}-${rowIndex}`,
+    name: `Club ${String.fromCharCode(65 + groupIndex)}${rowIndex + 1}`,
+    abbreviation: `C${String.fromCharCode(65 + groupIndex)}${rowIndex + 1}`,
+    zoneName: 'Grupos',
+    groupName,
+    statistics: { played: 3, points: 9 - rowIndex * 2 },
+  })),
+);
+
+function buildClockFixtureResponses(mode: 'timed' | 'untimed' | 'grouped-standings') {
+  const segments = mode === 'untimed' ? UNTIMED_SEGMENTS : TIMED_SEGMENTS;
   const clock =
     mode === 'timed'
       ? {
@@ -88,6 +102,7 @@ function buildClockFixtureResponses(mode: 'timed' | 'untimed') {
       status: 'live',
       ruleset: {},
       clubs: [],
+      ...(mode === 'grouped-standings' ? { standingsPreview: groupedStandingsPreview } : {}),
       matches: [
         {
           matchId: MATCH_ID,
@@ -480,4 +495,22 @@ test('kiosk header wall clock is labelled and smaller than game clock and score 
   expect(wallSize).toBeGreaterThan(0);
   expect(wallSize).toBeLessThan(gameClockSize);
   expect(wallSize).toBeLessThan(scoreSize);
+});
+
+test('view=standings renders one block per group headed by the group name', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await mockOpenStream(page);
+  clockFixtureMode = 'grouped-standings';
+  await gotoTv(page, `${TV_PATH}?view=standings&lang=es`);
+
+  const groups = page.getByTestId('tv-standings-zone');
+  await expect(groups).toHaveCount(6);
+  for (const [index, groupName] of GROUP_NAMES.entries()) {
+    const block = groups.nth(index);
+    await expect(block.getByRole('heading', { name: groupName })).toBeVisible();
+    await expect(block).toContainText(`Club ${String.fromCharCode(65 + index)}1`);
+    if (index + 1 < GROUP_NAMES.length) {
+      await expect(block).not.toContainText(`Club ${String.fromCharCode(65 + index + 1)}1`);
+    }
+  }
 });

@@ -362,7 +362,7 @@ test.describe('The ticker in a browser', () => {
 
 test.describe('Standings and bracket in a browser', () => {
   test('the tied leaders show the comparator that separated them', async ({ page }) => {
-    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/1`);
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}`);
 
     const standingsSection = page.locator('.cl-standings-section');
     await expect(standingsSection).toBeVisible();

@@ -309,7 +309,7 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
     </>
   )}
 
-  {renderPart === 'all' && showControls && clubs.length > 0 && (
+  {!isTableOnly && renderPart === 'all' && showControls && clubs.length > 0 && (
     <div
       class="cl-club-filter"
       role="group"

@@ -109,12 +109,20 @@ async function mockControlCompletionApi(page: Page): Promise<void> {
 }
 
 test.describe('Tournament completion overview', () => {
-  test('public overview keeps the compact completion summary in its hero', async ({ page }) => {
+  test('public overview keeps the compact completion summary in its hero and renders the progress card', async ({
+    page,
+  }) => {
     await page.goto(PUBLIC_TOURNAMENT_PATH);
 
     const hero = page.locator('.cl-overview-hero');
     await expect(hero.locator('.cl-overview-hero__facts')).toContainText('18 of 32 matches played');
-    await expect(page.locator('.cl-completion-figure')).toHaveCount(0);
+    const figure = page.locator('.cl-completion-figure');
+    await expect(figure).toBeVisible();
+    await expect(figure).toContainText('18 of 32 matches played');
+    await expect(figure).toContainText('Group Stage');
+    await expect(figure).toContainText('18 / 24');
+    await expect(figure).toContainText('Playoffs');
+    await expect(figure).toContainText('0 / 8');
   });
 
   test('control view shows matching completion figures for the organizer', async ({ page }) => {

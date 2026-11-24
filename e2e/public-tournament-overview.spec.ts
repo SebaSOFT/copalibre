@@ -305,6 +305,7 @@ let noLiveMatches = false;
 let nowStripOverview = false;
 let demoScaleOverview = false;
 let completedOverview = false;
+let multiStageOverview = false;
 /** How many venues the overview names, with its discipline and five tiebreakers; 0 leaves them out. */
 let factsVenueCount = 0;
 test.beforeEach(() => {
@@ -313,6 +314,7 @@ test.beforeEach(() => {
   noLiveMatches = false;
   demoScaleOverview = false;
   completedOverview = false;
+  multiStageOverview = false;
 });
 
 test.beforeAll(async ({ workerPort }) => {
@@ -326,37 +328,49 @@ test.beforeAll(async ({ workerPort }) => {
       }
       const response = nowStripOverview
         ? { ...overview, matches: nowStripMatches }
-        : completedOverview
+        : multiStageOverview
           ? {
               ...overview,
-              status: 'finished',
-              winners: [
-                {
-                  zoneId: 'zone-finished',
-                  zoneName: 'Zona Campeonato',
-                  champion: { entrantId: 'home-1', name: 'Club Andes', abbreviation: 'AND' },
-                  runnerUp: { entrantId: 'away-1', name: 'Deportivo Sur', abbreviation: 'SUR' },
-                },
+              stages: [
+                { stageNumber: 1, stageName: 'Fase de grupos', format: 'round-robin', zones: [] },
+                { stageNumber: 2, stageName: 'Copas', format: 'single-elimination', zones: [] },
               ],
-              matches: overview.matches.map((match) => ({ ...match, status: 'finalized' })),
             }
-          : demoScaleOverview
+          : completedOverview
             ? {
                 ...overview,
-                matches: demoMatches,
-                standingsPreview: demoStandingsPreview,
-                standingsGrain: 'match',
+                status: 'finished',
+                winners: [
+                  {
+                    zoneId: 'zone-finished',
+                    zoneName: 'Zona Campeonato',
+                    champion: { entrantId: 'home-1', name: 'Club Andes', abbreviation: 'AND' },
+                    runnerUp: { entrantId: 'away-1', name: 'Deportivo Sur', abbreviation: 'SUR' },
+                  },
+                ],
+                matches: overview.matches.map((match) => ({ ...match, status: 'finalized' })),
               }
-            : noLiveMatches
+            : demoScaleOverview
               ? {
                   ...overview,
-                  matches: overview.matches.map((match) => ({
-                    ...match,
-                    status: 'scheduled',
-                    scheduledAt: '2099-06-01T19:00:00.000Z',
-                  })),
+                  matches: demoMatches,
+                  standingsPreview: demoStandingsPreview,
+                  standingsGrain: 'match',
+                  ruleset: {
+                    ...overview.ruleset,
+                    tiebreakers: 'points,score-difference,goal-average,goals-for,goals-against',
+                  },
                 }
-              : overview;
+              : noLiveMatches
+                ? {
+                    ...overview,
+                    matches: overview.matches.map((match) => ({
+                      ...match,
+                      status: 'scheduled',
+                      scheduledAt: '2099-06-01T19:00:00.000Z',
+                    })),
+                  }
+                : overview;
       res.end(JSON.stringify(response));
       return;
     }
@@ -417,7 +431,10 @@ test.beforeAll(async ({ workerPort }) => {
           layoutCode: 'player-statistics',
           target: 'player-ranking',
           label: { en: 'Player Statistics' },
-          columns: [{ code: 'points', header: { en: 'Points' }, format: 'number' }],
+          columns: [
+            { code: 'player', header: { en: 'Player', es: 'Jugador' }, format: 'text' },
+            { code: 'points', header: { en: 'Points' }, format: 'number' },
+          ],
           defaultSort: [{ columnCode: 'points', direction: 'desc' }],
           rows: [
             {
@@ -425,7 +442,10 @@ test.beforeAll(async ({ workerPort }) => {
               actorName: 'Player Demo',
               rank: 1,
               sharedRank: false,
-              cells: { points: { raw: 5, formatted: '5' } },
+              cells: {
+                player: { formatted: 'Player Demo' },
+                points: { raw: 5, formatted: '5' },
+              },
             },
           ],
           projectionVersion: 1,
@@ -571,7 +591,22 @@ test.describe('tournament overview progress and rules', () => {
 
     const hero = page.locator('.cl-overview-hero');
     await expect(hero.locator('.cl-overview-hero__facts')).toContainText(/9.*12/);
-    await expect(page.locator('.cl-completion-figure')).toHaveCount(0);
+    const figure = page.locator('.cl-completion-figure');
+    await expect(figure).toBeVisible();
+    await expect(figure).toContainText('9 de 12 partidos jugados');
+
+    await page.waitForFunction(() => {
+      const deferredHrefs = Array.from(
+        document.querySelectorAll<HTMLMetaElement>('meta[name="copalibre:deferred-stylesheet"]'),
+      ).map((meta) => meta.content);
+      const links = Array.from(
+        document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
+      );
+      return deferredHrefs.every((href) =>
+        links.some((link) => link.getAttribute('href') === href && link.sheet !== null),
+      );
+    });
+    await page.evaluate(() => document.fonts.ready);
 
     const [heroBox, containerBox, padding] = await Promise.all([
       hero.boundingBox(),
@@ -586,6 +621,77 @@ test.describe('tournament overview progress and rules', () => {
     ]);
     expect(heroBox && containerBox).not.toBeNull();
     expect(heroBox?.width).toBeCloseTo((containerBox?.width ?? 0) - padding, 0);
+  });
+
+  test('hero status line names finished and active stages, progress card follows now strip with stage/group bars, and ruleset names each stage format', async ({
+    page,
+  }) => {
+    multiStageOverview = true;
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.route('**/events/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': ok\n\n' }),
+    );
+    await page.goto(PAGE);
+    await page.waitForFunction(() => {
+      const deferredHrefs = Array.from(
+        document.querySelectorAll<HTMLMetaElement>('meta[name="copalibre:deferred-stylesheet"]'),
+      ).map((meta) => meta.content);
+      const links = Array.from(
+        document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
+      );
+      return deferredHrefs.every((href) =>
+        links.some((link) => link.getAttribute('href') === href && link.sheet !== null),
+      );
+    });
+    await page.evaluate(() => document.fonts.ready);
+
+    await expect(page.locator('.cl-overview-hero__status')).toHaveText(
+      'Fase de grupos finalizada · Copas: 1 de 4 · Copa Oro 1/2 · Copa Plata 0/2',
+    );
+
+    const nowStrip = page.locator('.cl-overview-now');
+    const completionCard = page.locator('.cl-overview-completion .cl-completion-figure');
+    await expect(nowStrip).toBeVisible();
+    await expect(completionCard).toBeVisible();
+    const [nowBox, completionBox] = await Promise.all([
+      nowStrip.boundingBox(),
+      completionCard.boundingBox(),
+    ]);
+    expect(nowBox).not.toBeNull();
+    expect(completionBox).not.toBeNull();
+    if (nowBox && completionBox) {
+      expect(completionBox.y).toBeGreaterThanOrEqual(nowBox.y + nowBox.height - 1);
+    }
+
+    await expect(completionCard.locator('progress.cl-progress--overall')).toHaveAttribute(
+      'value',
+      '9',
+    );
+    await expect(completionCard.locator('progress')).toHaveCount(7);
+    await expect(completionCard).toContainText('Fase de grupos');
+    await expect(completionCard).toContainText('Grupo A');
+    await expect(completionCard).toContainText('Grupo B');
+    await expect(completionCard).toContainText('Copas');
+    await expect(completionCard).toContainText('Copa Oro');
+    await expect(completionCard).toContainText('Copa Plata');
+
+    const rulesSection = page.locator('section', {
+      has: page.getByRole('heading', { name: 'Reglamento' }),
+    });
+    await expect(rulesSection).toContainText(
+      'Fase de grupos: todos contra todos y Copas: eliminación simple',
+    );
+  });
+
+  test('player-statistics tab omits entrant-count and team tiebreak subtitle', async ({ page }) => {
+    demoScaleOverview = true;
+    await page.route('**/events/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': ok\n\n' }),
+    );
+    await page.goto(`${PAGE}?tab=player-statistics`);
+
+    await expect(page.getByRole('cell', { name: 'Player Demo' })).toBeVisible();
+    await expect(page.locator('#standings .cl-standings-meta')).toHaveCount(0);
   });
 
   test('the hero names the discipline and lists many venues in a column of their own', async ({
