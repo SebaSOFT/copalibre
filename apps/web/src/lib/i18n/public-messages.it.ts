@@ -476,6 +476,17 @@ export const messages: Record<string, string> = {
   'publicWeb.clubIndex.description': 'Club partecipanti a {tournament}.',
   'publicWeb.clubIndex.emptyDescription': 'Nessun club registrato in questo torneo al momento.',
   'publicWeb.clubIndex.bandUnassigned': 'Senza coppa assegnata',
+  'publicWeb.organizationClubPage.description':
+    '{club} in {organization}: tornei disputati e titoli vinti.',
+  'publicWeb.organizationClubPage.honoursHeading': 'Titoli e podi',
+  'publicWeb.organizationClubPage.tournamentsHeading': 'Tornei',
+  'publicWeb.organizationClubPage.tournamentsEmpty':
+    'Questo club non ha ancora disputato un torneo pubblicato.',
+  'publicWeb.organizationClubPage.tournamentColumn': 'Torneo',
+  'publicWeb.organizationClubPage.disciplineColumn': 'Disciplina',
+  'publicWeb.organizationClubPage.statusColumn': 'Stato',
+  'publicWeb.organizationClubPage.placeColumn': 'Posizione',
+  'publicWeb.organizationClubPage.placeInZone': '{place} · {zone}',
   'publicWeb.clubPage.description':
     'Panoramica, classifica, risultati e rosa di {club} in {tournament}.',
   'publicWeb.clubPage.nextMatchHeading': 'Prossima partita',

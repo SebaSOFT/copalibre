@@ -479,6 +479,17 @@ export const messages: Record<string, string> = {
   'publicWeb.clubIndex.emptyDescription':
     'В этом турнире пока не зарегистрировано ни одного клуба.',
   'publicWeb.clubIndex.bandUnassigned': 'Без кубка',
+  'publicWeb.organizationClubPage.description':
+    '{club} в {organization}: сыгранные турниры и завоёванные титулы.',
+  'publicWeb.organizationClubPage.honoursHeading': 'Титулы и призовые места',
+  'publicWeb.organizationClubPage.tournamentsHeading': 'Турниры',
+  'publicWeb.organizationClubPage.tournamentsEmpty':
+    'Этот клуб ещё не играл в опубликованных турнирах.',
+  'publicWeb.organizationClubPage.tournamentColumn': 'Турнир',
+  'publicWeb.organizationClubPage.disciplineColumn': 'Дисциплина',
+  'publicWeb.organizationClubPage.statusColumn': 'Статус',
+  'publicWeb.organizationClubPage.placeColumn': 'Место',
+  'publicWeb.organizationClubPage.placeInZone': '{place} · {zone}',
   'publicWeb.clubPage.description':
     'Обзор, положение, результаты и состав клуба {club} в турнире {tournament}.',
   'publicWeb.clubPage.nextMatchHeading': 'Следующий матч',

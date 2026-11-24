@@ -15,6 +15,7 @@ import {
   StageReadModel,
   stageMatchOrdinals,
   PublicOverviewReadModel,
+  AliasRepository,
 } from '@copalibre/persistence';
 import {
   PublicOverviewResponse,
@@ -33,6 +34,10 @@ import {
 import { TableLayoutListResponse, TableProjectionResponse } from '../dto/table-projections.dto.js';
 import { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
+import {
+  disciplineSummaryOf,
+  loadDescriptorsById,
+} from '../organization-club/discipline-summary.js';
 import { readStandings, readStandingsByZone } from '../standings/read.js';
 import { readMatchesView } from '../matches-view/read.js';
 import { readPublicScheduleChanges, readPublicVenues } from '../matches-view/schedule.js';
@@ -152,17 +157,7 @@ export class PublicTournamentListingController {
       organization.organizationId,
     );
 
-    const descriptorRows = await this.db
-      .selectFrom('discipline_descriptors')
-      .select(['descriptor_id as descriptorId', 'document'])
-      .execute();
-    const descriptorMap = new Map<string, DisciplineDescriptor>();
-    for (const d of descriptorRows) {
-      const parsed = (
-        typeof d.document === 'string' ? JSON.parse(d.document) : d.document
-      ) as DisciplineDescriptor;
-      descriptorMap.set(d.descriptorId, parsed);
-    }
+    const descriptorMap = await loadDescriptorsById(this.db);
 
     const overviewReadModel = new PublicOverviewReadModel(this.db);
     const tournamentItems: PublicTournamentListingItemResponse[] = [];
@@ -172,15 +167,10 @@ export class PublicTournamentListingController {
       const matches = await overviewReadModel.matchesForTournament(t.tournamentId);
       const status = deriveTournamentStatus(t.status, matches);
 
-      const desc = descriptorMap.get(t.disciplineRef.descriptorId);
-      const discipline = {
-        descriptorId: t.disciplineRef.descriptorId,
-        version: t.disciplineRef.version,
-        name: desc?.name ? resolveLabel(desc.name, 'en') : undefined,
-        ...(desc?.name !== undefined && typeof desc.name !== 'string'
-          ? { localizedName: desc.name }
-          : {}),
-      };
+      const discipline = disciplineSummaryOf(
+        t.disciplineRef,
+        descriptorMap.get(t.disciplineRef.descriptorId),
+      );
 
       const dates =
         t.startedAt || t.archivedAt
@@ -826,6 +816,12 @@ export class PublicProjectionsController {
       .distinct()
       .orderBy('clubs.name')
       .execute();
+    // Former aliases ride on the overview because every page that names a club by alias already
+    // reads it: an old link is redirected without a second request.
+    const formerClubAliases =
+      clubRows.length > 0
+        ? await new AliasRepository(this.db).clubFormerAliases(tournament.organizationId)
+        : new Map<string, readonly string[]>();
 
     const status = deriveTournamentStatus(tournament.status, matches);
     let winners: PublicTournamentWinnerZoneResponse[] | undefined = undefined;
@@ -918,6 +914,7 @@ export class PublicProjectionsController {
         abbreviation: c.abbreviation ?? undefined,
         ...(c.alias ? { alias: c.alias } : {}),
         ...(c.emblemObjectId ? { emblemObjectId: c.emblemObjectId } : {}),
+        ...formerAliasesOf(c.alias, formerClubAliases),
       })),
       ruleset,
       ...(Object.keys(rulesetLabels).length > 0 ? { rulesetLabels } : {}),
@@ -2767,4 +2764,13 @@ async function formatOverviewStandingsRows(
       ...(row.groupName === undefined ? {} : { groupName: row.groupName }),
     };
   });
+}
+
+/** The `formerAliases` field of an overview club: absent when the club has none. */
+export function formerAliasesOf(
+  alias: string | null,
+  formerByCurrent: ReadonlyMap<string, readonly string[]>,
+): { readonly formerAliases?: string[] } {
+  const former = alias ? formerByCurrent.get(alias) : undefined;
+  return former && former.length > 0 ? { formerAliases: [...former] } : {};
 }

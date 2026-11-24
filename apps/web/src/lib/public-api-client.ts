@@ -9,6 +9,7 @@ import type {
   PublicPersonProfileResponse,
   PlayerStatisticsDrilldownResponse,
   PublicOrganizationTournamentListResponse,
+  PublicOrganizationClubHistoryResponse,
   PublicTournamentWinnerZoneResponse,
 } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import type { OrganizationResponse } from '@copalibre/api/src/dto/organization.dto.js';
@@ -382,6 +383,7 @@ export function mapOverviewResponse(
       abbreviation: c.abbreviation,
       alias: c.alias,
       emblemObjectId: c.emblemObjectId,
+      ...(c.formerAliases && c.formerAliases.length > 0 ? { formerAliases: c.formerAliases } : {}),
     })),
   } as OverviewInput;
 }
@@ -550,6 +552,16 @@ export async function fetchOrganizationTournaments(
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/public/tournaments`;
   return fetchOr404<PublicOrganizationTournamentListResponse>(url);
+}
+
+/** A club across its organization's published tournaments; `undefined` when either is unknown. */
+export async function fetchOrganizationClub(
+  organizationAlias: string,
+  clubAlias: string,
+): Promise<PublicOrganizationClubHistoryResponse | undefined> {
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/public/clubs/${encodeURIComponent(clubAlias)}`;
+  return fetchOr404<PublicOrganizationClubHistoryResponse>(url);
 }
 
 /**

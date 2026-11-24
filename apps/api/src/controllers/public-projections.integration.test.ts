@@ -17,6 +17,7 @@ import {
   PublicProjectionsController,
   PublicTournamentListingController,
 } from './public-projections.controller.js';
+import { PublicOrganizationClubController } from './public-organization-club.controller.js';
 
 let app: INestApplication;
 let scratch: Awaited<ReturnType<typeof buildTestApp>>['scratch'];
@@ -27,6 +28,7 @@ beforeAll(async () => {
   ({ app, scratch, organizationId, request } = await buildTestApp([
     PublicProjectionsController,
     PublicTournamentListingController,
+    PublicOrganizationClubController,
   ]));
 });
 
@@ -1738,6 +1740,80 @@ describe('public projections routes', () => {
       expect(byClubId.get(clubIdle.clubId)).not.toHaveProperty('tournamentAlias');
     });
 
+    it('lists the former aliases of a renamed club on the tournament overview', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const enrollments = new EnrollmentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+      const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+
+      const { clubId, steadyClubId, tournamentId } = await withTransaction(
+        scratch.db as Kysely<Database>,
+        async (uow) => {
+          const club = await enrollments.createClub(uow, {
+            organizationId,
+            alias: 'club-renombrado',
+            name: 'Club Renombrado',
+            ...audit,
+          });
+          const steady = await enrollments.createClub(uow, {
+            organizationId,
+            alias: 'club-estable',
+            name: 'Club Estable',
+            ...audit,
+          });
+          const tournament = await tournaments.create(uow, {
+            organizationId,
+            alias: 'copa-alias-renombrado',
+            name: 'Copa Alias Renombrado',
+            descriptor,
+            ...audit,
+          });
+          for (const entry of [club, steady]) {
+            const team = await enrollments.createTeam(uow, {
+              organizationId,
+              clubId: entry.clubId,
+              name: `${entry.name} Primera`,
+              ...audit,
+            });
+            await enrollments.registerEntrant(uow, {
+              organizationId,
+              tournamentId: tournament.tournamentId,
+              entrantRef: { kind: 'team', teamId: team.teamId },
+              ...audit,
+            });
+          }
+          return {
+            clubId: club.clubId,
+            steadyClubId: steady.clubId,
+            tournamentId: tournament.tournamentId,
+          };
+        },
+      );
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.publish(uow, { tournamentId, organizationId, ...audit }),
+      );
+      for (const alias of ['club-renombrado-2', 'renombrado']) {
+        await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+          enrollments.updateClub(uow, { clubId, organizationId, alias, ...audit }),
+        );
+      }
+
+      const response = await request({
+        method: 'GET',
+        url: '/api/organizations/liga-orbital/tournaments/copa-alias-renombrado/overview',
+      });
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload as string) as {
+        clubs: { clubId: string; alias?: string; formerAliases?: string[] }[];
+      };
+      const renamed = body.clubs.find((club) => club.clubId === clubId);
+      expect(renamed?.alias).toBe('renombrado');
+      expect(renamed?.formerAliases).toEqual(['club-renombrado', 'club-renombrado-2']);
+      expect(body.clubs.find((club) => club.clubId === steadyClubId)).not.toHaveProperty(
+        'formerAliases',
+      );
+    });
+
     it('does not link a club whose only entrant in a tournament is a person of its team', async () => {
       const tournaments = new TournamentRepository(scratch.db);
       const enrollments = new EnrollmentRepository(scratch.db);
@@ -2750,6 +2826,203 @@ describe('public projections routes', () => {
       expect(found).toBeDefined();
       expect(found.status).toBe('upcoming');
       expect(found.winners).toBeUndefined();
+    });
+
+    describe('organization club history', () => {
+      const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+
+      it("lists the club's published tournaments newest first, with its podium places", async () => {
+        const tournaments = new TournamentRepository(scratch.db);
+        const enrollments = new EnrollmentRepository(scratch.db);
+        const competition = new CompetitionRepository(scratch.db);
+        const people = new PersonRepository(scratch.db);
+        const descriptor = footballDescriptor();
+
+        const { finishedId, upcomingId, draftId, personOnlyId } = await withTransaction(
+          scratch.db as Kysely<Database>,
+          async (uow) => {
+            const hispano = await enrollments.createClub(uow, {
+              organizationId,
+              alias: 'club-historia',
+              name: 'Club Historia',
+              abbreviation: 'HIS',
+              ...audit,
+            });
+            const rival = await enrollments.createClub(uow, {
+              organizationId,
+              alias: 'club-rival-historia',
+              name: 'Club Rival Historia',
+              ...audit,
+            });
+            const hispanoTeam = await enrollments.createTeam(uow, {
+              organizationId,
+              alias: 'team-historia',
+              name: 'Historia Primera',
+              clubId: hispano.clubId,
+              ...audit,
+            });
+            const rivalTeam = await enrollments.createTeam(uow, {
+              organizationId,
+              alias: 'team-rival-historia',
+              name: 'Rival Primera',
+              clubId: rival.clubId,
+              ...audit,
+            });
+            const create = (alias: string) =>
+              tournaments.create(uow, { organizationId, alias, name: alias, descriptor, ...audit });
+            const finished = await create('copa-historia-2025');
+            const upcoming = await create('copa-historia-2026');
+            const draft = await create('copa-historia-borrador');
+            const personOnly = await create('copa-historia-individual');
+
+            const register = (tournamentId: string, teamId: string) =>
+              enrollments.registerEntrant(uow, {
+                organizationId,
+                tournamentId,
+                entrantRef: { kind: 'team', teamId },
+                ...audit,
+              });
+            const winner = await register(finished.tournamentId, hispanoTeam.teamId);
+            const loser = await register(finished.tournamentId, rivalTeam.teamId);
+            await register(upcoming.tournamentId, hispanoTeam.teamId);
+            await register(draft.tournamentId, hispanoTeam.teamId);
+
+            // A player of the club's team entered on their own does not put the club in the tournament.
+            const person = await people.register(uow, {
+              organizationId,
+              displayName: 'Jugadora Historia',
+              birthDate: '1998-03-02',
+              ...audit,
+            });
+            await people.enlist(uow, {
+              organizationId,
+              personId: person.person.personId,
+              teamId: hispanoTeam.teamId,
+              role: 'player',
+              ...audit,
+            });
+            await enrollments.registerEntrant(uow, {
+              organizationId,
+              tournamentId: personOnly.tournamentId,
+              entrantRef: { kind: 'person', personId: person.person.personId },
+              ...audit,
+            });
+
+            const stage = await competition.createStageInTournament(uow, {
+              tournamentId: finished.tournamentId,
+              number: 1,
+              name: 'Final',
+              format: 'single-elimination',
+              organizationId,
+              ...audit,
+            });
+            const [fixture] = await competition.createFixtures(uow, {
+              stageId: stage.stageId,
+              fixtures: [
+                { round: 1, homeEntrantId: winner.entrantId, awayEntrantId: loser.entrantId },
+              ],
+              organizationId,
+              ...audit,
+            });
+            if (!fixture) throw new Error('Expected fixture');
+            const match = await competition.createMatch(uow, {
+              fixtureId: fixture.fixtureId,
+              number: 1,
+              organizationId,
+              ...audit,
+            });
+            await competition.recordResult(uow, {
+              matchId: match.matchId,
+              result: {
+                sides: [
+                  { entrantId: winner.entrantId, statistics: { score: 2 } },
+                  { entrantId: loser.entrantId, statistics: { score: 0 } },
+                ],
+                winnerEntrantId: winner.entrantId,
+                recordedAt: new Date().toISOString(),
+              },
+              organizationId,
+              ...audit,
+            });
+            return {
+              finishedId: finished.tournamentId,
+              upcomingId: upcoming.tournamentId,
+              draftId: draft.tournamentId,
+              personOnlyId: personOnly.tournamentId,
+            };
+          },
+        );
+        for (const tournamentId of [finishedId, upcomingId, personOnlyId]) {
+          await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+            tournaments.publish(uow, { tournamentId, organizationId, ...audit }),
+          );
+        }
+        await scratch.db
+          .updateTable('tournaments')
+          .set({ status: 'finished', started_at: new Date('2025-11-01T10:00:00.000Z') })
+          .where('tournament_id', '=', finishedId)
+          .execute();
+        // Created after the finished one, so the listing's newest-first order puts it first.
+        await scratch.db
+          .updateTable('tournaments')
+          .set({ created_at: new Date(Date.now() + 60_000) })
+          .where('tournament_id', '=', upcomingId)
+          .execute();
+        expect(draftId).toBeDefined();
+
+        const response = await request({
+          method: 'GET',
+          url: '/api/organizations/liga-orbital/public/clubs/club-historia',
+        });
+        expect(response.statusCode).toBe(200);
+        const body = JSON.parse(response.payload as string) as {
+          organizationAlias: string;
+          club: { name: string; alias: string; abbreviation?: string };
+          tournaments: {
+            alias: string;
+            status: string;
+            discipline: { name?: string };
+            placements?: { place: string; zoneName?: string }[];
+          }[];
+        };
+        expect(body.organizationAlias).toBe('liga-orbital');
+        expect(body.club).toMatchObject({
+          name: 'Club Historia',
+          alias: 'club-historia',
+          abbreviation: 'HIS',
+        });
+        expect(body.tournaments.map((entry) => entry.alias)).toEqual([
+          'copa-historia-2026',
+          'copa-historia-2025',
+        ]);
+        expect(body.tournaments[0]).not.toHaveProperty('placements');
+        expect(body.tournaments[1]?.status).toBe('finished');
+        expect(body.tournaments[1]?.placements).toEqual([{ place: 'champion' }]);
+
+        const rival = await request({
+          method: 'GET',
+          url: '/api/organizations/liga-orbital/public/clubs/club-rival-historia',
+        });
+        const rivalBody = JSON.parse(rival.payload as string) as {
+          tournaments: { alias: string; placements?: { place: string }[] }[];
+        };
+        expect(rivalBody.tournaments).toEqual([
+          expect.objectContaining({
+            alias: 'copa-historia-2025',
+            placements: [{ place: 'runner-up' }],
+          }),
+        ]);
+      });
+
+      it('answers not found for an unknown club or organization, and for a club id', async () => {
+        for (const url of [
+          '/api/organizations/liga-orbital/public/clubs/no-existe',
+          '/api/organizations/no-existe/public/clubs/club-historia',
+        ]) {
+          const response = await request({ method: 'GET', url });
+          expect(response.statusCode).toBe(404);
+        }
+      });
     });
   });
 

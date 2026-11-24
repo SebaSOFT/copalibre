@@ -32,6 +32,7 @@ import { offersViewChoice } from '../../../../../lib/match-schedule.ts';
 import { loadSchedule } from '../../../../../lib/schedule-loader.ts';
 import { matchReportUrl } from '../../../../../lib/bracket.ts';
 import { isValidClubAlias } from '../../../../../lib/club-url.ts';
+import { findClubByFormerAlias } from '../../../../../lib/club-page.ts';
 import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../../lib/locale.ts';
 import { isPublicLocaleSegment } from '../../../../../lib/public-route-guards.ts';
 
@@ -82,6 +83,19 @@ const requestedClub = Astro.url.searchParams.get('club')?.trim() ?? '';
 const clubParam = clubOptions.some((club) => club.alias === requestedClub)
   ? requestedClub
   : undefined;
+// A club filter naming an alias the club held before a rename moves permanently to the current one.
+const renamedClub =
+  clubParam === undefined && requestedClub !== ''
+    ? findClubByFormerAlias(model.clubs, requestedClub)
+    : undefined;
+if (renamedClub) {
+  const next = new URLSearchParams(Astro.url.searchParams);
+  next.set('club', renamedClub.alias);
+  return new Response(null, {
+    status: 301,
+    headers: { Location: `${Astro.url.pathname}?${next.toString()}` },
+  });
+}
 const rawDayParam = Astro.url.searchParams.get('day');
 const dayParam =
   rawDayParam !== null && /^\d{4}-\d{2}-\d{2}$/.test(rawDayParam) ? rawDayParam : undefined;

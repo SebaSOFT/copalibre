@@ -186,6 +186,14 @@ export class PublicOverviewClubResponse {
 
   @ApiPropertyOptional()
   emblemObjectId?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      'Aliases this club held before a rename, within its organization. A public URL naming one of them ' +
+      'is redirected to the current alias. Absent when the club was never renamed.',
+  })
+  formerAliases?: string[];
 }
 
 export class PublicOrganizationClubResponse extends PublicOverviewClubResponse {
@@ -1351,6 +1359,66 @@ export class PublicTournamentListingItemResponse {
     description: 'Matches currently in progress for this tournament; empty otherwise.',
   })
   liveMatches?: PublicOrganizationLiveMatchResponse[];
+}
+
+/** A club's podium place in one zone of a finished tournament. */
+export class PublicClubPlacementResponse {
+  @ApiProperty({ enum: ['champion', 'runner-up', 'third-place'] })
+  place!: 'champion' | 'runner-up' | 'third-place';
+
+  @ApiPropertyOptional({
+    description: 'The zone the place was won in, when the final stage has zones',
+  })
+  zoneName?: string;
+}
+
+/** One published tournament in which a club has a team entrant. */
+export class PublicOrganizationClubTournamentResponse {
+  @ApiProperty()
+  alias!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty({ enum: ['upcoming', 'live', 'finished'] })
+  status!: 'upcoming' | 'live' | 'finished';
+
+  @ApiProperty({ type: PublicTournamentDisciplineSummaryResponse })
+  discipline!: PublicTournamentDisciplineSummaryResponse;
+
+  @ApiPropertyOptional({ type: PublicTournamentDatesResponse })
+  dates?: PublicTournamentDatesResponse;
+
+  @ApiPropertyOptional()
+  emblemObjectId?: string;
+
+  @ApiPropertyOptional({
+    type: [PublicClubPlacementResponse],
+    description: "The club's podium places in a finished tournament. Absent when it has none.",
+  })
+  placements?: PublicClubPlacementResponse[];
+}
+
+/** A club across its organization's published tournaments. */
+export class PublicOrganizationClubHistoryResponse {
+  @ApiProperty()
+  organizationAlias!: string;
+
+  @ApiProperty()
+  organizationName!: string;
+
+  @ApiPropertyOptional()
+  organizationEmblemObjectId?: string;
+
+  @ApiProperty({ type: PublicOverviewClubResponse })
+  club!: PublicOverviewClubResponse;
+
+  @ApiProperty({
+    type: [PublicOrganizationClubTournamentResponse],
+    description:
+      'Published tournaments with a team entrant from the club, newest first. Draft tournaments never appear.',
+  })
+  tournaments!: PublicOrganizationClubTournamentResponse[];
 }
 
 export class PublicOrganizationTournamentListResponse {

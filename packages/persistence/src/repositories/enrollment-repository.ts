@@ -16,6 +16,7 @@ import type { Kysely, Transaction } from 'kysely';
 import { InvariantViolationError } from '../errors.js';
 import { newId } from '../ids.js';
 import { toClub, toEntrant, toEntrantAttribute, toTeam } from '../mapping.js';
+import { AliasRepository } from './alias-repository.js';
 import type { Database } from '../schema.js';
 import type { EventOrigin } from '../outbox.js';
 import type { UnitOfWork } from '../transaction.js';
@@ -162,6 +163,22 @@ export class EnrollmentRepository {
       .executeTakeFirstOrThrow();
 
     const club = toClub(row);
+    // Only a change from one alias to another is a rename: a club given its first alias had no URL
+    // to preserve, and saving the same alias changes nothing a visitor holds.
+    if (
+      previous?.alias !== undefined &&
+      input.alias !== undefined &&
+      input.alias !== previous.alias
+    ) {
+      await new AliasRepository(this.db).recordRename(uow, {
+        organizationId: input.organizationId,
+        scope: 'club',
+        oldAlias: previous.alias,
+        newAlias: input.alias,
+        actor: input.actor,
+        authorizationContext: input.authorizationContext,
+      });
+    }
     await uow.recordAudit({
       organizationId: input.organizationId,
       entityType: 'club',

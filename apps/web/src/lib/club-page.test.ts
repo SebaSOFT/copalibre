@@ -11,6 +11,7 @@ import {
   deriveClubStatus,
   filterMatchesByClub,
   groupClubIndexByBand,
+  findClubByFormerAlias,
   resolveClubFilter,
   resolveClubMatchOutcome,
   resolveClubNextOpponentName,
@@ -599,11 +600,60 @@ describe('deriveClubKnockoutPath', () => {
   });
 });
 
+describe('findClubByFormerAlias', () => {
+  const clubs = [
+    {
+      clubId: '01936f4a-0007-7000-8000-000000000077',
+      name: 'Hispano',
+      alias: 'hispano',
+      formerAliases: ['club-hispano'],
+    },
+    { clubId: '01936f4a-0008-7000-8000-000000000088', name: 'Red Star', alias: 'red-star' },
+    {
+      clubId: '01936f4a-0009-7000-8000-000000000099',
+      name: 'Sin alias',
+      formerAliases: ['sin-alias'],
+    },
+  ];
+
+  it('finds the club that held the alias before a rename', () => {
+    expect(findClubByFormerAlias(clubs, 'club-hispano')?.alias).toBe('hispano');
+  });
+
+  it('finds nothing for an alias no club ever held, a malformed alias or a missing club list', () => {
+    expect(findClubByFormerAlias(clubs, 'nunca')).toBeUndefined();
+    expect(findClubByFormerAlias(clubs, '../club-hispano')).toBeUndefined();
+    expect(findClubByFormerAlias(undefined, 'club-hispano')).toBeUndefined();
+  });
+
+  it('never redirects to a club that has no current alias', () => {
+    expect(findClubByFormerAlias(clubs, 'sin-alias')).toBeUndefined();
+  });
+});
+
 describe('resolveClubFilter', () => {
   const clubs = [
     { clubId: '01936f4a-0007-7000-8000-000000000077', name: 'Hispano', alias: 'club-hispano' },
     { clubId: '01936f4a-0008-7000-8000-000000000088', name: 'Legacy Club' },
   ];
+
+  it('redirects ?club= naming a former alias to the current one and keeps the other parameters', () => {
+    const renamed = [
+      {
+        clubId: '01936f4a-0007-7000-8000-000000000077',
+        name: 'Hispano',
+        alias: 'hispano',
+        formerAliases: ['club-hispano'],
+      },
+    ];
+    expect(
+      resolveClubFilter(new URLSearchParams('tab=standings&club=club-hispano'), renamed),
+    ).toEqual({ redirectSearch: 'tab=standings&club=hispano' });
+    expect(resolveClubFilter(new URLSearchParams('club=hispano'), renamed)).toEqual({
+      activeClubAlias: 'hispano',
+      activeClubId: '01936f4a-0007-7000-8000-000000000077',
+    });
+  });
 
   it('prefers ?club= over ?clubId=, redirects ?clubId= for aliased clubs, and preserves non-aliased ?clubId=', () => {
     expect(

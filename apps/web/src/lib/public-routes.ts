@@ -10,6 +10,8 @@ export const NON_PRIMARY_LOCALES = ['es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as
 
 export interface OrgWithTournaments {
   readonly organizationAlias: string;
+  /** The organization's aliased clubs, each with an organization club page. */
+  readonly clubAliases?: readonly string[];
   readonly tournaments: readonly {
     readonly alias: string;
     readonly clubAliases?: readonly string[];
@@ -30,6 +32,19 @@ export function buildSitemapEntries(data: readonly OrgWithTournaments[]): readon
         input: { organizationAlias: org.organizationAlias, locale },
         changeFrequency: 'daily',
       });
+    }
+
+    for (const clubAlias of (org.clubAliases ?? []).filter((alias) => isValidClubAlias(alias))) {
+      entries.push({
+        input: { organizationAlias: org.organizationAlias, clubAlias },
+        changeFrequency: 'daily',
+      });
+      for (const locale of NON_PRIMARY_LOCALES) {
+        entries.push({
+          input: { organizationAlias: org.organizationAlias, clubAlias, locale },
+          changeFrequency: 'daily',
+        });
+      }
     }
 
     for (const t of org.tournaments) {
@@ -139,6 +154,9 @@ export async function fetchPublicSitemapRoutes(): Promise<readonly SitemapEntry[
     );
     orgData.push({
       organizationAlias: org.alias,
+      clubAliases: (tournamentList?.clubs ?? [])
+        .map((club) => club.alias)
+        .filter((alias): alias is string => isValidClubAlias(alias)),
       tournaments,
     });
   }

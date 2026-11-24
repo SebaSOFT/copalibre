@@ -70,11 +70,10 @@ export function validateRouteInput(input: RouteInput): void {
   if (input.tournamentAlias === undefined && input.stageNumber !== undefined) {
     throw new RouteError('A stage belongs to a tournament; name the tournament');
   }
-  if (
-    input.tournamentAlias === undefined &&
-    (input.clubIndex === true || input.clubAlias !== undefined)
-  ) {
-    throw new RouteError('A club route belongs to a tournament; name the tournament');
+  // A club is unique within its organization, so a club page needs no tournament: without one it
+  // is the club's organization page. A club index lists one tournament's clubs, so it needs one.
+  if (input.tournamentAlias === undefined && input.clubIndex === true) {
+    throw new RouteError('A club index belongs to a tournament; name the tournament');
   }
   if (input.stageNumber === undefined && input.matchNumber !== undefined) {
     throw new RouteError('A match belongs to a stage; name the stage');

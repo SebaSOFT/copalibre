@@ -644,8 +644,24 @@ export function deriveClubKnockoutPath(
 }
 
 /**
+ * The club that held `alias` before a rename, when one did. A club holding `alias` today always wins,
+ * so this is asked only after no current alias matched.
+ */
+export function findClubByFormerAlias<Club extends ClubView>(
+  clubs: readonly Club[] | undefined,
+  alias: string,
+): (Club & { readonly alias: string }) | undefined {
+  if (!isValidClubAlias(alias)) return undefined;
+  return clubs?.find(
+    (club): club is Club & { readonly alias: string } =>
+      isValidClubAlias(club.alias) && (club.formerAliases ?? []).includes(alias),
+  );
+}
+
+/**
  * Resolves `?club=` and legacy `?clubId=` query parameters against the overview's club list.
- * `club` always takes precedence; legacy `clubId` for an aliased club requests a 301 redirect.
+ * `club` always takes precedence. A former alias of a renamed club, and legacy `clubId` for an aliased
+ * club, request a 301 redirect to the current alias.
  */
 export function resolveClubFilter(
   searchParams: URLSearchParams,
@@ -656,6 +672,12 @@ export function resolveClubFilter(
 
   if (rawClub !== undefined && rawClub !== '') {
     const matched = clubs?.find((club) => club.alias === rawClub);
+    const renamed = matched === undefined ? findClubByFormerAlias(clubs, rawClub) : undefined;
+    if (renamed !== undefined) {
+      const next = new URLSearchParams(searchParams);
+      next.set('club', renamed.alias);
+      return { redirectSearch: next.toString() };
+    }
     return {
       activeClubAlias: rawClub,
       ...(matched === undefined ? {} : { activeClubId: matched.clubId }),

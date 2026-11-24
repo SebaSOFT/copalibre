@@ -22,6 +22,7 @@ import {
   deriveClubResults,
   deriveClubSquad,
   deriveClubStatus,
+  findClubByFormerAlias,
   type ClubSquadMember,
 } from '../../../../../../lib/club-page.ts';
 import { clubIndexUrl, clubPageUrl, isValidClubAlias } from '../../../../../../lib/club-url.ts';
@@ -80,6 +81,18 @@ if (!overviewData) {
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
 const clubInfo = model.clubs?.find((entry) => entry.alias === club);
 if (!clubInfo) {
+  // A link shared before the club changed its alias keeps working: it moves permanently to the
+  // current alias, in the same organization, tournament and language.
+  const renamed = findClubByFormerAlias(model.clubs, club);
+  if (renamed) {
+    const location = `${clubPageUrl({
+      organizationAlias: organization!,
+      tournamentAlias: tournament!,
+      clubAlias: renamed.alias,
+      localePrefix,
+    })}${Astro.url.search}`;
+    return new Response(null, { status: 301, headers: { Location: location } });
+  }
   Astro.response.status = 404;
   return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
