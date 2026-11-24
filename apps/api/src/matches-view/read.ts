@@ -77,6 +77,11 @@ export interface MatchesViewRow extends FixtureSourcesResponse {
   readonly decidingFactor?: string;
   readonly decidingFactorCode?: string;
   readonly decidingFactorRule?: number;
+  /**
+   * The winning entrant of a finished match: the series winner, the higher score, or the side the
+   * standings rank first when a deciding factor settled a level match. Absent when no side won.
+   */
+  readonly winnerEntrantId?: string;
   readonly rawTrace?: readonly TraceNode[];
 }
 
@@ -228,6 +233,24 @@ async function readStageMatchesView(
             )
           : undefined;
 
+      const winnerEntrantId = finalWinnerEntrantId({
+        status,
+        homeEntrantId: record.homeEntrantId,
+        awayEntrantId: record.awayEntrantId,
+        homeScore: scores?.[0],
+        awayScore: scores?.[1],
+        series,
+        decidingFactored: matchedDecidingFactor !== undefined,
+        homePosition:
+          record.homeEntrantId === undefined
+            ? undefined
+            : standings?.position.get(record.homeEntrantId),
+        awayPosition:
+          record.awayEntrantId === undefined
+            ? undefined
+            : standings?.position.get(record.awayEntrantId),
+      });
+
       const [events, segments] = await Promise.all([
         competition.listEvents(record.matchId),
         status === 'live' ? competition.listSegments(record.matchId) : Promise.resolve([]),
@@ -326,10 +349,41 @@ async function readStageMatchesView(
               decidingFactorCode: matchedDecidingFactor.node.id,
               decidingFactorRule: matchedDecidingFactor.rule,
             }),
+        ...(winnerEntrantId === undefined ? {} : { winnerEntrantId }),
         ...(standings === undefined ? {} : { rawTrace: standings.rawTrace }),
       };
     }),
   );
+}
+
+/**
+ * The winning entrant of a finished match. A series settles by its own winner; otherwise the higher
+ * score wins; a level match wins for the side its standings rank first, and only when a deciding
+ * factor settled it. Undecided, live and genuinely drawn matches have no winner.
+ */
+export function finalWinnerEntrantId(input: {
+  readonly status: 'upcoming' | 'live' | 'final';
+  readonly homeEntrantId?: string;
+  readonly awayEntrantId?: string;
+  readonly homeScore?: number;
+  readonly awayScore?: number;
+  readonly series?: PublicSeriesState;
+  readonly decidingFactored: boolean;
+  readonly homePosition?: number;
+  readonly awayPosition?: number;
+}): string | undefined {
+  if (input.status !== 'final') return undefined;
+  if (input.series !== undefined) return input.series.winnerEntrantId;
+  const { homeEntrantId: home, awayEntrantId: away } = input;
+  if (home === undefined || away === undefined) return undefined;
+  if (input.homeScore !== undefined && input.awayScore !== undefined) {
+    if (input.homeScore > input.awayScore) return home;
+    if (input.homeScore < input.awayScore) return away;
+  }
+  if (!input.decidingFactored) return undefined;
+  if (input.homePosition === undefined || input.awayPosition === undefined) return undefined;
+  if (input.homePosition === input.awayPosition) return undefined;
+  return input.homePosition < input.awayPosition ? home : away;
 }
 
 function publicMatchStatus(status: string): 'upcoming' | 'live' | 'final' {

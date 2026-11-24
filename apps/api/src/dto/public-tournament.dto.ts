@@ -1440,6 +1440,12 @@ export class PublicMatchesViewMatchResponse extends FixtureSourcesResponse {
   @ApiPropertyOptional()
   homeEmblemObjectId?: string;
 
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'The winning entrant of a finished match; absent when no side won',
+  })
+  winnerEntrantId?: string;
+
   @ApiPropertyOptional({ format: 'uuid' })
   awayEntrantId?: string;
 

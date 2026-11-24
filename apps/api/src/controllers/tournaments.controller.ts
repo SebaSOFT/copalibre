@@ -1594,6 +1594,7 @@ function controlMatchResponseOf(
       : { homeClubAlias: row.homeClubAlias }),
     ...(row.homeEmblemObjectId === undefined ? {} : { homeEmblemObjectId: row.homeEmblemObjectId }),
     ...(row.awayEntrantId === undefined ? {} : { awayEntrantId: row.awayEntrantId }),
+    ...(row.winnerEntrantId === undefined ? {} : { winnerEntrantId: row.winnerEntrantId }),
     ...(row.awayName === undefined ? {} : { awayName: row.awayName }),
     ...(row.awayAbbreviation === undefined ? {} : { awayAbbreviation: row.awayAbbreviation }),
     ...(row.awayClubId === undefined ? {} : { awayClubId: row.awayClubId }),

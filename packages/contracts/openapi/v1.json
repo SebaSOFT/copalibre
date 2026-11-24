@@ -14451,6 +14451,11 @@
           "homeEmblemObjectId": {
             "type": "string"
           },
+          "winnerEntrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The winning entrant of a finished match; absent when no side won"
+          },
           "awayEntrantId": {
             "type": "string",
             "format": "uuid"
@@ -21801,6 +21806,11 @@
           },
           "homeEmblemObjectId": {
             "type": "string"
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The winning entrant of a finished match; absent when no side won"
           },
           "awayEntrantId": {
             "type": "string",

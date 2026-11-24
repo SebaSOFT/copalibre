@@ -3751,6 +3751,11 @@ export interface components {
             /** @description Home club's alias, when present */
             homeClubAlias?: string;
             homeEmblemObjectId?: string;
+            /**
+             * Format: uuid
+             * @description The winning entrant of a finished match; absent when no side won
+             */
+            winnerEntrantId?: string;
             /** Format: uuid */
             awayEntrantId?: string;
             awayName?: string;
@@ -6465,6 +6470,11 @@ export interface components {
             /** @description Home club's alias, when present */
             homeClubAlias?: string;
             homeEmblemObjectId?: string;
+            /**
+             * Format: uuid
+             * @description The winning entrant of a finished match; absent when no side won
+             */
+            winnerEntrantId?: string;
             /** Format: uuid */
             awayEntrantId?: string;
             awayName?: string;
