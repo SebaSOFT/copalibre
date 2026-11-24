@@ -1918,6 +1918,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/organizations/{organizationAlias}/public/clubs/{clubAlias}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A club's tournaments and podium places in its organization */
+        get: operations["PublicOrganizationClubController_clubHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/overview": {
         parameters: {
             query?: never;
@@ -6032,6 +6049,39 @@ export interface components {
             tournaments: components["schemas"]["PublicTournamentListingItemResponse"][];
             clubs: components["schemas"]["PublicOrganizationClubResponse"][];
         };
+        PublicOverviewClubResponse: {
+            /** Format: uuid */
+            clubId: string;
+            name: string;
+            abbreviation?: string;
+            alias?: string;
+            emblemObjectId?: string;
+        };
+        PublicClubPlacementResponse: {
+            /** @enum {string} */
+            place: "champion" | "runner-up" | "third-place";
+            /** @description The zone the place was won in, when the final stage has zones */
+            zoneName?: string;
+        };
+        PublicOrganizationClubTournamentResponse: {
+            alias: string;
+            name: string;
+            /** @enum {string} */
+            status: "upcoming" | "live" | "finished";
+            discipline: components["schemas"]["PublicTournamentDisciplineSummaryResponse"];
+            dates?: components["schemas"]["PublicTournamentDatesResponse"];
+            emblemObjectId?: string;
+            /** @description The club's podium places in a finished tournament. Absent when it has none. */
+            placements?: components["schemas"]["PublicClubPlacementResponse"][];
+        };
+        PublicOrganizationClubHistoryResponse: {
+            organizationAlias: string;
+            organizationName: string;
+            organizationEmblemObjectId?: string;
+            club: components["schemas"]["PublicOverviewClubResponse"];
+            /** @description Published tournaments with a team entrant from the club, newest first. Draft tournaments never appear. */
+            tournaments: components["schemas"]["PublicOrganizationClubTournamentResponse"][];
+        };
         PublicObjectReferenceResponse: {
             key: string;
         };
@@ -6127,14 +6177,6 @@ export interface components {
             zoneName?: string;
             /** @description The group this row is ranked in. Present when the stage defines named groups; absent for an ungrouped stage. */
             groupName?: string;
-        };
-        PublicOverviewClubResponse: {
-            /** Format: uuid */
-            clubId: string;
-            name: string;
-            abbreviation?: string;
-            alias?: string;
-            emblemObjectId?: string;
         };
         PublicOverviewResponse: {
             organizationAlias: string;
@@ -11892,6 +11934,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicOrganizationTournamentListResponse"];
+                };
+            };
+        };
+    };
+    PublicOrganizationClubController_clubHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                clubAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicOrganizationClubHistoryResponse"];
                 };
             };
         };
