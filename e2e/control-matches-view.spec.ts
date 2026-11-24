@@ -30,6 +30,8 @@ function finalizedMatchWithTrace() {
     groupName: 'Grupo A',
     homePosition: 1,
     awayPosition: 2,
+    decidingFactorCode: 'head-to-head',
+    decidingFactorRule: 2,
     decidingFactor: 'head-to-head goal difference',
     homeTrace: ['Comparator: head-to-head goal difference — Club Andes ahead by 2'],
     awayTrace: ['Comparator: head-to-head goal difference — Deportivo Sur behind by 2'],
@@ -120,7 +122,7 @@ test('shows every match with venue/clock and the full comparator trace on a tieb
 
   // The full trace, not just the summary line, reaches this authorized screen —
   // collapsed by default, so open it before checking its content is present.
-  await expect(page.getByText('Decided by: head-to-head goal difference')).toBeVisible();
+  await expect(page.getByText('Decided by: Head-to-head')).toBeVisible();
   await page.getByText('Full standings comparator trace').click();
   await expect(page.getByText('Club Andes ahead by 2')).toBeVisible();
   await expect(page.getByText('Deportivo Sur behind by 2')).toBeVisible();

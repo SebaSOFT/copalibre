@@ -42,6 +42,8 @@ const finalizedMatch = {
   groupName: 'Grupo A',
   homePosition: 1,
   awayPosition: 2,
+  decidingFactorCode: 'head-to-head',
+  decidingFactorRule: 2,
   decidingFactor: 'head-to-head goal difference',
 };
 
@@ -221,7 +223,7 @@ test('shows every match with venue, clock, and a one-line deciding-factor summar
   const wide = schedule.locator('.cl-match-schedule__nested');
   await expect(wide.getByText('Club Andes', { exact: true })).toBeVisible();
   await expect(wide.getByText('Estadio Central')).toBeVisible();
-  await expect(wide.getByText('Decided by: head-to-head goal difference')).toBeVisible();
+  await expect(wide.getByText('Decided by: Head-to-head')).toBeVisible();
 
   // The public card never carries the internal comparator trace lines.
   await expect(page.getByText(/ahead by|behind by/)).toHaveCount(0);
