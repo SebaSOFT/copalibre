@@ -1,7 +1,8 @@
 ---
 /**
- * The organization's clubs. A club with an active tournament links to its club page and sits in a card;
- * a club without one is plain content, with the same identity block and no card affordance.
+ * The organization's clubs. A club with an alias links to its organization club page, its history
+ * across the organization's tournaments, and sits in a card; a club without an alias is plain content,
+ * with the same identity block and no card affordance.
  */
 import type { IntlShape } from 'react-intl';
 import type { PublicOrganizationClubResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
@@ -9,7 +10,7 @@ import { Card } from '../atoms/Card.tsx';
 import ClubIdentity from '../molecules/ClubIdentity.astro';
 import SectionHeader from '../molecules/SectionHeader.astro';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
-import { optionalClubPageUrl } from '../../../lib/club-url.ts';
+import { optionalOrganizationClubPageUrl } from '../../../lib/club-url.ts';
 
 export interface ClubWithEmblemSrc extends PublicOrganizationClubResponse {
   /** Pre-built by the page (`clubEmblemUrl`) — data access stays at the page tier. */
@@ -37,9 +38,8 @@ const { clubs, intl, organizationAlias, localePrefix = '' } = Astro.props;
   ) : (
     <ul class="cl-match-card-grid">
       {clubs.map((club) => {
-        const clubHref = optionalClubPageUrl({
+        const clubHref = optionalOrganizationClubPageUrl({
           organizationAlias,
-          tournamentAlias: club.tournamentAlias,
           clubAlias: club.alias,
           localePrefix,
         });

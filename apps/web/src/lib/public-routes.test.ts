@@ -6,6 +6,26 @@ const ORIGIN = 'https://copalibre.test';
 const UUID = '01a205fd-1c2b-7d3e-8f40-5a6b7c8d9e0f';
 
 describe('buildSitemapEntries club routes', () => {
+  it('lists the organization club page of every aliased club, in every locale', () => {
+    const entries = buildSitemapEntries([
+      {
+        organizationAlias: 'liga-mendocina',
+        clubAliases: ['club-hispano', 'Bad Alias', UUID],
+        tournaments: [],
+      },
+    ]);
+    const xml = buildSitemap(ORIGIN, entries);
+
+    expect(xml).toContain('<loc>https://copalibre.test/liga-mendocina/clubs/club-hispano</loc>');
+    for (const locale of NON_PRIMARY_LOCALES) {
+      expect(xml).toContain(
+        `<loc>https://copalibre.test/${locale}/liga-mendocina/clubs/club-hispano</loc>`,
+      );
+    }
+    expect(xml).not.toContain('Bad Alias');
+    expect(xml).not.toContain(UUID);
+  });
+
   it('lists the club index and every aliased club page with each locale variant', () => {
     const entries = buildSitemapEntries([
       {

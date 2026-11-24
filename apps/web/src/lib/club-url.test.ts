@@ -1,6 +1,13 @@
 import { describe, expect, it } from '@jest/globals';
 import { RouteError } from '@copalibre/routing';
-import { clubIndexUrl, clubPageUrl, isValidClubAlias, optionalClubPageUrl } from './club-url.js';
+import {
+  clubIndexUrl,
+  clubPageUrl,
+  isValidClubAlias,
+  optionalClubPageUrl,
+  optionalOrganizationClubPageUrl,
+  organizationClubPageUrl,
+} from './club-url.js';
 
 describe('isValidClubAlias', () => {
   it('accepts valid kebab-case club aliases', () => {
@@ -123,5 +130,45 @@ describe('optionalClubPageUrl', () => {
         clubAlias: 'club-hispano',
       }),
     ).toBeUndefined();
+  });
+});
+
+describe('organizationClubPageUrl', () => {
+  it('builds the organization club path, with the locale prefix only outside English', () => {
+    expect(
+      organizationClubPageUrl({ organizationAlias: 'liga-mendocina', clubAlias: 'club-hispano' }),
+    ).toBe('/liga-mendocina/clubs/club-hispano');
+    expect(
+      organizationClubPageUrl({
+        organizationAlias: 'liga-mendocina',
+        clubAlias: 'club-hispano',
+        localePrefix: '/es',
+      }),
+    ).toBe('/es/liga-mendocina/clubs/club-hispano');
+  });
+
+  it('refuses a UUID or malformed club alias', () => {
+    expect(() =>
+      organizationClubPageUrl({
+        organizationAlias: 'liga-mendocina',
+        clubAlias: '01936f4a-0007-7000-8000-000000000077',
+      }),
+    ).toThrow(RouteError);
+  });
+});
+
+describe('optionalOrganizationClubPageUrl', () => {
+  it('returns the URL when both aliases are valid and undefined otherwise', () => {
+    expect(
+      optionalOrganizationClubPageUrl({
+        organizationAlias: 'liga-mendocina',
+        clubAlias: 'club-hispano',
+        localePrefix: '/fr',
+      }),
+    ).toBe('/fr/liga-mendocina/clubs/club-hispano');
+    expect(
+      optionalOrganizationClubPageUrl({ organizationAlias: 'liga-mendocina' }),
+    ).toBeUndefined();
+    expect(optionalOrganizationClubPageUrl({ clubAlias: 'club-hispano' })).toBeUndefined();
   });
 });
