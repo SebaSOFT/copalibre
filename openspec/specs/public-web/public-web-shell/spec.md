@@ -1118,14 +1118,20 @@ A public page inside a tournament SHALL draw the tournament discipline's backgro
 ### Requirement: Public overviews lead with the tournament's current state
 
 A public tournament overview SHALL open with a hero panel holding a breadcrumb, a title and fact chips
-from the read model. It SHALL then show a now strip (live, upcoming, latest final) for a tournament in
-progress, or an honour board per placement tier for a completed one. It SHALL render completely
-without JavaScript.
+from the read model. It SHALL then show a now strip of live matches, then delayed matches, then the next
+match only when none is live, for a tournament in progress, or an honour board per placement tier for a
+completed one. Its upcoming and latest lists SHALL group their matches by day. It SHALL render
+completely without JavaScript.
 
 #### Scenario: In-progress overview
 
 - **WHEN** a spectator opens an in-progress tournament at 375px
 - **THEN** the first content after the hero is the now strip, with the live match first
+
+#### Scenario: The now strip holds no finished match
+
+- **WHEN** one match is live and the latest match is final
+- **THEN** the now strip shows the live match, and the final appears first under the latest results instead
 
 #### Scenario: Completed overview
 
@@ -1220,3 +1226,12 @@ An in-progress or upcoming tournament's listing card SHALL show its first and la
 
 - **WHEN** an upcoming tournament has no scheduled match
 - **THEN** its card shows no date range and no progress
+
+### Requirement: The tournament ticker lists matches in time order
+
+The tournament ticker SHALL list live matches first, then delayed matches, then upcoming matches by ascending kickoff, then finished matches by descending kickoff, on public and TV surfaces alike.
+
+#### Scenario: Results from several days
+
+- **WHEN** the tournament has finals on 18 and 22 November and fixtures on 23 and 24 November
+- **THEN** the ticker lists the 23 November fixtures before the 24 November ones, then the 22 November finals before the 18 November ones
