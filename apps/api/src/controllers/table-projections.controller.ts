@@ -263,6 +263,7 @@ function tableRowResponse(row: TableProjectionRow): TableProjectionResponse['row
       ? {}
       : { entrantAbbreviation: row.entrantAbbreviation }),
     ...(row.clubId === undefined ? {} : { clubId: row.clubId }),
+    ...(row.clubAlias === undefined || row.clubAlias === '' ? {} : { clubAlias: row.clubAlias }),
     ...(row.emblemObjectId === undefined ? {} : { emblemObjectId: row.emblemObjectId }),
     ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
     ...(row.shirtNumber === undefined ? {} : { shirtNumber: row.shirtNumber }),

@@ -1589,11 +1589,17 @@ function controlMatchResponseOf(
     ...(row.homeName === undefined ? {} : { homeName: row.homeName }),
     ...(row.homeAbbreviation === undefined ? {} : { homeAbbreviation: row.homeAbbreviation }),
     ...(row.homeClubId === undefined ? {} : { homeClubId: row.homeClubId }),
+    ...(row.homeClubAlias === undefined || row.homeClubAlias === ''
+      ? {}
+      : { homeClubAlias: row.homeClubAlias }),
     ...(row.homeEmblemObjectId === undefined ? {} : { homeEmblemObjectId: row.homeEmblemObjectId }),
     ...(row.awayEntrantId === undefined ? {} : { awayEntrantId: row.awayEntrantId }),
     ...(row.awayName === undefined ? {} : { awayName: row.awayName }),
     ...(row.awayAbbreviation === undefined ? {} : { awayAbbreviation: row.awayAbbreviation }),
     ...(row.awayClubId === undefined ? {} : { awayClubId: row.awayClubId }),
+    ...(row.awayClubAlias === undefined || row.awayClubAlias === ''
+      ? {}
+      : { awayClubAlias: row.awayClubAlias }),
     ...(row.awayEmblemObjectId === undefined ? {} : { awayEmblemObjectId: row.awayEmblemObjectId }),
     ...(row.homeScore === undefined ? {} : { homeScore: row.homeScore }),
     ...(row.awayScore === undefined ? {} : { awayScore: row.awayScore }),

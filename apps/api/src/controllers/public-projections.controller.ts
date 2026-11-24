@@ -2,7 +2,7 @@ import { Controller, Get, Header, Param, Query, Inject, Logger, Res } from '@nes
 import type { FastifyReply } from 'fastify';
 import { QualificationError } from '@copalibre/tournament-engine';
 import { NotFoundException } from '../http/error-contract.js';
-import { ApiTags, ApiOperation, ApiOkResponse, ApiProduces } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiOkResponse, ApiProduces, ApiQuery } from '@nestjs/swagger';
 import { escapeCsvFormulaCell, stringifyCsv } from '@copalibre/domain/import-export';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import {
@@ -166,8 +166,9 @@ export class PublicTournamentListingController {
 
     const overviewReadModel = new PublicOverviewReadModel(this.db);
     const tournamentItems: PublicTournamentListingItemResponse[] = [];
+    const inProgressTournaments: InProgressTournamentEntry[] = [];
 
-    for (const t of publishedTournaments) {
+    for (const [index, t] of publishedTournaments.entries()) {
       const matches = await overviewReadModel.matchesForTournament(t.tournamentId);
       const status = deriveTournamentStatus(t.status, matches);
 
@@ -201,6 +202,16 @@ export class PublicTournamentListingController {
         matches.map((m) => m.matchId),
       );
 
+      if (status === 'live') {
+        inProgressTournaments.push({
+          tournamentId: t.tournamentId,
+          alias: t.alias,
+          startedAt: t.startedAt,
+          firstKickoffAt: schedule?.firstKickoffAt,
+          createdOrderAsc: publishedTournaments.length - 1 - index,
+        });
+      }
+
       tournamentItems.push({
         tournamentId: t.tournamentId,
         alias: t.alias,
@@ -218,6 +229,11 @@ export class PublicTournamentListingController {
       });
     }
 
+    const clubTournamentAlias =
+      clubs.length > 0 && inProgressTournaments.length > 0
+        ? await firstInProgressTournamentAliasByClub(this.db, inProgressTournaments)
+        : new Map<string, string>();
+
     return {
       organizationAlias: organization.alias,
       organizationName: organization.name,
@@ -225,14 +241,91 @@ export class PublicTournamentListingController {
         ? { organizationEmblemObjectId: organization.emblem_object_id }
         : {}),
       tournaments: tournamentItems,
-      clubs: clubs.map((club) => ({
-        clubId: club.clubId,
-        name: club.name,
-        ...(club.alias ? { alias: club.alias } : {}),
-        ...(club.emblemObjectId ? { emblemObjectId: club.emblemObjectId } : {}),
-      })),
+      clubs: clubs.map((club) => {
+        const tournamentAlias = clubTournamentAlias.get(club.clubId);
+        return {
+          clubId: club.clubId,
+          name: club.name,
+          ...(club.alias ? { alias: club.alias } : {}),
+          ...(club.emblemObjectId ? { emblemObjectId: club.emblemObjectId } : {}),
+          ...(tournamentAlias ? { tournamentAlias } : {}),
+        };
+      }),
     };
   }
+}
+
+interface InProgressTournamentEntry {
+  readonly tournamentId: string;
+  readonly alias: string;
+  readonly startedAt?: string;
+  readonly firstKickoffAt?: string;
+  readonly createdOrderAsc: number;
+}
+
+function startTimestampOf(
+  startedAt: string | undefined,
+  firstKickoffAt: string | undefined,
+): number {
+  const raw = startedAt ?? firstKickoffAt;
+  if (raw === undefined) return Number.POSITIVE_INFINITY;
+  const parsed = Date.parse(raw);
+  return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+}
+
+async function firstInProgressTournamentAliasByClub(
+  db: Kysely<Database>,
+  entries: readonly InProgressTournamentEntry[],
+): Promise<ReadonlyMap<string, string>> {
+  const sorted = [...entries].sort((a, b) => {
+    const aTime = startTimestampOf(a.startedAt, a.firstKickoffAt);
+    const bTime = startTimestampOf(b.startedAt, b.firstKickoffAt);
+    if (aTime !== bTime) return aTime - bTime;
+    if (a.createdOrderAsc !== b.createdOrderAsc) return a.createdOrderAsc - b.createdOrderAsc;
+    return a.alias.localeCompare(b.alias);
+  });
+
+  const tournamentIds = sorted.map((entry) => entry.tournamentId);
+  const [teamEntrants, personEntrants] = await Promise.all([
+    db
+      .selectFrom('entrants')
+      .innerJoin('teams', 'teams.team_id', 'entrants.team_id')
+      .select(['entrants.tournament_id as tournament_id', 'teams.club_id as club_id'])
+      .where('entrants.tournament_id', 'in', tournamentIds)
+      .where('teams.club_id', 'is not', null)
+      .execute(),
+    db
+      .selectFrom('entrants')
+      .innerJoin('players', 'players.person_id', 'entrants.person_id')
+      .innerJoin('teams', 'teams.team_id', 'players.team_id')
+      .select(['entrants.tournament_id as tournament_id', 'teams.club_id as club_id'])
+      .where('entrants.tournament_id', 'in', tournamentIds)
+      .where('teams.club_id', 'is not', null)
+      .execute(),
+  ]);
+
+  const clubsByTournament = new Map<string, Set<string>>();
+  for (const row of [...teamEntrants, ...personEntrants]) {
+    if (row.club_id === null) continue;
+    let clubSet = clubsByTournament.get(row.tournament_id);
+    if (!clubSet) {
+      clubSet = new Set<string>();
+      clubsByTournament.set(row.tournament_id, clubSet);
+    }
+    clubSet.add(row.club_id);
+  }
+
+  const firstAliasByClub = new Map<string, string>();
+  for (const entry of sorted) {
+    const clubIds = clubsByTournament.get(entry.tournamentId);
+    if (!clubIds) continue;
+    for (const clubId of clubIds) {
+      if (!firstAliasByClub.has(clubId)) {
+        firstAliasByClub.set(clubId, entry.alias);
+      }
+    }
+  }
+  return firstAliasByClub;
 }
 
 const resolveTournamentWinnersLogger = new Logger('resolveTournamentWinners');
@@ -956,7 +1049,9 @@ export class PublicProjectionsController {
     const entrantIds = [match.home_entrant_id, match.away_entrant_id].filter(
       (entrantId): entrantId is string => entrantId !== null,
     );
-    const entrantNames = await new EnrollmentRepository(this.db).resolveEntrantNames(entrantIds);
+    const entrantDetails = await new EnrollmentRepository(this.db).resolveEntrantPodiumDetails(
+      entrantIds,
+    );
     const entrantVisibility = await entrantVisibilityById(this.db, tournament, entrantIds);
     const personIds = [
       ...rosterRows.flatMap((roster) => roster.roster_members.map((member) => member.personId)),
@@ -1024,7 +1119,7 @@ export class PublicProjectionsController {
       ...(match.home_entrant_id === null ||
       entrantVisibility.get(match.home_entrant_id)?.hiddenAtRequest === true
         ? {}
-        : { homeName: entrantNames.get(match.home_entrant_id)?.name ?? 'Unknown' }),
+        : { homeName: entrantDetails.get(match.home_entrant_id)?.name ?? 'Unknown' }),
       ...(match.home_entrant_id !== null &&
       entrantVisibility.get(match.home_entrant_id)?.hiddenAtRequest === true
         ? { homeHiddenAtRequest: true }
@@ -1039,12 +1134,17 @@ export class PublicProjectionsController {
       ...(match.home_entrant_id === null ||
       entrantVisibility.get(match.home_entrant_id)?.publicProfileAvailable === false
         ? {}
-        : { homeAbbreviation: entrantNames.get(match.home_entrant_id)?.abbreviation }),
+        : { homeAbbreviation: entrantDetails.get(match.home_entrant_id)?.abbreviation }),
+      ...(match.home_entrant_id === null ||
+      entrantVisibility.get(match.home_entrant_id)?.publicProfileAvailable === false ||
+      !entrantDetails.get(match.home_entrant_id)?.clubAlias
+        ? {}
+        : { homeClubAlias: entrantDetails.get(match.home_entrant_id)?.clubAlias }),
       ...(match.away_entrant_id === null ? {} : { awayEntrantId: match.away_entrant_id }),
       ...(match.away_entrant_id === null ||
       entrantVisibility.get(match.away_entrant_id)?.hiddenAtRequest === true
         ? {}
-        : { awayName: entrantNames.get(match.away_entrant_id)?.name ?? 'Unknown' }),
+        : { awayName: entrantDetails.get(match.away_entrant_id)?.name ?? 'Unknown' }),
       ...(match.away_entrant_id !== null &&
       entrantVisibility.get(match.away_entrant_id)?.hiddenAtRequest === true
         ? { awayHiddenAtRequest: true }
@@ -1059,7 +1159,12 @@ export class PublicProjectionsController {
       ...(match.away_entrant_id === null ||
       entrantVisibility.get(match.away_entrant_id)?.publicProfileAvailable === false
         ? {}
-        : { awayAbbreviation: entrantNames.get(match.away_entrant_id)?.abbreviation }),
+        : { awayAbbreviation: entrantDetails.get(match.away_entrant_id)?.abbreviation }),
+      ...(match.away_entrant_id === null ||
+      entrantVisibility.get(match.away_entrant_id)?.publicProfileAvailable === false ||
+      !entrantDetails.get(match.away_entrant_id)?.clubAlias
+        ? {}
+        : { awayClubAlias: entrantDetails.get(match.away_entrant_id)?.clubAlias }),
       ...(scores?.[0] === undefined ? {} : { homeScore: scores[0] }),
       ...(scores?.[1] === undefined ? {} : { awayScore: scores[1] }),
       ...(schedule === undefined ? {} : { scheduledAt: scheduleStartsAt(schedule.starts_at) }),
@@ -1650,6 +1755,11 @@ export class PublicProjectionsController {
             : row.homeClubId === undefined
               ? {}
               : { homeClubId: row.homeClubId }),
+          ...(homeVisibility?.publicProfileAvailable === false ||
+          row.homeClubAlias === undefined ||
+          row.homeClubAlias === ''
+            ? {}
+            : { homeClubAlias: row.homeClubAlias }),
           ...(homeVisibility?.publicProfileAvailable === false
             ? {}
             : row.homeEmblemObjectId === undefined
@@ -1671,6 +1781,11 @@ export class PublicProjectionsController {
             : row.awayClubId === undefined
               ? {}
               : { awayClubId: row.awayClubId }),
+          ...(awayVisibility?.publicProfileAvailable === false ||
+          row.awayClubAlias === undefined ||
+          row.awayClubAlias === ''
+            ? {}
+            : { awayClubAlias: row.awayClubAlias }),
           ...(awayVisibility?.publicProfileAvailable === false
             ? {}
             : row.awayEmblemObjectId === undefined
@@ -1728,11 +1843,24 @@ export class PublicProjectionsController {
   @Get('public/tables/:layoutCode')
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'A tournament-wide table projection (player/team rankings)' })
+  @ApiQuery({
+    name: 'club',
+    required: false,
+    type: String,
+    description: 'Filter rows to entrants of this club alias',
+  })
+  @ApiQuery({
+    name: 'clubId',
+    required: false,
+    type: String,
+    description: 'Legacy filter: entrants of this club id',
+  })
   @ApiOkResponse({ type: TableProjectionResponse })
   async tournamentTable(
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('layoutCode') layoutCode: string,
+    @Query('club') club?: string,
     @Query('clubId') clubId?: string,
   ): Promise<TableProjectionResponse> {
     const { tournament } = await this.resolvePublishedTournament(
@@ -1747,6 +1875,7 @@ export class PublicProjectionsController {
           tournamentId: tournament.tournamentId,
           disciplineRef: tournament.disciplineRef,
         },
+        clubAlias: normalizeClubAliasQuery(club),
         clubId,
       },
       layoutCode,
@@ -1760,11 +1889,24 @@ export class PublicProjectionsController {
   @SecurityPlaneTag('public-read')
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Download a tournament-wide public table as CSV' })
+  @ApiQuery({
+    name: 'club',
+    required: false,
+    type: String,
+    description: 'Filter rows to entrants of this club alias',
+  })
+  @ApiQuery({
+    name: 'clubId',
+    required: false,
+    type: String,
+    description: 'Legacy filter: entrants of this club id',
+  })
   @ApiOkResponse({ description: 'CSV table export', schema: { type: 'string', format: 'binary' } })
   async tournamentTableCsv(
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('layoutCode') layoutCode: string,
+    @Query('club') club?: string,
     @Query('clubId') clubId?: string,
   ): Promise<string> {
     const { tournament } = await this.resolvePublishedTournament(
@@ -1779,6 +1921,7 @@ export class PublicProjectionsController {
           tournamentId: tournament.tournamentId,
           disciplineRef: tournament.disciplineRef,
         },
+        clubAlias: normalizeClubAliasQuery(club),
         clubId,
       },
       layoutCode,
@@ -1789,12 +1932,25 @@ export class PublicProjectionsController {
   @Get('stages/:stageNumber/public/tables/:layoutCode')
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'A stage-scoped table projection (group standings, schedule tables)' })
+  @ApiQuery({
+    name: 'club',
+    required: false,
+    type: String,
+    description: 'Filter rows to entrants of this club alias',
+  })
+  @ApiQuery({
+    name: 'clubId',
+    required: false,
+    type: String,
+    description: 'Legacy filter: entrants of this club id',
+  })
   @ApiOkResponse({ type: TableProjectionResponse })
   async stageTable(
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageNumber') stageNumberStr: string,
     @Param('layoutCode') layoutCode: string,
+    @Query('club') club?: string,
     @Query('clubId') clubId?: string,
   ): Promise<TableProjectionResponse> {
     const { tournament } = await this.resolvePublishedTournament(
@@ -1820,6 +1976,7 @@ export class PublicProjectionsController {
           disciplineRef: tournament.disciplineRef,
         },
         stageId: stage.stageId,
+        clubAlias: normalizeClubAliasQuery(club),
         clubId,
       },
       layoutCode,
@@ -1844,12 +2001,25 @@ export class PublicProjectionsController {
   @SecurityPlaneTag('public-read')
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Download a stage-scoped public table as CSV' })
+  @ApiQuery({
+    name: 'club',
+    required: false,
+    type: String,
+    description: 'Filter rows to entrants of this club alias',
+  })
+  @ApiQuery({
+    name: 'clubId',
+    required: false,
+    type: String,
+    description: 'Legacy filter: entrants of this club id',
+  })
   @ApiOkResponse({ description: 'CSV table export', schema: { type: 'string', format: 'binary' } })
   async stageTableCsv(
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageNumber') stageNumberStr: string,
     @Param('layoutCode') layoutCode: string,
+    @Query('club') club?: string,
     @Query('clubId') clubId?: string,
   ): Promise<string> {
     const { tournament } = await this.resolvePublishedTournament(
@@ -1874,6 +2044,7 @@ export class PublicProjectionsController {
           disciplineRef: tournament.disciplineRef,
         },
         stageId: stage.stageId,
+        clubAlias: normalizeClubAliasQuery(club),
         clubId,
       },
       layoutCode,
@@ -2168,6 +2339,7 @@ export class PublicProjectionsController {
                 entrantName: undefined,
                 entrantAbbreviation: undefined,
                 clubId: undefined,
+                clubAlias: undefined,
                 emblemObjectId: undefined,
               }
             : {}),
@@ -2191,6 +2363,11 @@ export class PublicProjectionsController {
     }
     return { ...result, rows: protectRows(result.rows) } as T;
   }
+}
+
+function normalizeClubAliasQuery(club: string | undefined): string | undefined {
+  const trimmed = club?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : undefined;
 }
 
 function canShowPublicPlayerProfile(tournament: Tournament, hiddenFromPublic?: boolean): boolean {

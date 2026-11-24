@@ -13,6 +13,7 @@ import {
   latestFinalizedShirtNumbers,
   matchPublicIdentities,
   readPlayerStatisticsDrilldown,
+  readTableProjection,
 } from './read.js';
 
 function fakeDb(tables: Record<string, readonly Record<string, unknown>[]>): Kysely<Database> {
@@ -380,5 +381,175 @@ describe('table-projections/read unit tests', () => {
     expect(numbers.get('p-1')).toBe(3);
     expect(numbers.get('p-unsched')).toBe('10');
     expect(numbers.has('p-none')).toBe(false);
+  });
+
+  it('populates clubAlias when resolved, filters by clubAlias ahead of clubId, and returns empty rows for unknown aliases', async () => {
+    const descriptor: DisciplineDescriptor = {
+      ...footballDescriptor(),
+      tableLayouts: [
+        {
+          code: 'standings',
+          target: 'group-phase',
+          label: { en: 'Standings' },
+          entityGranularity: 'team',
+          defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+          columns: [
+            {
+              code: 'rank',
+              header: { en: 'Pos' },
+              source: { kind: 'rank' },
+              format: 'number',
+            },
+            {
+              code: 'name',
+              header: { en: 'Team' },
+              source: { kind: 'entrant-name' },
+              format: 'text',
+            },
+            {
+              code: 'points',
+              header: { en: 'Pts' },
+              source: { kind: 'collector', code: 'team-points' },
+              format: 'number',
+            },
+          ],
+        },
+      ],
+      collectors: [
+        {
+          code: 'team-points',
+          label: { en: 'Points' },
+          source: { kind: 'statistic', statisticCode: 'points' },
+          measure: { kind: 'sum', field: 'points' },
+          granularity: { actor: 'team', competition: 'stage' },
+        },
+      ],
+    };
+
+    vi.spyOn(TournamentRepository.prototype, 'findDescriptor').mockResolvedValue(descriptor);
+    vi.spyOn(TournamentRepository.prototype, 'findLatestRuleset').mockResolvedValue(undefined);
+    vi.spyOn(TournamentRepository.prototype, 'findLatestStageConfiguration').mockResolvedValue(
+      undefined,
+    );
+    vi.spyOn(CompetitionRepository.prototype, 'listZonesOfStage').mockResolvedValue([]);
+    vi.spyOn(StageReadModel.prototype, 'matches').mockResolvedValue([]);
+    vi.spyOn(StatisticRepository.prototype, 'rawFigures').mockResolvedValue([
+      {
+        collectorCode: 'team-points',
+        actorGranularity: 'team',
+        actorId: 'en-hispano',
+        competitionGranularity: 'stage',
+        competitionId: 'st-1',
+        value: 9,
+        samples: 3,
+      },
+      {
+        collectorCode: 'team-points',
+        actorGranularity: 'team',
+        actorId: 'en-sin-alias',
+        competitionGranularity: 'stage',
+        competitionId: 'st-1',
+        value: 4,
+        samples: 3,
+      },
+    ]);
+    vi.spyOn(EnrollmentRepository.prototype, 'resolveEntrantNames').mockResolvedValue(
+      new Map([
+        ['en-hispano', { name: 'Club Hispano', abbreviation: 'HIS' }],
+        ['en-sin-alias', { name: 'Sin Alias FC', abbreviation: 'SAF' }],
+      ]),
+    );
+    vi.spyOn(EnrollmentRepository.prototype, 'resolveEntrantPodiumDetails').mockResolvedValue(
+      new Map([
+        [
+          'en-hispano',
+          {
+            name: 'Club Hispano',
+            abbreviation: 'HIS',
+            clubId: 'club-hispano',
+            clubAlias: 'club-hispano',
+          },
+        ],
+        [
+          'en-sin-alias',
+          {
+            name: 'Sin Alias FC',
+            abbreviation: 'SAF',
+            clubId: 'club-sin-alias',
+          },
+        ],
+      ]),
+    );
+
+    const dbForAlias = (resolvedClubId: string | undefined) =>
+      ({
+        selectFrom: (table: string) => {
+          let filteredClubId: string | undefined;
+          let filteredAlias: string | undefined;
+          const chain = {
+            innerJoin: () => chain,
+            leftJoin: () => chain,
+            select: () => chain,
+            where: (col: string, _op: string, val: unknown) => {
+              if (col === 'alias') filteredAlias = String(val);
+              if (col === 'teams.club_id') filteredClubId = String(val);
+              return chain;
+            },
+            execute: async () => {
+              if (table === 'projection_versions') return [{ version: 1 }];
+              if (table === 'entrants') {
+                if (filteredClubId === 'club-hispano') return [{ entrant_id: 'en-hispano' }];
+                if (filteredClubId === 'club-sin-alias') return [{ entrant_id: 'en-sin-alias' }];
+                return [];
+              }
+              return [];
+            },
+            executeTakeFirst: async () => {
+              if (table === 'clubs') {
+                return filteredAlias === 'club-hispano' && resolvedClubId
+                  ? { club_id: resolvedClubId }
+                  : undefined;
+              }
+              if (table === 'projection_versions') return { version: 1 };
+              return undefined;
+            },
+          };
+          return chain;
+        },
+      }) as unknown as Kysely<Database>;
+
+    const scope = {
+      organizationId: 'org-1',
+      tournament: {
+        tournamentId: 't-1',
+        disciplineRef: { descriptorId: descriptor.descriptorId, version: descriptor.version },
+      },
+      stageId: 'st-1',
+    };
+
+    const unfiltered = await readTableProjection(dbForAlias('club-hispano'), scope, 'standings');
+    expect(unfiltered.rows).toHaveLength(2);
+    expect(unfiltered.rows[0]?.clubAlias).toBe('club-hispano');
+    expect(unfiltered.rows[1]).not.toHaveProperty('clubAlias');
+
+    // clubAlias wins over clubId when both are provided, preserving rank in full table.
+    const byAlias = await readTableProjection(
+      dbForAlias('club-hispano'),
+      { ...scope, clubAlias: 'club-hispano', clubId: 'club-sin-alias' },
+      'standings',
+    );
+    expect(byAlias.rows).toHaveLength(1);
+    expect(byAlias.rows[0]?.entrantId).toBe('en-hispano');
+    expect(byAlias.rows[0]?.rank).toBe(1);
+    expect(byAlias.rows[0]?.clubAlias).toBe('club-hispano');
+
+    // Unknown alias (or alias from another org) returns layout columns and empty rows.
+    const unknown = await readTableProjection(
+      dbForAlias(undefined),
+      { ...scope, clubAlias: 'other-org-club' },
+      'standings',
+    );
+    expect(unknown.layout.columns.length).toBeGreaterThan(0);
+    expect(unknown.rows).toEqual([]);
   });
 });

@@ -862,6 +862,105 @@ describe('table projections (integration)', () => {
       expect(nonMatching.json().rows).toHaveLength(0);
     });
 
+    it('includes clubAlias for aliased clubs, omits it without alias, filters by ?club= across JSON and CSV with club winning over clubId, and isolates aliases per organization', async () => {
+      const otherOrgClubAlias = 'club-otra-liga';
+      await withTransaction(scratch.db, async (uow) => {
+        const otherOrg = await new OrganizationRepository(scratch.db).create(uow, {
+          alias: 'otra-liga-tablas',
+          name: 'Otra Liga Tablas',
+          ...AUDIT,
+        });
+        await new EnrollmentRepository(scratch.db).createClub(uow, {
+          organizationId: otherOrg.organizationId,
+          alias: otherOrgClubAlias,
+          name: 'Club Otra Liga',
+          ...AUDIT,
+        });
+      });
+
+      const stageUnfiltered = await getAnonymous(
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
+      );
+      expect(stageUnfiltered.statusCode).toBe(200);
+      const stageRows = stageUnfiltered.json().rows as {
+        entrantId: string;
+        rank: number;
+        clubAlias?: string;
+      }[];
+      const talleresRow = stageRows.find((row) => row.entrantId === entrantTalleres);
+      const independienteRow = stageRows.find((row) => row.entrantId === entrantIndependiente);
+      expect(talleresRow?.clubAlias).toBe('club-atletico-talleres');
+      expect(independienteRow).not.toHaveProperty('clubAlias');
+
+      const [stageByClub, stageByClubId, stagePrecedence] = await Promise.all([
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?club=club-atletico-talleres',
+        ),
+        getAnonymous(
+          `/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?clubId=${clubTalleresId}`,
+        ),
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?club=club-atletico-talleres&clubId=00000000-0000-0000-0000-000000000000',
+        ),
+      ]);
+      expect(stageByClub.statusCode).toBe(200);
+      expect(stageByClub.json().rows).toEqual(stageByClubId.json().rows);
+      expect(stagePrecedence.json().rows).toEqual(stageByClub.json().rows);
+      expect(stageByClub.json().rows[0]?.rank).toBe(talleresRow?.rank);
+
+      const [stageCsvByClub, stageCsvByClubId] = await Promise.all([
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default/csv?club=club-atletico-talleres',
+        ),
+        getAnonymous(
+          `/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default/csv?clubId=${clubTalleresId}`,
+        ),
+      ]);
+      expect(stageCsvByClub.statusCode).toBe(200);
+      expect(stageCsvByClub.body).toBe(stageCsvByClubId.body);
+      expect(stageCsvByClub.body).toContain('1,Talleres,3,Copa oro,1');
+      expect(stageCsvByClub.body).not.toContain('Independiente');
+
+      const [tourByClub, tourByClubId, tourCsvByClub, tourCsvByClubId] = await Promise.all([
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?club=club-atletico-talleres',
+        ),
+        getAnonymous(
+          `/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?clubId=${clubTalleresId}`,
+        ),
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers/csv?club=club-atletico-talleres',
+        ),
+        getAnonymous(
+          `/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers/csv?clubId=${clubTalleresId}`,
+        ),
+      ]);
+      expect(tourByClub.statusCode).toBe(200);
+      expect(tourByClub.json().rows).toEqual(tourByClubId.json().rows);
+      expect(tourCsvByClub.statusCode).toBe(200);
+      expect(tourCsvByClub.body).toBe(tourCsvByClubId.body);
+
+      const [otherOrgStage, otherOrgTour, otherOrgStageCsv] = await Promise.all([
+        getAnonymous(
+          `/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?club=${otherOrgClubAlias}`,
+        ),
+        getAnonymous(
+          `/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?club=${otherOrgClubAlias}`,
+        ),
+        getAnonymous(
+          `/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default/csv?club=${otherOrgClubAlias}`,
+        ),
+      ]);
+      expect(otherOrgStage.statusCode).toBe(200);
+      expect(otherOrgStage.json().columns.length).toBeGreaterThan(0);
+      expect(otherOrgStage.json().rows).toEqual([]);
+      expect(otherOrgTour.statusCode).toBe(200);
+      expect(otherOrgTour.json().columns.length).toBeGreaterThan(0);
+      expect(otherOrgTour.json().rows).toEqual([]);
+      expect(otherOrgStageCsv.statusCode).toBe(200);
+      expect(otherOrgStageCsv.body.trim()).toBe('rank,name,points,promotion_band,promotion_seed');
+    });
+
     it('is a genuinely different route from the admin one, not a shared shadowed path', async () => {
       // Confirms the fix for the Fastify route collision this pair of
       // controllers first hit registering `tables` at the same path: the

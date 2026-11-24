@@ -48,11 +48,13 @@ export interface MatchesViewRow extends FixtureSourcesResponse {
   readonly homeName?: string;
   readonly homeAbbreviation?: string;
   readonly homeClubId?: string;
+  readonly homeClubAlias?: string;
   readonly homeEmblemObjectId?: string;
   readonly awayEntrantId?: string;
   readonly awayName?: string;
   readonly awayAbbreviation?: string;
   readonly awayClubId?: string;
+  readonly awayClubAlias?: string;
   readonly awayEmblemObjectId?: string;
   readonly homeScore?: number;
   readonly awayScore?: number;
@@ -261,6 +263,10 @@ async function readStageMatchesView(
         ...(record.homeEntrantId === undefined
           ? {}
           : { homeClubId: entrantDetails.get(record.homeEntrantId)?.clubId }),
+        ...(record.homeEntrantId === undefined ||
+        !entrantDetails.get(record.homeEntrantId)?.clubAlias
+          ? {}
+          : { homeClubAlias: entrantDetails.get(record.homeEntrantId)?.clubAlias }),
         ...(record.homeEntrantId === undefined
           ? {}
           : { homeEmblemObjectId: entrantDetails.get(record.homeEntrantId)?.emblemObjectId }),
@@ -274,6 +280,10 @@ async function readStageMatchesView(
         ...(record.awayEntrantId === undefined
           ? {}
           : { awayClubId: entrantDetails.get(record.awayEntrantId)?.clubId }),
+        ...(record.awayEntrantId === undefined ||
+        !entrantDetails.get(record.awayEntrantId)?.clubAlias
+          ? {}
+          : { awayClubAlias: entrantDetails.get(record.awayEntrantId)?.clubAlias }),
         ...(record.awayEntrantId === undefined
           ? {}
           : { awayEmblemObjectId: entrantDetails.get(record.awayEntrantId)?.emblemObjectId }),

@@ -50,12 +50,15 @@ export interface TableProjectionScope {
   readonly stageId?: string;
   /** Optional pool within a stage; its fixture membership is the read boundary. */
   readonly groupId?: string;
+  /** Optional club filter by alias within `organizationId`; takes precedence over `clubId`. */
+  readonly clubAlias?: string;
   /** Optional club filter: only include rows for entrants belonging to this club. */
   readonly clubId?: string;
 }
 
 export type TableProjectionRow = TableRow & {
   readonly clubId?: string;
+  readonly clubAlias?: string;
   readonly emblemObjectId?: string;
   readonly hiddenAtRequest?: boolean;
   readonly publicProfileAvailable?: boolean;
@@ -239,7 +242,17 @@ export async function readTableProjection(
   const projectionVersion = await maxStatisticProjectionVersion(db, matchIds);
 
   let rows = projection.rows;
-  if (scope.clubId !== undefined) {
+  if (scope.clubAlias !== undefined) {
+    const matchingEntrantIds = await resolveClubAliasEntrantIds(
+      db,
+      scope.organizationId,
+      scope.tournament.tournamentId,
+      scope.clubAlias,
+    );
+    rows = rows.filter(
+      (row) => row.entrantId !== undefined && matchingEntrantIds.has(row.entrantId),
+    );
+  } else if (scope.clubId !== undefined) {
     const matchingEntrantIds = await resolveClubEntrantIds(
       db,
       scope.tournament.tournamentId,
@@ -257,6 +270,9 @@ export async function readTableProjection(
     return {
       ...row,
       ...(details?.clubId === undefined ? {} : { clubId: details.clubId }),
+      ...(details?.clubAlias === undefined || details.clubAlias === ''
+        ? {}
+        : { clubAlias: details.clubAlias }),
       ...(details?.emblemObjectId === undefined ? {} : { emblemObjectId: details.emblemObjectId }),
     };
   });
@@ -1068,6 +1084,26 @@ async function personActors(
       ...(shirtNumber === undefined ? {} : { shirtNumber }),
     };
   });
+}
+
+async function resolveClubAliasEntrantIds(
+  db: Kysely<Database>,
+  organizationId: string,
+  tournamentId: string,
+  clubAlias: string,
+): Promise<ReadonlySet<string>> {
+  const trimmed = clubAlias.trim();
+  if (trimmed.length === 0) return new Set();
+
+  const club = await db
+    .selectFrom('clubs')
+    .select('club_id')
+    .where('organization_id', '=', organizationId)
+    .where('alias', '=', trimmed)
+    .executeTakeFirst();
+  if (!club) return new Set();
+
+  return resolveClubEntrantIds(db, tournamentId, club.club_id);
 }
 
 async function resolveClubEntrantIds(

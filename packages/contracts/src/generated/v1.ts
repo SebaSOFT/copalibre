@@ -3748,6 +3748,8 @@ export interface components {
             homeAbbreviation?: string;
             /** Format: uuid */
             homeClubId?: string;
+            /** @description Home club's alias, when present */
+            homeClubAlias?: string;
             homeEmblemObjectId?: string;
             /** Format: uuid */
             awayEntrantId?: string;
@@ -3757,6 +3759,8 @@ export interface components {
             awayAbbreviation?: string;
             /** Format: uuid */
             awayClubId?: string;
+            /** @description Away club's alias, when present */
+            awayClubAlias?: string;
             awayEmblemObjectId?: string;
             homeScore?: number;
             awayScore?: number;
@@ -5067,6 +5071,8 @@ export interface components {
              * @description The entrant club, when one is resolved
              */
             clubId?: string;
+            /** @description The entrant club's alias, when one is resolved */
+            clubAlias?: string;
             /** @description The entrant club's uploaded emblem, when one is present */
             emblemObjectId?: string;
             /** @description ISO 3166-1 alpha-2 nationality code, present only at person granularity */
@@ -6003,13 +6009,15 @@ export interface components {
             /** @description Matches currently in progress for this tournament; empty otherwise. */
             liveMatches?: components["schemas"]["PublicOrganizationLiveMatchResponse"][];
         };
-        PublicOverviewClubResponse: {
+        PublicOrganizationClubResponse: {
             /** Format: uuid */
             clubId: string;
             name: string;
             abbreviation?: string;
             alias?: string;
             emblemObjectId?: string;
+            /** @description Alias of the organization's first in-progress published tournament with an entrant from this club, when one exists */
+            tournamentAlias?: string;
         };
         PublicOrganizationTournamentListResponse: {
             organizationAlias: string;
@@ -6017,7 +6025,7 @@ export interface components {
             /** @description object_metadata.object_id of the organization emblem */
             organizationEmblemObjectId?: string;
             tournaments: components["schemas"]["PublicTournamentListingItemResponse"][];
-            clubs: components["schemas"]["PublicOverviewClubResponse"][];
+            clubs: components["schemas"]["PublicOrganizationClubResponse"][];
         };
         PublicObjectReferenceResponse: {
             key: string;
@@ -6114,6 +6122,14 @@ export interface components {
             zoneName?: string;
             /** @description The group this row is ranked in. Present when the stage defines named groups; absent for an ungrouped stage. */
             groupName?: string;
+        };
+        PublicOverviewClubResponse: {
+            /** Format: uuid */
+            clubId: string;
+            name: string;
+            abbreviation?: string;
+            alias?: string;
+            emblemObjectId?: string;
         };
         PublicOverviewResponse: {
             organizationAlias: string;
@@ -6254,11 +6270,15 @@ export interface components {
             homeName?: string;
             homeHiddenAtRequest?: boolean;
             homeAbbreviation?: string;
+            /** @description Home club's alias, when present */
+            homeClubAlias?: string;
             /** Format: uuid */
             awayEntrantId?: string;
             awayName?: string;
             awayHiddenAtRequest?: boolean;
             awayAbbreviation?: string;
+            /** @description Away club's alias, when present */
+            awayClubAlias?: string;
             homeScore?: number;
             awayScore?: number;
             /** Format: date-time */
@@ -6442,6 +6462,8 @@ export interface components {
             homeAbbreviation?: string;
             /** Format: uuid */
             homeClubId?: string;
+            /** @description Home club's alias, when present */
+            homeClubAlias?: string;
             homeEmblemObjectId?: string;
             /** Format: uuid */
             awayEntrantId?: string;
@@ -6451,6 +6473,8 @@ export interface components {
             awayAbbreviation?: string;
             /** Format: uuid */
             awayClubId?: string;
+            /** @description Away club's alias, when present */
+            awayClubAlias?: string;
             awayEmblemObjectId?: string;
             homeScore?: number;
             awayScore?: number;
@@ -11999,8 +12023,11 @@ export interface operations {
     };
     PublicProjectionsController_tournamentTable: {
         parameters: {
-            query: {
-                clubId: string;
+            query?: {
+                /** @description Filter rows to entrants of this club alias */
+                club?: string;
+                /** @description Legacy filter: entrants of this club id */
+                clubId?: string;
             };
             header?: never;
             path: {
@@ -12024,8 +12051,11 @@ export interface operations {
     };
     PublicProjectionsController_tournamentTableCsv: {
         parameters: {
-            query: {
-                clubId: string;
+            query?: {
+                /** @description Filter rows to entrants of this club alias */
+                club?: string;
+                /** @description Legacy filter: entrants of this club id */
+                clubId?: string;
             };
             header?: never;
             path: {
@@ -12050,8 +12080,11 @@ export interface operations {
     };
     PublicProjectionsController_stageTable: {
         parameters: {
-            query: {
-                clubId: string;
+            query?: {
+                /** @description Filter rows to entrants of this club alias */
+                club?: string;
+                /** @description Legacy filter: entrants of this club id */
+                clubId?: string;
             };
             header?: never;
             path: {
@@ -12076,8 +12109,11 @@ export interface operations {
     };
     PublicProjectionsController_stageTableCsv: {
         parameters: {
-            query: {
-                clubId: string;
+            query?: {
+                /** @description Filter rows to entrants of this club alias */
+                club?: string;
+                /** @description Legacy filter: entrants of this club id */
+                clubId?: string;
             };
             header?: never;
             path: {

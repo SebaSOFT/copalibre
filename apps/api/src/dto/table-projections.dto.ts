@@ -42,6 +42,9 @@ export class TableRowResponse {
   @ApiPropertyOptional({ format: 'uuid', description: 'The entrant club, when one is resolved' })
   clubId?: string;
 
+  @ApiPropertyOptional({ description: "The entrant club's alias, when one is resolved" })
+  clubAlias?: string;
+
   @ApiPropertyOptional({ description: "The entrant club's uploaded emblem, when one is present" })
   emblemObjectId?: string;
 

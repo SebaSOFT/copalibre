@@ -1529,6 +1529,215 @@ describe('public projections routes', () => {
       );
     });
 
+    it('populates tournamentAlias from the first in-progress published tournament by start date and omits it otherwise', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const enrollments = new EnrollmentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+      const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+
+      const {
+        clubEarly,
+        clubLateOnly,
+        clubIdle,
+        earlyTournament,
+        lateTournament,
+        upcomingTournament,
+        finishedTournament,
+        draftListingTournament,
+      } = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        const clubEarly = await enrollments.createClub(uow, {
+          organizationId,
+          alias: 'club-org-early',
+          name: 'Org Early Club',
+          ...audit,
+        });
+        const clubLateOnly = await enrollments.createClub(uow, {
+          organizationId,
+          alias: 'club-org-late',
+          name: 'Org Late Club',
+          ...audit,
+        });
+        const clubIdle = await enrollments.createClub(uow, {
+          organizationId,
+          alias: 'club-org-idle',
+          name: 'Org Idle Club',
+          ...audit,
+        });
+
+        const [teamEarly, teamLate, teamIdle] = await Promise.all([
+          enrollments.createTeam(uow, {
+            organizationId,
+            clubId: clubEarly.clubId,
+            name: 'Team Org Early',
+            ...audit,
+          }),
+          enrollments.createTeam(uow, {
+            organizationId,
+            clubId: clubLateOnly.clubId,
+            name: 'Team Org Late',
+            ...audit,
+          }),
+          enrollments.createTeam(uow, {
+            organizationId,
+            clubId: clubIdle.clubId,
+            name: 'Team Org Idle',
+            ...audit,
+          }),
+        ]);
+
+        const [
+          earlyTournament,
+          lateTournament,
+          upcomingTournament,
+          finishedTournament,
+          draftListingTournament,
+        ] = await Promise.all([
+          tournaments.create(uow, {
+            organizationId,
+            alias: 'copa-org-early',
+            name: 'Copa Org Early',
+            descriptor,
+            ...audit,
+          }),
+          tournaments.create(uow, {
+            organizationId,
+            alias: 'copa-org-late',
+            name: 'Copa Org Late',
+            descriptor,
+            ...audit,
+          }),
+          tournaments.create(uow, {
+            organizationId,
+            alias: 'copa-org-upcoming',
+            name: 'Copa Org Upcoming',
+            descriptor,
+            ...audit,
+          }),
+          tournaments.create(uow, {
+            organizationId,
+            alias: 'copa-org-finished',
+            name: 'Copa Org Finished',
+            descriptor,
+            ...audit,
+          }),
+          tournaments.create(uow, {
+            organizationId,
+            alias: 'copa-org-draft',
+            name: 'Copa Org Draft',
+            descriptor,
+            ...audit,
+          }),
+        ]);
+
+        await Promise.all([
+          enrollments.registerEntrant(uow, {
+            organizationId,
+            tournamentId: earlyTournament.tournamentId,
+            entrantRef: { kind: 'team', teamId: teamEarly.teamId },
+            ...audit,
+          }),
+          enrollments.registerEntrant(uow, {
+            organizationId,
+            tournamentId: lateTournament.tournamentId,
+            entrantRef: { kind: 'team', teamId: teamEarly.teamId },
+            ...audit,
+          }),
+          enrollments.registerEntrant(uow, {
+            organizationId,
+            tournamentId: lateTournament.tournamentId,
+            entrantRef: { kind: 'team', teamId: teamLate.teamId },
+            ...audit,
+          }),
+          enrollments.registerEntrant(uow, {
+            organizationId,
+            tournamentId: upcomingTournament.tournamentId,
+            entrantRef: { kind: 'team', teamId: teamIdle.teamId },
+            ...audit,
+          }),
+          enrollments.registerEntrant(uow, {
+            organizationId,
+            tournamentId: finishedTournament.tournamentId,
+            entrantRef: { kind: 'team', teamId: teamIdle.teamId },
+            ...audit,
+          }),
+          enrollments.registerEntrant(uow, {
+            organizationId,
+            tournamentId: draftListingTournament.tournamentId,
+            entrantRef: { kind: 'team', teamId: teamIdle.teamId },
+            ...audit,
+          }),
+        ]);
+
+        return {
+          clubEarly,
+          clubLateOnly,
+          clubIdle,
+          earlyTournament,
+          lateTournament,
+          upcomingTournament,
+          finishedTournament,
+          draftListingTournament,
+        };
+      });
+
+      await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        await tournaments.publish(uow, {
+          tournamentId: earlyTournament.tournamentId,
+          organizationId,
+          ...audit,
+        });
+        await tournaments.publish(uow, {
+          tournamentId: lateTournament.tournamentId,
+          organizationId,
+          ...audit,
+        });
+        await tournaments.publish(uow, {
+          tournamentId: upcomingTournament.tournamentId,
+          organizationId,
+          ...audit,
+        });
+        await tournaments.publish(uow, {
+          tournamentId: finishedTournament.tournamentId,
+          organizationId,
+          ...audit,
+        });
+      });
+
+      await scratch.db
+        .updateTable('tournaments')
+        .set({ status: 'started', started_at: new Date('2026-11-15T10:00:00.000Z') })
+        .where('tournament_id', '=', lateTournament.tournamentId)
+        .execute();
+      await scratch.db
+        .updateTable('tournaments')
+        .set({ status: 'started', started_at: new Date('2026-11-10T10:00:00.000Z') })
+        .where('tournament_id', '=', earlyTournament.tournamentId)
+        .execute();
+      await scratch.db
+        .updateTable('tournaments')
+        .set({ status: 'finished', started_at: new Date('2026-11-01T10:00:00.000Z') })
+        .where('tournament_id', '=', finishedTournament.tournamentId)
+        .execute();
+      await scratch.db
+        .updateTable('tournaments')
+        .set({ status: 'draft', started_at: new Date('2026-11-05T10:00:00.000Z') })
+        .where('tournament_id', '=', draftListingTournament.tournamentId)
+        .execute();
+
+      const response = await request({
+        method: 'GET',
+        url: '/api/organizations/liga-orbital/public/tournaments',
+      });
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload as string) as {
+        clubs: { clubId: string; tournamentAlias?: string }[];
+      };
+      const byClubId = new Map(body.clubs.map((club) => [club.clubId, club]));
+      expect(byClubId.get(clubEarly.clubId)?.tournamentAlias).toBe('copa-org-early');
+      expect(byClubId.get(clubLateOnly.clubId)?.tournamentAlias).toBe('copa-org-late');
+      expect(byClubId.get(clubIdle.clubId)).not.toHaveProperty('tournamentAlias');
+    });
+
     it('resolves champions and runners-up for finished duel tournaments', async () => {
       const tournaments = new TournamentRepository(scratch.db);
       const competition = new CompetitionRepository(scratch.db);
