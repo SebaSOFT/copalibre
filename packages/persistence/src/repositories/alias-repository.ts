@@ -99,6 +99,28 @@ export class AliasRepository {
   }
 
   /**
+   * Whether this club alias is current, a former alias of a club, or nothing at all, within one
+   * organization. Unknown stays unknown, as for tournaments.
+   */
+  async resolveClubAlias(organizationId: string, alias: string): Promise<AliasResolution> {
+    const [current, redirects] = await Promise.all([
+      this.db
+        .selectFrom('clubs')
+        .select('alias')
+        .where('organization_id', '=', organizationId)
+        .execute(),
+      this.redirectsFor(organizationId, 'club'),
+    ]);
+
+    return resolveAlias(
+      organizationId,
+      alias,
+      new Set(current.flatMap((row) => (row.alias === null ? [] : [row.alias]))),
+      redirects,
+    );
+  }
+
+  /**
    * Every former alias of the organization's clubs, keyed by the alias each now resolves to.
    *
    * A former alias that no longer resolves (a broken chain, a cycle) is left out rather than guessed

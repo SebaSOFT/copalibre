@@ -2,6 +2,7 @@ import { Controller, Get, Inject, Param } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { deriveTournamentStatus } from '@copalibre/domain';
 import {
+  AliasRepository,
   type Database,
   PublicOverviewReadModel,
   TournamentRepository,
@@ -32,7 +33,11 @@ export class PublicOrganizationClubController {
 
   @Get(':clubAlias')
   @SecurityPlaneTag('public-read')
-  @ApiOperation({ summary: "A club's tournaments and podium places in its organization" })
+  @ApiOperation({
+    summary: "A club's tournaments and podium places in its organization",
+    description:
+      'A former alias of a renamed club answers with that club, whose `club.alias` is the current one.',
+  })
   @ApiOkResponse({ type: PublicOrganizationClubHistoryResponse })
   async clubHistory(
     @Param('organizationAlias') organizationAlias: string,
@@ -44,12 +49,7 @@ export class PublicOrganizationClubController {
       .where('alias', '=', organizationAlias)
       .executeTakeFirst();
     const club = organization
-      ? await this.db
-          .selectFrom('clubs')
-          .selectAll()
-          .where('organization_id', '=', organization.organizationId)
-          .where('alias', '=', clubAlias)
-          .executeTakeFirst()
+      ? await this.findClub(organization.organizationId, clubAlias)
       : undefined;
     if (!organization || !club || club.alias === null) {
       throw new NotFoundException(`No club "${clubAlias}" in organization "${organizationAlias}"`, {
@@ -72,6 +72,27 @@ export class PublicOrganizationClubController {
       },
       tournaments: await this.tournamentsOf(organization.organizationId, club.club_id),
     };
+  }
+
+  /**
+   * The club holding this alias today or, failing that, the club that held it before a rename. The
+   * response then carries the current alias, so the page can move the visitor to it.
+   */
+  private async findClub(organizationId: string, clubAlias: string) {
+    const byAlias = (alias: string) =>
+      this.db
+        .selectFrom('clubs')
+        .selectAll()
+        .where('organization_id', '=', organizationId)
+        .where('alias', '=', alias)
+        .executeTakeFirst();
+    const current = await byAlias(clubAlias);
+    if (current) return current;
+    const resolution = await new AliasRepository(this.db).resolveClubAlias(
+      organizationId,
+      clubAlias,
+    );
+    return resolution.kind === 'redirect' ? byAlias(resolution.to) : undefined;
   }
 
   /** Published tournaments with a team entrant from the club, in the listing's newest-first order. */

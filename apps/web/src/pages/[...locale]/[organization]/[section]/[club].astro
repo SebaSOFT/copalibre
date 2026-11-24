@@ -69,6 +69,17 @@ if (!history) {
   return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
 
+// A link shared before the club changed its alias keeps working: the API answers a former alias with
+// the club under its current one, and the page moves there permanently, keeping language and query.
+if (history.club.alias && history.club.alias !== club) {
+  const location = `${organizationClubPageUrl({
+    organizationAlias: organization,
+    clubAlias: history.club.alias,
+    localePrefix,
+  })}${Astro.url.search}`;
+  return new Response(null, { status: 301, headers: { Location: location } });
+}
+
 const clubInfo = history.club;
 const emblemSrc = clubInfo.emblemObjectId
   ? clubEmblemUrl(organization, clubInfo.clubId)

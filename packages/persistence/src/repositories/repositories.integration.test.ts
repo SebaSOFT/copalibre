@@ -2185,6 +2185,24 @@ describe('club alias renames (integration)', () => {
       (await aliases.clubFormerAliases(organizationId)).get('talleres-mendoza'),
     ).toBeUndefined();
   });
+
+  it('resolves a club alias as current, former or unknown, within one organization', async () => {
+    const club = await createClub(organizationId, 'Atlético Resuelto', 'atletico-resuelto');
+    await renameClub(club.clubId, organizationId, 'resuelto');
+
+    expect(await aliases.resolveClubAlias(organizationId, 'resuelto')).toEqual({ kind: 'current' });
+    expect(await aliases.resolveClubAlias(organizationId, 'atletico-resuelto')).toEqual({
+      kind: 'redirect',
+      to: 'resuelto',
+      status: 301,
+    });
+    expect(await aliases.resolveClubAlias(organizationId, 'no-existe')).toEqual({
+      kind: 'unknown',
+    });
+    expect(await aliases.resolveClubAlias(otherOrganizationId, 'atletico-resuelto')).toEqual({
+      kind: 'unknown',
+    });
+  });
 });
 
 describe('public overview projection (integration)', () => {

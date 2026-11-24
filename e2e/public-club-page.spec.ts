@@ -393,7 +393,11 @@ test.beforeAll(async ({ workerPort }) => {
       );
       return;
     }
-    if (path === `/api/organizations/${ORGANIZATION}/public/clubs/club-hispano`) {
+    // The API answers a former alias with the club under its current alias.
+    if (
+      path === `/api/organizations/${ORGANIZATION}/public/clubs/club-hispano` ||
+      path === `/api/organizations/${ORGANIZATION}/public/clubs/hispano-viejo`
+    ) {
       res.end(JSON.stringify(organizationClubHistory));
       return;
     }
@@ -582,6 +586,17 @@ test('the organization club page renders with JavaScript disabled', async ({ bro
   await expect(page.locator('#organization-club-tournaments-heading')).toBeVisible();
 
   await context.close();
+});
+
+test('an organization club page under a former alias moves permanently to the current one', async ({
+  page,
+}) => {
+  const response = await page.request.get(`/es/${ORGANIZATION}/clubs/hispano-viejo?ref=afiche`, {
+    maxRedirects: 0,
+  });
+
+  expect(response.status()).toBe(301);
+  expect(response.headers()['location']).toBe(`/es/${ORGANIZATION}/clubs/club-hispano?ref=afiche`);
 });
 
 test('an unknown organization club answers with the page-not-found composition', async ({

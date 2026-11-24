@@ -7859,6 +7859,7 @@
     },
     "/api/organizations/{organizationAlias}/public/clubs/{clubAlias}": {
       "get": {
+        "description": "A former alias of a renamed club answers with that club, whose `club.alias` is the current one.",
         "operationId": "PublicOrganizationClubController_clubHistory",
         "parameters": [
           {
