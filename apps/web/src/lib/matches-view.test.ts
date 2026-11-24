@@ -6,6 +6,7 @@ import {
   formatClock,
   groupMatchesByRound,
   matchCardTitle,
+  withSourceDepth,
 } from './matches-view.js';
 import type { MatchCardData } from './matches-view.js';
 import { SIDE_SOURCE_KEYS, type SideSourceMessages } from './side-source.js';
@@ -295,5 +296,56 @@ describe('groupMatchesByRound', () => {
     ];
 
     expect(groupMatchesByRound(rows)[0]?.matches).toEqual([rows[1], rows[0], rows[2]]);
+  });
+});
+
+describe('withSourceDepth', () => {
+  it('scopes placement ranges to each zone in a multi-zone stage', () => {
+    const zones = ['Copa Oro', 'Copa Plata', 'Copa Bronce'];
+    const input = zones.flatMap((zoneName, zoneIdx) => [
+      scheduleMatch({
+        matchId: `${zoneName}-m1`,
+        stageNumber: 2,
+        zoneName,
+        matchNumber: zoneIdx * 2 + 1,
+        nodeKey: 'PL5-R1-M1',
+        round: 1,
+      }),
+      scheduleMatch({
+        matchId: `${zoneName}-m2`,
+        stageNumber: 2,
+        zoneName,
+        matchNumber: zoneIdx * 2 + 2,
+        nodeKey: 'PL5-R1-M2',
+        round: 1,
+      }),
+    ]);
+
+    const enriched = withSourceDepth(input);
+    for (const row of enriched) {
+      expect(row.placement).toEqual({ from: 5, to: 8 });
+      expect(row.zoneNodeKeys).toEqual(['PL5-R1-M1', 'PL5-R1-M2']);
+      expect(row.multiZoneStage).toBe(true);
+    }
+  });
+
+  it('prefixes placement titles with the zone outside its own section in a multi-zone stage', () => {
+    const sideSource = Object.fromEntries(
+      SIDE_SOURCE_KEYS.map((key) => [key, key]),
+    ) as unknown as SideSourceMessages;
+    const labels = {
+      matchHeading: 'Partido {match}',
+      zonePrefix: '{zone} · {placement}',
+      sideSource: { ...sideSource, place: '{place}º puesto' },
+    };
+    const match = {
+      matchNumber: 20,
+      zoneName: 'Copa Plata',
+      multiZoneStage: true,
+      placement: { from: 5 },
+    };
+
+    expect(matchCardTitle(match, labels).title).toBe('Copa Plata · 5º puesto');
+    expect(matchCardTitle(match, labels, { inZoneSection: true }).title).toBe('5º puesto');
   });
 });

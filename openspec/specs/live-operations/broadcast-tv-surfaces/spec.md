@@ -489,7 +489,7 @@ When every match of a tournament is final and the tournament has resolved winner
 - **THEN** the recap names the first-ranked entrant as champion
 
 ### Requirement: TV surfaces show formatted dates and a labelled status
-No TV surface SHALL print a machine timestamp. Dates and times SHALL render through the shared timestamp atom in the viewer's language and the organization's time zone. The header of a finished tournament SHALL show the date of its last match, without a ticking clock; the header of a live tournament SHALL show a labelled clock without seconds.
+No TV surface SHALL print a machine timestamp. Dates and times SHALL render through the shared timestamp atom in the viewer's language and the organization's time zone. The header of a finished tournament SHALL show the date of its last match, without a ticking clock; the header of a live tournament SHALL show a labelled wall clock without seconds, and no TV surface SHALL show the wall clock where a match's game clock belongs.
 
 #### Scenario: The ticker shows a readable date
 - **WHEN** the ticker lists a match with a kick-off time
@@ -498,6 +498,11 @@ No TV surface SHALL print a machine timestamp. Dates and times SHALL render thro
 #### Scenario: A finished tournament has no ticking clock
 - **WHEN** every match is final
 - **THEN** the header shows the finish date and no running clock
+
+#### Scenario: The scorebug never shows the time of day
+
+- **WHEN** the overlay shows a match that has no clock
+- **THEN** its clock slot shows the segment label or nothing, never the wall clock
 
 ### Requirement: Every TV route keeps the same outer margin
 Every TV route and panel SHALL keep the same outer margin on all four sides, including the bottom edge.
@@ -786,3 +791,22 @@ A TV route SHALL accept the `chroma` query value as six hexadecimal digits with 
 
 - **WHEN** an overlay is opened with `chroma=green`
 - **THEN** the route renders its default background
+
+### Requirement: TV surfaces show the live match's game clock
+
+The scorebug, the overlay match bug, the pinned-match panel and each multicourt tile SHALL show a live match's game clock with its segment label, advancing while running and marked stopped when paused. On a screen that also shows the wall clock, the wall clock SHALL be labelled and SHALL render smaller than the score and the game clock.
+
+#### Scenario: The overlay shows the game clock
+
+- **WHEN** the overlay is opened for a match whose first segment has run 9 minutes 45 seconds
+- **THEN** its match bug shows the score, "1er tiempo" and 09:45, advancing each second
+
+#### Scenario: A paused clock reads as paused
+
+- **WHEN** the referee pauses the clock
+- **THEN** every TV surface showing that match stops its clock and shows it as stopped, in text and not by colour alone
+
+#### Scenario: The wall clock is secondary on the kiosk
+
+- **WHEN** the kiosk shows a live match
+- **THEN** the header's wall clock carries its "Hora local" label and renders smaller than the match's score and game clock

@@ -2,10 +2,12 @@ import { describe, expect, it } from '@jest/globals';
 import type { PublicMatchReportResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import {
   buildMatchReport,
+  matchStakeLines,
   type MatchReportModel,
   type MatchReportOptions,
 } from './match-report.js';
-import { publicIntl, sideSourceLabels } from './i18n/public-intl.js';
+import type { BracketMatch } from './bracket.js';
+import { competitionContextLabels, publicIntl, sideSourceLabels } from './i18n/public-intl.js';
 
 const report = (): PublicMatchReportResponse => ({
   organizationAlias: 'liga-orbital',
@@ -211,5 +213,328 @@ describe('buildMatchReport labels', () => {
 
     expect(model.officials[0]?.roleLabels).toEqual(['Árbitro', '?table-official']);
     expect(build(localized()).officials[0]?.roleLabels).toEqual(['Referee', 'Table official']);
+  });
+});
+
+describe('matchStakeLines', () => {
+  const esIntl = publicIntl('es');
+  const stakeLabels = {
+    context: competitionContextLabels(esIntl),
+    stakeWinner: 'El ganador juega {match}{when}',
+    stakeLoser: 'El perdedor juega {match}{when}',
+    stakePlace: 'Define el {place}',
+    stakeChampion: 'Define el campeón de {zone}',
+    fallbackChampionScope: 'Torneo',
+  };
+
+  const cupBracket: readonly BracketMatch[] = [
+    {
+      matchId: 'qf1',
+      nodeKey: 'SE-R1-M1',
+      matchNumber: 1,
+      roundNumber: 1,
+      branch: 'winners',
+      sourceFinalRound: 3,
+      state: 'final',
+      slots: [
+        { kind: 'entrant', name: 'A' },
+        { kind: 'entrant', name: 'B' },
+      ],
+    },
+    {
+      matchId: 'sf1',
+      nodeKey: 'SE-R2-M1',
+      matchNumber: 9,
+      roundNumber: 2,
+      branch: 'winners',
+      sourceFinalRound: 3,
+      state: 'upcoming',
+      slots: [
+        { kind: 'winner-of', nodeKey: 'SE-R1-M1', matchId: 'qf1', matchNumber: 1 },
+        { kind: 'winner-of', nodeKey: 'SE-R1-M2', matchNumber: 2 },
+      ],
+    },
+    {
+      matchId: 'final',
+      nodeKey: 'SE-R3-M1',
+      matchNumber: 15,
+      roundNumber: 3,
+      branch: 'winners',
+      sourceFinalRound: 3,
+      state: 'upcoming',
+      slots: [
+        { kind: 'winner-of', nodeKey: 'SE-R2-M1', matchNumber: 9 },
+        { kind: 'winner-of', nodeKey: 'SE-R2-M2', matchNumber: 10 },
+      ],
+    },
+    {
+      matchId: 'pl5-1',
+      nodeKey: 'PL5-R1-M1',
+      matchNumber: 5,
+      roundNumber: 1,
+      branch: 'placement',
+      role: 'places-5-8',
+      state: 'upcoming',
+      slots: [
+        { kind: 'loser-of', nodeKey: 'SE-R1-M1', matchId: 'qf1', matchNumber: 1 },
+        { kind: 'loser-of', nodeKey: 'SE-R1-M2', matchNumber: 2 },
+      ],
+    },
+    {
+      matchId: 'pl5-2',
+      nodeKey: 'PL5-R1-M2',
+      matchNumber: 6,
+      roundNumber: 1,
+      branch: 'placement',
+      role: 'places-5-8',
+      state: 'upcoming',
+      slots: [],
+    },
+    {
+      matchId: 'pl5',
+      nodeKey: 'placement-5',
+      matchNumber: 13,
+      roundNumber: 2,
+      branch: 'placement',
+      role: 'place-5',
+      state: 'upcoming',
+      slots: [
+        { kind: 'winner-of', nodeKey: 'PL5-R1-M1', matchNumber: 5 },
+        { kind: 'winner-of', nodeKey: 'PL5-R1-M2', matchNumber: 6 },
+      ],
+    },
+  ];
+
+  it('names both winner and loser targets with scheduled dates for a quarter-final', () => {
+    const lines = matchStakeLines({
+      currentMatch: {
+        nodeKey: 'SE-R1-M1',
+        matchNumber: 1,
+        stageNumber: 2,
+        stageName: 'Copas',
+        zoneName: 'Copa Oro',
+        round: 1,
+        sourceFinalRound: 3,
+      },
+      bracketMatches: cupBracket,
+      stageMatches: [
+        { matchNumber: 9, scheduledAt: '2026-11-23T18:00:00.000Z' },
+        { matchNumber: 5, scheduledAt: '2026-11-23T14:00:00.000Z' },
+      ],
+      labels: stakeLabels,
+      formatDate: (at) => (at.includes('18:00') ? '23 nov 15:00' : '23 nov 11:00'),
+    });
+
+    expect(lines).toEqual([
+      'El ganador juega Copa Oro · Semifinal, 23 nov 15:00',
+      'El perdedor juega Copa Oro · Semifinal 5º al 8º puesto, 23 nov 11:00',
+    ]);
+  });
+
+  it('keeps outgoing stake targets when target slots are already populated with entrant.from', () => {
+    const resolvedBracket: readonly BracketMatch[] = [
+      {
+        matchId: 'qf1',
+        nodeKey: 'SE-R1-M1',
+        matchNumber: 1,
+        roundNumber: 1,
+        branch: 'winners',
+        sourceFinalRound: 3,
+        state: 'final',
+        scores: [4, 2],
+        slots: [
+          { kind: 'entrant', entrantId: 'e1', name: 'Concepción' },
+          { kind: 'entrant', entrantId: 'e2', name: 'Valenciano' },
+        ],
+      },
+      {
+        matchId: 'sf1',
+        nodeKey: 'SE-R2-M1',
+        matchNumber: 9,
+        roundNumber: 2,
+        branch: 'winners',
+        sourceFinalRound: 3,
+        state: 'upcoming',
+        slots: [
+          {
+            kind: 'entrant',
+            entrantId: 'e1',
+            name: 'Concepción',
+            from: { matchId: 'qf1', outcome: 'winner' },
+          },
+          { kind: 'winner-of', nodeKey: 'SE-R1-M2', matchNumber: 2 },
+        ],
+      },
+      {
+        matchId: 'pl5-1',
+        nodeKey: 'PL5-R1-M1',
+        matchNumber: 5,
+        roundNumber: 1,
+        branch: 'placement',
+        role: 'places-5-8',
+        state: 'upcoming',
+        slots: [
+          {
+            kind: 'entrant',
+            entrantId: 'e2',
+            name: 'Valenciano',
+            from: { matchId: 'qf1', outcome: 'loser' },
+          },
+          { kind: 'loser-of', nodeKey: 'SE-R1-M2', matchNumber: 2 },
+        ],
+      },
+      {
+        matchId: 'pl5-2',
+        nodeKey: 'PL5-R1-M2',
+        matchNumber: 6,
+        roundNumber: 1,
+        branch: 'placement',
+        role: 'places-5-8',
+        state: 'upcoming',
+        slots: [],
+      },
+      {
+        matchId: 'pl5',
+        nodeKey: 'placement-5',
+        matchNumber: 13,
+        roundNumber: 2,
+        branch: 'placement',
+        role: 'place-5',
+        state: 'upcoming',
+        slots: [],
+      },
+    ];
+
+    const lines = matchStakeLines({
+      currentMatch: {
+        nodeKey: 'SE-R1-M1',
+        matchNumber: 1,
+        stageNumber: 2,
+        stageName: 'Copas',
+        zoneName: 'Copa Oro',
+        round: 1,
+        sourceFinalRound: 3,
+      },
+      bracketMatches: resolvedBracket,
+      stageMatches: [
+        { matchNumber: 9, scheduledAt: '2026-11-23T18:00:00.000Z' },
+        { matchNumber: 5, scheduledAt: '2026-11-23T14:00:00.000Z' },
+      ],
+      labels: stakeLabels,
+      formatDate: (at) => (at.includes('18:00') ? '23 nov 15:00' : '23 nov 11:00'),
+    });
+
+    expect(lines).toEqual([
+      'El ganador juega Copa Oro · Semifinal, 23 nov 15:00',
+      'El perdedor juega Copa Oro · Semifinal 5º al 8º puesto, 23 nov 11:00',
+    ]);
+  });
+
+  it('matches outgoing targets by matchId or matchNumber when nodeKey is absent', () => {
+    const legacyBracket: readonly BracketMatch[] = [
+      {
+        matchId: 'm1',
+        matchNumber: 1,
+        roundNumber: 1,
+        branch: 'winners',
+        sourceFinalRound: 2,
+        state: 'upcoming',
+        slots: [],
+      },
+      {
+        matchId: 'm3',
+        matchNumber: 3,
+        roundNumber: 2,
+        branch: 'winners',
+        sourceFinalRound: 2,
+        state: 'upcoming',
+        slots: [
+          { kind: 'winner-of', matchId: 'm1' },
+          { kind: 'winner-of', matchNumber: 2 },
+        ],
+      },
+      {
+        matchId: 'm4',
+        matchNumber: 4,
+        roundNumber: 2,
+        branch: 'placement',
+        role: 'place-3',
+        nodeKey: 'placement-3',
+        state: 'upcoming',
+        slots: [
+          { kind: 'loser-of', matchNumber: 1 },
+          { kind: 'loser-of', matchNumber: 2 },
+        ],
+      },
+    ];
+
+    const lines = matchStakeLines({
+      currentMatch: {
+        matchId: 'm1',
+        matchNumber: 1,
+        stageNumber: 2,
+        stageName: 'Copas',
+        zoneName: 'Copa Oro',
+        round: 1,
+        sourceFinalRound: 2,
+      },
+      bracketMatches: legacyBracket,
+      labels: stakeLabels,
+    });
+
+    expect(lines).toEqual([
+      'El ganador juega Copa Oro · Ronda 2',
+      'El perdedor juega Copa Oro · 3º puesto',
+    ]);
+  });
+
+  it('states the settled place for a placement-5 match', () => {
+    const lines = matchStakeLines({
+      currentMatch: {
+        nodeKey: 'placement-5',
+        matchNumber: 13,
+        stageNumber: 2,
+        stageName: 'Copas',
+        zoneName: 'Copa Oro',
+        round: 2,
+      },
+      bracketMatches: cupBracket,
+      labels: stakeLabels,
+    });
+
+    expect(lines).toEqual(['Define el 5º puesto']);
+  });
+
+  it('states the zone championship for the final', () => {
+    const lines = matchStakeLines({
+      currentMatch: {
+        nodeKey: 'SE-R3-M1',
+        matchNumber: 15,
+        stageNumber: 2,
+        stageName: 'Copas',
+        zoneName: 'Copa Oro',
+        round: 3,
+        sourceFinalRound: 3,
+      },
+      bracketMatches: cupBracket,
+      labels: stakeLabels,
+    });
+
+    expect(lines).toEqual(['Define el campeón de Copa Oro']);
+  });
+
+  it('returns no lines for a round-robin match with no graph node or outgoing edges', () => {
+    const lines = matchStakeLines({
+      currentMatch: {
+        matchNumber: 1,
+        stageNumber: 1,
+        stageName: 'Fase de grupos',
+        round: 1,
+      },
+      bracketMatches: [],
+      labels: stakeLabels,
+    });
+
+    expect(lines).toEqual([]);
   });
 });

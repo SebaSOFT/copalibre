@@ -4,6 +4,7 @@ import {
   formatSideSource,
   sourceMatchLabel,
   formatPlacementSource,
+  formatPlacementSourceText,
   formatPlacement,
   finalRoundOf,
   placementOf,
@@ -48,7 +49,8 @@ it.each(locales)('formats every source kind and compact forms in %s', (locale) =
     });
   }
   expect(formatPlacementSource('placement-3', labels)).toContain('3');
-  expect(formatPlacementSource('placement-5-8', labels)).toContain('5–8');
+  expect(formatPlacementSource('placement-5-8', labels)).toMatch(/5.*8/);
+  expect(formatPlacementSourceText('placement-5-8', labels)?.short).toBe('5–8');
 });
 
 it('names elimination rounds from actual depth, never from an assumed entrant count', () => {
@@ -56,11 +58,11 @@ it('names elimination rounds from actual depth, never from an assumed entrant co
   const source = { kind: 'winner-of' as const, nodeKey: 'SE-R2-M1' };
   expect(sourceMatchLabel(source, labels, 3)).toEqual({
     long: 'Semi-final 1',
-    short: 'Semi-final 1',
+    short: 'Semi 1',
   });
   expect(sourceMatchLabel(source, labels, 4)).toEqual({
     long: 'Quarter-final 1',
-    short: 'Quarter-final 1',
+    short: 'Quarter 1',
   });
   expect(sourceMatchLabel(source, labels, 2)).toEqual({ long: 'Final', short: 'F' });
   expect(sourceMatchLabel(source, labels, 6)?.long).toBe('Round 2, match 1');
@@ -73,11 +75,55 @@ it('names elimination rounds from actual depth, never from an assumed entrant co
 it('formats placement sources without reading an English API display label', () => {
   const labels = sideSourceLabels(publicIntl('es'));
   expect(formatSideSource({ kind: 'winner-of', nodeKey: 'placement-5-8' }, labels)).toEqual({
-    long: 'Ganador de Puestos 5–8',
-    short: 'G Puestos 5–8',
+    long: 'Ganador de 5º al 8º puesto',
+    short: 'G 5–8',
   });
-  expect(formatPlacementSource('place-3', labels)).toBe('Puesto 3');
+  expect(formatPlacementSource('place-3', labels)).toBe('3º puesto');
+  expect(formatPlacementSource('placement-7', labels)).toBe('7º puesto');
   expect(formatPlacementSource('unknown', labels)).toBeUndefined();
+});
+
+it('tells placement feeders apart by round range and position within the zone', () => {
+  const es = sideSourceLabels(publicIntl('es'));
+  const en = sideSourceLabels(publicIntl('en'));
+  const zoneKeys = ['PL5-R1-M1', 'PL5-R1-M2', 'placement-3', 'placement-5', 'placement-7'];
+
+  expect(formatPlacementSource('PL5-R1-M1', es, { siblingKeys: zoneKeys })).toBe(
+    '5º al 8º puesto (1)',
+  );
+  expect(formatPlacementSource('PL5-R1-M2', es, { siblingKeys: zoneKeys })).toBe(
+    '5º al 8º puesto (2)',
+  );
+  expect(
+    formatSideSource(
+      { kind: 'winner-of', nodeKey: 'PL5-R1-M1' },
+      es,
+      sourceMatchLabel({ kind: 'winner-of', nodeKey: 'PL5-R1-M1' }, es, undefined, zoneKeys),
+    ),
+  ).toEqual({
+    long: 'Ganador de 5º al 8º puesto (1)',
+    short: 'G 5–8 (1)',
+  });
+  expect(
+    formatSideSource(
+      { kind: 'loser-of', nodeKey: 'PL5-R1-M2' },
+      es,
+      sourceMatchLabel({ kind: 'loser-of', nodeKey: 'PL5-R1-M2' }, es, undefined, zoneKeys),
+    ),
+  ).toEqual({
+    long: 'Perdedor de 5º al 8º puesto (2)',
+    short: 'P 5–8 (2)',
+  });
+  expect(
+    formatSideSource(
+      { kind: 'winner-of', nodeKey: 'PL5-R1-M1' },
+      en,
+      sourceMatchLabel({ kind: 'winner-of', nodeKey: 'PL5-R1-M1' }, en, undefined, zoneKeys),
+    ),
+  ).toEqual({
+    long: 'Winner of 5th–8th place (1)',
+    short: 'W 5–8 (1)',
+  });
 });
 
 it('handles legacy numbered sources without exposing opaque or structural ids', () => {

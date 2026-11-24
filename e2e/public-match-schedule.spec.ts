@@ -147,7 +147,8 @@ test('the matches page lists a table per group and draws each cup as a bracket',
   await expect(first.getByRole('rowheader')).toHaveText(['Round 1', 'Round 2']);
 
   for (const cup of CUPS) {
-    await expect(schedule.getByRole('heading', { name: cup })).toBeVisible();
+    await expect(schedule.getByRole('heading', { name: cup, level: 3 })).toBeVisible();
+    await expect(schedule.getByRole('heading', { name: cup, level: 5 })).toBeVisible();
   }
   await expect(schedule.locator('.cl-bracket-stage')).toHaveCount(3);
   // A knockout zone is its bracket only: its matches are not listed again as rows.

@@ -1,5 +1,10 @@
 import { describe, expect, it } from '@jest/globals';
-import { layoutPublicBracket, placementGamesOf, PUBLIC_GEOMETRY } from './public-bracket-layout.ts';
+import {
+  COMPACT_GEOMETRY,
+  layoutPublicBracket,
+  placementGamesOf,
+  PUBLIC_GEOMETRY,
+} from './public-bracket-layout.ts';
 import type { BracketMatch } from './bracket.ts';
 
 const entrant = (name: string, from?: { matchId: string; outcome: 'winner' | 'loser' }) =>
@@ -104,14 +109,14 @@ describe('layoutPublicBracket', () => {
     expect(Math.abs(at('R3-M1').y - middle)).toBeLessThanOrEqual(PUBLIC_GEOMETRY.grid);
   });
 
-  it('draws no placement game in the bracket and lists them best-ranked round first', () => {
+  it('draws no placement game in the bracket and lists them by best place, then round', () => {
     expect(layout.nodes.some((node) => node.match.branch === 'placement')).toBe(false);
     const games = placementGamesOf([
       ...bracket,
       { ...match('PL-R2-M1', 2, 1, 'placement', []), role: 'places-5-8' },
       { ...match('PL-R3-M2', 3, 2, 'placement', []), role: 'place-5' },
     ]);
-    expect(games.map((game) => game.matchId)).toEqual(['PL-R3-M1', 'PL-R3-M2', 'PL-R2-M1']);
+    expect(games.map((game) => game.matchId)).toEqual(['PL-R3-M1', 'PL-R2-M1', 'PL-R3-M2']);
   });
 
   it('falls back to the ordinary layout when the matches are not one tree with one final', () => {
@@ -173,10 +178,48 @@ describe('layoutPublicBracket', () => {
     const full = layoutPublicBracket(bracket, 'full');
     const compact = layoutPublicBracket(bracket, 'compact');
     expect(compact.width).toBeLessThan(full.width * 0.6);
+    expect(COMPACT_GEOMETRY.nodeWidth).toBeGreaterThanOrEqual(116);
+    expect(COMPACT_GEOMETRY.columnGap).toBeGreaterThanOrEqual(12);
     expect(compact.nodes).toHaveLength(full.nodes.length);
     // Same tree, same sides: only the size changed.
     expect(compact.connectors.map((c) => `${c.fromMatchId}>${c.toMatchId}`)).toEqual(
       full.connectors.map((c) => `${c.fromMatchId}>${c.toMatchId}`),
     );
+  });
+
+  it('keeps compact width under 60% of full width across 1-, 3-, 5-, and 7-column brackets', () => {
+    const buildSplitBracket = (columns: 1 | 3 | 5 | 7): BracketMatch[] => {
+      const rounds = (columns + 1) / 2;
+      const out: BracketMatch[] = [];
+      const byRound = new Map<number, string[]>();
+      for (let round = 1; round <= rounds; round++) {
+        const count = 2 ** (rounds - round);
+        const ids: string[] = [];
+        const prev = byRound.get(round - 1) ?? [];
+        for (let pos = 1; pos <= count; pos++) {
+          const id = `R${round}-M${pos}`;
+          ids.push(id);
+          const leftFeeder = prev[(pos - 1) * 2];
+          const rightFeeder = prev[(pos - 1) * 2 + 1];
+          const slots: BracketMatch['slots'] =
+            round === 1 || leftFeeder === undefined || rightFeeder === undefined
+              ? [entrant(`${id}-A`), entrant(`${id}-B`)]
+              : [
+                  { kind: 'winner-of', matchId: leftFeeder },
+                  { kind: 'winner-of', matchId: rightFeeder },
+                ];
+          out.push(match(id, round, pos, 'winners', slots));
+        }
+        byRound.set(round, ids);
+      }
+      return out;
+    };
+
+    for (const columns of [1, 3, 5, 7] as const) {
+      const matches = buildSplitBracket(columns);
+      const full = layoutPublicBracket(matches, 'full');
+      const compact = layoutPublicBracket(matches, 'compact');
+      expect(compact.width).toBeLessThan(full.width * 0.6);
+    }
   });
 });

@@ -79,6 +79,7 @@ import {
   ageAt,
   primaryScoreOf,
   effectiveFormat,
+  isImplicitGroup,
   isImplicitZone,
   type DisciplineDescriptor,
   type StatisticCollector,
@@ -268,6 +269,7 @@ async function liveMatchesForTournamentListing(
     return {
       matchId: m.matchId,
       stageNumber: m.stageNumber,
+      ...(m.stageName === undefined ? {} : { stageName: m.stageName }),
       matchNumber: ordinalByMatchId.get(m.matchId) ?? m.matchNumber ?? m.round,
       home: sideName(m.homeEntrantId, homeHidden),
       away: sideName(m.awayEntrantId, awayHidden),
@@ -715,6 +717,7 @@ export class PublicProjectionsController {
             ? { stageOrdinal: ordinalByMatchId.get(m.matchId) }
             : {}),
           stageNumber: m.stageNumber,
+          ...(m.stageName === undefined ? {} : { stageName: m.stageName }),
           round: m.round,
           ...(m.zoneName === undefined ? {} : { zoneName: m.zoneName }),
           ...(m.groupName === undefined ? {} : { groupName: m.groupName }),
@@ -839,14 +842,8 @@ export class PublicProjectionsController {
 
     // The match is shown in the layout of the format its zone plays, which is the stage's unless the
     // zone declares its own.
-    const zoneFormatOfMatch = (
-      await this.db
-        .selectFrom('fixtures')
-        .innerJoin('zones', 'zones.zone_id', 'fixtures.zone_id')
-        .select('zones.format')
-        .where('fixtures.fixture_id', '=', targetRecord.fixtureId)
-        .executeTakeFirst()
-    )?.format;
+    const fixtureScope = await resolveFixtureScopeContext(this.db, targetRecord.fixtureId);
+    const zoneFormatOfMatch = fixtureScope.zoneFormat;
 
     const [schedule, officials, rosterRows, segments, events, descriptor] = await Promise.all([
       this.db
@@ -923,12 +920,21 @@ export class PublicProjectionsController {
       descriptor.eventDefinitions.map((definition) => [definition.code, definition]),
     );
     const result = match.result as unknown as {
+      readonly winnerEntrantId?: unknown;
       readonly sides?: readonly { readonly statistics?: Record<string, number> }[];
     } | null;
     const rosterRoles = rosterRolesOf(descriptor);
     const scores = result?.sides === undefined ? undefined : publicScores(result.sides, descriptor);
     const clock =
       match.status === 'in-progress' ? publicClockOf(segments, descriptor, Date.now()) : undefined;
+    const status = publicMatchStatus(match.status);
+    const stageName = stage.name.trim();
+    const winnerEntrantId =
+      status === 'final' &&
+      typeof result?.winnerEntrantId === 'string' &&
+      result.winnerEntrantId.length > 0
+        ? result.winnerEntrantId
+        : undefined;
 
     return {
       organizationAlias,
@@ -940,10 +946,14 @@ export class PublicProjectionsController {
         ? {}
         : { disciplineImages: descriptor.images.map((reference) => ({ ...reference })) }),
       stageNumber,
+      ...(stageName.length > 0 ? { stageName } : {}),
+      ...(fixtureScope.zoneName === undefined ? {} : { zoneName: fixtureScope.zoneName }),
+      ...(fixtureScope.groupName === undefined ? {} : { groupName: fixtureScope.groupName }),
       stageFormat: zoneFormatOfMatch ?? stage.format,
       matchNumber,
       round: match.round,
-      status: publicMatchStatus(match.status),
+      status,
+      ...(winnerEntrantId === undefined ? {} : { winnerEntrantId }),
       ...(match.home_entrant_id === null ? {} : { homeEntrantId: match.home_entrant_id }),
       ...(match.home_entrant_id === null ||
       entrantVisibility.get(match.home_entrant_id)?.hiddenAtRequest === true
@@ -1142,6 +1152,10 @@ export class PublicProjectionsController {
         ...fixtureSources.get(m.matchId),
         ...scheduleChanges.get(m.matchId),
         stageNumber: m.stageNumber,
+        ...(m.stageName === undefined ? {} : { stageName: m.stageName }),
+        ...(m.zoneName === undefined ? {} : { zoneName: m.zoneName }),
+        ...(m.groupName === undefined ? {} : { groupName: m.groupName }),
+        round: m.round,
         matchNumber: m.matchNumber ?? m.round,
         ...(ordinalByMatchId.has(m.matchId)
           ? { stageOrdinal: ordinalByMatchId.get(m.matchId) }
@@ -1407,6 +1421,7 @@ export class PublicProjectionsController {
                 round: m.round,
                 position: m.position,
                 status: m.status,
+                ...(m.winnerEntrantId === undefined ? {} : { winnerEntrantId: m.winnerEntrantId }),
                 format: m.format,
                 ...(m.persistedMatchId === undefined
                   ? {}
@@ -1536,6 +1551,7 @@ export class PublicProjectionsController {
           scheduleVersion: row.scheduleVersion,
           rescheduledFrom: row.rescheduledFrom,
           stageNumber: row.stageNumber,
+          ...(row.stageName === undefined ? {} : { stageName: row.stageName }),
           matchNumber: row.matchNumber,
           round: row.round,
           status: row.status,
@@ -2143,4 +2159,59 @@ function publicMatchStatus(status: string): PublicMatchReportResponse['status'] 
 
 function scheduleStartsAt(startsAt: string): string {
   return new Date(Number(startsAt)).toISOString();
+}
+
+async function resolveFixtureScopeContext(
+  db: Kysely<Database>,
+  fixtureId: string,
+): Promise<{
+  readonly zoneFormat?: string;
+  readonly zoneName?: string;
+  readonly groupName?: string;
+}> {
+  const row = await db
+    .selectFrom('fixtures')
+    .leftJoin('groups', (join) =>
+      join.onRef('groups.group_id', '=', 'fixtures.group_id').on('groups.deleted_at', 'is', null),
+    )
+    .leftJoin('zones as fixture_zones', (join) =>
+      join
+        .onRef('fixture_zones.zone_id', '=', 'fixtures.zone_id')
+        .on('fixture_zones.deleted_at', 'is', null),
+    )
+    .leftJoin('zones as group_zones', (join) =>
+      join
+        .onRef('group_zones.zone_id', '=', 'groups.zone_id')
+        .on('group_zones.deleted_at', 'is', null),
+    )
+    .select([
+      'fixture_zones.format as fixture_zone_format',
+      'fixture_zones.name as fixture_zone_name',
+      'fixture_zones.number as fixture_zone_number',
+      'group_zones.format as group_zone_format',
+      'group_zones.name as group_zone_name',
+      'group_zones.number as group_zone_number',
+      'groups.name as group_name',
+      'groups.number as group_number',
+    ])
+    .where('fixtures.fixture_id', '=', fixtureId)
+    .executeTakeFirst();
+  if (!row) return {};
+
+  const zoneFormat = row.fixture_zone_format ?? row.group_zone_format ?? undefined;
+  const zoneNameRaw = row.fixture_zone_name ?? row.group_zone_name;
+  const zoneNumberRaw = row.fixture_zone_number ?? row.group_zone_number;
+  const zone =
+    zoneNameRaw === null || zoneNumberRaw === null
+      ? undefined
+      : { name: zoneNameRaw, number: zoneNumberRaw };
+  const group =
+    row.group_name === null || row.group_number === null
+      ? undefined
+      : { name: row.group_name, number: row.group_number };
+  return {
+    ...(zoneFormat === undefined ? {} : { zoneFormat }),
+    ...(zone === undefined || isImplicitZone(zone) ? {} : { zoneName: zone.name }),
+    ...(group === undefined || isImplicitGroup(group) ? {} : { groupName: group.name }),
+  };
 }

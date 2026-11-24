@@ -319,6 +319,36 @@ test.describe('public knockout bracket', () => {
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
+
+    // Compact round labels on the same vertical row must not overlap horizontally.
+    const roundLabels = await compact
+      .locator('.cl-bracket-stage__round-label')
+      .evaluateAll((labels) =>
+        labels.map((el) => {
+          const rect = el.getBoundingClientRect();
+          return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+        }),
+      );
+    for (const [i, a] of roundLabels.entries()) {
+      for (const b of roundLabels.slice(i + 1)) {
+        const sameRow = a.top < b.bottom && b.top < a.bottom;
+        if (!sameRow) continue;
+        const [first, second] = a.left <= b.left ? [a, b] : [b, a];
+        expect(first.right).toBeLessThanOrEqual(second.left);
+      }
+    }
+
+    // Compact match cards must not vertically clip their content.
+    const cardClipChecks = await compact.locator('.cl-match-compact').evaluateAll((cards) =>
+      cards.map((card) => ({
+        scrollHeight: card.scrollHeight,
+        clientHeight: card.clientHeight,
+      })),
+    );
+    expect(cardClipChecks.length).toBeGreaterThan(0);
+    for (const check of cardClipChecks) {
+      expect(check.scrollHeight).toBeLessThanOrEqual(check.clientHeight + 1);
+    }
   });
 
   test('a desktop keeps the full cards and hides the compact drawing', async ({ page }) => {

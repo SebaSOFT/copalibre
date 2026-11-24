@@ -16,7 +16,12 @@ export interface ScheduleGroup {
 
 /** A knockout zone is drawn as its bracket; any other zone lists its groups' rounds. */
 export type ScheduleZone =
-  | { readonly kind: 'bracket'; readonly name?: string; readonly matches: readonly BracketMatch[] }
+  | {
+      readonly kind: 'bracket';
+      readonly name?: string;
+      readonly matches: readonly BracketMatch[];
+      readonly scheduleRows?: readonly MatchCardData[];
+    }
   | { readonly kind: 'rows'; readonly name?: string; readonly groups: readonly ScheduleGroup[] };
 
 export interface ScheduleStage {
@@ -93,6 +98,7 @@ export function buildSchedule(input: {
               kind: 'bracket',
               ...(zone.name === undefined ? {} : { name: zone.name }),
               matches: zone.matches,
+              scheduleRows: zoneRows,
             }
           : {
               kind: 'rows',

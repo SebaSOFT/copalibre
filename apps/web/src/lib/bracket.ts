@@ -1,4 +1,5 @@
 import {
+  formatQualifier,
   formatSideSource,
   sourceMatchLabel,
   type QualifierLabel,
@@ -29,6 +30,11 @@ export type SlotSource =
       readonly emblemObjectId?: string;
       /** Where this entrant came from, so a played match stays linked to the ones that fed it. */
       readonly from?: { readonly matchId: string; readonly outcome: 'winner' | 'loser' };
+      /** Original qualifier slot metadata preserved after the entrant qualified. */
+      readonly qualifierOrigin?: {
+        readonly position?: number;
+        readonly qualifierLabel?: QualifierLabel;
+      };
     }
   | {
       readonly kind: 'winner-of';
@@ -119,6 +125,10 @@ export interface BracketMatch {
   /** Parallel to `scores` — why a side's result is what it is. */
   readonly resultReasons?: readonly (ResultReason | undefined)[];
   readonly state: ResultState;
+  /** Recorded winning entrant id for a finalized match. */
+  readonly winnerEntrantId?: string;
+  /** Zone-scoped sibling node keys when the zone carries `PL*` placement feeders. */
+  readonly zoneNodeKeys?: readonly (string | undefined)[];
   /**
    * Present only on a cross a series settles. Absent everywhere else, which is what keeps a
    * single-match cross rendering exactly as it did before series existed — no bar, no score,
@@ -141,12 +151,18 @@ export interface NodeSlotView {
   readonly abbreviation?: string;
   readonly clubId?: string;
   readonly emblemObjectId?: string;
+  /** Qualifier origin label retained when a qualifier slot is decided. */
+  readonly originLabel?: string;
   readonly score?: number;
   /** Absent, or `played`, renders nothing — only an unusual reason is shown. */
   readonly resultReason?: Exclude<ResultReason, 'played'>;
   readonly state: ResultState;
   /** True on the side that won a decided match: both cards mark it in bold. */
   readonly winner?: boolean;
+  /** True on the advancing side of a finalized drawn knockout match. */
+  readonly advancing?: boolean;
+  /** True on the eliminated side of a finalized drawn knockout match. */
+  readonly eliminated?: boolean;
   /** True while the entrant is not known yet: rendered dashed, never blank. */
   readonly pending: boolean;
 }
@@ -158,6 +174,44 @@ export interface MatchNodeView {
   readonly slots: readonly NodeSlotView[];
 }
 
+const isPlacementBranchName = (branch: string): boolean =>
+  branch === 'placement' || /^(?:pl\d+|placement)/.test(branch);
+
+/** Best place a placement match settles and whether it spans a multi-place range. */
+export function bestPlaceOf(match: Pick<BracketMatch, 'nodeKey' | 'role'>): {
+  readonly bestPlace: number;
+  readonly isRange: boolean;
+} {
+  for (const candidate of [match.nodeKey, match.role]) {
+    if (!candidate) continue;
+    const pl = /^PL(\d+)-R\d+-M\d+(?:-G\d+)?$/.exec(candidate);
+    if (pl) return { bestPlace: Number(pl[1]), isRange: true };
+    const places = /^(?:placement|places?)-(\d+)(?:-(\d+))?$/.exec(candidate);
+    if (places) return { bestPlace: Number(places[1]), isRange: places[2] !== undefined };
+    const plRole = /^pl(\d+)$/.exec(candidate);
+    if (plRole) return { bestPlace: Number(plRole[1]), isRange: true };
+  }
+  return { bestPlace: Number.POSITIVE_INFINITY, isRange: false };
+}
+
+/**
+ * Deterministic placement ordering: best place ascending, then round ascending (with multi-place
+ * ranges ahead of single-place ties), then position/matchNumber ascending.
+ */
+export function comparePlacementMatches(
+  a: Pick<BracketMatch, 'nodeKey' | 'role' | 'roundNumber' | 'position' | 'matchNumber'>,
+  b: Pick<BracketMatch, 'nodeKey' | 'role' | 'roundNumber' | 'position' | 'matchNumber'>,
+): number {
+  const aBest = bestPlaceOf(a);
+  const bBest = bestPlaceOf(b);
+  if (aBest.bestPlace !== bBest.bestPlace) return aBest.bestPlace - bBest.bestPlace;
+  if (a.roundNumber !== b.roundNumber) return a.roundNumber - b.roundNumber;
+  if (aBest.isRange !== bBest.isRange) return aBest.isRange ? -1 : 1;
+  return (
+    (a.position ?? a.matchNumber) - (b.position ?? b.matchNumber) || a.matchNumber - b.matchNumber
+  );
+}
+
 /** Groups matches into rounds per branch, in play order. */
 export function toRounds(matches: readonly BracketMatch[]): readonly BracketRound[] {
   const grouped = new Map<string, BracketMatch[]>();
@@ -167,12 +221,27 @@ export function toRounds(matches: readonly BracketMatch[]): readonly BracketRoun
   }
 
   return [...grouped.entries()]
-    .map(([key, roundMatches]) => ({
-      branch: key.slice(0, key.lastIndexOf(':')),
-      roundNumber: roundMatches[0]?.roundNumber ?? 0,
-      matches: [...roundMatches].sort((a, b) => a.matchNumber - b.matchNumber),
-    }))
-    .sort((a, b) => a.branch.localeCompare(b.branch) || a.roundNumber - b.roundNumber);
+    .map(([key, roundMatches]) => {
+      const branch = key.slice(0, key.lastIndexOf(':'));
+      const sorted = isPlacementBranchName(branch)
+        ? [...roundMatches].sort(comparePlacementMatches)
+        : [...roundMatches].sort((a, b) => a.matchNumber - b.matchNumber);
+      return {
+        branch,
+        roundNumber: roundMatches[0]?.roundNumber ?? 0,
+        matches: sorted,
+      };
+    })
+    .sort((a, b) => {
+      const aPlacement = isPlacementBranchName(a.branch);
+      const bPlacement = isPlacementBranchName(b.branch);
+      if (aPlacement && bPlacement) {
+        const aMin = Math.min(...a.matches.map((m) => bestPlaceOf(m).bestPlace));
+        const bMin = Math.min(...b.matches.map((m) => bestPlaceOf(m).bestPlace));
+        return aMin - bMin || a.roundNumber - b.roundNumber || a.branch.localeCompare(b.branch);
+      }
+      return a.branch.localeCompare(b.branch) || a.roundNumber - b.roundNumber;
+    });
 }
 
 /**
@@ -186,11 +255,23 @@ export function toNode(
   match: BracketMatch,
   labels: ResultStateLabels,
   sources: SideSourceMessages,
+  siblingKeys?: readonly (string | undefined)[],
 ): MatchNodeView {
+  const zoneKeys = siblingKeys ?? match.zoneNodeKeys;
   const scored = (match.scores ?? []).filter((score): score is number => score !== undefined);
   const top = Math.max(...scored);
   const decided =
     match.state === 'final' && scored.length > 1 && scored.some((score) => score !== top);
+  const isLevelFinal =
+    match.state === 'final' &&
+    !decided &&
+    scored.length === 2 &&
+    scored[0] === scored[1] &&
+    match.winnerEntrantId !== undefined &&
+    match.slots.length === 2 &&
+    match.slots.some(
+      (candidate) => candidate.kind === 'entrant' && candidate.entrantId === match.winnerEntrantId,
+    );
   return {
     matchNumber: match.matchNumber,
     state: match.state,
@@ -199,8 +280,28 @@ export function toNode(
       const score = match.scores?.[index];
       const resultReason = match.resultReasons?.[index];
       const pending = slot.kind !== 'entrant';
+      const origin =
+        slot.kind === 'entrant' && slot.qualifierOrigin !== undefined
+          ? formatQualifier(
+              {
+                kind: 'qualifier',
+                ...(slot.qualifierOrigin.position === undefined
+                  ? {}
+                  : { position: slot.qualifierOrigin.position }),
+                ...(slot.qualifierOrigin.qualifierLabel === undefined
+                  ? {}
+                  : { qualifierLabel: slot.qualifierOrigin.qualifierLabel }),
+              },
+              sources,
+            ).long
+          : undefined;
+      const originLabel = origin !== undefined && origin !== sources.unknown ? origin : undefined;
+      const drawnWinner =
+        isLevelFinal && slot.kind === 'entrant' && slot.entrantId === match.winnerEntrantId;
+      const drawnLoser =
+        isLevelFinal && slot.kind === 'entrant' && slot.entrantId !== match.winnerEntrantId;
       return {
-        label: describeSlot(slot, sources, match.sourceFinalRound),
+        label: describeSlot(slot, sources, match.sourceFinalRound, zoneKeys),
         ...(slot.kind === 'entrant'
           ? {
               fullName: slot.name,
@@ -208,18 +309,21 @@ export function toNode(
               ...(slot.abbreviation === undefined ? {} : { abbreviation: slot.abbreviation }),
               ...(slot.clubId === undefined ? {} : { clubId: slot.clubId }),
               ...(slot.emblemObjectId === undefined ? {} : { emblemObjectId: slot.emblemObjectId }),
+              ...(originLabel === undefined ? {} : { originLabel }),
             }
           : {
               abbreviation: formatSideSource(
                 slot,
                 sources,
-                sourceMatchLabel(slot, sources, match.sourceFinalRound),
+                sourceMatchLabel(slot, sources, match.sourceFinalRound, zoneKeys),
               ).short,
             }),
         ...(score === undefined ? {} : { score }),
         ...(resultReason === undefined || resultReason === 'played' ? {} : { resultReason }),
         state: pending ? 'tbd' : match.state,
-        ...(decided && score === top ? { winner: true } : {}),
+        ...((decided && score === top) || drawnWinner ? { winner: true } : {}),
+        ...(drawnWinner ? { advancing: true } : {}),
+        ...(drawnLoser ? { eliminated: true } : {}),
         pending,
       };
     }),
@@ -231,10 +335,12 @@ export function describeSlot(
   slot: SlotSource,
   messages: SideSourceMessages,
   finalRound?: number,
+  siblingKeys?: readonly (string | undefined)[],
 ): string {
   return slot.kind === 'entrant'
     ? slot.name
-    : formatSideSource(slot, messages, sourceMatchLabel(slot, messages, finalRound)).long;
+    : formatSideSource(slot, messages, sourceMatchLabel(slot, messages, finalRound, siblingKeys))
+        .long;
 }
 
 /** Whether every entrant of a match is known; a grand final rarely is, early. */
@@ -327,7 +433,23 @@ export function nodeOutcomes(match: BracketMatch): readonly (BracketOutcome | un
   if (match.state !== 'final' || match.slots.length !== 2) return pendingOnly;
 
   const decided = decide(match.scores?.[0], match.scores?.[1]);
-  if (decided === undefined || decided.home === 'final') return pendingOnly;
+  if (decided === undefined || decided.home === 'final') {
+    if (
+      match.winnerEntrantId !== undefined &&
+      match.slots.some(
+        (slot) => slot.kind === 'entrant' && slot.entrantId === match.winnerEntrantId,
+      )
+    ) {
+      return match.slots.map((slot) =>
+        slot.kind !== 'entrant'
+          ? ('pending' as const)
+          : slot.entrantId === match.winnerEntrantId
+            ? ('advancing' as const)
+            : ('eliminated' as const),
+      );
+    }
+    return pendingOnly;
+  }
 
   return match.slots.map((slot, index) => {
     if (slot.kind !== 'entrant') return 'pending' as const;

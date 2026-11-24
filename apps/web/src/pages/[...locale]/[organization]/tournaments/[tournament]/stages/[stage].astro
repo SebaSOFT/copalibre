@@ -76,14 +76,12 @@ const { layouts: zoneLayouts, mixed: mixedZones } = resolveZoneLayouts(
   bracketData.format,
 );
 const layoutMode = mixedZones ? 'zones' : (zoneLayouts[0] ?? selectStageLayout(bracketData.format));
-const stageMatches =
-  layoutMode === 'grid' || layoutMode === 'zones'
-    ? await fetchMatchesView(organization!, tournament!, { stageNumber }).then((res) =>
-        res
-          ? mapMatchesViewResponse(res, intl.formatMessage(messages.personHiddenAtRequest)).matches
-          : [],
-      )
-    : [];
+const stageMatches = await fetchMatchesView(organization!, tournament!, { stageNumber }).then(
+  (res) =>
+    res
+      ? mapMatchesViewResponse(res, intl.formatMessage(messages.personHiddenAtRequest)).matches
+      : [],
+);
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
 const localePrefix = locale ? `/${locale}` : '';
@@ -108,7 +106,11 @@ const standingsProjection = groupPhaseLayout
     )
   : undefined;
 
-const stageHeading = intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber });
+const stageName = stageMatches[0]?.stageName?.trim();
+const stageHeading =
+  stageName && stageName.length > 0
+    ? stageName
+    : intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber });
 const pageTitle = `${displayName(model)} — ${stageHeading}`;
 
 // A zone's own table: the ranked blocks of the groups it holds, which the API labels with the zone.
@@ -139,7 +141,7 @@ const trail = publicTrail(trailBase, [
     label: intl.formatMessage(messages.matchesViewPageTitle),
     href: `${localePrefix}${model.canonicalPath}/matches?stageNumber=${stageNumber}`,
   },
-  { label: intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber }) },
+  { label: stageHeading },
 ]);
 const reportUrlOf = (match: MatchCardData): string =>
   matchReportUrl({
@@ -194,9 +196,16 @@ const zoneHeading = (name: string | undefined, index: number): string =>
                 intl={intl}
                 localePrefix={localePrefix}
                 matches={zone.matches}
+                matchesView={
+                  zone.zoneName === undefined
+                    ? stageMatches
+                    : stageMatches.filter((match) => match.zoneName === zone.zoneName)
+                }
                 organizationAlias={organization!}
+                organizationTimeZone={model.organizationTimeZone}
                 stageNumber={stageNumber}
                 tournamentAlias={tournament!}
+                zoneName={zone.zoneName}
               />
             ) : (
               <>
@@ -214,6 +223,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
                       <MatchCard
                         client:load
                         headingLevel={3}
+                        inZoneSection={bracketData.zones.length > 1}
                         locale={intl.locale}
                         match={match}
                         labels={labels}
@@ -276,9 +286,16 @@ const zoneHeading = (name: string | undefined, index: number): string =>
               intl={intl}
               localePrefix={localePrefix}
               matches={zone.matches}
+              matchesView={
+                zone.zoneName === undefined
+                  ? stageMatches
+                  : stageMatches.filter((match) => match.zoneName === zone.zoneName)
+              }
               organizationAlias={organization!}
+              organizationTimeZone={model.organizationTimeZone}
               stageNumber={stageNumber}
               tournamentAlias={tournament!}
+              zoneName={zone.zoneName}
             />
           </section>
         ))}

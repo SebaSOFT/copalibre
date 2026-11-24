@@ -1,4 +1,5 @@
 import type { SideSourceMessages } from '../../lib/side-source.js';
+import type { CompetitionContextLabels } from '../../lib/competition-context.js';
 import type { ResultStateLabels } from '../../lib/result-state.js';
 
 /**
@@ -27,8 +28,18 @@ export interface TvDashboardLabels {
   readonly focalPanelLabel: string;
   readonly focalPanelTitle: string;
   readonly recapTitle: string;
-  /** Raw `{stage}`/`{match}` template naming the spotlight match. */
-  readonly stageMatch: string;
+  /** Templates used by `competitionContext` for the pinned/spotlight match header. */
+  readonly contextLabels: CompetitionContextLabels;
+  readonly bracketBranch: {
+    readonly winners: string;
+    readonly losers: string;
+    readonly grandFinal: string;
+    readonly placement: string;
+  };
+  readonly bracketRoundFinal: string;
+  readonly bracketRoundSemifinals: string;
+  readonly bracketRoundQuarterfinals: string;
+  readonly zonePrefix?: string;
   readonly matchEventsLabel: string;
   readonly statsAndTablesLabel: string;
   readonly sidebarSectionsLabel: string;

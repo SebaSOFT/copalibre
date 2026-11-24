@@ -142,6 +142,71 @@ describe('toRounds', () => {
     expect(rounds[2]?.branch).toBe('winners');
     expect(rounds[2]?.roundNumber).toBe(2);
   });
+
+  it('orders placement games deterministically: 3º, 5º–8º (1), 5º–8º (2), 5º, 7º', () => {
+    const placementMatches: readonly BracketMatch[] = [
+      {
+        matchNumber: 14,
+        roundNumber: 2,
+        position: 2,
+        branch: 'placement',
+        role: 'place-7',
+        nodeKey: 'placement-7',
+        state: 'upcoming',
+        slots: [],
+      },
+      {
+        matchNumber: 13,
+        roundNumber: 2,
+        position: 1,
+        branch: 'placement',
+        role: 'place-5',
+        nodeKey: 'placement-5',
+        state: 'upcoming',
+        slots: [],
+      },
+      {
+        matchNumber: 6,
+        roundNumber: 1,
+        position: 2,
+        branch: 'placement',
+        role: 'places-5-8',
+        nodeKey: 'PL5-R1-M2',
+        state: 'upcoming',
+        slots: [],
+      },
+      {
+        matchNumber: 5,
+        roundNumber: 1,
+        position: 1,
+        branch: 'placement',
+        role: 'places-5-8',
+        nodeKey: 'PL5-R1-M1',
+        state: 'upcoming',
+        slots: [],
+      },
+      {
+        matchNumber: 12,
+        roundNumber: 3,
+        position: 1,
+        branch: 'placement',
+        role: 'place-3',
+        nodeKey: 'placement-3',
+        state: 'upcoming',
+        slots: [],
+      },
+    ];
+
+    const rounds = toRounds(placementMatches);
+    const orderedKeys = rounds.flatMap((round) => round.matches.map((m) => m.nodeKey));
+    expect(orderedKeys).toEqual([
+      'placement-3',
+      'PL5-R1-M1',
+      'PL5-R1-M2',
+      'placement-5',
+      'placement-7',
+    ]);
+  });
 });
 
 describe('toNode', () => {
@@ -215,6 +280,61 @@ describe('toNode', () => {
     expect(node.slots[0]?.label).toBe('Ganador de Partido 1');
     expect(node.slots[0]?.abbreviation).toBe('G P1');
     expect(node.slots[1]?.label).toBe('Ganador de Ronda 1, partido 2');
+  });
+
+  it('marks the advancing side on a finalized level-score knockout match and never on a win by score', () => {
+    const drawn: BracketMatch = {
+      matchNumber: 1,
+      roundNumber: 1,
+      branch: 'winners',
+      state: 'final',
+      scores: [3, 3],
+      winnerEntrantId: 'e-huracan',
+      slots: [
+        { kind: 'entrant', entrantId: 'e-uvt', name: 'UVT' },
+        { kind: 'entrant', entrantId: 'e-huracan', name: 'Huracán' },
+      ],
+    };
+    const drawnNode = toNode(drawn, labels, sources);
+    expect(drawnNode.slots[0]?.advancing).toBeUndefined();
+    expect(drawnNode.slots[0]?.eliminated).toBe(true);
+    expect(drawnNode.slots[1]?.advancing).toBe(true);
+    expect(drawnNode.slots[1]?.winner).toBe(true);
+    expect(nodeOutcomes(drawn)).toEqual(['eliminated', 'advancing']);
+
+    const wonOnScore: BracketMatch = {
+      ...drawn,
+      scores: [4, 2],
+      winnerEntrantId: 'e-uvt',
+    };
+    const scoreNode = toNode(wonOnScore, labels, sources);
+    expect(scoreNode.slots[0]?.advancing).toBeUndefined();
+    expect(scoreNode.slots[0]?.winner).toBe(true);
+    expect(scoreNode.slots[1]?.advancing).toBeUndefined();
+  });
+
+  it('retains the qualifier origin label on decided qualifier slots', () => {
+    const match: BracketMatch = {
+      matchNumber: 1,
+      roundNumber: 1,
+      branch: 'winners',
+      state: 'upcoming',
+      slots: [
+        {
+          kind: 'entrant',
+          entrantId: 'e-1',
+          name: 'Centro Valenciano',
+          qualifierOrigin: {
+            position: 1,
+            qualifierLabel: { kind: 'group-rank', rank: 1, groupNumber: 3, groupName: 'Grupo C' },
+          },
+        },
+        { kind: 'entrant', entrantId: 'e-2', name: 'Andes Talleres' },
+      ],
+    };
+    const node = toNode(match, labels, sources);
+    expect(node.slots[0]?.originLabel).toBe('1.° Grupo C');
+    expect(node.slots[1]?.originLabel).toBeUndefined();
   });
 });
 

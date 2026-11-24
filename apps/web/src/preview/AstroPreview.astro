@@ -367,8 +367,9 @@ const [compactSample] = referenceJourneyBracket(true);
     {
       /* The bracket card for a narrow screen: abbreviations and scores, one link to the report. */
       component === 'match-node-compact' && compactSample && (
-        <div style="width: 66px; height: 56px;">
+        <div style="width: 116px; height: 56px;">
           <MatchNodeCompact
+            advancesLabel={intl.formatMessage(messages.bracketAdvances)}
             intl={intl}
             match={compactSample}
             organizationAlias="reference-league"

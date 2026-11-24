@@ -1,5 +1,5 @@
 import type { PreviousPlacement } from './reschedule.js';
-import { withSourceDepth, type MatchCardData } from './matches-view.js';
+import { applyTemplate, withSourceDepth, type MatchCardData } from './matches-view.js';
 import {
   formatPlacement,
   formatSideSource,
@@ -50,6 +50,7 @@ export function tvMatchEntriesOf(
     readonly state: ResultStateLabels;
     readonly round: string;
     readonly sideSource: SideSourceMessages;
+    readonly zonePrefix?: string;
   },
 ): readonly TvMatchEntry[] {
   return withSourceDepth(rows).map((row): TvMatchEntry => {
@@ -66,7 +67,7 @@ export function tvMatchEntriesOf(
         labels.sideSource,
         source === undefined
           ? undefined
-          : sourceMatchLabel(source, labels.sideSource, row.sourceFinalRound),
+          : sourceMatchLabel(source, labels.sideSource, row.sourceFinalRound, row.zoneNodeKeys),
       );
       return {
         label: pending ? formatted.short : (abbreviation ?? name),
@@ -76,23 +77,28 @@ export function tvMatchEntriesOf(
         ...(score === undefined || row.state === 'upcoming' ? {} : { score }),
       };
     };
+    const placementLabel =
+      row.placement === undefined ? undefined : formatPlacement(row.placement, labels.sideSource);
+    const scope =
+      placementLabel !== undefined && where !== undefined
+        ? applyTemplate(labels.zonePrefix ?? '{zone} · {placement}', {
+            zone: where,
+            placement: placementLabel,
+          })
+        : [
+            where,
+            placementLabel ??
+              (row.round === undefined ? undefined : `${labels.round} ${row.round}`),
+          ]
+            .filter((part): part is string => part !== undefined)
+            .join(' · ');
     return {
       key: row.matchId,
       ...(row.scheduleVersion === undefined ? {} : { scheduleVersion: row.scheduleVersion }),
       ...(row.scheduledAt === undefined ? {} : { scheduledAt: row.scheduledAt }),
       ...(row.venueName === undefined ? {} : { venueName: row.venueName }),
       ...(row.rescheduledFrom === undefined ? {} : { rescheduledFrom: row.rescheduledFrom }),
-      // A placement game is named by the places it settles, as on the public cards.
-      scope: [
-        where,
-        row.placement !== undefined
-          ? formatPlacement(row.placement, labels.sideSource)
-          : row.round === undefined
-            ? undefined
-            : `${labels.round} ${row.round}`,
-      ]
-        .filter((part): part is string => part !== undefined)
-        .join(' · '),
+      scope,
       stateLabel: presentState(row.state, labels.state).label,
       home: side(row.homeName, row.homeAbbreviation, row.homeScore, row.homeSource),
       away: side(row.awayName, row.awayAbbreviation, row.awayScore, row.awaySource),

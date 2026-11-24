@@ -14354,6 +14354,10 @@
           "stageNumber": {
             "type": "number"
           },
+          "stageName": {
+            "type": "string",
+            "description": "The stage name as the organizer named it; absent when empty"
+          },
           "matchNumber": {
             "type": "number"
           },
@@ -18108,6 +18112,11 @@
               "finalized"
             ]
           },
+          "winnerEntrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Winning entrant id when the node is finalized and a winner is recorded"
+          },
           "format": {
             "type": "string",
             "description": "Declared match format, e.g. BO3 — absent when the stage declares none",
@@ -20008,6 +20017,10 @@
           "stageNumber": {
             "type": "number"
           },
+          "stageName": {
+            "type": "string",
+            "description": "The stage name as the organizer named it; absent when empty"
+          },
           "matchNumber": {
             "type": "number"
           },
@@ -20283,6 +20296,10 @@
           },
           "stageNumber": {
             "type": "number"
+          },
+          "stageName": {
+            "type": "string",
+            "description": "The stage name as the organizer named it; absent when empty"
           },
           "round": {
             "type": "number"
@@ -20796,6 +20813,18 @@
           "stageNumber": {
             "type": "number"
           },
+          "stageName": {
+            "type": "string",
+            "description": "The stage name as the organizer named it; absent when empty"
+          },
+          "zoneName": {
+            "type": "string",
+            "description": "The zone the match belongs to as the organizer named it; absent for an implicit zone"
+          },
+          "groupName": {
+            "type": "string",
+            "description": "The match group as the organizer named it; absent for an implicit group"
+          },
           "stageFormat": {
             "type": "string",
             "description": "The stage's competition format — identifies which stage this match belongs to, so a client can decide whether a bracket-context panel applies without a second request."
@@ -20813,6 +20842,11 @@
               "live",
               "final"
             ]
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Winning entrant id when the match is finalized and a winner is recorded"
           },
           "homeEntrantId": {
             "type": "string",
@@ -21057,6 +21091,10 @@
           },
           "stageNumber": {
             "type": "number"
+          },
+          "stageName": {
+            "type": "string",
+            "description": "The stage name as the organizer named it; absent when empty"
           },
           "matchNumber": {
             "type": "number"
@@ -21305,6 +21343,11 @@
           "status": {
             "type": "string"
           },
+          "winnerEntrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Winning entrant id when the node is finalized and a winner is recorded"
+          },
           "format": {
             "type": "string"
           },
@@ -21468,6 +21511,10 @@
           },
           "stageNumber": {
             "type": "number"
+          },
+          "stageName": {
+            "type": "string",
+            "description": "The stage name as the organizer named it; absent when empty"
           },
           "matchNumber": {
             "type": "number"

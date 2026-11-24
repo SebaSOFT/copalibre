@@ -51,7 +51,7 @@ const sideOf = (side: 'home' | 'away') => {
       labels.sideSource,
       source === undefined
         ? undefined
-        : sourceMatchLabel(source, labels.sideSource, match.sourceFinalRound),
+        : sourceMatchLabel(source, labels.sideSource, match.sourceFinalRound, match.zoneNodeKeys),
     )?.long ??
     '—';
   return {

@@ -1581,6 +1581,7 @@ function controlMatchResponseOf(
     ...(row.homeSource === undefined ? {} : { homeSource: row.homeSource }),
     ...(row.awaySource === undefined ? {} : { awaySource: row.awaySource }),
     stageNumber: row.stageNumber,
+    ...(row.stageName === undefined ? {} : { stageName: row.stageName }),
     matchNumber: row.matchNumber,
     round: row.round,
     status: row.status,

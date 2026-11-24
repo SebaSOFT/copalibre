@@ -676,11 +676,23 @@ The public product showcase page for CopaLibre on `sebasoft.app` SHALL accuratel
 ### Requirement: Organization home tournament status sections
 The organization home page SHALL present tournaments grouped by their real status (Live, Upcoming,
 Final), using the same status determination as the tournament's own overview page, and SHALL include a
-Final section for finished tournaments rather than omitting one.
+Final section for finished tournaments rather than omitting one. A tournament card SHALL name its
+matches being played, with their score, and SHALL offer the live page as its primary action only
+while a match is being played.
 
 #### Scenario: A finished tournament on organization home
 - **WHEN** a tournament has completed all its stages with a recorded result
 - **THEN** organization home SHALL list it under a Final section and SHALL NOT badge it "LIVE"
+
+#### Scenario: A match is being played
+
+- **WHEN** a tournament in progress has one match in progress
+- **THEN** its card shows both sides and the current score, and "En vivo" is the card's primary action
+
+#### Scenario: Nothing is being played right now
+
+- **WHEN** a tournament is in progress and none of its matches is
+- **THEN** its card shows no live match and no live button
 
 ### Requirement: Champion presentation for a finished tournament
 A finished tournament SHALL receive a visually distinct champion presentation, not an ordinary
@@ -774,13 +786,19 @@ no dedicated backdrop treatment SHALL render a neutral fallback rather than a mi
 
 ### Requirement: Public tournament pages present a tournament ticker
 A public tournament page SHALL present a ticker carrying that tournament's live and most recently
-finished matches, its leaders, and its next scheduled matches. Statistic-bearing items SHALL read from
-the tournament's declared discipline rather than a hardcoded metric, and an item kind with no data for
-that tournament SHALL be omitted rather than rendered empty.
+finished matches, its leaders, and its next scheduled matches. Live matches SHALL come first, each
+with its current score. Statistic-bearing items SHALL read from the tournament's declared discipline
+rather than a hardcoded metric, and an item kind with no data for that tournament SHALL be omitted
+rather than rendered empty.
 
 #### Scenario: A live tournament's ticker carries current results
 - **WHEN** a visitor opens a tournament page while a match is live
 - **THEN** the ticker includes that match with its current score
+
+#### Scenario: Live matches lead the ticker
+
+- **WHEN** a tournament has one live match and dozens of finished ones
+- **THEN** the live match is the ticker's first item, with its score and not "vs"
 
 #### Scenario: Every format yields a leader item
 - **WHEN** the ticker renders for a tournament whose format has no group phase

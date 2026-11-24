@@ -40,6 +40,7 @@ export interface MatchesViewRow extends FixtureSourcesResponse {
   readonly scheduleVersion?: number;
   readonly rescheduledFrom?: PublicPlacement | null;
   readonly stageNumber: number;
+  readonly stageName?: string;
   readonly matchNumber: number;
   readonly round: number;
   readonly status: 'upcoming' | 'live' | 'final';
@@ -112,7 +113,7 @@ export async function readMatchesView(
 async function readStageMatchesView(
   db: Kysely<Database>,
   tournament: Pick<Tournament, 'tournamentId' | 'organizationId' | 'disciplineRef'>,
-  stage: { readonly stageId: string; readonly number: number },
+  stage: { readonly stageId: string; readonly number: number; readonly name: string },
   onlyGroupId: string | undefined,
 ): Promise<readonly MatchesViewRow[]> {
   const competition = new CompetitionRepository(db);
@@ -133,14 +134,21 @@ async function readStageMatchesView(
 
   const fixtureGroups = await db
     .selectFrom('fixtures')
-    .select(['fixture_id', 'group_id'])
+    .select(['fixture_id', 'zone_id', 'group_id'])
     .where('stage_id', '=', stage.stageId)
     .execute();
-  const groupIdByFixture = new Map(
-    fixtureGroups.map((row) => [row.fixture_id, row.group_id ?? undefined] as const),
+  const scopeByFixture = new Map(
+    fixtureGroups.map(
+      (row) =>
+        [
+          row.fixture_id,
+          { zoneId: row.zone_id ?? undefined, groupId: row.group_id ?? undefined },
+        ] as const,
+    ),
   );
 
-  const zoneNamesByGroup = await zoneAndGroupNamesByGroupId(db, stage.stageId);
+  const zoneNames = await zoneAndGroupNamesByScope(db, stage.stageId);
+  const stageName = stage.name.trim();
   const scheduleChanges = await readPublicScheduleChanges(
     db,
     records.map((record) => record.matchId),
@@ -172,7 +180,7 @@ async function readStageMatchesView(
   // reference (including `undefined` for a stage with no explicit group
   // structure), not one per match.
   const distinctGroupIds = [
-    ...new Set(records.map((record) => groupIdByFixture.get(record.fixtureId))),
+    ...new Set(records.map((record) => scopeByFixture.get(record.fixtureId)?.groupId)),
   ];
   const standingsByGroup = new Map<
     string | undefined,
@@ -184,8 +192,13 @@ async function readStageMatchesView(
 
   return Promise.all(
     records.map(async (record): Promise<MatchesViewRow> => {
-      const groupId = groupIdByFixture.get(record.fixtureId);
-      const zoneNames = groupId === undefined ? undefined : zoneNamesByGroup.get(groupId);
+      const scope = scopeByFixture.get(record.fixtureId);
+      const groupId = scope?.groupId;
+      const fromGroup = groupId === undefined ? undefined : zoneNames.byGroupId.get(groupId);
+      const fromZone =
+        scope?.zoneId === undefined ? undefined : zoneNames.byZoneId.get(scope.zoneId);
+      const resolvedZoneName = fromGroup?.zoneName ?? fromZone;
+      const resolvedGroupName = fromGroup?.groupName;
       const standings = standingsByGroup.get(groupId);
       const series =
         seriesByPosition.get(record.fixtureId) ??
@@ -219,6 +232,7 @@ async function readStageMatchesView(
         ...fixtureSources.get(record.matchId),
         ...scheduleChanges.get(record.matchId),
         stageNumber: stage.number,
+        ...(stageName.length > 0 ? { stageName } : {}),
         matchNumber: matchOrdinals.get(record.matchId) ?? 1,
         round: record.round,
         status,
@@ -266,8 +280,8 @@ async function readStageMatchesView(
         // series-settled cross never resolves a zone name for the same round/position.
         ...(series === undefined
           ? {
-              ...(zoneNames?.zoneName === undefined ? {} : { zoneName: zoneNames.zoneName }),
-              ...(zoneNames?.groupName === undefined ? {} : { groupName: zoneNames.groupName }),
+              ...(resolvedZoneName === undefined ? {} : { zoneName: resolvedZoneName }),
+              ...(resolvedGroupName === undefined ? {} : { groupName: resolvedGroupName }),
               ...(record.homeEntrantId === undefined || standings === undefined
                 ? {}
                 : { homePosition: standings.position.get(record.homeEntrantId) }),
@@ -297,23 +311,32 @@ function eventLabel(
   return definition ? resolveLabel(definition.label, 'en') : definitionCode;
 }
 
-async function zoneAndGroupNamesByGroupId(
+async function zoneAndGroupNamesByScope(
   db: Kysely<Database>,
   stageId: string,
-): Promise<ReadonlyMap<string, { readonly zoneName?: string; readonly groupName?: string }>> {
+): Promise<{
+  readonly byGroupId: ReadonlyMap<
+    string,
+    { readonly zoneName?: string; readonly groupName?: string }
+  >;
+  readonly byZoneId: ReadonlyMap<string, string | undefined>;
+}> {
   const competition = new CompetitionRepository(db);
   const zones = await competition.listZonesOfStage(stageId);
-  const result = new Map<string, { readonly zoneName?: string; readonly groupName?: string }>();
+  const byGroupId = new Map<string, { readonly zoneName?: string; readonly groupName?: string }>();
+  const byZoneId = new Map<string, string | undefined>();
   for (const zone of zones) {
+    const zoneName = isImplicitZone(zone) ? undefined : zone.name;
+    byZoneId.set(zone.zoneId, zoneName);
     const groups = await competition.listGroupsOfZone(zone.zoneId);
     for (const group of groups) {
-      result.set(group.groupId, {
-        ...(isImplicitZone(zone) ? {} : { zoneName: zone.name }),
+      byGroupId.set(group.groupId, {
+        ...(zoneName === undefined ? {} : { zoneName }),
         ...(isImplicitGroup(group) ? {} : { groupName: group.name }),
       });
     }
   }
-  return result;
+  return { byGroupId, byZoneId };
 }
 
 async function seriesStatesByPosition(

@@ -24,6 +24,9 @@ export function persistedBracketMatches(
       round: record.round,
       position: record.position,
       status: record.status,
+      ...(record.status === 'finalized' && record.winnerEntrantId !== undefined
+        ? { winnerEntrantId: record.winnerEntrantId }
+        : {}),
       ...(node.branch === undefined ? {} : { role: node.branch }),
       ...(matchFormat === undefined ? {} : { format: matchFormat }),
       slots: [record.homeEntrantId, record.awayEntrantId].map((entrantId, index) => {

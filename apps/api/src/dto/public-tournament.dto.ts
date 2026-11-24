@@ -91,6 +91,11 @@ export class PublicOverviewMatchResponse extends FixtureSourcesResponse {
   @ApiProperty()
   stageNumber!: number;
 
+  @ApiPropertyOptional({
+    description: 'The stage name as the organizer named it; absent when empty',
+  })
+  stageName?: string;
+
   @ApiProperty()
   round!: number;
 
@@ -388,6 +393,11 @@ export class PublicLiveMatchResponse extends FixtureSourcesResponse {
   @ApiProperty()
   stageNumber!: number;
 
+  @ApiPropertyOptional({
+    description: 'The stage name as the organizer named it; absent when empty',
+  })
+  stageName?: string;
+
   @ApiProperty()
   matchNumber!: number;
 
@@ -564,6 +574,22 @@ export class PublicMatchReportResponse extends FixtureSourcesResponse {
   @ApiProperty()
   stageNumber!: number;
 
+  @ApiPropertyOptional({
+    description: 'The stage name as the organizer named it; absent when empty',
+  })
+  stageName?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'The zone the match belongs to as the organizer named it; absent for an implicit zone',
+  })
+  zoneName?: string;
+
+  @ApiPropertyOptional({
+    description: 'The match group as the organizer named it; absent for an implicit group',
+  })
+  groupName?: string;
+
   @ApiProperty({
     description:
       "The stage's competition format — identifies which stage this match belongs to, so a " +
@@ -579,6 +605,12 @@ export class PublicMatchReportResponse extends FixtureSourcesResponse {
 
   @ApiProperty({ enum: ['upcoming', 'live', 'final'] })
   status!: 'upcoming' | 'live' | 'final';
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Winning entrant id when the match is finalized and a winner is recorded',
+  })
+  winnerEntrantId?: string;
 
   @ApiPropertyOptional({ format: 'uuid' })
   homeEntrantId?: string;
@@ -800,6 +832,12 @@ export class PublicBracketMatchResponse extends FixtureSourcesResponse {
 
   @ApiProperty()
   status!: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Winning entrant id when the node is finalized and a winner is recorded',
+  })
+  winnerEntrantId?: string;
 
   @ApiPropertyOptional()
   format?: string;
@@ -1096,6 +1134,11 @@ export class PublicOrganizationLiveMatchResponse {
   @ApiProperty()
   stageNumber!: number;
 
+  @ApiPropertyOptional({
+    description: 'The stage name as the organizer named it; absent when empty',
+  })
+  stageName?: string;
+
   @ApiProperty()
   matchNumber!: number;
 
@@ -1198,6 +1241,11 @@ export class PublicMatchesViewMatchResponse extends FixtureSourcesResponse {
 
   @ApiProperty()
   stageNumber!: number;
+
+  @ApiPropertyOptional({
+    description: 'The stage name as the organizer named it; absent when empty',
+  })
+  stageName?: string;
 
   @ApiProperty()
   matchNumber!: number;

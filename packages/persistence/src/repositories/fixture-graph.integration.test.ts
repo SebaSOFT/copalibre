@@ -15,6 +15,7 @@ import type {
 } from '../fixture-graph.js';
 import { newId } from '../ids.js';
 import { OutboxReader } from '../outbox.js';
+import { PublicOverviewReadModel } from '../projections/public-overview-read-model.js';
 import { StageReadModel } from '../projections/stage-read-model.js';
 import { createMigratedDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
 import { testCapabilities } from '../test-support/test-dialect.js';
@@ -821,5 +822,73 @@ describe('persisted fixture graph (integration)', () => {
       home_entrant_id: seeded.a,
       away_entrant_id: seeded.c,
     });
+  });
+
+  it('surfaces winnerEntrantId only for finalized matches and resolves overview stage/zone context', async () => {
+    const seeded = await seedZone('copa-contexto-grafo');
+    await createGraph(seeded.stage.stageId, seeded.zone.zoneId, bracketOf(seeded));
+    const { resolve } = stubResolver({ contingency: undefined });
+    await run(resolutionWith(resolve), seeded.zone.zoneId);
+
+    const [sf1] = await matchesOfNode(seeded.zone.zoneId, 'sf-1');
+    const [sf2] = await matchesOfNode(seeded.zone.zoneId, 'sf-2');
+    await scratch.db
+      .updateTable('matches')
+      .set({
+        status: 'finalized',
+        result: JSON.stringify({
+          winnerEntrantId: seeded.d,
+          sides: [
+            { entrantId: seeded.a, statistics: { goals: 2 } },
+            { entrantId: seeded.d, statistics: { goals: 2 } },
+          ],
+        }),
+      })
+      .where('match_id', '=', sf1?.match_id as string)
+      .execute();
+    await scratch.db
+      .updateTable('matches')
+      .set({
+        status: 'in-progress',
+        result: JSON.stringify({
+          winnerEntrantId: seeded.b,
+          sides: [
+            { entrantId: seeded.b, statistics: { goals: 1 } },
+            { entrantId: seeded.c, statistics: { goals: 1 } },
+          ],
+        }),
+      })
+      .where('match_id', '=', sf2?.match_id as string)
+      .execute();
+
+    // Clear group_id on sf-1's fixture to verify direct fixtures.zone_id resolution without a group.
+    const sf1Fixture = await fixtureOf(seeded.zone.zoneId, 'sf-1');
+    await scratch.db
+      .updateTable('fixtures')
+      .set({ group_id: null })
+      .where('fixture_id', '=', sf1Fixture.fixture_id)
+      .execute();
+
+    const records = await new StageReadModel(scratch.db).matches(
+      seeded.stage.stageId,
+      undefined,
+      seeded.zone.zoneId,
+    );
+    const byKey = new Map(records.map((record) => [record.node?.nodeKey, record]));
+    expect(byKey.get('sf-1')?.winnerEntrantId).toBe(seeded.d);
+    expect(byKey.get('sf-1')?.games[0]?.winnerEntrantId).toBe(seeded.d);
+    expect(byKey.get('sf-2')?.winnerEntrantId).toBeUndefined();
+    expect(byKey.get('sf-2')?.games[0]?.winnerEntrantId).toBeUndefined();
+    expect(byKey.get('final')?.winnerEntrantId).toBeUndefined();
+
+    const overviewMatches = await new PublicOverviewReadModel(scratch.db).matchesForTournament(
+      seeded.tournament.tournamentId,
+    );
+    const sf1Overview = overviewMatches.find((m) => m.matchId === sf1?.match_id);
+    expect(sf1Overview).toMatchObject({
+      stageName: 'Playoffs',
+      zoneName: 'Zona A',
+    });
+    expect(sf1Overview?.groupName).toBeUndefined();
   });
 });

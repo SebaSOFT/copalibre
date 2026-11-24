@@ -86,7 +86,23 @@ describe('tvMatchEntriesOf', () => {
       [row({ nodeKey: 'placement-3', round: 1, groupName: undefined, zoneName: undefined })],
       labels,
     );
-    expect(third?.scope).toBe('Place 3');
+    expect(third?.scope).toBe('3rd place');
+  });
+
+  it('prefixes a multi-zone placement title with its zone name when zonePrefix is provided', () => {
+    const [entry] = tvMatchEntriesOf(
+      [
+        row({
+          nodeKey: 'placement-3',
+          round: 1,
+          groupName: undefined,
+          zoneName: 'Copa Oro',
+          multiZoneStage: true,
+        }),
+      ],
+      { ...labels, zonePrefix: '{zone} · {placement}' },
+    );
+    expect(entry?.scope).toBe('Copa Oro · 3rd place');
   });
 
   it('names an undecided side by its source, with the stage depth naming the round', () => {
@@ -110,7 +126,7 @@ describe('tvMatchEntriesOf', () => {
     expect(semi?.away.pending).toBe(false);
     expect(semi?.scope).toBe('Playoffs · Round 2');
     expect(final?.away).toMatchObject({
-      label: 'W Semi-final 2',
+      label: 'W Semi 2',
       name: 'Winner of Semi-final 2',
       pending: true,
     });

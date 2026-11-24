@@ -38,9 +38,10 @@ const Heading = `h${Math.min(headingLevel, 6)}` as HeadingTag;
 const RoleHeading = `h${Math.min(headingLevel + 1, 6)}` as HeadingTag;
 
 const sources = sideSourceLabels(intl);
+const zoneNodeKeys = games.map((game) => game.nodeKey);
 /** An undecided side names the game it waits on, as every other surface does. */
 const nameOf = (slot: BracketMatch['slots'][number], game: BracketMatch): string =>
-  describeSlot(slot, sources, game.sourceFinalRound);
+  describeSlot(slot, sources, game.sourceFinalRound, game.zoneNodeKeys ?? zoneNodeKeys);
 // One group per role, in the order roles first appear, so a round of several games stays together.
 const groups = games.reduce<{ role: string; games: BracketMatch[] }[]>((acc, game) => {
   const role = game.role ?? '';

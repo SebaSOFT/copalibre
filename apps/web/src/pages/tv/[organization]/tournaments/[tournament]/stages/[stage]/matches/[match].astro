@@ -63,6 +63,7 @@ const intl = publicIntl(language);
 // only the event ticker, never replace the whole live dashboard with sample data.
 let matchEvents: readonly TvMatchEvent[] = [];
 let pinnedSegments: PublicMatchReportResponse['segments'];
+let pinnedReport: PublicMatchReportResponse | undefined;
 let rosterActors: Readonly<Record<string, string>> = {};
 try {
   const report = await fetchMatchReport(
@@ -72,6 +73,7 @@ try {
     matchOrdinal,
   );
   if (report) {
+    pinnedReport = report;
     matchEvents = buildTvMatchEvents(report, intl.formatMessage(messages.personHiddenAtRequest));
     // Resolves a *live* event's actor the same way the initial
     // timeline above already resolves one, for `BroadcastAlertBanner`.
@@ -149,14 +151,32 @@ try {
   the match, is fresher and is left as it is. The series it belongs to comes from the matches view of
   its stage, in its own guard so that a failure costs the series indication and nothing else.
 */
-if (pinnedSegments !== undefined) {
+if (pinnedSegments !== undefined || pinnedReport !== undefined) {
   dashboard = {
     ...dashboard,
     matches: dashboard.matches.map((candidate) =>
-      candidate.stageNumber === stageNumber &&
-      candidate.stageOrdinal === matchOrdinal &&
-      candidate.segments === undefined
-        ? { ...candidate, segments: pinnedSegments }
+      candidate.stageNumber === stageNumber && candidate.stageOrdinal === matchOrdinal
+        ? {
+            ...candidate,
+            ...(candidate.segments === undefined && pinnedSegments !== undefined
+              ? { segments: pinnedSegments }
+              : {}),
+            ...(pinnedReport?.stageName === undefined
+              ? {}
+              : { stageName: candidate.stageName ?? pinnedReport.stageName }),
+            ...(pinnedReport?.zoneName === undefined
+              ? {}
+              : { zoneName: candidate.zoneName ?? pinnedReport.zoneName }),
+            ...(pinnedReport?.groupName === undefined
+              ? {}
+              : { groupName: candidate.groupName ?? pinnedReport.groupName }),
+            ...(pinnedReport?.round === undefined
+              ? {}
+              : { round: candidate.round ?? pinnedReport.round }),
+            ...(pinnedReport?.nodeKey === undefined
+              ? {}
+              : { nodeKey: candidate.nodeKey ?? pinnedReport.nodeKey }),
+          }
         : candidate,
     ),
   };

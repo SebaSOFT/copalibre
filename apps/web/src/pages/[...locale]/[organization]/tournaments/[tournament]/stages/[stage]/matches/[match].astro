@@ -9,19 +9,24 @@ import MatchOfficials from '../../../../../../../../components/ui/organisms/Matc
 import MatchRosters from '../../../../../../../../components/ui/organisms/MatchRosters.astro';
 import MatchTimeline from '../../../../../../../../components/ui/organisms/MatchTimeline.astro';
 import MatchBracketContext from '../../../../../../../../components/ui/organisms/MatchBracketContext.astro';
-import { buildMatchReport } from '../../../../../../../../lib/match-report.ts';
+import { buildMatchReport, matchStakeLines } from '../../../../../../../../lib/match-report.ts';
+import { competitionContext } from '../../../../../../../../lib/competition-context.ts';
+import type { MatchCardData } from '../../../../../../../../lib/matches-view.ts';
 import {
   fetchBracket,
   fetchLive,
   fetchMatchReport,
+  fetchMatchesView,
   mapBracketResponse,
   mapLiveResponse,
+  mapMatchesViewResponse,
 } from '../../../../../../../../lib/public-api-client.ts';
 import { publicStreamPath } from '@copalibre/routing';
 import { selectStageLayout } from '../../../../../../../../lib/bracket.ts';
 import { humanizeCode } from '../../../../../../../../lib/descriptor-label.ts';
 import { messages } from '../../../../../../../../lib/i18n/public-messages.en.ts';
 import {
+  competitionContextLabels,
   publicIntl,
   resultStateLabels,
   sideSourceLabels,
@@ -71,20 +76,38 @@ const localePrefix = locale ? `/${locale}` : '';
 // reintroduce the cross-zone matchNumber collision the zone-scoped bracket endpoint exists to
 // avoid.
 let bracketMatches: ReturnType<typeof mapBracketResponse>['zones'][number]['matches'] = [];
+let ownZoneName: string | undefined;
+let zoneMatchesView: readonly MatchCardData[] = [];
 if (selectStageLayout(response.stageFormat) === 'bracket') {
-  const rawBracket = await fetchBracket(organization!, tournament!, stageNumber);
+  const [rawBracket, rawMatchesView] = await Promise.all([
+    fetchBracket(organization!, tournament!, stageNumber),
+    fetchMatchesView(organization!, tournament!, { stageNumber }),
+  ]);
   if (rawBracket) {
     const { zones } = mapBracketResponse(rawBracket, intl.formatMessage(messages.resultStateTbd));
     const ownZone = zones.find((zone) => zone.matches.some((m) => m.matchNumber === matchNumber));
     bracketMatches = ownZone?.matches ?? [];
+    ownZoneName = ownZone?.zoneName;
+  }
+  if (rawMatchesView) {
+    const mapped = mapMatchesViewResponse(
+      rawMatchesView,
+      intl.formatMessage(messages.personHiddenAtRequest),
+    ).matches;
+    const effectiveZone = ownZoneName ?? response.zoneName;
+    zoneMatchesView =
+      effectiveZone === undefined ? mapped : mapped.filter((m) => m.zoneName === effectiveZone);
   }
 }
 
+const zoneNodeKeys = bracketMatches.length > 0 ? bracketMatches.map((m) => m.nodeKey) : undefined;
+const sourceFinalRound = bracketMatches[0]?.sourceFinalRound;
 const model = buildMatchReport(response, {
   locale: resolvedLocale,
   hiddenPersonLabel: intl.formatMessage(messages.personHiddenAtRequest),
   sideSource: sideSourceLabels(intl),
-  sourceFinalRound: bracketMatches[0]?.sourceFinalRound,
+  sourceFinalRound,
+  zoneNodeKeys,
   officialRoleLabel: (code) =>
     code in officialRoleMessages
       ? intl.formatMessage(officialRoleMessages[code as keyof typeof officialRoleMessages])
@@ -120,6 +143,52 @@ const liveMatchSeed = liveMatch
     }
   : undefined;
 
+const contextLabels = competitionContextLabels(intl);
+const context = competitionContext(
+  {
+    stageNumber,
+    stageName: response.stageName,
+    zoneName: response.zoneName,
+    groupName: response.groupName,
+    round: model.round,
+    matchNumber,
+    nodeKey: response.nodeKey,
+    sourceFinalRound,
+    zoneNodeKeys,
+  },
+  contextLabels,
+);
+const stakeLines =
+  bracketMatches.length > 0
+    ? matchStakeLines({
+        currentMatch: {
+          nodeKey: response.nodeKey,
+          matchNumber,
+          stageNumber,
+          stageName: response.stageName,
+          zoneName: response.zoneName ?? ownZoneName,
+          round: model.round,
+          sourceFinalRound,
+        },
+        bracketMatches,
+        stageMatches: zoneMatchesView,
+        labels: {
+          context: contextLabels,
+          stakeWinner: intl.formatMessage(messages.matchReportStakeWinner, {
+            match: '{match}',
+            when: '{when}',
+          }),
+          stakeLoser: intl.formatMessage(messages.matchReportStakeLoser, {
+            match: '{match}',
+            when: '{when}',
+          }),
+          stakePlace: intl.formatMessage(messages.matchReportStakePlace, { place: '{place}' }),
+          stakeChampion: intl.formatMessage(messages.matchReportStakeChampion, { zone: '{zone}' }),
+          fallbackChampionScope: model.tournamentName,
+        },
+        formatDate: (at) => formatDateTime(intl, at, response.organizationTimeZone ?? 'UTC'),
+      })
+    : [];
 const trailBase = trailBaseOf({
   organizationAlias: organization!,
   organizationName: model.organizationName,
@@ -133,19 +202,21 @@ const trail = publicTrail(trailBase, [
     href: `${trailBase.tournamentPath}/matches?stageNumber=${stageNumber}`,
   },
   {
-    label: intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber }),
+    label: context.stage,
     href: `${trailBase.tournamentPath}/stages/${stageNumber}`,
   },
   {
-    label: `${intl.formatMessage(messages.bracketRoundHeading, { round: model.round })} · ${intl.formatMessage(messages.breadcrumbMatch, { match: matchNumber })}`,
+    label:
+      [context.zone, context.group, context.round, context.matchLabel]
+        .filter(Boolean)
+        .join(' · ') || context.line,
   },
 ]);
 const statusLabels = resultStateLabels(intl);
 const matchHeading = `${model.home.name} ${intl.formatMessage(messages.tickerVersus)} ${model.away.name}`;
 const matchHeadingDescription = [
-  intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber }),
-  intl.formatMessage(messages.bracketRoundHeading, { round: model.round }),
-  intl.formatMessage(messages.breadcrumbMatch, { match: matchNumber }),
+  context.line,
+  context.matchLabel,
   model.scheduledAt
     ? formatDateTime(intl, model.scheduledAt, response.organizationTimeZone ?? 'UTC')
     : undefined,
@@ -154,7 +225,7 @@ const matchHeadingDescription = [
   .join(' · ');
 const structuredData = {
   '@type': 'SportsEvent' as const,
-  name: `${model.home.name} vs ${model.away.name} — ${model.tournamentName}`,
+  name: `${model.home.name} vs ${model.away.name} — ${model.tournamentName} · ${context.line}`,
   url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${Astro.url.pathname}`,
   ...(model.scheduledAt ? { startDate: model.scheduledAt } : {}),
 };
@@ -201,6 +272,7 @@ const structuredData = {
         awayEntrantId={liveMatch?.sides[1]?.entrantId}
         liveClock={liveMatch?.clock}
         liveSegments={liveMatch?.segments}
+        stakeLines={stakeLines}
       />
 
       {bracketMatches.length > 0 && (
@@ -209,9 +281,12 @@ const structuredData = {
           intl={intl}
           localePrefix={localePrefix}
           matches={bracketMatches}
+          matchesView={zoneMatchesView}
           organizationAlias={organization!}
+          organizationTimeZone={response.organizationTimeZone}
           stageNumber={stageNumber}
           tournamentAlias={tournament!}
+          zoneName={ownZoneName ?? response.zoneName}
         />
       )}
 

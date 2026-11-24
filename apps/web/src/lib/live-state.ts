@@ -48,6 +48,13 @@ export interface LiveMatch {
   readonly venueName?: string;
   readonly rescheduledFrom?: PreviousPlacement | null;
   readonly stageNumber: number;
+  readonly stageName?: string;
+  readonly zoneName?: string;
+  readonly groupName?: string;
+  readonly round?: number;
+  readonly nodeKey?: string;
+  readonly sourceFinalRound?: number;
+  readonly zoneNodeKeys?: readonly (string | undefined)[];
   readonly matchNumber: number;
   /** The match's 1-based position in its stage; absent from a source that does not know it. */
   readonly stageOrdinal?: number;
