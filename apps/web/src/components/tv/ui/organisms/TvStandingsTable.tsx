@@ -1,4 +1,9 @@
-import { groupStandingsByZone, type StandingsRowView } from '../../../../lib/overview.js';
+import {
+  groupStandingsByZone,
+  type StandingsBlockView,
+  type StandingsRowView,
+} from '../../../../lib/overview.js';
+import { isImplicitGroupZoneName } from '../../../../lib/competition-context.js';
 import { EntrantName } from '../../../ui/atoms/EntrantName.js';
 import { EntrantEmblem } from '../../../ui/molecules/EntrantEmblem.js';
 import type { TvClubItem, TvDashboardLabels } from '../../tv-types.js';
@@ -35,48 +40,120 @@ export function TvStandingsTable({
   }
 
   const blocks = groupStandingsByZone(standings);
-  const hasNamedZones = blocks.some((block) => block.zoneName !== undefined);
+  const zoneSections: { zoneName?: string; groups: StandingsBlockView[] }[] = [];
+  for (const block of blocks) {
+    const existing = zoneSections.find((section) => section.zoneName === block.zoneName);
+    if (existing) existing.groups.push(block);
+    else
+      zoneSections.push({
+        ...(block.zoneName === undefined ? {} : { zoneName: block.zoneName }),
+        groups: [block],
+      });
+  }
+  const hasAnyHeading = blocks.some(
+    (block) => block.zoneName !== undefined || block.groupName !== undefined,
+  );
+  const soleImplicitGroupZone =
+    zoneSections.length === 1 &&
+    (zoneSections[0]?.zoneName === undefined ||
+      isImplicitGroupZoneName(zoneSections[0].zoneName)) &&
+    zoneSections[0].groups.some((group) => group.groupName !== undefined);
+
   return (
     <>
-      {hasNamedZones && (
+      {hasAnyHeading && (
         <p className="tv-standings-legend">
           <span aria-hidden="true" className="tv-standings-legend__mark" />
           {dashboardLabels.zoneLegend}
         </p>
       )}
-      {blocks.map((block) => (
-        <StandingsBlock
-          block={block}
-          clubs={clubs}
-          dashboardLabels={dashboardLabels}
-          key={block.zoneName ?? 'stage'}
-          pointsShortLabel={pointsShortLabel}
-          showAllRows={showAllRows}
-        />
-      ))}
+      {soleImplicitGroupZone
+        ? zoneSections[0]?.groups.map((group) => (
+            <StandingsBlock
+              clubs={clubs}
+              dashboardLabels={dashboardLabels}
+              heading={group.groupName}
+              key={group.groupName ?? 'group'}
+              pointsShortLabel={pointsShortLabel}
+              rows={group.rows}
+              showAllRows={showAllRows}
+            />
+          ))
+        : zoneSections.map((zone) => {
+            if (zone.zoneName === undefined) {
+              return zone.groups.map((group) => (
+                <StandingsBlock
+                  clubs={clubs}
+                  dashboardLabels={dashboardLabels}
+                  heading={group.groupName}
+                  key={group.groupName ?? 'stage'}
+                  pointsShortLabel={pointsShortLabel}
+                  rows={group.rows}
+                  showAllRows={showAllRows}
+                />
+              ));
+            }
+            const hasGroups = zone.groups.some((group) => group.groupName !== undefined);
+            if (!hasGroups) {
+              return (
+                <StandingsBlock
+                  clubs={clubs}
+                  dashboardLabels={dashboardLabels}
+                  heading={zone.zoneName}
+                  key={zone.zoneName}
+                  pointsShortLabel={pointsShortLabel}
+                  rows={zone.groups[0]?.rows ?? []}
+                  showAllRows={showAllRows}
+                />
+              );
+            }
+            return (
+              <section
+                aria-label={zone.zoneName}
+                className="tv-standings-zone"
+                data-testid="tv-standings-zone"
+                key={zone.zoneName}
+              >
+                <h3 className="tv-standings-zone__name">{zone.zoneName}</h3>
+                {zone.groups.map((group) => (
+                  <div
+                    className="tv-standings-group"
+                    data-testid="tv-standings-group"
+                    key={group.groupName ?? 'default'}
+                  >
+                    {group.groupName !== undefined && (
+                      <h4 className="tv-standings-group__name">{group.groupName}</h4>
+                    )}
+                    <StandingsRowsTable
+                      clubs={clubs}
+                      dashboardLabels={dashboardLabels}
+                      pointsShortLabel={pointsShortLabel}
+                      rows={group.rows}
+                      showAllRows={showAllRows}
+                    />
+                  </div>
+                ))}
+              </section>
+            );
+          })}
     </>
   );
 }
 
-/**
- * One ranked table. A block that names its zone is headed by it, so a viewer can tell which zone a
- * row belongs to; a stage with a single table carries no heading and renders as it always did. The
- * eight-row cap applies per table.
- */
-function StandingsBlock({
-  block,
+function StandingsRowsTable({
+  rows,
   clubs,
   dashboardLabels,
   pointsShortLabel,
   showAllRows,
 }: {
-  readonly block: { readonly zoneName?: string; readonly rows: readonly StandingsRowView[] };
+  readonly rows: readonly StandingsRowView[];
   readonly clubs?: readonly TvClubItem[];
   readonly dashboardLabels: TvDashboardLabels;
   readonly pointsShortLabel: string;
   readonly showAllRows: boolean;
 }): React.JSX.Element {
-  const table = (
+  return (
     <table className="tv-standings-table">
       <thead>
         <tr>
@@ -87,7 +164,7 @@ function StandingsBlock({
         </tr>
       </thead>
       <tbody>
-        {(showAllRows ? block.rows : block.rows.slice(0, 8)).map((row) => {
+        {(showAllRows ? rows : rows.slice(0, 8)).map((row) => {
           const club = clubs?.find((c) => c.clubId === row.clubId);
           return (
             <tr key={row.name}>
@@ -120,14 +197,41 @@ function StandingsBlock({
       </tbody>
     </table>
   );
-  if (block.zoneName === undefined) return table;
+}
+
+/**
+ * One ranked table. A block that names its zone or group is headed by it, so a viewer can tell
+ * which scope a row belongs to; a stage with a single table carries no heading and renders as it
+ * always did. The eight-row cap applies per table.
+ */
+function StandingsBlock({
+  heading,
+  rows,
+  clubs,
+  dashboardLabels,
+  pointsShortLabel,
+  showAllRows,
+}: {
+  readonly heading?: string;
+  readonly rows: readonly StandingsRowView[];
+  readonly clubs?: readonly TvClubItem[];
+  readonly dashboardLabels: TvDashboardLabels;
+  readonly pointsShortLabel: string;
+  readonly showAllRows: boolean;
+}): React.JSX.Element {
+  const table = (
+    <StandingsRowsTable
+      clubs={clubs}
+      dashboardLabels={dashboardLabels}
+      pointsShortLabel={pointsShortLabel}
+      rows={rows}
+      showAllRows={showAllRows}
+    />
+  );
+  if (heading === undefined) return table;
   return (
-    <section
-      aria-label={block.zoneName}
-      className="tv-standings-zone"
-      data-testid="tv-standings-zone"
-    >
-      <h3 className="tv-standings-zone__name">{block.zoneName}</h3>
+    <section aria-label={heading} className="tv-standings-zone" data-testid="tv-standings-zone">
+      <h3 className="tv-standings-zone__name">{heading}</h3>
       {table}
     </section>
   );

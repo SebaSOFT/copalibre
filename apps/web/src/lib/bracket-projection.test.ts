@@ -168,4 +168,31 @@ describe('mapBracketResponse', () => {
       name: 'A definir',
     });
   });
+
+  it('preserves overallPlaceOffset on banded zones including 0', () => {
+    const response: PublicBracketResponse = {
+      zones: [
+        {
+          zoneId: 'oro',
+          zoneName: 'Copa Oro',
+          format: 'single-elimination',
+          overallPlaceOffset: 0,
+          matches: [],
+        },
+        {
+          zoneId: 'bronce',
+          zoneName: 'Copa Bronce',
+          format: 'single-elimination',
+          overallPlaceOffset: 16,
+          matches: [],
+        },
+        { zoneId: 'legacy', zoneName: 'Copa Única', format: 'single-elimination', matches: [] },
+      ],
+    };
+
+    const mapped = mapBracketResponse(response, 'A definir');
+    expect(mapped.zones[0]?.overallPlaceOffset).toBe(0);
+    expect(mapped.zones[1]?.overallPlaceOffset).toBe(16);
+    expect(mapped.zones[2]?.overallPlaceOffset).toBeUndefined();
+  });
 });

@@ -32,6 +32,7 @@ interface Props {
   readonly zoneName?: string;
   readonly matchesView?: readonly MatchCardData[];
   readonly organizationTimeZone?: string;
+  readonly overallPlaceOffset?: number;
 }
 const {
   intl,
@@ -44,6 +45,7 @@ const {
   zoneName,
   matchesView,
   organizationTimeZone,
+  overallPlaceOffset,
 } = Astro.props;
 const branchLabel = (branch: string): string =>
   (branch === 'winners' || branch === 'winner') && zoneName?.trim()
@@ -80,7 +82,7 @@ const placedRounds = rounds
   .filter((entry) => entry.nodes.length > 0);
 const captionOf = (match: (typeof layout.nodes)[number]['match']): string | undefined =>
   match.role !== undefined
-    ? bracketRoleLabel(intl, match.role)
+    ? bracketRoleLabel(intl, match.role, overallPlaceOffset)
     : championship?.matchNumber === match.matchNumber && championship?.branch === match.branch
       ? intl.formatMessage(messages.bracketChampionshipTitle)
       : undefined;

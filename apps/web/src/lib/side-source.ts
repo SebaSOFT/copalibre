@@ -240,11 +240,33 @@ export function sourceMatchLabel(
 }
 
 /** A small ordinal from the catalogue: three irregular forms, then one template for the rest. */
-function ordinalOf(value: number, messages: SideSourceMessages): string {
+export function ordinalOf(value: number, messages: SideSourceMessages): string {
   if (value === 1) return messages.ordinal1;
   if (value === 2) return messages.ordinal2;
   if (value === 3) return messages.ordinal3;
+  // English (and any catalogue whose 1st/2nd/3rd use st/nd/rd) repeats irregular suffixes at 21, 22, 23...
+  if (messages.ordinal1 === '1st') {
+    const mod100 = value % 100;
+    if (mod100 < 11 || mod100 > 13) {
+      const mod10 = value % 10;
+      if (mod10 === 1) return `${value}st`;
+      if (mod10 === 2) return `${value}nd`;
+      if (mod10 === 3) return `${value}rd`;
+    }
+  }
   return applyTemplate(messages.ordinalOther, { n: value });
+}
+
+/** Formats an overall placement suffix template (`{ordinal}` or `{place}`) without react-intl. */
+export function formatOverallPlaceFromTemplate(
+  template: string,
+  place: number,
+  messages: SideSourceMessages,
+): string {
+  return applyTemplate(template, {
+    place,
+    ordinal: ordinalOf(place, messages),
+  }).trim();
 }
 
 /**

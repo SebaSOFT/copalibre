@@ -5,6 +5,7 @@ import { descriptorLabel, humanizeCode } from './descriptor-label.ts';
 import type { LiveMatchClock, LiveSegment } from './live-state.js';
 import { applyTemplate, type MatchCardData } from './matches-view.ts';
 import {
+  formatOverallPlaceFromTemplate,
   formatPlacement,
   formatSideSource,
   sourceMatchLabel,
@@ -278,6 +279,7 @@ export interface MatchStakeLabels {
   readonly stakePlace: string;
   readonly stakeChampion: string;
   readonly fallbackChampionScope?: string;
+  readonly formatOverallPlace?: (place: number) => string;
 }
 
 export interface MatchStakeInput {
@@ -290,6 +292,7 @@ export interface MatchStakeInput {
     readonly zoneName?: string;
     readonly round?: number;
     readonly sourceFinalRound?: number;
+    readonly overallPlaceOffset?: number;
   };
   readonly bracketMatches: readonly BracketMatch[];
   readonly stageMatches?: readonly Pick<MatchCardData, 'matchNumber' | 'scheduledAt'>[];
@@ -445,8 +448,26 @@ export function matchStakeLines(input: MatchStakeInput): readonly string[] {
 
   const singlePlace = /^(?:placement|place)-(\d+)$/.exec(currentNodeKey ?? '');
   if (singlePlace) {
-    const place = formatPlacement({ from: Number(singlePlace[1]) }, labels.context.sideSource);
-    lines.push(applyTemplate(labels.stakePlace, { place }));
+    const zonePlace = Number(singlePlace[1]);
+    const place = formatPlacement({ from: zonePlace }, labels.context.sideSource);
+    const overallPlace =
+      currentMatch.overallPlaceOffset !== undefined
+        ? currentMatch.overallPlaceOffset + zonePlace
+        : undefined;
+    const overall =
+      overallPlace === undefined
+        ? undefined
+        : labels.formatOverallPlace !== undefined
+          ? labels.formatOverallPlace(overallPlace)
+          : labels.context.overallPlaceTemplate !== undefined
+            ? formatOverallPlaceFromTemplate(
+                labels.context.overallPlaceTemplate,
+                overallPlace,
+                labels.context.sideSource,
+              )
+            : undefined;
+    const combinedPlace = overall === undefined ? place : `${place} · ${overall}`;
+    lines.push(applyTemplate(labels.stakePlace, { place: combinedPlace }));
     return lines;
   }
 

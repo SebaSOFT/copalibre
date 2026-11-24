@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves public layout adoption, compact stat-header hints, the tournament settings workspace, cookie-held Control sessions and TV island hydration, state shapes drawn as registry icons, and emblem atoms importing their rendition paths, match scores read through one live rule, phone match lists grouped by day, every public locale route guarding its locale segment, the overview hero opening venue popovers, and stage pages naming their breadcrumb, control values read through shared tiebreaker names, the wizard step and zone cards, the dashboard matches-today count and the analytics export, the API reference page with its link on the token card, the organization screen reading the role beside a personal page of its own, and public islands and the Chinese faces arriving after the first paint, the player dialog localizing its labels, the shared live match clock and scoreboard composition, competition context, advancing badge and zone-scoped placement labels, and shared tiebreaker and localized event labels (450/1958)', () => {
+test('the graph resolves public layout adoption, compact stat-header hints, the tournament settings workspace, cookie-held Control sessions and TV island hydration, state shapes drawn as registry icons, and emblem atoms importing their rendition paths, match scores read through one live rule, phone match lists grouped by day, every public locale route guarding its locale segment, the overview hero opening venue popovers, and stage pages naming their breadcrumb, control values read through shared tiebreaker names, the wizard step and zone cards, the dashboard matches-today count and the analytics export, the API reference page with its link on the token card, the organization screen reading the role beside a personal page of its own, and public islands and the Chinese faces arriving after the first paint, the player dialog localizing its labels, the shared live match clock and scoreboard composition, competition context, advancing badge and zone-scoped placement labels, shared tiebreaker and localized event labels, and group standings, completion status, and overall places (452/1971)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 450);
-  assert.equal(graph.edges.length, 1958);
+  assert.equal(graph.nodes.size, 452);
+  assert.equal(graph.edges.length, 1971);
 });
 
 test('a type-only import is not counted as a render', () => {

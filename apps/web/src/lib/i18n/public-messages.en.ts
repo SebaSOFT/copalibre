@@ -248,6 +248,7 @@ export const messages = defineMessages({
     id: 'publicWeb.ruleset.format.ffaLeague',
     defaultMessage: 'FFA League',
   },
+  rulesetStageFormat: { id: 'publicWeb.ruleset.stageFormat', defaultMessage: '{stage}: {format}' },
   rulesetValueUnknown: {
     id: 'publicWeb.ruleset.valueUnknown',
     defaultMessage: 'Not available',
@@ -327,17 +328,30 @@ export const messages = defineMessages({
     id: 'publicWeb.standings.qualificationColumn',
     defaultMessage: 'Qualification',
   },
+  standingsPromotionOrderColumn: {
+    id: 'publicWeb.standings.promotionOrderColumn',
+    defaultMessage: 'Order',
+  },
+  standingsPromotionOrderHint: {
+    id: 'publicWeb.standings.promotionOrderHint',
+    defaultMessage:
+      'Entry order into the cup under the qualification plan; it sets the bracket pairing',
+  },
   standingsSeedTag: {
     id: 'publicWeb.standings.seedTag',
-    defaultMessage: 'Seed {seed}',
+    defaultMessage: 'Order {seed}',
   },
   standingsPromotionLegend: {
     id: 'publicWeb.standings.promotionLegend',
     defaultMessage: 'Qualification bands',
   },
-  standingsPromotionBandRange: {
-    id: 'publicWeb.standings.promotionBandRange',
-    defaultMessage: 'Seeds {first}–{last}',
+  standingsPromotionBandOrderRange: {
+    id: 'publicWeb.standings.promotionBandOrderRange',
+    defaultMessage: 'order {first}–{last}',
+  },
+  standingsGroupHeading: {
+    id: 'publicWeb.standings.groupHeading',
+    defaultMessage: '{group}',
   },
   standingsFullTable: {
     id: 'publicWeb.standings.fullTable',
@@ -542,6 +556,10 @@ export const messages = defineMessages({
     defaultMessage: 'Placement games',
   },
   bracketAdvances: { id: 'publicWeb.bracket.advances', defaultMessage: 'Advances' },
+  bracketOverallPlace: {
+    id: 'publicWeb.bracket.overallPlace',
+    defaultMessage: '{place, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} overall',
+  },
   // Unified placement vocabulary used across cards, brackets and reports.
   placementPlace: {
     id: 'publicWeb.placement.place',
@@ -806,6 +824,22 @@ export const messages = defineMessages({
     id: 'publicWeb.overview.featuredMatchHeading',
     defaultMessage: 'Featured match',
   },
+  overviewStatusLine: {
+    id: 'publicWeb.overview.statusLine',
+    defaultMessage: '{stages}',
+  },
+  overviewStageFinished: {
+    id: 'publicWeb.overview.stageFinished',
+    defaultMessage: '{stage} finished',
+  },
+  overviewStageInPlay: {
+    id: 'publicWeb.overview.stageInPlay',
+    defaultMessage: '{stage}: {resolved} of {total}',
+  },
+  overviewOverallStandingsHeading: {
+    id: 'publicWeb.overview.overallStandingsHeading',
+    defaultMessage: 'Overall standings',
+  },
   matchesViewVersus: { id: 'publicWeb.matchesView.versus', defaultMessage: 'vs' },
   matchesViewDensityToggleAriaLabel: {
     id: 'publicWeb.matchesView.densityToggleAriaLabel',
@@ -1038,6 +1072,14 @@ export const messages = defineMessages({
   organizationMoreLive: {
     id: 'publicWeb.organization.moreLive',
     defaultMessage: '+{count} live',
+  },
+  tournamentCardProgress: {
+    id: 'publicWeb.tournamentCard.progress',
+    defaultMessage: '{resolved} of {total} matches',
+  },
+  tournamentCardVenues: {
+    id: 'publicWeb.tournamentCard.venues',
+    defaultMessage: '{count, plural, one {# venue} other {# venues}}',
   },
 
   // Organization page — merged with the former tournament listing.

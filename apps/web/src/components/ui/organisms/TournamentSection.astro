@@ -15,6 +15,7 @@ export interface Props {
   readonly heading: string;
   readonly tournaments: readonly PodiumListingItem[];
   readonly organizationAlias: string;
+  readonly organizationTimeZone?: string;
   readonly localePrefix: string;
   readonly intl: IntlShape;
   readonly showCount?: boolean;
@@ -28,6 +29,7 @@ const {
   heading,
   tournaments,
   organizationAlias,
+  organizationTimeZone,
   localePrefix,
   intl,
   showCount = true,
@@ -49,6 +51,7 @@ const {
       <TournamentCard
         tournament={t}
         organizationAlias={organizationAlias}
+        organizationTimeZone={organizationTimeZone}
         localePrefix={localePrefix}
         intl={intl}
         featured={featured || t.featured}

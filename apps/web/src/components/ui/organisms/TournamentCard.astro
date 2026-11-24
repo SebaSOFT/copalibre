@@ -4,17 +4,26 @@ import { isSupportedLanguage, resolveLabel } from '@copalibre/domain';
 import type { PodiumListingItem } from '../../../lib/podium-emblems.ts';
 import ChampionPodium from './ChampionPodium.astro';
 import Button from '../atoms/Button.astro';
+import { formatTimestamp } from '../../../lib/format-timestamp.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 interface Props {
   readonly tournament: PodiumListingItem;
   readonly organizationAlias: string;
+  readonly organizationTimeZone?: string;
   readonly localePrefix?: string;
   readonly intl: IntlShape;
   readonly featured?: boolean;
 }
 
-const { tournament, organizationAlias, localePrefix = '', intl, featured = false } = Astro.props;
+const {
+  tournament,
+  organizationAlias,
+  organizationTimeZone,
+  localePrefix = '',
+  intl,
+  featured = false,
+} = Astro.props;
 
 const tournamentUrl = `${localePrefix}/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournament.alias)}`;
 const liveUrl = `${tournamentUrl}/live`;
@@ -40,6 +49,40 @@ const liveAwayName = firstLiveMatch
     ? hiddenPersonLabel
     : firstLiveMatch.away
   : '';
+const scheduleDate = (iso: string | undefined): string | undefined => {
+  if (!iso || Number.isNaN(Date.parse(iso))) return undefined;
+  return formatTimestamp(iso, {
+    locale: intl.locale,
+    format: 'date-only',
+    ...(organizationTimeZone === undefined ? {} : { timeZone: organizationTimeZone }),
+  });
+};
+const firstScheduleDay = scheduleDate(tournament.schedule?.firstKickoffAt);
+const lastScheduleDay = scheduleDate(tournament.schedule?.lastKickoffAt);
+const scheduleRange =
+  firstScheduleDay && lastScheduleDay
+    ? firstScheduleDay === lastScheduleDay
+      ? firstScheduleDay
+      : `${firstScheduleDay} – ${lastScheduleDay}`
+    : (firstScheduleDay ?? lastScheduleDay);
+const currentStageName =
+  isInProgress && tournament.progress?.currentStageName?.trim()
+    ? tournament.progress.currentStageName.trim()
+    : undefined;
+const progressText =
+  isInProgress && tournament.progress && tournament.progress.totalMatches > 0
+    ? intl.formatMessage(messages.tournamentCardProgress, {
+        resolved: tournament.progress.resolvedMatches,
+        total: tournament.progress.totalMatches,
+      })
+    : undefined;
+const venuesText =
+  tournament.venueCount !== undefined && tournament.venueCount > 0
+    ? intl.formatMessage(messages.tournamentCardVenues, { count: tournament.venueCount })
+    : undefined;
+const cardDetails = [scheduleRange, currentStageName, progressText, venuesText].filter(
+  (item): item is string => item !== undefined,
+);
 ---
 
 <article
@@ -83,6 +126,14 @@ const liveAwayName = firstLiveMatch
       </a>
     </h3>
   </header>
+
+  {cardDetails.length > 0 && (
+    <ul class="cl-tournament-card__details">
+      {cardDetails.map((detail) => (
+        <li>{detail}</li>
+      ))}
+    </ul>
+  )}
 
   {isFinished && winners.length > 0 && <ChampionPodium winners={winners} intl={intl} />}
 
@@ -226,6 +277,24 @@ const liveAwayName = firstLiveMatch
   .cl-tournament-link:hover {
     color: var(--cl-primary-hover);
     text-decoration: underline;
+  }
+
+  .cl-tournament-card__details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cl-space-1) var(--cl-space-3);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    color: var(--cl-text-secondary);
+  }
+
+  .cl-tournament-card__details > li + li::before {
+    content: '·';
+    margin-inline-end: var(--cl-space-3);
+    color: var(--cl-text-muted);
   }
 
   .cl-card-footer {

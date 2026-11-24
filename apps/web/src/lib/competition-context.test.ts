@@ -125,4 +125,41 @@ describe('competitionContext', () => {
     expect(ctx.line).toBe('Copas · Copa Plata · 5º puesto');
     expect(ctx.matchLabel).toBe('Partido 20');
   });
+
+  it('appends the overall place suffix when overallPlaceOffset is given on a single placement', () => {
+    const ctx = competitionContext(
+      {
+        stageNumber: 2,
+        stageName: 'Copas',
+        zoneName: 'Copa Bronce',
+        nodeKey: 'placement-5',
+        round: 2,
+        matchNumber: 32,
+        zoneNodeKeys: cupZoneKeys,
+        overallPlaceOffset: 16,
+      },
+      esLabels,
+    );
+
+    expect(ctx.line).toBe('Copas · Copa Bronce · 5º puesto · 21.º general');
+  });
+
+  it('appends the English ordinal overall place suffix including 21st overall', () => {
+    const enLabels = competitionContextLabels(publicIntl('en'));
+    const ctx = competitionContext(
+      {
+        stageNumber: 2,
+        stageName: 'Cups',
+        zoneName: 'Bronze Cup',
+        nodeKey: 'placement-5',
+        round: 2,
+        matchNumber: 32,
+        zoneNodeKeys: cupZoneKeys,
+        overallPlaceOffset: 16,
+      },
+      enLabels,
+    );
+
+    expect(ctx.line).toBe('Cups · Bronze Cup · 5th place · 21st overall');
+  });
 });

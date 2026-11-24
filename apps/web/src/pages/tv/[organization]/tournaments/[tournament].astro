@@ -305,6 +305,14 @@ try {
         round: dashboardText.bracketRound,
         sideSource: dashboardText.sideSource,
         zonePrefix: dashboardText.zonePrefix,
+        ...(dashboardText.overallPlace === undefined
+          ? {}
+          : { overallPlace: dashboardText.overallPlace }),
+        overallPlaceOffsetOf: (row) =>
+          initialBracket?.stageNumber === row.stageNumber
+            ? initialBracket.zones.find((zone) => zone.zoneName === row.zoneName)
+                ?.overallPlaceOffset
+            : undefined,
       });
     }
   }

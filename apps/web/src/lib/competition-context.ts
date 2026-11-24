@@ -1,5 +1,6 @@
 import { applyTemplate } from './matches-view.js';
 import {
+  formatOverallPlaceFromTemplate,
   formatPlacement,
   placementOf,
   type Placement,
@@ -17,6 +18,7 @@ export interface CompetitionContextInput {
   readonly sourceFinalRound?: number;
   readonly zoneNodeKeys?: readonly (string | undefined)[];
   readonly placement?: Placement;
+  readonly overallPlaceOffset?: number;
 }
 
 export interface CompetitionContextLabels {
@@ -30,6 +32,8 @@ export interface CompetitionContextLabels {
   readonly semiFinalLabel: string;
   readonly quarterFinalLabel: string;
   readonly sideSource: SideSourceMessages;
+  readonly overallPlaceTemplate?: string;
+  readonly formatOverallPlace?: (place: number) => string;
 }
 
 export interface CompetitionContext {
@@ -115,7 +119,22 @@ function resolveRoundLabel(
 
     const single = /^(?:placement|place)-(\d+)$/.exec(key);
     if (single) {
-      return formatPlacement({ from: Number(single[1]) }, labels.sideSource);
+      const zonePlace = Number(single[1]);
+      const base = formatPlacement({ from: zonePlace }, labels.sideSource);
+      if (match.overallPlaceOffset !== undefined) {
+        const overall = match.overallPlaceOffset + zonePlace;
+        const suffix = labels.formatOverallPlace
+          ? labels.formatOverallPlace(overall)
+          : labels.overallPlaceTemplate
+            ? formatOverallPlaceFromTemplate(
+                labels.overallPlaceTemplate,
+                overall,
+                labels.sideSource,
+              )
+            : undefined;
+        if (suffix) return `${base} · ${suffix}`;
+      }
+      return base;
     }
   }
 

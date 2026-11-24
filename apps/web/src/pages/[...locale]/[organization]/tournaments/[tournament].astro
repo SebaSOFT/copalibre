@@ -1,7 +1,11 @@
 ---
 import EmptyState from '../../../../components/ui/molecules/EmptyState.astro';
+import { CompletionFigure } from '../../../../components/ui/molecules/CompletionFigure.tsx';
 import Container from '../../../../components/ui/atoms/layout/Container.astro';
 import { MatchCard } from '../../../../components/ui/organisms/MatchCard.tsx';
+import DataTable, {
+  type DataTableColumn,
+} from '../../../../components/ui/organisms/DataTable.astro';
 import { publicTrail, trailBaseOf } from '../../../../lib/breadcrumb.ts';
 import { publicTableLayoutLabel } from '../../../../lib/public-table-layout-label.ts';
 import PublicLayout from '../../../../layouts/PublicLayout.astro';
@@ -20,8 +24,18 @@ import {
   summarizeOverviewMatches,
   type OverviewMatch,
 } from '../../../../lib/overview.ts';
+import { selectStageLayout } from '../../../../lib/bracket.ts';
+import { mapBracketResponse } from '../../../../lib/bracket-projection.ts';
+import {
+  deriveOverallStandings,
+  type OverallStandingsEntry,
+} from '../../../../lib/overall-standings.ts';
+import { ordinalOf } from '../../../../lib/side-source.ts';
+import { buildTournamentStatusLine } from '../../../../lib/tournament-status-line.ts';
 import { withSourceDepth, type MatchCardData } from '../../../../lib/matches-view.ts';
 import {
+  clubEmblemUrl,
+  fetchBracket,
   fetchOverview,
   fetchCompletion,
   fetchLive,
@@ -37,9 +51,11 @@ import {
   matchCardLabels,
   tickerLabels,
   tournamentHeroLabels,
+  tournamentStatusLineLabels,
   completionFigureLabels,
   resultStateLabels,
   rulesetBriefingRows,
+  sideSourceLabels,
   standingsTiebreakLine,
 } from '../../../../lib/i18n/public-intl.ts';
 import { buildTickerItems } from '../../../../lib/ticker-items.ts';
@@ -132,6 +148,9 @@ const earliestStageNumber = overviewData.matches.reduce(
   (earliest, match) => Math.min(earliest, match.stageNumber),
   Infinity,
 );
+const standingsStageNumber =
+  model.standingsStageNumber ??
+  (Number.isFinite(earliestStageNumber) ? earliestStageNumber : undefined);
 
 const requestedTab = Astro.url.searchParams.get('tab');
 const activeClubId = Astro.url.searchParams.get('clubId') ?? undefined;
@@ -148,18 +167,38 @@ const activeProjection = activeLayout
       organization!,
       tournament!,
       activeLayout.code,
-      activeLayout.target === 'group-phase' && Number.isFinite(earliestStageNumber)
-        ? earliestStageNumber
-        : undefined,
+      activeLayout.target === 'group-phase' ? standingsStageNumber : undefined,
       activeClubId,
     )
   : undefined;
+const activeSegments = activeProjection?.segments ?? [];
+const visibleSegments = activeClubId
+  ? activeSegments.filter((segment) => segment.rows.length > 0)
+  : activeSegments;
+const isMultiGroupStandings = activeSegments.length > 1;
 const overviewProjectionLimit = 8;
 const overviewProjection = activeProjection
-  ? isFullLayoutView
+  ? isFullLayoutView || isMultiGroupStandings
     ? activeProjection
     : { ...activeProjection, rows: activeProjection.rows.slice(0, overviewProjectionLimit) }
   : undefined;
+
+const finishedKnockoutStage = [...(model.stages ?? [])].reverse().find((stage) => {
+  const isKnockout =
+    selectStageLayout(stage.format) === 'bracket' ||
+    (stage.zones ?? []).some((zone) => selectStageLayout(zone.format) === 'bracket');
+  if (!isKnockout) return false;
+  const stageCompletion = completion.stages.find(
+    (entry) => entry.stageNumber === stage.stageNumber,
+  );
+  if (stageCompletion) {
+    return (
+      stageCompletion.totalMatches > 0 &&
+      stageCompletion.resolvedMatches >= stageCompletion.totalMatches
+    );
+  }
+  return model.status === 'finished';
+});
 
 /*
   The ticker's own reads, both optional: a discipline that declares no
@@ -167,19 +206,71 @@ const overviewProjection = activeProjection
   always yields at least one segment, so every format produces a leader.
 */
 const performerLayout = declaredLayouts.find((one) => one.target === 'player-ranking');
-const [performerProjection, leaderProjection] = await Promise.all([
+const [performerProjection, leaderProjection, finishedBracketRaw] = await Promise.all([
   performerLayout
     ? fetchPublicTableProjection(organization!, tournament!, performerLayout.code)
     : Promise.resolve(undefined),
-  defaultLayout && defaultLayout.target === 'group-phase' && Number.isFinite(earliestStageNumber)
+  defaultLayout && defaultLayout.target === 'group-phase' && standingsStageNumber !== undefined
     ? fetchPublicTableProjection(
         organization!,
         tournament!,
         defaultLayout.code,
-        earliestStageNumber,
+        standingsStageNumber,
       )
     : Promise.resolve(undefined),
+  finishedKnockoutStage
+    ? fetchBracket(organization!, tournament!, finishedKnockoutStage.stageNumber)
+    : Promise.resolve(undefined),
 ]);
+
+const finishedBracket = finishedBracketRaw
+  ? mapBracketResponse(finishedBracketRaw, intl.formatMessage(messages.resultStateTbd))
+  : undefined;
+const overallStandings = finishedBracket ? deriveOverallStandings(finishedBracket.zones) : [];
+const sideSources = sideSourceLabels(intl);
+const formatOverallRank = (entry: OverallStandingsEntry): string =>
+  entry.overallPlaceTo === undefined
+    ? ordinalOf(entry.overallPlaceFrom, sideSources)
+    : `${ordinalOf(entry.overallPlaceFrom, sideSources)}–${ordinalOf(entry.overallPlaceTo, sideSources)}`;
+const hasMultipleOverallZones =
+  new Set(overallStandings.map((entry) => entry.zoneName).filter(Boolean)).size > 1;
+const overallStandingsColumns: readonly DataTableColumn[] = [
+  {
+    key: 'place',
+    header: '#',
+    render: (row) => formatOverallRank(row as OverallStandingsEntry),
+  },
+  {
+    key: 'entrant',
+    header: intl.formatMessage(messages.standingsTeam),
+    name: true,
+    render: (row) => (row as OverallStandingsEntry).name,
+    renderContent: (row) => {
+      const entry = row as OverallStandingsEntry;
+      return {
+        text: entry.name,
+        emblem: {
+          abbreviation: entry.abbreviation,
+          alt: entry.name,
+          src:
+            entry.clubId && entry.emblemObjectId
+              ? clubEmblemUrl(organization!, entry.clubId)
+              : undefined,
+        },
+      };
+    },
+  },
+  ...(hasMultipleOverallZones
+    ? [
+        {
+          key: 'zone',
+          header: intl.formatMessage(messages.matchesViewZoneFilterTitle),
+          priority: 'low' as const,
+          render: (row: unknown) => (row as OverallStandingsEntry).zoneName ?? '',
+        },
+      ]
+    : []),
+];
 
 const tickerPerformerProjection =
   performerProjection === undefined
@@ -219,6 +310,10 @@ const latestResults = fixtureSummary.latestResults.filter(hasPersistedMatchId);
 const compactMatchLabels = matchCardLabels(intl);
 const overviewLead = overviewLeadFor(model.status);
 const heroLabels = tournamentHeroLabels(intl, model);
+const heroStatusLine = buildTournamentStatusLine(
+  { status: model.status, stages: completion.stages },
+  tournamentStatusLineLabels(intl),
+);
 const heroStateLabel =
   model.status === 'live'
     ? intl.formatMessage(messages.completionInProgress)
@@ -240,8 +335,19 @@ const heroVenueLabels = {
   heading: intl.formatMessage(messages.overviewVenuesHeading),
   address: intl.formatMessage(messages.overviewVenueAddress),
 };
-const standingsEntrantCount = new Set(model.standings.map((row) => row.entrantId ?? row.name)).size;
-const tiebreakLine = standingsTiebreakLine(intl, model);
+const isGroupPhaseStandings =
+  activeLayout?.target === 'group-phase' ||
+  (activeLayout === undefined && model.standings.length > 0);
+const standingsEntrantCount = isGroupPhaseStandings
+  ? activeSegments.length > 0 && !activeClubId
+    ? new Set(
+        activeSegments
+          .flatMap((segment) => segment.rows)
+          .map((row) => row.entrantId ?? row.entrantName ?? row.actorName),
+      ).size
+    : new Set(model.standings.map((row) => row.entrantId ?? row.name)).size
+  : 0;
+const tiebreakLine = isGroupPhaseStandings ? standingsTiebreakLine(intl, model) : undefined;
 
 function baseCardDataOf(match: OverviewMatch & { readonly matchId: string }): MatchCardData {
   const live = liveByMatchId.get(match.matchId);
@@ -412,6 +518,7 @@ const trail = publicTrail(trailBase, []);
       trail={trail}
       breadcrumbLabel={intl.formatMessage(messages.livePageBreadcrumb)}
       collapsedBreadcrumbLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+      statusLine={heroStatusLine}
       stateLabel={heroStateLabel}
       facts={heroFacts}
       venues={heroVenues}
@@ -426,12 +533,34 @@ const trail = publicTrail(trailBase, []);
         timeZone={model.organizationTimeZone}
       />
     )}
+    <div class="cl-overview-completion">
+      <CompletionFigure
+        totalMatches={completion.totalMatches}
+        resolvedMatches={completion.resolvedMatches}
+        stages={completion.stages}
+        labels={completionLabels}
+      />
+    </div>
     {overviewLead === 'honour-board' && model.winners && model.winners.length > 0 && (
       <TournamentHonourBoard
         heading={intl.formatMessage(messages.overviewHonourBoardHeading)}
         winners={withPodiumEmblems(organization!, model.winners)}
         intl={intl}
       />
+    )}
+    {overallStandings.length > 0 && (
+      <section class="cl-overview-overall-standings" aria-labelledby="overall-standings-heading">
+        <h2 id="overall-standings-heading">
+          {intl.formatMessage(messages.overviewOverallStandingsHeading)}
+        </h2>
+        <DataTable
+          ariaLabel={intl.formatMessage(messages.overviewOverallStandingsHeading)}
+          columns={overallStandingsColumns}
+          mobileMode="priority"
+          moreColumnsLabel={intl.formatMessage(messages.standingsMoreColumns)}
+          rows={overallStandings}
+        />
+      </section>
     )}
     {nextFeaturedMatch && (
       <FeaturedMatchCard
@@ -529,36 +658,101 @@ const trail = publicTrail(trailBase, []);
         </a>
       </p>
     </section>
-    <StandingsTable
-      layouts={declaredLayouts}
-      layout={activeLayout}
-      projection={overviewProjection}
-      csvHref={
-        isFullLayoutView && activeLayout
-          ? publicTableCsvUrl(
-              organization!,
-              tournament!,
-              activeLayout.code,
-              activeLayout.target === 'group-phase' && Number.isFinite(earliestStageNumber)
-                ? earliestStageNumber
-                : undefined,
-              activeClubId,
-            )
-          : undefined
-      }
-      showControls={isFullLayoutView}
-      entrantCount={standingsEntrantCount > 0 ? standingsEntrantCount : undefined}
-      tiebreakLine={tiebreakLine}
-      activeLayoutCode={activeLayout?.code}
-      activeClubId={activeClubId}
-      clubs={model.clubs}
-      intl={intl}
-      canonicalPath={canonicalPath}
-      sectionId="standings"
-      teamAnchorId="teams"
-      organizationAlias={organization!}
-      tournamentAlias={tournament}
-    />
+    {isMultiGroupStandings && overviewProjection ? (
+      <section id="standings" aria-labelledby="standings-heading" class="cl-standings-section">
+        <StandingsTable
+          layouts={declaredLayouts}
+          layout={activeLayout}
+          projection={overviewProjection}
+          showControls={isFullLayoutView}
+          renderPart="header"
+          entrantCount={standingsEntrantCount > 0 ? standingsEntrantCount : undefined}
+          tiebreakLine={tiebreakLine}
+          activeLayoutCode={activeLayout?.code}
+          activeClubId={activeClubId}
+          clubs={model.clubs}
+          intl={intl}
+          canonicalPath={canonicalPath}
+          sectionId="standings"
+          teamAnchorId="teams"
+          organizationAlias={organization!}
+          tournamentAlias={tournament}
+        />
+        <div id="teams" class="cl-standings-groups cl-standings-groups--grid">
+          {visibleSegments.map((segment) => (
+            <StandingsTable
+              layout={activeLayout}
+              projection={{ ...overviewProjection, rows: segment.rows }}
+              heading={segment.groupName}
+              chrome="table-only"
+              showControls={isFullLayoutView}
+              activeLayoutCode={activeLayout?.code}
+              activeClubId={activeClubId}
+              clubs={model.clubs}
+              intl={intl}
+              canonicalPath={canonicalPath}
+              organizationAlias={organization!}
+              tournamentAlias={tournament}
+            />
+          ))}
+        </div>
+        <StandingsTable
+          layouts={declaredLayouts}
+          layout={activeLayout}
+          projection={overviewProjection}
+          csvHref={
+            isFullLayoutView && activeLayout
+              ? publicTableCsvUrl(
+                  organization!,
+                  tournament!,
+                  activeLayout.code,
+                  activeLayout.target === 'group-phase' ? standingsStageNumber : undefined,
+                  activeClubId,
+                )
+              : undefined
+          }
+          showControls={isFullLayoutView}
+          renderPart="footer"
+          activeLayoutCode={activeLayout?.code}
+          activeClubId={activeClubId}
+          clubs={model.clubs}
+          intl={intl}
+          canonicalPath={canonicalPath}
+          sectionId="standings"
+          organizationAlias={organization!}
+          tournamentAlias={tournament}
+        />
+      </section>
+    ) : (
+      <StandingsTable
+        layouts={declaredLayouts}
+        layout={activeLayout}
+        projection={overviewProjection}
+        csvHref={
+          isFullLayoutView && activeLayout
+            ? publicTableCsvUrl(
+                organization!,
+                tournament!,
+                activeLayout.code,
+                activeLayout.target === 'group-phase' ? standingsStageNumber : undefined,
+                activeClubId,
+              )
+            : undefined
+        }
+        showControls={isFullLayoutView}
+        entrantCount={standingsEntrantCount > 0 ? standingsEntrantCount : undefined}
+        tiebreakLine={tiebreakLine}
+        activeLayoutCode={activeLayout?.code}
+        activeClubId={activeClubId}
+        clubs={model.clubs}
+        intl={intl}
+        canonicalPath={canonicalPath}
+        sectionId="standings"
+        teamAnchorId="teams"
+        organizationAlias={organization!}
+        tournamentAlias={tournament}
+      />
+    )}
     {!isFullLayoutView && declaredLayouts.length > 0 && (
       <nav
         aria-label={intl.formatMessage(messages.standingsTableLayouts)}
@@ -605,6 +799,23 @@ const trail = publicTrail(trailBase, []);
 </script>
 
 <style>
+  .cl-overview-completion,
+  .cl-overview-overall-standings {
+    margin-block-end: var(--cl-space-5);
+  }
+
+  .cl-standings-groups {
+    display: grid;
+    gap: var(--cl-space-4);
+    margin-block: var(--cl-space-3);
+  }
+
+  @media (min-width: 1024px) {
+    .cl-standings-groups--grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
   .cl-standings-summary-action {
     margin-block: var(--cl-space-3) var(--cl-space-5);
   }

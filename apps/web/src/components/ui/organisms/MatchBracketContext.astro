@@ -22,6 +22,7 @@ interface Props {
   readonly zoneName?: string;
   readonly matchesView?: readonly MatchCardData[];
   readonly organizationTimeZone?: string;
+  readonly overallPlaceOffset?: number;
 }
 const {
   matches,
@@ -34,6 +35,7 @@ const {
   zoneName,
   matchesView,
   organizationTimeZone,
+  overallPlaceOffset,
 } = Astro.props;
 ---
 
@@ -52,6 +54,7 @@ const {
     stageNumber={stageNumber}
     tournamentAlias={tournamentAlias}
     zoneName={zoneName}
+    overallPlaceOffset={overallPlaceOffset}
   />
   <a
     class="cl-bracket-context__view-full"

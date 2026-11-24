@@ -11,7 +11,8 @@ import { Card, CardDescription, CardTitle } from '../../../../../components/ui/a
 import { ResponsiveTimestamp } from '../../../../../components/ui/atoms/ResponsiveTimestamp.tsx';
 import { LiveMatchHero } from '../../../../../components/ui/organisms/LiveMatchHero.tsx';
 import StandingsTable from '../../../../../components/ui/organisms/StandingsTable.astro';
-import { buildOverview, displayName } from '../../../../../lib/overview.ts';
+import { buildOverview, displayName, groupStandingsByZone } from '../../../../../lib/overview.ts';
+import { isImplicitGroupZoneName } from '../../../../../lib/competition-context.ts';
 import {
   fetchLive,
   fetchOverview,
@@ -93,6 +94,22 @@ const trailBase = trailBaseOf({
   localePrefix,
 });
 const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.livePageTitle) }]);
+const showLeaders =
+  model.standingsStageNumber === undefined ||
+  model.matches
+    .filter((match) => match.stageNumber === model.standingsStageNumber)
+    .some((match) => match.state !== 'final');
+const leaderBlocks = showLeaders ? groupStandingsByZone(model.standings) : [];
+const multipleZones = new Set(leaderBlocks.map((block) => block.zoneName).filter(Boolean)).size > 1;
+const leaderBlockHeading = (block: (typeof leaderBlocks)[number]): string | undefined => {
+  const showZone =
+    block.zoneName !== undefined &&
+    (!block.groupName || (!isImplicitGroupZoneName(block.zoneName) && multipleZones));
+  const parts = [showZone ? block.zoneName : undefined, block.groupName].filter(
+    (part): part is string => part !== undefined,
+  );
+  return parts.length > 0 ? parts.join(' · ') : undefined;
+};
 ---
 
 <PublicLayout
@@ -205,12 +222,40 @@ const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.liveP
       </p>
     )}
 
-    <StandingsTable
-      headingText={intl.formatMessage(messages.livePageLeadersHeading)}
-      intl={intl}
-      previewGrain={model.standingsGrain}
-      previewRows={model.standings}
-    />
+    {showLeaders &&
+      (leaderBlocks.length > 1 ||
+      leaderBlocks.some((block) => leaderBlockHeading(block) !== undefined) ? (
+        <section aria-labelledby="standings-heading" class="cl-standings-section">
+          <StandingsTable
+            headingText={intl.formatMessage(messages.livePageLeadersHeading)}
+            intl={intl}
+            previewGrain={model.standingsGrain}
+            previewRows={model.standings}
+            renderPart="header"
+            showControls={false}
+          />
+          <div class="cl-standings-groups">
+            {leaderBlocks.map((block) => (
+              <StandingsTable
+                chrome="table-only"
+                heading={leaderBlockHeading(block)}
+                intl={intl}
+                previewGrain={model.standingsGrain}
+                previewRows={block.rows}
+                showControls={false}
+              />
+            ))}
+          </div>
+        </section>
+      ) : (
+        <StandingsTable
+          headingText={intl.formatMessage(messages.livePageLeadersHeading)}
+          intl={intl}
+          previewGrain={model.standingsGrain}
+          previewRows={model.standings}
+          showControls={false}
+        />
+      ))}
 
     <ResultLegend
       heading={intl.formatMessage(messages.legendHeading)}
@@ -235,5 +280,11 @@ const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.liveP
   .cl-live-matchup__versus {
     color: var(--cl-text-muted);
     font-family: var(--cl-font-mono);
+  }
+
+  .cl-standings-groups {
+    display: grid;
+    gap: var(--cl-space-4);
+    margin-block: var(--cl-space-3);
   }
 </style>

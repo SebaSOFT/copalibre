@@ -1,5 +1,6 @@
 import {
   bracketBranchLabel,
+  bracketRoleLabel,
   matchCardLabels,
   formatActor,
   formatDateTime,
@@ -10,9 +11,12 @@ import {
   PUBLIC_ENUM_VALUES,
   resultReasonLabels,
   resultStateLabels,
+  rulesetBriefingRows,
   seriesStateBarLabels,
   standingsTiebreakLine,
 } from './public-intl.js';
+import { buildOverview } from '../overview.js';
+import { sampleOverview } from '../sample-data.js';
 import { messages } from './public-messages.en.js';
 import { messages as esMessages } from './public-messages.es.js';
 import { messages as frMessages } from './public-messages.fr.js';
@@ -358,5 +362,71 @@ describe('standingsTiebreakLine', () => {
     );
     expect(standingsTiebreakLine(publicIntl('en'), ruleset(''))).toBeUndefined();
     expect(standingsTiebreakLine(publicIntl('en'), { ruleset: [] })).toBeUndefined();
+  });
+});
+
+describe('rulesetBriefingRows', () => {
+  const baseOverview = buildOverview({
+    ...sampleOverview('liga-mendocina', 'apertura-2026'),
+    ruleset: [{ dotPath: 'format', label: 'Formato', value: 'round-robin' }],
+  });
+
+  it('names each stage format for two stages and keeps mixed zones separate', () => {
+    const model = {
+      ...baseOverview,
+      stages: [
+        { stageNumber: 1, stageName: 'Fase de grupos', format: 'round-robin' },
+        { stageNumber: 2, stageName: 'Copas', format: 'single-elimination' },
+      ],
+    };
+
+    const rows = rulesetBriefingRows(publicIntl('es'), model);
+    expect(rows).toEqual([
+      {
+        label: 'Formato',
+        value: 'Fase de grupos: todos contra todos y Copas: eliminación simple',
+      },
+    ]);
+
+    const mixedModel = {
+      ...baseOverview,
+      stages: [
+        {
+          stageNumber: 1,
+          stageName: 'Fase de grupos',
+          format: 'round-robin',
+          zones: [{ zoneName: 'Copa Repechaje', format: 'single-elimination' }],
+        },
+        { stageNumber: 2, stageName: 'Finales', format: 'single-elimination' },
+      ],
+    };
+    const mixedRows = rulesetBriefingRows(publicIntl('en'), mixedModel);
+    expect(mixedRows[0]?.value).toContain('Fase de grupos: round robin');
+    expect(mixedRows[0]?.value).toContain('Fase de grupos (Copa Repechaje): single elimination');
+    expect(mixedRows[0]?.value).toContain('Finales: single elimination');
+  });
+
+  it('keeps a single format entry for a one-stage tournament', () => {
+    const model = {
+      ...baseOverview,
+      stages: [{ stageNumber: 1, stageName: 'Liga', format: 'round-robin' }],
+    };
+
+    expect(rulesetBriefingRows(publicIntl('es'), model)).toEqual([
+      { label: 'Formato', value: 'Todos contra todos' },
+    ]);
+    expect(rulesetBriefingRows(publicIntl('es'), baseOverview)).toEqual([
+      { label: 'Formato', value: 'Todos contra todos' },
+    ]);
+  });
+});
+
+describe('bracketRoleLabel', () => {
+  it('appends the overall place suffix when overallPlaceOffset is given for a single place', () => {
+    expect(bracketRoleLabel(publicIntl('en'), 'place-5', 16)).toBe('5th place · 21st overall');
+    expect(bracketRoleLabel(publicIntl('en'), 'place-5', 0)).toBe('5th place · 5th overall');
+    expect(bracketRoleLabel(publicIntl('es'), 'place-5', 16)).toBe('5º puesto · 21.º general');
+    expect(bracketRoleLabel(publicIntl('en'), 'place-5')).toBe('5th place');
+    expect(bracketRoleLabel(publicIntl('en'), 'places-5-8', 16)).toBe('5th–8th place');
   });
 });

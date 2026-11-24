@@ -328,7 +328,15 @@ export function mapOverviewResponse(
       played: s.statistics['played'] ?? 0,
       points: s.statistics['points'] ?? 0,
       ...(s.zoneName === undefined ? {} : { zoneName: s.zoneName }),
+      ...(s.groupName === undefined ? {} : { groupName: s.groupName }),
     })),
+    ...(response.stages === undefined ? {} : { stages: response.stages }),
+    ...(response.standingsStageNumber === undefined
+      ? {}
+      : { standingsStageNumber: response.standingsStageNumber }),
+    ...(response.standingsSource === undefined
+      ? {}
+      : { standingsSource: response.standingsSource }),
     ...(response.standingsGrain === undefined ? {} : { standingsGrain: response.standingsGrain }),
     clubs: response.clubs?.map((c) => ({
       clubId: c.clubId,

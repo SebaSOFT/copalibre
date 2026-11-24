@@ -1,6 +1,7 @@
 import type { PreviousPlacement } from './reschedule.js';
 import { applyTemplate, withSourceDepth, type MatchCardData } from './matches-view.js';
 import {
+  formatOverallPlaceFromTemplate,
   formatPlacement,
   formatSideSource,
   sourceMatchLabel,
@@ -51,6 +52,8 @@ export function tvMatchEntriesOf(
     readonly round: string;
     readonly sideSource: SideSourceMessages;
     readonly zonePrefix?: string;
+    readonly overallPlace?: string;
+    readonly overallPlaceOffsetOf?: (row: MatchCardData) => number | undefined;
   },
 ): readonly TvMatchEntry[] {
   return withSourceDepth(rows).map((row): TvMatchEntry => {
@@ -77,8 +80,17 @@ export function tvMatchEntriesOf(
         ...(score === undefined || row.state === 'upcoming' ? {} : { score }),
       };
     };
-    const placementLabel =
+    const basePlacementLabel =
       row.placement === undefined ? undefined : formatPlacement(row.placement, labels.sideSource);
+    const offset = labels.overallPlaceOffsetOf?.(row);
+    const placementLabel =
+      basePlacementLabel !== undefined &&
+      row.placement?.to === undefined &&
+      row.placement !== undefined &&
+      offset !== undefined &&
+      labels.overallPlace !== undefined
+        ? `${basePlacementLabel} · ${formatOverallPlaceFromTemplate(labels.overallPlace, offset + row.placement.from, labels.sideSource)}`
+        : basePlacementLabel;
     const scope =
       placementLabel !== undefined && where !== undefined
         ? applyTemplate(labels.zonePrefix ?? '{zone} · {placement}', {

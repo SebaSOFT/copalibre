@@ -95,7 +95,11 @@ const activeClubId = Astro.url.searchParams.get('clubId') ?? undefined;
 // This stage's own group-phase table (e.g. a round-robin group's standings),
 // when its discipline declares one — an elimination stage naturally has
 // none, and the bracket above is its own ranking.
-const layoutsResponse = await fetchPublicTableLayouts(organization!, tournament!);
+const needsStandingsTable =
+  layoutMode !== 'bracket' && (layoutMode !== 'zones' || zoneLayouts.some((l) => l !== 'bracket'));
+const layoutsResponse = needsStandingsTable
+  ? await fetchPublicTableLayouts(organization!, tournament!)
+  : undefined;
 const groupPhaseLayout = layoutsResponse?.layouts.find((one) => one.target === 'group-phase');
 const standingsCsvHref = groupPhaseLayout
   ? publicTableCsvUrl(organization!, tournament!, groupPhaseLayout.code, stageNumber, activeClubId)
@@ -117,16 +121,12 @@ const stageHeading =
     : intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber });
 const pageTitle = `${displayName(model)} — ${stageHeading}`;
 
-// A zone's own table: the ranked blocks of the groups it holds, which the API labels with the zone.
-const zoneProjection = (zoneName: string | undefined) => {
-  if (!standingsProjection || zoneName === undefined) return undefined;
-  const segments = (standingsProjection.segments ?? []).filter(
-    (segment) => segment.zoneName === zoneName,
-  );
-  return segments.length === 0
-    ? undefined
-    : { ...standingsProjection, rows: segments.flatMap((segment) => segment.rows) };
+// A zone's own group segments, keeping each group as its own table rather than merging them.
+const zoneSegmentsOf = (zoneName: string | undefined) => {
+  if (!standingsProjection || zoneName === undefined) return [];
+  return (standingsProjection.segments ?? []).filter((segment) => segment.zoneName === zoneName);
 };
+const stageSegments = standingsProjection?.segments ?? [];
 
 const structuredData = {
   '@type': 'SportsEvent' as const,
@@ -207,6 +207,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
                 }
                 organizationAlias={organization!}
                 organizationTimeZone={model.organizationTimeZone}
+                overallPlaceOffset={zone.overallPlaceOffset}
                 stageNumber={stageNumber}
                 tournamentAlias={tournament!}
                 zoneName={zone.zoneName}
@@ -242,20 +243,75 @@ const zoneHeading = (name: string | undefined, index: number): string =>
                       />
                     ))}
                 </div>
-                {zoneProjection(zone.zoneName) && (
-                  <StandingsTable
-                    activeClubId={activeClubId}
-                    canonicalPath={stagePath}
-                    clubs={model.clubs}
-                    intl={intl}
-                    layout={groupPhaseLayout}
-                    organizationAlias={organization}
-                    projection={zoneProjection(zone.zoneName)}
-                    csvHref={standingsCsvHref}
-                    sourceZoneName={zone.zoneName}
-                    tournamentAlias={tournament}
-                  />
-                )}
+                {(() => {
+                  const zoneSegments = zoneSegmentsOf(zone.zoneName);
+                  if (!standingsProjection || zoneSegments.length === 0) return null;
+                  if (zoneSegments.length === 1) {
+                    return (
+                      <StandingsTable
+                        activeClubId={activeClubId}
+                        canonicalPath={stagePath}
+                        clubs={model.clubs}
+                        intl={intl}
+                        layout={groupPhaseLayout}
+                        organizationAlias={organization}
+                        projection={{ ...standingsProjection, rows: zoneSegments[0]!.rows }}
+                        csvHref={standingsCsvHref}
+                        sourceZoneName={zone.zoneName}
+                        tournamentAlias={tournament}
+                      />
+                    );
+                  }
+                  return (
+                    <section
+                      class="cl-standings-section"
+                      aria-label={zoneHeading(zone.zoneName, index)}
+                    >
+                      <StandingsTable
+                        activeClubId={activeClubId}
+                        canonicalPath={stagePath}
+                        clubs={model.clubs}
+                        intl={intl}
+                        layout={groupPhaseLayout}
+                        organizationAlias={organization}
+                        projection={standingsProjection}
+                        renderPart="header"
+                        sourceZoneName={zone.zoneName}
+                        tournamentAlias={tournament}
+                      />
+                      <div class="cl-standings-groups">
+                        {zoneSegments.map((segment) => (
+                          <StandingsTable
+                            activeClubId={activeClubId}
+                            canonicalPath={stagePath}
+                            chrome="table-only"
+                            clubs={model.clubs}
+                            heading={segment.groupName}
+                            intl={intl}
+                            layout={groupPhaseLayout}
+                            organizationAlias={organization}
+                            projection={{ ...standingsProjection, rows: segment.rows }}
+                            sourceZoneName={zone.zoneName}
+                            tournamentAlias={tournament}
+                          />
+                        ))}
+                      </div>
+                      <StandingsTable
+                        activeClubId={activeClubId}
+                        canonicalPath={stagePath}
+                        clubs={model.clubs}
+                        csvHref={standingsCsvHref}
+                        intl={intl}
+                        layout={groupPhaseLayout}
+                        organizationAlias={organization}
+                        projection={standingsProjection}
+                        renderPart="footer"
+                        sourceZoneName={zone.zoneName}
+                        tournamentAlias={tournament}
+                      />
+                    </section>
+                  );
+                })()}
               </>
             )}
           </section>
@@ -297,6 +353,7 @@ const zoneHeading = (name: string | undefined, index: number): string =>
               }
               organizationAlias={organization!}
               organizationTimeZone={model.organizationTimeZone}
+              overallPlaceOffset={zone.overallPlaceOffset}
               stageNumber={stageNumber}
               tournamentAlias={tournament!}
               zoneName={zone.zoneName}
@@ -341,19 +398,64 @@ const zoneHeading = (name: string | undefined, index: number): string =>
         </div>
       </section>
     )}
-    {standingsProjection && layoutMode !== 'zones' && (
-      <StandingsTable
-        activeClubId={activeClubId}
-        canonicalPath={stagePath}
-        clubs={model.clubs}
-        intl={intl}
-        layout={groupPhaseLayout}
-        organizationAlias={organization}
-        projection={standingsProjection}
-        csvHref={standingsCsvHref}
-        tournamentAlias={tournament}
-      />
-    )}
+    {standingsProjection &&
+      layoutMode !== 'zones' &&
+      layoutMode !== 'bracket' &&
+      (stageSegments.length > 1 ? (
+        <section id="standings" aria-labelledby="standings-heading" class="cl-standings-section">
+          <StandingsTable
+            activeClubId={activeClubId}
+            canonicalPath={stagePath}
+            clubs={model.clubs}
+            intl={intl}
+            layout={groupPhaseLayout}
+            organizationAlias={organization}
+            projection={standingsProjection}
+            renderPart="header"
+            tournamentAlias={tournament}
+          />
+          <div class="cl-standings-groups">
+            {stageSegments.map((segment) => (
+              <StandingsTable
+                activeClubId={activeClubId}
+                canonicalPath={stagePath}
+                chrome="table-only"
+                clubs={model.clubs}
+                heading={segment.groupName}
+                intl={intl}
+                layout={groupPhaseLayout}
+                organizationAlias={organization}
+                projection={{ ...standingsProjection, rows: segment.rows }}
+                tournamentAlias={tournament}
+              />
+            ))}
+          </div>
+          <StandingsTable
+            activeClubId={activeClubId}
+            canonicalPath={stagePath}
+            clubs={model.clubs}
+            csvHref={standingsCsvHref}
+            intl={intl}
+            layout={groupPhaseLayout}
+            organizationAlias={organization}
+            projection={standingsProjection}
+            renderPart="footer"
+            tournamentAlias={tournament}
+          />
+        </section>
+      ) : (
+        <StandingsTable
+          activeClubId={activeClubId}
+          canonicalPath={stagePath}
+          clubs={model.clubs}
+          intl={intl}
+          layout={groupPhaseLayout}
+          organizationAlias={organization}
+          projection={standingsProjection}
+          csvHref={standingsCsvHref}
+          tournamentAlias={tournament}
+        />
+      ))}
   </Container>
 </PublicLayout>
 
@@ -365,5 +467,11 @@ const zoneHeading = (name: string | undefined, index: number): string =>
     list-style: none;
     margin: 0 0 var(--cl-space-4);
     padding: 0;
+  }
+
+  .cl-standings-groups {
+    display: grid;
+    gap: var(--cl-space-4);
+    margin-block: var(--cl-space-3);
   }
 </style>
