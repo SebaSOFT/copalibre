@@ -286,26 +286,18 @@ async function firstInProgressTournamentAliasByClub(
   });
 
   const tournamentIds = sorted.map((entry) => entry.tournamentId);
-  const [teamEntrants, personEntrants] = await Promise.all([
-    db
-      .selectFrom('entrants')
-      .innerJoin('teams', 'teams.team_id', 'entrants.team_id')
-      .select(['entrants.tournament_id as tournament_id', 'teams.club_id as club_id'])
-      .where('entrants.tournament_id', 'in', tournamentIds)
-      .where('teams.club_id', 'is not', null)
-      .execute(),
-    db
-      .selectFrom('entrants')
-      .innerJoin('players', 'players.person_id', 'entrants.person_id')
-      .innerJoin('teams', 'teams.team_id', 'players.team_id')
-      .select(['entrants.tournament_id as tournament_id', 'teams.club_id as club_id'])
-      .where('entrants.tournament_id', 'in', tournamentIds)
-      .where('teams.club_id', 'is not', null)
-      .execute(),
-  ]);
+  // Team entrants only: the same rule as the overview's club rows, so a club card never links to a
+  // club page that the tournament does not serve.
+  const teamEntrants = await db
+    .selectFrom('entrants')
+    .innerJoin('teams', 'teams.team_id', 'entrants.team_id')
+    .select(['entrants.tournament_id as tournament_id', 'teams.club_id as club_id'])
+    .where('entrants.tournament_id', 'in', tournamentIds)
+    .where('teams.club_id', 'is not', null)
+    .execute();
 
   const clubsByTournament = new Map<string, Set<string>>();
-  for (const row of [...teamEntrants, ...personEntrants]) {
+  for (const row of teamEntrants) {
     if (row.club_id === null) continue;
     let clubSet = clubsByTournament.get(row.tournament_id);
     if (!clubSet) {
@@ -1876,7 +1868,7 @@ export class PublicProjectionsController {
           disciplineRef: tournament.disciplineRef,
         },
         clubAlias: normalizeClubAliasQuery(club),
-        clubId,
+        clubId: firstQueryString(clubId),
       },
       layoutCode,
     );
@@ -1922,7 +1914,7 @@ export class PublicProjectionsController {
           disciplineRef: tournament.disciplineRef,
         },
         clubAlias: normalizeClubAliasQuery(club),
-        clubId,
+        clubId: firstQueryString(clubId),
       },
       layoutCode,
     );
@@ -1977,7 +1969,7 @@ export class PublicProjectionsController {
         },
         stageId: stage.stageId,
         clubAlias: normalizeClubAliasQuery(club),
-        clubId,
+        clubId: firstQueryString(clubId),
       },
       layoutCode,
     );
@@ -2045,7 +2037,7 @@ export class PublicProjectionsController {
         },
         stageId: stage.stageId,
         clubAlias: normalizeClubAliasQuery(club),
-        clubId,
+        clubId: firstQueryString(clubId),
       },
       layoutCode,
     );
@@ -2365,9 +2357,24 @@ export class PublicProjectionsController {
   }
 }
 
-function normalizeClubAliasQuery(club: string | undefined): string | undefined {
-  const trimmed = club?.trim();
-  return trimmed && trimmed.length > 0 ? trimmed : undefined;
+/**
+ * Reads the `club` query value. A repeated `?club=a&club=b` arrives as an array; the first string
+ * decides, and anything that is not a non-empty string is no filter.
+ */
+export function normalizeClubAliasQuery(club: unknown): string | undefined {
+  const candidates: readonly unknown[] = Array.isArray(club) ? club : [club];
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+    const trimmed = candidate.trim();
+    if (trimmed.length > 0) return trimmed;
+  }
+  return undefined;
+}
+
+/** The first string of a query value that may arrive repeated as an array; anything else is absent. */
+export function firstQueryString(value: unknown): string | undefined {
+  const first = Array.isArray(value) ? value.find((entry) => typeof entry === 'string') : value;
+  return typeof first === 'string' ? first : undefined;
 }
 
 function canShowPublicPlayerProfile(tournament: Tournament, hiddenFromPublic?: boolean): boolean {

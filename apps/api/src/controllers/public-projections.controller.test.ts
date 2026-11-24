@@ -12,6 +12,8 @@ import {
 import type { FastifyReply } from 'fastify';
 import type { Kysely } from 'kysely';
 import {
+  firstQueryString,
+  normalizeClubAliasQuery,
   PublicProjectionsController,
   PublicTournamentListingController,
 } from './public-projections.controller.js';
@@ -26,8 +28,8 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
   });
 
   const tournament = {
-    tournamentId: 't-1',
-    organizationId: 'org-1',
+    tournamentId: '01936f4a-002c-7000-8000-0000000002ec',
+    organizationId: '01936f4a-0020-7000-8000-000000000220',
     alias: 'panamericano-2025',
     name: 'Panamericano 2025',
     status: 'published' as const,
@@ -60,7 +62,7 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
           granularity: { actor: 'person', competition: 'match' },
         },
         {
-          code: 'team-only-goals',
+          code: '01936f4a-0032-7000-8000-000000000352',
           label: { en: 'Team goals' },
           source: { kind: 'statistic', statisticCode: 'goals-for' },
           measure: { kind: 'sum', field: 'goals-for' },
@@ -81,22 +83,22 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
       tournament as never,
     );
     vi.spyOn(PersonRepository.prototype, 'findPerson').mockResolvedValue({
-      personId: 'p-1',
-      organizationId: 'org-1',
+      personId: '01936f4a-0021-7000-8000-000000000231',
+      organizationId: '01936f4a-0020-7000-8000-000000000220',
       displayName: 'Francisco V Arriaga',
       hiddenFromPublic: false,
     });
     vi.spyOn(PersonRepository.prototype, 'competitionHistory').mockResolvedValue([
       {
-        tournamentId: 't-1',
+        tournamentId: '01936f4a-002c-7000-8000-0000000002ec',
         tournamentName: 'Panamericano 2025',
         tournamentAlias: 'panamericano-2025',
         disciplineRef: { descriptorId: 'desc-rh', version: '1.1.0' },
-        teamId: 'team-1',
+        teamId: '01936f4a-0031-7000-8000-000000000341',
         teamName: 'Casa de Italia',
         clubAlias: 'casa-de-italia',
         role: 'player',
-        entrantId: 'en-1',
+        entrantId: '01936f4a-000a-7000-8000-0000000000aa',
         entrantName: 'Casa de Italia',
         entrantAbbreviation: 'CIT',
         createdAt: new Date('2026-11-01T00:00:00Z'),
@@ -109,7 +111,9 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
         totals: [{ collectorCode: 'player-appearances', value: 4, samples: 4 }],
       },
     ]);
-    vi.spyOn(tableRead, 'latestFinalizedShirtNumbers').mockResolvedValue(new Map([['p-1', 14]]));
+    vi.spyOn(tableRead, 'latestFinalizedShirtNumbers').mockResolvedValue(
+      new Map([['01936f4a-0021-7000-8000-000000000231', 14]]),
+    );
 
     const db = {
       selectFrom: (table: string) => {
@@ -135,7 +139,7 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
     const response = await controller.playerProfile(
       'panamericano',
       'panamericano-2025',
-      'p-1',
+      '01936f4a-0021-7000-8000-000000000231',
       reply,
     );
 
@@ -190,7 +194,7 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
       },
       rows: [
         {
-          actorId: 'p-hidden',
+          actorId: '01936f4a-0025-7000-8000-000000000275',
           actorName: 'Hidden Player',
           shirtNumber: 9,
           rank: 1,
@@ -201,7 +205,7 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
           },
         },
         {
-          actorId: 'p-visible',
+          actorId: '01936f4a-0029-7000-8000-0000000002b9',
           actorName: 'Visible Player',
           shirtNumber: 3,
           rank: 2,
@@ -224,8 +228,8 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
           execute: async () =>
             table === 'persons'
               ? [
-                  { person_id: 'p-hidden', hidden_from_public: true },
-                  { person_id: 'p-visible', hidden_from_public: false },
+                  { person_id: '01936f4a-0025-7000-8000-000000000275', hidden_from_public: true },
+                  { person_id: '01936f4a-0029-7000-8000-0000000002b9', hidden_from_public: false },
                 ]
               : [],
           executeTakeFirst: async () =>
@@ -244,8 +248,12 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
       'top-scorers',
     );
 
-    const hiddenRow = response.rows.find((r) => r.actorId === 'p-hidden');
-    const visibleRow = response.rows.find((r) => r.actorId === 'p-visible');
+    const hiddenRow = response.rows.find(
+      (r) => r.actorId === '01936f4a-0025-7000-8000-000000000275',
+    );
+    const visibleRow = response.rows.find(
+      (r) => r.actorId === '01936f4a-0029-7000-8000-0000000002b9',
+    );
     expect(hiddenRow?.hiddenAtRequest).toBe(true);
     expect(hiddenRow?.actorName).toBe('');
     expect(hiddenRow?.shirtNumber).toBeUndefined();
@@ -274,18 +282,18 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
       },
       rows: [
         {
-          actorId: 'p-1',
+          actorId: '01936f4a-0021-7000-8000-000000000231',
           actorName: 'Aliased Player',
-          clubId: 'c-1',
+          clubId: '01936f4a-0001-7000-8000-000000000011',
           clubAlias: 'casa-de-italia',
           rank: 1,
           sharedRank: false,
           cells: { player: { raw: 'Aliased Player', formatted: 'Aliased Player' } },
         },
         {
-          actorId: 'p-2',
+          actorId: '01936f4a-0023-7000-8000-000000000253',
           actorName: 'Unaliased Player',
-          clubId: 'c-2',
+          clubId: '01936f4a-0002-7000-8000-000000000022',
           rank: 2,
           sharedRank: false,
           cells: { player: { raw: 'Unaliased Player', formatted: 'Unaliased Player' } },
@@ -303,8 +311,8 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
           execute: async () =>
             table === 'persons'
               ? [
-                  { person_id: 'p-1', hidden_from_public: false },
-                  { person_id: 'p-2', hidden_from_public: false },
+                  { person_id: '01936f4a-0021-7000-8000-000000000231', hidden_from_public: false },
+                  { person_id: '01936f4a-0023-7000-8000-000000000253', hidden_from_public: false },
                 ]
               : [],
           executeTakeFirst: async () =>
@@ -322,11 +330,14 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
       'panamericano-2025',
       'top-scorers',
       'casa-de-italia',
-      'c-2',
+      '01936f4a-0002-7000-8000-000000000022',
     );
     expect(tableRead.readTableProjection).toHaveBeenCalledWith(
       db,
-      expect.objectContaining({ clubAlias: 'casa-de-italia', clubId: 'c-2' }),
+      expect.objectContaining({
+        clubAlias: 'casa-de-italia',
+        clubId: '01936f4a-0002-7000-8000-000000000022',
+      }),
       'top-scorers',
     );
     expect(response.rows[0]?.clubAlias).toBe('casa-de-italia');
@@ -339,18 +350,18 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
     );
     vi.spyOn(matchesViewRead, 'readMatchesView').mockResolvedValue([
       {
-        matchId: 'm-1',
+        matchId: '01936f4a-0016-7000-8000-000000000176',
         stageNumber: 1,
         matchNumber: 1,
         round: 1,
         status: 'upcoming',
-        homeEntrantId: 'en-1',
+        homeEntrantId: '01936f4a-000a-7000-8000-0000000000aa',
         homeName: 'Casa de Italia',
-        homeClubId: 'c-1',
+        homeClubId: '01936f4a-0001-7000-8000-000000000011',
         homeClubAlias: 'casa-de-italia',
-        awayEntrantId: 'en-2',
+        awayEntrantId: '01936f4a-000b-7000-8000-0000000000bb',
         awayName: 'Sin Alias',
-        awayClubId: 'c-2',
+        awayClubId: '01936f4a-0002-7000-8000-000000000022',
       },
     ]);
 
@@ -386,12 +397,17 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
       tournament as never,
     );
     vi.spyOn(CompetitionRepository.prototype, 'listStagesOfTournament').mockResolvedValue([
-      { stageId: 'st-1', number: 1, name: 'Grupos', format: 'round-robin' } as never,
+      {
+        stageId: '01936f4a-002a-7000-8000-0000000002ca',
+        number: 1,
+        name: 'Grupos',
+        format: 'round-robin',
+      } as never,
     ]);
     vi.spyOn(StageReadModel.prototype, 'matches').mockResolvedValue([
       {
-        matchId: 'm-1',
-        fixtureId: 'f-1',
+        matchId: '01936f4a-0016-7000-8000-000000000176',
+        fixtureId: '01936f4a-0012-7000-8000-000000000132',
         round: 1,
         position: 1,
         status: 'scheduled',
@@ -407,15 +423,22 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
     vi.spyOn(EnrollmentRepository.prototype, 'resolveEntrantPodiumDetails').mockResolvedValue(
       new Map([
         [
-          'en-1',
+          '01936f4a-000a-7000-8000-0000000000aa',
           {
             name: 'Casa de Italia',
             abbreviation: 'CIT',
-            clubId: 'c-1',
+            clubId: '01936f4a-0001-7000-8000-000000000011',
             clubAlias: 'casa-de-italia',
           },
         ],
-        ['en-2', { name: 'Sin Alias', abbreviation: 'SNA', clubId: 'c-2' }],
+        [
+          '01936f4a-000b-7000-8000-0000000000bb',
+          {
+            name: 'Sin Alias',
+            abbreviation: 'SNA',
+            clubId: '01936f4a-0002-7000-8000-000000000022',
+          },
+        ],
       ]),
     );
     vi.spyOn(scheduleRead, 'readPublicScheduleChanges').mockResolvedValue(new Map());
@@ -435,14 +458,14 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
             }
             if (table === 'matches') {
               return {
-                match_id: 'm-1',
+                match_id: '01936f4a-0016-7000-8000-000000000176',
                 number: 1,
                 status: 'scheduled',
                 result: null,
-                fixture_id: 'f-1',
+                fixture_id: '01936f4a-0012-7000-8000-000000000132',
                 round: 1,
-                home_entrant_id: 'en-1',
-                away_entrant_id: 'en-2',
+                home_entrant_id: '01936f4a-000a-7000-8000-0000000000aa',
+                away_entrant_id: '01936f4a-000b-7000-8000-0000000000bb',
               };
             }
             return undefined;
@@ -458,16 +481,96 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
     expect(report).not.toHaveProperty('awayClubAlias');
   });
 
-  it('picks the first in-progress published tournament by start date ascending for organization clubs', async () => {
+  it('derives an organization club tournament alias from team entrants only, never from person entrants', async () => {
     vi.spyOn(EnrollmentRepository.prototype, 'listClubs').mockResolvedValue([
-      { clubId: 'c-early', organizationId: 'org-1', name: 'Club Early', alias: 'club-early' },
-      { clubId: 'c-late', organizationId: 'org-1', name: 'Club Late', alias: 'club-late' },
-      { clubId: 'c-idle', organizationId: 'org-1', name: 'Club Idle', alias: 'club-idle' },
+      {
+        clubId: '01936f4a-0001-7000-8000-000000000011',
+        organizationId: '01936f4a-0020-7000-8000-000000000220',
+        name: 'Club Uno',
+        alias: 'club-uno',
+      },
     ]);
     vi.spyOn(TournamentRepository.prototype, 'listPublishedByOrganization').mockResolvedValue([
       {
         ...tournament,
-        tournamentId: 't-finished',
+        tournamentId: '01936f4a-002c-7000-8000-0000000002ec',
+        alias: 'copa-uno',
+        name: 'Copa Uno',
+        status: 'started',
+        startedAt: '2026-11-10T00:00:00.000Z',
+      },
+    ]);
+    vi.spyOn(CompetitionRepository.prototype, 'listStagesOfTournament').mockResolvedValue([]);
+    vi.spyOn(PublicOverviewReadModel.prototype, 'matchesForTournament').mockResolvedValue([]);
+    vi.spyOn(scheduleRead, 'readPublicVenues').mockResolvedValue([]);
+
+    const joinedTables: string[] = [];
+    const db = {
+      selectFrom: (table: string) => {
+        const chain = {
+          innerJoin: (joined: string) => {
+            if (table === 'entrants') joinedTables.push(joined);
+            return chain;
+          },
+          select: () => chain,
+          where: () => chain,
+          execute: async () => {
+            if (table === 'discipline_descriptors') {
+              return [{ descriptorId: 'desc-rh', document: footballDescriptor() }];
+            }
+            if (table === 'entrants') {
+              // Only a person entrant of the club: its tournament must not link the club.
+              return [];
+            }
+            return [];
+          },
+          executeTakeFirst: async () =>
+            table === 'organizations'
+              ? {
+                  organizationId: '01936f4a-0020-7000-8000-000000000220',
+                  name: 'Panamericano',
+                  alias: 'panamericano',
+                  emblem_object_id: null,
+                }
+              : undefined,
+        };
+        return chain;
+      },
+    } as unknown as Kysely<Database>;
+
+    const listing = await new PublicTournamentListingController(db).listTournaments('panamericano');
+
+    expect(joinedTables).toEqual(['teams']);
+    expect(
+      listing.clubs.find((club) => club.clubId === '01936f4a-0001-7000-8000-000000000011'),
+    ).not.toHaveProperty('tournamentAlias');
+  });
+
+  it('picks the first in-progress published tournament by start date ascending for organization clubs', async () => {
+    vi.spyOn(EnrollmentRepository.prototype, 'listClubs').mockResolvedValue([
+      {
+        clubId: '01936f4a-0003-7000-8000-000000000033',
+        organizationId: '01936f4a-0020-7000-8000-000000000220',
+        name: 'Club Early',
+        alias: 'club-early',
+      },
+      {
+        clubId: '01936f4a-0005-7000-8000-000000000055',
+        organizationId: '01936f4a-0020-7000-8000-000000000220',
+        name: 'Club Late',
+        alias: 'club-late',
+      },
+      {
+        clubId: '01936f4a-0004-7000-8000-000000000044',
+        organizationId: '01936f4a-0020-7000-8000-000000000220',
+        name: 'Club Idle',
+        alias: 'club-idle',
+      },
+    ]);
+    vi.spyOn(TournamentRepository.prototype, 'listPublishedByOrganization').mockResolvedValue([
+      {
+        ...tournament,
+        tournamentId: '01936f4a-002e-7000-8000-00000000030e',
         alias: 'copa-terminada',
         name: 'Copa Terminada',
         status: 'finished',
@@ -475,14 +578,14 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
       },
       {
         ...tournament,
-        tournamentId: 't-upcoming',
+        tournamentId: '01936f4a-0030-7000-8000-000000000330',
         alias: 'copa-proxima',
         name: 'Copa Próxima',
         status: 'published',
       },
       {
         ...tournament,
-        tournamentId: 't-late',
+        tournamentId: '01936f4a-002f-7000-8000-00000000031f',
         alias: 'copa-tardia',
         name: 'Copa Tardía',
         status: 'started',
@@ -490,7 +593,7 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
       },
       {
         ...tournament,
-        tournamentId: 't-early',
+        tournamentId: '01936f4a-002d-7000-8000-0000000002fd',
         alias: 'copa-temprana',
         name: 'Copa Temprana',
         status: 'started',
@@ -516,9 +619,18 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
               entrantCall += 1;
               if (entrantCall === 1) {
                 return [
-                  { tournament_id: 't-late', club_id: 'c-early' },
-                  { tournament_id: 't-late', club_id: 'c-late' },
-                  { tournament_id: 't-early', club_id: 'c-early' },
+                  {
+                    tournament_id: '01936f4a-002f-7000-8000-00000000031f',
+                    club_id: '01936f4a-0003-7000-8000-000000000033',
+                  },
+                  {
+                    tournament_id: '01936f4a-002f-7000-8000-00000000031f',
+                    club_id: '01936f4a-0005-7000-8000-000000000055',
+                  },
+                  {
+                    tournament_id: '01936f4a-002d-7000-8000-0000000002fd',
+                    club_id: '01936f4a-0003-7000-8000-000000000033',
+                  },
                 ];
               }
               return [];
@@ -528,7 +640,7 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
           executeTakeFirst: async () =>
             table === 'organizations'
               ? {
-                  organizationId: 'org-1',
+                  organizationId: '01936f4a-0020-7000-8000-000000000220',
                   name: 'Panamericano',
                   alias: 'panamericano',
                   emblem_object_id: null,
@@ -543,8 +655,41 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
     const listing = await listingController.listTournaments('panamericano');
 
     const byId = new Map(listing.clubs.map((club) => [club.clubId, club]));
-    expect(byId.get('c-early')?.tournamentAlias).toBe('copa-temprana');
-    expect(byId.get('c-late')?.tournamentAlias).toBe('copa-tardia');
-    expect(byId.get('c-idle')).not.toHaveProperty('tournamentAlias');
+    expect(byId.get('01936f4a-0003-7000-8000-000000000033')?.tournamentAlias).toBe('copa-temprana');
+    expect(byId.get('01936f4a-0005-7000-8000-000000000055')?.tournamentAlias).toBe('copa-tardia');
+    expect(byId.get('01936f4a-0004-7000-8000-000000000044')).not.toHaveProperty('tournamentAlias');
+  });
+});
+
+describe('club query normalization', () => {
+  it('reads a single club alias, trimmed, and treats blank or absent values as no filter', () => {
+    expect(normalizeClubAliasQuery(' andes-talleres ')).toBe('andes-talleres');
+    expect(normalizeClubAliasQuery('')).toBeUndefined();
+    expect(normalizeClubAliasQuery('   ')).toBeUndefined();
+    expect(normalizeClubAliasQuery(undefined)).toBeUndefined();
+  });
+
+  it('takes the first string of a repeated club parameter instead of failing on the array', () => {
+    expect(normalizeClubAliasQuery(['andes-talleres', 'casa-de-italia'])).toBe('andes-talleres');
+    expect(normalizeClubAliasQuery(['', 'casa-de-italia'])).toBe('casa-de-italia');
+    expect(normalizeClubAliasQuery([])).toBeUndefined();
+    expect(normalizeClubAliasQuery([42, null])).toBeUndefined();
+  });
+
+  it('ignores a value that is neither a string nor a list of strings', () => {
+    expect(normalizeClubAliasQuery(42)).toBeUndefined();
+    expect(normalizeClubAliasQuery({ club: 'andes-talleres' })).toBeUndefined();
+  });
+
+  it('firstQueryString returns the first string of a list and nothing for other values', () => {
+    expect(firstQueryString('01936f4a-0a00-7000-8000-000000000001')).toBe(
+      '01936f4a-0a00-7000-8000-000000000001',
+    );
+    expect(firstQueryString(['01936f4a-0a00-7000-8000-000000000001', 'x'])).toBe(
+      '01936f4a-0a00-7000-8000-000000000001',
+    );
+    expect(firstQueryString(['', 'x'])).toBe('');
+    expect(firstQueryString(undefined)).toBeUndefined();
+    expect(firstQueryString(7)).toBeUndefined();
   });
 });

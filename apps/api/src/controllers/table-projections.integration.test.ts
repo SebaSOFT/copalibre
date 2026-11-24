@@ -959,6 +959,31 @@ describe('table projections (integration)', () => {
       expect(otherOrgTour.json().rows).toEqual([]);
       expect(otherOrgStageCsv.statusCode).toBe(200);
       expect(otherOrgStageCsv.body.trim()).toBe('rank,name,points,promotion_band,promotion_seed');
+
+      // A repeated ?club= parameter arrives as a list. The first alias decides, on JSON and CSV alike,
+      // and nothing answers 500.
+      const [repeatedStage, repeatedStageCsv, repeatedTour, repeatedTourCsv] = await Promise.all([
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?club=club-atletico-talleres&club=club-independiente',
+        ),
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default/csv?club=club-atletico-talleres&club=club-independiente',
+        ),
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?club=club-atletico-talleres&club=club-independiente',
+        ),
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers/csv?club=club-atletico-talleres&club=club-independiente',
+        ),
+      ]);
+      expect(repeatedStage.statusCode).toBe(200);
+      expect(repeatedStage.json().rows).toEqual(stageByClub.json().rows);
+      expect(repeatedStageCsv.statusCode).toBe(200);
+      expect(repeatedStageCsv.body).toBe(stageCsvByClub.body);
+      expect(repeatedTour.statusCode).toBe(200);
+      expect(repeatedTour.json().rows).toEqual(tourByClub.json().rows);
+      expect(repeatedTourCsv.statusCode).toBe(200);
+      expect(repeatedTourCsv.body).toBe(tourCsvByClub.body);
     });
 
     it('is a genuinely different route from the admin one, not a shared shadowed path', async () => {

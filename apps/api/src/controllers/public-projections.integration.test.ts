@@ -1738,6 +1738,83 @@ describe('public projections routes', () => {
       expect(byClubId.get(clubIdle.clubId)).not.toHaveProperty('tournamentAlias');
     });
 
+    it('does not link a club whose only entrant in a tournament is a person of its team', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const enrollments = new EnrollmentRepository(scratch.db);
+      const people = new PersonRepository(scratch.db);
+      const descriptor = footballDescriptor();
+      const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+
+      const { clubId, tournamentId: personTournament } = await withTransaction(
+        scratch.db as Kysely<Database>,
+        async (uow) => {
+          const club = await enrollments.createClub(uow, {
+            organizationId,
+            alias: 'club-org-person',
+            name: 'Org Person Club',
+            ...audit,
+          });
+          const team = await enrollments.createTeam(uow, {
+            organizationId,
+            clubId: club.clubId,
+            name: 'Team Org Person',
+            ...audit,
+          });
+          const person = await people.register(uow, {
+            organizationId,
+            displayName: 'Jugador Org Person',
+            birthDate: '1995-05-20',
+            ...audit,
+          });
+          await people.enlist(uow, {
+            organizationId,
+            personId: person.person.personId,
+            teamId: team.teamId,
+            role: 'player',
+            ...audit,
+          });
+          const tournament = await tournaments.create(uow, {
+            organizationId,
+            alias: 'copa-org-person',
+            name: 'Copa Org Person',
+            descriptor,
+            ...audit,
+          });
+          await enrollments.registerEntrant(uow, {
+            organizationId,
+            tournamentId: tournament.tournamentId,
+            entrantRef: { kind: 'person', personId: person.person.personId },
+            ...audit,
+          });
+          return { clubId: club.clubId, tournamentId: tournament.tournamentId };
+        },
+      );
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.publish(uow, {
+          tournamentId: personTournament,
+          organizationId,
+          ...audit,
+        }),
+      );
+      await scratch.db
+        .updateTable('tournaments')
+        .set({ status: 'started', started_at: new Date('2026-11-12T10:00:00.000Z') })
+        .where('alias', '=', 'copa-org-person')
+        .execute();
+
+      const response = await request({
+        method: 'GET',
+        url: '/api/organizations/liga-orbital/public/tournaments',
+      });
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload as string) as {
+        clubs: { clubId: string; tournamentAlias?: string }[];
+      };
+      expect(body.clubs.find((club) => club.clubId === clubId)).not.toHaveProperty(
+        'tournamentAlias',
+      );
+    });
+
     it('resolves champions and runners-up for finished duel tournaments', async () => {
       const tournaments = new TournamentRepository(scratch.db);
       const competition = new CompetitionRepository(scratch.db);
