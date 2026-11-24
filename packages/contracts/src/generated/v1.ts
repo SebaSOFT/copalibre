@@ -3656,8 +3656,14 @@ export interface components {
             scores?: number[];
         };
         PublicMatchesViewEventResponse: {
+            /** @description The event definition's discipline code */
+            definitionCode: string;
             /** @description The event's own discipline-declared label */
             label: string;
+            /** @description The event's localized discipline labels */
+            labels?: {
+                [key: string]: string;
+            };
             /** Format: date-time */
             occurredAt: string;
         };
@@ -3774,8 +3780,15 @@ export interface components {
             awayPosition?: number;
             /** @description Present only on a cross settled by a series; mutually exclusive with zone/position */
             series?: components["schemas"]["PublicSeriesStateResponse"];
-            /** @description One line naming the tiebreak comparator that decided a finalized, standings-relevant match — never the full internal comparator trace */
+            /**
+             * @deprecated
+             * @description One line naming the tiebreak comparator that decided a finalized, standings-relevant match — never the full internal comparator trace
+             */
             decidingFactor?: string;
+            /** @description Tiebreaker code of the comparator that separated this match’s two entrants while tied */
+            decidingFactorCode?: string;
+            /** @description 1-based position of that comparator in the tiebreak order */
+            decidingFactorRule?: number;
             /** @description The home entrant's full internal comparator trace — present only when the requesting subject holds org.view-internal-standings for this tournament, and only for a match whose result needed a tiebreak comparator */
             homeTrace?: string[];
             /** @description The away entrant's full internal comparator trace, same authorization as homeTrace */
@@ -5900,6 +5913,10 @@ export interface components {
             descriptorId: string;
             version: string;
             name?: string;
+            /** @description The discipline name as declared, with its available translations */
+            localizedName?: {
+                [key: string]: string;
+            };
         };
         PublicTournamentDatesResponse: {
             /** Format: date-time */
@@ -6408,8 +6425,15 @@ export interface components {
             awayPosition?: number;
             /** @description Present only on a cross settled by a series; mutually exclusive with zone/position */
             series?: components["schemas"]["PublicSeriesStateResponse"];
-            /** @description One line naming the tiebreak comparator that decided a finalized, standings-relevant match — never the full internal comparator trace */
+            /**
+             * @deprecated
+             * @description One line naming the tiebreak comparator that decided a finalized, standings-relevant match — never the full internal comparator trace
+             */
             decidingFactor?: string;
+            /** @description Tiebreaker code of the comparator that separated this match’s two entrants while tied */
+            decidingFactorCode?: string;
+            /** @description 1-based position of that comparator in the tiebreak order */
+            decidingFactorRule?: number;
         };
         PublicMatchesViewResponse: {
             matches: components["schemas"]["PublicMatchesViewMatchResponse"][];

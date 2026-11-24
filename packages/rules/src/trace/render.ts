@@ -164,3 +164,90 @@ export function decidingFactorLabel(
   collectDecisive(entrantTrace);
   return decisive.at(-1)?.label;
 }
+
+export interface DecidingFactor {
+  readonly code: string;
+  readonly rule: number;
+}
+
+function valuesEqual(a: unknown, b: unknown): boolean {
+  return Object.is(a, b);
+}
+
+function rulePositionOf(node: TraceNode, comparatorIndex: number): number {
+  const match = /^Rule\s+(\d+)\b/.exec(node.label);
+  return match ? Number(match[1]) : comparatorIndex + 1;
+}
+
+function hasValuesForBoth(
+  node: TraceNode,
+  entrantA: string,
+  entrantB: string,
+): node is TraceNode & { readonly values: Readonly<Record<string, unknown>> } {
+  return (
+    node.values !== undefined &&
+    Object.hasOwn(node.values, entrantA) &&
+    Object.hasOwn(node.values, entrantB)
+  );
+}
+
+function findDecidingComparator(
+  nodes: readonly TraceNode[],
+  entrantA: string,
+  entrantB: string,
+  isTopLevel: boolean,
+): { readonly node: TraceNode; readonly rule: number } | undefined {
+  let comparatorIndex = 0;
+  for (const node of nodes) {
+    if (node.kind !== 'comparator') continue;
+    const rule = rulePositionOf(node, comparatorIndex);
+    const isPrimaryStep = isTopLevel && comparatorIndex === 0 && rule === 1;
+    comparatorIndex++;
+
+    if (hasValuesForBoth(node, entrantA, entrantB)) {
+      const separated = !valuesEqual(node.values[entrantA], node.values[entrantB]);
+      if (isPrimaryStep) {
+        if (separated) return undefined;
+      } else if (
+        separated &&
+        (node.outcome === 'resolved' || node.outcome === 'partially-resolved')
+      ) {
+        return { node, rule };
+      }
+    }
+
+    if (node.children) {
+      const nested = findDecidingComparator(node.children, entrantA, entrantB, false);
+      if (nested !== undefined) return nested;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * The comparator trace node (and its 1-based rule position) that actually
+ * separated `entrantA` and `entrantB` while the two were tied, or `undefined`
+ * when the primary ranking metric separated them on its own or no tiebreak
+ * comparator resolved them apart.
+ */
+export function decidingFactorNodeBetween(
+  trace: readonly TraceNode[],
+  entrantA: string,
+  entrantB: string,
+): { readonly node: TraceNode; readonly rule: number } | undefined {
+  if (entrantA === entrantB) return undefined;
+  return findDecidingComparator(trace, entrantA, entrantB, true);
+}
+
+/**
+ * Pair-scoped deciding tiebreaker code and 1-based rule position between two
+ * entrants, or `undefined` when they were never split by a tiebreak comparator.
+ */
+export function decidingFactorBetween(
+  trace: readonly TraceNode[],
+  entrantA: string,
+  entrantB: string,
+): DecidingFactor | undefined {
+  const match = decidingFactorNodeBetween(trace, entrantA, entrantB);
+  return match === undefined ? undefined : { code: match.node.id, rule: match.rule };
+}

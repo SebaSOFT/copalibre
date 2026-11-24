@@ -1,3 +1,9 @@
+## Unreleased
+
+### Deprecations
+
+- **`decidingFactor` on matches-view responses** is deprecated in favour of `decidingFactorCode` and `decidingFactorRule`, and will be removed in a subsequent minor release.
+
 ## [2.0.0](https://github.com/SebaSOFT/copalibre/compare/v1.2.6...v2.0.0) (2026-11-23)
 
 ### Breaking changes

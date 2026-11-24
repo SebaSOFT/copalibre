@@ -1117,6 +1117,13 @@ export class PublicTournamentDisciplineSummaryResponse {
 
   @ApiPropertyOptional()
   name?: string;
+
+  @ApiPropertyOptional({
+    description: 'The discipline name as declared, with its available translations',
+    type: 'object',
+    additionalProperties: { type: 'string' },
+  })
+  localizedName?: LocalizedLabel;
 }
 
 export class PublicTournamentDatesResponse {
@@ -1222,8 +1229,18 @@ export class PublicOrganizationTournamentListResponse {
 
 /** A card's latest recorded event — deliberately generic, never a specific event code. */
 export class PublicMatchesViewEventResponse {
+  @ApiProperty({ description: "The event definition's discipline code" })
+  definitionCode!: string;
+
   @ApiProperty({ description: "The event's own discipline-declared label" })
   label!: string;
+
+  @ApiPropertyOptional({
+    description: "The event's localized discipline labels",
+    type: 'object',
+    additionalProperties: { type: 'string' },
+  })
+  labels?: LocalizedLabel;
 
   @ApiProperty({ format: 'date-time' })
   occurredAt!: string;
@@ -1352,11 +1369,23 @@ export class PublicMatchesViewMatchResponse extends FixtureSourcesResponse {
   series?: PublicSeriesStateResponse;
 
   @ApiPropertyOptional({
+    deprecated: true,
     description:
       'One line naming the tiebreak comparator that decided a finalized, standings-relevant ' +
       'match — never the full internal comparator trace',
   })
   decidingFactor?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Tiebreaker code of the comparator that separated this match’s two entrants while tied',
+  })
+  decidingFactorCode?: string;
+
+  @ApiPropertyOptional({
+    description: '1-based position of that comparator in the tiebreak order',
+  })
+  decidingFactorRule?: number;
 }
 
 export class PublicMatchesViewResponse {
