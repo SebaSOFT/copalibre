@@ -17,6 +17,7 @@ import { parseBracketRole } from '../bracket-role.js';
 import { seriesScore, seriesSegments, type SegmentState, type SeriesInput } from '../series.js';
 import { displayName, type OverviewModel } from '../overview.js';
 import { PUBLIC_TIEBREAKER_LABELS, tiebreakerLabelsForCatalog } from '../tiebreaker-labels.js';
+import type { TournamentStatusLineLabels } from '../tournament-status-line.js';
 
 /** Labels for every non-`played` `ResultReason` — `played` never renders one. */
 export type ResultReasonLabels = Readonly<Record<Exclude<ResultReason, 'played'>, string>>;
@@ -240,6 +241,7 @@ export function tvDashboardLabels(intl: IntlShape) {
       zone: '{zone}',
       placement: '{placement}',
     }),
+    overallPlace: overallPlaceTemplate(intl),
     matchEventsLabel: intl.formatMessage(messages.tvDashboardMatchEventsLabel),
     statsAndTablesLabel: intl.formatMessage(messages.tvDashboardStatsAndTablesLabel),
     sidebarSectionsLabel: intl.formatMessage(messages.tvDashboardSidebarSectionsLabel),
@@ -619,27 +621,85 @@ function rulesetValue(intl: IntlShape, value: string): string {
 /**
  * `RulesetBriefing.astro`'s rows, fully resolved — the field's label (already
  * localized by `mapOverviewResponse`) paired with its localized display value.
+ * When the tournament declares more than one stage (or a stage whose zone
+ * formats differ from the stage's), the format row lists each stage/zone
+ * format rather than collapsing the tournament to one format.
  * I18n formatting stays at this organism-and-above tier
  * (`check-atomic-composition.mjs` R6); the molecule only ever renders strings.
  */
+function formatStageFormats(
+  intl: IntlShape,
+  model: Pick<OverviewModel, 'stages'>,
+): string | undefined {
+  const stages = model.stages;
+  if (!stages || stages.length === 0) return undefined;
+  const hasMixedZone = stages.some((stage) =>
+    (stage.zones ?? []).some((zone) => zone.zoneName && zone.format !== stage.format),
+  );
+  if (stages.length <= 1 && !hasMixedZone) return undefined;
+
+  const lowerFormat = (code: string): string =>
+    formatEnum(intl, 'format', code).toLocaleLowerCase(intl.locale);
+  const entries: string[] = [];
+  for (const stage of stages) {
+    const stageName =
+      stage.stageName?.trim() ||
+      intl.formatMessage(messages.breadcrumbStage, { stage: stage.stageNumber });
+    entries.push(
+      intl.formatMessage(messages.rulesetStageFormat, {
+        stage: stageName,
+        format: lowerFormat(stage.format),
+      }),
+    );
+    for (const zone of stage.zones ?? []) {
+      if (zone.zoneName && zone.format !== stage.format) {
+        entries.push(
+          intl.formatMessage(messages.rulesetStageFormat, {
+            stage: `${stageName} (${zone.zoneName})`,
+            format: lowerFormat(zone.format),
+          }),
+        );
+      }
+    }
+  }
+  return entries.length > 0 ? intl.formatList(entries, { type: 'conjunction' }) : undefined;
+}
+
 export function rulesetBriefingRows(
   intl: IntlShape,
   model: OverviewModel,
 ): readonly RulesetBriefingRow[] {
+  const stageFormatValue = formatStageFormats(intl, model);
   return model.ruleset.map((entry) => {
+    const isFormat = /(?:^|\.)format$/.test(entry.dotPath);
     const isTiebreakerList = /(?:^|\.)tiebreakers$/.test(entry.dotPath);
-    const value = isTiebreakerList
-      ? intl.formatList(
-          entry.value
-            .split(',')
-            .map((kind) => kind.trim())
-            .filter(Boolean)
-            .map((kind) => formatEnum(intl, 'tiebreaker', kind)),
-          { type: 'conjunction' },
-        )
-      : rulesetValue(intl, entry.value);
+    const value =
+      isFormat && stageFormatValue !== undefined
+        ? stageFormatValue
+        : isTiebreakerList
+          ? intl.formatList(
+              entry.value
+                .split(',')
+                .map((kind) => kind.trim())
+                .filter(Boolean)
+                .map((kind) => formatEnum(intl, 'tiebreaker', kind)),
+              { type: 'conjunction' },
+            )
+          : rulesetValue(intl, entry.value);
     return { label: entry.label, value };
   });
+}
+
+export function tournamentStatusLineLabels(intl: IntlShape): TournamentStatusLineLabels {
+  return {
+    statusLine: intl.formatMessage(messages.overviewStatusLine, { stages: '{stages}' }),
+    stageFinished: intl.formatMessage(messages.overviewStageFinished, { stage: '{stage}' }),
+    stageInPlay: intl.formatMessage(messages.overviewStageInPlay, {
+      stage: '{stage}',
+      resolved: '{resolved}',
+      total: '{total}',
+    }),
+  };
 }
 
 /** How many tiebreakers the standings header names before it trails off. */
@@ -729,16 +789,37 @@ export function bracketBranchLabel(intl: IntlShape, branch: string): string {
 }
 
 /** What a placement game decides, in the page's language: "3rd place", "5th–8th place". */
-export function bracketRoleLabel(intl: IntlShape, role: string): string {
+export function bracketRoleLabel(
+  intl: IntlShape,
+  role: string,
+  overallPlaceOffset?: number,
+): string {
   const parsed = parseBracketRole(role);
   switch (parsed.kind) {
-    case 'place':
-      return intl.formatMessage(messages.placementPlace, { place: parsed.place });
+    case 'place': {
+      const base = intl.formatMessage(messages.placementPlace, { place: parsed.place });
+      if (overallPlaceOffset === undefined) return base;
+      const overall = intl.formatMessage(messages.bracketOverallPlace, {
+        place: overallPlaceOffset + parsed.place,
+      });
+      return `${base} · ${overall}`;
+    }
     case 'places':
       return intl.formatMessage(messages.placementPlaces, { from: parsed.from, to: parsed.to });
     default:
       return parsed.code;
   }
+}
+
+function overallPlaceTemplate(intl: IntlShape): string {
+  const rendered = intl.formatMessage(messages.bracketOverallPlace, { place: 987654 });
+  if (intl.locale.startsWith('en')) {
+    return rendered.replace(/987[.,]?654(?:st|nd|rd|th)/, '{ordinal}');
+  }
+  if (intl.locale.startsWith('fr')) {
+    return rendered.replace(/987[.,]?654(?:er|re|e)/, '{ordinal}');
+  }
+  return rendered.replace(/987[.,]?654/g, '{place}');
 }
 
 /** Templates used by `competitionContext` across public pages and TV. */
@@ -757,6 +838,7 @@ export function competitionContextLabels(intl: IntlShape): CompetitionContextLab
       intl.formatMessage(messages.sideSourceQuarterFinal, { position: '{position}' }),
     ),
     sideSource: sideSourceLabels(intl),
+    overallPlaceTemplate: overallPlaceTemplate(intl),
   };
 }
 

@@ -47,6 +47,12 @@ export class PublicStandingsRowResponse {
       'The zone this row is ranked in. Present only when the stage mixes formats, so each table zone is ranked on its own; absent for a stage with a single table.',
   })
   zoneName?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'The group this row is ranked in. Present when the stage defines named groups; absent for an ungrouped stage.',
+  })
+  groupName?: string;
 }
 
 export class PublicScheduleVenueResponse {
@@ -201,6 +207,33 @@ export class PublicObjectReferenceResponse {
   key!: string;
 }
 
+export class PublicOverviewStageZoneResponse {
+  @ApiPropertyOptional({ description: 'Zone name; absent for an implicit zone' })
+  zoneName?: string;
+
+  @ApiProperty({ description: 'Effective competition format of this zone' })
+  format!: string;
+}
+
+export class PublicOverviewStageResponse {
+  @ApiProperty()
+  stageNumber!: number;
+
+  @ApiPropertyOptional({
+    description: 'The stage name as the organizer named it; absent when empty',
+  })
+  stageName?: string;
+
+  @ApiProperty({ description: 'Effective competition format of this stage' })
+  format!: string;
+
+  @ApiPropertyOptional({
+    type: [PublicOverviewStageZoneResponse],
+    description: 'Declared non-implicit zones of this stage with their effective formats',
+  })
+  zones?: PublicOverviewStageZoneResponse[];
+}
+
 export class PublicOverviewResponse {
   @ApiProperty()
   organizationAlias!: string;
@@ -244,6 +277,19 @@ export class PublicOverviewResponse {
 
   @ApiProperty({ type: [PublicOverviewMatchResponse] })
   matches!: PublicOverviewMatchResponse[];
+
+  @ApiPropertyOptional({ type: [PublicOverviewStageResponse] })
+  stages?: PublicOverviewStageResponse[];
+
+  @ApiPropertyOptional({ description: 'Stage number ranked by standingsPreview' })
+  standingsStageNumber?: number;
+
+  @ApiPropertyOptional({
+    enum: ['table-projection', 'engine'],
+    description:
+      'Source of standingsPreview; engine when discipline declares no group-phase layout',
+  })
+  standingsSource?: 'table-projection' | 'engine';
 
   @ApiPropertyOptional({ type: [PublicStandingsRowResponse] })
   standingsPreview?: PublicStandingsRowResponse[];
@@ -883,6 +929,12 @@ export class PublicBracketZoneResponse {
   })
   format!: string;
 
+  @ApiPropertyOptional({
+    description:
+      '0-based overall place offset for this zone when incoming promotion bands map 1-to-1 onto zones contiguously from 1',
+  })
+  overallPlaceOffset?: number;
+
   @ApiProperty({ type: [PublicBracketMatchResponse] })
   matches!: PublicBracketMatchResponse[];
 }
@@ -1168,6 +1220,34 @@ export class PublicOrganizationLiveMatchResponse {
   awayScore!: number;
 }
 
+export class PublicTournamentProgressResponse {
+  @ApiPropertyOptional({
+    description:
+      'Stage number of the first stage with unresolved matches; absent when all matches are resolved',
+  })
+  currentStageNumber?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Stage name of the first stage with unresolved matches; absent when empty or when all matches are resolved',
+  })
+  currentStageName?: string;
+
+  @ApiProperty({ description: 'Number of resolved matches across the tournament' })
+  resolvedMatches!: number;
+
+  @ApiProperty({ description: 'Total resolvable matches across the tournament' })
+  totalMatches!: number;
+}
+
+export class PublicTournamentScheduleWindowResponse {
+  @ApiPropertyOptional({ format: 'date-time' })
+  firstKickoffAt?: string;
+
+  @ApiPropertyOptional({ format: 'date-time' })
+  lastKickoffAt?: string;
+}
+
 export class PublicTournamentListingItemResponse {
   @ApiProperty({ format: 'uuid' })
   tournamentId!: string;
@@ -1186,6 +1266,17 @@ export class PublicTournamentListingItemResponse {
 
   @ApiPropertyOptional({ type: PublicTournamentDatesResponse })
   dates?: PublicTournamentDatesResponse;
+
+  @ApiPropertyOptional({ type: PublicTournamentProgressResponse })
+  progress?: PublicTournamentProgressResponse;
+
+  @ApiPropertyOptional({ type: PublicTournamentScheduleWindowResponse })
+  schedule?: PublicTournamentScheduleWindowResponse;
+
+  @ApiPropertyOptional({
+    description: 'Number of distinct venues with at least one published match in this tournament',
+  })
+  venueCount?: number;
 
   @ApiPropertyOptional({ type: [PublicTournamentWinnerZoneResponse] })
   winners?: PublicTournamentWinnerZoneResponse[];

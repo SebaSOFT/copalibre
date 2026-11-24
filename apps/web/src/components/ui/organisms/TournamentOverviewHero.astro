@@ -27,6 +27,7 @@ interface Props {
   readonly breadcrumbLabel: string;
   readonly collapsedBreadcrumbLabel: string;
   readonly facts: readonly string[];
+  readonly statusLine?: string;
   readonly stateLabel?: string;
   readonly venues?: readonly HeroVenue[];
   readonly venueLabels?: HeroVenueLabels;
@@ -42,6 +43,7 @@ const {
   breadcrumbLabel,
   collapsedBreadcrumbLabel,
   facts,
+  statusLine,
   stateLabel,
   venues = [],
   venueLabels,
@@ -63,6 +65,7 @@ const venuePills = venueColumn ? [] : shownVenues;
   <div class:list={['cl-overview-hero__body', { 'cl-overview-hero__body--venues': venueColumn }]}>
     <div class="cl-overview-hero__main">
       <TournamentHero labels={labels} model={model} showLiveBadge={false} />
+      {statusLine && <p class="cl-overview-hero__status">{statusLine}</p>}
       {(stateLabel !== undefined || facts.length > 0 || venuePills.length > 0) && (
         <ul class="cl-overview-hero__facts">
           {stateLabel && (
@@ -146,6 +149,15 @@ const venuePills = venueColumn ? [] : shownVenues;
     inline-size: var(--cl-space-8);
     block-size: var(--cl-space-1);
     background: var(--cl-primary);
+  }
+
+  .cl-overview-hero__status {
+    margin: 0;
+    padding: 0 var(--cl-space-5);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    color: var(--cl-text-secondary);
+    overflow-wrap: anywhere;
   }
 
   .cl-overview-hero__facts {

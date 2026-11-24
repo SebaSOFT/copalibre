@@ -505,6 +505,24 @@ describe('matchStakeLines', () => {
     expect(lines).toEqual(['Define el 5º puesto']);
   });
 
+  it('states the overall place alongside the cup place when overallPlaceOffset is provided', () => {
+    const lines = matchStakeLines({
+      currentMatch: {
+        nodeKey: 'placement-5',
+        matchNumber: 32,
+        stageNumber: 2,
+        stageName: 'Copas',
+        zoneName: 'Copa Bronce',
+        round: 2,
+        overallPlaceOffset: 16,
+      },
+      bracketMatches: cupBracket,
+      labels: stakeLabels,
+    });
+
+    expect(lines).toEqual(['Define el 5º puesto · 21.º general']);
+  });
+
   it('states the zone championship for the final', () => {
     const lines = matchStakeLines({
       currentMatch: {

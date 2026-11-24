@@ -1,5 +1,6 @@
 import { EntrantName } from '../../../ui/atoms/EntrantName.js';
 import {
+  formatOverallPlaceFromTemplate,
   formatPlacement,
   formatPlacementSource,
   placementOf,
@@ -7,6 +8,22 @@ import {
 import { toNode, toRounds, type BracketRound } from '../../../../lib/bracket.js';
 import type { BracketZone } from '../../../../lib/bracket-projection.js';
 import type { TvDashboardLabels } from '../../tv-types.js';
+
+function appendOverallPlace(
+  base: string | undefined,
+  place: number | undefined,
+  overallPlaceOffset: number | undefined,
+  labels: TvDashboardLabels,
+): string | undefined {
+  if (base === undefined || place === undefined || overallPlaceOffset === undefined) return base;
+  if (!labels.overallPlace) return base;
+  const suffix = formatOverallPlaceFromTemplate(
+    labels.overallPlace,
+    overallPlaceOffset + place,
+    labels.sideSource,
+  );
+  return `${base} · ${suffix}`;
+}
 
 export function tvBracketBranchLabel(
   branch: string,
@@ -33,6 +50,7 @@ export function tvBracketRoundTitle(
   round: BracketRound,
   rounds: readonly BracketRound[],
   labels: TvDashboardLabels,
+  overallPlaceOffset?: number,
 ): string {
   if (round.branch === 'placement' || /^(?:pl\d+|placement)/.test(round.branch)) {
     const zoneNodeKeys = rounds.flatMap((entry) => entry.matches.map((match) => match.nodeKey));
@@ -42,11 +60,23 @@ export function tvBracketRoundTitle(
         placementOf(match.nodeKey, zoneNodeKeys) ??
         (match.role ? placementOf(match.role, zoneNodeKeys) : undefined);
       if (placement !== undefined) {
-        placements.add(formatPlacement(placement, labels.sideSource));
+        const base = formatPlacement(placement, labels.sideSource);
+        const label =
+          placement.to === undefined
+            ? (appendOverallPlace(base, placement.from, overallPlaceOffset, labels) ?? base)
+            : base;
+        placements.add(label);
       } else if (match.role) {
-        const label = formatPlacementSource(match.role, labels.sideSource, {
+        const single = /^(?:placement|place)-(\d+)$/.exec(match.role);
+        const base = formatPlacementSource(match.role, labels.sideSource, {
           siblingKeys: zoneNodeKeys,
         });
+        const label = appendOverallPlace(
+          base,
+          single ? Number(single[1]) : undefined,
+          overallPlaceOffset,
+          labels,
+        );
         if (label !== undefined) placements.add(label);
       }
     }
@@ -84,11 +114,12 @@ export function TvBracketView({
               <div className="tv-bracket__round" key={`${round.branch}-${round.roundNumber}`}>
                 <h4 className="tv-bracket__round-name">
                   {tvBracketBranchLabel(round.branch, zone.zoneName, labels)} ·{' '}
-                  {tvBracketRoundTitle(round, rounds, labels)}
+                  {tvBracketRoundTitle(round, rounds, labels, zone.overallPlaceOffset)}
                 </h4>
                 <div className="tv-bracket__matches">
                   {round.matches.map((match) => {
                     const node = toNode(match, labels.resultState, labels.sideSource, zoneNodeKeys);
+                    const singleRole = /^(?:placement|place)-(\d+)$/.exec(match.role ?? '');
                     return (
                       <article
                         aria-label={`${labels.bracketMatch} ${match.matchNumber}`}
@@ -98,9 +129,14 @@ export function TvBracketView({
                         <div className="tv-bracket-card__header">
                           <span>
                             {match.role
-                              ? formatPlacementSource(match.role, labels.sideSource, {
-                                  siblingKeys: zoneNodeKeys,
-                                })
+                              ? appendOverallPlace(
+                                  formatPlacementSource(match.role, labels.sideSource, {
+                                    siblingKeys: zoneNodeKeys,
+                                  }),
+                                  singleRole ? Number(singleRole[1]) : undefined,
+                                  zone.overallPlaceOffset,
+                                  labels,
+                                )
                               : `${labels.bracketMatch} ${match.matchNumber}`}
                           </span>
                           <span>{node.badge.label}</span>

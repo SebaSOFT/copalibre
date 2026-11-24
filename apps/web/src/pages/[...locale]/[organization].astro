@@ -6,6 +6,7 @@ import OrganizationHeader from '../../components/ui/organisms/OrganizationHeader
 import TournamentSection from '../../components/ui/organisms/TournamentSection.astro';
 import OrganizationClubs from '../../components/ui/organisms/OrganizationClubs.astro';
 import {
+  fetchOrganizations,
   fetchOrganizationTournaments,
   organizationEmblemUrl,
   clubEmblemUrl,
@@ -47,7 +48,11 @@ if (!organization || isReservedOrganizationAlias(organization)) {
 const resolvedLocale: SupportedLanguage = resolvePathLocale(rawPath);
 const intl = publicIntl(resolvedLocale);
 
-const listData = await fetchOrganizationTournaments(organization!);
+const [listData, organizations] = await Promise.all([
+  fetchOrganizationTournaments(organization!),
+  fetchOrganizations(),
+]);
+const organizationTimeZone = organizations?.find((one) => one.alias === organization)?.timezone;
 if (!listData) {
   // A single unknown segment may be a mistyped organization alias, so it
   // renders the organization-specific not-found content below (with a way
@@ -152,6 +157,7 @@ const structuredData = listData
           heading={intl.formatMessage(messages.completionInProgress)}
           tournaments={liveTournaments}
           organizationAlias={organization!}
+          organizationTimeZone={organizationTimeZone}
           localePrefix={localePrefix}
           intl={intl}
           gridClass="cl-grid-priority"
@@ -164,6 +170,7 @@ const structuredData = listData
           heading={intl.formatMessage(messages.orgPageFeaturedHeading)}
           tournaments={featuredOnly}
           organizationAlias={organization!}
+          organizationTimeZone={organizationTimeZone}
           localePrefix={localePrefix}
           intl={intl}
           showCount={false}
@@ -179,6 +186,7 @@ const structuredData = listData
           heading={intl.formatMessage(messages.tournamentsUpcomingHeading)}
           tournaments={upcomingTournaments}
           organizationAlias={organization!}
+          organizationTimeZone={organizationTimeZone}
           localePrefix={localePrefix}
           intl={intl}
         />
@@ -190,6 +198,7 @@ const structuredData = listData
           heading={intl.formatMessage(messages.tournamentsFinishedHeading)}
           tournaments={finishedTournaments}
           organizationAlias={organization!}
+          organizationTimeZone={organizationTimeZone}
           localePrefix={localePrefix}
           intl={intl}
         />

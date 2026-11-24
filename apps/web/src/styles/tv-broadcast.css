@@ -1053,6 +1053,23 @@
   font-weight: 700;
 }
 
+.tv-standings-group {
+  display: grid;
+  gap: var(--cl-space-1);
+}
+
+.tv-standings-group + .tv-standings-group {
+  margin-block-start: var(--cl-space-3);
+}
+
+.tv-standings-group__name {
+  margin: 0;
+  color: var(--tv-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+  text-transform: uppercase;
+}
+
 .tv-standings-legend {
   display: flex;
   align-items: center;

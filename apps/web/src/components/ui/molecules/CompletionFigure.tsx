@@ -109,7 +109,10 @@ export function CompletionFigure({
         {hasBreakdown && (
           <ol className="cl-completion-figure__stages">
             {stages.map((stage) => (
-              <li key={stage.stageId} className="cl-completion-figure__stage-item">
+              <li
+                key={stage.stageId ?? `stage-${stage.stageNumber}`}
+                className="cl-completion-figure__stage-item"
+              >
                 <Bar
                   name={stage.stageName}
                   resolved={stage.resolvedMatches}
@@ -117,8 +120,14 @@ export function CompletionFigure({
                 />
                 {(stage.segments ?? []).length > 0 && (
                   <ul className="cl-completion-figure__segments">
-                    {(stage.segments ?? []).map((segment) => (
-                      <li key={segment.segmentId} className="cl-completion-figure__segment">
+                    {(stage.segments ?? []).map((segment, segmentIndex) => (
+                      <li
+                        key={
+                          segment.segmentId ??
+                          `${stage.stageNumber}-${segment.zoneName ?? ''}-${segment.name}-${segmentIndex}`
+                        }
+                        className="cl-completion-figure__segment"
+                      >
                         <Bar
                           name={
                             segment.zoneName === undefined

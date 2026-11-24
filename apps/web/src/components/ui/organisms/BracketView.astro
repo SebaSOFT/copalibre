@@ -40,6 +40,7 @@ interface Props {
   /** Zone matches-view rows supplying schedule time and venue for upcoming bracket nodes. */
   readonly matchesView?: readonly MatchCardData[];
   readonly organizationTimeZone?: string;
+  readonly overallPlaceOffset?: number;
 }
 const {
   intl,
@@ -52,6 +53,7 @@ const {
   zoneName,
   matchesView,
   organizationTimeZone,
+  overallPlaceOffset,
 } = Astro.props;
 const zoneNodeKeys = Astro.props.matches.map((match) => match.nodeKey);
 const branchLabel = (branch: string): string =>
@@ -138,6 +140,7 @@ const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((b
         stageNumber={stageNumber}
         tournamentAlias={tournamentAlias}
         zoneName={zoneName}
+        overallPlaceOffset={overallPlaceOffset}
       />
     </div>
   ))}
@@ -151,6 +154,7 @@ const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((b
     organizationAlias={organizationAlias}
     stageNumber={stageNumber}
     tournamentAlias={tournamentAlias}
+    overallPlaceOffset={overallPlaceOffset}
   />
 
   {/*
@@ -178,7 +182,7 @@ const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((b
                 return (
                   <li data-journey-match={bracketMatchId(match)}>
                     {match.role !== undefined && (
-                      <strong>{bracketRoleLabel(intl, match.role)}: </strong>
+                      <strong>{bracketRoleLabel(intl, match.role, overallPlaceOffset)}: </strong>
                     )}
                     {match.slots.map((slot, index) => {
                       const slotAdvances =

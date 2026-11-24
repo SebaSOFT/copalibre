@@ -59,23 +59,34 @@ export interface StandingsRowView {
   readonly points: number;
   /** The zone this row is ranked in; set only when the stage mixes formats and ranks each zone on its own. */
   readonly zoneName?: string;
+  /** The group this row is ranked in; present when the stage defines named groups. */
+  readonly groupName?: string;
+}
+
+export interface StandingsBlockView {
+  readonly zoneName?: string;
+  readonly groupName?: string;
+  readonly rows: readonly StandingsRowView[];
 }
 
 /**
- * Splits standings rows into one block per zone, in the order the zones first appear, so rows of
- * different zones are never read as one ranking. Rows that name no zone — a stage with a single
- * table — stay together as one block without a name.
+ * Splits standings rows into one block per group within each zone, in segment order, so rows of
+ * different groups or zones are never read as one ranking. Rows that name neither zone nor group
+ * stay together as one block without a name.
  */
 export function groupStandingsByZone(
   rows: readonly StandingsRowView[],
-): readonly { readonly zoneName?: string; readonly rows: readonly StandingsRowView[] }[] {
-  const blocks: { zoneName?: string; rows: StandingsRowView[] }[] = [];
+): readonly StandingsBlockView[] {
+  const blocks: { zoneName?: string; groupName?: string; rows: StandingsRowView[] }[] = [];
   for (const row of rows) {
-    const block = blocks.find((candidate) => candidate.zoneName === row.zoneName);
+    const block = blocks.find(
+      (candidate) => candidate.zoneName === row.zoneName && candidate.groupName === row.groupName,
+    );
     if (block) block.rows.push(row);
     else
       blocks.push({
         ...(row.zoneName === undefined ? {} : { zoneName: row.zoneName }),
+        ...(row.groupName === undefined ? {} : { groupName: row.groupName }),
         rows: [row],
       });
   }
@@ -97,7 +108,10 @@ export interface RulesetFieldView {
   readonly value: string;
 }
 
-import type { PublicTournamentWinnerZoneResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import type {
+  PublicOverviewStageResponse,
+  PublicTournamentWinnerZoneResponse,
+} from '@copalibre/api/src/dto/public-tournament.dto.js';
 
 /** A venue holding a published match: only its public fields. */
 export interface OverviewVenue {
@@ -118,6 +132,9 @@ export interface OverviewModel {
   readonly status?: 'upcoming' | 'live' | 'finished';
   readonly winners?: readonly PublicTournamentWinnerZoneResponse[];
   readonly matches: readonly OverviewMatch[];
+  readonly stages?: readonly PublicOverviewStageResponse[];
+  readonly standingsStageNumber?: number;
+  readonly standingsSource?: 'table-projection' | 'engine';
   readonly standings: readonly StandingsRowView[];
   /** Absent when the previewed stage declares no series at all. */
   readonly standingsGrain?: 'series' | 'match';
@@ -140,6 +157,9 @@ export interface OverviewInput extends RouteInput {
   readonly status?: 'upcoming' | 'live' | 'finished';
   readonly winners?: readonly PublicTournamentWinnerZoneResponse[];
   readonly matches: readonly OverviewMatch[];
+  readonly stages?: readonly PublicOverviewStageResponse[];
+  readonly standingsStageNumber?: number;
+  readonly standingsSource?: 'table-projection' | 'engine';
   readonly standings: readonly StandingsRowView[];
   readonly standingsGrain?: 'series' | 'match';
   readonly clubs?: readonly ClubView[];
@@ -208,6 +228,11 @@ export function buildOverview(input: OverviewInput): OverviewModel {
     ...(input.disciplineName === undefined ? {} : { disciplineName: input.disciplineName }),
     ...(input.venues === undefined ? {} : { venues: input.venues }),
     matches: input.matches,
+    ...(input.stages === undefined ? {} : { stages: input.stages }),
+    ...(input.standingsStageNumber === undefined
+      ? {}
+      : { standingsStageNumber: input.standingsStageNumber }),
+    ...(input.standingsSource === undefined ? {} : { standingsSource: input.standingsSource }),
     standings: input.standings,
     ...(input.standingsGrain === undefined ? {} : { standingsGrain: input.standingsGrain }),
     ...(input.clubs === undefined ? {} : { clubs: input.clubs }),

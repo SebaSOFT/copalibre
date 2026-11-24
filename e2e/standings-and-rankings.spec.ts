@@ -502,10 +502,95 @@ test.describe('B2: public tournament page', () => {
       ],
     };
 
+    const PANAMERICANO_ALIAS = 'panamericano-clubes-2025';
+    const PANAMERICANO = `/api/organizations/${ORGANIZATION}/tournaments/${PANAMERICANO_ALIAS}`;
+    const PANAMERICANO_GROUPS = ['Grupo A', 'Grupo B', 'Grupo C', 'Grupo D', 'Grupo E', 'Grupo F'];
+    const panamericanoOverview = {
+      organizationAlias: ORGANIZATION,
+      organizationName: 'Liga Mendocina',
+      tournamentAlias: PANAMERICANO_ALIAS,
+      tournamentName: 'Panamericano de Clubes 2025',
+      seasonName: '2025',
+      matches: [],
+      clubs: [
+        { clubId: 'club-talleres', name: 'Club Atlético Talleres', abbreviation: 'TAL' },
+        { clubId: 'club-independiente', name: 'Club Atlético Independiente', abbreviation: 'IND' },
+      ],
+      ruleset: {},
+    };
+    const panamericanoSegments = PANAMERICANO_GROUPS.map((groupName, groupIndex) => ({
+      groupId: `group-${groupIndex + 1}`,
+      groupName,
+      zoneName: 'Grupos',
+      rows: Array.from({ length: 4 }, (_, posIndex) => {
+        const seed = posIndex * 6 + groupIndex + 1;
+        const bandIndex = seed <= 8 ? 0 : seed <= 16 ? 1 : 2;
+        const bandLabel =
+          bandIndex === 0 ? 'Copa Oro' : bandIndex === 1 ? 'Copa Plata' : 'Copa Bronce';
+        const entrantName = `${groupName.replace('Grupo ', 'Equipo ')}${posIndex + 1}`;
+        return {
+          actorId: `p-${groupIndex}-${posIndex}`,
+          entrantId: `e-${groupIndex}-${posIndex}`,
+          entrantName,
+          rank: posIndex + 1,
+          sharedRank: false,
+          promotionBandLabel: bandLabel,
+          promotionBandIndex: bandIndex,
+          promotionSeed: seed,
+          cells: {
+            rank: { raw: posIndex + 1, formatted: String(posIndex + 1) },
+            name: { formatted: entrantName },
+            played: { raw: 3, formatted: '3' },
+            points: { raw: 9 - posIndex * 2, formatted: String(9 - posIndex * 2) },
+          },
+        };
+      }),
+    }));
+    const panamericanoStandings = {
+      layoutCode: 'group-standings-default',
+      target: 'group-phase',
+      label: { en: 'Group Standings', es: 'Tabla de posiciones' },
+      columns: [
+        { code: 'rank', header: '#', format: 'number' },
+        { code: 'name', header: { en: 'Team', es: 'Equipo' }, format: 'text' },
+        { code: 'played', header: 'PJ', format: 'number' },
+        { code: 'points', header: 'Pts', format: 'number' },
+      ],
+      defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+      promotionBands: [
+        { index: 0, label: 'Copa Oro', firstSeed: 1, lastSeed: 8 },
+        { index: 1, label: 'Copa Plata', firstSeed: 9, lastSeed: 16 },
+        { index: 2, label: 'Copa Bronce', firstSeed: 17, lastSeed: 24 },
+      ],
+      rows: panamericanoSegments.flatMap((segment) => segment.rows),
+      segments: panamericanoSegments,
+      projectionVersion: 1,
+    };
+
     apiServer = createServer((req, res) => {
       res.setHeader('content-type', 'application/json');
       if (req.url === `/api/organizations/${ORGANIZATION}/public/tournaments`) {
         res.end(JSON.stringify(organizationTournaments));
+        return;
+      }
+      if (req.url === `${PANAMERICANO}/overview`) {
+        res.end(JSON.stringify(panamericanoOverview));
+        return;
+      }
+      if (req.url === `${PANAMERICANO}/stages/1/bracket`) {
+        res.end(JSON.stringify({ format: 'round-robin', zones: [] }));
+        return;
+      }
+      if (req.url?.split('?')[0] === `${PANAMERICANO}/matches-view`) {
+        res.end(JSON.stringify({ matches: [] }));
+        return;
+      }
+      if (req.url === `${PANAMERICANO}/public/tables`) {
+        res.end(JSON.stringify({ layouts: [layoutsFixture.layouts[0]] }));
+        return;
+      }
+      if (req.url === `${PANAMERICANO}/stages/1/public/tables/group-standings-default`) {
+        res.end(JSON.stringify(panamericanoStandings));
         return;
       }
       if (req.url === `${TOURNAMENT}/overview`) {
@@ -1240,5 +1325,115 @@ test.describe('B2: public tournament page', () => {
   test('the former organization tournament listing path is no longer served', async ({ page }) => {
     const response = await page.goto(`/${ORGANIZATION}/tournaments`);
     expect(response?.status()).toBe(404);
+  });
+
+  test('stage-1 page renders six per-group tables with shared controls, Orden matching legend ranges, and distinct categorical band colours', async ({
+    page,
+  }) => {
+    await page.goto(`/es/${ORGANIZATION}/tournaments/panamericano-clubes-2025/stages/1`);
+    await page.waitForFunction(() => {
+      const deferredHrefs = Array.from(
+        document.querySelectorAll<HTMLMetaElement>('meta[name="copalibre:deferred-stylesheet"]'),
+      ).map((meta) => meta.content);
+      const links = Array.from(
+        document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
+      );
+      return deferredHrefs.every((href) =>
+        links.some((link) => link.getAttribute('href') === href && link.sheet !== null),
+      );
+    });
+    await page.evaluate(() => document.fonts.ready);
+
+    const standingsSection = page.locator('#standings');
+    const groupHeadings = standingsSection.locator('h3.cl-standings-group-heading');
+    await expect(groupHeadings).toHaveText([
+      'Grupo A',
+      'Grupo B',
+      'Grupo C',
+      'Grupo D',
+      'Grupo E',
+      'Grupo F',
+    ]);
+    await expect(standingsSection.locator('.cl-standings-groups .cl-standings-group')).toHaveCount(
+      6,
+    );
+    await expect(standingsSection.locator('tbody tr')).toHaveCount(24);
+
+    // Shared filter and CSV export appear once, not repeated per group.
+    await expect(standingsSection.locator('.cl-club-filter')).toHaveCount(1);
+    await expect(standingsSection.getByRole('link', { name: 'Descargar CSV' })).toHaveCount(1);
+
+    const promoLegend = standingsSection.getByRole('group', { name: 'Bandas de clasificación' });
+    await expect(promoLegend).toHaveCount(1);
+    await expect(promoLegend).toContainText('Copa Oro');
+    await expect(promoLegend).toContainText('orden 1–8');
+    await expect(promoLegend).toContainText('Copa Plata');
+    await expect(promoLegend).toContainText('orden 9–16');
+    await expect(promoLegend).toContainText('Copa Bronce');
+    await expect(promoLegend).toContainText('orden 17–24');
+
+    const legendRanges = new Map<number, { first: number; last: number }>([
+      [0, { first: 1, last: 8 }],
+      [1, { first: 9, last: 16 }],
+      [2, { first: 17, last: 24 }],
+    ]);
+
+    const rowAudit = await standingsSection.evaluate(() => {
+      const tables = Array.from(document.querySelectorAll('#standings .cl-standings-group table'));
+      return tables.map((table) => {
+        const headers = Array.from(table.querySelectorAll('thead th')).map((th) =>
+          th.textContent?.trim(),
+        );
+        const orderIndex = headers.findIndex((text) => text?.includes('Orden'));
+        const rows = Array.from(table.querySelectorAll('tbody tr')).map((tr) => {
+          const bandIndex = Number(tr.getAttribute('data-promotion-band-index'));
+          const cells = Array.from(tr.querySelectorAll('td'));
+          const seedTag = tr.querySelector('.cl-standings-qualification-seed')?.textContent?.trim();
+          const orderCell = orderIndex >= 0 ? cells[orderIndex]?.textContent?.trim() : undefined;
+          return { bandIndex, seedTag, orderCell };
+        });
+        return { orderIndex, rows };
+      });
+    });
+
+    for (const table of rowAudit) {
+      expect(table.orderIndex).toBeGreaterThan(-1);
+      expect(table.rows).toHaveLength(4);
+      for (const row of table.rows) {
+        const order = Number(row.orderCell);
+        expect(Number.isInteger(order)).toBe(true);
+        expect(row.seedTag).toBe(`Orden ${order}`);
+        const range = legendRanges.get(row.bandIndex);
+        expect(range).toBeDefined();
+        if (range) {
+          expect(order).toBeGreaterThanOrEqual(range.first);
+          expect(order).toBeLessThanOrEqual(range.last);
+        }
+      }
+    }
+
+    // All three promotion bands carry distinct categorical colours on row rails, tags, and legend rails.
+    const bandColors = await standingsSection.evaluate(() =>
+      [0, 1, 2].map((index) => {
+        const rowCell = document.querySelector<HTMLElement>(
+          `.cl-standings-row--promotion[data-promotion-band-index="${index}"] > td:first-child`,
+        );
+        const tag = document.querySelector<HTMLElement>(
+          `.cl-standings-qualification-tag[data-promotion-band-index="${index}"]`,
+        );
+        const legendRail = document.querySelector<HTMLElement>(
+          `.cl-standings-promotion-legend__rail[data-promotion-band-index="${index}"]`,
+        );
+        return {
+          rowRail: rowCell ? getComputedStyle(rowCell).borderInlineStartColor : '',
+          tagRail: tag ? getComputedStyle(tag).borderInlineStartColor : '',
+          legendRail: legendRail ? getComputedStyle(legendRail).backgroundColor : '',
+        };
+      }),
+    );
+
+    expect(new Set(bandColors.map((entry) => entry.rowRail)).size).toBe(3);
+    expect(new Set(bandColors.map((entry) => entry.tagRail)).size).toBe(3);
+    expect(new Set(bandColors.map((entry) => entry.legendRail)).size).toBe(3);
   });
 });

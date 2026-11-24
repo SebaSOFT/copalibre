@@ -53,6 +53,38 @@ describe('TvStandingsTable', () => {
     expect(within(zones[1] as HTMLElement).getByText('Banfield')).toBeTruthy();
   });
 
+  it('renders one block per group directly when all groups share an implicit group zone', () => {
+    renderTable([
+      { ...row(1, 'Boca', 'Grupos'), groupName: 'Grupo A' },
+      { ...row(2, 'River', 'Grupos'), groupName: 'Grupo A' },
+      { ...row(1, 'Racing', 'Grupos'), groupName: 'Grupo B' },
+    ]);
+
+    const blocks = screen.getAllByTestId('tv-standings-zone');
+    expect(blocks).toHaveLength(2);
+    expect(within(blocks[0] as HTMLElement).getByRole('heading', { name: 'Grupo A' })).toBeTruthy();
+    expect(within(blocks[0] as HTMLElement).getByText('Boca')).toBeTruthy();
+    expect(within(blocks[0] as HTMLElement).queryByText('Racing')).toBeNull();
+    expect(within(blocks[1] as HTMLElement).getByRole('heading', { name: 'Grupo B' })).toBeTruthy();
+    expect(within(blocks[1] as HTMLElement).getByText('Racing')).toBeTruthy();
+  });
+
+  it('nests named groups inside explicit zone blocks', () => {
+    renderTable([
+      { ...row(1, 'Boca', 'Zona Norte'), groupName: 'Grupo 1' },
+      { ...row(1, 'Lanús', 'Zona Sur'), groupName: 'Grupo 1' },
+    ]);
+
+    const zones = screen.getAllByTestId('tv-standings-zone');
+    expect(zones).toHaveLength(2);
+    expect(
+      within(zones[0] as HTMLElement).getByRole('heading', { level: 3, name: 'Zona Norte' }),
+    ).toBeTruthy();
+    expect(
+      within(zones[0] as HTMLElement).getByRole('heading', { level: 4, name: 'Grupo 1' }),
+    ).toBeTruthy();
+  });
+
   it('caps each zone at eight rows, not the whole list', () => {
     const many = (zone: string) =>
       Array.from({ length: 10 }, (_, index) => row(index + 1, `${zone}${index + 1}`, zone));

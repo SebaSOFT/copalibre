@@ -77,6 +77,7 @@ const localePrefix = locale ? `/${locale}` : '';
 // avoid.
 let bracketMatches: ReturnType<typeof mapBracketResponse>['zones'][number]['matches'] = [];
 let ownZoneName: string | undefined;
+let ownZoneOffset: number | undefined;
 let zoneMatchesView: readonly MatchCardData[] = [];
 if (selectStageLayout(response.stageFormat) === 'bracket') {
   const [rawBracket, rawMatchesView] = await Promise.all([
@@ -88,6 +89,7 @@ if (selectStageLayout(response.stageFormat) === 'bracket') {
     const ownZone = zones.find((zone) => zone.matches.some((m) => m.matchNumber === matchNumber));
     bracketMatches = ownZone?.matches ?? [];
     ownZoneName = ownZone?.zoneName;
+    ownZoneOffset = ownZone?.overallPlaceOffset;
   }
   if (rawMatchesView) {
     const mapped = mapMatchesViewResponse(
@@ -144,7 +146,12 @@ const liveMatchSeed = liveMatch
     }
   : undefined;
 
-const contextLabels = competitionContextLabels(intl);
+const formatOverallPlace = (place: number): string =>
+  intl.formatMessage(messages.bracketOverallPlace, { place });
+const contextLabels = {
+  ...competitionContextLabels(intl),
+  formatOverallPlace,
+};
 const context = competitionContext(
   {
     stageNumber,
@@ -156,6 +163,7 @@ const context = competitionContext(
     nodeKey: response.nodeKey,
     sourceFinalRound,
     zoneNodeKeys,
+    ...(ownZoneOffset === undefined ? {} : { overallPlaceOffset: ownZoneOffset }),
   },
   contextLabels,
 );
@@ -170,6 +178,7 @@ const stakeLines =
           zoneName: response.zoneName ?? ownZoneName,
           round: model.round,
           sourceFinalRound,
+          ...(ownZoneOffset === undefined ? {} : { overallPlaceOffset: ownZoneOffset }),
         },
         bracketMatches,
         stageMatches: zoneMatchesView,
@@ -186,6 +195,7 @@ const stakeLines =
           stakePlace: intl.formatMessage(messages.matchReportStakePlace, { place: '{place}' }),
           stakeChampion: intl.formatMessage(messages.matchReportStakeChampion, { zone: '{zone}' }),
           fallbackChampionScope: model.tournamentName,
+          formatOverallPlace,
         },
         formatDate: (at) => formatDateTime(intl, at, response.organizationTimeZone ?? 'UTC'),
       })
@@ -288,6 +298,7 @@ const structuredData = {
           stageNumber={stageNumber}
           tournamentAlias={tournament!}
           zoneName={ownZoneName ?? response.zoneName}
+          overallPlaceOffset={ownZoneOffset}
         />
       )}
 

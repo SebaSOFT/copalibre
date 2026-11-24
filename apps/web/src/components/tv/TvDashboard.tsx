@@ -775,8 +775,12 @@ export function TvDashboard({
   ) : null;
 
   const fixedView = initialView !== undefined;
-  const matchContextOf = (match: LiveMatch) =>
-    competitionContext(
+  const matchContextOf = (match: LiveMatch) => {
+    const zoneOffset =
+      visibleBracket?.stageNumber === match.stageNumber
+        ? visibleBracket.zones.find((zone) => zone.zoneName === match.zoneName)?.overallPlaceOffset
+        : undefined;
+    return competitionContext(
       {
         stageNumber: match.stageNumber,
         stageName: match.stageName,
@@ -787,9 +791,11 @@ export function TvDashboard({
         nodeKey: match.nodeKey,
         sourceFinalRound: match.sourceFinalRound,
         zoneNodeKeys: match.zoneNodeKeys,
+        ...(zoneOffset === undefined ? {} : { overallPlaceOffset: zoneOffset }),
       },
       dashboardLabels.contextLabels,
     );
+  };
   const labelStage = (ref: PinnedMatchRef | undefined): string =>
     ref === undefined ? '' : `${ref.stageNumber} · ${ref.ordinal}`;
   const eventsForMatch = (matchId: string): readonly TvMatchEvent[] =>

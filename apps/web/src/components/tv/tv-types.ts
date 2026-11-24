@@ -42,6 +42,8 @@ export interface TvDashboardLabels {
   readonly bracketRoundSemifinals: string;
   readonly bracketRoundQuarterfinals: string;
   readonly zonePrefix?: string;
+  /** Raw `{ordinal}` / `{place}` template for overall placement suffix. */
+  readonly overallPlace?: string;
   readonly matchEventsLabel: string;
   readonly statsAndTablesLabel: string;
   readonly sidebarSectionsLabel: string;

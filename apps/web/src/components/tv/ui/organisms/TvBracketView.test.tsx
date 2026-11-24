@@ -225,4 +225,33 @@ describe('TvBracketView', () => {
     expect(container.querySelectorAll('.tv-bracket__zone')).toHaveLength(0);
     expect(container.querySelectorAll('.tv-bracket-card')).toHaveLength(0);
   });
+
+  it('appends the overall place suffix when overallPlaceOffset is present on a zone', () => {
+    const enIntl = publicIntl('en');
+    const copaBronce: BracketZone[] = [
+      {
+        zoneId: 'z-bronce',
+        zoneName: 'Bronze Cup',
+        overallPlaceOffset: 16,
+        matches: [
+          {
+            matchId: 'pl5',
+            matchNumber: 32,
+            roundNumber: 2,
+            branch: 'placement',
+            nodeKey: 'placement-5',
+            role: 'place-5',
+            state: 'upcoming',
+            slots: [
+              { kind: 'entrant', name: 'Team 1' },
+              { kind: 'entrant', name: 'Team 2' },
+            ],
+          },
+        ],
+      },
+    ];
+
+    render(<TvBracketView labels={tvDashboardLabels(enIntl)} zones={copaBronce} />);
+    expect(screen.getAllByText(/5th place · 21st overall/).length).toBeGreaterThan(0);
+  });
 });

@@ -11,6 +11,8 @@ export interface BracketZone {
   readonly zoneName?: string;
   /** The format this zone plays (its own, else its stage's); decides how it is drawn. */
   readonly format?: string;
+  /** 0-based overall place offset when incoming promotion bands map 1-to-1 contiguously from 1. */
+  readonly overallPlaceOffset?: number;
   readonly matches: readonly BracketMatch[];
 }
 
@@ -117,6 +119,9 @@ export function mapBracketResponse(
       zoneId: zone.zoneId,
       zoneName: zone.zoneName,
       format: zone.format,
+      ...(zone.overallPlaceOffset === undefined
+        ? {}
+        : { overallPlaceOffset: zone.overallPlaceOffset }),
       matches: mapBracketZoneMatches(zone.matches, undecidedSide),
     })),
   };

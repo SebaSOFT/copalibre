@@ -194,12 +194,13 @@ describe('what the sitemap advertises', () => {
 });
 
 describe('groupStandingsByZone', () => {
-  const row = (name: string, zoneName?: string) => ({
+  const row = (name: string, zoneName?: string, groupName?: string) => ({
     position: 1,
     name,
     played: 1,
     points: 3,
     ...(zoneName === undefined ? {} : { zoneName }),
+    ...(groupName === undefined ? {} : { groupName }),
   });
 
   it('keeps rows that name no zone together as one unnamed block', () => {
@@ -207,6 +208,7 @@ describe('groupStandingsByZone', () => {
 
     expect(blocks).toHaveLength(1);
     expect(blocks[0]?.zoneName).toBeUndefined();
+    expect(blocks[0]?.groupName).toBeUndefined();
     expect(blocks[0]?.rows.map((r) => r.name)).toEqual(['A', 'B']);
   });
 
@@ -220,6 +222,24 @@ describe('groupStandingsByZone', () => {
     expect(blocks.map((block) => block.zoneName)).toEqual(['Liga A', 'Liga B']);
     expect(blocks[0]?.rows.map((r) => r.name)).toEqual(['A1', 'A2']);
     expect(blocks[1]?.rows.map((r) => r.name)).toEqual(['B1']);
+  });
+
+  it('splits rows into one block per group within a zone in segment order', () => {
+    const blocks = groupStandingsByZone([
+      row('Team A1', 'Grupos', 'Grupo A'),
+      row('Team A2', 'Grupos', 'Grupo A'),
+      row('Team B1', 'Grupos', 'Grupo B'),
+      row('Team B2', 'Grupos', 'Grupo B'),
+      row('Team C1', 'Zona Sur', 'Grupo A'),
+    ]);
+
+    expect(blocks).toHaveLength(3);
+    expect(blocks[0]).toMatchObject({ zoneName: 'Grupos', groupName: 'Grupo A' });
+    expect(blocks[0]?.rows.map((r) => r.name)).toEqual(['Team A1', 'Team A2']);
+    expect(blocks[1]).toMatchObject({ zoneName: 'Grupos', groupName: 'Grupo B' });
+    expect(blocks[1]?.rows.map((r) => r.name)).toEqual(['Team B1', 'Team B2']);
+    expect(blocks[2]).toMatchObject({ zoneName: 'Zona Sur', groupName: 'Grupo A' });
+    expect(blocks[2]?.rows.map((r) => r.name)).toEqual(['Team C1']);
   });
 
   it('returns nothing for no rows', () => {
