@@ -265,7 +265,7 @@ test.describe('Public header, expanding in page flow', () => {
     await expect(toggle).toBeFocused();
   });
 
-  test('the primary action stays in the row, open or closed', async ({ page }) => {
+  test('the Control Panel action stays in the row, open or closed', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}`);
 
     const cta = page.locator('.cl-public-header__cta');
@@ -276,7 +276,7 @@ test.describe('Public header, expanding in page flow', () => {
     // there is no second copy of it inside the menu.
     await page.locator('[data-public-nav-toggle]').click();
     await expect(cta).toBeVisible();
-    await expect(page.locator('a.cl-btn--primary:visible')).toHaveCount(1);
+    await expect(page.locator('.cl-public-header__cta:visible')).toHaveCount(1);
   });
 
   test('the locale control offers a language and moves the page to it', async ({ page }) => {

@@ -152,17 +152,17 @@ test.describe('Match report localization and timestamps', () => {
     await expect(page.getByRole('cell', { name: 'Captain' })).toBeVisible();
   });
 
-  test('uses the centered reading width and chamfered sections at reference widths', async ({
+  test('uses the centered public width and chamfered sections at reference widths', async ({
     page,
   }) => {
     const path = `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${MATCH}`;
-    await expectCenteredPageContainer(page, path, 'reading');
+    await expectCenteredPageContainer(page, path);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(path);
 
     const widthOf = async (selector: string) =>
       (await page.locator(selector).first().boundingBox())?.width ?? 0;
-    expect(await widthOf('main > .cl-container--reading')).toBeLessThanOrEqual(720);
+    expect(await widthOf('main > .cl-container--public')).toBeLessThanOrEqual(1200);
     const sections = page.locator('section.cl-section-card');
     await expect(sections).toHaveCount(3);
     for (const section of await sections.all()) {
