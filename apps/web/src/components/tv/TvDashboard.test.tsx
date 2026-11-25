@@ -6,6 +6,7 @@ import {
   pinnedStandingsOf,
   standingsColumnsFitting,
   standingsColumnsOf,
+  standingsStageNameOf,
   TvDashboard,
 } from './TvDashboard.js';
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
@@ -1858,6 +1859,12 @@ describe('TvDashboard pinned match and views', () => {
       expect(entries()).toBe(23);
     });
 
+    it('renders no fixtures region for an empty match list', () => {
+      renderTv({ initialView: 'matches', matchList: [] });
+
+      expect(screen.queryByTestId('tv-match-list')).toBeNull();
+    });
+
     it('keeps paging a fixed match view when the viewer prefers reduced motion', () => {
       const original = window.matchMedia;
       window.matchMedia = ((query: string) => ({
@@ -2622,6 +2629,43 @@ describe('pinned standings and declared columns', () => {
     const second = { ...standings[1], clubId: 'shared', entrantId: 'e2', position: 2 } as never;
 
     expect(goals?.valueOf(second)).toBe('9');
+  });
+
+  it('reads a row without an entrant id from its group segment, not from a zone it never names', () => {
+    // A stage that does not mix formats: its segments name zones, its rows name only their group.
+    const projection = {
+      columns: [
+        { code: 'points', header: { en: 'Pts' } },
+        { code: 'goals', header: { en: 'Goals' } },
+      ],
+      defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+      rows: [],
+      segments: [
+        {
+          groupName: 'Grupo A',
+          zoneName: 'Zona Norte',
+          rows: [{ rank: 1, cells: { goals: { raw: 4, formatted: '4' } } }],
+        },
+        {
+          groupName: 'Grupo B',
+          zoneName: 'Zona Norte',
+          rows: [{ rank: 1, cells: { goals: { raw: 8, formatted: '8' } } }],
+        },
+      ],
+    } as unknown as TableProjectionResponse;
+    const [goals] = standingsColumnsOf(projection, 'en');
+    const groupB = { ...standings[0], groupName: 'Grupo B', position: 1 } as never;
+
+    expect(goals?.valueOf(groupB)).toBe('8');
+  });
+
+  it('names the standings stage only from the stage number the overview gives', () => {
+    const matches = [
+      { stageNumber: 1, stageName: 'Fase de grupos' },
+      { stageNumber: 2, stageName: 'Copa Oro' },
+    ];
+    expect(standingsStageNameOf(matches, 2)).toBe('Copa Oro');
+    expect(standingsStageNameOf(matches, undefined)).toBeUndefined();
   });
 
   it('reads a group row from its own group segment, where group ranks repeat', () => {

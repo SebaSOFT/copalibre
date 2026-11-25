@@ -250,7 +250,11 @@ export function standingsColumnsOf(
     }));
 }
 
-/** The layout's row for a standings row: by entrant id, else by rank within the row's group segment. */
+/**
+ * The layout's row for a standings row: by entrant id, else by club id, else by rank within the row's
+ * own segment. The segment is narrowed only by what the row names: its zone when it has one, its group
+ * when it has one.
+ */
 function layoutRowOf(
   projection: TableProjectionResponse,
   row: StandingsRowView,
@@ -259,12 +263,29 @@ function layoutRowOf(
     const byEntrant = projection.rows.find((candidate) => candidate.entrantId === row.entrantId);
     if (byEntrant) return byEntrant;
   }
+  if (row.clubId !== undefined) {
+    const byClub = projection.rows.find((candidate) => candidate.clubId === row.clubId);
+    if (byClub) return byClub;
+  }
   const segment = projection.segments?.find(
     (candidate) =>
-      candidate.groupName === row.groupName &&
-      (candidate.zoneName ?? undefined) === (row.zoneName ?? undefined),
+      (row.groupName === undefined || candidate.groupName === row.groupName) &&
+      (row.zoneName === undefined || candidate.zoneName === row.zoneName),
   );
   return segment?.rows.find((candidate) => candidate.rank === row.position);
+}
+
+/**
+ * The stage name that heads the standings tables. It comes only from the stage the overview names: with
+ * no stage number there is no stage heading, and no stage is guessed.
+ */
+export function standingsStageNameOf(
+  matches: readonly { readonly stageNumber: number; readonly stageName?: string }[],
+  standingsStageNumber: number | undefined,
+): string | undefined {
+  if (standingsStageNumber === undefined) return undefined;
+  return matches.find((match) => match.stageNumber === standingsStageNumber && match.stageName)
+    ?.stageName;
 }
 
 /** The most a full-frame standings table can give to a column of figures, in viewport minimums. */
@@ -416,7 +437,7 @@ export function TvDashboard({
   const entrantVersions = useRef(new Map<string, number>());
   type RailTab = 'standings' | 'performers' | 'facts' | 'bracket' | 'fixtures' | 'recent';
   // The rail's tab set is decided once, from what the first render already holds, so a rotation or a
-  // late poll never inserts or removes a tab. A tab whose data arrives later shows its own loading state.
+  // late poll never inserts or removes a tab.
   const [railTabs] = useState<readonly RailTab[]>(() => {
     if (pinnedRef !== undefined) {
       const pinnedStandingRows = pinnedStandingsOf(
@@ -727,9 +748,8 @@ export function TvDashboard({
   // 4. Automatic Carousel Rotation (respects prefers-reduced-motion)
   // A fixed `standings` view has nothing to rotate; a fixed `matches` view only pages its list; the
   // rotating dashboard pages the list too before it moves to the next section.
-  // Live first, then what is next, then what is finished; the block headings count as rows.
-  // The list's rows: every entry in its block order, with the live matches' states and scores laid over
-  // the schedule; a block heading takes a row of its own, so the rows are what the frame pages over.
+  // Live first, then what is next, then what is finished; a block heading takes a row of its own. The
+  // live matches' states and scores are laid over the schedule, and the rows are what the frame pages over.
   const listEntries = useMemo(
     () => overlayTvEntries(scheduledMatches, dashboard.matches, dashboardLabels.resultState),
     [scheduledMatches, dashboard.matches, dashboardLabels.resultState],
@@ -772,14 +792,8 @@ export function TvDashboard({
   const tournamentState = tvTournamentState(matches);
   const allFinal = tournamentState === 'finished';
   const isLive = liveMatches.length > 0;
-  // The standings belong to the stage its matches play in; the first named stage heads the tables.
-  // The stage the standings belong to names the tables; without the overview's stage number, the first
-  // named stage of the matches does.
-  const standingsStageName =
-    standingsStageNumber === undefined
-      ? matches.find((match) => match.stageName)?.stageName
-      : matches.find((match) => match.stageNumber === standingsStageNumber && match.stageName)
-          ?.stageName;
+  // The stage the standings belong to names the tables.
+  const standingsStageName = standingsStageNameOf(matches, standingsStageNumber);
   // Every table is headed by its group or zone when the stage has several, judged on the whole
   // standings rather than the page on screen; the pinned route always names its group.
   const standingsTableCount = groupStandingsByZone(standings ?? []).length;
