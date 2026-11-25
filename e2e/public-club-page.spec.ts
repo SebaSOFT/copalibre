@@ -15,7 +15,8 @@ const API = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`
 const HISPANO_ID = '01936f4a-0a00-7000-8000-000000000001';
 const LOMAS_ID = '01936f4a-0a00-7000-8000-000000000002';
 const TIRO_ID = '01936f4a-0a00-7000-8000-000000000004';
-const UNALIASED_ID = '01936f4a-0a00-7000-8000-000000000003';
+// A name with no Latin letters: its alias is the fallback `club-1` the server gives it.
+const FALLBACK_ALIAS_ID = '01936f4a-0a00-7000-8000-000000000003';
 const ATLETICO_ID = '01936f4a-0a00-7000-8000-000000000005';
 
 const clubs = [
@@ -34,7 +35,7 @@ const clubs = [
     alias: 'lomas-de-rivadavia',
   },
   { clubId: TIRO_ID, name: 'Tiro Federal', abbreviation: 'TIR', alias: 'tiro-federal' },
-  { clubId: UNALIASED_ID, name: 'Club Sin Alias', abbreviation: 'SIN' },
+  { clubId: FALLBACK_ALIAS_ID, name: '北京俱乐部', alias: 'club-1' },
   { clubId: ATLETICO_ID, name: 'Atlético Bello', abbreviation: 'ATB', alias: 'atletico-bello' },
 ];
 
@@ -415,7 +416,7 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
-test('the club index lists every aliased club and leaves the unaliased one as plain text', async ({
+test('the club index links every club, including one whose alias is the fallback', async ({
   page,
 }) => {
   await page.goto(`${BASE}/clubs`);
@@ -423,7 +424,7 @@ test('the club index lists every aliased club and leaves the unaliased one as pl
   await expect(page.locator(`a[href="${BASE}/clubs/club-hispano"]`)).toHaveCount(1);
   await expect(page.locator(`a[href="${BASE}/clubs/lomas-de-rivadavia"]`)).toHaveCount(1);
   await expect(page.locator(`a[href="${BASE}/clubs/tiro-federal"]`)).toHaveCount(1);
-  await expect(page.getByText('Club Sin Alias', { exact: true })).toBeVisible();
+  await expect(page.locator(`a[href="${BASE}/clubs/club-1"]`)).toHaveCount(1);
   // Grouped by the declared bands: Copa Oro first, its clubs alphabetical; the unassigned clubs last.
   const bandHeadings = page.locator('section[aria-labelledby^="club-band-"] h2');
   await expect(bandHeadings.nth(0)).toHaveText('Copa Oro');
@@ -433,7 +434,16 @@ test('the club index lists every aliased club and leaves the unaliased one as pl
   await expect(names.nth(0)).toHaveText('Atlético Bello');
   await expect(names.nth(1)).toHaveText('Club Hispano');
   await expect(names.nth(2)).toHaveText('Tiro Federal');
-  await expect(page.locator('a', { hasText: 'Club Sin Alias' })).toHaveCount(0);
+});
+
+test('the standings club chips include every club, including the fallback-alias one', async ({
+  page,
+}) => {
+  await page.goto(`${BASE}?tab=group-standings-default`);
+
+  // The chips render in the header and again in the footer, so each is asserted by its first match.
+  await expect(page.locator('a[data-club-filter="club-hispano"]').first()).toBeAttached();
+  await expect(page.locator('a[data-club-filter="club-1"]').first()).toBeAttached();
 });
 
 test('the club page shows identity, next match, standing, results, squad and the path link', async ({
@@ -537,13 +547,13 @@ test('every club page section renders with JavaScript disabled', async ({ browse
   await context.close();
 });
 
-test('an organization club card links to its organization club page only when the club has an alias', async ({
+test('an organization club card links to its organization club page for every club', async ({
   page,
 }) => {
   await page.goto(`/${ORGANIZATION}`);
 
   await expect(page.locator(`a[href="/${ORGANIZATION}/clubs/club-hispano"]`)).toHaveCount(1);
-  await expect(page.locator('a', { hasText: 'Club Sin Alias' })).toHaveCount(0);
+  await expect(page.locator(`a[href="/${ORGANIZATION}/clubs/club-1"]`)).toHaveCount(1);
 });
 
 test('the organization club page lists honours and tournaments, each linking to its club page', async ({
