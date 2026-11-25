@@ -21,7 +21,10 @@ import {
   type PublicObjectReference,
 } from '../lib/discipline-background.ts';
 import { buildHreflangAlternates, serializeJsonLd, type JsonLdStructuredData } from '../lib/seo.ts';
-import { publicTournamentNavigation } from '../lib/public-tournament-navigation.ts';
+import {
+  publicTournamentNavigation,
+  type PublicTournamentStageFacts,
+} from '../lib/public-tournament-navigation.ts';
 import type { SupportedLanguage } from '@copalibre/domain';
 
 import Container from '../components/ui/atoms/layout/Container.astro';
@@ -41,6 +44,10 @@ interface Props {
   readonly localeVariants?: readonly SupportedLanguage[] | readonly string[];
   /** Whether the tournament has clubs; the header's teams tab opens the club index only then. */
   readonly tournamentHasClubs?: boolean;
+  /** The tournament's published stages, for the section tabs. */
+  readonly tournamentStages?: readonly PublicTournamentStageFacts[];
+  /** The layout code the standings view opens with, when the discipline declares one. */
+  readonly standingsLayoutCode?: string;
 }
 
 const {
@@ -55,11 +62,18 @@ const {
   structuredData,
   localeVariants,
   tournamentHasClubs = false,
+  tournamentStages,
+  standingsLayoutCode,
 } = Astro.props;
 
 const site = Astro.site?.toString().replace(/\/$/, '') ?? '';
 const background = selectPublicDisciplineBackground(disciplineImages);
-const tournamentNavigation = publicTournamentNavigation(Astro.url.pathname, Astro.url.search);
+const tournamentNavigation = publicTournamentNavigation({
+  pathname: Astro.url.pathname,
+  search: Astro.url.search,
+  stages: tournamentStages,
+  standingsLayoutCode,
+});
 const resolvedOgImage =
   ogImage ??
   (background?.url

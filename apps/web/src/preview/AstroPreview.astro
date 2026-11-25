@@ -352,6 +352,14 @@ const [compactSample] = referenceJourneyBracket(true);
             current: 'overview',
             stageNumber: 2,
             tournamentPath: '/es/reference-league/tournaments/reference-cup',
+            destinations: {
+              overview: '/es/reference-league/tournaments/reference-cup',
+              matches: '/es/reference-league/tournaments/reference-cup/matches',
+              live: '/es/reference-league/tournaments/reference-cup/live',
+              standings:
+                '/es/reference-league/tournaments/reference-cup?tab=group-standings-default',
+              brackets: '/es/reference-league/tournaments/reference-cup/stages/2',
+            },
           }}
         />
       )

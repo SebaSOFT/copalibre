@@ -1,4 +1,11 @@
 ---
+import {
+  fetchOverview,
+  fetchPublicTableLayouts,
+  mapOverviewResponse,
+} from '../../../../../../../../lib/public-api-client.ts';
+import { buildOverview } from '../../../../../../../../lib/overview.ts';
+import { defaultStandingsLayoutCode } from '../../../../../../../../lib/public-tournament-navigation.ts';
 import PublicLayout from '../../../../../../../../layouts/PublicLayout.astro';
 import Container from '../../../../../../../../components/ui/atoms/layout/Container.astro';
 import Breadcrumb from '../../../../../../../../components/ui/organisms/Breadcrumb.astro';
@@ -120,6 +127,15 @@ const model = buildMatchReport(response, {
       ? intl.formatMessage(officialRoleMessages[code as keyof typeof officialRoleMessages])
       : humanizeCode(code),
 });
+
+const [tournamentOverviewData, tableLayouts] = await Promise.all([
+  fetchOverview(organization!, tournament!),
+  fetchPublicTableLayouts(organization!, tournament!),
+]);
+const tournamentStages = tournamentOverviewData
+  ? buildOverview(mapOverviewResponse(tournamentOverviewData, resolvedLocale)).stages
+  : undefined;
+const standingsLayoutCode = defaultStandingsLayoutCode(tableLayouts?.layouts ?? []);
 
 const liveDashboard =
   model.status === 'live'
@@ -268,6 +284,8 @@ const structuredData = {
   intl={intl}
   disciplineImages={response.disciplineImages}
   structuredData={structuredData}
+  tournamentStages={tournamentStages}
+  standingsLayoutCode={standingsLayoutCode}
 >
   <Container variant="reading">
     <PageHeader

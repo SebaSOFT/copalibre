@@ -73,24 +73,37 @@ const tournamentLinks: readonly {
     : [
         {
           section: 'overview',
-          href: tournamentNavigation.tournamentPath,
+          href: tournamentNavigation.destinations.overview,
           label: intl.formatMessage(messages.headerTournamentOverview),
         },
         {
           section: 'matches',
-          href: tournamentNavigation.tournamentPath + '/matches',
+          href: tournamentNavigation.destinations.matches,
           label: intl.formatMessage(messages.headerTournamentMatches),
         },
         {
-          section: 'standings',
-          href: tournamentNavigation.tournamentPath + '#standings',
-          label: intl.formatMessage(messages.headerTournamentStandings),
+          section: 'live',
+          href: tournamentNavigation.destinations.live,
+          label: intl.formatMessage(messages.headerTournamentLive),
         },
-        {
-          section: 'brackets',
-          href: tournamentNavigation.tournamentPath + '/stages/' + tournamentNavigation.stageNumber,
-          label: intl.formatMessage(messages.headerTournamentBrackets),
-        },
+        ...(tournamentNavigation.destinations.standings === undefined
+          ? []
+          : [
+              {
+                section: 'standings' as const,
+                href: tournamentNavigation.destinations.standings,
+                label: intl.formatMessage(messages.headerTournamentStandings),
+              },
+            ]),
+        ...(tournamentNavigation.destinations.brackets === undefined
+          ? []
+          : [
+              {
+                section: 'brackets' as const,
+                href: tournamentNavigation.destinations.brackets,
+                label: intl.formatMessage(messages.headerTournamentBrackets),
+              },
+            ]),
         {
           section: 'teams',
           href: tournamentHasClubs
@@ -196,7 +209,7 @@ const languageName = (code: string): string => {
         </div>
       )}
       <a
-        class="cl-public-header__cta cl-btn cl-btn--primary cl-chamfer cl-chamfer--control cl-focusable"
+        class="cl-public-header__cta cl-btn cl-btn--secondary cl-chamfer cl-chamfer--control cl-focusable"
         href="/control/"
       >
         {controlLabel}

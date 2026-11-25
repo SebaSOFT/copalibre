@@ -1,4 +1,5 @@
 ---
+import { defaultStandingsLayoutCode } from '../../../../../../lib/public-tournament-navigation.ts';
 import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
 import Container from '../../../../../../components/ui/atoms/layout/Container.astro';
 import PlayerProfileView from '../../../../../../components/ui/organisms/PlayerProfileView.astro';
@@ -64,6 +65,9 @@ const [statistics, matchesViewData] = await Promise.all([
 ]);
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const standingsLayoutCode = defaultStandingsLayoutCode(
+  (await fetchPublicTableLayouts(organization!, tournament!))?.layouts ?? [],
+);
 const title = `${profile.displayName} — ${displayName(model)}`;
 const localePrefix = locale ? `/${locale}` : '';
 const tournamentCanonicalPath = `${localePrefix}${model.canonicalPath}`;
@@ -100,6 +104,8 @@ const nextMatch = nextMatchCandidate
 
 <PublicLayout
   tournamentHasClubs={(model.clubs ?? []).length > 0}
+  tournamentStages={model.stages}
+  standingsLayoutCode={standingsLayoutCode}
   title={title}
   description={intl.formatMessage(messages.playerProfileHeading)}
   canonicalPath={canonicalPath}

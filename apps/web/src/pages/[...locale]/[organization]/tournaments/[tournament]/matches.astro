@@ -1,4 +1,6 @@
 ---
+import { defaultStandingsLayoutCode } from '../../../../../lib/public-tournament-navigation.ts';
+import { fetchPublicTableLayouts } from '../../../../../lib/public-api-client.ts';
 import Breadcrumb from '../../../../../components/ui/organisms/Breadcrumb.astro';
 import Container from '../../../../../components/ui/atoms/layout/Container.astro';
 import PageHeader from '../../../../../components/ui/organisms/PageHeader.astro';
@@ -58,6 +60,9 @@ if (!overviewData) {
   return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const standingsLayoutCode = defaultStandingsLayoutCode(
+  (await fetchPublicTableLayouts(organization!, tournament!))?.layouts ?? [],
+);
 const referenceDate = Date.now();
 const scheduleTimeZone = model.organizationTimeZone ?? 'UTC';
 const todayKey = calendarDayKey(referenceDate, scheduleTimeZone);
@@ -233,6 +238,8 @@ const trail = publicTrail(trailBase, [
 
 <PublicLayout
   tournamentHasClubs={(model.clubs ?? []).length > 0}
+  tournamentStages={model.stages}
+  standingsLayoutCode={standingsLayoutCode}
   title={`${intl.formatMessage(messages.matchesViewPageTitle)} — ${displayName(model)}`}
   canonicalPath={canonicalPath}
   intl={intl}

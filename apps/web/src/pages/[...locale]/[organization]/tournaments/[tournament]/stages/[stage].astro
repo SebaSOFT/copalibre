@@ -1,4 +1,5 @@
 ---
+import { defaultStandingsLayoutCode } from '../../../../../../lib/public-tournament-navigation.ts';
 import Breadcrumb from '../../../../../../components/ui/organisms/Breadcrumb.astro';
 import Container from '../../../../../../components/ui/atoms/layout/Container.astro';
 import PageHeader from '../../../../../../components/ui/organisms/PageHeader.astro';
@@ -91,6 +92,9 @@ const stageMatches = await fetchMatchesView(organization!, tournament!, { stageN
 );
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const standingsLayoutCode = defaultStandingsLayoutCode(
+  (await fetchPublicTableLayouts(organization!, tournament!))?.layouts ?? [],
+);
 const clubResolution = resolveClubFilter(Astro.url.searchParams, model.clubs);
 if ('redirectSearch' in clubResolution) {
   const location = clubResolution.redirectSearch
@@ -178,6 +182,8 @@ const zoneHeading = (name: string | undefined, index: number): string =>
 
 <PublicLayout
   tournamentHasClubs={(model.clubs ?? []).length > 0}
+  tournamentStages={model.stages}
+  standingsLayoutCode={standingsLayoutCode}
   title={pageTitle}
   canonicalPath={stagePath}
   intl={intl}

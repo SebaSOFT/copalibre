@@ -1,4 +1,5 @@
 ---
+import { defaultStandingsLayoutCode } from '../../../../../../lib/public-tournament-navigation.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
 import Container from '../../../../../../components/ui/atoms/layout/Container.astro';
@@ -79,6 +80,9 @@ if (!overviewData) {
 }
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const standingsLayoutCode = defaultStandingsLayoutCode(
+  (await fetchPublicTableLayouts(organization!, tournament!))?.layouts ?? [],
+);
 const clubInfo = model.clubs?.find((entry) => entry.alias === club);
 if (!clubInfo) {
   // A link shared before the club changed its alias keeps working: it moves permanently to the
@@ -364,6 +368,8 @@ const structuredData = {
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
   tournamentHasClubs={(model.clubs ?? []).length > 0}
+  tournamentStages={model.stages}
+  standingsLayoutCode={standingsLayoutCode}
 >
   <Container variant="public">
     <PageHeader loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}>
