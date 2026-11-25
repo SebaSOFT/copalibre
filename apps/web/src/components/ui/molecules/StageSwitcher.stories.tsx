@@ -1,9 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { StageSwitcher } from './StageSwitcher.js';
+import { useIntl } from 'react-intl';
+import { messages } from '../../../lib/i18n/public-messages.en.js';
+import { StageSwitcher, type StageSwitcherItem } from './StageSwitcher.js';
 
 /**
  * The stage row on a stage or match page. The current stage is marked and
- * shown as the page; the others are links.
+ * shown as the page; the others are links. Its text is formatted from the
+ * public catalogue's descriptors, so the workbench language applies to it.
  */
 const meta = {
   title: 'Public/StageSwitcher',
@@ -11,23 +14,42 @@ const meta = {
 } satisfies Meta<typeof StageSwitcher>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
-const STAGES = [
-  { stageNumber: 1, label: 'Groups', href: '/example/tournaments/cup/stages/1' },
-  { stageNumber: 2, label: 'Cups', href: '/example/tournaments/cup/stages/2' },
-  { stageNumber: 3, label: 'Stage 3', href: '/example/tournaments/cup/stages/3' },
-];
+const TOURNAMENT = '/example/tournaments/cup';
 
-export const OnGroups: Story = {
-  args: { label: 'Tournament stages', stages: STAGES, currentStageNumber: 1 },
+/** Builds the switcher's items from the stage numbers, labelled by the stage descriptor. */
+function StoryStageSwitcher({
+  stageNumbers,
+  currentStageNumber,
+}: {
+  readonly stageNumbers: readonly number[];
+  readonly currentStageNumber: number;
+}) {
+  const intl = useIntl();
+  const stages: readonly StageSwitcherItem[] = stageNumbers.map((stageNumber) => ({
+    stageNumber,
+    label: intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber }),
+    href: `${TOURNAMENT}/stages/${stageNumber}`,
+  }));
+  return (
+    <StageSwitcher
+      currentStageNumber={currentStageNumber}
+      label={intl.formatMessage(messages.stageSwitcherLabel)}
+      stages={stages}
+    />
+  );
+}
+
+export const OnFirstStage: Story = {
+  render: () => <StoryStageSwitcher stageNumbers={[1, 2, 3]} currentStageNumber={1} />,
 };
 
-export const OnCups: Story = {
-  args: { label: 'Tournament stages', stages: STAGES, currentStageNumber: 2 },
+export const OnLaterStage: Story = {
+  render: () => <StoryStageSwitcher stageNumbers={[1, 2, 3]} currentStageNumber={2} />,
 };
 
 /** A single stage renders nothing, so the story shows an empty frame on purpose. */
 export const SingleStage: Story = {
-  args: { label: 'Tournament stages', stages: STAGES.slice(0, 1), currentStageNumber: 1 },
+  render: () => <StoryStageSwitcher stageNumbers={[1]} currentStageNumber={1} />,
 };
