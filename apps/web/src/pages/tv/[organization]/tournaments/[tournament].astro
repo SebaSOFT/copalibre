@@ -78,6 +78,8 @@ let dashboard: LiveDashboard = {
 };
 let tournamentName: string | undefined;
 let organizationName: string | undefined;
+let standingsStageNumber: number | undefined;
+let standingsProjection: TableProjectionResponse | undefined;
 let tournamentEmblem: string | undefined;
 let clubs: { name: string; emblemUrl?: string }[] = [];
 let winnerZones: readonly TvWinnerZone[] = [];
@@ -103,6 +105,7 @@ try {
     disciplineImages = overview.disciplineImages;
     tournamentName = mappedOverview.tournamentName || undefined;
     organizationName = mappedOverview.organizationName || undefined;
+    standingsStageNumber = mappedOverview.standingsStageNumber;
     if (mappedOverview.emblemObjectId) {
       tournamentEmblem = tournamentEmblemUrl(organizationAlias, tournamentAlias);
     }
@@ -280,6 +283,27 @@ if (presentation !== 'lower' && featuredStage !== undefined) {
   carries none of the three, and the venue is what a court overlay follows a match by. A lower third
   has no rail to put the match list in.
 */
+/*
+ * The standings table's declared layout, which the full-frame standings view widens by. Read for the
+ * stage the standings belong to, in its own guard: a failure costs the extra columns, never the table.
+ */
+try {
+  if (standingsStageNumber !== undefined) {
+    const layouts = await fetchPublicTableLayouts(organizationAlias, tournamentAlias);
+    const standingsLayout = (layouts?.layouts ?? []).find((one) => one.target === 'group-phase');
+    if (standingsLayout) {
+      standingsProjection = await fetchPublicTableProjection(
+        organizationAlias,
+        tournamentAlias,
+        standingsLayout.code,
+        standingsStageNumber,
+      );
+    }
+  }
+} catch {
+  standingsProjection = undefined;
+}
+
 const referenceDate = Date.now();
 const court = Astro.url.searchParams.get('court') ?? undefined;
 let venueNameByMatchId: Record<string, string> = {};
@@ -387,8 +411,13 @@ const tickerItems =
       clockStoppedLabel={tvMultiCourtGridLabels(intl).clockStopped}
       clockAriaLabel={tvMultiCourtGridLabels(intl).clockAriaLabel}
       tournamentName={tournamentDisplayName}
+      organizationName={organizationDisplayName}
+      {...(tournamentEmblem === undefined ? {} : { logoUrl: tournamentEmblem })}
       inProgressLabel={tvMultiCourtGridLabels(intl).inProgress}
+      delayedLabel={tvMultiCourtGridLabels(intl).delayed}
+      clockLabel={tvMultiCourtGridLabels(intl).clockLabel}
       pageOfLabel={tvMultiCourtGridLabels(intl).pageOf}
+      referenceDate={referenceDate}
       {...(organizationTimeZone === undefined ? {} : { timeZone: organizationTimeZone })}
     />
   ) : (
@@ -414,6 +443,8 @@ const tickerItems =
       clubs={clubs}
       winners={winnerZones}
       standings={standings}
+      standingsStageNumber={standingsStageNumber}
+      standingsProjection={standingsProjection}
       topPerformers={topPerformers}
       performerProjection={performerProjection}
       labels={tvStatisticsLabels(intl)}

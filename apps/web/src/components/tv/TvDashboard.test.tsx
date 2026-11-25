@@ -1,7 +1,13 @@
 import { jest } from '@jest/globals';
 import { act, render, screen, fireEvent } from '@testing-library/react';
 import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
-import { leadingTvSide, TvDashboard } from './TvDashboard.js';
+import {
+  leadingTvSide,
+  pinnedStandingsOf,
+  standingsColumnsOf,
+  TvDashboard,
+} from './TvDashboard.js';
+import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 import type { LiveDashboard, LiveMatch } from '../../lib/live-state.js';
 import type { PublicSeriesState } from '../../lib/series.js';
 import type { StandingsRowView } from '../../lib/overview.js';
@@ -184,7 +190,8 @@ describe('TvDashboard', () => {
     expect(screen.getAllByTestId('tv-dashboard-match')).toHaveLength(2);
     expect(screen.getAllByTestId('tv-upcoming-match')).toHaveLength(4);
     expect(document.querySelectorAll('.tv-dashboard-standings tbody tr')).toHaveLength(10);
-    expect(screen.getByText(dashboardLabels.zoneLegend)).toBeDefined();
+    // Each table carries its own heading now, so the legend that named them is gone.
+    expect(screen.queryByText(dashboardLabels.zoneLegend)).toBeNull();
   });
 
   it('shows the kickoff instead of a zero score for a scheduled focus match', () => {
@@ -2527,5 +2534,83 @@ describe('TvDashboard broadcast status and featured match', () => {
     expect(screen.queryByRole('button', { name: dashboardLabels.statisticsTab })).toBeNull();
     expect(screen.queryByRole('button', { name: dashboardLabels.fixturesTab })).toBeNull();
     expect(screen.getByRole('button', { name: dashboardLabels.recentFormTab })).toBeDefined();
+  });
+});
+
+describe('pinned standings and declared columns', () => {
+  const row = (
+    position: number,
+    zoneName: string | undefined,
+    groupName: string | undefined,
+    clubId: string,
+  ) => ({
+    position,
+    name: `Club ${clubId}`,
+    abbreviation: clubId.toUpperCase(),
+    clubId,
+    played: 3,
+    points: 9 - position,
+    zoneName,
+    groupName,
+  });
+  const standings = [
+    row(1, undefined, 'Grupo A', 'a1'),
+    row(2, undefined, 'Grupo A', 'a2'),
+    row(1, undefined, 'Grupo B', 'b1'),
+  ];
+
+  it('falls back to the group when the zone holds no rows of the standings', () => {
+    const match = { stageNumber: 1, zoneName: 'Zona Norte', groupName: 'Grupo B' };
+    expect(pinnedStandingsOf(standings, match).map((item) => item.clubId)).toEqual(['b1']);
+  });
+
+  it('returns no rows when the pinned match is not in the stage the standings belong to', () => {
+    const match = { stageNumber: 2, zoneName: undefined, groupName: 'Grupo A' };
+    expect(pinnedStandingsOf(standings, match, 1)).toEqual([]);
+    expect(pinnedStandingsOf(standings, { ...match, stageNumber: 1 }, 1)).toHaveLength(2);
+  });
+
+  it('declares the layout columns beside rank and club, without its sort column, in declared order', () => {
+    const projection = {
+      columns: [
+        { code: 'rank', header: { en: 'Pos' } },
+        { code: 'name', header: { en: 'Team' } },
+        { code: 'points', header: { en: 'Pts' } },
+        { code: 'goals', header: { en: 'Goals' } },
+        { code: 'cards', header: { en: 'Cards' } },
+      ],
+      defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+      rows: [
+        { rank: 1, clubId: 'a1', cells: { goals: { raw: 7, formatted: '7' }, cards: { raw: 2 } } },
+      ],
+    } as unknown as TableProjectionResponse;
+    const columns = standingsColumnsOf(projection, 'en');
+
+    expect(columns.map((column) => column.header)).toEqual(['Goals', 'Cards']);
+    expect(columns[0]?.valueOf(standings[0] as never)).toBe('7');
+    expect(columns[1]?.valueOf(standings[0] as never)).toBe('2');
+  });
+
+  it('falls back to the compact columns when no layout is known', () => {
+    expect(standingsColumnsOf(undefined, 'en')).toEqual([]);
+  });
+
+  it('shows a loading state, not the empty one, for a rail tab whose data is still arriving', () => {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={{ matches: [], standingsVersion: 1, usingLastKnown: false }}
+        labels={tvLabels}
+        language="en"
+        loadingTabs={['performers']}
+        pollIntervalMs={0}
+        standings={standings as never}
+        streamPath="/events/tv/liga/tournaments/apertura"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: dashboardLabels.performersTeamsTab }));
+    expect(screen.getByTestId('tv-rail-loading')).toBeDefined();
+    expect(screen.queryByText(dashboardLabels.noTopPerformers)).toBeNull();
   });
 });

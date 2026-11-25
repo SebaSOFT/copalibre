@@ -4,7 +4,7 @@ import { measureSchedule, animateSchedule } from '../../lib/schedule-travel.js';
 import type { PreviousPlacement } from '../../lib/reschedule.js';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
-import type { SupportedLanguage } from '@copalibre/domain';
+import { resolveLabel, type SupportedLanguage } from '@copalibre/domain';
 import { RealtimeClient } from '@copalibre/realtime';
 import {
   acceptEntrantResolution,
@@ -36,6 +36,7 @@ import {
   type SnapshotScore,
 } from '../../lib/tv-dashboard-source.js';
 import {
+  featuredTvMatch,
   latestFinishedOf,
   nextTvMatches,
   orderTvMatches,
@@ -44,10 +45,11 @@ import {
   type TvMatchEntry,
 } from '../../lib/tv-match-list.js';
 import { resolveTvBranding, tvStateColor, type TvBranding } from '../../lib/tv-branding.js';
-import type { StandingsRowView } from '../../lib/overview.js';
+import { groupStandingsByZone, type StandingsRowView } from '../../lib/overview.js';
 import {
   deriveTopPerformers,
   deriveTournamentFacts,
+  primaryColumn,
   resolveChampion,
   tvTournamentState,
   type TopPerformer,
@@ -60,8 +62,11 @@ import { TvPerformersView } from './TvPerformersView.js';
 import { TvFactsView } from './TvFactsView.js';
 import { TvStartTime } from './ui/atoms/TvStartTime.js';
 import { tvStatusToneClass, type TvStatusTone } from './ui/atoms/tv-status-tone.js';
+import { TvStatusBadge } from './ui/atoms/TvStatusBadge.js';
+import { TvScorebug } from './ui/organisms/TvScorebug.js';
 import { TvRecentResults } from './ui/organisms/TvRecentResults.js';
-import { TvStandingsTable } from './ui/organisms/TvStandingsTable.js';
+import { TvRailLoading } from './ui/atoms/TvRailLoading.js';
+import { TvStandingsTable, type StandingsColumn } from './ui/organisms/TvStandingsTable.js';
 import { useTablePaging } from './ui/use-table-paging.js';
 import { TvEventTicker } from './ui/organisms/TvEventTicker.js';
 import { TvRailTab } from './ui/atoms/TvRailTab.js';
@@ -167,6 +172,12 @@ export interface TvDashboardProps {
    */
   readonly winners?: readonly TvWinnerZone[];
   readonly standings?: readonly StandingsRowView[];
+  /** The stage the standings table belongs to; its name heads the tables. */
+  readonly standingsStageNumber?: number;
+  /** The standings table's declared layout, which the full-frame standings view widens by. */
+  readonly standingsProjection?: TableProjectionResponse;
+  /** Rail tabs whose data is still arriving; each shows a loading state rather than its empty one. */
+  readonly loadingTabs?: readonly string[];
   readonly topPerformers?: readonly TopPerformer[];
   /**
    * The discipline's own player-ranking projection. Passing `undefined` sends
@@ -197,25 +208,72 @@ function timeZoneLabel(at: Date, language: string, timeZone: string): string | u
     .find((part) => part.type === 'timeZoneName')?.value;
 }
 
-/**
- * The standings rows of the zone or group a pinned match is played in, or the whole table when the
- * match names neither.
- */
 /** The lower third's state chip: its own tone for each status, the in-progress one shared. */
 function tvLowerThirdToneClass(tone: TvStatusTone): string {
   return tone === 'in-progress' ? tvStatusToneClass(tone) : `tv-lower-third__state--${tone}`;
 }
 
+/** Declared columns the full-frame standings view adds; the frame holds these beside rank and club. */
+const MAX_DECLARED_STANDINGS_COLUMNS = 3;
+
+/**
+ * The columns a full-frame standings table declares beyond rank, club and points: the layout's
+ * columns in their declared order, without its sort column (the points). Empty when the layout is
+ * not known, which leaves the compact columns in place.
+ */
+/** The codes a layout gives its rank and its club: the table shows both already. */
+const RANK_AND_CLUB_CODES: ReadonlySet<string> = new Set([
+  'rank',
+  'position',
+  'name',
+  'club',
+  'entrant',
+]);
+
+export function standingsColumnsOf(
+  projection: TableProjectionResponse | undefined,
+  language: SupportedLanguage,
+): readonly StandingsColumn[] {
+  if (!projection) return [];
+  const sortColumn = primaryColumn(projection)?.code;
+  return projection.columns
+    .filter((column) => column.code !== sortColumn && !RANK_AND_CLUB_CODES.has(column.code))
+    .slice(0, MAX_DECLARED_STANDINGS_COLUMNS)
+    .map((column) => ({
+      code: column.code,
+      header: resolveLabel(column.header, language),
+      valueOf: (row: StandingsRowView): string => {
+        const match = projection.rows.find((candidate) =>
+          row.clubId !== undefined && candidate.clubId !== undefined
+            ? candidate.clubId === row.clubId
+            : candidate.rank === row.position,
+        );
+        const cell = match?.cells[column.code];
+        return cell?.formatted || (cell?.raw !== undefined ? String(cell.raw) : '–');
+      },
+    }));
+}
+
+/**
+ * The standings rows of the zone or group a pinned match is played in. The zone is tried first; when
+ * it holds no rows, the group is. A match with neither names the whole table. A match outside the
+ * stage the standings belong to has no rows here.
+ */
 export function pinnedStandingsOf(
   standings: readonly StandingsRowView[] | undefined,
-  match: Pick<LiveMatch, 'zoneName' | 'groupName'> | undefined,
+  match: Pick<LiveMatch, 'stageNumber' | 'zoneName' | 'groupName'> | undefined,
+  standingsStageNumber?: number,
 ): readonly StandingsRowView[] {
   if (!standings || match === undefined) return [];
-  if (match.zoneName !== undefined)
-    return standings.filter((row) => row.zoneName === match.zoneName);
+  if (standingsStageNumber !== undefined && match.stageNumber !== standingsStageNumber) return [];
+  if (match.zoneName === undefined && match.groupName === undefined) return standings;
+  if (match.zoneName !== undefined) {
+    const zoneRows = standings.filter((row) => row.zoneName === match.zoneName);
+    if (zoneRows.length > 0) return zoneRows;
+  }
   if (match.groupName !== undefined)
     return standings.filter((row) => row.groupName === match.groupName);
-  return standings;
+  return [];
 }
 
 export function leadingTvSide(match: LiveMatch | undefined): 'home' | 'away' | undefined {
@@ -265,6 +323,9 @@ export function TvDashboard({
   clubs,
   winners,
   standings,
+  standingsStageNumber,
+  standingsProjection,
+  loadingTabs = [],
   topPerformers: initialTopPerformers,
   performerProjection,
   labels,
@@ -311,6 +372,7 @@ export function TvDashboard({
       const pinnedStandingRows = pinnedStandingsOf(
         standings,
         findPinnedMatch(dashboard.matches, pinnedRef),
+        standingsStageNumber,
       );
       return [
         ...(pinnedStandingRows.length > 0 ? (['standings'] as const) : []),
@@ -332,6 +394,7 @@ export function TvDashboard({
     return { tab: initialView === 'matches' ? 'fixtures' : first, page: 0 };
   });
   const activeTab = rail.tab;
+  const railLoading = loadingTabs.includes(activeTab);
   const setActiveTab = (tab: typeof rail.tab): void => setRail({ tab, page: 0 });
   const [bracketData, setBracketData] = useState(initialBracket);
   const bracketDataRef = useRef(initialBracket);
@@ -620,25 +683,6 @@ export function TvDashboard({
     () => pageTvMatches(orderTvMatches(scheduledMatches, dashboardLabels.resultState)),
     [scheduledMatches, dashboardLabels.resultState],
   );
-  useEffect(() => {
-    if (initialView === 'standings') return;
-    // Paging a list is how a screen with no input reaches its later pages, not decoration, so a
-    // fixed `matches` view pages whatever the motion preference is; only the rotation between
-    // sections is held still by it.
-    if (prefersReducedMotion && initialView !== 'matches') return;
-    const interval = setInterval(() => {
-      setRail((current) => {
-        if (current.tab === 'fixtures' && current.page < matchPages.length - 1) {
-          return { tab: 'fixtures', page: current.page + 1 };
-        }
-        if (initialView === 'matches') return { tab: 'fixtures', page: 0 };
-        const index = railTabs.indexOf(current.tab);
-        const next = railTabs[(index + 1) % railTabs.length] ?? 'standings';
-        return { tab: next, page: 0 };
-      });
-    }, 10_000);
-    return () => clearInterval(interval);
-  }, [prefersReducedMotion, initialView, matchPages.length, railTabs]);
 
   // 5. Data Computations
   const matches = dashboard.matches;
@@ -647,17 +691,28 @@ export function TvDashboard({
   const pinnedMissing = pinnedRef !== undefined && pinnedMatch === undefined;
 
   const liveMatches = matches.filter((m) => m.state === 'live');
-  // The next-match strip and the featured fallback share one rule: scheduled matches whose kickoff
-  // is not in the past, and when none remains, the latest finished match.
+  // The next-match strip lists the scheduled matches that are not delayed; the featured panel's
+  // fallback order is in featuredTvMatch.
   const upcomingMatches = nextTvMatches(matches, effectiveNow, 4);
-  const latestFinishedMatch = matches
-    .filter((match) => match.state === 'final')
-    .sort((a, b) => (b.scheduledAt ?? '').localeCompare(a.scheduledAt ?? ''))[0];
   const tournamentState = tvTournamentState(matches);
   const allFinal = tournamentState === 'finished';
   const isLive = liveMatches.length > 0;
   // The standings belong to the stage its matches play in; the first named stage heads the tables.
-  const standingsStageName = matches.find((match) => match.stageName)?.stageName;
+  const standingsStageName =
+    standingsStageNumber === undefined
+      ? undefined
+      : matches.find((match) => match.stageNumber === standingsStageNumber && match.stageName)
+          ?.stageName;
+  // Every table is headed by its group or zone when the stage has several, judged on the whole
+  // standings rather than the page on screen; the pinned route always names its group.
+  const standingsTableCount = groupStandingsByZone(standings ?? []).length;
+  const scopeStandingsHeadings = pinnedRef !== undefined || standingsTableCount > 1;
+  // Only the full-frame standings view widens its table; the rail keeps the compact columns.
+  const declaredStandingsColumns = standingsColumnsOf(standingsProjection, language);
+  const fullFrameColumns =
+    initialView === 'standings' && declaredStandingsColumns.length > 0
+      ? declaredStandingsColumns
+      : undefined;
   // The dashboard's standings panel pages to the rows its frame holds and rotates between pages.
   const dashboardPaging = useTablePaging(standings ?? [], {
     panelRef: standingsPanelRef,
@@ -668,11 +723,38 @@ export function TvDashboard({
   const dashboardStandings = dashboardPaging.pageRows;
   // The rail's standings tab pages the same way on a full frame, with its own panel.
   const railStandingRows =
-    pinnedRef === undefined ? (standings ?? []) : pinnedStandingsOf(standings, pinnedMatch);
+    pinnedRef === undefined
+      ? (standings ?? [])
+      : pinnedStandingsOf(standings, pinnedMatch, standingsStageNumber);
   const railPaging = useTablePaging(railStandingRows, {
     panelRef: railStandingsRef,
     enabled: layoutVariant !== 'dashboard' && activeTab === 'standings',
+    rotate: false,
+    // The rail turns its standings pages itself, in step with its tabs.
+    page: activeTab === 'standings' ? rail.page : 0,
   });
+  // The rail moves through every page of a standings table before it leaves the tab, as the fixtures
+  // tab does; a fixed standings view keeps turning its own pages.
+  useEffect(() => {
+    const fixedPaging = initialView === 'matches' || initialView === 'standings';
+    if (prefersReducedMotion && !fixedPaging) return;
+    const interval = setInterval(() => {
+      setRail((current) => {
+        if (current.tab === 'fixtures' && current.page < matchPages.length - 1) {
+          return { tab: 'fixtures', page: current.page + 1 };
+        }
+        if (current.tab === 'standings' && current.page < railPaging.pageCount - 1) {
+          return { tab: 'standings', page: current.page + 1 };
+        }
+        if (initialView === 'matches') return { tab: 'fixtures', page: 0 };
+        if (initialView === 'standings') return { tab: 'standings', page: 0 };
+        const index = railTabs.indexOf(current.tab);
+        const next = railTabs[(index + 1) % railTabs.length] ?? 'standings';
+        return { tab: next, page: 0 };
+      });
+    }, 10_000);
+    return () => clearInterval(interval);
+  }, [prefersReducedMotion, initialView, matchPages.length, railTabs, railPaging.pageCount]);
 
   const winnerZones = winners ?? [];
   const soleWinner =
@@ -719,7 +801,7 @@ export function TvDashboard({
         ? courtMatch
         : isOverlayPresentation
           ? undefined
-          : (liveMatches[0] ?? upcomingMatches[0] ?? latestFinishedMatch);
+          : (liveMatches[0] ?? featuredTvMatch(matches, effectiveNow));
   const isMatchDelayed = (match: LiveMatch): boolean =>
     isDelayed(match, effectiveNow) && dashboardLabels.delayed !== undefined;
   const matchBadgeFor = (match: LiveMatch): StatePresentation =>
@@ -939,74 +1021,46 @@ export function TvDashboard({
       {broadcastAlertBanner}
       {/* 1. Persistent Score-Bug / Status Bar */}
       {!isOverlay && (
-        <header className="tv-scorebug cl-chamfer">
-          <div className="tv-scorebug__left">
-            {resolvedBranding.logoUrl ? (
-              <img
-                alt=""
-                aria-hidden="true"
-                className="tv-scorebug__brand-logo"
-                src={resolvedBranding.logoUrl}
-              />
-            ) : (
-              <img
-                alt="CopaLibre"
-                className="tv-scorebug__brand-logo"
-                height="32"
-                src="/copalibre-logo.svg"
-                width="32"
-              />
-            )}
-            <div className="tv-scorebug__titles">
-              <span className="tv-scorebug__tournament">{tournamentName ?? 'Torneo Oficial'}</span>
-              <span className="tv-scorebug__org">{organizationName ?? 'CopaLibre Broadcast'}</span>
-            </div>
-          </div>
-
-          <div className="tv-scorebug__right">
-            <TvMatchIndicators
-              match={spotlightMatch}
-              possessionLabel={dashboardLabels.possession}
-              penaltyLabel={dashboardLabels.penalty}
+        <TvScorebug
+          logoUrl={resolvedBranding.logoUrl}
+          organizationName={organizationName ?? 'CopaLibre Broadcast'}
+          tournamentName={tournamentName ?? 'Torneo Oficial'}
+        >
+          <TvMatchIndicators
+            match={spotlightMatch}
+            possessionLabel={dashboardLabels.possession}
+            penaltyLabel={dashboardLabels.penalty}
+          />
+          <TvStatusBadge label={statusBadge.label} tone={statusBadge.type} />
+          {spotlightClock && (
+            <LiveMatchClock
+              className="tv-scorebug__clock tv-scorebug__game-clock"
+              clock={spotlightClock}
+              labels={clockLabels}
+              segmentLabel={progress.segmentLabel}
+              variant="tv"
             />
-            <div className={`tv-scorebug__badge ${tvStatusToneClass(statusBadge.type)} cl-chamfer`}>
+          )}
+          {showsWallClock && (
+            <span className="tv-scorebug__wall-clock-group">
+              <span className="tv-scorebug__clock-label">{dashboardLabels.clockLabel}</span>
               <span
-                className={`tv-scorebug__dot${statusBadge.type === 'live' ? ' cl-live-dot' : ''}`}
+                className="tv-scorebug__clock tv-scorebug__clock--wall"
+                data-time={currentTime}
+                role={spotlightClock ? undefined : 'timer'}
+                aria-label={`${dashboardLabels.clockLabel} ${currentTime}`}
               />
-              <span>{statusBadge.label}</span>
-            </div>
-            {spotlightClock && (
-              <LiveMatchClock
-                className="tv-scorebug__clock tv-scorebug__game-clock"
-                clock={spotlightClock}
-                labels={clockLabels}
-                segmentLabel={progress.segmentLabel}
-                variant="tv"
-              />
-            )}
-            {showsWallClock && (
-              <span className="tv-scorebug__wall-clock-group">
-                <span className="tv-scorebug__clock-label">{dashboardLabels.clockLabel}</span>
-                <span
-                  className="tv-scorebug__clock tv-scorebug__clock--wall"
-                  data-time={currentTime}
-                  role={spotlightClock ? undefined : 'timer'}
-                  aria-label={`${dashboardLabels.clockLabel} ${currentTime}`}
-                />
-                {clockZoneLabel && (
-                  <span className="tv-scorebug__clock-zone">{clockZoneLabel}</span>
-                )}
-              </span>
-            )}
-            {finishedText !== undefined && (
-              <span
-                className="tv-scorebug__clock tv-scorebug__clock--finished"
-                data-time={finishedText}
-                aria-label={finishedText}
-              />
-            )}
-          </div>
-        </header>
+              {clockZoneLabel && <span className="tv-scorebug__clock-zone">{clockZoneLabel}</span>}
+            </span>
+          )}
+          {finishedText !== undefined && (
+            <span
+              className="tv-scorebug__clock tv-scorebug__clock--finished"
+              data-time={finishedText}
+              aria-label={finishedText}
+            />
+          )}
+        </TvScorebug>
       )}
 
       {layoutVariant === 'presentation' ? (
@@ -1133,6 +1187,7 @@ export function TvDashboard({
                 clubs={clubs}
                 dashboardLabels={dashboardLabels}
                 pointsShortLabel={labels.pointsShort}
+                scopesHeadings={scopeStandingsHeadings}
                 stageName={standingsStageName}
                 standings={standings}
               />
@@ -1294,6 +1349,7 @@ export function TvDashboard({
               clubs={clubs}
               dashboardLabels={dashboardLabels}
               pointsShortLabel={labels.pointsShort}
+              scopesHeadings={scopeStandingsHeadings}
               showAllRows
               stageName={standingsStageName}
               standings={dashboardStandings}
@@ -1529,12 +1585,15 @@ export function TvDashboard({
 
               {/* Tab Content */}
               <div className="tv-rail-content" data-testid="tv-rail-content" ref={railStandingsRef}>
-                {activeTab === 'standings' && (
+                {railLoading && <TvRailLoading />}
+                {activeTab === 'standings' && !railLoading && (
                   <div className="tv-rail-standings">
                     <TvStandingsTable
                       clubs={clubs}
+                      columns={fullFrameColumns}
                       dashboardLabels={dashboardLabels}
                       pointsShortLabel={labels.pointsShort}
+                      scopesHeadings={scopeStandingsHeadings}
                       showAllRows
                       stageName={standingsStageName}
                       standings={railPaging.pageRows}
@@ -1550,16 +1609,16 @@ export function TvDashboard({
                   </div>
                 )}
 
-                {activeTab === 'performers' && (
+                {activeTab === 'performers' && !railLoading && (
                   <TvPerformersView
                     noTopPerformersLabel={dashboardLabels.noTopPerformers}
                     performers={performers}
                   />
                 )}
 
-                {activeTab === 'facts' && <TvFactsView facts={facts} />}
+                {activeTab === 'facts' && !railLoading && <TvFactsView facts={facts} />}
 
-                {activeTab === 'recent' && pinnedMatch !== undefined && (
+                {activeTab === 'recent' && !railLoading && pinnedMatch !== undefined && (
                   <TvRecentResults
                     emptyLabel={dashboardLabels.noMatchesScheduled}
                     groups={pinnedMatch.sides.map((side) => ({
@@ -1570,10 +1629,10 @@ export function TvDashboard({
                     {...(timeZone === undefined ? {} : { timeZone })}
                   />
                 )}
-                {activeTab === 'bracket' && visibleBracket && (
+                {activeTab === 'bracket' && !railLoading && visibleBracket && (
                   <TvBracketView labels={dashboardLabels} zones={visibleBracket.zones} />
                 )}
-                {activeTab === 'fixtures' && matchPages.length > 0 && (
+                {activeTab === 'fixtures' && !railLoading && matchPages.length > 0 && (
                   <TvMatchList
                     locale={language}
                     labels={dashboardLabels}
