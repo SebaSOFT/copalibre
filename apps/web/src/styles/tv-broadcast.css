@@ -1108,6 +1108,29 @@
   text-transform: uppercase;
 }
 
+.tv-standings-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+/* The standings grid: rank, club and points at fixed widths; the figures between them share a width. */
+.tv-standings-col--rank {
+  width: 5vmin;
+}
+
+.tv-standings-col--figures {
+  width: 9vmin;
+}
+
+/* The compact rail's one figure column carries the played header, which is wider than a figure. */
+.tv-standings-col--played {
+  width: 15vmin;
+}
+
+.tv-standings-col--points {
+  width: 7vmin;
+}
+
 .tv-standings-table th {
   color: var(--tv-text-secondary);
   font-weight: 600;
@@ -1708,6 +1731,17 @@
   overflow: hidden;
 }
 
+/* The court name and the footer keep their height; the score takes whatever the card has left. */
+.tv-court-card__venue,
+.tv-court-card__footer {
+  flex: 0 0 auto;
+}
+
+.tv-court-card__score {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .tv-court-card__venue {
   font-family: var(--cl-font-mono);
   /* The court name is a caption: never under the secondary floor. */
@@ -1819,6 +1853,7 @@
 /* The kickoff and the court of a played match: its own line, which never truncates. */
 .tv-match-list__when {
   grid-area: when;
+  text-align: center;
   color: var(--tv-text-muted);
   font-size: var(--tv-min-secondary-size);
   overflow-wrap: anywhere;
