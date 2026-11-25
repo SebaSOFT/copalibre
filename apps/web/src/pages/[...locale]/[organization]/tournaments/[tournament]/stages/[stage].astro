@@ -1,4 +1,5 @@
 ---
+import { StageSwitcher } from '../../../../../../components/ui/molecules/StageSwitcher.tsx';
 import { defaultStandingsLayoutCode } from '../../../../../../lib/public-tournament-navigation.ts';
 import Breadcrumb from '../../../../../../components/ui/organisms/Breadcrumb.astro';
 import Container from '../../../../../../components/ui/atoms/layout/Container.astro';
@@ -161,13 +162,19 @@ const trailBase = trailBaseOf({
   canonicalPath: model.canonicalPath,
   localePrefix,
 });
-const trail = publicTrail(trailBase, [
-  {
-    label: intl.formatMessage(messages.matchesViewPageTitle),
-    href: `${localePrefix}${model.canonicalPath}/matches?stageNumber=${stageNumber}`,
-  },
-  { label: stageHeading },
-]);
+const trail = publicTrail(trailBase, [{ label: stageHeading }]);
+const stageLabelOf = (stage: { stageNumber: number; stageName?: string }): string =>
+  stage.stageName?.trim() ||
+  intl.formatMessage(messages.breadcrumbStage, { stage: stage.stageNumber });
+const stagePathOf = (stageNumberOf: number): string =>
+  `${localePrefix}${model.canonicalPath}/stages/${stageNumberOf}`;
+const publishedStages = [...(model.stages ?? [])].sort((a, b) => a.stageNumber - b.stageNumber);
+const stageSwitcherItems = publishedStages.map((stage) => ({
+  stageNumber: stage.stageNumber,
+  label: stageLabelOf(stage),
+  href: stagePathOf(stage.stageNumber),
+}));
+const nextStage = publishedStages.find((stage) => stage.stageNumber > stageNumber);
 const reportUrlOf = (match: MatchCardData): string =>
   matchReportUrl({
     organizationAlias: organization!,
@@ -199,6 +206,11 @@ const zoneHeading = (name: string | undefined, index: number): string =>
         collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
       />
     </PageHeader>
+    <StageSwitcher
+      currentStageNumber={stageNumber}
+      label={intl.formatMessage(messages.stageSwitcherLabel)}
+      stages={stageSwitcherItems}
+    />
     <TimeZoneNote
       locale={resolvedLocale}
       referenceDate={referenceDate}
@@ -512,6 +524,13 @@ const zoneHeading = (name: string | undefined, index: number): string =>
           tournamentAlias={tournament}
         />
       ))}
+    {nextStage && (
+      <p class="cl-stage-next">
+        <a href={stagePathOf(nextStage.stageNumber)}>
+          {intl.formatMessage(messages.stageSwitcherNext, { stage: stageLabelOf(nextStage) })}
+        </a>
+      </p>
+    )}
   </Container>
 </PublicLayout>
 
