@@ -74,3 +74,14 @@ const {
     justify-self: start;
   }
 </style>
+
+<script>
+  import { revealFocusedBracketMatch } from '../../../lib/bracket-overflow';
+  const reveal = (): void => {
+    document
+      .querySelectorAll<HTMLElement>('.cl-bracket-context')
+      .forEach(revealFocusedBracketMatch);
+  };
+  reveal();
+  document.addEventListener('astro:page-load', reveal);
+</script>

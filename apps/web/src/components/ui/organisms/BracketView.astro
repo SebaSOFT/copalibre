@@ -142,29 +142,32 @@ const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((b
     there is room, abbreviations and scores where there is not. The stylesheet shows one.
   */}
   {(['full', 'compact'] as const).map((density) => (
-    <div
-      aria-label={intl.formatMessage(messages.bracketScrollAriaLabel)}
-      class={`cl-bracket-stage__scroll cl-bracket-stage__scroll--${density}`}
-      role="group"
-      tabindex="0"
-    >
-      <BracketGraph
-        density={density}
-        headingLevel={headingLevel}
-        highlightMatchNumber={highlightMatchNumber}
-        initialEntrantId={initialEntrantId}
-        initialPath={initialPath}
-        intl={intl}
-        localePrefix={localePrefix}
-        matches={Astro.props.matches}
-        matchesView={matchesView}
-        organizationAlias={organizationAlias}
-        organizationTimeZone={organizationTimeZone}
-        stageNumber={stageNumber}
-        tournamentAlias={tournamentAlias}
-        zoneName={zoneName}
-        overallPlaceOffset={overallPlaceOffset}
-      />
+    <div class={`cl-bracket-stage__frame cl-bracket-stage__frame--${density}`}>
+      <p class="cl-bracket-stage__hint">{intl.formatMessage(messages.bracketScrollHint)}</p>
+      <div
+        aria-label={intl.formatMessage(messages.bracketScrollAriaLabel)}
+        class={`cl-bracket-stage__scroll cl-bracket-stage__scroll--${density}`}
+        role="group"
+        tabindex="0"
+      >
+        <BracketGraph
+          density={density}
+          headingLevel={headingLevel}
+          highlightMatchNumber={highlightMatchNumber}
+          initialEntrantId={initialEntrantId}
+          initialPath={initialPath}
+          intl={intl}
+          localePrefix={localePrefix}
+          matches={Astro.props.matches}
+          matchesView={matchesView}
+          organizationAlias={organizationAlias}
+          organizationTimeZone={organizationTimeZone}
+          stageNumber={stageNumber}
+          tournamentAlias={tournamentAlias}
+          zoneName={zoneName}
+          overallPlaceOffset={overallPlaceOffset}
+        />
+      </div>
     </div>
   ))}
 
@@ -242,7 +245,7 @@ const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((b
                                 aria-pressed={
                                   slot.entrantId === initialEntrantId ? 'true' : 'false'
                                 }
-                                class="cl-journey-name"
+                                class="cl-journey-name cl-focusable"
                                 data-entrant-id={slot.entrantId}
                                 variant="secondary"
                               >
@@ -288,8 +291,12 @@ const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((b
 
 <script>
   import { initializeEntrantHighlight } from '../../../lib/entrant-highlight';
+  import { initializeBracketOverflow } from '../../../lib/bracket-overflow';
   const initialize = (): void => {
     document.querySelectorAll<HTMLElement>('.cl-bracket-stage').forEach(initializeEntrantHighlight);
+    document
+      .querySelectorAll<HTMLElement>('.cl-bracket-stage__scroll')
+      .forEach(initializeBracketOverflow);
   };
   initialize();
   document.addEventListener('astro:page-load', initialize);
