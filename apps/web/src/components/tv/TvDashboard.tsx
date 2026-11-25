@@ -2,7 +2,7 @@ import { API_PATH_PREFIX } from '../../lib/api-path.ts';
 import type { PublicMatchesViewResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import { measureSchedule, animateSchedule } from '../../lib/schedule-travel.js';
 import type { PreviousPlacement } from '../../lib/reschedule.js';
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback, type RefObject } from 'react';
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 import { resolveLabel, type SupportedLanguage } from '@copalibre/domain';
 import { RealtimeClient } from '@copalibre/realtime';
@@ -36,8 +36,12 @@ import {
   type SnapshotScore,
 } from '../../lib/tv-dashboard-source.js';
 import {
+  chunkTvRows,
   featuredTvMatch,
   latestFinishedOf,
+  overlayTvEntries,
+  TV_MATCHES_PER_ROW,
+  TV_MATCH_ROWS_PER_PAGE,
   nextTvMatches,
   orderTvMatches,
   pageTvMatches,
@@ -65,7 +69,6 @@ import { tvStatusToneClass, type TvStatusTone } from './ui/atoms/tv-status-tone.
 import { TvStatusBadge } from './ui/atoms/TvStatusBadge.js';
 import { TvScorebug } from './ui/organisms/TvScorebug.js';
 import { TvRecentResults } from './ui/organisms/TvRecentResults.js';
-import { TvRailLoading } from './ui/atoms/TvRailLoading.js';
 import { TvStandingsTable, type StandingsColumn } from './ui/organisms/TvStandingsTable.js';
 import { useTablePaging } from './ui/use-table-paging.js';
 import { TvEventTicker } from './ui/organisms/TvEventTicker.js';
@@ -176,8 +179,6 @@ export interface TvDashboardProps {
   readonly standingsStageNumber?: number;
   /** The standings table's declared layout, which the full-frame standings view widens by. */
   readonly standingsProjection?: TableProjectionResponse;
-  /** Rail tabs whose data is still arriving; each shows a loading state rather than its empty one. */
-  readonly loadingTabs?: readonly string[];
   readonly topPerformers?: readonly TopPerformer[];
   /**
    * The discipline's own player-ranking projection. Passing `undefined` sends
@@ -213,14 +214,6 @@ function tvLowerThirdToneClass(tone: TvStatusTone): string {
   return tone === 'in-progress' ? tvStatusToneClass(tone) : `tv-lower-third__state--${tone}`;
 }
 
-/** Declared columns the full-frame standings view adds; the frame holds these beside rank and club. */
-const MAX_DECLARED_STANDINGS_COLUMNS = 3;
-
-/**
- * The columns a full-frame standings table declares beyond rank, club and points: the layout's
- * columns in their declared order, without its sort column (the points). Empty when the layout is
- * not known, which leaves the compact columns in place.
- */
 /** The codes a layout gives its rank and its club: the table shows both already. */
 const RANK_AND_CLUB_CODES: ReadonlySet<string> = new Set([
   'rank',
@@ -230,6 +223,15 @@ const RANK_AND_CLUB_CODES: ReadonlySet<string> = new Set([
   'entrant',
 ]);
 
+/**
+ * The columns a full-frame standings table declares beyond rank, club and points: the layout's columns
+ * in their declared order, without its sort column (the points) and without the rank and the club,
+ * which the table shows already. Empty when the layout is not known, which leaves the compact columns.
+ *
+ * A row's figures come from the layout's own row for that entrant, matched by entrant id. Without an
+ * entrant id, they come from the row's own group segment, matched by its rank in that group: the
+ * stage-wide rows, where group ranks repeat, are never searched for them.
+ */
 export function standingsColumnsOf(
   projection: TableProjectionResponse | undefined,
   language: SupportedLanguage,
@@ -238,20 +240,69 @@ export function standingsColumnsOf(
   const sortColumn = primaryColumn(projection)?.code;
   return projection.columns
     .filter((column) => column.code !== sortColumn && !RANK_AND_CLUB_CODES.has(column.code))
-    .slice(0, MAX_DECLARED_STANDINGS_COLUMNS)
     .map((column) => ({
       code: column.code,
       header: resolveLabel(column.header, language),
       valueOf: (row: StandingsRowView): string => {
-        const match = projection.rows.find((candidate) =>
-          row.clubId !== undefined && candidate.clubId !== undefined
-            ? candidate.clubId === row.clubId
-            : candidate.rank === row.position,
-        );
-        const cell = match?.cells[column.code];
+        const cell = layoutRowOf(projection, row)?.cells[column.code];
         return cell?.formatted || (cell?.raw !== undefined ? String(cell.raw) : '–');
       },
     }));
+}
+
+/** The layout's row for a standings row: by entrant id, else by rank within the row's group segment. */
+function layoutRowOf(
+  projection: TableProjectionResponse,
+  row: StandingsRowView,
+): TableProjectionResponse['rows'][number] | undefined {
+  if (row.entrantId !== undefined) {
+    const byEntrant = projection.rows.find((candidate) => candidate.entrantId === row.entrantId);
+    if (byEntrant) return byEntrant;
+  }
+  const segment = projection.segments?.find(
+    (candidate) =>
+      candidate.groupName === row.groupName &&
+      (candidate.zoneName ?? undefined) === (row.zoneName ?? undefined),
+  );
+  return segment?.rows.find((candidate) => candidate.rank === row.position);
+}
+
+/** The most a full-frame standings table can give to a column of figures, in viewport minimums. */
+const STANDINGS_COLUMN_VMIN = { rank: 5, club: 22, figures: 9, points: 7 } as const;
+
+/**
+ * The declared columns that fit the frame's width, taken from the front of the list: a column that
+ * does not fit is dropped with those after it. With no measured width, every column stays.
+ */
+export function standingsColumnsFitting(
+  columns: readonly StandingsColumn[],
+  frameWidthPx: number | undefined,
+  vminPx: number,
+): readonly StandingsColumn[] {
+  if (frameWidthPx === undefined || frameWidthPx <= 0 || vminPx <= 0) return columns;
+  const fixedVmin =
+    STANDINGS_COLUMN_VMIN.rank + STANDINGS_COLUMN_VMIN.club + STANDINGS_COLUMN_VMIN.points;
+  const room = frameWidthPx / vminPx - fixedVmin;
+  const fitting = Math.max(0, Math.floor(room / STANDINGS_COLUMN_VMIN.figures));
+  return columns.slice(0, fitting);
+}
+
+/** One viewport minimum in pixels: the unit the TV's vmin sizes are measured in. */
+export function viewportVmin(): number {
+  return Math.min(window.innerWidth, window.innerHeight) / 100;
+}
+
+/** The width of an element while it is observed, or undefined until it has been measured. */
+function useFrameWidth(ref: RefObject<HTMLElement | null>, enabled: boolean): number | undefined {
+  const [width, setWidth] = useState<number | undefined>(undefined);
+  useEffect(() => {
+    const element = ref.current;
+    if (!enabled || !element || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => setWidth(element.clientWidth || undefined));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [enabled, ref]);
+  return enabled ? width : undefined;
 }
 
 /**
@@ -325,7 +376,6 @@ export function TvDashboard({
   standings,
   standingsStageNumber,
   standingsProjection,
-  loadingTabs = [],
   topPerformers: initialTopPerformers,
   performerProjection,
   labels,
@@ -394,7 +444,6 @@ export function TvDashboard({
     return { tab: initialView === 'matches' ? 'fixtures' : first, page: 0 };
   });
   const activeTab = rail.tab;
-  const railLoading = loadingTabs.includes(activeTab);
   const setActiveTab = (tab: typeof rail.tab): void => setRail({ tab, page: 0 });
   const [bracketData, setBracketData] = useState(initialBracket);
   const bracketDataRef = useRef(initialBracket);
@@ -679,9 +728,35 @@ export function TvDashboard({
   // A fixed `standings` view has nothing to rotate; a fixed `matches` view only pages its list; the
   // rotating dashboard pages the list too before it moves to the next section.
   // Live first, then what is next, then what is finished; the block headings count as rows.
+  // The list's rows: every entry in its block order, with the live matches' states and scores laid over
+  // the schedule; a block heading takes a row of its own, so the rows are what the frame pages over.
+  const listEntries = useMemo(
+    () => overlayTvEntries(scheduledMatches, dashboard.matches, dashboardLabels.resultState),
+    [scheduledMatches, dashboard.matches, dashboardLabels.resultState],
+  );
+  const listRows = useMemo(
+    () =>
+      pageTvMatches(
+        orderTvMatches(listEntries, dashboardLabels.resultState),
+        Number.MAX_SAFE_INTEGER,
+        TV_MATCHES_PER_ROW,
+      )[0] ?? [],
+    [listEntries, dashboardLabels.resultState],
+  );
+  // The fixtures page as many whole rows as the rail holds; before its first measurement it holds a
+  // page of the usual size.
+  const fixturesPaging = useTablePaging(listRows, {
+    panelRef: railStandingsRef,
+    enabled: activeTab === 'fixtures' && layoutVariant !== 'dashboard',
+    rotate: false,
+    page: activeTab === 'fixtures' ? rail.page : 0,
+    rowSelector: '.tv-match-list__entry, .tv-match-list__heading',
+    pagerSelector: '.tv-match-list__pager',
+    initialSize: TV_MATCH_ROWS_PER_PAGE,
+  });
   const matchPages = useMemo(
-    () => pageTvMatches(orderTvMatches(scheduledMatches, dashboardLabels.resultState)),
-    [scheduledMatches, dashboardLabels.resultState],
+    () => chunkTvRows(listRows, fixturesPaging.pageSize),
+    [listRows, fixturesPaging.pageSize],
   );
 
   // 5. Data Computations
@@ -698,46 +773,75 @@ export function TvDashboard({
   const allFinal = tournamentState === 'finished';
   const isLive = liveMatches.length > 0;
   // The standings belong to the stage its matches play in; the first named stage heads the tables.
+  // The stage the standings belong to names the tables; without the overview's stage number, the first
+  // named stage of the matches does.
   const standingsStageName =
     standingsStageNumber === undefined
-      ? undefined
+      ? matches.find((match) => match.stageName)?.stageName
       : matches.find((match) => match.stageNumber === standingsStageNumber && match.stageName)
           ?.stageName;
   // Every table is headed by its group or zone when the stage has several, judged on the whole
   // standings rather than the page on screen; the pinned route always names its group.
   const standingsTableCount = groupStandingsByZone(standings ?? []).length;
   const scopeStandingsHeadings = pinnedRef !== undefined || standingsTableCount > 1;
-  // Only the full-frame standings view widens its table; the rail keeps the compact columns.
+  // Only the full-frame standings view widens its table, and only by the declared columns that fit the
+  // frame's width; the rail keeps the compact columns.
   const declaredStandingsColumns = standingsColumnsOf(standingsProjection, language);
+  const frameWidth = useFrameWidth(railStandingsRef, initialView === 'standings');
+  // The frame's width is only known once the page has mounted in the browser; until then every declared
+  // column is drawn, the same on the server and in the first client render.
   const fullFrameColumns =
     initialView === 'standings' && declaredStandingsColumns.length > 0
-      ? declaredStandingsColumns
+      ? frameWidth === undefined
+        ? declaredStandingsColumns
+        : standingsColumnsFitting(declaredStandingsColumns, frameWidth, viewportVmin())
       : undefined;
+  // Standings pages break at group boundaries: a group that fits a page is never split.
+  const standingBlocks = useMemo(() => groupStandingsByZone(standings ?? []), [standings]);
+  const orderedStandings = useMemo(
+    () => standingBlocks.flatMap((block) => block.rows),
+    [standingBlocks],
+  );
+  const standingSegments = useMemo(
+    () => standingBlocks.map((block) => block.rows.length),
+    [standingBlocks],
+  );
   // The dashboard's standings panel pages to the rows its frame holds and rotates between pages.
-  const dashboardPaging = useTablePaging(standings ?? [], {
+  const dashboardPaging = useTablePaging(orderedStandings, {
     panelRef: standingsPanelRef,
     enabled: layoutVariant === 'dashboard',
+    segments: standingSegments,
   });
   const standingsPageCount = dashboardPaging.pageCount;
   const activeStandingsPage = dashboardPaging.pageIndex;
   const dashboardStandings = dashboardPaging.pageRows;
   // The rail's standings tab pages the same way on a full frame, with its own panel.
-  const railStandingRows =
-    pinnedRef === undefined
-      ? (standings ?? [])
-      : pinnedStandingsOf(standings, pinnedMatch, standingsStageNumber);
-  const railPaging = useTablePaging(railStandingRows, {
+  const railStandingRows = useMemo(
+    () =>
+      pinnedRef === undefined
+        ? (standings ?? [])
+        : pinnedStandingsOf(
+            standings,
+            findPinnedMatch(dashboard.matches, pinnedRef),
+            standingsStageNumber,
+          ),
+    [pinnedRef, standings, dashboard.matches, standingsStageNumber],
+  );
+  const railBlocks = useMemo(() => groupStandingsByZone(railStandingRows), [railStandingRows]);
+  const railOrdered = useMemo(() => railBlocks.flatMap((block) => block.rows), [railBlocks]);
+  const railSegments = useMemo(() => railBlocks.map((block) => block.rows.length), [railBlocks]);
+  const railPaging = useTablePaging(railOrdered, {
     panelRef: railStandingsRef,
     enabled: layoutVariant !== 'dashboard' && activeTab === 'standings',
     rotate: false,
+    segments: railSegments,
     // The rail turns its standings pages itself, in step with its tabs.
     page: activeTab === 'standings' ? rail.page : 0,
   });
-  // The rail moves through every page of a standings table before it leaves the tab, as the fixtures
-  // tab does; a fixed standings view keeps turning its own pages.
+  // The rail moves through every page of a list before it leaves the list's tab. Under reduced motion the
+  // tabs hold still, but the pages keep turning: paging is navigation, not decoration.
+  const tabsMove = !prefersReducedMotion;
   useEffect(() => {
-    const fixedPaging = initialView === 'matches' || initialView === 'standings';
-    if (prefersReducedMotion && !fixedPaging) return;
     const interval = setInterval(() => {
       setRail((current) => {
         if (current.tab === 'fixtures' && current.page < matchPages.length - 1) {
@@ -746,6 +850,7 @@ export function TvDashboard({
         if (current.tab === 'standings' && current.page < railPaging.pageCount - 1) {
           return { tab: 'standings', page: current.page + 1 };
         }
+        if (!tabsMove) return current;
         if (initialView === 'matches') return { tab: 'fixtures', page: 0 };
         if (initialView === 'standings') return { tab: 'standings', page: 0 };
         const index = railTabs.indexOf(current.tab);
@@ -754,7 +859,7 @@ export function TvDashboard({
       });
     }, 10_000);
     return () => clearInterval(interval);
-  }, [prefersReducedMotion, initialView, matchPages.length, railTabs, railPaging.pageCount]);
+  }, [tabsMove, initialView, matchPages.length, railTabs, railPaging.pageCount]);
 
   const winnerZones = winners ?? [];
   const soleWinner =
@@ -1585,8 +1690,7 @@ export function TvDashboard({
 
               {/* Tab Content */}
               <div className="tv-rail-content" data-testid="tv-rail-content" ref={railStandingsRef}>
-                {railLoading && <TvRailLoading />}
-                {activeTab === 'standings' && !railLoading && (
+                {activeTab === 'standings' && (
                   <div className="tv-rail-standings">
                     <TvStandingsTable
                       clubs={clubs}
@@ -1609,16 +1713,16 @@ export function TvDashboard({
                   </div>
                 )}
 
-                {activeTab === 'performers' && !railLoading && (
+                {activeTab === 'performers' && (
                   <TvPerformersView
                     noTopPerformersLabel={dashboardLabels.noTopPerformers}
                     performers={performers}
                   />
                 )}
 
-                {activeTab === 'facts' && !railLoading && <TvFactsView facts={facts} />}
+                {activeTab === 'facts' && <TvFactsView facts={facts} />}
 
-                {activeTab === 'recent' && !railLoading && pinnedMatch !== undefined && (
+                {activeTab === 'recent' && pinnedMatch !== undefined && (
                   <TvRecentResults
                     emptyLabel={dashboardLabels.noMatchesScheduled}
                     groups={pinnedMatch.sides.map((side) => ({
@@ -1629,10 +1733,10 @@ export function TvDashboard({
                     {...(timeZone === undefined ? {} : { timeZone })}
                   />
                 )}
-                {activeTab === 'bracket' && !railLoading && visibleBracket && (
+                {activeTab === 'bracket' && visibleBracket && (
                   <TvBracketView labels={dashboardLabels} zones={visibleBracket.zones} />
                 )}
-                {activeTab === 'fixtures' && !railLoading && matchPages.length > 0 && (
+                {activeTab === 'fixtures' && matchPages.length > 0 && (
                   <TvMatchList
                     locale={language}
                     labels={dashboardLabels}

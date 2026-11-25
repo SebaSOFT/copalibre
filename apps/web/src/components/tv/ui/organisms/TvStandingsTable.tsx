@@ -178,6 +178,20 @@ function StandingsRowsTable({
   const declared = useContext(StandingsColumnsContext);
   return (
     <table className="tv-standings-table">
+      {/* Every table on a page shares these widths: the figures and points are fixed, the club takes the rest. */}
+      <colgroup>
+        <col className="tv-standings-col--rank" />
+        <col className="tv-standings-col--club" />
+        {(declared === undefined ? [undefined] : declared).map((column, index) => (
+          <col
+            className={
+              column === undefined ? 'tv-standings-col--played' : 'tv-standings-col--figures'
+            }
+            key={column?.code ?? `played-${index}`}
+          />
+        ))}
+        <col className="tv-standings-col--points" />
+      </colgroup>
       <thead>
         <tr>
           <th>#</th>

@@ -64,7 +64,6 @@ const labels: TvDashboardLabels = {
   clockAriaLabel: '{segment}, {time}',
   leading: 'En cabeza',
   nextMatch: 'Próximo partido',
-  zoneLegend: 'Grupo o zona',
   finishedOn: 'Finalizado el {date}',
   matchNotFound: 'Este partido no existe',
   pageOf: 'Página {page} de {total}',

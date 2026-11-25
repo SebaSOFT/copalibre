@@ -4,6 +4,7 @@ import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
 import {
   leadingTvSide,
   pinnedStandingsOf,
+  standingsColumnsFitting,
   standingsColumnsOf,
   TvDashboard,
 } from './TvDashboard.js';
@@ -190,8 +191,6 @@ describe('TvDashboard', () => {
     expect(screen.getAllByTestId('tv-dashboard-match')).toHaveLength(2);
     expect(screen.getAllByTestId('tv-upcoming-match')).toHaveLength(4);
     expect(document.querySelectorAll('.tv-dashboard-standings tbody tr')).toHaveLength(10);
-    // Each table carries its own heading now, so the legend that named them is gone.
-    expect(screen.queryByText(dashboardLabels.zoneLegend)).toBeNull();
   });
 
   it('shows the kickoff instead of a zero score for a scheduled focus match', () => {
@@ -2581,36 +2580,186 @@ describe('pinned standings and declared columns', () => {
       ],
       defaultSort: [{ columnCode: 'points', direction: 'desc' }],
       rows: [
-        { rank: 1, clubId: 'a1', cells: { goals: { raw: 7, formatted: '7' }, cards: { raw: 2 } } },
+        {
+          rank: 1,
+          entrantId: 'a1',
+          clubId: 'a1',
+          cells: { goals: { raw: 7, formatted: '7' }, cards: { raw: 2 } },
+        },
       ],
     } as unknown as TableProjectionResponse;
     const columns = standingsColumnsOf(projection, 'en');
 
     expect(columns.map((column) => column.header)).toEqual(['Goals', 'Cards']);
-    expect(columns[0]?.valueOf(standings[0] as never)).toBe('7');
-    expect(columns[1]?.valueOf(standings[0] as never)).toBe('2');
+    const first = { ...standings[0], entrantId: 'a1' } as never;
+    expect(columns[0]?.valueOf(first)).toBe('7');
+    expect(columns[1]?.valueOf(first)).toBe('2');
+  });
+
+  it('matches a club-mate by entrant id, never by the shared club', () => {
+    const projection = {
+      columns: [
+        { code: 'points', header: { en: 'Pts' } },
+        { code: 'goals', header: { en: 'Goals' } },
+      ],
+      defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+      rows: [
+        {
+          rank: 1,
+          entrantId: 'e1',
+          clubId: 'shared',
+          cells: { goals: { raw: 3, formatted: '3' } },
+        },
+        {
+          rank: 2,
+          entrantId: 'e2',
+          clubId: 'shared',
+          cells: { goals: { raw: 9, formatted: '9' } },
+        },
+      ],
+    } as unknown as TableProjectionResponse;
+    const [goals] = standingsColumnsOf(projection, 'en');
+    const second = { ...standings[1], clubId: 'shared', entrantId: 'e2', position: 2 } as never;
+
+    expect(goals?.valueOf(second)).toBe('9');
+  });
+
+  it('reads a group row from its own group segment, where group ranks repeat', () => {
+    // Stage-wide rows: group A's rank 1 is first; group B's rank 1 lives in its own segment only.
+    const projection = {
+      columns: [
+        { code: 'points', header: { en: 'Pts' } },
+        { code: 'goals', header: { en: 'Goals' } },
+      ],
+      defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+      rows: [{ rank: 1, cells: { goals: { raw: 99, formatted: '99' } } }],
+      segments: [
+        {
+          groupName: 'Grupo A',
+          rows: [{ rank: 1, cells: { goals: { raw: 99, formatted: '99' } } }],
+        },
+        { groupName: 'Grupo B', rows: [{ rank: 1, cells: { goals: { raw: 7, formatted: '7' } } }] },
+      ],
+    } as unknown as TableProjectionResponse;
+    const [goals] = standingsColumnsOf(projection, 'en');
+    const groupB = {
+      position: 1,
+      name: 'Club B',
+      played: 3,
+      points: 7,
+      groupName: 'Grupo B',
+    } as StandingsRowView;
+
+    expect(goals?.valueOf(groupB)).toBe('7');
+  });
+
+  it('keeps the declared columns that fit the frame, in order, and drops the rest from the end', () => {
+    const columns = ['PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DIF'].map((header) => ({
+      code: header,
+      header,
+      valueOf: () => '0',
+    }));
+    // Room for five figure columns at one vmin of 10px: 5 vmin of rank, 22 of club, 7 of points, and
+    // 9 vmin for each figure column.
+    const width = (5 + 22 + 7 + 9 * 5) * 10;
+    expect(standingsColumnsFitting(columns, width, 10).map((column) => column.header)).toEqual([
+      'PJ',
+      'PG',
+      'PE',
+      'PP',
+      'GF',
+    ]);
+    expect(standingsColumnsFitting(columns, undefined, 10)).toHaveLength(7);
   });
 
   it('falls back to the compact columns when no layout is known', () => {
     expect(standingsColumnsOf(undefined, 'en')).toEqual([]);
   });
+});
 
-  it('shows a loading state, not the empty one, for a rail tab whose data is still arriving', () => {
-    render(
-      <TvDashboard
-        dashboardLabels={dashboardLabels}
-        initial={{ matches: [], standingsVersion: 1, usingLastKnown: false }}
-        labels={tvLabels}
-        language="en"
-        loadingTabs={['performers']}
-        pollIntervalMs={0}
-        standings={standings as never}
-        streamPath="/events/tv/liga/tournaments/apertura"
-      />,
-    );
+describe('the rail under reduced motion', () => {
+  const ROW = 50;
+  const TOP = 100;
+  const PAGER = 20;
+  const frameHeight = TOP + 6 * ROW + PAGER + 24;
 
-    fireEvent.click(screen.getByRole('button', { name: dashboardLabels.performersTeamsTab }));
-    expect(screen.getByTestId('tv-rail-loading')).toBeDefined();
-    expect(screen.queryByText(dashboardLabels.noTopPerformers)).toBeNull();
+  /** Gives the rail's frame and its rows the geometry a browser would; jsdom computes none. */
+  function railGeometry(): () => void {
+    const clientHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight');
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.getAttribute('data-testid') === 'tv-rail-content' ? frameHeight : 0;
+      },
+    });
+    const rect = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function (this: Element): DOMRect {
+      const base = rect.call(this);
+      const box = (top: number, height: number) =>
+        ({ ...base, top, bottom: top + height, height }) as DOMRect;
+      if (this.tagName === 'TR') {
+        const rows = Array.from(this.closest('table')?.querySelectorAll('tr') ?? []) as Element[];
+        return box(TOP + rows.indexOf(this as Element) * ROW, ROW);
+      }
+      if (this.tagName === 'P') return box(frameHeight - PAGER, PAGER);
+      return base;
+    };
+    return () => {
+      if (clientHeight) Object.defineProperty(HTMLElement.prototype, 'clientHeight', clientHeight);
+      Element.prototype.getBoundingClientRect = rect;
+    };
+  }
+
+  it('keeps turning the standings pages while the tab holds still', async () => {
+    jest.useFakeTimers();
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('prefers-reduced-motion'),
+      media: query,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    })) as unknown as typeof window.matchMedia;
+    const restore = railGeometry();
+    try {
+      const rows: StandingsRowView[] = Array.from({ length: 24 }, (_, index) => ({
+        position: index + 1,
+        name: `Club ${index + 1}`,
+        abbreviation: `C${index + 1}`,
+        clubId: `c${index + 1}`,
+        played: 3,
+        points: 24 - index,
+      }));
+      render(
+        <TvDashboard
+          dashboardLabels={dashboardLabels}
+          initial={{ matches: [], standingsVersion: 1, usingLastKnown: false }}
+          labels={tvLabels}
+          language="en"
+          pollIntervalMs={0}
+          standings={rows}
+          streamPath="/events/tv/liga/tournaments/apertura"
+        />,
+      );
+      // The frame measures on the next animation frame, which the fake clock advances past.
+      act(() => jest.advanceTimersByTime(20));
+      const firstPageTop = document.querySelector('.tv-standings-table tbody td')?.textContent;
+      expect(screen.getByText(/Page 1 of/)).toBeDefined();
+
+      act(() => jest.advanceTimersByTime(10_000));
+
+      expect(screen.getByText(/Page 2 of/)).toBeDefined();
+      expect(document.querySelector('.tv-standings-table tbody td')?.textContent).not.toBe(
+        firstPageTop,
+      );
+      expect(
+        screen
+          .getByRole('button', { name: dashboardLabels.standingsTab })
+          .classList.contains('tv-rail-tab--active'),
+      ).toBe(true);
+    } finally {
+      restore();
+      window.matchMedia = original;
+      jest.useRealTimers();
+    }
   });
 });
