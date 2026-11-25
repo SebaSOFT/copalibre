@@ -42,7 +42,7 @@ const bracketMatchReport = {
   timeline: [],
 };
 
-/** The same stage's bracket, three matches across two rounds. */
+/** The same stage's bracket: four first-round matches, two semi-finals and the final. */
 const bracketData = {
   format: 'single-elimination',
   zones: [
@@ -82,6 +82,54 @@ const bracketData = {
           slots: [
             { kind: 'winner-of', matchId: 'WB-R1-M1' },
             { kind: 'winner-of', matchId: 'WB-R1-M2' },
+          ],
+        },
+        {
+          matchId: 'WB-R1-M3',
+          matchNumber: 4,
+          bracket: 'winners',
+          round: 1,
+          position: 3,
+          status: 'scheduled',
+          slots: [
+            { kind: 'entrant', name: 'Racing' },
+            { kind: 'entrant', name: 'Lanús' },
+          ],
+        },
+        {
+          matchId: 'WB-R1-M4',
+          matchNumber: 5,
+          bracket: 'winners',
+          round: 1,
+          position: 4,
+          status: 'scheduled',
+          slots: [
+            { kind: 'entrant', name: 'Huracán' },
+            { kind: 'entrant', name: 'San Lorenzo' },
+          ],
+        },
+        {
+          matchId: 'WB-R2-M2',
+          matchNumber: 6,
+          bracket: 'winners',
+          round: 2,
+          position: 2,
+          status: 'scheduled',
+          slots: [
+            { kind: 'winner-of', matchId: 'WB-R1-M3' },
+            { kind: 'winner-of', matchId: 'WB-R1-M4' },
+          ],
+        },
+        {
+          matchId: 'WB-R3-M1',
+          matchNumber: 7,
+          bracket: 'winners',
+          round: 3,
+          position: 1,
+          status: 'scheduled',
+          slots: [
+            { kind: 'winner-of', matchId: 'WB-R2-M1' },
+            { kind: 'winner-of', matchId: 'WB-R2-M2' },
           ],
         },
       ],
@@ -124,6 +172,10 @@ test.beforeAll(async ({ workerPort }) => {
     }
     if (path === `${BASE}/stages/1/matches/1`) {
       res.end(JSON.stringify(bracketMatchReport));
+      return;
+    }
+    if (path === `${BASE}/stages/1/matches/7`) {
+      res.end(JSON.stringify({ ...bracketMatchReport, matchNumber: 7, round: 3 }));
       return;
     }
     if (path === `${BASE}/stages/1/bracket`) {
@@ -184,4 +236,30 @@ test('shows no bracket-context panel for a round-robin stage, and issues no brac
 
   await expect(page.getByRole('region', { name: /this match in the bracket/i })).toHaveCount(0);
   expect(bracketRequests).toBe(0);
+});
+
+test('opens on the highlighted final, which lies inside the visible part of the bracket', async ({
+  page,
+}) => {
+  // A narrow desktop width: the bracket is wider than its panel, so the final starts out of view.
+  await page.setViewportSize({ width: 900, height: 900 });
+  await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/matches/7`);
+
+  const scroller = page.locator('.cl-bracket-stage__scroll--full').first();
+  await expect(scroller).toHaveAttribute('data-overflowing', '');
+  const focused = page.locator(
+    '.cl-bracket-stage__scroll--full .cl-bracket-stage__node[aria-current="true"]',
+  );
+  await expect(focused).toHaveCount(1);
+
+  await expect
+    .poll(async () =>
+      focused.evaluate((node) => {
+        const box = node.closest('.cl-bracket-stage__scroll')?.getBoundingClientRect();
+        const item = node.getBoundingClientRect();
+        if (box === undefined) return false;
+        return item.left >= box.left - 1 && item.right <= box.right + 1;
+      }),
+    )
+    .toBe(true);
 });
