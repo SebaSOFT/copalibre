@@ -160,9 +160,25 @@ describe('defaultOpenStage', () => {
 });
 
 describe('offersViewChoice', () => {
-  it('offers the choice only up to the threshold', () => {
-    expect(offersViewChoice(SCHEDULE_TABLE_THRESHOLD)).toBe(true);
-    expect(offersViewChoice(SCHEDULE_TABLE_THRESHOLD + 1)).toBe(false);
-    expect(offersViewChoice(0)).toBe(false);
+  const groupRow = { stageNumber: 1, zoneName: 'Grupos' };
+  const cupRow = { stageNumber: 2, zoneName: 'Copa Oro' };
+  const isCup = (candidate: { zoneName?: string }) => candidate.zoneName === 'Copa Oro';
+  const rowsOf = (count: number, sample: typeof groupRow) =>
+    Array.from({ length: count }, () => sample);
+
+  it('offers the choice up to the threshold', () => {
+    expect(offersViewChoice(rowsOf(SCHEDULE_TABLE_THRESHOLD, groupRow), () => false)).toBe(true);
+    expect(offersViewChoice(rowsOf(SCHEDULE_TABLE_THRESHOLD + 1, groupRow), () => false)).toBe(
+      false,
+    );
+    expect(offersViewChoice([], () => false)).toBe(false);
+  });
+
+  it('offers nothing for a scope drawn entirely as brackets', () => {
+    expect(offersViewChoice(rowsOf(7, cupRow), isCup)).toBe(false);
+  });
+
+  it('offers the choice for a small group scope', () => {
+    expect(offersViewChoice(rowsOf(6, groupRow), isCup)).toBe(true);
   });
 });

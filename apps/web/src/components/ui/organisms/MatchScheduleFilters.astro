@@ -81,6 +81,12 @@ interface Props {
   readonly tomorrowKey?: string;
   readonly state: MatchScheduleState;
   readonly view: MatchScheduleView;
+  /** The stage that contains each zone, so choosing a zone selects its stage. */
+  readonly zoneStages?: Readonly<Record<string, number>>;
+  /** The stage and zone that contain each group, so choosing a group selects both. */
+  readonly groupPlacements?: Readonly<
+    Record<string, { readonly stageNumber: number; readonly zone?: string }>
+  >;
   /** Whether the viewer may choose between rows and cards: only for a short scope. */
   readonly offerView: boolean;
   /** Opens the disclosure after the viewer has applied a filter. */
@@ -115,6 +121,8 @@ const {
   state,
   view,
   offerView,
+  zoneStages = {},
+  groupPlacements = {},
   filtersOpen,
   labels,
   buildUrl,
@@ -169,7 +177,11 @@ const hasTomorrow = tomorrowKey !== undefined && days.some((day) => day.key === 
           {zones.map((zone) => (
             <a
               class="cl-pill cl-focusable"
-              href={buildUrl({ zone, group: undefined })}
+              href={buildUrl({
+                zone,
+                group: undefined,
+                stageNumber: zoneStages[zone] ?? activeStageNumber,
+              })}
               aria-current={activeZone === zone ? 'true' : undefined}
             >
               {zone}
@@ -193,7 +205,11 @@ const hasTomorrow = tomorrowKey !== undefined && days.some((day) => day.key === 
           {groups.map((group) => (
             <a
               class="cl-pill cl-focusable"
-              href={buildUrl({ group })}
+              href={buildUrl({
+                group,
+                stageNumber: groupPlacements[group]?.stageNumber ?? activeStageNumber,
+                zone: groupPlacements[group]?.zone,
+              })}
               aria-current={activeGroup === group ? 'true' : undefined}
             >
               {group}

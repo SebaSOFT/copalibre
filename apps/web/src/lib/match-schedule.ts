@@ -136,7 +136,17 @@ export function defaultOpenStage(
   );
 }
 
-/** Whether the viewer is offered the choice between cards and rows for this many matches. */
-export function offersViewChoice(matchCount: number): boolean {
-  return matchCount > 0 && matchCount <= SCHEDULE_TABLE_THRESHOLD;
+/**
+ * Whether the viewer is offered the choice between cards and rows for these matches. A scope drawn
+ * entirely as brackets has no list to change, so it is offered nothing.
+ */
+export function offersViewChoice(
+  rows: readonly Pick<MatchCardData, 'stageNumber' | 'zoneName'>[],
+  isBracketRow: (row: Pick<MatchCardData, 'stageNumber' | 'zoneName'>) => boolean,
+): boolean {
+  return (
+    rows.length > 0 &&
+    rows.length <= SCHEDULE_TABLE_THRESHOLD &&
+    rows.some((row) => !isBracketRow(row))
+  );
 }
