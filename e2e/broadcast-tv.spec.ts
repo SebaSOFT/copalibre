@@ -692,10 +692,10 @@ test('TV match list uses short dynamic timestamps, marks delayed matches with cl
   await expect(delayedBadge.locator('svg.cl-icon')).toHaveCount(1);
 
   const tomorrowEntry = list.locator('.tv-match-list__entry').filter({ hasText: 'Próximo Mañana' });
-  await expect(tomorrowEntry.locator('.tv-match-list__round')).toContainText(/Mañana \d{2}:\d{2}/);
+  await expect(tomorrowEntry.locator('.tv-start-time__when')).toContainText(/Mañana \d{2}:\d{2}/);
 
   const futureEntry = list.locator('.tv-match-list__entry').filter({ hasText: 'Próximo Futuro' });
-  const futureRoundText = (await futureEntry.locator('.tv-match-list__round').textContent()) ?? '';
+  const futureRoundText = (await futureEntry.locator('.tv-start-time__when').textContent()) ?? '';
   expect(futureRoundText).toMatch(/\d{1,2}-[\p{L}.]+ \d{2}:\d{2}/u);
   expect(futureRoundText).not.toMatch(/\d{2}\/\d{2}\/\d{2}/);
 

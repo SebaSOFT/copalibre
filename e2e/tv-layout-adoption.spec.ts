@@ -466,6 +466,80 @@ test('view=standings pages all twenty-four rows at 1920×1080 under a table head
   expect(ranks.size).toBe(24);
 });
 
+test('four groups of four rows page through every row on the full frame, with the pager inside the frame', async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const groups = ['A', 'B', 'C', 'D'];
+  activeOverview = {
+    ...overview,
+    matches: [],
+    standingsPreview: Array.from({ length: 16 }, (_, index) => ({
+      rank: index + 1,
+      entrantId: `grouped-${index + 1}`,
+      name: `Club Grupo ${groups[Math.floor(index / 4)]} ${(index % 4) + 1}`,
+      abbreviation: `G${index + 1}`,
+      clubId: `grouped-club-${index + 1}`,
+      statistics: { played: 3, points: 16 - index },
+      groupName: `Grupo ${groups[Math.floor(index / 4)]}`,
+    })),
+  };
+  await gotoTv(page, `${TV_PATH}?view=standings&lang=es`);
+
+  await expect(page.locator('.tv-standings-zone__name').first()).toContainText('Grupo A');
+  const ranks = new Set<string>();
+  for (let rotation = 0; rotation < 10 && ranks.size < 16; rotation += 1) {
+    const pageRanks = await page
+      .locator('.tv-standings-table tbody tr td:first-child')
+      .allTextContents();
+    for (const rank of pageRanks) ranks.add(rank.trim());
+    if (ranks.size < 16) await page.waitForTimeout(10_500);
+  }
+  expect(ranks.size).toBe(16);
+
+  // Nothing of the page spills past its frame: the last row and the pager sit inside it.
+  const frame = await page.locator('.tv-rail-content').boundingBox();
+  const pager = await page.locator('.tv-standings-pager').boundingBox();
+  expect(frame).not.toBeNull();
+  expect(pager).not.toBeNull();
+  if (frame && pager)
+    expect(pager.y + pager.height).toBeLessThanOrEqual(frame.y + frame.height + 1);
+});
+
+test('a match-list entry keeps its kickoff and court whole, and its team names are its largest text', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  activeMatchesView = { matches: [listMatch(1, 'upcoming'), listMatch(2, 'final')] };
+  await gotoTv(page, `${TV_PATH}?view=matches&lang=es`);
+
+  const scheduled = page.locator('.tv-match-list__entry').first();
+  await expect(scheduled.locator('.tv-start-time__when')).not.toBeEmpty();
+  await expect(scheduled.locator('.tv-start-time__court')).toContainText('Cancha 1');
+
+  const played = page.locator('.tv-match-list__entry').nth(1);
+  const when = played.locator('.tv-match-list__when');
+  await expect(when).toContainText('Cancha 2');
+  const truncated = await when.evaluate((element) => element.scrollWidth > element.clientWidth);
+  expect(truncated).toBe(false);
+
+  const sizes = await played.evaluate((entry) => {
+    const pixels = (selector: string): number =>
+      Number.parseFloat(getComputedStyle(entry.querySelector(selector) as Element).fontSize);
+    return {
+      team: pixels('.tv-match-list__side'),
+      scope: pixels('.tv-match-list__scope'),
+      when: pixels('.tv-match-list__when'),
+    };
+  });
+  // Half a pixel of tolerance: computed styles round the token's 37.8px.
+  expect(sizes.team).toBeGreaterThanOrEqual(1080 * 0.035 - 0.5);
+  expect(sizes.team).toBeGreaterThan(sizes.scope);
+  expect(sizes.scope).toBeGreaterThanOrEqual(1080 * 0.018);
+  expect(sizes.when).toBeGreaterThanOrEqual(1080 * 0.018);
+});
+
 test('view=matches opens on the Programado block', async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   activeMatchesView = {
@@ -484,7 +558,7 @@ test('secondary text meets 1.8vmin and no rail tab label truncates at 1920×1080
   activeMatchesView = { matches: [listMatch(1, 'upcoming')] };
   await gotoTv(page, `${TV_PATH}?view=matches&lang=es`);
 
-  const round = page.locator('.tv-match-list__round').first();
+  const round = page.locator('.tv-match-list__scope').first();
   await expect(round).toBeVisible();
   const fontPx = await round.evaluate((element) =>
     Number.parseFloat(getComputedStyle(element).fontSize),

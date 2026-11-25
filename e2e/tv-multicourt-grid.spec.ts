@@ -439,7 +439,7 @@ test('one tile per court, a scheduled tile shows its start time, and the live co
   // Four free slots beside the live court and four scheduled courts: two pages.
   await gotoTv(page, `${TV_PATH}?layout=multicourt&grid=4&lang=en&token=kiosk-token`);
 
-  await expect(page.locator('.tv-multicourt__header')).toBeVisible();
+  await expect(page.locator('.tv-multicourt .tv-scorebug')).toBeVisible();
   const liveTile = page.getByTestId(`tv-court-card-${ROTATION_LIVE_ID}`);
   await expect(liveTile).toBeVisible();
   await expect(page.locator('.tv-court-card')).toHaveCount(4);
