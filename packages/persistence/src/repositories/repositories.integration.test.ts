@@ -2128,14 +2128,28 @@ describe('club alias renames (integration)', () => {
     );
   });
 
-  it('records nothing when a club without an alias is given its first one', async () => {
-    const club = await createClub(organizationId, '北京俱乐部');
-    expect(club.alias).toBeUndefined();
+  it('records nothing when a club whose name folds to nothing is created', async () => {
+    // The name has no Latin character, so the suggestion falls back to `club-<n>`. Being given its
+    // first alias is not a rename, so no redirect is written. The backfill's own no-history rule is
+    // covered by the migration integration test.
     const before = await clubRedirects(organizationId);
 
-    await renameClub(club.clubId, organizationId, 'club-1');
+    const club = await createClub(organizationId, '北京俱乐部');
 
+    expect(club.alias).toBe('club-1');
     expect(await clubRedirects(organizationId)).toEqual(before);
+  });
+
+  it('refuses to clear a club alias', async () => {
+    const club = await createClub(organizationId, 'Lomas de Zamora', 'lomas-zamora');
+
+    await expect(renameClub(club.clubId, organizationId, '')).rejects.toThrow(
+      InvariantViolationError,
+    );
+    await expect(renameClub(club.clubId, organizationId, '  ')).rejects.toThrow(
+      InvariantViolationError,
+    );
+    expect((await participants.findClub(club.clubId))?.alias).toBe('lomas-zamora');
   });
 
   it('repoints an earlier rename so every former alias resolves in one step', async () => {

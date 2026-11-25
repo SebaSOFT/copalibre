@@ -55,6 +55,7 @@ import { promotionPlanConfirmation } from './0044-promotion-plan-confirmation.js
 import { personalDataPublication } from './0045-personal-data-publication.js';
 import { reversibleRemovals } from './0046-reversible-removals.js';
 import { idempotencyClaim } from './0047-idempotency-claim.js';
+import { requiredClubAlias } from './0048-required-club-alias.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -110,6 +111,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0045-personal-data-publication': personalDataPublication,
   '0046-reversible-removals': reversibleRemovals,
   '0047-idempotency-claim': idempotencyClaim,
+  '0048-required-club-alias': requiredClubAlias,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

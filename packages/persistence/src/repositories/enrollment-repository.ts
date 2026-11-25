@@ -4,6 +4,7 @@ import {
   abbreviationOf,
   deriveEntrantAbbreviation,
   suggestAvailableAlias,
+  suggestRequiredClubAlias,
   validateAttributes,
   type Club,
   type Entrant,
@@ -67,8 +68,11 @@ export class EnrollmentRepository {
     // A given alias is validated; an absent one is suggested from the name and
     // disambiguated against what this organization already uses. Two clubs
     // named "Talleres" is ordinary, and making the second one's organizer
-    // invent a suffix by hand is not.
-    const alias = input.alias ?? (await this.suggestClubAlias(input.organizationId, input.name));
+    // invent a suffix by hand is not. Every club carries an alias, so a name
+    // with nothing to fold falls back to the abbreviation, then `club-<n>`.
+    const alias =
+      input.alias ??
+      (await this.suggestClubAlias(input.organizationId, input.name, input.abbreviation));
     assertClubAlias(alias);
 
     const clubId = newId();
@@ -77,7 +81,7 @@ export class EnrollmentRepository {
       .values({
         club_id: clubId,
         organization_id: input.organizationId,
-        alias: alias ?? null,
+        alias,
         name: input.name,
         abbreviation: input.abbreviation ?? null,
         emblem_object_id: null,
@@ -118,9 +122,13 @@ export class EnrollmentRepository {
    *
    * Exposed so a console can show it in the form *before* anything is created —
    * a suggestion the organizer never sees is a derivation, and this capability
-   * derives a URL, not a name.
+   * derives a URL, not a name. Never empty.
    */
-  async suggestClubAlias(organizationId: string, name: string): Promise<string | undefined> {
+  async suggestClubAlias(
+    organizationId: string,
+    name: string,
+    abbreviation?: string,
+  ): Promise<string> {
     const rows = await this.db
       .selectFrom('clubs')
       .select('alias')
@@ -128,9 +136,10 @@ export class EnrollmentRepository {
       .where('alias', 'is not', null)
       .execute();
 
-    return suggestAvailableAlias(
+    return suggestRequiredClubAlias(
       name,
       rows.flatMap((row) => (row.alias === null ? [] : [row.alias])),
+      abbreviation,
     );
   }
 
