@@ -69,6 +69,8 @@ const overview = {
 };
 
 let apiServer: Server;
+// Set by the officials test only: the match report then names two officials.
+let withOfficials = false;
 
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
@@ -81,7 +83,19 @@ test.beforeAll(async ({ workerPort }) => {
     }
 
     if (path === `${BASE}/stages/${STAGE}/matches/${MATCH}`) {
-      res.end(JSON.stringify(finalizedMatchReport));
+      res.end(
+        JSON.stringify(
+          withOfficials
+            ? {
+                ...finalizedMatchReport,
+                officials: [
+                  { name: 'Ana Pérez', roles: ['referee'] },
+                  { name: 'Luis Gómez', roles: ['referee'] },
+                ],
+              }
+            : finalizedMatchReport,
+        ),
+      );
       return;
     }
 
@@ -157,5 +171,46 @@ test.describe('Public Match Presentation and Badge Polish', () => {
     // Gap = left edge of score - right edge of badge.
     const gap = (scoreBox?.x ?? 0) - ((badgeBox?.x ?? 0) + (badgeBox?.width ?? 0));
     expect(gap).toBeGreaterThanOrEqual(6);
+  });
+});
+
+test.describe('match page width and officials', () => {
+  const MATCH_PAGE = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${MATCH}`;
+  const OVERVIEW_PAGE = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+
+  test.beforeEach(() => {
+    withOfficials = true;
+  });
+  test.afterEach(() => {
+    withOfficials = false;
+  });
+
+  test('at 1440 px the match content is as wide as the overview content', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(OVERVIEW_PAGE);
+    const overviewWidth = (await page.locator('main > .cl-container--public').first().boundingBox())
+      ?.width;
+    await page.goto(MATCH_PAGE);
+    const matchWidth = (await page.locator('main > .cl-container--public').first().boundingBox())
+      ?.width;
+    expect(overviewWidth).toBeDefined();
+    expect(Math.abs((matchWidth ?? 0) - (overviewWidth ?? 0))).toBeLessThan(2);
+  });
+
+  test('officials are text rows with no button, chip or bordered styling', async ({ page }) => {
+    await page.goto(MATCH_PAGE);
+    const officials = page.locator('section[aria-labelledby="officials-heading"]');
+    await expect(officials.getByText('Ana Pérez')).toBeVisible();
+    await expect(officials.getByRole('button')).toHaveCount(0);
+    const rows = officials.locator('.cl-officials-list li');
+    await expect(rows).toHaveCount(2);
+    for (const row of await rows.all()) {
+      const style = await row.evaluate((element) => {
+        const computed = getComputedStyle(element);
+        return { border: computed.borderTopWidth, background: computed.backgroundColor };
+      });
+      expect(style.border).toBe('0px');
+      expect(style.background).toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
+    }
   });
 });
