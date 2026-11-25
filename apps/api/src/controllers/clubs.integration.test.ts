@@ -189,6 +189,25 @@ describe('club list/create/edit (integration)', () => {
     expect(created.json()).toMatchObject({ name: '北京俱乐部', alias: 'club-1' });
   });
 
+  it('refuses creating a club with an alias another club already holds, with 409 club-conflict', async () => {
+    const first = await inject({
+      method: 'POST',
+      url: `/api/organizations/${organizationAlias}/clubs`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { name: 'Club Ocupado', alias: 'alias-ocupado' },
+    });
+    expect(first.statusCode).toBe(201);
+
+    const second = await inject({
+      method: 'POST',
+      url: `/api/organizations/${organizationAlias}/clubs`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { name: 'Club Repetido', alias: 'alias-ocupado' },
+    });
+    expect(second.statusCode).toBe(409);
+    expect(second.json()).toMatchObject({ errorCode: 'club-conflict' });
+  });
+
   it('refuses clearing a club alias with 409 club-conflict', async () => {
     const created = await inject({
       method: 'POST',
