@@ -1160,7 +1160,7 @@ function components(): string {
     '.cl-page-header { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--cl-space-2); min-width: 0; }',
     '.cl-page-header__breadcrumb { min-width: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; overflow-wrap: anywhere; }',
     '.cl-page-header__breadcrumb ol { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-2); list-style: none; margin: 0; padding: 0; }',
-    '.cl-page-header__breadcrumb li + li::before { content: "›"; margin-inline-end: var(--cl-space-2); color: var(--cl-text-muted); }',
+    '.cl-page-header__breadcrumb li + li:not(.cl-crumb)::before { content: "›"; margin-inline-end: var(--cl-space-2); color: var(--cl-text-muted); }',
     '.cl-page-header__breadcrumb a { color: var(--cl-text-secondary); text-decoration: none; }',
     '.cl-page-header__breadcrumb a:hover { color: var(--cl-primary-hover); text-decoration: underline; }',
     '.cl-page-header__row { display: flex; flex-wrap: wrap; align-items: end; gap: var(--cl-space-4); min-width: 0; }',
