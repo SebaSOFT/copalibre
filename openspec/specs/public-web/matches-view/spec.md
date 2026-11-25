@@ -581,3 +581,25 @@ undecided or live match, carries none.
 #### Scenario: Level group match
 - **WHEN** a finished group match is level on score with no deciding factor
 - **THEN** the row carries no `winnerEntrantId`
+
+### Requirement: Schedule presentation choices are offered only where they change the view
+The schedule SHALL offer the view choice (table or cards) and the density choice (detailed or compact) only when the selected scope holds at least one match outside a zone drawn as a bracket. A request carrying either choice for a scope drawn entirely as brackets SHALL render the brackets and SHALL NOT show the choices.
+
+#### Scenario: A cup scope offers no view toggle
+- **WHEN** a visitor filters the schedule to one cup zone drawn as a bracket
+- **THEN** no view or density choice is shown, and the bracket is rendered
+
+#### Scenario: A small group scope still offers cards
+- **WHEN** a visitor filters the schedule to one group of six matches
+- **THEN** the view choice is shown, and choosing cards changes the rendered presentation
+
+### Requirement: Schedule filter rows stay consistent with each other
+Choosing a zone or a group in the schedule filter SHALL select the stage that contains it in the stage row, and choosing a group SHALL select its zone. Resetting a higher row to all SHALL clear the rows beneath it. The URL SHALL carry the consistent selection.
+
+#### Scenario: Choosing a cup selects its stage
+- **WHEN** a visitor with no stage selected chooses the zone Copa Oro
+- **THEN** the stage row shows the stage that contains Copa Oro as selected, and the URL carries that stage number
+
+#### Scenario: Resetting the stage clears the zone
+- **WHEN** a visitor viewing Copa Oro sets the stage row back to all
+- **THEN** the zone and group rows return to all

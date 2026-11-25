@@ -285,3 +285,21 @@ When a promotion plan's bands map one to one onto a knockout stage's zones and c
 
 - **WHEN** a zone is fed by two bands whose ranges are not contiguous
 - **THEN** its placements state only their place within the zone
+
+### Requirement: A bracket wider than its panel shows that it scrolls
+When a bracket is wider than its panel, the public page SHALL show a visible, localized scroll affordance — an edge fade on each side whose content continues and a short hint — and SHALL keep the native scrollbar available without JavaScript. A bracket that fits its panel SHALL show neither.
+
+#### Scenario: Half of a mirrored bracket is off-canvas
+- **WHEN** a three-round mirrored cup bracket is shown in a panel narrower than the bracket at 1440 px
+- **THEN** the side whose matches are hidden shows an edge fade and the hint tells the visitor to slide to see the whole bracket
+
+#### Scenario: A bracket that fits shows no hint
+- **WHEN** the bracket fits its panel
+- **THEN** no fade and no hint are rendered
+
+### Requirement: The match page bracket opens on the current match
+On the match page, the embedded bracket SHALL scroll horizontally on load so the highlighted current match is in view, without smooth animation under reduced motion.
+
+#### Scenario: A final at the far edge is in view
+- **WHEN** a visitor opens the match page of a final whose card lies beyond the initially visible part of a wide bracket
+- **THEN** the final's card is visible without scrolling the bracket by hand

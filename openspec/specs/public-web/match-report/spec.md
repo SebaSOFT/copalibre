@@ -34,11 +34,15 @@ never as a raw machine timestamp format.
   string is visible to the spectator
 
 ### Requirement: The match page uses the shared content width and panel
-The match page SHALL use the same content width as the other public pages and SHALL present its officials, rosters and timeline sections in the site's chamfered panel.
+The match page SHALL use the same public content container as the tournament page, never the narrower reading container, and SHALL present its officials, rosters and timeline sections in the site's chamfered panel. From the desktop breakpoint up, those sections MAY share the width in columns composed from the same panels.
 
 #### Scenario: No special column
 - **WHEN** the match page and the tournament page are opened at the same desktop width
 - **THEN** their content areas have the same width
+
+#### Scenario: Desktop width is used
+- **WHEN** the match page is opened at 1440 px
+- **THEN** its content area is as wide as the tournament page's, not limited to the reading width
 
 #### Scenario: Sections are chamfered
 - **WHEN** the match page renders officials, rosters and timeline
