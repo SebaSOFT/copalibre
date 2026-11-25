@@ -158,10 +158,14 @@ const days = availableMatchDays(schedule.stageRows, scheduleTimeZone).map((day) 
 }));
 
 // A large scope is only ever a table; a short one may be shown as cards.
+// A zone is a bracket here only where the schedule draws it as one: a state, day or club filter lists
+// its matches instead, and a list does change with the view choice.
 const bracketZoneKeys = new Set(
-  schedule.zoneLayouts
-    .filter((zone) => zone.layout === 'bracket')
-    .map((zone) => `${zone.stageNumber}|${zone.zoneName ?? ''}`),
+  schedule.stages.flatMap((stage) =>
+    stage.zones
+      .filter((zone) => zone.kind === 'bracket')
+      .map((zone) => `${stage.stageNumber}|${zone.name ?? ''}`),
+  ),
 );
 const isBracketRow = (row: Pick<MatchCardData, 'stageNumber' | 'zoneName'>): boolean =>
   bracketZoneKeys.has(`${row.stageNumber}|${row.zoneName ?? ''}`);

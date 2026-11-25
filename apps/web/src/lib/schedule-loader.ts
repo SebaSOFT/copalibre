@@ -42,12 +42,6 @@ export interface LoadedSchedule {
   /** The rows left once state, zone, group, and day filters are applied. */
   readonly rows: readonly MatchCardData[];
   readonly stages: readonly ScheduleStage[];
-  /** Each zone of the stages in scope with the layout its format draws; a bracket zone is not a list. */
-  readonly zoneLayouts: readonly {
-    readonly stageNumber: number;
-    readonly zoneName?: string;
-    readonly layout: 'bracket' | 'grid';
-  }[];
 }
 
 /**
@@ -146,12 +140,5 @@ export async function loadSchedule(args: {
     stageRows,
     rows,
     stages: buildSchedule({ stages: inputs, rows, knockoutAsBracket }),
-    zoneLayouts: inputs.flatMap((stage) =>
-      stage.zones.map((zone) => ({
-        stageNumber: stage.stageNumber,
-        ...(zone.name === undefined ? {} : { zoneName: zone.name }),
-        layout: zone.layout,
-      })),
-    ),
   };
 }
