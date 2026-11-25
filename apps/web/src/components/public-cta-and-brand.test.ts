@@ -277,11 +277,11 @@ describe('public layout, header, and home orientation hub', () => {
     );
   });
 
-  it('renders index page orientation hub with tactical grid, badges, and owned CTA buttons', () => {
+  it('renders index page orientation hub with tactical grid, plain feature tags, and owned CTA buttons', () => {
     expect(homeLayout).toContain('cl-tactical-grid');
     expect(homeLayout).toContain("import Button from '../components/ui/atoms/Button.astro'");
     expect(homeLayout).toContain("import { Card } from '../components/ui/atoms/Card.tsx'");
-    expect(homeLayout).toContain("import { Badge } from '../components/ui/atoms/Badge.tsx'");
+    expect(homeLayout).not.toContain('<Badge');
     expect(homeLayout).toMatch(/<Button\b[^>]*href="\/control\/"[^>]*variant="primary"/);
     expect(homeLayout).toContain('href="/help/"');
     expect(homeLayout.match(HEX_LITERAL)).toBeNull();
