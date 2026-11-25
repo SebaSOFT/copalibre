@@ -1098,7 +1098,7 @@ export const messages: Record<string, string> = {
   'control.clubManagement.empty': 'Diese Organisation hat noch keine Vereine.',
   'control.clubManagement.edit': 'Verein bearbeiten',
   'control.clubManagement.newClubName': 'Name des neuen Vereins',
-  'control.clubManagement.newClubAlias': 'Alias (optional)',
+  'control.clubManagement.newClubAlias': 'Alias des neuen Vereins',
   'control.clubManagement.newClubAbbreviation': 'Abkürzung (optional)',
   'control.clubManagement.addClub': 'Verein hinzufügen',
   'control.clubManagement.editHeading': 'Verein bearbeiten',
@@ -1111,6 +1111,9 @@ export const messages: Record<string, string> = {
   'control.clubManagement.emblemPlaceholderAlt': 'Kein Wappen hochgeladen',
   'control.clubManagement.saved': 'Änderungen gespeichert.',
   'control.clubManagement.created': 'Verein erstellt.',
+  'control.clubManagement.aliasRequired': 'Gib einen Alias ein.',
+  'control.clubManagement.aliasHint':
+    'Der Alias ist die öffentliche Adresse des Vereins. Verwende Kleinbuchstaben, Ziffern und Bindestriche.',
   'control.clubManagement.emblemUploaded': 'Wappen hochgeladen.',
   'control.clubPortal.membersTitle': 'Vereinsmitglieder',
   'control.clubPortal.membersLoading': 'Wird geladen…',

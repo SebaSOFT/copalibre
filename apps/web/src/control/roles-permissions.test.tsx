@@ -83,8 +83,8 @@ describe('roles and permissions control', () => {
       withIntl(
         <RolesPermissionsTemplate
           clubs={[
-            { clubId: 'club-1', organizationId: 'org-1', name: 'Club Uno' },
-            { clubId: 'club-2', organizationId: 'org-1', name: 'Club Dos' },
+            { clubId: 'club-1', organizationId: 'org-1', name: 'Club Uno', alias: 'club-uno' },
+            { clubId: 'club-2', organizationId: 'org-1', name: 'Club Dos', alias: 'club-dos' },
           ]}
           loading={false}
           onChange={async () => undefined}
@@ -177,7 +177,9 @@ describe('roles and permissions control', () => {
     render(
       withIntl(
         <RolesPermissionsTemplate
-          clubs={[{ clubId: 'club-1', organizationId: 'org-1', name: 'Club Uno' }]}
+          clubs={[
+            { clubId: 'club-1', organizationId: 'org-1', name: 'Club Uno', alias: 'club-uno' },
+          ]}
           loading={false}
           onChange={async () => undefined}
           onDelete={async () => undefined}
@@ -224,7 +226,7 @@ describe('roles and permissions control', () => {
   it("loads the invite dialog's club and tournament pickers scoped to the requested organization", async () => {
     const listClubs = jest.fn(async (organizationAlias: string) => {
       expect(organizationAlias).toBe('liga-mendocina');
-      return [{ clubId: 'club-1', organizationId: 'org-1', name: 'Club Uno' }];
+      return [{ clubId: 'club-1', organizationId: 'org-1', name: 'Club Uno', alias: 'club-uno' }];
     });
     const listActiveTournaments = jest.fn(async (organizationAlias: string) => {
       expect(organizationAlias).toBe('liga-mendocina');
@@ -412,7 +414,9 @@ describe('roles and permissions control', () => {
     render(
       withIntl(
         <RolesPermissionsTemplate
-          clubs={[{ clubId: 'club-1', organizationId: 'org-1', name: 'Club Uno' }]}
+          clubs={[
+            { clubId: 'club-1', organizationId: 'org-1', name: 'Club Uno', alias: 'club-uno' },
+          ]}
           loading={false}
           onChange={async () => undefined}
           onDelete={async () => undefined}

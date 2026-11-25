@@ -6,7 +6,13 @@ import type { ClubResponse, ControlApiClient } from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
 
 const oneClub: readonly ClubResponse[] = [
-  { clubId: 'club-1', organizationId: 'org-1', name: 'Casa de Italia', abbreviation: 'C I' },
+  {
+    clubId: 'club-1',
+    organizationId: 'org-1',
+    name: 'Casa de Italia',
+    alias: 'casa-de-italia',
+    abbreviation: 'C I',
+  },
 ];
 
 describe('ClubManagementPage', () => {
@@ -22,7 +28,12 @@ describe('ClubManagementPage', () => {
   it('creates a club and reloads the list', async () => {
     const clubs: ClubResponse[] = [];
     const createClub = jest.fn<NonNullable<ControlApiClient['createClub']>>(async (_org, body) => {
-      const created: ClubResponse = { clubId: 'club-2', organizationId: 'org-1', name: body.name };
+      const created: ClubResponse = {
+        clubId: 'club-2',
+        organizationId: 'org-1',
+        name: body.name,
+        alias: body.alias ?? 'club-2',
+      };
       clubs.push(created);
       return created;
     });
@@ -40,7 +51,10 @@ describe('ClubManagementPage', () => {
       fireEvent.click(screen.getByText('Add club'));
     });
 
-    expect(createClub).toHaveBeenCalledWith('liga-mendocina', { name: 'Club Atenas' });
+    expect(createClub).toHaveBeenCalledWith('liga-mendocina', {
+      name: 'Club Atenas',
+      alias: 'club-atenas',
+    });
     await screen.findByText('Club created.');
   });
 
@@ -69,7 +83,7 @@ describe('ClubManagementPage', () => {
 
     expect(updateClub).toHaveBeenCalledWith('liga-mendocina', 'club-1', {
       name: 'Casa de Italia Renombrada',
-      alias: '',
+      alias: 'casa-de-italia',
       abbreviation: 'C I',
     });
     await screen.findByText('Changes saved.');
@@ -180,6 +194,7 @@ describe('ClubManagementPage', () => {
       clubId: 'club-2',
       organizationId: 'org-1',
       name: body.name,
+      alias: body.alias ?? 'club-2',
     }));
     const client = stubClient({ listClubs: () => Promise.resolve(oneClub), createClub });
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
@@ -196,7 +211,7 @@ describe('ClubManagementPage', () => {
       clubId: 'club-2',
       organizationId: 'org-1',
       name: body.name,
-      alias: body.alias,
+      alias: body.alias ?? 'club-2',
       abbreviation: body.abbreviation,
     }));
     const client = stubClient({ listClubs: () => Promise.resolve(oneClub), createClub });
@@ -204,7 +219,7 @@ describe('ClubManagementPage', () => {
 
     await screen.findByText('Casa de Italia');
     fireEvent.change(screen.getByLabelText('New club name'), { target: { value: 'Club Atenas' } });
-    fireEvent.change(screen.getByLabelText('Alias (optional)'), {
+    fireEvent.change(screen.getByLabelText('New club alias'), {
       target: { value: 'club-atenas' },
     });
     fireEvent.change(screen.getByLabelText('Abbreviation (optional)'), {
@@ -219,6 +234,59 @@ describe('ClubManagementPage', () => {
       alias: 'club-atenas',
       abbreviation: 'CA',
     });
+  });
+
+  it('prefills the new club alias from the name, avoiding the aliases already taken', async () => {
+    const client = stubClient({
+      listClubs: () => Promise.resolve(oneClub),
+      createClub: jest.fn<NonNullable<ControlApiClient['createClub']>>(),
+    });
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('Casa de Italia');
+    fireEvent.change(screen.getByLabelText('New club name'), {
+      target: { value: 'Casa de Italia' },
+    });
+    expect((screen.getByLabelText('New club alias') as HTMLInputElement).value).toBe(
+      'casa-de-italia-2',
+    );
+
+    fireEvent.change(screen.getByLabelText('New club name'), {
+      target: { value: '北京俱乐部' },
+    });
+    expect((screen.getByLabelText('New club alias') as HTMLInputElement).value).toBe('club-1');
+  });
+
+  it('blocks creating a club with an empty alias and shows the required message', async () => {
+    const createClub = jest.fn<NonNullable<ControlApiClient['createClub']>>();
+    const client = stubClient({ listClubs: () => Promise.resolve(oneClub), createClub });
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('Casa de Italia');
+    fireEvent.change(screen.getByLabelText('New club name'), { target: { value: 'Club Atenas' } });
+    fireEvent.change(screen.getByLabelText('New club alias'), { target: { value: '' } });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Add club'));
+    });
+
+    expect(createClub).not.toHaveBeenCalled();
+    expect(screen.getByText('Enter an alias.')).toBeTruthy();
+  });
+
+  it('blocks saving a club with an empty alias and shows the required message', async () => {
+    const updateClub = jest.fn<NonNullable<ControlApiClient['updateClub']>>();
+    const client = stubClient({ listClubs: () => Promise.resolve(oneClub), updateClub });
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('Casa de Italia');
+    fireEvent.click(screen.getByText('Edit club'));
+    fireEvent.change(await screen.findByLabelText('Alias'), { target: { value: '  ' } });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save changes'));
+    });
+
+    expect(updateClub).not.toHaveBeenCalled();
+    expect(screen.getByText('Enter an alias.')).toBeTruthy();
   });
 
   it('reports a save-changes failure and does nothing when updateClub is absent', async () => {
@@ -287,6 +355,7 @@ describe('ClubManagementPage', () => {
         clubId: 'club-1',
         organizationId: 'org-1',
         name: 'Casa de Italia',
+        alias: 'casa-de-italia',
         emblemObjectId: 'obj-1',
       },
     ];

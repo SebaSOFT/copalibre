@@ -68,7 +68,7 @@ export function ClubManagementPage({
     try {
       await api.createClub(organizationAlias, {
         name: name.trim(),
-        ...(alias.trim() === '' ? {} : { alias: alias.trim() }),
+        alias: alias.trim(),
         ...(abbreviation.trim() === '' ? {} : { abbreviation: abbreviation.trim() }),
       });
       push({

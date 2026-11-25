@@ -1,3 +1,4 @@
+import { suggestRequiredClubAlias } from '@copalibre/domain';
 import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { clubEmblemUrl, type ClubResponse, type ControlApiClient } from '../../lib/api-client.js';
@@ -49,32 +50,61 @@ export function ClubManagementTemplate({
 
   const [newName, setNewName] = useState('');
   const [newAlias, setNewAlias] = useState('');
+  const [newAliasEdited, setNewAliasEdited] = useState(false);
+  const [newAliasError, setNewAliasError] = useState<string>();
   const [newAbbreviation, setNewAbbreviation] = useState('');
 
   const [selectedClubId, setSelectedClubId] = useState<string>();
   const [editName, setEditName] = useState('');
   const [editAlias, setEditAlias] = useState('');
+  const [editAliasError, setEditAliasError] = useState<string>();
   const [editAbbreviation, setEditAbbreviation] = useState('');
   const [emblemCropSrc, setEmblemCropSrc] = useState<string>();
   const [optimisticEmblems, setOptimisticEmblems] = useState<Record<string, string>>({});
 
+  const takenAliases = clubs.map((club) => club.alias);
+  const aliasRequiredMessage = intl.formatMessage(messages.clubManagementAliasRequired);
+  const aliasHintMessage = intl.formatMessage(messages.clubManagementAliasHint);
+
+  /** The alias the server would give this club now, previewed until the organizer edits the field. */
+  function suggestNewAlias(name: string, abbreviation: string): string {
+    if (name.trim() === '') return '';
+    const trimmedAbbreviation = abbreviation.trim();
+    return suggestRequiredClubAlias(
+      name,
+      takenAliases,
+      trimmedAbbreviation === '' ? undefined : trimmedAbbreviation,
+    );
+  }
+
   const selectClub = (club: ClubResponse): void => {
     setSelectedClubId(club.clubId);
     setEditName(club.name);
-    setEditAlias(club.alias ?? '');
+    setEditAlias(club.alias);
+    setEditAliasError(undefined);
     setEditAbbreviation(club.abbreviation ?? '');
   };
 
   async function createClub(): Promise<void> {
+    if (newAlias.trim() === '') {
+      setNewAliasError(aliasRequiredMessage);
+      return;
+    }
     if (await onCreateClub(newName, newAlias, newAbbreviation)) {
       setNewName('');
       setNewAlias('');
+      setNewAliasEdited(false);
+      setNewAliasError(undefined);
       setNewAbbreviation('');
     }
   }
 
   async function saveClub(): Promise<void> {
     if (selectedClubId === undefined) return;
+    if (editAlias.trim() === '') {
+      setEditAliasError(aliasRequiredMessage);
+      return;
+    }
     await onSaveClub(selectedClubId, editName, editAlias, editAbbreviation);
   }
 
@@ -148,18 +178,30 @@ export function ClubManagementTemplate({
               <Input
                 aria-label={intl.formatMessage(messages.clubManagementNewClubName)}
                 id="new-club-name"
-                onChange={(event) => setNewName(event.target.value)}
+                onChange={(event) => {
+                  setNewName(event.target.value);
+                  if (!newAliasEdited) {
+                    setNewAlias(suggestNewAlias(event.target.value, newAbbreviation));
+                  }
+                }}
                 value={newName}
               />
             </Field>
             <Field
+              errorText={newAliasError}
+              helpText={aliasHintMessage}
               id="new-club-alias"
               label={intl.formatMessage(messages.clubManagementNewClubAlias)}
+              required
             >
               <Input
                 aria-label={intl.formatMessage(messages.clubManagementNewClubAlias)}
                 id="new-club-alias"
-                onChange={(event) => setNewAlias(event.target.value)}
+                onChange={(event) => {
+                  setNewAlias(event.target.value);
+                  setNewAliasEdited(true);
+                  setNewAliasError(undefined);
+                }}
                 value={newAlias}
               />
             </Field>
@@ -170,7 +212,12 @@ export function ClubManagementTemplate({
               <Input
                 aria-label={intl.formatMessage(messages.clubManagementNewClubAbbreviation)}
                 id="new-club-abbreviation"
-                onChange={(event) => setNewAbbreviation(event.target.value)}
+                onChange={(event) => {
+                  setNewAbbreviation(event.target.value);
+                  if (!newAliasEdited) {
+                    setNewAlias(suggestNewAlias(newName, event.target.value));
+                  }
+                }}
                 value={newAbbreviation}
               />
             </Field>
@@ -234,11 +281,20 @@ export function ClubManagementTemplate({
                   value={editName}
                 />
               </Field>
-              <Field id="edit-club-alias" label={intl.formatMessage(messages.clubManagementAlias)}>
+              <Field
+                errorText={editAliasError}
+                helpText={aliasHintMessage}
+                id="edit-club-alias"
+                label={intl.formatMessage(messages.clubManagementAlias)}
+                required
+              >
                 <Input
                   aria-label={intl.formatMessage(messages.clubManagementAlias)}
                   id="edit-club-alias"
-                  onChange={(event) => setEditAlias(event.target.value)}
+                  onChange={(event) => {
+                    setEditAlias(event.target.value);
+                    setEditAliasError(undefined);
+                  }}
                   value={editAlias}
                 />
               </Field>
