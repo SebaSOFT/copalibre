@@ -1,10 +1,16 @@
 import { suggestRequiredClubAlias } from '@copalibre/domain';
-import { sql, type Kysely } from 'kysely';
+import type { Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 import type { Database } from '../schema.js';
 
-/** A UUID-shaped alias is an identifier that was stored as one. It never worked as a public URL. */
-const UUID_SHAPED = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
+/**
+ * A UUID-shaped alias is an identifier that was stored as one. It never worked as a public URL. The
+ * test is made here, not in SQL, because SQLite (the portable migration path) has no regular-expression
+ * operator.
+ */
+const UUID_SHAPED = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUsableAlias = (alias: string | null): alias is string =>
+  alias !== null && !UUID_SHAPED.test(alias);
 
 /**
  * Every club carries an alias. Clubs created before the suggestion existed, clubs whose name folds
@@ -25,14 +31,14 @@ export const requiredClubAlias: Migration = {
   async up(db: Kysely<unknown>): Promise<void> {
     const typedDb = db as unknown as Kysely<Database>;
 
-    const unaliased = await typedDb
+    const clubs = await typedDb
       .selectFrom('clubs')
-      .select(['club_id', 'organization_id', 'name', 'abbreviation'])
-      .where(sql<boolean>`alias IS NULL OR alias ~ ${UUID_SHAPED}`)
+      .select(['club_id', 'organization_id', 'name', 'abbreviation', 'alias', 'created_at'])
       .orderBy('organization_id')
       .orderBy('created_at')
       .orderBy('club_id')
       .execute();
+    const unaliased = clubs.filter((club) => !isUsableAlias(club.alias));
 
     if (unaliased.length > 0) {
       const takenByOrganization = new Map<string, Set<string>>();
@@ -44,13 +50,8 @@ export const requiredClubAlias: Migration = {
         return created;
       };
 
-      const aliased = await typedDb
-        .selectFrom('clubs')
-        .select(['organization_id', 'alias'])
-        .where(sql<boolean>`alias IS NOT NULL AND alias !~ ${UUID_SHAPED}`)
-        .execute();
-      for (const row of aliased) {
-        if (row.alias !== null) takenFor(row.organization_id).add(row.alias);
+      for (const club of clubs) {
+        if (isUsableAlias(club.alias)) takenFor(club.organization_id).add(club.alias);
       }
 
       const formerAliases = await typedDb
