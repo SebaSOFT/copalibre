@@ -1925,7 +1925,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** A club's tournaments and podium places in its organization */
+        /**
+         * A club's tournaments and podium places in its organization
+         * @description A former alias of a renamed club answers with that club, whose `club.alias` is the current one.
+         */
         get: operations["PublicOrganizationClubController_clubHistory"];
         put?: never;
         post?: never;

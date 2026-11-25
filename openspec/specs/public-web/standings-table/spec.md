@@ -290,3 +290,21 @@ display, never as "0/0".
 - **WHEN** a player has taken no direct free kick
 - **THEN** the free-kick fraction cell renders as the layout's zero display, the same as an
   unrecorded goal count
+
+### Requirement: A standings table names the criterion that separated rows level on its leading column
+A public entrant standings table SHALL list, under the table, each pair of adjacent rows that are
+level on the layout's leading sort column but separated by a later one, as "{above} ahead of {below}
+on {criterion}", with the criterion named by that column's header in the page language. A table
+without such a pair SHALL show no list. A match card SHALL NOT state a standings criterion.
+
+#### Scenario: Teams level on points are explained under the table
+- **WHEN** Lomas de Rivadavia, Club Hispano and Red Star have 6 points each in Grupo A and goal average separates them
+- **THEN** under the Grupo A table a Spanish page lists "Lomas de Rivadavia por delante de Club Hispano por Promedio de goles" and "Club Hispano por delante de Red Star por Promedio de goles"
+
+#### Scenario: A table separated by points alone has no list
+- **WHEN** every adjacent pair of rows differs in points
+- **THEN** no tie-break list is shown
+
+#### Scenario: A won match card carries no standings criterion
+- **WHEN** a finalized group match card is shown for Lomas de Rivadavia 1 – 2 Club Hispano
+- **THEN** the card shows no "Decided by" line

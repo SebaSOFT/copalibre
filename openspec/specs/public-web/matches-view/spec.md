@@ -92,22 +92,6 @@ rendering rules — never both a bare position and series state on the same card
 - **THEN** the card shows the series' progress and, where resolved, its aggregate state, and shows no
   standings position
 
-### Requirement: A finalized match states its deciding factor without exposing the full trace
-A card for a finalized match SHALL show one line naming the deciding factor only when a tiebreak comparator separated this match's two entrants, who were tied before it. The factor SHALL be named by its tiebreaker code in the page language, never by an engine-built sentence. It SHALL NOT expose the full comparator trace, its intermediate values, or any further line.
-
-#### Scenario: A tiebreak-decided match names its deciding factor
-- **WHEN** a finalized match's two entrants were tied on points and goal average separated them
-- **THEN** its card reads "Decidido por: Promedio de goles" on a Spanish page
-
-#### Scenario: A match with no tiebreak involved shows no deciding-factor line
-- **WHEN** no tiebreak comparator separated a finalized match's two entrants, even if each was separated from someone else
-- **THEN** its card shows no deciding-factor line
-
-#### Scenario: The deciding-factor line never carries the full trace
-- **WHEN** a card's deciding-factor line is rendered
-- **THEN** it contains only the single stated factor, none of the internal trace's other steps or
-  intermediate values
-
 ### Requirement: The matches view respects tournament and stage publication state
 An anonymous visitor requesting the matches view for an unpublished tournament, or scoped to a stage
 number that does not exist in the tournament, SHALL receive a not-found response exposing no
@@ -549,3 +533,51 @@ A public surface SHALL label a scheduled match as delayed once 15 minutes have p
 
 - **WHEN** a match scheduled for 08:30 is still scheduled at 08:50
 - **THEN** its card reads delayed and the overview's upcoming list does not include it
+
+### Requirement: The schedule can be filtered to one club
+
+The public matches page SHALL offer a club filter, carried as `club={clubAlias}` in its query string,
+applied by the server, combinable with the stage, zone, group and state filters, and listing only
+clubs of the tournament that have an alias.
+
+#### Scenario: One club's matches
+- **WHEN** a visitor selects Club Hispano in the club filter
+- **THEN** the URL carries `club=club-hispano` and the schedule lists only matches in which Club
+  Hispano is home or away
+
+#### Scenario: Scripts off
+- **WHEN** a visitor with scripts off opens the matches page with `club=club-hispano`
+- **THEN** the server renders only that club's matches
+
+#### Scenario: Unknown or blank club
+- **WHEN** the query names an alias that is not a club of the tournament, is malformed, or is blank
+- **THEN** the club is ignored: the schedule is unfiltered by club and the filter disclosure does not
+  open on its account
+
+#### Scenario: Repeated club parameter
+- **WHEN** the query repeats `club`
+- **THEN** the first non-blank value decides and the page answers without an error
+
+### Requirement: Matches view rows carry club aliases
+
+Each public matches-view row SHALL carry the home and away clubs' aliases when those clubs have one.
+
+#### Scenario: Aliased clubs
+- **WHEN** a client reads a matches-view row between two clubs with aliases
+- **THEN** the row carries `homeClubAlias` and `awayClubAlias`
+
+### Requirement: Matches view rows name the winner of a finished match
+
+Each finished public matches-view row with a winner SHALL carry `winnerEntrantId`: the series winner
+when a series settles the match, otherwise the higher score, otherwise the side the standings rank first
+when a deciding factor settled a level match. A level match without a deciding factor, and any
+undecided or live match, carries none.
+
+#### Scenario: Level match settled by a deciding factor
+- **WHEN** a finished match is level on score and a deciding factor ranks one side first
+- **THEN** the row carries that side's entrant id as `winnerEntrantId`, and the club's result on the
+  club page reads as won or lost, never as drawn
+
+#### Scenario: Level group match
+- **WHEN** a finished group match is level on score with no deciding factor
+- **THEN** the row carries no `winnerEntrantId`

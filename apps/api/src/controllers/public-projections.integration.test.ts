@@ -3023,6 +3023,31 @@ describe('public projections routes', () => {
           expect(response.statusCode).toBe(404);
         }
       });
+
+      it('answers a former alias with the club under its current alias', async () => {
+        const enrollments = new EnrollmentRepository(scratch.db);
+        const { clubId } = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+          enrollments.createClub(uow, {
+            organizationId,
+            alias: 'club-memoria',
+            name: 'Club Memoria',
+            ...audit,
+          }),
+        );
+        await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+          enrollments.updateClub(uow, { clubId, organizationId, alias: 'memoria', ...audit }),
+        );
+
+        const response = await request({
+          method: 'GET',
+          url: '/api/organizations/liga-orbital/public/clubs/club-memoria',
+        });
+        expect(response.statusCode).toBe(200);
+        const body = JSON.parse(response.payload as string) as {
+          club: { clubId: string; alias: string };
+        };
+        expect(body.club).toMatchObject({ clubId, alias: 'memoria' });
+      });
     });
   });
 

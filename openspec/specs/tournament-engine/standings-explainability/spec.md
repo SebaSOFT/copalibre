@@ -281,3 +281,20 @@ The standings explanation SHALL be able to name, for two entrants, the first tie
 
 - **WHEN** two entrants of a group were never tied with each other
 - **THEN** no deciding factor is returned for that pair
+
+### Requirement: A table projection row names the sort column that separated it from the row above
+A table projection row SHALL carry the code of the first sort column that distinguishes it from the
+row above, only when the leading sort column compares equal for the two rows. It SHALL be absent on the
+first row, when the leading column separates the two rows, and when the rows share a rank.
+
+#### Scenario: Level on points, separated by goal difference
+- **WHEN** a layout sorts by `points` then `gd`, and two adjacent rows have equal points and different goal difference
+- **THEN** the lower row names `gd`
+
+#### Scenario: Separated by points
+- **WHEN** two adjacent rows differ in points
+- **THEN** the lower row names no column
+
+#### Scenario: A shared rank names no column
+- **WHEN** two adjacent rows compare equal on every sort column
+- **THEN** the lower row names no column

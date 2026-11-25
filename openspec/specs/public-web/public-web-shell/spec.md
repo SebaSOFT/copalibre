@@ -308,25 +308,31 @@ only).
 ### Requirement: A table projection may be filtered to one club's entrants
 
 Both the public tournament-wide table route and the existing public stage-scoped table route SHALL
-accept an optional `clubId` query parameter; when present, the response SHALL include only rows for
-entrants resolved to that club, and SHALL NOT alter the layout's declared columns, sort order, or
-ranking computation.
+accept an optional `club` query parameter naming a club alias, and the legacy `clubId` parameter;
+when either is present, the response SHALL include only rows for entrants resolved to that club,
+and SHALL NOT alter the layout's declared columns, sort order, or ranking computation. `club` SHALL
+win when both are given.
 
 #### Scenario: Filtering a leaderboard to one club
-- **WHEN** a table projection is requested with `clubId` naming a club fielding three of the
+- **WHEN** a table projection is requested with `club` naming a club fielding three of the
   tournament's registered entrants
 - **THEN** the response's rows are limited to those three entrants' players, ranked exactly as they
   would be within the unfiltered table (rank numbers reflect standing in the full table, not
   renumbered within the filtered subset)
 
 #### Scenario: An absent clubId returns every entrant
-- **WHEN** a table projection is requested with no `clubId` parameter
+- **WHEN** a table projection is requested with neither `club` nor `clubId`
 - **THEN** the response is unchanged from this route's behavior before the parameter existed
 
 #### Scenario: A clubId matching no entrant returns an empty row set, not an error
-- **WHEN** a table projection is requested with a `clubId` that fields no entrant in this tournament
+- **WHEN** a table projection is requested with a `club` or `clubId` that fields no entrant in this
+  tournament
 - **THEN** the response carries the layout's columns and an empty `rows` array, rather than a 404 or
   other error
+
+#### Scenario: The legacy identifier still filters
+- **WHEN** a client that predates the alias parameter requests a table with `clubId`
+- **THEN** the response is filtered to that club exactly as before
 
 ### Requirement: Public player profile popup
 
@@ -506,14 +512,15 @@ formats), not a separately stored value.
 
 ### Requirement: A table projection's club filter is reachable from the page and addressable in the URL
 
-The public table surfaces SHALL provide a control that applies the club filter the table routes already
-accept, and SHALL carry the selected club in the page URL so a filtered table is linkable. Where a club
-emblem is rendered beside a row, activating it SHALL apply that club's filter. Selecting all clubs SHALL
-clear the filter.
+The public table surfaces SHALL provide a control that applies the club filter, and SHALL carry the
+selected club in the page URL as `club={clubAlias}`, never as an identifier. Where a club emblem is
+rendered beside a row, activating it SHALL apply that club's filter. Selecting all clubs SHALL clear
+the filter. A page URL with the legacy `clubId` SHALL redirect to its `club` form.
 
 #### Scenario: Filtering a leaderboard from the page
 - **WHEN** a visitor selects a club on a public table view
-- **THEN** the table shows only that club's rows, and the page URL carries the selected club
+- **THEN** the table shows only that club's rows, and the page URL carries `club=` with the club's
+  alias
 
 #### Scenario: A linked filtered table renders filtered
 - **WHEN** a visitor opens a public table URL that names a club
@@ -535,6 +542,20 @@ clear the filter.
 #### Scenario: A club with no entrants renders an empty state
 - **WHEN** a visitor filters to a club fielding no entrant in this tournament
 - **THEN** the page renders an explicit empty state rather than an error
+
+#### Scenario: A legacy filtered link
+- **WHEN** a visitor opens a table page with `clubId` naming a club with an alias
+- **THEN** the site answers a permanent redirect to the same page with `club={clubAlias}` in place of
+  `clubId`, keeping every other query parameter
+
+#### Scenario: A legacy link to a club without an alias
+- **WHEN** the legacy `clubId` names a club that has no alias
+- **THEN** the page renders filtered to that club without redirecting, and its own filter controls
+  offer only aliased clubs
+
+#### Scenario: The CSV export names the club by alias
+- **WHEN** a filtered table offers its CSV download
+- **THEN** the download link carries `club={clubAlias}` and no club identifier
 
 ### Requirement: The public site root is a real, indexable landing page
 
@@ -1294,3 +1315,66 @@ name.
 #### Scenario: Top scorer item
 - **WHEN** the ticker renders the top scorer, Mateo Moreno of Casa de Italia with 10 goals
 - **THEN** the item reads Mateo Moreno with 10 goals and "CIT" as secondary text, not "Casa de Italia"
+
+### Requirement: Team names link to their club page
+
+On public standings tables, regular match cards, schedule tables, the match report's scoreboard and
+roster headings and the overview's standings preview, a team name SHALL link to its club's page in
+that tournament when the club has an alias, and SHALL be plain text otherwise.
+
+#### Scenario: From a standings row
+- **WHEN** a visitor activates "Club Hispano" in the standings table
+- **THEN** Club Hispano's club page for that tournament opens
+
+#### Scenario: A match card keeps its report link
+- **WHEN** a visitor activates the match title of a regular card that also links its team names
+- **THEN** the match report opens, and each team name still opens its own club page
+
+#### Scenario: A club without an alias
+- **WHEN** a team's club has no alias
+- **THEN** its name is rendered as text with no link styling
+
+### Requirement: The tournament's teams tab opens the club index
+
+The public tournament navigation's teams tab SHALL open the tournament's club index page and SHALL be
+marked active on the club index and on every club page.
+
+#### Scenario: Teams tab
+- **WHEN** a visitor activates "Equipos" on a tournament page
+- **THEN** the club index opens and "Equipos" is the active tab
+
+### Requirement: Organization club cards link to the club's current tournament page
+
+On the organization page, a club card SHALL link to the club's page in the organization's in-progress
+published tournament that has an entrant from that club, and a club with no such tournament SHALL be
+shown without card affordance.
+
+#### Scenario: A club playing now
+- **WHEN** a visitor activates Club Hispano's card on the organization page while the Panamericano is
+  in progress
+- **THEN** Club Hispano's page in that tournament opens
+
+#### Scenario: A club not playing
+- **WHEN** a club has no entrant in any in-progress published tournament
+- **THEN** its entry shows crest and name with no border, hover state or link
+
+### Requirement: Club alias rename preserves inbound club links
+A public club page requested by an alias the club previously held SHALL answer `301` to the same path
+with the club's current alias, keeping the locale prefix and the query string. A `club` filter
+parameter naming a former alias SHALL answer `301` to the same page with the current alias. Resolution
+SHALL stay within the requesting organization.
+
+#### Scenario: Old club page URL redirects after rename
+- **WHEN** a club's alias is changed from `club-hispano` to `hispano`
+- **AND** a visitor requests `/es/{organization}/tournaments/{tournament}/clubs/club-hispano`
+- **THEN** the response is a 301 redirect to `/es/{organization}/tournaments/{tournament}/clubs/hispano`
+
+#### Scenario: Old club filter redirects after rename
+- **WHEN** a club's alias is changed from `club-hispano` to `hispano`
+- **AND** a visitor requests `/{organization}/tournaments/{tournament}/matches?club=club-hispano&state=final`
+- **THEN** the response is a 301 redirect to the same page with `club=hispano` and `state=final`
+
+#### Scenario: A former club alias does not leak across organizations
+- **WHEN** a club of organization A renamed its alias from `talleres` to `talleres-mendoza`
+- **AND** a visitor requests organization B's club page for `talleres`
+- **THEN** organization B answers from its own clubs only, never with a redirect to organization A's club
