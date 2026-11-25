@@ -3,7 +3,6 @@ import { buildSitemap } from '@copalibre/routing';
 import { buildSitemapEntries, mapWithConcurrency, NON_PRIMARY_LOCALES } from './public-routes.js';
 
 const ORIGIN = 'https://copalibre.test';
-const UUID = '01a205fd-1c2b-7d3e-8f40-5a6b7c8d9e0f';
 
 describe('buildSitemapEntries club routes', () => {
   it('lists the organization club page of every aliased club, in every locale', () => {
