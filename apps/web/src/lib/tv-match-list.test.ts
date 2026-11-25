@@ -5,8 +5,10 @@ import { publicIntl, sideSourceLabels } from './i18n/public-intl.js';
 import {
   isTvMatchHeading,
   featuredTvMatch,
+  chunkTvRows,
   nextTvMatches,
   orderTvMatches,
+  overlayTvEntries,
   pageTvMatches,
   tvMatchEntriesOf,
   type TvMatchEntry,
@@ -376,5 +378,60 @@ describe('orderTvMatches keeps every entry', () => {
       'Annulé',
       'À définir',
     ]);
+  });
+});
+
+describe('the list follows the live projection', () => {
+  const labels = { live: 'En vivo', upcoming: 'Programado', final: 'Finalizado' } as never;
+  const entry = (key: string, state: 'upcoming' | 'live' | 'final', home?: number) => ({
+    key,
+    scope: '',
+    state,
+    stateLabel: state,
+    home: { label: 'H', name: 'H', ...(home === undefined ? {} : { score: home }) },
+    away: { label: 'A', name: 'A', score: 0 },
+  });
+
+  it('takes the live state and score of a match the projection has under way', () => {
+    const [live] = overlayTvEntries(
+      [entry('m1', 'upcoming')],
+      [{ matchId: 'm1', state: 'live', sides: [{ score: 2 }, { score: 0 }] }],
+      labels,
+    );
+    expect(live?.state).toBe('live');
+    expect(live?.stateLabel).toBe('En vivo');
+    expect(live?.home.score).toBe(2);
+  });
+
+  it('keeps the delayed label of an entry the projection still lists as upcoming', () => {
+    const delayed = { ...entry('m5', 'upcoming'), stateLabel: 'Delayed', delayed: true };
+    const [kept] = overlayTvEntries(
+      [delayed],
+      [{ matchId: 'm5', state: 'upcoming', sides: [{ score: 0 }, { score: 0 }] }],
+      labels,
+    );
+    expect(kept?.stateLabel).toBe('Delayed');
+    expect(kept?.delayed).toBe(true);
+  });
+
+  it('lays the live score over an entry that already reads live', () => {
+    const [live] = overlayTvEntries(
+      [entry('m3', 'live')],
+      [{ matchId: 'm3', state: 'live', sides: [{ score: 1 }, { score: 2 }] }],
+      labels,
+    );
+    expect(live?.home.score).toBe(1);
+    expect(live?.away.score).toBe(2);
+  });
+
+  it('leaves an entry the projection does not list as it was', () => {
+    const [kept] = overlayTvEntries([entry('m2', 'upcoming')], [], labels);
+    expect(kept?.state).toBe('upcoming');
+    expect(kept?.home.score).toBeUndefined();
+  });
+
+  it('cuts rows into fixed pages of the measured size', () => {
+    expect(chunkTvRows([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+    expect(chunkTvRows([], 2)).toEqual([[]]);
   });
 });

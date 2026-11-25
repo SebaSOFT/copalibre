@@ -266,3 +266,46 @@ export function latestFinishedOf<
     .sort((left, right) => (right.scheduledAt ?? '').localeCompare(left.scheduledAt ?? ''))
     .slice(0, Math.max(0, Math.trunc(count)));
 }
+
+/**
+ * The schedule's entries with the live projection laid over them: a match that is live or finished in
+ * the projection takes that state, its score and its state label, so the list agrees with the scoreboard.
+ */
+export function overlayTvEntries(
+  entries: readonly TvMatchEntry[],
+  matches: readonly {
+    readonly matchId: string;
+    readonly state: ResultState;
+    readonly sides: readonly { readonly score: number }[];
+  }[],
+  labels: Readonly<ResultStateLabels>,
+): readonly TvMatchEntry[] {
+  const live = new Map(matches.map((match) => [match.matchId, match] as const));
+  return entries.map((entry) => {
+    const match = live.get(entry.key);
+    if (match === undefined) return entry;
+    const [home, away] = match.sides;
+    // A match that moved on takes its new state's label; one still upcoming keeps its delayed label.
+    const moved = match.state !== entry.state;
+    const stillDelayed = !moved && entry.delayed === true;
+    return {
+      ...entry,
+      state: match.state,
+      stateLabel: moved ? (labels[match.state] ?? entry.stateLabel) : entry.stateLabel,
+      ...(moved && match.state !== 'upcoming' ? { delayed: undefined } : {}),
+      ...(stillDelayed ? { delayed: true } : {}),
+      home: { ...entry.home, ...(home === undefined ? {} : { score: home.score }) },
+      away: { ...entry.away, ...(away === undefined ? {} : { score: away.score }) },
+    };
+  });
+}
+
+/** Rows cut into pages of `size` rows: the fixed pages the frame's measured size gives. */
+export function chunkTvRows<T>(rows: readonly T[], size: number): readonly (readonly T[])[] {
+  const step = Math.max(1, Math.floor(size));
+  const pages: T[][] = [];
+  for (let index = 0; index < rows.length; index += step) {
+    pages.push(rows.slice(index, index + step) as T[]);
+  }
+  return pages.length > 0 ? pages : [[]];
+}
