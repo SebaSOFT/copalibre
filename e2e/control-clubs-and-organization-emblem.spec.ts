@@ -303,6 +303,32 @@ test('the club alias is required: the create form prefills it and an emptied ali
   await expect(page.getByText('Ingresá un alias.')).toBeVisible();
 });
 
+test('editing a club to another club’s alias shows the taken-alias message on the field', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+  const clubsTarget = `/control/${ORG_ALIAS}/clubs`;
+  await seedLoginTransaction(page, clubsTarget);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${clubsTarget}`);
+
+  await page.getByLabel('Nombre del club nuevo').fill('Casa de Italia');
+  await page.getByLabel('Alias del nuevo club').fill('casa-italia');
+  await page.getByText('Agregar club').click();
+  await expect(page.getByText('Club creado.')).toBeVisible();
+
+  await page.getByLabel('Nombre del club nuevo').fill('Club Atenas');
+  await page.getByLabel('Alias del nuevo club').fill('club-atenas');
+  await page.getByText('Agregar club').click();
+  await expect(page.getByText('Club creado.')).toBeVisible();
+
+  await page.locator('li').filter({ hasText: 'Club Atenas' }).getByText('Editar club').click();
+  await page.getByLabel('Alias', { exact: true }).fill('casa-italia');
+  await page.getByText('Guardar cambios').click();
+  await expect(page.getByText('Otro club ya usa este alias.')).toBeVisible();
+  await expect(page.getByText('Changes saved.')).toHaveCount(0);
+});
+
 test('supports keyboard dismiss (Escape) on image crop modal', async ({ page }) => {
   await mockControlApi(page);
 
