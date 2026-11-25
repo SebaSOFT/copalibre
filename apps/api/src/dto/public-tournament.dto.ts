@@ -181,8 +181,8 @@ export class PublicOverviewClubResponse {
   @ApiPropertyOptional()
   abbreviation?: string;
 
-  @ApiPropertyOptional()
-  alias?: string;
+  @ApiProperty({ description: 'Public club alias. Every club has one.' })
+  alias!: string;
 
   @ApiPropertyOptional()
   emblemObjectId?: string;

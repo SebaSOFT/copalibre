@@ -20314,7 +20314,8 @@
             "type": "string"
           },
           "alias": {
-            "type": "string"
+            "type": "string",
+            "description": "Public club alias. Every club has one."
           },
           "emblemObjectId": {
             "type": "string"
@@ -20333,7 +20334,8 @@
         },
         "required": [
           "clubId",
-          "name"
+          "name",
+          "alias"
         ]
       },
       "PublicOrganizationTournamentListResponse": {
@@ -20383,7 +20385,8 @@
             "type": "string"
           },
           "alias": {
-            "type": "string"
+            "type": "string",
+            "description": "Public club alias. Every club has one."
           },
           "emblemObjectId": {
             "type": "string"
@@ -20398,7 +20401,8 @@
         },
         "required": [
           "clubId",
-          "name"
+          "name",
+          "alias"
         ]
       },
       "PublicClubPlacementResponse": {
@@ -23216,7 +23220,7 @@
           },
           "alias": {
             "type": "string",
-            "description": "Path identifier, unique within the organization.",
+            "description": "Path identifier, unique within the organization. Always present: a club is given one when created.",
             "example": "casa-de-italia"
           },
           "name": {
@@ -23236,6 +23240,7 @@
         "required": [
           "clubId",
           "organizationId",
+          "alias",
           "name"
         ]
       },
