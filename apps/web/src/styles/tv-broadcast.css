@@ -290,6 +290,8 @@
 .tv-main-stage {
   display: grid;
   grid-template-columns: 58% 40%;
+  /* One row that is the stage's height: a rail's content taller than the stage scrolls, it does not stretch the row. */
+  grid-template-rows: minmax(0, 1fr);
   gap: 2.5vmin;
   flex: 1;
   min-height: 0;
@@ -301,6 +303,12 @@
   flex: 1 1 auto;
   min-height: 0;
   gap: 2vmin;
+}
+
+/* The dashboard takes the space the frame leaves, not the height its content asks for: a standings page
+   taller than the frame must not stretch the grid, and the frame the paging measures, with it. */
+.tv-multi-match-dashboard {
+  flex-basis: 0;
 }
 
 .tv-presentation-layout {
@@ -986,7 +994,9 @@
 }
 
 .tv-rail-content {
-  flex: 1;
+  /* A definite basis: the content's height never sizes the panel the paging measures. */
+  flex: 1 1 0px;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
