@@ -249,7 +249,8 @@ describe('TvMultiCourtGrid', () => {
     const tile = screen.getByTestId('tv-court-card-match-1');
     expect(tile.querySelector('.tv-start-time')).not.toBeNull();
     expect(tile.querySelector('.tv-court-card__value')).toBeNull();
-    expect(tile.textContent).not.toContain('0');
+    // The start time carries digits of its own; what must not appear is a scoreline.
+    expect(tile.textContent).not.toMatch(/\b0\s*:\s*0\b/);
   });
 
   it('keeps the live court on every page and rotates only the other courts every 20s', async () => {
