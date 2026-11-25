@@ -1286,6 +1286,70 @@ describe('migrations (integration)', () => {
       .execute();
   });
 
+  it('0048 backfills a UUID-shaped alias and keeps former club aliases out of the suggestions', async () => {
+    await createMigrator(scratch.db).migrateTo('0047-idempotency-claim');
+    const legacyDb = scratch.db as unknown as Kysely<LegacyClubsSchema>;
+    const organizationId = '01900000-0000-7000-8000-000000000483';
+    await scratch.db
+      .insertInto('organizations')
+      .values({
+        organization_id: organizationId,
+        alias: 'org-uuid-alias',
+        name: 'org-uuid-alias',
+        primary_language: 'es',
+        timezone: 'UTC',
+        created_at: new Date(),
+      })
+      .execute();
+    await legacyDb
+      .insertInto('clubs')
+      .values([
+        {
+          club_id: '01900000-0000-7000-8000-0000000004b1',
+          organization_id: organizationId,
+          alias: '01936f4a-0001-7000-8000-000000000001',
+          name: 'Talleres',
+          abbreviation: null,
+          emblem_object_id: null,
+          created_at: new Date(Date.UTC(2026, 0, 1, 0, 1)),
+        },
+        {
+          club_id: '01900000-0000-7000-8000-0000000004b2',
+          organization_id: organizationId,
+          alias: null,
+          name: '北京俱乐部',
+          abbreviation: null,
+          emblem_object_id: null,
+          created_at: new Date(Date.UTC(2026, 0, 1, 0, 2)),
+        },
+      ])
+      .execute();
+    // `club-1` was a club's former alias: its inbound links must not reach the club created next.
+    await scratch.db
+      .insertInto('alias_redirects')
+      .values({
+        redirect_id: '01900000-0000-7000-8000-0000000004f1',
+        organization_id: organizationId,
+        scope: 'club',
+        old_alias: 'club-1',
+        new_alias: 'atenas',
+        created_at: new Date(),
+      })
+      .execute();
+
+    await requiredClubAlias.up(scratch.db);
+
+    const aliases = await legacyDb
+      .selectFrom('clubs')
+      .select(['club_id', 'alias'])
+      .orderBy('club_id')
+      .execute();
+    expect(aliases).toEqual([
+      { club_id: '01900000-0000-7000-8000-0000000004b1', alias: 'talleres' },
+      { club_id: '01900000-0000-7000-8000-0000000004b2', alias: 'club-2' },
+    ]);
+  });
+
   it('0047 applies cleanly after a rollback and the full chain reaches the expected version', async () => {
     await migrateToLatest(scratch.db);
     await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(EXPECTED_SCHEMA_VERSION);

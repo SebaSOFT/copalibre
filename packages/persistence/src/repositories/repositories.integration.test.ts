@@ -2082,6 +2082,13 @@ describe('club alias renames (integration)', () => {
     );
   }
 
+  async function freshOrganization(alias: string): Promise<string> {
+    const organization = await withTransaction(scratch.db, (uow) =>
+      new OrganizationRepository(scratch.db).create(uow, { alias, name: alias, ...AUDIT }),
+    );
+    return organization.organizationId;
+  }
+
   async function renameClub(clubId: string, orgId: string, alias: string) {
     return withTransaction(scratch.db, (uow) =>
       participants.updateClub(uow, { clubId, organizationId: orgId, alias, ...AUDIT }),
@@ -2138,6 +2145,32 @@ describe('club alias renames (integration)', () => {
 
     expect(club.alias).toBe('club-1');
     expect(await clubRedirects(organizationId)).toEqual(before);
+  });
+
+  it('refuses an explicit club alias another club of the organization already holds', async () => {
+    const organizationIdFresh = await freshOrganization('liga-alias-taken');
+    const first = await createClub(organizationIdFresh, 'Club Uno', 'uno-alias');
+    await expect(createClub(organizationIdFresh, 'Club Dos', 'uno-alias')).rejects.toThrow(
+      InvariantViolationError,
+    );
+    const second = await createClub(organizationIdFresh, 'Club Tres', 'tres-alias');
+    await expect(renameClub(second.clubId, organizationIdFresh, 'uno-alias')).rejects.toThrow(
+      InvariantViolationError,
+    );
+    // A club keeps its own alias.
+    await expect(renameClub(first.clubId, organizationIdFresh, 'uno-alias')).resolves.toMatchObject(
+      { alias: 'uno-alias' },
+    );
+  });
+
+  it('suggests past a former club alias, so the old link never opens another club', async () => {
+    const organizationIdFresh = await freshOrganization('liga-former-alias');
+    const club = await createClub(organizationIdFresh, 'Alfa', 'club-1');
+    await renameClub(club.clubId, organizationIdFresh, 'atenas');
+
+    const suggested = await createClub(organizationIdFresh, '北京俱乐部');
+
+    expect(suggested.alias).toBe('club-2');
   });
 
   it('refuses to clear a club alias', async () => {
