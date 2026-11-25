@@ -556,7 +556,10 @@ test('the Live filter link narrows the server-rendered list with scripting off',
   const schedule = page.locator('.cl-match-schedule .cl-match-schedule__nested');
   await expect(schedule.getByText('Club Andes', { exact: true })).toBeVisible();
   await page.locator('.cl-match-schedule-filters > summary').click();
-  await page.getByRole('link', { name: 'Live' }).click();
+  await page
+    .getByRole('navigation', { name: 'Filter by match state' })
+    .getByRole('link', { name: 'Live' })
+    .click();
 
   await expect(schedule.getByText('Talleres', { exact: true })).toBeVisible();
   await expect(
@@ -595,7 +598,10 @@ test('the state filter renders as discrete pills with a visible active state', a
   // Each pill is its own bounded control, not inline text.
   expect(first.height).toBeGreaterThanOrEqual(40);
 
-  await page.getByRole('link', { name: 'Live' }).click();
+  await page
+    .getByRole('navigation', { name: 'Filter by match state' })
+    .getByRole('link', { name: 'Live' })
+    .click();
   // Scoped to this nav (the density toggle is its own
   // `cl-pill` group with its own always-current selection, so a bare,
   // page-wide `a.cl-pill[aria-current]` now matches two elements).
@@ -629,7 +635,10 @@ test.describe('density toggle', () => {
     await context.route('**/*.js', (route) => route.abort());
     await page.goto(cardsPath);
 
-    await page.getByRole('link', { name: 'Live' }).click();
+    await page
+      .getByRole('navigation', { name: 'Filter by match state' })
+      .getByRole('link', { name: 'Live' })
+      .click();
     expect(new URL(page.url()).searchParams.get('state')).toBe('live');
 
     await page.getByRole('link', { name: 'Compact' }).click();

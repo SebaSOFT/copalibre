@@ -85,7 +85,7 @@ test.describe('public breadcrumb', () => {
     await page.goto(MATCH_PATH);
 
     const trail = page.getByRole('navigation', { name: 'Ruta de navegación' });
-    await expect(trail.getByRole('link')).toHaveCount(4);
+    await expect(trail.getByRole('link')).toHaveCount(3);
     await expect(trail.getByRole('link', { name: 'Liga Mendocina' })).toHaveAttribute(
       'href',
       `/es/${ORGANIZATION}`,
@@ -94,10 +94,7 @@ test.describe('public breadcrumb', () => {
       'href',
       `/es/${ORGANIZATION}/tournaments/${TOURNAMENT}`,
     );
-    await expect(trail.getByRole('link', { name: 'Partidos' })).toHaveAttribute(
-      'href',
-      `/es/${ORGANIZATION}/tournaments/${TOURNAMENT}/matches?stageNumber=2`,
-    );
+    await expect(trail.getByRole('link', { name: 'Partidos' })).toHaveCount(0);
     await expect(trail.getByRole('link', { name: 'Fase 2' })).toHaveAttribute(
       'href',
       `/es/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/2`,
@@ -132,12 +129,11 @@ test.describe('public breadcrumb', () => {
     const trail = page.getByRole('navigation', { name: 'Ruta de navegación' });
     await expect(trail.getByRole('link', { name: 'Liga Mendocina' })).toBeVisible();
     await expect(trail.getByRole('link', { name: 'Apertura 2026' })).toBeHidden();
-    await expect(trail.getByRole('link', { name: 'Partidos' })).toBeHidden();
     await expect(trail.getByRole('link', { name: 'Fase 2' })).toBeVisible();
     await expect(trail.locator('[aria-current="page"]')).toBeVisible();
     await expect(trail.getByRole('link', { name: 'Mostrar los niveles ocultos' })).toHaveAttribute(
       'href',
-      `/es/${ORGANIZATION}/tournaments/${TOURNAMENT}/matches?stageNumber=2`,
+      `/es/${ORGANIZATION}/tournaments/${TOURNAMENT}`,
     );
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

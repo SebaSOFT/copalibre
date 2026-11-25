@@ -170,11 +170,11 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     page,
   }) => {
     await page.goto('/es');
-    const spanish = page.locator('#cl-public-nav').getByRole('link', { name: 'TV Streaming' });
+    const spanish = page.locator('#cl-public-nav').getByRole('link', { name: 'Pantallas TV' });
     await expect(spanish).toHaveAttribute('href', '/tv?lang=es');
 
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
-    const english = page.locator('#cl-public-nav').getByRole('link', { name: 'TV Streaming' });
+    const english = page.locator('#cl-public-nav').getByRole('link', { name: 'TV screens' });
     await expect(english).toHaveAttribute('href', '/tv?lang=en');
     await english.click();
     await expect(page).toHaveURL(/\/tv\?lang=en/);
