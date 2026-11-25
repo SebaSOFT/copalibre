@@ -9,7 +9,7 @@ import type {
 import { publicTableLayoutLabel } from '../../../lib/public-table-layout-label.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { API_PATH_PREFIX } from '../../../lib/api-path.ts';
-import { optionalClubPageUrl } from '../../../lib/club-url.ts';
+import { isValidClubAlias, optionalClubPageUrl } from '../../../lib/club-url.ts';
 import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
 import type { ClubView, StandingsRowView } from '../../../lib/overview.ts';
 import { columnHint } from '../../../lib/column-hints.ts';
@@ -173,8 +173,9 @@ const activeClubQuery = activeClubAlias
     ? `clubId=${encodeURIComponent(activeClubId)}`
     : undefined;
 // A row names its team's club by alias when the team has one; a team with no club has no club link.
+// A row names its team's club by alias when the row carries a usable one; a team with no club has no club link.
 const resolveRowClubAlias = (row: DisplayRow): string | undefined =>
-  row.clubAlias !== undefined
+  isValidClubAlias(row.clubAlias)
     ? row.clubAlias
     : row.clubId
       ? clubAliasById.get(row.clubId)

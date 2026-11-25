@@ -90,7 +90,9 @@ export function ClubManagementTemplate({
       setNewAliasError(aliasRequiredMessage);
       return;
     }
-    if (await onCreateClub(newName, newAlias, newAbbreviation)) {
+    // An untouched prefill is only a preview: the server gives the same suggestion, and it also knows
+    // former aliases. So only an alias the organizer typed is sent.
+    if (await onCreateClub(newName, newAliasEdited ? newAlias : '', newAbbreviation)) {
       setNewName('');
       setNewAlias('');
       setNewAliasEdited(false);

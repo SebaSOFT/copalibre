@@ -51,10 +51,7 @@ describe('ClubManagementPage', () => {
       fireEvent.click(screen.getByText('Add club'));
     });
 
-    expect(createClub).toHaveBeenCalledWith('liga-mendocina', {
-      name: 'Club Atenas',
-      alias: 'club-atenas',
-    });
+    expect(createClub).toHaveBeenCalledWith('liga-mendocina', { name: 'Club Atenas' });
     await screen.findByText('Club created.');
   });
 
@@ -220,7 +217,7 @@ describe('ClubManagementPage', () => {
     await screen.findByText('Casa de Italia');
     fireEvent.change(screen.getByLabelText('New club name'), { target: { value: 'Club Atenas' } });
     fireEvent.change(screen.getByLabelText('New club alias'), {
-      target: { value: 'club-atenas' },
+      target: { value: 'atenas-ca' },
     });
     fireEvent.change(screen.getByLabelText('Abbreviation (optional)'), {
       target: { value: 'CA' },
@@ -231,7 +228,7 @@ describe('ClubManagementPage', () => {
 
     expect(createClub).toHaveBeenCalledWith('liga-mendocina', {
       name: 'Club Atenas',
-      alias: 'club-atenas',
+      alias: 'atenas-ca',
       abbreviation: 'CA',
     });
   });
@@ -255,6 +252,26 @@ describe('ClubManagementPage', () => {
       target: { value: '北京俱乐部' },
     });
     expect((screen.getByLabelText('New club alias') as HTMLInputElement).value).toBe('club-1');
+  });
+
+  it('sends no alias when the organizer did not edit the prefilled one, so the server suggests it', async () => {
+    const createClub = jest.fn<NonNullable<ControlApiClient['createClub']>>(async (_org, body) => ({
+      clubId: 'club-2',
+      organizationId: 'org-1',
+      name: body.name,
+      alias: 'club-atenas',
+    }));
+    const client = stubClient({ listClubs: () => Promise.resolve(oneClub), createClub });
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('Casa de Italia');
+    fireEvent.change(screen.getByLabelText('New club name'), { target: { value: 'Club Atenas' } });
+    expect((screen.getByLabelText('New club alias') as HTMLInputElement).value).toBe('club-atenas');
+    await act(async () => {
+      fireEvent.click(screen.getByText('Add club'));
+    });
+
+    expect(createClub).toHaveBeenCalledWith('liga-mendocina', { name: 'Club Atenas' });
   });
 
   it('blocks creating a club with an empty alias and shows the required message', async () => {
