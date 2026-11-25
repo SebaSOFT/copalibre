@@ -403,6 +403,16 @@ describe('the list follows the live projection', () => {
     expect(live?.home.score).toBe(2);
   });
 
+  it('lays no score over an upcoming entry, even when the projection carries a 0 – 0', () => {
+    const [upcoming] = overlayTvEntries(
+      [entry('m9', 'upcoming')],
+      [{ matchId: 'm9', state: 'upcoming', sides: [{ score: 0 }, { score: 0 }] }],
+      labels,
+    );
+    expect(upcoming?.home.score).toBeUndefined();
+    expect(upcoming?.away.score).toBeUndefined();
+  });
+
   it('keeps the delayed label of an entry the projection still lists as upcoming', () => {
     const delayed = { ...entry('m5', 'upcoming'), stateLabel: 'Delayed', delayed: true };
     const [kept] = overlayTvEntries(
@@ -432,6 +442,6 @@ describe('the list follows the live projection', () => {
 
   it('cuts rows into fixed pages of the measured size', () => {
     expect(chunkTvRows([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
-    expect(chunkTvRows([], 2)).toEqual([[]]);
+    expect(chunkTvRows([], 2)).toEqual([]);
   });
 });

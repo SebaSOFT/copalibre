@@ -294,18 +294,33 @@ export function overlayTvEntries(
       stateLabel: moved ? (labels[match.state] ?? entry.stateLabel) : entry.stateLabel,
       ...(moved && match.state !== 'upcoming' ? { delayed: undefined } : {}),
       ...(stillDelayed ? { delayed: true } : {}),
-      home: { ...entry.home, ...(home === undefined ? {} : { score: home.score }) },
-      away: { ...entry.away, ...(away === undefined ? {} : { score: away.score }) },
+      home: scoredSide(entry.home, match.state, home?.score),
+      away: scoredSide(entry.away, match.state, away?.score),
     };
   });
 }
 
-/** Rows cut into pages of `size` rows: the fixed pages the frame's measured size gives. */
+/**
+ * A side with the projection's score laid over it, unless the match is still upcoming: an upcoming side
+ * carries no score, whatever the projection says, and no score the entry held before.
+ */
+function scoredSide<S extends { readonly score?: number }>(
+  side: S,
+  state: ResultState,
+  score: number | undefined,
+): S {
+  const laid = state === 'upcoming' ? undefined : (score ?? side.score);
+  const plain: { score?: number } & Omit<S, 'score'> = { ...side };
+  delete plain.score;
+  return (laid === undefined ? plain : { ...plain, score: laid }) as S;
+}
+
+/** Rows cut into pages of `size` rows: the fixed pages the frame's measured size gives; none for no rows. */
 export function chunkTvRows<T>(rows: readonly T[], size: number): readonly (readonly T[])[] {
   const step = Math.max(1, Math.floor(size));
   const pages: T[][] = [];
   for (let index = 0; index < rows.length; index += step) {
     pages.push(rows.slice(index, index + step) as T[]);
   }
-  return pages.length > 0 ? pages : [[]];
+  return pages;
 }
