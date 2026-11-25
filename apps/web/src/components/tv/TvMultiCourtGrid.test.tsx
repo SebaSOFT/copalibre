@@ -505,17 +505,21 @@ describe('TvMultiCourtGrid court fallbacks and the shared clock', () => {
     expect(screen.queryByTestId('tv-court-card-no-court')).toBeNull();
   });
 
-  it('draws the clock from the reference date the server rendered at', () => {
-    // 10:00 UTC, read in UTC: the first render shows the instant the page was rendered at.
-    const referenceDate = Date.parse('2026-11-25T10:00:00Z');
-    renderGrid([liveMatch({ matchId: 'm1' })], COURTS, {
-      referenceDate,
-      timeZone: 'UTC',
-      locale: 'en',
-    });
+  it('draws the clock at once on mount, from the present, not the reference the server drew', () => {
+    // The server drew the page at 10:00; the island mounts at 11:00 and must not wait a tick for it.
+    const spy = jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-11-25T11:00:00Z'));
+    try {
+      renderGrid([liveMatch({ matchId: 'm1' })], COURTS, {
+        referenceDate: Date.parse('2026-11-25T10:00:00Z'),
+        timeZone: 'UTC',
+        locale: 'en',
+      });
 
-    expect(
-      document.querySelector('.tv-scorebug__clock--wall')?.getAttribute('data-time'),
-    ).toContain('10:00');
+      expect(
+        document.querySelector('.tv-scorebug__clock--wall')?.getAttribute('data-time'),
+      ).toContain('11:00');
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

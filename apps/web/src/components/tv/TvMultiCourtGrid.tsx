@@ -260,6 +260,8 @@ export function TvMultiCourtGrid({
       setNow(instant);
       setClockText(formatTimestamp(new Date(instant), { locale, format: 'time-only', timeZone }));
     };
+    // Drawn at once: a clock that waited a tick would show the previous page's time until then.
+    tick();
     const timer = setInterval(tick, CLOCK_TICK_MS);
     return () => clearInterval(timer);
   }, [locale, timeZone]);
