@@ -75,6 +75,24 @@ export interface ChampionInfo {
   readonly record?: string;
 }
 
+export type TvTournamentState = 'scheduled' | 'live' | 'inProgress' | 'finished';
+
+/**
+ * The one tournament status every TV piece reads: the header badge, the overlay badge and the facts
+ * tile. A forfeit is stored as a final match, so "finished" is every match final.
+ *
+ * A match whose kickoff has passed without a result is still scheduled here; the per-match delayed
+ * state is a view-level presentation layered on top by the caller.
+ */
+export function tvTournamentState(
+  matches: readonly { readonly state: string }[],
+): TvTournamentState {
+  if (matches.length > 0 && matches.every((match) => match.state === 'final')) return 'finished';
+  if (matches.some((match) => match.state === 'live')) return 'live';
+  if (matches.some((match) => match.state === 'final')) return 'inProgress';
+  return 'scheduled';
+}
+
 function extractScores(match: LiveMatch | OverviewMatch, labels: TvStatisticsLabels) {
   if ('sides' in match) {
     const [s0, s1] = match.sides;

@@ -12,6 +12,7 @@ describe('TvMatchList', () => {
       {
         key: 'm-delayed',
         scope: 'Group A · Round 1',
+        state: 'upcoming' as const,
         stateLabel: 'Delayed',
         delayed: true,
         scheduledAt: '2026-08-01T18:00:00.000Z',
@@ -21,6 +22,7 @@ describe('TvMatchList', () => {
       {
         key: 'm-future',
         scope: 'Group A · Round 2',
+        state: 'upcoming' as const,
         stateLabel: 'Upcoming',
         scheduledAt: '2026-08-05T20:00:00.000Z',
         home: { label: 'EST', name: 'Este', abbreviation: 'EST' },

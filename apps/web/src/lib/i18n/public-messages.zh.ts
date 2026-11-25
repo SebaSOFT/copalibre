@@ -410,6 +410,8 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.sidebarSectionsLabel': '侧边栏区域',
   'publicWeb.tvDashboard.standingsTab': '积分榜',
   'publicWeb.tvDashboard.performersTab': '最佳球员',
+  'publicWeb.tvDashboard.performersTeamsTab': '最佳队伍',
+  'publicWeb.tvDashboard.recentFormTab': '近期战绩',
   'publicWeb.tvDashboard.statisticsTab': '统计数据',
   'publicWeb.tvDashboard.bracketTab': '对阵表',
   'publicWeb.tvDashboard.fixturesTab': '赛程',

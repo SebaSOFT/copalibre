@@ -24,12 +24,15 @@ export function TvStandingsTable({
   dashboardLabels,
   pointsShortLabel,
   showAllRows = false,
+  stageName,
 }: {
   readonly standings?: readonly StandingsRowView[];
   readonly clubs?: readonly TvClubItem[];
   readonly dashboardLabels: TvDashboardLabels;
   readonly pointsShortLabel: string;
   readonly showAllRows?: boolean;
+  /** The stage the table belongs to; it heads every table, ahead of the group or zone. */
+  readonly stageName?: string;
 }): React.JSX.Element {
   if (!standings || standings.length === 0) {
     return (
@@ -58,6 +61,13 @@ export function TvStandingsTable({
     (zoneSections[0]?.zoneName === undefined ||
       isImplicitGroupZoneName(zoneSections[0].zoneName)) &&
     zoneSections[0].groups.some((group) => group.groupName !== undefined);
+  // A table is headed by its stage, and by its group or zone once the stage has several tables.
+  const headingFor = (scope: string | undefined): string | undefined => {
+    const parts = [stageName, blocks.length > 1 ? scope : undefined].filter(
+      (part): part is string => part !== undefined && part.length > 0,
+    );
+    return parts.length > 0 ? parts.join(' · ') : scope;
+  };
 
   return (
     <>
@@ -72,7 +82,7 @@ export function TvStandingsTable({
             <StandingsBlock
               clubs={clubs}
               dashboardLabels={dashboardLabels}
-              heading={group.groupName}
+              heading={headingFor(group.groupName)}
               key={group.groupName ?? 'group'}
               pointsShortLabel={pointsShortLabel}
               rows={group.rows}
@@ -85,7 +95,7 @@ export function TvStandingsTable({
                 <StandingsBlock
                   clubs={clubs}
                   dashboardLabels={dashboardLabels}
-                  heading={group.groupName}
+                  heading={headingFor(group.groupName)}
                   key={group.groupName ?? 'stage'}
                   pointsShortLabel={pointsShortLabel}
                   rows={group.rows}
@@ -99,7 +109,7 @@ export function TvStandingsTable({
                 <StandingsBlock
                   clubs={clubs}
                   dashboardLabels={dashboardLabels}
-                  heading={zone.zoneName}
+                  heading={headingFor(zone.zoneName)}
                   key={zone.zoneName}
                   pointsShortLabel={pointsShortLabel}
                   rows={zone.groups[0]?.rows ?? []}
@@ -114,7 +124,7 @@ export function TvStandingsTable({
                 data-testid="tv-standings-zone"
                 key={zone.zoneName}
               >
-                <h3 className="tv-standings-zone__name">{zone.zoneName}</h3>
+                <h3 className="tv-standings-zone__name">{headingFor(zone.zoneName)}</h3>
                 {zone.groups.map((group) => (
                   <div
                     className="tv-standings-group"

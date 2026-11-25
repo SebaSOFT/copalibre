@@ -16,7 +16,7 @@ const layoutDashboard: LiveDashboard = {
       stageNumber: 1,
       matchNumber: 8,
       stageOrdinal: 8,
-      state: 'live',
+      state: 'live' as const,
       projectionVersion: 13,
       clockSeconds: 1980,
       sides: [
@@ -26,7 +26,7 @@ const layoutDashboard: LiveDashboard = {
           name: 'Centro Valenciano',
           abbreviation: 'VAL',
           score: 1,
-          state: 'live',
+          state: 'live' as const,
         },
       ],
     },
@@ -36,7 +36,7 @@ const layoutDashboard: LiveDashboard = {
       matchNumber: index + 1,
       stageOrdinal: index + 1,
       scheduledAt: new Date(Date.UTC(2026, 10, 7, 18 + index, 0)).toISOString(),
-      state: 'upcoming',
+      state: 'upcoming' as const,
       projectionVersion: 1,
       sides: [
         {
@@ -49,7 +49,7 @@ const layoutDashboard: LiveDashboard = {
               'Atlético Mendoza',
             ][index] ?? 'Local',
           score: 0,
-          state: 'upcoming',
+          state: 'upcoming' as const,
         },
         {
           entrantId: `upcoming-away-${index + 1}`,
@@ -61,7 +61,7 @@ const layoutDashboard: LiveDashboard = {
               'Centro Valenciano',
             ][index] ?? 'Visitante',
           score: 0,
-          state: 'upcoming',
+          state: 'upcoming' as const,
         },
       ],
     })),
@@ -84,7 +84,7 @@ const layoutBracket: readonly BracketZone[] = [
         matchNumber: 1,
         roundNumber: 1,
         branch: 'winners',
-        state: 'final',
+        state: 'final' as const,
         scores: [2, 1],
         slots: [
           { kind: 'entrant', entrantId: 'e-1', name: 'Club Atlético Independiente' },
@@ -214,6 +214,7 @@ export const Rescheduled: Story = {
       {
         key: 'm-1',
         scope: 'Liga · 1',
+        state: 'upcoming' as const,
         stateLabel: 'UPCOMING',
         home: { label: 'CAI', name: 'Club Atlético Independiente' },
         away: { label: 'DSJ', name: 'Deportivo San Juan' },

@@ -226,6 +226,8 @@ export function tvDashboardLabels(intl: IntlShape) {
       venue: '{venue}',
     }),
     resultState: resultStateLabels(intl),
+    /** The tournament-level badge for a started tournament between matches. */
+    inProgress: intl.formatMessage(messages.completionInProgress),
     delayed: intl.formatMessage(messages.resultStateDelayed),
     noMatchesScheduled: intl.formatMessage(messages.tvDashboardNoMatchesScheduled),
     standingsUnavailable: intl.formatMessage(messages.tvDashboardStandingsUnavailable),
@@ -255,6 +257,8 @@ export function tvDashboardLabels(intl: IntlShape) {
     sidebarSectionsLabel: intl.formatMessage(messages.tvDashboardSidebarSectionsLabel),
     standingsTab: intl.formatMessage(messages.tvDashboardStandingsTab),
     performersTab: intl.formatMessage(messages.tvDashboardPerformersTab),
+    performersTeamsTab: intl.formatMessage(messages.tvDashboardPerformersTeamsTab),
+    recentFormTab: intl.formatMessage(messages.tvDashboardRecentFormTab),
     statisticsTab: intl.formatMessage(messages.tvDashboardStatisticsTab),
     bracketTab: intl.formatMessage(messages.tvDashboardBracketTab),
     fixturesTab: intl.formatMessage(messages.tvDashboardFixturesTab),
@@ -298,6 +302,8 @@ export function tvMultiCourtGridLabels(intl: IntlShape) {
       segment: '{segment}',
       time: '{time}',
     }),
+    inProgress: intl.formatMessage(messages.completionInProgress),
+    pageOf: intl.formatMessage(messages.tvDashboardPageOf, { page: '{page}', total: '{total}' }),
   };
 }
 

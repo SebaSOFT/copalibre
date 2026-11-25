@@ -1,4 +1,9 @@
-import { deriveTopPerformers, deriveTournamentFacts, resolveChampion } from './tv-statistics.js';
+import {
+  deriveTopPerformers,
+  deriveTournamentFacts,
+  resolveChampion,
+  tvTournamentState,
+} from './tv-statistics.js';
 import { publicIntl, tvStatisticsLabels } from './i18n/public-intl.js';
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 import type { OverviewMatch, StandingsRowView } from './overview.js';
@@ -524,5 +529,96 @@ describe('tv-statistics', () => {
       const champion = resolveChampion(labels, matches);
       expect(champion?.name).toBe('Winner');
     });
+  });
+});
+
+describe('tvTournamentState', () => {
+  const matchesWith = (...states: string[]): { readonly state: string }[] =>
+    states.map((state) => ({ state }));
+
+  it('is scheduled before any match is final or live', () => {
+    expect(tvTournamentState(matchesWith('upcoming', 'upcoming'))).toBe('scheduled');
+    expect(tvTournamentState([])).toBe('scheduled');
+  });
+
+  it('is live while any match is live', () => {
+    expect(tvTournamentState(matchesWith('final', 'live', 'upcoming'))).toBe('live');
+  });
+
+  it('is in progress when some matches are final and none is live', () => {
+    const seventyTwo = [
+      ...Array.from({ length: 48 }, () => ({ state: 'final' })),
+      ...Array.from({ length: 24 }, () => ({ state: 'upcoming' })),
+    ];
+    expect(tvTournamentState(seventyTwo)).toBe('inProgress');
+  });
+
+  it('is finished when every match is final, a forfeit being a final match', () => {
+    expect(tvTournamentState(matchesWith('final', 'final'))).toBe('finished');
+  });
+
+  // The public mapping (`publicMatchState`) turns `forfeited` and `not-required` into `final`, so the
+  // TV model never carries a forfeit state of its own.
+  it('is finished when every match was decided by forfeit, which the TV model reads as final', () => {
+    expect(tvTournamentState(matchesWith('final', 'final', 'final'))).toBe('finished');
+  });
+
+  it('is finished for a mix of played matches and forfeits', () => {
+    const mixed = [...matchesWith('final', 'final'), ...matchesWith('final')];
+    expect(tvTournamentState(mixed)).toBe('finished');
+    expect(tvTournamentState([...mixed, ...matchesWith('upcoming')])).toBe('inProgress');
+  });
+
+  it('keeps a delayed match in its scheduled or in-progress state, never a state of its own', () => {
+    // A kickoff 40 minutes past with no result is still `upcoming`: "delayed" is a view-level badge.
+    const delayedOnly = matchesWith('upcoming');
+    expect(tvTournamentState(delayedOnly)).toBe('scheduled');
+    expect(tvTournamentState([...matchesWith('final'), ...delayedOnly])).toBe('inProgress');
+  });
+});
+
+describe('tv-statistics progress and fallbacks', () => {
+  it('reports played facts for 48 final of 72 matches, not a scheduled count of zero', () => {
+    const matches = [
+      ...Array.from({ length: 48 }, (_, index) => ({
+        matchId: `f${index}`,
+        stageNumber: 1,
+        state: 'final' as const,
+        home: { name: 'A', score: 1 },
+        away: { name: 'B', score: 0 },
+      })),
+      ...Array.from({ length: 24 }, (_, index) => ({
+        matchId: `u${index}`,
+        stageNumber: 1,
+        state: 'upcoming' as const,
+        home: { name: 'A' },
+        away: { name: 'B' },
+      })),
+    ] as unknown as OverviewMatch[];
+    const facts = deriveTournamentFacts(labels, matches);
+
+    expect(facts[0]?.value).toBe(48);
+    expect(facts.some((fact) => fact.value === 0 && fact.label === labels.scheduledMatches)).toBe(
+      false,
+    );
+  });
+
+  it('ranks team rows by their full club names when no player projection exists', () => {
+    const standings: StandingsRowView[] = [
+      {
+        position: 1,
+        name: 'Club Atlético Lomas de Rivadavia',
+        abbreviation: 'LOM',
+        played: 3,
+        points: 9,
+      },
+      { position: 2, name: 'Club Hispano Argentino', abbreviation: 'HIS', played: 3, points: 6 },
+    ];
+    const performers = deriveTopPerformers(labels, 'en', undefined, standings);
+
+    expect(performers.map((performer) => performer.clubName)).toEqual([
+      'Club Atlético Lomas de Rivadavia',
+      'Club Hispano Argentino',
+    ]);
   });
 });

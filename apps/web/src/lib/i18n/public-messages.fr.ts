@@ -415,6 +415,8 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.sidebarSectionsLabel': 'Sections latérales',
   'publicWeb.tvDashboard.standingsTab': 'Classement',
   'publicWeb.tvDashboard.performersTab': 'Meilleurs joueurs',
+  'publicWeb.tvDashboard.performersTeamsTab': 'Meilleures équipes',
+  'publicWeb.tvDashboard.recentFormTab': 'Derniers résultats',
   'publicWeb.tvDashboard.statisticsTab': 'Statistiques',
   'publicWeb.tvDashboard.bracketTab': 'Tableau',
   'publicWeb.tvDashboard.fixturesTab': 'Matchs',

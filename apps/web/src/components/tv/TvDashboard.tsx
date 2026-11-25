@@ -35,13 +35,21 @@ import {
   type PinnedMatchRef,
   type SnapshotScore,
 } from '../../lib/tv-dashboard-source.js';
-import { pageTvMatches, tvMatchEntriesOf, type TvMatchEntry } from '../../lib/tv-match-list.js';
+import {
+  latestFinishedOf,
+  nextTvMatches,
+  orderTvMatches,
+  pageTvMatches,
+  tvMatchEntriesOf,
+  type TvMatchEntry,
+} from '../../lib/tv-match-list.js';
 import { resolveTvBranding, tvStateColor, type TvBranding } from '../../lib/tv-branding.js';
 import type { StandingsRowView } from '../../lib/overview.js';
 import {
   deriveTopPerformers,
   deriveTournamentFacts,
   resolveChampion,
+  tvTournamentState,
   type TopPerformer,
   type TournamentFact,
   type ChampionInfo,
@@ -50,7 +58,11 @@ import {
 import { TvTeamSide } from './TvTeamSide.js';
 import { TvPerformersView } from './TvPerformersView.js';
 import { TvFactsView } from './TvFactsView.js';
+import { TvStartTime } from './ui/atoms/TvStartTime.js';
+import { tvStatusToneClass, type TvStatusTone } from './ui/atoms/tv-status-tone.js';
+import { TvRecentResults } from './ui/organisms/TvRecentResults.js';
 import { TvStandingsTable } from './ui/organisms/TvStandingsTable.js';
+import { useTablePaging } from './ui/use-table-paging.js';
 import { TvEventTicker } from './ui/organisms/TvEventTicker.js';
 import { TvRailTab } from './ui/atoms/TvRailTab.js';
 import type { TvClubItem, TvDashboardLabels, TvWinnerZone } from './tv-types.js';
@@ -185,6 +197,27 @@ function timeZoneLabel(at: Date, language: string, timeZone: string): string | u
     .find((part) => part.type === 'timeZoneName')?.value;
 }
 
+/**
+ * The standings rows of the zone or group a pinned match is played in, or the whole table when the
+ * match names neither.
+ */
+/** The lower third's state chip: its own tone for each status, the in-progress one shared. */
+function tvLowerThirdToneClass(tone: TvStatusTone): string {
+  return tone === 'in-progress' ? tvStatusToneClass(tone) : `tv-lower-third__state--${tone}`;
+}
+
+export function pinnedStandingsOf(
+  standings: readonly StandingsRowView[] | undefined,
+  match: Pick<LiveMatch, 'zoneName' | 'groupName'> | undefined,
+): readonly StandingsRowView[] {
+  if (!standings || match === undefined) return [];
+  if (match.zoneName !== undefined)
+    return standings.filter((row) => row.zoneName === match.zoneName);
+  if (match.groupName !== undefined)
+    return standings.filter((row) => row.groupName === match.groupName);
+  return standings;
+}
+
 export function leadingTvSide(match: LiveMatch | undefined): 'home' | 'away' | undefined {
   if (match?.state !== 'live') return undefined;
   const home = match.sides[0]?.score;
@@ -270,10 +303,34 @@ export function TvDashboard({
     new Map((matchList ?? []).map((entry) => [entry.key, entry.scheduleVersion ?? 0])),
   );
   const entrantVersions = useRef(new Map<string, number>());
-  const [rail, setRail] = useState<{
-    readonly tab: 'standings' | 'performers' | 'facts' | 'bracket' | 'fixtures';
-    readonly page: number;
-  }>({ tab: initialView === 'matches' ? 'fixtures' : 'standings', page: 0 });
+  type RailTab = 'standings' | 'performers' | 'facts' | 'bracket' | 'fixtures' | 'recent';
+  // The rail's tab set is decided once, from what the first render already holds, so a rotation or a
+  // late poll never inserts or removes a tab. A tab whose data arrives later shows its own loading state.
+  const [railTabs] = useState<readonly RailTab[]>(() => {
+    if (pinnedRef !== undefined) {
+      const pinnedStandingRows = pinnedStandingsOf(
+        standings,
+        findPinnedMatch(dashboard.matches, pinnedRef),
+      );
+      return [
+        ...(pinnedStandingRows.length > 0 ? (['standings'] as const) : []),
+        ...(initialBracket && initialBracket.zones.length > 0 ? (['bracket'] as const) : []),
+        'performers',
+        'recent',
+      ];
+    }
+    return [
+      'standings',
+      'performers',
+      'facts',
+      ...(initialBracket && initialBracket.zones.length > 0 ? (['bracket'] as const) : []),
+      ...((matchList ?? []).length > 0 ? (['fixtures'] as const) : []),
+    ];
+  });
+  const [rail, setRail] = useState<{ readonly tab: RailTab; readonly page: number }>(() => {
+    const first = railTabs.includes('standings') ? 'standings' : (railTabs[0] ?? 'standings');
+    return { tab: initialView === 'matches' ? 'fixtures' : first, page: 0 };
+  });
   const activeTab = rail.tab;
   const setActiveTab = (tab: typeof rail.tab): void => setRail({ tab, page: 0 });
   const [bracketData, setBracketData] = useState(initialBracket);
@@ -290,9 +347,8 @@ export function TvDashboard({
   const showBroadcastAlerts = presentation === 'lower' || presentation === 'full';
   const resolvedBranding = resolveTvBranding(branding ?? {});
   const [alertQueue, setAlertQueue] = useState<readonly BroadcastAlertItem[]>([]);
-  const [standingsPageIndex, setStandingsPageIndex] = useState(0);
-  const [standingsPageSize, setStandingsPageSize] = useState(standings?.length ?? 0);
   const standingsPanelRef = useRef<HTMLElement>(null);
+  const railStandingsRef = useRef<HTMLDivElement>(null);
   const dashboardRef = useRef(dashboard);
   useEffect(() => {
     dashboardRef.current = dashboard;
@@ -559,7 +615,11 @@ export function TvDashboard({
   // 4. Automatic Carousel Rotation (respects prefers-reduced-motion)
   // A fixed `standings` view has nothing to rotate; a fixed `matches` view only pages its list; the
   // rotating dashboard pages the list too before it moves to the next section.
-  const matchPages = useMemo(() => pageTvMatches(scheduledMatches), [scheduledMatches]);
+  // Live first, then what is next, then what is finished; the block headings count as rows.
+  const matchPages = useMemo(
+    () => pageTvMatches(orderTvMatches(scheduledMatches, dashboardLabels.resultState)),
+    [scheduledMatches, dashboardLabels.resultState],
+  );
   useEffect(() => {
     if (initialView === 'standings') return;
     // Paging a list is how a screen with no input reaches its later pages, not decoration, so a
@@ -572,20 +632,13 @@ export function TvDashboard({
           return { tab: 'fixtures', page: current.page + 1 };
         }
         if (initialView === 'matches') return { tab: 'fixtures', page: 0 };
-        const next = (tab: typeof current.tab): typeof current.tab => {
-          if (tab === 'standings') return 'performers';
-          if (tab === 'performers') return 'facts';
-          // The bracket and the match list join the rotation only for a stage that has them.
-          if (tab === 'facts' && bracketData?.zones.length) return 'bracket';
-          if (tab === 'facts' && matchPages.length > 0) return 'fixtures';
-          if (tab === 'bracket' && matchPages.length > 0) return 'fixtures';
-          return 'standings';
-        };
-        return { tab: next(current.tab), page: 0 };
+        const index = railTabs.indexOf(current.tab);
+        const next = railTabs[(index + 1) % railTabs.length] ?? 'standings';
+        return { tab: next, page: 0 };
       });
     }, 10_000);
     return () => clearInterval(interval);
-  }, [prefersReducedMotion, bracketData, initialView, matchPages.length]);
+  }, [prefersReducedMotion, initialView, matchPages.length, railTabs]);
 
   // 5. Data Computations
   const matches = dashboard.matches;
@@ -594,66 +647,32 @@ export function TvDashboard({
   const pinnedMissing = pinnedRef !== undefined && pinnedMatch === undefined;
 
   const liveMatches = matches.filter((m) => m.state === 'live');
-  const upcomingMatches = matches
-    .filter((match) => match.state === 'upcoming' && !isDelayed(match, effectiveNow))
-    .sort((a, b) => (a.scheduledAt ?? '').localeCompare(b.scheduledAt ?? ''))
-    .slice(0, 4);
-  const allFinal = matches.length > 0 && matches.every((m) => m.state === 'final');
+  // The next-match strip and the featured fallback share one rule: scheduled matches whose kickoff
+  // is not in the past, and when none remains, the latest finished match.
+  const upcomingMatches = nextTvMatches(matches, effectiveNow, 4);
+  const latestFinishedMatch = matches
+    .filter((match) => match.state === 'final')
+    .sort((a, b) => (b.scheduledAt ?? '').localeCompare(a.scheduledAt ?? ''))[0];
+  const tournamentState = tvTournamentState(matches);
+  const allFinal = tournamentState === 'finished';
   const isLive = liveMatches.length > 0;
-  const totalStandingsRows = standings?.length ?? 0;
-  const visibleStandingsPageSize = Math.max(
-    1,
-    Math.min(totalStandingsRows || 1, standingsPageSize || totalStandingsRows || 1),
-  );
-  const standingsPageCount = Math.max(1, Math.ceil(totalStandingsRows / visibleStandingsPageSize));
-  const activeStandingsPage = standingsPageIndex % standingsPageCount;
-  const dashboardStandings = standings?.slice(
-    activeStandingsPage * visibleStandingsPageSize,
-    (activeStandingsPage + 1) * visibleStandingsPageSize,
-  );
-
-  useEffect(() => {
-    if (layoutVariant !== 'dashboard') return;
-    const panel = standingsPanelRef.current;
-    if (!panel || totalStandingsRows === 0) return;
-
-    let measured = false;
-    const measureVisibleRows = (): void => {
-      if (measured || panel.clientHeight === 0) return;
-      const rows = Array.from(
-        panel.querySelectorAll<HTMLTableRowElement>('.tv-standings-table tbody tr'),
-      );
-      const rowHeight = rows[0]?.getBoundingClientRect().height ?? 0;
-      if (rowHeight === 0) return;
-
-      const overflowHeight = Math.max(0, panel.scrollHeight - panel.clientHeight);
-      if (overflowHeight === 0) {
-        measured = true;
-        return;
-      }
-      const rowsBeyondPanel = Math.ceil(overflowHeight / rowHeight);
-      const nextPageSize = Math.max(1, rows.length - rowsBeyondPanel);
-      measured = true;
-      setStandingsPageSize((current) => Math.min(current, totalStandingsRows, nextPageSize));
-    };
-
-    const observer =
-      typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(measureVisibleRows);
-    observer?.observe(panel);
-    const frame = window.requestAnimationFrame(measureVisibleRows);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      observer?.disconnect();
-    };
-  }, [layoutVariant, standingsPageSize, totalStandingsRows]);
-
-  useEffect(() => {
-    if (layoutVariant !== 'dashboard' || standingsPageCount <= 1) return;
-    const interval = window.setInterval(() => {
-      setStandingsPageIndex((current) => (current + 1) % standingsPageCount);
-    }, 10_000);
-    return () => window.clearInterval(interval);
-  }, [layoutVariant, standingsPageCount]);
+  // The standings belong to the stage its matches play in; the first named stage heads the tables.
+  const standingsStageName = matches.find((match) => match.stageName)?.stageName;
+  // The dashboard's standings panel pages to the rows its frame holds and rotates between pages.
+  const dashboardPaging = useTablePaging(standings ?? [], {
+    panelRef: standingsPanelRef,
+    enabled: layoutVariant === 'dashboard',
+  });
+  const standingsPageCount = dashboardPaging.pageCount;
+  const activeStandingsPage = dashboardPaging.pageIndex;
+  const dashboardStandings = dashboardPaging.pageRows;
+  // The rail's standings tab pages the same way on a full frame, with its own panel.
+  const railStandingRows =
+    pinnedRef === undefined ? (standings ?? []) : pinnedStandingsOf(standings, pinnedMatch);
+  const railPaging = useTablePaging(railStandingRows, {
+    panelRef: railStandingsRef,
+    enabled: layoutVariant !== 'dashboard' && activeTab === 'standings',
+  });
 
   const winnerZones = winners ?? [];
   const soleWinner =
@@ -673,6 +692,12 @@ export function TvDashboard({
   const isRotatingDashboard = pinnedRef === undefined && initialView === undefined;
   const showRecap =
     isRotatingDashboard && allFinal && (champion !== undefined || showZoneChampions);
+  // The fallback ranks clubs when no player-ranking projection exists, and the tab says so.
+  const performersAreTeams =
+    (performerProjection?.rows.length ?? 0) === 0 && (initialTopPerformers?.length ?? 0) === 0;
+  const performersTabLabel = performersAreTeams
+    ? dashboardLabels.performersTeamsTab
+    : dashboardLabels.performersTab;
   const performers: readonly TopPerformer[] =
     initialTopPerformers && initialTopPerformers.length > 0
       ? initialTopPerformers
@@ -683,12 +708,10 @@ export function TvDashboard({
   // An overlay is composited over one match: the pinned one, or the live match of its court. With
   // neither it shows no match, since a guess would put the same match on every overlay.
   const isOverlayPresentation = presentation === 'lower' || presentation === 'full';
+  const venueOf = (match: LiveMatch): string | undefined =>
+    match.venueName ?? venueNameByMatchId?.[match.matchId];
   const courtMatch =
-    court === undefined
-      ? undefined
-      : liveMatches.find(
-          (match) => (match.venueName ?? venueNameByMatchId?.[match.matchId]) === court,
-        );
+    court === undefined ? undefined : liveMatches.find((match) => venueOf(match) === court);
   const spotlightMatch =
     pinnedRef !== undefined
       ? pinnedMatch
@@ -696,10 +719,7 @@ export function TvDashboard({
         ? courtMatch
         : isOverlayPresentation
           ? undefined
-          : (liveMatches[0] ??
-            upcomingMatches[0] ??
-            matches.find((match) => !isDelayed(match, effectiveNow)) ??
-            matches[0]);
+          : (liveMatches[0] ?? upcomingMatches[0] ?? latestFinishedMatch);
   const isMatchDelayed = (match: LiveMatch): boolean =>
     isDelayed(match, effectiveNow) && dashboardLabels.delayed !== undefined;
   const matchBadgeFor = (match: LiveMatch): StatePresentation =>
@@ -707,18 +727,24 @@ export function TvDashboard({
       ? presentDelayedState(dashboardLabels.delayed)
       : presentState(match.state, dashboardLabels.resultState);
   const spotlightDelayed = spotlightMatch !== undefined && isMatchDelayed(spotlightMatch);
-  const statusBadgeState = isLive
+  // The per-match delayed warning keeps its precedence over the tournament's own "not started" and
+  // "in progress" wording, as it always has.
+  const statusBadgeState: TvStatusTone = isLive
     ? 'live'
-    : allFinal
+    : tournamentState === 'finished'
       ? 'final'
       : spotlightDelayed
         ? 'delayed'
-        : 'upcoming';
+        : tournamentState === 'inProgress'
+          ? 'in-progress'
+          : 'upcoming';
   const statusBadge = {
     label:
       statusBadgeState === 'delayed'
         ? (dashboardLabels.delayed ?? dashboardLabels.resultState.upcoming)
-        : dashboardLabels.resultState[statusBadgeState],
+        : statusBadgeState === 'in-progress'
+          ? dashboardLabels.inProgress
+          : dashboardLabels.resultState[statusBadgeState],
     type: statusBadgeState,
   };
   const leadingSide = leadingTvSide(spotlightMatch);
@@ -847,7 +873,7 @@ export function TvDashboard({
         {broadcastAlertBanner}
         {spotlightMatch ? (
           <div className="tv-lower-third__bug cl-chamfer">
-            <span className={`tv-lower-third__state tv-lower-third__state--${statusBadge.type}`}>
+            <span className={`tv-lower-third__state ${tvLowerThirdToneClass(statusBadge.type)}`}>
               {statusBadge.label}
             </span>
             <span className="tv-lower-third__side">
@@ -943,9 +969,7 @@ export function TvDashboard({
               possessionLabel={dashboardLabels.possession}
               penaltyLabel={dashboardLabels.penalty}
             />
-            <div
-              className={`tv-scorebug__badge tv-scorebug__badge--${statusBadge.type} cl-chamfer`}
-            >
+            <div className={`tv-scorebug__badge ${tvStatusToneClass(statusBadge.type)} cl-chamfer`}>
               <span
                 className={`tv-scorebug__dot${statusBadge.type === 'live' ? ' cl-live-dot' : ''}`}
               />
@@ -1024,23 +1048,34 @@ export function TvDashboard({
                     roleLabel={labels.homeSide}
                   />
                   <div className="tv-score-center">
-                    <div
-                      className="tv-score-center__digits"
-                      aria-label={
-                        spotlightMatch.state === 'upcoming'
-                          ? dashboardLabels.resultState.upcoming
-                          : `${spotlightMatch.sides[0]?.score ?? 0} : ${spotlightMatch.sides[1]?.score ?? 0}`
-                      }
-                    >
-                      {spotlightMatch.state === 'upcoming' ? (
-                        '–'
-                      ) : (
-                        <>
-                          <ValueFlash value={spotlightMatch.sides[0]?.score ?? 0} /> :{' '}
-                          <ValueFlash value={spotlightMatch.sides[1]?.score ?? 0} />
-                        </>
-                      )}
-                    </div>
+                    {spotlightMatch.state === 'upcoming' && spotlightMatch.scheduledAt ? (
+                      <TvStartTime
+                        className="tv-score-center__digits"
+                        court={venueOf(spotlightMatch)}
+                        locale={language}
+                        referenceDate={effectiveNow}
+                        scheduledAt={spotlightMatch.scheduledAt}
+                        {...(timeZone === undefined ? {} : { timeZone })}
+                      />
+                    ) : (
+                      <div
+                        className="tv-score-center__digits"
+                        aria-label={
+                          spotlightMatch.state === 'upcoming'
+                            ? dashboardLabels.resultState.upcoming
+                            : `${spotlightMatch.sides[0]?.score ?? 0} : ${spotlightMatch.sides[1]?.score ?? 0}`
+                        }
+                      >
+                        {spotlightMatch.state === 'upcoming' ? (
+                          '–'
+                        ) : (
+                          <>
+                            <ValueFlash value={spotlightMatch.sides[0]?.score ?? 0} /> :{' '}
+                            <ValueFlash value={spotlightMatch.sides[1]?.score ?? 0} />
+                          </>
+                        )}
+                      </div>
+                    )}
                     {(spotlightClock || progress.segmentLabel) && (
                       <LiveMatchClock
                         className="tv-presentation-match__clock"
@@ -1098,6 +1133,7 @@ export function TvDashboard({
                 clubs={clubs}
                 dashboardLabels={dashboardLabels}
                 pointsShortLabel={labels.pointsShort}
+                stageName={standingsStageName}
                 standings={standings}
               />
             </section>
@@ -1259,8 +1295,18 @@ export function TvDashboard({
               dashboardLabels={dashboardLabels}
               pointsShortLabel={labels.pointsShort}
               showAllRows
+              stageName={standingsStageName}
               standings={dashboardStandings}
             />
+            {/* Always rendered, so the measured page leaves room for it; blank while there is one page. */}
+            <p className="tv-standings-pager">
+              {standingsPageCount > 1
+                ? applyTemplate(dashboardLabels.pageOf, {
+                    page: activeStandingsPage + 1,
+                    total: standingsPageCount,
+                  })
+                : '\u00a0'}
+            </p>
           </section>
         </main>
       ) : (
@@ -1332,16 +1378,27 @@ export function TvDashboard({
 
                     {/* Score Center */}
                     <div className="tv-score-center">
-                      <div className="tv-score-center__digits">
-                        {spotlightMatch.state === 'upcoming' ? (
-                          '–'
-                        ) : (
-                          <>
-                            <ValueFlash value={spotlightMatch.sides[0]?.score ?? 0} /> :{' '}
-                            <ValueFlash value={spotlightMatch.sides[1]?.score ?? 0} />
-                          </>
-                        )}
-                      </div>
+                      {spotlightMatch.state === 'upcoming' && spotlightMatch.scheduledAt ? (
+                        <TvStartTime
+                          className="tv-score-center__digits"
+                          court={venueOf(spotlightMatch)}
+                          locale={language}
+                          referenceDate={effectiveNow}
+                          scheduledAt={spotlightMatch.scheduledAt}
+                          {...(timeZone === undefined ? {} : { timeZone })}
+                        />
+                      ) : (
+                        <div className="tv-score-center__digits">
+                          {spotlightMatch.state === 'upcoming' ? (
+                            '–'
+                          ) : (
+                            <>
+                              <ValueFlash value={spotlightMatch.sides[0]?.score ?? 0} /> :{' '}
+                              <ValueFlash value={spotlightMatch.sides[1]?.score ?? 0} />
+                            </>
+                          )}
+                        </div>
+                      )}
                       <div
                         className="cl-chamfer"
                         style={{
@@ -1427,29 +1484,40 @@ export function TvDashboard({
               {/* Navigation Tabs: a fixed view is that one section, so there is nothing to choose between. */}
               {!fixedView && (
                 <nav aria-label={dashboardLabels.sidebarSectionsLabel} className="tv-rail-nav">
-                  <TvRailTab
-                    active={activeTab === 'standings'}
-                    label={dashboardLabels.standingsTab}
-                    onClick={() => setActiveTab('standings')}
-                  />
-                  <TvRailTab
-                    active={activeTab === 'performers'}
-                    label={dashboardLabels.performersTab}
-                    onClick={() => setActiveTab('performers')}
-                  />
-                  <TvRailTab
-                    active={activeTab === 'facts'}
-                    label={dashboardLabels.statisticsTab}
-                    onClick={() => setActiveTab('facts')}
-                  />
-                  {visibleBracket && visibleBracket.zones.length > 0 && (
+                  {railTabs.includes('standings') && (
+                    <TvRailTab
+                      active={activeTab === 'standings'}
+                      label={dashboardLabels.standingsTab}
+                      onClick={() => setActiveTab('standings')}
+                    />
+                  )}
+                  {railTabs.includes('bracket') && (
                     <TvRailTab
                       active={activeTab === 'bracket'}
                       label={dashboardLabels.bracketTab}
                       onClick={() => setActiveTab('bracket')}
                     />
                   )}
-                  {matchPages.length > 0 && (
+                  <TvRailTab
+                    active={activeTab === 'performers'}
+                    label={performersTabLabel}
+                    onClick={() => setActiveTab('performers')}
+                  />
+                  {pinnedRef === undefined && (
+                    <TvRailTab
+                      active={activeTab === 'facts'}
+                      label={dashboardLabels.statisticsTab}
+                      onClick={() => setActiveTab('facts')}
+                    />
+                  )}
+                  {pinnedRef !== undefined && (
+                    <TvRailTab
+                      active={activeTab === 'recent'}
+                      label={dashboardLabels.recentFormTab}
+                      onClick={() => setActiveTab('recent')}
+                    />
+                  )}
+                  {railTabs.includes('fixtures') && (
                     <TvRailTab
                       active={activeTab === 'fixtures'}
                       label={dashboardLabels.fixturesTab}
@@ -1460,14 +1528,26 @@ export function TvDashboard({
               )}
 
               {/* Tab Content */}
-              <div className="tv-rail-content" data-testid="tv-rail-content">
+              <div className="tv-rail-content" data-testid="tv-rail-content" ref={railStandingsRef}>
                 {activeTab === 'standings' && (
-                  <TvStandingsTable
-                    clubs={clubs}
-                    dashboardLabels={dashboardLabels}
-                    pointsShortLabel={labels.pointsShort}
-                    standings={standings}
-                  />
+                  <div className="tv-rail-standings">
+                    <TvStandingsTable
+                      clubs={clubs}
+                      dashboardLabels={dashboardLabels}
+                      pointsShortLabel={labels.pointsShort}
+                      showAllRows
+                      stageName={standingsStageName}
+                      standings={railPaging.pageRows}
+                    />
+                    <p className="tv-standings-pager">
+                      {railPaging.pageCount > 1
+                        ? applyTemplate(dashboardLabels.pageOf, {
+                            page: railPaging.pageIndex + 1,
+                            total: railPaging.pageCount,
+                          })
+                        : '\u00a0'}
+                    </p>
+                  </div>
                 )}
 
                 {activeTab === 'performers' && (
@@ -1478,6 +1558,18 @@ export function TvDashboard({
                 )}
 
                 {activeTab === 'facts' && <TvFactsView facts={facts} />}
+
+                {activeTab === 'recent' && pinnedMatch !== undefined && (
+                  <TvRecentResults
+                    emptyLabel={dashboardLabels.noMatchesScheduled}
+                    groups={pinnedMatch.sides.map((side) => ({
+                      name: side.name,
+                      matches: latestFinishedOf(matches, side.entrantId, 3),
+                    }))}
+                    locale={language}
+                    {...(timeZone === undefined ? {} : { timeZone })}
+                  />
+                )}
                 {activeTab === 'bracket' && visibleBracket && (
                   <TvBracketView labels={dashboardLabels} zones={visibleBracket.zones} />
                 )}

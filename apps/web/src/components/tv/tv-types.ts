@@ -23,6 +23,12 @@ export interface TvDashboardLabels {
   readonly rescheduled?: string;
   readonly resultState: ResultStateLabels;
   readonly delayed?: string;
+  /** The featured-performers tab when the fallback ranks teams. */
+  readonly performersTeamsTab: string;
+  /** The pinned route's recent-results tab. */
+  readonly recentFormTab: string;
+  /** The tournament badge while matches are final and none is live. */
+  readonly inProgress: string;
   readonly noMatchesScheduled: string;
   readonly standingsUnavailable: string;
   readonly clubColumn: string;

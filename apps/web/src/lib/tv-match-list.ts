@@ -9,7 +9,7 @@ import {
   type SideSourceMessages,
 } from './side-source.js';
 import { isDelayed } from './match-state.js';
-import { presentState, type ResultStateLabels } from './result-state.js';
+import { presentState, type ResultState, type ResultStateLabels } from './result-state.js';
 
 /** Matches per row on a broadcast-size frame. */
 export const TV_MATCHES_PER_ROW = 2;
@@ -28,6 +28,7 @@ export interface TvMatchEntry {
   readonly key: string;
   /** Where the match belongs and when: `Grupo A · Ronda 2`. */
   readonly scope: string;
+  readonly state: ResultState;
   readonly stateLabel: string;
   readonly delayed?: boolean;
   readonly home: {
@@ -116,6 +117,7 @@ export function tvMatchEntriesOf(
       ...(row.venueName === undefined ? {} : { venueName: row.venueName }),
       ...(row.rescheduledFrom === undefined ? {} : { rescheduledFrom: row.rescheduledFrom }),
       scope,
+      state: row.state,
       stateLabel: delayed
         ? (labels.delayed ?? presentState(row.state, labels.state).label)
         : presentState(row.state, labels.state).label,
@@ -126,19 +128,106 @@ export function tvMatchEntriesOf(
   });
 }
 
-/** Entries grouped into rows of `perRow`, and the rows into pages of `rowsPerPage`. */
-export function pageTvMatches(
+/** A block heading of the ordered list; it spans both columns and takes a row of its own. */
+export interface TvMatchHeading {
+  readonly heading: string;
+  readonly state: ResultState;
+}
+
+export type TvMatchListItem = TvMatchEntry | TvMatchHeading;
+
+export function isTvMatchHeading(item: TvMatchListItem): item is TvMatchHeading {
+  return 'heading' in item;
+}
+
+/** The three blocks, in the order the list shows them. */
+const TV_MATCH_BLOCKS: readonly ResultState[] = ['live', 'upcoming', 'final'];
+
+/**
+ * Orders matches into live, then scheduled by kickoff ascending, then finished by kickoff descending.
+ * Each non-empty block opens with a heading that names its state.
+ */
+export function orderTvMatches(
   entries: readonly TvMatchEntry[],
+  labels: Readonly<Partial<Record<ResultState, string>>>,
+): readonly TvMatchListItem[] {
+  const kickoff = (entry: TvMatchEntry): number => {
+    const at = entry.scheduledAt === undefined ? Number.NaN : Date.parse(entry.scheduledAt);
+    return Number.isFinite(at) ? at : Number.POSITIVE_INFINITY;
+  };
+  const ordered: TvMatchListItem[] = [];
+  for (const state of TV_MATCH_BLOCKS) {
+    const block = entries
+      .filter((entry) => entry.state === state)
+      .sort((left, right) =>
+        state === 'final' ? kickoff(right) - kickoff(left) : kickoff(left) - kickoff(right),
+      );
+    if (block.length === 0) continue;
+    ordered.push({ heading: labels[state] ?? state, state }, ...block);
+  }
+  return ordered;
+}
+
+/**
+ * The earliest `count` scheduled matches whose kickoff is at or after `now`, earliest first.
+ * A match whose kickoff has passed without a result is not next, whether or not it is overdue yet.
+ */
+export function nextTvMatches<
+  T extends { readonly state: string; readonly scheduledAt?: string | null },
+>(matches: readonly T[], now: Date | number, count: number): readonly T[] {
+  const nowMs = now instanceof Date ? now.getTime() : now;
+  const kickoff = (match: T): number => Date.parse(match.scheduledAt ?? '');
+  return matches
+    .filter((match) => match.state === 'upcoming' && kickoff(match) >= nowMs)
+    .sort((left, right) => kickoff(left) - kickoff(right))
+    .slice(0, Math.max(0, Math.trunc(count)));
+}
+
+/**
+ * Entries grouped into rows of `perRow`, and the rows into pages of `rowsPerPage`. A heading is a
+ * row of its own, so it never shares a row with an entry.
+ */
+export function pageTvMatches(
+  items: readonly TvMatchListItem[],
   rowsPerPage: number = TV_MATCH_ROWS_PER_PAGE,
   perRow: number = TV_MATCHES_PER_ROW,
-): readonly (readonly (readonly TvMatchEntry[])[])[] {
-  const rows: TvMatchEntry[][] = [];
-  for (let index = 0; index < entries.length; index += perRow) {
-    rows.push(entries.slice(index, index + perRow));
+): readonly (readonly (readonly TvMatchListItem[])[])[] {
+  const rows: TvMatchListItem[][] = [];
+  let pending: TvMatchEntry[] = [];
+  const flush = (): void => {
+    if (pending.length > 0) rows.push(pending);
+    pending = [];
+  };
+  for (const item of items) {
+    if (isTvMatchHeading(item)) {
+      flush();
+      rows.push([item]);
+      continue;
+    }
+    pending.push(item);
+    if (pending.length === perRow) flush();
   }
-  const pages: TvMatchEntry[][][] = [];
+  flush();
+  const pages: TvMatchListItem[][][] = [];
   for (let index = 0; index < rows.length; index += rowsPerPage) {
     pages.push(rows.slice(index, index + rowsPerPage));
   }
   return pages;
+}
+
+/** The latest finished matches one entrant played in, newest first. */
+export function latestFinishedOf<
+  T extends {
+    readonly state: string;
+    readonly scheduledAt?: string;
+    readonly sides: readonly { readonly entrantId: string }[];
+  },
+>(matches: readonly T[], entrantId: string, count: number): readonly T[] {
+  return matches
+    .filter(
+      (match) =>
+        match.state === 'final' && match.sides.some((side) => side.entrantId === entrantId),
+    )
+    .sort((left, right) => (right.scheduledAt ?? '').localeCompare(left.scheduledAt ?? ''))
+    .slice(0, Math.max(0, Math.trunc(count)));
 }

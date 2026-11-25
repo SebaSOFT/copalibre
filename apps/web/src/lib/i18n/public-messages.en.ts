@@ -1344,6 +1344,14 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.performersTab',
     defaultMessage: 'Top performers',
   },
+  tvDashboardPerformersTeamsTab: {
+    id: 'publicWeb.tvDashboard.performersTeamsTab',
+    defaultMessage: 'Top teams',
+  },
+  tvDashboardRecentFormTab: {
+    id: 'publicWeb.tvDashboard.recentFormTab',
+    defaultMessage: 'Recent results',
+  },
   tvDashboardStatisticsTab: {
     id: 'publicWeb.tvDashboard.statisticsTab',
     defaultMessage: 'Statistics',

@@ -4,13 +4,13 @@ import { EntrantName } from '../../../ui/atoms/EntrantName.js';
 import { formatTimestamp } from '../../../../lib/format-timestamp.js';
 import { rescheduledStatement } from '../../../../lib/reschedule.js';
 import { applyTemplate } from '../../../../lib/matches-view.js';
-import type { TvMatchEntry } from '../../../../lib/tv-match-list.js';
+import { isTvMatchHeading, type TvMatchListItem } from '../../../../lib/tv-match-list.js';
 import type { TvDashboardLabels } from '../../tv-types.js';
 
 /**
  * The matches of the stage as a compact list, two to a row, one page at a time: seventy-two
  * matches do not fit a screen one to a row, so the dashboard pages through them with its rotation.
- * Each entry is abbreviations and a score; the full names are the entry's accessible name.
+ * Each entry is the two names and a score, the names ellipsized to fit the row.
  */
 export function TvMatchList({
   pages,
@@ -20,7 +20,7 @@ export function TvMatchList({
   timeZone,
   referenceDate,
 }: {
-  readonly pages: readonly (readonly (readonly TvMatchEntry[])[])[];
+  readonly pages: readonly (readonly (readonly TvMatchListItem[])[])[];
   /** The zero-based page shown; clamped to the pages that exist. */
   readonly page: number;
   readonly labels: TvDashboardLabels;
@@ -29,13 +29,19 @@ export function TvMatchList({
   readonly referenceDate?: number;
 }): React.JSX.Element {
   const shown = pages[Math.min(Math.max(page, 0), Math.max(pages.length - 1, 0))] ?? [];
-  const entries = shown.flat();
+  const items = shown.flat();
   return (
     <section aria-label={labels.fixturesTab} className="tv-match-list" data-testid="tv-match-list">
       <ul className="tv-match-list__entries">
-        {entries.map((entry) => {
-          const showAbbreviations =
-            entry.home.abbreviation !== undefined && entry.away.abbreviation !== undefined;
+        {items.map((item) => {
+          if (isTvMatchHeading(item)) {
+            return (
+              <li className="tv-match-list__heading" key={`heading-${item.state}`}>
+                {item.heading}
+              </li>
+            );
+          }
+          const entry = item;
           const score = (value: number | undefined): string =>
             value === undefined ? '–' : String(value);
           const rescheduled = rescheduledStatement(
@@ -67,23 +73,14 @@ export function TvMatchList({
             >
               <span className="tv-match-list__round">{placement}</span>
               <span aria-hidden="true" className="tv-match-list__side tv-match-list__side--home">
-                <EntrantName
-                  compact
-                  pending={entry.home.pending}
-                  fullName={entry.home.name}
-                  abbreviation={showAbbreviations ? entry.home.abbreviation : undefined}
-                />
+                {/* No crest stands beside a name on this list, so the full name is shown, never a code. */}
+                <EntrantName pending={entry.home.pending} fullName={entry.home.name} />
               </span>
               <span aria-hidden="true" className="tv-match-list__score">
                 {score(entry.home.score)} : {score(entry.away.score)}
               </span>
               <span aria-hidden="true" className="tv-match-list__side tv-match-list__side--away">
-                <EntrantName
-                  compact
-                  pending={entry.away.pending}
-                  fullName={entry.away.name}
-                  abbreviation={showAbbreviations ? entry.away.abbreviation : undefined}
-                />
+                <EntrantName pending={entry.away.pending} fullName={entry.away.name} />
               </span>
               {entry.delayed && (
                 <Badge className="tv-match-list__state cl-state--delayed">

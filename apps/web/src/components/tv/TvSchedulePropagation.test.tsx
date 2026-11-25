@@ -8,7 +8,7 @@ import type { LiveDashboard } from '../../lib/live-state.js';
 
 const intl = publicIntl('en');
 const labels = tvDashboardLabels(intl);
-const first = Date.UTC(2026, 10, 7, 14, 30);
+const first = Date.UTC(2099, 10, 7, 14, 30);
 const previous = { startsAt: first, venue: { alias: 'court-1', name: 'Cancha 1' } };
 const initial: LiveDashboard = {
   standingsVersion: 0,
@@ -18,7 +18,7 @@ const initial: LiveDashboard = {
       matchId: 'match',
       stageNumber: 1,
       matchNumber: 1,
-      state: 'upcoming',
+      state: 'upcoming' as const,
       projectionVersion: 0,
       scheduleVersion: 1,
       scheduledAt: new Date(first).toISOString(),
@@ -34,6 +34,7 @@ const list = [
   {
     key: 'match',
     scope: 'Round 1',
+    state: 'upcoming' as const,
     stateLabel: 'UPCOMING',
     home: { label: 'ALF', name: 'Alfa' },
     away: { label: 'BRA', name: 'Bravo' },
@@ -172,6 +173,8 @@ it.each([false, true])('updates the multi-court grid with reduced motion = %s', 
       locale="en"
       rescheduledLabel={labels.rescheduled}
       resultStateLabels={labels.resultState}
+      inProgressLabel={labels.inProgress}
+      pageOfLabel={labels.pageOf}
       noMatchesLabel="No matches"
       ariaLabel="Courts"
     />,

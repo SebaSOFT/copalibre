@@ -11,12 +11,20 @@ import {
 } from '../../lib/live-state.js';
 import { activeSegmentLabel } from '../../lib/segment-label.js';
 import { presentState, type ResultStateLabels } from '../../lib/result-state.js';
+import { nextTvMatches } from '../../lib/tv-match-list.js';
+import { tvTournamentState, type TvTournamentState } from '../../lib/tv-statistics.js';
+import { formatTimestamp } from '../../lib/format-timestamp.js';
+import { applyTemplate } from '../../lib/matches-view.js';
 import { LiveMatchClock } from '../ui/atoms/LiveMatchClock.js';
 import { ValueFlash } from '../ui/atoms/ValueFlash.js';
 import { Icon } from '../ui/atoms/icon.js';
 import { useHydrated, usePrefersReducedMotion } from '../../lib/island-browser-state.js';
+import { TvStartTime } from './ui/atoms/TvStartTime.js';
+import { tvStatusToneClass } from './ui/atoms/tv-status-tone.js';
 
 const PAGE_ROTATE_MS = 20_000;
+/** The header's clock and the "next" comparison both move on this cadence. */
+const CLOCK_TICK_MS = 30_000;
 
 export type CourtGridSize = 2 | 4 | 6;
 
@@ -34,6 +42,48 @@ export interface TvMultiCourtGridProps {
   readonly ariaLabel: string;
   readonly clockStoppedLabel?: string;
   readonly clockAriaLabel?: string;
+  /** The tournament's name, heading the kiosk header. */
+  readonly tournamentName?: string;
+  /** The tournament badge's text while matches are final and none is live. */
+  readonly inProgressLabel: string;
+  /** "Página {page} de {total}", shown while the grid rotates. */
+  readonly pageOfLabel: string;
+  readonly timeZone?: string;
+}
+
+/** One tile per court: its live match, else its next match. */
+export interface CourtTile {
+  readonly court: string;
+  readonly match: LiveMatch;
+  readonly live: boolean;
+}
+
+/**
+ * The court tiles of a venue screen. A match without a court gets no tile, and a court with neither
+ * a live nor a future match gets none. Live courts come first.
+ */
+export function courtTilesOf(
+  matches: readonly LiveMatch[],
+  venueNameByMatchId: Readonly<Record<string, string>>,
+  now: number,
+): readonly CourtTile[] {
+  const byCourt = new Map<string, LiveMatch[]>();
+  for (const match of matches) {
+    const court = match.venueName ?? venueNameByMatchId[match.matchId];
+    if (court === undefined) continue;
+    byCourt.set(court, [...(byCourt.get(court) ?? []), match]);
+  }
+  const tiles: CourtTile[] = [];
+  for (const [court, courtMatches] of byCourt) {
+    const live = courtMatches.find((match) => match.state === 'live');
+    if (live) {
+      tiles.push({ court, match: live, live: true });
+      continue;
+    }
+    const next = nextTvMatches(courtMatches, now, 1)[0];
+    if (next) tiles.push({ court, match: next, live: false });
+  }
+  return tiles.sort((a, b) => Number(b.live) - Number(a.live) || a.court.localeCompare(b.court));
 }
 
 function resolveLanguageTag(locale: string): SupportedLanguage {
@@ -41,11 +91,45 @@ function resolveLanguageTag(locale: string): SupportedLanguage {
   return isSupportedLanguage(base) ? base : 'en';
 }
 
+/** The requested size, grown to the next supported size when the live courts need more tiles. */
 function resolveGridSize(requested: CourtGridSize | 'auto', liveCount: number): CourtGridSize {
-  if (requested !== 'auto') return requested;
-  if (liveCount <= 2) return 2;
-  if (liveCount <= 4) return 4;
-  return 6;
+  const needed: CourtGridSize = liveCount <= 2 ? 2 : liveCount <= 4 ? 4 : 6;
+  if (requested === 'auto') return needed;
+  return requested >= needed ? requested : needed;
+}
+
+/**
+ * The tiles on screen for one page. Live courts stay on every page; only the slots they leave free
+ * rotate. A grid all live courts fill rotates among those courts instead.
+ */
+function visibleTiles(
+  tiles: readonly CourtTile[],
+  size: CourtGridSize,
+  pageIndex: number,
+): { readonly shown: readonly CourtTile[]; readonly pageCount: number } {
+  const live = tiles.filter((tile) => tile.live);
+  const rest = tiles.filter((tile) => !tile.live);
+  if (live.length >= size) {
+    return {
+      shown: paginate(live, size, pageIndex),
+      pageCount: Math.ceil(live.length / size),
+    };
+  }
+  const free = size - live.length;
+  return {
+    shown: [...live, ...paginate(rest, free, pageIndex)],
+    pageCount: Math.max(1, Math.ceil(rest.length / free)),
+  };
+}
+
+function badgeTypeOf(
+  state: TvTournamentState,
+  liveCount: number,
+): 'live' | 'in-progress' | 'upcoming' | 'final' {
+  if (liveCount > 0) return 'live';
+  if (state === 'finished') return 'final';
+  if (state === 'inProgress') return 'in-progress';
+  return 'upcoming';
 }
 
 /** A page of at most `pageSize` items, wrapping around — `pageIndex` may grow without bound as the rotation timer ticks; only its remainder ever matters. */
@@ -78,9 +162,15 @@ export function TvMultiCourtGrid({
   ariaLabel,
   clockStoppedLabel = '',
   clockAriaLabel = '{segment}, {time}',
+  tournamentName,
+  inProgressLabel,
+  pageOfLabel,
+  timeZone,
 }: TvMultiCourtGridProps): React.JSX.Element {
   const [dashboard, setDashboard] = useState<LiveDashboard>(initial);
   const [pageIndex, setPageIndex] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  const [clockText, setClockText] = useState('');
   const prefersReducedMotion = usePrefersReducedMotion();
   const hydrated = useHydrated();
   // Read inside the SSE callback below, which must never close over a stale
@@ -91,19 +181,28 @@ export function TvMultiCourtGrid({
     dashboardRef.current = dashboard;
   }, [dashboard]);
 
-  const liveMatches = dashboard.matches
-    .filter(
-      (match) =>
-        match.state === 'live' || (match.state === 'upcoming' && match.scheduledAt !== undefined),
-    )
-    .sort(
-      (a, b) =>
-        (a.venueName ?? venueNameByMatchId[a.matchId] ?? '').localeCompare(
-          b.venueName ?? venueNameByMatchId[b.matchId] ?? '',
-        ) || (a.scheduledAt ?? '').localeCompare(b.scheduledAt ?? ''),
-    );
-  const activeGridSize = resolveGridSize(gridSize, liveMatches.length);
-  const visibleMatches = paginate(liveMatches, activeGridSize, pageIndex);
+  const tiles = courtTilesOf(dashboard.matches, venueNameByMatchId, now);
+  const liveCount = tiles.filter((tile) => tile.live).length;
+  const activeGridSize = resolveGridSize(gridSize, liveCount);
+  const { shown, pageCount } = visibleTiles(tiles, activeGridSize, pageIndex);
+  const tournamentState = tvTournamentState(dashboard.matches);
+  const badgeType = badgeTypeOf(tournamentState, liveCount);
+  const badgeLabel =
+    badgeType === 'in-progress'
+      ? inProgressLabel
+      : resultStateLabels[
+          badgeType === 'live' ? 'live' : badgeType === 'final' ? 'final' : 'upcoming'
+        ];
+
+  useEffect(() => {
+    const tick = (): void => {
+      setNow(Date.now());
+      setClockText(formatTimestamp(new Date(), { locale, format: 'time-only', timeZone }));
+    };
+    tick();
+    const timer = setInterval(tick, CLOCK_TICK_MS);
+    return () => clearInterval(timer);
+  }, [locale, timeZone]);
 
   useEffect(() => {
     const streamUrl = new URL(streamPath, window.location.origin);
@@ -129,41 +228,64 @@ export function TvMultiCourtGrid({
   }, [streamPath]);
 
   useEffect(() => {
-    if (prefersReducedMotion || liveMatches.length <= activeGridSize) return;
+    if (prefersReducedMotion || pageCount <= 1) return;
     const timer = setInterval(() => setPageIndex((current) => current + 1), PAGE_ROTATE_MS);
     return () => clearInterval(timer);
-  }, [prefersReducedMotion, liveMatches.length, activeGridSize]);
+  }, [prefersReducedMotion, pageCount]);
 
-  if (visibleMatches.length === 0) {
+  const header = (
+    <header className="tv-multicourt__header">
+      <span className="tv-multicourt__title">{tournamentName}</span>
+      <span className={`tv-scorebug__badge ${tvStatusToneClass(badgeType)}`}>
+        <span>{badgeLabel}</span>
+      </span>
+      <span className="tv-multicourt__clock">{clockText}</span>
+    </header>
+  );
+
+  if (shown.length === 0) {
     return (
-      <div
-        className="tv-multicourt-grid tv-multicourt-grid--empty"
-        data-hydrated={hydrated ? '' : undefined}
-      >
-        <p>{noMatchesLabel}</p>
+      <div className="tv-multicourt" data-hydrated={hydrated ? '' : undefined}>
+        {header}
+        <div className="tv-multicourt-grid tv-multicourt-grid--empty">
+          <p>{noMatchesLabel}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div
-      aria-label={ariaLabel}
-      className={`tv-multicourt-grid tv-multicourt-grid--${activeGridSize}`}
-      data-hydrated={hydrated ? '' : undefined}
-      data-testid="tv-multicourt-grid"
-    >
-      {visibleMatches.map((match) => (
-        <CourtCard
-          key={match.matchId}
-          clockAriaLabel={clockAriaLabel}
-          clockStoppedLabel={clockStoppedLabel}
-          match={match}
-          locale={locale}
-          rescheduledLabel={rescheduledLabel}
-          resultStateLabels={resultStateLabels}
-          venueName={match.venueName ?? venueNameByMatchId[match.matchId]}
-        />
-      ))}
+    <div className="tv-multicourt" data-hydrated={hydrated ? '' : undefined}>
+      {header}
+      <div
+        aria-label={ariaLabel}
+        className={`tv-multicourt-grid tv-multicourt-grid--${activeGridSize}`}
+        data-hydrated={hydrated ? '' : undefined}
+        data-testid="tv-multicourt-grid"
+      >
+        {shown.map((tile) => (
+          <CourtCard
+            key={tile.court}
+            clockAriaLabel={clockAriaLabel}
+            clockStoppedLabel={clockStoppedLabel}
+            match={tile.match}
+            locale={locale}
+            now={now}
+            rescheduledLabel={rescheduledLabel}
+            resultStateLabels={resultStateLabels}
+            timeZone={timeZone}
+            venueName={tile.court}
+          />
+        ))}
+      </div>
+      {pageCount > 1 && (
+        <p className="tv-multicourt__pager">
+          {applyTemplate(pageOfLabel, {
+            page: (pageIndex % pageCount) + 1,
+            total: pageCount,
+          })}
+        </p>
+      )}
     </div>
   );
 }
@@ -171,19 +293,23 @@ export function TvMultiCourtGrid({
 function CourtCard({
   match,
   locale,
+  now,
   rescheduledLabel,
   venueName,
   resultStateLabels,
   clockStoppedLabel,
   clockAriaLabel,
+  timeZone,
 }: {
   readonly match: LiveMatch;
   readonly locale: string;
+  readonly now: number;
   readonly rescheduledLabel?: string;
   readonly venueName: string | undefined;
   readonly resultStateLabels: ResultStateLabels;
   readonly clockStoppedLabel: string;
   readonly clockAriaLabel: string;
+  readonly timeZone?: string;
 }): React.JSX.Element {
   const badge = presentState(match.state, resultStateLabels);
   const [home, away] = match.sides;
@@ -214,20 +340,41 @@ function CourtCard({
           {rescheduledStatement(match.rescheduledFrom, venueName, locale, rescheduledLabel)}
         </p>
       )}
-      <div className="tv-court-card__score">
-        <span className="tv-court-card__side">
-          <span className="tv-court-card__name" title={home?.name}>
-            {home?.abbreviation ?? home?.name ?? ''}
+      {match.state === 'upcoming' && match.scheduledAt !== undefined ? (
+        <div className="tv-court-card__score">
+          <span className="tv-court-card__side">
+            <span className="tv-court-card__name" title={home?.name}>
+              {home?.name ?? ''}
+            </span>
           </span>
-          <ValueFlash className="tv-court-card__value" value={home?.score ?? 0} />
-        </span>
-        <span className="tv-court-card__side">
-          <span className="tv-court-card__name" title={away?.name}>
-            {away?.abbreviation ?? away?.name ?? ''}
+          <span className="tv-court-card__side">
+            <span className="tv-court-card__name" title={away?.name}>
+              {away?.name ?? ''}
+            </span>
           </span>
-          <ValueFlash className="tv-court-card__value" value={away?.score ?? 0} />
-        </span>
-      </div>
+          <TvStartTime
+            locale={locale}
+            referenceDate={now}
+            scheduledAt={match.scheduledAt}
+            {...(timeZone === undefined ? {} : { timeZone })}
+          />
+        </div>
+      ) : (
+        <div className="tv-court-card__score">
+          <span className="tv-court-card__side">
+            <span className="tv-court-card__name" title={home?.name}>
+              {home?.name ?? ''}
+            </span>
+            <ValueFlash className="tv-court-card__value" value={home?.score ?? 0} />
+          </span>
+          <span className="tv-court-card__side">
+            <span className="tv-court-card__name" title={away?.name}>
+              {away?.name ?? ''}
+            </span>
+            <ValueFlash className="tv-court-card__value" value={away?.score ?? 0} />
+          </span>
+        </div>
+      )}
       <div className="tv-court-card__footer">
         <span className={`tv-scorebug__badge tv-scorebug__badge--${badge.state}`}>
           {badge.state === 'live' ? (

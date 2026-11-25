@@ -31,7 +31,7 @@ describe('TvDashboard', () => {
         stageNumber: 1,
         matchNumber: 1,
         stageOrdinal: 1,
-        state: 'final',
+        state: 'final' as const,
         projectionVersion: 1,
         sides: [
           { entrantId: 'e1', name: 'Boca Juniors', score: 3, state: 'final' },
@@ -43,7 +43,7 @@ describe('TvDashboard', () => {
         stageNumber: 1,
         matchNumber: 2,
         stageOrdinal: 2,
-        state: 'final',
+        state: 'final' as const,
         projectionVersion: 1,
         sides: [
           { entrantId: 'e3', name: 'Racing Club', score: 0, state: 'final' },
@@ -187,14 +187,19 @@ describe('TvDashboard', () => {
     expect(screen.getByText(dashboardLabels.zoneLegend)).toBeDefined();
   });
 
-  it('shows an em dash instead of a zero score for a scheduled focus match', () => {
+  it('shows the kickoff instead of a zero score for a scheduled focus match', () => {
     render(
       <TvDashboard
         dashboardLabels={dashboardLabels}
         labels={tvLabels}
         language="en"
         initial={{
-          matches: [fixtureMatch('upcoming', 'upcoming')],
+          matches: [
+            {
+              ...fixtureMatch('upcoming', 'upcoming'),
+              scheduledAt: new Date(Date.now() + 86_400_000).toISOString(),
+            },
+          ],
           standingsVersion: 1,
           usingLastKnown: false,
         }}
@@ -203,8 +208,9 @@ describe('TvDashboard', () => {
       />,
     );
 
-    expect(document.querySelector('.tv-score-center__digits')?.textContent).toBe('–');
+    expect(document.querySelector('.tv-start-time')).not.toBeNull();
     expect(screen.queryByText('0 : 0')).toBeNull();
+    expect(screen.queryByText('–')).toBeNull();
   });
 
   it('renders scorebug and content without a token, without crashing or reloading', () => {
@@ -343,7 +349,7 @@ describe('TvDashboard', () => {
           stageNumber: 1,
           matchNumber: 1,
           stageOrdinal: 1,
-          state: 'live',
+          state: 'live' as const,
           projectionVersion: 2,
           sides: [
             { entrantId: 'e1', name: 'Boca Juniors', score: 2, state: 'live' },
@@ -391,7 +397,7 @@ describe('TvDashboard', () => {
           stageNumber: 1,
           matchNumber: 1,
           stageOrdinal: 1,
-          state: 'live',
+          state: 'live' as const,
           projectionVersion: 1,
           sides: [
             { entrantId: 'e1', name: 'Boca Juniors', score: 2, state: 'live' },
@@ -487,12 +493,15 @@ describe('TvDashboard', () => {
       };
       const frenchDashboardLabels = tvDashboardLabels(publicIntl('fr'));
 
+      // Pinned, so the match is featured whatever its state: an unplayed or settled-but-unfinished
+      // match is never the fallback of its own accord.
       render(
         <TvDashboard
           dashboardLabels={frenchDashboardLabels}
           labels={tvStatisticsLabels(publicIntl('fr'))}
           language="fr"
           initial={localizedDashboard}
+          pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
           streamPath="/events/liga-argentina/tournaments/apertura-2026"
           pollIntervalMs={0}
         />,
@@ -503,7 +512,7 @@ describe('TvDashboard', () => {
     },
   );
 
-  it('allows user to toggle through rotating rail tabs (Standings, Top performers, Statistics)', () => {
+  it('allows user to toggle through rotating rail tabs (Standings, performers, Statistics)', () => {
     render(
       <TvDashboard
         dashboardLabels={dashboardLabels}
@@ -523,7 +532,7 @@ describe('TvDashboard', () => {
     expect(screen.getByText('Pts')).toBeDefined();
 
     // Switch to Top performers
-    const performersTab = screen.getByRole('button', { name: 'Top performers' });
+    const performersTab = screen.getByRole('button', { name: dashboardLabels.performersTeamsTab });
     fireEvent.click(performersTab);
     expect(performersTab.classList.contains('tv-rail-tab--active')).toBe(true);
 
@@ -551,7 +560,7 @@ describe('overlay presentations', () => {
         stageNumber: 1,
         matchNumber: 1,
         stageOrdinal: 1,
-        state: 'live',
+        state: 'live' as const,
         projectionVersion: 1,
         sides: [
           { entrantId: 'h', name: 'Talleres', abbreviation: 'TAL', score: 2, state: 'live' },
@@ -646,7 +655,7 @@ describe('scorebug clock', () => {
                 matchId: 'm1',
                 stageNumber: 1,
                 matchNumber: 1,
-                state: 'upcoming',
+                state: 'upcoming' as const,
                 projectionVersion: 0,
                 sides: [
                   { entrantId: 'h', name: 'A', score: 0, state: 'upcoming' },
@@ -684,7 +693,7 @@ describe('scorebug clock', () => {
               matchId: 'm1',
               stageNumber: 1,
               matchNumber: 1,
-              state: 'final',
+              state: 'final' as const,
               projectionVersion: 1,
               sides: [
                 { entrantId: 'h', name: 'A', score: 2, state: 'final' },
@@ -719,7 +728,7 @@ describe('scorebug clock', () => {
           stageNumber: 1,
           matchNumber: 1,
           stageOrdinal: 1,
-          state: 'live',
+          state: 'live' as const,
           projectionVersion: 1,
           clockSeconds: 2045, // 34:05
           sides: [
@@ -759,7 +768,7 @@ describe('scorebug clock', () => {
             stageNumber: 1,
             matchNumber: 1,
             stageOrdinal: 1,
-            state: 'live',
+            state: 'live' as const,
             projectionVersion: 1,
             sides: [
               { entrantId: 'h', name: 'Talleres', abbreviation: 'TAL', score: 2, state: 'live' },
@@ -825,7 +834,7 @@ describe('scorebug clock', () => {
             stageNumber: 1,
             matchNumber: 1,
             stageOrdinal: 1,
-            state: 'live',
+            state: 'live' as const,
             projectionVersion: 1,
             clock: {
               segmentNumber: 1,
@@ -892,7 +901,7 @@ describe('scorebug clock', () => {
           stageNumber: 1,
           matchNumber: 1,
           stageOrdinal: 1,
-          state: 'live',
+          state: 'live' as const,
           projectionVersion: 1,
           clock: {
             segmentNumber: 1,
@@ -967,7 +976,7 @@ describe('scorebug clock', () => {
           stageNumber: 1,
           matchNumber: 1,
           stageOrdinal: 1,
-          state: 'live',
+          state: 'live' as const,
           projectionVersion: 1,
           segments: [
             {
@@ -1042,7 +1051,7 @@ describe('TvDashboard broadcast alert dispatch', () => {
     stageNumber: 1,
     matchNumber: 1,
     stageOrdinal: 1,
-    state: 'live',
+    state: 'live' as const,
     projectionVersion: 1,
     sides: [
       { entrantId: 'entrant-home', name: 'Boca Juniors', score: 1, state: 'live' },
@@ -1502,7 +1511,7 @@ describe('TvDashboard zone presentation', () => {
         stageNumber: 1,
         matchNumber: 1,
         stageOrdinal: 1,
-        state: 'final',
+        state: 'final' as const,
         projectionVersion: 1,
         sides: [
           { entrantId: 'e1', name: 'Boca Juniors', score: 3, state: 'final' },
@@ -1538,6 +1547,7 @@ describe('TvDashboard zone presentation', () => {
   const listEntry = {
     key: 'lm1',
     scope: 'Liga A · Round 1',
+    state: 'final' as const,
     stateLabel: 'Final',
     home: { label: 'BOC', name: 'Boca Juniors', score: 2 },
     away: { label: 'RIV', name: 'River Plate', score: 1 },
@@ -1641,7 +1651,7 @@ describe('TvDashboard zone presentation', () => {
 
       expect(visited).toEqual([
         dashboardLabels.standingsTab,
-        dashboardLabels.performersTab,
+        dashboardLabels.performersTeamsTab,
         dashboardLabels.statisticsTab,
         dashboardLabels.bracketTab,
         dashboardLabels.fixturesTab,
@@ -1816,6 +1826,7 @@ describe('TvDashboard pinned match and views', () => {
     const matchList = Array.from({ length: 30 }, (_, index) => ({
       key: `lm${index}`,
       scope: `Round ${Math.floor(index / 6) + 1}`,
+      state: 'final' as const,
       stateLabel: 'Final',
       home: { label: `H${index}`, name: `Home ${index}`, score: 1 },
       away: { label: `A${index}`, name: `Away ${index}`, score: 0 },
@@ -1828,16 +1839,17 @@ describe('TvDashboard pinned match and views', () => {
       });
 
       const entries = (): number => screen.getAllByRole('listitem').length;
-      // 12 rows of 2 fill a page; the other 6 matches wait on the next one.
-      expect(entries()).toBe(24);
+      // The heading takes a row of its own, so a page holds 11 rows of 2 and the heading: 23 items.
+      expect(entries()).toBe(23);
       expect(screen.getByText('Page 1 of 2')).toBeDefined();
 
+      // The second page holds the last eight matches, four rows of two, and no heading.
       act(() => jest.advanceTimersByTime(10_000));
-      expect(entries()).toBe(6);
+      expect(entries()).toBe(8);
       expect(screen.getByText('Page 2 of 2')).toBeDefined();
 
       act(() => jest.advanceTimersByTime(10_000));
-      expect(entries()).toBe(24);
+      expect(entries()).toBe(23);
     });
 
     it('keeps paging a fixed match view when the viewer prefers reduced motion', () => {
@@ -1870,7 +1882,7 @@ describe('TvDashboard overlays', () => {
     stageNumber: 1,
     matchNumber: 1,
     stageOrdinal: ordinal,
-    state: 'live',
+    state: 'live' as const,
     projectionVersion: 1,
     sides: [
       {
@@ -1878,14 +1890,14 @@ describe('TvDashboard overlays', () => {
         name: home,
         abbreviation: home.slice(0, 3).toUpperCase(),
         score: 1,
-        state: 'live',
+        state: 'live' as const,
       },
       {
         entrantId: `a${ordinal}`,
         name: away,
         abbreviation: away.slice(0, 3).toUpperCase(),
         score: 0,
-        state: 'live',
+        state: 'live' as const,
       },
     ],
   });
@@ -2060,7 +2072,7 @@ describe('TvDashboard hydration', () => {
         stageNumber: 1,
         matchNumber: 1,
         stageOrdinal: 1,
-        state: 'live',
+        state: 'live' as const,
         projectionVersion: 1,
         sides: [
           { entrantId: 'h1', name: 'Talleres', abbreviation: 'TAL', score: 1, state: 'live' },
@@ -2146,6 +2158,7 @@ describe('TvDashboard refresh keeps the matches the live projection does not lis
   const listEntry = (ordinal: number, stateLabel: string): TvMatchEntry => ({
     key: `m${ordinal}`,
     scope: 'Stage 1',
+    state: stateLabel === 'Live' ? ('live' as const) : ('upcoming' as const),
     stateLabel,
     home: { label: `Home ${ordinal}`, name: `Home ${ordinal}` },
     away: { label: `Away ${ordinal}`, name: `Away ${ordinal}` },
@@ -2290,7 +2303,7 @@ describe('TvDashboard refresh keeps the matches the live projection does not lis
       stageNumber: 1,
       matchNumber: 1,
       stageOrdinal: 1,
-      state: 'live',
+      state: 'live' as const,
       projectionVersion: 1,
       sides: [
         { entrantId: 'e-home', score: 1, state: 'live' } as unknown as LiveMatch['sides'][number],
@@ -2322,7 +2335,7 @@ describe('TvDashboard refresh keeps the matches the live projection does not lis
       stageNumber: 1,
       matchNumber: 1,
       stageOrdinal: 1,
-      state: 'upcoming',
+      state: 'upcoming' as const,
       projectionVersion: 1,
       scheduledAt: new Date(Date.UTC(2026, 10, 7, 18, 0)).toISOString(),
       sides: [
@@ -2335,7 +2348,7 @@ describe('TvDashboard refresh keeps the matches the live projection does not lis
       stageNumber: 1,
       matchNumber: 2,
       stageOrdinal: 2,
-      state: 'upcoming',
+      state: 'upcoming' as const,
       projectionVersion: 1,
       scheduledAt: new Date(Date.UTC(2026, 10, 8, 19, 0)).toISOString(),
       sides: [
@@ -2383,5 +2396,136 @@ describe('TvDashboard refresh keeps the matches the live projection does not lis
     expect(nextItems[0]?.textContent).toContain('Next Home');
     expect(nextItems[0]?.textContent).toContain('Tomorrow 19:00');
     expect(nextItems[0]?.textContent).not.toContain('Delayed Home');
+  });
+});
+
+describe('TvDashboard broadcast status and featured match', () => {
+  const sideOf = (name: string, score: number, state: 'final' | 'upcoming') => ({
+    entrantId: name.toLowerCase().replace(/\s+/g, '-'),
+    name,
+    score,
+    state,
+  });
+  const inProgressDashboard: LiveDashboard = {
+    matches: [
+      {
+        matchId: 'done-1',
+        stageNumber: 1,
+        matchNumber: 1,
+        stageOrdinal: 1,
+        state: 'final',
+        projectionVersion: 1,
+        scheduledAt: '2026-11-18T18:00:00.000Z',
+        sides: [sideOf('Boca Juniors', 3, 'final'), sideOf('River Plate', 1, 'final')],
+      },
+      {
+        matchId: 'done-2',
+        stageNumber: 1,
+        matchNumber: 2,
+        stageOrdinal: 2,
+        state: 'final',
+        projectionVersion: 1,
+        scheduledAt: '2026-11-19T18:00:00.000Z',
+        sides: [sideOf('Racing Club', 0, 'final'), sideOf('Independiente', 2, 'final')],
+      },
+      {
+        matchId: 'next-3',
+        stageNumber: 1,
+        matchNumber: 3,
+        stageOrdinal: 3,
+        state: 'upcoming',
+        projectionVersion: 1,
+        venueName: 'Aldo Cantoni',
+        scheduledAt: new Date(Date.now() + 86_400_000).toISOString(),
+        sides: [sideOf('Lanús', 0, 'upcoming'), sideOf('San Lorenzo', 0, 'upcoming')],
+      },
+    ],
+    standingsVersion: 1,
+    usingLastKnown: false,
+  };
+
+  it('reads "In progress" in the header when matches are final and none is live', () => {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={inProgressDashboard}
+        labels={tvLabels}
+        language="en"
+        pollIntervalMs={0}
+        streamPath="/events/tv/liga/tournaments/apertura"
+      />,
+    );
+
+    expect(document.querySelector('.tv-scorebug__badge')?.textContent).toContain(
+      dashboardLabels.inProgress,
+    );
+  });
+
+  it('features the next scheduled match with its start time and court, and no score', () => {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={inProgressDashboard}
+        labels={tvLabels}
+        language="en"
+        pollIntervalMs={0}
+        streamPath="/events/tv/liga/tournaments/apertura"
+      />,
+    );
+
+    const start = document.querySelector('.tv-start-time');
+    expect(start?.textContent).toContain('Aldo Cantoni');
+    expect(start?.querySelector('.tv-start-time__when')?.textContent).not.toBe('');
+    expect(screen.queryByText('0 : 0')).toBeNull();
+  });
+
+  it('keeps the delayed warning in the header over the in-progress wording, as the broadcast spec asks', () => {
+    const overdue: LiveMatch = {
+      matchId: 'overdue-4',
+      stageNumber: 1,
+      matchNumber: 4,
+      stageOrdinal: 4,
+      state: 'upcoming',
+      projectionVersion: 1,
+      scheduledAt: new Date(Date.now() - 2 * 3_600_000).toISOString(),
+      sides: [sideOf('Lanús', 0, 'upcoming'), sideOf('San Lorenzo', 0, 'upcoming')],
+    };
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={{
+          ...inProgressDashboard,
+          matches: [...inProgressDashboard.matches, overdue],
+        }}
+        labels={tvLabels}
+        language="en"
+        pinnedMatch={{ stageNumber: 1, ordinal: 4 }}
+        pollIntervalMs={0}
+        streamPath="/events/tv/liga/tournaments/apertura"
+      />,
+    );
+
+    const badge = document.querySelector('.tv-scorebug__badge')?.textContent ?? '';
+    expect(badge).toContain(dashboardLabels.delayed);
+    expect(badge).not.toContain(dashboardLabels.inProgress);
+  });
+
+  it('pinned, offers the recent-results tab and no tournament facts tab', () => {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={inProgressDashboard}
+        labels={tvLabels}
+        language="en"
+        pinnedMatch={{ stageNumber: 1, ordinal: 3 }}
+        pollIntervalMs={0}
+        standings={[]}
+        streamPath="/events/tv/liga/tournaments/apertura"
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: dashboardLabels.statisticsTab })).toBeNull();
+    expect(screen.queryByRole('button', { name: dashboardLabels.fixturesTab })).toBeNull();
+    expect(screen.getByRole('button', { name: dashboardLabels.recentFormTab })).toBeDefined();
   });
 });

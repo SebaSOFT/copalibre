@@ -386,6 +386,10 @@ const tickerItems =
       ariaLabel={tvMultiCourtGridLabels(intl).ariaLabel}
       clockStoppedLabel={tvMultiCourtGridLabels(intl).clockStopped}
       clockAriaLabel={tvMultiCourtGridLabels(intl).clockAriaLabel}
+      tournamentName={tournamentDisplayName}
+      inProgressLabel={tvMultiCourtGridLabels(intl).inProgress}
+      pageOfLabel={tvMultiCourtGridLabels(intl).pageOf}
+      {...(organizationTimeZone === undefined ? {} : { timeZone: organizationTimeZone })}
     />
   ) : (
     <TvDashboard
