@@ -1396,10 +1396,6 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.nextMatch',
     defaultMessage: 'Next match',
   },
-  tvDashboardZoneLegend: {
-    id: 'publicWeb.tvDashboard.zoneLegend',
-    defaultMessage: 'Group or zone',
-  },
   tvDashboardFinishedOn: {
     id: 'publicWeb.tvDashboard.finishedOn',
     defaultMessage: 'Finished {date}',

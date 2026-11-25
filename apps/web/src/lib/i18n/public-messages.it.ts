@@ -430,7 +430,6 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.clockStopped': 'Fermo',
   'publicWeb.tvDashboard.leading': 'In testa',
   'publicWeb.tvDashboard.nextMatch': 'Prossima partita',
-  'publicWeb.tvDashboard.zoneLegend': 'Girone o zona',
   'publicWeb.tvDashboard.finishedOn': 'Concluso il {date}',
   'publicWeb.tvDashboard.matchNotFound': 'Questa partita non esiste',
   'publicWeb.tvDashboard.pageOf': 'Pagina {page} di {total}',

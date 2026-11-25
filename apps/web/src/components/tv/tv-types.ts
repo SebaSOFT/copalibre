@@ -69,7 +69,6 @@ export interface TvDashboardLabels {
   readonly clockAriaLabel: string;
   readonly leading: string;
   readonly nextMatch: string;
-  readonly zoneLegend: string;
   /** Raw `{date}` template: the header of a finished tournament, naming the day it ended. */
   readonly finishedOn: string;
   /** Said by a pinned route whose match does not exist. */

@@ -423,7 +423,6 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.clockStopped': '已暂停',
   'publicWeb.tvDashboard.leading': '领先',
   'publicWeb.tvDashboard.nextMatch': '下一场比赛',
-  'publicWeb.tvDashboard.zoneLegend': '组别或区域',
   'publicWeb.tvDashboard.finishedOn': '结束于 {date}',
   'publicWeb.tvDashboard.matchNotFound': '该比赛不存在',
   'publicWeb.tvDashboard.pageOf': '第 {page} 页，共 {total} 页',

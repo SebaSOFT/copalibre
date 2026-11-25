@@ -280,7 +280,6 @@ export function tvDashboardLabels(intl: IntlShape) {
     }),
     leading: intl.formatMessage(messages.tvDashboardLeading),
     nextMatch: intl.formatMessage(messages.tvDashboardNextMatch),
-    zoneLegend: intl.formatMessage(messages.tvDashboardZoneLegend),
     // Raw templates, filled in the island: a function would not survive its JSON props.
     finishedOn: intl.formatMessage(messages.tvDashboardFinishedOn, { date: '{date}' }),
     matchNotFound: intl.formatMessage(messages.tvDashboardMatchNotFound),

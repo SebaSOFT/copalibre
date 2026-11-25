@@ -432,7 +432,6 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.clockStopped': 'Остановлено',
   'publicWeb.tvDashboard.leading': 'Впереди',
   'publicWeb.tvDashboard.nextMatch': 'Следующий матч',
-  'publicWeb.tvDashboard.zoneLegend': 'Группа или зона',
   'publicWeb.tvDashboard.finishedOn': 'Завершён {date}',
   'publicWeb.tvDashboard.matchNotFound': 'Такого матча нет',
   'publicWeb.tvDashboard.pageOf': 'Страница {page} из {total}',
