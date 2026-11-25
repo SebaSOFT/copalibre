@@ -1,3 +1,4 @@
+import { suggestRequiredClubAlias } from '@copalibre/domain';
 import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { clubEmblemUrl, type ClubResponse, type ControlApiClient } from '../../lib/api-client.js';
@@ -13,6 +14,9 @@ import { LinkButton } from '../ui/atoms/link-button.js';
 import { Field } from '../ui/molecules/field.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+
+/** What a create or save reported back: `alias-taken` puts the message on the alias field. */
+export type ClubSaveOutcome = 'saved' | 'alias-taken' | 'failed';
 
 /**
  * Composes the screen from the data `ClubManagementPage` supplies: the new-club form, which club is selected, its edit
@@ -32,13 +36,17 @@ export function ClubManagementTemplate({
   /** Gates the per-club "Club Portal" link — the same capability its backend routes require. */
   readonly canManageClubMembers: boolean;
   readonly clubs: readonly ClubResponse[];
-  readonly onCreateClub: (name: string, alias: string, abbreviation: string) => Promise<boolean>;
+  readonly onCreateClub: (
+    name: string,
+    alias: string,
+    abbreviation: string,
+  ) => Promise<ClubSaveOutcome>;
   readonly onSaveClub: (
     clubId: string,
     name: string,
     alias: string,
     abbreviation: string,
-  ) => Promise<void>;
+  ) => Promise<ClubSaveOutcome>;
   readonly onUploadClubEmblem: (
     clubId: string,
     output: { contentBase64: string; contentType: 'image/png' },
@@ -49,33 +57,83 @@ export function ClubManagementTemplate({
 
   const [newName, setNewName] = useState('');
   const [newAlias, setNewAlias] = useState('');
+  const [newAliasEdited, setNewAliasEdited] = useState(false);
+  const [newAliasError, setNewAliasError] = useState<string>();
   const [newAbbreviation, setNewAbbreviation] = useState('');
 
   const [selectedClubId, setSelectedClubId] = useState<string>();
   const [editName, setEditName] = useState('');
   const [editAlias, setEditAlias] = useState('');
+  const [editAliasError, setEditAliasError] = useState<string>();
   const [editAbbreviation, setEditAbbreviation] = useState('');
   const [emblemCropSrc, setEmblemCropSrc] = useState<string>();
   const [optimisticEmblems, setOptimisticEmblems] = useState<Record<string, string>>({});
 
+  const takenAliases = clubs.map((club) => club.alias);
+  const aliasRequiredMessage = intl.formatMessage(messages.clubManagementAliasRequired);
+  const aliasHintMessage = intl.formatMessage(messages.clubManagementAliasHint);
+  const aliasTakenMessage = intl.formatMessage(messages.clubManagementAliasTaken);
+
+  /** Whether another club of the loaded list already holds `alias`; `exceptClubId` is the club being edited. */
+  function aliasHeldByAnotherClub(alias: string, exceptClubId?: string): boolean {
+    return clubs.some((club) => club.clubId !== exceptClubId && club.alias === alias);
+  }
+
+  /** The alias the server would give this club now, previewed until the organizer edits the field. */
+  function suggestNewAlias(name: string, abbreviation: string): string {
+    if (name.trim() === '') return '';
+    const trimmedAbbreviation = abbreviation.trim();
+    return suggestRequiredClubAlias(
+      name,
+      takenAliases,
+      trimmedAbbreviation === '' ? undefined : trimmedAbbreviation,
+    );
+  }
+
   const selectClub = (club: ClubResponse): void => {
     setSelectedClubId(club.clubId);
     setEditName(club.name);
-    setEditAlias(club.alias ?? '');
+    setEditAlias(club.alias);
+    setEditAliasError(undefined);
     setEditAbbreviation(club.abbreviation ?? '');
   };
 
   async function createClub(): Promise<void> {
-    if (await onCreateClub(newName, newAlias, newAbbreviation)) {
+    if (newAlias.trim() === '') {
+      setNewAliasError(aliasRequiredMessage);
+      return;
+    }
+    // Only a typed alias is checked here; an untouched prefill is sent as nothing and the server decides.
+    if (newAliasEdited && aliasHeldByAnotherClub(newAlias.trim())) {
+      setNewAliasError(aliasTakenMessage);
+      return;
+    }
+    // An untouched prefill is only a preview: the server gives the same suggestion, and it also knows
+    // former aliases. So only an alias the organizer typed is sent.
+    const outcome = await onCreateClub(newName, newAliasEdited ? newAlias : '', newAbbreviation);
+    if (outcome === 'saved') {
       setNewName('');
       setNewAlias('');
+      setNewAliasEdited(false);
+      setNewAliasError(undefined);
       setNewAbbreviation('');
+    } else if (outcome === 'alias-taken') {
+      setNewAliasError(aliasTakenMessage);
     }
   }
 
   async function saveClub(): Promise<void> {
     if (selectedClubId === undefined) return;
-    await onSaveClub(selectedClubId, editName, editAlias, editAbbreviation);
+    if (editAlias.trim() === '') {
+      setEditAliasError(aliasRequiredMessage);
+      return;
+    }
+    if (aliasHeldByAnotherClub(editAlias.trim(), selectedClubId)) {
+      setEditAliasError(aliasTakenMessage);
+      return;
+    }
+    const outcome = await onSaveClub(selectedClubId, editName, editAlias, editAbbreviation);
+    if (outcome === 'alias-taken') setEditAliasError(aliasTakenMessage);
   }
 
   async function uploadClubEmblem(output: {
@@ -148,18 +206,30 @@ export function ClubManagementTemplate({
               <Input
                 aria-label={intl.formatMessage(messages.clubManagementNewClubName)}
                 id="new-club-name"
-                onChange={(event) => setNewName(event.target.value)}
+                onChange={(event) => {
+                  setNewName(event.target.value);
+                  if (!newAliasEdited) {
+                    setNewAlias(suggestNewAlias(event.target.value, newAbbreviation));
+                  }
+                }}
                 value={newName}
               />
             </Field>
             <Field
+              errorText={newAliasError}
+              helpText={aliasHintMessage}
               id="new-club-alias"
               label={intl.formatMessage(messages.clubManagementNewClubAlias)}
+              required
             >
               <Input
                 aria-label={intl.formatMessage(messages.clubManagementNewClubAlias)}
                 id="new-club-alias"
-                onChange={(event) => setNewAlias(event.target.value)}
+                onChange={(event) => {
+                  setNewAlias(event.target.value);
+                  setNewAliasEdited(true);
+                  setNewAliasError(undefined);
+                }}
                 value={newAlias}
               />
             </Field>
@@ -170,7 +240,12 @@ export function ClubManagementTemplate({
               <Input
                 aria-label={intl.formatMessage(messages.clubManagementNewClubAbbreviation)}
                 id="new-club-abbreviation"
-                onChange={(event) => setNewAbbreviation(event.target.value)}
+                onChange={(event) => {
+                  setNewAbbreviation(event.target.value);
+                  if (!newAliasEdited) {
+                    setNewAlias(suggestNewAlias(newName, event.target.value));
+                  }
+                }}
                 value={newAbbreviation}
               />
             </Field>
@@ -234,11 +309,20 @@ export function ClubManagementTemplate({
                   value={editName}
                 />
               </Field>
-              <Field id="edit-club-alias" label={intl.formatMessage(messages.clubManagementAlias)}>
+              <Field
+                errorText={editAliasError}
+                helpText={aliasHintMessage}
+                id="edit-club-alias"
+                label={intl.formatMessage(messages.clubManagementAlias)}
+                required
+              >
                 <Input
                   aria-label={intl.formatMessage(messages.clubManagementAlias)}
                   id="edit-club-alias"
-                  onChange={(event) => setEditAlias(event.target.value)}
+                  onChange={(event) => {
+                    setEditAlias(event.target.value);
+                    setEditAliasError(undefined);
+                  }}
                   value={editAlias}
                 />
               </Field>

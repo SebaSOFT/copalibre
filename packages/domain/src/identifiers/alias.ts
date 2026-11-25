@@ -80,6 +80,11 @@ export function isReservedOrganizationAlias(value: string): boolean {
 export type AliasScope = 'organization' | 'tournament' | 'circuit' | 'entrant' | 'club' | 'venue';
 
 const ALIAS_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+/**
+ * A UUID-shaped value is an identifier, and no URL may carry one. A club alias that looks like one is
+ * refused, because the public club routes would reject it anyway.
+ */
+const CLUB_IDENTIFIER_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_ALIAS_LENGTH = 64;
 
 export class Alias {
@@ -95,6 +100,14 @@ export class Alias {
           scope,
           value,
         }),
+      );
+    }
+    if (scope === 'club' && CLUB_IDENTIFIER_SHAPE.test(value)) {
+      return err(
+        new InvalidAliasError(
+          `Alias must not look like an identifier (a UUID); choose another: "${value}"`,
+          { scope, value },
+        ),
       );
     }
     if (!ALIAS_PATTERN.test(value)) {

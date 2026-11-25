@@ -1515,6 +1515,13 @@ describe('public projections routes', () => {
           actor: 'user:seed',
           authorizationContext: 'seed',
         });
+        // No alias given, and a name with no Latin letters: the server still gives it one.
+        await enrollments.createClub(uow, {
+          organizationId,
+          name: '北京俱乐部',
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
       });
 
       const response = await request({
@@ -1528,6 +1535,13 @@ describe('public projections routes', () => {
       expect(clubNames).toEqual(expect.arrayContaining(['Alfa Listing Club', 'Zulu Listing Club']));
       expect(clubNames.indexOf('Alfa Listing Club')).toBeLessThan(
         clubNames.indexOf('Zulu Listing Club'),
+      );
+      const aliases = body.clubs.map((c: { alias?: unknown }) => c.alias);
+      expect(aliases.every((alias: unknown) => typeof alias === 'string' && alias !== '')).toBe(
+        true,
+      );
+      expect(body.clubs.find((c: { name: string }) => c.name === '北京俱乐部')?.alias).toMatch(
+        /^club-\d+$/,
       );
     });
 

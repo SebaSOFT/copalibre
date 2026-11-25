@@ -102,7 +102,7 @@ export interface ClubView {
   readonly clubId: string;
   readonly name: string;
   readonly abbreviation?: string;
-  readonly alias?: string;
+  readonly alias: string;
   readonly emblemObjectId?: string;
   /** Aliases the club held before a rename; a link naming one is redirected to `alias`. */
   readonly formerAliases?: readonly string[];

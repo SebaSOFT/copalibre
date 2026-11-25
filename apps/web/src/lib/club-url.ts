@@ -61,7 +61,7 @@ export function clubPageUrl(input: {
 
 /**
  * Builds a club page URL when all required aliases are present and valid;
- * returns `undefined` so callers render plain text for clubs without an alias.
+ * returns `undefined` so callers render plain text for a team that has no club.
  */
 export function optionalClubPageUrl(input: {
   readonly organizationAlias?: string;
@@ -103,21 +103,5 @@ export function organizationClubPageUrl(input: {
     organizationAlias: input.organizationAlias,
     clubAlias: input.clubAlias,
     locale: localeFromPrefix(input.localePrefix),
-  });
-}
-
-/** The organization club page URL, or `undefined` when an alias is missing or malformed. */
-export function optionalOrganizationClubPageUrl(input: {
-  readonly organizationAlias?: string;
-  readonly clubAlias?: string;
-  readonly localePrefix?: string;
-}): string | undefined {
-  if (!isValidClubAlias(input.organizationAlias) || !isValidClubAlias(input.clubAlias)) {
-    return undefined;
-  }
-  return organizationClubPageUrl({
-    organizationAlias: input.organizationAlias,
-    clubAlias: input.clubAlias,
-    localePrefix: input.localePrefix,
   });
 }

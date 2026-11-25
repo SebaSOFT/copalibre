@@ -31,7 +31,6 @@ import { availableMatchDays } from '../../../../../lib/match-days.ts';
 import { offersViewChoice } from '../../../../../lib/match-schedule.ts';
 import { loadSchedule } from '../../../../../lib/schedule-loader.ts';
 import { matchReportUrl } from '../../../../../lib/bracket.ts';
-import { isValidClubAlias } from '../../../../../lib/club-url.ts';
 import { findClubByFormerAlias } from '../../../../../lib/club-page.ts';
 import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../../lib/locale.ts';
 import { isPublicLocaleSegment } from '../../../../../lib/public-route-guards.ts';
@@ -74,11 +73,9 @@ const stageParam = Astro.url.searchParams.get('stageNumber');
 const stageNumber = stageParam ? Number(stageParam) : undefined;
 const zoneParam = Astro.url.searchParams.get('zone') ?? undefined;
 const groupParam = Astro.url.searchParams.get('group') ?? undefined;
-// The club choice is honoured only when it names one of the tournament's clubs. A blank value, a
-// malformed alias or an alias of another club is no filter, and does not open the filter disclosure.
-const clubOptions = (model.clubs ?? [])
-  .filter((club): club is typeof club & { readonly alias: string } => isValidClubAlias(club.alias))
-  .map((club) => ({ alias: club.alias, name: club.name }));
+// The club choice is honoured only when it names one of the tournament's clubs. A blank value or an
+// alias of another club is no filter, and does not open the filter disclosure.
+const clubOptions = (model.clubs ?? []).map((club) => ({ alias: club.alias, name: club.name }));
 const requestedClub = Astro.url.searchParams.get('club')?.trim() ?? '';
 const clubParam = clubOptions.some((club) => club.alias === requestedClub)
   ? requestedClub

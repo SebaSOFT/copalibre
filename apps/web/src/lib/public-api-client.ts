@@ -23,6 +23,7 @@ import type { OverviewInput, MatchState } from './overview.js';
 import type { LiveDashboard } from './live-state.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { API_PATH_PREFIX } from './api-path.ts';
+import { isValidClubAlias } from './club-url.js';
 export { mapBracketResponse } from './bracket-projection.js';
 export type { BracketZone } from './bracket-projection.js';
 export { clubEmblemUrl, organizationEmblemUrl } from './public-image-paths.js';
@@ -72,13 +73,31 @@ export async function fetchOrganizations(): Promise<readonly OrganizationRespons
   return fetchOr404<OrganizationResponse[]>(url);
 }
 
+/**
+ * The one guard for a club the API returned without a usable alias, which would be a contract
+ * violation. The club is skipped from links and logged, and the page renders without it.
+ */
+function withUsableClubs<
+  Response extends {
+    readonly clubs?: readonly { readonly clubId: string; readonly alias: string }[];
+  },
+>(response: Response | undefined, endpoint: string): Response | undefined {
+  if (response?.clubs === undefined) return response;
+  const usable = response.clubs.filter((club) => {
+    if (isValidClubAlias(club.alias)) return true;
+    console.warn(`${endpoint}: club ${club.clubId} has no usable alias and is skipped`);
+    return false;
+  });
+  return usable.length === response.clubs.length ? response : { ...response, clubs: usable };
+}
+
 export async function fetchOverview(
   organizationAlias: string,
   tournamentAlias: string,
 ): Promise<PublicOverviewResponse | undefined> {
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/overview`;
-  return fetchOr404<PublicOverviewResponse>(url);
+  return withUsableClubs(await fetchOr404<PublicOverviewResponse>(url), url);
 }
 
 export async function fetchCompletion(
@@ -273,9 +292,7 @@ export function mapOverviewResponse(
   const hiddenPlayerLabel = intl.formatMessage(publicMessages.personHiddenAtRequest);
   const undecidedSide = intl.formatMessage(publicMessages.resultStateTbd);
   const clubAliasById = new Map(
-    (response.clubs ?? [])
-      .filter((club): club is typeof club & { readonly alias: string } => Boolean(club.alias))
-      .map((club) => [club.clubId, club.alias] as const),
+    (response.clubs ?? []).map((club) => [club.clubId, club.alias] as const),
   );
   return {
     organizationAlias: response.organizationAlias,
@@ -551,7 +568,7 @@ export async function fetchOrganizationTournaments(
 ): Promise<PublicOrganizationTournamentListResponse | undefined> {
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/public/tournaments`;
-  return fetchOr404<PublicOrganizationTournamentListResponse>(url);
+  return withUsableClubs(await fetchOr404<PublicOrganizationTournamentListResponse>(url), url);
 }
 
 /** A club across its organization's published tournaments; `undefined` when either is unknown. */

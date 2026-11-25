@@ -189,8 +189,8 @@ export interface ReportEvidenceTable {
 export interface ClubsTable {
   club_id: string;
   organization_id: string;
-  /** Path identifier, unique within the organization. */
-  alias: string | null;
+  /** Path identifier, unique within the organization. Required since 0048. */
+  alias: string;
   name: string;
   /** Short label for constrained surfaces; `C I` for "Casa de Italia". */
   abbreviation: string | null;

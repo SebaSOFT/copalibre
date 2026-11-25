@@ -37,7 +37,12 @@ export {
  * touches the domain. It lives at `@copalibre/domain/import-export`, and every
  * consumer of it is server-side.
  */
-export { suggestAlias, suggestAvailableAlias, isSuggestable } from './identifiers/suggest-alias.js';
+export {
+  suggestAlias,
+  suggestAvailableAlias,
+  suggestRequiredClubAlias,
+  isSuggestable,
+} from './identifiers/suggest-alias.js';
 export {
   Abbreviation,
   isAbbreviation,

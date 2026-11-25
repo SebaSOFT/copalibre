@@ -3242,7 +3242,7 @@ export const messages = defineMessages({
   },
   clubManagementNewClubAlias: {
     id: 'control.clubManagement.newClubAlias',
-    defaultMessage: 'Alias (optional)',
+    defaultMessage: 'New club alias',
   },
   clubManagementNewClubAbbreviation: {
     id: 'control.clubManagement.newClubAbbreviation',
@@ -3277,6 +3277,19 @@ export const messages = defineMessages({
   },
   clubManagementSaved: { id: 'control.clubManagement.saved', defaultMessage: 'Changes saved.' },
   clubManagementCreated: { id: 'control.clubManagement.created', defaultMessage: 'Club created.' },
+  clubManagementAliasRequired: {
+    id: 'control.clubManagement.aliasRequired',
+    defaultMessage: 'Enter an alias.',
+  },
+  clubManagementAliasHint: {
+    id: 'control.clubManagement.aliasHint',
+    defaultMessage:
+      "The alias is the club's public address. Use lowercase letters, numbers and hyphens.",
+  },
+  clubManagementAliasTaken: {
+    id: 'control.clubManagement.aliasTaken',
+    defaultMessage: 'Another club already uses this alias.',
+  },
   clubManagementEmblemUploaded: {
     id: 'control.clubManagement.emblemUploaded',
     defaultMessage: 'Emblem uploaded.',

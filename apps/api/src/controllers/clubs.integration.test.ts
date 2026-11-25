@@ -178,6 +178,55 @@ describe('club list/create/edit (integration)', () => {
     });
   });
 
+  it('gives a club whose name folds to nothing a non-empty alias', async () => {
+    const created = await inject({
+      method: 'POST',
+      url: `/api/organizations/${organizationAlias}/clubs`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { name: '北京俱乐部' },
+    });
+    expect(created.statusCode).toBe(201);
+    expect(created.json()).toMatchObject({ name: '北京俱乐部', alias: 'club-1' });
+  });
+
+  it('refuses creating a club with an alias another club already holds, with 409 club-conflict', async () => {
+    const first = await inject({
+      method: 'POST',
+      url: `/api/organizations/${organizationAlias}/clubs`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { name: 'Club Ocupado', alias: 'alias-ocupado' },
+    });
+    expect(first.statusCode).toBe(201);
+
+    const second = await inject({
+      method: 'POST',
+      url: `/api/organizations/${organizationAlias}/clubs`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { name: 'Club Repetido', alias: 'alias-ocupado' },
+    });
+    expect(second.statusCode).toBe(409);
+    expect(second.json()).toMatchObject({ errorCode: 'club-conflict' });
+  });
+
+  it('refuses clearing a club alias with 409 club-conflict', async () => {
+    const created = await inject({
+      method: 'POST',
+      url: `/api/organizations/${organizationAlias}/clubs`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { name: 'Club Sin Alias' },
+    });
+    const club = created.json() as { clubId: string; alias: string };
+
+    const response = await inject({
+      method: 'PATCH',
+      url: `/api/organizations/${organizationAlias}/clubs/${club.clubId}`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { alias: '' },
+    });
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({ errorCode: 'club-conflict' });
+  });
+
   it('404s an edit for an unknown club', async () => {
     const response = await inject({
       method: 'PATCH',

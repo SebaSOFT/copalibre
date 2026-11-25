@@ -165,14 +165,15 @@ const allRows: readonly DisplayRow[] =
           points: { raw: row.points, formatted: String(row.points) },
         },
       }));
-const aliasedClubs = clubs.filter((club) => isValidClubAlias(club.alias));
-const clubAliasById = new Map(aliasedClubs.map((club) => [club.clubId, club.alias!] as const));
+const clubAliasById = new Map(clubs.map((club) => [club.clubId, club.alias] as const));
 const localePrefix = intl.locale === 'en' ? '' : `/${intl.locale}`;
 const activeClubQuery = activeClubAlias
   ? `club=${encodeURIComponent(activeClubAlias)}`
   : activeClubId
     ? `clubId=${encodeURIComponent(activeClubId)}`
     : undefined;
+// A row names its team's club by alias when the team has one; a team with no club has no club link.
+// A row names its team's club by alias when the row carries a usable one; a team with no club has no club link.
 const resolveRowClubAlias = (row: DisplayRow): string | undefined =>
   isValidClubAlias(row.clubAlias)
     ? row.clubAlias
@@ -390,7 +391,7 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
     </>
   )}
 
-  {!isTableOnly && renderPart === 'all' && showControls && aliasedClubs.length > 0 && (
+  {!isTableOnly && renderPart === 'all' && showControls && clubs.length > 0 && (
     <div
       class="cl-club-filter"
       role="group"
@@ -405,13 +406,13 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
         active={!activeClubAlias && !activeClubId}
         filter="all"
       />
-      {aliasedClubs.map((club) => (
+      {clubs.map((club) => (
         <ClubFilterChip
-          href={`${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}club=${encodeURIComponent(club.alias!)}`}
+          href={`${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}club=${encodeURIComponent(club.alias)}`}
           label={club.name}
           abbreviation={club.abbreviation}
           active={club.alias === activeClubAlias || club.clubId === activeClubId}
-          filter={club.alias!}
+          filter={club.alias}
           club
           emblemSrc={
             organizationAlias && club.emblemObjectId
@@ -543,7 +544,7 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
                     localePrefix,
                   });
                   const emblemFilterHref =
-                    showControls && isValidClubAlias(rowClubAlias) && canonicalPath
+                    showControls && rowClubAlias !== undefined && canonicalPath
                       ? `${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}club=${encodeURIComponent(rowClubAlias)}`
                       : undefined;
                   return (
@@ -811,7 +812,7 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
         </div>
       )}
 
-      {renderPart === 'footer' && showControls && aliasedClubs.length > 0 && (
+      {renderPart === 'footer' && showControls && clubs.length > 0 && (
         <div
           class="cl-club-filter"
           role="group"
@@ -826,13 +827,13 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
             active={!activeClubAlias && !activeClubId}
             filter="all"
           />
-          {aliasedClubs.map((club) => (
+          {clubs.map((club) => (
             <ClubFilterChip
-              href={`${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}club=${encodeURIComponent(club.alias!)}`}
+              href={`${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}club=${encodeURIComponent(club.alias)}`}
               label={club.name}
               abbreviation={club.abbreviation}
               active={club.alias === activeClubAlias || club.clubId === activeClubId}
-              filter={club.alias!}
+              filter={club.alias}
               club
               emblemSrc={
                 organizationAlias && club.emblemObjectId

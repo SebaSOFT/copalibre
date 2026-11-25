@@ -5,7 +5,6 @@ import {
   clubPageUrl,
   isValidClubAlias,
   optionalClubPageUrl,
-  optionalOrganizationClubPageUrl,
   organizationClubPageUrl,
 } from './club-url.js';
 
@@ -154,21 +153,5 @@ describe('organizationClubPageUrl', () => {
         clubAlias: '01936f4a-0007-7000-8000-000000000077',
       }),
     ).toThrow(RouteError);
-  });
-});
-
-describe('optionalOrganizationClubPageUrl', () => {
-  it('returns the URL when both aliases are valid and undefined otherwise', () => {
-    expect(
-      optionalOrganizationClubPageUrl({
-        organizationAlias: 'liga-mendocina',
-        clubAlias: 'club-hispano',
-        localePrefix: '/fr',
-      }),
-    ).toBe('/fr/liga-mendocina/clubs/club-hispano');
-    expect(
-      optionalOrganizationClubPageUrl({ organizationAlias: 'liga-mendocina' }),
-    ).toBeUndefined();
-    expect(optionalOrganizationClubPageUrl({ clubAlias: 'club-hispano' })).toBeUndefined();
   });
 });

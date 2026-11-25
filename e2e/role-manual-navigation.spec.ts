@@ -97,7 +97,12 @@ test('a club-admin is refused a control outside their club, naming ownership (7.
         }
         if (url === '/api/organizations/liga-mendocina/clubs' && method === 'GET') {
           return Response.json([
-            { clubId: 'club-2', organizationId: 'org-1', name: 'Casa de Italia' },
+            {
+              clubId: 'club-2',
+              organizationId: 'org-1',
+              name: 'Casa de Italia',
+              alias: 'casa-de-italia',
+            },
           ]);
         }
         if (url === '/api/organizations?mine=true' && method === 'GET') {

@@ -19,14 +19,15 @@ public organization page grid — with a placeholder used until one is uploaded.
 ## Key fields
 
 - **Name**: the club's full name.
-- **Alias**: a URL-safe identifier, unique within the organization. Suggested from the name at
-  creation if left blank.
+- **Alias**: a URL-safe identifier, unique within the organization. Required. It is suggested from the
+  name when you create the club, and you can change it. A name with no Latin letters gets the
+  abbreviation's alias, or `club-<n>` when there is no abbreviation.
 - **Abbreviation**: a short label shown on constrained surfaces (e.g. a scoreboard).
 - **Emblem**: an image uploaded through this screen, replacing any previous one.
 
 ## Where a club appears publicly
 
-The alias is the club's public address. A club with an alias gets:
+The alias is the club's public address. Every club has one, so every club gets:
 
 - **A club page in each published tournament it plays in**, at
   `/{organization}/tournaments/{tournament}/clubs/{alias}`. It shows the club's status, next match,
@@ -36,8 +37,7 @@ The alias is the club's public address. A club with an alias gets:
   tournaments the club played in the organization, with its titles and podium places, and links to its
   page in each one. The organization page links each club to it.
 
-Team names across the public pages link to their club's page. A club without an alias has no public
-page.
+Team names across the public pages link to their club's page.
 
 Changing a club's alias keeps old links working: a visitor who opens a page under a former alias is
 moved permanently to the same page under the current one.

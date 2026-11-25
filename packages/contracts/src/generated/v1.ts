@@ -6041,7 +6041,8 @@ export interface components {
             clubId: string;
             name: string;
             abbreviation?: string;
-            alias?: string;
+            /** @description Public club alias. Every club has one. */
+            alias: string;
             emblemObjectId?: string;
             /** @description Aliases this club held before a rename, within its organization. A public URL naming one of them is redirected to the current alias. Absent when the club was never renamed. */
             formerAliases?: string[];
@@ -6061,7 +6062,8 @@ export interface components {
             clubId: string;
             name: string;
             abbreviation?: string;
-            alias?: string;
+            /** @description Public club alias. Every club has one. */
+            alias: string;
             emblemObjectId?: string;
             /** @description Aliases this club held before a rename, within its organization. A public URL naming one of them is redirected to the current alias. Absent when the club was never renamed. */
             formerAliases?: string[];
@@ -7000,10 +7002,10 @@ export interface components {
             /** Format: uuid */
             organizationId: string;
             /**
-             * @description Path identifier, unique within the organization.
+             * @description Path identifier, unique within the organization. Always present: a club is given one when created.
              * @example casa-de-italia
              */
-            alias?: string;
+            alias: string;
             /** @example Casa de Italia */
             name: string;
             /** @example C I */

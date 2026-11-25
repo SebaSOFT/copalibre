@@ -814,7 +814,7 @@ export interface StatisticsRebuildResponse {
 export interface ClubResponse {
   readonly clubId: string;
   readonly organizationId: string;
-  readonly alias?: string;
+  readonly alias: string;
   readonly name: string;
   readonly abbreviation?: string;
   readonly emblemObjectId?: string;

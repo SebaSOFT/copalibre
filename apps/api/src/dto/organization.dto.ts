@@ -148,11 +148,12 @@ export class ClubResponse {
   @ApiProperty({ format: 'uuid' })
   organizationId!: string;
 
-  @ApiPropertyOptional({
-    description: 'Path identifier, unique within the organization.',
+  @ApiProperty({
+    description:
+      'Path identifier, unique within the organization. Always present: a club is given one when created.',
     example: 'casa-de-italia',
   })
-  alias?: string;
+  alias!: string;
 
   @ApiProperty({ example: 'Casa de Italia' })
   name!: string;

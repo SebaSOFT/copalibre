@@ -4,6 +4,7 @@ import {
   abbreviationOf,
   deriveEntrantAbbreviation,
   suggestAvailableAlias,
+  suggestRequiredClubAlias,
   validateAttributes,
   type Club,
   type Entrant,
@@ -67,9 +68,17 @@ export class EnrollmentRepository {
     // A given alias is validated; an absent one is suggested from the name and
     // disambiguated against what this organization already uses. Two clubs
     // named "Talleres" is ordinary, and making the second one's organizer
-    // invent a suffix by hand is not.
-    const alias = input.alias ?? (await this.suggestClubAlias(input.organizationId, input.name));
+    // invent a suffix by hand is not. Every club carries an alias, so a name
+    // with nothing to fold falls back to the abbreviation, then `club-<n>`.
+    const alias =
+      input.alias ??
+      (await this.suggestClubAlias(input.organizationId, input.name, input.abbreviation));
     assertClubAlias(alias);
+    // Only an explicit alias can collide: a suggestion is already disambiguated. A former alias
+    // does not block an explicit one, because a current alias always wins.
+    if (input.alias !== undefined) {
+      await this.assertClubAliasFree(uow.tx, input.organizationId, alias);
+    }
 
     const clubId = newId();
     const row = await uow.tx
@@ -77,7 +86,7 @@ export class EnrollmentRepository {
       .values({
         club_id: clubId,
         organization_id: input.organizationId,
-        alias: alias ?? null,
+        alias,
         name: input.name,
         abbreviation: input.abbreviation ?? null,
         emblem_object_id: null,
@@ -118,20 +127,66 @@ export class EnrollmentRepository {
    *
    * Exposed so a console can show it in the form *before* anything is created —
    * a suggestion the organizer never sees is a derivation, and this capability
-   * derives a URL, not a name.
+   * derives a URL, not a name. Never empty.
    */
-  async suggestClubAlias(organizationId: string, name: string): Promise<string | undefined> {
+  async suggestClubAlias(
+    organizationId: string,
+    name: string,
+    abbreviation?: string,
+  ): Promise<string> {
     const rows = await this.db
       .selectFrom('clubs')
       .select('alias')
       .where('organization_id', '=', organizationId)
       .where('alias', 'is not', null)
       .execute();
+    // A former alias still has inbound links; a suggestion must not hand it to another club.
+    const formerAliases = await this.db
+      .selectFrom('alias_redirects')
+      .select('old_alias')
+      .where('organization_id', '=', organizationId)
+      .where('scope', '=', 'club')
+      .execute();
 
-    return suggestAvailableAlias(
+    return suggestRequiredClubAlias(
       name,
-      rows.flatMap((row) => (row.alias === null ? [] : [row.alias])),
+      [
+        ...rows.flatMap((row) => (row.alias === null ? [] : [row.alias])),
+        ...formerAliases.map((row) => row.old_alias),
+      ],
+      abbreviation,
     );
+  }
+
+  /** The club of this organization that holds `alias` as its current alias, if any. */
+  async findClubByAlias(
+    executor: Kysely<Database> | Transaction<Database>,
+    organizationId: string,
+    alias: string,
+  ): Promise<Club | undefined> {
+    const row = await executor
+      .selectFrom('clubs')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .where('alias', '=', alias)
+      .executeTakeFirst();
+    return row ? toClub(row) : undefined;
+  }
+
+  /** Refuses an explicit club alias another club of the organization already holds. */
+  private async assertClubAliasFree(
+    executor: Kysely<Database> | Transaction<Database>,
+    organizationId: string,
+    alias: string,
+    clubId?: string,
+  ): Promise<void> {
+    const claimed = await this.findClubByAlias(executor, organizationId, alias);
+    if (claimed && claimed.clubId !== clubId) {
+      throw new InvariantViolationError('Another club already uses this alias', {
+        alias,
+        conflictsWith: claimed.clubId,
+      });
+    }
   }
 
   /** Renames a club or changes its short label, keeping what it was. */
@@ -148,6 +203,9 @@ export class EnrollmentRepository {
   ): Promise<Club> {
     if (input.abbreviation !== null) assertAbbreviation(input.abbreviation);
     assertClubAlias(input.alias);
+    if (input.alias !== undefined) {
+      await this.assertClubAliasFree(uow.tx, input.organizationId, input.alias, input.clubId);
+    }
 
     const previous = await this.findClub(input.clubId);
     const row = await uow.tx

@@ -2082,6 +2082,13 @@ describe('club alias renames (integration)', () => {
     );
   }
 
+  async function freshOrganization(alias: string): Promise<string> {
+    const organization = await withTransaction(scratch.db, (uow) =>
+      new OrganizationRepository(scratch.db).create(uow, { alias, name: alias, ...AUDIT }),
+    );
+    return organization.organizationId;
+  }
+
   async function renameClub(clubId: string, orgId: string, alias: string) {
     return withTransaction(scratch.db, (uow) =>
       participants.updateClub(uow, { clubId, organizationId: orgId, alias, ...AUDIT }),
@@ -2128,14 +2135,54 @@ describe('club alias renames (integration)', () => {
     );
   });
 
-  it('records nothing when a club without an alias is given its first one', async () => {
-    const club = await createClub(organizationId, '北京俱乐部');
-    expect(club.alias).toBeUndefined();
+  it('records nothing when a club whose name folds to nothing is created', async () => {
+    // The name has no Latin character, so the suggestion falls back to `club-<n>`. Being given its
+    // first alias is not a rename, so no redirect is written. The backfill's own no-history rule is
+    // covered by the migration integration test.
     const before = await clubRedirects(organizationId);
 
-    await renameClub(club.clubId, organizationId, 'club-1');
+    const club = await createClub(organizationId, '北京俱乐部');
 
+    expect(club.alias).toBe('club-1');
     expect(await clubRedirects(organizationId)).toEqual(before);
+  });
+
+  it('refuses an explicit club alias another club of the organization already holds', async () => {
+    const organizationIdFresh = await freshOrganization('liga-alias-taken');
+    const first = await createClub(organizationIdFresh, 'Club Uno', 'uno-alias');
+    await expect(createClub(organizationIdFresh, 'Club Dos', 'uno-alias')).rejects.toThrow(
+      InvariantViolationError,
+    );
+    const second = await createClub(organizationIdFresh, 'Club Tres', 'tres-alias');
+    await expect(renameClub(second.clubId, organizationIdFresh, 'uno-alias')).rejects.toThrow(
+      InvariantViolationError,
+    );
+    // A club keeps its own alias.
+    await expect(renameClub(first.clubId, organizationIdFresh, 'uno-alias')).resolves.toMatchObject(
+      { alias: 'uno-alias' },
+    );
+  });
+
+  it('suggests past a former club alias, so the old link never opens another club', async () => {
+    const organizationIdFresh = await freshOrganization('liga-former-alias');
+    const club = await createClub(organizationIdFresh, 'Alfa', 'club-1');
+    await renameClub(club.clubId, organizationIdFresh, 'atenas');
+
+    const suggested = await createClub(organizationIdFresh, '北京俱乐部');
+
+    expect(suggested.alias).toBe('club-2');
+  });
+
+  it('refuses to clear a club alias', async () => {
+    const club = await createClub(organizationId, 'Lomas de Zamora', 'lomas-zamora');
+
+    await expect(renameClub(club.clubId, organizationId, '')).rejects.toThrow(
+      InvariantViolationError,
+    );
+    await expect(renameClub(club.clubId, organizationId, '  ')).rejects.toThrow(
+      InvariantViolationError,
+    );
+    expect((await participants.findClub(club.clubId))?.alias).toBe('lomas-zamora');
   });
 
   it('repoints an earlier rename so every former alias resolves in one step', async () => {

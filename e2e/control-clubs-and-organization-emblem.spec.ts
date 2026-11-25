@@ -23,7 +23,7 @@ interface ClubRecord {
   readonly clubId: string;
   readonly organizationId: string;
   readonly name: string;
-  readonly alias?: string;
+  readonly alias: string;
   readonly abbreviation?: string;
   emblemObjectId?: string;
 }
@@ -103,7 +103,7 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
           return Response.json(listed);
         }
         if (url === `/api/organizations/${orgAlias}/clubs` && method === 'POST') {
-          const body = JSON.parse(String(init?.body)) as { name: string };
+          const body = JSON.parse(String(init?.body)) as { name: string; alias: string };
           if (body.name === 'Club duplicado') {
             return Response.json(
               { statusCode: 409, message: 'duplicate club', errorCode: 'conflict' },
@@ -117,8 +117,10 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
             );
           }
           const created = await (
-            window as unknown as { __createClub: (name: string) => Promise<unknown> }
-          ).__createClub(body.name);
+            window as unknown as {
+              __createClub: (name: string, alias: string) => Promise<unknown>;
+            }
+          ).__createClub(body.name, body.alias);
           return Response.json(created);
         }
         const emblemMatch = /\/clubs\/([^/]+)\/emblem$/.exec(url);
@@ -154,8 +156,13 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
     return { objectId: organizationEmblemObjectId };
   });
   await page.exposeFunction('__clubs', () => clubs);
-  await page.exposeFunction('__createClub', (name: string) => {
-    const created: ClubRecord = { clubId: `club-${nextClubId}`, organizationId: 'org-1', name };
+  await page.exposeFunction('__createClub', (name: string, alias: string) => {
+    const created: ClubRecord = {
+      clubId: `club-${nextClubId}`,
+      organizationId: 'org-1',
+      name,
+      alias,
+    };
     nextClubId += 1;
     clubs = [...clubs, created];
     return created;
@@ -269,6 +276,57 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   // second round trip, so this needs more than the default timeout under
   // parallel load.
   await expect(page.getByAltText('Escudo de la organización')).toBeVisible({ timeout: 10000 });
+});
+
+test('the club alias is required: the create form prefills it and an emptied alias is refused', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+  const clubsTarget = `/control/${ORG_ALIAS}/clubs`;
+  await seedLoginTransaction(page, clubsTarget);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${clubsTarget}`);
+
+  await page.getByLabel('Nombre del club nuevo').fill('Casa de Italia');
+  await expect(page.getByLabel('Alias del nuevo club')).toHaveValue('casa-de-italia');
+  await page.getByLabel('Alias del nuevo club').fill('');
+  await page.getByText('Agregar club').click();
+  await expect(page.getByText('Ingresá un alias.')).toBeVisible();
+
+  await page.getByLabel('Alias del nuevo club').fill('casa-de-italia');
+  await page.getByText('Agregar club').click();
+  await expect(page.getByText('Club creado.')).toBeVisible();
+
+  await page.getByText('Editar').click();
+  await page.getByLabel('Alias', { exact: true }).fill('');
+  await page.getByText('Guardar cambios').click();
+  await expect(page.getByText('Ingresá un alias.')).toBeVisible();
+});
+
+test('editing a club to another club’s alias shows the taken-alias message on the field', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+  const clubsTarget = `/control/${ORG_ALIAS}/clubs`;
+  await seedLoginTransaction(page, clubsTarget);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${clubsTarget}`);
+
+  await page.getByLabel('Nombre del club nuevo').fill('Casa de Italia');
+  await page.getByLabel('Alias del nuevo club').fill('casa-italia');
+  await page.getByText('Agregar club').click();
+  await expect(page.getByText('Club creado.')).toBeVisible();
+
+  await page.getByLabel('Nombre del club nuevo').fill('Club Atenas');
+  await page.getByLabel('Alias del nuevo club').fill('club-atenas');
+  await page.getByText('Agregar club').click();
+  await expect(page.getByText('Club creado.')).toBeVisible();
+
+  await page.locator('li').filter({ hasText: 'Club Atenas' }).getByText('Editar club').click();
+  await page.getByLabel('Alias', { exact: true }).fill('casa-italia');
+  await page.getByText('Guardar cambios').click();
+  await expect(page.getByText('Otro club ya usa este alias.')).toBeVisible();
+  await expect(page.getByText('Changes saved.')).toHaveCount(0);
 });
 
 test('supports keyboard dismiss (Escape) on image crop modal', async ({ page }) => {

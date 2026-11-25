@@ -236,7 +236,7 @@ export class PublicTournamentListingController {
         return {
           clubId: club.clubId,
           name: club.name,
-          ...(club.alias ? { alias: club.alias } : {}),
+          alias: club.alias,
           ...(club.emblemObjectId ? { emblemObjectId: club.emblemObjectId } : {}),
           ...(tournamentAlias ? { tournamentAlias } : {}),
         };
@@ -912,7 +912,7 @@ export class PublicProjectionsController {
         clubId: c.clubId,
         name: c.name,
         abbreviation: c.abbreviation ?? undefined,
-        ...(c.alias ? { alias: c.alias } : {}),
+        alias: c.alias,
         ...(c.emblemObjectId ? { emblemObjectId: c.emblemObjectId } : {}),
         ...formerAliasesOf(c.alias, formerClubAliases),
       })),
