@@ -167,6 +167,24 @@ try {
         )
       : Promise.resolve(undefined),
   ]);
+  // The full-frame standings view widens its table by the standings layout's declared columns. Read
+  // only for that view, from the layouts above, in its own guard: a failure costs the columns alone.
+  if (
+    Astro.url.searchParams.get('view') === 'standings' &&
+    groupLayout &&
+    standingsStageNumber !== undefined
+  ) {
+    try {
+      standingsProjection = await fetchPublicTableProjection(
+        organizationAlias,
+        tournamentAlias,
+        groupLayout.code,
+        standingsStageNumber,
+      );
+    } catch {
+      standingsProjection = undefined;
+    }
+  }
 } catch {
   performerProjection = undefined;
   leaderProjection = undefined;
@@ -283,27 +301,6 @@ if (presentation !== 'lower' && featuredStage !== undefined) {
   carries none of the three, and the venue is what a court overlay follows a match by. A lower third
   has no rail to put the match list in.
 */
-/*
- * The standings table's declared layout, which the full-frame standings view widens by. Read for the
- * stage the standings belong to, in its own guard: a failure costs the extra columns, never the table.
- */
-try {
-  if (standingsStageNumber !== undefined) {
-    const layouts = await fetchPublicTableLayouts(organizationAlias, tournamentAlias);
-    const standingsLayout = (layouts?.layouts ?? []).find((one) => one.target === 'group-phase');
-    if (standingsLayout) {
-      standingsProjection = await fetchPublicTableProjection(
-        organizationAlias,
-        tournamentAlias,
-        standingsLayout.code,
-        standingsStageNumber,
-      );
-    }
-  }
-} catch {
-  standingsProjection = undefined;
-}
-
 const referenceDate = Date.now();
 const court = Astro.url.searchParams.get('court') ?? undefined;
 let venueNameByMatchId: Record<string, string> = {};

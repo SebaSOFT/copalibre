@@ -32,7 +32,6 @@ import {
 } from '../../../../../../../../lib/tv-match-events.ts';
 import type { PublicObjectReference } from '../../../../../../../../lib/discipline-background.ts';
 import type { PublicMatchReportResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
-import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 import type { PublicSeriesState } from '../../../../../../../../lib/series.ts';
 import type { LiveDashboard } from '../../../../../../../../lib/live-state.ts';
 import {
@@ -99,7 +98,6 @@ let dashboard: LiveDashboard = {
 let tournamentName: string | undefined;
 let organizationName: string | undefined;
 let standingsStageNumber: number | undefined;
-let standingsProjection: TableProjectionResponse | undefined;
 let tournamentEmblem: string | undefined;
 let clubs: { name: string; emblemUrl?: string }[] = [];
 let winnerZones: readonly TvWinnerZone[] = [];
@@ -265,27 +263,6 @@ try {
   performerProjection = undefined;
 }
 
-/*
- * The standings table's declared layout for the stage the standings belong to, read in its own guard:
- * a failure costs the extra columns, never the pinned match.
- */
-try {
-  if (standingsStageNumber !== undefined) {
-    const layouts = await fetchPublicTableLayouts(organizationAlias, tournamentAlias);
-    const standingsLayout = (layouts?.layouts ?? []).find((one) => one.target === 'group-phase');
-    if (standingsLayout) {
-      standingsProjection = await fetchPublicTableProjection(
-        organizationAlias,
-        tournamentAlias,
-        standingsLayout.code,
-        standingsStageNumber,
-      );
-    }
-  }
-} catch {
-  standingsProjection = undefined;
-}
-
 const referenceDate = Date.now();
 const tournamentDisplayName = tournamentName ?? intl.formatMessage(messages.pageHeaderLoading);
 const organizationDisplayName = organizationName ?? intl.formatMessage(messages.pageHeaderLoading);
@@ -329,6 +306,5 @@ const organizationDisplayName = organizationName ?? intl.formatMessage(messages.
     winners={winnerZones}
     standings={standings}
     standingsStageNumber={standingsStageNumber}
-    standingsProjection={standingsProjection}
   />
 </TvLayout>
