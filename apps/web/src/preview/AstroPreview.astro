@@ -908,7 +908,11 @@ const [compactSample] = referenceJourneyBracket(true);
       />
     )}
     {component === 'organization-clubs' && (
-      <OrganizationClubs clubs={referenceClubs()} intl={intl} />
+      <OrganizationClubs
+        clubs={referenceClubs()}
+        intl={intl}
+        organizationAlias="reference-league"
+      />
     )}
     {component === 'organization-header' && (
       <OrganizationHeader intl={intl} organizationName="Reference League" />

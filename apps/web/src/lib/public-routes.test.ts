@@ -10,7 +10,7 @@ describe('buildSitemapEntries club routes', () => {
     const entries = buildSitemapEntries([
       {
         organizationAlias: 'liga-mendocina',
-        clubAliases: ['club-hispano', 'Bad Alias', UUID],
+        clubAliases: ['club-hispano'],
         tournaments: [],
       },
     ]);
@@ -22,8 +22,6 @@ describe('buildSitemapEntries club routes', () => {
         `<loc>https://copalibre.test/${locale}/liga-mendocina/clubs/club-hispano</loc>`,
       );
     }
-    expect(xml).not.toContain('Bad Alias');
-    expect(xml).not.toContain(UUID);
   });
 
   it('lists the club index and every aliased club page with each locale variant', () => {
@@ -54,26 +52,6 @@ describe('buildSitemapEntries club routes', () => {
         `<loc>https://copalibre.test/${locale}/liga-mendocina/tournaments/apertura-2026/clubs</loc>`,
       );
     }
-  });
-
-  it('skips clubs whose alias is missing, malformed or a UUID', () => {
-    const entries = buildSitemapEntries([
-      {
-        organizationAlias: 'liga-mendocina',
-        tournaments: [
-          {
-            alias: 'apertura-2026',
-            clubAliases: [undefined as unknown as string, 'Bad Alias', UUID, 'ok-club'],
-          },
-        ],
-      },
-    ]);
-    const xml = buildSitemap(ORIGIN, entries);
-
-    expect(xml).toContain('/apertura-2026/clubs/ok-club</loc>');
-    expect(xml).not.toContain(UUID);
-    expect(xml).not.toContain('Bad Alias');
-    expect(xml.match(/\/clubs\/[^<]+<\/loc>/g)).toHaveLength(1 + NON_PRIMARY_LOCALES.length);
   });
 
   it('advertises no club routes for a tournament without aliased clubs', () => {

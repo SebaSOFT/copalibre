@@ -609,11 +609,6 @@ describe('findClubByFormerAlias', () => {
       formerAliases: ['club-hispano'],
     },
     { clubId: '01936f4a-0008-7000-8000-000000000088', name: 'Red Star', alias: 'red-star' },
-    {
-      clubId: '01936f4a-0009-7000-8000-000000000099',
-      name: 'Sin alias',
-      formerAliases: ['sin-alias'],
-    },
   ];
 
   it('finds the club that held the alias before a rename', () => {
@@ -625,16 +620,11 @@ describe('findClubByFormerAlias', () => {
     expect(findClubByFormerAlias(clubs, '../club-hispano')).toBeUndefined();
     expect(findClubByFormerAlias(undefined, 'club-hispano')).toBeUndefined();
   });
-
-  it('never redirects to a club that has no current alias', () => {
-    expect(findClubByFormerAlias(clubs, 'sin-alias')).toBeUndefined();
-  });
 });
 
 describe('resolveClubFilter', () => {
   const clubs = [
     { clubId: '01936f4a-0007-7000-8000-000000000077', name: 'Hispano', alias: 'club-hispano' },
-    { clubId: '01936f4a-0008-7000-8000-000000000088', name: 'Legacy Club' },
   ];
 
   it('redirects ?club= naming a former alias to the current one and keeps the other parameters', () => {

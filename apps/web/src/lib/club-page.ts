@@ -652,10 +652,7 @@ export function findClubByFormerAlias<Club extends ClubView>(
   alias: string,
 ): (Club & { readonly alias: string }) | undefined {
   if (!isValidClubAlias(alias)) return undefined;
-  return clubs?.find(
-    (club): club is Club & { readonly alias: string } =>
-      isValidClubAlias(club.alias) && (club.formerAliases ?? []).includes(alias),
-  );
+  return clubs?.find((club) => (club.formerAliases ?? []).includes(alias));
 }
 
 /**
@@ -686,7 +683,7 @@ export function resolveClubFilter(
 
   if (rawClubId !== undefined && rawClubId !== '') {
     const matched = clubs?.find((club) => club.clubId === rawClubId);
-    if (matched && isValidClubAlias(matched.alias)) {
+    if (matched) {
       const next = new URLSearchParams(searchParams);
       next.delete('clubId');
       next.set('club', matched.alias);

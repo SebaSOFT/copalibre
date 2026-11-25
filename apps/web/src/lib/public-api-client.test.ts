@@ -497,7 +497,7 @@ describe('public-api-client', () => {
         organizationName: 'Org One',
         organizationEmblemObjectId: 'object-1',
         tournaments: [],
-        clubs: [{ clubId: 'club-1', name: 'Club One' }],
+        clubs: [{ clubId: 'club-1', name: 'Club One', alias: 'club-one' }],
       };
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
         ok: true,
@@ -510,6 +510,29 @@ describe('public-api-client', () => {
       expect(fetch).toHaveBeenCalledWith(
         'http://api.test/api/organizations/org1/public/tournaments',
       );
+    });
+
+    it('skips a club the API returned without a usable alias, and logs it', async () => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          organizationAlias: 'org1',
+          organizationName: 'Org One',
+          tournaments: [],
+          clubs: [
+            { clubId: 'club-1', name: 'Club One', alias: 'club-one' },
+            { clubId: 'club-2', name: 'Club Two', alias: 'Not An Alias' },
+          ],
+        }),
+      } as unknown as Response);
+
+      const result = await fetchOrganizationTournaments('org1');
+
+      expect(result?.clubs?.map((club) => club.clubId)).toEqual(['club-1']);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('club club-2'));
+      warn.mockRestore();
     });
 
     it('returns undefined on 404', async () => {

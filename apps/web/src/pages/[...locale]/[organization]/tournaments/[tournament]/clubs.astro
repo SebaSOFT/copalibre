@@ -11,11 +11,7 @@ import SectionHeader from '../../../../../components/ui/molecules/SectionHeader.
 import Stack from '../../../../../components/ui/atoms/layout/Stack.astro';
 import ClubIdentity from '../../../../../components/ui/molecules/ClubIdentity.astro';
 import { publicTrail, trailBaseOf } from '../../../../../lib/breadcrumb.ts';
-import {
-  clubIndexUrl,
-  isValidClubAlias,
-  optionalClubPageUrl,
-} from '../../../../../lib/club-url.ts';
+import { clubIndexUrl, clubPageUrl } from '../../../../../lib/club-url.ts';
 import { deriveClubStatus, groupClubIndexByBand } from '../../../../../lib/club-page.ts';
 import { buildOverview, displayName } from '../../../../../lib/overview.ts';
 import type { MatchCardData } from '../../../../../lib/matches-view.ts';
@@ -114,7 +110,7 @@ for (const row of standingsProjection?.rows ?? []) {
 }
 
 const clubCards = clubs.map((club) => {
-  const href = optionalClubPageUrl({
+  const href = clubPageUrl({
     organizationAlias: organization!,
     tournamentAlias: tournament!,
     clubAlias: club.alias,
@@ -122,15 +118,10 @@ const clubCards = clubs.map((club) => {
   });
   const status = deriveClubStatus(
     allMatches,
-    {
-      ...(isValidClubAlias(club.alias) ? { alias: club.alias } : {}),
-      clubId: club.clubId,
-    },
+    { alias: club.alias, clubId: club.clubId },
     model.stages,
   );
-  const band =
-    (club.alias ? bandByClubKey.get(`alias:${club.alias}`) : undefined) ??
-    bandByClubKey.get(`id:${club.clubId}`);
+  const band = bandByClubKey.get(`alias:${club.alias}`) ?? bandByClubKey.get(`id:${club.clubId}`);
   // With a band badge beside the status, the status names only the round.
   const statusText = formatClubStatus(intl, status, { withBand: band !== undefined });
 

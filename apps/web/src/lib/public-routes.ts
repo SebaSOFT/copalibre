@@ -4,7 +4,6 @@ import {
   fetchOrganizationTournaments,
   fetchOverview,
 } from './public-api-client.js';
-import { isValidClubAlias } from './club-url.js';
 
 export const NON_PRIMARY_LOCALES = ['es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const;
 
@@ -34,7 +33,7 @@ export function buildSitemapEntries(data: readonly OrgWithTournaments[]): readon
       });
     }
 
-    for (const clubAlias of (org.clubAliases ?? []).filter((alias) => isValidClubAlias(alias))) {
+    for (const clubAlias of org.clubAliases ?? []) {
       entries.push({
         input: { organizationAlias: org.organizationAlias, clubAlias },
         changeFrequency: 'daily',
@@ -60,8 +59,8 @@ export function buildSitemapEntries(data: readonly OrgWithTournaments[]): readon
         });
       }
 
-      // A tournament without aliased clubs has no club index and no club page to advertise.
-      const clubAliases = (t.clubAliases ?? []).filter((alias) => isValidClubAlias(alias));
+      // A tournament without clubs has no club index and no club page to advertise.
+      const clubAliases = t.clubAliases ?? [];
       if (clubAliases.length === 0) continue;
 
       entries.push({
@@ -146,17 +145,13 @@ export async function fetchPublicSitemapRoutes(): Promise<readonly SitemapEntry[
       SITEMAP_OVERVIEW_CONCURRENCY,
       async (t) => {
         const overview = await fetchOverview(org.alias, t.alias).catch(() => undefined);
-        const clubAliases = (overview?.clubs ?? [])
-          .map((club) => club.alias)
-          .filter((alias): alias is string => isValidClubAlias(alias));
+        const clubAliases = (overview?.clubs ?? []).map((club) => club.alias);
         return { alias: t.alias, clubAliases };
       },
     );
     orgData.push({
       organizationAlias: org.alias,
-      clubAliases: (tournamentList?.clubs ?? [])
-        .map((club) => club.alias)
-        .filter((alias): alias is string => isValidClubAlias(alias)),
+      clubAliases: (tournamentList?.clubs ?? []).map((club) => club.alias),
       tournaments,
     });
   }

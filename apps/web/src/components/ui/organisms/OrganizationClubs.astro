@@ -1,8 +1,7 @@
 ---
 /**
- * The organization's clubs. A club with an alias links to its organization club page, its history
- * across the organization's tournaments, and sits in a card; a club without an alias is plain content,
- * with the same identity block and no card affordance.
+ * The organization's clubs. Each club links to its organization club page, its history across the
+ * organization's tournaments, and sits in a card.
  */
 import type { IntlShape } from 'react-intl';
 import type { PublicOrganizationClubResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
@@ -10,7 +9,7 @@ import { Card } from '../atoms/Card.tsx';
 import ClubIdentity from '../molecules/ClubIdentity.astro';
 import SectionHeader from '../molecules/SectionHeader.astro';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
-import { optionalOrganizationClubPageUrl } from '../../../lib/club-url.ts';
+import { organizationClubPageUrl } from '../../../lib/club-url.ts';
 
 export interface ClubWithEmblemSrc extends PublicOrganizationClubResponse {
   /** Pre-built by the page (`clubEmblemUrl`) — data access stays at the page tier. */
@@ -20,7 +19,7 @@ export interface ClubWithEmblemSrc extends PublicOrganizationClubResponse {
 export interface Props {
   readonly clubs: readonly ClubWithEmblemSrc[];
   readonly intl: IntlShape;
-  readonly organizationAlias?: string;
+  readonly organizationAlias: string;
   readonly localePrefix?: string;
 }
 
@@ -37,35 +36,23 @@ const { clubs, intl, organizationAlias, localePrefix = '' } = Astro.props;
     <p>{intl.formatMessage(messages.orgPageNoClubs)}</p>
   ) : (
     <ul class="cl-match-card-grid">
-      {clubs.map((club) => {
-        const clubHref = optionalOrganizationClubPageUrl({
-          organizationAlias,
-          clubAlias: club.alias,
-          localePrefix,
-        });
-        return (
-          <li>
-            {clubHref ? (
-              <Card as="article">
-                <ClubIdentity
-                  name={club.name}
-                  abbreviation={club.abbreviation}
-                  emblemSrc={club.emblemSrc}
-                  placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
-                  href={clubHref}
-                />
-              </Card>
-            ) : (
-              <ClubIdentity
-                name={club.name}
-                abbreviation={club.abbreviation}
-                emblemSrc={club.emblemSrc}
-                placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
-              />
-            )}
-          </li>
-        );
-      })}
+      {clubs.map((club) => (
+        <li>
+          <Card as="article">
+            <ClubIdentity
+              name={club.name}
+              abbreviation={club.abbreviation}
+              emblemSrc={club.emblemSrc}
+              placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+              href={organizationClubPageUrl({
+                organizationAlias,
+                clubAlias: club.alias,
+                localePrefix,
+              })}
+            />
+          </Card>
+        </li>
+      ))}
     </ul>
   )}
 </section>
