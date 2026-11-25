@@ -4,6 +4,7 @@ import type { ResultStateLabels } from './result-state.js';
 import { publicIntl, sideSourceLabels } from './i18n/public-intl.js';
 import {
   isTvMatchHeading,
+  featuredTvMatch,
   nextTvMatches,
   orderTvMatches,
   pageTvMatches,
@@ -283,5 +284,97 @@ describe('nextTvMatches', () => {
 
   it('returns nothing when no scheduled match remains', () => {
     expect(nextTvMatches([match('final', 'final', '2026-11-20T10:00:00Z')], now, 1)).toEqual([]);
+  });
+});
+
+describe('next match under the delayed rule', () => {
+  const at = (iso: string): number => Date.parse(iso);
+  const scheduled = (key: string, scheduledAt: string | null) => ({
+    key,
+    state: 'upcoming',
+    scheduledAt,
+  });
+
+  it('counts a kickoff 3 minutes ago as next, since it is not delayed yet', () => {
+    const now = at('2026-11-25T10:03:00Z');
+    const next = nextTvMatches([scheduled('ten', '2026-11-25T10:00:00Z')], now, 1);
+    expect(next.map((match) => match.key)).toEqual(['ten']);
+  });
+
+  it('drops a match 20 minutes past kickoff; the following match is next', () => {
+    const now = at('2026-11-25T10:20:00Z');
+    const matches = [
+      scheduled('ten', '2026-11-25T10:00:00Z'),
+      scheduled('eleven', '2026-11-25T11:00:00Z'),
+    ];
+    expect(nextTvMatches(matches, now, 1).map((match) => match.key)).toEqual(['eleven']);
+  });
+
+  it('never makes a match without a kickoff next', () => {
+    const now = at('2026-11-25T10:00:00Z');
+    expect(nextTvMatches([scheduled('none', null)], now, 1)).toEqual([]);
+  });
+
+  it('falls back to the latest finished match before a delayed one', () => {
+    const now = at('2026-11-25T12:00:00Z');
+    const matches = [
+      scheduled('late', '2026-11-25T09:00:00Z'),
+      { key: 'done', state: 'final', scheduledAt: '2026-11-24T18:00:00Z' },
+    ];
+    expect(featuredTvMatch(matches, now)?.key).toBe('done');
+  });
+
+  it('shows the most recently delayed match, labelled, when nothing else is left', () => {
+    const now = at('2026-11-25T12:00:00Z');
+    const matches = [
+      scheduled('older', '2026-11-25T08:00:00Z'),
+      scheduled('recent', '2026-11-25T10:00:00Z'),
+    ];
+    const featured = featuredTvMatch(matches, now);
+    expect(featured?.key).toBe('recent');
+    // The label is the delayed one: the match is past kickoff by more than 15 minutes.
+    expect(Date.parse('2026-11-25T10:00:00Z') + 15 * 60_000 < now).toBe(true);
+  });
+
+  it('features nothing when no match is scheduled, finished or delayed', () => {
+    expect(featuredTvMatch([], at('2026-11-25T12:00:00Z'))).toBeUndefined();
+  });
+});
+
+describe('orderTvMatches keeps every entry', () => {
+  const entry = (key: string, state: string, scheduledAt?: string): TvMatchEntry => ({
+    key,
+    scope: '',
+    state: state as TvMatchEntry['state'],
+    stateLabel: state,
+    ...(scheduledAt === undefined ? {} : { scheduledAt }),
+    home: { label: 'H', name: 'H' },
+    away: { label: 'A', name: 'A' },
+  });
+
+  it('places disputed, cancelled and tbd entries in blocks after the three main ones', () => {
+    const entries = [
+      entry('disputed', 'disputed', '2026-11-02T10:00:00Z'),
+      entry('final', 'final', '2026-11-01T10:00:00Z'),
+      entry('cancelled', 'cancelled'),
+      entry('tbd', 'tbd', '2026-11-03T10:00:00Z'),
+      entry('live', 'live', '2026-11-04T10:00:00Z'),
+    ];
+    const ordered = orderTvMatches(entries, {
+      live: 'En vivo',
+      final: 'Finalizado',
+      disputed: 'En litige',
+      cancelled: 'Annulé',
+      tbd: 'À définir',
+    });
+    const entriesOut = ordered.filter((item) => !isTvMatchHeading(item));
+    expect(entriesOut).toHaveLength(entries.length);
+    expect(ordered.filter(isTvMatchHeading).map((item) => item.heading)).toEqual([
+      'En vivo',
+      'Finalizado',
+      'En litige',
+      'Annulé',
+      'À définir',
+    ]);
   });
 });

@@ -21,6 +21,8 @@ export interface TvStatisticsLabels {
   readonly hiddenPerson: string;
   readonly scheduledMatches: string;
   readonly status: string;
+  /** The four tournament states, named the way the header badges name them. */
+  readonly statusLabels: Readonly<Record<TvTournamentState, string>>;
   readonly inProgress: string;
   readonly matchesPlayed: string;
   readonly totalScored: string;
@@ -198,12 +200,13 @@ export function deriveTournamentFacts(
   labels: TvStatisticsLabels,
   matches: readonly (LiveMatch | OverviewMatch)[],
 ): readonly TournamentFact[] {
+  const status: TournamentFact = {
+    label: labels.status,
+    value: labels.statusLabels[tvTournamentState(matches)],
+  };
   const finalMatches = matches.filter((m) => m.state === 'final');
   if (finalMatches.length === 0) {
-    return [
-      { label: labels.scheduledMatches, value: matches.length },
-      { label: labels.status, value: labels.inProgress },
-    ];
+    return [{ label: labels.scheduledMatches, value: matches.length }, status];
   }
 
   let totalScore = 0;
@@ -238,6 +241,7 @@ export function deriveTournamentFacts(
     });
   }
 
+  facts.push(status);
   return facts;
 }
 
@@ -257,7 +261,7 @@ export function resolveChampion(
   const emblemUrlFor = (clubId?: string): string | undefined =>
     clubId === undefined ? undefined : clubs?.find((club) => club.clubId === clubId)?.emblemUrl;
 
-  const allFinal = matches.length > 0 && matches.every((m) => m.state === 'final');
+  const allFinal = tvTournamentState(matches) === 'finished';
   // A tournament that played several stages is decided by its last one, so the standings leader of
   // an earlier stage is never named its champion; the final match below or the resolved winners
   // the dashboard is given name it instead.

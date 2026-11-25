@@ -19,8 +19,13 @@ describe('tv-statistics', () => {
       // among them does not survive that, and the island then renders nothing
       // at all — the whole broadcast scorebug gone, with no type error and no
       // console message to say why.
+      // A plain map of strings is as serializable as a string: the status names are one such map.
       for (const [name, value] of Object.entries(labels)) {
-        expect(`${name}:${typeof value}`).toBe(`${name}:string`);
+        if (typeof value === 'object') {
+          for (const text of Object.values(value)) expect(typeof text).toBe('string');
+        } else {
+          expect(`${name}:${typeof value}`).toBe(`${name}:string`);
+        }
       }
       expect(() => structuredClone(labels)).not.toThrow();
     });
@@ -263,6 +268,7 @@ describe('tv-statistics', () => {
           value: 7,
           detail: 'Team C 5 - 2 Team D',
         },
+        { label: 'Status', value: 'Final' },
       ]);
     });
 
@@ -314,7 +320,7 @@ describe('tv-statistics', () => {
       const facts = deriveTournamentFacts(labels, matches);
       expect(facts).toEqual([
         { label: 'Scheduled matches', value: 1 },
-        { label: 'Status', value: 'In progress' },
+        { label: 'Status', value: 'Upcoming' },
       ]);
     });
   });
@@ -620,5 +626,27 @@ describe('tv-statistics progress and fallbacks', () => {
       'Club Atlético Lomas de Rivadavia',
       'Club Hispano Argentino',
     ]);
+  });
+});
+
+describe('the facts status reads the tournament state', () => {
+  const at = (state: string) => ({
+    state,
+    matchId: state,
+    stageNumber: 1,
+    home: { name: 'A' },
+    away: { name: 'B' },
+  });
+
+  it('reports the same state the header badge reads, for each of the four states', () => {
+    const statusOf = (matches: readonly object[]): string | undefined =>
+      deriveTournamentFacts(labels, matches as unknown as OverviewMatch[]).find(
+        (fact) => fact.label === labels.status,
+      )?.value as string | undefined;
+
+    expect(statusOf([at('upcoming')])).toBe(labels.statusLabels.scheduled);
+    expect(statusOf([at('live'), at('upcoming')])).toBe(labels.statusLabels.live);
+    expect(statusOf([at('final'), at('upcoming')])).toBe(labels.statusLabels.inProgress);
+    expect(statusOf([at('final'), at('final')])).toBe(labels.statusLabels.finished);
   });
 });

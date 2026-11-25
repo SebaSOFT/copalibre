@@ -140,12 +140,13 @@ export function isTvMatchHeading(item: TvMatchListItem): item is TvMatchHeading 
   return 'heading' in item;
 }
 
-/** The three blocks, in the order the list shows them. */
-const TV_MATCH_BLOCKS: readonly ResultState[] = ['live', 'upcoming', 'final'];
+/** The blocks the list leads with, in the order it shows them. */
+const TV_MATCH_BLOCKS: readonly string[] = ['live', 'upcoming', 'final'];
 
 /**
  * Orders matches into live, then scheduled by kickoff ascending, then finished by kickoff descending.
- * Each non-empty block opens with a heading that names its state.
+ * Any other state (disputed, cancelled, tbd) follows in blocks of its own, so no entry is lost. Each
+ * non-empty block opens with a heading that names its state.
  */
 export function orderTvMatches(
   entries: readonly TvMatchEntry[],
@@ -155,22 +156,31 @@ export function orderTvMatches(
     const at = entry.scheduledAt === undefined ? Number.NaN : Date.parse(entry.scheduledAt);
     return Number.isFinite(at) ? at : Number.POSITIVE_INFINITY;
   };
+  const otherStates = [
+    ...new Set(
+      entries.map((entry) => entry.state).filter((state) => !TV_MATCH_BLOCKS.includes(state)),
+    ),
+  ];
   const ordered: TvMatchListItem[] = [];
-  for (const state of TV_MATCH_BLOCKS) {
+  for (const state of [...TV_MATCH_BLOCKS, ...otherStates]) {
     const block = entries
       .filter((entry) => entry.state === state)
       .sort((left, right) =>
         state === 'final' ? kickoff(right) - kickoff(left) : kickoff(left) - kickoff(right),
       );
     if (block.length === 0) continue;
-    ordered.push({ heading: labels[state] ?? state, state }, ...block);
+    ordered.push(
+      { heading: labels[state as ResultState] ?? state, state: state as ResultState },
+      ...block,
+    );
   }
   return ordered;
 }
 
 /**
- * The earliest `count` scheduled matches whose kickoff is at or after `now`, earliest first.
- * A match whose kickoff has passed without a result is not next, whether or not it is overdue yet.
+ * The next matches of the list: scheduled matches that are not delayed (a match is delayed 15 minutes
+ * after kickoff without a result), earliest kickoff first. A scheduled match with no kickoff time is
+ * not next; it stays in the list.
  */
 export function nextTvMatches<
   T extends { readonly state: string; readonly scheduledAt?: string | null },
@@ -178,9 +188,34 @@ export function nextTvMatches<
   const nowMs = now instanceof Date ? now.getTime() : now;
   const kickoff = (match: T): number => Date.parse(match.scheduledAt ?? '');
   return matches
-    .filter((match) => match.state === 'upcoming' && kickoff(match) >= nowMs)
+    .filter(
+      (match) =>
+        match.state === 'upcoming' && Number.isFinite(kickoff(match)) && !isDelayed(match, nowMs),
+    )
     .sort((left, right) => kickoff(left) - kickoff(right))
     .slice(0, Math.max(0, Math.trunc(count)));
+}
+
+/**
+ * The match a featured panel shows when no match is live, in this order:
+ * 1. the next match that is not delayed;
+ * 2. otherwise the latest finished match;
+ * 3. otherwise the most recently delayed match, which carries its delayed label;
+ * 4. otherwise nothing.
+ */
+export function featuredTvMatch<
+  T extends { readonly state: string; readonly scheduledAt?: string | null },
+>(matches: readonly T[], now: Date | number): T | undefined {
+  const next = nextTvMatches(matches, now, 1)[0];
+  if (next) return next;
+  const byKickoffDesc = (left: T, right: T): number =>
+    Date.parse(right.scheduledAt ?? '') - Date.parse(left.scheduledAt ?? '');
+  const finished = matches.filter((match) => match.state === 'final').sort(byKickoffDesc)[0];
+  if (finished) return finished;
+  const nowMs = now instanceof Date ? now.getTime() : now;
+  return matches
+    .filter((match) => match.state === 'upcoming' && isDelayed(match, nowMs))
+    .sort(byKickoffDesc)[0];
 }
 
 /**

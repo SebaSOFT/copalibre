@@ -196,6 +196,12 @@ export function tvStatisticsLabels(intl: IntlShape) {
     hiddenPerson: intl.formatMessage(messages.personHiddenAtRequest),
     scheduledMatches: intl.formatMessage(messages.tvStatsScheduledMatches),
     status: intl.formatMessage(messages.tvStatsStatus),
+    statusLabels: {
+      scheduled: intl.formatMessage(messages.resultStateUpcoming),
+      live: intl.formatMessage(messages.resultStateLive),
+      inProgress: intl.formatMessage(messages.completionInProgress),
+      finished: intl.formatMessage(messages.resultStateFinal),
+    },
     inProgress: intl.formatMessage(messages.tvStatsInProgress),
     matchesPlayed: intl.formatMessage(messages.tvStatsMatchesPlayed),
     totalScored: intl.formatMessage(messages.tvStatsTotalScored),
@@ -303,6 +309,8 @@ export function tvMultiCourtGridLabels(intl: IntlShape) {
       time: '{time}',
     }),
     inProgress: intl.formatMessage(messages.completionInProgress),
+    delayed: intl.formatMessage(messages.resultStateDelayed),
+    clockLabel: intl.formatMessage(messages.tvDashboardClockLabel),
     pageOf: intl.formatMessage(messages.tvDashboardPageOf, { page: '{page}', total: '{total}' }),
   };
 }
