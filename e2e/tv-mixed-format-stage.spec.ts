@@ -318,13 +318,28 @@ test.afterAll(async () => {
 test('ranks each table zone under its own heading instead of one merged list', async ({ page }) => {
   await gotoTv(page, `${tvPath}?view=standings`);
 
-  const zones = page.getByTestId('tv-standings-zone');
-  await expect(zones).toHaveCount(2);
-  await expect(zones.nth(0).getByRole('heading', { name: 'Zona A' })).toBeVisible();
-  await expect(zones.nth(0)).toContainText('Andes Talleres');
-  await expect(zones.nth(0)).not.toContainText('Ciudad de Buenos Aires');
-  await expect(zones.nth(1).getByRole('heading', { name: 'Zona B' })).toBeVisible();
-  await expect(zones.nth(1)).toContainText('Ciudad de Buenos Aires');
+  // The full frame pages through the zones a page at a time, whole zones only: walk the pages until
+  // each zone has been on screen with its own rows.
+  const seen = new Set<string>();
+  for (let rotation = 0; rotation < 4 && seen.size < 2; rotation += 1) {
+    const zones = page.getByTestId('tv-standings-zone');
+    const count = await zones.count();
+    for (let index = 0; index < count; index += 1) {
+      const zone = zones.nth(index);
+      const heading = ((await zone.getByRole('heading').first().textContent()) ?? '').trim();
+      if (heading.includes('Zona A')) {
+        seen.add('A');
+        await expect(zone).toContainText('Andes Talleres');
+        await expect(zone).not.toContainText('Ciudad de Buenos Aires');
+      }
+      if (heading.includes('Zona B')) {
+        seen.add('B');
+        await expect(zone).toContainText('Ciudad de Buenos Aires');
+      }
+    }
+    if (seen.size < 2) await page.waitForTimeout(10_500);
+  }
+  expect([...seen].sort()).toEqual(['A', 'B']);
 });
 
 test('lists the matches two to a row with their zone and round, and keeps the knockout zone in the bracket', async ({
@@ -353,7 +368,7 @@ test('lists the matches two to a row with their zone and round, and keeps the kn
 
 test('every image the kiosk asks for loads from the web application alone', async ({ page }) => {
   await gotoTv(page, `${tvPath}?view=standings&bg=discipline`);
-  await expect(page.getByTestId('tv-standings-zone')).toHaveCount(2);
+  await expect(page.getByTestId('tv-standings-zone').first()).toBeVisible();
 
   const emblems = page.locator('.tv-table-club-emblem img');
   await expect(emblems.first()).toBeVisible();
@@ -403,7 +418,7 @@ test('captures screenshots of the zone-aware kiosk at broadcast size', async ({ 
   await page.emulateMedia({ reducedMotion: 'reduce' });
 
   await gotoTv(page, `${tvPath}?view=standings`);
-  await expect(page.getByTestId('tv-standings-zone')).toHaveCount(2);
+  await expect(page.getByTestId('tv-standings-zone').first()).toBeVisible();
 
   await gotoTv(page, `${tvPath}?view=matches`);
   await expect(page.getByTestId('tv-match-list')).toBeVisible();

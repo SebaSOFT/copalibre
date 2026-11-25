@@ -466,37 +466,55 @@ test('view=standings pages all twenty-four rows at 1920×1080 under a table head
   expect(ranks.size).toBe(24);
 });
 
-test('four groups of four rows page through every row on the full frame, with the pager inside the frame', async ({
+test('groups of four and a group of one page through every row, never splitting a group that fits', async ({
   page,
 }) => {
   test.setTimeout(150_000);
   await page.setViewportSize({ width: 1920, height: 1080 });
-  const groups = ['A', 'B', 'C', 'D'];
-  activeOverview = {
-    ...overview,
-    matches: [],
-    standingsPreview: Array.from({ length: 16 }, (_, index) => ({
-      rank: index + 1,
-      entrantId: `grouped-${index + 1}`,
-      name: `Club Grupo ${groups[Math.floor(index / 4)]} ${(index % 4) + 1}`,
-      abbreviation: `G${index + 1}`,
-      clubId: `grouped-club-${index + 1}`,
-      statistics: { played: 3, points: 16 - index },
-      groupName: `Grupo ${groups[Math.floor(index / 4)]}`,
-    })),
-  };
+  // Four groups of four rows, then a group of one: seventeen rows in five groups.
+  const letters = ['A', 'B', 'C', 'D', 'E'];
+  const sizes = [4, 4, 4, 4, 1];
+  let rank = 0;
+  const rows = sizes.flatMap((size, group) =>
+    Array.from({ length: size }, (_, index) => {
+      rank += 1;
+      return {
+        rank,
+        entrantId: `grouped-${rank}`,
+        name: `Club Grupo ${letters[group]} ${index + 1}`,
+        abbreviation: `G${rank}`,
+        clubId: `grouped-club-${rank}`,
+        statistics: { played: 3, points: 20 - rank },
+        groupName: `Grupo ${letters[group]}`,
+      };
+    }),
+  );
+  activeOverview = { ...overview, matches: [], standingsPreview: rows };
   await gotoTv(page, `${TV_PATH}?view=standings&lang=es`);
 
   await expect(page.locator('.tv-standings-zone__name').first()).toContainText('Grupo A');
   const ranks = new Set<string>();
-  for (let rotation = 0; rotation < 10 && ranks.size < 16; rotation += 1) {
+  const split: string[] = [];
+  for (let rotation = 0; rotation < 12 && ranks.size < rows.length; rotation += 1) {
+    // Every table on screen holds its whole group: a group that fits a page is never cut in two.
+    const blocks = await page.locator('.tv-standings-zone').evaluateAll((zones) =>
+      zones.map((zone) => ({
+        heading: zone.querySelector('.tv-standings-zone__name')?.textContent ?? '',
+        rows: zone.querySelectorAll('tbody tr').length,
+      })),
+    );
+    for (const block of blocks) {
+      const expected = block.heading.includes('Grupo E') ? 1 : 4;
+      if (block.rows !== expected) split.push(`${block.heading}: ${block.rows} of ${expected}`);
+    }
     const pageRanks = await page
       .locator('.tv-standings-table tbody tr td:first-child')
       .allTextContents();
-    for (const rank of pageRanks) ranks.add(rank.trim());
-    if (ranks.size < 16) await page.waitForTimeout(10_500);
+    for (const value of pageRanks) ranks.add(value.trim());
+    if (ranks.size < rows.length) await page.waitForTimeout(10_500);
   }
-  expect(ranks.size).toBe(16);
+  expect(split).toEqual([]);
+  expect(ranks.size).toBe(rows.length);
 
   // Nothing of the page spills past its frame: the last row and the pager sit inside it.
   const frame = await page.locator('.tv-rail-content').boundingBox();
