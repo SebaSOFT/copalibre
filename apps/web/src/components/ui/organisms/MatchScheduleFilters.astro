@@ -81,11 +81,11 @@ interface Props {
   readonly tomorrowKey?: string;
   readonly state: MatchScheduleState;
   readonly view: MatchScheduleView;
-  /** The stage that contains each zone, so choosing a zone selects its stage. */
-  readonly zoneStages?: Readonly<Record<string, number>>;
-  /** The stage and zone that contain each group, so choosing a group selects both. */
-  readonly groupPlacements?: Readonly<
-    Record<string, { readonly stageNumber: number; readonly zone?: string }>
+  /** What choosing each zone also selects (its stage, when that is unambiguous). */
+  readonly zoneOverrides?: Readonly<Record<string, { readonly stageNumber?: number }>>;
+  /** What choosing each group also selects (its stage and zone, when that is unambiguous). */
+  readonly groupOverrides?: Readonly<
+    Record<string, { readonly stageNumber?: number; readonly zone?: string }>
   >;
   /** Whether the viewer may choose between rows and cards: only for a short scope. */
   readonly offerView: boolean;
@@ -121,8 +121,8 @@ const {
   state,
   view,
   offerView,
-  zoneStages = {},
-  groupPlacements = {},
+  zoneOverrides = {},
+  groupOverrides = {},
   filtersOpen,
   labels,
   buildUrl,
@@ -180,7 +180,7 @@ const hasTomorrow = tomorrowKey !== undefined && days.some((day) => day.key === 
               href={buildUrl({
                 zone,
                 group: undefined,
-                stageNumber: zoneStages[zone] ?? activeStageNumber,
+                stageNumber: zoneOverrides[zone]?.stageNumber ?? activeStageNumber,
               })}
               aria-current={activeZone === zone ? 'true' : undefined}
             >
@@ -207,8 +207,8 @@ const hasTomorrow = tomorrowKey !== undefined && days.some((day) => day.key === 
               class="cl-pill cl-focusable"
               href={buildUrl({
                 group,
-                stageNumber: groupPlacements[group]?.stageNumber ?? activeStageNumber,
-                zone: groupPlacements[group]?.zone,
+                stageNumber: groupOverrides[group]?.stageNumber ?? activeStageNumber,
+                zone: groupOverrides[group]?.zone ?? activeZone,
               })}
               aria-current={activeGroup === group ? 'true' : undefined}
             >

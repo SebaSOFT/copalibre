@@ -1,4 +1,8 @@
 ---
+import {
+  groupFilterOverrides,
+  zoneFilterOverrides,
+} from '../../../../../lib/schedule-filter-links.ts';
 import type { MatchCardData } from '../../../../../lib/matches-view.ts';
 import { defaultStandingsLayoutCode } from '../../../../../lib/public-tournament-navigation.ts';
 import { fetchPublicTableLayouts } from '../../../../../lib/public-api-client.ts';
@@ -61,9 +65,10 @@ if (!overviewData) {
   return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
-const standingsLayoutCode = defaultStandingsLayoutCode(
-  (await fetchPublicTableLayouts(organization!, tournament!))?.layouts ?? [],
+const tableLayouts = await fetchPublicTableLayouts(organization!, tournament!).catch(
+  () => undefined,
 );
+const standingsLayoutCode = defaultStandingsLayoutCode(tableLayouts?.layouts ?? []);
 const referenceDate = Date.now();
 const scheduleTimeZone = model.organizationTimeZone ?? 'UTC';
 const todayKey = calendarDayKey(referenceDate, scheduleTimeZone);
@@ -170,21 +175,13 @@ const bracketZoneKeys = new Set(
 const isBracketRow = (row: Pick<MatchCardData, 'stageNumber' | 'zoneName'>): boolean =>
   bracketZoneKeys.has(`${row.stageNumber}|${row.zoneName ?? ''}`);
 const offerView = offersViewChoice(schedule.rows, isBracketRow);
-// A zone or a group chosen from its row also selects the stage that contains it.
-const zoneStages: Record<string, number> = {};
-const groupPlacements: Record<string, { readonly stageNumber: number; readonly zone?: string }> =
-  {};
-for (const row of schedule.stageRows) {
-  if (row.zoneName !== undefined && zoneStages[row.zoneName] === undefined) {
-    zoneStages[row.zoneName] = row.stageNumber;
-  }
-  if (row.groupName !== undefined && groupPlacements[row.groupName] === undefined) {
-    groupPlacements[row.groupName] = {
-      stageNumber: row.stageNumber,
-      ...(row.zoneName === undefined ? {} : { zone: row.zoneName }),
-    };
-  }
-}
+// A zone or a group chosen from its row also selects the stage that contains it, when that is unambiguous.
+const zoneOverrides = Object.fromEntries(
+  zones.map((zone) => [zone, zoneFilterOverrides(schedule.stageRows, zone)]),
+);
+const groupOverrides = Object.fromEntries(
+  groups.map((group) => [group, groupFilterOverrides(zoneFiltered, group, zoneParam)]),
+);
 const view: MatchScheduleView = offerView && cardsRequested ? 'cards' : 'rows';
 const presentation = view === 'rows' ? 'rows' : compact ? 'compact-cards' : 'cards';
 const featuredMatch = featuredMatchForSchedule(
@@ -303,10 +300,10 @@ const trail = publicTrail(trailBase, [
       activeStageNumber={stageNumber}
       zones={zones}
       activeZone={zoneParam}
-      zoneStages={zoneStages}
+      zoneOverrides={zoneOverrides}
       groups={groups}
       activeGroup={groupParam}
-      groupPlacements={groupPlacements}
+      groupOverrides={groupOverrides}
       clubs={clubOptions}
       activeClub={clubParam}
       days={days}
