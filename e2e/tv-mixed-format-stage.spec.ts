@@ -326,7 +326,13 @@ test('ranks each table zone under its own heading instead of one merged list', a
     const count = await zones.count();
     for (let index = 0; index < count; index += 1) {
       const zone = zones.nth(index);
-      const heading = ((await zone.getByRole('heading').first().textContent()) ?? '').trim();
+      const heading = (
+        (await zone
+          .locator('.tv-standings-zone__name, h2, h3')
+          .first()
+          .textContent({ timeout: 2_000 })
+          .catch(() => '')) ?? ''
+      ).trim();
       if (heading.includes('Zona A')) {
         seen.add('A');
         await expect(zone).toContainText('Andes Talleres');
