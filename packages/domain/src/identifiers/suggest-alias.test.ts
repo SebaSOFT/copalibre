@@ -1,4 +1,9 @@
-import { isSuggestable, suggestAlias, suggestAvailableAlias } from './suggest-alias.js';
+import {
+  isSuggestable,
+  suggestAlias,
+  suggestAvailableAlias,
+  suggestRequiredClubAlias,
+} from './suggest-alias.js';
 import { Alias } from './alias.js';
 
 describe('suggesting an alias from a name', () => {
@@ -72,6 +77,38 @@ describe('a name somebody already used', () => {
     if (!suggestion) return;
     expect(suggestion.length).toBeLessThanOrEqual(64);
     expect(suggestion).not.toBe(base);
+    expect(Alias.create('club', suggestion).ok).toBe(true);
+  });
+});
+
+describe('a club alias that is always given', () => {
+  it('uses the name when it folds to something', () => {
+    expect(suggestRequiredClubAlias('Talleres', [])).toBe('talleres');
+  });
+
+  it('falls back to the abbreviation when the name folds to nothing', () => {
+    expect(suggestRequiredClubAlias('北京俱乐部', [], 'BJ')).toBe('bj');
+    expect(suggestRequiredClubAlias('Динамо', [], 'DIN')).toBe('din');
+  });
+
+  it('suffixes the abbreviation alias when it is taken', () => {
+    expect(suggestRequiredClubAlias('北京俱乐部', ['bj'], 'BJ')).toBe('bj-2');
+  });
+
+  it('falls back to club-1 when there is no abbreviation', () => {
+    expect(suggestRequiredClubAlias('北京俱乐部', [])).toBe('club-1');
+  });
+
+  it('takes the smallest free club-n', () => {
+    expect(suggestRequiredClubAlias('北京俱乐部', ['club-1'])).toBe('club-2');
+    expect(suggestRequiredClubAlias('北京俱乐部', ['club-1', 'club-3'])).toBe('club-2');
+  });
+
+  it('never returns an alias Alias refuses, even with every fallback taken', () => {
+    const taken = new Set<string>(['bj', ...Array.from({ length: 60 }, (_v, i) => `bj-${i + 2}`)]);
+    const suggestion = suggestRequiredClubAlias('北京俱乐部', taken, 'BJ');
+
+    expect(suggestion).toBe('club-1');
     expect(Alias.create('club', suggestion).ok).toBe(true);
   });
 });
