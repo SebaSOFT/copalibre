@@ -512,22 +512,28 @@ formats), not a separately stored value.
 
 ### Requirement: A table projection's club filter is reachable from the page and addressable in the URL
 
-The public table surfaces SHALL provide a control that applies the club filter, and SHALL carry the
-selected club in the page URL as `club={clubAlias}`, never as an identifier. Where a club emblem is
-rendered beside a row, activating it SHALL apply that club's filter. Selecting all clubs SHALL clear
-the filter. A page URL with the legacy `clubId` SHALL redirect to its `club` form.
+The public table surfaces SHALL provide a control that applies the club filter. The control SHALL
+offer every club fielding an entrant in the tournament, and SHALL carry the selected club in the page
+URL as `club={clubAlias}`, never as an identifier. Where a club emblem is shown beside a row,
+activating it SHALL apply that club's filter. Selecting all clubs SHALL clear the filter. A page URL
+with the legacy `clubId` SHALL redirect to its `club` form.
 
 #### Scenario: Filtering a leaderboard from the page
 - **WHEN** a visitor selects a club on a public table view
 - **THEN** the table shows only that club's rows, and the page URL carries `club=` with the club's
   alias
 
+#### Scenario: Every club is offered
+- **WHEN** a visitor opens the club filter of a tournament whose clubs include one whose alias was
+  backfilled on upgrade
+- **THEN** that club is offered like every other club
+
 #### Scenario: A linked filtered table renders filtered
 - **WHEN** a visitor opens a public table URL that names a club
 - **THEN** the table renders filtered to that club without further interaction
 
 #### Scenario: Activating a club emblem filters to that club
-- **WHEN** a visitor activates a club emblem rendered beside a table row
+- **WHEN** a visitor activates a club emblem shown beside a table row
 - **THEN** the table filters to that club
 
 #### Scenario: Clearing the filter restores every entrant
@@ -541,17 +547,18 @@ the filter. A page URL with the legacy `clubId` SHALL redirect to its `club` for
 
 #### Scenario: A club with no entrants renders an empty state
 - **WHEN** a visitor filters to a club fielding no entrant in this tournament
-- **THEN** the page renders an explicit empty state rather than an error
+- **THEN** the page shows an explicit empty state rather than an error
 
 #### Scenario: A legacy filtered link
-- **WHEN** a visitor opens a table page with `clubId` naming a club with an alias
+- **WHEN** a visitor opens a table page with `clubId` naming a club
 - **THEN** the site answers a permanent redirect to the same page with `club={clubAlias}` in place of
   `clubId`, keeping every other query parameter
 
 #### Scenario: A legacy link to a club without an alias
-- **WHEN** the legacy `clubId` names a club that has no alias
-- **THEN** the page renders filtered to that club without redirecting, and its own filter controls
-  offer only aliased clubs
+- **WHEN** a legacy `clubId` link was shared while its club had no alias, and the upgrade has since
+  backfilled one
+- **THEN** the site answers a permanent redirect to the same page with `club={backfilledAlias}` in place
+  of `clubId`, keeping every other query parameter
 
 #### Scenario: The CSV export names the club by alias
 - **WHEN** a filtered table offers its CSV download
@@ -1318,9 +1325,14 @@ name.
 
 ### Requirement: Team names link to their club page
 
-On public standings tables, regular match cards, schedule tables, the match report's scoreboard and
-roster headings and the overview's standings preview, a team name SHALL link to its club's page in
-that tournament when the club has an alias, and SHALL be plain text otherwise.
+A team name SHALL link to its club's page in that tournament on these public surfaces:
+- standings tables;
+- regular match cards;
+- schedule tables;
+- the match report's scoreboard and roster headings;
+- the overview's standings preview.
+
+A team with no club SHALL be shown as plain text.
 
 #### Scenario: From a standings row
 - **WHEN** a visitor activates "Club Hispano" in the standings table
@@ -1330,9 +1342,13 @@ that tournament when the club has an alias, and SHALL be plain text otherwise.
 - **WHEN** a visitor activates the match title of a regular card that also links its team names
 - **THEN** the match report opens, and each team name still opens its own club page
 
+#### Scenario: A team without a club
+- **WHEN** a team belongs to no club
+- **THEN** its name is shown as text with no link styling
+
 #### Scenario: A club without an alias
-- **WHEN** a team's club has no alias
-- **THEN** its name is rendered as text with no link styling
+- **WHEN** a team's club reaches the page without an alias, which the API contract no longer allows
+- **THEN** its name is shown as text with no link styling rather than failing the page
 
 ### Requirement: The tournament's teams tab opens the club index
 

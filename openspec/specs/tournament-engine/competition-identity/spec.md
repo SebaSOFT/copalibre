@@ -93,11 +93,10 @@ The abbreviation SHALL NOT be derived from the name, and SHALL NOT be substitute
   competing
 
 ### Requirement: A club is reachable by a path identifier that may be suggested
-A club SHALL be able to carry an alias, unique within its organization, and the system SHALL be able
-to suggest one from the club's name — which the abbreviation is deliberately never derived from,
-because an alias is a transformation and an abbreviation is a choice. Every suggestion the system
-offers SHALL itself be a valid alias — never a value that would fail the same validation an organizer's
-own input is subject to.
+Every club SHALL carry an alias, unique within its organization. The system SHALL suggest one from
+the club's name. The abbreviation is deliberately never derived from the name, because an alias is a
+transformation and an abbreviation is a choice. Every suggestion the system offers SHALL itself be a
+valid alias, never a value that fails the validation an organizer's own input must pass.
 
 #### Scenario: An alias is suggested from the name
 - **WHEN** a club named "Club Atlético San Martín" is created without an alias
@@ -116,6 +115,37 @@ own input is subject to.
   already has a club whose alias equals that full-length base
 - **THEN** the second club is offered a suggestion that still satisfies the length limit, not a
   suggestion that exceeds it
+
+### Requirement: A suggested club alias is never empty
+A suggested alias SHALL never be empty. When the club's name folds to no usable character, the
+system SHALL suggest:
+- the club's abbreviation, folded into an alias, when the club has one;
+- otherwise `club-<n>`, with the smallest `n` not already taken in the organization.
+
+#### Scenario: A name with no foldable character falls back to the abbreviation
+- **WHEN** a club named "北京俱乐部" with abbreviation `BJ` is created without an alias
+- **THEN** it is given `bj`
+
+#### Scenario: A name and abbreviation with no foldable character fall back to a numbered alias
+- **WHEN** a club named "Динамо" with no abbreviation is created without an alias, and the
+  organization already has a club whose alias is `club-1`
+- **THEN** it is given `club-2`
+
+### Requirement: A club alias cannot be cleared
+A club SHALL NOT be stored without an alias, and an alias SHALL NOT be cleared. It may only be
+replaced by another valid alias that is free in the organization.
+
+#### Scenario: An alias cannot be cleared
+- **WHEN** an organizer edits a club and submits an empty alias
+- **THEN** the edit is refused with the club-conflict error naming the alias, and the stored alias is
+  unchanged
+
+#### Scenario: Existing clubs without an alias are backfilled on upgrade
+- **WHEN** an installation whose clubs include some with no alias is upgraded to this version
+- **THEN** every such club gets an alias by the same suggestion rules, processed oldest first, and
+  each one is unique in its organization
+- **AND** clubs that already had an alias keep it unchanged
+- **AND** running the upgrade again changes nothing
 
 ### Requirement: A person may declare a nationality
 
