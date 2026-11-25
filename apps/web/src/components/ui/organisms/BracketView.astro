@@ -143,7 +143,6 @@ const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((b
   */}
   {(['full', 'compact'] as const).map((density) => (
     <div class={`cl-bracket-stage__frame cl-bracket-stage__frame--${density}`}>
-      <p class="cl-bracket-stage__hint">{intl.formatMessage(messages.bracketScrollHint)}</p>
       <div
         aria-label={intl.formatMessage(messages.bracketScrollAriaLabel)}
         class={`cl-bracket-stage__scroll cl-bracket-stage__scroll--${density}`}
@@ -168,6 +167,7 @@ const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((b
           overallPlaceOffset={overallPlaceOffset}
         />
       </div>
+      <p class="cl-bracket-stage__hint">{intl.formatMessage(messages.bracketScrollHint)}</p>
     </div>
   ))}
 
@@ -245,7 +245,7 @@ const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((b
                                 aria-pressed={
                                   slot.entrantId === initialEntrantId ? 'true' : 'false'
                                 }
-                                class="cl-journey-name cl-focusable"
+                                class="cl-journey-name"
                                 data-entrant-id={slot.entrantId}
                                 variant="secondary"
                               >
