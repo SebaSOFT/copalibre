@@ -2275,7 +2275,7 @@ function compositions(): string {
     '.cl-bracket-stage { display: grid; gap: var(--cl-space-4); min-width: 0; }',
     '',
     '.cl-bracket-stage__scroll { overflow-x: auto; scrollbar-gutter: stable; max-width: 100%; }',
-    // A bracket wider than its panel says so: a hint above it and an edge fade on each side that
+    // A bracket wider than its panel says so: a hint below it and an edge fade on each side that
     // still has matches out of view. The frame is transparent to layout; the hint shows only while
     // a scroller is marked as overflowing, which only script does, so without it no hint appears.
     '.cl-bracket-stage__frame { display: contents; }',
