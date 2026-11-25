@@ -93,9 +93,11 @@ const stageMatches = await fetchMatchesView(organization!, tournament!, { stageN
 );
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
-const standingsLayoutCode = defaultStandingsLayoutCode(
-  (await fetchPublicTableLayouts(organization!, tournament!))?.layouts ?? [],
+// One guarded read of the layouts serves both the standings table and the tab's destination.
+const layoutsResponse = await fetchPublicTableLayouts(organization!, tournament!).catch(
+  () => undefined,
 );
+const standingsLayoutCode = defaultStandingsLayoutCode(layoutsResponse?.layouts ?? []);
 const clubResolution = resolveClubFilter(Astro.url.searchParams, model.clubs);
 if ('redirectSearch' in clubResolution) {
   const location = clubResolution.redirectSearch
@@ -117,11 +119,6 @@ const clubFilter = activeClubAlias
 // This stage's own group-phase table (e.g. a round-robin group's standings),
 // when its discipline declares one — an elimination stage naturally has
 // none, and the bracket above is its own ranking.
-const needsStandingsTable =
-  layoutMode !== 'bracket' && (layoutMode !== 'zones' || zoneLayouts.some((l) => l !== 'bracket'));
-const layoutsResponse = needsStandingsTable
-  ? await fetchPublicTableLayouts(organization!, tournament!)
-  : undefined;
 const groupPhaseLayout = layoutsResponse?.layouts.find((one) => one.target === 'group-phase');
 const standingsCsvHref = groupPhaseLayout
   ? publicTableCsvUrl(organization!, tournament!, groupPhaseLayout.code, stageNumber, clubFilter)

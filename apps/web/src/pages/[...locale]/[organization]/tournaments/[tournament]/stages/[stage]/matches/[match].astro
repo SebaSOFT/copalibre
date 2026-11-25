@@ -129,9 +129,10 @@ const model = buildMatchReport(response, {
       : humanizeCode(code),
 });
 
+// Both reads are optional for the tabs: when either fails, the page still renders with what is known.
 const [tournamentOverviewData, tableLayouts] = await Promise.all([
-  fetchOverview(organization!, tournament!),
-  fetchPublicTableLayouts(organization!, tournament!),
+  fetchOverview(organization!, tournament!).catch(() => undefined),
+  fetchPublicTableLayouts(organization!, tournament!).catch(() => undefined),
 ]);
 const tournamentOverview = tournamentOverviewData
   ? buildOverview(mapOverviewResponse(tournamentOverviewData, resolvedLocale))
@@ -392,10 +393,12 @@ const structuredData = {
     overflow-x: hidden;
   }
 
+  /* The stack gap between match sections, so the bracket's link does not sit on the panels. */
   .cl-match-details {
     display: flex;
     flex-direction: column;
     gap: var(--cl-space-6);
+    margin-top: var(--cl-space-6);
   }
 
   .cl-match-details__side {

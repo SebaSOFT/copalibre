@@ -62,9 +62,10 @@ if (!overviewData || !dashboard) {
 }
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
-const standingsLayoutCode = defaultStandingsLayoutCode(
-  (await fetchPublicTableLayouts(organization!, tournament!))?.layouts ?? [],
+const tableLayouts = await fetchPublicTableLayouts(organization!, tournament!).catch(
+  () => undefined,
 );
+const standingsLayoutCode = defaultStandingsLayoutCode(tableLayouts?.layouts ?? []);
 const localePrefix = locale ? `/${locale}` : '';
 const canonicalPath = `${localePrefix}${model.canonicalPath}/live`;
 const reportPath = (stageNumber: number, matchNumber: number) =>

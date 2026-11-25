@@ -36,7 +36,7 @@ const intl = publicIntl(resolvedLocale);
 const [overviewData, profile, tableLayouts] = await Promise.all([
   fetchOverview(organization!, tournament!),
   fetchPlayerProfile(organization!, tournament!, personId!),
-  fetchPublicTableLayouts(organization!, tournament!),
+  fetchPublicTableLayouts(organization!, tournament!).catch(() => undefined),
 ]);
 
 if (!overviewData || !profile) {
@@ -65,9 +65,7 @@ const [statistics, matchesViewData] = await Promise.all([
 ]);
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
-const standingsLayoutCode = defaultStandingsLayoutCode(
-  (await fetchPublicTableLayouts(organization!, tournament!))?.layouts ?? [],
-);
+const standingsLayoutCode = defaultStandingsLayoutCode(tableLayouts?.layouts ?? []);
 const title = `${profile.displayName} — ${displayName(model)}`;
 const localePrefix = locale ? `/${locale}` : '';
 const tournamentCanonicalPath = `${localePrefix}${model.canonicalPath}`;

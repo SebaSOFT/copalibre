@@ -80,9 +80,6 @@ if (!overviewData) {
 }
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
-const standingsLayoutCode = defaultStandingsLayoutCode(
-  (await fetchPublicTableLayouts(organization!, tournament!))?.layouts ?? [],
-);
 const clubInfo = model.clubs?.find((entry) => entry.alias === club);
 if (!clubInfo) {
   // A link shared before the club changed its alias keeps working: it moves permanently to the
@@ -154,6 +151,7 @@ const overlayedMatches: readonly MatchCardData[] = mappedMatches.map((match) => 
 });
 
 const declaredLayouts = layoutsRaw?.layouts ?? [];
+const standingsLayoutCode = defaultStandingsLayoutCode(layoutsRaw?.layouts ?? []);
 const groupPhaseLayout = declaredLayouts.find((one) => one.target === 'group-phase');
 const playerLayout = declaredLayouts.find(
   (one) =>
