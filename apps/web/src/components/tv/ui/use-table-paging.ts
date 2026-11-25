@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useEffect, useMemo, useState, type RefObject } from 'react';
 
 /** Space kept between the last row on a page and its pager. */
 const PAGER_GAP_PX = 24;
@@ -70,14 +70,22 @@ function rowUnits(elements: readonly Element[]): readonly { top: number; bottom:
   return [...units.values()].sort((left, right) => left.top - right.top);
 }
 
+/** The panel's box as the observer last reported it, in CSS pixels. */
+interface PanelBox {
+  readonly width: number;
+  readonly height: number;
+}
+
 /**
  * Pages a table to the rows its panel can hold. The panel's own geometry decides it: the rendered rows
  * whose bottoms end above the frame, with room kept for the pager, are the page. A page therefore never
  * clips its rows or its pager, and a page takes whole segments (groups) when `segments` names them.
  *
- * It measures when the page has rendered, when the frame's height changes (a `ResizeObserver` on the
- * panel is the only ongoing trigger), and once when the fonts are ready. A frame shorter than
- * {@link MIN_FRAME_ROWS} rows is not measured.
+ * Every measurement is taken under one key: the panel's width and height (from a `ResizeObserver`),
+ * the row total, the segments, whether the hook is enabled, and the fonts once they are ready. A key
+ * change starts again from every row, since a larger frame or a larger list may hold more. Within one
+ * key the size only shrinks: each rendered page that overflows its frame sets the size to the rows that
+ * fit. A frame shorter than {@link MIN_FRAME_ROWS} rows is not measured.
  *
  * With `page` given, the caller turns the pages; without it, the page advances on the rotation interval
  * when `rotate` is set.
@@ -107,20 +115,23 @@ export function useTablePaging<T>(
   },
 ): TablePaging<T> {
   const total = rows.length;
-  const [measuredSize, setMeasuredSize] = useState(() => Math.min(total, initialSize ?? total));
+  const segmentsKey = segments?.join(',') ?? '';
+  const [box, setBox] = useState<PanelBox | undefined>(undefined);
+  const [fontsReady, setFontsReady] = useState(false);
   const [rotatedIndex, setPageIndex] = useState(0);
-  const [measureTick, setMeasureTick] = useState(0);
-  // The most rows a page has been seen to hold without overflowing, until the frame changes: a page
-  // that grew back past it would only shrink again.
-  const ceiling = useRef(total);
-  // The rows on screen when the hook last measured them; a change from that is the hook's own doing.
-  const rowsAtMeasure = useRef(total);
-  // The frame height the hook last measured at.
-  const heightAtMeasure = useRef(-1);
-  const totalRef = useRef(total);
-  totalRef.current = total;
-  const applySize = (next: number): void => setMeasuredSize(next);
-  const size = Math.max(1, Math.min(measuredSize || total || 1, total || 1));
+  const [measured, setMeasured] = useState<
+    { readonly key: string; readonly size: number } | undefined
+  >(undefined);
+  const measureKey = [box?.width, box?.height, total, segmentsKey, enabled, fontsReady].join('|');
+  // Before any measurement the page holds its initial size; a new key starts again from every row.
+  const size = Math.max(
+    1,
+    measured?.key === measureKey
+      ? Math.min(measured.size, total || 1)
+      : measured === undefined
+        ? Math.min(total, initialSize ?? total) || 1
+        : total || 1,
+  );
   const bounds = useMemo(
     () => (segments === undefined ? pageBoundaries([total], size) : pageBoundaries(segments, size)),
     [total, size, segments],
@@ -128,33 +139,31 @@ export function useTablePaging<T>(
   const pageCount = bounds.length;
   const pageIndex = (page ?? rotatedIndex) % pageCount;
 
-  // The frame's height changes: start again from every row, since a taller frame may hold more.
+  // The panel's box: the observer reports it when it starts watching and on every change. Changes under
+  // a pixel are not a new frame.
   useEffect(() => {
     if (!enabled) return;
     const panel = panelRef.current;
     if (!panel || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(() => {
-      const height = panel.clientHeight;
-      const rows = rowUnits(Array.from(panel.querySelectorAll<HTMLElement>(rowSelector))).length;
-      // Rows on screen that differ from the last measurement are the page turning over its own size, and
-      // a frame that is the height the hook last measured is its own render too: nothing outside changed.
-      // The same rows in a frame of another height are an outside resize: the page starts again from
-      // every row.
-      const outside = height !== heightAtMeasure.current && rows === rowsAtMeasure.current;
-      if (!outside) return;
-      ceiling.current = totalRef.current;
-      applySize(totalRef.current);
-      setMeasureTick((tick) => tick + 1);
+      const next = { width: panel.clientWidth, height: panel.clientHeight };
+      setBox((previous) =>
+        previous !== undefined &&
+        Math.abs(previous.width - next.width) < 1 &&
+        Math.abs(previous.height - next.height) < 1
+          ? previous
+          : next,
+      );
     });
     observer.observe(panel);
     return () => observer.disconnect();
-  }, [enabled, panelRef, rowSelector]);
+  }, [enabled, panelRef]);
 
-  // The fonts settle the frame's edges once, after the first paint.
+  // The fonts settle the frame's edges once per mount, after the first paint.
   useEffect(() => {
     let cancelled = false;
     void document.fonts?.ready.then(() => {
-      if (!cancelled) setMeasureTick((tick) => tick + 1);
+      if (!cancelled) setFontsReady(true);
     });
     return () => {
       cancelled = true;
@@ -165,15 +174,11 @@ export function useTablePaging<T>(
     if (!enabled) return;
     const panel = panelRef.current;
     if (!panel || total === 0) return;
-    ceiling.current = Math.min(ceiling.current, total);
 
-    const measure = (): void => {
+    const frame = window.requestAnimationFrame(() => {
       if (panel.clientHeight === 0) return;
-      const rendered = Array.from(panel.querySelectorAll<HTMLElement>(rowSelector));
-      const units = rowUnits(rendered);
+      const units = rowUnits(Array.from(panel.querySelectorAll<HTMLElement>(rowSelector)));
       if (units.length === 0) return;
-      rowsAtMeasure.current = units.length;
-      heightAtMeasure.current = panel.clientHeight;
       const unitHeights = units.map((unit) => unit.bottom - unit.top);
       if (unitHeights.some((height) => height <= 0)) return;
       const minUnit = Math.min(...unitHeights);
@@ -196,27 +201,16 @@ export function useTablePaging<T>(
         if (unit.bottom + reserved > frameBottom) break;
         fit += 1;
       }
-      const rendered_ = units.length;
-      if (fit < rendered_) {
-        // Too many rows: keep the ones that fit, and do not grow past them again.
-        const kept = Math.max(1, Math.min(total, fit));
-        ceiling.current = Math.min(ceiling.current, kept);
-        applySize(kept);
-      } else if (rendered_ < Math.min(total, ceiling.current)) {
-        // Every rendered row fits: take the rows the room below them still holds, up to the ceiling.
-        const last = units[units.length - 1];
-        const spare = Math.floor((frameBottom - reserved - (last?.bottom ?? 0)) / minUnit);
-        if (spare > 0) {
-          applySize(Math.min(total, ceiling.current, rendered_ + spare));
-        }
-      }
-    };
-
-    const frame = window.requestAnimationFrame(measure);
+      // A page that overflows shrinks to the rows that fit. A page that fits never grows the size here.
+      if (fit >= units.length) return;
+      const next = Math.max(1, Math.min(size, fit));
+      if (next === size && measured?.key === measureKey) return;
+      setMeasured({ key: measureKey, size: next });
+    });
     return () => window.cancelAnimationFrame(frame);
-    // Every page is measured as it renders: a page of several groups carries headings the row count
-    // does not, so a page can overflow the capacity the first page showed.
-  }, [enabled, panelRef, total, measuredSize, measureTick, rowSelector, pagerSelector, pageIndex]);
+    // The page index is a trigger: a page of several groups carries headings the row count does not, so
+    // every page is measured as it renders.
+  }, [enabled, panelRef, measureKey, measured, size, pageIndex, rowSelector, pagerSelector, total]);
 
   useEffect(() => {
     if (!enabled || !rotate || page !== undefined || pageCount <= 1) return;
