@@ -111,6 +111,45 @@ const report = (ordinal: number) => ({
   timeline: [],
 });
 
+/*
+ * A tournament between matches: six finished, two still to come. Its header reads "In progress", not
+ * "Scheduled", and the featured panel shows the next match with its start time and court.
+ */
+const IN_PROGRESS = 'apertura-en-curso';
+const IN_PROGRESS_BASE = `/api/organizations/${ORGANIZATION}/tournaments/${IN_PROGRESS}`;
+const IN_PROGRESS_TV = `/tv/${ORGANIZATION}/tournaments/${IN_PROGRESS}`;
+const progressMatch = (ordinal: number, finished: boolean) => ({
+  matchId: `progress-${ordinal}`,
+  matchNumber: ordinal,
+  stageOrdinal: ordinal,
+  stageNumber: 1,
+  round: 1,
+  status: finished ? 'final' : 'upcoming',
+  homeEntrantId: `progress-home-${ordinal}`,
+  homeName: club(ordinal, 'A'),
+  homeAbbreviation: abbreviation(ordinal, 'A'),
+  awayEntrantId: `progress-away-${ordinal}`,
+  awayName: club(ordinal, 'B'),
+  awayAbbreviation: abbreviation(ordinal, 'B'),
+  ...(finished ? { homeScore: 2, awayScore: 1, scheduledAt: kickoff(ordinal) } : {}),
+  ...(finished
+    ? { venueName: 'Huarpes' }
+    : {
+        scheduledAt: new Date(Date.UTC(2099, 10, 1 + ordinal, 13, 45)).toISOString(),
+        venueName: ordinal === 7 ? 'Aldo Cantoni' : 'Huarpes',
+      }),
+});
+const progressMatches = [1, 2, 3, 4, 5, 6, 7, 8].map((ordinal) =>
+  progressMatch(ordinal, ordinal <= 6),
+);
+const inProgressOverview = {
+  ...overview,
+  tournamentAlias: IN_PROGRESS,
+  status: 'in-progress',
+  matches: progressMatches,
+};
+const inProgressMatchesView = { matches: progressMatches };
+
 const requested: string[] = [];
 let server: Server;
 test.beforeAll(async ({ workerPort }) => {
@@ -118,7 +157,24 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
     requested.push(path ?? '');
-    if (path === '/api/organizations') {
+    if (path?.startsWith(IN_PROGRESS_BASE)) {
+      const rest = path.slice(IN_PROGRESS_BASE.length);
+      const body =
+        rest === '/overview'
+          ? inProgressOverview
+          : rest === '/matches-view'
+            ? inProgressMatchesView
+            : rest === '/live'
+              ? { matches: [] }
+              : rest === '/stages/1/bracket'
+                ? { format: 'round-robin', zones: [] }
+                : undefined;
+      if (body) res.end(JSON.stringify(body));
+      else {
+        res.statusCode = 404;
+        res.end('{}');
+      }
+    } else if (path === '/api/organizations') {
       res.end(JSON.stringify([{ alias: ORGANIZATION, primaryLanguage: 'es' }]));
     } else if (path === `${BASE}/overview`) res.end(JSON.stringify(overview));
     else if (path === `${BASE}/live`) res.end(JSON.stringify({ matches: [] }));
@@ -213,7 +269,7 @@ test('no machine timestamp reaches the screen, the ticker included', async ({ pa
 
   const text = await page.locator('body').innerText();
   expect(text).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
-  // Latest finalized match first (D9 descending): match 36 at 2025-11-03T00:00Z = 2-nov 21:00 in San Juan.
+  // Latest finalized match first (descending by kickoff): match 36 at 2025-11-03T00:00Z = 2-nov 21:00 in San Juan.
   await expect(page.locator('.cl-ticker__meta').first()).toContainText('2-nov 21:00');
 });
 
@@ -244,4 +300,22 @@ test('the kiosk refreshes the live matches from an address that is served', asyn
 
   expect((await refresh).status()).toBe(200);
   expect(requested).not.toContain(`/api${BASE}/live`);
+});
+
+test('an in-progress tournament between matches reads En progreso and features the next match', async ({
+  page,
+}) => {
+  await gotoTv(page, `${IN_PROGRESS_TV}?lang=es`);
+
+  const badge = page.locator('.tv-scorebug__badge');
+  await expect(badge).toContainText('En progreso');
+  const start = page.locator('.tv-start-time');
+  await expect(start).toContainText('Aldo Cantoni');
+  await expect(start.locator('.tv-start-time__when')).not.toBeEmpty();
+  await expect(page.getByText('0 : 0')).toHaveCount(0);
+
+  // One poll interval later the same answer stands.
+  await page.waitForTimeout(11_000);
+  await expect(badge).toContainText('En progreso');
+  await expect(start).toContainText('Aldo Cantoni');
 });

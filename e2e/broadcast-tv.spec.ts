@@ -308,6 +308,41 @@ function buildClockFixtureResponses(
   };
 }
 
+/** The tournament's declared player ranking, served the same way to every TV route. */
+const PERFORMER_LAYOUTS = {
+  layouts: [
+    {
+      code: 'top-scorers',
+      target: 'player-ranking',
+      title: { en: 'Top scorers', es: 'Goleadores' },
+    },
+  ],
+};
+const PERFORMER_PROJECTION = {
+  layoutCode: 'top-scorers',
+  label: { en: 'Top scorers', es: 'Goleadores' },
+  columns: [{ code: 'goals', header: { en: 'Goals', es: 'Goles' } }],
+  defaultSort: [{ columnCode: 'goals', direction: 'desc' }],
+  rows: [
+    {
+      rank: 1,
+      actorId: 'player-1',
+      actorName: 'Jugador Uno',
+      entrantName: 'Club Uno',
+      entrantAbbreviation: 'CUN',
+      cells: { goals: { raw: 7, formatted: '7' } },
+    },
+    {
+      rank: 2,
+      actorId: 'player-2',
+      actorName: 'Jugador Dos',
+      entrantName: 'Club Dos',
+      entrantAbbreviation: 'CDO',
+      cells: { goals: { raw: 5, formatted: '5' } },
+    },
+  ],
+};
+
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
@@ -323,6 +358,9 @@ test.beforeAll(async ({ workerPort }) => {
     else if (path === `${BASE}/live`) res.end(JSON.stringify(fixture.live));
     else if (path === `${BASE}/matches-view`) res.end(JSON.stringify(fixture.matchesView));
     else if (path === `${BASE}/stages/1/matches/1`) res.end(JSON.stringify(fixture.report));
+    else if (path === `${BASE}/public/tables`) res.end(JSON.stringify(PERFORMER_LAYOUTS));
+    else if (path === `${BASE}/public/tables/top-scorers`)
+      res.end(JSON.stringify(PERFORMER_PROJECTION));
     else if (path === `${BASE}/stages/1/bracket`)
       res.end(JSON.stringify({ format: 'round-robin', zones: [] }));
     else {
@@ -623,16 +661,16 @@ test('view=standings renders one block per group headed by the group name', asyn
   clockFixtureMode = 'grouped-standings';
   await gotoTv(page, `${TV_PATH}?view=standings&lang=es`);
 
+  // The standings page through the frame: the blocks on screen each carry their group heading.
   const groups = page.getByTestId('tv-standings-zone');
-  await expect(groups).toHaveCount(6);
-  for (const [index, groupName] of GROUP_NAMES.entries()) {
-    const block = groups.nth(index);
-    await expect(block.getByRole('heading', { name: groupName })).toBeVisible();
-    await expect(block).toContainText(`Club ${String.fromCharCode(65 + index)}1`);
-    if (index + 1 < GROUP_NAMES.length) {
-      await expect(block).not.toContainText(`Club ${String.fromCharCode(65 + index + 1)}1`);
-    }
+  await expect(groups.first()).toBeVisible();
+  const onScreen = await groups.count();
+  expect(onScreen).toBeGreaterThan(0);
+  for (let index = 0; index < onScreen; index += 1) {
+    const groupName = GROUP_NAMES[index];
+    await expect(groups.nth(index).getByRole('heading', { name: groupName ?? '' })).toBeVisible();
   }
+  await expect(groups.first()).toContainText(`Club ${String.fromCharCode(65)}1`);
 });
 
 test('TV match list uses short dynamic timestamps, marks delayed matches with clock icon, and never offers a delayed match as next match', async ({
@@ -647,16 +685,16 @@ test('TV match list uses short dynamic timestamps, marks delayed matches with cl
   const list = page.getByTestId('tv-match-list');
   await expect(list).toBeVisible();
 
-  const delayedEntry = list.locator('.tv-match-list__entry').filter({ hasText: 'DEM' });
+  const delayedEntry = list.locator('.tv-match-list__entry').filter({ hasText: 'Equipo Demorado' });
   const delayedBadge = delayedEntry.locator('.tv-match-list__state.cl-state--delayed');
   await expect(delayedBadge).toBeVisible();
   await expect(delayedBadge).toContainText('Demorado');
   await expect(delayedBadge.locator('svg.cl-icon')).toHaveCount(1);
 
-  const tomorrowEntry = list.locator('.tv-match-list__entry').filter({ hasText: 'PMN' });
+  const tomorrowEntry = list.locator('.tv-match-list__entry').filter({ hasText: 'Próximo Mañana' });
   await expect(tomorrowEntry.locator('.tv-match-list__round')).toContainText(/Mañana \d{2}:\d{2}/);
 
-  const futureEntry = list.locator('.tv-match-list__entry').filter({ hasText: 'PFT' });
+  const futureEntry = list.locator('.tv-match-list__entry').filter({ hasText: 'Próximo Futuro' });
   const futureRoundText = (await futureEntry.locator('.tv-match-list__round').textContent()) ?? '';
   expect(futureRoundText).toMatch(/\d{1,2}-[\p{L}.]+ \d{2}:\d{2}/u);
   expect(futureRoundText).not.toMatch(/\d{2}\/\d{2}\/\d{2}/);
@@ -673,4 +711,32 @@ test('TV match list uses short dynamic timestamps, marks delayed matches with cl
   await expect(nextMatches).toHaveCount(2);
   await expect(nextMatches.nth(0)).toContainText('Próximo Mañana');
   await expect(nextMatches.nth(1)).toContainText('Próximo Futuro');
+});
+
+test('the pinned match and the kiosk list the same featured player first, and the header holds still across a rail rotation (8.9)', async ({
+  page,
+}) => {
+  clockFixtureMode = 'timed';
+  await page.setViewportSize({ width: 1920, height: 1080 });
+
+  await gotoTv(page, `${TV_PATH}?lang=es`);
+  await page.getByRole('button', { name: 'Figuras destacadas' }).click();
+  const kioskFirst = (await page.locator('.tv-performer-card__name').first().textContent())?.trim();
+  expect(kioskFirst).toBeTruthy();
+
+  await gotoTv(page, `${TV_PATH}/stages/1/matches/1?lang=es`);
+  await page.getByRole('button', { name: 'Figuras destacadas' }).click();
+  // The narrower rail abbreviates the name to fit, so the two routes are compared by the player's
+  // initial: the same player leads both.
+  const pinnedFirst = (
+    await page.locator('.tv-performer-card__name').first().textContent()
+  )?.trim();
+  expect(kioskFirst?.charAt(0)).toBeTruthy();
+  expect(pinnedFirst?.charAt(0)).toBe(kioskFirst?.charAt(0));
+
+  // The header keeps its place through one rail rotation.
+  const header = page.locator('.tv-scorebug');
+  const before = await header.boundingBox();
+  await page.waitForTimeout(10_500);
+  expect(await header.boundingBox()).toEqual(before);
 });

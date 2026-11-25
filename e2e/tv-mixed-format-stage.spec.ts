@@ -333,10 +333,11 @@ test('lists the matches two to a row with their zone and round, and keeps the kn
   await gotoTv(page, `${tvPath}?view=matches`);
 
   const list = page.getByTestId('tv-match-list');
-  const entries = list.getByRole('listitem');
+  // Block headings are list items too; the matches are the entries.
+  const entries = list.locator('.tv-match-list__entry');
   await expect(entries).toHaveCount(6);
   await expect(entries.first()).toHaveAccessibleName(
-    /Zona A · Round 1: Andes Talleres 2 – 2 Atletico Union/,
+    /Zona A · Round 2: Andes Talleres – – – Casa de Italia \(Upcoming\)/,
   );
   await expect(list).toContainText('Zona B · Round 1');
   await expect(list).not.toContainText('BOG');

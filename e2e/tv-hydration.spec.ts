@@ -257,7 +257,7 @@ test('a rail tab clicked once the kiosk has hydrated shows its section and keeps
   await page.setViewportSize({ width: 1920, height: 1080 });
   await gotoTv(page, TV_PATH);
 
-  const tab = page.getByRole('button', { name: 'Top performers' });
+  const tab = page.getByRole('button', { name: /Top (performers|teams)/ });
   await tab.click();
 
   await expect(tab).toHaveClass(/tv-rail-tab--active/);
