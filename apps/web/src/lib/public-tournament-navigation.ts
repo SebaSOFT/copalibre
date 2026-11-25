@@ -3,10 +3,22 @@ import { selectStageLayout } from './bracket.js';
 export type PublicTournamentSection =
   'overview' | 'matches' | 'live' | 'standings' | 'brackets' | 'teams';
 
-/** The stage facts the tab destinations depend on. */
+/** The stage facts the tab destinations depend on: its format and its declared zones' formats. */
 export interface PublicTournamentStageFacts {
   readonly stageNumber: number;
   readonly format?: string | undefined;
+  readonly zones?: readonly { readonly format?: string | undefined }[] | undefined;
+}
+
+/**
+ * A stage is drawn as a bracket when the stage page draws one: a zone whose format (or, lacking
+ * one, the stage's) is an elimination format. A stage with no zones takes its own format.
+ * This mirrors `resolveZoneLayouts`, which the stage page uses.
+ */
+export function stageDrawsBracket(stage: PublicTournamentStageFacts): boolean {
+  const zones = stage.zones ?? [];
+  if (zones.length === 0) return selectStageLayout(stage.format) === 'bracket';
+  return zones.some((zone) => selectStageLayout(zone.format ?? stage.format) === 'bracket');
 }
 
 export interface PublicTournamentNavigationInput {
@@ -58,10 +70,8 @@ export function publicTournamentNavigation({
         ? queryStage
         : 1;
 
-  const drawsBracket = (stage: PublicTournamentStageFacts | undefined): boolean =>
-    selectStageLayout(stage?.format) === 'bracket';
   const stageFacts = stages.find((stage) => stage.stageNumber === routeStage);
-  const firstBracketStage = stages.find(drawsBracket);
+  const firstBracketStage = stages.find(stageDrawsBracket);
   const standingsDestination =
     standingsLayoutCode === undefined
       ? undefined
@@ -78,17 +88,22 @@ export function publicTournamentNavigation({
         : `${tournamentPath}/stages/${firstBracketStage.stageNumber}`,
   };
 
+  // A route with no known stage facts is not a bracket. The current section is only ever one
+  // whose tab is rendered: a non-bracket stage marks Posiciones when it exists, else Partidos.
+  const bracketTabShown = destinations.brackets !== undefined;
+  const onBracket = bracketTabShown && stageFacts !== undefined && stageDrawsBracket(stageFacts);
+
   let current: PublicTournamentSection = 'overview';
   if (route[0] === 'matches') current = 'matches';
   else if (route[0] === 'live') current = 'live';
   else if (route[0] === 'stages') {
-    const onBracket = drawsBracket(stageFacts);
-    if (route[2] === 'matches') current = onBracket ? 'brackets' : 'matches';
-    else current = onBracket ? 'brackets' : 'standings';
+    if (onBracket) current = 'brackets';
+    else if (route[2] !== 'matches' && destinations.standings !== undefined) current = 'standings';
+    else current = 'matches';
   } else if (route[0] === 'clubs' || route[0] === 'players') current = 'teams';
   else if (
     route.length === 0 &&
-    standingsLayoutCode !== undefined &&
+    destinations.standings !== undefined &&
     params.get('tab') === standingsLayoutCode
   )
     current = 'standings';

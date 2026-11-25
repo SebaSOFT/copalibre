@@ -2,6 +2,8 @@ import { describe, expect, it } from '@jest/globals';
 import {
   defaultStandingsLayoutCode,
   publicTournamentNavigation,
+  type PublicTournamentNavigation,
+  type PublicTournamentSection,
 } from './public-tournament-navigation.js';
 
 const TOURNAMENT = '/es/liga-mendocina/tournaments/apertura-2026';
@@ -130,4 +132,119 @@ describe('defaultStandingsLayoutCode', () => {
     expect(defaultStandingsLayoutCode([{ code: 'other', target: 'player-ranking' }])).toBe('other');
     expect(defaultStandingsLayoutCode([])).toBeUndefined();
   });
+});
+
+describe('stage classification follows the zones the stage page draws', () => {
+  it('a round-robin stage with a single-elimination zone draws a bracket', () => {
+    const stages = [
+      { stageNumber: 1, format: 'round-robin' },
+      {
+        stageNumber: 2,
+        format: 'round-robin',
+        zones: [{ format: 'round-robin' }, { format: 'single-elimination' }],
+      },
+    ];
+    expect(navigate(`${TOURNAMENT}/stages/2`, '', stages).current).toBe('brackets');
+    expect(navigate(TOURNAMENT, '', stages).destinations.brackets).toBe(`${TOURNAMENT}/stages/2`);
+  });
+
+  it('a zone without its own format takes the stage format', () => {
+    const stages = [{ stageNumber: 2, format: 'single-elimination', zones: [{}] }];
+    expect(navigate(`${TOURNAMENT}/stages/2`, '', stages).current).toBe('brackets');
+  });
+
+  it('a stage whose zones are all leagues is not a bracket even under an elimination format', () => {
+    const stages = [
+      { stageNumber: 1, format: 'single-elimination', zones: [{ format: 'round-robin' }] },
+    ];
+    expect(navigate(`${TOURNAMENT}/stages/1`, '', stages).current).toBe('standings');
+    expect(navigate(TOURNAMENT, '', stages).destinations.brackets).toBeUndefined();
+  });
+});
+
+describe('a stage page without a standings layout or known facts', () => {
+  it('marks Partidos when the discipline declares no standings layout', () => {
+    const result = publicTournamentNavigation({
+      pathname: `${TOURNAMENT}/stages/1`,
+      search: '',
+      stages: [{ stageNumber: 1, format: 'round-robin' }],
+    });
+    expect(result?.current).toBe('matches');
+    expect(result?.destinations.standings).toBeUndefined();
+  });
+
+  it('never marks brackets for a stage with no known facts', () => {
+    const result = navigate(`${TOURNAMENT}/stages/9`, '', [
+      { stageNumber: 2, format: 'single-elimination' },
+    ]);
+    expect(result.current).not.toBe('brackets');
+    expect(result.current).toBe('standings');
+  });
+
+  it('marks brackets for an unknown stage when no Cuadros destination exists', () => {
+    const result = navigate(`${TOURNAMENT}/stages/9`, '', []);
+    expect(result.destinations.brackets).toBeUndefined();
+    expect(result.current).not.toBe('brackets');
+  });
+});
+
+describe('the current section always has a rendered destination', () => {
+  const routes = [
+    TOURNAMENT,
+    `${TOURNAMENT}?tab=${STANDINGS}`,
+    `${TOURNAMENT}/matches`,
+    `${TOURNAMENT}/live`,
+    `${TOURNAMENT}/stages/1`,
+    `${TOURNAMENT}/stages/2`,
+    `${TOURNAMENT}/stages/1/matches/3`,
+    `${TOURNAMENT}/stages/2/matches/3`,
+    `${TOURNAMENT}/stages/9`,
+    `${TOURNAMENT}/clubs`,
+    `${TOURNAMENT}/players/abc`,
+  ];
+  const configs: readonly {
+    readonly name: string;
+    readonly stages: readonly {
+      stageNumber: number;
+      format?: string;
+      zones?: { format?: string }[];
+    }[];
+    readonly standingsLayoutCode: string | undefined;
+  }[] = [
+    {
+      name: 'league with cups and standings',
+      stages: LEAGUE_WITH_CUPS,
+      standingsLayoutCode: STANDINGS,
+    },
+    { name: 'no standings layout', stages: LEAGUE_WITH_CUPS, standingsLayoutCode: undefined },
+    {
+      name: 'no bracket stage',
+      stages: [{ stageNumber: 1, format: 'round-robin' }],
+      standingsLayoutCode: STANDINGS,
+    },
+    { name: 'no stages at all', stages: [], standingsLayoutCode: undefined },
+  ];
+  const destinationOf = (
+    result: PublicTournamentNavigation,
+    section: PublicTournamentSection,
+  ): string | undefined => {
+    if (section === 'teams') return `${result.tournamentPath}/clubs`;
+    return result.destinations[section as keyof PublicTournamentNavigation['destinations']];
+  };
+
+  for (const config of configs) {
+    for (const route of routes) {
+      it(`${config.name}: ${route}`, () => {
+        const result = publicTournamentNavigation({
+          pathname: route.split('?')[0] ?? route,
+          search: route.includes('?') ? `?${route.split('?')[1]}` : '',
+          stages: config.stages,
+          standingsLayoutCode: config.standingsLayoutCode,
+        });
+        expect(result).toBeDefined();
+        if (result === undefined) return;
+        expect(destinationOf(result, result.current)).toBeDefined();
+      });
+    }
+  }
 });
