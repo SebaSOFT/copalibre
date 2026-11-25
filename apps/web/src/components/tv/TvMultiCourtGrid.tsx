@@ -10,7 +10,12 @@ import {
   type LiveMatch,
 } from '../../lib/live-state.js';
 import { activeSegmentLabel } from '../../lib/segment-label.js';
-import { presentState, type ResultStateLabels } from '../../lib/result-state.js';
+import {
+  presentDelayedState,
+  presentState,
+  type ResultStateLabels,
+} from '../../lib/result-state.js';
+import { isDelayed } from '../../lib/match-state.js';
 import { nextTvMatches } from '../../lib/tv-match-list.js';
 import { tvTournamentState, type TvTournamentState } from '../../lib/tv-statistics.js';
 import { formatTimestamp } from '../../lib/format-timestamp.js';
@@ -20,13 +25,14 @@ import { ValueFlash } from '../ui/atoms/ValueFlash.js';
 import { Icon } from '../ui/atoms/icon.js';
 import { useHydrated, usePrefersReducedMotion } from '../../lib/island-browser-state.js';
 import { TvStartTime } from './ui/atoms/TvStartTime.js';
-import { tvStatusToneClass } from './ui/atoms/tv-status-tone.js';
+import { TvStatusBadge } from './ui/atoms/TvStatusBadge.js';
+import { TvScorebug } from './ui/organisms/TvScorebug.js';
 
 const PAGE_ROTATE_MS = 20_000;
 /** The header's clock and the "next" comparison both move on this cadence. */
 const CLOCK_TICK_MS = 30_000;
 
-export type CourtGridSize = 2 | 4 | 6;
+export type CourtGridSize = 1 | 2 | 4 | 6;
 
 export interface TvMultiCourtGridProps {
   readonly initial: LiveDashboard;
@@ -35,32 +41,48 @@ export interface TvMultiCourtGridProps {
   readonly streamPath: string;
   /** `matchId -> "Cancha 1"` — resolved once at page load from the matches-view endpoint, the only public projection that already carries a venue name per match. */
   readonly venueNameByMatchId: Readonly<Record<string, string>>;
-  /** An explicit court count, or the live-match count clamped to the nearest supported size. */
+  /** An explicit court count, capped by the number of courts there are; `auto` follows that number. */
   readonly gridSize?: CourtGridSize | 'auto';
   readonly resultStateLabels: ResultStateLabels;
   readonly noMatchesLabel: string;
   readonly ariaLabel: string;
   readonly clockStoppedLabel?: string;
   readonly clockAriaLabel?: string;
-  /** The tournament's name, heading the kiosk header. */
+  /** The tournament's name and its organization's, heading the shared broadcast header. */
   readonly tournamentName?: string;
+  readonly organizationName?: string;
+  readonly logoUrl?: string;
   /** The tournament badge's text while matches are final and none is live. */
   readonly inProgressLabel: string;
+  /** A match past its kickoff with no result: the badge says so. */
+  readonly delayedLabel: string;
+  /** The header's wall-clock label. */
+  readonly clockLabel: string;
   /** "Página {page} de {total}", shown while the grid rotates. */
   readonly pageOfLabel: string;
   readonly timeZone?: string;
+  /**
+   * The instant the page was rendered at. The first render, on the server and in the island, reads it
+   * so both draw the same clock and the same "next" matches.
+   */
+  readonly referenceDate?: number;
 }
 
-/** One tile per court: its live match, else its next match. */
+/** One tile per court: its live match, else its next match, else its delayed match. */
 export interface CourtTile {
   readonly court: string;
   readonly match: LiveMatch;
   readonly live: boolean;
+  readonly delayed: boolean;
 }
 
+const KICKOFF_DESC = (left: LiveMatch, right: LiveMatch): number =>
+  Date.parse(right.scheduledAt ?? '') - Date.parse(left.scheduledAt ?? '');
+
 /**
- * The court tiles of a venue screen. A match without a court gets no tile, and a court with neither
- * a live nor a future match gets none. Live courts come first.
+ * The court tiles of a venue screen. A court shows its live match; otherwise its next match that is not
+ * delayed; otherwise its most recently delayed match, labelled as delayed. A court is never dropped
+ * because its match runs late. A match without a court gets no tile. Live courts come first.
  */
 export function courtTilesOf(
   matches: readonly LiveMatch[],
@@ -77,13 +99,21 @@ export function courtTilesOf(
   for (const [court, courtMatches] of byCourt) {
     const live = courtMatches.find((match) => match.state === 'live');
     if (live) {
-      tiles.push({ court, match: live, live: true });
+      tiles.push({ court, match: live, live: true, delayed: false });
       continue;
     }
     const next = nextTvMatches(courtMatches, now, 1)[0];
-    if (next) tiles.push({ court, match: next, live: false });
+    if (next) {
+      tiles.push({ court, match: next, live: false, delayed: false });
+      continue;
+    }
+    const delayed = courtMatches
+      .filter((match) => match.state === 'upcoming' && isDelayed(match, now))
+      .sort(KICKOFF_DESC)[0];
+    if (delayed) tiles.push({ court, match: delayed, live: false, delayed: true });
   }
-  return tiles.sort((a, b) => Number(b.live) - Number(a.live) || a.court.localeCompare(b.court));
+  const rank = (tile: CourtTile): number => (tile.live ? 0 : tile.delayed ? 2 : 1);
+  return tiles.sort((a, b) => rank(a) - rank(b) || a.court.localeCompare(b.court));
 }
 
 function resolveLanguageTag(locale: string): SupportedLanguage {
@@ -91,11 +121,32 @@ function resolveLanguageTag(locale: string): SupportedLanguage {
   return isSupportedLanguage(base) ? base : 'en';
 }
 
-/** The requested size, grown to the next supported size when the live courts need more tiles. */
-function resolveGridSize(requested: CourtGridSize | 'auto', liveCount: number): CourtGridSize {
-  const needed: CourtGridSize = liveCount <= 2 ? 2 : liveCount <= 4 ? 4 : 6;
-  if (requested === 'auto') return needed;
-  return requested >= needed ? requested : needed;
+/** The grid size that holds this many tiles: one tile fills the frame, then 2, 4 and 6. */
+function sizeForTiles(tileCount: number): CourtGridSize {
+  if (tileCount <= 1) return 1;
+  if (tileCount <= 2) return 2;
+  if (tileCount <= 4) return 4;
+  return 6;
+}
+
+/** The size that holds every live court on screen at once. */
+function sizeForLive(liveCount: number): CourtGridSize {
+  return sizeForTiles(liveCount);
+}
+
+/**
+ * The grid size follows the tile count: an explicit request is capped by the courts there are, and the
+ * live courts always fit on screen.
+ */
+function resolveGridSize(
+  requested: CourtGridSize | 'auto',
+  liveCount: number,
+  tileCount: number,
+): CourtGridSize {
+  const fitted = sizeForTiles(tileCount);
+  const wanted = requested === 'auto' ? fitted : (Math.min(requested, fitted) as CourtGridSize);
+  const minimum = sizeForLive(liveCount);
+  return wanted >= minimum ? wanted : minimum;
 }
 
 /**
@@ -122,11 +173,12 @@ function visibleTiles(
   };
 }
 
+/** The header's badge: live whenever the tournament is live, even when no court tile is. */
 function badgeTypeOf(
   state: TvTournamentState,
   liveCount: number,
-): 'live' | 'in-progress' | 'upcoming' | 'final' {
-  if (liveCount > 0) return 'live';
+): 'live' | 'final' | 'in-progress' | 'upcoming' {
+  if (state === 'live' || liveCount > 0) return 'live';
   if (state === 'finished') return 'final';
   if (state === 'inProgress') return 'in-progress';
   return 'upcoming';
@@ -141,14 +193,11 @@ function paginate<T>(items: readonly T[], pageSize: number, pageIndex: number): 
 }
 
 /**
- * The multi-court kiosk grid: several live matches at once,
- * each in its own card, independently reactive. Reuses this surface's
- * existing live-data mechanism verbatim — the same `RealtimeClient`,
- * `applyEvent`/`LiveDashboard`/`markConnected` every other live surface
- * already uses (see `LiveMatchHero.tsx`) — rather than a bespoke subscription;
- * a score or clock change on one court re-renders only that court's card by
- * construction, since `LiveDashboard.matches` is keyed by `matchId` and each
- * card is keyed the same way.
+ * The multi-court kiosk grid: one tile per court, each in its own card, independently reactive. It
+ * reuses this surface's existing live-data mechanism — the same `RealtimeClient`, `applyEvent`,
+ * `LiveDashboard` and `markConnected` every other live surface already uses (see `LiveMatchHero.tsx`).
+ * A score or clock change on one court re-renders only that court's card, since `LiveDashboard.matches`
+ * is keyed by `matchId` and each card is keyed the same way.
  */
 export function TvMultiCourtGrid({
   initial,
@@ -163,14 +212,25 @@ export function TvMultiCourtGrid({
   clockStoppedLabel = '',
   clockAriaLabel = '{segment}, {time}',
   tournamentName,
+  organizationName,
+  logoUrl,
   inProgressLabel,
+  delayedLabel,
+  clockLabel,
   pageOfLabel,
   timeZone,
+  referenceDate,
 }: TvMultiCourtGridProps): React.JSX.Element {
   const [dashboard, setDashboard] = useState<LiveDashboard>(initial);
   const [pageIndex, setPageIndex] = useState(0);
-  const [now, setNow] = useState(() => Date.now());
-  const [clockText, setClockText] = useState('');
+  const [now, setNow] = useState(() => referenceDate ?? Date.now());
+  const [clockText, setClockText] = useState(() =>
+    formatTimestamp(new Date(referenceDate ?? Date.now()), {
+      locale,
+      format: 'time-only',
+      timeZone,
+    }),
+  );
   const prefersReducedMotion = usePrefersReducedMotion();
   const hydrated = useHydrated();
   // Read inside the SSE callback below, which must never close over a stale
@@ -183,7 +243,7 @@ export function TvMultiCourtGrid({
 
   const tiles = courtTilesOf(dashboard.matches, venueNameByMatchId, now);
   const liveCount = tiles.filter((tile) => tile.live).length;
-  const activeGridSize = resolveGridSize(gridSize, liveCount);
+  const activeGridSize = resolveGridSize(gridSize, liveCount, tiles.length);
   const { shown, pageCount } = visibleTiles(tiles, activeGridSize, pageIndex);
   const tournamentState = tvTournamentState(dashboard.matches);
   const badgeType = badgeTypeOf(tournamentState, liveCount);
@@ -196,10 +256,10 @@ export function TvMultiCourtGrid({
 
   useEffect(() => {
     const tick = (): void => {
-      setNow(Date.now());
-      setClockText(formatTimestamp(new Date(), { locale, format: 'time-only', timeZone }));
+      const instant = Date.now();
+      setNow(instant);
+      setClockText(formatTimestamp(new Date(instant), { locale, format: 'time-only', timeZone }));
     };
-    tick();
     const timer = setInterval(tick, CLOCK_TICK_MS);
     return () => clearInterval(timer);
   }, [locale, timeZone]);
@@ -234,13 +294,21 @@ export function TvMultiCourtGrid({
   }, [prefersReducedMotion, pageCount]);
 
   const header = (
-    <header className="tv-multicourt__header">
-      <span className="tv-multicourt__title">{tournamentName}</span>
-      <span className={`tv-scorebug__badge ${tvStatusToneClass(badgeType)}`}>
-        <span>{badgeLabel}</span>
+    <TvScorebug
+      logoUrl={logoUrl}
+      organizationName={organizationName ?? ''}
+      tournamentName={tournamentName ?? ''}
+    >
+      <TvStatusBadge label={badgeLabel} tone={badgeType} />
+      <span className="tv-scorebug__wall-clock-group">
+        <span className="tv-scorebug__clock-label">{clockLabel}</span>
+        <span
+          aria-label={`${clockLabel} ${clockText}`}
+          className="tv-scorebug__clock tv-scorebug__clock--wall"
+          data-time={clockText}
+        />
       </span>
-      <span className="tv-multicourt__clock">{clockText}</span>
-    </header>
+    </TvScorebug>
   );
 
   if (shown.length === 0) {
@@ -268,6 +336,8 @@ export function TvMultiCourtGrid({
             key={tile.court}
             clockAriaLabel={clockAriaLabel}
             clockStoppedLabel={clockStoppedLabel}
+            delayed={tile.delayed}
+            delayedLabel={delayedLabel}
             match={tile.match}
             locale={locale}
             now={now}
@@ -300,6 +370,8 @@ function CourtCard({
   clockStoppedLabel,
   clockAriaLabel,
   timeZone,
+  delayed,
+  delayedLabel,
 }: {
   readonly match: LiveMatch;
   readonly locale: string;
@@ -310,8 +382,12 @@ function CourtCard({
   readonly clockStoppedLabel: string;
   readonly clockAriaLabel: string;
   readonly timeZone?: string;
+  readonly delayed: boolean;
+  readonly delayedLabel: string;
 }): React.JSX.Element {
-  const badge = presentState(match.state, resultStateLabels);
+  const badge = delayed
+    ? presentDelayedState(delayedLabel)
+    : presentState(match.state, resultStateLabels);
   const [home, away] = match.sides;
   const language = resolveLanguageTag(locale);
   const courtClock =
@@ -376,7 +452,9 @@ function CourtCard({
         </div>
       )}
       <div className="tv-court-card__footer">
-        <span className={`tv-scorebug__badge tv-scorebug__badge--${badge.state}`}>
+        <span
+          className={`tv-scorebug__badge tv-scorebug__badge--${delayed ? 'delayed' : badge.state}`}
+        >
           {badge.state === 'live' ? (
             <span aria-hidden="true" className="cl-live-dot" />
           ) : (

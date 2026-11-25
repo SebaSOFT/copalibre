@@ -261,7 +261,7 @@
 }
 
 .cl-live-clock--tv .cl-live-clock__segment {
-  font-size: 0.45em;
+  font-size: max(var(--tv-min-secondary-size), 0.45em);
   color: var(--tv-text-secondary);
 }
 
@@ -1108,24 +1108,6 @@
   text-transform: uppercase;
 }
 
-.tv-standings-legend {
-  display: flex;
-  align-items: center;
-  gap: 0.8vmin;
-  margin: 0;
-  color: var(--tv-text-secondary);
-  font-family: var(--cl-font-mono);
-  font-size: clamp(var(--cl-font-size-xs), 1.2vmin, var(--cl-font-size-sm));
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.tv-standings-legend__mark {
-  width: 0.6vmin;
-  height: 1.5em;
-  background: var(--tv-live-cyan);
-}
-
 .tv-standings-table th {
   color: var(--tv-text-secondary);
   font-weight: 600;
@@ -1668,34 +1650,6 @@
   min-height: 0;
 }
 
-.tv-multicourt__header {
-  display: flex;
-  align-items: center;
-  gap: 2vmin;
-  /* A fixed block size: a rotation never moves the header. */
-  flex: 0 0 auto;
-  height: 7vmin;
-  min-width: 0;
-}
-
-.tv-multicourt__title {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--cl-font-display);
-  font-size: var(--tv-min-clock-size);
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.tv-multicourt__clock {
-  flex: 0 0 auto;
-  font-family: var(--cl-font-mono);
-  font-size: var(--tv-min-clock-size);
-}
-
 .tv-multicourt__pager {
   flex: 0 0 auto;
   margin: 0;
@@ -1713,6 +1667,11 @@
   flex: 1 1 auto;
   width: 100%;
   min-height: 0;
+}
+
+.tv-multicourt-grid--1 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
 }
 
 .tv-multicourt-grid--2 {
@@ -1751,7 +1710,8 @@
 
 .tv-court-card__venue {
   font-family: var(--cl-font-mono);
-  font-size: clamp(0.9rem, 2vmin, 1.4rem);
+  /* The court name is a caption: never under the secondary floor. */
+  font-size: max(var(--tv-min-secondary-size), 2vmin);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1829,26 +1789,55 @@
 
 .tv-match-list__entry {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto minmax(0, 1fr);
+  /* The stage line spans the entry, the two teams and the score flank it, the kickoff or court line closes it. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas:
+    'scope scope scope'
+    'home middle away'
+    'when when when';
   align-items: center;
-  gap: 1vmin;
+  gap: 0.6vmin 1.2vmin;
   min-width: 0;
   padding: 0.8vmin 1.2vmin;
   background: var(--cl-surface-chrome);
   border: 1px solid var(--tv-border);
   font-family: var(--cl-font-mono);
-  font-size: clamp(0.8rem, 1.5vmin, 1.1rem);
 }
 
-.tv-match-list__round {
+/* The stage, zone and round: one line that ends in an ellipsis; its full text is the accessible name. */
+.tv-match-list__scope {
+  grid-area: scope;
+  min-width: 0;
+  overflow: hidden;
   color: var(--tv-text-muted);
   font-size: var(--tv-min-secondary-size);
   text-transform: uppercase;
-  /* One line that ends in an ellipsis; the full text stays the entry's accessible name. */
-  min-width: 0;
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The kickoff and the court of a played match: its own line, which never truncates. */
+.tv-match-list__when {
+  grid-area: when;
+  color: var(--tv-text-muted);
+  font-size: var(--tv-min-secondary-size);
+  overflow-wrap: anywhere;
+}
+
+.tv-match-list__middle {
+  grid-area: middle;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* A scheduled entry's start time, in the place its scoreline would be. */
+.tv-match-list__start {
+  align-items: center;
+}
+
+.tv-match-list__start .tv-start-time__when {
+  font-size: var(--tv-min-team-name-size);
 }
 
 /* A block heading of the ordered list: it spans both columns and names the block's state. */
@@ -1880,18 +1869,40 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--cl-font-display);
+  /* The team names are the largest text on a list entry: the broadcast team-name size. */
+  font-size: var(--tv-min-team-name-size);
+  line-height: 1.1;
+}
+
+.tv-match-list__side--home {
+  grid-area: home;
+}
+
+.tv-match-list__side--away {
+  grid-area: away;
 }
 
 .tv-match-list__side .cl-entrant-name {
   font-family: inherit;
+  /* Block, so the side's own ellipsis cuts a long name rather than the cell's edge. */
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tv-match-list__side--home {
   text-align: right;
 }
 
+.tv-match-list__side--away {
+  text-align: left;
+}
+
 .tv-match-list__score {
   color: var(--tv-text-primary);
+  font-size: var(--tv-min-team-name-size);
   font-variant-numeric: tabular-nums;
   font-weight: var(--cl-weight-bold);
 }
@@ -2109,9 +2120,8 @@
     padding: 1vmin 1.2vmin;
   }
 
-  /* The zone and round take a row of their own, so the sides keep the width of the cell. */
-  .tv-match-list__round {
-    grid-column: 1 / -1;
+  /* The stage line spans the entry on the narrow layout too. */
+  .tv-match-list__scope {
     text-align: center;
   }
 }

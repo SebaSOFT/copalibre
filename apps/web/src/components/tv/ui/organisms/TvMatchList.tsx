@@ -6,11 +6,15 @@ import { rescheduledStatement } from '../../../../lib/reschedule.js';
 import { applyTemplate } from '../../../../lib/matches-view.js';
 import { isTvMatchHeading, type TvMatchListItem } from '../../../../lib/tv-match-list.js';
 import type { TvDashboardLabels } from '../../tv-types.js';
+import { TvStartTime } from '../atoms/TvStartTime.js';
 
 /**
  * The matches of the stage as a compact list, two to a row, one page at a time: seventy-two
  * matches do not fit a screen one to a row, so the dashboard pages through them with its rotation.
- * Each entry is the two names and a score, the names ellipsized to fit the row.
+ *
+ * An entry leads with its two team names, the largest text in it. The middle is a scheduled match's
+ * start time and court, or a finished or live match's score. Its stage, zone and round line ellipsizes;
+ * the kickoff and the court of a played match sit on their own line, which never truncates.
  */
 export function TvMatchList({
   pages,
@@ -50,19 +54,13 @@ export function TvMatchList({
             locale,
             labels.rescheduled,
           );
-          const placement = [
-            entry.scope,
-            entry.scheduledAt
-              ? formatTimestamp(entry.scheduledAt, {
-                  locale,
-                  timeZone,
-                  referenceDate,
-                })
-              : undefined,
-            entry.venueName,
-          ]
-            .filter(Boolean)
-            .join(' · ');
+          const kickoff =
+            entry.scheduledAt === undefined
+              ? undefined
+              : formatTimestamp(entry.scheduledAt, { locale, timeZone, referenceDate });
+          const starts = entry.state === 'upcoming' && entry.scheduledAt !== undefined;
+          // The accessible name carries every part of the entry, the parts the screen trims included.
+          const placement = [entry.scope, kickoff, entry.venueName].filter(Boolean).join(' · ');
           return (
             <li
               aria-label={`${entry.scope}: ${entry.home.name} ${score(entry.home.score)} – ${score(entry.away.score)} ${entry.away.name} (${entry.stateLabel}) · ${placement}${rescheduled ? ` · ${rescheduled}` : ''}`}
@@ -71,17 +69,34 @@ export function TvMatchList({
               key={entry.key}
               title={`${entry.home.name} – ${entry.away.name}`}
             >
-              <span className="tv-match-list__round">{placement}</span>
+              <span className="tv-match-list__scope">{entry.scope}</span>
               <span aria-hidden="true" className="tv-match-list__side tv-match-list__side--home">
-                {/* No crest stands beside a name on this list, so the full name is shown, never a code. */}
-                <EntrantName pending={entry.home.pending} fullName={entry.home.name} />
+                <EntrantName fullName={entry.home.name} pending={entry.home.pending} />
               </span>
-              <span aria-hidden="true" className="tv-match-list__score">
-                {score(entry.home.score)} : {score(entry.away.score)}
+              <span aria-hidden="true" className="tv-match-list__middle">
+                {starts && entry.scheduledAt !== undefined ? (
+                  <TvStartTime
+                    className="tv-match-list__start"
+                    court={entry.venueName}
+                    locale={locale}
+                    scheduledAt={entry.scheduledAt}
+                    {...(timeZone === undefined ? {} : { timeZone })}
+                    {...(referenceDate === undefined ? {} : { referenceDate })}
+                  />
+                ) : (
+                  <span className="tv-match-list__score">
+                    {score(entry.home.score)} : {score(entry.away.score)}
+                  </span>
+                )}
               </span>
               <span aria-hidden="true" className="tv-match-list__side tv-match-list__side--away">
-                <EntrantName pending={entry.away.pending} fullName={entry.away.name} />
+                <EntrantName fullName={entry.away.name} pending={entry.away.pending} />
               </span>
+              {!starts && (
+                <span className="tv-match-list__when">
+                  {[kickoff, entry.venueName].filter(Boolean).join(' · ')}
+                </span>
+              )}
               {entry.delayed && (
                 <Badge className="tv-match-list__state cl-state--delayed">
                   <Icon name="clock" size={16} />

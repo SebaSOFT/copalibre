@@ -50,3 +50,24 @@ describe('TvStandingsTable', () => {
     expect(screen.getAllByRole('table')).toHaveLength(2);
   });
 });
+
+describe('TvStandingsTable headings on a later page', () => {
+  it('heads a page that holds only Group B with the stage and the group, when the stage has several tables', () => {
+    const groupB = [row(5, 'Grupo B'), row(6, 'Grupo B')];
+    render(
+      <TvStandingsTable
+        dashboardLabels={dashboardLabels}
+        pointsShortLabel="Pts"
+        scopesHeadings
+        showAllRows
+        stageName="Fase 1"
+        standings={groupB}
+      />,
+    );
+
+    const headings = Array.from(document.querySelectorAll('.tv-standings-zone__name')).map(
+      (heading) => heading.textContent,
+    );
+    expect(headings).toEqual(['Fase 1 · Grupo B']);
+  });
+});
