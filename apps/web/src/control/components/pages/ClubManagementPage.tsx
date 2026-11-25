@@ -3,12 +3,14 @@ import { useMemo } from 'react';
 import { useIntl } from 'react-intl';
 import { messages } from '../../i18n/messages.en.js';
 import {
+  ControlApiError,
   createControlApiClient,
   type ClubResponse,
   type ControlApiClient,
 } from '../../lib/api-client.js';
 import { useToast } from '../ToastProvider.js';
-import { ClubManagementTemplate } from '../screens/ClubManagementTemplate.js';
+import { isValidClubAlias } from '../../../lib/club-url.js';
+import { ClubManagementTemplate, type ClubSaveOutcome } from '../screens/ClubManagementTemplate.js';
 import { ReadState } from '../ui/layouts/read-state.js';
 import { useResilientRead } from './use-resilient-read.js';
 
@@ -63,8 +65,29 @@ export function ClubManagementPage({
   const setClubs = read.update;
   const reload = read.retry;
 
-  async function createClub(name: string, alias: string, abbreviation: string): Promise<boolean> {
-    if (!api.createClub || name.trim() === '') return false;
+  /**
+   * A 409 `club-conflict` on a well-formed alias means another club holds it (a stale list did not show it).
+   * It goes back to the form's alias field; every other failure is reported as a toast.
+   */
+  function reportSaveError(error: unknown, alias: string): ClubSaveOutcome {
+    if (
+      error instanceof ControlApiError &&
+      error.status === 409 &&
+      error.errorCode === 'club-conflict' &&
+      isValidClubAlias(alias.trim())
+    ) {
+      return 'alias-taken';
+    }
+    pushError(error);
+    return 'failed';
+  }
+
+  async function createClub(
+    name: string,
+    alias: string,
+    abbreviation: string,
+  ): Promise<ClubSaveOutcome> {
+    if (!api.createClub || name.trim() === '') return 'failed';
     try {
       await api.createClub(organizationAlias, {
         name: name.trim(),
@@ -76,10 +99,9 @@ export function ClubManagementPage({
         message: intl.formatMessage(messages.clubManagementCreated),
       });
       void reload();
-      return true;
+      return 'saved';
     } catch (error) {
-      pushError(error);
-      return false;
+      return reportSaveError(error, alias);
     }
   }
 
@@ -88,8 +110,8 @@ export function ClubManagementPage({
     name: string,
     alias: string,
     abbreviation: string,
-  ): Promise<void> {
-    if (!api.updateClub) return;
+  ): Promise<ClubSaveOutcome> {
+    if (!api.updateClub) return 'failed';
     try {
       const updated = await api.updateClub(organizationAlias, clubId, {
         name: name.trim(),
@@ -103,8 +125,9 @@ export function ClubManagementPage({
       setClubs((current) =>
         current.map((club) => (club.clubId === updated.clubId ? updated : club)),
       );
+      return 'saved';
     } catch (error) {
-      pushError(error);
+      return reportSaveError(error, alias);
     }
   }
 

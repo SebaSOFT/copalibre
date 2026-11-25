@@ -1108,6 +1108,7 @@ export const messages: Record<string, string> = {
   'control.clubManagement.aliasRequired': 'Укажите алиас.',
   'control.clubManagement.aliasHint':
     'Алиас — публичный адрес клуба. Используйте строчные латинские буквы, цифры и дефисы.',
+  'control.clubManagement.aliasTaken': 'Этот алиас уже использует другой клуб.',
   'control.clubManagement.emblemUploaded': 'Эмблема загружена.',
   'control.clubPortal.membersTitle': 'Участники клуба',
   'control.clubPortal.membersLoading': 'Загрузка…',

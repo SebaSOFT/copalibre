@@ -3286,6 +3286,10 @@ export const messages = defineMessages({
     defaultMessage:
       "The alias is the club's public address. Use lowercase letters, numbers and hyphens.",
   },
+  clubManagementAliasTaken: {
+    id: 'control.clubManagement.aliasTaken',
+    defaultMessage: 'Another club already uses this alias.',
+  },
   clubManagementEmblemUploaded: {
     id: 'control.clubManagement.emblemUploaded',
     defaultMessage: 'Emblem uploaded.',

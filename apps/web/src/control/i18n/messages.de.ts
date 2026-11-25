@@ -1114,6 +1114,7 @@ export const messages: Record<string, string> = {
   'control.clubManagement.aliasRequired': 'Gib einen Alias ein.',
   'control.clubManagement.aliasHint':
     'Der Alias ist die öffentliche Adresse des Vereins. Verwende Kleinbuchstaben, Ziffern und Bindestriche.',
+  'control.clubManagement.aliasTaken': 'Ein anderer Verein verwendet diesen Alias bereits.',
   'control.clubManagement.emblemUploaded': 'Wappen hochgeladen.',
   'control.clubPortal.membersTitle': 'Vereinsmitglieder',
   'control.clubPortal.membersLoading': 'Wird geladen…',

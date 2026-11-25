@@ -1056,6 +1056,7 @@ export const messages: Record<string, string> = {
   'control.clubManagement.created': '俱乐部已创建。',
   'control.clubManagement.aliasRequired': '请输入别名。',
   'control.clubManagement.aliasHint': '别名是俱乐部的公开地址。请使用小写字母、数字和连字符。',
+  'control.clubManagement.aliasTaken': '另一家俱乐部已在使用此别名。',
   'control.clubManagement.emblemUploaded': '徽章已上传。',
   'control.clubPortal.membersTitle': '俱乐部成员',
   'control.clubPortal.membersLoading': '加载中…',

@@ -1099,6 +1099,7 @@ export const messages: Record<string, string> = {
   'control.clubManagement.aliasRequired': 'Informe um alias.',
   'control.clubManagement.aliasHint':
     'O alias é o endereço público do clube. Use letras minúsculas, números e hífens.',
+  'control.clubManagement.aliasTaken': 'Outro clube já usa este alias.',
   'control.clubManagement.emblemUploaded': 'Escudo enviado.',
   'control.clubPortal.membersTitle': 'Membros do clube',
   'control.clubPortal.membersLoading': 'Carregando…',
