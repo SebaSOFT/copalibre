@@ -1,4 +1,5 @@
 ---
+import { defaultStandingsLayoutCode } from '../../../../../lib/public-tournament-navigation.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import PublicLayout from '../../../../../layouts/PublicLayout.astro';
 import Container from '../../../../../components/ui/atoms/layout/Container.astro';
@@ -76,6 +77,7 @@ try {
   layoutsRaw = undefined;
 }
 const groupPhaseLayout = layoutsRaw?.layouts.find((one) => one.target === 'group-phase');
+const standingsLayoutCode = defaultStandingsLayoutCode(layoutsRaw?.layouts ?? []);
 const earliestStageNumber = overviewData.matches.reduce(
   (earliest, match) => Math.min(earliest, match.stageNumber),
   Infinity,
@@ -178,6 +180,8 @@ const structuredData = {
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
   tournamentHasClubs={clubs.length > 0}
+  tournamentStages={model.stages}
+  standingsLayoutCode={standingsLayoutCode}
 >
   <Container variant="public">
     <PageHeader

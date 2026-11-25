@@ -1,4 +1,6 @@
 ---
+import { StageSwitcher } from '../../../../../../components/ui/molecules/StageSwitcher.tsx';
+import { defaultStandingsLayoutCode } from '../../../../../../lib/public-tournament-navigation.ts';
 import Breadcrumb from '../../../../../../components/ui/organisms/Breadcrumb.astro';
 import Container from '../../../../../../components/ui/atoms/layout/Container.astro';
 import PageHeader from '../../../../../../components/ui/organisms/PageHeader.astro';
@@ -91,6 +93,11 @@ const stageMatches = await fetchMatchesView(organization!, tournament!, { stageN
 );
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+// One guarded read of the layouts serves both the standings table and the tab's destination.
+const layoutsResponse = await fetchPublicTableLayouts(organization!, tournament!).catch(
+  () => undefined,
+);
+const standingsLayoutCode = defaultStandingsLayoutCode(layoutsResponse?.layouts ?? []);
 const clubResolution = resolveClubFilter(Astro.url.searchParams, model.clubs);
 if ('redirectSearch' in clubResolution) {
   const location = clubResolution.redirectSearch
@@ -112,11 +119,6 @@ const clubFilter = activeClubAlias
 // This stage's own group-phase table (e.g. a round-robin group's standings),
 // when its discipline declares one — an elimination stage naturally has
 // none, and the bracket above is its own ranking.
-const needsStandingsTable =
-  layoutMode !== 'bracket' && (layoutMode !== 'zones' || zoneLayouts.some((l) => l !== 'bracket'));
-const layoutsResponse = needsStandingsTable
-  ? await fetchPublicTableLayouts(organization!, tournament!)
-  : undefined;
 const groupPhaseLayout = layoutsResponse?.layouts.find((one) => one.target === 'group-phase');
 const standingsCsvHref = groupPhaseLayout
   ? publicTableCsvUrl(organization!, tournament!, groupPhaseLayout.code, stageNumber, clubFilter)
@@ -157,13 +159,19 @@ const trailBase = trailBaseOf({
   canonicalPath: model.canonicalPath,
   localePrefix,
 });
-const trail = publicTrail(trailBase, [
-  {
-    label: intl.formatMessage(messages.matchesViewPageTitle),
-    href: `${localePrefix}${model.canonicalPath}/matches?stageNumber=${stageNumber}`,
-  },
-  { label: stageHeading },
-]);
+const trail = publicTrail(trailBase, [{ label: stageHeading }]);
+const stageLabelOf = (stage: { stageNumber: number; stageName?: string }): string =>
+  stage.stageName?.trim() ||
+  intl.formatMessage(messages.breadcrumbStage, { stage: stage.stageNumber });
+const stagePathOf = (stageNumberOf: number): string =>
+  `${localePrefix}${model.canonicalPath}/stages/${stageNumberOf}`;
+const publishedStages = [...(model.stages ?? [])].sort((a, b) => a.stageNumber - b.stageNumber);
+const stageSwitcherItems = publishedStages.map((stage) => ({
+  stageNumber: stage.stageNumber,
+  label: stageLabelOf(stage),
+  href: stagePathOf(stage.stageNumber),
+}));
+const nextStage = publishedStages.find((stage) => stage.stageNumber > stageNumber);
 const reportUrlOf = (match: MatchCardData): string =>
   matchReportUrl({
     organizationAlias: organization!,
@@ -178,6 +186,8 @@ const zoneHeading = (name: string | undefined, index: number): string =>
 
 <PublicLayout
   tournamentHasClubs={(model.clubs ?? []).length > 0}
+  tournamentStages={model.stages}
+  standingsLayoutCode={standingsLayoutCode}
   title={pageTitle}
   canonicalPath={stagePath}
   intl={intl}
@@ -193,6 +203,11 @@ const zoneHeading = (name: string | undefined, index: number): string =>
         collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
       />
     </PageHeader>
+    <StageSwitcher
+      currentStageNumber={stageNumber}
+      label={intl.formatMessage(messages.stageSwitcherLabel)}
+      stages={stageSwitcherItems}
+    />
     <TimeZoneNote
       locale={resolvedLocale}
       referenceDate={referenceDate}
@@ -506,6 +521,13 @@ const zoneHeading = (name: string | undefined, index: number): string =>
           tournamentAlias={tournament}
         />
       ))}
+    {nextStage && (
+      <p class="cl-stage-next">
+        <a href={stagePathOf(nextStage.stageNumber)}>
+          {intl.formatMessage(messages.stageSwitcherNext, { stage: stageLabelOf(nextStage) })}
+        </a>
+      </p>
+    )}
   </Container>
 </PublicLayout>
 

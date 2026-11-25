@@ -29,8 +29,8 @@ li[data-entrant-path='included'] {
   text-align: start;
   white-space: normal;
   justify-content: start;
-  text-decoration: underline;
-  text-underline-offset: var(--cl-space-1);
+  /* A toggle, not a link: no underline. Its pressed state is drawn below. */
+  text-decoration: none;
 }
 
 .cl-journey-name[hidden],
@@ -40,5 +40,5 @@ li[data-entrant-path='included'] {
 
 .cl-journey-name[aria-pressed='true'] {
   font-weight: var(--cl-weight-bold);
-  text-decoration-style: double;
+  box-shadow: inset 0 0 0 1px var(--cl-border-accent);
 }

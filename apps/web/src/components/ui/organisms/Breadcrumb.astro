@@ -30,6 +30,9 @@ const ellipsisHref = range === undefined ? undefined : items[range.to]?.href;
             <a href={ellipsisHref} aria-label={collapsedLabel} title={collapsedLabel}>
               …
             </a>
+            <span aria-hidden="true" class="cl-crumb__sep">
+              ›
+            </span>
           </li>
         )}
         <li class:list={['cl-crumb', { 'cl-crumb--collapsible': isCollapsed(index) }]}>
@@ -40,6 +43,11 @@ const ellipsisHref = range === undefined ? undefined : items[range.to]?.href;
           ) : (
             <span aria-current="page" title={item.label}>
               {item.label}
+            </span>
+          )}
+          {index < items.length - 1 && (
+            <span aria-hidden="true" class="cl-crumb__sep">
+              ›
             </span>
           )}
         </li>
@@ -64,21 +72,29 @@ const ellipsisHref = range === undefined ? undefined : items[range.to]?.href;
     padding: 0;
   }
 
+  /*
+    The separator's space is its own margin, not the flex gap: a truncated label and a whole one
+    then leave the same space before the separator.
+  */
   .cl-crumb {
     display: inline-flex;
     align-items: center;
-    gap: var(--cl-space-2);
     min-width: 0;
     max-width: 24rem;
   }
 
-  .cl-crumb + .cl-crumb::before {
-    content: '›';
+  /*
+    The separator is the trailing part of the crumb it follows, so a wrapped
+    line always starts with a label, never with a separator.
+  */
+  .cl-crumb__sep {
+    flex: none;
+    margin-inline-start: var(--cl-space-2);
     color: var(--cl-text-muted);
   }
 
   .cl-crumb a,
-  .cl-crumb span {
+  .cl-crumb span:not(.cl-crumb__sep) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

@@ -544,6 +544,8 @@ const trail = publicTrail(trailBase, []);
 
 <PublicLayout
   tournamentHasClubs={(model.clubs ?? []).length > 0}
+  tournamentStages={model.stages}
+  standingsLayoutCode={defaultLayout?.code}
   title={`${displayName(model)} — ${model.organizationName}`}
   description={description}
   canonicalPath={canonicalPath}

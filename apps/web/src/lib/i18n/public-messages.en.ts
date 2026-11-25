@@ -139,7 +139,7 @@ export const messages = defineMessages({
   headerThemeLight: { id: 'publicWeb.header.themeLight', defaultMessage: 'Light' },
   headerThemeSystem: { id: 'publicWeb.header.themeSystem', defaultMessage: 'System' },
   headerNavHome: { id: 'publicWeb.header.navHome', defaultMessage: 'Home' },
-  headerNavTv: { id: 'publicWeb.header.navTv', defaultMessage: 'TV Streaming' },
+  headerNavTv: { id: 'publicWeb.header.navTv', defaultMessage: 'TV screens' },
   headerGlobalSection: { id: 'publicWeb.header.globalSection', defaultMessage: 'Platform' },
   headerTournamentSection: {
     id: 'publicWeb.header.tournamentSection',
@@ -160,6 +160,19 @@ export const messages = defineMessages({
   headerTournamentBrackets: {
     id: 'publicWeb.header.tournamentBrackets',
     defaultMessage: 'Brackets',
+  },
+  headerTournamentLive: { id: 'publicWeb.header.tournamentLive', defaultMessage: 'Live' },
+  stageSwitcherLabel: {
+    id: 'publicWeb.stageSwitcher.label',
+    defaultMessage: 'Tournament stages',
+  },
+  stageSwitcherNext: {
+    id: 'publicWeb.stageSwitcher.next',
+    defaultMessage: 'View {stage}',
+  },
+  bracketScrollHint: {
+    id: 'publicWeb.bracket.scrollHint',
+    defaultMessage: 'Scroll to see the whole bracket',
   },
   headerTournamentTeams: { id: 'publicWeb.header.tournamentTeams', defaultMessage: 'Teams' },
   headerNavHelp: { id: 'publicWeb.header.navHelp', defaultMessage: 'Help' },

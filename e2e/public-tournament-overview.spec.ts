@@ -1055,14 +1055,10 @@ test.describe('public empty states without JavaScript', () => {
       'href',
       `${PAGE}/matches`,
     );
-    await expect(navigation.getByRole('link', { name: 'Posiciones', exact: true })).toHaveAttribute(
-      'href',
-      `${PAGE}#standings`,
-    );
-    await expect(navigation.getByRole('link', { name: 'Cuadros', exact: true })).toHaveAttribute(
-      'href',
-      `${PAGE}/stages/1`,
-    );
+    // This tournament declares no standings layout, so Posiciones has no destination and is omitted.
+    await expect(navigation.getByRole('link', { name: 'Posiciones', exact: true })).toHaveCount(0);
+    // No stage of this league is drawn as a bracket, so Cuadros is omitted.
+    await expect(navigation.getByRole('link', { name: 'Cuadros', exact: true })).toHaveCount(0);
     await expect(navigation.getByRole('link', { name: 'Equipos', exact: true })).toHaveAttribute(
       'href',
       `${PAGE}#teams`,

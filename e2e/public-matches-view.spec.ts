@@ -2,6 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 import { expectNoVisibleIdentifiers } from './support/visible-identifiers.js';
 import { expectCenteredPageContainer } from './support/public-layout-widths.js';
+import { stagedBracket, withStages } from './support/staged-tournament.js';
 
 /**
  * The public matches view: a flat, filterable card grid of a
@@ -107,11 +108,27 @@ let apiServer: Server;
 let liveAtZero = false;
 let multiDayMode = false;
 let clubMode = false;
+// Set by the cup tests only: a group stage and a cup whose zone is drawn as a bracket.
+let cupMode = false;
 test.beforeEach(() => {
   liveAtZero = false;
   multiDayMode = false;
   clubMode = false;
+  cupMode = false;
 });
+
+const cupMatch = {
+  matchId: '00000000-0000-7000-8000-000000000040',
+  stageNumber: 2,
+  matchNumber: 8,
+  status: 'final',
+  round: 1,
+  homeName: 'Club Andes',
+  homeScore: 2,
+  awayName: 'Deportivo Sur',
+  awayScore: 1,
+  zoneName: 'Copa Oro',
+};
 
 const clubFixtures = [
   {
@@ -223,7 +240,12 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     const [path, query] = (req.url ?? '').split('?');
     if (path === `${TOURNAMENT}/overview`) {
-      res.end(JSON.stringify(clubMode ? { ...overview, clubs: clubFixtures } : overview));
+      const base = clubMode ? { ...overview, clubs: clubFixtures } : overview;
+      res.end(JSON.stringify(cupMode ? withStages(base) : base));
+      return;
+    }
+    if (cupMode && path === `${TOURNAMENT}/stages/2/bracket`) {
+      res.end(JSON.stringify(stagedBracket(2)));
       return;
     }
     if (path === `${TOURNAMENT}/stages/1/bracket`) {
@@ -241,15 +263,17 @@ test.beforeAll(async ({ workerPort }) => {
       const state = new URLSearchParams(query).get('state');
       const matches = clubMode
         ? clubRows
-        : multiDayMode
-          ? multiDayMatches()
-          : liveAtZero
-            ? [undecidedFinal, liveAtZeroMatch]
-            : state === 'live'
-              ? [liveMatch]
-              : state === 'final'
-                ? [finalizedMatch]
-                : [finalizedMatch, liveMatch];
+        : cupMode
+          ? [finalizedMatch, cupMatch]
+          : multiDayMode
+            ? multiDayMatches()
+            : liveAtZero
+              ? [undecidedFinal, liveAtZeroMatch]
+              : state === 'live'
+                ? [liveMatch]
+                : state === 'final'
+                  ? [finalizedMatch]
+                  : [finalizedMatch, liveMatch];
       res.end(JSON.stringify({ matches }));
       return;
     }
@@ -556,7 +580,10 @@ test('the Live filter link narrows the server-rendered list with scripting off',
   const schedule = page.locator('.cl-match-schedule .cl-match-schedule__nested');
   await expect(schedule.getByText('Club Andes', { exact: true })).toBeVisible();
   await page.locator('.cl-match-schedule-filters > summary').click();
-  await page.getByRole('link', { name: 'Live' }).click();
+  await page
+    .getByRole('navigation', { name: 'Filter by match state' })
+    .getByRole('link', { name: 'Live' })
+    .click();
 
   await expect(schedule.getByText('Talleres', { exact: true })).toBeVisible();
   await expect(
@@ -595,7 +622,10 @@ test('the state filter renders as discrete pills with a visible active state', a
   // Each pill is its own bounded control, not inline text.
   expect(first.height).toBeGreaterThanOrEqual(40);
 
-  await page.getByRole('link', { name: 'Live' }).click();
+  await page
+    .getByRole('navigation', { name: 'Filter by match state' })
+    .getByRole('link', { name: 'Live' })
+    .click();
   // Scoped to this nav (the density toggle is its own
   // `cl-pill` group with its own always-current selection, so a bare,
   // page-wide `a.cl-pill[aria-current]` now matches two elements).
@@ -629,7 +659,10 @@ test.describe('density toggle', () => {
     await context.route('**/*.js', (route) => route.abort());
     await page.goto(cardsPath);
 
-    await page.getByRole('link', { name: 'Live' }).click();
+    await page
+      .getByRole('navigation', { name: 'Filter by match state' })
+      .getByRole('link', { name: 'Live' })
+      .click();
     expect(new URL(page.url()).searchParams.get('state')).toBe('live');
 
     await page.getByRole('link', { name: 'Compact' }).click();
@@ -653,6 +686,35 @@ test.describe('density toggle', () => {
       'true',
     );
     await expect(toggle.getByRole('link', { name: 'Detailed' })).not.toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+  });
+});
+
+test.describe('cup zones in the schedule filter', () => {
+  test.beforeEach(() => {
+    cupMode = true;
+  });
+  test.afterEach(() => {
+    cupMode = false;
+  });
+
+  test('a cup-zone scope shows no Vista or density control', async ({ page }) => {
+    await page.goto(
+      `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches?stageNumber=2&zone=Copa%20Oro`,
+    );
+    await expect(page.getByRole('link', { name: 'Cards' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Compact' })).toHaveCount(0);
+  });
+
+  test('choosing a zone selects its stage in the stage row', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches`);
+    await page.locator('details.cl-match-schedule-filters > summary').click();
+    await page.locator('a.cl-pill', { hasText: /^Copa Oro$/ }).click();
+    await expect(page).toHaveURL(/stageNumber=2/);
+    await expect(page).toHaveURL(/zone=Copa(%20|\+)Oro/);
+    await expect(page.locator('a.cl-pill', { hasText: /^Stage 2$/ }).first()).toHaveAttribute(
       'aria-current',
       'true',
     );

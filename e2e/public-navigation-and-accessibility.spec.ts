@@ -1,8 +1,10 @@
 import { createServer, type Server } from 'node:http';
+import type { Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { resolveSemantic } from '@copalibre/design-tokens';
 import { expect, test } from './fixtures.js';
 import { expectNoSeriousSemanticViolations } from './support/semantic-axe.js';
+import { STAGED_TABLE_LAYOUTS, stagedBracket, withStages } from './support/staged-tournament.js';
 
 /**
  * End-to-end tests for public navigation and accessibility hardening:
@@ -69,6 +71,8 @@ const overview = {
 };
 
 let apiServer: Server;
+// Set by the tournament section tests only: the overview then lists a group stage and a cup.
+let stagedTournament = false;
 
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
@@ -89,7 +93,21 @@ test.beforeAll(async ({ workerPort }) => {
       path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/overview` ||
       path === `/api/organizations/${ORGANIZATION}/public/tournaments/${TOURNAMENT_ALIAS}/overview`
     ) {
-      res.end(JSON.stringify(overview));
+      res.end(JSON.stringify(stagedTournament ? withStages(overview) : overview));
+      return;
+    }
+
+    const bracketMatch =
+      /^\/api\/organizations\/[^/]+\/tournaments\/[^/]+\/stages\/(\d+)\/bracket$/.exec(path);
+    if (stagedTournament && bracketMatch) {
+      res.end(JSON.stringify(stagedBracket(Number(bracketMatch[1]))));
+      return;
+    }
+
+    if (
+      path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/public/tables`
+    ) {
+      res.end(JSON.stringify(stagedTournament ? STAGED_TABLE_LAYOUTS : { layouts: [] }));
       return;
     }
 
@@ -118,6 +136,75 @@ test.beforeAll(async ({ workerPort }) => {
 
 test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
+});
+
+test.describe('public tournament section tabs', () => {
+  const TOURNAMENT = `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+  const navigation = (page: Page) => page.getByRole('navigation', { name: 'Torneo' });
+
+  test.beforeEach(() => {
+    stagedTournament = true;
+  });
+  test.afterEach(() => {
+    stagedTournament = false;
+  });
+
+  test('Posiciones and Cuadros open distinct pages, neither an overview anchor', async ({
+    page,
+  }) => {
+    await page.goto(TOURNAMENT);
+    const standings = navigation(page).getByRole('link', { name: 'Posiciones', exact: true });
+    const brackets = navigation(page).getByRole('link', { name: 'Cuadros', exact: true });
+    await expect(standings).toHaveAttribute('href', /\?tab=group-standings-default$/);
+    await expect(brackets).toHaveAttribute('href', `${TOURNAMENT}/stages/2`);
+
+    await standings.click();
+    await expect(page).toHaveURL(/\?tab=group-standings-default$/);
+    await brackets.click();
+    await expect(page).toHaveURL(new RegExp(`${TOURNAMENT}/stages/2$`));
+    await expect(brackets).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('the live page marks En vivo', async ({ page }) => {
+    await page.goto(`${TOURNAMENT}/live`);
+    await expect(
+      navigation(page).getByRole('link', { name: 'En vivo', exact: true }),
+    ).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('a group stage lists both stages in its switcher and links on to the cups', async ({
+    page,
+  }) => {
+    await page.goto(`${TOURNAMENT}/stages/1`);
+    const switcher = page.getByRole('navigation', { name: 'Fases del torneo' });
+    await expect(switcher.getByRole('link')).toHaveCount(2);
+    await expect(switcher.locator('[aria-current="page"]')).toHaveCount(1);
+    await expect(page.locator('p.cl-stage-next a')).toHaveAttribute(
+      'href',
+      `${TOURNAMENT}/stages/2`,
+    );
+  });
+
+  test('the header labels the TV launcher as screens and keeps Control secondary', async ({
+    page,
+  }) => {
+    await page.goto(TOURNAMENT);
+    await expect(page.getByRole('link', { name: 'Pantallas TV', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Panel de control' })).toHaveClass(
+      /cl-btn--secondary/,
+    );
+  });
+
+  test('the group stage marks Posiciones and the cup stage marks Cuadros', async ({ page }) => {
+    await page.goto(`${TOURNAMENT}/stages/1`);
+    await expect(
+      navigation(page).getByRole('link', { name: 'Posiciones', exact: true }),
+    ).toHaveAttribute('aria-current', 'page');
+    await page.goto(`${TOURNAMENT}/stages/2`);
+    await expect(
+      navigation(page).getByRole('link', { name: 'Cuadros', exact: true }),
+    ).toHaveAttribute('aria-current', 'page');
+  });
 });
 
 test.describe('Public Navigation & Accessibility Hardening', () => {
@@ -170,11 +257,11 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     page,
   }) => {
     await page.goto('/es');
-    const spanish = page.locator('#cl-public-nav').getByRole('link', { name: 'TV Streaming' });
+    const spanish = page.locator('#cl-public-nav').getByRole('link', { name: 'Pantallas TV' });
     await expect(spanish).toHaveAttribute('href', '/tv?lang=es');
 
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
-    const english = page.locator('#cl-public-nav').getByRole('link', { name: 'TV Streaming' });
+    const english = page.locator('#cl-public-nav').getByRole('link', { name: 'TV screens' });
     await expect(english).toHaveAttribute('href', '/tv?lang=en');
     await english.click();
     await expect(page).toHaveURL(/\/tv\?lang=en/);

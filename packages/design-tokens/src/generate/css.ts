@@ -1160,7 +1160,7 @@ function components(): string {
     '.cl-page-header { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--cl-space-2); min-width: 0; }',
     '.cl-page-header__breadcrumb { min-width: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; overflow-wrap: anywhere; }',
     '.cl-page-header__breadcrumb ol { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-2); list-style: none; margin: 0; padding: 0; }',
-    '.cl-page-header__breadcrumb li + li::before { content: "›"; margin-inline-end: var(--cl-space-2); color: var(--cl-text-muted); }',
+    '.cl-page-header__breadcrumb li + li:not(.cl-crumb)::before { content: "›"; margin-inline-end: var(--cl-space-2); color: var(--cl-text-muted); }',
     '.cl-page-header__breadcrumb a { color: var(--cl-text-secondary); text-decoration: none; }',
     '.cl-page-header__breadcrumb a:hover { color: var(--cl-primary-hover); text-decoration: underline; }',
     '.cl-page-header__row { display: flex; flex-wrap: wrap; align-items: end; gap: var(--cl-space-4); min-width: 0; }',
@@ -2275,6 +2275,15 @@ function compositions(): string {
     '.cl-bracket-stage { display: grid; gap: var(--cl-space-4); min-width: 0; }',
     '',
     '.cl-bracket-stage__scroll { overflow-x: auto; scrollbar-gutter: stable; max-width: 100%; }',
+    // A bracket wider than its panel says so: a hint below it and an edge fade on each side that
+    // still has matches out of view. The frame is transparent to layout; the hint shows only while
+    // a scroller is marked as overflowing, which only script does, so without it no hint appears.
+    '.cl-bracket-stage__frame { display: contents; }',
+    '.cl-bracket-stage__hint { display: none; margin: 0; color: var(--cl-text-secondary); font-size: var(--cl-font-size-sm); }',
+    '.cl-bracket-stage__frame:has(> .cl-bracket-stage__scroll[data-overflowing]) > .cl-bracket-stage__hint { display: block; }',
+    '.cl-bracket-stage__scroll[data-overflow-start][data-overflow-end] { -webkit-mask-image: linear-gradient(to right, transparent, var(--cl-surface-panel) var(--cl-space-8), var(--cl-surface-panel) calc(100% - var(--cl-space-8)), transparent); mask-image: linear-gradient(to right, transparent, var(--cl-surface-panel) var(--cl-space-8), var(--cl-surface-panel) calc(100% - var(--cl-space-8)), transparent); }',
+    '.cl-bracket-stage__scroll[data-overflow-end]:not([data-overflow-start]) { -webkit-mask-image: linear-gradient(to right, var(--cl-surface-panel) calc(100% - var(--cl-space-8)), transparent); mask-image: linear-gradient(to right, var(--cl-surface-panel) calc(100% - var(--cl-space-8)), transparent); }',
+    '.cl-bracket-stage__scroll[data-overflow-start]:not([data-overflow-end]) { -webkit-mask-image: linear-gradient(to right, transparent, var(--cl-surface-panel) var(--cl-space-8)); mask-image: linear-gradient(to right, transparent, var(--cl-surface-panel) var(--cl-space-8)); }',
     '',
     // One fixed-size box with two layers: the matches placed absolutely, and the links between
     // them as polylines. The scroll region around it carries any width the bracket needs.

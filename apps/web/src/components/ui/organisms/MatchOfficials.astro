@@ -55,28 +55,18 @@ const { model, intl } = Astro.props;
     font-size: 0.875rem;
   }
 
+  /* Officials are data, not controls: plain text rows, no chip, border or button treatment. */
   .cl-officials-list {
     list-style: none;
     padding: 0;
     margin: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
+    display: grid;
+    gap: var(--cl-space-2);
   }
 
   .cl-officials-list li {
-    background: var(--cl-surface-chrome);
-    padding: 0.5rem 0.75rem;
-    border-radius: 6px;
-    border: 1px solid var(--cl-border-muted);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
     font-size: 0.875rem;
-    /* Bounds the tile to the reference viewport instead of letting an
-         unhyphenatable role name (`assistant-referee`) push it past 188px
-  . */
-    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 
   .cl-official-name {

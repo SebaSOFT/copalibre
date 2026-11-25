@@ -1,4 +1,6 @@
 ---
+import { defaultStandingsLayoutCode } from '../../../../../lib/public-tournament-navigation.ts';
+import { fetchPublicTableLayouts } from '../../../../../lib/public-api-client.ts';
 import { rescheduledStatement } from '../../../../../lib/reschedule.ts';
 import Container from '../../../../../components/ui/atoms/layout/Container.astro';
 import Breadcrumb from '../../../../../components/ui/organisms/Breadcrumb.astro';
@@ -60,6 +62,10 @@ if (!overviewData || !dashboard) {
 }
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const tableLayouts = await fetchPublicTableLayouts(organization!, tournament!).catch(
+  () => undefined,
+);
+const standingsLayoutCode = defaultStandingsLayoutCode(tableLayouts?.layouts ?? []);
 const localePrefix = locale ? `/${locale}` : '';
 const canonicalPath = `${localePrefix}${model.canonicalPath}/live`;
 const reportPath = (stageNumber: number, matchNumber: number) =>
@@ -119,6 +125,8 @@ const leaderBlockHeading = (block: (typeof leaderBlocks)[number]): string | unde
 
 <PublicLayout
   tournamentHasClubs={(model.clubs ?? []).length > 0}
+  tournamentStages={model.stages}
+  standingsLayoutCode={standingsLayoutCode}
   title={`${intl.formatMessage(messages.livePageTitle)} — ${displayName(model)}`}
   canonicalPath={canonicalPath}
   intl={intl}

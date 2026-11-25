@@ -6,7 +6,6 @@ import Container from '../components/ui/atoms/layout/Container.astro';
 import EmblemImage from '../components/ui/atoms/EmblemImage.astro';
 import Button from '../components/ui/atoms/Button.astro';
 import { Card } from '../components/ui/atoms/Card.tsx';
-import { Badge } from '../components/ui/atoms/Badge.tsx';
 import { organizationEmblemUrl } from '../lib/public-api-client.ts';
 import type { fetchOrganizations } from '../lib/public-api-client.ts';
 import { getLocalePrefix } from '../lib/locale.ts';
@@ -37,15 +36,9 @@ const localePrefix = getLocalePrefix(locale);
       </div>
       <p class="cl-home-hero__description">{intl.formatMessage(messages.homeHeroDescription)}</p>
       <ul class="cl-home-hero__badges">
-        <li>
-          <Badge>{intl.formatMessage(messages.homeBadgeFreeSoftware)}</Badge>
-        </li>
-        <li>
-          <Badge>{intl.formatMessage(messages.homeBadgeSovereign)}</Badge>
-        </li>
-        <li>
-          <Badge>{intl.formatMessage(messages.homeBadgeDisciplines)}</Badge>
-        </li>
+        <li>{intl.formatMessage(messages.homeBadgeFreeSoftware)}</li>
+        <li>{intl.formatMessage(messages.homeBadgeSovereign)}</li>
+        <li>{intl.formatMessage(messages.homeBadgeDisciplines)}</li>
       </ul>
     </header>
 
@@ -170,15 +163,18 @@ const localePrefix = getLocalePrefix(locale);
     color: var(--cl-text-muted);
   }
 
+  /* Feature tags are information, not controls: a plain inline list of text, no chips. */
   .cl-home-hero__badges {
     grid-column: 1 / -1;
     display: flex;
     flex-wrap: wrap;
-    gap: var(--cl-space-2);
+    gap: var(--cl-space-1) var(--cl-space-4);
     align-items: center;
     margin: 0;
     padding: 0;
     list-style: none;
+    color: var(--cl-text-secondary);
+    font-size: var(--cl-font-size-sm);
   }
 
   .cl-home-empty-hub {

@@ -10,16 +10,21 @@ to it. Club pages are addressed by club alias, never by an identifier.
 ### Requirement: A published tournament serves a club index
 
 A published tournament SHALL serve `/{organization}/tournaments/{tournament}/clubs`, with its locale
-variants, listing every club with an entrant in the tournament and an alias, each with crest, name,
-abbreviation and its current status in the tournament, linked to its club page.
+variants. It lists every club with an entrant in the tournament, each with crest, name, abbreviation
+and its current status in the tournament, and each linked to its club page. Every club carries an
+alias, so every listed club is linked.
 
 #### Scenario: Opening the index
-- **WHEN** a visitor opens the club index of a tournament with 24 clubs that all have aliases
+- **WHEN** a visitor opens the club index of a tournament with 24 clubs
 - **THEN** the page lists the 24 clubs, each linked to its club page
 
+#### Scenario: A club whose alias was backfilled
+- **WHEN** a club had no alias before the upgrade that backfilled one
+- **THEN** the index lists it linked to its club page under the backfilled alias
+
 #### Scenario: A club without an alias
-- **WHEN** one club of the tournament has no alias
-- **THEN** the index lists it without a link
+- **WHEN** a club reaches the page without an alias, which the API contract no longer allows
+- **THEN** the index still lists it, without a link, rather than failing the page
 
 ### Requirement: A club with an alias has a tournament club page
 

@@ -153,6 +153,8 @@ const placementReport = {
 };
 
 let apiServer: Server;
+// Set by the fitting-bracket test only: the stage then holds one match, which fits its panel.
+let singleMatchStage = false;
 
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
@@ -161,7 +163,12 @@ test.beforeAll(async ({ workerPort }) => {
     if (path === `${BASE}/overview`) {
       res.end(JSON.stringify(overview));
     } else if (path === `${BASE}/stages/1/bracket`) {
-      res.end(JSON.stringify({ format: 'single-elimination', zones: [{ matches }] }));
+      res.end(
+        JSON.stringify({
+          format: 'single-elimination',
+          zones: [{ matches: singleMatchStage ? [matches[0]] : matches }],
+        }),
+      );
     } else if (path === `${BASE}/stages/1/matches/12`) {
       res.end(JSON.stringify(placementReport));
     } else {
@@ -356,5 +363,45 @@ test.describe('public knockout bracket', () => {
     await page.goto(STAGE);
     await expect(page.locator('.cl-bracket-stage__canvas[data-density="full"]')).toBeVisible();
     await expect(page.locator('.cl-bracket-stage__canvas[data-density="compact"]')).toBeHidden();
+  });
+});
+
+test.describe('bracket scroll affordance', () => {
+  test('an overflowing bracket shows the hint below it and a fade on the side that continues', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 900, height: 900 });
+    await page.goto(STAGE);
+
+    const scroller = page.locator('.cl-bracket-stage__scroll--full').first();
+    await expect(scroller).toHaveAttribute('data-overflowing', '');
+    await expect(scroller).toHaveAttribute('data-overflow-end', '');
+    const hint = page.locator('.cl-bracket-stage__frame--full .cl-bracket-stage__hint');
+    await expect(hint).toBeVisible();
+    await expect(hint).toHaveText('Deslizá para ver toda la llave');
+    // The hint follows the scroller, so it sits next to the scrollbar rather than above the zone.
+    const hintIsAfterScroller = await hint.evaluate(
+      (element) =>
+        element.previousElementSibling?.classList.contains('cl-bracket-stage__scroll') === true,
+    );
+    expect(hintIsAfterScroller).toBe(true);
+  });
+
+  test('a bracket that fits its panel shows neither the hint nor a fade', async ({ page }) => {
+    singleMatchStage = true;
+    try {
+      await page.setViewportSize({ width: 900, height: 900 });
+      await page.goto(STAGE);
+
+      const scroller = page.locator('.cl-bracket-stage__scroll--full').first();
+      await expect(scroller.locator('.cl-bracket-stage__node')).toHaveCount(1);
+      await expect(scroller).not.toHaveAttribute('data-overflowing', /.*/);
+      await expect(scroller).not.toHaveAttribute('data-overflow-end', /.*/);
+      await expect(
+        page.locator('.cl-bracket-stage__frame--full .cl-bracket-stage__hint'),
+      ).toBeHidden();
+    } finally {
+      singleMatchStage = false;
+    }
   });
 });

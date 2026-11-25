@@ -1,4 +1,12 @@
 ---
+import {
+  fetchOverview,
+  fetchPublicTableLayouts,
+  mapOverviewResponse,
+} from '../../../../../../../../lib/public-api-client.ts';
+import { buildOverview, displayName } from '../../../../../../../../lib/overview.ts';
+import { StageSwitcher } from '../../../../../../../../components/ui/molecules/StageSwitcher.tsx';
+import { defaultStandingsLayoutCode } from '../../../../../../../../lib/public-tournament-navigation.ts';
 import PublicLayout from '../../../../../../../../layouts/PublicLayout.astro';
 import Container from '../../../../../../../../components/ui/atoms/layout/Container.astro';
 import Breadcrumb from '../../../../../../../../components/ui/organisms/Breadcrumb.astro';
@@ -121,6 +129,29 @@ const model = buildMatchReport(response, {
       : humanizeCode(code),
 });
 
+// Both reads are optional for the tabs: when either fails, the page still renders with what is known.
+const [tournamentOverviewData, tableLayouts] = await Promise.all([
+  fetchOverview(organization!, tournament!).catch(() => undefined),
+  fetchPublicTableLayouts(organization!, tournament!).catch(() => undefined),
+]);
+const tournamentOverview = tournamentOverviewData
+  ? buildOverview(mapOverviewResponse(tournamentOverviewData, resolvedLocale))
+  : undefined;
+const tournamentStages = tournamentOverview?.stages;
+const tournamentDisplayName = tournamentOverview
+  ? displayName(tournamentOverview)
+  : model.tournamentName;
+const stageSwitcherItems = [...(tournamentStages ?? [])]
+  .sort((a, b) => a.stageNumber - b.stageNumber)
+  .map((stage) => ({
+    stageNumber: stage.stageNumber,
+    label:
+      stage.stageName?.trim() ||
+      intl.formatMessage(messages.breadcrumbStage, { stage: stage.stageNumber }),
+    href: `${localePrefix}/${encodeURIComponent(organization!)}/tournaments/${encodeURIComponent(tournament!)}/stages/${stage.stageNumber}`,
+  }));
+const standingsLayoutCode = defaultStandingsLayoutCode(tableLayouts?.layouts ?? []);
+
 const liveDashboard =
   model.status === 'live'
     ? await fetchLive(organization!, tournament!).then((data) =>
@@ -215,15 +246,11 @@ const stakeLines =
 const trailBase = trailBaseOf({
   organizationAlias: organization!,
   organizationName: model.organizationName,
-  tournamentName: model.tournamentName,
+  tournamentName: tournamentDisplayName,
   canonicalPath: `/${encodeURIComponent(organization!)}/tournaments/${encodeURIComponent(tournament!)}`,
   localePrefix,
 });
 const trail = publicTrail(trailBase, [
-  {
-    label: intl.formatMessage(messages.matchesViewPageTitle),
-    href: `${trailBase.tournamentPath}/matches?stageNumber=${stageNumber}`,
-  },
   {
     label: context.stage,
     href: `${trailBase.tournamentPath}/stages/${stageNumber}`,
@@ -268,8 +295,10 @@ const structuredData = {
   intl={intl}
   disciplineImages={response.disciplineImages}
   structuredData={structuredData}
+  tournamentStages={tournamentStages}
+  standingsLayoutCode={standingsLayoutCode}
 >
-  <Container variant="reading">
+  <Container variant="public">
     <PageHeader
       title={matchHeading}
       description={matchHeadingDescription}
@@ -282,6 +311,11 @@ const structuredData = {
         collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
       />
     </PageHeader>
+    <StageSwitcher
+      currentStageNumber={stageNumber}
+      label={intl.formatMessage(messages.stageSwitcherLabel)}
+      stages={stageSwitcherItems}
+    />
     <article class="cl-match-page">
       {liveStreamPath && liveMatchSeed && (
         <div data-live-stream={liveStreamPath} hidden>
@@ -328,20 +362,24 @@ const structuredData = {
       )}
 
       <div class="cl-match-details">
-        <MatchOfficials model={model} intl={intl} />
-        <MatchRosters
-          model={model}
-          intl={intl}
-          locale={locale}
-          organization={organization!}
-          tournament={tournament!}
-        />
-        <MatchTimeline
-          model={model}
-          intl={intl}
-          organizationTimeZone={response.organizationTimeZone}
-          referenceDate={referenceDate}
-        />
+        <div class="cl-match-details__rosters">
+          <MatchRosters
+            model={model}
+            intl={intl}
+            locale={locale}
+            organization={organization!}
+            tournament={tournament!}
+          />
+        </div>
+        <div class="cl-match-details__side">
+          <MatchOfficials model={model} intl={intl} />
+          <MatchTimeline
+            model={model}
+            intl={intl}
+            organizationTimeZone={response.organizationTimeZone}
+            referenceDate={referenceDate}
+          />
+        </div>
       </div>
     </article>
   </Container>
@@ -355,10 +393,26 @@ const structuredData = {
     overflow-x: hidden;
   }
 
+  /* The stack gap between match sections, so the bracket's link does not sit on the panels. */
   .cl-match-details {
     display: flex;
     flex-direction: column;
     gap: var(--cl-space-6);
+    margin-top: var(--cl-space-6);
+  }
+
+  .cl-match-details__side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-6);
+  }
+
+  @media (min-width: 1024px) {
+    .cl-match-details {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      align-items: start;
+    }
   }
 </style>
 

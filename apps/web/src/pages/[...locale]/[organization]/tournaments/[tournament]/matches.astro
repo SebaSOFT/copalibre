@@ -1,4 +1,11 @@
 ---
+import {
+  groupFilterOverrides,
+  zoneFilterOverrides,
+} from '../../../../../lib/schedule-filter-links.ts';
+import type { MatchCardData } from '../../../../../lib/matches-view.ts';
+import { defaultStandingsLayoutCode } from '../../../../../lib/public-tournament-navigation.ts';
+import { fetchPublicTableLayouts } from '../../../../../lib/public-api-client.ts';
 import Breadcrumb from '../../../../../components/ui/organisms/Breadcrumb.astro';
 import Container from '../../../../../components/ui/atoms/layout/Container.astro';
 import PageHeader from '../../../../../components/ui/organisms/PageHeader.astro';
@@ -58,6 +65,10 @@ if (!overviewData) {
   return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const tableLayouts = await fetchPublicTableLayouts(organization!, tournament!).catch(
+  () => undefined,
+);
+const standingsLayoutCode = defaultStandingsLayoutCode(tableLayouts?.layouts ?? []);
 const referenceDate = Date.now();
 const scheduleTimeZone = model.organizationTimeZone ?? 'UTC';
 const todayKey = calendarDayKey(referenceDate, scheduleTimeZone);
@@ -152,7 +163,25 @@ const days = availableMatchDays(schedule.stageRows, scheduleTimeZone).map((day) 
 }));
 
 // A large scope is only ever a table; a short one may be shown as cards.
-const offerView = offersViewChoice(schedule.rows.length);
+// A zone is a bracket here only where the schedule draws it as one: a state, day or club filter lists
+// its matches instead, and a list does change with the view choice.
+const bracketZoneKeys = new Set(
+  schedule.stages.flatMap((stage) =>
+    stage.zones
+      .filter((zone) => zone.kind === 'bracket')
+      .map((zone) => `${stage.stageNumber}|${zone.name ?? ''}`),
+  ),
+);
+const isBracketRow = (row: Pick<MatchCardData, 'stageNumber' | 'zoneName'>): boolean =>
+  bracketZoneKeys.has(`${row.stageNumber}|${row.zoneName ?? ''}`);
+const offerView = offersViewChoice(schedule.rows, isBracketRow);
+// A zone or a group chosen from its row also selects the stage that contains it, when that is unambiguous.
+const zoneOverrides = Object.fromEntries(
+  zones.map((zone) => [zone, zoneFilterOverrides(schedule.stageRows, zone)]),
+);
+const groupOverrides = Object.fromEntries(
+  groups.map((group) => [group, groupFilterOverrides(zoneFiltered, group, zoneParam)]),
+);
 const view: MatchScheduleView = offerView && cardsRequested ? 'cards' : 'rows';
 const presentation = view === 'rows' ? 'rows' : compact ? 'compact-cards' : 'cards';
 const featuredMatch = featuredMatchForSchedule(
@@ -233,6 +262,8 @@ const trail = publicTrail(trailBase, [
 
 <PublicLayout
   tournamentHasClubs={(model.clubs ?? []).length > 0}
+  tournamentStages={model.stages}
+  standingsLayoutCode={standingsLayoutCode}
   title={`${intl.formatMessage(messages.matchesViewPageTitle)} — ${displayName(model)}`}
   canonicalPath={canonicalPath}
   intl={intl}
@@ -269,8 +300,10 @@ const trail = publicTrail(trailBase, [
       activeStageNumber={stageNumber}
       zones={zones}
       activeZone={zoneParam}
+      zoneOverrides={zoneOverrides}
       groups={groups}
       activeGroup={groupParam}
+      groupOverrides={groupOverrides}
       clubs={clubOptions}
       activeClub={clubParam}
       days={days}
