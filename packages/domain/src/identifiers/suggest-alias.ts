@@ -94,6 +94,12 @@ export function suggestAvailableAlias(
   return undefined;
 }
 
+/** Whether the folded form of `text` is a club alias `Alias.create` accepts, before any suffixing. */
+function usableClubCandidate(text: string): boolean {
+  const base = suggestAlias(text);
+  return base !== undefined && Alias.create('club', base).ok;
+}
+
 /** Whether a suggestion would survive `Alias.create`, for a caller that wants to check. */
 export function isSuggestable(name: string, scope: AliasScope = 'club'): boolean {
   const suggestion = suggestAlias(name);
@@ -118,10 +124,11 @@ export function suggestRequiredClubAlias(
 ): string {
   const used = taken instanceof Set ? taken : new Set(taken);
 
-  const fromName = suggestAvailableAlias(name, used);
+  // A candidate a club alias may not be (a UUID-shaped name, say) falls through to the next step.
+  const fromName = usableClubCandidate(name) ? suggestAvailableAlias(name, used) : undefined;
   if (fromName !== undefined) return fromName;
 
-  if (abbreviation !== undefined) {
+  if (abbreviation !== undefined && usableClubCandidate(abbreviation)) {
     const fromAbbreviation = suggestAvailableAlias(abbreviation, used);
     if (fromAbbreviation !== undefined) return fromAbbreviation;
   }

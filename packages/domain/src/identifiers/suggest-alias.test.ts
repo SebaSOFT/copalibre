@@ -112,3 +112,21 @@ describe('a club alias that is always given', () => {
     expect(Alias.create('club', suggestion).ok).toBe(true);
   });
 });
+
+describe('a club alias that is never shaped like an identifier', () => {
+  const uuidName = '01936F4A-0001-7000-8000-000000000001';
+
+  it('falls through from a UUID-shaped name to the abbreviation', () => {
+    expect(suggestRequiredClubAlias(uuidName, [], 'BJ')).toBe('bj');
+  });
+
+  it('falls through from a UUID-shaped name to club-n without an abbreviation', () => {
+    expect(suggestRequiredClubAlias(uuidName, [])).toBe('club-1');
+  });
+
+  it('falls through from a UUID-shaped abbreviation to club-n', () => {
+    expect(suggestRequiredClubAlias('北京俱乐部', [], '01936f4a-0001-7000-8000-000000000001')).toBe(
+      'club-1',
+    );
+  });
+});

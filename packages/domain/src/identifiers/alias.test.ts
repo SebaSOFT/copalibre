@@ -39,6 +39,13 @@ describe('Alias', () => {
     expect(Alias.create('organization', 'a'.repeat(65)).ok).toBe(false);
   });
 
+  it('refuses a club alias that is shaped like a UUID, and leaves other scopes alone', () => {
+    const uuid = '01936f4a-0001-7000-8000-000000000001';
+
+    expect(Alias.create('club', uuid).ok).toBe(false);
+    expect(Alias.create('tournament', uuid).ok).toBe(true);
+  });
+
   it('scopes organization aliases installation-wide', () => {
     const alias = unwrap(Alias.create('organization', 'club-atlas'));
     expect(alias.uniquenessScope()).toBe('installation');
