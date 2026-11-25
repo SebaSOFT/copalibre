@@ -270,6 +270,13 @@ tokens card); the public pages and the help site do not.
 A living document names a `/help/` route only when a page produces it;
 `node scripts/check-doc-routes.mjs` fails otherwise.
 
+Every operator-facing capability under `openspec/specs/` (one whose scenarios name a person, such as an
+organizer or a spectator) must be claimed in the `capabilities:` frontmatter of some help page under
+`apps/web/src/content/docs/help/`. `apps/web/src/help-coverage.test.ts` and
+`scripts/check-help-coverage.test.mjs` enforce this in `yarn test`. A change that adds a capability
+claims it on a help page in its own branch: a claim on a capability that is not promoted yet is
+allowed. Otherwise `yarn test` fails on the next branch, whose first commit promotes the spec.
+
 ## CI and Infrastructure
 
 Modifying cross-cutting infrastructure files (`docker-compose.yml`, `Dockerfile`, Helm chart in `deploy/helm/`) or other global configuration has cascading effects that are validated by custom repository scripts in `scripts/`. Do not assume an infrastructure change is isolated.
@@ -512,15 +519,21 @@ The shell is zsh. An unquoted `?` or `*` that matches no file aborts the whole c
 
 Follow the `feature-delivery` skill for the full shape of shipping a change. The concrete cycle in this
 repo: one OpenSpec change per branch, named `change/00NN-slug`, branched from `develop`. Implement its
-tasks, then run the full local gate suite (`yarn lint`, `yarn format:check`, `yarn typecheck`, `yarn test`/`yarn
-test:integration`, `yarn test:e2e` as applicable, plus the infra validation scripts above if
-infrastructure files changed) and confirm every one is green before opening a PR against `develop`. Wait
-for every required CI check to pass, then wait for explicit merge approval — do not merge a PR on your
+tasks, then run the full local gate suite and confirm every one is green before opening a PR against
+`develop`:
+
+- every baseline validation listed under "CI and Infrastructure", including the design-tokens
+  `scan:forbidden` and `check:integrity`, the `node --test` suites and `openspec validate --specs --strict`;
+- `test:coverage` for each touched workspace, and `yarn crap:check`;
+- the infra validation scripts, if infrastructure files changed.
+
+Wait for every required CI check to pass, then wait for explicit merge approval — do not merge a PR on your
 own initiative, and an earlier approval does not carry forward to the next PR. Once merged, sync
 `develop`, delete the local and remote feature branches, then archive the change with
 `openspec archive <change> --yes`, then run `openspec validate --specs --strict`: archiving merges deltas
 into accepted requirements, and a merged requirement over 500 characters fails CI's strict check, so
-split it into requirements that each state one behavior before the promotion commit. Git ignore rules
+split it into requirements that each state one behavior before the promotion commit. A promoted
+capability that no help page claims fails `yarn test` (see "Help and API Reference"). Git ignore rules
 are authoritative: never force-add active or archived change artifacts. Keep resulting accepted-spec deltas uncommitted on `develop`; on the next feature
 branch, commit only those `openspec/specs/` deltas first
 (`docs(openspec): promote NNNN specs into the accepted baseline`). Do not create a standalone PR for
