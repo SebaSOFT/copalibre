@@ -711,11 +711,7 @@ describe('buildMatchReport timeline', () => {
         ? `${group.kind}:${group.segment?.number}${group.kind === 'segment-end' ? `:${group.segment?.scores?.join('-')}` : ''}`
         : group.kind,
     );
-  const seg = (
-    number: number,
-    state: 'pending' | 'active' | 'completed',
-    scores?: number[],
-  ) => ({
+  const seg = (number: number, state: 'pending' | 'active' | 'completed', scores?: number[]) => ({
     number,
     type: 'half',
     label: { en: 'Half', es: 'Tiempo' },
@@ -723,7 +719,12 @@ describe('buildMatchReport timeline', () => {
     state,
     ...(scores === undefined ? {} : { scores }),
   });
-  const goal = (eventId: string, segmentNumber: number, sequence: number, side = 'entrant-home') => ({
+  const goal = (
+    eventId: string,
+    segmentNumber: number,
+    sequence: number,
+    side = 'entrant-home',
+  ) => ({
     eventId,
     definitionCode: 'goal',
     label: 'Goal',
@@ -779,13 +780,26 @@ describe('buildMatchReport timeline', () => {
       segments: [seg(1, 'completed', [1, 0])],
       timeline: [
         goal('goal-first', 1, 1),
-        { eventId: 'admin', definitionCode: 'admin-note', label: 'Note', occurredAt: '2026-08-19T12:01:00.000Z', sequence: 2, payload: {} },
+        {
+          eventId: 'admin',
+          definitionCode: 'admin-note',
+          label: 'Note',
+          occurredAt: '2026-08-19T12:01:00.000Z',
+          sequence: 2,
+          payload: {},
+        },
         goal('card-second', 1, 3),
       ],
     };
 
     const model = build(response);
-    expect(kinds(model)).toEqual(['segment-start:1', 'single', 'single', 'single', 'segment-end:1:1-0']);
+    expect(kinds(model)).toEqual([
+      'segment-start:1',
+      'single',
+      'single',
+      'single',
+      'segment-end:1:1-0',
+    ]);
     expect(model.timeline.filter((group) => group.kind === 'segment-start')).toHaveLength(1);
     expect(model.timeline.filter((group) => group.kind === 'segment-end')).toHaveLength(1);
   });

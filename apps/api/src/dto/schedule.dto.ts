@@ -385,7 +385,6 @@ export class FixtureResponse extends FixtureSourcesResponse {
   })
   matchId!: string;
 
-
   @ApiProperty({ description: '1-based round within the stage', example: 1 })
   round!: number;
 

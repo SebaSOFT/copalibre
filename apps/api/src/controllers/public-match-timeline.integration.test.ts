@@ -198,7 +198,15 @@ async function fixtureWithTeams(input: {
     }
     const match = matches[0];
     if (!match) throw new Error('Expected a match');
-    return { stage, match, matches, homeEntrantId, awayEntrantId, players, fixtureId: fixture.fixtureId };
+    return {
+      stage,
+      match,
+      matches,
+      homeEntrantId,
+      awayEntrantId,
+      players,
+      fixtureId: fixture.fixtureId,
+    };
   });
 }
 
@@ -400,7 +408,10 @@ describe('public match report timeline', () => {
       .execute();
     expect(rows).toHaveLength(2);
     expect(rows.map((row) => row.payload)).toEqual([
-      expect.objectContaining({ matchId: match.matchId, streamUrl: 'https://example.org/live/outbox' }),
+      expect.objectContaining({
+        matchId: match.matchId,
+        streamUrl: 'https://example.org/live/outbox',
+      }),
       expect.objectContaining({ matchId: match.matchId, streamUrl: null }),
     ]);
   });

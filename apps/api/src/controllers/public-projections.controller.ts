@@ -937,7 +937,12 @@ export class PublicProjectionsController {
       'play order), and the report then carries that game’s own status, roster and stream link. ' +
       'Without it the report is the fixture’s first game.',
   })
-  @ApiQuery({ name: 'game', required: false, type: Number, description: 'Game number within the fixture' })
+  @ApiQuery({
+    name: 'game',
+    required: false,
+    type: Number,
+    description: 'Game number within the fixture',
+  })
   @ApiOkResponse({ type: PublicMatchReportResponse })
   async matchReport(
     @Param('organizationAlias') organizationAlias: string,
@@ -983,10 +988,7 @@ export class PublicProjectionsController {
 
     // A series fixture carries several games: `game` picks one, and the default is the first.
     const gameNumber = gameValue === undefined ? undefined : Number(gameValue);
-    if (
-      gameNumber !== undefined &&
-      (!Number.isSafeInteger(gameNumber) || gameNumber < 1)
-    ) {
+    if (gameNumber !== undefined && (!Number.isSafeInteger(gameNumber) || gameNumber < 1)) {
       throw new NotFoundException({ errorCode: 'public-projection-not-found' });
     }
     const game =
