@@ -198,3 +198,95 @@ test('shows no bracket tab or section for a non-elimination (grid) stage', async
   // The rail's other sections still render — a missing bracket costs only its own tab.
   await expect(page.getByRole('button', { name: 'Standings' })).toBeVisible();
 });
+
+/**
+ * Declared match counters: the discipline's own tallies per side, on the kiosk
+ * scorebug and the lower third. Each counter is served by the live projection,
+ * and a counter at its warning value carries the tone and a text cue.
+ */
+function liveMatchWithCounters(stageNumber: number, teamFouls: number) {
+  return {
+    matches: [
+      {
+        matchId: 'live-match-1',
+        stageNumber,
+        matchNumber: 1,
+        stageOrdinal: 1,
+        state: 'live',
+        projectionVersion: 1,
+        sides: [
+          { entrantId: HOME_ID, name: 'Cóndores del Sur', abbreviation: 'CDS', score: 1 },
+          { entrantId: AWAY_ID, name: 'Halcones Rojos', abbreviation: 'HRO', score: 0 },
+        ],
+        counters: [
+          {
+            code: 'team-fouls',
+            label: { en: 'Team fouls', es: 'Faltas de equipo' },
+            shortLabel: 'F',
+            scope: 'match',
+            events: ['team-foul'],
+            warnAt: 3,
+            values: [
+              { entrantId: HOME_ID, value: teamFouls },
+              { entrantId: AWAY_ID, value: 1 },
+            ],
+          },
+          {
+            code: 'timeouts',
+            label: 'Timeouts',
+            shortLabel: 'TM',
+            scope: 'segment',
+            events: ['timeout'],
+            allowance: 1,
+            values: [
+              { entrantId: HOME_ID, value: 1 },
+              { entrantId: AWAY_ID, value: 0 },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+test('kiosk shows each counter per side, and a counter at its warning value carries a cue', async ({
+  page,
+}) => {
+  live = liveMatchWithCounters(1, 4);
+  await gotoTv(page, TV_PATH);
+
+  const counters = page.locator('.tv-match-counters').first();
+  await expect(counters).toContainText('F 4');
+  await expect(counters).toContainText('F 1');
+  await expect(counters).toContainText('TM 1/1');
+  // Four fouls against a warning value of three: the home counter is in warning.
+  const warning = page.locator('.tv-match-counter--warning').first();
+  await expect(warning).toContainText('!');
+  await expect(warning).toContainText('Team fouls: 4 (warning)');
+});
+
+test('lower third shows the counters on its second row', async ({ page }) => {
+  live = liveMatchWithCounters(1, 1);
+  await gotoTv(page, `${TV_PATH}/stages/1/matches/1?mode=overlay-lower`);
+
+  const lowerThird = page.locator('.tv-lower-third').first();
+  await expect(lowerThird.locator('.tv-match-counters')).toContainText('F 1');
+  // One timeout against an allowance of one is at its warning value; the fouls are not.
+  await expect(page.locator('.tv-match-counter--warning')).toHaveCount(1);
+  await expect(page.locator('.tv-match-counter--warning')).toContainText('TM 1/1');
+});
+
+test('a counter takes a newly recorded event on the next projection, without a reload', async ({
+  page,
+}) => {
+  test.setTimeout(45_000);
+  live = liveMatchWithCounters(1, 1);
+  await gotoTv(page, TV_PATH);
+  await expect(page.locator('.tv-match-counters').first()).toContainText('F 1');
+
+  // A foul recorded on the console reaches the projection; the overlay reconciles on its poll.
+  live = liveMatchWithCounters(1, 2);
+  await expect(page.locator('.tv-match-counters').first()).toContainText('F 2', {
+    timeout: 30_000,
+  });
+});
