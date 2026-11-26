@@ -146,6 +146,10 @@ export {
   type CreateTournamentInput,
   type CreateRulesetInput,
 } from './repositories/tournament-repository.js';
+export { DisciplineDescriptorRepository } from './repositories/tournament/discipline-descriptor-repository.js';
+export { RulesetRepository } from './repositories/tournament/ruleset-repository.js';
+export { TournamentLifecycleRepository } from './repositories/tournament/tournament-lifecycle-repository.js';
+export { TournamentQueryRepository } from './repositories/tournament/tournament-queries.js';
 export {
   EnrollmentRepository,
   type AuditContext,

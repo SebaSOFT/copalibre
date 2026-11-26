@@ -50,10 +50,6 @@ export const KNOWN_OVERSIZED_FILES = new Map([
   ['apps/web/src/control/lib/activity-formatting.ts', { ceiling: 1007, reason: SPLIT }],
   ['apps/web/src/lib/reference-fixtures.ts', { ceiling: 1220, reason: SPLIT }],
   ['apps/web/src/components/ui/organisms/StandingsTable.astro', { ceiling: 1638, reason: SPLIT }],
-  [
-    'packages/persistence/src/repositories/tournament-repository.ts',
-    { ceiling: 1173, reason: SPLIT },
-  ],
   ['scripts/check-atomic-composition.mjs', { ceiling: 1192, reason: SPLIT }],
   // Production files of 801 to 999 lines at the time the register was written, and the
   // files that have grown past them since. Each is one responsibility that is not split.
