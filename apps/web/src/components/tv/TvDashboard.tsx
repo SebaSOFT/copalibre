@@ -228,9 +228,11 @@ const RANK_AND_CLUB_CODES: ReadonlySet<string> = new Set([
  * in their declared order, without its sort column (the points) and without the rank and the club,
  * which the table shows already. Empty when the layout is not known, which leaves the compact columns.
  *
- * A row's figures come from the layout's own row for that entrant, matched by entrant id. Without an
- * entrant id, they come from the row's own group segment, matched by its rank in that group: the
- * stage-wide rows, where group ranks repeat, are never searched for them.
+ * A row's figures come from the layout's own row for that entrant, matched by entrant id. Without one
+ * (or when the layout does not list the entrant), they come from the one segment the row names: the
+ * segment whose group and zone agree with the row's, an unnamed zone or group agreeing with any. When
+ * several segments agree, the row gets no figures, and its cells show a dash. A club id never matches:
+ * a club can field two teams.
  */
 export function standingsColumnsOf(
   projection: TableProjectionResponse | undefined,
@@ -251,9 +253,9 @@ export function standingsColumnsOf(
 }
 
 /**
- * The layout's row for a standings row: by entrant id, else by club id, else by rank within the row's
- * own segment. The segment is narrowed only by what the row names: its zone when it has one, its group
- * when it has one.
+ * The layout's row for a standings row: by entrant id, else by its rank in the one segment it names. A
+ * segment agrees with the row when their groups and zones agree, an unnamed one agreeing with anything;
+ * a row that several segments agree with has no layout row of its own.
  */
 function layoutRowOf(
   projection: TableProjectionResponse,
@@ -263,16 +265,17 @@ function layoutRowOf(
     const byEntrant = projection.rows.find((candidate) => candidate.entrantId === row.entrantId);
     if (byEntrant) return byEntrant;
   }
-  if (row.clubId !== undefined) {
-    const byClub = projection.rows.find((candidate) => candidate.clubId === row.clubId);
-    if (byClub) return byClub;
-  }
-  const segment = projection.segments?.find(
-    (candidate) =>
-      (row.groupName === undefined || candidate.groupName === row.groupName) &&
-      (row.zoneName === undefined || candidate.zoneName === row.zoneName),
+  const agreeing = (projection.segments ?? []).filter(
+    (segment) =>
+      namesAgree(row.groupName, segment.groupName) && namesAgree(row.zoneName, segment.zoneName),
   );
-  return segment?.rows.find((candidate) => candidate.rank === row.position);
+  const [only] = agreeing.length === 1 ? agreeing : [];
+  return only?.rows.find((candidate) => candidate.rank === row.position);
+}
+
+/** Two names agree when they are the same, or when either one is unnamed. */
+function namesAgree(rowName: string | undefined, segmentName: string | undefined): boolean {
+  return rowName === undefined || segmentName === undefined || rowName === segmentName;
 }
 
 /**

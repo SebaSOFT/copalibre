@@ -2659,6 +2659,81 @@ describe('pinned standings and declared columns', () => {
     expect(goals?.valueOf(groupB)).toBe('8');
   });
 
+  it('never gives a club its second team figures, since a club can field two teams in two groups', () => {
+    const projection = {
+      columns: [
+        { code: 'points', header: { en: 'Pts' } },
+        { code: 'goals', header: { en: 'Goals' } },
+      ],
+      defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+      rows: [
+        {
+          rank: 1,
+          entrantId: 'e1',
+          clubId: 'club-x',
+          cells: { goals: { raw: 3, formatted: '3' } },
+        },
+        {
+          rank: 1,
+          entrantId: 'e2',
+          clubId: 'club-x',
+          cells: { goals: { raw: 9, formatted: '9' } },
+        },
+      ],
+    } as unknown as TableProjectionResponse;
+    const [goals] = standingsColumnsOf(projection, 'en');
+    const secondTeam = { ...standings[0], entrantId: 'e2', clubId: 'club-x', position: 1 } as never;
+    // A row of the same club with no entrant id: the club alone names no team, so it gets no figures.
+    const clubOnly = {
+      ...standings[0],
+      entrantId: undefined,
+      clubId: 'club-x',
+      position: 1,
+    } as never;
+
+    expect(goals?.valueOf(secondTeam)).toBe('9');
+    expect(goals?.valueOf(clubOnly)).toBe('–');
+  });
+
+  it('gives no figures to a row that names only a group several zones repeat, and figures to one that names its zone', () => {
+    const projection = {
+      columns: [
+        { code: 'points', header: { en: 'Pts' } },
+        { code: 'goals', header: { en: 'Goals' } },
+      ],
+      defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+      rows: [],
+      segments: [
+        {
+          groupName: 'Grupo A',
+          zoneName: 'Zona Norte',
+          rows: [{ rank: 1, cells: { goals: { raw: 4, formatted: '4' } } }],
+        },
+        {
+          groupName: 'Grupo A',
+          zoneName: 'Zona Sur',
+          rows: [{ rank: 1, cells: { goals: { raw: 8, formatted: '8' } } }],
+        },
+      ],
+    } as unknown as TableProjectionResponse;
+    const [goals] = standingsColumnsOf(projection, 'en');
+    const groupOnly = {
+      ...standings[0],
+      groupName: 'Grupo A',
+      zoneName: undefined,
+      position: 1,
+    } as never;
+    const zoned = {
+      ...standings[0],
+      groupName: 'Grupo A',
+      zoneName: 'Zona Sur',
+      position: 1,
+    } as never;
+
+    expect(goals?.valueOf(groupOnly)).toBe('–');
+    expect(goals?.valueOf(zoned)).toBe('8');
+  });
+
   it('names the standings stage only from the stage number the overview gives', () => {
     const matches = [
       { stageNumber: 1, stageName: 'Fase de grupos' },
