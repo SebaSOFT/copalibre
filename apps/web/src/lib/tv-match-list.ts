@@ -324,3 +324,57 @@ export function chunkTvRows<T>(rows: readonly T[], size: number): readonly (read
   }
   return pages;
 }
+
+/** The labels a matches view row is named with: the state words, the round word and the side sources. */
+export type TvMatchLabelText = Omit<Parameters<typeof tvMatchEntriesOf>[1], 'overallPlaceOffsetOf'>;
+
+/** A stage's bracket as the labels read it: each zone's overall-place offset, for the stage it names. */
+export interface TvBracketPlaces {
+  readonly stageNumber: number;
+  readonly zones: readonly { readonly zoneName?: string; readonly overallPlaceOffset?: number }[];
+}
+
+/**
+ * The matches view as list entries, the same way on every TV route: a placement match in a bracket stage
+ * carries its overall place, which comes from that stage's bracket. A route that holds no bracket for the
+ * match's stage names the placement without the overall place, so a match is never named two ways.
+ */
+export function tvMatchEntriesOfView(
+  rows: Parameters<typeof tvMatchEntriesOf>[0],
+  text: TvMatchLabelText,
+  bracket: TvBracketPlaces | undefined,
+  now: Date | number,
+): readonly TvMatchEntry[] {
+  return tvMatchEntriesOf(
+    rows,
+    {
+      ...text,
+      overallPlaceOffsetOf: (row) =>
+        bracket?.stageNumber === row.stageNumber
+          ? bracket.zones.find((zone) => zone.zoneName === row.zoneName)?.overallPlaceOffset
+          : undefined,
+    },
+    now,
+  );
+}
+
+/** The matches-view label text of a TV dashboard's catalogue, without the overall place when it has none. */
+export function tvMatchLabelTextOf(dashboardText: {
+  readonly resultState: TvMatchLabelText['state'];
+  readonly delayed?: string;
+  readonly bracketRound: string;
+  readonly sideSource: TvMatchLabelText['sideSource'];
+  readonly zonePrefix?: string;
+  readonly overallPlace?: string;
+}): TvMatchLabelText {
+  return {
+    state: dashboardText.resultState,
+    ...(dashboardText.delayed === undefined ? {} : { delayed: dashboardText.delayed }),
+    round: dashboardText.bracketRound,
+    sideSource: dashboardText.sideSource,
+    ...(dashboardText.zonePrefix === undefined ? {} : { zonePrefix: dashboardText.zonePrefix }),
+    ...(dashboardText.overallPlace === undefined
+      ? {}
+      : { overallPlace: dashboardText.overallPlace }),
+  };
+}

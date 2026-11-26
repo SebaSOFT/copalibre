@@ -45,7 +45,11 @@ import { winnerZonesOf } from '../../../../../../../../lib/tv-winners.ts';
 import { bracketZonesOf } from '../../../../../../../../lib/bracket.ts';
 import type { BracketZone } from '../../../../../../../../lib/bracket-projection.ts';
 import { TV_BACKGROUNDS, type TvBackground } from '../../../../../../../../lib/tv-background.ts';
-import { tvMatchEntriesOf, type TvMatchEntry } from '../../../../../../../../lib/tv-match-list.ts';
+import {
+  tvMatchEntriesOfView,
+  tvMatchLabelTextOf,
+  type TvMatchEntry,
+} from '../../../../../../../../lib/tv-match-list.ts';
 
 export const prerender = false;
 
@@ -226,25 +230,23 @@ const requestedBackground =
 const background = TV_BACKGROUNDS.find((value) => value === requestedBackground) as
   TvBackground | undefined;
 const presentation = overlayMode ?? 'kiosk';
-const isCornerOverlay = presentation === 'scorebug' || presentation === 'lower';
 const layoutParam = Astro.url.searchParams.get('layout');
 const layoutVariant =
   layoutParam === 'presentation' || layoutParam === 'dashboard' ? layoutParam : 'kiosk';
 
+// The bracket of the pinned match's stage: it names the match's overall place, as the tournament route does.
 let initialBracket: { stageNumber: number; zones: readonly BracketZone[] } | undefined;
-if (!isCornerOverlay) {
-  try {
-    const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, stageNumber);
-    if (rawBracket) {
-      const mapped = mapBracketResponse(rawBracket, intl.formatMessage(messages.resultStateTbd));
-      const zones = bracketZonesOf(mapped);
-      if (zones.length > 0) {
-        initialBracket = { stageNumber, zones };
-      }
+try {
+  const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, stageNumber);
+  if (rawBracket) {
+    const mapped = mapBracketResponse(rawBracket, intl.formatMessage(messages.resultStateTbd));
+    const zones = bracketZonesOf(mapped);
+    if (zones.length > 0) {
+      initialBracket = { stageNumber, zones };
     }
-  } catch {
-    // A bracket outage does not affect the pinned match or event ticker.
   }
+} catch {
+  // A bracket outage does not affect the pinned match or event ticker.
 }
 
 /*
@@ -273,28 +275,29 @@ try {
 */
 let matchList: readonly TvMatchEntry[] = [];
 let venueNameByMatchId: Record<string, string> = {};
-try {
-  const view = await fetchMatchesView(organizationAlias, tournamentAlias, { state: 'all' });
-  if (view) {
-    const rows = mapMatchesViewResponse(
-      view,
-      intl.formatMessage(messages.personHiddenAtRequest),
-      language,
-    ).matches;
-    venueNameByMatchId = Object.fromEntries(
-      rows.flatMap((row) => (row.venueName === undefined ? [] : [[row.matchId, row.venueName]])),
-    );
-    const dashboardText = tvDashboardLabels(intl);
-    matchList = tvMatchEntriesOf(rows, {
-      state: dashboardText.resultState,
-      delayed: dashboardText.delayed,
-      round: dashboardText.bracketRound,
-      sideSource: dashboardText.sideSource,
-      zonePrefix: dashboardText.zonePrefix,
-    });
+// The plain kiosk shows neither label, so it does not read the tournament's whole matches view for them.
+if (presentation !== 'kiosk') {
+  try {
+    const view = await fetchMatchesView(organizationAlias, tournamentAlias, { state: 'all' });
+    if (view) {
+      const rows = mapMatchesViewResponse(
+        view,
+        intl.formatMessage(messages.personHiddenAtRequest),
+        language,
+      ).matches;
+      venueNameByMatchId = Object.fromEntries(
+        rows.flatMap((row) => (row.venueName === undefined ? [] : [[row.matchId, row.venueName]])),
+      );
+      matchList = tvMatchEntriesOfView(
+        rows,
+        tvMatchLabelTextOf(tvDashboardLabels(intl)),
+        initialBracket,
+        Date.now(),
+      );
+    }
+  } catch {
+    // No competition label and no court name is a degraded overlay, not a broken one.
   }
-} catch {
-  // No competition label and no court name is a degraded overlay, not a broken one.
 }
 
 const referenceDate = Date.now();
