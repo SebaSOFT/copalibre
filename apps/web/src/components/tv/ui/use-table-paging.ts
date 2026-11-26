@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 
 /** Space kept between the last row on a page and its pager. */
 const PAGER_GAP_PX = 24;
@@ -57,23 +57,33 @@ export function pageBoundaries(
   return pages;
 }
 
-/** Groups the elements by their top edge: one unit per visual row, so two entries side by side are one. */
-function rowUnits(elements: readonly Element[]): readonly { top: number; bottom: number }[] {
-  const units = new Map<number, { top: number; bottom: number }>();
-  for (const element of elements) {
-    const box = element.getBoundingClientRect();
-    const key = Math.round(box.top);
-    const unit = units.get(key);
-    if (unit) unit.bottom = Math.max(unit.bottom, box.bottom);
-    else units.set(key, { top: key, bottom: box.bottom });
-  }
-  return [...units.values()].sort((left, right) => left.top - right.top);
-}
-
 /** The panel's box as the observer last reported it, in CSS pixels. */
 interface PanelBox {
   readonly width: number;
   readonly height: number;
+}
+
+/** One visual row: the data rows whose top edges share a line, and the line's extent. */
+interface VisualUnit {
+  readonly top: number;
+  readonly bottom: number;
+  /** The data rows (elements) on this line: two entries side by side are two rows. */
+  readonly rows: number;
+}
+
+/** Groups the elements by their top edge: one unit per visual line, counting the rows on it. */
+function visualUnits(elements: readonly Element[]): readonly VisualUnit[] {
+  const units = new Map<number, { top: number; bottom: number; rows: number }>();
+  for (const element of elements) {
+    const box = element.getBoundingClientRect();
+    const key = Math.round(box.top);
+    const unit = units.get(key);
+    if (unit) {
+      unit.bottom = Math.max(unit.bottom, box.bottom);
+      unit.rows += 1;
+    } else units.set(key, { top: key, bottom: box.bottom, rows: 1 });
+  }
+  return [...units.values()].sort((left, right) => left.top - right.top);
 }
 
 /**
@@ -81,14 +91,15 @@ interface PanelBox {
  * whose bottoms end above the frame, with room kept for the pager, are the page. A page therefore never
  * clips its rows or its pager, and a page takes whole segments (groups) when `segments` names them.
  *
- * Every measurement is taken under one key: the panel's width and height (from a `ResizeObserver`),
- * the row total, the segments, whether the hook is enabled, and the fonts once they are ready. A key
- * change starts again from every row, since a larger frame or a larger list may hold more. Within one
- * key the size only shrinks: each rendered page that overflows its frame sets the size to the rows that
- * fit. A frame shorter than {@link MIN_FRAME_ROWS} rows is not measured.
+ * The measurement key is the panel's width and height, plus a fonts flag flipped once per mount. A key
+ * change starts a fresh ceiling, and keeps the size the hook last measured: the next measure grows or
+ * shrinks it, so the whole list is never painted for a frame. Every rendered page is measured. A page
+ * that overflows sets the size and the ceiling to the data rows that fit. A page that fits with spare
+ * room grows the size by the rows that spare holds, never past one below the ceiling. A frame shorter
+ * than {@link MIN_FRAME_ROWS} rows is not measured.
  *
  * With `page` given, the caller turns the pages; without it, the page advances on the rotation interval
- * when `rotate` is set.
+ * when `rotate` is set. The panel must not scroll: paging replaces scrolling.
  */
 export function useTablePaging<T>(
   rows: readonly T[],
@@ -115,29 +126,28 @@ export function useTablePaging<T>(
   },
 ): TablePaging<T> {
   const total = rows.length;
-  const segmentsKey = segments?.join(',') ?? '';
   const [box, setBox] = useState<PanelBox | undefined>(undefined);
   const [fontsReady, setFontsReady] = useState(false);
   const [rotatedIndex, setPageIndex] = useState(0);
-  const [measured, setMeasured] = useState<
-    { readonly key: string; readonly size: number } | undefined
-  >(undefined);
-  const measureKey = [box?.width, box?.height, total, segmentsKey, enabled, fontsReady].join('|');
-  // Before any measurement the page holds its initial size; a new key starts again from every row.
-  const size = Math.max(
-    1,
-    measured?.key === measureKey
-      ? Math.min(measured.size, total || 1)
-      : measured === undefined
-        ? Math.min(total, initialSize ?? total) || 1
-        : total || 1,
-  );
+  // The last measured size; undefined until the first measurement.
+  const [measuredSize, setMeasuredSize] = useState<number | undefined>(undefined);
+  // The most rows a page may hold under the current key: an overflowing page's fit, until the key changes.
+  const ceiling = useRef<{ readonly key: string; readonly value: number } | undefined>(undefined);
+  const measureKey = `${box?.width ?? ''}x${box?.height ?? ''}|${fontsReady}`;
+  const ceilingValue =
+    ceiling.current?.key === measureKey ? ceiling.current.value : Number.POSITIVE_INFINITY;
+  // Before a measurement the page holds the initial size, or the whole list; a later key keeps the last size.
+  const size = Math.max(1, Math.min(measuredSize ?? initialSize ?? total, total || 1));
   const bounds = useMemo(
     () => (segments === undefined ? pageBoundaries([total], size) : pageBoundaries(segments, size)),
     [total, size, segments],
   );
   const pageCount = bounds.length;
   const pageIndex = (page ?? rotatedIndex) % pageCount;
+  const pageRows = useMemo(() => {
+    const bound = bounds[pageIndex];
+    return bound === undefined ? [] : rows.slice(bound[0], bound[1]);
+  }, [rows, bounds, pageIndex]);
 
   // The panel's box: the observer reports it when it starts watching and on every change. Changes under
   // a pixel are not a new frame.
@@ -177,7 +187,8 @@ export function useTablePaging<T>(
 
     const frame = window.requestAnimationFrame(() => {
       if (panel.clientHeight === 0) return;
-      const units = rowUnits(Array.from(panel.querySelectorAll<HTMLElement>(rowSelector)));
+      const elements = Array.from(panel.querySelectorAll<HTMLElement>(rowSelector));
+      const units = visualUnits(elements);
       if (units.length === 0) return;
       const unitHeights = units.map((unit) => unit.bottom - unit.top);
       if (unitHeights.some((height) => height <= 0)) return;
@@ -192,25 +203,45 @@ export function useTablePaging<T>(
       const pager = panel.querySelector<HTMLElement>(pagerSelector);
       // The pager follows the page's last row after the block's own margin: reserve what the layout puts
       // there, and never less than the fixed gap.
-      const lastRow = units[units.length - 1];
-      const measuredGap = pager && lastRow ? pager.getBoundingClientRect().top - lastRow.bottom : 0;
+      const lastUnit = units[units.length - 1];
+      if (lastUnit === undefined) return;
+      const measuredGap = pager ? pager.getBoundingClientRect().top - lastUnit.bottom : 0;
       const reserved =
         (pager?.getBoundingClientRect().height ?? 0) + Math.max(PAGER_GAP_PX, measuredGap);
+      const rendered = units.reduce((sum, unit) => sum + unit.rows, 0);
       let fit = 0;
       for (const unit of units) {
         if (unit.bottom + reserved > frameBottom) break;
-        fit += 1;
+        fit += unit.rows;
       }
-      // A page that overflows shrinks to the rows that fit. A page that fits never grows the size here.
-      if (fit >= units.length) return;
-      const next = Math.max(1, Math.min(size, fit));
-      if (next === size && measured?.key === measureKey) return;
-      setMeasured({ key: measureKey, size: next });
+      if (fit < rendered) {
+        // The page overflows: it holds the data rows that fit, and this key never grows past them.
+        const next = Math.max(1, fit);
+        ceiling.current = { key: measureKey, value: next };
+        setMeasuredSize(next);
+        return;
+      }
+      // The page fits: the room below its last line holds more rows, up to one below the ceiling.
+      const rowsPerUnit = Math.max(1, Math.round(rendered / units.length));
+      const spare = Math.floor((frameBottom - reserved - lastUnit.bottom) / minUnit) * rowsPerUnit;
+      // Growth never shrinks the page: a ceiling below the size keeps it where it is.
+      const grown =
+        spare < 1 ? size : Math.max(size, Math.min(total, size + spare, ceilingValue - 1));
+      setMeasuredSize(grown);
     });
     return () => window.cancelAnimationFrame(frame);
-    // The page index is a trigger: a page of several groups carries headings the row count does not, so
-    // every page is measured as it renders.
-  }, [enabled, panelRef, measureKey, measured, size, pageIndex, rowSelector, pagerSelector, total]);
+    // Every rendered page is measured: the page's rows are the trigger, and the key and the size are its inputs.
+  }, [
+    enabled,
+    panelRef,
+    measureKey,
+    pageRows,
+    size,
+    ceilingValue,
+    rowSelector,
+    pagerSelector,
+    total,
+  ]);
 
   useEffect(() => {
     if (!enabled || !rotate || page !== undefined || pageCount <= 1) return;
@@ -220,9 +251,5 @@ export function useTablePaging<T>(
     return () => window.clearInterval(interval);
   }, [enabled, rotate, page, pageCount]);
 
-  const pageRows = useMemo(() => {
-    const bound = bounds[pageIndex];
-    return bound === undefined ? [] : rows.slice(bound[0], bound[1]);
-  }, [rows, bounds, pageIndex]);
   return { pageRows, pageIndex, pageCount, pageSize: size };
 }

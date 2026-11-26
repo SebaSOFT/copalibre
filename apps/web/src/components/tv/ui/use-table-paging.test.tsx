@@ -1,4 +1,7 @@
 import { jest } from '@jest/globals';
+import { readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { act, render, screen } from '@testing-library/react';
 import { useRef } from 'react';
 import { pageBoundaries, useTablePaging } from './use-table-paging.js';
@@ -11,13 +14,16 @@ const PAGER_GAP_PX = 24;
 interface Frame {
   width: number;
   height: number;
-  /** The height of one rendered row: a narrower frame wraps its text into taller rows. */
+  /** The height of one visual line: a narrower frame wraps its text into taller lines. */
   rowPx: number;
+  /** Data rows per visual line: two rows side by side share a top edge. */
+  perLine?: number;
 }
 
 /**
- * Fixes the geometry jsdom does not compute: the frame's box (read live from `frame`), where each row
- * sits in it, and the pager's place at the frame's foot. Rows start below a heading of 100px.
+ * Fixes the geometry jsdom does not compute: the frame's box (read live from `frame`), where each data
+ * row sits in it, and the pager's place just below the last rendered line. The first line sits 100px
+ * below the frame's top.
  */
 function frameOf(frame: Frame): () => void {
   const clientHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight');
@@ -30,6 +36,7 @@ function frameOf(frame: Frame): () => void {
     configurable: true,
     get: () => frame.width,
   });
+  const perLine = frame.perLine ?? 1;
   const rect = Element.prototype.getBoundingClientRect;
   Element.prototype.getBoundingClientRect = function (this: Element): DOMRect {
     const base = rect.call(this);
@@ -37,9 +44,14 @@ function frameOf(frame: Frame): () => void {
       ({ ...base, top, bottom: top + boxHeight, height: boxHeight }) as DOMRect;
     if (this.tagName === 'TR') {
       const rows = Array.from(this.closest('table')?.querySelectorAll('tr') ?? []) as Element[];
-      return box(TOP_PX + rows.indexOf(this as Element) * frame.rowPx, frame.rowPx);
+      const line = Math.floor(rows.indexOf(this as Element) / perLine);
+      return box(TOP_PX + line * frame.rowPx, frame.rowPx);
     }
-    if (this.tagName === 'P') return box(frame.height - PAGER_PX, PAGER_PX);
+    if (this.tagName === 'P') {
+      const count = this.parentElement?.querySelectorAll('tr').length ?? 0;
+      const lines = Math.ceil(count / perLine);
+      return box(TOP_PX + lines * frame.rowPx + PAGER_GAP_PX, PAGER_PX);
+    }
     if (this.getAttribute('data-testid') === 'panel') return box(0, frame.height);
     return base;
   };
@@ -50,11 +62,12 @@ function frameOf(frame: Frame): () => void {
   };
 }
 
-/** A frame that holds `rows` rows of 50px under its heading and above its pager. */
-const frameHolding = (rows: number, width = 1000): Frame => ({
+/** A frame that holds `lines` lines of 50px under its heading and above its pager. */
+const frameHolding = (lines: number, width = 1000, perLine = 1): Frame => ({
   width,
-  height: TOP_PX + rows * ROW_PX + PAGER_PX + PAGER_GAP_PX,
+  height: TOP_PX + lines * ROW_PX + PAGER_PX + PAGER_GAP_PX,
   rowPx: ROW_PX,
+  perLine,
 });
 
 function Harness({
@@ -62,19 +75,28 @@ function Harness({
   page,
   enabled = true,
   segments,
+  initialSize,
   onRender,
 }: {
   readonly rows: readonly number[];
   readonly page?: number;
   readonly enabled?: boolean;
   readonly segments?: readonly number[];
+  readonly initialSize?: number;
   readonly onRender?: () => void;
 }) {
   onRender?.();
   const panel = useRef<HTMLDivElement>(null);
-  const paging = useTablePaging(rows, { panelRef: panel, page, rotate: false, enabled, segments });
+  const paging = useTablePaging(rows, {
+    panelRef: panel,
+    page,
+    rotate: false,
+    enabled,
+    segments,
+    initialSize,
+  });
   return (
-    <div data-testid="panel" ref={panel}>
+    <div data-testid="panel" ref={panel} className="tv-rail-content">
       <table className="tv-standings-table">
         <tbody>
           {paging.pageRows.map((row) => (
@@ -235,7 +257,7 @@ describe('useTablePaging', () => {
     expect(rowsOnScreen()).toHaveLength(6);
   });
 
-  it('grows back to a larger frame after a short last page, since a key change starts again', async () => {
+  it('grows back to a larger frame after a short last page, since a key change allows growth again', async () => {
     mockResizeObserver();
     restore = frameOf(frame);
     const rows = range(1, 24);
@@ -275,6 +297,87 @@ describe('useTablePaging', () => {
     await settle();
     expect(rowsOnScreen()).toEqual(range(1, 4));
     expect(screen.getByText('1 of 2')).toBeDefined();
+  });
+
+  it('grows past the initial size to the rows a frame holds', async () => {
+    mockResizeObserver();
+    frame = frameHolding(20);
+    restore = frameOf(frame);
+    render(<Harness rows={range(1, 40)} page={0} initialSize={12} />);
+    await reportFrame();
+    await reportFrame();
+
+    expect(rowsOnScreen()).toHaveLength(20);
+    expect(screen.getByText('1 of 2')).toBeDefined();
+  });
+
+  it('never renders the whole list when the total grows by one row', async () => {
+    mockResizeObserver();
+    frame = frameHolding(20);
+    restore = frameOf(frame);
+    const { rerender } = render(<Harness rows={range(1, 60)} page={0} />);
+    await reportFrame();
+    expect(rowsOnScreen()).toHaveLength(20);
+
+    rerender(<Harness rows={range(1, 61)} page={0} />);
+    expect(rowsOnScreen()).not.toHaveLength(61);
+    await reportFrame();
+    expect(rowsOnScreen()).toHaveLength(20);
+  });
+
+  it('counts two rows that share a top edge as two data rows', async () => {
+    mockResizeObserver();
+    // Three lines of two rows each: six data rows fit.
+    frame = frameHolding(3, 1000, 2);
+    restore = frameOf(frame);
+    render(<Harness rows={range(1, 12)} page={0} />);
+    await reportFrame();
+    await reportFrame();
+
+    expect(rowsOnScreen()).toHaveLength(6);
+  });
+
+  it('does not grow back to a size that overflowed within the same key', async () => {
+    mockResizeObserver();
+    frame = frameHolding(20);
+    restore = frameOf(frame);
+    render(<Harness rows={range(1, 40)} page={0} />);
+    await reportFrame();
+    await reportFrame();
+    expect(rowsOnScreen()).toHaveLength(20);
+
+    // The rows shrink in the same frame: room appears, but this key never grows past its fit.
+    frame.rowPx = 30;
+    frame.height = frame.height + 0;
+    await settle();
+    await settle();
+    expect(rowsOnScreen().length).toBeLessThanOrEqual(20);
+  });
+
+  it('grows again after a key change, once the frame holds more', async () => {
+    mockResizeObserver();
+    frame = frameHolding(20);
+    restore = frameOf(frame);
+    render(<Harness rows={range(1, 40)} page={0} />);
+    await reportFrame();
+    await reportFrame();
+    expect(rowsOnScreen()).toHaveLength(20);
+
+    frame = frameHolding(30);
+    restore?.();
+    restore = frameOf(frame);
+    await reportFrame();
+    await reportFrame();
+    expect(rowsOnScreen()).toHaveLength(30);
+  });
+
+  it('keeps the panel from scrolling, so no scrollbar can change its width', () => {
+    const candidates = ['src/styles/tv-broadcast.css', 'apps/web/src/styles/tv-broadcast.css'];
+    const path = candidates.map((candidate) => resolve(process.cwd(), candidate)).find(existsSync);
+    expect(path).toBeDefined();
+    const css = readFileSync(path ?? '', 'utf8');
+    const rule = css.slice(css.indexOf('.tv-rail-content {'));
+    expect(rule.slice(0, rule.indexOf('}'))).toContain('overflow: hidden');
   });
 
   it('does not re-render on its own once the fonts are ready', async () => {
