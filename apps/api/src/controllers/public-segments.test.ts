@@ -120,6 +120,20 @@ describe('scoreAfterOf', () => {
     );
   });
 
+  it('folds a 250-event match once per event, and its last entry is the final score', () => {
+    const events = Array.from({ length: 250 }, (_, index) =>
+      point(index < 150 ? 1 : 2, index % 3 === 0 ? AWAY : HOME, index + 1),
+    );
+    const homeCount = events.filter((event) => event.side === HOME).length;
+    const awayCount = events.length - homeCount;
+
+    const scores = scoreAfterOf(descriptor, events, [HOME, AWAY]);
+
+    expect(scores.size).toBe(250);
+    expect(scores.get('event-250')).toEqual([homeCount, awayCount]);
+    expect(scores.get('event-1')).toEqual([0, 1]);
+  });
+
   it('gives no entries for a match with no events', () => {
     expect(scoreAfterOf(descriptor, [], [HOME, AWAY]).size).toBe(0);
   });

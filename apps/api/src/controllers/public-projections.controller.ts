@@ -989,7 +989,8 @@ export class PublicProjectionsController {
         'fixtures.home_entrant_id',
         'fixtures.away_entrant_id',
       ])
-      .where('fixtures.fixture_id', '=', targetRecord.fixtureId)
+      // A series has one fixture and several games: the page shows this game, not the fixture's first.
+      .where('matches.match_id', '=', targetRecord.matchId)
       .executeTakeFirst();
     if (!match)
       throw new NotFoundException(`No match ${matchNumberValue} in stage ${stageNumberValue}`, {
@@ -1082,10 +1083,14 @@ export class PublicProjectionsController {
         return teamId === undefined ? [] : [teamId];
       }),
     );
+    // A registered squad lists the team's players and substitutes only. Coaches and staff are
+    // registered to the team too, but they are not on the squad a spectator is shown.
     const squadPlayers = new Map(
       squadEntrantIds.flatMap((entrantId) => {
         const teamId = teamIdByEntrant.get(entrantId);
-        const players = teamId === undefined ? [] : (squadPlayersByTeam.get(teamId) ?? []);
+        const players = (teamId === undefined ? [] : (squadPlayersByTeam.get(teamId) ?? [])).filter(
+          (player) => player.role === 'player' || player.role === 'substitute',
+        );
         return players.length === 0 ? [] : [[entrantId, players] as const];
       }),
     );

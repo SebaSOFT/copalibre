@@ -321,6 +321,11 @@ export class FixtureMatchResponse {
       'anulled match that held one; the slot itself is free and open to anyone.',
   })
   releasedSlotId?: string;
+
+  @ApiPropertyOptional({
+    description: 'This game’s stream link, when the organizer attached one to it',
+  })
+  streamUrl?: string;
 }
 
 /**
@@ -380,10 +385,6 @@ export class FixtureResponse extends FixtureSourcesResponse {
   })
   matchId!: string;
 
-  @ApiPropertyOptional({
-    description: 'The first match’s stream link, when the organizer attached one',
-  })
-  streamUrl?: string;
 
   @ApiProperty({ description: '1-based round within the stage', example: 1 })
   round!: number;
