@@ -128,6 +128,19 @@ describe('what a public stream may say', () => {
     expect(publicised?.payload).not.toHaveProperty('internalNote');
   });
 
+  it('keeps match.stream-url-changed out of the public stream, which stays an allowlist', () => {
+    expect(isPublicEventType('match.stream-url-changed')).toBe(false);
+    expect(
+      sanitiseForPublic(
+        toEnvelope({
+          ...row,
+          eventType: 'match.stream-url-changed',
+          payload: { matchId: 'm-1', stageId: 's-1', streamUrl: 'https://example.org/live' },
+        }),
+      ),
+    ).toBeUndefined();
+  });
+
   it('keeps match.console-projection strictly private', () => {
     expect(
       sanitiseForPublic(
