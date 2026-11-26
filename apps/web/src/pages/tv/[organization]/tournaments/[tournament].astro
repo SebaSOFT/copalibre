@@ -138,14 +138,6 @@ try {
 }
 
 /*
-  The ticker's own projections, read in their own guard.
-  Deliberately outside the block above: a failure here must cost the ticker its
-  items and nothing else. Folded into that try, a table read that 404s would
-  have been caught by its `catch` and replaced the whole live dashboard with
-  sample data — a broadcast showing invented scores because a statistics table
-  was missing.
-*/
-/*
   The ticker's and the standings' own projections, read in their own guards.
   Deliberately outside the block above: a failure here must cost the ticker its
   items and nothing else. Folded into that try, a table read that 404s would
