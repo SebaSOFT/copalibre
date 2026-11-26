@@ -566,11 +566,14 @@ describe('the CSS output', () => {
 
   it('keeps emblem monograms on one line and sizes each length step from the frame width', () => {
     expect(css).toContain('white-space: nowrap;');
+    // The tile is an inline-size container, so a share of `cqi` is a share of the tile's rendered width,
+    // whatever length the emblem was given (a percentage of its wrapper included).
+    expect(css).toMatch(/\.cl-entrant-emblem \{[^}]*container-type: inline-size;/);
     // Every step is a share of the tile, so a longer abbreviation takes a smaller one at every size.
     const shares = ['short', 'medium', 'long', 'longest'].map((step) => {
       const match = css.match(
         new RegExp(
-          `\\.cl-entrant-emblem__monogram--${step} \\{ font-size: calc\\(var\\(--entrant-emblem-size\\) \\* ([0-9.]+)\\); \\}`,
+          `\\.cl-entrant-emblem__monogram--${step} \\{ font-size: calc\\(100cqi \\* ([0-9.]+)\\); \\}`,
         ),
       );
       return Number(match?.[1]);

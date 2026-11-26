@@ -82,7 +82,7 @@ import type { BracketZone } from '../../lib/bracket-projection.js';
 import { bracketZonesOf } from '../../lib/bracket.js';
 import type { PublicBracketResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import { TvMatchIndicators } from './ui/organisms/TvMatchIndicators.js';
-import { TvBracketView } from './ui/organisms/TvBracketView.js';
+import { holdsBracketMatch, TvBracketView } from './ui/organisms/TvBracketView.js';
 import { TvMatchList } from './ui/organisms/TvMatchList.js';
 import { TvSeriesAndSets } from './ui/organisms/TvSeriesAndSets.js';
 import { tvMatchProgress } from '../../lib/tv-match-progress.js';
@@ -1015,6 +1015,23 @@ export function TvDashboard({
     undecidedSide,
   ]);
   const visibleBracket = bracketData?.stageNumber === bracketStage ? bracketData : undefined;
+  // The bracket centres the match the screen is about: the pinned match, else the featured one. A
+  // bracket names its matches by node key within a zone, so the match is found by its zone and node
+  // key, and only when it belongs to the stage the bracket draws.
+  const focusMatch = pinnedMatch ?? spotlightMatch;
+  const bracketFocus =
+    focusMatch?.nodeKey !== undefined && focusMatch.stageNumber === visibleBracket?.stageNumber
+      ? { nodeKey: focusMatch.nodeKey, zoneName: focusMatch.zoneName }
+      : undefined;
+  // A pinned match's rail draws only the zone that holds it: its own path, not the whole stage.
+  const pinnedZones =
+    pinnedMatch === undefined || bracketFocus === undefined
+      ? undefined
+      : visibleBracket?.zones.filter((zone) => holdsBracketMatch(zone, bracketFocus));
+  const railBracketZones =
+    pinnedMatch !== undefined && pinnedZones !== undefined && pinnedZones.length > 0
+      ? pinnedZones
+      : (visibleBracket?.zones ?? []);
   const spotlightClock = clockForMatch(spotlightMatch);
   const clockLabels = {
     clockStopped: dashboardLabels.clockStopped,
@@ -1322,7 +1339,12 @@ export function TvDashboard({
             <section className="tv-layout-panel cl-chamfer">
               <h2>{dashboardLabels.bracketTab}</h2>
               {visibleBracket?.zones.length ? (
-                <TvBracketView labels={dashboardLabels} zones={visibleBracket.zones} />
+                <TvBracketView
+                  clubs={clubs}
+                  labels={dashboardLabels}
+                  zones={visibleBracket.zones}
+                  {...(bracketFocus === undefined ? {} : { focus: bracketFocus })}
+                />
               ) : (
                 <p className="tv-layout-empty">{dashboardLabels.noMatchesScheduled}</p>
               )}
@@ -1783,7 +1805,12 @@ export function TvDashboard({
                 />
               )}
               {activeTab === 'bracket' && visibleBracket && (
-                <TvBracketView labels={dashboardLabels} zones={visibleBracket.zones} />
+                <TvBracketView
+                  clubs={clubs}
+                  labels={dashboardLabels}
+                  zones={railBracketZones}
+                  {...(bracketFocus === undefined ? {} : { focus: bracketFocus })}
+                />
               )}
               {activeTab === 'fixtures' && matchPages.length > 0 && (
                 <TvMatchList

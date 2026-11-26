@@ -1062,12 +1062,27 @@
 .tv-bracket-card__slot {
   min-width: 0;
   margin-block-start: var(--cl-space-2);
-  font-size: var(--cl-font-size-sm);
+  /* Team names on a venue screen never drop below the TV secondary-text minimum. */
+  font-size: max(var(--tv-min-secondary-size), var(--cl-font-size-sm));
+}
+
+/* A side is its crest beside its name; the name gives way to the abbreviation only when it does not fit. */
+.tv-bracket-card__side {
+  display: flex;
+  align-items: center;
+  gap: var(--cl-space-2);
+  min-width: 0;
 }
 
 .tv-bracket-card__name {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+/* The match the screen is about: the accent edge the standings use for the highlighted row. */
+.tv-bracket-card--focus {
+  border-color: var(--cl-border-accent);
+  box-shadow: inset 0.6vmin 0 0 var(--cl-border-accent);
 }
 
 .tv-bracket-card__score {

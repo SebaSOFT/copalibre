@@ -368,7 +368,8 @@ test('lists the matches two to a row with their zone and round, and keeps the kn
   await page.getByRole('button', { name: 'Bracket' }).click();
   const drawn = page.getByTestId('tv-bracket');
   await expect(drawn).toContainText('Copa de Oro');
-  await expect(drawn).toContainText('BOG');
+  // The bracket names each side in full; an abbreviation only stands beside a crest.
+  await expect(drawn).toContainText('Corazonistas Bogota');
   await expect(drawn).not.toContainText('Zona A');
 });
 
