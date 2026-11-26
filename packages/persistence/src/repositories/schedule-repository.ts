@@ -1105,9 +1105,10 @@ export class ScheduleRepository {
 
   /**
    * Sets or clears one match's stream link, scoped to the stage and tournament the request names. The
-   * write is audited and publishes `match.stream-url-changed` through the outbox in the same
-   * transaction, so a schedule consumer sees the link change. Returns `null` when the match is not in
-   * that stage, so the caller reports it as not found.
+   * write is audited, and publishes `match.stream-url-changed` through the outbox in the same transaction.
+   * The event bumps its own `match-stream-link` projection version, not the public `match-schedule` one,
+   * because a link does not move a match in the schedule. Returns `null` when the match is not in that
+   * stage, so the caller reports it as not found.
    */
   async setMatchStreamUrl(
     uow: UnitOfWork,
@@ -1151,7 +1152,7 @@ export class ScheduleRepository {
       resultingState: { streamUrl: input.streamUrl },
     });
     const projectionVersion = await new ProjectionStore(uow.tx).nextVersion(uow, {
-      projectionType: 'match-schedule',
+      projectionType: 'match-stream-link',
       entityId: input.matchId,
     });
     await uow.publishEvent({
