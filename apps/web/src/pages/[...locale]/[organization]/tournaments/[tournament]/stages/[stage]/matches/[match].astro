@@ -120,6 +120,7 @@ const sourceFinalRound = bracketMatches[0]?.sourceFinalRound;
 const model = buildMatchReport(response, {
   locale: resolvedLocale,
   hiddenPersonLabel: intl.formatMessage(messages.personHiddenAtRequest),
+  genericSegmentLabel: intl.formatMessage(messages.matchTimelineSegmentFallback),
   sideSource: sideSourceLabels(intl),
   sourceFinalRound,
   zoneNodeKeys,
@@ -369,9 +370,9 @@ const structuredData = {
 
       {!liveFirst && bracketMatches.length > 0 && <MatchBracketContext {...bracketProps} />}
 
-      <div class="cl-match-details">
-        {liveFirst ? (
-          <div class="cl-match-details__primary">
+      {liveFirst ? (
+        <div class="cl-match-details cl-match-details--live">
+          <div class="cl-match-details__timeline">
             <MatchTimeline
               model={model}
               intl={intl}
@@ -379,7 +380,24 @@ const structuredData = {
               referenceDate={referenceDate}
             />
           </div>
-        ) : (
+          <div class="cl-match-details__side">
+            <MatchRosters
+              model={model}
+              intl={intl}
+              locale={locale}
+              organization={organization!}
+              tournament={tournament!}
+            />
+            <MatchOfficials model={model} intl={intl} />
+          </div>
+          {bracketMatches.length > 0 && (
+            <div class="cl-match-details__bracket">
+              <MatchBracketContext {...bracketProps} />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div class="cl-match-details">
           <div class="cl-match-details__primary">
             <MatchRosters
               model={model}
@@ -389,34 +407,17 @@ const structuredData = {
               tournament={tournament!}
             />
           </div>
-        )}
-        <div class="cl-match-details__side">
-          {liveFirst ? (
-            <>
-              <MatchRosters
-                model={model}
-                intl={intl}
-                locale={locale}
-                organization={organization!}
-                tournament={tournament!}
-              />
-              <MatchOfficials model={model} intl={intl} />
-            </>
-          ) : (
-            <>
-              <MatchOfficials model={model} intl={intl} />
-              <MatchTimeline
-                model={model}
-                intl={intl}
-                organizationTimeZone={response.organizationTimeZone}
-                referenceDate={referenceDate}
-              />
-            </>
-          )}
+          <div class="cl-match-details__side">
+            <MatchOfficials model={model} intl={intl} />
+            <MatchTimeline
+              model={model}
+              intl={intl}
+              organizationTimeZone={response.organizationTimeZone}
+              referenceDate={referenceDate}
+            />
+          </div>
         </div>
-      </div>
-
-      {liveFirst && bracketMatches.length > 0 && <MatchBracketContext {...bracketProps} />}
+      )}
     </article>
   </Container>
 </PublicLayout>
@@ -450,6 +451,29 @@ const structuredData = {
       display: grid;
       grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
       align-items: start;
+    }
+
+    /* A live match: the timeline opens the first column and the bracket sits under it; the rosters and
+       officials run down the second column beside both. */
+    .cl-match-details--live {
+      grid-template-areas:
+        'timeline side'
+        'bracket side';
+      grid-template-rows: auto 1fr;
+    }
+
+    .cl-match-details__timeline {
+      grid-area: timeline;
+      min-width: 0;
+    }
+
+    .cl-match-details__bracket {
+      grid-area: bracket;
+      min-width: 0;
+    }
+
+    .cl-match-details--live > .cl-match-details__side {
+      grid-area: side;
     }
   }
 </style>

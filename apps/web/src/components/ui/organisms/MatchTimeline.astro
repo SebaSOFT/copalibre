@@ -94,22 +94,32 @@ const scoreText = (score: readonly [number, number]): string =>
               const gameTime = gameTimeOf(event);
               return (
                 <div class="cl-timeline-entry" data-side={side}>
-                  {sideModel && (
-                    <span class="cl-timeline-side" title={sideModel.name}>
-                      <EmblemImage
-                        src={sideModel.crestSrc}
-                        alt={sideModel.name}
-                        placeholderAlt={sideModel.name}
-                        abbreviation={sideModel.abbreviation}
-                        size={24}
-                        bare={sideModel.crestSrc === undefined}
-                        decorative={true}
-                      />
-                      <span class="cl-timeline-side__name">
-                        {sideModel.abbreviation ?? sideModel.name}
+                  {sideModel &&
+                    (sideModel.crestSrc ? (
+                      <span class="cl-timeline-side" title={sideModel.name}>
+                        <EmblemImage
+                          src={sideModel.crestSrc}
+                          alt={sideModel.name}
+                          placeholderAlt={sideModel.name}
+                          abbreviation={sideModel.abbreviation}
+                          size={24}
+                          decorative={true}
+                        />
+                        <span class="cl-timeline-side__name">
+                          {sideModel.abbreviation ?? sideModel.name}
+                        </span>
                       </span>
-                    </span>
-                  )}
+                    ) : (
+                      <span class="cl-timeline-side" title={sideModel.name}>
+                        {/* No crest: the monogram tile carries the abbreviation, so the text is not repeated. */}
+                        <EmblemImage
+                          alt={sideModel.name}
+                          placeholderAlt={sideModel.name}
+                          abbreviation={sideModel.abbreviation}
+                          size={24}
+                        />
+                      </span>
+                    ))}
                   {gameTime && <span class="cl-timeline-time">{gameTime}</span>}
                   <span class="cl-timeline-label">{event.label}</span>
                   {event.actor ? <span class="cl-timeline-actor">· {event.actor}</span> : null}

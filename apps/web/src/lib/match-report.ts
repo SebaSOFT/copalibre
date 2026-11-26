@@ -73,6 +73,8 @@ export interface MatchReportOptions {
   readonly sourceFinalRound?: number;
   /** Zone-scoped sibling node keys for formatting `PL*` placement feeders. */
   readonly zoneNodeKeys?: readonly (string | undefined)[];
+  /** The word for a segment whose descriptor gives no label, in the page language. */
+  readonly genericSegmentLabel?: string;
 }
 
 export interface MatchReportSideModel {
@@ -190,6 +192,7 @@ interface TimelineContext {
   readonly homeEntrantId: string | undefined;
   readonly awayEntrantId: string | undefined;
   readonly segments: ReadonlyMap<number, PublicSegmentSummary>;
+  readonly genericSegmentLabel: string;
 }
 
 type PublicSegmentSummary = NonNullable<PublicMatchReportResponse['segments']>[number];
@@ -198,8 +201,10 @@ type RegisteredSquadMember = NonNullable<
 >[number];
 
 /**
- * The timeline, in match order. Each segment opens with a marker, and a completed segment closes with
- * a marker carrying its own score, so a half-time score reads where the half ends.
+ * The timeline, in match order. Every segment of the match opens with a start marker, whether or not it
+ * has events, and a completed segment closes with an end marker that carries its own score. An in-progress
+ * segment has only its start marker. An event without a segment number does not open or close anything: it
+ * stays where its sequence puts it, inside whichever segment is open.
  */
 function buildReportTimeline(
   rows: PublicMatchReportResponse['timeline'],
@@ -221,47 +226,62 @@ function buildReportTimeline(
     }
   }
 
+  const segments = [...context.segments.values()].sort((a, b) => a.number - b.number);
   const timeline: MatchReportTimelineGroup[] = [];
-  let openSegment: number | undefined;
-  const closeSegment = (number: number) => {
-    const summary = context.segments.get(number);
-    if (summary === undefined || summary.state !== 'completed' || summary.scores === undefined) {
-      return;
+  let cursor = 0;
+  let open: PublicSegmentSummary | undefined;
+  const closeOpen = () => {
+    if (open !== undefined && open.state === 'completed' && open.scores !== undefined) {
+      timeline.push({
+        kind: 'segment-end',
+        events: [],
+        segment: {
+          number: open.number,
+          label: segmentLabelOf(open, context),
+          scores: [open.scores[0] ?? 0, open.scores[1] ?? 0],
+        },
+      });
     }
-    const scores: readonly [number, number] = [summary.scores[0] ?? 0, summary.scores[1] ?? 0];
-    timeline.push({
-      kind: 'segment-end',
-      events: [],
-      segment: { number, label: segmentLabelOf(summary, context.locale), scores },
-    });
+    open = undefined;
   };
+  // Opens every segment up to `number` in order, each with its start marker, and closes the one before.
+  // Without a number it opens the rest, so a trailing segment without events is still marked.
+  const openThrough = (number: number | undefined) => {
+    while (
+      cursor < segments.length &&
+      (number === undefined || (segments[cursor]?.number ?? 0) <= number)
+    ) {
+      closeOpen();
+      const segment = segments[cursor];
+      cursor += 1;
+      if (segment === undefined) break;
+      open = segment;
+      timeline.push({
+        kind: 'segment-start',
+        events: [],
+        segment: { number: segment.number, label: segmentLabelOf(segment, context) },
+      });
+    }
+  };
+
   for (const group of groups) {
     const segmentNumber = group.events[0]?.segmentNumber;
-    if (segmentNumber !== openSegment) {
-      if (openSegment !== undefined) closeSegment(openSegment);
-      if (segmentNumber !== undefined) {
-        const summary = context.segments.get(segmentNumber);
-        timeline.push({
-          kind: 'segment-start',
-          events: [],
-          segment: {
-            number: segmentNumber,
-            label: summary === undefined ? '' : segmentLabelOf(summary, context.locale),
-          },
-        });
-      }
-      openSegment = segmentNumber;
-    }
+    if (segmentNumber !== undefined) openThrough(segmentNumber);
     timeline.push({ kind: group.kind, events: group.events });
   }
-  if (openSegment !== undefined) closeSegment(openSegment);
+  openThrough(undefined);
+  closeOpen();
   return timeline;
 }
 
-function segmentLabelOf(summary: PublicSegmentSummary, locale: string): string {
+/**
+ * A segment's name in the page language: the descriptor's own label for its type, or the generic segment
+ * word when the descriptor gives none. The type's code is never shown.
+ */
+function segmentLabelOf(summary: PublicSegmentSummary, context: TimelineContext): string {
   return summary.label === undefined
-    ? summary.type
-    : localizedText(summary.label as string | LocalizedLabel, locale);
+    ? context.genericSegmentLabel
+    : localizedText(summary.label as string | LocalizedLabel, context.locale);
 }
 
 function buildReportSide(input: {
@@ -345,6 +365,7 @@ export function buildMatchReport(
     homeEntrantId: response.homeEntrantId,
     awayEntrantId: response.awayEntrantId,
     segments: new Map((response.segments ?? []).map((segment) => [segment.number, segment])),
+    genericSegmentLabel: options.genericSegmentLabel ?? 'Segment',
   });
   const optional: Record<string, unknown> = {};
   for (const field of OPTIONAL_REPORT_FIELDS) {
@@ -441,7 +462,12 @@ function timelineEvent(
     label: descriptorLabel(event.labels ?? event.label, locale, event.definitionCode),
     occurredAt: event.occurredAt,
     ...(event.segmentNumber === undefined ? {} : { segmentNumber: event.segmentNumber }),
-    ...(segment === undefined ? {} : { segmentLabel: segmentLabelOf(segment, locale) }),
+    ...(event.segmentNumber === undefined
+      ? {}
+      : {
+          segmentLabel:
+            segment === undefined ? context.genericSegmentLabel : segmentLabelOf(segment, context),
+        }),
     ...(event.segmentElapsedSeconds === undefined
       ? {}
       : { elapsedSeconds: event.segmentElapsedSeconds }),

@@ -1516,6 +1516,10 @@ export const messages = defineMessages({
     id: 'publicWeb.matchTimeline.segmentTime',
     defaultMessage: '{segment} {number} · {time}',
   },
+  matchTimelineSegmentFallback: {
+    id: 'publicWeb.matchTimeline.segmentFallback',
+    defaultMessage: 'Segment',
+  },
   matchTimelineSegmentEnd: {
     id: 'publicWeb.matchTimeline.segmentEnd',
     defaultMessage: 'End of {segment} {number} · {score}',

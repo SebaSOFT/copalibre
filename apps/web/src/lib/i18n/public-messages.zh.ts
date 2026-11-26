@@ -455,6 +455,7 @@ export const messages: Record<string, string> = {
   'publicWeb.matchTimeline.segmentStart': '{segment} {number}',
   'publicWeb.matchTimeline.segmentTime': '{segment} {number} · {time}',
   'publicWeb.matchTimeline.segmentEnd': '{segment} {number} 结束 · {score}',
+  'publicWeb.matchTimeline.segmentFallback': '分段',
   'publicWeb.matchTimeline.scoreAfter': '{home}–{away}',
   'publicWeb.matchRosters.registeredHeading': '报名名单',
   'publicWeb.matchRosters.registeredNote': '比赛名单在开赛时确认',

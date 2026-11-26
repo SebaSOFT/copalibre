@@ -462,6 +462,7 @@ export const messages: Record<string, string> = {
   'publicWeb.matchTimeline.segmentStart': '{segment} {number}',
   'publicWeb.matchTimeline.segmentTime': '{segment} {number} · {time}',
   'publicWeb.matchTimeline.segmentEnd': 'Fine {segment} {number} · {score}',
+  'publicWeb.matchTimeline.segmentFallback': 'Segmento',
   'publicWeb.matchTimeline.scoreAfter': '{home}–{away}',
   'publicWeb.matchRosters.registeredHeading': 'Rosa iscritta',
   'publicWeb.matchRosters.registeredNote': "La lista della partita è confermata al calcio d'inizio",

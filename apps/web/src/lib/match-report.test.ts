@@ -697,7 +697,112 @@ describe('buildMatchReport timeline', () => {
   it('shows no segment score for a segment still in play', () => {
     const response = sided();
     const model = build({ ...response, timeline: response.timeline.slice(2) });
-    expect(model.timeline.some((group) => group.kind === 'segment-end')).toBe(false);
+    // Segment one is completed, so it closes even with no event left in the slice; segment two is still in play.
+    expect(
+      model.timeline
+        .filter((group) => group.kind === 'segment-end')
+        .map((group) => group.segment?.number),
+    ).toEqual([1]);
+  });
+
+  const kinds = (model: MatchReportModel) =>
+    model.timeline.map((group) =>
+      group.kind === 'segment-start' || group.kind === 'segment-end'
+        ? `${group.kind}:${group.segment?.number}${group.kind === 'segment-end' ? `:${group.segment?.scores?.join('-')}` : ''}`
+        : group.kind,
+    );
+  const seg = (
+    number: number,
+    state: 'pending' | 'active' | 'completed',
+    scores?: number[],
+  ) => ({
+    number,
+    type: 'half',
+    label: { en: 'Half', es: 'Tiempo' },
+    timed: true,
+    state,
+    ...(scores === undefined ? {} : { scores }),
+  });
+  const goal = (eventId: string, segmentNumber: number, sequence: number, side = 'entrant-home') => ({
+    eventId,
+    definitionCode: 'goal',
+    label: 'Goal',
+    occurredAt: '2026-08-19T12:00:00.000Z',
+    sequence,
+    segmentNumber,
+    side,
+    payload: {},
+  });
+
+  it('marks an event-free first half 0-0 and puts every event in the second half', () => {
+    const response: PublicMatchReportResponse = {
+      ...report(),
+      homeEntrantId: 'entrant-home',
+      awayEntrantId: 'entrant-away',
+      segments: [seg(1, 'completed', [0, 0]), seg(2, 'completed', [1, 0])],
+      timeline: [goal('goal-second', 2, 1)],
+    };
+
+    expect(kinds(build(response, { locale: 'es' }))).toEqual([
+      'segment-start:1',
+      'segment-end:1:0-0',
+      'segment-start:2',
+      'single',
+      'segment-end:2:1-0',
+    ]);
+  });
+
+  it('marks a goalless, event-free second half, and an in-progress segment with only its start', () => {
+    const response: PublicMatchReportResponse = {
+      ...report(),
+      homeEntrantId: 'entrant-home',
+      awayEntrantId: 'entrant-away',
+      segments: [seg(1, 'completed', [1, 0]), seg(2, 'completed', [0, 0]), seg(3, 'active')],
+      timeline: [goal('goal-first', 1, 1)],
+    };
+
+    expect(kinds(build(response))).toEqual([
+      'segment-start:1',
+      'single',
+      'segment-end:1:1-0',
+      'segment-start:2',
+      'segment-end:2:0-0',
+      'segment-start:3',
+    ]);
+  });
+
+  it('keeps an event without a segment number inside the open segment, so the segment is not opened twice', () => {
+    const response: PublicMatchReportResponse = {
+      ...report(),
+      homeEntrantId: 'entrant-home',
+      awayEntrantId: 'entrant-away',
+      segments: [seg(1, 'completed', [1, 0])],
+      timeline: [
+        goal('goal-first', 1, 1),
+        { eventId: 'admin', definitionCode: 'admin-note', label: 'Note', occurredAt: '2026-08-19T12:01:00.000Z', sequence: 2, payload: {} },
+        goal('card-second', 1, 3),
+      ],
+    };
+
+    const model = build(response);
+    expect(kinds(model)).toEqual(['segment-start:1', 'single', 'single', 'single', 'segment-end:1:1-0']);
+    expect(model.timeline.filter((group) => group.kind === 'segment-start')).toHaveLength(1);
+    expect(model.timeline.filter((group) => group.kind === 'segment-end')).toHaveLength(1);
+  });
+
+  it('names a segment with no descriptor label with the generic segment word, never its code', () => {
+    const response: PublicMatchReportResponse = {
+      ...report(),
+      homeEntrantId: 'entrant-home',
+      awayEntrantId: 'entrant-away',
+      segments: [{ number: 1, type: 'half', state: 'active' }],
+      timeline: [goal('goal-first', 1, 1)],
+    };
+
+    const model = build(response, { genericSegmentLabel: 'Segmento' });
+    expect(model.timeline[0]?.segment?.label).toBe('Segmento');
+    expect(model.timeline[1]?.events[0]?.segmentLabel).toBe('Segmento');
+    expect(JSON.stringify(model.timeline)).not.toContain('half');
   });
 
   it('adds no segment markers when the events name no segment', () => {
