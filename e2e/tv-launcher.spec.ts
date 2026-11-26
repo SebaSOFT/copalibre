@@ -152,14 +152,14 @@ test('stages show their names and matches are grouped with the competition, roun
   await expect(page.locator('[data-launcher-stage]')).toHaveValue('2');
   const match = page.locator('[data-launcher-match]');
   await expect(match.locator('optgroup')).toHaveCount(1);
-  await expect(match.locator('option:not([disabled])')).toHaveText([
+  await expect(match.locator('option[value]:not([value=""])')).toHaveText([
     'Copa Oro · Ronda 1 · Andes — River · Finalizado · #1',
   ]);
 
   await page.locator('[data-launcher-stage]').selectOption('1');
   await expect(match.locator('optgroup')).toHaveCount(2);
   await expect(match.locator('optgroup').first()).toHaveAttribute('label', 'Grupos · Grupo A');
-  await expect(match.locator('option:not([disabled])')).toHaveText([
+  await expect(match.locator('option[value]:not([value=""])')).toHaveText([
     'Grupo A · Ronda 1 · Talleres — Andes · Cancha 1 · Finalizado · #1',
     'Grupo A · Ronda 2 · Talleres — Boca · Cancha 1 · Finalizado · #3',
     'Grupo B · Ronda 1 · Boca — River · Cancha 2 · Finalizado · #2',
@@ -321,4 +321,58 @@ test('a stage the tournament does not have is not kept: the launcher opens on it
 }) => {
   await page.goto(`${LAUNCHER}&view=match&stage=9&match=1&lang=en`);
   await expect(page.locator('[data-launcher-stage]')).toHaveValue('2');
+});
+
+test('a requested match of another stage pins nothing: the launcher opens with no match and no address to it', async ({
+  page,
+}) => {
+  await page.goto(`${LAUNCHER}&view=match&stage=9&match=1&lang=en`);
+  await expect(page.locator('[data-launcher-stage]')).toHaveValue('2');
+  await expect(page.locator('[data-launcher-match]')).toHaveValue('');
+  const launch = page.getByRole('link', { name: /Launch TV display/ });
+  await expect(launch).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.locator('[data-launcher-url]')).not.toContainText('/stages/');
+  expect(await page.locator('[data-launcher-preview]').getAttribute('src')).toBeNull();
+});
+
+test('after a saved preset restores an overlay, moving to another overlay mode keeps the pinned match', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'copalibre.tv.launcher_preset',
+      JSON.stringify({
+        organization: 'liga-mendocina',
+        tournament: 'apertura-2026',
+        view: 'overlay-scorebug',
+        background: 'transparent',
+        language: 'en',
+        stage: 1,
+        match: 2,
+      }),
+    );
+  });
+  // The saved preset restores only on a bare launcher address, so this one names no organization.
+  await page.goto('/tv');
+  await expect(page.locator('[data-launcher-view]')).toHaveValue('overlay-scorebug');
+  await expect(page.locator('[data-launcher-match]')).toHaveValue('2');
+
+  await page.locator('[data-launcher-view]').selectOption('overlay-full');
+  await expect(page.locator('[data-launcher-match]')).toHaveValue('2');
+  await expect(page.getByRole('link', { name: /Launch TV display/ })).toHaveAttribute(
+    'href',
+    /stages\/1\/matches\/2\?.*mode=overlay-full/,
+  );
+});
+
+test('a court the tournament does not have is not kept: the overlay follows no court', async ({
+  page,
+}) => {
+  await page.goto(`${LAUNCHER}&view=overlay-lower&court=${encodeURIComponent('Cancha 9')}&lang=en`);
+  await expect(page.locator('[data-launcher-court]')).toHaveValue('');
+  await expect(page.getByRole('link', { name: /Launch TV display/ })).not.toHaveAttribute(
+    'href',
+    /court=/,
+  );
+  await expect(page.locator('[data-nothing-to-show]')).toBeVisible();
 });
