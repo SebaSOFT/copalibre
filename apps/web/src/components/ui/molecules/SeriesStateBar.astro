@@ -77,14 +77,17 @@ const { homeScore, awayScore, segmentsAriaLabel, segments, winner, outcomeText, 
 <style>
   /* A played or in-progress game links to its page. Its target is the touch size the public site uses, and
      it sits above the card's own stretched link. */
+  /* The hit area is the touch target, but the negative margin keeps the bar's own footprint at the icon's size,
+     so a linked game does not push the card down into the next one. */
   .cl-series__segment-link {
     position: relative;
     z-index: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: var(--cl-touch-target);
-    min-height: var(--cl-touch-target);
+    width: var(--cl-touch-target);
+    height: var(--cl-touch-target);
+    margin: calc((16px - var(--cl-touch-target)) / 2);
     color: inherit;
   }
 </style>
