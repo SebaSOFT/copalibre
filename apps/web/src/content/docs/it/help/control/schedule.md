@@ -64,6 +64,10 @@ ed Esc chiude: prima l’elenco di suggerimenti aperto, poi la finestra di dialo
 mostra senza orario ed elenca gli slot liberati, così un’altra partita può prenderne uno nella stessa
 pubblicazione.
 
+## Link della diretta
+
+Una partita può avere il link con cui si segue la sua diretta. Il comando **Modifica diretta** nella riga della partita apre un campo: inserisci un link assoluto che inizia con `https://` (va bene anche `http://`) e salvalo. **Rimuovi link** lo cancella. Un valore che non è un indirizzo web assoluto viene rifiutato e la partita mantiene il link precedente. La pagina pubblica della partita mostra poi un link «Guarda la diretta» che si apre in una nuova pagina. CopaLibre non verifica quale servizio di streaming indichi il link.
+
 ## Cosa non puoi fare qui
 
 Riprogrammare una partita già conclusa viene rifiutato: il suo orario è ormai un registro, non un piano,

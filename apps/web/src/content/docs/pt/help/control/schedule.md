@@ -63,6 +63,10 @@ fecha: primeiro a lista de sugestões aberta, depois a caixa de diálogo.
 mostra sem horário e lista os horários liberados, para que outra partida ocupe um deles na mesma
 publicação.
 
+## Link da transmissão
+
+Uma partida pode ter o link pelo qual a sua transmissão é assistida. O controle **Editar transmissão** na linha da partida abre um campo: informe um link absoluto que comece com `https://` (um link `http://` também funciona) e salve. **Remover link** o apaga. Um valor que não é um endereço web absoluto é recusado, e a partida mantém o link anterior. A página pública da partida mostra então um link «Assistir à transmissão», que abre em uma nova página. O CopaLibre não verifica qual serviço de streaming o link indica.
+
 ## O que você não pode fazer aqui
 
 Reagendar uma partida já finalizada é recusado: seu horário já é um registro, não um plano, e alterá-lo

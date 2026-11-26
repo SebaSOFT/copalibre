@@ -60,6 +60,10 @@ Esc closes: first the open suggestion list, then the dialog.
 "Withdraw from slot" takes a placed match out of its slot as part of the batch: the preview shows it
 unscheduled and lists the slots the batch frees, so another match can take one in the same publish.
 
+## Stream link
+
+A match can carry the link its broadcast is watched through. The match row's **Edit stream** control opens a field: enter an absolute `https://` link (an `http://` link also works), then save it. **Remove link** clears it. A value that is not an absolute web address is refused, and the match keeps its previous link. The public match page then shows a "Watch stream" link that opens in a new page. CopaLibre does not check which streaming service the link points to.
+
 ## What you cannot do here
 
 Rescheduling a match that has already finished is refused: its schedule is a record now, not a plan, and

@@ -63,6 +63,10 @@ y Esc cierra: primero la lista de sugerencias abierta, después el diálogo.
 muestra sin horario y lista los turnos que libera el lote, para que otro partido pueda ocupar uno en la
 misma publicación.
 
+## Enlace de transmisión
+
+Un partido puede llevar el enlace por el que se mira su transmisión. El control **Editar transmisión** de la fila del partido abre un campo: ingresá un enlace absoluto que empiece con `https://` (también sirve `http://`) y guardalo. **Quitar enlace** lo borra. Un valor que no es una dirección web absoluta se rechaza, y el partido conserva el enlace anterior. La página pública del partido muestra entonces un enlace "Ver transmisión" que se abre en una página nueva. CopaLibre no verifica qué servicio de streaming es el enlace.
+
 ## Qué no podés hacer acá
 
 Reprogramar un partido que ya finalizó se rechaza: su horario ya es un registro, no un plan, y cambiarlo

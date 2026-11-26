@@ -65,6 +65,10 @@ Enter veröffentlicht und Esc schließt: zuerst die offene Vorschlagsliste, dann
 Zeitfenster: Die Vorschau zeigt es ohne Termin und listet die freiwerdenden Zeitfenster, damit ein
 anderes Spiel in derselben Veröffentlichung eines davon übernehmen kann.
 
+## Übertragungslink
+
+Ein Spiel kann den Link tragen, über den seine Übertragung verfolgt wird. Das Feld **Übertragung bearbeiten** in der Zeile des Spiels öffnet ein Eingabefeld: Geben Sie einen absoluten `https://`-Link ein (ein `http://`-Link ist ebenfalls möglich) und speichern Sie ihn. **Link entfernen** löscht ihn. Ein Wert, der keine absolute Web-Adresse ist, wird abgelehnt, und das Spiel behält seinen bisherigen Link. Die öffentliche Spielseite zeigt dann einen Link „Übertragung ansehen“, der in einer neuen Seite öffnet. CopaLibre prüft nicht, welchen Streamingdienst der Link meint.
+
 ## Was Sie hier nicht tun können
 
 Das Umplanen einer bereits abgeschlossenen Begegnung wird abgelehnt: Ihr Zeitplan ist jetzt ein
