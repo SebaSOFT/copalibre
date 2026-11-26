@@ -11,6 +11,7 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -379,6 +380,11 @@ export class FixtureResponse extends FixtureSourcesResponse {
   })
   matchId!: string;
 
+  @ApiPropertyOptional({
+    description: 'The first match’s stream link, when the organizer attached one',
+  })
+  streamUrl?: string;
+
   @ApiProperty({ description: '1-based round within the stage', example: 1 })
   round!: number;
 
@@ -416,4 +422,31 @@ export class StageFixturesResponse {
 
   @ApiProperty({ type: [FixtureResponse] })
   fixtures!: FixtureResponse[];
+}
+
+/** A match's stream link. `null` clears it; a value must be an absolute http(s) URL. */
+export class MatchStreamUrlRequest {
+  @ApiProperty({
+    description: 'Absolute http or https link to the broadcast, or null to clear it',
+    type: String,
+    nullable: true,
+    maxLength: 2048,
+    example: 'https://example.org/live/semifinal-1',
+  })
+  @ValidateIf((_, value: unknown) => value !== null)
+  @IsString()
+  @MaxLength(2048)
+  streamUrl!: string | null;
+}
+
+export class MatchStreamUrlResponse {
+  @ApiProperty({ description: 'The match whose link changed', format: 'uuid' })
+  matchId!: string;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'The stored link, or null when cleared',
+  })
+  streamUrl!: string | null;
 }

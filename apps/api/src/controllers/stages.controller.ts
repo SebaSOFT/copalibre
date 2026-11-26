@@ -1033,6 +1033,25 @@ export class StagesController {
       ? new Map<string, string>()
       : await competition.listReleasedSlotsOfStage(stage.stageId);
 
+    // The stream link is not a domain field of a match; the builder reads it from the stored row.
+    const streamUrlByMatch = new Map(
+      matches.length === 0
+        ? []
+        : (
+            await this.db
+              .selectFrom('matches')
+              .select(['match_id', 'stream_url'])
+              .where(
+                'match_id',
+                'in',
+                matches.map((match) => match.matchId),
+              )
+              .execute()
+          ).flatMap((row) =>
+            row.stream_url === null ? [] : [[row.match_id, row.stream_url] as const],
+          ),
+    );
+
     const matchesByFixture = new Map<string, typeof matches>();
     for (const match of matches) {
       matchesByFixture.set(match.fixtureId, [
@@ -1061,6 +1080,9 @@ export class StagesController {
         return {
           fixtureId: fixture.fixtureId,
           matchId: own[0]?.matchId ?? fixture.fixtureId,
+          ...(streamUrlByMatch.get(own[0]?.matchId ?? '') === undefined
+            ? {}
+            : { streamUrl: streamUrlByMatch.get(own[0]?.matchId ?? '') }),
           ...fixtureSources.get(own[0]?.matchId ?? ''),
           round: fixture.round,
           ...(fixture.homeEntrantId === undefined ? {} : { homeEntrantId: fixture.homeEntrantId }),
