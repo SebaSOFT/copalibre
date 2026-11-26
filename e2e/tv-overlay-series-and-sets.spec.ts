@@ -187,17 +187,24 @@ test('an overlay with no match and no court shows the no-match state and no scor
 }) => {
   await gotoTv(page, `${TV}?mode=overlay&bg=neutral`);
 
-  await expect(page.getByTestId('tv-overlay-no-match')).toContainText('No match selected');
+  // Nothing is painted on air: the state reaches assistive tech through one hidden status line.
+  await expect(page.locator('[data-state="no-match"]')).toHaveCount(1);
+  await expect(page.locator('[data-state="no-match"] [role="status"]')).toContainText(
+    'No match selected',
+  );
+  await expect(page.locator('[data-state="no-match"] [role="status"]')).toHaveClass(
+    /cl-visually-hidden/,
+  );
   await expect(page.locator('body')).not.toContainText('TAL');
   await expect(page.locator('body')).not.toContainText('BOC');
 });
 
 test('two overlays each show only their own match', async ({ page }) => {
-  await gotoTv(page, `${TV}/stages/1/matches/1?mode=overlay`);
+  await gotoTv(page, `${TV}/stages/1/matches/1?mode=overlay-lower`);
   await expect(page.getByTestId('tv-lower-third')).toContainText('TAL');
   await expect(page.getByTestId('tv-lower-third')).not.toContainText('BOC');
 
-  await gotoTv(page, `${TV}/stages/1/matches/3?mode=overlay`);
+  await gotoTv(page, `${TV}/stages/1/matches/3?mode=overlay-lower`);
   await expect(page.getByTestId('tv-lower-third')).toContainText('GIM');
   await expect(page.getByTestId('tv-lower-third')).not.toContainText('TAL');
 });
@@ -205,12 +212,12 @@ test('two overlays each show only their own match', async ({ page }) => {
 test('an overlay addressed to a court follows that court’s live match, and says when it has none', async ({
   page,
 }) => {
-  await gotoTv(page, `${TV}?mode=overlay&court=${encodeURIComponent('Cancha 3')}`);
+  await gotoTv(page, `${TV}?mode=overlay-lower&court=${encodeURIComponent('Cancha 3')}`);
   await expect(page.getByTestId('tv-lower-third')).toContainText('GIM');
   await expect(page.getByTestId('tv-lower-third')).not.toContainText('BOC');
 
-  await gotoTv(page, `${TV}?mode=overlay&court=${encodeURIComponent('Cancha 9')}`);
-  await expect(page.getByTestId('tv-overlay-no-match')).toContainText(
+  await gotoTv(page, `${TV}?mode=overlay-lower&court=${encodeURIComponent('Cancha 9')}`);
+  await expect(page.locator('[data-state="no-match"] [role="status"]')).toContainText(
     'No live match on this court',
   );
 });
@@ -230,7 +237,7 @@ test('on a phone-shaped frame the lower third keeps the score and the sets on tw
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await gotoTv(page, `${TV}/stages/1/matches/2?mode=overlay&bg=neutral`);
+  await gotoTv(page, `${TV}/stages/1/matches/2?mode=overlay-lower&bg=neutral`);
 
   const series = await page.getByTestId('tv-series').boundingBox();
   const score = await page.locator('.tv-lower-third__score').boundingBox();
@@ -249,7 +256,7 @@ test('a match in a series shows where the series stands next to the score', asyn
 });
 
 test('a plain match renders without any progress strip', async ({ page }) => {
-  await gotoTv(page, `${TV}/stages/1/matches/3?mode=overlay`);
+  await gotoTv(page, `${TV}/stages/1/matches/3?mode=overlay-lower`);
 
   await expect(page.getByTestId('tv-lower-third')).toBeVisible();
   await expect(page.getByTestId('tv-match-progress')).toHaveCount(0);

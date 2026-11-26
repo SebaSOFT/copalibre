@@ -109,7 +109,7 @@ test.afterAll(async () => {
 test('choosing a language rewrites the launcher’s labels without reloading and keeps the other choices', async ({
   page,
 }) => {
-  await page.goto(`${LAUNCHER}&view=overlay&bg=court`);
+  await page.goto(`${LAUNCHER}&mode=overlay-lower&bg=court`);
   await expect(page.getByRole('heading', { name: 'TV display launcher' })).toBeVisible();
   await page.evaluate(() => {
     (window as unknown as { __kept: boolean }).__kept = true;
@@ -122,7 +122,7 @@ test('choosing a language rewrites the launcher’s labels without reloading and
   await expect(page.getByRole('link', { name: /Lanzar pantalla TV/ })).toBeVisible();
   // Same page, same choices: the script never reloaded and the other selections stand.
   expect(await page.evaluate(() => (window as unknown as { __kept?: boolean }).__kept)).toBe(true);
-  await expect(page.locator('[data-launcher-view]')).toHaveValue('overlay');
+  await expect(page.locator('[data-launcher-view]')).toHaveValue('overlay-lower');
   await expect(page.locator('[data-launcher-background]')).toHaveValue('court');
   await expect(page.getByRole('link', { name: /Lanzar pantalla TV/ })).toHaveAttribute(
     'href',
@@ -139,7 +139,7 @@ test('starts on the language of the selected organization', async ({ page }) => 
   await expect(page.locator('[data-launcher-language]')).toHaveValue('de');
 });
 
-test('stages show their names and matches are grouped with round, names and identifier', async ({
+test('stages show their names and matches are grouped with the competition, round, sides, court, state and identifier', async ({
   page,
 }) => {
   await page.goto(`${LAUNCHER}&view=match&lang=es`);
@@ -148,23 +148,27 @@ test('stages show their names and matches are grouped with round, names and iden
     '1 · Fase de grupos',
     '2 · Copas',
   ]);
+  // Every match is over, so the stage the launcher opens on is the last one.
+  await expect(page.locator('[data-launcher-stage]')).toHaveValue('2');
   const match = page.locator('[data-launcher-match]');
+  await expect(match.locator('optgroup')).toHaveCount(1);
+  await expect(match.locator('option:not([disabled])')).toHaveText([
+    'Copa Oro · Ronda 1 · Andes — River · Finalizado · #1',
+  ]);
+
+  await page.locator('[data-launcher-stage]').selectOption('1');
   await expect(match.locator('optgroup')).toHaveCount(2);
   await expect(match.locator('optgroup').first()).toHaveAttribute('label', 'Grupos · Grupo A');
   await expect(match.locator('option:not([disabled])')).toHaveText([
-    'Ronda 1 · Talleres — Andes · #1',
-    'Ronda 2 · Talleres — Boca · #3',
-    'Ronda 1 · Boca — River · #2',
-  ]);
-
-  await page.locator('[data-launcher-stage]').selectOption('2');
-  await expect(match.locator('option:not([disabled])')).toHaveText([
-    'Ronda 1 · Andes — River · #1',
+    'Grupo A · Ronda 1 · Talleres — Andes · Cancha 1 · Finalizado · #1',
+    'Grupo A · Ronda 2 · Talleres — Boca · Cancha 1 · Finalizado · #3',
+    'Grupo B · Ronda 1 · Boca — River · Cancha 2 · Finalizado · #2',
   ]);
 });
 
 test('the pinned match view launches that match', async ({ page }) => {
   await page.goto(`${LAUNCHER}&view=match`);
+  await page.locator('[data-launcher-stage]').selectOption('1');
   await page.locator('[data-launcher-match]').selectOption('3');
 
   await expect(page.getByRole('link', { name: /Launch TV display/ })).toHaveAttribute(
@@ -173,31 +177,78 @@ test('the pinned match view launches that match', async ({ page }) => {
   );
 });
 
-test('the overlay view asks for a match or a court, and the link carries it', async ({ page }) => {
+test('every view is offered with its one-line description, and an overlay starts transparent', async ({
+  page,
+}) => {
   await page.goto(LAUNCHER);
-  await expect(page.locator('[data-launcher-match]')).toBeHidden();
+  await expect(page.locator('[data-launcher-view] option')).toHaveCount(10);
+  await expect(page.locator('[data-launcher-background]')).toHaveValue('discipline');
 
-  await page.locator('[data-launcher-view]').selectOption('overlay');
-  await expect(page.locator('[data-launcher-match]')).toBeVisible();
-  const launch = page.getByRole('link', { name: /Launch TV display/ });
-  // An overlay starts on a court when the tournament has any: it follows that court's live match.
-  await expect(page.locator('[data-launcher-match] optgroup').first()).toHaveAttribute(
-    'label',
-    'Follow the live match of a court',
+  await page.locator('[data-launcher-view]').selectOption('overlay-lower');
+  await expect(page.locator('[data-view-description]')).toContainText('Bottom band');
+  await expect(page.locator('[data-launcher-background]')).toHaveValue('transparent');
+  await expect(page.getByRole('link', { name: /Launch TV display/ })).toHaveAttribute(
+    'href',
+    /bg=transparent/,
   );
-  await expect(page.locator('[data-launcher-match]')).toHaveValue('court:Cancha 1');
-  await expect(launch).toHaveAttribute('href', /mode=overlay&court=Cancha\+1/);
+
+  // Once the operator picks a background, changing the view keeps it.
+  await page.locator('[data-launcher-background]').selectOption('neutral');
+  await page.locator('[data-launcher-view]').selectOption('kiosk');
+  await expect(page.locator('[data-launcher-background]')).toHaveValue('neutral');
+});
+
+test('the overlay asks for a match or a court, and the link carries whichever it is', async ({
+  page,
+}) => {
+  await page.goto(LAUNCHER);
+  await expect(page.locator('[data-match-fields]')).toBeHidden();
+
+  await page.locator('[data-launcher-view]').selectOption('overlay-scorebug');
+  await expect(page.locator('[data-match-fields]')).toBeVisible();
+  await expect(page.locator('[data-court-field]')).toBeVisible();
+  // Nothing is pinned and no court is followed: the overlay has nothing to show yet.
+  await expect(page.locator('[data-nothing-to-show]')).toBeVisible();
+  const launch = page.getByRole('link', { name: /Launch TV display/ });
+  await expect(launch).not.toHaveAttribute('href', /court=/);
   await expect(launch).not.toHaveAttribute('href', /stages/);
 
-  await page.locator('[data-launcher-match]').selectOption('court:Cancha 2');
+  await page.locator('[data-launcher-court]').selectOption('Cancha 1');
+  await expect(launch).toHaveAttribute('href', /mode=overlay-scorebug&court=Cancha\+1/);
+  await expect(page.locator('[data-nothing-to-show]')).toBeHidden();
+
+  await page.locator('[data-launcher-court]').selectOption('Cancha 2');
   await expect(launch).toHaveAttribute('href', /court=Cancha\+2/);
 
-  // A pinned match replaces the court: two overlays, two matches.
+  // A pinned match replaces the court: choosing one clears the other.
+  await page.locator('[data-launcher-stage]').selectOption('1');
   await page.locator('[data-launcher-match]').selectOption('2');
-  await expect(launch).toHaveAttribute('href', /stages\/1\/matches\/2\?.*mode=overlay/);
+  await expect(page.locator('[data-launcher-court]')).toHaveValue('');
+  await expect(launch).toHaveAttribute('href', /stages\/1\/matches\/2\?.*mode=overlay-scorebug/);
   await expect(launch).not.toHaveAttribute('href', /court=/);
-  await page.locator('[data-launcher-match]').selectOption('3');
-  await expect(launch).toHaveAttribute('href', /stages\/1\/matches\/3\?.*mode=overlay/);
+
+  await page.locator('[data-launcher-court]').selectOption('Cancha 1');
+  await expect(page.locator('[data-launcher-match]')).toHaveValue('');
+  await expect(launch).toHaveAttribute('href', /court=Cancha\+1/);
+});
+
+test('the final link is copied to the clipboard and announced, and the preview frame shows it', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto(`${LAUNCHER}&mode=overlay-lower&lang=en`);
+
+  const field = page.locator('[data-launcher-url]');
+  await expect(field).toHaveValue(
+    /\/tv\/liga-mendocina\/tournaments\/apertura-2026\?.*mode=overlay-lower/,
+  );
+  const preview = page.locator('[data-launcher-preview]');
+  expect(await preview.getAttribute('src')).toBe(await field.inputValue());
+
+  await page.getByRole('button', { name: 'Copy link' }).click();
+  await expect(page.getByText('Link copied')).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(await field.inputValue());
 });
 
 test('the match list view and the standings view name themselves in the address', async ({
@@ -208,7 +259,7 @@ test('the match list view and the standings view name themselves in the address'
 
   await page.locator('[data-launcher-view]').selectOption('matches');
   await expect(launch).toHaveAttribute('href', /view=matches/);
-  await expect(page.locator('[data-launcher-match]')).toBeHidden();
+  await expect(page.locator('[data-match-fields]')).toBeHidden();
   await page.locator('[data-launcher-view]').selectOption('standings');
   await expect(launch).toHaveAttribute('href', /view=standings/);
 });
@@ -232,7 +283,7 @@ test('the launcher wears the broadcast typography instead of the browser default
 
 test('captures the launcher at desktop and phone size', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`${LAUNCHER}&view=overlay&lang=es`);
+  await page.goto(`${LAUNCHER}&mode=overlay-lower&lang=es`);
   await expect(page.getByRole('heading', { name: 'Lanzador de pantalla TV' })).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
