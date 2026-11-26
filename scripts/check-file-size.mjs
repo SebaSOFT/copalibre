@@ -36,7 +36,6 @@ export const KNOWN_OVERSIZED_FILES = new Map([
     { ceiling: 2067, reason: SPLIT },
   ],
   // Production files of 1000 to 1999 lines, split by the modularization plan.
-  ['apps/api/src/controllers/tournaments.controller.ts', { ceiling: 1692, reason: SPLIT }],
   ['apps/api/src/controllers/stages.controller.ts', { ceiling: 1440, reason: SPLIT }],
   ['apps/api/src/controllers/zones-groups.controller.ts', { ceiling: 1128, reason: SPLIT }],
   ['apps/api/src/controllers/registrations.controller.ts', { ceiling: 1029, reason: SPLIT }],
