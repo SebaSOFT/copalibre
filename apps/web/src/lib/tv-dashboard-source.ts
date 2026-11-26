@@ -146,15 +146,15 @@ export function settleLeftLive(
     if (settled?.state === 'live') return match;
     // No entry in the matches view (its fetch failed, or it does not list the match): nothing is known.
     if (settled === undefined) return match;
-    const updated: { -readonly [K in keyof LiveMatch]: LiveMatch[K] } = { ...match };
-    if (settled !== undefined) {
-      updated.state = settled.state;
-      updated.sides = match.sides.map((side, index) => ({
+    const updated: { -readonly [K in keyof LiveMatch]: LiveMatch[K] } = {
+      ...match,
+      state: settled.state,
+      sides: match.sides.map((side, index) => ({
         ...side,
         state: settled.state,
         score: (index === 0 ? settled.homeScore : settled.awayScore) ?? side.score,
-      }));
-    }
+      })),
+    };
     if (updated.state !== 'live') {
       delete updated.clock;
       delete updated.clockReceivedAt;
