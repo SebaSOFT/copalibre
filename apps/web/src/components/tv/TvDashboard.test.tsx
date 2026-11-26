@@ -579,18 +579,40 @@ describe('overlay presentations', () => {
 
   const matchProps = { ...baseProps, initial: liveMatch };
 
-  it('renders only a compact score bug in the lower third, not the kiosk furniture', () => {
+  it('renders only a compact corner bug for the scorebug, not the kiosk furniture', () => {
     render(
       <TvDashboard
         dashboardLabels={dashboardLabels}
         labels={tvLabels}
         language="en"
         {...matchProps}
+        pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
+        presentation="scorebug"
+      />,
+    );
+
+    expect(screen.getByTestId('tv-overlay-bug')).toBeTruthy();
+    expect(screen.queryByTestId('tv-lower-third')).toBeNull();
+    expect(screen.queryByTestId('tv-rail-content')).toBeNull();
+    expect(document.querySelector('.tv-scorebug')).toBeNull();
+  });
+
+  it('renders a lower third band for the lower presentation, with no wall clock', () => {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        {...matchProps}
+        pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
         presentation="lower"
       />,
     );
 
     expect(screen.getByTestId('tv-lower-third')).toBeTruthy();
+    expect(screen.queryByTestId('tv-overlay-bug')).toBeNull();
+    expect(document.querySelector('.tv-scorebug__wall-clock-group')).toBeNull();
+    expect(document.querySelector('.tv-scorebug__clock--wall')).toBeNull();
     // A lower third sits over footage: the rail, the scorebug header and the
     // rotating panel all belong to a full-frame presentation instead.
     expect(screen.queryByTestId('tv-rail-content')).toBeNull();
@@ -758,7 +780,7 @@ describe('scorebug clock', () => {
       />,
     );
 
-    const clockBug = document.querySelector('.tv-lower-third__clock');
+    const clockBug = document.querySelector('.tv-overlay-clock');
     expect(clockBug?.textContent).toContain('34:05');
   });
 
@@ -799,7 +821,7 @@ describe('scorebug clock', () => {
         />,
       );
 
-      expect(document.querySelector('.tv-lower-third__clock')).toBeNull();
+      expect(document.querySelector('.tv-overlay-clock')).toBeNull();
       expect(screen.getByTestId('tv-lower-third').textContent).not.toContain('19:34');
 
       rerender(
@@ -1031,7 +1053,7 @@ describe('scorebug clock', () => {
         presentation="lower"
       />,
     );
-    expect(document.querySelector('.tv-lower-third__clock')).toBeNull();
+    expect(document.querySelector('.tv-overlay-clock')).toBeNull();
     expect(screen.getByTestId('tv-segment').textContent).toBe('3rd Set');
 
     rerenderUntimed(
@@ -1922,7 +1944,7 @@ describe('TvDashboard overlays', () => {
 
   function renderOverlay(
     overrides: Partial<React.ComponentProps<typeof TvDashboard>> = {},
-    presentation: 'lower' | 'full' = 'lower',
+    presentation: 'scorebug' | 'lower' | 'full' = 'lower',
   ): ReturnType<typeof render> {
     return render(
       <TvDashboard
@@ -1938,14 +1960,20 @@ describe('TvDashboard overlays', () => {
     );
   }
 
-  it.each(['lower', 'full'] as const)(
+  it.each(['scorebug', 'lower', 'full'] as const)(
     'shows no match, and no score, for a %s overlay given neither a match nor a court',
     (presentation) => {
       renderOverlay({}, presentation);
 
-      expect(screen.getByTestId('tv-overlay-no-match').textContent).toContain(
-        dashboardLabels.overlayNoMatch,
-      );
+      if (presentation === 'full') {
+        // The full frame is a scene: its rail stays, and only the focal match is absent.
+        expect(screen.getByTestId('tv-overlay-no-match').textContent).toContain(
+          dashboardLabels.overlayNoMatch,
+        );
+      } else {
+        expect(document.querySelector('[data-state="no-match"]')).not.toBeNull();
+        expect(screen.getByRole('status').textContent).toContain(dashboardLabels.overlayNoMatch);
+      }
       expect(document.body.textContent).not.toContain('Talleres');
       expect(document.body.textContent).not.toContain('TAL');
     },
@@ -1962,6 +1990,26 @@ describe('TvDashboard overlays', () => {
     expect(screen.getByTestId('tv-lower-third').textContent).not.toContain('TAL');
   });
 
+  it('shows the kickoff where the score would be for an upcoming lower third', () => {
+    const kickoff = '2026-11-23T16:00:00.000Z';
+    const [match] = twoLive.matches;
+    if (match === undefined) throw new Error('fixture has a match');
+    const upcoming: LiveMatch = {
+      ...match,
+      state: 'upcoming',
+      scheduledAt: kickoff,
+      sides: match.sides.map((side) => ({ ...side, state: 'upcoming' as const, score: 0 })),
+    };
+    renderOverlay({
+      initial: { ...twoLive, matches: [upcoming] },
+      pinnedMatch: { stageNumber: 1, ordinal: 1 },
+    });
+
+    const band = screen.getByTestId('tv-lower-third');
+    expect(band.querySelector('.tv-start-time')).not.toBeNull();
+    expect(band.querySelector('.tv-lower-third__score')?.textContent).toBe('–');
+  });
+
   it('follows the live match of its court, and says so when the court has none', () => {
     const venues = { m1: 'Cancha 1', m2: 'Cancha 2' };
     const { unmount } = renderOverlay({ court: 'Cancha 2', venueNameByMatchId: venues });
@@ -1969,9 +2017,8 @@ describe('TvDashboard overlays', () => {
     unmount();
 
     renderOverlay({ court: 'Cancha 3', venueNameByMatchId: venues });
-    expect(screen.getByTestId('tv-overlay-no-match').textContent).toContain(
-      dashboardLabels.overlayNoCourtMatch,
-    );
+    expect(document.querySelector('[data-state="no-match"]')).not.toBeNull();
+    expect(screen.getByRole('status').textContent).toContain(dashboardLabels.overlayNoCourtMatch);
   });
 
   it('keeps showing a first live match on the kiosk, which is not an overlay', () => {

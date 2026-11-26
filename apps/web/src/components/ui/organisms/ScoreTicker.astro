@@ -37,6 +37,11 @@ interface Props {
     readonly upcoming: string;
     readonly final: string;
   };
+  /**
+   * Omits the rail altogether when there is nothing to report, instead of showing the empty sentence.
+   * An overlay on air names no empty state.
+   */
+  readonly omitWhenEmpty?: boolean;
 }
 const {
   items,
@@ -49,7 +54,9 @@ const {
   pauseLabel,
   resumeLabel,
   liveBadgeLabels,
+  omitWhenEmpty = false,
 } = Astro.props;
+const rendered = !(omitWhenEmpty && items.length === 0);
 
 /*
   Items are duplicated once so the loop has no visible seam — the track
@@ -60,6 +67,7 @@ const {
 */
 ---
 
+{rendered && (
 <div
   class:list={['cl-ticker', `cl-ticker--${scale}`]}
   data-ticker
@@ -139,6 +147,7 @@ const {
     )}
   </Container>
 </div>
+)}
 
 <script>
   /*
