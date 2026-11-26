@@ -69,6 +69,52 @@ const overview = {
   ruleset: {},
 };
 
+/** An upcoming match between two clubs with crests, a stream link, and no match-day roster recorded yet. */
+const upcomingMatchNumber = '6';
+const upcomingMatchReport = {
+  organizationAlias: ORGANIZATION,
+  organizationName: 'Liga Mendocina',
+  tournamentAlias: TOURNAMENT_ALIAS,
+  tournamentName: 'Apertura 2026',
+  stageNumber: 1,
+  matchNumber: 6,
+  round: 3,
+  status: 'upcoming',
+  homeEntrantId: '00000000-0000-7000-8000-000000000601',
+  homeName: 'Club Andes',
+  homeAbbreviation: 'AND',
+  homeClubId: '00000000-0000-7000-8000-000000000611',
+  homeEmblemObjectId: '00000000-0000-7000-8000-000000000621',
+  awayEntrantId: '00000000-0000-7000-8000-000000000602',
+  awayName: 'Deportivo Sur',
+  awayAbbreviation: 'SUR',
+  awayClubId: '00000000-0000-7000-8000-000000000612',
+  awayEmblemObjectId: '00000000-0000-7000-8000-000000000622',
+  scheduledAt: '2025-11-09T14:00:00.000Z',
+  schedulePublished: true,
+  streamUrl: 'https://example.org/live/semifinal-1',
+  officials: [],
+  rosters: { home: [], away: [] },
+  registeredSquads: {
+    home: [
+      {
+        personId: '00000000-0000-7000-8000-000000000701',
+        name: 'Ada Lovelace',
+        publicProfileAvailable: true,
+      },
+    ],
+    away: [
+      {
+        personId: '00000000-0000-7000-8000-000000000702',
+        name: 'Grace Hopper',
+        publicProfileAvailable: true,
+      },
+    ],
+  },
+  timeline: [],
+  disciplineImages: {},
+};
+
 let apiServer: Server;
 // Set by the officials test only: the match report then names two officials.
 let withOfficials = false;
@@ -112,6 +158,11 @@ test.beforeAll(async ({ workerPort }) => {
 
     if (path === `${BASE}/matches-view`) {
       res.end(JSON.stringify({ matches: [matchWithPosition] }));
+      return;
+    }
+
+    if (path === `${BASE}/stages/${STAGE}/matches/${upcomingMatchNumber}`) {
+      res.end(JSON.stringify(upcomingMatchReport));
       return;
     }
 
@@ -182,6 +233,27 @@ test.describe('Public Match Presentation and Badge Polish', () => {
     // Gap = left edge of score - right edge of badge.
     const gap = (scoreBox?.x ?? 0) - ((badgeBox?.x ?? 0) + (badgeBox?.width ?? 0));
     expect(gap).toBeGreaterThanOrEqual(6);
+  });
+});
+
+test.describe('match page identity, registered squads and stream link', () => {
+  test('an upcoming match shows each side crest, its registered squad, and a watch link', async ({
+    page,
+  }) => {
+    await page.goto(
+      `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${upcomingMatchNumber}`,
+    );
+    await page.waitForSelector('meta[name="copalibre:deferred-stylesheet"]', { state: 'attached' });
+
+    await expect(page.locator('.cl-team-crest')).toHaveCount(2);
+    await expect(page.getByText('Plantel inscripto')).toHaveCount(2);
+    await expect(page.getByText('Ada Lovelace')).toBeVisible();
+    await expect(page.getByText('Grace Hopper')).toBeVisible();
+
+    const watch = page.getByRole('link', { name: 'Ver transmisión' });
+    await expect(watch).toHaveAttribute('href', 'https://example.org/live/semifinal-1');
+    await expect(watch).toHaveAttribute('target', '_blank');
+    await expect(watch).toHaveAttribute('rel', 'noopener noreferrer');
   });
 });
 
