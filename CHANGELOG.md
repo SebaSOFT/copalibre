@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Changed
+
+- **`mode=overlay-lower` is a lower third on the bottom band.** It rendered a corner bug at the top before. A browser source on `mode=overlay` keeps the corner bug, now inside the broadcast safe area, and `mode=overlay-scorebug` names the same picture explicitly. `mode=overlay-full` is unchanged in content. The launcher offers all three overlays, with transparent as their default background.
+
 ### Deprecations
 
 - **`decidingFactor` on matches-view responses** is deprecated in favour of `decidingFactorCode` and `decidingFactorRule`, and will be removed in a subsequent minor release.
