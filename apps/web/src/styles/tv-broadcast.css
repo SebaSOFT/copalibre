@@ -297,8 +297,7 @@
   min-height: 0;
 }
 
-.tv-presentation-layout,
-.tv-multi-match-dashboard {
+.tv-presentation-layout {
   display: grid;
   flex: 1 1 auto;
   min-height: 0;
@@ -308,7 +307,12 @@
 /* The dashboard takes the space the frame leaves, not the height its content asks for: a standings page
    taller than the frame must not stretch the grid, and the frame the paging measures, with it. */
 .tv-multi-match-dashboard {
-  flex-basis: 0;
+  display: grid;
+  flex: 1 1 0;
+  min-height: 0;
+  gap: 2vmin;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
 }
 
 .tv-presentation-layout {
@@ -460,11 +464,6 @@
   font-size: 0.85em;
 }
 
-.tv-multi-match-dashboard {
-  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto;
-}
-
 .tv-dashboard-live-panel {
   grid-column: 1;
   grid-row: 1;
@@ -486,6 +485,8 @@
   display: flex;
   flex-direction: column;
   gap: 1.2vmin;
+  /* A paged panel never scrolls: paging replaces scrolling. */
+  overflow: hidden;
 }
 
 .tv-dashboard-live-grid {
@@ -994,10 +995,11 @@
 }
 
 .tv-rail-content {
-  /* A definite basis: the content's height never sizes the panel the paging measures. */
+  /* A definite basis: the content's height never sizes the panel the paging measures. The panel never
+     scrolls: paging replaces scrolling, so no scrollbar can change its width. */
   flex: 1 1 0px;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
