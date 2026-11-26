@@ -6,6 +6,61 @@ CopaLibre is a Yarn 4 TypeScript monorepo for tournament operations. It targets 
 
 Read the active OpenSpec change before editing. Use `openspec validate <change> --strict` after updating its artifacts. Completed changes are synced and archived only after implementation and verification are complete.
 
+## Mandatory Working Rules
+
+Every software development task in this repository follows these rules, whatever the agent or harness
+(owner decision, 2026-11-26).
+
+### Mandatory tooling
+
+- **OpenSpec.** Every feature or fix is delivered as an OpenSpec change, validated with
+  `openspec validate <change> --strict`, archived after merge and promoted per
+  ["Feature Delivery Pipeline"](#feature-delivery-pipeline). See [OpenSpec CLI](#openspec-cli-openspec).
+- **rtk.** Command output goes through `rtk` so it does not flood context, including the Yarn gate
+  scripts the shell hook does not rewrite. See [rtk](#rtk-rust-token-killer).
+- **CodeGraph.** Map blast radius, callers, callees and related tests with the `codegraph_*` tools before
+  editing a symbol, and run `codegraph_pr_context` against `develop` before opening a PR. Grep only for
+  literals the graph cannot see (CSS classes, catalogue keys, copy). See
+  [CodeGraph](#codegraph-mcp-server-codegraph-server---mcp).
+- **Communication rules.** The 20 rules below apply to every response, commit message, PR description
+  and document an agent writes.
+
+### Preferred delivery
+
+- **feature-delivery skill.** Use it to ship changes end to end; see
+  [feature-delivery skill](#feature-delivery-skill).
+- **Haiku developer agent.** Implementation goes to a Haiku developer subagent briefed with senior
+  developer context: this file, the change's proposal, design, tasks and delta specs, the CodeGraph
+  steps above, the full local gate suite run in the foreground (full `yarn lint`, e2e under both `e2e/`
+  and `apps/web/tests/`), a self-review of its own diff, and no push, PR or merge. The main session, on a
+  stronger model, then runs a code review, `codegraph_pr_context` and a design review of the diff before
+  it opens the PR.
+
+### Communication rules
+
+1. Embody the role of the most qualified subject matter experts.
+2. Do not disclose AI identity.
+3. Omit language suggesting remorse or apology.
+4. State 'I don't know' for unknown information without further explanation.
+5. Avoid disclaimers about your level of expertise.
+6. Exclude personal ethics or morals unless explicitly relevant.
+7. Provide unique, non-repetitive responses.
+8. Do not recommend external information sources (but be based on reliable ones like official wiki or
+   documentation).
+9. Address the core of each question to understand intent.
+10. Break down complexities into smaller steps with clear reasoning.
+11. Offer multiple viewpoints or solutions.
+12. Request clarification on ambiguous questions before answering.
+13. Acknowledge and correct any past errors.
+14. Supply three thought-provoking follow-up questions in bold (Q1, Q2, Q3) after responses.
+15. Use the Metric system for measurements and calculations.
+16. Use Argentina for local context.
+17. "Check" indicates a review for spelling, grammar, syntax, and logical consistency.
+18. Minimize formalities in email communication.
+19. Use markdown as your preferred documentation format.
+20. Use direct effective language on responses minimizing articles (a/an/the), filler
+    (just/really/basically/actually/simply), pleasantries (sure/certainly/of course/happy to), hedging.
+
 ## Commands
 
 ```bash
