@@ -466,6 +466,10 @@ export interface SeriesStateBarSegment {
   /** A registry icon: the brand faces have no glyph for these shapes. */
   readonly mark: IconName;
   readonly label: string;
+  /** The game's own page, when it has been played or is in progress. */
+  readonly href?: string;
+  /** The link's accessible name: the game, its two sides and its score. */
+  readonly linkLabel?: string;
 }
 
 export interface SeriesStateBarProps {
@@ -507,6 +511,8 @@ export function seriesStateBarLabels(
     readonly winner?: 'home' | 'away';
     /** Present on an `aggregate` tie: the summed score, home first. */
     readonly aggregateScores?: readonly number[];
+    /** Each linkable game's own page, keyed by its game number. */
+    readonly gameLinks?: ReadonlyMap<number, { readonly href: string; readonly linkLabel: string }>;
   },
 ): SeriesStateBarProps {
   const score = seriesScore(series);
@@ -517,11 +523,15 @@ export function seriesStateBarLabels(
     upcoming: messages.seriesGameUpcoming,
     'not-required': messages.seriesGameNotRequired,
   };
-  const segments = seriesSegments(series).map((state, index) => ({
-    state,
-    mark: SERIES_SEGMENT_MARKS[state],
-    label: intl.formatMessage(labelByState[state], { number: index + 1 }),
-  }));
+  const segments = seriesSegments(series).map((state, index) => {
+    const link = options.gameLinks?.get(index + 1);
+    return {
+      state,
+      mark: SERIES_SEGMENT_MARKS[state],
+      label: intl.formatMessage(labelByState[state], { number: index + 1 }),
+      ...(link === undefined ? {} : { href: link.href, linkLabel: link.linkLabel }),
+    };
+  });
   const winnerName =
     options.winner === 'home'
       ? options.homeName

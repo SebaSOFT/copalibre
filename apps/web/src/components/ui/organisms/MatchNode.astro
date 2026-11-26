@@ -12,7 +12,7 @@ import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import SeriesStateBar from '../molecules/SeriesStateBar.astro';
 import { matchReportUrl, toNode, type BracketMatch } from '../../../lib/bracket.ts';
 import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
-import { toSeriesInput } from '../../../lib/series.ts';
+import { linkableSeriesGames, toSeriesInput } from '../../../lib/series.ts';
 import { displayedScore } from '../../../lib/matches-view.ts';
 import {
   resultReasonLabels,
@@ -50,7 +50,6 @@ const pendingSyncGroup =
     ? `match-node-${stageNumber}-${Astro.props.match.matchId ?? node.matchNumber}`
     : undefined;
 const highlight = Astro.props.highlightEntrants === true;
-const Wrapper = highlight ? 'div' : 'a';
 const reasonLabels = resultReasonLabels(intl);
 const advancesLabel = intl.formatMessage(messages.bracketAdvances);
 // Every card links, resolved or not — the match report page already
@@ -72,10 +71,54 @@ const legScores =
   series === undefined
     ? []
     : series.games.filter((game) => game.scores !== undefined && game.status === 'finalized');
+// A series' played and in-progress games each link to their own page. A card that links to games cannot
+// nest them inside its own link, so the card's link becomes a stretched sibling and the game links sit above it.
+const linkableGames = series === undefined ? [] : linkableSeriesGames(series);
+const homeName = node.slots[0]?.fullName ?? node.slots[0]?.label ?? '';
+const awayName = node.slots[1]?.fullName ?? node.slots[1]?.label ?? '';
+const gameLinks = new Map(
+  series === undefined
+    ? []
+    : series.games
+        .filter((game) => linkableGames.includes(game.number))
+        .map((game) => [
+          game.number,
+          {
+            href: matchReportUrl({
+              organizationAlias,
+              tournamentAlias,
+              stageNumber,
+              matchNumber: node.matchNumber,
+              localePrefix,
+              game: game.number,
+            }),
+            linkLabel: intl.formatMessage(messages.matchReportGameLinkLabel, {
+              game: intl.formatMessage(messages.matchReportGameNumber, { number: game.number }),
+              home: homeName,
+              score:
+                game.scores === undefined
+                  ? intl.formatMessage(messages.tickerVersus)
+                  : intl.formatMessage(messages.matchTimelineScoreAfter, {
+                      home: game.scores[0] ?? 0,
+                      away: game.scores[1] ?? 0,
+                    }),
+              away: awayName,
+            }),
+          } as const,
+        ]),
+);
+const hasGameLinks = !highlight && gameLinks.size > 0;
+const Wrapper = highlight || hasGameLinks ? 'div' : 'a';
+const cardName = `${homeName} ${intl.formatMessage(messages.tickerVersus)} ${awayName}`;
 ---
 
-<Wrapper href={highlight ? undefined : reportUrl}>
-  <Card as="article" data-match={node.matchNumber}>
+<Wrapper href={highlight || hasGameLinks ? undefined : reportUrl}>
+  <Card
+    as="article"
+    data-match={node.matchNumber}
+    className={hasGameLinks ? 'cl-match-node--linked' : undefined}
+  >
+    {hasGameLinks && <a class="cl-match-node__stretch" href={reportUrl} aria-label={cardName} />}
     {highlight ? (
       <a href={reportUrl}>
         <StateBadge state={node.state} intl={intl} />
@@ -182,6 +225,7 @@ const legScores =
           awayName: node.slots[1]?.fullName ?? node.slots[1]?.label,
           homeName: node.slots[0]?.fullName ?? node.slots[0]?.label,
           winner: series.winner,
+          gameLinks,
         })}
       />
     )}
@@ -249,6 +293,17 @@ const legScores =
   .cl-slot--eliminated :global(.cl-stat-tile__value) {
     color: var(--cl-text-muted);
   }
+  /* A card whose games link: its own link covers the card and every game link sits above it. */
+  .cl-match-node--linked {
+    position: relative;
+  }
+
+  .cl-match-node__stretch {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
   .cl-match-node__schedule {
     margin: var(--cl-space-1) 0 0;
     color: var(--cl-text-muted);

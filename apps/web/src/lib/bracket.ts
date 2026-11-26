@@ -359,11 +359,17 @@ export function matchReportUrl(input: {
   readonly stageNumber: number;
   readonly matchNumber: number;
   readonly localePrefix?: string;
+  /** A game of a series (1-based). Absent for the fixture's own page; any value that is not a positive whole number is ignored. */
+  readonly game?: number;
 }): string {
   const { organizationAlias, tournamentAlias, stageNumber, matchNumber, localePrefix = '' } = input;
+  const gameQuery =
+    input.game !== undefined && Number.isSafeInteger(input.game) && input.game >= 1
+      ? `?game=${input.game}`
+      : '';
   return `${localePrefix}/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
     tournamentAlias,
-  )}/stages/${stageNumber}/matches/${matchNumber}`;
+  )}/stages/${stageNumber}/matches/${matchNumber}${gameQuery}`;
 }
 
 /** The stage's own full bracket/matches page — where a bracket-context panel links out to. */

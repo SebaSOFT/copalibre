@@ -624,6 +624,10 @@ export const messages = defineMessages({
     id: 'publicWeb.placement.zonePrefix',
     defaultMessage: '{zone} · {placement}',
   },
+  matchReportGameLinkLabel: {
+    id: 'publicWeb.matchReport.gameLinkLabel',
+    defaultMessage: '{game}: {home} {score} {away}',
+  },
   matchReportGameNumber: {
     id: 'publicWeb.matchReport.gameNumber',
     defaultMessage: 'Game {number}',

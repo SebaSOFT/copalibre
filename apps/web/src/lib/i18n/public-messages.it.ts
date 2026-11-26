@@ -170,6 +170,7 @@ export const messages: Record<string, string> = {
   'publicWeb.placement.zonePrefix': '{zone} · {placement}',
   'publicWeb.matchReport.stakeWinner': 'Il vincitore gioca {match}{when}',
   'publicWeb.matchReport.gameNumber': 'Partita {number}',
+  'publicWeb.matchReport.gameLinkLabel': '{game}: {home} {score} {away}',
   'publicWeb.matchReport.gamesLabel': 'Partite della serie',
   'publicWeb.matchReport.stakeLoser': 'Il perdente gioca {match}{when}',
   'publicWeb.matchReport.stakePlace': 'Decide il {place}',

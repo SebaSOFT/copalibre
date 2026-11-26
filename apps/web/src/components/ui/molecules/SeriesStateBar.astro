@@ -7,6 +7,8 @@ export interface SeriesStateBarSegment {
   readonly state: SegmentState;
   readonly mark: IconName;
   readonly label: string;
+  readonly href?: string;
+  readonly linkLabel?: string;
 }
 
 interface Props {
@@ -35,7 +37,17 @@ const { homeScore, awayScore, segmentsAriaLabel, segments, winner, outcomeText, 
       >
         {/* The mark carries the state where the words will not fit, so nothing here
               depends on a colour; the label carries the same fact in words. */}
-        <Icon name={segment.mark} size={16} />
+        {segment.href !== undefined && segment.linkLabel !== undefined ? (
+          <a
+            aria-label={segment.linkLabel}
+            class="cl-series__segment-link cl-focusable"
+            href={segment.href}
+          >
+            <Icon name={segment.mark} size={16} />
+          </a>
+        ) : (
+          <Icon name={segment.mark} size={16} />
+        )}
       </li>
     ))}
   </ol>
@@ -61,3 +73,18 @@ const { homeScore, awayScore, segmentsAriaLabel, segments, winner, outcomeText, 
     */}
   {aggregateText !== undefined && <p class="cl-series__aggregate">{aggregateText}</p>}
 </div>
+
+<style>
+  /* A played or in-progress game links to its page. Its target is the touch size the public site uses, and
+     it sits above the card's own stretched link. */
+  .cl-series__segment-link {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--cl-touch-target);
+    min-height: var(--cl-touch-target);
+    color: inherit;
+  }
+</style>
