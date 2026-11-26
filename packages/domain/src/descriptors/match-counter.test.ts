@@ -1,7 +1,11 @@
 import { fixtureDescriptor } from '../test-support/fixture-descriptor.js';
 import { validateDisciplineDescriptorDocument } from './descriptor-schema.js';
 import type { DisciplineDescriptor, MatchCounterDefinition } from './discipline-descriptor.js';
-import { resolveEffectiveMatchCounters } from './match-counter-resolution.js';
+import {
+  matchCounterOverrideProblem,
+  resolveEffectiveMatchCounters,
+} from './match-counter-resolution.js';
+import { compileEffectiveRuleset } from '../rulesets/compiler.js';
 import { countMatchCounters } from './match-counter-count.js';
 import type { RecordedEvent } from '../events/event-log.js';
 import type { MatchRoster, Segment } from '../aggregates/competition.js';
@@ -213,5 +217,71 @@ describe('countMatchCounters', () => {
     const events = [event('e1', 'seg-1', 'home'), event('e2', 'seg-1', 'home')];
     const [tally] = countMatchCounters([TIMEOUT], events, [segment(1, 'active')], [], entrants);
     expect(tally?.values.find((v) => v.entrantId === 'home')?.value).toBe(2);
+  });
+});
+
+describe('matchCounters override validation', () => {
+  const compile = (descriptor: DisciplineDescriptor, overrides: unknown) =>
+    compileEffectiveRuleset(descriptor, {
+      rulesetId: 'r1',
+      version: 1,
+      overrides: { matchCounters: overrides },
+    } as never);
+
+  it.each([
+    ['a null counter entry', { 'team-fouls': null }],
+    ['a string instead of an object', 'abc'],
+    ['a negative allowance', { timeouts: { allowance: -3 } }],
+    ['a string allowance', { timeouts: { allowance: 'abc' } }],
+    ['an unknown key', { timeouts: { color: 'red' } }],
+    ['a non-boolean hidden flag', { timeouts: { hidden: 'yes' } }],
+  ])('reports %s as an invalid override, and the compilation fails', (_name, overrides) => {
+    expect(matchCounterOverrideProblem(overrides)).toBeDefined();
+    const result = compile(withCounters([FOUL, TIMEOUT]), overrides);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.violations).toEqual([
+      expect.objectContaining({ field: 'matchCounters', reason: 'invalid-override' }),
+    ]);
+  });
+
+  it('accepts a well-formed override, with null clearing a default', () => {
+    expect(
+      matchCounterOverrideProblem({
+        'team-fouls': { warnAt: 10 },
+        timeouts: { allowance: null, hidden: false },
+      }),
+    ).toBeUndefined();
+    expect(compile(withCounters([FOUL, TIMEOUT]), { timeouts: { allowance: null } }).ok).toBe(true);
+  });
+
+  it('never throws in the resolver on a malformed override, and skips the bad entries', () => {
+    const descriptor = withCounters([FOUL, TIMEOUT]);
+    expect(() =>
+      resolveEffectiveMatchCounters(descriptor, { matchCounters: { 'team-fouls': null } }),
+    ).not.toThrow();
+    expect(
+      resolveEffectiveMatchCounters(descriptor, { matchCounters: 'abc' }).map((c) => c.code),
+    ).toEqual(['team-fouls', 'timeouts']);
+    expect(
+      resolveEffectiveMatchCounters(descriptor, {
+        matchCounters: { timeouts: { allowance: -3 } },
+      }).find((c) => c.code === 'timeouts')?.allowance,
+    ).toBe(1);
+  });
+
+  it('rejects any override under an explicit forbidden field policy', () => {
+    const descriptor = fixtureDescriptor({
+      matchCounters: [FOUL],
+      fieldPolicies: {
+        matchCounters: { permission: { kind: 'forbidden' }, mutationClass: 'safe' },
+      },
+    });
+    const result = compile(descriptor, { 'team-fouls': { hidden: true } });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.violations).toEqual([
+      expect.objectContaining({ field: 'matchCounters', reason: 'forbidden-override' }),
+    ]);
   });
 });

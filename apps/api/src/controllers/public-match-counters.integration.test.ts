@@ -51,6 +51,9 @@ describe('public match counters (integration)', () => {
   let organizationId = '';
   let matchId = '';
   let segmentId = '';
+  let stageId = '';
+  let scheduledOrdinal = 0;
+  let forfeitedOrdinal = 0;
   const entrantIds: string[] = [];
   const consoleBase = () =>
     `/api/organizations/liga-prueba/tournaments/apertura/matches/${matchId}`;
@@ -273,12 +276,57 @@ describe('public match counters (integration)', () => {
         capabilities: ['match.record-event'],
         ...audit,
       });
+      stageId = stage.stageId;
+    });
+
+    // A scheduled match and a match to be forfeited, after the one in play in the bracket order.
+    await withTransaction(scratch.db, async (uow) => {
+      const fixtures = await competition.createFixtures(uow, {
+        stageId,
+        fixtures: [
+          { round: 2, homeEntrantId: entrantIds[0], awayEntrantId: entrantIds[1] },
+          { round: 3, homeEntrantId: entrantIds[0], awayEntrantId: entrantIds[1] },
+        ],
+        organizationId,
+        ...audit,
+      });
+      const scheduled = await competition.createMatch(uow, {
+        fixtureId: fixtures[0]?.fixtureId ?? '',
+        number: 1,
+        organizationId,
+        ...audit,
+      });
+      const forfeited = await competition.createMatch(uow, {
+        fixtureId: fixtures[1]?.fixtureId ?? '',
+        number: 1,
+        organizationId,
+        ...audit,
+      });
+      scheduledOrdinal = 2;
+      forfeitedOrdinal = 3;
+      await scratch.db
+        .updateTable('matches')
+        .set({ status: 'forfeited' })
+        .where('match_id', '=', forfeited.matchId)
+        .execute();
+      expect(scheduled.matchId).toBeDefined();
     });
   });
 
   afterAll(async () => {
     await app?.close();
     await scratch?.drop();
+  });
+
+  it('omits the counters field from the report of a scheduled or forfeited match', async () => {
+    for (const ordinal of [scheduledOrdinal, forfeitedOrdinal]) {
+      const response = await request(
+        'GET',
+        `/api/organizations/liga-prueba/tournaments/apertura/stages/1/matches/${ordinal}`,
+      );
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).not.toHaveProperty('counters');
+    }
   });
 
   it('shows every declared counter at zero before anything is recorded', async () => {
@@ -311,6 +359,37 @@ describe('public match counters (integration)', () => {
       counters?: CounterValues[];
     };
     expect(valueOf(report.counters, 'team-fouls', entrantIds[0] ?? '')).toBe(4);
+  });
+
+  it('derives the counts from the recorded events on every request, with no stored total', async () => {
+    const before = await countersOfLive();
+    expect(valueOf(before, 'team-fouls', entrantIds[0] ?? '')).toBe(4);
+
+    // A row written straight into the event log, bypassing the console route: no total is kept
+    // anywhere else, so the next projection must count it.
+    await scratch.db
+      .insertInto('match_events')
+      .values({
+        event_id: newId(),
+        match_id: matchId,
+        segment_id: segmentId,
+        definition_code: 'team-foul',
+        occurred_at: new Date(),
+        sequence: 900,
+        side: entrantIds[0] ?? null,
+        person_id: null,
+        payload: JSON.stringify({}),
+        notes: null,
+        segment_elapsed_seconds: null,
+        created_at: new Date(),
+      })
+      .execute();
+
+    expect(valueOf(await countersOfLive(), 'team-fouls', entrantIds[0] ?? '')).toBe(5);
+    const report = (await request('GET', publicReportUrl())).json() as {
+      counters?: CounterValues[];
+    };
+    expect(valueOf(report.counters, 'team-fouls', entrantIds[0] ?? '')).toBe(5);
   });
 
   it('accepts a timeout past its allowance and reports it as 2 against an allowance of 1', async () => {
