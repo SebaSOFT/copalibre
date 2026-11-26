@@ -51,6 +51,8 @@ function applyOverrideLayer(
   violations: PolicyViolation[],
 ): Record<string, unknown> {
   for (const [field, value] of Object.entries(overrides)) {
+    // Match counters are display data, not configuration: resolved by `resolveEffectiveMatchCounters`.
+    if (field === 'matchCounters') continue;
     const policy = descriptor.fieldPolicies[field];
 
     if (!policy) {

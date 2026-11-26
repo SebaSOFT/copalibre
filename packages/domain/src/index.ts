@@ -139,6 +139,19 @@ export {
   resolveEffectiveTableLayouts,
   findTableLayout,
 } from './descriptors/table-layout-resolution.js';
+export type { MatchCounterDefinition } from './descriptors/discipline-descriptor.js';
+export type {
+  MatchCounterOverride,
+  MatchCounterOverrides,
+  EffectiveMatchCounter,
+} from './descriptors/match-counter-resolution.js';
+export { resolveEffectiveMatchCounters } from './descriptors/match-counter-resolution.js';
+export type {
+  CountableRoster,
+  MatchCounterValue,
+  MatchCounterTally,
+} from './descriptors/match-counter-count.js';
+export { countMatchCounters } from './descriptors/match-counter-count.js';
 export {
   segmentThresholdEventDefinitions,
   SEGMENT_THRESHOLD_EVENT_CODES,

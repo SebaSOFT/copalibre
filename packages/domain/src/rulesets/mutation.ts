@@ -44,6 +44,10 @@ export function evaluateMutation(
   fieldPath: string,
   context: MutationContext,
 ): Result<MutationDecision, MutationBlockedError> {
+  // Match counters are display only: they change no record, result or standing, at any time.
+  if (fieldPath === 'matchCounters' || fieldPath.startsWith('matchCounters.')) {
+    return ok({ allowed: true, mutationClass: 'safe' });
+  }
   // Placement play changes the engine's structure independently of the discipline's rules.
   if (fieldPath === 'placementPlay' || /^zones\.[^.]+\.placementPlay$/.test(fieldPath)) {
     if (context.hasRecordedResults) {
