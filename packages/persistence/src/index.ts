@@ -192,6 +192,11 @@ export {
   type ScheduleWithdrawal,
   type OrganizationScheduleEntry,
 } from './repositories/schedule-repository.js';
+export { VenueRepository } from './repositories/schedule/venue-repository.js';
+export { OfficialRepository } from './repositories/schedule/official-repository.js';
+export { ScheduleQueryRepository } from './repositories/schedule/schedule-queries.js';
+export { SchedulePublicationRepository } from './repositories/schedule/schedule-publication.js';
+export { ScheduleDefinitionRepository } from './repositories/schedule/schedule-definition-repository.js';
 export { MatchAssignmentRepository } from './repositories/match-assignment-repository.js';
 export {
   MatchCommandIdempotencyRepository,

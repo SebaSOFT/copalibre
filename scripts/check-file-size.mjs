@@ -31,10 +31,6 @@ const SPLIT = 'Split in progress';
  */
 export const KNOWN_OVERSIZED_FILES = new Map([
   // Production files of 2000 lines or more, split by the modularization plan.
-  [
-    'packages/persistence/src/repositories/schedule-repository.ts',
-    { ceiling: 2067, reason: SPLIT },
-  ],
   // Production files of 1000 to 1999 lines, split by the modularization plan.
   ['apps/web/src/components/tv/TvDashboard.tsx', { ceiling: 1883, reason: SPLIT }],
   [
