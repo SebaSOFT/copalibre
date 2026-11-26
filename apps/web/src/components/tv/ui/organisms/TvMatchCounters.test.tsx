@@ -38,6 +38,9 @@ function match(overrides: Partial<LiveMatch> = {}): LiveMatch {
   };
 }
 
+const clusters = (container: HTMLElement) =>
+  Array.from(container.querySelectorAll('.tv-match-counter-cluster'));
+
 describe('TvMatchCounters', () => {
   it('renders nothing when the match declares no counters', () => {
     const { container } = render(
@@ -51,27 +54,48 @@ describe('TvMatchCounters', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('shows the compact text per side and the full words for assistive technology', () => {
+  it('renders the home cluster then the away cluster, each side abbreviated once', () => {
     const { container } = render(
       <TvMatchCounters density="compact" language="es" match={match()} texts={TEXTS} />,
     );
-    const counters = Array.from(container.querySelectorAll('.tv-match-counter'));
-    expect(counters.map((node) => node.textContent)).toEqual([
-      'BOC F 4!Boca Juniors, Faltas de equipo: 4 (en advertencia)',
-      'RIV F 1River Plate, Faltas de equipo: 1',
-    ]);
+    const [home, away] = clusters(container);
+    expect(home?.querySelector('.tv-match-counter-cluster__side')?.textContent).toBe('BOC');
+    expect(away?.querySelector('.tv-match-counter-cluster__side')?.textContent).toBe('RIV');
+    expect(home?.querySelectorAll('.tv-match-counter-cluster__side')).toHaveLength(1);
+    expect(home?.querySelector('.tv-match-counter')?.textContent).toBe(
+      'F 4!Boca Juniors, Faltas de equipo: 4 (en advertencia)',
+    );
+    expect(away?.querySelector('.tv-match-counter')?.textContent).toBe(
+      'F 1River Plate, Faltas de equipo: 1',
+    );
   });
 
-  it('marks a side at its warning value with a text cue, not colour alone', () => {
+  it('marks a side at its warning value with a cue tight against the value, not colour alone', () => {
     const { container } = render(
       <TvMatchCounters density="full" language="es" match={match()} texts={TEXTS} />,
     );
     const [home, away] = Array.from(container.querySelectorAll('.tv-match-counter'));
     expect(home?.classList.contains('tv-match-counter--warning')).toBe(true);
+    expect(home?.querySelector('[aria-hidden="true"]')?.textContent).toBe('Faltas de equipo 4!');
     expect(home?.querySelector('.tv-match-counter__cue')?.textContent).toBe('!');
-    expect(home?.textContent).toContain('BOC Faltas de equipo 4');
-    expect(home?.textContent).toContain('Boca Juniors, Faltas de equipo: 4 (en advertencia)');
     expect(away?.classList.contains('tv-match-counter--warning')).toBe(false);
     expect(away?.querySelector('.tv-match-counter__cue')).toBeNull();
+  });
+
+  it('renders one side only, without its abbreviation when the name sits above it', () => {
+    const { container } = render(
+      <TvMatchCounters
+        density="compact"
+        language="es"
+        match={match()}
+        side="away"
+        sideLabel={false}
+        texts={TEXTS}
+      />,
+    );
+    expect(clusters(container)).toHaveLength(1);
+    expect(container.querySelector('.tv-match-counter-cluster__side')).toBeNull();
+    expect(container.textContent).toContain('F 1');
+    expect(container.textContent).not.toContain('F 4');
   });
 });

@@ -41,31 +41,34 @@ describe('MatchCounters', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('shows one row per counter, each side named with its value, in the page language', () => {
+  it('places the label between the two sides, each side value under its side, in the page language', () => {
     const { container } = render(
       <MatchCounters penalties={[]} penaltyTemplate="{side}: {time}" sides={SIDES} views={VIEWS} />,
     );
     expect(container.querySelector('.cl-match-counter-row__label')?.textContent).toBe(
       'Faltas de equipo',
     );
-    const items = Array.from(container.querySelectorAll('.cl-match-counter'));
-    expect(items[0]?.querySelector('[aria-hidden="true"]')?.textContent).toBe('Club Andes 3 !');
-    expect(items[1]?.querySelector('[aria-hidden="true"]')?.textContent).toBe('Deportivo Sur 1');
+    const [home, away] = Array.from(container.querySelectorAll('.cl-match-counter'));
+    expect(home?.classList.contains('cl-match-counter--home')).toBe(true);
+    expect(away?.classList.contains('cl-match-counter--away')).toBe(true);
+    expect(home?.querySelector('[aria-hidden="true"]')?.textContent).toBe('Club Andes 3!');
+    expect(away?.querySelector('[aria-hidden="true"]')?.textContent).toBe('Deportivo Sur 1');
   });
 
-  it('gives each side an accessible name with the side and the full label, and a text cue in warning', () => {
+  it('gives each side an accessible name with the side and the full label, and a cue tight to the value in warning', () => {
     const { container } = render(
       <MatchCounters penalties={[]} penaltyTemplate="{side}: {time}" sides={SIDES} views={VIEWS} />,
     );
     const [home, away] = Array.from(container.querySelectorAll('.cl-match-counter'));
     expect(home?.classList.contains('cl-match-counter--warning')).toBe(true);
+    expect(home?.querySelector('.cl-match-counter__cue')?.textContent).toBe('!');
     expect(home?.querySelector('.cl-visually-hidden')?.textContent).toBe(
       'Club Andes, Faltas de equipo: 3 (en advertencia)',
     );
     expect(away?.classList.contains('cl-match-counter--warning')).toBe(false);
   });
 
-  it('counts a penalty down from its remaining time, in the page language', () => {
+  it('counts a penalty down under the side it belongs to, in the page language', () => {
     const { container } = render(
       <MatchCounters
         penalties={[{ timerId: 't1', entrantId: 'away', remainingSeconds: 120, sideName: 'Sur' }]}
@@ -74,8 +77,8 @@ describe('MatchCounters', () => {
         views={[]}
       />,
     );
-    expect(container.querySelector('.cl-match-penalty time')?.textContent).toBe(
-      'Sur: 02:00 de suspensión',
-    );
+    const penalty = container.querySelector('.cl-match-penalty');
+    expect(penalty?.classList.contains('cl-match-penalty--away')).toBe(true);
+    expect(penalty?.querySelector('time')?.textContent).toBe('Sur: 02:00 de suspensión');
   });
 });

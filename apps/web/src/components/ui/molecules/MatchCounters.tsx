@@ -1,4 +1,4 @@
-import type { MatchCounterView } from '../../../lib/match-counters.js';
+import type { MatchCounterView, MatchCounterSideView } from '../../../lib/match-counters.js';
 import { applyTemplate } from '../../../lib/matches-view.js';
 import {
   formatPenaltyClock,
@@ -15,10 +15,11 @@ export interface MatchPenaltyView {
 }
 
 /**
- * The declared counters of a match, one row per counter with a value per side, and the timed
- * penalties in force while the match is live. A side's value names the side and a counter in warning
- * carries a "!" the eye reads and its full words for assistive technology. Renders nothing when there
- * are no counters and no penalties.
+ * The declared counters of a match, laid out over the scoreboard: the home side's value under the home
+ * side, the counter's label between them (on a phone, above them), the away side's value under the away
+ * side. A timed penalty sits under the side it belongs to. A counter in warning carries a "!" tight
+ * against its value and its full words for assistive technology. Renders nothing when there are neither
+ * counters nor penalties.
  */
 export function MatchCounters({
   views,
@@ -27,62 +28,86 @@ export function MatchCounters({
   penaltyTemplate,
 }: {
   readonly views: readonly MatchCounterView[];
+  /** In scoreboard order: the first side is home, the second away. */
   readonly sides: readonly { readonly entrantId: string; readonly name: string }[];
   readonly penalties: readonly MatchPenaltyView[];
   /** "{side}: {time} suspension", with the side's name and the remaining "MM:SS". */
   readonly penaltyTemplate: string;
 }): React.JSX.Element | null {
   if (views.length === 0 && penalties.length === 0) return null;
+  const homeId = sides[0]?.entrantId;
+  const placeOf = (entrantId: string): 'home' | 'away' => (entrantId === homeId ? 'home' : 'away');
   const nameOf = (entrantId: string): string =>
     sides.find((side) => side.entrantId === entrantId)?.name ?? '';
   return (
     <div className="cl-match-counters" data-testid="match-counters">
       {views.length > 0 && (
-        <ul className="cl-match-counters__list">
+        <ul className="cl-match-counters__grid">
           {views.map((view) => (
             <li className="cl-match-counter-row" key={view.code}>
               <span className="cl-match-counter-row__label">{view.label}</span>
-              <ul className="cl-match-counter-row__sides">
-                {view.sides.map((side) => (
-                  <li
-                    className={`cl-match-counter${side.warning ? ' cl-match-counter--warning' : ''}`}
-                    key={side.entrantId}
-                  >
-                    <span aria-hidden="true">
-                      {`${nameOf(side.entrantId)} ${side.valueText}${side.warning ? ' !' : ''}`}
-                    </span>
-                    <span className="cl-visually-hidden">
-                      {`${nameOf(side.entrantId)}, ${side.accessibleName}`}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              {view.sides.map((side) => (
+                <CounterValue
+                  key={side.entrantId}
+                  name={nameOf(side.entrantId)}
+                  place={placeOf(side.entrantId)}
+                  side={side}
+                />
+              ))}
             </li>
           ))}
         </ul>
       )}
-      <PenaltyCountdownList
+      <PenaltyCountdownGrid
         key={penaltySnapshotKey(penalties)}
         penalties={penalties}
+        placeOf={placeOf}
         template={penaltyTemplate}
       />
     </div>
   );
 }
 
-function PenaltyCountdownList({
+function CounterValue({
+  name,
+  place,
+  side,
+}: {
+  readonly name: string;
+  readonly place: 'home' | 'away';
+  readonly side: MatchCounterSideView;
+}): React.JSX.Element {
+  return (
+    <span
+      className={`cl-match-counter cl-match-counter--${place}${side.warning ? ' cl-match-counter--warning' : ''}`}
+    >
+      <span aria-hidden="true">
+        {`${name} ${side.valueText}`}
+        {side.warning && <span className="cl-match-counter__cue">!</span>}
+      </span>
+      <span className="cl-visually-hidden">{`${name}, ${side.accessibleName}`}</span>
+    </span>
+  );
+}
+
+function PenaltyCountdownGrid({
   penalties,
+  placeOf,
   template,
 }: {
   readonly penalties: readonly MatchPenaltyView[];
+  readonly placeOf: (entrantId: string) => 'home' | 'away';
   readonly template: string;
 }): React.JSX.Element | null {
   const countdown = usePenaltyCountdown(penalties);
   if (countdown.length === 0) return null;
   return (
-    <ul className="cl-match-penalties">
+    <ul className="cl-match-penalties cl-match-counters__grid">
       {countdown.map((penalty) => (
-        <li className="cl-match-penalty" key={penalty.timerId}>
+        <li
+          className={`cl-match-penalty cl-match-penalty--${placeOf(penalty.entrantId)}`}
+          key={penalty.timerId}
+        >
           <time>
             {applyTemplate(template, {
               side: penalty.sideName,

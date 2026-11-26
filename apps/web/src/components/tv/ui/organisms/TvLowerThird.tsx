@@ -10,6 +10,7 @@ import type { TvClubItem, TvDashboardLabels } from '../../tv-types.js';
 import { TvStartTime } from '../atoms/TvStartTime.js';
 import { TvStatusBadge } from '../atoms/TvStatusBadge.js';
 import type { TvStatusTone } from '../atoms/tv-status-tone.js';
+import type { ReactNode } from 'react';
 import { TvMatchCounters } from './TvMatchCounters.js';
 import { TvMatchIndicators } from './TvMatchIndicators.js';
 import { TvSeriesAndSets } from './TvSeriesAndSets.js';
@@ -43,12 +44,15 @@ function LowerThirdSide({
   emblemUrl,
   fallbackName,
   away = false,
+  children,
 }: {
   readonly name?: string;
   readonly abbreviation?: string;
   readonly emblemUrl?: string;
   readonly fallbackName: string;
   readonly away?: boolean;
+  /** The side's counters, under its name. */
+  readonly children?: ReactNode;
 }): React.JSX.Element {
   const fullName = name ?? fallbackName;
   const crest = (
@@ -67,17 +71,23 @@ function LowerThirdSide({
       <EntrantName fullName={fullName} {...(abbreviation === undefined ? {} : { abbreviation })} />
     </span>
   );
+  const body = (
+    <div className="tv-lower-third__side-body">
+      {label}
+      {children}
+    </div>
+  );
   return (
     <div className={`tv-lower-third__side${away ? ' tv-lower-third__side--away' : ''}`}>
       {away ? (
         <>
-          {label}
+          {body}
           {crest}
         </>
       ) : (
         <>
           {crest}
-          {label}
+          {body}
         </>
       )}
     </div>
@@ -115,7 +125,16 @@ export function TvLowerThird({
           {...(home?.name === undefined ? {} : { name: home.name })}
           {...(home?.abbreviation === undefined ? {} : { abbreviation: home.abbreviation })}
           {...(emblemOf(home) === undefined ? {} : { emblemUrl: emblemOf(home) })}
-        />
+        >
+          <TvMatchCounters
+            density="compact"
+            language={language}
+            match={match}
+            side="home"
+            sideLabel={false}
+            texts={labels.counters}
+          />
+        </LowerThirdSide>
         <span className="tv-lower-third__score">
           {showsScore ? (
             <>
@@ -133,7 +152,16 @@ export function TvLowerThird({
           {...(away?.name === undefined ? {} : { name: away.name })}
           {...(away?.abbreviation === undefined ? {} : { abbreviation: away.abbreviation })}
           {...(emblemOf(away) === undefined ? {} : { emblemUrl: emblemOf(away) })}
-        />
+        >
+          <TvMatchCounters
+            density="compact"
+            language={language}
+            match={match}
+            side="away"
+            sideLabel={false}
+            texts={labels.counters}
+          />
+        </LowerThirdSide>
       </div>
       <div className="tv-lower-third__meta">
         {scope !== undefined && <span className="tv-lower-third__scope">{scope}</span>}
@@ -164,12 +192,6 @@ export function TvLowerThird({
           match={match}
           possessionLabel={labels.possession}
           penaltyLabel={labels.penalty}
-        />
-        <TvMatchCounters
-          density="compact"
-          language={language}
-          match={match}
-          texts={labels.counters}
         />
       </div>
     </div>

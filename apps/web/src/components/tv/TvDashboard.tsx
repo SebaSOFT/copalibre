@@ -625,8 +625,9 @@ export function TvDashboard({
     return () => window.clearInterval(pollTimer);
   }, [pollIntervalMs, refreshProjection]);
 
-  // A recorded event that a match counter tallies refreshes that match's projection, at most once a
-  // second. The client never increments a counter itself: the server's tally is the one shown.
+  // A recorded event that a match counter tallies asks for a projection refresh. The refresh reloads the
+  // whole tournament, so one gate caps it at once a second for the client. The client never increments a
+  // counter itself: the server's tally is the one shown.
   const liveMatchesRef = useRef<readonly LiveMatch[]>([]);
   const counterRefresh = useRef<CounterRefreshGate | null>(null);
   useEffect(() => {
@@ -723,7 +724,7 @@ export function TvDashboard({
             event.payload.definitionCode,
           )
         ) {
-          counterRefresh.current?.request(countedMatchId);
+          counterRefresh.current?.request();
         }
         setDashboard((current) => applyEvent(current, event));
         const eventMatchId =
@@ -1190,6 +1191,7 @@ export function TvDashboard({
         ) : (
           <TvOverlayBug
             clockLabels={clockLabels}
+            language={language}
             {...(spotlightClock === undefined ? {} : { clock: spotlightClock })}
             labels={dashboardLabels}
             match={spotlightMatch}
@@ -1300,7 +1302,16 @@ export function TvDashboard({
                     abbreviation={spotlightMatch.sides[0]?.abbreviation}
                     clubId={spotlightMatch.sides[0]?.clubId}
                     roleLabel={labels.homeSide}
-                  />
+                  >
+                    <TvMatchCounters
+                      density="full"
+                      language={language}
+                      match={spotlightMatch}
+                      side="home"
+                      sideLabel={false}
+                      texts={dashboardLabels.counters}
+                    />
+                  </TvTeamSide>
                   <div className="tv-score-center">
                     {spotlightMatch.state === 'upcoming' && spotlightMatch.scheduledAt ? (
                       <TvStartTime
@@ -1348,18 +1359,21 @@ export function TvDashboard({
                     abbreviation={spotlightMatch.sides[1]?.abbreviation}
                     clubId={spotlightMatch.sides[1]?.clubId}
                     roleLabel={labels.awaySide}
-                  />
+                  >
+                    <TvMatchCounters
+                      density="full"
+                      language={language}
+                      match={spotlightMatch}
+                      side="away"
+                      sideLabel={false}
+                      texts={dashboardLabels.counters}
+                    />
+                  </TvTeamSide>
                 </div>
                 <TvMatchIndicators
                   match={spotlightMatch}
                   possessionLabel={dashboardLabels.possession}
                   penaltyLabel={dashboardLabels.penalty}
-                />
-                <TvMatchCounters
-                  density="full"
-                  language={language}
-                  match={spotlightMatch}
-                  texts={dashboardLabels.counters}
                 />
                 {eventsForMatch(spotlightMatch.matchId).length > 0 && (
                   <TvEventTicker
@@ -1641,7 +1655,16 @@ export function TvDashboard({
                       abbreviation={spotlightMatch.sides[0]?.abbreviation}
                       clubId={spotlightMatch.sides[0]?.clubId}
                       roleLabel={labels.homeSide}
-                    />
+                    >
+                      <TvMatchCounters
+                        density="full"
+                        language={language}
+                        match={spotlightMatch}
+                        side="home"
+                        sideLabel={false}
+                        texts={dashboardLabels.counters}
+                      />
+                    </TvTeamSide>
 
                     {/* Score Center */}
                     <div className="tv-score-center">
@@ -1701,7 +1724,16 @@ export function TvDashboard({
                       abbreviation={spotlightMatch.sides[1]?.abbreviation}
                       clubId={spotlightMatch.sides[1]?.clubId}
                       roleLabel={labels.awaySide}
-                    />
+                    >
+                      <TvMatchCounters
+                        density="full"
+                        language={language}
+                        match={spotlightMatch}
+                        side="away"
+                        sideLabel={false}
+                        texts={dashboardLabels.counters}
+                      />
+                    </TvTeamSide>
                   </div>
 
                   <TvSeriesAndSets
