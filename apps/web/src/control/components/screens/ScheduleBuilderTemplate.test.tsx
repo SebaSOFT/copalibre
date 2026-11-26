@@ -198,8 +198,18 @@ describe('ScheduleBuilderTemplate', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Save link' }));
 
       expect(screen.getByRole('alert').textContent).toBe(
-        'Enter a full link that starts with http:// or https://',
+        'Enter a full link, up to 2048 characters, that starts with http:// or https://',
       );
+      expect(streamProps0.onSetStreamUrl).not.toHaveBeenCalled();
+
+      // A link one character over the limit is refused on the page too.
+      fireEvent.change(screen.getByLabelText('Stream link'), {
+        target: {
+          value: `https://example.org/${'a'.repeat(2048 - 'https://example.org/'.length + 1)}`,
+        },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save link' }));
+      expect(screen.getByRole('alert').textContent).toContain('2048 characters');
       expect(streamProps0.onSetStreamUrl).not.toHaveBeenCalled();
 
       fireEvent.change(screen.getByLabelText('Stream link'), {
