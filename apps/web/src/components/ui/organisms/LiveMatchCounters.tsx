@@ -4,14 +4,21 @@ import { MatchCounters, type MatchPenaltyView } from '../molecules/MatchCounters
 import type { LiveMatchCounter } from '../../../lib/live-state.js';
 import { matchCounterView, type MatchCounterTexts } from '../../../lib/match-counters.js';
 import {
+  getLiveScoreboardPatch,
+  subscribeLiveScoreboardEvents,
+  subscribeLiveScoreboardMatch,
+} from '../../../lib/live-scoreboard-store.js';
+import {
   subscribePublicMatchCounters,
   type PublicMatchCountersSnapshot,
 } from '../../../lib/public-match-counters.js';
 
 /**
- * A match's counters on its public page, kept current while the match is live. It starts from the
- * server-rendered values and takes each new tally the projection reports. Penalties show only while
- * the match is live.
+ * A match's counters and active penalties on its public page. It starts from the server-rendered values
+ * and takes each new projection while the match is live. The match's state comes from the live store, so
+ * when the store records the end of the match (its state or a `match.finalized` event), the segment
+ * counters and the penalties leave, and the subscription stops. The server's `live` prop is only the
+ * starting view for a match the store has not seen.
  */
 export function LiveMatchCounters({
   matchId,
@@ -40,17 +47,39 @@ export function LiveMatchCounters({
     counters: initialCounters,
     activePenalties: initialPenalties,
   });
+  const [storeState, setStoreState] = useState(() => getLiveScoreboardPatch(matchId)?.state);
+  const [ended, setEnded] = useState(false);
+
+  useEffect(
+    () =>
+      subscribeLiveScoreboardMatch(matchId, () =>
+        setStoreState(getLiveScoreboardPatch(matchId)?.state),
+      ),
+    [matchId],
+  );
+  useEffect(
+    () =>
+      subscribeLiveScoreboardEvents(matchId, (event) => {
+        if (event.eventType === 'match.finalized') setEnded(true);
+      }),
+    [matchId],
+  );
+
+  const isLive = !ended && (storeState === undefined ? live : storeState === 'live');
 
   useEffect(() => {
-    if (!live) return undefined;
+    if (!isLive) return undefined;
     return subscribePublicMatchCounters(
-      { matchId, organizationAlias, tournamentAlias, counters: initialCounters },
+      { matchId, organizationAlias, tournamentAlias },
       setSnapshot,
     );
-  }, [live, matchId, organizationAlias, tournamentAlias, initialCounters]);
+  }, [isLive, matchId, organizationAlias, tournamentAlias]);
 
-  const views = matchCounterView(snapshot.counters, sides, language, texts);
-  const penalties: readonly MatchPenaltyView[] = live
+  const shownCounters = isLive
+    ? snapshot.counters
+    : snapshot.counters.filter((counter) => counter.scope === 'match');
+  const views = matchCounterView(shownCounters, sides, language, texts);
+  const penalties: readonly MatchPenaltyView[] = isLive
     ? snapshot.activePenalties.map((penalty) => ({
         ...penalty,
         sideName:

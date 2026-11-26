@@ -200,7 +200,7 @@ const counterSides = [
     </div>
   </div>
 
-  {hasCounters && organizationAlias && tournamentAlias && (
+  {(model.status === 'live' || hasCounters) && organizationAlias && tournamentAlias && (
     <LiveMatchCounters
       client:load
       initialCounters={model.counters ?? []}

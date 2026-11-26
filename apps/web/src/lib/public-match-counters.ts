@@ -1,6 +1,7 @@
+import type { EventEnvelope } from '@copalibre/realtime';
 import { API_PATH_PREFIX } from './api-path.js';
 import { createCounterRefreshGate } from './counter-refresh.js';
-import { getLiveScoreboardPatch, subscribeLiveScoreboardMatch } from './live-scoreboard-store.js';
+import { subscribeLiveScoreboardEvents } from './live-scoreboard-store.js';
 import type { LiveMatchCounter } from './live-state.js';
 
 export interface PublicMatchCountersSnapshot {
@@ -12,28 +13,41 @@ export interface PublicMatchCountersSnapshot {
   }[];
 }
 
+/** The reconcile interval while a match is live. The public stream has no timer event, so this covers it. */
+export const PUBLIC_COUNTERS_RECONCILE_MS = 15_000;
+
 /**
- * Keeps a live match's counters current on its public page. A recorded event that one of the counters
- * tallies asks the server for the match's projection again, at most once a second, and the server's
- * tally replaces the shown one. The page never increments a counter itself.
+ * The public events that change what a match page shows: a recorded event (a counted one, or a timed
+ * penalty), a clock change (a segment starts or ends), the match's end, and a superseded result.
+ */
+const REFRESH_EVENTS: ReadonlySet<string> = new Set([
+  'match.event-recorded',
+  'match.clock-changed',
+  'match.finalized',
+  'result.superseded',
+]);
+
+/**
+ * Keeps a live match's counters and active penalties current on its public page. Refreshes come from the
+ * raw event stream (not the version-guarded patch), at most once a second, and a 15 s reconcile runs
+ * while the subscription lives. The server's projection replaces the shown values, and the page never
+ * increments a counter itself.
  */
 export function subscribePublicMatchCounters(
   options: {
     readonly matchId: string;
     readonly organizationAlias: string;
     readonly tournamentAlias: string;
-    readonly counters: readonly LiveMatchCounter[];
   },
   onUpdate: (snapshot: PublicMatchCountersSnapshot) => void,
 ): () => void {
   const base = `${API_PATH_PREFIX}/organizations/${encodeURIComponent(options.organizationAlias)}/tournaments/${encodeURIComponent(options.tournamentAlias)}`;
-  const counted = new Set(options.counters.flatMap((counter) => counter.events));
-  let seenVersion = 0;
+  let active = true;
 
   const refresh = async (): Promise<void> => {
     try {
       const response = await fetch(`${base}/live`);
-      if (!response.ok) return;
+      if (!response.ok || !active) return;
       const data = (await response.json()) as {
         matches?: readonly {
           matchId: string;
@@ -42,7 +56,7 @@ export function subscribePublicMatchCounters(
         }[];
       };
       const match = data.matches?.find((candidate) => candidate.matchId === options.matchId);
-      if (match) {
+      if (match && active) {
         onUpdate({
           counters: match.counters ?? [],
           activePenalties: match.activePenalties ?? [],
@@ -54,17 +68,14 @@ export function subscribePublicMatchCounters(
   };
 
   const gate = createCounterRefreshGate(() => void refresh());
-  const unsubscribe = subscribeLiveScoreboardMatch(options.matchId, () => {
-    const patch = getLiveScoreboardPatch(options.matchId);
-    const version = patch?.recordedEventVersion ?? 0;
-    if (version <= seenVersion) return;
-    seenVersion = version;
-    if (patch?.recordedEventCode !== undefined && counted.has(patch.recordedEventCode)) {
-      gate.request(options.matchId);
-    }
+  const unsubscribe = subscribeLiveScoreboardEvents(options.matchId, (event: EventEnvelope) => {
+    if (REFRESH_EVENTS.has(event.eventType)) gate.request();
   });
+  const reconcile = window.setInterval(() => void refresh(), PUBLIC_COUNTERS_RECONCILE_MS);
   return () => {
+    active = false;
     unsubscribe();
+    window.clearInterval(reconcile);
     gate.dispose();
   };
 }

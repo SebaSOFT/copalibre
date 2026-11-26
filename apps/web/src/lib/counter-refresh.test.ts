@@ -30,26 +30,30 @@ function clock() {
   };
 }
 
+function gateWith(refresh: () => void) {
+  const time = clock();
+  const gate = createCounterRefreshGate(refresh, {
+    now: time.now,
+    setTimer: time.setTimer,
+    clearTimer: time.clearTimer,
+  });
+  return { gate, time };
+}
+
 describe('createCounterRefreshGate', () => {
-  it('refreshes at once for the first request of a match', () => {
-    const time = clock();
+  it('refreshes at once for the first request', () => {
     const refresh = jest.fn();
-    const gate = createCounterRefreshGate(refresh, { ...time, now: time.now });
-    gate.request('m1');
-    expect(refresh).toHaveBeenCalledWith('m1');
+    const { gate } = gateWith(refresh);
+    gate.request();
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 
   it('coalesces requests inside the interval into one trailing refresh', () => {
-    const time = clock();
     const refresh = jest.fn();
-    const gate = createCounterRefreshGate(refresh, {
-      now: time.now,
-      setTimer: time.setTimer,
-      clearTimer: time.clearTimer,
-    });
-    gate.request('m1');
-    gate.request('m1');
-    gate.request('m1');
+    const { gate, time } = gateWith(refresh);
+    gate.request();
+    gate.request();
+    gate.request();
     expect(refresh).toHaveBeenCalledTimes(1);
     time.advance(1000);
     expect(refresh).toHaveBeenCalledTimes(2);
@@ -57,29 +61,23 @@ describe('createCounterRefreshGate', () => {
     expect(refresh).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps each match on its own interval', () => {
-    const time = clock();
+  it('allows at most one refresh per second for the whole client, whatever the match', () => {
     const refresh = jest.fn();
-    const gate = createCounterRefreshGate(refresh, {
-      now: time.now,
-      setTimer: time.setTimer,
-      clearTimer: time.clearTimer,
-    });
-    gate.request('m1');
-    gate.request('m2');
-    expect(refresh.mock.calls).toEqual([['m1'], ['m2']]);
+    const { gate, time } = gateWith(refresh);
+    gate.request();
+    time.advance(400);
+    gate.request();
+    gate.request();
+    expect(refresh).toHaveBeenCalledTimes(1);
+    time.advance(600);
+    expect(refresh).toHaveBeenCalledTimes(2);
   });
 
   it('cancels a pending refresh on dispose', () => {
-    const time = clock();
     const refresh = jest.fn();
-    const gate = createCounterRefreshGate(refresh, {
-      now: time.now,
-      setTimer: time.setTimer,
-      clearTimer: time.clearTimer,
-    });
-    gate.request('m1');
-    gate.request('m1');
+    const { gate, time } = gateWith(refresh);
+    gate.request();
+    gate.request();
     gate.dispose();
     time.advance(2000);
     expect(refresh).toHaveBeenCalledTimes(1);
