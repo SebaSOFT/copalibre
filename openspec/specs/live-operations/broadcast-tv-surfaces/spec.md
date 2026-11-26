@@ -9,27 +9,10 @@ own reliability and authorization contract distinct from the public and control 
 
 ### Requirement: Kiosk and overlay routes
 
-The system SHALL serve the full-rotation and pinned-match TV routes, and the same routes with
-`?mode=overlay-lower` or `?mode=overlay-full`, reusing the public routes' organization/tournament
-alias tuple. A bare `?mode=overlay` SHALL be treated as `?mode=overlay-lower`. These routes SHALL be
-rendered per request for any published tournament rather than prerendered, and SHALL be proxied
-through the internal and edge reverse proxies without 404 or blank document errors.
-
-#### Scenario: Overlay mode renders transparent
-- **WHEN** a `/tv/**` route is requested with `?mode=overlay-lower` (or bare `?mode=overlay`)
-- **THEN** the server-rendered response renders with a transparent background suitable for chroma-key
-  capture, before any client script runs, with no navigation chrome, pointer affordances, or
-  dismissible UI
-
-#### Scenario: Overlay-full mode renders an opaque, full-bleed scene
-- **WHEN** a `/tv/**` route is requested with `?mode=overlay-full`
-- **THEN** the response renders an opaque, full-bleed broadcast graphic using the same match/tournament
-  data as `overlay-lower`, with no navigation chrome, pointer affordances, or dismissible UI
-
-#### Scenario: An overlay mode adapts to a portrait browser source without a separate URL
-- **WHEN** either overlay mode is rendered in a portrait-dimensioned viewport
-- **THEN** the layout adapts to a vertical composition using the same URL, with no additional query
-  parameter or route required
+The system SHALL serve the full-rotation and pinned-match TV routes, reusing the public routes'
+organization/tournament alias tuple. These routes SHALL be rendered per request for any published
+tournament rather than prerendered, and SHALL be proxied through the internal and edge reverse
+proxies without 404 or blank document errors.
 
 #### Scenario: Dynamic tournament kiosk rendering
 - **WHEN** an operator navigates to `/tv/{organization}/tournaments/{tournament}` for any active, published tournament
@@ -41,6 +24,38 @@ through the internal and edge reverse proxies without 404 or blank document erro
 - **THEN** full rotation is `/tv/{organization}/tournaments/{tournament}` and a pinned match is
   `/tv/{organization}/tournaments/{tournament}/stages/{stage}/matches/{match}`, per the URL and
   routing contract
+
+### Requirement: Overlay modes of the TV routes
+
+The system SHALL serve every TV route with `?mode=overlay-scorebug`, `?mode=overlay-lower` or
+`?mode=overlay-full`. A bare `?mode=overlay` SHALL be treated as `?mode=overlay-scorebug`.
+
+#### Scenario: Overlay mode renders transparent
+- **WHEN** a `/tv/**` route is requested with `?mode=overlay-scorebug`, `?mode=overlay-lower` or a
+  bare `?mode=overlay`
+- **THEN** the server-rendered response renders with a transparent background suitable for chroma-key
+  capture, before any client script runs, with no navigation chrome, pointer affordances, or
+  dismissible UI
+
+#### Scenario: The scorebug sits in the top corner
+- **WHEN** a `/tv/**` route is requested with `?mode=overlay-scorebug` or a bare `?mode=overlay`
+- **THEN** a single score strip renders in the top-right corner of the frame, inside the
+  graphics-safe area, and the rest of the frame is transparent
+
+#### Scenario: The lower third sits in the bottom band
+- **WHEN** a `/tv/**` route is requested with `?mode=overlay-lower`
+- **THEN** the graphic renders in the bottom band of the frame, aligned to the bottom edge of the
+  graphics-safe area, and the rest of the frame is transparent
+
+#### Scenario: Overlay-full mode renders an opaque, full-bleed scene
+- **WHEN** a `/tv/**` route is requested with `?mode=overlay-full`
+- **THEN** the response renders an opaque, full-bleed broadcast graphic using the same match/tournament
+  data as the other overlay modes, with no navigation chrome, pointer affordances, or dismissible UI
+
+#### Scenario: An overlay mode adapts to a portrait browser source without a separate URL
+- **WHEN** any overlay mode is rendered in a portrait-dimensioned viewport
+- **THEN** the layout adapts to a vertical composition using the same URL, with no additional query
+  parameter or route required
 
 #### Scenario: Overlay modes are for broadcast graphics
 
@@ -337,7 +352,7 @@ The system SHALL provide a dedicated self-service interface (`/control/tournamen
 - **THEN** an embedded iframe renders the live overlay with a background picker (transparent, green chroma `#00FF00`, magenta `#FF00FF`, dark stadium) to preview layout before going live
 
 ### Requirement: Animated live event alerts in overlay mode
-When rendered in overlay mode (`?mode=overlay-lower` or `?mode=overlay-full`), the broadcast surface SHALL dynamically render animated alert callouts for critical match events (such as goals, points, yellow/red cards, or penalties) received via real-time SSE stream.
+When rendered in an overlay mode (`?mode=overlay-scorebug`, `?mode=overlay-lower` or `?mode=overlay-full`), the broadcast surface SHALL dynamically render animated alert callouts for critical match events (such as goals, points, yellow/red cards, or penalties) received via real-time SSE stream, inside the graphics-safe area.
 
 #### Scenario: Goal or scoring event triggers animated banner
 - **WHEN** a `match.event-recorded` event with a score-altering or highlight action is received by an active overlay
@@ -380,9 +395,9 @@ The system SHALL support a multi-court grid mode (`?layout=multicourt` or `?grid
 
 The system SHALL serve an interactive kiosk launcher at `/tv` in a floating configuration panel
 above a full-bleed background layer, which SHALL change in real time as the background selection
-changes. Selecting the pinned-match view SHALL require a selected match before launch. On
-submission, the launcher SHALL navigate to the configured TV URL and persist the configuration for
-recovery on display reboot. An overlay launched without a background SHALL default to transparent.
+changes. The launcher SHALL offer every TV layout and overlay mode with a one-line description,
+SHALL show the link it builds with a copy control and a live preview, SHALL persist the configuration
+for display reboot, and SHALL default an overlay's background to transparent.
 
 #### Scenario: Root TV route provides interactive kiosk launcher
 - **WHEN** a user or kiosk device visits `/tv`
@@ -397,23 +412,25 @@ recovery on display reboot. An overlay launched without a background SHALL defau
 
 #### Scenario: Kiosk launcher pre-fills persisted display settings
 - **WHEN** a kiosk device that previously launched a TV display reloads `/tv`
-- **THEN** the form inputs pre-populate with the previously selected configuration values
+- **THEN** the form inputs pre-populate with the previously selected configuration values, and a
+  stored rotating-panel or bare overlay choice reopens as the kiosk or the scorebug
 
 #### Scenario: Pinned-match view requires a selected match
-- **WHEN** an operator selects the `Matches` view
+- **WHEN** an operator selects the pinned-match view
 - **THEN** the launcher presents stage and match selectors from the selected tournament and does not
   launch until a valid match is selected
 
 #### Scenario: Pinned-match selection launches the existing match route
-- **WHEN** an operator selects a stage and match in the `Matches` view
+- **WHEN** an operator selects a stage and match in the pinned-match view
 - **THEN** the launcher opens that match's existing TV route with the chosen language, presentation,
   and background parameters
 
 #### Scenario: What the launcher configures
 
 - **WHEN** an operator opens `/tv`
-- **THEN** it offers organization alias, active tournament, view mode (full dashboard, standings
-  table, a pinned match, or broadcast overlay), background style (blurred discipline background,
+- **THEN** it offers organization alias, active tournament, a view (rotating kiosk, presentation,
+  dashboard, multi-court grid, standings table, match list, pinned match, scorebug overlay, lower
+  third overlay or full overlay), background style (transparent, blurred discipline background,
   neutral, chroma green, football grass, or basketball court), and interface language
 
 #### Scenario: The pinned view adds stage and match
@@ -421,9 +438,23 @@ recovery on display reboot. An overlay launched without a background SHALL defau
 - **WHEN** an operator selects the pinned-match view
 - **THEN** stage and match selectors appear
 
+#### Scenario: Each view says what it produces
+- **WHEN** an operator selects a view
+- **THEN** a one-line description of what that view shows and over which ground appears with the
+  selection
+
+#### Scenario: Overlays default to transparent
+- **WHEN** an operator selects an overlay view without having chosen a background
+- **THEN** the background is transparent and the launch link carries `bg=transparent`
+
+#### Scenario: The link is shown, copied and previewed
+- **WHEN** the configuration is complete
+- **THEN** the launcher shows the final link read-only, copies it on request and announces the copy,
+  and renders a scaled 16:9 preview of that link
+
 #### Scenario: Transparent overlays composite cleanly
 
-- **WHEN** an overlay is launched without a background
+- **WHEN** an overlay is launched with a transparent background
 - **THEN** its transparent output suits browser-source compositing
 
 ### Requirement: Universal background composition across all TV screens
@@ -564,18 +595,28 @@ The kiosk's client-side refreshes of live matches and of the featured stage's br
 - **THEN** it requests the tournament's live matches at an address that answers with the live projection
 
 ### Requirement: The launcher names stages and pins a match for the overlay
-The TV display launcher SHALL show each stage with its number and name, SHALL list match choices grouped by stage and zone or group with the round and the entrants' names, and SHALL offer the match choice for the overlay view and put the explicit match in the launch link. The launcher SHALL use the TV typography and control styles.
+The TV display launcher SHALL show each stage with its number and name and SHALL default to the stage of the live match, else of the next scheduled match, else the last stage. It SHALL list match choices by stage and zone or group with round, entrants, day and time in the organization's zone, court and state. Following a court and pinning a match SHALL be separate controls. The launcher SHALL use the TV typography and control styles.
 
 #### Scenario: Stages have names
 - **WHEN** the viewer opens the stage select for a tournament with a group stage and cups
 - **THEN** each option shows its number and name
 
+#### Scenario: The stage in play is preselected
+- **WHEN** the group stage is finished and a cup match is live or scheduled next
+- **THEN** the stage select opens on the cup stage
+
+#### Scenario: A match option says when, where and in what state
+- **WHEN** the viewer opens the match select
+- **THEN** each option names the round, both sides (or what decides an undecided side), the day and
+  time in the organization's time zone, the court and the match state
+
 #### Scenario: The overlay view asks for a match
-- **WHEN** the viewer selects the overlay view
-- **THEN** the match fields are shown and the launch link carries the chosen match
+- **WHEN** the viewer selects an overlay view
+- **THEN** a court control and a match control are shown, choosing one clears the other, and the
+  launch link carries the chosen match or court
 
 #### Scenario: The overlay may stay on the live match
-- **WHEN** the overlay's match is left on the automatic choice
+- **WHEN** an overlay follows a court
 - **THEN** the launch link names no match and the overlay shows the court's live match
 
 #### Scenario: Two overlays, two matches
@@ -590,11 +631,16 @@ The public site's main navigation SHALL include a "TV Streaming" link to the TV 
 - **THEN** a TV Streaming link leads to the launcher in the page's language
 
 ### Requirement: The overlay shows only the match it was given
-The broadcast overlay SHALL show the match named in its address, SHALL show a "no match selected" state when none is named, and SHALL NOT choose an arbitrary match. An overlay addressed to a court MAY follow that court's live match.
+The broadcast overlay SHALL show the match named in its address and SHALL NOT choose an arbitrary match. An overlay addressed to a court MAY follow that court's live match. When the overlay has no match to show, the scorebug and the lower third SHALL paint nothing visible and SHALL expose the no-match state only as an accessible status and a `data-state` attribute.
 
 #### Scenario: No match, no guess
 - **WHEN** the overlay is opened without a match and without a court
-- **THEN** it shows the no-match state and no match's score
+- **THEN** it shows no match's score and paints no graphic, and its accessible status reads the
+  no-match message
+
+#### Scenario: No match is never painted on air
+- **WHEN** a scorebug or lower third has no match to show
+- **THEN** no "no match selected" text, empty strip or empty ticker is visible in the frame
 
 #### Scenario: Two overlays show two matches
 - **WHEN** two overlays are opened for different matches
@@ -603,6 +649,10 @@ The broadcast overlay SHALL show the match named in its address, SHALL show a "n
 #### Scenario: A court overlay follows its live match
 - **WHEN** the overlay is addressed to a court that has a live match
 - **THEN** it shows that match
+
+#### Scenario: A court with nothing live stays clear
+- **WHEN** the overlay is addressed to a court that has no live match
+- **THEN** it paints nothing until a match on that court goes live
 
 ### Requirement: The overlay presents series and set state
 For a match inside a series the overlay SHALL show the series state next to the score, and for a match played in sets it SHALL show the sets already played and the current one, with labels from the discipline descriptor in the viewer's language. A match with neither SHALL render as before.
@@ -987,3 +1037,46 @@ The pinned-match route SHALL offer, in order: the standings table of the match's
 
 - **WHEN** a cup semi-final is pinned
 - **THEN** the rail offers its bracket path, featured performers and both sides' latest results, and no tournament facts tile
+
+### Requirement: The lower third names the match in full
+The lower third SHALL show both crests and full names, with the abbreviation only when a name does not fit, the score, the competition and round, the court, the state and the segment or game clock in play. Before kickoff it SHALL show the kickoff day and time in the organization's time zone in place of a clock. It SHALL never show the wall clock.
+
+#### Scenario: A live match in the lower third
+- **WHEN** the lower third shows a live cup semi-final on court "Aldo Cantoni"
+- **THEN** it shows both crests and names, the score, the competition and round, "Aldo Cantoni", the
+  live state and the segment in play
+
+#### Scenario: An upcoming match in the lower third
+- **WHEN** the lower third shows a match that has not started
+- **THEN** the score reads "–" and the kickoff day and time stand where the clock would be
+
+#### Scenario: No wall clock in a broadcast graphic
+- **WHEN** a scorebug or lower third shows a live match whose projection carries no game clock
+- **THEN** it shows the segment name and no time of day
+
+### Requirement: Overlay graphics stay inside the graphics-safe area
+Every overlay graphic, alert banner included, SHALL stay inside an inset of 5 % of the frame width horizontally and 5 % of the frame height vertically.
+
+#### Scenario: Safe area at 1080p
+- **WHEN** a scorebug or lower third renders at 1920x1080
+- **THEN** no part of the graphic lies within 96 px of the left or right edge or within 54 px of the
+  top or bottom edge
+
+### Requirement: Overlay graphics stay solid over a chroma key
+On a chroma background, overlay graphics SHALL use only opaque fills and SHALL carry no shadow, glow or translucent edge.
+
+#### Scenario: Keying leaves no fringe
+- **WHEN** a scorebug or lower third renders with `bg=chroma`
+- **THEN** its bands have opaque fills and no box shadow, so keying the chroma colour leaves no
+  tinted fringe around the graphic
+
+### Requirement: An overlay never shows an empty ticker
+The scorebug and lower third SHALL render no ticker. The full overlay SHALL render the ticker with the same entries as the kiosk ticker, and SHALL omit the ticker rather than show its empty sentence when there are no entries.
+
+#### Scenario: Results reach the full overlay ticker
+- **WHEN** the full overlay renders for a tournament with finished matches
+- **THEN** its ticker carries the same results as the kiosk ticker
+
+#### Scenario: A scorebug has no ticker
+- **WHEN** the scorebug overlay renders
+- **THEN** no ticker band and no "no matches to report" sentence is visible
