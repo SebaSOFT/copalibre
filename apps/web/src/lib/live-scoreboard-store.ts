@@ -127,7 +127,8 @@ function applyMatchUpdatePatch(
     ...(homeScore === undefined ? {} : { homeScore }),
     ...(awayScore === undefined ? {} : { awayScore }),
     ...(clearedClock ? { clock: undefined, clockReceivedAt: undefined } : {}),
-    ...(event.eventType === 'match.event-recorded' && typeof event.payload.definitionCode === 'string'
+    ...(event.eventType === 'match.event-recorded' &&
+    typeof event.payload.definitionCode === 'string'
       ? {
           recordedEventCode: event.payload.definitionCode,
           recordedEventVersion: event.projectionVersion,

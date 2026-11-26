@@ -40,8 +40,6 @@ export function formatPenaltyClock(remaining: number): string {
 }
 
 /** The key that changes when the penalty set does, so its countdown remounts. */
-export function penaltySnapshotKey(
-  penalties: readonly PenaltyCountdownInput[],
-): string {
+export function penaltySnapshotKey(penalties: readonly PenaltyCountdownInput[]): string {
   return penalties.map((penalty) => `${penalty.timerId}:${penalty.remainingSeconds}`).join(',');
 }

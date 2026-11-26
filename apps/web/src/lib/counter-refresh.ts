@@ -38,7 +38,10 @@ export function createCounterRefreshGate(
         run(matchId);
         return;
       }
-      pending.set(matchId, setTimer(() => run(matchId), intervalMs - elapsed));
+      pending.set(
+        matchId,
+        setTimer(() => run(matchId), intervalMs - elapsed),
+      );
     },
     dispose() {
       for (const handle of pending.values()) clearTimer(handle);
