@@ -472,6 +472,7 @@ function imageFrame(): string {
     '  max-height: none;',
     '  flex-shrink: 0;',
     '  background: var(--cl-surface-emblem-frame);',
+    '  container-type: inline-size;',
     '}',
     '',
     '.cl-entrant-emblem img {',
@@ -500,12 +501,11 @@ function imageFrame(): string {
     '',
     '.cl-entrant-emblem--bare .cl-entrant-emblem__fallback { color: var(--cl-text-primary); }',
     '',
-    // The frame is a size container, so each monogram step is a share of the tile's own width, at every
-    // size the emblem renders. A step's share is the glyph width of its characters (about 0.6em each,
-    // monospace) fitted inside the tile's inset. A longer abbreviation takes a smaller share.
-    // Each length step is a share of the tile's own size, which every emblem sets as a custom property. A
-    // share fits the step's characters (about 0.6em each, monospace) inside the tile's inset, so a longer
-    // abbreviation takes a smaller share at every size.
+    // The frame is an inline-size container, so each monogram step is a share of the tile's own rendered
+    // width (`cqi`), at every size the emblem renders: a pixel size, a viewport size, or a percentage of
+    // its wrapper, which a font size could not resolve against the tile. A step's share fits its
+    // characters (about 0.6em each, monospace) inside the tile's inset, so a longer abbreviation takes a
+    // smaller share.
     '.cl-entrant-emblem__monogram {',
     '  font-family: var(--cl-font-mono);',
     '  font-size: var(--cl-font-size-xl);',
@@ -515,10 +515,10 @@ function imageFrame(): string {
     '  white-space: nowrap;',
     '  text-align: center;',
     '}',
-    '.cl-entrant-emblem__monogram--short { font-size: calc(var(--entrant-emblem-size) * 0.34); }',
-    '.cl-entrant-emblem__monogram--medium { font-size: calc(var(--entrant-emblem-size) * 0.26); }',
-    '.cl-entrant-emblem__monogram--long { font-size: calc(var(--entrant-emblem-size) * 0.2); }',
-    '.cl-entrant-emblem__monogram--longest { font-size: calc(var(--entrant-emblem-size) * 0.17); }',
+    '.cl-entrant-emblem__monogram--short { font-size: calc(100cqi * 0.34); }',
+    '.cl-entrant-emblem__monogram--medium { font-size: calc(100cqi * 0.26); }',
+    '.cl-entrant-emblem__monogram--long { font-size: calc(100cqi * 0.2); }',
+    '.cl-entrant-emblem__monogram--longest { font-size: calc(100cqi * 0.17); }',
     '',
     '/* Operator surfaces cut less: density over drama. */',
     '.cl-image-frame--control {',
