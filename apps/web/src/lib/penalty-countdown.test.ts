@@ -10,10 +10,10 @@ describe('formatPenaltyClock', () => {
 
 describe('penaltySnapshotKey', () => {
   it('changes when the penalty set or its remaining time changes', () => {
-    const base = [{ timerId: 't1', entrantId: 'e1', remainingSeconds: 120 }];
-    expect(penaltySnapshotKey(base)).toBe('t1:120');
-    expect(penaltySnapshotKey([{ ...base[0]!, remainingSeconds: 90 }])).not.toBe(
-      penaltySnapshotKey(base),
+    const penalty = { timerId: 't1', entrantId: 'e1', remainingSeconds: 120 };
+    expect(penaltySnapshotKey([penalty])).toBe('t1:120');
+    expect(penaltySnapshotKey([{ ...penalty, remainingSeconds: 90 }])).not.toBe(
+      penaltySnapshotKey([penalty]),
     );
     expect(penaltySnapshotKey([])).toBe('');
   });
