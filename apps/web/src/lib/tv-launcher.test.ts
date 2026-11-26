@@ -5,7 +5,9 @@ import {
   defaultStage,
   formatKickoff,
   gridFromParams,
+  launcherStateLabels,
   matchOptionGroups,
+  openingStage,
   parseTvLauncherPreset,
   viewFromParams,
   type TvLauncherDestination,
@@ -161,7 +163,7 @@ describe('viewFromParams', () => {
 
   it('starts an overlay on transparent and every other view on the discipline ground', () => {
     expect(defaultBackgroundFor('overlay-scorebug')).toBe('transparent');
-    expect(defaultBackgroundFor('overlay-full')).toBe('transparent');
+    expect(defaultBackgroundFor('overlay-full')).toBe('discipline');
     expect(defaultBackgroundFor('kiosk')).toBe('discipline');
   });
 });
@@ -243,5 +245,103 @@ describe('formatKickoff', () => {
 
   it('reads nothing for an unreadable timestamp', () => {
     expect(formatKickoff('not a date', 'es')).toBe('');
+  });
+});
+
+describe('the launcher form keeps the chosen view across a tournament switch', () => {
+  it('reads every view name the form submits', () => {
+    for (const view of [
+      'overlay-lower',
+      'overlay-full',
+      'overlay-scorebug',
+      'presentation',
+      'dashboardLayout',
+      'multicourt',
+      'standings',
+      'matches',
+      'kiosk',
+    ]) {
+      expect(viewFromParams(new URLSearchParams({ view }))).toBe(view);
+    }
+  });
+
+  it('keeps the legacy names: dashboard reads as the kiosk, overlay as the corner bug', () => {
+    expect(viewFromParams(new URLSearchParams('view=dashboard'))).toBe('kiosk');
+    expect(viewFromParams(new URLSearchParams('view=overlay'))).toBe('overlay-scorebug');
+  });
+
+  it('keeps overlay-lower and the grid size when the tournament changes', () => {
+    const submitted = new URLSearchParams({
+      organization: 'panamericano-demo',
+      tournament: 'other-tournament',
+      view: 'overlay-lower',
+      grid: '4',
+      bg: 'transparent',
+    });
+    expect(viewFromParams(submitted)).toBe('overlay-lower');
+    expect(gridFromParams(submitted)).toBe(4);
+  });
+});
+
+describe('openingStage', () => {
+  const now = Date.parse('2026-11-23T16:30:00.000Z');
+  const choices = [choice({ stage: 1 }), choice({ stage: 2, state: 'final' })];
+
+  it('opens on the requested stage when the tournament has it', () => {
+    expect(openingStage(choices, 1, now)).toBe(1);
+  });
+
+  it('opens on the default stage when the requested stage belongs to another tournament', () => {
+    expect(openingStage(choices, 7, now)).toBe(2);
+    expect(openingStage(choices, undefined, now)).toBe(2);
+  });
+
+  it('has no stage when the tournament has no matches', () => {
+    expect(openingStage([], 3, now)).toBeUndefined();
+  });
+});
+
+describe('match state words', () => {
+  const labels = { live: 'En vivo', upcoming: 'Programado', final: 'Finalizado' };
+  const words = {
+    ...labels,
+    disputed: 'En disputa',
+    winner: 'Ganador',
+    loser: 'Perdedor',
+    tbd: 'A definir',
+    cancelled: 'Cancelado',
+  };
+
+  it('names a disputed and a cancelled match with their own words, never the code', () => {
+    const disputed = matchOptionGroups([choice({ state: 'disputed' })], 2, {
+      ...text,
+      state: words,
+    })[0]?.options[0]?.label;
+    expect(disputed).toContain('En disputa');
+    const cancelled = matchOptionGroups([choice({ state: 'cancelled' })], 2, {
+      ...text,
+      state: words,
+    })[0]?.options[0]?.label;
+    expect(cancelled).toContain('Cancelado');
+    expect(cancelled).not.toContain('cancelled');
+  });
+
+  it('omits the state from an option whose state has no word, instead of printing the code', () => {
+    const label = matchOptionGroups([choice({ state: 'disputed' })], 2, {
+      ...text,
+      state: labels,
+    })[0]?.options[0]?.label;
+    expect(label).toBe(
+      'Copa Oro · Semifinal · Casa de Italia — Richet y Zapata · lun, 23/11, 13:00 · Aldo Cantoni · #5',
+    );
+  });
+
+  it('builds the words from the catalogue keys, and omits what the catalogue lacks', () => {
+    const built = launcherStateLabels({
+      optionLive: 'En vivo',
+      optionCancelled: 'Cancelado',
+      optionDisputed: '',
+    });
+    expect(built).toEqual({ live: 'En vivo', cancelled: 'Cancelado' });
   });
 });

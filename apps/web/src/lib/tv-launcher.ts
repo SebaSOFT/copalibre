@@ -1,4 +1,5 @@
 import { TV_BACKGROUNDS, type TvBackground } from './tv-background.js';
+import type { ResultState } from './result-state.js';
 import { nextTvMatches } from './tv-match-list.js';
 
 /**
@@ -40,11 +41,12 @@ export function viewShowsMatch(view: string): boolean {
 }
 
 /**
- * The background a view starts on: an overlay is composited over footage, so it starts transparent;
- * every other view is a screen and starts on the discipline ground.
+ * The background a view starts on. The two corner overlays are composited over footage, so they start
+ * transparent; the full-frame overlay is an opaque scene and starts on the discipline ground, as every
+ * other view does.
  */
 export function defaultBackgroundFor(view: string): TvBackground {
-  return isOverlayView(view) ? 'transparent' : 'discipline';
+  return view === 'overlay-scorebug' || view === 'overlay-lower' ? 'transparent' : 'discipline';
 }
 
 export interface TvLauncherDestination {
@@ -187,9 +189,6 @@ export function courtOptions(choices: readonly TvLauncherMatchChoice[]): readonl
   ].sort((a, b) => a.localeCompare(b));
 }
 
-/** The value a court takes in the match select, which is otherwise a match ordinal. */
-export const COURT_VALUE_PREFIX = 'court:';
-
 /** A stage as the stage select shows it: its number and its name. */
 export function stageOptionLabel(
   choice: Pick<TvLauncherMatchChoice, 'stage' | 'stageName'>,
@@ -223,10 +222,40 @@ export function defaultStage(
   return stageOptions(choices).at(-1)?.stage;
 }
 
+/** The launcher catalogue key that names each result state an option can show. */
+export const TV_LAUNCHER_STATE_LABEL_KEY: Readonly<Record<ResultState, string>> = {
+  live: 'optionLive',
+  upcoming: 'optionUpcoming',
+  final: 'optionFinal',
+  disputed: 'optionDisputed',
+  winner: 'optionWinner',
+  loser: 'optionLoser',
+  tbd: 'optionTbd',
+  cancelled: 'optionCancelled',
+};
+
+/**
+ * The state words of one catalogue, by state. A state the catalogue has no word for has none here, and
+ * an option then leaves its state out rather than printing the state's code.
+ */
+export function launcherStateLabels(
+  labels: Readonly<Record<string, string | undefined>>,
+): Readonly<Partial<Record<ResultState, string>>> {
+  const words: Partial<Record<ResultState, string>> = {};
+  for (const [state, key] of Object.entries(TV_LAUNCHER_STATE_LABEL_KEY) as [
+    ResultState,
+    string,
+  ][]) {
+    const word = labels[key];
+    if (word !== undefined && word !== '') words[state] = word;
+  }
+  return words;
+}
+
 /** The words an option reads with, in the launcher's language. */
 export interface TvLauncherOptionText {
-  /** The state's word, by state; `delayed` replaces `upcoming` for a match past its kickoff. */
-  readonly state: Readonly<Record<string, string>>;
+  /** The state's word, by state; `delayed` replaces the word of a match past its kickoff. */
+  readonly state: Readonly<Partial<Record<ResultState, string>>>;
   readonly delayed: string;
   /** The kickoff, formatted in the organization's time zone and the launcher's language. */
   readonly when: (scheduledAt: string) => string;
@@ -253,7 +282,7 @@ export function matchOptionGroups(
     if (choice.stage !== stage) continue;
     const heading = [choice.zone, choice.group].filter((part) => part !== undefined).join(' · ');
     const options = groups.get(heading) ?? [];
-    const state = choice.delayed ? text.delayed : (text.state[choice.state] ?? choice.state);
+    const state = choice.delayed ? text.delayed : text.state[choice.state as ResultState];
     const parts = [
       choice.scope,
       `${choice.home} — ${choice.away}`,
@@ -284,13 +313,14 @@ export function viewFromParams(params: URLSearchParams): TvLauncherView {
   if (layout === 'dashboard') return 'dashboardLayout';
   if (layout === 'multicourt') return 'multicourt';
   const view = params.get('view');
-  // `view=match` and `view=overlay` are the names addresses used before the launcher named each view.
-  if (view === 'match') return 'match';
-  if (view === 'overlay') return 'overlay-scorebug';
-  if (view === 'standings') return 'standings';
-  if (view === 'matches' || view === 'fixtures') {
-    return params.has('stage') && params.has('match') ? 'match' : 'matches';
+  // The launcher's own form submits every view by its name, so a tournament switch keeps the view chosen.
+  if (view === 'matches' && params.has('stage') && params.has('match')) return 'match';
+  if (view !== null && (TV_LAUNCHER_VIEWS as readonly string[]).includes(view)) {
+    return view as TvLauncherView;
   }
+  // Names addresses used before the launcher named each view: `fixtures`, `overlay` and `dashboard`.
+  if (view === 'fixtures') return 'matches';
+  if (view === 'overlay') return 'overlay-scorebug';
   return 'kiosk';
 }
 
@@ -332,3 +362,18 @@ export const TV_LAUNCHER_VIEW_LABEL: Readonly<Record<TvLauncherView, string>> = 
   'overlay-lower': 'overlayLower',
   'overlay-full': 'overlayFull',
 };
+
+/**
+ * The stage an address asks for when the tournament has it; otherwise the stage the launcher would open on
+ * anyway. A stage from another tournament is never kept, or the match select would open empty.
+ */
+export function openingStage(
+  choices: readonly TvLauncherMatchChoice[],
+  requested: number | undefined,
+  now: Date | number = Date.now(),
+): number | undefined {
+  if (requested !== undefined && choices.some((choice) => choice.stage === requested)) {
+    return requested;
+  }
+  return defaultStage(choices, now);
+}

@@ -66,6 +66,13 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionFinal: 'Final',
     optionDelayed: 'Delayed',
     nothingToShow: 'This setting shows nothing on air until a match is live or chosen.',
+    optionDisputed: 'Disputed',
+    optionWinner: 'Winner',
+    optionLoser: 'Loser',
+    optionTbd: 'To be determined',
+    optionCancelled: 'Cancelled',
+    noMatch: 'None',
+    copyUnavailable: 'Copying needs a secure connection: select the link and copy it by hand.',
   },
   es: {
     title: 'Lanzador de pantalla TV',
@@ -127,6 +134,13 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionDelayed: 'Demorado',
     nothingToShow:
       'Esta configuración no muestra nada al aire hasta que haya un partido en vivo o elegido.',
+    optionDisputed: 'En disputa',
+    optionWinner: 'Ganador',
+    optionLoser: 'Perdedor',
+    optionTbd: 'A definir',
+    optionCancelled: 'Cancelado',
+    noMatch: 'Ninguno',
+    copyUnavailable: 'Copiar necesita una conexión segura: seleccioná el enlace y copialo a mano.',
   },
   fr: {
     title: 'Lanceur d’écran TV',
@@ -187,6 +201,14 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionDelayed: 'Retardé',
     nothingToShow:
       'Ce réglage n’affiche rien à l’antenne tant qu’un match n’est pas en direct ou choisi.',
+    optionDisputed: 'Contesté',
+    optionWinner: 'Vainqueur',
+    optionLoser: 'Perdant',
+    optionTbd: 'À déterminer',
+    optionCancelled: 'Annulé',
+    noMatch: 'Aucun',
+    copyUnavailable:
+      'La copie demande une connexion sécurisée : sélectionnez le lien et copiez-le à la main.',
   },
   pt: {
     title: 'Lançador de tela TV',
@@ -248,6 +270,13 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionDelayed: 'Atrasado',
     nothingToShow:
       'Esta configuração não mostra nada no ar até haver uma partida ao vivo ou escolhida.',
+    optionDisputed: 'Em disputa',
+    optionWinner: 'Vencedor',
+    optionLoser: 'Perdedor',
+    optionTbd: 'A definir',
+    optionCancelled: 'Cancelado',
+    noMatch: 'Nenhum',
+    copyUnavailable: 'Copiar exige uma conexão segura: selecione o link e copie-o manualmente.',
   },
   it: {
     title: 'Avvio schermo TV',
@@ -310,6 +339,14 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionDelayed: 'In ritardo',
     nothingToShow:
       'Questa impostazione non mostra nulla in onda finché non c’è una partita in corso o scelta.',
+    optionDisputed: 'Contestata',
+    optionWinner: 'Vincitore',
+    optionLoser: 'Perdente',
+    optionTbd: 'Da definire',
+    optionCancelled: 'Annullata',
+    noMatch: 'Nessuno',
+    copyUnavailable:
+      'La copia richiede una connessione sicura: seleziona il link e copialo a mano.',
   },
   de: {
     title: 'TV-Bildschirm starten',
@@ -370,6 +407,14 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionDelayed: 'Verzögert',
     nothingToShow:
       'Diese Einstellung zeigt auf Sendung nichts, bis ein Spiel läuft oder gewählt ist.',
+    optionDisputed: 'Angefochten',
+    optionWinner: 'Sieger',
+    optionLoser: 'Verlierer',
+    optionTbd: 'Noch offen',
+    optionCancelled: 'Abgesagt',
+    noMatch: 'Keins',
+    copyUnavailable:
+      'Kopieren erfordert eine sichere Verbindung: Link markieren und von Hand kopieren.',
   },
   ru: {
     title: 'Запуск ТВ-экрана',
@@ -428,6 +473,14 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionFinal: 'Завершён',
     optionDelayed: 'Задержан',
     nothingToShow: 'Эта настройка ничего не показывает в эфире, пока не идёт или не выбран матч.',
+    optionDisputed: 'Оспаривается',
+    optionWinner: 'Победитель',
+    optionLoser: 'Проигравший',
+    optionTbd: 'Определяется',
+    optionCancelled: 'Отменён',
+    noMatch: 'Нет',
+    copyUnavailable:
+      'Копирование требует защищённого соединения: выделите ссылку и скопируйте её вручную.',
   },
   zh: {
     title: '电视屏幕启动器',
@@ -484,5 +537,12 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionFinal: '已结束',
     optionDelayed: '延迟',
     nothingToShow: '在比赛进行中或选定之前，此设置在播出时不显示任何内容。',
+    optionDisputed: '有争议',
+    optionWinner: '胜者',
+    optionLoser: '负者',
+    optionTbd: '待定',
+    optionCancelled: '已取消',
+    noMatch: '无',
+    copyUnavailable: '复制需要安全连接：请选中链接后手动复制。',
   },
 };
