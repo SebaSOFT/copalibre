@@ -783,6 +783,8 @@ export function TvDashboard({
     page: activeTab === 'fixtures' ? rail.page : 0,
     rowSelector: '.tv-match-list__entry, .tv-match-list__heading',
     pagerSelector: '.tv-match-list__pager',
+    // The fixtures page by lines: two entries side by side are one row of the list.
+    countBy: 'line',
     initialSize: TV_MATCH_ROWS_PER_PAGE,
   });
   const matchPages = useMemo(
@@ -1714,7 +1716,15 @@ export function TvDashboard({
               )}
 
               {/* Tab Content */}
-              <div className="tv-rail-content" data-testid="tv-rail-content" ref={railStandingsRef}>
+              <div
+                className={
+                  activeTab === 'standings' || activeTab === 'fixtures'
+                    ? 'tv-rail-content tv-rail-content--paged'
+                    : 'tv-rail-content'
+                }
+                data-testid="tv-rail-content"
+                ref={railStandingsRef}
+              >
                 {activeTab === 'standings' && (
                   <div className="tv-rail-standings">
                     <TvStandingsTable

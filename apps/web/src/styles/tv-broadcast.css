@@ -485,8 +485,6 @@
   display: flex;
   flex-direction: column;
   gap: 1.2vmin;
-  /* A paged panel never scrolls: paging replaces scrolling. */
-  overflow: hidden;
 }
 
 .tv-dashboard-live-grid {
@@ -995,13 +993,18 @@
 }
 
 .tv-rail-content {
-  /* A definite basis: the content's height never sizes the panel the paging measures. The panel never
-     scrolls: paging replaces scrolling, so no scrollbar can change its width. */
+  /* A definite basis: the content's height never sizes the panel the paging measures. */
   flex: 1 1 0px;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
+}
+
+/* A paged tab never scrolls: paging replaces scrolling, so no scrollbar can change the frame's width.
+   The rail's other tabs keep their scroll. */
+.tv-rail-content--paged {
+  overflow: hidden;
 }
 
 .tv-bracket,

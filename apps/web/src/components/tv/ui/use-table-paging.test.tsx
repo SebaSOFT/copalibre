@@ -1,6 +1,5 @@
 import { jest } from '@jest/globals';
-import { readFileSync } from 'node:fs';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { act, render, screen } from '@testing-library/react';
 import { useRef } from 'react';
@@ -77,6 +76,7 @@ function Harness({
   segments,
   initialSize,
   onRender,
+  entriesPerRow = 1,
 }: {
   readonly rows: readonly number[];
   readonly page?: number;
@@ -84,6 +84,8 @@ function Harness({
   readonly segments?: readonly number[];
   readonly initialSize?: number;
   readonly onRender?: () => void;
+  /** Elements each paged row renders, side by side: a list whose rows are lines of entries. */
+  readonly entriesPerRow?: number;
 }) {
   onRender?.();
   const panel = useRef<HTMLDivElement>(null);
@@ -94,16 +96,19 @@ function Harness({
     enabled,
     segments,
     initialSize,
+    countBy: entriesPerRow > 1 ? 'line' : 'row',
   });
   return (
-    <div data-testid="panel" ref={panel} className="tv-rail-content">
+    <div data-testid="panel" ref={panel} className="tv-rail-content tv-rail-content--paged">
       <table className="tv-standings-table">
         <tbody>
-          {paging.pageRows.map((row) => (
-            <tr key={row}>
-              <td>{row}</td>
-            </tr>
-          ))}
+          {paging.pageRows.flatMap((row) =>
+            Array.from({ length: entriesPerRow }, (_, entry) => (
+              <tr key={`${row}-${entry}`}>
+                <td>{entry === 0 ? row : -row}</td>
+              </tr>
+            )),
+          )}
         </tbody>
       </table>
       <p>{`${paging.pageIndex + 1} of ${paging.pageCount}`}</p>
@@ -112,7 +117,9 @@ function Harness({
 }
 
 const rowsOnScreen = (): number[] =>
-  Array.from(document.querySelectorAll('tbody td')).map((cell) => Number(cell.textContent));
+  Array.from(document.querySelectorAll('tbody td'))
+    .map((cell) => Number(cell.textContent))
+    .filter((row) => row > 0);
 const range = (from: number, to: number): number[] =>
   Array.from({ length: to - from + 1 }, (_, index) => from + index);
 const settle = async (): Promise<void> => {
@@ -341,17 +348,56 @@ describe('useTablePaging', () => {
     mockResizeObserver();
     frame = frameHolding(20);
     restore = frameOf(frame);
-    render(<Harness rows={range(1, 40)} page={0} />);
+    const view = render(<Harness rows={range(1, 40)} page={0} />);
     await reportFrame();
     await reportFrame();
     expect(rowsOnScreen()).toHaveLength(20);
 
-    // The rows shrink in the same frame: room appears, but this key never grows past its fit.
+    // The rows shrink in the same frame and the next page renders, which measures it: room appears, but
+    // this frame and this data never grow past the 20 rows the overflowing first render showed to fit.
     frame.rowPx = 30;
-    frame.height = frame.height + 0;
+    view.rerender(<Harness rows={range(1, 40)} page={1} />);
     await settle();
     await settle();
+    expect(rowsOnScreen()).toEqual(range(21, 40));
+  });
+
+  it('starts a fresh ceiling when the data changes shape, so a list can grow into new room', async () => {
+    mockResizeObserver();
+    frame = frameHolding(20);
+    restore = frameOf(frame);
+    const view = render(<Harness rows={range(1, 40)} page={0} />);
+    await reportFrame();
+    await reportFrame();
+    expect(rowsOnScreen()).toHaveLength(20);
+
+    // Shorter rows leave room for 34 lines; one more row of data is a new shape, so growth is allowed.
+    frame.rowPx = 30;
+    view.rerender(<Harness rows={range(1, 41)} page={0} />);
+    await settle();
+    await settle();
+    expect(rowsOnScreen()).toHaveLength(34);
+  });
+
+  it('grows a short last page from the rows it shows, never past what the frame holds', async () => {
+    mockResizeObserver();
+    frame = frameHolding(20);
+    restore = frameOf(frame);
+    render(<Harness rows={range(1, 25)} page={2} initialSize={12} />);
+    await reportFrame();
     expect(rowsOnScreen().length).toBeLessThanOrEqual(20);
+    await settle();
+    expect(screen.getByText(/of 2$/)).toBeTruthy();
+  });
+
+  it("counts a line of entries as one row with countBy 'line'", async () => {
+    mockResizeObserver();
+    frame = frameHolding(10, 1000, 2);
+    restore = frameOf(frame);
+    render(<Harness rows={range(1, 40)} page={0} entriesPerRow={2} />);
+    await reportFrame();
+    await reportFrame();
+    expect(rowsOnScreen()).toEqual(range(1, 10));
   });
 
   it('grows again after a key change, once the frame holds more', async () => {
@@ -371,13 +417,18 @@ describe('useTablePaging', () => {
     expect(rowsOnScreen()).toHaveLength(30);
   });
 
-  it('keeps the panel from scrolling, so no scrollbar can change its width', () => {
+  it('keeps a paged tab from scrolling, so no scrollbar can change its width', () => {
     const candidates = ['src/styles/tv-broadcast.css', 'apps/web/src/styles/tv-broadcast.css'];
     const path = candidates.map((candidate) => resolve(process.cwd(), candidate)).find(existsSync);
     expect(path).toBeDefined();
     const css = readFileSync(path ?? '', 'utf8');
-    const rule = css.slice(css.indexOf('.tv-rail-content {'));
-    expect(rule.slice(0, rule.indexOf('}'))).toContain('overflow: hidden');
+    const ruleOf = (selector: string): string => {
+      const rule = css.slice(css.indexOf(`${selector} {`));
+      return rule.slice(0, rule.indexOf('}'));
+    };
+    expect(ruleOf('.tv-rail-content--paged')).toContain('overflow: hidden');
+    // The rail's unpaged tabs (bracket, performers, facts) keep their scroll.
+    expect(ruleOf('.tv-rail-content')).toContain('overflow-y: auto');
   });
 
   it('does not re-render on its own once the fonts are ready', async () => {
