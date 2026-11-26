@@ -59,6 +59,10 @@ Una sovrimpressione mostra solo la partita che le è stata data: quella indicata
 
 `/tv` è un lanciatore che compone l’indirizzo di uno schermo del locale o di una sovrimpressione: scegli organizzazione, torneo e vista (il pannello a rotazione, il layout di presentazione o dashboard, la griglia dei campi, la classifica, l’elenco delle partite, una partita fissata o una delle tre sovrimpressioni), lo sfondo e la lingua. Le sovrimpressioni partono con sfondo trasparente, e ogni vista mostra una descrizione su una riga. La lingua cambia subito le etichette del lanciatore, senza ricaricare. Le fasi sono elencate con numero e nome, e le partite raggruppate per zona e girone; ogni opzione riporta competizione e turno, le due squadre, l’orario di inizio nel fuso dell’organizzazione, il campo, lo stato e il numero (`#34`). La fase si apre sulla partita in corso, altrimenti sulla prossima programmata, altrimenti sull’ultima. Seguire un campo e fissare una partita sono due scelte separate. L’indirizzo finale è mostrato con un pulsante di copia e un’anteprima in un riquadro 16:9, da incollare in OBS.
 
+### Contatori della partita
+
+Una disciplina può dichiarare contatori della partita: totali degli eventi registrati per lato, come falli di squadra, time-out o cartellini. Ogni overlay mostra i contatori accanto al punteggio: in forma breve sullo scorebug e sul lower third (`F 4`, o `TM 1/1` quando la disciplina fissa un limite), e in forma completa su una partita fissata. Un contatore al valore di avviso assume il tono di avviso e un `!`, quindi non dipende mai soltanto dal colore. Il contatore evidenzia soltanto: una registrazione oltre il limite è accettata, e la console non la rifiuta né avvisa. La pagina pubblica della partita mostra gli stessi totali per lato e, mentre la partita è in corso, ogni penalità a tempo con il tempo residuo. Una partita conclusa mantiene i contatori che valgono per tutta la partita e omette quelli che si azzerano a ogni segmento.
+
 ## Cosa vede uno spettatore sul sito pubblico
 
 Il sito pubblico (senza accesso) mostra le classifiche, il tabellone e i report partita di un torneo
