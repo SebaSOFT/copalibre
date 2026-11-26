@@ -84,7 +84,7 @@ export const AUDIT_COVERAGE_EXCEPTIONS: Readonly<Record<string, string>> = Objec
     'internal import-session state machine; the operator action is the eventual commit, audited as csv-import.committed',
   'csv-import-repository.ts:markCommitted':
     'internal import-session state machine; the operator action is the eventual commit, audited as csv-import.committed',
-  'competition-repository.ts:anullSurplusMatches':
+  'fixture-surplus-repository.ts:anullSurplusMatches':
     'a series-consequence side effect of a finalize the caller already audits as match.finalized, not a distinct operator action',
   'auth-verification-token-repository.ts:create':
     'ephemeral verification-token bookkeeping; the account change it authorizes is audited where it is applied (identity.password-reset)',

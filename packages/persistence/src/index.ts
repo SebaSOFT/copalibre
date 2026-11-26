@@ -153,6 +153,17 @@ export {
   type ParticipantTeamMembership,
 } from './repositories/enrollment-repository.js';
 export { CompetitionRepository } from './repositories/competition-repository.js';
+export { SeasonRepository } from './repositories/competition/season-repository.js';
+export { ZoneGroupRepository } from './repositories/competition/zone-group-repository.js';
+export { PromotionPlanRepository } from './repositories/competition/promotion-plan-repository.js';
+export { DrawRepository } from './repositories/competition/draw-repository.js';
+export { FixtureRepository } from './repositories/competition/fixture-repository.js';
+export { FixtureSurplusRepository } from './repositories/competition/fixture-surplus-repository.js';
+export { StageRepository } from './repositories/competition/stage-repository.js';
+export { MatchRepository } from './repositories/competition/match-repository.js';
+export { SegmentTimerRepository } from './repositories/competition/segment-timer-repository.js';
+export { MatchEventRepository } from './repositories/competition/match-event-repository.js';
+export { MatchRosterRepository } from './repositories/competition/match-roster-repository.js';
 export {
   isPersistedGraph,
   type FixtureGraphBracket,

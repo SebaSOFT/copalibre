@@ -13,7 +13,7 @@ export const REVIEWED = {
   // Column references written as literals in the throttler's upsert.
   'apps/api/src/auth/shared-throttler-storage.ts': 3,
   // countWhereIn/countWhereEqual: every caller passes literal table and column names.
-  'packages/persistence/src/repositories/competition-repository.ts': 4,
+  'packages/persistence/src/repositories/competition/stage-repository.ts': 4,
   // Runs the shipped deploy/postgres/roles.sql; the two passwords from .env enter it as
   // string literals with every quote doubled (renderRolesScript, tested).
   'packages/persistence/src/database-roles.ts': 1,
