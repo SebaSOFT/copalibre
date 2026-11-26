@@ -276,3 +276,31 @@ whole stage, so a reader needs no knowledge of the stage's format to find its le
 - **WHEN** a stage-scoped table projection is read for a stage whose format is an elimination bracket
 - **THEN** its entrants are ranked from their recorded outcomes as one segment, and the top-ranked
   entrant is reported like any other segment leader
+
+### Requirement: A discipline may declare match counters
+A `DisciplineDescriptor` MAY declare `matchCounters`, each with a code, a localized label and short label, the declared event codes it counts, a scope of match or segment, and an optional allowance and warning value. Validation SHALL reject a counter naming an undeclared event code, a duplicate code, or a short label longer than three characters. A descriptor without counters SHALL stay valid.
+
+#### Scenario: A rink-hockey descriptor declares team fouls and timeouts
+- **WHEN** a descriptor declares a `team-fouls` counter over `team-foul` with scope match and warning
+  value 9, and a `timeouts` counter over `timeout` with scope segment and allowance 1
+- **THEN** descriptor validation accepts both
+
+#### Scenario: A counter over an undeclared event is rejected
+- **WHEN** a counter lists the event code `technical-foul` and the descriptor declares no such event
+- **THEN** validation rejects the descriptor with the path of the offending entry
+
+#### Scenario: A segment counter restarts each segment
+- **WHEN** a side has three `timeout` events in the first segment and none yet in the second, which
+  is in play
+- **THEN** the `timeouts` counter reads 0 for that side
+
+### Requirement: A tournament ruleset may tune or hide a match counter
+A `TournamentRuleset` MAY override a declared counter's allowance and warning value or hide it. The override is a safe mutation, permitted at any time including after results. A counter at or past its allowance or warning value SHALL be reported and SHALL NOT cause any command or event to be refused.
+
+#### Scenario: The organizer raises the warning value
+- **WHEN** a tournament ruleset sets the `team-fouls` warning value to 10
+- **THEN** the effective counter highlights at 10, not at the descriptor's 9
+
+#### Scenario: Passing an allowance is reported, not refused
+- **WHEN** an operator records a second `timeout` for a side in a segment whose allowance is 1
+- **THEN** the event is recorded and the counter reads 2 of 1 in its warning state

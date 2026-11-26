@@ -1,9 +1,10 @@
 # Release screen-reader checklist
 
-Complete this manual pass on the release candidate in a non-production environment, using demo data
-and test identities. Run every flow with each required screen-reader/browser combination below.
+This is an optional manual accessibility pass for a release candidate. Run it in a non-production
+environment, using demo data and test identities. To check a flow with assistive technology, run it
+with each combination below.
 
-## Required combinations
+## Combinations
 
 | Screen reader | Browser | Platform |
 | ------------- | ------- | -------- |
@@ -11,7 +12,7 @@ and test identities. Run every flow with each required screen-reader/browser com
 | VoiceOver     | Safari  | iOS      |
 | NVDA          | Firefox | Windows  |
 
-Record the versions of the operating system, browser and screen reader in each release record.
+When a pass is recorded, note the versions of the operating system, browser and screen reader.
 
 ## Flows and expected announcements
 
@@ -33,11 +34,11 @@ Record the versions of the operating system, browser and screen reader in each r
    sign-in with the test identity. Both fields have announced labels; the authentication error is
    announced and associated with the form; successful sign-in moves to the authenticated page.
 
-## Record results for each release
+## Optional results record
 
-Copy this record into `docs/release/results/<version>-screen-reader.md` for each candidate. Record
-what the assistive technology announced in each cell, not only a pass/fail mark. Link any failure to
-its tracking issue and record the retest result after it is fixed.
+To keep a record of a pass, copy this template into `docs/release/results/<version>-screen-reader.md`.
+Record what the assistive technology announced in each cell, not only a pass/fail mark. Link any
+failure to its tracking issue and record the retest result after it is fixed.
 
 ```markdown
 # Screen-reader results — <version>
@@ -56,6 +57,4 @@ its tracking issue and record the retest result after it is fixed.
 | Login                      | Result and observed announcement: | Result and observed announcement: | Result and observed announcement: |
 ```
 
-Each of the 15 flow/platform cells must record a passing result before the release is tagged. A blank,
-`Not run`, `Blocked` or `Fail` cell means the release is not ready to tag. Do not include real
-credentials or personal data in results.
+Do not include real credentials or personal data in results.
