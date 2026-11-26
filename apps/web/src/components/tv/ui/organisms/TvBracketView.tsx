@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react';
 import { EntrantName } from '../../../ui/atoms/EntrantName.js';
+import { EntrantEmblem } from '../../../ui/molecules/EntrantEmblem.js';
 import {
   formatOverallPlaceFromTemplate,
   formatPlacement,
@@ -7,7 +9,7 @@ import {
 } from '../../../../lib/side-source.js';
 import { toNode, toRounds, type BracketRound } from '../../../../lib/bracket.js';
 import type { BracketZone } from '../../../../lib/bracket-projection.js';
-import type { TvDashboardLabels } from '../../tv-types.js';
+import type { TvClubItem, TvDashboardLabels } from '../../tv-types.js';
 
 function appendOverallPlace(
   base: string | undefined,
@@ -95,15 +97,70 @@ export function tvBracketRoundTitle(
   return `${labels.bracketRound} ${round.roundNumber}`;
 }
 
+/** A bracket match named the way a bracket names it: its node key within a zone. */
+export interface BracketFocus {
+  readonly nodeKey: string;
+  readonly zoneName?: string;
+}
+
+/** Whether `zone` holds the focused match: the same zone (by name) and the same node key. */
+export function holdsBracketMatch(zone: BracketZone, focus: BracketFocus): boolean {
+  return (
+    zone.zoneName === focus.zoneName &&
+    zone.matches.some((match) => match.nodeKey === focus.nodeKey)
+  );
+}
+
+/**
+ * Scrolls the nearest scrolling ancestor of `card` so the card sits in the middle of it. Only that
+ * ancestor moves: a TV frame never scrolls as a whole, and `scrollIntoView` would move every ancestor.
+ */
+function centerWithinScroller(card: HTMLElement): void {
+  let scroller: HTMLElement | null = card.parentElement;
+  while (scroller !== null && scroller.scrollHeight <= scroller.clientHeight) {
+    scroller = scroller.parentElement;
+  }
+  if (scroller === null || scroller === document.documentElement || scroller === document.body) {
+    return;
+  }
+  const cardBox = card.getBoundingClientRect();
+  const scrollerBox = scroller.getBoundingClientRect();
+  scroller.scrollTop +=
+    cardBox.top - scrollerBox.top - (scroller.clientHeight - cardBox.height) / 2;
+}
+
+/**
+ * The bracket as TV draws it: round by round, each side named in full beside its crest, falling back to
+ * the abbreviation only when the name does not fit. A TV frame is not scrolled by anyone, so the match
+ * the screen is about (`focus`) is marked and brought into view.
+ */
 export function TvBracketView({
   zones,
   labels,
+  clubs,
+  focus,
 }: {
   readonly zones: readonly BracketZone[];
   readonly labels: TvDashboardLabels;
+  readonly clubs?: readonly TvClubItem[];
+  /** The match the screen is about (pinned, else featured), by its zone and node key. */
+  readonly focus?: BracketFocus;
 }): React.JSX.Element {
+  const sectionRef = useRef<HTMLElement>(null);
+  // The focus as one value, so a new object naming the same match does not scroll again.
+  const focusKey = focus === undefined ? undefined : `${focus.zoneName ?? ''}|${focus.nodeKey}`;
+  useEffect(() => {
+    if (focusKey === undefined) return;
+    const card = sectionRef.current?.querySelector<HTMLElement>('.tv-bracket-card--focus');
+    if (card) centerWithinScroller(card);
+  }, [focusKey, zones]);
   return (
-    <section aria-label={labels.bracketTab} className="tv-bracket" data-testid="tv-bracket">
+    <section
+      aria-label={labels.bracketTab}
+      className="tv-bracket"
+      data-testid="tv-bracket"
+      ref={sectionRef}
+    >
       {zones.map((zone, zoneIndex) => {
         const rounds = toRounds(zone.matches);
         const zoneNodeKeys = zone.matches.map((match) => match.nodeKey);
@@ -120,10 +177,17 @@ export function TvBracketView({
                   {round.matches.map((match) => {
                     const node = toNode(match, labels.resultState, labels.sideSource, zoneNodeKeys);
                     const singleRole = /^(?:placement|place)-(\d+)$/.exec(match.role ?? '');
+                    const focused =
+                      focus !== undefined &&
+                      zone.zoneName === focus.zoneName &&
+                      match.nodeKey === focus.nodeKey;
                     return (
                       <article
+                        aria-current={focused ? 'true' : undefined}
                         aria-label={`${labels.bracketMatch} ${match.matchNumber}`}
-                        className="tv-bracket-card cl-chamfer cl-chamfer--control"
+                        className={`tv-bracket-card cl-chamfer cl-chamfer--control${
+                          focused ? ' tv-bracket-card--focus' : ''
+                        }`}
                         key={match.matchId ?? match.matchNumber}
                       >
                         <div className="tv-bracket-card__header">
@@ -146,13 +210,27 @@ export function TvBracketView({
                             className="tv-bracket-card__slot"
                             key={`${index}-${slot.entrantId ?? slot.label}`}
                           >
-                            <EntrantName
-                              className="tv-bracket-card__name"
-                              compact
-                              pending={slot.pending}
-                              fullName={slot.label}
-                              abbreviation={slot.abbreviation}
-                            />
+                            <span className="tv-bracket-card__side">
+                              {slot.clubId !== undefined && (
+                                <EntrantEmblem
+                                  abbreviation={slot.abbreviation}
+                                  alt=""
+                                  className="tv-table-club-emblem cl-entrant-emblem--small"
+                                  decorative
+                                  eager
+                                  size="3vmin"
+                                  src={
+                                    clubs?.find((club) => club.clubId === slot.clubId)?.emblemUrl
+                                  }
+                                />
+                              )}
+                              <EntrantName
+                                className="tv-bracket-card__name"
+                                pending={slot.pending}
+                                fullName={slot.label}
+                                abbreviation={slot.abbreviation}
+                              />
+                            </span>
                             {slot.score !== undefined && (
                               <strong className="tv-bracket-card__score">{slot.score}</strong>
                             )}
