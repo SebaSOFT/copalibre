@@ -1080,3 +1080,23 @@ The scorebug and lower third SHALL render no ticker. The full overlay SHALL rend
 #### Scenario: A scorebug has no ticker
 - **WHEN** the scorebug overlay renders
 - **THEN** no ticker band and no "no matches to report" sentence is visible
+
+### Requirement: TV shows declared match counters
+The TV scorebug, the lower third and the pinned-match screen SHALL show each effective match counter per side, with the short label on compact graphics and the full label as the accessible name, as value or value of allowance. A counter at or past its warning value, or its allowance when no warning value is set, SHALL take the warning tone with a text cue. No core TV component SHALL hardcode a counter.
+
+#### Scenario: Team fouls on the scorebug
+- **WHEN** the home side of a live match has four team fouls
+- **THEN** the scorebug shows the counter's short label and 4 beside the home side, and its accessible
+  name reads the full label and 4
+
+#### Scenario: A counter reaches its warning value
+- **WHEN** a side's `team-fouls` counter reaches its warning value
+- **THEN** that counter shows the warning tone and a text cue, not colour alone
+
+#### Scenario: A discipline without counters
+- **WHEN** the match's discipline declares no match counters
+- **THEN** no counter cluster and no empty space renders
+
+#### Scenario: A recorded event updates the counter without a reload
+- **WHEN** an event counted by a counter is recorded while the overlay is open
+- **THEN** the counter updates from a projection refresh within the poll interval, without a reload

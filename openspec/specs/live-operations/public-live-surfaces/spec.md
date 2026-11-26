@@ -352,3 +352,19 @@ Every standings preview on public and TV surfaces SHALL use the same ranking as 
 
 - **WHEN** every match of the ranked group stage is final and the cup stage is in play
 - **THEN** the live page shows no leaders section
+
+### Requirement: Live and report projections carry declared match counters
+The public live projection and the public match report SHALL carry, for each effective match counter, its code, labels, scope, effective allowance and warning value, and one value per side, derived from recorded events. They SHALL omit counters when none are effective and SHALL never expose a per-person count.
+
+#### Scenario: A live match reports its counters
+- **WHEN** a live rink-hockey match has four recorded `team-foul` events for the home side
+- **THEN** the live projection's `team-fouls` counter reads 4 for home and 0 for away
+
+#### Scenario: Counters are derived from the recorded events on every projection
+- **WHEN** the live projection or the match report is built
+- **THEN** each counter value is computed from the match's recorded events at that moment, and no
+  running total is stored, so any change to the recorded events reaches the next projection
+
+#### Scenario: A person event is counted for the person's side
+- **WHEN** a `blue-card` is recorded for a player on the away roster
+- **THEN** the `blue-cards` counter rises for the away side

@@ -100,3 +100,19 @@ When a finalized match in a stage graph has level scores and a recorded winner, 
 
 - **WHEN** a quarter-final finished 3–3 and its recorded winner went on to the semi-final
 - **THEN** the hero and the bracket node mark that side as advancing in the page language
+
+### Requirement: The match page shows match counters and active timed penalties
+The public match page scoreboard SHALL show each effective match counter per side in the page language. While the match is live it SHALL also show each active timed penalty with its side and remaining time, counting down without a reload. A finished match SHALL show only match-scope counters.
+
+#### Scenario: A live match page
+- **WHEN** a spectator opens a live rink-hockey match with three home team fouls and one away timeout
+- **THEN** the scoreboard shows "Faltas de equipo 3" for home and the timeout counter for away, in the
+  page language
+
+#### Scenario: An active suspension counts down
+- **WHEN** a timed penalty of 120 seconds is active for the away side
+- **THEN** the scoreboard shows the away side's penalty and its remaining time decreasing each second
+
+#### Scenario: A finished match keeps its totals
+- **WHEN** the match has finished
+- **THEN** match-scope counters show their final values and segment-scope counters are not shown
