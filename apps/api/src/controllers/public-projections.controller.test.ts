@@ -420,6 +420,7 @@ describe('PublicProjectionsController player profile & visibility unit tests', (
     vi.spyOn(TournamentRepository.prototype, 'findDescriptor').mockResolvedValue(
       footballDescriptor(),
     );
+    vi.spyOn(TournamentRepository.prototype, 'findLatestRuleset').mockResolvedValue(undefined);
     vi.spyOn(EnrollmentRepository.prototype, 'resolveEntrantPodiumDetails').mockResolvedValue(
       new Map([
         [

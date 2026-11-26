@@ -21154,6 +21154,13 @@
             "type": "number",
             "description": "Highlighted at or above this value"
           },
+          "events": {
+            "description": "The declared event codes this counter tallies, so a live client knows when to refresh.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "values": {
             "type": "array",
             "items": {
@@ -21166,6 +21173,7 @@
           "label",
           "shortLabel",
           "scope",
+          "events",
           "values"
         ]
       },

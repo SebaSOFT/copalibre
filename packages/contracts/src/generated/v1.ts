@@ -6315,6 +6315,8 @@ export interface components {
             allowance?: number;
             /** @description Highlighted at or above this value */
             warnAt?: number;
+            /** @description The declared event codes this counter tallies, so a live client knows when to refresh. */
+            events: string[];
             values: components["schemas"]["PublicMatchCounterValueResponse"][];
         };
         PublicLivePenaltyResponse: {

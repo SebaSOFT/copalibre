@@ -433,7 +433,8 @@ export class PublicMatchCounterResponse {
 
   @ApiProperty({
     type: [String],
-    description: 'The declared event codes this counter tallies, so a live client knows when to refresh.',
+    description:
+      'The declared event codes this counter tallies, so a live client knows when to refresh.',
   })
   events!: string[];
 
