@@ -1982,7 +1982,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Public report for one match */
+        /**
+         * Public report for one match
+         * @description A series fixture has one stage number and one page; `game` selects one of its games (1-based, play order), and the report then carries that game’s own status, roster and stream link. Without it the report is the fixture’s first game.
+         */
         get: operations["PublicProjectionsController_matchReport"];
         put?: never;
         post?: never;
@@ -5630,6 +5633,8 @@ export interface components {
              * @description The slot this match had occupied before a decided series freed it. Present only on an anulled match that held one; the slot itself is free and open to anyone.
              */
             releasedSlotId?: string;
+            /** @description This game’s stream link, when the organizer attached one to it */
+            streamUrl?: string;
         };
         FixtureSeriesResponse: {
             /**
@@ -5674,8 +5679,6 @@ export interface components {
              * @description First match of this fixture — the only one unless it declares a series
              */
             matchId: string;
-            /** @description The first match’s stream link, when the organizer attached one */
-            streamUrl?: string;
             /**
              * @description 1-based round within the stage
              * @example 1
@@ -12163,7 +12166,10 @@ export interface operations {
     };
     PublicProjectionsController_matchReport: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Game number within the fixture */
+                game?: number;
+            };
             header?: never;
             path: {
                 organizationAlias: string;

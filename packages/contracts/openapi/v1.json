@@ -8029,6 +8029,7 @@
     },
     "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/matches/{matchNumber}": {
       "get": {
+        "description": "A series fixture has one stage number and one page; `game` selects one of its games (1-based, play order), and the report then carries that game’s own status, roster and stream link. Without it the report is the fixture’s first game.",
         "operationId": "PublicProjectionsController_matchReport",
         "parameters": [
           {
@@ -8061,6 +8062,15 @@
             "in": "path",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "game",
+            "required": false,
+            "in": "query",
+            "description": "Game number within the fixture",
+            "schema": {
+              "type": "number"
             }
           }
         ],
@@ -19233,6 +19243,10 @@
             "type": "string",
             "format": "uuid",
             "description": "The slot this match had occupied before a decided series freed it. Present only on an anulled match that held one; the slot itself is free and open to anyone."
+          },
+          "streamUrl": {
+            "type": "string",
+            "description": "This game’s stream link, when the organizer attached one to it"
           }
         },
         "required": [
@@ -19369,10 +19383,6 @@
             "type": "string",
             "format": "uuid",
             "description": "First match of this fixture — the only one unless it declares a series"
-          },
-          "streamUrl": {
-            "type": "string",
-            "description": "The first match’s stream link, when the organizer attached one"
           },
           "round": {
             "type": "number",
