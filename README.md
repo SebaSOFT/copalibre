@@ -214,8 +214,8 @@ is planned and tracked as an OpenSpec proposal in
   how to respond
 - [`docs/security/assessment-2026-11.es.md`](docs/security/assessment-2026-11.es.md) — security
   assessment, findings and pending actions (Spanish)
-- [`docs/release/screen-reader-checklist.md`](docs/release/screen-reader-checklist.md) — required
-  manual accessibility pass and per-release results record
+- [`docs/release/screen-reader-checklist.md`](docs/release/screen-reader-checklist.md) — optional
+  manual accessibility pass with a results template
 - [`docs/DEPENDENCY-SECURITY-INCIDENTS.md`](docs/DEPENDENCY-SECURITY-INCIDENTS.md) — incident
   register contract and maintainer evidence workflow
 - [`docs/TESTING.md`](docs/TESTING.md) — testing conventions
