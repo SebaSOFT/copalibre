@@ -176,6 +176,73 @@ describe('ScheduleBuilderTemplate', () => {
     expect(screen.getAllByText('No officials are available to assign.')).toHaveLength(1);
   });
 
+  describe('the stream link of a match', () => {
+    const row = 'Club A vs Club B';
+    const streamProps = (
+      overrides: Partial<ComponentProps<typeof ScheduleBuilderTemplate>> = {},
+    ): ComponentProps<typeof ScheduleBuilderTemplate> => ({
+      ...props,
+      onSetStreamUrl: jest.fn(),
+      ...overrides,
+    });
+
+    it('refuses an unusable link on the page and saves a valid one', () => {
+      const streamProps0 = streamProps();
+      render(withIntl(<ScheduleBuilderTemplate {...streamProps0} />));
+
+      fireEvent.click(screen.getByRole('button', { name: `Edit stream — ${row}` }));
+      fireEvent.change(screen.getByLabelText('Stream link'), {
+        target: { value: 'ftp://example.org/stream' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save link' }));
+
+      expect(screen.getByRole('alert').textContent).toBe('Enter a link that starts with https://');
+      expect(streamProps0.onSetStreamUrl).not.toHaveBeenCalled();
+
+      fireEvent.change(screen.getByLabelText('Stream link'), {
+        target: { value: ' https://example.org/live/semifinal-1 ' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save link' }));
+
+      expect(streamProps0.onSetStreamUrl).toHaveBeenCalledWith(
+        'match-1',
+        'https://example.org/live/semifinal-1',
+      );
+      expect(screen.queryByLabelText('Stream link')).toBeNull();
+    });
+
+    it('opens with the saved link and clears it on request', () => {
+      const withSaved = streamProps({
+        fixtures: props.fixtures.map((fixture) =>
+          fixture.matchId === 'match-1'
+            ? { ...fixture, streamUrl: 'https://example.org/live/saved' }
+            : fixture,
+        ),
+      });
+      render(withIntl(<ScheduleBuilderTemplate {...withSaved} />));
+
+      fireEvent.click(screen.getByRole('button', { name: `Edit stream — ${row}` }));
+      expect((screen.getByLabelText('Stream link') as HTMLInputElement).value).toBe(
+        'https://example.org/live/saved',
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Remove link' }));
+
+      expect(withSaved.onSetStreamUrl).toHaveBeenCalledWith('match-1', null);
+    });
+
+    it('closes the editor when its disclosure is pressed again, without saving', () => {
+      const closing = streamProps();
+      render(withIntl(<ScheduleBuilderTemplate {...closing} />));
+
+      fireEvent.click(screen.getByRole('button', { name: `Edit stream — ${row}` }));
+      expect(screen.getByLabelText('Stream link')).toBeDefined();
+      fireEvent.click(screen.getByRole('button', { name: `Edit stream — ${row}` }));
+
+      expect(screen.queryByLabelText('Stream link')).toBeNull();
+      expect(closing.onSetStreamUrl).not.toHaveBeenCalled();
+    });
+  });
+
   it('explains that a preview is required before publishing', () => {
     renderSchedule();
 

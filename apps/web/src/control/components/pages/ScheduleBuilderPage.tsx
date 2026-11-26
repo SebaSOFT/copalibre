@@ -269,6 +269,16 @@ export function ScheduleBuilderPage({
     });
   }
 
+  async function setStreamUrl(matchId: string, streamUrl: string | null): Promise<void> {
+    if (!api.setMatchStreamUrl || stageId === undefined) return;
+    try {
+      await api.setMatchStreamUrl(organizationAlias, tournamentAlias, stageId, matchId, streamUrl);
+      void reload();
+    } catch (error) {
+      pushError(error);
+    }
+  }
+
   async function preview(batch: readonly ScheduleAssignmentDto[]): Promise<void> {
     if (!api.previewSchedule || stageId === undefined || batch.length === 0) return;
     const generation = ++previewGeneration.current;
@@ -348,6 +358,7 @@ export function ScheduleBuilderPage({
         onPublish={(batch, reason) => void publish(batch, reason)}
         onSetDraft={setDraft}
         onToggleOfficial={toggleOfficial}
+        onSetStreamUrl={setStreamUrl}
         organizationAlias={organizationAlias}
         organizationTimeZone={pageHeader?.organizationTimeZone}
         placements={placements}
