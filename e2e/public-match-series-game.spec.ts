@@ -45,6 +45,54 @@ const seriesReport = (gameNumber: number) => ({
   disciplineImages: {},
 });
 
+/** The stage's bracket: the series is its first match, with game 1 played, game 2 in progress and game 3 not needed. */
+const bracket = {
+  format: 'single-elimination',
+  zones: [
+    {
+      matches: [
+        {
+          matchId: '00000000-0000-7000-8000-000000000901',
+          matchNumber: 1,
+          bracket: 'winners',
+          round: 1,
+          position: 1,
+          status: 'in-progress',
+          slots: [
+            { kind: 'entrant', name: 'Talleres', score: 1 },
+            { kind: 'entrant', name: 'Independiente', score: 0 },
+          ],
+          series: {
+            span: 3,
+            resolutionClass: 'best-of',
+            games: [
+              { number: 1, status: 'finalized', winner: 'home', scores: [3, 1] },
+              { number: 2, status: 'in-progress' },
+              { number: 3, status: 'scheduled' },
+            ],
+            homeGamesWon: 1,
+            awayGamesWon: 0,
+            status: 'undecided',
+            explanation: '',
+          },
+        },
+        {
+          matchId: '00000000-0000-7000-8000-000000000902',
+          matchNumber: 2,
+          bracket: 'winners',
+          round: 1,
+          position: 2,
+          status: 'finalized',
+          slots: [
+            { kind: 'entrant', name: 'Racing', score: 2 },
+            { kind: 'entrant', name: 'San Lorenzo', score: 1 },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
 let apiServer: Server;
 const requestedGames: string[] = [];
 
@@ -58,6 +106,10 @@ test.beforeAll(async ({ workerPort }) => {
       const number = Number(game);
       const gameNumber = Number.isSafeInteger(number) && number >= 1 ? number : 1;
       res.end(JSON.stringify(seriesReport(gameNumber)));
+      return;
+    }
+    if (url.pathname === `${BASE}/stages/${STAGE}/bracket`) {
+      res.end(JSON.stringify(bracket));
       return;
     }
     res.statusCode = 404;
@@ -91,6 +143,29 @@ test.describe('series games on the match page', () => {
       `${PAGE}?game=2`,
     );
     await expect(page.locator('.cl-badge--upcoming')).toHaveCount(1);
+    await expect(page.getByRole('link', { name: 'Ver transmisión' })).toHaveAttribute(
+      'href',
+      'https://example.org/live/game-2',
+    );
+  });
+
+  test('activating game 2 in the bracket opens its page with ?game=2, marked current', async ({
+    page,
+  }) => {
+    await page.goto(PAGE);
+
+    const gameTwo = page.getByRole('link', { name: /^Partido 2:/ });
+    await expect(gameTwo).toHaveAttribute('href', `${PAGE}?game=2`);
+    // Game 3 is still to be scheduled, so its segment is not a link.
+    await expect(page.getByRole('link', { name: /^Partido 3:/ })).toHaveCount(0);
+    await gameTwo.click();
+
+    await expect(page).toHaveURL(/\?game=2$/);
+    const switcher = page.getByRole('navigation', { name: 'Partidos de la serie' });
+    await expect(switcher.getByRole('link', { name: 'Partido 2' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
     await expect(page.getByRole('link', { name: 'Ver transmisión' })).toHaveAttribute(
       'href',
       'https://example.org/live/game-2',
