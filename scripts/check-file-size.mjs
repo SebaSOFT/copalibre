@@ -31,7 +31,6 @@ const SPLIT = 'Split in progress';
  */
 export const KNOWN_OVERSIZED_FILES = new Map([
   // Production files of 2000 lines or more, split by the modularization plan.
-  ['apps/web/src/control/lib/api-client.ts', { ceiling: 3751, reason: SPLIT }],
   ['apps/api/src/controllers/match-control.controller.ts', { ceiling: 3509, reason: SPLIT }],
   [
     'packages/persistence/src/repositories/competition-repository.ts',
