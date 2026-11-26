@@ -2,7 +2,7 @@ import type { PublicMatchReportResponse } from '@copalibre/api/src/dto/public-to
 import { championshipMatch, type BracketMatch } from './bracket.ts';
 import { competitionContext, type CompetitionContextLabels } from './competition-context.ts';
 import { descriptorLabel, humanizeCode } from './descriptor-label.ts';
-import type { LiveMatchClock, LiveSegment } from './live-state.js';
+import type { LiveMatchClock, LiveMatchCounter, LiveSegment } from './live-state.js';
 import { applyTemplate, type MatchCardData } from './matches-view.ts';
 import {
   formatOverallPlaceFromTemplate,
@@ -87,6 +87,14 @@ export interface MatchReportModel {
   readonly timeline: readonly MatchReportTimelineGroup[];
   readonly segments?: readonly LiveSegment[];
   readonly clock?: LiveMatchClock;
+  /** Declared match counters; absent when the discipline declares none. */
+  readonly counters?: readonly LiveMatchCounter[];
+  /** Timed penalties in force while the match is live. */
+  readonly activePenalties?: readonly {
+    readonly timerId: string;
+    readonly entrantId: string;
+    readonly remainingSeconds: number;
+  }[];
 }
 
 const OPTIONAL_REPORT_FIELDS = [
@@ -258,6 +266,12 @@ export function buildMatchReport(
       ? {}
       : { segments: response.segments as readonly LiveSegment[] }),
     ...(response.clock === undefined ? {} : { clock: response.clock }),
+    ...(response.counters === undefined
+      ? {}
+      : { counters: response.counters as readonly LiveMatchCounter[] }),
+    ...(response.activePenalties === undefined || response.activePenalties.length === 0
+      ? {}
+      : { activePenalties: response.activePenalties }),
   };
 }
 

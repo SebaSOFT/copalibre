@@ -20,6 +20,9 @@ export interface LiveScoreboardMatchPatch {
   readonly awayScore?: number;
   readonly homeEntrantId?: string;
   readonly awayEntrantId?: string;
+  /** The definition code and projection version of the latest recorded event, so a listener can tell a new one. */
+  readonly recordedEventCode?: string;
+  readonly recordedEventVersion?: number;
 }
 
 export interface LiveStreamStatus {
@@ -124,6 +127,12 @@ function applyMatchUpdatePatch(
     ...(homeScore === undefined ? {} : { homeScore }),
     ...(awayScore === undefined ? {} : { awayScore }),
     ...(clearedClock ? { clock: undefined, clockReceivedAt: undefined } : {}),
+    ...(event.eventType === 'match.event-recorded' && typeof event.payload.definitionCode === 'string'
+      ? {
+          recordedEventCode: event.payload.definitionCode,
+          recordedEventVersion: event.projectionVersion,
+        }
+      : {}),
   });
   streamStatus = { ...streamStatus, lastUpdatedAt: event.createdAt };
   notifyMatch(matchId);
