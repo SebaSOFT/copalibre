@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import { expect, gotoTv, test } from './support/tv-ready.js';
+import type { Page } from '@playwright/test';
 
 /**
  * The TV scorebug's possession/timed-penalty indicators and the
@@ -289,4 +290,75 @@ test('a counter takes a newly recorded event on the next projection, without a r
   await expect(page.locator('.tv-match-counters').first()).toContainText('F 2', {
     timeout: 30_000,
   });
+});
+
+/**
+ * A stream the test drives: the TV's event stream stays open, and each frame the test pushes reaches the
+ * page at once. The live projection is changed first, so the refresh a counted event triggers returns the
+ * new tally.
+ */
+async function mockControllableTvStream(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const original = window.fetch.bind(window);
+    const encoder = new TextEncoder();
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (!String(input).includes('/events/tv/')) return original(input, init);
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          (window as unknown as { __pushSse: (text: string) => void }).__pushSse = (text: string) =>
+            controller.enqueue(encoder.encode(text));
+        },
+      });
+      return new Response(body, {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream' },
+      });
+    };
+  });
+}
+
+async function pushTvEvent(
+  page: Page,
+  eventType: string,
+  payload: object,
+  projectionVersion: number,
+) {
+  const frame = `event: ${eventType}\ndata: ${JSON.stringify({
+    eventId: `tv-counter-${projectionVersion}`,
+    organizationId: 'org-liga-transmision',
+    stream: `match:live-match-1`,
+    entityId: 'live-match-1',
+    eventType,
+    projectionVersion,
+    createdAt: new Date().toISOString(),
+    payload,
+  })}\n\n`;
+  await page.evaluate(
+    (text) => (window as unknown as { __pushSse: (text: string) => void }).__pushSse(text),
+    frame,
+  );
+}
+
+test('a counted recording updates the scorebug counter well before the poll', async ({ page }) => {
+  test.setTimeout(30_000);
+  await mockControllableTvStream(page);
+  live = liveMatchWithCounters(1, 1);
+  await gotoTv(page, `${TV_PATH}?token=kiosk-token`);
+  const counters = page.locator('.tv-match-counters').first();
+  await expect(counters).toContainText('F 1');
+
+  // The foul is on the projection, then reaches the page on the stream: no reload and no 15 s poll.
+  live = liveMatchWithCounters(1, 2);
+  await pushTvEvent(
+    page,
+    'match.event-recorded',
+    {
+      matchId: 'live-match-1',
+      definitionCode: 'team-foul',
+      side: HOME_ID,
+      occurredAt: new Date().toISOString(),
+    },
+    2,
+  );
+  await expect(counters).toContainText('F 2', { timeout: 3000 });
 });

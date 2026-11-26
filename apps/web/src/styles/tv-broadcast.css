@@ -864,6 +864,26 @@
   align-items: center;
   gap: 1.5vmin;
   text-align: center;
+  min-width: 0;
+}
+
+/* A side's counters sit under its name and wrap inside the side's column, never widening it. */
+.tv-team-side .tv-match-counters {
+  justify-content: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.tv-team-side .tv-match-counter-cluster {
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.tv-team-side .tv-match-counter {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .tv-team-side__emblem-wrap {
