@@ -1,0 +1,303 @@
+.cl-control {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--cl-surface-base);
+  color: var(--cl-text-primary);
+  font-family: var(--cl-font-body);
+}
+
+.cl-control .cl-entrant-name {
+  text-transform: uppercase;
+}
+
+.cl-control__nav,
+.cl-control > nav {
+  position: sticky;
+  inset-block-start: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-width: 0;
+  padding: var(--cl-space-4);
+  border-right: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-panel);
+  overflow-y: auto;
+}
+
+.cl-control__nav-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 100%;
+  gap: var(--cl-space-4);
+}
+
+.cl-control__nav-groups {
+  display: grid;
+  align-content: start;
+  gap: var(--cl-space-4);
+  min-width: 0;
+}
+
+.cl-control__nav-group {
+  display: grid;
+  min-width: 0;
+  gap: var(--cl-space-1);
+}
+
+.cl-control__nav-group-title {
+  margin: 0;
+  padding-inline: var(--cl-space-3);
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+  text-transform: uppercase;
+}
+
+.cl-control__nav-group .cl-control__nav-list {
+  margin: var(--cl-space-2) 0 0;
+}
+
+.cl-control__nav-footer {
+  display: grid;
+  gap: var(--cl-space-1);
+  margin-block-start: auto;
+  padding-block-start: var(--cl-space-3);
+  border-top: 1px solid var(--cl-border-muted);
+}
+
+.cl-control__nav-footer a {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: var(--cl-touch-target);
+  padding-inline: var(--cl-space-3);
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.cl-control__nav-footer .cl-btn {
+  width: 100%;
+}
+
+.cl-context-rail-header {
+  display: grid;
+  min-width: 0;
+  gap: var(--cl-space-3);
+  padding: var(--cl-space-3);
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-raised);
+}
+
+.cl-context-rail-header__identity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--cl-space-3);
+  min-width: 0;
+}
+
+.cl-context-rail-header__copy {
+  display: grid;
+  min-width: 0;
+  gap: var(--cl-space-1);
+}
+
+.cl-context-rail-header__scope,
+.cl-context-rail-header__metadata {
+  margin: 0;
+  /* The rail sits on the raised well, where the muted label colour falls below AA. */
+  color: var(--cl-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+}
+
+.cl-context-rail-header__scope {
+  text-transform: uppercase;
+}
+
+.cl-context-rail-header__name {
+  margin: 0;
+  color: var(--cl-text-primary);
+  font-family: var(--cl-font-display);
+  font-size: var(--cl-font-size-md);
+  overflow-wrap: anywhere;
+}
+
+.cl-context-rail-header__status {
+  justify-self: start;
+}
+
+.cl-context-rail-header__action {
+  justify-content: center;
+  width: 100%;
+}
+
+.cl-control__nav-list,
+.cl-control > nav > ul {
+  display: grid;
+  gap: var(--cl-space-2);
+  margin: var(--cl-space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Ties with the card header strip's own rule, which is wider than its parent on purpose. */
+/* The skip link's target: a region, not a control, so it takes no ring. */
+.cl-control__main:focus {
+  outline: none;
+}
+
+.cl-control__main,
+.cl-control > main,
+.cl-control > main > *:not(.cl-container),
+.cl-control > main > * > *,
+.cl-control-screen,
+.cl-control-screen > *:not(.cl-form-screen):not(.cl-container),
+.cl-control-screen > * > *:not(.cl-form-screen):not(.cl-container):not(.cl-card__header),
+.cl-list-screen,
+.cl-list-screen > *:not(.cl-container),
+.cl-form-screen > *:not(.cl-container),
+.cl-match-console-screen,
+.cl-match-console-screen > *:not(.cl-container) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cl-control-screen,
+.cl-list-screen,
+.cl-match-console-screen {
+  overflow-wrap: anywhere;
+}
+
+.cl-form-screen {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cl-page-header-template {
+  display: grid;
+  min-width: 0;
+  gap: var(--cl-space-6);
+}
+
+.cl-page-header-template .cl-page-header__title {
+  text-transform: uppercase;
+}
+
+.cl-page-header-template__content,
+.cl-list-with-rail-template__list,
+.cl-list-with-rail-template__rail,
+.cl-workspace-template__primary,
+.cl-workspace-template__secondary {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cl-list-with-rail-template,
+.cl-workspace-template {
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.cl-list-with-rail-template__layout,
+.cl-workspace-template__panes {
+  display: grid;
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-list-with-rail-template__layout {
+  grid-template-columns: var(--cl-layout-split-main-rail);
+}
+
+.cl-list-with-rail-template__footer {
+  margin-block-start: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-dashboard__listing {
+  display: grid;
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-operations__listing {
+  display: grid;
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+/*
+ * Where the rail sits beside the list, cells wrap inside the column instead of stretching the
+ * table past it, so no column is clipped. Narrower than that the table keeps its natural width
+ * and scrolls inside its own frame.
+ */
+@media (width >= 1024px) {
+  .cl-operations__listing .cl-data-table__table {
+    width: 100%;
+  }
+
+  .cl-operations__listing .cl-entity-identity-cell__details,
+  .cl-operations__listing .cl-entity-identity-cell__name {
+    min-inline-size: max-content;
+    overflow-wrap: normal;
+  }
+}
+
+.cl-operations__listing .cl-data-table__table .cl-btn,
+.cl-operations__listing .cl-data-table__table .cl-role-status {
+  white-space: nowrap;
+}
+
+.cl-operations__listing .cl-data-table__table th,
+.cl-operations__listing .cl-data-table__table .cl-state--refused,
+.cl-operations__listing .cl-data-table__table .cl-state--positive {
+  white-space: nowrap;
+}
+
+.cl-operations__listing .cl-list-screen__pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--cl-space-3);
+}
+
+.cl-operations__section {
+  display: grid;
+  gap: var(--cl-space-3);
+  min-width: 0;
+}
+
+.cl-operations__invitations {
+  display: grid;
+  gap: var(--cl-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-operations__invitations > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-3);
+  min-width: 0;
+}
+
+.cl-operations__rail-card {
+  min-width: 0;
+}
+
+.cl-role-cell__scope {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+  overflow-wrap: anywhere;
+}

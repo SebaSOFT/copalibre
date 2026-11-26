@@ -203,7 +203,7 @@ describe('discipline backdrop', () => {
 
 describe('TV backdrop and focal panel', () => {
   const layout = readFileSync(join(here, '../layouts/TvLayout.astro'), 'utf8');
-  const tvCss = readFileSync(join(here, '../styles/tv-broadcast.css'), 'utf8');
+  const tvCss = readFileSync(join(here, '../styles/tv-broadcast/03-focal-panel.css'), 'utf8');
 
   it('renders discipline imagery only when the selected backdrop is discipline', () => {
     expect(layout).toContain(

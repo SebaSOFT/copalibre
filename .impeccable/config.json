@@ -27,7 +27,17 @@
         "rule": "design-system-font-size",
         "value": "*",
         "files": [
-          "apps/web/src/styles/tv-broadcast.css"
+                    "apps/web/src/styles/tv-broadcast/00-foundation.css",
+          "apps/web/src/styles/tv-broadcast/01-score-bug.css",
+          "apps/web/src/styles/tv-broadcast/02-main-stage.css",
+          "apps/web/src/styles/tv-broadcast/03-focal-panel.css",
+          "apps/web/src/styles/tv-broadcast/04-secondary-rail.css",
+          "apps/web/src/styles/tv-broadcast/05-animations-responsive.css",
+          "apps/web/src/styles/tv-broadcast/06-overlays.css",
+          "apps/web/src/styles/tv-broadcast/07-tv-dashboard.css",
+          "apps/web/src/styles/tv-broadcast/08-nearby-matches.css",
+          "apps/web/src/styles/tv-broadcast/09-alert-banner.css",
+          "apps/web/src/styles/tv-broadcast/10-multi-court.css"
         ],
         "createdAt": "2026-09-12T05-41-08Z",
         "reason": "found by /impeccable critique: every clamp() value in this stylesheet is deliberately viewport-scaled typography for the /tv/ broadcast kiosk and overlay surface, read at distance on a large screen rather than at arm's length like the rest of the app — a fixed rem scale is the wrong tool for that surface, not an oversight. Recorded as a decision rather than left as 21 recurring, unreviewable findings."

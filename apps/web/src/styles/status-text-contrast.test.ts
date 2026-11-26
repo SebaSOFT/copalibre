@@ -12,7 +12,9 @@ const read = (path: string) => readFileSync(join(here, path), 'utf8');
  */
 describe('status text uses the token pairs the contrast check covers', () => {
   it('prints context rail labels in the secondary text colour', () => {
-    const rule = /\.cl-context-rail-header__metadata \{[^}]*\}/.exec(read('control.css'))?.[0];
+    const rule = /\.cl-context-rail-header__metadata \{[^}]*\}/.exec(
+      read('control/02-shell-and-templates.css'),
+    )?.[0];
     expect(rule).toContain('color: var(--cl-text-secondary);');
   });
 
@@ -23,7 +25,9 @@ describe('status text uses the token pairs the contrast check covers', () => {
   });
 
   it('prints the TV live badge in the primary text colour', () => {
-    const rule = /\.tv-scorebug__badge--live \{[^}]*\}/.exec(read('tv-broadcast.css'))?.[0];
+    const rule = /\.tv-scorebug__badge--live \{[^}]*\}/.exec(
+      read('tv-broadcast/01-score-bug.css'),
+    )?.[0];
     expect(rule).toContain('color: var(--cl-text-primary);');
   });
 });

@@ -295,6 +295,13 @@ describe('responsive typography and media widths', () => {
     expect(
       checkFile('apps/web/src/styles/tv-broadcast.css', '.tv { font-size: 0.625rem; }', declared),
     ).toEqual([]);
+    expect(
+      checkFile(
+        'apps/web/src/styles/tv-broadcast/01-score-bug.css',
+        '.tv { font-size: 0.625rem; }',
+        declared,
+      ),
+    ).toEqual([]);
   });
 
   it('still constrains TV media widths to the shared breakpoints', () => {

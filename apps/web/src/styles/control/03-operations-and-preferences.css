@@ -1,0 +1,398 @@
+.cl-ratio-bar {
+  display: grid;
+  gap: var(--cl-space-1);
+  min-width: 0;
+}
+
+.cl-ratio-bar__track {
+  inline-size: 100%;
+  block-size: var(--cl-space-2);
+  appearance: none;
+  border: 0;
+  background: var(--cl-surface-row);
+  accent-color: var(--cl-border-accent);
+}
+
+.cl-ratio-bar__track::-webkit-progress-bar {
+  background: var(--cl-surface-row);
+}
+
+.cl-ratio-bar__track::-webkit-progress-value {
+  background: var(--cl-border-accent);
+}
+
+.cl-ratio-bar__track::-moz-progress-bar {
+  background: var(--cl-border-accent);
+}
+
+.cl-ratio-bar__value {
+  color: var(--cl-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+}
+
+.cl-preferences-panel {
+  display: grid;
+  gap: var(--cl-space-4);
+  padding: clamp(var(--cl-space-3), 4vw, var(--cl-space-6));
+  min-width: 0;
+}
+
+.cl-preferences-panel > h2,
+.cl-preferences-panel > p {
+  margin: 0;
+}
+
+.cl-operations__listing > div > .cl-preferences-panel + .cl-preferences-panel,
+.cl-operations__listing .cl-preferences-panel {
+  margin-block-start: var(--cl-space-6);
+}
+
+.cl-preferences-emblem-sizes {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--cl-space-4);
+}
+
+.cl-preferences-storage-summary {
+  font-weight: var(--cl-weight-bold);
+}
+
+.cl-preferences-expiry-input {
+  inline-size: 5rem;
+}
+
+/* A width rather than a cap: the screen rules above set every descendant's max-width to 100%. */
+.cl-preferences-theme-select {
+  inline-size: min(100%, 20rem);
+}
+
+.cl-preferences-unreferenced {
+  display: grid;
+  gap: var(--cl-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-preferences-token-created {
+  display: grid;
+  gap: var(--cl-space-2);
+  padding: var(--cl-space-4);
+  border: 1px solid var(--cl-state-live);
+  background: var(--cl-surface-base);
+}
+
+.cl-preferences-token-created__value {
+  display: block;
+  padding: var(--cl-space-3);
+  background: var(--cl-surface-row);
+  font-family: var(--cl-font-mono);
+  word-break: break-all;
+}
+
+.cl-preferences-token-list {
+  min-width: 0;
+}
+
+.cl-operations__rows {
+  display: grid;
+  gap: var(--cl-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-operations__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-3);
+  min-width: 0;
+  padding-block: var(--cl-space-3);
+  border-block-end: 1px solid var(--cl-border-muted);
+}
+
+.cl-operations__rail-stack {
+  display: grid;
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-dashboard__empty-results {
+  color: var(--cl-text-secondary);
+  margin: 0;
+  padding-block: var(--cl-space-3);
+}
+
+.cl-workspace-template__panes[data-split='chart-panel'] {
+  grid-template-columns: var(--cl-layout-split-chart-panel);
+}
+
+.cl-workspace-template__panes[data-split='media-form'] {
+  grid-template-columns: var(--cl-layout-split-media-form);
+}
+
+/* The data-split selectors above out-rank a bare class, so the stacked layout names them too. */
+@container (max-width: 63.99rem) {
+  .cl-list-with-rail-template__layout,
+  .cl-workspace-template__panes,
+  .cl-workspace-template__panes[data-split] {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--cl-space-8);
+  }
+}
+
+.cl-wizard-template {
+  min-width: 0;
+}
+
+.cl-wizard-template .cl-wizard-shell__actions {
+  position: sticky;
+  z-index: 1;
+  inset-block-end: 0;
+  padding-block: var(--cl-space-3);
+  border-top: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-panel);
+}
+
+.cl-preferences-scope-label {
+  color: var(--cl-text-primary);
+}
+
+.cl-control > main {
+  overflow-wrap: anywhere;
+}
+
+.cl-control-screen
+  :where(
+    div:not(.cl-container),
+    section,
+    article,
+    form:not(.cl-form-screen),
+    fieldset,
+    label,
+    header,
+    footer
+  ),
+.cl-list-screen
+  :where(div:not(.cl-container), section, article, form, fieldset, label, header, footer),
+.cl-form-screen
+  :where(
+    div:not(.cl-container),
+    section,
+    article,
+    form:not(.cl-form-screen),
+    fieldset,
+    label,
+    header,
+    footer
+  ),
+.cl-match-console-screen
+  :where(div:not(.cl-container), section, article, form, fieldset, label, header, footer),
+.cl-control
+  > main
+  :where(
+    div:not(.cl-container),
+    section,
+    article,
+    form:not(.cl-form-screen),
+    fieldset,
+    label,
+    header,
+    footer
+  ) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cl-control button,
+.cl-control input,
+.cl-control select,
+.cl-control textarea {
+  max-width: 100%;
+}
+
+.cl-control button,
+.cl-control select {
+  min-height: var(--cl-touch-target);
+}
+
+.cl-control .cl-form .cl-btn,
+.cl-control .cl-card__content .cl-btn {
+  width: fit-content;
+}
+
+/* Entrant journey controls live inside compact bracket slots; preserve the canvas row rhythm. */
+.cl-control button.cl-journey-name {
+  min-height: 0;
+  height: auto;
+}
+
+.cl-control > nav a,
+.cl-control__nav a {
+  display: flex;
+  align-items: center;
+  min-height: var(--cl-touch-target);
+}
+
+.cl-control__main,
+.cl-control > main {
+  padding-block: var(--cl-space-8);
+}
+
+.cl-control img,
+.cl-control svg,
+.cl-control canvas {
+  max-width: 100%;
+}
+
+.cl-control__mobile-header {
+  display: none;
+}
+
+.cl-drawer__overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--cl-color-ink-950) 65%, transparent);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  animation: cl-drawer-fade-in 150ms ease-out;
+}
+
+.cl-drawer__content {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(320px, 85vw);
+  background: var(--cl-surface-panel);
+  border-right: 1px solid var(--cl-border-muted);
+  padding: var(--cl-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cl-space-4);
+  z-index: 1001;
+  overflow-y: auto;
+  animation: cl-drawer-slide-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cl-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--cl-space-2);
+  border-bottom: 1px solid var(--cl-border-muted);
+}
+
+.cl-drawer__title {
+  margin: 0;
+  font-size: var(--cl-font-size-md, 1rem);
+  font-weight: 700;
+  color: var(--cl-text-primary);
+}
+
+.cl-drawer__close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--cl-text-muted);
+  cursor: pointer;
+  padding: var(--cl-space-1) var(--cl-space-2);
+  line-height: 1;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cl-drawer__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  gap: var(--cl-space-3);
+}
+
+.cl-control__hamburger-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 1px solid var(--cl-border-muted);
+  border-radius: var(--cl-radius-sm);
+  color: var(--cl-text-primary);
+  cursor: pointer;
+}
+
+@keyframes cl-drawer-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cl-drawer-slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* BREAKPOINTS token md (768px): collapse chrome before tablet content becomes cramped. */
+@media (width < 768px) {
+  .cl-control {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cl-control__nav,
+  .cl-control > nav {
+    display: none;
+  }
+
+  .cl-control__mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--cl-space-3) var(--cl-space-4);
+    background: var(--cl-surface-panel);
+    border-bottom: 1px solid var(--cl-border-muted);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .cl-control__main,
+  .cl-control > main {
+    padding-block: var(--cl-space-4);
+  }
+
+  .cl-control .cl-form .cl-btn--primary,
+  .cl-control .cl-card__content .cl-btn--primary,
+  .cl-control .cl-form-screen__footer .cl-btn--primary {
+    width: 100%;
+  }
+
+  .cl-control .cl-preferences-organization-identity-form .cl-form-field,
+  .cl-control .cl-preferences-organization-identity-form .cl-input {
+    width: 100%;
+  }
+}
+
+/* 200% zoom at the 375px review width exposes roughly 188 CSS px. */
+@media (width < 375px) {
+  .cl-control__mobile-header,
+  .cl-control__main,
+  .cl-control > main {
+    padding: var(--cl-space-3);
+  }
+}

@@ -1,8 +1,13 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { expect, test } from './csp-guard.js';
 
 const css = readFileSync('packages/design-tokens/generated/copalibre.css', 'utf8');
-const controlCss = readFileSync('apps/web/src/styles/control.css', 'utf8');
+// The stylesheet is split into ordered slices; joined in name order they are its rules, as the facade imports them.
+const controlCss = readdirSync('apps/web/src/styles/control')
+  .filter((name) => name.endsWith('.css'))
+  .sort()
+  .map((name) => readFileSync(`apps/web/src/styles/control/${name}`, 'utf8'))
+  .join('');
 
 test('calibrated hover fills are not brightened again by the generic button rule', async ({
   page,

@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { act, render, screen } from '@testing-library/react';
 import { useRef } from 'react';
 import { pageBoundaries, useTablePaging } from './use-table-paging.js';
@@ -440,10 +440,15 @@ describe('useTablePaging', () => {
   });
 
   it('keeps a paged tab from scrolling, so no scrollbar can change its width', () => {
-    const candidates = ['src/styles/tv-broadcast.css', 'apps/web/src/styles/tv-broadcast.css'];
-    const path = candidates.map((candidate) => resolve(process.cwd(), candidate)).find(existsSync);
-    expect(path).toBeDefined();
-    const css = readFileSync(path ?? '', 'utf8');
+    // The stylesheet is split into ordered slices; joined in name order they are its rules, as the facade imports them.
+    const candidates = ['src/styles/tv-broadcast', 'apps/web/src/styles/tv-broadcast'];
+    const dir = candidates.map((candidate) => resolve(process.cwd(), candidate)).find(existsSync);
+    expect(dir).toBeDefined();
+    const css = readdirSync(dir ?? '')
+      .filter((name) => name.endsWith('.css'))
+      .sort()
+      .map((name) => readFileSync(join(dir ?? '', name), 'utf8'))
+      .join('');
     const ruleOf = (selector: string): string => {
       const rule = css.slice(css.indexOf(`${selector} {`));
       return rule.slice(0, rule.indexOf('}'));

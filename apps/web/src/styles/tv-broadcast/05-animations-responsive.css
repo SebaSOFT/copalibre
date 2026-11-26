@@ -1,0 +1,13 @@
+/* Animations and Responsive rules */
+@media (width < 1024px) {
+  .tv-main-stage {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-champion__glow {
+    animation: none;
+  }
+}

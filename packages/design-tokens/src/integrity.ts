@@ -219,6 +219,7 @@ export function findUnsafeMotion(source: string): readonly RawColour[] {
 }
 
 const TV_BROADCAST_STYLESHEET = 'apps/web/src/styles/tv-broadcast.css';
+const TV_BROADCAST_SLICES = 'apps/web/src/styles/tv-broadcast/';
 const FONT_SIZE_DECLARATION = /\bfont-size\s*:\s*([^;{}]+)/gi;
 const FONT_SIZE_FLOOR_REM = 0.75;
 const MEDIA_QUERY = /@media\b([^{]*)\{/gi;
@@ -250,7 +251,7 @@ export function findTypographyViolations(
   file: string,
   source: string,
 ): readonly IntegrityFinding[] {
-  if (file === TV_BROADCAST_STYLESHEET) return [];
+  if (file === TV_BROADCAST_STYLESHEET || file.startsWith(TV_BROADCAST_SLICES)) return [];
   const stylesheet = stylesheetSource(file, source);
   if (stylesheet === undefined) return [];
 
