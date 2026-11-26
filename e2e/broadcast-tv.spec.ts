@@ -661,15 +661,16 @@ test('view=standings renders one block per group headed by the group name', asyn
   clockFixtureMode = 'grouped-standings';
   await gotoTv(page, `${TV_PATH}?view=standings&lang=es`);
 
-  // The standings page through the frame: the blocks on screen each carry their group heading.
+  // The standings page through the frame. The first paint can hold every group until the frame is
+  // measured, so read the blocks once the pager shows the measured page, and all in one pass.
+  await expect(page.getByText(/Página 1 de \d+/)).toBeVisible();
   const groups = page.getByTestId('tv-standings-zone');
   await expect(groups.first()).toBeVisible();
-  const onScreen = await groups.count();
-  expect(onScreen).toBeGreaterThan(0);
-  for (let index = 0; index < onScreen; index += 1) {
-    const groupName = GROUP_NAMES[index];
-    await expect(groups.nth(index).getByRole('heading', { name: groupName ?? '' })).toBeVisible();
-  }
+  const headings = await groups.evaluateAll((blocks) =>
+    blocks.map((block) => block.querySelector('h1, h2, h3, h4, h5, h6')?.textContent ?? ''),
+  );
+  expect(headings.length).toBeGreaterThan(0);
+  headings.forEach((heading, index) => expect(heading).toContain(GROUP_NAMES[index] ?? ''));
   await expect(groups.first()).toContainText(`Club ${String.fromCharCode(65)}1`);
 });
 

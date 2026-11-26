@@ -76,8 +76,9 @@ test('rotating rail allows navigation through standings, performers, and facts',
   await mockTvApis(page);
   await page.goto('/tv/liga-mendocina/tournaments/apertura-2026');
 
-  // Verify rail tabs are present
-  const performersBtn = page.getByRole('button', { name: 'Top performers' });
+  // Verify rail tabs are present. The mocked tournament declares no player ranking, so the performers
+  // tab ranks teams and says so.
+  const performersBtn = page.getByRole('button', { name: 'Top teams' });
   const factsBtn = page.getByRole('button', { name: 'Statistics' });
   const standingsBtn = page.getByRole('button', { name: 'Standings' });
 
