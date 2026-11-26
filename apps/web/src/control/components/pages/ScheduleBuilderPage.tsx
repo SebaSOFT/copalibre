@@ -77,6 +77,8 @@ export function ScheduleBuilderPage({
   const [concurrentNotice, setConcurrentNotice] = useState<string>();
   const currentDraft = useRef<Readonly<Record<string, DraftAssignment>>>({});
   const previewGeneration = useRef(0);
+  // The last stream-link version applied per match. It lives across reconnects, so a replayed change is not re-read.
+  const streamLinkVersions = useRef(new Map<string, number>());
 
   const stageName = useStageName(api, organizationAlias, tournamentAlias, stageNumber);
   const read = useResilientRead(
@@ -197,6 +199,18 @@ export function ScheduleBuilderPage({
         // A result resolved a side into a clash with a published placement: re-read what is real now.
         if (event.eventType === 'schedule.conflict-arose') {
           void refreshConflicts();
+          return;
+        }
+        // A stream link changed for a game of this stage: re-read the schedule, once per projection version.
+        if (event.eventType === 'match.stream-url-changed' && event.payload.stageId === stageId) {
+          const linkedMatchId = event.payload.matchId;
+          if (
+            typeof linkedMatchId !== 'string' ||
+            event.projectionVersion <= (streamLinkVersions.current.get(linkedMatchId) ?? 0)
+          )
+            return;
+          streamLinkVersions.current.set(linkedMatchId, event.projectionVersion);
+          void reload();
           return;
         }
         if (event.eventType !== 'match.rescheduled' || event.payload.stageId !== stageId) return;
