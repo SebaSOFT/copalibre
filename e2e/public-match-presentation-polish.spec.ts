@@ -214,3 +214,64 @@ test.describe('match page width and officials', () => {
     }
   });
 });
+
+test.describe('match scoreboard keeps both sides on one row', () => {
+  const MATCH_PAGE = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${MATCH}`;
+
+  test('390x844: both scores share one row across the divider without horizontal scroll', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(MATCH_PAGE);
+    await page.waitForSelector('meta[name="copalibre:deferred-stylesheet"]', { state: 'attached' });
+    await page.evaluate(() => document.fonts.ready);
+
+    const home = page.locator('.cl-scoreboard__side--home .cl-team-score');
+    const away = page.locator('.cl-scoreboard__side--away .cl-team-score');
+    const divider = page.locator('.cl-scoreboard__divider');
+    const homeBox = await home.boundingBox();
+    const awayBox = await away.boundingBox();
+    const dividerBox = await divider.boundingBox();
+    expect(homeBox).not.toBeNull();
+    expect(awayBox).not.toBeNull();
+    expect(dividerBox).not.toBeNull();
+    if (!homeBox || !awayBox || !dividerBox) return;
+
+    const homeCentre = homeBox.y + homeBox.height / 2;
+    const awayCentre = awayBox.y + awayBox.height / 2;
+    expect(Math.abs(homeCentre - awayCentre)).toBeLessThanOrEqual(4);
+    expect(homeBox.x).toBeLessThan(dividerBox.x);
+    expect(awayBox.x).toBeGreaterThan(dividerBox.x);
+
+    const scroll = await page.evaluate(() => {
+      const hero = document.querySelector('.cl-match-hero');
+      return {
+        pageScroll: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+        heroScroll: hero !== null && hero.scrollWidth <= hero.clientWidth,
+      };
+    });
+    expect(scroll.pageScroll).toBe(true);
+    expect(scroll.heroScroll).toBe(true);
+  });
+
+  test('1440x900: each side keeps its name and score on one line', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(MATCH_PAGE);
+    await page.waitForSelector('meta[name="copalibre:deferred-stylesheet"]', { state: 'attached' });
+    await page.evaluate(() => document.fonts.ready);
+
+    for (const side of ['home', 'away']) {
+      const name = await page.locator(`.cl-scoreboard__side--${side} .cl-team-name`).boundingBox();
+      const score = await page
+        .locator(`.cl-scoreboard__side--${side} .cl-team-score`)
+        .boundingBox();
+      expect(name).not.toBeNull();
+      expect(score).not.toBeNull();
+      if (!name || !score) return;
+      // The abbreviation under the name shifts the name box off the score centre, so
+      // "one line" is checked as the two vertical extents overlapping.
+      expect(name.y).toBeLessThan(score.y + score.height);
+      expect(score.y).toBeLessThan(name.y + name.height);
+    }
+  });
+});
