@@ -197,7 +197,7 @@ function StandingsRowsTable({
           <th>#</th>
           <th>{dashboardLabels.clubColumn}</th>
           {declared === undefined ? (
-            <th>{dashboardLabels.playedColumn}</th>
+            <th>{dashboardLabels.playedShort}</th>
           ) : (
             declared.map((column) => <th key={column.code}>{column.header}</th>)
           )}

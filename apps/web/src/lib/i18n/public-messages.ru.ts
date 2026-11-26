@@ -405,7 +405,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.noMatchesScheduled': 'Матчи пока не запланированы',
   'publicWeb.tvDashboard.standingsUnavailable': 'Таблица недоступна',
   'publicWeb.tvDashboard.clubColumn': 'Клуб',
-  'publicWeb.tvDashboard.playedColumn': 'И',
+  'publicWeb.tvDashboard.playedShort': 'И',
   'publicWeb.tvDashboard.noTopPerformers': 'Нет отмеченных лучших игроков',
   'publicWeb.tvDashboard.focalPanelLabel': 'Основная панель трансляции',
   'publicWeb.tvDashboard.featuredMatchTitle': 'Главный матч',

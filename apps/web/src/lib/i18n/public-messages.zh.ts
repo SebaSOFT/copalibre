@@ -396,7 +396,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.noMatchesScheduled': '目前没有安排比赛',
   'publicWeb.tvDashboard.standingsUnavailable': '积分榜不可用',
   'publicWeb.tvDashboard.clubColumn': '俱乐部',
-  'publicWeb.tvDashboard.playedColumn': '场次',
+  'publicWeb.tvDashboard.playedShort': '场次',
   'publicWeb.tvDashboard.noTopPerformers': '暂无最佳球员记录',
   'publicWeb.tvDashboard.focalPanelLabel': '主转播面板',
   'publicWeb.tvDashboard.featuredMatchTitle': '焦点比赛',

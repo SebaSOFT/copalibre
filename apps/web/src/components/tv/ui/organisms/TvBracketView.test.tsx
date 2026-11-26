@@ -31,7 +31,7 @@ const labels: TvDashboardLabels = {
   noMatchesScheduled: 'Sin partidos',
   standingsUnavailable: 'Sin tabla',
   clubColumn: 'Club',
-  playedColumn: 'PJ',
+  playedShort: 'PJ',
   noTopPerformers: 'Sin destacados',
   focalPanelLabel: 'Foco',
   focalPanelTitle: 'Partido destacado',

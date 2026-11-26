@@ -32,7 +32,7 @@ export interface TvDashboardLabels {
   readonly noMatchesScheduled: string;
   readonly standingsUnavailable: string;
   readonly clubColumn: string;
-  readonly playedColumn: string;
+  readonly playedShort: string;
   readonly noTopPerformers: string;
   readonly focalPanelLabel: string;
   readonly focalPanelTitle: string;

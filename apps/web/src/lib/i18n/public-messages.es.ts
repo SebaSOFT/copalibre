@@ -402,7 +402,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.noMatchesScheduled': 'No hay partidos programados por el momento',
   'publicWeb.tvDashboard.standingsUnavailable': 'Tabla de posiciones no disponible',
   'publicWeb.tvDashboard.clubColumn': 'Club',
-  'publicWeb.tvDashboard.playedColumn': 'Partidos jugados',
+  'publicWeb.tvDashboard.playedShort': 'PJ',
   'publicWeb.tvDashboard.noTopPerformers': 'No hay figuras destacadas registradas',
   'publicWeb.tvDashboard.focalPanelLabel': 'Panel principal de la transmisión',
   'publicWeb.tvDashboard.featuredMatchTitle': 'Partido destacado',

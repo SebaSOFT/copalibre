@@ -238,7 +238,7 @@ export function tvDashboardLabels(intl: IntlShape) {
     noMatchesScheduled: intl.formatMessage(messages.tvDashboardNoMatchesScheduled),
     standingsUnavailable: intl.formatMessage(messages.tvDashboardStandingsUnavailable),
     clubColumn: intl.formatMessage(messages.tvDashboardClubColumn),
-    playedColumn: intl.formatMessage(messages.tvDashboardPlayedColumn),
+    playedShort: intl.formatMessage(messages.tvDashboardPlayedShort),
     noTopPerformers: intl.formatMessage(messages.tvDashboardNoTopPerformers),
     focalPanelLabel: intl.formatMessage(messages.tvDashboardFocalPanelLabel),
     focalPanelTitle: intl.formatMessage(messages.tvDashboardFeaturedMatchTitle),

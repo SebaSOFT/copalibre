@@ -1287,9 +1287,9 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.clubColumn',
     defaultMessage: 'Club',
   },
-  tvDashboardPlayedColumn: {
-    id: 'publicWeb.tvDashboard.playedColumn',
-    defaultMessage: 'Played',
+  tvDashboardPlayedShort: {
+    id: 'publicWeb.tvDashboard.playedShort',
+    defaultMessage: 'P',
   },
   tvDashboardNoTopPerformers: {
     id: 'publicWeb.tvDashboard.noTopPerformers',
