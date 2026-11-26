@@ -302,9 +302,8 @@ const counterSides = [
     font-size: 1.5rem;
     font-weight: 700;
     font-family: var(--cl-font-display);
+    /* A name breaks between words; a single word wider than its column breaks only as a last resort. */
     overflow-wrap: anywhere;
-    /* A long single word (German club names) breaks with a hyphen in the page language. */
-    hyphens: auto;
   }
 
   .cl-team-name__link {
@@ -325,10 +324,12 @@ const counterSides = [
 
   .cl-scoreboard__side--home .cl-team-identity {
     align-items: flex-end;
+    text-align: end;
   }
 
   .cl-scoreboard__side--away .cl-team-identity {
     align-items: flex-start;
+    text-align: start;
   }
 
   .cl-team-abbreviation {
@@ -412,6 +413,27 @@ const counterSides = [
       grid-column: 2;
       grid-row: 2;
       align-self: center;
+    }
+  }
+
+  /* The narrowest screens (the 200% text-size floor): three-digit scores and both names still fit. */
+  @media (width < 375px) {
+    .cl-match-hero {
+      padding: var(--cl-space-4);
+    }
+
+    .cl-scoreboard {
+      column-gap: var(--cl-space-2);
+    }
+
+    /* Columns this narrow split words, so a split falls on a syllable with a hyphen. */
+    .cl-team-name {
+      font-size: var(--cl-font-size-md);
+      hyphens: auto;
+    }
+
+    .cl-team-score {
+      font-size: var(--cl-font-size-xl);
     }
   }
 

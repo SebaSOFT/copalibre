@@ -1,4 +1,5 @@
 import { createServer, type Server } from 'node:http';
+import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures.js';
 
 /**
@@ -71,6 +72,8 @@ const overview = {
 let apiServer: Server;
 // Set by the officials test only: the match report then names two officials.
 let withOfficials = false;
+// Set by the long-name scoreboard tests: long team names and three-digit scores.
+let withLongNames = false;
 
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
@@ -85,15 +88,23 @@ test.beforeAll(async ({ workerPort }) => {
     if (path === `${BASE}/stages/${STAGE}/matches/${MATCH}`) {
       res.end(
         JSON.stringify(
-          withOfficials
+          withLongNames
             ? {
                 ...finalizedMatchReport,
-                officials: [
-                  { name: 'Ana Pérez', roles: ['referee'] },
-                  { name: 'Luis Gómez', roles: ['referee'] },
-                ],
+                homeName: 'Fußballgemeinschaft Niederrheinstrudel',
+                homeScore: 102,
+                awayName: 'SV Donaustrudelbachtal Ost',
+                awayScore: 98,
               }
-            : finalizedMatchReport,
+            : withOfficials
+              ? {
+                  ...finalizedMatchReport,
+                  officials: [
+                    { name: 'Ana Pérez', roles: ['referee'] },
+                    { name: 'Luis Gómez', roles: ['referee'] },
+                  ],
+                }
+              : finalizedMatchReport,
         ),
       );
       return;
@@ -215,6 +226,41 @@ test.describe('match page width and officials', () => {
   });
 });
 
+/**
+ * Every team name and score box lies inside the hero card. The page clips horizontal overflow
+ * (`overflow-x: hidden`), so a scroll-width check could not see a score spilling past an edge.
+ */
+async function expectScoreboardInsideHero(page: Page): Promise<void> {
+  const hero = await page.locator('.cl-match-hero').boundingBox();
+  expect(hero).not.toBeNull();
+  if (!hero) return;
+  for (const selector of ['.cl-team-name', '.cl-team-score']) {
+    for (const box of await page.locator(`.cl-scoreboard ${selector}`).evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left + window.scrollX, right: rect.right + window.scrollX };
+      }),
+    )) {
+      expect(box.left).toBeGreaterThanOrEqual(hero.x);
+      expect(box.right).toBeLessThanOrEqual(hero.x + hero.width);
+    }
+  }
+}
+
+/** The two scores share one row, with the divider between them on that row. */
+async function expectScoresFacingOnOneRow(page: Page): Promise<void> {
+  const home = await page.locator('.cl-scoreboard__side--home .cl-team-score').boundingBox();
+  const away = await page.locator('.cl-scoreboard__side--away .cl-team-score').boundingBox();
+  const divider = await page.locator('.cl-scoreboard__divider').boundingBox();
+  expect(home && away && divider).toBeTruthy();
+  if (!home || !away || !divider) return;
+  const homeCentre = home.y + home.height / 2;
+  expect(Math.abs(homeCentre - (away.y + away.height / 2))).toBeLessThanOrEqual(4);
+  expect(Math.abs(homeCentre - (divider.y + divider.height / 2))).toBeLessThanOrEqual(8);
+  expect(home.x).toBeLessThan(divider.x);
+  expect(away.x).toBeGreaterThan(divider.x);
+}
+
 test.describe('match scoreboard keeps both sides on one row', () => {
   const MATCH_PAGE = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${MATCH}`;
 
@@ -226,35 +272,30 @@ test.describe('match scoreboard keeps both sides on one row', () => {
     await page.waitForSelector('meta[name="copalibre:deferred-stylesheet"]', { state: 'attached' });
     await page.evaluate(() => document.fonts.ready);
 
-    const home = page.locator('.cl-scoreboard__side--home .cl-team-score');
-    const away = page.locator('.cl-scoreboard__side--away .cl-team-score');
-    const divider = page.locator('.cl-scoreboard__divider');
-    const homeBox = await home.boundingBox();
-    const awayBox = await away.boundingBox();
-    const dividerBox = await divider.boundingBox();
-    expect(homeBox).not.toBeNull();
-    expect(awayBox).not.toBeNull();
-    expect(dividerBox).not.toBeNull();
-    if (!homeBox || !awayBox || !dividerBox) return;
-
-    const homeCentre = homeBox.y + homeBox.height / 2;
-    const awayCentre = awayBox.y + awayBox.height / 2;
-    expect(Math.abs(homeCentre - awayCentre)).toBeLessThanOrEqual(4);
-    // The divider sits on the score row, between the two scores.
-    expect(Math.abs(dividerBox.y + dividerBox.height / 2 - homeCentre)).toBeLessThanOrEqual(8);
-    expect(homeBox.x).toBeLessThan(dividerBox.x);
-    expect(awayBox.x).toBeGreaterThan(dividerBox.x);
-
-    const scroll = await page.evaluate(() => {
-      const hero = document.querySelector('.cl-match-hero');
-      return {
-        pageScroll: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
-        heroScroll: hero !== null && hero.scrollWidth <= hero.clientWidth,
-      };
-    });
-    expect(scroll.pageScroll).toBe(true);
-    expect(scroll.heroScroll).toBe(true);
+    await expectScoresFacingOnOneRow(page);
+    await expectScoreboardInsideHero(page);
   });
+
+  for (const width of [390, 188]) {
+    test(`${width}px: long names wrap in their own column and three-digit scores stay on one row inside the card`, async ({
+      page,
+    }) => {
+      withLongNames = true;
+      try {
+        await page.setViewportSize({ width, height: 844 });
+        await page.goto(MATCH_PAGE);
+        await page.waitForSelector('meta[name="copalibre:deferred-stylesheet"]', {
+          state: 'attached',
+        });
+        await page.evaluate(() => document.fonts.ready);
+        await expect(page.locator('.cl-scoreboard__side--home .cl-team-score')).toHaveText('102');
+        await expectScoresFacingOnOneRow(page);
+        await expectScoreboardInsideHero(page);
+      } finally {
+        withLongNames = false;
+      }
+    });
+  }
 
   test('1440x900: each side keeps its name and score on one line', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
