@@ -1088,18 +1088,23 @@ export class PublicProjectionsController {
     const rulesetData = await new TournamentRepository(this.db).findLatestRuleset(
       tournament.tournamentId,
     );
-    const counters = publicMatchCountersOf({
-      descriptor,
-      overrides: rulesetData?.overrides,
-      finished: status === 'final',
-      segments,
-      events,
-      rosters: rosterRows.map((roster) => ({
-        entrantId: roster.entrant_id,
-        members: roster.roster_members,
-      })),
-      entrantIds: [match.home_entrant_id, match.away_entrant_id],
-    });
+    // Counters are shown while a match is in progress or once it is finalized. A match that is
+    // scheduled, forfeited or not required has no counters to show, so the field is omitted.
+    const counters =
+      match.status === 'in-progress' || match.status === 'finalized'
+        ? publicMatchCountersOf({
+            descriptor,
+            overrides: rulesetData?.overrides,
+            finished: status === 'final',
+            segments,
+            events,
+            rosters: rosterRows.map((roster) => ({
+              entrantId: roster.entrant_id,
+              members: roster.roster_members,
+            })),
+            entrantIds: [match.home_entrant_id, match.away_entrant_id],
+          })
+        : undefined;
     const activePenalties =
       match.status === 'in-progress'
         ? livePenaltiesOf(

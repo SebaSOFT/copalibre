@@ -406,15 +406,13 @@ export class PublicMatchCounterResponse {
   code!: string;
 
   @ApiProperty({
-    type: 'object',
-    additionalProperties: true,
+    oneOf: [{ type: 'string' }, { type: 'object', additionalProperties: true }],
     description: 'The counter label in every language the discipline wrote it in.',
   })
   label!: string | LocalizedLabel;
 
   @ApiProperty({
-    type: 'object',
-    additionalProperties: true,
+    oneOf: [{ type: 'string' }, { type: 'object', additionalProperties: true }],
     description: 'The compact label, at most three characters per language.',
   })
   shortLabel!: string | LocalizedLabel;

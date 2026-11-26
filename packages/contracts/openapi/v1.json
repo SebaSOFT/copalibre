@@ -21129,13 +21129,27 @@
             "description": "The discipline's own counter code"
           },
           "label": {
-            "type": "object",
-            "additionalProperties": true,
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "additionalProperties": true
+              }
+            ],
             "description": "The counter label in every language the discipline wrote it in."
           },
           "shortLabel": {
-            "type": "object",
-            "additionalProperties": true,
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "additionalProperties": true
+              }
+            ],
             "description": "The compact label, at most three characters per language."
           },
           "scope": {

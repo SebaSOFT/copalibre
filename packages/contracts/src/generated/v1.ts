@@ -6299,11 +6299,11 @@ export interface components {
             /** @description The discipline's own counter code */
             code: string;
             /** @description The counter label in every language the discipline wrote it in. */
-            label: {
+            label: string | {
                 [key: string]: unknown;
             };
             /** @description The compact label, at most three characters per language. */
-            shortLabel: {
+            shortLabel: string | {
                 [key: string]: unknown;
             };
             /**
