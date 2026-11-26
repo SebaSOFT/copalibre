@@ -5,7 +5,10 @@ import {
   defaultStage,
   formatKickoff,
   gridFromParams,
+  knownCourt,
   launcherStateLabels,
+  pinnedMatchOf,
+  resolveViewName,
   matchOptionGroups,
   openingStage,
   parseTvLauncherPreset,
@@ -343,5 +346,63 @@ describe('match state words', () => {
       optionDisputed: '',
     });
     expect(built).toEqual({ live: 'En vivo', cancelled: 'Cancelado' });
+  });
+});
+
+describe('a pinned match and a court are kept only when this tournament has them', () => {
+  const choices = [choice({ stage: 2, match: 1 }), choice({ stage: 2, match: 4 })];
+
+  it('pins a match of the stage the address asked for, when the launcher opens on it', () => {
+    expect(pinnedMatchOf(choices, 2, 2, 4)).toBe(4);
+  });
+
+  it('pins nothing when the stage it asked for is not the one the launcher opens on', () => {
+    // stage=9 names no stage here: the launcher opens on stage 2, and match 1 of stage 2 is not what was asked.
+    expect(pinnedMatchOf(choices, 9, 2, 1)).toBeUndefined();
+    expect(pinnedMatchOf(choices, undefined, 2, 1)).toBeUndefined();
+  });
+
+  it('pins nothing when the opening stage does not have the match', () => {
+    expect(pinnedMatchOf(choices, 2, 2, 7)).toBeUndefined();
+    expect(pinnedMatchOf(choices, 2, 2, undefined)).toBeUndefined();
+  });
+
+  it('keeps a court the tournament has, and drops one it does not', () => {
+    expect(knownCourt(['Cancha 1', 'Cancha 2'], 'Cancha 2')).toBe('Cancha 2');
+    expect(knownCourt(['Cancha 1'], 'Cancha 9')).toBeUndefined();
+    expect(knownCourt(['Cancha 1'], undefined)).toBeUndefined();
+  });
+});
+
+describe('every legacy view name reads the same on the address path and the preset path', () => {
+  const LEGACY_CASES: readonly [string, boolean, string][] = [
+    ['dashboard', false, 'kiosk'],
+    ['overlay', false, 'overlay-scorebug'],
+    ['fixtures', false, 'matches'],
+    ['fixtures', true, 'match'],
+    ['matches', false, 'matches'],
+    ['matches', true, 'match'],
+  ];
+
+  it.each(LEGACY_CASES)('%s (named: %s) means %s on both paths', (name, named, view) => {
+    expect(resolveViewName(name, named)).toBe(view);
+    const params = new URLSearchParams({ view: name });
+    if (named) {
+      params.set('stage', '1');
+      params.set('match', '2');
+    }
+    expect(viewFromParams(params)).toBe(view);
+    const preset = parseTvLauncherPreset({
+      ...base,
+      view: name,
+      ...(named ? { stage: 1, match: 2 } : {}),
+    });
+    expect(preset?.view).toBe(view);
+  });
+
+  it('keeps a current view name and rejects an unknown one on both paths', () => {
+    expect(resolveViewName('overlay-lower', false)).toBe('overlay-lower');
+    expect(resolveViewName('unknown', false)).toBeUndefined();
+    expect(viewFromParams(new URLSearchParams({ view: 'unknown' }))).toBe('kiosk');
   });
 });

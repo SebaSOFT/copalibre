@@ -109,17 +109,37 @@ function hasValidFields(preset: Record<string, unknown>): boolean {
 }
 
 /**
+ * The view names addresses and saved presets used before the launcher named each view. Both readers take
+ * their names from this one table, so the address path and the preset path cannot drift apart.
+ */
+const LEGACY_VIEW_NAMES: ReadonlyMap<string, TvLauncherView> = new Map([
+  ['dashboard', 'kiosk'],
+  ['overlay', 'overlay-scorebug'],
+  ['fixtures', 'matches'],
+]);
+
+/**
+ * The view a stored name means. A list name that carries a stage and a match is the pinned match, as it
+ * always was; the other legacy names map through the table; a current name is itself. `named` says whether
+ * the source carries that stage and match.
+ */
+export function resolveViewName(name: unknown, named: boolean): TvLauncherView | undefined {
+  if (typeof name !== 'string') return undefined;
+  if (named && (name === 'matches' || name === 'fixtures')) return 'match';
+  const legacy = LEGACY_VIEW_NAMES.get(name);
+  if (legacy !== undefined) return legacy;
+  return (TV_LAUNCHER_VIEWS as readonly string[]).includes(name)
+    ? (name as TvLauncherView)
+    : undefined;
+}
+
+/**
  * A view as it is stored. Presets saved before the launcher named its views are read as the view they
  * meant: `dashboard` was the rotating panel, `overlay` was the corner bug, and `matches` named the pinned
  * match when it carried a stage and a match.
  */
 function viewOf(stored: unknown, named: boolean): TvLauncherView | undefined {
-  if (stored === 'dashboard') return 'kiosk';
-  if (stored === 'overlay') return 'overlay-scorebug';
-  if (stored === 'matches' && named) return 'match';
-  return (TV_LAUNCHER_VIEWS as readonly string[]).includes(stored as string)
-    ? (stored as TvLauncherView)
-    : undefined;
+  return resolveViewName(stored, named);
 }
 
 /** An overlay's court: a venue name of a sensible length, and only where no match is pinned. */
@@ -312,16 +332,9 @@ export function viewFromParams(params: URLSearchParams): TvLauncherView {
   if (layout === 'presentation') return 'presentation';
   if (layout === 'dashboard') return 'dashboardLayout';
   if (layout === 'multicourt') return 'multicourt';
-  const view = params.get('view');
   // The launcher's own form submits every view by its name, so a tournament switch keeps the view chosen.
-  if (view === 'matches' && params.has('stage') && params.has('match')) return 'match';
-  if (view !== null && (TV_LAUNCHER_VIEWS as readonly string[]).includes(view)) {
-    return view as TvLauncherView;
-  }
-  // Names addresses used before the launcher named each view: `fixtures`, `overlay` and `dashboard`.
-  if (view === 'fixtures') return 'matches';
-  if (view === 'overlay') return 'overlay-scorebug';
-  return 'kiosk';
+  const named = params.has('stage') && params.has('match');
+  return resolveViewName(params.get('view'), named) ?? 'kiosk';
 }
 
 /** The grid size an address names; anything else is the layout's own automatic choice. */
@@ -376,4 +389,31 @@ export function openingStage(
     return requested;
   }
   return defaultStage(choices, now);
+}
+
+/**
+ * The match an address pins. It applies only when the stage the address asked for is the one the launcher
+ * opens on, and that stage has the match: a match number is a number within its stage, so one requested
+ * beside a stage the tournament lacks names nothing.
+ */
+export function pinnedMatchOf(
+  choices: readonly TvLauncherMatchChoice[],
+  requestedStage: number | undefined,
+  openingStage: number | undefined,
+  match: number | undefined,
+): number | undefined {
+  if (requestedStage === undefined || requestedStage !== openingStage || match === undefined) {
+    return undefined;
+  }
+  return choices.some((choice) => choice.stage === openingStage && choice.match === match)
+    ? match
+    : undefined;
+}
+
+/** A court the tournament has. A court name left over from another tournament is not kept. */
+export function knownCourt(
+  courts: readonly string[],
+  court: string | undefined,
+): string | undefined {
+  return court !== undefined && courts.includes(court) ? court : undefined;
 }
