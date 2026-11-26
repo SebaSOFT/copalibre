@@ -2,7 +2,6 @@ import { fixtureDescriptor } from '../test-support/fixture-descriptor.js';
 import { validateDisciplineDescriptorDocument } from './descriptor-schema.js';
 import type { DisciplineDescriptor, MatchCounterDefinition } from './discipline-descriptor.js';
 import {
-  matchCounterOverrideProblem,
   matchCounterOverrideViolations,
   resolveEffectiveMatchCounters,
 } from './match-counter-resolution.js';

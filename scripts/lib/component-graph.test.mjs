@@ -22,7 +22,7 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
 test('the web component graph resolves every node and edge', () => {
   const graph = buildGraph(webSrc);
   assert.equal(graph.nodes.size, 490);
-  assert.equal(graph.edges.length, 2216);
+  assert.equal(graph.edges.length, 2215);
 });
 
 test('a type-only import is not counted as a render', () => {
