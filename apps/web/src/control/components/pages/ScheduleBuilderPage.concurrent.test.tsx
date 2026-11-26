@@ -115,7 +115,10 @@ it('names the match and operator, reruns the current draft and ignores own, unre
 
 it('re-reads the schedule when a game’s stream link changes in this stage, once per version', async () => {
   const { api } = client();
-  const getStageFixtures = jest.spyOn(api, 'getStageFixtures' as never);
+  const getStageFixtures = jest.spyOn(
+    api as unknown as { getStageFixtures: (...args: unknown[]) => Promise<unknown> },
+    'getStageFixtures',
+  );
   render(
     withIntl(
       <ScheduleBuilderPage
