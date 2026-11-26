@@ -431,6 +431,12 @@ export class PublicMatchCounterResponse {
   @ApiPropertyOptional({ description: 'Highlighted at or above this value' })
   warnAt?: number;
 
+  @ApiProperty({
+    type: [String],
+    description: 'The declared event codes this counter tallies, so a live client knows when to refresh.',
+  })
+  events!: string[];
+
   @ApiProperty({ type: [PublicMatchCounterValueResponse] })
   values!: PublicMatchCounterValueResponse[];
 }

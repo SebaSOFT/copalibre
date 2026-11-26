@@ -2617,6 +2617,7 @@ function publicMatchCountersOf(input: {
     label: counter.label,
     shortLabel: counter.shortLabel,
     scope: counter.scope,
+    events: [...counter.events],
     ...(counter.allowance === undefined ? {} : { allowance: counter.allowance }),
     ...(counter.warnAt === undefined ? {} : { warnAt: counter.warnAt }),
     values: (tallies.find((tally) => tally.code === counter.code)?.values ?? []).map((value) => ({

@@ -2,7 +2,11 @@ import { Module, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import { footballDescriptor, type DisciplineDescriptor } from '@copalibre/domain';
+import {
+  footballDescriptor,
+  type DisciplineDescriptor,
+  type EventDefinition,
+} from '@copalibre/domain';
 import {
   CompetitionRepository,
   EnrollmentRepository,
@@ -147,7 +151,7 @@ describe('public match counters (integration)', () => {
     const competition = new CompetitionRepository(scratch.db);
 
     // Discipline-agnostic codes: the counters name only what the descriptor declares.
-    const sideEvent = (code: string) => ({
+    const sideEvent = (code: string): EventDefinition => ({
       code,
       label: code,
       category: 'negative',
