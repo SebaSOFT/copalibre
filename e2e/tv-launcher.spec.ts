@@ -331,8 +331,25 @@ test('a requested match of another stage pins nothing: the launcher opens with n
   await expect(page.locator('[data-launcher-match]')).toHaveValue('');
   const launch = page.getByRole('link', { name: /Launch TV display/ });
   await expect(launch).toHaveAttribute('aria-disabled', 'true');
-  await expect(page.locator('[data-launcher-url]')).not.toContainText('/stages/');
+  // With no match the pinned view names no page: no address to copy and nothing to preview.
+  await expect(page.locator('[data-launcher-url]')).toHaveText('');
+  await expect(page.locator('[data-launcher-copy]')).toBeDisabled();
   expect(await page.locator('[data-launcher-preview]').getAttribute('src')).toBeNull();
+});
+
+test('picking a match in the pinned view gives it an address, a copy control and a preview', async ({
+  page,
+}) => {
+  await page.goto(`${LAUNCHER}&view=match&lang=en`);
+  await expect(page.locator('[data-launcher-copy]')).toBeDisabled();
+  await page.locator('[data-launcher-stage]').selectOption('1');
+  await page.locator('[data-launcher-match]').selectOption('3');
+  await expect(page.locator('[data-launcher-url]')).toContainText('/stages/1/matches/3');
+  await expect(page.locator('[data-launcher-copy]')).toBeEnabled();
+  await expect(page.locator('[data-launcher-preview]')).toHaveAttribute(
+    'src',
+    /\/stages\/1\/matches\/3/,
+  );
 });
 
 test('after a saved preset restores an overlay, moving to another overlay mode keeps the pinned match', async ({
