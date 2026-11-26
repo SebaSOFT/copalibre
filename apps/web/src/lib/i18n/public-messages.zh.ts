@@ -166,6 +166,8 @@ export const messages: Record<string, string> = {
   'publicWeb.placement.feeder': '{places} ({position})',
   'publicWeb.placement.zonePrefix': '{zone} · {placement}',
   'publicWeb.matchReport.stakeWinner': '胜者晋级 {match}{when}',
+  'publicWeb.matchReport.gameNumber': '第 {number} 场',
+  'publicWeb.matchReport.gamesLabel': '本系列赛的各场比赛',
   'publicWeb.matchReport.stakeLoser': '负者进入 {match}{when}',
   'publicWeb.matchReport.stakePlace': '争夺{place}',
   'publicWeb.matchReport.stakeChampion': '决出{zone}冠军',

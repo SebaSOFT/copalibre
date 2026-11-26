@@ -69,7 +69,17 @@ if (
   return Astro.rewrite(notFoundPath);
 }
 
-const response = await fetchMatchReport(organization!, tournament!, stageNumber, matchNumber);
+// A series game is read with `?game=N`. Anything but a positive whole number is ignored, so the fixture's first game shows.
+const requestedGame = Number(Astro.url.searchParams.get('game'));
+const gameNumber =
+  Number.isSafeInteger(requestedGame) && requestedGame >= 1 ? requestedGame : undefined;
+const response = await fetchMatchReport(
+  organization!,
+  tournament!,
+  stageNumber,
+  matchNumber,
+  gameNumber,
+);
 if (!response) {
   return Astro.rewrite(notFoundPath);
 }
@@ -261,6 +271,13 @@ const stakeLines =
           }),
       })
     : [];
+// The series switcher is the same pill group the stage switcher uses. Its items carry game numbers, shown
+// as the page's own game labels, and link to the same page with `?game=N`.
+const gameSwitcherItems = (response.games ?? []).map((game) => ({
+  stageNumber: game.number,
+  label: intl.formatMessage(messages.matchReportGameNumber, { number: game.number }),
+  href: `${Astro.url.pathname}?game=${game.number}`,
+}));
 const trailBase = trailBaseOf({
   organizationAlias: organization!,
   organizationName: model.organizationName,
@@ -335,6 +352,13 @@ const structuredData = {
       stages={stageSwitcherItems}
     />
     <article class="cl-match-page">
+      {gameSwitcherItems.length > 1 && (
+        <StageSwitcher
+          currentStageNumber={response.gameNumber ?? 1}
+          label={intl.formatMessage(messages.matchReportGamesLabel)}
+          stages={gameSwitcherItems}
+        />
+      )}
       {liveStreamPath && (
         <div
           data-live-awaiting={model.status === 'live' ? undefined : ''}

@@ -153,9 +153,11 @@ export async function fetchMatchReport(
   tournamentAlias: string,
   stageNumber: number | string,
   matchNumber: number | string,
+  game?: number,
 ): Promise<PublicMatchReportResponse | undefined> {
   const baseUrl = getApiBaseUrl();
-  const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageNumber.toString())}/matches/${encodeURIComponent(matchNumber.toString())}`;
+  const gameQuery = game === undefined ? '' : `?game=${encodeURIComponent(game.toString())}`;
+  const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageNumber.toString())}/matches/${encodeURIComponent(matchNumber.toString())}${gameQuery}`;
   return fetchOr404<PublicMatchReportResponse>(url);
 }
 

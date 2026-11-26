@@ -169,6 +169,8 @@ export const messages: Record<string, string> = {
   'publicWeb.placement.feeder': '{places} ({position})',
   'publicWeb.placement.zonePrefix': '{zone} · {placement}',
   'publicWeb.matchReport.stakeWinner': 'Il vincitore gioca {match}{when}',
+  'publicWeb.matchReport.gameNumber': 'Partita {number}',
+  'publicWeb.matchReport.gamesLabel': 'Partite della serie',
   'publicWeb.matchReport.stakeLoser': 'Il perdente gioca {match}{when}',
   'publicWeb.matchReport.stakePlace': 'Decide il {place}',
   'publicWeb.matchReport.stakeChampion': 'Decide il campione di {zone}',
