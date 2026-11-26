@@ -240,6 +240,8 @@ test.describe('match scoreboard keeps both sides on one row', () => {
     const homeCentre = homeBox.y + homeBox.height / 2;
     const awayCentre = awayBox.y + awayBox.height / 2;
     expect(Math.abs(homeCentre - awayCentre)).toBeLessThanOrEqual(4);
+    // The divider sits on the score row, between the two scores.
+    expect(Math.abs(dividerBox.y + dividerBox.height / 2 - homeCentre)).toBeLessThanOrEqual(8);
     expect(homeBox.x).toBeLessThan(dividerBox.x);
     expect(awayBox.x).toBeGreaterThan(dividerBox.x);
 

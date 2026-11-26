@@ -303,6 +303,8 @@ const counterSides = [
     font-weight: 700;
     font-family: var(--cl-font-display);
     overflow-wrap: anywhere;
+    /* A long single word (German club names) breaks with a hyphen in the page language. */
+    hyphens: auto;
   }
 
   .cl-team-name__link {
@@ -405,9 +407,10 @@ const counterSides = [
       text-align: start;
     }
 
+    /* The divider sits on the score row, between the two scores it separates. */
     .cl-scoreboard__divider {
       grid-column: 2;
-      grid-row: 1 / span 2;
+      grid-row: 2;
       align-self: center;
     }
   }
