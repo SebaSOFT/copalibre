@@ -1095,11 +1095,19 @@ A tournament listing card on the organization page SHALL lay its winners out by 
 - **THEN** its winners render side by side
 
 ### Requirement: Public pages below the organization carry a localized breadcrumb
-Every public page below the organization page — tournament, matches, live, stage and match — SHALL render one breadcrumb landmark listing its ancestors from the organization down, each ancestor a link within the current locale and the current page plain text marked as the current page. Labels SHALL be localized and SHALL use the organization, tournament, stage and zone names. The match page SHALL NOT print a separate English position tag for stage, round and match.
+Every public page below the organization page — tournament, matches, live, stage and match — SHALL render one breadcrumb landmark listing its ancestors from the organization down in containment order (organization, tournament, stage, match), each ancestor a link within the current locale and the current page plain text marked as current. Labels SHALL be localized and use the organization, tournament display, stage and zone names. A wrapped line SHALL NOT start with a separator.
 
 #### Scenario: A match page links back up
 - **WHEN** a viewer opens a match page
-- **THEN** the breadcrumb links to the organization, the tournament, the stage and the matches list, and marks the match as current
+- **THEN** the breadcrumb links to the organization, the tournament and the stage in that order, and marks the match as current
+
+#### Scenario: The schedule is not an ancestor of a stage
+- **WHEN** a viewer opens a stage page
+- **THEN** the breadcrumb reads organization › tournament › stage, with no schedule item between the tournament and the stage
+
+#### Scenario: The tournament crumb matches the page title
+- **WHEN** a tournament has a season name that its page title shows
+- **THEN** the tournament crumb shows the same name with the season
 
 #### Scenario: Links keep the locale
 - **WHEN** the page is shown in Spanish
@@ -1108,6 +1116,10 @@ Every public page below the organization page — tournament, matches, live, sta
 #### Scenario: Narrow viewports collapse the middle
 - **WHEN** the viewport is narrow
 - **THEN** the first and last two items remain visible and the rest collapse behind an ellipsis link
+
+#### Scenario: A wrapped breadcrumb starts with a label
+- **WHEN** the breadcrumb wraps onto a second line at a desktop width
+- **THEN** the second line starts with a crumb label, never with a separator
 
 ### Requirement: Public tables draw a subtle vertical rule between columns
 Every public table SHALL draw a low-contrast vertical rule on the left edge of each column from the second onward, taken from a design token defined for every theme the site ships.
@@ -1394,3 +1406,62 @@ SHALL stay within the requesting organization.
 - **WHEN** a club of organization A renamed its alias from `talleres` to `talleres-mendoza`
 - **AND** a visitor requests organization B's club page for `talleres`
 - **THEN** organization B answers from its own clubs only, never with a redirect to organization A's club
+
+### Requirement: Tournament sections open distinct destinations
+The tournament section navigation SHALL give the overview, schedule, live page, standings view and brackets sections their own destinations, the brackets section opening the first stage drawn as a bracket. No two sections SHALL open the same page or an anchor of another section's page. A section with no destination in the tournament SHALL be omitted.
+
+#### Scenario: Standings is not an anchor of the overview
+- **WHEN** a visitor opens the Posiciones section of a tournament with a group stage and cups
+- **THEN** the standings view opens rather than an anchor on the overview page
+
+#### Scenario: Cuadros opens a bracket
+- **WHEN** the tournament's first stage is a round-robin group stage and its second stage is drawn as brackets
+- **THEN** the Cuadros section opens the second stage
+
+#### Scenario: A league without brackets has no Cuadros section
+- **WHEN** no published stage of the tournament is drawn as a bracket
+- **THEN** the section navigation shows no Cuadros entry
+
+### Requirement: The current tournament section matches the page
+The section navigation SHALL mark as current only the section the page belongs to: the live page marks En vivo, a stage drawn as a bracket and its match pages mark Cuadros, and a stage not drawn as a bracket marks Posiciones. No page SHALL mark a section whose destination it is not part of; a player page SHALL NOT mark Posiciones, Cuadros or Partidos.
+
+#### Scenario: The live page marks En vivo
+- **WHEN** a visitor opens the tournament's live page
+- **THEN** En vivo is marked as the current page and Partidos is not
+
+#### Scenario: The group stage is not called Cuadros
+- **WHEN** a visitor opens a round-robin group stage page
+- **THEN** Posiciones is marked current and Cuadros is not
+
+### Requirement: Stage and match pages link to the tournament's other stages
+A stage page and a match page SHALL offer a stage switcher listing every published stage of the tournament by name with the current stage marked, when the tournament has two or more published stages. A stage page that has a following stage SHALL end with a link to it.
+
+#### Scenario: Moving from groups to cups
+- **WHEN** a visitor finishes reading the group stage page of a tournament whose next stage is the cups
+- **THEN** the page offers a link to the cups stage and the switcher lists both stages
+
+#### Scenario: A single-stage tournament shows no switcher
+- **WHEN** the tournament has one published stage
+- **THEN** no stage switcher is rendered
+
+### Requirement: Only interactive elements look interactive
+Public pages SHALL draw link and button affordances (underline, border, chip shape, pointer) only on elements that navigate or act. Static data such as officials and feature tags SHALL render as text. A control that toggles state SHALL look like a toggle and expose its pressed state, not look like a link.
+
+#### Scenario: Officials are text
+- **WHEN** a match page lists its officials
+- **THEN** each official is plain text with their role and is not drawn as a button or chip
+
+#### Scenario: A bracket path toggle is not a link
+- **WHEN** a bracket offers to highlight a team's path
+- **THEN** the team name is a toggle button with a pressed state and no link underline
+
+### Requirement: The public header presents operator tools as secondary
+The public header SHALL label the link to the TV display launcher as screens, never as a stream, and place it after the spectator links. The Control Panel link SHALL use the secondary button treatment so no operator entry point is the most prominent action on a public page.
+
+#### Scenario: The TV launcher is not presented as a video stream
+- **WHEN** the public header renders in Spanish
+- **THEN** the link to the TV display launcher reads "Pantallas TV" and comes after the spectator links
+
+#### Scenario: The Control Panel link is secondary
+- **WHEN** any public page is rendered
+- **THEN** the Control Panel link uses the secondary button treatment, not the primary one

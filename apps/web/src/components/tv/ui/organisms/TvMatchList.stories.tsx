@@ -23,6 +23,7 @@ const ENTRIES: readonly TvMatchEntry[] = Array.from({ length: 30 }, (_, index) =
   return {
     key: `story-${index}`,
     scope: `Grupo A · Ronda ${Math.floor(index / 6) + 1}`,
+    state: 'final' as const,
     stateLabel: 'Finalizado',
     home: { label: home[0], name: home[1], score: (index * 3) % 7 },
     away: { label: away[0], name: away[1], score: (index * 5) % 6 },

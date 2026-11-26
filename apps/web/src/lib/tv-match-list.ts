@@ -9,7 +9,7 @@ import {
   type SideSourceMessages,
 } from './side-source.js';
 import { isDelayed } from './match-state.js';
-import { presentState, type ResultStateLabels } from './result-state.js';
+import { presentState, type ResultState, type ResultStateLabels } from './result-state.js';
 
 /** Matches per row on a broadcast-size frame. */
 export const TV_MATCHES_PER_ROW = 2;
@@ -28,6 +28,7 @@ export interface TvMatchEntry {
   readonly key: string;
   /** Where the match belongs and when: `Grupo A · Ronda 2`. */
   readonly scope: string;
+  readonly state: ResultState;
   readonly stateLabel: string;
   readonly delayed?: boolean;
   readonly home: {
@@ -116,6 +117,7 @@ export function tvMatchEntriesOf(
       ...(row.venueName === undefined ? {} : { venueName: row.venueName }),
       ...(row.rescheduledFrom === undefined ? {} : { rescheduledFrom: row.rescheduledFrom }),
       scope,
+      state: row.state,
       stateLabel: delayed
         ? (labels.delayed ?? presentState(row.state, labels.state).label)
         : presentState(row.state, labels.state).label,
@@ -126,19 +128,199 @@ export function tvMatchEntriesOf(
   });
 }
 
-/** Entries grouped into rows of `perRow`, and the rows into pages of `rowsPerPage`. */
-export function pageTvMatches(
+/** A block heading of the ordered list; it spans both columns and takes a row of its own. */
+export interface TvMatchHeading {
+  readonly heading: string;
+  readonly state: ResultState;
+}
+
+export type TvMatchListItem = TvMatchEntry | TvMatchHeading;
+
+export function isTvMatchHeading(item: TvMatchListItem): item is TvMatchHeading {
+  return 'heading' in item;
+}
+
+/** The blocks the list leads with, in the order it shows them. */
+const TV_MATCH_BLOCKS: readonly string[] = ['live', 'upcoming', 'final'];
+
+/**
+ * Orders matches into live, then scheduled by kickoff ascending, then finished by kickoff descending.
+ * Any other state (disputed, cancelled, tbd) follows in blocks of its own, so no entry is lost. Each
+ * non-empty block opens with a heading that names its state.
+ */
+export function orderTvMatches(
   entries: readonly TvMatchEntry[],
+  labels: Readonly<Partial<Record<ResultState, string>>>,
+): readonly TvMatchListItem[] {
+  const kickoff = (entry: TvMatchEntry): number => {
+    const at = entry.scheduledAt === undefined ? Number.NaN : Date.parse(entry.scheduledAt);
+    return Number.isFinite(at) ? at : Number.POSITIVE_INFINITY;
+  };
+  const otherStates = [
+    ...new Set(
+      entries.map((entry) => entry.state).filter((state) => !TV_MATCH_BLOCKS.includes(state)),
+    ),
+  ];
+  const ordered: TvMatchListItem[] = [];
+  for (const state of [...TV_MATCH_BLOCKS, ...otherStates]) {
+    const block = entries
+      .filter((entry) => entry.state === state)
+      .sort((left, right) =>
+        state === 'final' ? kickoff(right) - kickoff(left) : kickoff(left) - kickoff(right),
+      );
+    if (block.length === 0) continue;
+    ordered.push(
+      { heading: labels[state as ResultState] ?? state, state: state as ResultState },
+      ...block,
+    );
+  }
+  return ordered;
+}
+
+/**
+ * The next matches of the list: scheduled matches that are not delayed (a match is delayed 15 minutes
+ * after kickoff without a result), earliest kickoff first. A scheduled match with no kickoff time is
+ * not next; it stays in the list.
+ */
+export function nextTvMatches<
+  T extends { readonly state: string; readonly scheduledAt?: string | null },
+>(matches: readonly T[], now: Date | number, count: number): readonly T[] {
+  const nowMs = now instanceof Date ? now.getTime() : now;
+  const kickoff = (match: T): number => Date.parse(match.scheduledAt ?? '');
+  return matches
+    .filter(
+      (match) =>
+        match.state === 'upcoming' && Number.isFinite(kickoff(match)) && !isDelayed(match, nowMs),
+    )
+    .sort((left, right) => kickoff(left) - kickoff(right))
+    .slice(0, Math.max(0, Math.trunc(count)));
+}
+
+/**
+ * The match a featured panel shows when no match is live, in this order:
+ * 1. the next match that is not delayed;
+ * 2. otherwise the latest finished match;
+ * 3. otherwise the most recently delayed match, which carries its delayed label;
+ * 4. otherwise nothing.
+ */
+export function featuredTvMatch<
+  T extends { readonly state: string; readonly scheduledAt?: string | null },
+>(matches: readonly T[], now: Date | number): T | undefined {
+  const next = nextTvMatches(matches, now, 1)[0];
+  if (next) return next;
+  const byKickoffDesc = (left: T, right: T): number =>
+    Date.parse(right.scheduledAt ?? '') - Date.parse(left.scheduledAt ?? '');
+  const finished = matches.filter((match) => match.state === 'final').sort(byKickoffDesc)[0];
+  if (finished) return finished;
+  const nowMs = now instanceof Date ? now.getTime() : now;
+  return matches
+    .filter((match) => match.state === 'upcoming' && isDelayed(match, nowMs))
+    .sort(byKickoffDesc)[0];
+}
+
+/**
+ * Entries grouped into rows of `perRow`, and the rows into pages of `rowsPerPage`. A heading is a
+ * row of its own, so it never shares a row with an entry.
+ */
+export function pageTvMatches(
+  items: readonly TvMatchListItem[],
   rowsPerPage: number = TV_MATCH_ROWS_PER_PAGE,
   perRow: number = TV_MATCHES_PER_ROW,
-): readonly (readonly (readonly TvMatchEntry[])[])[] {
-  const rows: TvMatchEntry[][] = [];
-  for (let index = 0; index < entries.length; index += perRow) {
-    rows.push(entries.slice(index, index + perRow));
+): readonly (readonly (readonly TvMatchListItem[])[])[] {
+  const rows: TvMatchListItem[][] = [];
+  let pending: TvMatchEntry[] = [];
+  const flush = (): void => {
+    if (pending.length > 0) rows.push(pending);
+    pending = [];
+  };
+  for (const item of items) {
+    if (isTvMatchHeading(item)) {
+      flush();
+      rows.push([item]);
+      continue;
+    }
+    pending.push(item);
+    if (pending.length === perRow) flush();
   }
-  const pages: TvMatchEntry[][][] = [];
+  flush();
+  const pages: TvMatchListItem[][][] = [];
   for (let index = 0; index < rows.length; index += rowsPerPage) {
     pages.push(rows.slice(index, index + rowsPerPage));
+  }
+  return pages;
+}
+
+/** The latest finished matches one entrant played in, newest first. */
+export function latestFinishedOf<
+  T extends {
+    readonly state: string;
+    readonly scheduledAt?: string;
+    readonly sides: readonly { readonly entrantId: string }[];
+  },
+>(matches: readonly T[], entrantId: string, count: number): readonly T[] {
+  return matches
+    .filter(
+      (match) =>
+        match.state === 'final' && match.sides.some((side) => side.entrantId === entrantId),
+    )
+    .sort((left, right) => (right.scheduledAt ?? '').localeCompare(left.scheduledAt ?? ''))
+    .slice(0, Math.max(0, Math.trunc(count)));
+}
+
+/**
+ * The schedule's entries with the live projection laid over them: a match that is live or finished in
+ * the projection takes that state, its score and its state label, so the list agrees with the scoreboard.
+ */
+export function overlayTvEntries(
+  entries: readonly TvMatchEntry[],
+  matches: readonly {
+    readonly matchId: string;
+    readonly state: ResultState;
+    readonly sides: readonly { readonly score: number }[];
+  }[],
+  labels: Readonly<ResultStateLabels>,
+): readonly TvMatchEntry[] {
+  const live = new Map(matches.map((match) => [match.matchId, match] as const));
+  return entries.map((entry) => {
+    const match = live.get(entry.key);
+    if (match === undefined) return entry;
+    const [home, away] = match.sides;
+    // A match that moved on takes its new state's label; one still upcoming keeps its delayed label.
+    const moved = match.state !== entry.state;
+    const stillDelayed = !moved && entry.delayed === true;
+    return {
+      ...entry,
+      state: match.state,
+      stateLabel: moved ? (labels[match.state] ?? entry.stateLabel) : entry.stateLabel,
+      ...(moved && match.state !== 'upcoming' ? { delayed: undefined } : {}),
+      ...(stillDelayed ? { delayed: true } : {}),
+      home: scoredSide(entry.home, match.state, home?.score),
+      away: scoredSide(entry.away, match.state, away?.score),
+    };
+  });
+}
+
+/**
+ * A side with the projection's score laid over it, unless the match is still upcoming: an upcoming side
+ * carries no score, whatever the projection says, and no score the entry held before.
+ */
+function scoredSide<S extends { readonly score?: number }>(
+  side: S,
+  state: ResultState,
+  score: number | undefined,
+): S {
+  const laid = state === 'upcoming' ? undefined : (score ?? side.score);
+  const plain: { score?: number } & Omit<S, 'score'> = { ...side };
+  delete plain.score;
+  return (laid === undefined ? plain : { ...plain, score: laid }) as S;
+}
+
+/** Rows cut into pages of `size` rows: the fixed pages the frame's measured size gives; none for no rows. */
+export function chunkTvRows<T>(rows: readonly T[], size: number): readonly (readonly T[])[] {
+  const step = Math.max(1, Math.floor(size));
+  const pages: T[][] = [];
+  for (let index = 0; index < rows.length; index += step) {
+    pages.push(rows.slice(index, index + step) as T[]);
   }
   return pages;
 }

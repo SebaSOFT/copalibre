@@ -22,6 +22,8 @@ import {
   mapBracketResponse,
   clubEmblemUrl,
   tournamentEmblemUrl,
+  fetchPublicTableLayouts,
+  fetchPublicTableProjection,
 } from '../../../../../../../../lib/public-api-client.ts';
 import {
   buildActorDirectory,
@@ -95,6 +97,7 @@ let dashboard: LiveDashboard = {
 };
 let tournamentName: string | undefined;
 let organizationName: string | undefined;
+let standingsStageNumber: number | undefined;
 let tournamentEmblem: string | undefined;
 let clubs: { name: string; emblemUrl?: string }[] = [];
 let winnerZones: readonly TvWinnerZone[] = [];
@@ -129,6 +132,7 @@ try {
       }));
     }
     standings = mappedOverview.standings ? [...mappedOverview.standings] : [];
+    standingsStageNumber = mappedOverview.standingsStageNumber;
     organizationTimeZone = mappedOverview.organizationTimeZone;
     overviewLastMatchAt = lastMatchAt(mappedOverview.matches);
 
@@ -239,6 +243,26 @@ if (presentation !== 'lower') {
   }
 }
 
+/*
+ * The featured performers come from the tournament's declared player-ranking layout, the same source
+ * the tournament route reads, so both routes rank the same players. In its own guard: a failure
+ * costs the performers tab, and the tab falls back to ranking teams.
+ */
+let performerProjection: Awaited<ReturnType<typeof fetchPublicTableProjection>> | undefined;
+try {
+  const layouts = await fetchPublicTableLayouts(organizationAlias, tournamentAlias);
+  const performerLayout = (layouts?.layouts ?? []).find((one) => one.target === 'player-ranking');
+  if (performerLayout) {
+    performerProjection = await fetchPublicTableProjection(
+      organizationAlias,
+      tournamentAlias,
+      performerLayout.code,
+    );
+  }
+} catch {
+  performerProjection = undefined;
+}
+
 const referenceDate = Date.now();
 const tournamentDisplayName = tournamentName ?? intl.formatMessage(messages.pageHeaderLoading);
 const organizationDisplayName = organizationName ?? intl.formatMessage(messages.pageHeaderLoading);
@@ -264,6 +288,7 @@ const organizationDisplayName = organizationName ?? intl.formatMessage(messages.
     layoutVariant={layoutVariant}
     initial={dashboard}
     initialBracket={initialBracket}
+    performerProjection={performerProjection}
     streamPath={streamPath}
     branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
     pinnedMatch={{ stageNumber, ordinal: matchOrdinal }}
@@ -280,5 +305,6 @@ const organizationDisplayName = organizationName ?? intl.formatMessage(messages.
     clubs={clubs}
     winners={winnerZones}
     standings={standings}
+    standingsStageNumber={standingsStageNumber}
   />
 </TvLayout>

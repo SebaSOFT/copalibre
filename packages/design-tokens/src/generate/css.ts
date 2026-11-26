@@ -336,6 +336,10 @@ function surfaceLevels(): string {
     '',
     '/* Under the broadcast surface, constrain to a single alternation step. */',
     ':where([data-surface="broadcast"], .cl-broadcast, .tv-root-container) :where(.cl-card, .cl-well) { --cl-content-level: panel; background: var(--cl-surface-content); }',
+    // Secondary text on a venue screen (metadata, captions, tab labels, the next-match strip) is the
+    // smallest text there: 1.8vmin, which is 19px at 1920x1080. Component-local to the TV surface,
+    // so it sits outside the reserved --cl-* namespace.
+    ':where(.tv-root-container) { --tv-min-secondary-size: 1.8vmin; }',
     '',
     // Every boundary carries the border the semantic contract already requires
     // of a panel, so two levels never rely on their fill difference alone.
@@ -1332,6 +1336,7 @@ function components(): string {
     // its own name because "final" already means a finished match.
     '.cl-badge--verified { background: var(--cl-badge-verified-background, color-mix(in srgb, var(--cl-state-positive) 15%, transparent)); color: var(--cl-state-positive); border: 1px solid color-mix(in srgb, var(--cl-state-positive) 40%, transparent); }',
     '.cl-badge.cl-state--delayed { background: color-mix(in srgb, var(--cl-state-warning) 15%, transparent); color: var(--cl-state-warning); border: 1px solid color-mix(in srgb, var(--cl-state-warning) 40%, transparent); font-weight: var(--cl-weight-semibold); }',
+    '.cl-badge.cl-state--positive { background: color-mix(in srgb, var(--cl-state-positive) 15%, transparent); color: var(--cl-state-positive); border: 1px solid color-mix(in srgb, var(--cl-state-positive) 40%, transparent); font-weight: var(--cl-weight-semibold); }',
     '',
     '.cl-btn {',
     // A link wearing the button treatment is a button, underline included —

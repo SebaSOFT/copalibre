@@ -7,6 +7,7 @@ import { isImplicitGroupZoneName } from '../../../../lib/competition-context.js'
 import { EntrantName } from '../../../ui/atoms/EntrantName.js';
 import { EntrantEmblem } from '../../../ui/molecules/EntrantEmblem.js';
 import type { TvClubItem, TvDashboardLabels } from '../../tv-types.js';
+import { createContext, useContext } from 'react';
 
 /**
  * The broadcast surface's table owner — under a
@@ -18,18 +19,40 @@ import type { TvClubItem, TvDashboardLabels } from '../../tv-types.js';
  * its classes carry the admin control theme, which would visibly clash with
  * this surface's `--tv-*` broadcast tokens.
  */
+/** A column the full-frame table declares beyond rank, club and points. */
+export interface StandingsColumn {
+  readonly code: string;
+  readonly header: string;
+  readonly valueOf: (row: StandingsRowView) => string;
+}
+
+/** The columns the tables of one render share: the declared ones, or the compact default. */
+const StandingsColumnsContext = createContext<readonly StandingsColumn[] | undefined>(undefined);
+
 export function TvStandingsTable({
   standings,
   clubs,
   dashboardLabels,
   pointsShortLabel,
   showAllRows = false,
+  stageName,
+  scopesHeadings,
+  columns,
 }: {
   readonly standings?: readonly StandingsRowView[];
   readonly clubs?: readonly TvClubItem[];
   readonly dashboardLabels: TvDashboardLabels;
   readonly pointsShortLabel: string;
   readonly showAllRows?: boolean;
+  /** The stage the table belongs to; it heads every table, ahead of the group or zone. */
+  readonly stageName?: string;
+  /**
+   * Whether each table names its group or zone. The caller decides it from the whole standings, not
+   * from the page on screen; left out, it is decided from the rows given.
+   */
+  readonly scopesHeadings?: boolean;
+  /** The declared columns of a full-frame table; the compact form has none. */
+  readonly columns?: readonly StandingsColumn[];
 }): React.JSX.Element {
   if (!standings || standings.length === 0) {
     return (
@@ -50,29 +73,28 @@ export function TvStandingsTable({
         groups: [block],
       });
   }
-  const hasAnyHeading = blocks.some(
-    (block) => block.zoneName !== undefined || block.groupName !== undefined,
-  );
+  const scoped = scopesHeadings ?? blocks.length > 1;
   const soleImplicitGroupZone =
     zoneSections.length === 1 &&
     (zoneSections[0]?.zoneName === undefined ||
       isImplicitGroupZoneName(zoneSections[0].zoneName)) &&
     zoneSections[0].groups.some((group) => group.groupName !== undefined);
+  // A table is headed by its stage, and by its group or zone once the stage has several tables.
+  const headingFor = (scope: string | undefined): string | undefined => {
+    const parts = [stageName, scoped ? scope : undefined].filter(
+      (part): part is string => part !== undefined && part.length > 0,
+    );
+    return parts.length > 0 ? parts.join(' · ') : scope;
+  };
 
   return (
-    <>
-      {hasAnyHeading && (
-        <p className="tv-standings-legend">
-          <span aria-hidden="true" className="tv-standings-legend__mark" />
-          {dashboardLabels.zoneLegend}
-        </p>
-      )}
+    <StandingsColumnsContext.Provider value={columns}>
       {soleImplicitGroupZone
         ? zoneSections[0]?.groups.map((group) => (
             <StandingsBlock
               clubs={clubs}
               dashboardLabels={dashboardLabels}
-              heading={group.groupName}
+              heading={headingFor(group.groupName)}
               key={group.groupName ?? 'group'}
               pointsShortLabel={pointsShortLabel}
               rows={group.rows}
@@ -85,7 +107,7 @@ export function TvStandingsTable({
                 <StandingsBlock
                   clubs={clubs}
                   dashboardLabels={dashboardLabels}
-                  heading={group.groupName}
+                  heading={headingFor(group.groupName)}
                   key={group.groupName ?? 'stage'}
                   pointsShortLabel={pointsShortLabel}
                   rows={group.rows}
@@ -99,7 +121,7 @@ export function TvStandingsTable({
                 <StandingsBlock
                   clubs={clubs}
                   dashboardLabels={dashboardLabels}
-                  heading={zone.zoneName}
+                  heading={headingFor(zone.zoneName)}
                   key={zone.zoneName}
                   pointsShortLabel={pointsShortLabel}
                   rows={zone.groups[0]?.rows ?? []}
@@ -114,7 +136,7 @@ export function TvStandingsTable({
                 data-testid="tv-standings-zone"
                 key={zone.zoneName}
               >
-                <h3 className="tv-standings-zone__name">{zone.zoneName}</h3>
+                <h3 className="tv-standings-zone__name">{headingFor(zone.zoneName)}</h3>
                 {zone.groups.map((group) => (
                   <div
                     className="tv-standings-group"
@@ -136,7 +158,7 @@ export function TvStandingsTable({
               </section>
             );
           })}
-    </>
+    </StandingsColumnsContext.Provider>
   );
 }
 
@@ -153,13 +175,32 @@ function StandingsRowsTable({
   readonly pointsShortLabel: string;
   readonly showAllRows: boolean;
 }): React.JSX.Element {
+  const declared = useContext(StandingsColumnsContext);
   return (
     <table className="tv-standings-table">
+      {/* Every table on a page shares these widths: the figures and points are fixed, the club takes the rest. */}
+      <colgroup>
+        <col className="tv-standings-col--rank" />
+        <col className="tv-standings-col--club" />
+        {(declared === undefined ? [undefined] : declared).map((column, index) => (
+          <col
+            className={
+              column === undefined ? 'tv-standings-col--played' : 'tv-standings-col--figures'
+            }
+            key={column?.code ?? `played-${index}`}
+          />
+        ))}
+        <col className="tv-standings-col--points" />
+      </colgroup>
       <thead>
         <tr>
           <th>#</th>
           <th>{dashboardLabels.clubColumn}</th>
-          <th>{dashboardLabels.playedColumn}</th>
+          {declared === undefined ? (
+            <th>{dashboardLabels.playedShort}</th>
+          ) : (
+            declared.map((column) => <th key={column.code}>{column.header}</th>)
+          )}
           <th>{pointsShortLabel}</th>
         </tr>
       </thead>
@@ -189,7 +230,11 @@ function StandingsRowsTable({
                   />
                 </div>
               </td>
-              <td>{row.played}</td>
+              {declared === undefined ? (
+                <td>{row.played}</td>
+              ) : (
+                declared.map((column) => <td key={column.code}>{column.valueOf(row)}</td>)
+              )}
               <td>{row.points}</td>
             </tr>
           );

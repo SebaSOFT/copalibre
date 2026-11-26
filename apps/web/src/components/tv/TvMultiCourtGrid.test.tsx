@@ -8,6 +8,16 @@ import { hydrateWithReducedMotion } from '../../lib/island-hydration.test-suppor
 
 const labels = tvMultiCourtGridLabels(publicIntl('en'));
 
+/** Every fixture match on its own court; a match without one gets no tile. */
+const COURTS = {
+  'match-1': 'Cancha 1',
+  'match-2': 'Cancha 2',
+  'match-3': 'Cancha 3',
+  'match-4': 'Cancha 4',
+  'match-5': 'Cancha 5',
+  'match-6': 'Cancha 6',
+};
+
 function liveMatch(overrides: Partial<LiveMatch> & { readonly matchId: string }): LiveMatch {
   return {
     stageNumber: 1,
@@ -64,13 +74,18 @@ describe('TvMultiCourtGrid', () => {
         ])}
         noMatchesLabel={labels.noMatches}
         resultStateLabels={labels.resultState}
+        inProgressLabel={labels.inProgress}
+        delayedLabel={labels.delayed ?? ''}
+        clockLabel={labels.clockLabel}
+        pageOfLabel={labels.pageOf}
         streamPath="/events/tv/liga/tournaments/apertura"
         venueNameByMatchId={{ 'match-1': 'Cancha 1', 'match-2': 'Cancha 2' }}
       />,
     );
 
+    // Two courts fill two cells: an explicit grid of four is capped by the courts there are.
     const grid = screen.getByTestId('tv-multicourt-grid');
-    expect(grid.className).toContain('tv-multicourt-grid--4');
+    expect(grid.className).toContain('tv-multicourt-grid--2');
     expect(screen.getByTestId('tv-court-card-match-1')).toBeDefined();
     expect(screen.getByTestId('tv-court-card-match-2')).toBeDefined();
     expect(screen.getByText('Cancha 1')).toBeDefined();
@@ -88,8 +103,12 @@ describe('TvMultiCourtGrid', () => {
         ])}
         noMatchesLabel={labels.noMatches}
         resultStateLabels={labels.resultState}
+        inProgressLabel={labels.inProgress}
+        delayedLabel={labels.delayed ?? ''}
+        clockLabel={labels.clockLabel}
+        pageOfLabel={labels.pageOf}
         streamPath="/events/tv/liga/tournaments/apertura"
-        venueNameByMatchId={{}}
+        venueNameByMatchId={COURTS}
       />,
     );
 
@@ -104,6 +123,10 @@ describe('TvMultiCourtGrid', () => {
         initial={dashboard([liveMatch({ matchId: 'match-1', state: 'final' })])}
         noMatchesLabel={labels.noMatches}
         resultStateLabels={labels.resultState}
+        inProgressLabel={labels.inProgress}
+        delayedLabel={labels.delayed ?? ''}
+        clockLabel={labels.clockLabel}
+        pageOfLabel={labels.pageOf}
         streamPath="/events/tv/liga/tournaments/apertura"
         venueNameByMatchId={{}}
       />,
@@ -124,8 +147,12 @@ describe('TvMultiCourtGrid', () => {
         ])}
         noMatchesLabel={labels.noMatches}
         resultStateLabels={labels.resultState}
+        inProgressLabel={labels.inProgress}
+        delayedLabel={labels.delayed ?? ''}
+        clockLabel={labels.clockLabel}
+        pageOfLabel={labels.pageOf}
         streamPath="/events/tv/liga/tournaments/apertura"
-        venueNameByMatchId={{}}
+        venueNameByMatchId={COURTS}
       />,
     );
 
@@ -159,33 +186,165 @@ describe('TvMultiCourtGrid', () => {
     expect(card2.querySelector('.tv-court-card__value.cl-flash-on-change')).toBeNull();
   });
 
-  it('rotates pages every 20s once live matches exceed the grid size', async () => {
+  it('fills the frame with one court, and follows the court count up to six', () => {
+    const scheduledAt = new Date(Date.now() + 3_600_000).toISOString();
+    const grid = (count: number): string => {
+      const { unmount } = render(
+        <TvMultiCourtGrid
+          ariaLabel={labels.ariaLabel}
+          initial={dashboard(
+            Array.from({ length: count }, (_, index) =>
+              liveMatch({
+                matchId: `match-${index + 1}`,
+                state: 'upcoming',
+                clockSeconds: undefined,
+                scheduledAt,
+              }),
+            ),
+          )}
+          inProgressLabel={labels.inProgress}
+          delayedLabel={labels.delayed}
+          clockLabel={labels.clockLabel}
+          noMatchesLabel={labels.noMatches}
+          pageOfLabel={labels.pageOf}
+          resultStateLabels={labels.resultState}
+          streamPath="/events/tv/liga/tournaments/apertura"
+          venueNameByMatchId={COURTS}
+        />,
+      );
+      const className = screen.getByTestId('tv-multicourt-grid').className;
+      unmount();
+      return className;
+    };
+
+    expect(grid(1)).toContain('tv-multicourt-grid--1');
+    expect(grid(2)).toContain('tv-multicourt-grid--2');
+    expect(grid(3)).toContain('tv-multicourt-grid--4');
+    expect(grid(5)).toContain('tv-multicourt-grid--6');
+  });
+
+  it('gives one tile per court: six matches on one court and one on another make two tiles', () => {
+    const kickoff = (hours: number): string =>
+      new Date(Date.now() + hours * 3_600_000).toISOString();
     render(
       <TvMultiCourtGrid
         ariaLabel={labels.ariaLabel}
         gridSize={2}
         initial={dashboard([
-          liveMatch({ matchId: 'match-1' }),
-          liveMatch({ matchId: 'match-2', matchNumber: 2 }),
-          liveMatch({ matchId: 'match-3', matchNumber: 3 }),
-          liveMatch({ matchId: 'match-4', matchNumber: 4 }),
+          ...[1, 2, 3, 4, 5, 6].map((ordinal) =>
+            liveMatch({
+              matchId: `match-${ordinal}`,
+              matchNumber: ordinal,
+              state: 'upcoming',
+              clockSeconds: undefined,
+              scheduledAt: kickoff(ordinal),
+            }),
+          ),
+          liveMatch({
+            matchId: 'match-7',
+            matchNumber: 7,
+            state: 'upcoming',
+            clockSeconds: undefined,
+            scheduledAt: kickoff(1),
+          }),
         ])}
         noMatchesLabel={labels.noMatches}
+        pageOfLabel={labels.pageOf}
         resultStateLabels={labels.resultState}
+        inProgressLabel={labels.inProgress}
+        delayedLabel={labels.delayed ?? ''}
+        clockLabel={labels.clockLabel}
         streamPath="/events/tv/liga/tournaments/apertura"
-        venueNameByMatchId={{}}
+        venueNameByMatchId={{
+          'match-1': 'Aldo Cantoni',
+          'match-2': 'Aldo Cantoni',
+          'match-3': 'Aldo Cantoni',
+          'match-4': 'Aldo Cantoni',
+          'match-5': 'Aldo Cantoni',
+          'match-6': 'Aldo Cantoni',
+          'match-7': 'Huarpes',
+        }}
+      />,
+    );
+
+    expect(document.querySelectorAll('.tv-court-card')).toHaveLength(2);
+    expect(screen.getByTestId('tv-court-card-match-1')).toBeDefined();
+    expect(screen.getByTestId('tv-court-card-match-7')).toBeDefined();
+  });
+
+  it('shows a scheduled tile as its start time, never a score', () => {
+    render(
+      <TvMultiCourtGrid
+        ariaLabel={labels.ariaLabel}
+        gridSize={2}
+        initial={dashboard([
+          liveMatch({
+            matchId: 'match-1',
+            state: 'upcoming',
+            clockSeconds: undefined,
+            scheduledAt: new Date(Date.now() + 3_600_000).toISOString(),
+          }),
+        ])}
+        noMatchesLabel={labels.noMatches}
+        pageOfLabel={labels.pageOf}
+        resultStateLabels={labels.resultState}
+        inProgressLabel={labels.inProgress}
+        delayedLabel={labels.delayed ?? ''}
+        clockLabel={labels.clockLabel}
+        streamPath="/events/tv/liga/tournaments/apertura"
+        venueNameByMatchId={COURTS}
+      />,
+    );
+
+    const tile = screen.getByTestId('tv-court-card-match-1');
+    expect(tile.querySelector('.tv-start-time')).not.toBeNull();
+    expect(tile.querySelector('.tv-court-card__value')).toBeNull();
+    // The start time carries digits of its own; what must not appear is a scoreline.
+    expect(tile.textContent).not.toMatch(/\b0\s*:\s*0\b/);
+  });
+
+  it('keeps the live court on every page and rotates only the other courts every 20s', async () => {
+    const kickoff = new Date(Date.now() + 3_600_000).toISOString();
+    render(
+      <TvMultiCourtGrid
+        ariaLabel={labels.ariaLabel}
+        gridSize={4}
+        initial={dashboard([
+          liveMatch({ matchId: 'match-1' }),
+          ...[2, 3, 4, 5].map((ordinal) =>
+            liveMatch({
+              matchId: `match-${ordinal}`,
+              matchNumber: ordinal,
+              state: 'upcoming',
+              clockSeconds: undefined,
+              scheduledAt: kickoff,
+            }),
+          ),
+        ])}
+        noMatchesLabel={labels.noMatches}
+        pageOfLabel={labels.pageOf}
+        resultStateLabels={labels.resultState}
+        inProgressLabel={labels.inProgress}
+        delayedLabel={labels.delayed ?? ''}
+        clockLabel={labels.clockLabel}
+        streamPath="/events/tv/liga/tournaments/apertura"
+        venueNameByMatchId={COURTS}
       />,
     );
 
     expect(screen.getByTestId('tv-court-card-match-1')).toBeDefined();
-    expect(screen.queryByTestId('tv-court-card-match-3')).toBeNull();
+    expect(screen.getByTestId('tv-court-card-match-2')).toBeDefined();
+    expect(screen.queryByTestId('tv-court-card-match-5')).toBeNull();
+    expect(screen.getByText('Page 1 of 2')).toBeDefined();
 
     await act(async () => {
       await jest.advanceTimersByTimeAsync(20_000);
     });
 
-    expect(screen.queryByTestId('tv-court-card-match-1')).toBeNull();
-    expect(screen.getByTestId('tv-court-card-match-3')).toBeDefined();
+    expect(screen.getByTestId('tv-court-card-match-1')).toBeDefined();
+    expect(screen.queryByTestId('tv-court-card-match-2')).toBeNull();
+    expect(screen.getByTestId('tv-court-card-match-5')).toBeDefined();
+    expect(screen.getByText('Page 2 of 2')).toBeDefined();
   });
 
   it('never rotates pages under prefers-reduced-motion', async () => {
@@ -212,8 +371,12 @@ describe('TvMultiCourtGrid', () => {
           ])}
           noMatchesLabel={labels.noMatches}
           resultStateLabels={labels.resultState}
+          inProgressLabel={labels.inProgress}
+          delayedLabel={labels.delayed ?? ''}
+          clockLabel={labels.clockLabel}
+          pageOfLabel={labels.pageOf}
           streamPath="/events/tv/liga/tournaments/apertura"
-          venueNameByMatchId={{}}
+          venueNameByMatchId={COURTS}
         />,
       );
 
@@ -258,6 +421,10 @@ describe('TvMultiCourtGrid hydration', () => {
         ])}
         noMatchesLabel={labels.noMatches}
         resultStateLabels={labels.resultState}
+        inProgressLabel={labels.inProgress}
+        delayedLabel={labels.delayed ?? ''}
+        clockLabel={labels.clockLabel}
+        pageOfLabel={labels.pageOf}
         streamPath="/events/tv/liga/tournaments/apertura"
         venueNameByMatchId={{ 'match-1': 'Cancha 1', 'match-2': 'Cancha 2', 'match-3': 'Cancha 3' }}
       />,
@@ -273,6 +440,86 @@ describe('TvMultiCourtGrid hydration', () => {
       ).toBe(firstPage);
     } finally {
       island.unmount();
+    }
+  });
+});
+
+describe('TvMultiCourtGrid court fallbacks and the shared clock', () => {
+  const at = (hoursFromNow: number): string =>
+    new Date(Date.now() + hoursFromNow * 3_600_000).toISOString();
+  const renderGrid = (matches: readonly LiveMatch[], venues: Record<string, string>, extra = {}) =>
+    render(
+      <TvMultiCourtGrid
+        ariaLabel={labels.ariaLabel}
+        clockLabel={labels.clockLabel}
+        delayedLabel={labels.delayed}
+        initial={dashboard(matches)}
+        inProgressLabel={labels.inProgress}
+        noMatchesLabel={labels.noMatches}
+        pageOfLabel={labels.pageOf}
+        resultStateLabels={labels.resultState}
+        streamPath="/events/tv/liga/tournaments/apertura"
+        venueNameByMatchId={venues}
+        {...extra}
+      />,
+    );
+
+  it('keeps a court whose only match runs late, labelled as delayed', () => {
+    const late = liveMatch({
+      matchId: 'late-1',
+      state: 'upcoming',
+      clockSeconds: undefined,
+      scheduledAt: new Date(Date.now() - 2 * 3_600_000).toISOString(),
+    });
+    renderGrid([late], { 'late-1': 'Cancha 9' });
+
+    const tile = screen.getByTestId('tv-court-card-late-1');
+    expect(tile.textContent).toContain(labels.delayed);
+  });
+
+  it('prefers the court next match over its delayed one', () => {
+    const delayed = liveMatch({
+      matchId: 'old',
+      state: 'upcoming',
+      clockSeconds: undefined,
+      scheduledAt: new Date(Date.now() - 2 * 3_600_000).toISOString(),
+    });
+    const next = liveMatch({
+      matchId: 'next',
+      state: 'upcoming',
+      clockSeconds: undefined,
+      scheduledAt: at(2),
+    });
+    renderGrid([delayed, next], { old: 'Cancha 9', next: 'Cancha 9' });
+
+    expect(screen.getByTestId('tv-court-card-next')).toBeDefined();
+    expect(screen.queryByTestId('tv-court-card-old')).toBeNull();
+  });
+
+  it('reads Live in the header while the tournament is live, even on a court with no match', () => {
+    renderGrid([liveMatch({ matchId: 'no-court' })], {});
+
+    expect(document.querySelector('.tv-scorebug__badge')?.textContent).toContain(
+      labels.resultState.live,
+    );
+    expect(screen.queryByTestId('tv-court-card-no-court')).toBeNull();
+  });
+
+  it('draws the clock at once on mount, from the present, not the reference the server drew', () => {
+    // The server drew the page at 10:00; the island mounts at 11:00 and must not wait a tick for it.
+    const spy = jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-11-25T11:00:00Z'));
+    try {
+      renderGrid([liveMatch({ matchId: 'm1' })], COURTS, {
+        referenceDate: Date.parse('2026-11-25T10:00:00Z'),
+        timeZone: 'UTC',
+        locale: 'en',
+      });
+
+      expect(
+        document.querySelector('.tv-scorebug__clock--wall')?.getAttribute('data-time'),
+      ).toContain('11:00');
+    } finally {
+      spy.mockRestore();
     }
   });
 });

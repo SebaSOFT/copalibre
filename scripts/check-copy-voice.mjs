@@ -20,6 +20,10 @@ export const ACRONYM_ALLOWLIST = new Set([
   'SSE',
   'MCP',
   'AGPL',
+  // Standings column abbreviations for matches played: es PJ, fr MJ, it PG.
+  'PJ',
+  'MJ',
+  'PG',
 ]);
 
 export const BANNED_WORDS = {

@@ -196,6 +196,12 @@ export function tvStatisticsLabels(intl: IntlShape) {
     hiddenPerson: intl.formatMessage(messages.personHiddenAtRequest),
     scheduledMatches: intl.formatMessage(messages.tvStatsScheduledMatches),
     status: intl.formatMessage(messages.tvStatsStatus),
+    statusLabels: {
+      scheduled: intl.formatMessage(messages.resultStateUpcoming),
+      live: intl.formatMessage(messages.resultStateLive),
+      inProgress: intl.formatMessage(messages.completionInProgress),
+      finished: intl.formatMessage(messages.resultStateFinal),
+    },
     inProgress: intl.formatMessage(messages.tvStatsInProgress),
     matchesPlayed: intl.formatMessage(messages.tvStatsMatchesPlayed),
     totalScored: intl.formatMessage(messages.tvStatsTotalScored),
@@ -226,11 +232,13 @@ export function tvDashboardLabels(intl: IntlShape) {
       venue: '{venue}',
     }),
     resultState: resultStateLabels(intl),
+    /** The tournament-level badge for a started tournament between matches. */
+    inProgress: intl.formatMessage(messages.completionInProgress),
     delayed: intl.formatMessage(messages.resultStateDelayed),
     noMatchesScheduled: intl.formatMessage(messages.tvDashboardNoMatchesScheduled),
     standingsUnavailable: intl.formatMessage(messages.tvDashboardStandingsUnavailable),
     clubColumn: intl.formatMessage(messages.tvDashboardClubColumn),
-    playedColumn: intl.formatMessage(messages.tvDashboardPlayedColumn),
+    playedShort: intl.formatMessage(messages.tvDashboardPlayedShort),
     noTopPerformers: intl.formatMessage(messages.tvDashboardNoTopPerformers),
     focalPanelLabel: intl.formatMessage(messages.tvDashboardFocalPanelLabel),
     focalPanelTitle: intl.formatMessage(messages.tvDashboardFeaturedMatchTitle),
@@ -255,6 +263,8 @@ export function tvDashboardLabels(intl: IntlShape) {
     sidebarSectionsLabel: intl.formatMessage(messages.tvDashboardSidebarSectionsLabel),
     standingsTab: intl.formatMessage(messages.tvDashboardStandingsTab),
     performersTab: intl.formatMessage(messages.tvDashboardPerformersTab),
+    performersTeamsTab: intl.formatMessage(messages.tvDashboardPerformersTeamsTab),
+    recentFormTab: intl.formatMessage(messages.tvDashboardRecentFormTab),
     statisticsTab: intl.formatMessage(messages.tvDashboardStatisticsTab),
     bracketTab: intl.formatMessage(messages.tvDashboardBracketTab),
     fixturesTab: intl.formatMessage(messages.tvDashboardFixturesTab),
@@ -270,7 +280,6 @@ export function tvDashboardLabels(intl: IntlShape) {
     }),
     leading: intl.formatMessage(messages.tvDashboardLeading),
     nextMatch: intl.formatMessage(messages.tvDashboardNextMatch),
-    zoneLegend: intl.formatMessage(messages.tvDashboardZoneLegend),
     // Raw templates, filled in the island: a function would not survive its JSON props.
     finishedOn: intl.formatMessage(messages.tvDashboardFinishedOn, { date: '{date}' }),
     matchNotFound: intl.formatMessage(messages.tvDashboardMatchNotFound),
@@ -298,6 +307,10 @@ export function tvMultiCourtGridLabels(intl: IntlShape) {
       segment: '{segment}',
       time: '{time}',
     }),
+    inProgress: intl.formatMessage(messages.completionInProgress),
+    delayed: intl.formatMessage(messages.resultStateDelayed),
+    clockLabel: intl.formatMessage(messages.tvDashboardClockLabel),
+    pageOf: intl.formatMessage(messages.tvDashboardPageOf, { page: '{page}', total: '{total}' }),
   };
 }
 

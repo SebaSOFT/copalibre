@@ -78,6 +78,8 @@ let dashboard: LiveDashboard = {
 };
 let tournamentName: string | undefined;
 let organizationName: string | undefined;
+let standingsStageNumber: number | undefined;
+let standingsProjection: TableProjectionResponse | undefined;
 let tournamentEmblem: string | undefined;
 let clubs: { name: string; emblemUrl?: string }[] = [];
 let winnerZones: readonly TvWinnerZone[] = [];
@@ -103,6 +105,7 @@ try {
     disciplineImages = overview.disciplineImages;
     tournamentName = mappedOverview.tournamentName || undefined;
     organizationName = mappedOverview.organizationName || undefined;
+    standingsStageNumber = mappedOverview.standingsStageNumber;
     if (mappedOverview.emblemObjectId) {
       tournamentEmblem = tournamentEmblemUrl(organizationAlias, tournamentAlias);
     }
@@ -135,39 +138,70 @@ try {
 }
 
 /*
-  The ticker's own projections, read in their own guard.
+  The ticker's and the standings' own projections, read in their own guards.
   Deliberately outside the block above: a failure here must cost the ticker its
   items and nothing else. Folded into that try, a table read that 404s would
   have been caught by its `catch` and replaced the whole live dashboard with
   sample data — a broadcast showing invented scores because a statistics table
   was missing.
+
+  One layouts read serves both. The standings view's table reads in parallel
+  with the ticker's, and reuses the ticker's leader projection when it is the
+  same layout and the same stage.
 */
+const layoutsRead = fetchPublicTableLayouts(organizationAlias, tournamentAlias).catch(
+  () => undefined,
+);
+const earliestStage = overviewMatches.reduce(
+  (earliest, match) => Math.min(earliest, match.stageNumber),
+  Infinity,
+);
+const leaderRead = layoutsRead.then((layouts) => {
+  const groupLayout = (layouts?.layouts ?? []).find((one) => one.target === 'group-phase');
+  return groupLayout && Number.isFinite(earliestStage)
+    ? fetchPublicTableProjection(
+        organizationAlias,
+        tournamentAlias,
+        groupLayout.code,
+        earliestStage,
+      )
+    : undefined;
+});
+const performerRead = layoutsRead.then((layouts) => {
+  const performerLayout = (layouts?.layouts ?? []).find((one) => one.target === 'player-ranking');
+  return performerLayout
+    ? fetchPublicTableProjection(organizationAlias, tournamentAlias, performerLayout.code)
+    : undefined;
+});
+// The full-frame standings view widens its table by the standings layout's declared columns. Read only
+// for that view; a failure costs the columns alone and never the ticker.
+const standingsRead = (async (): Promise<TableProjectionResponse | undefined> => {
+  if (Astro.url.searchParams.get('view') !== 'standings' || standingsStageNumber === undefined) {
+    return undefined;
+  }
+  try {
+    const layouts = await layoutsRead;
+    const groupLayout = (layouts?.layouts ?? []).find((one) => one.target === 'group-phase');
+    if (!groupLayout) return undefined;
+    if (standingsStageNumber === earliestStage) return await leaderRead;
+    return await fetchPublicTableProjection(
+      organizationAlias,
+      tournamentAlias,
+      groupLayout.code,
+      standingsStageNumber,
+    );
+  } catch {
+    return undefined;
+  }
+})();
+
 try {
-  const layouts = await fetchPublicTableLayouts(organizationAlias, tournamentAlias);
-  const declared = layouts?.layouts ?? [];
-  const performerLayout = declared.find((one) => one.target === 'player-ranking');
-  const groupLayout = declared.find((one) => one.target === 'group-phase');
-  const earliestStage = overviewMatches.reduce(
-    (earliest, match) => Math.min(earliest, match.stageNumber),
-    Infinity,
-  );
-  [performerProjection, leaderProjection] = await Promise.all([
-    performerLayout
-      ? fetchPublicTableProjection(organizationAlias, tournamentAlias, performerLayout.code)
-      : Promise.resolve(undefined),
-    groupLayout && Number.isFinite(earliestStage)
-      ? fetchPublicTableProjection(
-          organizationAlias,
-          tournamentAlias,
-          groupLayout.code,
-          earliestStage,
-        )
-      : Promise.resolve(undefined),
-  ]);
+  [performerProjection, leaderProjection] = await Promise.all([performerRead, leaderRead]);
 } catch {
   performerProjection = undefined;
   leaderProjection = undefined;
 }
+standingsProjection = await standingsRead;
 
 /*
  * The presentation is a property of the request, resolved here so the very
@@ -386,6 +420,15 @@ const tickerItems =
       ariaLabel={tvMultiCourtGridLabels(intl).ariaLabel}
       clockStoppedLabel={tvMultiCourtGridLabels(intl).clockStopped}
       clockAriaLabel={tvMultiCourtGridLabels(intl).clockAriaLabel}
+      tournamentName={tournamentDisplayName}
+      organizationName={organizationDisplayName}
+      {...(tournamentEmblem === undefined ? {} : { logoUrl: tournamentEmblem })}
+      inProgressLabel={tvMultiCourtGridLabels(intl).inProgress}
+      delayedLabel={tvMultiCourtGridLabels(intl).delayed}
+      clockLabel={tvMultiCourtGridLabels(intl).clockLabel}
+      pageOfLabel={tvMultiCourtGridLabels(intl).pageOf}
+      referenceDate={referenceDate}
+      {...(organizationTimeZone === undefined ? {} : { timeZone: organizationTimeZone })}
     />
   ) : (
     <TvDashboard
@@ -410,6 +453,8 @@ const tickerItems =
       clubs={clubs}
       winners={winnerZones}
       standings={standings}
+      standingsStageNumber={standingsStageNumber}
+      standingsProjection={standingsProjection}
       topPerformers={topPerformers}
       performerProjection={performerProjection}
       labels={tvStatisticsLabels(intl)}

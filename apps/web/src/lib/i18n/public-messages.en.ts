@@ -1287,9 +1287,9 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.clubColumn',
     defaultMessage: 'Club',
   },
-  tvDashboardPlayedColumn: {
-    id: 'publicWeb.tvDashboard.playedColumn',
-    defaultMessage: 'Played',
+  tvDashboardPlayedShort: {
+    id: 'publicWeb.tvDashboard.playedShort',
+    defaultMessage: 'P',
   },
   tvDashboardNoTopPerformers: {
     id: 'publicWeb.tvDashboard.noTopPerformers',
@@ -1344,6 +1344,14 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.performersTab',
     defaultMessage: 'Top performers',
   },
+  tvDashboardPerformersTeamsTab: {
+    id: 'publicWeb.tvDashboard.performersTeamsTab',
+    defaultMessage: 'Top teams',
+  },
+  tvDashboardRecentFormTab: {
+    id: 'publicWeb.tvDashboard.recentFormTab',
+    defaultMessage: 'Recent results',
+  },
   tvDashboardStatisticsTab: {
     id: 'publicWeb.tvDashboard.statisticsTab',
     defaultMessage: 'Statistics',
@@ -1387,10 +1395,6 @@ export const messages = defineMessages({
   tvDashboardNextMatch: {
     id: 'publicWeb.tvDashboard.nextMatch',
     defaultMessage: 'Next match',
-  },
-  tvDashboardZoneLegend: {
-    id: 'publicWeb.tvDashboard.zoneLegend',
-    defaultMessage: 'Group or zone',
   },
   tvDashboardFinishedOn: {
     id: 'publicWeb.tvDashboard.finishedOn',

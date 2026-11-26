@@ -21,6 +21,8 @@ export interface TvStatisticsLabels {
   readonly hiddenPerson: string;
   readonly scheduledMatches: string;
   readonly status: string;
+  /** The four tournament states, named the way the header badges name them. */
+  readonly statusLabels: Readonly<Record<TvTournamentState, string>>;
   readonly inProgress: string;
   readonly matchesPlayed: string;
   readonly totalScored: string;
@@ -73,6 +75,24 @@ export interface ChampionInfo {
   readonly emblemUrl?: string;
   readonly title: string;
   readonly record?: string;
+}
+
+export type TvTournamentState = 'scheduled' | 'live' | 'inProgress' | 'finished';
+
+/**
+ * The one tournament status every TV piece reads: the header badge, the overlay badge and the facts
+ * tile. A forfeit is stored as a final match, so "finished" is every match final.
+ *
+ * A match whose kickoff has passed without a result is still scheduled here; the per-match delayed
+ * state is a view-level presentation layered on top by the caller.
+ */
+export function tvTournamentState(
+  matches: readonly { readonly state: string }[],
+): TvTournamentState {
+  if (matches.length > 0 && matches.every((match) => match.state === 'final')) return 'finished';
+  if (matches.some((match) => match.state === 'live')) return 'live';
+  if (matches.some((match) => match.state === 'final')) return 'inProgress';
+  return 'scheduled';
 }
 
 function extractScores(match: LiveMatch | OverviewMatch, labels: TvStatisticsLabels) {
@@ -180,12 +200,13 @@ export function deriveTournamentFacts(
   labels: TvStatisticsLabels,
   matches: readonly (LiveMatch | OverviewMatch)[],
 ): readonly TournamentFact[] {
+  const status: TournamentFact = {
+    label: labels.status,
+    value: labels.statusLabels[tvTournamentState(matches)],
+  };
   const finalMatches = matches.filter((m) => m.state === 'final');
   if (finalMatches.length === 0) {
-    return [
-      { label: labels.scheduledMatches, value: matches.length },
-      { label: labels.status, value: labels.inProgress },
-    ];
+    return [{ label: labels.scheduledMatches, value: matches.length }, status];
   }
 
   let totalScore = 0;
@@ -220,6 +241,7 @@ export function deriveTournamentFacts(
     });
   }
 
+  facts.push(status);
   return facts;
 }
 
@@ -239,7 +261,7 @@ export function resolveChampion(
   const emblemUrlFor = (clubId?: string): string | undefined =>
     clubId === undefined ? undefined : clubs?.find((club) => club.clubId === clubId)?.emblemUrl;
 
-  const allFinal = matches.length > 0 && matches.every((m) => m.state === 'final');
+  const allFinal = tvTournamentState(matches) === 'finished';
   // A tournament that played several stages is decided by its last one, so the standings leader of
   // an earlier stage is never named its champion; the final match below or the resolved winners
   // the dashboard is given name it instead.

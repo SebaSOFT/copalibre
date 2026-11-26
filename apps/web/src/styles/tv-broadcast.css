@@ -61,6 +61,13 @@
   height: auto;
 }
 
+/* The ticker band keeps its block size whatever its items are doing, so the panels below never move. */
+#tv-root .cl-ticker__content--tv {
+  flex: 0 0 auto;
+  block-size: 5.5vmin;
+  overflow: hidden;
+}
+
 /* 1. Score-bug / Top Status Bar */
 .tv-scorebug {
   display: flex;
@@ -69,7 +76,10 @@
   background: var(--tv-bg-surface);
   border: 1px solid var(--tv-border);
   padding: 1.2vmin 2.5vmin;
-  min-height: 7vmin;
+  /* A fixed block size: a rotation or a late clock never moves the header or the panels under it. */
+  box-sizing: border-box;
+  block-size: 14vmin;
+  overflow: hidden;
 }
 
 .tv-scorebug__left {
@@ -188,6 +198,28 @@
   color: var(--cl-state-warning);
 }
 
+/* A match that has not started, in the place its score would be: kickoff, then court. */
+.tv-start-time {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8vmin;
+  font-family: var(--cl-font-mono);
+}
+
+.tv-start-time__when {
+  font-size: var(--tv-min-clock-size);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.tv-start-time__court {
+  font-size: var(--tv-min-secondary-size);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cl-text-secondary);
+}
+
 .tv-scorebug__dot {
   width: 1vmin;
   height: 1vmin;
@@ -229,7 +261,7 @@
 }
 
 .cl-live-clock--tv .cl-live-clock__segment {
-  font-size: 0.45em;
+  font-size: max(var(--tv-min-secondary-size), 0.45em);
   color: var(--tv-text-secondary);
 }
 
@@ -258,17 +290,29 @@
 .tv-main-stage {
   display: grid;
   grid-template-columns: 58% 40%;
+  /* One row that is the stage's height: a rail's content taller than the stage scrolls, it does not stretch the row. */
+  grid-template-rows: minmax(0, 1fr);
   gap: 2.5vmin;
   flex: 1;
   min-height: 0;
 }
 
-.tv-presentation-layout,
-.tv-multi-match-dashboard {
+.tv-presentation-layout {
   display: grid;
   flex: 1 1 auto;
   min-height: 0;
   gap: 2vmin;
+}
+
+/* The dashboard takes the space the frame leaves, not the height its content asks for: a standings page
+   taller than the frame must not stretch the grid, and the frame the paging measures, with it. */
+.tv-multi-match-dashboard {
+  display: grid;
+  flex: 1 1 0;
+  min-height: 0;
+  gap: 2vmin;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
 }
 
 .tv-presentation-layout {
@@ -418,11 +462,6 @@
   color: var(--tv-text-muted);
   font-family: var(--cl-font-mono);
   font-size: 0.85em;
-}
-
-.tv-multi-match-dashboard {
-  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto;
 }
 
 .tv-dashboard-live-panel {
@@ -954,10 +993,18 @@
 }
 
 .tv-rail-content {
-  flex: 1;
+  /* A definite basis: the content's height never sizes the panel the paging measures. */
+  flex: 1 1 0px;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+}
+
+/* A paged tab never scrolls: paging replaces scrolling, so no scrollbar can change the frame's width.
+   The rail's other tabs keep their scroll. */
+.tv-rail-content--paged {
+  overflow: hidden;
 }
 
 .tv-bracket,
@@ -1076,22 +1123,27 @@
   text-transform: uppercase;
 }
 
-.tv-standings-legend {
-  display: flex;
-  align-items: center;
-  gap: 0.8vmin;
-  margin: 0;
-  color: var(--tv-text-secondary);
-  font-family: var(--cl-font-mono);
-  font-size: clamp(var(--cl-font-size-xs), 1.2vmin, var(--cl-font-size-sm));
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+.tv-standings-table {
+  table-layout: fixed;
+  width: 100%;
 }
 
-.tv-standings-legend__mark {
-  width: 0.6vmin;
-  height: 1.5em;
-  background: var(--tv-live-cyan);
+/* The standings grid: rank, club and points at fixed widths; the figures between them share a width. */
+.tv-standings-col--rank {
+  width: 5vmin;
+}
+
+.tv-standings-col--figures {
+  width: 9vmin;
+}
+
+/* The compact rail's one figure column carries the played header, which is wider than a figure. */
+.tv-standings-col--played {
+  width: 15vmin;
+}
+
+.tv-standings-col--points {
+  width: 7vmin;
 }
 
 .tv-standings-table th {
@@ -1626,13 +1678,38 @@
   }
 }
 
-/* Multi-court grid */
+/* Multi-court grid: a fixed header, then the courts take the rest of the frame. */
+.tv-multicourt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cl-space-4);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.tv-multicourt__pager {
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--tv-min-secondary-size);
+  text-align: right;
+  text-transform: uppercase;
+}
+
 .tv-multicourt-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
   gap: var(--cl-space-4);
+  flex: 1 1 auto;
   width: 100%;
-  height: 100%;
+  min-height: 0;
+}
+
+.tv-multicourt-grid--1 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
 }
 
 .tv-multicourt-grid--2 {
@@ -1669,9 +1746,21 @@
   overflow: hidden;
 }
 
+/* The court name and the footer keep their height; the score takes whatever the card has left. */
+.tv-court-card__venue,
+.tv-court-card__footer {
+  flex: 0 0 auto;
+}
+
+.tv-court-card__score {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .tv-court-card__venue {
   font-family: var(--cl-font-mono);
-  font-size: clamp(0.9rem, 2vmin, 1.4rem);
+  /* The court name is a caption: never under the secondary floor. */
+  font-size: max(var(--tv-min-secondary-size), 2vmin);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1749,20 +1838,67 @@
 
 .tv-match-list__entry {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto minmax(0, 1fr);
+  /* The stage line spans the entry, the two teams and the score flank it, the kickoff or court line closes it. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas:
+    'scope scope scope'
+    'home middle away'
+    'when when when';
   align-items: center;
-  gap: 1vmin;
+  gap: 0.6vmin 1.2vmin;
   min-width: 0;
   padding: 0.8vmin 1.2vmin;
   background: var(--cl-surface-chrome);
   border: 1px solid var(--tv-border);
   font-family: var(--cl-font-mono);
-  font-size: clamp(0.8rem, 1.5vmin, 1.1rem);
 }
 
-.tv-match-list__round {
+/* The stage, zone and round: one line that ends in an ellipsis; its full text is the accessible name. */
+.tv-match-list__scope {
+  grid-area: scope;
+  min-width: 0;
+  overflow: hidden;
   color: var(--tv-text-muted);
-  font-size: 0.8em;
+  font-size: var(--tv-min-secondary-size);
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The kickoff and the court of a played match: its own line, which never truncates. */
+.tv-match-list__when {
+  grid-area: when;
+  text-align: center;
+  color: var(--tv-text-muted);
+  font-size: var(--tv-min-secondary-size);
+  overflow-wrap: anywhere;
+}
+
+.tv-match-list__middle {
+  grid-area: middle;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* A scheduled entry's start time, in the place its scoreline would be. */
+.tv-match-list__start {
+  align-items: center;
+}
+
+.tv-match-list__start .tv-start-time__when {
+  font-size: var(--tv-min-team-name-size);
+}
+
+/* A block heading of the ordered list: it spans both columns and names the block's state. */
+.tv-match-list__heading {
+  grid-column: 1 / -1;
+  padding-top: 0.6vmin;
+  color: var(--cl-primary);
+  font-family: var(--cl-font-display);
+  font-size: var(--tv-min-secondary-size);
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -1783,20 +1919,107 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--cl-font-display);
+  /* The team names are the largest text on a list entry: the broadcast team-name size. */
+  font-size: var(--tv-min-team-name-size);
+  line-height: 1.1;
+}
+
+.tv-match-list__side--home {
+  grid-area: home;
+}
+
+.tv-match-list__side--away {
+  grid-area: away;
 }
 
 .tv-match-list__side .cl-entrant-name {
   font-family: inherit;
+  /* Block, so the side's own ellipsis cuts a long name rather than the cell's edge. */
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tv-match-list__side--home {
   text-align: right;
 }
 
+.tv-match-list__side--away {
+  text-align: left;
+}
+
 .tv-match-list__score {
   color: var(--tv-text-primary);
+  font-size: var(--tv-min-team-name-size);
   font-variant-numeric: tabular-nums;
   font-weight: var(--cl-weight-bold);
+}
+
+/* The pinned match's recent results: one group per side, one line per match. */
+.tv-recent-results {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2vmin;
+  min-height: 0;
+  font-family: var(--cl-font-mono);
+}
+
+.tv-recent-results__team {
+  margin: 0;
+  font-family: var(--cl-font-display);
+  font-size: var(--tv-min-team-name-size);
+  text-transform: uppercase;
+}
+
+.tv-recent-results__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6vmin;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-recent-results__match {
+  display: flex;
+  justify-content: space-between;
+  gap: 1vmin;
+  min-width: 0;
+  font-size: var(--tv-min-secondary-size);
+}
+
+.tv-recent-results__when {
+  color: var(--tv-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.tv-recent-results__score {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.tv-standings-pager {
+  margin: 0;
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--tv-min-secondary-size);
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.tv-rail-standings {
+  display: flex;
+  flex-direction: column;
+  gap: 1vmin;
+  /* Keeps its natural height, so the frame around it measures the rows that overflow it. */
+  flex: 0 0 auto;
 }
 
 .tv-match-list__pager {
@@ -1947,9 +2170,8 @@
     padding: 1vmin 1.2vmin;
   }
 
-  /* The zone and round take a row of their own, so the sides keep the width of the cell. */
-  .tv-match-list__round {
-    grid-column: 1 / -1;
+  /* The stage line spans the entry on the narrow layout too. */
+  .tv-match-list__scope {
     text-align: center;
   }
 }

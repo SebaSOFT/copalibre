@@ -41,6 +41,10 @@ const meta = {
   args: {
     streamPath: '/stories/no-stream',
     resultStateLabels: labels.resultState,
+    inProgressLabel: labels.inProgress,
+    delayedLabel: labels.delayed,
+    clockLabel: labels.clockLabel,
+    pageOfLabel: labels.pageOf,
     noMatchesLabel: labels.noMatches,
     ariaLabel: labels.ariaLabel,
     clockStoppedLabel: labels.clockStopped,
@@ -109,6 +113,10 @@ export const Rescheduled: Story = {
         locale={locale}
         rescheduledLabel={tvDashboardLabels(intl).rescheduled}
         resultStateLabels={tvMultiCourtGridLabels(intl).resultState}
+        inProgressLabel={tvMultiCourtGridLabels(intl).inProgress}
+        delayedLabel={tvMultiCourtGridLabels(intl).delayed}
+        clockLabel={tvMultiCourtGridLabels(intl).clockLabel}
+        pageOfLabel={tvMultiCourtGridLabels(intl).pageOf}
         clockStoppedLabel={tvMultiCourtGridLabels(intl).clockStopped}
         clockAriaLabel={tvMultiCourtGridLabels(intl).clockAriaLabel}
       />

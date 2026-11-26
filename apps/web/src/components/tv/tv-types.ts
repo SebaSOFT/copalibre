@@ -23,10 +23,16 @@ export interface TvDashboardLabels {
   readonly rescheduled?: string;
   readonly resultState: ResultStateLabels;
   readonly delayed?: string;
+  /** The featured-performers tab when the fallback ranks teams. */
+  readonly performersTeamsTab: string;
+  /** The pinned route's recent-results tab. */
+  readonly recentFormTab: string;
+  /** The tournament badge while matches are final and none is live. */
+  readonly inProgress: string;
   readonly noMatchesScheduled: string;
   readonly standingsUnavailable: string;
   readonly clubColumn: string;
-  readonly playedColumn: string;
+  readonly playedShort: string;
   readonly noTopPerformers: string;
   readonly focalPanelLabel: string;
   readonly focalPanelTitle: string;
@@ -63,7 +69,6 @@ export interface TvDashboardLabels {
   readonly clockAriaLabel: string;
   readonly leading: string;
   readonly nextMatch: string;
-  readonly zoneLegend: string;
   /** Raw `{date}` template: the header of a finished tournament, naming the day it ended. */
   readonly finishedOn: string;
   /** Said by a pinned route whose match does not exist. */

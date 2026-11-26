@@ -71,9 +71,12 @@ const overview = {
 };
 
 let activeOverview = overview;
+/** The matches the match list shows; a scenario replaces it, and the rest of the file keeps none. */
+let activeMatchesView: { readonly matches: readonly unknown[] } = { matches: [] };
 
 test.afterEach(() => {
   activeOverview = overview;
+  activeMatchesView = { matches: [] };
 });
 
 const bracket = {
@@ -137,7 +140,7 @@ test.beforeAll(async ({ workerPort }) => {
     else if (pathname === `${BASE}/live`) res.end(JSON.stringify({ matches: [] }));
     else if (pathname === `${BASE}/stages/1/bracket`) res.end(JSON.stringify(bracket));
     else if (pathname === `${BASE}/stages/1/matches/1`) res.end(JSON.stringify(report));
-    else if (pathname === `${BASE}/matches-view`) res.end(JSON.stringify({ matches: [] }));
+    else if (pathname === `${BASE}/matches-view`) res.end(JSON.stringify(activeMatchesView));
     else {
       res.statusCode = 404;
       res.end('{}');
@@ -410,4 +413,182 @@ test('TV keeps its dark surface when the browser prefers light mode', async ({ p
   );
   expect(channels).toHaveLength(3);
   expect(channels?.every((channel) => channel < 80)).toBe(true);
+});
+
+/** Scheduled and finished matches of one stage, for the match list's blocks. */
+const listMatch = (ordinal: number, status: 'upcoming' | 'final') => ({
+  matchId: `list-${ordinal}`,
+  stageNumber: 1,
+  stageName: 'Fase de grupos',
+  stageOrdinal: ordinal,
+  matchNumber: ordinal,
+  round: 1,
+  status,
+  homeEntrantId: `list-home-${ordinal}`,
+  homeName: longNames[0],
+  homeAbbreviation: 'HOM',
+  ...(status === 'final' ? { homeScore: 2 } : {}),
+  awayEntrantId: `list-away-${ordinal}`,
+  awayName: longNames[1],
+  awayAbbreviation: 'AWY',
+  ...(status === 'final' ? { awayScore: 1 } : {}),
+  scheduledAt:
+    status === 'final'
+      ? `2026-11-0${Math.min(ordinal, 9)}T18:00:00Z`
+      : `2099-11-0${Math.min(ordinal, 9)}T18:00:00Z`,
+  venueName: `Cancha ${ordinal}`,
+});
+
+test('view=standings pages all twenty-four rows at 1920×1080 under a table heading', async ({
+  page,
+}) => {
+  // Each page holds for one rotation, so the walk through every page takes several of them.
+  test.setTimeout(150_000);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  activeOverview = { ...overview, matches: [] };
+  await gotoTv(page, `${TV_PATH}?view=standings&lang=es`);
+
+  await expect(page.locator('.tv-standings-zone__name').first()).toContainText('Zona A');
+  const pager = page.locator('.tv-standings-pager');
+  await expect(pager).toContainText('Página 1 de');
+
+  // The page size settles after the first measurement, so the page count is not read up front:
+  // sample each rotation until every rank has been on screen once.
+  const ranks = new Set<string>();
+  for (let rotation = 0; rotation < 10 && ranks.size < 24; rotation += 1) {
+    // One read per page: a rotation between per-cell reads would leave a cell to wait on forever.
+    const pageRanks = await page
+      .locator('.tv-standings-table tbody tr td:first-child')
+      .allTextContents();
+    for (const rank of pageRanks) ranks.add(rank.trim());
+    if (ranks.size < 24) await page.waitForTimeout(10_500);
+  }
+  expect(ranks.size).toBe(24);
+});
+
+test('groups of four and a group of one page through every row, never splitting a group that fits', async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  // Four groups of four rows, then a group of one: seventeen rows in five groups.
+  const letters = ['A', 'B', 'C', 'D', 'E'];
+  const sizes = [4, 4, 4, 4, 1];
+  let rank = 0;
+  const rows = sizes.flatMap((size, group) =>
+    Array.from({ length: size }, (_, index) => {
+      rank += 1;
+      return {
+        rank,
+        entrantId: `grouped-${rank}`,
+        name: `Club Grupo ${letters[group]} ${index + 1}`,
+        abbreviation: `G${rank}`,
+        clubId: `grouped-club-${rank}`,
+        statistics: { played: 3, points: 20 - rank },
+        groupName: `Grupo ${letters[group]}`,
+      };
+    }),
+  );
+  activeOverview = { ...overview, matches: [], standingsPreview: rows };
+  await gotoTv(page, `${TV_PATH}?view=standings&lang=es`);
+
+  await expect(page.locator('.tv-standings-zone__name').first()).toContainText('Grupo A');
+  const ranks = new Set<string>();
+  const split: string[] = [];
+  for (let rotation = 0; rotation < 12 && ranks.size < rows.length; rotation += 1) {
+    // Every table on screen holds its whole group: a group that fits a page is never cut in two.
+    const blocks = await page.locator('.tv-standings-zone').evaluateAll((zones) =>
+      zones.map((zone) => ({
+        heading: zone.querySelector('.tv-standings-zone__name')?.textContent ?? '',
+        rows: zone.querySelectorAll('tbody tr').length,
+      })),
+    );
+    for (const block of blocks) {
+      const expected = block.heading.includes('Grupo E') ? 1 : 4;
+      if (block.rows !== expected) split.push(`${block.heading}: ${block.rows} of ${expected}`);
+    }
+    const pageRanks = await page
+      .locator('.tv-standings-table tbody tr td:first-child')
+      .allTextContents();
+    for (const value of pageRanks) ranks.add(value.trim());
+    if (ranks.size < rows.length) await page.waitForTimeout(10_500);
+  }
+  expect(split).toEqual([]);
+  expect(ranks.size).toBe(rows.length);
+
+  // Nothing of the page spills past its frame: the last row and the pager sit inside it.
+  const frame = await page.locator('.tv-rail-content').boundingBox();
+  const pager = await page.locator('.tv-standings-pager').boundingBox();
+  expect(frame).not.toBeNull();
+  expect(pager).not.toBeNull();
+  if (frame && pager)
+    expect(pager.y + pager.height).toBeLessThanOrEqual(frame.y + frame.height + 1);
+});
+
+test('a match-list entry keeps its kickoff and court whole, and its team names are its largest text', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  activeMatchesView = { matches: [listMatch(1, 'upcoming'), listMatch(2, 'final')] };
+  await gotoTv(page, `${TV_PATH}?view=matches&lang=es`);
+
+  const scheduled = page.locator('.tv-match-list__entry').first();
+  await expect(scheduled.locator('.tv-start-time__when')).not.toBeEmpty();
+  await expect(scheduled.locator('.tv-start-time__court')).toContainText('Cancha 1');
+
+  const played = page.locator('.tv-match-list__entry').nth(1);
+  const when = played.locator('.tv-match-list__when');
+  await expect(when).toContainText('Cancha 2');
+  const truncated = await when.evaluate((element) => element.scrollWidth > element.clientWidth);
+  expect(truncated).toBe(false);
+
+  const sizes = await played.evaluate((entry) => {
+    const pixels = (selector: string): number =>
+      Number.parseFloat(getComputedStyle(entry.querySelector(selector) as Element).fontSize);
+    return {
+      team: pixels('.tv-match-list__side'),
+      scope: pixels('.tv-match-list__scope'),
+      when: pixels('.tv-match-list__when'),
+    };
+  });
+  // Half a pixel of tolerance: computed styles round the token's 37.8px.
+  expect(sizes.team).toBeGreaterThanOrEqual(1080 * 0.035 - 0.5);
+  expect(sizes.team).toBeGreaterThan(sizes.scope);
+  expect(sizes.scope).toBeGreaterThanOrEqual(1080 * 0.018);
+  expect(sizes.when).toBeGreaterThanOrEqual(1080 * 0.018);
+});
+
+test('view=matches opens on the Programado block', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  activeMatchesView = {
+    matches: [listMatch(1, 'upcoming'), listMatch(2, 'upcoming'), listMatch(3, 'final')],
+  };
+  await gotoTv(page, `${TV_PATH}?view=matches&lang=es`);
+
+  await expect(page.locator('.tv-match-list__heading').first()).toHaveText('Programado');
+  await expect(page.locator('.tv-match-list__heading').nth(1)).toHaveText('Finalizado');
+});
+
+test('secondary text meets 1.8vmin and no rail tab label truncates at 1920×1080', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  activeMatchesView = { matches: [listMatch(1, 'upcoming')] };
+  await gotoTv(page, `${TV_PATH}?view=matches&lang=es`);
+
+  const round = page.locator('.tv-match-list__scope').first();
+  await expect(round).toBeVisible();
+  const fontPx = await round.evaluate((element) =>
+    Number.parseFloat(getComputedStyle(element).fontSize),
+  );
+  expect(fontPx).toBeGreaterThanOrEqual(1080 * 0.018);
+
+  // The rail's tabs are on the rotating kiosk, not the fixed matches view.
+  await gotoTv(page, `${TV_PATH}?lang=es`);
+  const truncated = await page
+    .locator('.tv-rail-tab')
+    .evaluateAll((tabs) =>
+      tabs.filter((tab) => tab.scrollWidth > tab.clientWidth).map((tab) => tab.textContent),
+    );
+  expect(truncated).toEqual([]);
 });
