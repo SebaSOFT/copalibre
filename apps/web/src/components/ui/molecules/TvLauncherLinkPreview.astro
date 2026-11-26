@@ -1,0 +1,163 @@
+---
+/**
+ * The launcher's final address: the address read-only, a copy control, and a 16:9 preview of that address.
+ * The preview is the real TV page scaled into the frame, so what the operator sees is what the stream carries.
+ * The launcher's script finds these elements by their data attributes and keeps them current.
+ */
+import Button from '../atoms/Button.astro';
+
+interface Props {
+  /** The absolute address the launcher builds; empty when the configuration names no page to open. */
+  readonly url: string;
+  /** A transparent ground reads over a checkerboard, so the graphic's own edges show. */
+  readonly transparent?: boolean;
+  readonly finalLinkLabel: string;
+  readonly copyLabel: string;
+  readonly previewLabel: string;
+  readonly class?: string;
+}
+
+const {
+  url,
+  transparent = false,
+  finalLinkLabel,
+  copyLabel,
+  previewLabel,
+  class: extraClass = '',
+} = Astro.props;
+const captionId = 'tv-launcher-link-caption';
+---
+
+<div class:list={['tv-launcher-link-preview', extraClass]} data-link-block>
+  <span class="tv-launcher-link-preview__caption" id={captionId} data-i18n="finalLink">
+    {finalLinkLabel}
+  </span>
+  <output
+    class="tv-launcher-link-preview__url cl-chamfer cl-chamfer--control"
+    aria-labelledby={captionId}
+    data-launcher-url
+  >
+    {url}
+  </output>
+  <Button
+    variant="secondary"
+    class="tv-launcher-link-preview__copy"
+    data-launcher-copy
+    data-i18n="copyLink"
+  >
+    {copyLabel}
+  </Button>
+  <p role="status" class="tv-launcher-link-preview__copied" data-copy-status></p>
+  <figure class="tv-launcher-link-preview__figure" data-preview-frame>
+    <figcaption data-i18n="preview">{previewLabel}</figcaption>
+    <div
+      class="tv-launcher-link-preview__stage"
+      data-preview-stage
+      data-transparent={transparent ? '' : undefined}
+    >
+      <iframe
+        data-launcher-preview
+        title={previewLabel}
+        tabindex="-1"
+        loading="lazy"
+        src={url === '' ? 'about:blank' : url}
+      ></iframe>
+    </div>
+  </figure>
+</div>
+
+<style>
+  .tv-launcher-link-preview {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem 0.75rem;
+    align-items: end;
+  }
+
+  .tv-launcher-link-preview__caption {
+    grid-column: 1 / -1;
+    color: var(--cl-text-secondary);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* The address is shown as it is copied: no label capitals, and a long address wraps inside the panel. */
+  .tv-launcher-link-preview__url {
+    display: block;
+    min-width: 0;
+    padding: 0.55rem 0.7rem;
+    color: var(--cl-text-secondary);
+    background: var(--cl-surface-base);
+    border: 1px solid var(--cl-border-muted);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-sm);
+    letter-spacing: normal;
+    text-transform: none;
+    overflow-wrap: anywhere;
+  }
+
+  .tv-launcher-link-preview__copied {
+    grid-column: 1 / -1;
+    margin: 0;
+    min-height: 1.2em;
+    color: var(--cl-state-positive);
+    font-size: var(--cl-font-size-sm);
+  }
+
+  .tv-launcher-link-preview__figure {
+    grid-column: 1 / -1;
+    margin: 0;
+    display: grid;
+    gap: 0.4rem;
+    color: var(--cl-text-secondary);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .tv-launcher-link-preview__stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: var(--cl-surface-base);
+    border: 1px solid var(--cl-border-muted);
+  }
+
+  .tv-launcher-link-preview__stage[data-transparent] {
+    background-color: var(--cl-surface-chrome);
+    background-image:
+      linear-gradient(45deg, var(--cl-surface-panel) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--cl-surface-panel) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--cl-surface-panel) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--cl-surface-panel) 75%);
+    background-size: 1.5rem 1.5rem;
+    background-position:
+      0 0,
+      0 0.75rem,
+      0.75rem -0.75rem,
+      -0.75rem 0;
+  }
+
+  .tv-launcher-link-preview__stage iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--frame-width, 1920px);
+    height: var(--frame-height, 1080px);
+    border: 0;
+    transform-origin: 0 0;
+    transform: scale(var(--scale, 0.25));
+    pointer-events: none;
+  }
+
+  @media (width < 768px) {
+    .tv-launcher-link-preview {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

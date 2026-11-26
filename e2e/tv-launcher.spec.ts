@@ -289,3 +289,36 @@ test('captures the launcher at desktop and phone size', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole('link', { name: /Lanzar pantalla TV/ })).toBeVisible();
 });
+
+test('a saved preset restores the language, the view it always meant and the court background', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'copalibre.tv.launcher_preset',
+      JSON.stringify({
+        organization: 'liga-mendocina',
+        tournament: 'apertura-2026',
+        view: 'dashboard',
+        background: 'court',
+        language: 'es',
+      }),
+    );
+  });
+  await page.goto('/tv');
+  // The saved language applies to the labels, so the launcher opens in Spanish.
+  await expect(page.getByRole('heading', { name: 'Lanzador de pantalla TV' })).toBeVisible();
+  await expect(page.locator('[data-launcher-language]')).toHaveValue('es');
+  // A preset saved as the rotating dashboard restores as the kiosk view it always meant.
+  await expect(page.locator('[data-launcher-view]')).toHaveValue('kiosk');
+  await expect(page.locator('[data-launcher-background]')).toHaveValue('court');
+  await expect(page.locator('html')).toHaveAttribute('data-tv-background', 'court');
+});
+
+test('a stage the tournament does not have is not kept: the launcher opens on its default stage', async ({
+  page,
+}) => {
+  await page.goto(`${LAUNCHER}&view=match&stage=9&match=1&lang=en`);
+  await expect(page.locator('[data-launcher-stage]')).toHaveValue('2');
+});

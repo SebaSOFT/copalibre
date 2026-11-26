@@ -1,7 +1,7 @@
 ---
 import TvLayout from '../../layouts/TvLayout.astro';
-import Button from '../../components/ui/atoms/Button.astro';
 import Select from '../../components/ui/atoms/Select.astro';
+import TvLauncherLinkPreview from '../../components/ui/molecules/TvLauncherLinkPreview.astro';
 import {
   fetchCompletion,
   fetchOrganizations,
@@ -20,12 +20,14 @@ import { TV_LAUNCHER_LABELS } from '../../lib/tv-launcher-labels.ts';
 import { tvMatchEntriesOf } from '../../lib/tv-match-list.ts';
 import {
   courtOptions,
+  buildTvLauncherDestination,
   defaultBackgroundFor,
-  defaultStage,
   formatKickoff,
   gridFromParams,
   isOverlayView,
+  launcherStateLabels,
   matchOptionGroups,
+  openingStage,
   stageOptions,
   TV_LAUNCHER_VIEW_LABEL,
   TV_LAUNCHER_VIEWS,
@@ -134,7 +136,9 @@ const background: TvBackground =
   BACKGROUNDS.find((value) => value === requestedBackground) ?? defaultBackgroundFor(view);
 const grid = gridFromParams(params);
 const stages = stageOptions(matchChoices);
-const initialStage = Number(params.get('stage')) || defaultStage(matchChoices) || stages[0]?.stage;
+// The stage an address names is kept only when this tournament has it; otherwise the default stage opens.
+const initialStage =
+  openingStage(matchChoices, Number(params.get('stage')) || undefined) ?? stages[0]?.stage;
 const initialMatch = Number(params.get('match')) || undefined;
 const courts = courtOptions(matchChoices);
 const initialCourt = params.get('court') ?? undefined;
@@ -142,11 +146,7 @@ const matchGroups =
   initialStage === undefined
     ? []
     : matchOptionGroups(matchChoices, initialStage, {
-        state: {
-          live: t.optionLive ?? '',
-          upcoming: t.optionUpcoming ?? '',
-          final: t.optionFinal ?? '',
-        },
+        state: launcherStateLabels(t),
         delayed: t.optionDelayed ?? '',
         when: (scheduledAt) => formatKickoff(scheduledAt, language, organizationTimeZone),
       });
@@ -156,6 +156,25 @@ const gridShown = view === 'multicourt';
 const noMatchesShown = matchFieldsShown && matchChoices.length === 0;
 const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'football';
 const choicesJson = encodeURIComponent(JSON.stringify(matchChoices));
+// The address the form names, in the first response, as a same-origin path: the script makes it absolute once
+// it runs, from the origin the viewer actually has. An overlay with no match and no court names no page.
+const launchAddress =
+  selectedOrganization && selectedTournament && !(view === 'match' && initialMatch === undefined)
+    ? buildTvLauncherDestination({
+        organization: selectedOrganization.alias,
+        tournament: selectedTournament.alias,
+        view,
+        background,
+        language,
+        ...(viewShowsMatch(view) && initialMatch !== undefined && initialStage !== undefined
+          ? { stage: initialStage, match: initialMatch }
+          : {}),
+        ...(isOverlayView(view) && initialMatch === undefined && initialCourt !== undefined
+          ? { court: initialCourt }
+          : {}),
+        ...(view === 'multicourt' ? { grid } : {}),
+      })
+    : '';
 const timeZoneAttr = organizationTimeZone ?? '';
 const organizationOptions = organizations.map((org) => ({
   value: org.alias,
@@ -290,10 +309,14 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
             </label>
             <label>
               <span data-i18n="pinMatch">{t.pinMatch}</span>
-              <select class="cl-chamfer cl-chamfer--control cl-select" data-launcher-match>
+              <select
+                aria-label={t.match}
+                class="cl-chamfer cl-chamfer--control cl-select"
+                data-launcher-match
+              >
                 {isOverlayView(view) && (
                   <option value="" selected={initialMatch === undefined}>
-                    {t.noCourt}
+                    {t.noMatch}
                   </option>
                 )}
                 {matchGroups.map((group) => (
@@ -365,36 +388,13 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
           >
             {t.nothingToShow}
           </p>
-          <div class="tv-launcher__link tv-launcher__wide" data-link-block>
-            <label>
-              <span data-i18n="finalLink">{t.finalLink}</span>
-              <output
-                class="cl-chamfer cl-chamfer--control tv-launcher__url"
-                data-launcher-url
-              ></output>
-            </label>
-            <Button
-              variant="secondary"
-              class="tv-launcher__copy"
-              data-launcher-copy
-              data-i18n="copyLink"
-            >
-              {t.copyLink}
-            </Button>
-            <p role="status" class="tv-launcher__copied" data-copy-status></p>
-          </div>
-          <figure class="tv-launcher__preview tv-launcher__wide" data-preview-frame>
-            <figcaption data-i18n="preview">{t.preview}</figcaption>
-            <div class="tv-launcher__stage" data-preview-stage>
-              <iframe
-                data-launcher-preview
-                title={t.preview}
-                tabindex="-1"
-                loading="lazy"
-                src="about:blank"
-              ></iframe>
-            </div>
-          </figure>
+          <TvLauncherLinkPreview
+            url={launchAddress}
+            transparent={background === 'transparent'}
+            finalLinkLabel={t.finalLink ?? ''}
+            copyLabel={t.copyLink ?? ''}
+            previewLabel={t.preview ?? ''}
+          />
           <a class="tv-launcher__launch cl-chamfer cl-chamfer--control" data-launcher-link href="#">
             <span data-i18n="launch">{t.launch}</span>
             <span aria-hidden="true">↗</span>
@@ -420,6 +420,7 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
     defaultBackgroundFor,
     formatKickoff,
     isOverlayView,
+    launcherStateLabels,
     matchOptionGroups,
     parseTvLauncherPreset,
     TV_LAUNCHER_VIEW_LABEL,
@@ -481,11 +482,7 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
       const labels = labelsFor();
       const previous = match.value;
       const groups = matchOptionGroups(choices, Number(stage.value), {
-        state: {
-          live: labels.optionLive ?? '',
-          upcoming: labels.optionUpcoming ?? '',
-          final: labels.optionFinal ?? '',
-        },
+        state: launcherStateLabels(labels),
         delayed: labels.optionDelayed ?? '',
         when: (scheduledAt) => formatKickoff(scheduledAt, language.value, timeZone),
       }).map((group) => {
@@ -503,7 +500,7 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
       });
       const none = document.createElement('option');
       none.value = '';
-      none.textContent = labels.noCourt ?? '';
+      none.textContent = labels.noMatch ?? '';
       match.replaceChildren(...(isOverlayView(view.value) ? [none] : []), ...groups);
       const usable = [...match.options].filter((option) => !option.disabled);
       match.value = usable.some((option) => option.value === previous)
@@ -637,6 +634,7 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
               ...(saved.stage === undefined ? {} : { stage: String(saved.stage) }),
               ...(saved.match === undefined ? {} : { match: String(saved.match) }),
               ...(saved.court === undefined ? {} : { court: saved.court }),
+              ...(saved.grid === undefined ? {} : { grid: String(saved.grid) }),
             });
             window.location.replace(`/tv?${restored}`);
           }
@@ -669,9 +667,13 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
       renderMatches();
       readPreset();
     });
+    let previousView = view?.value ?? '';
     view?.addEventListener('change', () => {
-      // An overlay starts with nothing pinned and no court: it shows nothing until the operator chooses.
-      if (match && isOverlayView(view.value)) match.value = '';
+      // An overlay starts with nothing pinned: a pin from a kiosk view does not carry into it, but moving
+      // between two overlay modes keeps the match the operator chose.
+      const entering = !isOverlayView(previousView) && isOverlayView(view.value);
+      previousView = view.value;
+      if (match && entering) match.value = '';
       if (!backgroundPicked && background) background.value = defaultBackgroundFor(view.value);
       showFields();
       showDescription();
@@ -704,9 +706,23 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
     launch?.addEventListener('click', (event) => {
       if (launch.getAttribute('aria-disabled') === 'true') event.preventDefault();
     });
+    // Without a secure context there is no clipboard: the address is selected for a manual copy instead.
+    const selectAddress = (): void => {
+      if (!urlField) return;
+      const range = document.createRange();
+      range.selectNodeContents(urlField);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      if (copied) copied.textContent = labelsFor().copyUnavailable ?? '';
+    };
     copy?.addEventListener('click', () => {
       const shown = urlField?.value ?? '';
       if (shown === '') return;
+      if (!navigator.clipboard?.writeText) {
+        selectAddress();
+        return;
+      }
       void navigator.clipboard
         .writeText(shown)
         .then(() => {
@@ -714,9 +730,7 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
           if (copied && urlField?.value === shown)
             copied.textContent = labelsFor().linkCopied ?? '';
         })
-        .catch(() => {
-          if (copied) copied.textContent = '';
-        });
+        .catch(selectAddress);
     });
     // The preview is a 1920x1080 frame, scaled to the width the panel gives it.
     if (previewStage && preview) {
@@ -940,100 +954,6 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
     font-size: var(--cl-font-size-sm);
     letter-spacing: normal;
     text-transform: none;
-  }
-  .tv-launcher__link {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 0.5rem 0.75rem;
-    align-items: end;
-  }
-  .tv-launcher__link input {
-    width: 100%;
-    min-width: 0;
-    min-height: 2.75rem;
-    padding: 0.55rem 0.7rem;
-    color: var(--cl-text-secondary);
-    background: var(--cl-surface-base);
-    border: 1px solid var(--cl-border-muted);
-    font-family: var(--cl-font-mono);
-    font-size: var(--cl-font-size-sm);
-    box-sizing: border-box;
-  }
-  .tv-launcher__copy {
-    min-height: 2.75rem;
-    padding: 0 1rem;
-    color: var(--cl-surface-base);
-    background: var(--cl-primary);
-    font-family: var(--cl-font-display);
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    border: 0;
-    cursor: pointer;
-  }
-  .tv-launcher__copied {
-    grid-column: 1 / -1;
-    margin: 0;
-    min-height: 1.2em;
-    color: var(--cl-state-positive);
-    font-size: var(--cl-font-size-sm);
-  }
-  .tv-launcher__preview {
-    margin: 0;
-    display: grid;
-    gap: 0.4rem;
-    color: var(--cl-text-secondary);
-    font-family: var(--cl-font-mono);
-    font-size: var(--cl-font-size-xs);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  .tv-launcher__stage {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    overflow: hidden;
-    background: var(--cl-surface-base);
-    border: 1px solid var(--cl-border-muted);
-  }
-  /* A transparent ground reads as a checkerboard, so the graphic's own edges show. */
-  .tv-launcher__stage[data-transparent] {
-    background-color: var(--cl-surface-chrome);
-    background-image:
-      linear-gradient(45deg, var(--cl-surface-panel) 25%, transparent 25%),
-      linear-gradient(-45deg, var(--cl-surface-panel) 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, var(--cl-surface-panel) 75%),
-      linear-gradient(-45deg, transparent 75%, var(--cl-surface-panel) 75%);
-    background-size: 1.5rem 1.5rem;
-    background-position:
-      0 0,
-      0 0.75rem,
-      0.75rem -0.75rem,
-      -0.75rem 0;
-  }
-  .tv-launcher__stage iframe {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: var(--frame-width, 1920px);
-    height: var(--frame-height, 1080px);
-    border: 0;
-    transform-origin: 0 0;
-    transform: scale(var(--scale, 0.25));
-    pointer-events: none;
-  }
-  /* The address is shown as it is copied: no label capitals, and long addresses wrap inside the panel. */
-  .tv-launcher__url {
-    display: block;
-    padding: 0.55rem 0.7rem;
-    color: var(--cl-text-secondary);
-    background: var(--cl-surface-base);
-    border: 1px solid var(--cl-border-muted);
-    font-family: var(--cl-font-mono);
-    font-size: var(--cl-font-size-sm);
-    letter-spacing: normal;
-    text-transform: none;
-    overflow-wrap: anywhere;
   }
   .tv-launcher__nothing {
     color: var(--cl-text-secondary);

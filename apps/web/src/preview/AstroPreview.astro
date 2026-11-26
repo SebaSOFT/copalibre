@@ -34,6 +34,7 @@ import BroadcastStatusPanel from '../components/ui/molecules/BroadcastStatusPane
 import RulesetBriefing from '../components/ui/molecules/RulesetBriefing.astro';
 import SeriesStateBar from '../components/ui/molecules/SeriesStateBar.astro';
 import TimeZoneNote from '../components/ui/molecules/TimeZoneNote.astro';
+import TvLauncherLinkPreview from '../components/ui/molecules/TvLauncherLinkPreview.astro';
 import TournamentHero from '../components/ui/molecules/TournamentHero.astro';
 import TournamentOverviewHero from '../components/ui/organisms/TournamentOverviewHero.astro';
 import BracketView from '../components/ui/organisms/BracketView.astro';
@@ -125,6 +126,7 @@ const PREVIEWABLE = new Set([
   'score-ticker',
   'score-ticker-empty',
   'score-ticker-stale',
+  'tv-launcher-link-preview',
   'bracket-stage',
   'bracket-placement',
   'placement-games',
@@ -319,6 +321,15 @@ const [compactSample] = referenceJourneyBracket(true);
         description={intl.formatMessage(messages.interactionSeeSchedule)}
         actionLabel={intl.formatMessage(messages.interactionViewMatches)}
         href="/liga-san-juan/tournaments/copa-premier/matches"
+      />
+    )}
+    {component === 'tv-launcher-link-preview' && (
+      <TvLauncherLinkPreview
+        url="http://localhost:4321/tv/panamericano-demo/tournaments/panamericano-clubes-2025?lang=es&bg=transparent&mode=overlay-lower"
+        transparent
+        finalLinkLabel="Enlace final"
+        copyLabel="Copiar enlace"
+        previewLabel="Vista previa"
       />
     )}
     {component === 'result-legend' && (

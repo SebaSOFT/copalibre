@@ -102,7 +102,7 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // selects and copy control use the owned Select and Button atoms; the
   // remaining 12 native elements (ten labels, the grouped select, the form)
   // stay until the public Astro library provides a Field molecule.
-  ['pages/tv/index.astro', 12],
+  ['pages/tv/index.astro', 11],
   // `TvDashboard.tsx`'s entry is gone: its four
   // private sub-components and its table/button ownership moved into their
   // own files, `TvStandingsTable.tsx` and `TvRailTab.tsx`, both named in

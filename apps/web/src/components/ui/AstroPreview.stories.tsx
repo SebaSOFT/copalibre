@@ -279,6 +279,11 @@ export const BracketJourneyEliminated: Story = {
 
 export const EmptyState: Story = { args: { component: 'empty-state', height: 340 } };
 
+/** The launcher's final address, its copy control and a 16:9 preview of the transparent overlay it opens. */
+export const TvLauncherLinkPreview: Story = {
+  args: { component: 'tv-launcher-link-preview', height: 420 },
+};
+
 /** The tournament overview's breadcrumb, display title and read-model facts. */
 export const TournamentOverviewHero: Story = {
   args: { component: 'tournament-overview-hero', height: 320 },
