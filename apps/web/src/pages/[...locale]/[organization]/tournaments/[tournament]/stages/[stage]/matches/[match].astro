@@ -319,7 +319,11 @@ const structuredData = {
     />
     <article class="cl-match-page">
       {liveStreamPath && (
-        <div data-live-stream={liveStreamPath} hidden>
+        <div
+          data-live-awaiting={model.status === 'live' ? undefined : ''}
+          data-live-stream={liveStreamPath}
+          hidden
+        >
           {liveMatchSeed && <span data-live-match-seed={JSON.stringify(liveMatchSeed)} />}
         </div>
       )}

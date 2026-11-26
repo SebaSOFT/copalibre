@@ -205,4 +205,13 @@ describe('watchPublicMatchCounters', () => {
     await flush();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+  it('drops the final report when the watch is disposed before it arrives', async () => {
+    const onFinal = jest.fn();
+    const watch = watchPublicMatchCounters(OPTIONS, { onUpdate: jest.fn(), onFinal });
+    watch.finish();
+    watch.dispose();
+    await flush();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(onFinal).not.toHaveBeenCalled();
+  });
 });

@@ -115,7 +115,7 @@ const advancesLabel = intl.formatMessage(messages.bracketAdvances);
 const counterSides = [
   { entrantId: resolvedHomeEntrantId ?? '', name: home.fullName, place: 'home' as const },
   { entrantId: resolvedAwayEntrantId ?? '', name: away.fullName, place: 'away' as const },
-].filter((side) => side.entrantId !== '');
+];
 ---
 
 <header class="cl-match-hero">

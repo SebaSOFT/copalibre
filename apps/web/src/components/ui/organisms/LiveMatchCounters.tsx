@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SupportedLanguage } from '@copalibre/domain';
 import { MatchCounters, type MatchPenaltyView } from '../molecules/MatchCounters.js';
 import type { LiveMatchCounter } from '../../../lib/live-state.js';
@@ -64,6 +64,9 @@ export function LiveMatchCounters({
   });
   const [storeState, setStoreState] = useState(() => getLiveScoreboardPatch(matchId)?.state);
   const [started, setStarted] = useState(false);
+  // The live projection lists only matches in play, so a refresh that found this match proves it is live,
+  // even when `match.started` arrived before the stream connected.
+  const [seenLive, setSeenLive] = useState(false);
   const [ended, setEnded] = useState(finished);
   const watch = useRef<PublicMatchCountersWatch | null>(null);
 
@@ -84,14 +87,18 @@ export function LiveMatchCounters({
   );
 
   const over = ended || storeState === 'final';
-  const isLive = !over && (started || storeState === 'live' || (storeState === undefined && live));
+  const isLive =
+    !over && (started || seenLive || storeState === 'live' || (storeState === undefined && live));
 
   useEffect(() => {
     if (finished) return undefined;
     const created = watchPublicMatchCounters(
       { matchId, organizationAlias, tournamentAlias, stageNumber, matchOrdinal },
       {
-        onUpdate: setSnapshot,
+        onUpdate: (next) => {
+          setSnapshot(next);
+          setSeenLive(true);
+        },
         onFinal: (counters) => setSnapshot({ counters, activePenalties: [] }),
       },
     );
@@ -113,21 +120,55 @@ export function LiveMatchCounters({
   const shownCounters = over
     ? snapshot.counters.filter((counter) => counter.scope === 'match')
     : snapshot.counters;
-  const views = matchCounterView(shownCounters, sides, language, texts);
+  const placedSides = useMemo(() => resolveSides(sides, snapshot), [sides, snapshot]);
+  const views = matchCounterView(shownCounters, placedSides, language, texts);
   const penalties: readonly MatchPenaltyView[] =
     isLive && !over
       ? snapshot.activePenalties.map((penalty) => ({
           ...penalty,
           sideName:
-            sides.find((side) => side.entrantId === penalty.entrantId)?.name ?? penalty.entrantId,
+            placedSides.find((side) => side.entrantId === penalty.entrantId)?.name ??
+            penalty.entrantId,
         }))
       : [];
   return (
     <MatchCounters
       penalties={penalties}
       penaltyTemplate={penaltyTemplate}
-      sides={sides}
+      sides={placedSides}
       views={views}
     />
+  );
+}
+
+type CounterSide = {
+  readonly entrantId: string;
+  readonly name: string;
+  readonly place: 'home' | 'away';
+};
+
+/**
+ * The page's sides with an entrant that was unresolved when it was rendered (an empty id, such as an
+ * undecided bracket slot) filled from the counters and penalties the projection now carries: the first
+ * unknown entrant goes to the first unresolved side, home before away. A side that stays unresolved keeps
+ * its empty id and shows no values.
+ */
+export function resolveSides(
+  sides: readonly CounterSide[],
+  snapshot: PublicMatchCountersSnapshot,
+): readonly CounterSide[] {
+  if (sides.every((side) => side.entrantId !== '')) return sides;
+  const known = new Set(sides.map((side) => side.entrantId));
+  const unknown: string[] = [];
+  const note = (entrantId: string): void => {
+    if (!known.has(entrantId) && !unknown.includes(entrantId)) unknown.push(entrantId);
+  };
+  for (const counter of snapshot.counters)
+    for (const entry of counter.values) note(entry.entrantId);
+  for (const penalty of snapshot.activePenalties) note(penalty.entrantId);
+  return sides.map((side) =>
+    side.entrantId === '' && unknown.length > 0
+      ? { ...side, entrantId: unknown.shift() ?? '' }
+      : side,
   );
 }

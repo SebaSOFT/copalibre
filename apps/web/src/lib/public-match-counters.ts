@@ -57,6 +57,7 @@ export function watchPublicMatchCounters(
 ): PublicMatchCountersWatch {
   const base = `${API_PATH_PREFIX}/organizations/${encodeURIComponent(options.organizationAlias)}/tournaments/${encodeURIComponent(options.tournamentAlias)}`;
   let over = false;
+  let disposed = false;
   let reconcile: number | undefined;
 
   const refresh = async (): Promise<void> => {
@@ -97,7 +98,7 @@ export function watchPublicMatchCounters(
         );
         if (!response.ok) return;
         const report = (await response.json()) as { counters?: readonly LiveMatchCounter[] };
-        handlers.onFinal(report.counters ?? []);
+        if (!disposed) handlers.onFinal(report.counters ?? []);
       } catch {
         // The page keeps the last tally it showed.
       }
@@ -130,6 +131,7 @@ export function watchPublicMatchCounters(
     finish,
     dispose() {
       over = true;
+      disposed = true;
       gate.dispose();
       stopReconcile();
       unsubscribe();

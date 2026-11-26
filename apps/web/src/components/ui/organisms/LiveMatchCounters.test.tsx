@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { act, render } from '@testing-library/react';
 import type { EventEnvelope } from '@copalibre/realtime';
-import { LiveMatchCounters } from './LiveMatchCounters.js';
+import { LiveMatchCounters, resolveSides } from './LiveMatchCounters.js';
 import {
   publishLiveScoreboardEvent,
   resetLiveScoreboardStore,
@@ -187,5 +187,50 @@ describe('LiveMatchCounters', () => {
     const { container } = renderIsland({ live: false });
     expect(container.textContent).toContain('Team fouls');
     expect(container.querySelector('.cl-match-penalty')).toBeNull();
+  });
+  it('turns live when a refresh finds the match in the live projection, even if match.started came before the stream', async () => {
+    const { container } = renderIsland({ live: false });
+    expect(container.querySelector('.cl-match-penalty')).toBeNull();
+    await act(async () => {
+      publishLiveScoreboardEvent(
+        envelope('match.event-recorded', 7, { definitionCode: 'team-foul' }),
+      );
+    });
+    await settle();
+    expect(container.querySelector('.cl-match-penalty')).not.toBeNull();
+  });
+});
+
+describe('resolveSides', () => {
+  const snapshot = {
+    counters: [
+      {
+        code: 'team-fouls',
+        label: 'Team fouls',
+        shortLabel: 'F',
+        scope: 'match' as const,
+        events: ['team-foul'],
+        values: [
+          { entrantId: 'home', value: 1 },
+          { entrantId: 'late', value: 2 },
+        ],
+      },
+    ],
+    activePenalties: [],
+  };
+
+  it('fills a side that was unresolved when the page rendered with the entrant the projection now carries', () => {
+    const sides = [
+      { entrantId: 'home', name: 'Club Andes', place: 'home' as const },
+      { entrantId: '', name: 'To be decided', place: 'away' as const },
+    ];
+    expect(resolveSides(sides, snapshot)).toEqual([
+      sides[0],
+      { entrantId: 'late', name: 'To be decided', place: 'away' },
+    ]);
+  });
+
+  it('returns the sides unchanged when both are resolved', () => {
+    expect(resolveSides(SIDES, snapshot)).toBe(SIDES);
   });
 });
