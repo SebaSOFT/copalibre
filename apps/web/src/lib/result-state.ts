@@ -75,8 +75,13 @@ export function stateHasScore(state: ResultState): boolean {
   return state === 'live' || state === 'final' || state === 'disputed';
 }
 
+/** The token class of a result state: the one source every state badge reads, the TV badges included. */
+export function stateClassName(state: ResultState): string {
+  return CLASS_NAME[state];
+}
+
 export function presentState(state: ResultState, labels: ResultStateLabels): StatePresentation {
-  return { state, label: labels[state], icon: ICON[state], className: CLASS_NAME[state] };
+  return { state, label: labels[state], icon: ICON[state], className: stateClassName(state) };
 }
 
 /**

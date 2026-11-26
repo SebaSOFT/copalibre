@@ -1,4 +1,4 @@
-import type { ResultState } from '../../../../lib/result-state.js';
+import { stateClassName, type ResultState } from '../../../../lib/result-state.js';
 
 /**
  * A status the TV badges can show: a delayed match, the tournament between matches (`in-progress`), or any
@@ -6,15 +6,6 @@ import type { ResultState } from '../../../../lib/result-state.js';
  * never reads as upcoming.
  */
 export type TvStatusTone = 'delayed' | 'in-progress' | ResultState;
-
-/** The shared token class of each result state that has no TV modifier of its own. */
-const RESULT_TONE_CLASS: Partial<Record<ResultState, string>> = {
-  disputed: 'cl-state--destructive',
-  cancelled: 'cl-state--destructive',
-  tbd: 'cl-state--pending',
-  winner: 'cl-state--positive',
-  loser: 'cl-state--muted',
-};
 
 /**
  * The tone class of a TV status badge. The in-progress tone is the shared positive state tone, the same one
@@ -26,5 +17,5 @@ export function tvStatusToneClass(tone: TvStatusTone): string {
   if (tone === 'live' || tone === 'final' || tone === 'upcoming' || tone === 'delayed') {
     return `tv-scorebug__badge--${tone}`;
   }
-  return `cl-badge ${RESULT_TONE_CLASS[tone] ?? ''}`.trim();
+  return `cl-badge ${stateClassName(tone)}`;
 }
