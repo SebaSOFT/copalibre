@@ -675,11 +675,14 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
   await page.exposeFunction('__schedules', () => SCHEDULES);
   await page.exposeFunction('__fixtures', () => ({
     stageId: STAGE_ID,
-    fixtures: fixtures.map((fixture) =>
-      streamUrls[fixture.matchId] === undefined
-        ? fixture
-        : { ...fixture, streamUrl: streamUrls[fixture.matchId] },
-    ),
+    fixtures: fixtures.map((fixture) => ({
+      ...fixture,
+      matches: fixture.matches?.map((game) =>
+        streamUrls[game.matchId] === undefined
+          ? game
+          : { ...game, streamUrl: streamUrls[game.matchId] },
+      ),
+    })),
   }));
   await page.exposeFunction('__setStreamUrl', (matchId: string, streamUrl: string | null) => {
     streamUrlWrites = [...streamUrlWrites, { matchId, streamUrl }];
