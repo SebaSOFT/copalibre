@@ -11,6 +11,7 @@ import type { Kysely } from 'kysely';
 import { buildTestApp } from './test-support/integration-harness.js';
 import { PublicProjectionsController } from './public-projections.controller.js';
 import { SchedulesController } from './schedules.controller.js';
+import { StagesController } from './stages.controller.js';
 
 let app: INestApplication;
 let scratch: Awaited<ReturnType<typeof buildTestApp>>['scratch'];
@@ -25,6 +26,7 @@ beforeAll(async () => {
   ({ app, scratch, organizationId, request } = await buildTestApp([
     PublicProjectionsController,
     SchedulesController,
+    StagesController,
   ]));
   const tournaments = new TournamentRepository(scratch.db);
   const descriptor = footballDescriptor({ name: { en: 'Football', es: 'Fútbol' } });
@@ -66,7 +68,12 @@ function abbreviationsFor(index: number): readonly [string, string] {
 
 async function fixtureWithTeams(input: {
   readonly stageNumber: number;
-  readonly withPlayers?: readonly { readonly name: string; readonly hidden?: boolean }[];
+  readonly withPlayers?: readonly {
+    readonly name: string;
+    readonly hidden?: boolean;
+    readonly role?: string;
+  }[];
+  readonly games?: number;
 }) {
   const competition = new CompetitionRepository(scratch.db);
   fixtureCount += 1;
@@ -157,7 +164,7 @@ async function fixtureWithTeams(input: {
           player_id: playerId,
           person_id: personId,
           team_id: homeTeamId,
-          role: 'player',
+          role: player.role ?? 'player',
           created_at: now,
         })
         .execute();
@@ -178,13 +185,20 @@ async function fixtureWithTeams(input: {
       ...actor,
     });
     if (!fixture) throw new Error('Expected one fixture');
-    const match = await competition.createMatch(uow, {
-      fixtureId: fixture.fixtureId,
-      number: 1,
-      organizationId,
-      ...actor,
-    });
-    return { stage, match, homeEntrantId, awayEntrantId, players };
+    const matches = [];
+    for (let number = 1; number <= (input.games ?? 1); number += 1) {
+      matches.push(
+        await competition.createMatch(uow, {
+          fixtureId: fixture.fixtureId,
+          number,
+          organizationId,
+          ...actor,
+        }),
+      );
+    }
+    const match = matches[0];
+    if (!match) throw new Error('Expected a match');
+    return { stage, match, matches, homeEntrantId, awayEntrantId, players, fixtureId: fixture.fixtureId };
   });
 }
 
@@ -282,7 +296,13 @@ describe('public match report timeline', () => {
   it('lists the registered squad of a side with no roster yet, and keeps a hidden person hidden', async () => {
     const { stage } = await fixtureWithTeams({
       stageNumber: 3,
-      withPlayers: [{ name: 'Lucía Gómez' }, { name: 'Hernán Secreto', hidden: true }],
+      withPlayers: [
+        { name: 'Lucía Gómez' },
+        { name: 'Hernán Secreto', hidden: true },
+        { name: 'Carlos Director', role: 'coach' },
+        { name: 'Sofía Utilera', role: 'staff' },
+        { name: 'Julián Suplente', role: 'substitute' },
+      ],
     });
 
     const response = await request({ method: 'GET', url: reportUrl(stage.number) });
@@ -294,13 +314,16 @@ describe('public match report timeline', () => {
       };
     };
 
-    expect(body.registeredSquads?.home).toHaveLength(2);
+    // The two players and the substitute: a coach and a staff member are registered to the team but not on its squad.
+    expect(body.registeredSquads?.home).toHaveLength(3);
     expect(body.registeredSquads?.home?.map((member) => member.name)).toEqual(
-      expect.arrayContaining(['Lucía Gómez']),
+      expect.arrayContaining(['Lucía Gómez', 'Julián Suplente']),
     );
     const hidden = body.registeredSquads?.home?.find((member) => member.hiddenAtRequest === true);
     expect(hidden).toEqual({ hiddenAtRequest: true, publicProfileAvailable: false });
     expect(payload).not.toContain('Hernán Secreto');
+    expect(payload).not.toContain('Carlos Director');
+    expect(payload).not.toContain('Sofía Utilera');
   });
 
   it('round-trips a stream link through the schedule endpoint, refuses an unusable one and audits both', async () => {
@@ -354,6 +377,110 @@ describe('public match report timeline', () => {
       .where('entity_id', '=', match.matchId)
       .execute();
     expect(audited).toHaveLength(2);
+  });
+
+  it('writes a match.stream-url-changed outbox row for a set and for a clear', async () => {
+    const { stage, match } = await fixtureWithTeams({ stageNumber: 6 });
+    const url = `/api/organizations/${ORGANIZATION}/tournaments/${tournament.alias}/stages/${stage.stageId}/schedule/matches/${match.matchId}/stream-url`;
+
+    await request({
+      method: 'PUT',
+      url,
+      token: 'organizer-org1',
+      payload: { streamUrl: 'https://example.org/live/outbox' },
+    });
+    await request({ method: 'PUT', url, token: 'organizer-org1', payload: { streamUrl: null } });
+
+    const rows = await scratch.db
+      .selectFrom('outbox_events')
+      .select(['event_type', 'entity_id', 'payload'])
+      .where('event_type', '=', 'match.stream-url-changed')
+      .where('entity_id', '=', match.matchId)
+      .orderBy('created_at')
+      .execute();
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.payload)).toEqual([
+      expect.objectContaining({ matchId: match.matchId, streamUrl: 'https://example.org/live/outbox' }),
+      expect.objectContaining({ matchId: match.matchId, streamUrl: null }),
+    ]);
+  });
+
+  it('reports each game of a best-of-three on its own page, status and stream link', async () => {
+    const competition = new CompetitionRepository(scratch.db);
+    const { stage, matches, homeEntrantId, awayEntrantId } = await fixtureWithTeams({
+      stageNumber: 7,
+      games: 3,
+    });
+    const [gameOne, gameTwo, gameThree] = matches;
+    if (!gameOne || !gameTwo || !gameThree) throw new Error('Expected three games');
+    const link = (matchId: string) =>
+      `/api/organizations/${ORGANIZATION}/tournaments/${tournament.alias}/stages/${stage.stageId}/schedule/matches/${matchId}/stream-url`;
+    for (const [game, url] of [
+      [gameOne, 'https://example.org/live/game-1'],
+      [gameTwo, 'https://example.org/live/game-2'],
+      [gameThree, 'https://example.org/live/game-3'],
+    ] as const) {
+      const saved = await request({
+        method: 'PUT',
+        url: link(game.matchId),
+        token: 'organizer-org1',
+        payload: { streamUrl: url },
+      });
+      expect(saved.statusCode).toBe(200);
+    }
+    await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      await competition.recordResult(uow, {
+        matchId: gameThree.matchId,
+        result: {
+          sides: [
+            { entrantId: homeEntrantId, statistics: { goals: 2 } },
+            { entrantId: awayEntrantId, statistics: { goals: 0 } },
+          ],
+          recordedAt: '2026-01-02T01:00:00.000Z',
+        },
+        organizationId,
+        ...actor,
+      });
+    });
+
+    // The fixture's page is its stage ordinal; `game` selects one of its three games.
+    const reportFor = async (game: number) =>
+      JSON.parse(
+        (await request({ method: 'GET', url: `${reportUrl(stage.number)}?game=${game}` }))
+          .payload as string,
+      ) as { status: string; streamUrl?: string; matchNumber: number };
+
+    expect(await reportFor(3)).toMatchObject({
+      status: 'final',
+      streamUrl: 'https://example.org/live/game-3',
+    });
+    expect(await reportFor(1)).toMatchObject({
+      status: 'upcoming',
+      streamUrl: 'https://example.org/live/game-1',
+    });
+    expect(await reportFor(2)).toMatchObject({
+      status: 'upcoming',
+      streamUrl: 'https://example.org/live/game-2',
+    });
+    expect((await reportFor(4)).matchNumber).toBeUndefined();
+
+    // The stage fixtures response carries each game's own link, so the builder can show all three.
+    const fixtures = JSON.parse(
+      (
+        await request({
+          method: 'GET',
+          url: `/api/organizations/${ORGANIZATION}/tournaments/${tournament.alias}/stages/${stage.number}/fixtures`,
+          token: 'organizer-org1',
+        })
+      ).payload as string,
+    ) as { fixtures: { matches: { matchId: string; streamUrl?: string }[] }[] };
+    expect(
+      fixtures.fixtures.flatMap((fixture) => fixture.matches.map((game) => game.streamUrl)),
+    ).toEqual([
+      'https://example.org/live/game-1',
+      'https://example.org/live/game-2',
+      'https://example.org/live/game-3',
+    ]);
   });
 
   it('refuses a stream link from a caller without a token', async () => {

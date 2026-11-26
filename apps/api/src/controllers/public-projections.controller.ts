@@ -930,13 +930,21 @@ export class PublicProjectionsController {
 
   @Get('stages/:stageNumber/matches/:matchNumber')
   @SecurityPlaneTag('public-read')
-  @ApiOperation({ summary: 'Public report for one match' })
+  @ApiOperation({
+    summary: 'Public report for one match',
+    description:
+      'A series fixture has one stage number and one page; `game` selects one of its games (1-based, ' +
+      'play order), and the report then carries that game’s own status, roster and stream link. ' +
+      'Without it the report is the fixture’s first game.',
+  })
+  @ApiQuery({ name: 'game', required: false, type: Number, description: 'Game number within the fixture' })
   @ApiOkResponse({ type: PublicMatchReportResponse })
   async matchReport(
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageNumber') stageNumberValue: string,
     @Param('matchNumber') matchNumberValue: string,
+    @Query('game') gameValue?: string,
   ): Promise<PublicMatchReportResponse> {
     const { tournament, organizationName, organizationTimeZone } =
       await this.resolvePublishedTournament(organizationAlias, tournamentAlias);
@@ -973,6 +981,24 @@ export class PublicProjectionsController {
         errorCode: 'public-projection-not-found',
       });
 
+    // A series fixture carries several games: `game` picks one, and the default is the first.
+    const gameNumber = gameValue === undefined ? undefined : Number(gameValue);
+    if (
+      gameNumber !== undefined &&
+      (!Number.isSafeInteger(gameNumber) || gameNumber < 1)
+    ) {
+      throw new NotFoundException({ errorCode: 'public-projection-not-found' });
+    }
+    const game =
+      gameNumber === undefined
+        ? targetRecord.games[0]
+        : targetRecord.games.find((candidate) => candidate.number === gameNumber);
+    if (gameNumber !== undefined && !game)
+      throw new NotFoundException(`No game ${gameValue} in match ${matchNumberValue}`, {
+        errorCode: 'public-projection-not-found',
+      });
+    const gameMatchId = game?.matchId ?? targetRecord.matchId;
+
     const fixtureSources = await readFixtureSources(this.db, stage.stageId);
 
     const match = await this.db
@@ -989,8 +1015,7 @@ export class PublicProjectionsController {
         'fixtures.home_entrant_id',
         'fixtures.away_entrant_id',
       ])
-      // A series has one fixture and several games: the page shows this game, not the fixture's first.
-      .where('matches.match_id', '=', targetRecord.matchId)
+      .where('matches.match_id', '=', gameMatchId)
       .executeTakeFirst();
     if (!match)
       throw new NotFoundException(`No match ${matchNumberValue} in stage ${stageNumberValue}`, {
