@@ -276,24 +276,18 @@ const counterSides = [
   }
 
   .cl-scoreboard {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-    margin: 1rem 0;
+    gap: var(--cl-space-6);
+    margin: var(--cl-space-4) 0;
   }
 
   .cl-scoreboard__side {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    flex: 1;
-    /* No `min-width: 0` here: that would let this
-       side shrink and squeeze its own content instead of wrapping to its own
-       line, which is what `.cl-scoreboard`'s `flex-wrap` is there to do at
-       the 188px floor. */
-    min-width: max-content;
+    gap: var(--cl-space-4);
+    min-width: 0;
   }
 
   .cl-scoreboard__side--home {
@@ -308,6 +302,8 @@ const counterSides = [
     font-size: 1.5rem;
     font-weight: 700;
     font-family: var(--cl-font-display);
+    /* A name breaks between words; a single word wider than its column breaks only as a last resort. */
+    overflow-wrap: anywhere;
   }
 
   .cl-team-name__link {
@@ -328,10 +324,12 @@ const counterSides = [
 
   .cl-scoreboard__side--home .cl-team-identity {
     align-items: flex-end;
+    text-align: end;
   }
 
   .cl-scoreboard__side--away .cl-team-identity {
     align-items: flex-start;
+    text-align: start;
   }
 
   .cl-team-abbreviation {
@@ -371,6 +369,72 @@ const counterSides = [
 
   .cl-scoreboard__side--eliminated .cl-team-score {
     color: var(--cl-text-muted);
+  }
+
+  @media (width < 768px) {
+    .cl-team-name {
+      font-size: var(--cl-font-size-lg);
+    }
+
+    .cl-scoreboard {
+      grid-template-rows: auto auto;
+      column-gap: var(--cl-space-3);
+      row-gap: var(--cl-space-1);
+    }
+
+    /* The sides stop being boxes: their identity and score become grid items, so the
+       identity row and the score row line up across both sides. Identity sits above the score. */
+    .cl-scoreboard__side {
+      display: contents;
+    }
+
+    .cl-scoreboard__side > .cl-team-identity {
+      grid-row: 1;
+    }
+
+    .cl-scoreboard__side > .cl-team-score {
+      grid-row: 2;
+    }
+
+    .cl-scoreboard__side--home > * {
+      grid-column: 1;
+      justify-self: end;
+      text-align: end;
+    }
+
+    .cl-scoreboard__side--away > * {
+      grid-column: 3;
+      justify-self: start;
+      text-align: start;
+    }
+
+    /* The divider sits on the score row, between the two scores it separates. */
+    .cl-scoreboard__divider {
+      grid-column: 2;
+      grid-row: 2;
+      align-self: center;
+    }
+  }
+
+  /* The narrowest screens (the 200% text-size floor): three-digit scores and both names still fit. */
+  @media (width < 375px) {
+    .cl-match-hero {
+      padding: var(--cl-space-4);
+    }
+
+    .cl-scoreboard {
+      column-gap: var(--cl-space-2);
+    }
+
+    /* Columns this narrow split words, so a split falls on a syllable with a hyphen. */
+    .cl-team-name {
+      font-size: var(--cl-font-size-md);
+      hyphens: auto;
+    }
+
+    .cl-team-score {
+      font-size: var(--cl-font-size-xl);
+    }
   }
 
   .cl-match-stakes {
