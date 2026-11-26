@@ -6,6 +6,7 @@
  */
 import type { IntlShape } from 'react-intl';
 import EmblemImage from '../atoms/EmblemImage.astro';
+import { sideMarkerOf } from '../../../lib/side-marker.ts';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import {
@@ -94,32 +95,46 @@ const scoreText = (score: readonly [number, number]): string =>
               const gameTime = gameTimeOf(event);
               return (
                 <div class="cl-timeline-entry" data-side={side}>
-                  {sideModel &&
-                    (sideModel.crestSrc ? (
-                      <span class="cl-timeline-side" title={sideModel.name}>
-                        <EmblemImage
-                          src={sideModel.crestSrc}
-                          alt={sideModel.name}
-                          placeholderAlt={sideModel.name}
-                          abbreviation={sideModel.abbreviation}
-                          size={24}
-                          decorative={true}
-                        />
-                        <span class="cl-timeline-side__name">
-                          {sideModel.abbreviation ?? sideModel.name}
-                        </span>
+                  {sideModel && sideMarkerOf(sideModel).kind === 'crest' && (
+                    <span class="cl-timeline-side" title={sideModel.name}>
+                      <EmblemImage
+                        src={sideModel.crestSrc}
+                        alt={sideModel.name}
+                        placeholderAlt={sideModel.name}
+                        abbreviation={sideModel.abbreviation}
+                        size={24}
+                        decorative={true}
+                      />
+                      <span class="cl-timeline-side__name">
+                        {sideModel.abbreviation ?? sideModel.name}
                       </span>
-                    ) : (
-                      <span class="cl-timeline-side" title={sideModel.name}>
-                        {/* No crest: the monogram tile carries the abbreviation, so the text is not repeated. */}
-                        <EmblemImage
-                          alt={sideModel.name}
-                          placeholderAlt={sideModel.name}
-                          abbreviation={sideModel.abbreviation}
-                          size={24}
-                        />
+                    </span>
+                  )}
+                  {sideModel && sideMarkerOf(sideModel).kind === 'monogram' && (
+                    /* No crest: the monogram tile carries the abbreviation, so the text is not repeated. */
+                    <span class="cl-timeline-side" title={sideModel.name}>
+                      <EmblemImage
+                        alt={sideModel.name}
+                        placeholderAlt={sideModel.name}
+                        abbreviation={sideModel.abbreviation}
+                        size={24}
+                      />
+                    </span>
+                  )}
+                  {sideModel && sideMarkerOf(sideModel).kind === 'icon-text' && (
+                    /* No crest and no monogram: the shield and the side's own text tell the sides apart. */
+                    <span class="cl-timeline-side" title={sideModel.name}>
+                      <EmblemImage
+                        alt={sideModel.name}
+                        placeholderAlt={sideModel.name}
+                        size={24}
+                        decorative={true}
+                      />
+                      <span class="cl-timeline-side__name">
+                        {sideModel.abbreviation ?? sideModel.name}
                       </span>
-                    ))}
+                    </span>
+                  )}
                   {gameTime && <span class="cl-timeline-time">{gameTime}</span>}
                   <span class="cl-timeline-label">{event.label}</span>
                   {event.actor ? <span class="cl-timeline-actor">· {event.actor}</span> : null}

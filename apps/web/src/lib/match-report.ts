@@ -201,32 +201,69 @@ type RegisteredSquadMember = NonNullable<
 >[number];
 
 /**
- * The timeline, in match order. Every segment of the match opens with a start marker, whether or not it
- * has events, and a completed segment closes with an end marker that carries its own score. An in-progress
- * segment has only its start marker. An event without a segment number does not open or close anything: it
- * stays where its sequence puts it, inside whichever segment is open.
+ * The timeline, in match order. Each segment that has been played, or is being played, opens with a start
+ * marker. A completed segment closes with an end marker carrying its own score; an in-progress one has
+ * only its start marker. A planned segment that has not started (pending) is never shown, and a match with
+ * no events yet has the empty state rather than markers.
+ *
+ * Events are ordered by segment and then by sequence, so an event recorded late for an earlier segment
+ * sits inside that segment. An event without a segment number belongs to the segment of the event before
+ * it, so it stays in its place in sequence and never opens or closes a segment.
  */
 function buildReportTimeline(
   rows: PublicMatchReportResponse['timeline'],
   context: TimelineContext,
 ): readonly MatchReportTimelineGroup[] {
-  const groups: {
+  if (rows.length === 0) return [];
+
+  const grouped: {
     readonly kind: MatchReportTimelineGroup['kind'];
     readonly events: MatchReportTimelineEvent[];
+    readonly sequence: number;
+    readonly segmentNumber: number | undefined;
   }[] = [];
   for (let index = 0; index < rows.length; index += 1) {
     const event = rows[index];
     const next = rows[index + 1];
     const eventView = timelineEvent(event, context);
+    const segmentNumber = event.segmentNumber;
     if (next && event.workflowOutcomeCodes?.includes(next.definitionCode)) {
-      groups.push({ kind: 'workflow', events: [eventView, timelineEvent(next, context)] });
+      grouped.push({
+        kind: 'workflow',
+        events: [eventView, timelineEvent(next, context)],
+        sequence: event.sequence,
+        segmentNumber,
+      });
       index += 1;
     } else {
-      groups.push({ kind: 'single', events: [eventView] });
+      grouped.push({
+        kind: 'single',
+        events: [eventView],
+        sequence: event.sequence,
+        segmentNumber,
+      });
     }
   }
 
-  const segments = [...context.segments.values()].sort((a, b) => a.number - b.number);
+  // An unsegmented group takes the segment of the group before it, in sequence order.
+  let carried: number | undefined;
+  const placed = grouped.map((group) => {
+    if (group.segmentNumber !== undefined) carried = group.segmentNumber;
+    return { ...group, segment: group.segmentNumber ?? carried };
+  });
+  const segmentKey = (segment: number | undefined) => segment ?? Number.NEGATIVE_INFINITY;
+  const ordered = [...placed].sort((a, b) =>
+    segmentKey(a.segment) === segmentKey(b.segment)
+      ? a.sequence - b.sequence
+      : segmentKey(a.segment) < segmentKey(b.segment)
+        ? -1
+        : 1,
+  );
+
+  // Only segments that have started are shown: a pending segment is a planned one that has not begun.
+  const segments = [...context.segments.values()]
+    .filter((segment) => segment.state !== 'pending')
+    .sort((a, b) => a.number - b.number);
   const timeline: MatchReportTimelineGroup[] = [];
   let cursor = 0;
   let open: PublicSegmentSummary | undefined;
@@ -244,8 +281,7 @@ function buildReportTimeline(
     }
     open = undefined;
   };
-  // Opens every segment up to `number` in order, each with its start marker, and closes the one before.
-  // Without a number it opens the rest, so a trailing segment without events is still marked.
+  // Opens every started segment up to `number` in order, closing the one before each.
   const openThrough = (number: number | undefined) => {
     while (
       cursor < segments.length &&
@@ -264,9 +300,8 @@ function buildReportTimeline(
     }
   };
 
-  for (const group of groups) {
-    const segmentNumber = group.events[0]?.segmentNumber;
-    if (segmentNumber !== undefined) openThrough(segmentNumber);
+  for (const group of ordered) {
+    if (group.segment !== undefined) openThrough(group.segment);
     timeline.push({ kind: group.kind, events: group.events });
   }
   openThrough(undefined);

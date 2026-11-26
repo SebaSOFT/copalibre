@@ -804,6 +804,83 @@ describe('buildMatchReport timeline', () => {
     expect(model.timeline.filter((group) => group.kind === 'segment-end')).toHaveLength(1);
   });
 
+  it('does not open a planned second half of a live match that has only its first half in play', () => {
+    const response: PublicMatchReportResponse = {
+      ...report(),
+      status: 'live',
+      homeEntrantId: 'entrant-home',
+      awayEntrantId: 'entrant-away',
+      segments: [seg(1, 'active'), seg(2, 'pending')],
+      timeline: [goal('goal-first', 1, 1)],
+    };
+
+    expect(kinds(build(response))).toEqual(['segment-start:1', 'single']);
+  });
+
+  it('does not open the planned sets of a best-of-five ended 3-0', () => {
+    const sets = [1, 2, 3, 4, 5].map((number) =>
+      number <= 3
+        ? seg(number, 'completed', number === 1 ? [1, 0] : [1, 0])
+        : seg(number, 'pending'),
+    );
+    const response: PublicMatchReportResponse = {
+      ...report(),
+      status: 'final',
+      homeEntrantId: 'entrant-home',
+      awayEntrantId: 'entrant-away',
+      segments: sets,
+      timeline: [goal('set-one', 1, 1), goal('set-two', 2, 2), goal('set-three', 3, 3)],
+    };
+
+    const names = kinds(build(response));
+    expect(names.filter((name) => name.includes('segment-start'))).toEqual([
+      'segment-start:1',
+      'segment-start:2',
+      'segment-start:3',
+    ]);
+    expect(names.some((name) => name.endsWith(':4') || name.endsWith(':5'))).toBe(false);
+  });
+
+  it('gives a live match with no events yet the empty state, not a lone start marker', () => {
+    const response: PublicMatchReportResponse = {
+      ...report(),
+      status: 'live',
+      homeEntrantId: 'entrant-home',
+      awayEntrantId: 'entrant-away',
+      segments: [seg(1, 'active')],
+      timeline: [],
+    };
+
+    expect(build(response).timeline).toEqual([]);
+  });
+
+  it('places an event recorded late for an earlier half inside that half', () => {
+    const response: PublicMatchReportResponse = {
+      ...report(),
+      homeEntrantId: 'entrant-home',
+      awayEntrantId: 'entrant-away',
+      segments: [seg(1, 'completed', [1, 0]), seg(2, 'completed', [1, 0])],
+      timeline: [
+        goal('h1-goal', 1, 1),
+        goal('h2-goal', 2, 2),
+        { ...goal('h1-card', 1, 3), definitionCode: 'card', label: 'Card' },
+      ],
+    };
+
+    expect(kinds(build(response))).toEqual([
+      'segment-start:1',
+      'single',
+      'single',
+      'segment-end:1:1-0',
+      'segment-start:2',
+      'single',
+      'segment-end:2:1-0',
+    ]);
+    const model = build(response);
+    expect(model.timeline[1]?.events[0]?.eventId).toBe('h1-goal');
+    expect(model.timeline[2]?.events[0]?.eventId).toBe('h1-card');
+  });
+
   it('names a segment with no descriptor label with the generic segment word, never its code', () => {
     const response: PublicMatchReportResponse = {
       ...report(),
