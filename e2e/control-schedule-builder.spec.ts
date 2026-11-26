@@ -768,7 +768,7 @@ test('sets, refuses and clears a match stream link from the match row', async ({
   await page.getByLabel('Enlace de transmisión').fill('ftp://example.org/stream');
   await page.getByRole('button', { name: 'Guardar enlace' }).click();
   await expect(page.getByRole('alert')).toContainText(
-    'Ingresá un enlace completo que empiece con http:// o https://',
+    'Ingresá un enlace completo, de hasta 2048 caracteres, que empiece con http:// o https://',
   );
   expect(streamUrlWrites).toEqual([]);
 
