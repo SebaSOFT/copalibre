@@ -31,7 +31,7 @@ import {
   compileEffectiveRuleset,
   validateZoneFormat,
 } from '@copalibre/domain';
-import { assertAllocationRequestComplete } from '../controllers/stages.controller.js';
+import { assertAllocationRequestComplete } from '../stages/create-stage.js';
 import { validateCustomScripts } from './custom-scripts.js';
 import { zoneSeriesOverrides } from '../controllers/stage-series.js';
 
