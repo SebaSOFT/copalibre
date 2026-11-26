@@ -63,7 +63,7 @@ describe('TvMatchCounters', () => {
     expect(away?.querySelector('.tv-match-counter-cluster__side')?.textContent).toBe('RIV');
     expect(home?.querySelectorAll('.tv-match-counter-cluster__side')).toHaveLength(1);
     expect(home?.querySelector('.tv-match-counter')?.textContent).toBe(
-      'F 4!Boca Juniors, Faltas de equipo: 4 (en advertencia)',
+      'F 4!Boca Juniors, Faltas de equipo: 4, en advertencia',
     );
     expect(away?.querySelector('.tv-match-counter')?.textContent).toBe(
       'F 1River Plate, Faltas de equipo: 1',

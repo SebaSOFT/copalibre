@@ -1,4 +1,4 @@
-import { isCountedEvent, matchCounterView, type MatchCounterTexts } from './match-counters.js';
+import { matchCounterView, type MatchCounterTexts } from './match-counters.js';
 import type { LiveMatchCounter } from './live-state.js';
 
 const TEXTS: MatchCounterTexts = {
@@ -46,7 +46,7 @@ describe('matchCounterView', () => {
   it('shows value over allowance and reads it in words', () => {
     const [, timeouts] = matchCounterView([FOULS, TIMEOUTS], SIDES, 'en', TEXTS);
     expect(timeouts?.sides[0]?.compactText).toBe('TM 1/1');
-    expect(timeouts?.sides[1]?.accessibleName).toBe('Timeouts: 2 of 1 (warning)');
+    expect(timeouts?.sides[1]?.accessibleName).toBe('Timeouts: 2 of 1, warning');
   });
 
   it('warns at warnAt and, without one, at the allowance', () => {
@@ -65,17 +65,5 @@ describe('matchCounterView', () => {
     const [fouls] = matchCounterView([FOULS], [{ entrantId: 'nobody' }], 'en', TEXTS);
     expect(fouls?.sides[0]?.value).toBe(0);
     expect(matchCounterView(undefined, SIDES, 'en', TEXTS)).toEqual([]);
-  });
-});
-
-describe('isCountedEvent', () => {
-  const match = { counters: [FOULS, TIMEOUTS] };
-
-  it('is true only for a recorded event a counter tallies', () => {
-    expect(isCountedEvent(match, 'match.event-recorded', 'team-foul')).toBe(true);
-    expect(isCountedEvent(match, 'match.event-recorded', 'goal')).toBe(false);
-    expect(isCountedEvent(match, 'match.clock-changed', 'team-foul')).toBe(false);
-    expect(isCountedEvent(undefined, 'match.event-recorded', 'team-foul')).toBe(false);
-    expect(isCountedEvent(match, 'match.event-recorded', undefined)).toBe(false);
   });
 });

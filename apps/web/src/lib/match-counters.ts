@@ -1,5 +1,5 @@
 import { resolveLabel, type SupportedLanguage } from '@copalibre/domain';
-import type { LiveMatch, LiveMatchCounter } from './live-state.js';
+import type { LiveMatchCounter } from './live-state.js';
 import { applyTemplate } from './matches-view.js';
 
 /** Catalogue templates a counter reads through, in the page language. */
@@ -71,23 +71,10 @@ export function matchCounterView(
           valueText,
           compactText: `${shortLabel} ${valueText}`,
           fullText: `${label} ${valueText}`,
-          accessibleName: warning ? `${words} (${texts.warning})` : words,
+          accessibleName: warning ? `${words}, ${texts.warning}` : words,
           warning,
         };
       }),
     };
   });
-}
-
-/**
- * Whether a recorded event changes a counter of this match. Only a counted event needs a projection
- * refresh; the event itself never increments a tally on the client.
- */
-export function isCountedEvent(
-  match: Pick<LiveMatch, 'counters'> | undefined,
-  eventType: string,
-  definitionCode: unknown,
-): boolean {
-  if (eventType !== 'match.event-recorded' || typeof definitionCode !== 'string') return false;
-  return (match?.counters ?? []).some((counter) => counter.events.includes(definitionCode));
 }

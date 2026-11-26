@@ -5,7 +5,7 @@ import type { PreviousPlacement } from '../../lib/reschedule.js';
 import { useEffect, useMemo, useRef, useState, useCallback, type RefObject } from 'react';
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 import { resolveLabel, type SupportedLanguage } from '@copalibre/domain';
-import { RealtimeClient } from '@copalibre/realtime';
+import { RealtimeClient, type EventEnvelope } from '@copalibre/realtime';
 import {
   acceptEntrantResolution,
   applyEvent,
@@ -18,7 +18,6 @@ import {
   type BroadcastAlertItem,
 } from './ui/organisms/BroadcastAlertBanner.js';
 import { resolveLiveTvMatchEvent } from '../../lib/tv-match-events.js';
-import { isCountedEvent } from '../../lib/match-counters.js';
 import { createCounterRefreshGate, type CounterRefreshGate } from '../../lib/counter-refresh.js';
 import { isDelayed } from '../../lib/match-state.js';
 import {
@@ -105,6 +104,13 @@ export type { TvClubItem, TvDashboardLabels, TvWinnerZone } from './tv-types.js'
  */
 export type TvPresentation = 'kiosk' | 'scorebug' | 'lower' | 'full';
 export type TvLayoutVariant = 'kiosk' | 'presentation' | 'dashboard';
+
+/** A stream event that is waiting for the projection that carries it, for its event ticker entry. */
+interface TickerQueueItem {
+  readonly event: EventEnvelope;
+  readonly before: LiveMatch;
+  readonly eventMatchId: string;
+}
 
 export interface TvDashboardProps {
   readonly initial: LiveDashboard;
@@ -625,20 +631,30 @@ export function TvDashboard({
     return () => window.clearInterval(pollTimer);
   }, [pollIntervalMs, refreshProjection]);
 
-  // A recorded event that a match counter tallies asks for a projection refresh. The refresh reloads the
-  // whole tournament, so one gate caps it at once a second for the client. The client never increments a
+  // Every projection refresh that a stream event or a recorded counter asks for goes through this one
+  // gate: the first request runs at once and a burst coalesces into one trailing refresh, so the client
+  // makes at most about one refresh a second, whatever the event rate. The refresh reloads the whole
+  // tournament. The poll below is a timer (every 15 s) and stays direct. The client never increments a
   // counter itself: the server's tally is the one shown.
-  const liveMatchesRef = useRef<readonly LiveMatch[]>([]);
-  const counterRefresh = useRef<CounterRefreshGate | null>(null);
+  const projectionRefresh = useRef<CounterRefreshGate | null>(null);
+  // Stream events whose ticker entry waits for the refresh that will carry them, and the function that
+  // publishes an entry once one arrives.
+  const tickerQueue = useRef<TickerQueueItem[]>([]);
+  const tickerDrain = useRef<
+    ((item: TickerQueueItem, updated: readonly LiveMatch[]) => void) | null
+  >(null);
   useEffect(() => {
-    liveMatchesRef.current = dashboard.matches;
-  }, [dashboard.matches]);
-  useEffect(() => {
-    const gate = createCounterRefreshGate(() => void refreshProjection());
-    counterRefresh.current = gate;
+    const gate = createCounterRefreshGate(() => {
+      const batch = tickerQueue.current.splice(0);
+      void refreshProjection().then((updated) => {
+        if (updated === undefined) return;
+        for (const item of batch) tickerDrain.current?.(item, updated);
+      });
+    });
+    projectionRefresh.current = gate;
     return () => {
       gate.dispose();
-      counterRefresh.current = null;
+      projectionRefresh.current = null;
     };
   }, [refreshProjection]);
 
@@ -655,6 +671,44 @@ export function TvDashboard({
     // Case B: Token is present. Layer SSE client on top
     const streamUrl = new URL(streamPath, window.location.origin);
     streamUrl.searchParams.set('surface', presentation === 'kiosk' ? 'kiosk' : 'overlay');
+    // One event's ticker entry and alerts, computed from a projection that holds the event.
+    const publishTicker = (item: TickerQueueItem, updated: readonly LiveMatch[]) => {
+      const { event, before, eventMatchId } = item;
+      const after = updated.find((match) => match.matchId === eventMatchId);
+      if (!after) return;
+      const resolved = resolveLiveTvMatchEvent(
+        { eventId: event.eventId, payload: event.payload },
+        {
+          homeEntrantId: after.sides[0]?.entrantId,
+          awayEntrantId: after.sides[1]?.entrantId,
+          actors: rosterActorsByMatchId?.[eventMatchId] ?? rosterActors ?? {},
+          labelsByCode: eventLabelsByCode,
+        },
+      );
+      if (!resolved) return;
+      setLiveMatchEventsById((current) => {
+        const events = current[eventMatchId] ?? [];
+        return events.some((item) => item.eventId === resolved.eventId)
+          ? current
+          : { ...current, [eventMatchId]: [...events, resolved] };
+      });
+      if (pinnedRef !== undefined && findPinnedMatch([after], pinnedRef)) {
+        setLiveMatchEvents((current) =>
+          current.some((item) => item.eventId === resolved.eventId)
+            ? current
+            : [...current, resolved],
+        );
+      }
+      if (!showBroadcastAlerts || pinnedRef === undefined || !findPinnedMatch([after], pinnedRef))
+        return;
+      const scoring = after.sides.some((side, index) => side.score !== before.sides[index]?.score);
+      setAlertQueue((current) => [
+        ...current,
+        { event: resolved, kind: scoring ? 'scoring' : 'notable' },
+      ]);
+    };
+    tickerDrain.current = publishTicker;
+
     const client = new RealtimeClient({
       url: streamUrl.pathname + streamUrl.search,
       accessToken: () => token,
@@ -668,7 +722,8 @@ export function TvDashboard({
       },
       onEvent: (event) => {
         if (event.eventType === 'fixture.entrant-resolved') {
-          if (acceptEntrantResolution(entrantVersions.current, event)) void refreshProjection();
+          if (acceptEntrantResolution(entrantVersions.current, event))
+            projectionRefresh.current?.request();
           return;
         }
         if (event.eventType === 'match.rescheduled' || event.eventType === 'match.anulled') {
@@ -714,18 +769,6 @@ export function TvDashboard({
             ),
           );
         }
-        const countedMatchId =
-          typeof event.payload.matchId === 'string' ? event.payload.matchId : undefined;
-        if (
-          countedMatchId !== undefined &&
-          isCountedEvent(
-            liveMatchesRef.current.find((match) => match.matchId === countedMatchId),
-            event.eventType,
-            event.payload.definitionCode,
-          )
-        ) {
-          counterRefresh.current?.request();
-        }
         setDashboard((current) => applyEvent(current, event));
         const eventMatchId =
           event.eventType === 'match.event-recorded' && typeof event.payload.matchId === 'string'
@@ -735,57 +778,19 @@ export function TvDashboard({
           eventMatchId === undefined
             ? undefined
             : dashboardRef.current.matches.find((match) => match.matchId === eventMatchId);
-        void refreshProjection().then((updated) => {
-          if (event.eventType !== 'match.event-recorded' || !before || !updated || !eventMatchId) {
-            return;
-          }
-          const after = updated.find((m) => m.matchId === eventMatchId);
-          if (!after) return;
-          const resolved = resolveLiveTvMatchEvent(
-            { eventId: event.eventId, payload: event.payload },
-            {
-              homeEntrantId: after.sides[0]?.entrantId,
-              awayEntrantId: after.sides[1]?.entrantId,
-              actors: rosterActorsByMatchId?.[eventMatchId] ?? rosterActors ?? {},
-              labelsByCode: eventLabelsByCode,
-            },
-          );
-          if (!resolved) return;
-          setLiveMatchEventsById((current) => {
-            const events = current[eventMatchId] ?? [];
-            return events.some((item) => item.eventId === resolved.eventId)
-              ? current
-              : { ...current, [eventMatchId]: [...events, resolved] };
-          });
-          if (pinnedRef !== undefined && findPinnedMatch([after], pinnedRef)) {
-            setLiveMatchEvents((current) =>
-              current.some((item) => item.eventId === resolved.eventId)
-                ? current
-                : [...current, resolved],
-            );
-          }
-          if (
-            !showBroadcastAlerts ||
-            pinnedRef === undefined ||
-            !findPinnedMatch([after], pinnedRef)
-          )
-            return;
-          const scoring = after.sides.some(
-            (side, index) => side.score !== before.sides[index]?.score,
-          );
-          setAlertQueue((current) => [
-            ...current,
-            { event: resolved, kind: scoring ? 'scoring' : 'notable' },
-          ]);
-        });
+        if (event.eventType === 'match.event-recorded' && before && eventMatchId) {
+          // The event's ticker entry waits for a projection that holds the event (see the gate below).
+          tickerQueue.current.push({ event, before, eventMatchId });
+        }
+        projectionRefresh.current?.request();
       },
       // DO NOT RELOAD PAGE ON PROJECTION REQUIRED. Refresh in-memory projection instead
       onProjectionRequired: () => {
-        void refreshProjection();
+        projectionRefresh.current?.request();
       },
       onFailure: () => {
         setProjectionStale(true);
-        void refreshProjection();
+        projectionRefresh.current?.request();
       },
     });
 
@@ -1228,12 +1233,15 @@ export function TvDashboard({
           possessionLabel={dashboardLabels.possession}
           penaltyLabel={dashboardLabels.penalty}
         />
-        <TvMatchCounters
-          density="compact"
-          language={language}
-          match={spotlightMatch}
-          texts={dashboardLabels.counters}
-        />
+        {/* On the pinned route the spotlight shows the counters in full, so the header omits them. */}
+        {pinnedRef === undefined && (
+          <TvMatchCounters
+            density="compact"
+            language={language}
+            match={spotlightMatch}
+            texts={dashboardLabels.counters}
+          />
+        )}
         <TvStatusBadge label={statusBadge.label} tone={statusBadge.type} />
         {spotlightClock && (
           <LiveMatchClock

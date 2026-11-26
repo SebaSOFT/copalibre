@@ -128,10 +128,11 @@ export interface SnapshotScore {
 
 /**
  * A match that was live and is no longer in the live projection (it finished, or the projection dropped
- * it) takes its state and score from the matches view, when that has an entry for it. Whatever the
- * source, it has left play: its penalties go, and so do its segment counters, which have no segment in
- * play. Its match-scope counters stay as the final totals. A match the live projection still lists, or
- * one that was never live, is returned as it is.
+ * it) takes its state and score from the matches view, and with them it has left play: its penalties go,
+ * and so do its segment counters, which have no segment in play. Its match-scope counters stay as the
+ * final totals. A match with no entry in the matches view is returned as it is, since nothing is known
+ * about it. A match the live projection still lists, one the matches view reports live, or one that was
+ * never live is returned as it is too.
  */
 export function settleLeftLive(
   matches: readonly LiveMatch[],
@@ -143,10 +144,8 @@ export function settleLeftLive(
     const settled = snapshot.get(match.matchId);
     // The matches view still reports it live: it is playing, so its telemetry stays.
     if (settled?.state === 'live') return match;
-    const hasLiveFacts =
-      match.activePenalties !== undefined ||
-      (match.counters ?? []).some((counter) => counter.scope === 'segment');
-    if (settled === undefined && !hasLiveFacts) return match;
+    // No entry in the matches view (its fetch failed, or it does not list the match): nothing is known.
+    if (settled === undefined) return match;
     const updated: { -readonly [K in keyof LiveMatch]: LiveMatch[K] } = { ...match };
     if (settled !== undefined) {
       updated.state = settled.state;

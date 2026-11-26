@@ -263,7 +263,7 @@ test('kiosk shows each counter per side, and a counter at its warning value carr
   // Four fouls against a warning value of three: the home counter is in warning.
   const warning = page.locator('.tv-match-counter--warning').first();
   await expect(warning).toContainText('!');
-  await expect(warning).toContainText('Team fouls: 4 (warning)');
+  await expect(warning).toContainText('Team fouls: 4, warning');
 });
 
 test("lower third shows each side's counters under its name", async ({ page }) => {
@@ -366,4 +366,38 @@ test('a counted recording updates the scorebug counter well before the poll', as
     2,
   );
   await expect(counters).toContainText('F 2', { timeout: 3000 });
+});
+
+test('a burst of counted events makes at most about two projection refreshes a second, and the final tally arrives', async ({
+  page,
+}) => {
+  test.setTimeout(30_000);
+  await mockControllableTvStream(page);
+  live = liveMatchWithCounters(1, 1);
+  const liveRequests: number[] = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname.endsWith('/live')) liveRequests.push(Date.now());
+  });
+  await gotoTv(page, `${TV_PATH}?token=kiosk-token`);
+  const counters = page.locator('.tv-match-counters').first();
+  await expect(counters).toContainText('F 1');
+
+  const before = liveRequests.length;
+  live = liveMatchWithCounters(1, 10);
+  for (let version = 2; version <= 11; version += 1) {
+    await pushTvEvent(
+      page,
+      'match.event-recorded',
+      {
+        matchId: 'live-match-1',
+        definitionCode: 'team-foul',
+        side: HOME_ID,
+        occurredAt: new Date().toISOString(),
+      },
+      version,
+    );
+  }
+  await expect(counters).toContainText('F 10', { timeout: 3000 });
+  await page.waitForTimeout(1200);
+  expect(liveRequests.length - before).toBeLessThanOrEqual(3);
 });
